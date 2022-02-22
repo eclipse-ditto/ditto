@@ -46,6 +46,8 @@ import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.ThingsModelFactory;
 import org.eclipse.ditto.things.model.signals.events.ThingCreated;
 import org.eclipse.ditto.thingsearch.api.UpdateReason;
+import org.eclipse.ditto.thingsearch.api.commands.sudo.UpdateThing;
+import org.eclipse.ditto.thingsearch.service.persistence.BulkWriteComplete;
 import org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.AbstractWriteModel;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.Metadata;
@@ -75,7 +77,6 @@ import akka.cluster.pubsub.DistributedPubSubMediator;
 import akka.stream.testkit.TestPublisher;
 import akka.testkit.TestProbe;
 import akka.testkit.javadsl.TestKit;
-import scala.concurrent.duration.FiniteDuration;
 
 /**
  * Unit test for {@link ThingUpdater}.
@@ -231,7 +232,7 @@ public final class ThingUpdaterTest {
         new TestKit(actorSystem) {{
             final Props props = Props.create(ThingUpdater.class,
                     () -> new ThingUpdater(pubSubTestProbe.ref(), changeQueueTestProbe.ref(), 0.0,
-                            Duration.ofMinutes(1), 0.0, mongoClientExtension, false, true,
+                            Duration.ZERO, 0.0, mongoClientExtension, false, true,
                             writeModel -> {}));
             final var underTest = childActorOf(props, THING_ID.toString());
 
@@ -248,6 +249,7 @@ public final class ThingUpdaterTest {
             underTest.tell(writeModel, ActorRef.noSender());
 
             // WHEN: updater is requested to compute incremental update against the same write model
+            underTest.tell(UpdateThing.of(THING_ID, UpdateReason.UNKNOWN, DittoHeaders.empty()), getRef());
             underTest.tell(writeModel, getRef());
 
             // THEN: expect no update.
@@ -259,7 +261,6 @@ public final class ThingUpdaterTest {
     public void forceUpdateAfterInitialStart() throws InterruptedException {
         new TestKit(actorSystem) {{
             final PolicyId policyId = PolicyId.of(THING_ID);
-            final Duration forceUpdateAfterStartTimeout = Duration.ofSeconds(1);
 
             final TestPublisher.Probe<Object> probe = TestPublisher.probe(1, actorSystem);
             doAnswer(invocation -> {
@@ -291,7 +292,7 @@ public final class ThingUpdaterTest {
             };
             final Props props = Props.create(ThingUpdater.class,
                     () -> new ThingUpdater(pubSubTestProbe.ref(), changeQueueTestProbe.ref(), 0.0,
-                            forceUpdateAfterStartTimeout, 0.0, mongoClientExtension, true, true,
+                            Duration.ZERO, 0.0, mongoClientExtension, true, true,
                             recoveryCompleteConsumer));
             final var underTest = childActorOf(props, THING_ID.toString());
 
@@ -313,6 +314,7 @@ public final class ThingUpdaterTest {
             final var writeModel = ThingWriteModel.of(Metadata.of(THING_ID, 1235L, policyId, 1L, null), document);
 
             // WHEN: updater is requested to compute incremental update against the next update
+            underTest.tell(UpdateThing.of(THING_ID, UpdateReason.UNKNOWN, DittoHeaders.empty()), getRef());
             underTest.tell(writeModel, getRef());
 
             final UpdateOneModel<?> updateOneModel = expectMsgClass(UpdateOneModel.class);
@@ -321,14 +323,13 @@ public final class ThingUpdaterTest {
                     Filters.eq(PersistenceConstants.FIELD_REVISION, BsonNumber.apply(1234L))
             ));
 
-            // WHEN: force-update-after-start-timeout passes
-            final var waitDuration =
-                    FiniteDuration.apply(forceUpdateAfterStartTimeout.multipliedBy(10).toMillis(), "ms");
-
             // THEN: an update is triggered
-            changeQueueTestProbe.expectMsgClass(waitDuration, Metadata.class);
+            changeQueueTestProbe.expectMsgClass(Metadata.class);
 
             // WHEN: updater is requested to compute incremental update against the same write model
+            underTest.tell(BulkWriteComplete.of("correlation-id"), getRef());
+            underTest.tell(ThingUpdater.FORCE_UPDATE_AFTER_START, getRef());
+            underTest.tell(UpdateThing.of(THING_ID, UpdateReason.UNKNOWN, DittoHeaders.empty()), getRef());
             underTest.tell(writeModel, getRef());
 
             // THEN: expect full forced update
@@ -339,7 +340,7 @@ public final class ThingUpdaterTest {
 
     private ActorRef createThingUpdaterActor() {
         final Props props = Props.create(ThingUpdater.class,
-                () -> new ThingUpdater(pubSubTestProbe.ref(), changeQueueTestProbe.ref(), 0.0, Duration.ofMinutes(1),
+                () -> new ThingUpdater(pubSubTestProbe.ref(), changeQueueTestProbe.ref(), 0.0, Duration.ZERO,
                         0.0, mongoClientExtension, false, false,
                         writeModel -> {}));
         return actorSystem.actorOf(props, THING_ID.toString());

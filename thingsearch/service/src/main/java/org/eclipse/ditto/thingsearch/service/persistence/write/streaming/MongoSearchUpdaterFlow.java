@@ -23,6 +23,7 @@ import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLogger;
 import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.internal.utils.metrics.instruments.timer.StartedTimer;
 import org.eclipse.ditto.thingsearch.service.common.config.PersistenceStreamConfig;
+import org.eclipse.ditto.thingsearch.service.persistence.BulkWriteComplete;
 import org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.AbstractWriteModel;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.WriteResultAndErrors;
@@ -39,6 +40,7 @@ import com.mongodb.reactivestreams.client.MongoCollection;
 import com.mongodb.reactivestreams.client.MongoDatabase;
 
 import akka.NotUsed;
+import akka.actor.ActorRef;
 import akka.japi.Pair;
 import akka.japi.pf.PFBuilder;
 import akka.stream.javadsl.Flow;
@@ -52,6 +54,7 @@ final class MongoSearchUpdaterFlow {
     private static final String TRACE_THING_BULK_UPDATE = "things_search_thing_bulkUpdate";
     private static final String COUNT_THING_BULK_UPDATES_PER_BULK = "things_search_thing_bulkUpdate_updates_per_bulk";
     private static final String UPDATE_TYPE_TAG = "update_type";
+
     private static final ThreadSafeDittoLogger LOGGER =
             DittoLoggerFactory.getThreadSafeLogger(MongoSearchUpdaterFlow.class);
 
@@ -173,8 +176,12 @@ final class MongoSearchUpdaterFlow {
                 )
                 .map(resultAndErrors -> {
                     stopBulkWriteTimer(bulkWriteTimer);
-                    abstractWriteModels.forEach(writeModel ->
-                            ConsistencyLag.startS6Acknowledge(writeModel.getMetadata()));
+                    abstractWriteModels.forEach(writeModel -> {
+                                writeModel.getMetadata().getOrigin().ifPresent(origin ->
+                                        origin.tell(BulkWriteComplete.of(bulkWriteCorrelationId), ActorRef.noSender()));
+                                ConsistencyLag.startS6Acknowledge(writeModel.getMetadata());
+                            }
+                    );
                     return resultAndErrors;
                 });
     }

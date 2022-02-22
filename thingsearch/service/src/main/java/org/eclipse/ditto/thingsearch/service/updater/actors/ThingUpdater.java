@@ -51,6 +51,7 @@ import org.eclipse.ditto.thingsearch.api.commands.sudo.UpdateThing;
 import org.eclipse.ditto.thingsearch.api.commands.sudo.UpdateThingResponse;
 import org.eclipse.ditto.thingsearch.service.common.config.DittoSearchConfig;
 import org.eclipse.ditto.thingsearch.service.common.config.UpdaterConfig;
+import org.eclipse.ditto.thingsearch.service.persistence.BulkWriteComplete;
 import org.eclipse.ditto.thingsearch.service.persistence.read.MongoThingsSearchPersistence;
 import org.eclipse.ditto.thingsearch.service.persistence.write.mapping.BsonDiff;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.AbstractWriteModel;
@@ -70,6 +71,7 @@ import akka.actor.PoisonPill;
 import akka.actor.Props;
 import akka.actor.ReceiveTimeout;
 import akka.cluster.sharding.ShardRegion;
+import akka.japi.pf.ReceiveBuilder;
 import akka.pattern.Patterns;
 import akka.stream.javadsl.Sink;
 
@@ -83,13 +85,16 @@ final class ThingUpdater extends AbstractActorWithStashWithTimers {
     private static final AcknowledgementRequest SEARCH_PERSISTED_REQUEST =
             AcknowledgementRequest.of(DittoAcknowledgementLabel.SEARCH_PERSISTED);
 
-    private static final String FORCE_UPDATE_AFTER_START = "FORCE_UPDATE_AFTER_START";
+    static final String FORCE_UPDATE_AFTER_START = "FORCE_UPDATE_AFTER_START";
 
     private static final Counter INCORRECT_PATCH_UPDATE_COUNT = DittoMetrics.counter("search_incorrect_patch_updates");
     private static final Counter UPDATE_FAILURE_COUNT = DittoMetrics.counter("search_update_failures");
     private static final Counter PATCH_UPDATE_COUNT = DittoMetrics.counter("search_patch_updates");
     private static final Counter PATCH_SKIP_COUNT = DittoMetrics.counter("search_patch_skips");
     private static final Counter FULL_UPDATE_COUNT = DittoMetrics.counter("search_full_updates");
+
+    private static final Duration BULK_RESULT_AWAITING_TIMEOUT = Duration.ofMinutes(2);
+    private static final Duration THING_DELETION_TIMEOUT = Duration.ofMinutes(5);
 
     private static final DittoLogger LOGGER = DittoLoggerFactory.getLogger(ThingUpdater.class); // logger for "trace" statements
 
@@ -190,7 +195,7 @@ final class ThingUpdater extends AbstractActorWithStashWithTimers {
     }
 
     private void recoveryComplete(final AbstractWriteModel writeModel) {
-        log.debug("Recovered");
+        log.debug("Recovered: <{}>", writeModel.getClass().getSimpleName());
         LOGGER.trace("Recovered: <{}>", writeModel);
         thingRevision = writeModel.getMetadata().getThingRevision();
         writeModel.getMetadata().getPolicyRevision().ifPresent(rev -> this.policyRevision = rev);
@@ -203,15 +208,45 @@ final class ThingUpdater extends AbstractActorWithStashWithTimers {
     private Receive recoveredBehavior() {
         return shutdownBehaviour.createReceive()
                 .match(ThingEvent.class, this::processThingEvent)
-                .match(AbstractWriteModel.class, this::onNextWriteModel)
                 .match(PolicyReferenceTag.class, this::processPolicyReferenceTag)
                 .match(UpdateThing.class, this::updateThing)
                 .match(UpdateThingResponse.class, this::processUpdateThingResponse)
                 .match(ReceiveTimeout.class, this::stopThisActor)
                 .matchEquals(FORCE_UPDATE_AFTER_START, this::forceUpdateAfterStart)
+                .build();
+    }
+
+    private Receive recoveredAcceptingWriteModelsBehavior() {
+        return recoveredBehavior().orElse(ReceiveBuilder.create()
+                .match(AbstractWriteModel.class, this::onNextWriteModel)
                 .matchAny(m -> {
-                    log.warning("Unknown message in 'eventProcessing' behavior: {}", m);
+                    log.warning("Unknown message in 'recoveredAcceptingWriteModelsBehavior': {}", m);
                     unhandled(m);
+                })
+                .build());
+    }
+
+    private Receive awaitingBulkWriteResult() {
+        getContext().setReceiveTimeout(BULK_RESULT_AWAITING_TIMEOUT);
+        return ReceiveBuilder.create()
+                .match(BulkWriteComplete.class, bulkWriteComplete -> {
+                    log.withCorrelationId(bulkWriteComplete.getBulkWriteCorrelationId())
+                            .debug("Got confirmation bulkWrite was performed - switching to 'recoveredBehavior'");
+                    getContext().cancelReceiveTimeout();
+                    getContext().become(recoveredBehavior());
+                    unstashAll();
+                })
+                .match(ReceiveTimeout.class, rt -> {
+                    log.warning("Encountered ReceiveTimeout being in 'awaitingBulkWriteResult' - " +
+                            "switching back to 'recoveredBehavior'");
+                    getContext().cancelReceiveTimeout();
+                    getContext().become(recoveredBehavior());
+                    unstashAll();
+                })
+                .matchAny(m -> {
+                    log.info("Received unexpected message being in 'awaitingBulkWriteResult' - " +
+                            "going to stash: <{}> from sender: <{}>", m, getSender());
+                    stash();
                 })
                 .build();
     }
@@ -238,7 +273,7 @@ final class ThingUpdater extends AbstractActorWithStashWithTimers {
             if (diff.isPresent() && diff.get().isDiffSmaller()) {
                 final var aggregationPipeline = diff.get().consumeAndExport();
                 if (aggregationPipeline.isEmpty()) {
-                    log.debug("Skipping update due to empty diff");
+                    log.debug("Skipping update due to empty diff <{}>", nextWriteModel.getClass().getSimpleName());
                     LOGGER.trace("Skipping update due to empty diff <{}>", nextWriteModel);
                     getSender().tell(Done.getInstance(), getSelf());
                     PATCH_SKIP_COUNT.increment();
@@ -249,12 +284,13 @@ final class ThingUpdater extends AbstractActorWithStashWithTimers {
                         .asPatchUpdate(lastWriteModel.getMetadata().getThingRevision())
                         .getFilter();
                 mongoWriteModel = new UpdateOneModel<>(filter, aggregationPipeline);
-                log.debug("Using incremental update");
+                log.debug("Using incremental update <{}>", mongoWriteModel.getClass().getSimpleName());
                 LOGGER.trace("Using incremental update <{}>", mongoWriteModel);
                 PATCH_UPDATE_COUNT.increment();
             } else {
                 mongoWriteModel = nextWriteModel.toMongo();
-                log.debug("Using replacement because diff is bigger or nonexistent.");
+                log.debug("Using replacement because diff is bigger or nonexistent: <{}>",
+                        mongoWriteModel.getClass().getSimpleName());
                 if (LOGGER.isTraceEnabled()) {
                     LOGGER.trace("Using replacement because diff is bigger or nonexistent. Diff=<{}>",
                             diff.map(BsonDiff::consumeAndExport));
@@ -264,18 +300,22 @@ final class ThingUpdater extends AbstractActorWithStashWithTimers {
         } else {
             mongoWriteModel = nextWriteModel.toMongo();
             if (forceUpdate) {
-                log.debug("Using replacement (forceUpdate) - forceNextUpdate was: <{}>", forceNextUpdate);
+                log.debug("Using replacement (forceUpdate) <{}> - forceNextUpdate was: <{}>",
+                        mongoWriteModel.getClass().getSimpleName(), forceNextUpdate);
                 LOGGER.trace("Using replacement (forceUpdate) <{}> - forceNextUpdate was: <{}>", mongoWriteModel,
                         forceNextUpdate);
                 forceNextUpdate = false;
             } else {
-                log.debug("Using replacement");
+                log.debug("Using replacement <{}>", mongoWriteModel.getClass().getSimpleName());
                 LOGGER.trace("Using replacement <{}>", mongoWriteModel);
             }
             FULL_UPDATE_COUNT.increment();
         }
         getSender().tell(mongoWriteModel, getSelf());
         lastWriteModel = nextWriteModel;
+
+        log.debug("Responded with mongoWriteModel - switching to 'awaitingBulkWriteResult'");
+        getContext().become(awaitingBulkWriteResult());
     }
 
     private Optional<BsonDiff> tryComputeDiff(final BsonDocument minuend, final BsonDocument subtrahend) {
@@ -326,6 +366,8 @@ final class ThingUpdater extends AbstractActorWithStashWithTimers {
 
     private void enqueueMetadata(final Metadata metadata) {
         changeQueueActor.tell(metadata.withOrigin(getSelf()), getSelf());
+        log.debug("Enqueued metadata - switching to 'recoveredAcceptingWriteModelsBehavior'");
+        getContext().become(recoveredAcceptingWriteModelsBehavior());
     }
 
     private void updateThing(final UpdateThing updateThing) {
@@ -419,7 +461,7 @@ final class ThingUpdater extends AbstractActorWithStashWithTimers {
             // will stop this actor after 5 minutes (finishing up updating the index):
             // this time should be longer than the consistency lag, otherwise the actor will be stopped before the
             // actual "delete" is applied to the search index:
-            getContext().setReceiveTimeout(Duration.ofMinutes(5));
+            getContext().setReceiveTimeout(THING_DELETION_TIMEOUT);
         }
     }
 
