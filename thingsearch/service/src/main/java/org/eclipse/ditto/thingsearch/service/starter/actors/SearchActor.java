@@ -151,10 +151,17 @@ public final class SearchActor extends AbstractActor {
     }
 
     private void count(final CountThings countThings) {
+        final ThreadSafeDittoLoggingAdapter l = log.withCorrelationId(countThings);
+        l.info("Processing CountThings command with namespaces <{}> and filter: <{}>",
+                countThings.getNamespaces(), countThings.getFilter());
+        l.debug("Processing CountThings command: <{}>", countThings);
         executeCount(countThings, queryParser::parse, false);
     }
 
     private void sudoCount(final SudoCountThings sudoCountThings) {
+        final ThreadSafeDittoLoggingAdapter l = log.withCorrelationId(sudoCountThings);
+        l.info("Processing SudoCountThings command with filter: <{}>", sudoCountThings.getFilter());
+        l.debug("Processing SudoCountThings command: <{}>", sudoCountThings);
         executeCount(sudoCountThings, queryParser::parseSudoCountThings, true);
     }
 
@@ -162,8 +169,6 @@ public final class SearchActor extends AbstractActor {
             final Function<T, CompletionStage<Query>> queryParseFunction,
             final boolean isSudo) {
         final var dittoHeaders = countCommand.getDittoHeaders();
-        log.withCorrelationId(dittoHeaders)
-                .info("Processing CountThings command: {}", countCommand);
         final JsonSchemaVersion version = countCommand.getImplementedSchemaVersion();
         final var queryType = "count";
         final StartedTimer countTimer = startNewTimer(version, queryType, countCommand);
@@ -248,7 +253,9 @@ public final class SearchActor extends AbstractActor {
             cursor.ifPresent(c -> c.logCursorCorrelationId(l));
             final QueryThings command = ThingsSearchCursor.adjust(cursor, queryThings);
             final var dittoHeaders = command.getDittoHeaders();
-            l.info("Processing QueryThings command: {}", queryThings);
+            l.info("Processing QueryThings command with namespaces <{}> and filter: <{}>",
+                    queryThings.getNamespaces(), queryThings.getFilter());
+            l.debug("Processing QueryThings command: <{}>", queryThings);
             return createQuerySource(queryParser::parse, command)
                     .flatMapConcat(parsedQuery -> {
                         final var query =
