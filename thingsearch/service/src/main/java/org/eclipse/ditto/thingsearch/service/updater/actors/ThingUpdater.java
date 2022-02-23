@@ -96,7 +96,8 @@ final class ThingUpdater extends AbstractActorWithStashWithTimers {
     private static final Duration BULK_RESULT_AWAITING_TIMEOUT = Duration.ofMinutes(2);
     private static final Duration THING_DELETION_TIMEOUT = Duration.ofMinutes(5);
 
-    private static final DittoLogger LOGGER = DittoLoggerFactory.getLogger(ThingUpdater.class); // logger for "trace" statements
+    private static final DittoLogger LOGGER = DittoLoggerFactory.getLogger(ThingUpdater.class);
+            // logger for "trace" statements
 
     private final DittoDiagnosticLoggingAdapter log;
     private final ThingId thingId;
@@ -229,8 +230,9 @@ final class ThingUpdater extends AbstractActorWithStashWithTimers {
         getContext().setReceiveTimeout(BULK_RESULT_AWAITING_TIMEOUT);
         return ReceiveBuilder.create()
                 .match(AbstractWriteModel.class, writeModel -> {
-                    log.info("Stashing received writeModel while being in 'recoveredAwaitingBulkWriteResultBehavior': {}",
-                            writeModel);
+                    log.debug("Stashing received writeModel while being in " +
+                                    "'recoveredAwaitingBulkWriteResultBehavior': <{}> with revision: <{}>",
+                            writeModel.getClass().getSimpleName(), writeModel.getMetadata().getThingRevision());
                     stash();
                 })
                 .match(BulkWriteComplete.class, bulkWriteComplete -> {
