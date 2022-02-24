@@ -268,7 +268,7 @@ public final class RootRouteTest extends EndpointTestBase {
         final TestRouteResult result =
                 rootTestRoute.run(withHttps(withPreAuthenticatedAuthentication(HttpRequest.GET(THINGS_2_PATH))));
 
-        result.assertStatusCode(StatusCodes.BAD_REQUEST);
+        result.assertStatusCode(EndpointTestConstants.DUMMY_COMMAND_SUCCESS);
     }
 
     @Test
