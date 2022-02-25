@@ -13,6 +13,7 @@
 package org.eclipse.ditto.connectivity.service.messaging.kafka;
 
 import java.nio.ByteBuffer;
+import java.time.Duration;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.function.BiConsumer;
@@ -90,10 +91,21 @@ final class AtLeastOnceConsumerStream implements KafkaConsumerStream {
                 .run(materializer);
 
         this.materializer = materializer;
-        consumerControl = sourceSupplier.get()
+
+        final var source = sourceSupplier.get()
                 .filter(committableMessage -> isNotDryRun(committableMessage.record(), dryRun))
-                .map(kafkaMessageTransformer::transform)
-                .throttle(throttlingConfig.getLimit(), throttlingConfig.getInterval())
+                .map(kafkaMessageTransformer::transform);
+
+        final int throttlingLimit = throttlingConfig.getLimit();
+        final Duration throttlingInterval = throttlingConfig.getInterval();
+        final Source<CommittableTransformationResult, Consumer.Control> throttledSource;
+        if (throttlingLimit > 0 && throttlingInterval.negated().isNegative()) {
+            throttledSource = source.throttle(throttlingLimit, throttlingInterval);
+        } else {
+            throttledSource = source;
+        }
+
+        consumerControl = throttledSource
                 .flatMapConcat(this::processTransformationResult)
                 .mapAsync(throttlingConfig.getMaxInFlight(), x -> x)
                 .toMat(Committer.sink(committerSettings), Consumer::createDrainingControl)

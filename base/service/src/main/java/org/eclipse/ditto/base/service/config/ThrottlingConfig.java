@@ -75,7 +75,7 @@ public interface ThrottlingConfig {
 
     /**
      * An enumeration of the known config path expressions and their associated default values for
-     * {@code Amqp10Config}.
+     * {@code ThrottlingConfig}.
      */
     enum ConfigValue implements KnownConfigValue {
 
@@ -89,7 +89,7 @@ public interface ThrottlingConfig {
          * The consumer throttling limit defining processed messages per configured
          * {@link #INTERVAL interval}.
          */
-        LIMIT("limit", 100);
+        LIMIT("limit", 0);
 
         private final String path;
         private final Object defaultValue;

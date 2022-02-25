@@ -67,7 +67,7 @@ public interface Amqp10ConsumerConfig {
         /**
          * Whether consumer rate limit is enabled.
          */
-        RATE_LIMIT_ENABLED("rate-limit-enabled", true),
+        RATE_LIMIT_ENABLED("rate-limit-enabled", false),
 
         /**
          * When to forget messages for which redelivery was requested (they may be consumed by another consumer).
