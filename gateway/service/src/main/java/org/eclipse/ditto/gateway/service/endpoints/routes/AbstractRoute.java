@@ -152,9 +152,7 @@ public abstract class AbstractRoute extends AllDirectives {
      * @since 1.1.0
      */
     public static <T> Flow<T, T, NotUsed> throttleByConfig(final ThrottlingConfig throttlingConfig) {
-        final int limit = throttlingConfig.getLimit();
-        final Duration interval = throttlingConfig.getInterval();
-        if (limit > 0 && interval.negated().isNegative()) {
+        if (throttlingConfig.isEnabled()) {
             return Flow.<T>create().throttle(throttlingConfig.getLimit(), throttlingConfig.getInterval());
         } else {
             return Flow.create();

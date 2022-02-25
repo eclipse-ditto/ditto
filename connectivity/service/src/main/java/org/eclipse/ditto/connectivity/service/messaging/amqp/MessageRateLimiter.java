@@ -30,10 +30,10 @@ import org.eclipse.ditto.connectivity.service.config.ConnectionThrottlingConfig;
 @NotThreadSafe
 final class MessageRateLimiter<S> {
 
+    private final boolean enabled;
     private final int maxPerPeriod;
     private final int maxInFlight;
     private final Duration redeliveryExpectationTimeout;
-    private final boolean enabled;
 
     /**
      * Whether consumers are open before the next throttling decision.
@@ -56,29 +56,28 @@ final class MessageRateLimiter<S> {
     private int consumedInPeriod = 0;
 
     private MessageRateLimiter(final ConnectionThrottlingConfig connectionThrottlingConfig,
-            final Duration redeliveryExpectationTimeout, final boolean enabled) {
+            final Duration redeliveryExpectationTimeout) {
+        this.enabled = connectionThrottlingConfig.isEnabled();
         this.maxPerPeriod = connectionThrottlingConfig.getLimit();
         this.maxInFlight = connectionThrottlingConfig.getMaxInFlight();
         this.redeliveryExpectationTimeout = maxDuration(redeliveryExpectationTimeout, Duration.ofSeconds(1L));
-        this.enabled = enabled;
     }
 
     private MessageRateLimiter(final ConnectionThrottlingConfig connectionThrottlingConfig,
             final Duration redeliveryExpectationTimeout, final MessageRateLimiter<S> existingLimiter) {
+        this.enabled = connectionThrottlingConfig.isEnabled();
         this.maxPerPeriod = connectionThrottlingConfig.getLimit();
         this.maxInFlight = connectionThrottlingConfig.getMaxInFlight();
         this.redeliveryExpectationTimeout = maxDuration(redeliveryExpectationTimeout, Duration.ofSeconds(1L));
-        this.enabled = existingLimiter.enabled;
         this.isConsumerOpen = existingLimiter.isConsumerOpen;
         this.pendingRedeliveries.addAll(existingLimiter.pendingRedeliveries);
         this.inFlight = existingLimiter.inFlight;
         this.consumedInPeriod = existingLimiter.consumedInPeriod;
     }
 
-    static <S> MessageRateLimiter<S> of(final Amqp10Config config, final boolean enabled) {
+    static <S> MessageRateLimiter<S> of(final Amqp10Config config) {
         return new MessageRateLimiter<>(config.getConsumerConfig().getThrottlingConfig(),
-                config.getConsumerConfig().getRedeliveryExpectationTimeout(),
-                enabled);
+                config.getConsumerConfig().getRedeliveryExpectationTimeout());
     }
 
     static <S> MessageRateLimiter<S> of(final Amqp10Config config, final MessageRateLimiter<S> existingLimiter) {

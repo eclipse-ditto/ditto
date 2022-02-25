@@ -13,7 +13,6 @@
 package org.eclipse.ditto.connectivity.service.messaging.kafka;
 
 import java.nio.ByteBuffer;
-import java.time.Duration;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.function.BiConsumer;
@@ -90,11 +89,9 @@ final class AtMostOnceConsumerStream implements KafkaConsumerStream {
                 .map(kafkaMessageTransformer::transform)
                 .filter(result -> !result.isExpired());
 
-        final int throttlingLimit = throttlingConfig.getLimit();
-        final Duration throttlingInterval = throttlingConfig.getInterval();
         final Source<TransformationResult, Consumer.Control> throttledSource;
-        if (throttlingLimit > 0 && throttlingInterval.negated().isNegative()) {
-            throttledSource = source.throttle(throttlingLimit, throttlingInterval);
+        if (throttlingConfig.isEnabled()) {
+            throttledSource = source.throttle(throttlingConfig.getLimit(), throttlingConfig.getInterval());
         } else {
             throttledSource = source;
         }

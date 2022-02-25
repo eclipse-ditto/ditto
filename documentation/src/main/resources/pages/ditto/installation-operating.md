@@ -165,6 +165,16 @@ ssl-config {
 }
 ```
 
+### Rate limiting
+
+Since Ditto *2.4.0* , by default [connections](basic-connections.html) and [websockets](httpapi-protocol-bindings-websocket.html)
+are no longer artificially throttled / rate limited when *consuming messages*.  
+There are however configuration options in place in order to enable throttling on a "per-connection" / "per-websocket"
+basis.  
+Please consult the available `throttling` configuration sections in the 
+[Ditto service configuration files](#ditto-configuration).
+
+
 ## Restricting entity creation
 
 By default, Ditto allows anyone to create a new entity (policy or thing) in any namespace. However, this behavior can
