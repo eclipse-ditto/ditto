@@ -13,6 +13,7 @@ version: '2.4'
 services:
   mongodb:
     image: docker.io/mongo:4.2
+    mem_limit: 512m
     networks:
       default:
         aliases:
@@ -25,21 +26,20 @@ services:
 
   policies:
     image: docker.io/eclipse/ditto-policies:${DITTO_VERSION:-latest}
-    mem_limit: 384m
+    mem_limit: 512m
     networks:
       default:
         aliases:
           - ditto-cluster
     environment:
       - TZ=Europe/Berlin
-      - INSTANCE_INDEX=1
       - BIND_HOSTNAME=0.0.0.0
-      - JAVA_TOOL_OPTIONS=-XX:+ExitOnOutOfMemoryError -XX:+UseContainerSupport -XX:MaxRAMPercentage=75 -XX:+UseG1GC -XX:MaxGCPauseMillis=150 -Dakka.coordinated-shutdown.exit-jvm=on -Dakka.cluster.shutdown-after-unsuccessful-join-seed-nodes=60s -Dakka.cluster.failure-detector.threshold=15.0 -Dakka.cluster.failure-detector.expected-response-after=3s -Dakka.cluster.failure-detector.acceptable-heartbeat-pause=7s
+      - JAVA_TOOL_OPTIONS=-XX:+ExitOnOutOfMemoryError -XX:+UseContainerSupport -XX:MaxRAMPercentage=50 -XX:+UseG1GC -XX:MaxGCPauseMillis=150 -Dakka.coordinated-shutdown.exit-jvm=on -Dakka.cluster.shutdown-after-unsuccessful-join-seed-nodes=180s -Dakka.cluster.failure-detector.threshold=15.0 -Dakka.cluster.failure-detector.expected-response-after=10s -Dakka.cluster.failure-detector.acceptable-heartbeat-pause=20s
       - MONGO_DB_HOSTNAME=mongodb
 
   things:
     image: docker.io/eclipse/ditto-things:${DITTO_VERSION:-latest}
-    mem_limit: 384m
+    mem_limit: 512m
     networks:
       default:
         aliases:
@@ -48,14 +48,13 @@ services:
       - policies
     environment:
       - TZ=Europe/Berlin
-      - INSTANCE_INDEX=1
       - BIND_HOSTNAME=0.0.0.0
-      - JAVA_TOOL_OPTIONS=-XX:+ExitOnOutOfMemoryError -XX:+UseContainerSupport -XX:MaxRAMPercentage=75 -XX:+UseG1GC -XX:MaxGCPauseMillis=150 -Dakka.coordinated-shutdown.exit-jvm=on -Dakka.cluster.shutdown-after-unsuccessful-join-seed-nodes=60s -Dakka.cluster.failure-detector.threshold=15.0 -Dakka.cluster.failure-detector.expected-response-after=3s -Dakka.cluster.failure-detector.acceptable-heartbeat-pause=7s
+      - JAVA_TOOL_OPTIONS=-XX:+ExitOnOutOfMemoryError -XX:+UseContainerSupport -XX:MaxRAMPercentage=50 -XX:+UseG1GC -XX:MaxGCPauseMillis=150 -Dakka.coordinated-shutdown.exit-jvm=on -Dakka.cluster.shutdown-after-unsuccessful-join-seed-nodes=180s -Dakka.cluster.failure-detector.threshold=15.0 -Dakka.cluster.failure-detector.expected-response-after=10s -Dakka.cluster.failure-detector.acceptable-heartbeat-pause=20s
       - MONGO_DB_HOSTNAME=mongodb
 
   things-search:
     image: docker.io/eclipse/ditto-things-search:${DITTO_VERSION:-latest}
-    mem_limit: 384m
+    mem_limit: 512m
     networks:
       default:
         aliases:
@@ -64,14 +63,13 @@ services:
       - policies
     environment:
       - TZ=Europe/Berlin
-      - INSTANCE_INDEX=1
       - BIND_HOSTNAME=0.0.0.0
-      - JAVA_TOOL_OPTIONS=-XX:+ExitOnOutOfMemoryError -XX:+UseContainerSupport -XX:MaxRAMPercentage=75 -XX:+UseG1GC -XX:MaxGCPauseMillis=150 -Dakka.coordinated-shutdown.exit-jvm=on -Dakka.cluster.shutdown-after-unsuccessful-join-seed-nodes=60s -Dakka.cluster.failure-detector.threshold=15.0 -Dakka.cluster.failure-detector.expected-response-after=3s -Dakka.cluster.failure-detector.acceptable-heartbeat-pause=7s
+      - JAVA_TOOL_OPTIONS=-XX:+ExitOnOutOfMemoryError -XX:+UseContainerSupport -XX:MaxRAMPercentage=50 -XX:+UseG1GC -XX:MaxGCPauseMillis=150 -Dakka.coordinated-shutdown.exit-jvm=on -Dakka.cluster.shutdown-after-unsuccessful-join-seed-nodes=180s -Dakka.cluster.failure-detector.threshold=15.0 -Dakka.cluster.failure-detector.expected-response-after=10s -Dakka.cluster.failure-detector.acceptable-heartbeat-pause=20s
       - MONGO_DB_HOSTNAME=mongodb
 
   concierge:
     image: docker.io/eclipse/ditto-concierge:${DITTO_VERSION:-latest}
-    mem_limit: 384m
+    mem_limit: 512m
     networks:
       default:
         aliases:
@@ -80,9 +78,8 @@ services:
       - policies
     environment:
       - TZ=Europe/Berlin
-      - INSTANCE_INDEX=1
       - BIND_HOSTNAME=0.0.0.0
-      - JAVA_TOOL_OPTIONS=-XX:+ExitOnOutOfMemoryError -XX:+UseContainerSupport -XX:MaxRAMPercentage=75 -XX:+UseG1GC -XX:MaxGCPauseMillis=150 -Dakka.coordinated-shutdown.exit-jvm=on -Dakka.cluster.shutdown-after-unsuccessful-join-seed-nodes=60s -Dakka.cluster.failure-detector.threshold=15.0 -Dakka.cluster.failure-detector.expected-response-after=3s -Dakka.cluster.failure-detector.acceptable-heartbeat-pause=7s
+      - JAVA_TOOL_OPTIONS=-XX:+ExitOnOutOfMemoryError -XX:+UseContainerSupport -XX:MaxRAMPercentage=50 -XX:+UseG1GC -XX:MaxGCPauseMillis=150 -Dakka.coordinated-shutdown.exit-jvm=on -Dakka.cluster.shutdown-after-unsuccessful-join-seed-nodes=180s -Dakka.cluster.failure-detector.threshold=15.0 -Dakka.cluster.failure-detector.expected-response-after=10s -Dakka.cluster.failure-detector.acceptable-heartbeat-pause=20s
       - MONGO_DB_HOSTNAME=mongodb
 
   connectivity:
@@ -97,15 +94,14 @@ services:
       - concierge
     environment:
       - TZ=Europe/Berlin
-      - INSTANCE_INDEX=1
       - BIND_HOSTNAME=0.0.0.0
       # if connections to rabbitmq broker are used, you might want to disable ExitOnOutOfMemoryError, because the amqp-client has a bug throwing OOM exceptions and causing a restart loop
-      - JAVA_TOOL_OPTIONS=-XX:+ExitOnOutOfMemoryError -XX:+UseContainerSupport -XX:MaxRAMPercentage=75 -XX:+UseG1GC -XX:MaxGCPauseMillis=150 -Dakka.coordinated-shutdown.exit-jvm=on -Dakka.cluster.shutdown-after-unsuccessful-join-seed-nodes=60s -Dakka.cluster.failure-detector.threshold=15.0 -Dakka.cluster.failure-detector.expected-response-after=3s -Dakka.cluster.failure-detector.acceptable-heartbeat-pause=7s
+      - JAVA_TOOL_OPTIONS=-XX:+ExitOnOutOfMemoryError -XX:+UseContainerSupport -XX:MaxRAMPercentage=50 -XX:+UseG1GC -XX:MaxGCPauseMillis=150 -Dakka.coordinated-shutdown.exit-jvm=on -Dakka.cluster.shutdown-after-unsuccessful-join-seed-nodes=180s -Dakka.cluster.failure-detector.threshold=15.0 -Dakka.cluster.failure-detector.expected-response-after=10s -Dakka.cluster.failure-detector.acceptable-heartbeat-pause=20s
       - MONGO_DB_HOSTNAME=mongodb
 
   gateway:
     image: docker.io/eclipse/ditto-gateway:${DITTO_VERSION:-latest}
-    mem_limit: 384m
+    mem_limit: 512m
     networks:
       default:
         aliases:
@@ -115,11 +111,10 @@ services:
       - concierge
     environment:
       - TZ=Europe/Berlin
-      - INSTANCE_INDEX=1
       - BIND_HOSTNAME=0.0.0.0
       - ENABLE_PRE_AUTHENTICATION=true
       - DEVOPS_SECURE_STATUS=false
-      - JAVA_TOOL_OPTIONS=-XX:+ExitOnOutOfMemoryError -XX:+UseContainerSupport -XX:MaxRAMPercentage=75 -XX:+UseG1GC -XX:MaxGCPauseMillis=150 -Dakka.coordinated-shutdown.exit-jvm=on -Dakka.cluster.shutdown-after-unsuccessful-join-seed-nodes=60s -Dakka.cluster.failure-detector.threshold=15.0 -Dakka.cluster.failure-detector.expected-response-after=3s -Dakka.cluster.failure-detector.acceptable-heartbeat-pause=7s
+      - JAVA_TOOL_OPTIONS=-XX:+ExitOnOutOfMemoryError -XX:+UseContainerSupport -XX:MaxRAMPercentage=50 -XX:+UseG1GC -XX:MaxGCPauseMillis=150 -Dakka.coordinated-shutdown.exit-jvm=on -Dakka.cluster.shutdown-after-unsuccessful-join-seed-nodes=180s -Dakka.cluster.failure-detector.threshold=15.0 -Dakka.cluster.failure-detector.expected-response-after=10s -Dakka.cluster.failure-detector.acceptable-heartbeat-pause=20s
 
   swagger-ui:
     image: docker.io/swaggerapi/swagger-ui:v3.38.0
