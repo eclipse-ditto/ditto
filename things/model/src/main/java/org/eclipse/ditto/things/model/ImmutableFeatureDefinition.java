@@ -60,6 +60,15 @@ final class ImmutableFeatureDefinition implements FeatureDefinition {
             throw new FeatureDefinitionEmptyException();
         }
 
+        final List<JsonValue> notStringValues = featureDefinitionEntriesAsJsonArray.stream()
+                .filter(jsonValue -> !jsonValue.isString())
+                .collect(Collectors.toList());
+        if (!notStringValues.isEmpty()) {
+            throw DefinitionIdentifierInvalidException.newBuilder(notStringValues.get(0).formatAsString())
+                    .description("The provided identifier is not a string.")
+                    .build();
+        }
+
         final List<DefinitionIdentifier> identifiersFromJson = featureDefinitionEntriesAsJsonArray.stream()
                 .filter(JsonValue::isString)
                 .map(JsonValue::asString)
