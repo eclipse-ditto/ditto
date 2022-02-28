@@ -256,6 +256,7 @@ public final class LiveSignalEnforcement extends AbstractEnforcementWithAsk<Sign
                         final var receiver = responseReceiverEntry.get();
                         log().info("Scheduling CommandResponse <{}> to original sender <{}>", liveResponse, receiver);
                         commandResponseContextual = withMessageToReceiver(liveResponse, receiver);
+                        responseReceiverCache.invalidate(correlationId);
                     } else {
                         log().info("Got <{}> with unknown correlation ID: <{}>", liveResponse.getType(), correlationId);
                         commandResponseContextual = withMessageToReceiver(null, null);

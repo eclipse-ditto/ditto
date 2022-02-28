@@ -254,6 +254,61 @@ public final class LiveSignalEnforcementTest {
     }
 
     @Test
+    public void correlatiIdSameAfterResponseSuccessfull() {
+        final PolicyId policyId = PolicyId.of("policy", "id");
+        final JsonObject thingWithPolicy = newThingWithPolicyId(policyId);
+        final JsonObject policy = PoliciesModelFactory.newPolicyBuilder(policyId)
+                .setRevision(1L)
+                .forLabel("authorize-self")
+                .setSubject(GOOGLE, SUBJECT_ID)
+                .setGrantedPermissions(PoliciesResourceType.thingResource("/"),
+                        Permissions.newInstance(Permission.READ, Permission.WRITE))
+                .setRevokedPermissions(PoliciesResourceType.thingResource("/features/x/properties/key2"),
+                        Permissions.newInstance(Permission.READ))
+                .build()
+                .toJson(FieldType.all());
+        final SudoRetrieveThingResponse sudoRetrieveThingResponse =
+                SudoRetrieveThingResponse.of(thingWithPolicy, DittoHeaders.empty());
+        final SudoRetrievePolicyResponse sudoRetrievePolicyResponse =
+                SudoRetrievePolicyResponse.of(policyId, policy, DittoHeaders.empty());
+
+        new TestKit(system) {{
+            mockEntitiesActorInstance.setReply(TestSetup.THING_SUDO, sudoRetrieveThingResponse);
+            mockEntitiesActorInstance.setReply(TestSetup.POLICY_SUDO, sudoRetrievePolicyResponse);
+
+            final ActorRef underTest = newEnforcerActor(getRef());
+
+            final DittoHeaders headers = headers();
+            final ThingCommand<?> read = getRetrieveThingCommand(headers);
+
+            underTest.tell(read, getRef());
+
+            final var responseHeaders = headers.toBuilder()
+                    .authorizationContext(AuthorizationContext.newInstance(
+                            DittoAuthorizationContextType.PRE_AUTHENTICATED_CONNECTION,
+                            AuthorizationSubject.newInstance("myIssuer:mySubject")))
+                    .build();
+
+            final ThingCommandResponse<?> readResponse = getRetrieveThingResponse(responseHeaders);
+
+            // Second message right after the response for the first was sent, should have the same correlation-id (Not suffixed).
+            underTest.tell(readResponse, getRef());
+            final RetrieveThingResponse retrieveThingResponse =
+                    TestSetup.fishForMsgClass(this, RetrieveThingResponse.class);
+            assertThat(retrieveThingResponse.getDittoHeaders().getCorrelationId()).isEqualTo(
+                    read.getDittoHeaders().getCorrelationId());
+
+            underTest.tell(read, getRef());
+
+            underTest.tell(readResponse, getRef());
+            final RetrieveThingResponse retrieveThingResponse2 =
+                    TestSetup.fishForMsgClass(this, RetrieveThingResponse.class);
+            assertThat(retrieveThingResponse2.getDittoHeaders().getCorrelationId()).isEqualTo(
+                    read.getDittoHeaders().getCorrelationId());
+        }};
+    }
+
+    @Test
     public void acceptMessageCommandByPolicy() {
         final PolicyId policyId = PolicyId.of("policy:id");
         final JsonObject thingWithPolicy = newThingWithPolicyId(policyId);
@@ -421,9 +476,9 @@ public final class LiveSignalEnforcementTest {
 
     private static MessageCommand<?, ?> thingMessageCommand() {
         final Message<Object> message = Message.newBuilder(
-                        MessageBuilder.newHeadersBuilder(MessageDirection.TO, TestSetup.THING_ID, "my-subject")
-                                .contentType("text/plain")
-                                .build())
+                MessageBuilder.newHeadersBuilder(MessageDirection.TO, TestSetup.THING_ID, "my-subject")
+                        .contentType("text/plain")
+                        .build())
                 .payload("Hello you!")
                 .build();
         return SendThingMessage.of(TestSetup.THING_ID, message, headers());
@@ -441,10 +496,10 @@ public final class LiveSignalEnforcementTest {
 
     private static MessageCommand<?, ?> featureMessageCommand() {
         final Message<?> message = Message.newBuilder(
-                        MessageBuilder.newHeadersBuilder(MessageDirection.TO, TestSetup.THING_ID, "my-subject")
-                                .contentType("text/plain")
-                                .featureId("foo")
-                                .build())
+                MessageBuilder.newHeadersBuilder(MessageDirection.TO, TestSetup.THING_ID, "my-subject")
+                        .contentType("text/plain")
+                        .featureId("foo")
+                        .build())
                 .payload("Hello you!")
                 .build();
         return SendFeatureMessage.of(TestSetup.THING_ID, "foo", message, headers());
