@@ -20,11 +20,11 @@ import java.util.function.Predicate;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.base.model.headers.contenttype.ContentType;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.base.model.headers.contenttype.ContentType;
 import org.eclipse.ditto.messages.model.Message;
 import org.eclipse.ditto.messages.model.MessageBuilder;
 import org.eclipse.ditto.messages.model.MessageHeaders;
@@ -50,7 +50,8 @@ public class MessagePayloadSerializer {
         if (rawPayloadOptional.isPresent() && !payloadOptional.filter(p -> p instanceof JsonValue).isPresent()) {
             final ByteBuffer rawPayload = rawPayloadOptional.get();
             if (MessageDeserializer.shouldBeInterpretedAsTextOrJson(contentType)) {
-                payloadValue = interpretAsJsonValue(new String(rawPayload.array()), contentType);
+                payloadValue =
+                        interpretAsJsonValue(new String(rawPayload.array(), StandardCharsets.UTF_8), contentType);
             } else {
                 final ByteBuffer base64Encoded = BASE64_ENCODER.encode(rawPayload);
                 payloadValue = JsonFactory.newValue(new String(base64Encoded.array(), StandardCharsets.UTF_8));

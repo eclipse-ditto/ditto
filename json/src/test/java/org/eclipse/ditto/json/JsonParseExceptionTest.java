@@ -18,6 +18,7 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 
 import java.util.Optional;
 
+import org.junit.Ignore;
 import org.junit.Test;
 
 /**

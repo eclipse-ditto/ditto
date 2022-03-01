@@ -14,6 +14,7 @@ package org.eclipse.ditto.placeholders;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Stream;
 
 import javax.annotation.concurrent.Immutable;
 
@@ -51,6 +52,13 @@ final class PipelineFunctionSubstringBefore implements PipelineFunction {
                 return PipelineElement.unresolved();
             }
         });
+    }
+
+    @Override
+    public Stream<PipelineElement> applyStreaming(final PipelineElement value, final String paramsIncludingParentheses,
+            final ExpressionResolver expressionResolver) {
+
+        return Stream.of(apply(value, paramsIncludingParentheses, expressionResolver));
     }
 
     private String parseAndResolve(final String paramsIncludingParentheses,

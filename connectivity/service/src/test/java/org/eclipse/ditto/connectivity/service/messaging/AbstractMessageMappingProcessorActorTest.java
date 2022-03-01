@@ -70,6 +70,7 @@ import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.commands.ThingErrorResponse;
 import org.eclipse.ditto.things.model.signals.commands.modify.ModifyAttribute;
 import org.eclipse.ditto.things.model.signals.commands.modify.ModifyAttributeResponse;
+import org.eclipse.ditto.utils.jsr305.annotations.AllParametersAndReturnValuesAreNonnullByDefault;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -457,6 +458,7 @@ public abstract class AbstractMessageMappingProcessorActorTest {
         return logger;
     }
 
+    @AllParametersAndReturnValuesAreNonnullByDefault
     static final class TestPlaceholder implements Placeholder<String> {
 
         @Override

@@ -228,7 +228,7 @@ th {
     text-align: left;
 }
 table:not(.parameters):not(.responses-table):not(.headers):not(.model) {
-    max-width: 90%;
+    max-width: 100%;
     margin-bottom: 20px;
     border: 1px solid #dedede;
     font-size: smaller;

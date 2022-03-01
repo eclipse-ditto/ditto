@@ -27,6 +27,7 @@ import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
 import org.eclipse.ditto.things.model.signals.commands.modify.CreateThingResponse;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThing;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 /**

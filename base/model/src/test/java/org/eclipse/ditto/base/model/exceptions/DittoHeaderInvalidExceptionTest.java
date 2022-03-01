@@ -20,6 +20,7 @@ import org.assertj.core.api.JUnitSoftAssertions;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.json.JsonObject;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 

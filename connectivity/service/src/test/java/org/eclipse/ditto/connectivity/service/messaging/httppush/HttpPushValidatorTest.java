@@ -15,6 +15,7 @@ package org.eclipse.ditto.connectivity.service.messaging.httppush;
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.eclipse.ditto.connectivity.service.messaging.TestConstants.Authorization.AUTHORIZATION_CONTEXT;
+import static org.eclipse.ditto.connectivity.service.messaging.httppush.HttpPushSpecificConfig.OMIT_REQUEST_BODY;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
@@ -35,10 +36,7 @@ import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.config.HttpPushConfig;
 import org.eclipse.ditto.connectivity.service.messaging.TestConstants;
 import org.eclipse.ditto.connectivity.service.messaging.kafka.KafkaValidator;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.*;
 
 import com.typesafe.config.ConfigFactory;
 
@@ -129,9 +127,21 @@ public final class HttpPushValidatorTest {
     @Test
     public void testInvalidOmitBodyHttpMethod() {
         final Connection connection = getConnectionWithTarget("POST:events").toBuilder()
-                .specificConfig(Map.of(HttpPublisherActor.OMIT_REQUEST_BODY_CONFIG_KEY, "GET,DELET,POST"))
+                .specificConfig(Map.of(OMIT_REQUEST_BODY, "GET,DELET,POST"))
                 .build();
         verifyConnectionConfigurationInvalidExceptionIsThrown(connection, "It contains an invalid HTTP method");
+    }
+
+    @Test
+    public void testInvalidIdleTime() {
+        final var idleTimeout = "-3s";
+        final Connection connection = getConnectionWithTarget("POST:events").toBuilder()
+                .specificConfig(Map.of(HttpPushSpecificConfig.IDLE_TIMEOUT, idleTimeout))
+                .build();
+        verifyConnectionConfigurationInvalidExceptionIsThrown(connection,
+                "Idle timeout '" + idleTimeout.substring(0, idleTimeout.length() - 1) +
+                        "' is not within the allowed range of [0, " + HttpPushValidator.MAX_IDLE_TIMEOUT.toSeconds() +
+                        "] seconds.");
     }
 
     @Test
@@ -143,7 +153,7 @@ public final class HttpPushValidatorTest {
     @Test
     public void testEmptyOmitBodyHttpMethods() {
         final Connection connection = getConnectionWithTarget("POST:events").toBuilder()
-                .specificConfig(Map.of(HttpPublisherActor.OMIT_REQUEST_BODY_CONFIG_KEY, ""))
+                .specificConfig(Map.of(OMIT_REQUEST_BODY, ""))
                 .build();
         underTest.validate(connection, DittoHeaders.empty(), actorSystem, connectivityConfig);
     }
@@ -154,7 +164,7 @@ public final class HttpPushValidatorTest {
 
     private static Connection getConnectionWithHostAndTarget(final String host, final String target) {
         return ConnectivityModelFactory.newConnectionBuilder(CONNECTION_ID, ConnectionType.HTTP_PUSH,
-                        ConnectivityStatus.OPEN, "http://" + host + ":80")
+                ConnectivityStatus.OPEN, "http://" + host + ":80")
                 .targets(singletonList(ConnectivityModelFactory.newTargetBuilder()
                         .address(target)
                         .authorizationContext(AUTHORIZATION_CONTEXT)

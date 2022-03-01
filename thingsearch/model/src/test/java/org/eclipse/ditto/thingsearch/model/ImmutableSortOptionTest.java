@@ -23,6 +23,7 @@ import java.util.Collection;
 import java.util.Collections;
 
 import org.eclipse.ditto.json.JsonFactory;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;

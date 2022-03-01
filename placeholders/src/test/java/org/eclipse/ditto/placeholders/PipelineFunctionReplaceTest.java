@@ -16,11 +16,11 @@ import org.junit.After;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
-import static org.mockito.Mockito.verifyZeroInteractions;
 
 @RunWith(MockitoJUnitRunner.class)
 public class PipelineFunctionReplaceTest {
@@ -40,7 +40,7 @@ public class PipelineFunctionReplaceTest {
 
     @After
     public void verifyExpressionResolverUnused() {
-        verifyZeroInteractions(expressionResolver);
+        Mockito.verifyNoInteractions(expressionResolver);
     }
 
     @Test

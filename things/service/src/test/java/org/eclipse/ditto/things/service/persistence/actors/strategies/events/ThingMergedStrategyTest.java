@@ -26,6 +26,7 @@ import org.eclipse.ditto.things.model.ThingLifecycle;
 import org.eclipse.ditto.things.model.ThingsModelFactory;
 import org.eclipse.ditto.things.model.signals.commands.TestConstants;
 import org.eclipse.ditto.things.model.signals.events.ThingMerged;
+import org.junit.Ignore;
 import org.junit.Test;
 
 /**

@@ -15,7 +15,6 @@ package org.eclipse.ditto.connectivity.service.messaging.httppush;
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Optional;
 import java.util.concurrent.TimeoutException;
 import java.util.function.BiConsumer;
 import java.util.function.Supplier;
@@ -93,8 +92,10 @@ final class DefaultHttpPushFactory implements HttpPushFactory {
 
     static HttpPushFactory of(final Connection connection, final HttpPushConfig httpPushConfig,
             final ConnectionLogger connectionLogger, final Supplier<SshTunnelState> tunnelConfigSupplier) {
+
         final Uri baseUri = Uri.create(connection.getUri());
-        final int parallelism = parseParallelism(connection.getSpecificConfig());
+        final var httpPushSpecificConfig = HttpPushSpecificConfig.fromConnection(connection, httpPushConfig);
+        final int parallelism = parseParallelism(httpPushSpecificConfig);
 
         final HttpsConnectionContext httpsConnectionContext;
         if (HttpPushValidator.isSecureScheme(baseUri.getScheme())) {
@@ -134,6 +135,7 @@ final class DefaultHttpPushFactory implements HttpPushFactory {
         if (passwordSeparatorLocation >= 0) {
             final String username = userInfo.substring(0, passwordSeparatorLocation);
             final String password = userInfo.substring(Math.min(userInfo.length(), passwordSeparatorLocation + 1));
+
             return request.addCredentials(HttpCredentials.createBasicHttpCredentials(username, password));
         } else {
             return request;
@@ -153,6 +155,7 @@ final class DefaultHttpPushFactory implements HttpPushFactory {
         } else {
             baseUriStrToUse = baseUriStr;
         }
+
         return baseUriStrToUse;
     }
 
@@ -165,6 +168,7 @@ final class DefaultHttpPushFactory implements HttpPushFactory {
         } else {
             pathWithQueryToUse = PATH_DELIMITER + pathWithQuery;
         }
+
         return pathWithQueryToUse;
     }
 
@@ -231,6 +235,7 @@ final class DefaultHttpPushFactory implements HttpPushFactory {
     private static <T> Pair<Try<HttpResponse>, T> onRequestTimeout(final Pair<HttpRequest, T> requestPair) {
         final Try<HttpResponse> failure =
                 new Failure<>(new TimeoutException("Request timed out: " + requestPair.first().getUri()));
+
         return Pair.create(failure, requestPair.second());
     }
 
@@ -256,11 +261,8 @@ final class DefaultHttpPushFactory implements HttpPushFactory {
                         .withParserSettings(parserSettings.withHeaderValueCacheLimits(disambiguator)));
     }
 
-    static int parseParallelism(final Map<String, String> specificConfig) {
-        return Optional.ofNullable(specificConfig.get(HttpPushFactory.PARALLELISM_JSON_KEY))
-                .map(Integer::valueOf)
-                .map(DefaultHttpPushFactory::determineNextPowerOfTwo)
-                .orElse(1);
+    static int parseParallelism(final HttpPushSpecificConfig specificConfig) {
+        return determineNextPowerOfTwo(specificConfig.parallelism());
     }
 
     private static int determineNextPowerOfTwo(final int parallelism) {

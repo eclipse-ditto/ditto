@@ -24,6 +24,7 @@ import org.eclipse.ditto.things.model.signals.commands.modify.DeleteFeatures;
 import org.eclipse.ditto.things.model.signals.commands.modify.DeleteFeaturesResponse;
 import org.eclipse.ditto.things.model.signals.events.FeaturesDeleted;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 /**

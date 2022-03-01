@@ -15,11 +15,14 @@ package org.eclipse.ditto.placeholders;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.mutabilitydetector.unittesting.AllowedReason;
 import org.mutabilitydetector.unittesting.MutabilityAssert;
@@ -33,7 +36,11 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 public class ImmutableExpressionResolverTest {
 
     private static final Map<String, String> KNOWN_HEADERS =
-            DittoHeaders.newBuilder().putHeader("one", "1").putHeader("two", "2").build();
+            DittoHeaders.newBuilder()
+                    .putHeader("one", "1")
+                    .putHeader("two", "2")
+                    .putHeader("splitted", "one two three")
+                    .build();
     private static final String UNKNOWN_HEADER_EXPRESSION = "{{ header:missing }}";
     private static final String UNKNOWN_THING_EXPRESSION = "{{ thing:missing }}";
     private static final String UNKNOWN_TOPIC_EXPRESSION = "{{ topic:missing }}";
@@ -66,6 +73,44 @@ public class ImmutableExpressionResolverTest {
     public void testSuccessfulPlaceholderResolution() {
         assertThat(underTest.resolve("{{ header:one }}")).contains(KNOWN_HEADERS.get("one"));
         assertThat(underTest.resolve("{{ header:two }}")).contains(KNOWN_HEADERS.get("two"));
+    }
+
+    @Test
+    public void testSuccessfulArrayExpressionResolution() {
+        assertThat(underTest.resolveAsArray("{{ header:splitted | fn:split(' ') | fn:upper() }}"))
+                .containsExactlyElementsOf(Arrays.stream(KNOWN_HEADERS.get("splitted").split(" "))
+                        .map(String::toUpperCase)
+                        .map(PipelineElement::resolved)
+                        .collect(Collectors.toList())
+                );
+    }
+
+    @Test
+    public void testSuccessfulArrayExpressionResolutionForTwoCombinedExpressions() {
+        assertThat(underTest.resolveAsArray(
+                "{{ header:splitted | fn:split(' ')  }}_{{ header:one }}")
+        ).containsExactlyElementsOf(Arrays.asList(
+                PipelineElement.resolved("one_1"),
+                PipelineElement.resolved("two_1"),
+                PipelineElement.resolved("three_1")
+        ));
+    }
+
+    @Test
+    public void testSuccessfulArrayExpressionResolutionForTwoCombinedArrayExpressions() {
+        assertThat(underTest.resolveAsArray(
+                "{{ header:splitted | fn:split(' ') | fn:upper() }}:{{ header:splitted | fn:split(' ') | fn:lower() }}")
+        ).containsExactlyElementsOf(Arrays.asList(
+                PipelineElement.resolved("ONE:one"),
+                PipelineElement.resolved("TWO:one"),
+                PipelineElement.resolved("THREE:one"),
+                PipelineElement.resolved("ONE:two"),
+                PipelineElement.resolved("TWO:two"),
+                PipelineElement.resolved("THREE:two"),
+                PipelineElement.resolved("ONE:three"),
+                PipelineElement.resolved("TWO:three"),
+                PipelineElement.resolved("THREE:three")
+        ));
     }
 
     @Test
@@ -129,6 +174,15 @@ public class ImmutableExpressionResolverTest {
     @Test
     public void testSuccessfulSinglePlaceholderResolution() {
         assertThat(underTest.resolveAsPipelineElement("header:one")).contains(KNOWN_HEADERS.get("one"));
+    }
+
+    @Test
+    public void testSuccessfulArrayPlaceholderResolution() {
+        assertThat(underTest.resolveAsArrayPipelineElement("header:splitted | fn:split(' ')"))
+                .containsExactlyElementsOf(Arrays.stream(KNOWN_HEADERS.get("splitted").split(" "))
+                        .map(PipelineElement::resolved)
+                        .collect(Collectors.toList())
+                );
     }
 
     @Test

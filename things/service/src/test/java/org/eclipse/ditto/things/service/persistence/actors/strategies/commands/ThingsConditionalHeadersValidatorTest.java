@@ -40,6 +40,7 @@ import org.eclipse.ditto.base.model.signals.commands.Command.Category;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingPreconditionFailedException;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingPreconditionNotModifiedException;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThing;
+import org.junit.Ignore;
 import org.junit.Test;
 
 /**

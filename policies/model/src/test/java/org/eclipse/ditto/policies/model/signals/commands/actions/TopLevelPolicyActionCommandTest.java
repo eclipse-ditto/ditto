@@ -30,6 +30,7 @@ import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.policies.model.Label;
 import org.eclipse.ditto.policies.model.signals.commands.PolicyCommand;
 import org.eclipse.ditto.policies.model.signals.commands.TestConstants;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;

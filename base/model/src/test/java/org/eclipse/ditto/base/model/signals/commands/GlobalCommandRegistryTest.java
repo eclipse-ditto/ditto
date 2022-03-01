@@ -22,6 +22,7 @@ import org.eclipse.ditto.base.model.exceptions.DittoJsonException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.signals.JsonTypeNotParsableException;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 /**

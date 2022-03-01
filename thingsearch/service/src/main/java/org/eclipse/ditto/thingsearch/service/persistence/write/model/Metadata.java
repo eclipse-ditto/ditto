@@ -27,6 +27,7 @@ import org.eclipse.ditto.base.model.acks.DittoAcknowledgementLabel;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
+import org.eclipse.ditto.base.model.signals.events.Event;
 import org.eclipse.ditto.internal.utils.metrics.instruments.timer.StartedTimer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.policies.model.PolicyId;
@@ -135,6 +136,7 @@ public final class Metadata {
      * @param policyId the Policy ID if the Thing has one.
      * @param policyRevision the Policy revision if the Thing has a policy, or null if it does not.
      * @param modified the timestamp of the last change incorporated into the search index, or null if not known.
+     * @param events the events included in the metadata causing the search update.
      * @param timers the timers measuring the search updater's consistency lag.
      * @param senders the senders.
      * @return the new Metadata object.
@@ -144,10 +146,11 @@ public final class Metadata {
             @Nullable final PolicyId policyId,
             @Nullable final Long policyRevision,
             @Nullable final Instant modified,
+            final List<ThingEvent<?>> events,
             final Collection<StartedTimer> timers,
             final Collection<ActorRef> senders) {
 
-        return new Metadata(thingId, thingRevision, policyId, policyRevision, modified, List.of(), timers, senders,
+        return new Metadata(thingId, thingRevision, policyId, policyRevision, modified, events, timers, senders,
                 false, false, null, List.of(UpdateReason.UNKNOWN));
     }
 
@@ -300,6 +303,19 @@ public final class Metadata {
      */
     public List<ThingEvent<?>> getEvents() {
         return Collections.unmodifiableList(events);
+    }
+
+    /**
+     * Returns the correlationIds of the known thing events.
+     *
+     * @return the correlation ids.
+     */
+    public List<String> getEventsCorrelationIds() {
+        return events.stream()
+                .map(Event::getDittoHeaders)
+                .map(DittoHeaders::getCorrelationId)
+                .flatMap(Optional::stream)
+                .toList();
     }
 
     /**

@@ -46,6 +46,7 @@ import org.eclipse.ditto.connectivity.model.Source;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.ConnectionMonitor;
 import org.eclipse.ditto.placeholders.UnresolvedPlaceholderException;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 public final class KafkaMessageTransformerTest {

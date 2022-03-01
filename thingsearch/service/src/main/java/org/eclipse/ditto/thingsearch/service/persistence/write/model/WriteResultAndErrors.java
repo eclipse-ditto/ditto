@@ -34,16 +34,19 @@ public final class WriteResultAndErrors {
     private final BulkWriteResult bulkWriteResult;
     private final List<BulkWriteError> bulkWriteErrors;
     @Nullable private final Throwable unexpectedError;
+    private final String bulkWriteCorrelationId;
 
     private WriteResultAndErrors(
             final List<AbstractWriteModel> writeModels,
             final BulkWriteResult bulkWriteResult,
             final List<BulkWriteError> bulkWriteErrors,
-            @Nullable final Throwable unexpectedError) {
+            @Nullable final Throwable unexpectedError,
+            final String bulkWriteCorrelationId) {
         this.writeModels = writeModels;
         this.bulkWriteResult = bulkWriteResult;
         this.bulkWriteErrors = bulkWriteErrors;
         this.unexpectedError = unexpectedError;
+        this.bulkWriteCorrelationId = bulkWriteCorrelationId;
     }
 
     /**
@@ -51,11 +54,13 @@ public final class WriteResultAndErrors {
      *
      * @param writeModels the write models requested.
      * @param bulkWriteResult the successful bulk write result.
+     * @param bulkWriteCorrelationId a correlationId to use for correlating bulk write log statements.
      * @return the write result without errors.
      */
     public static WriteResultAndErrors success(final List<AbstractWriteModel> writeModels,
-            final BulkWriteResult bulkWriteResult) {
-        return new WriteResultAndErrors(writeModels, bulkWriteResult, Collections.emptyList(), null);
+            final BulkWriteResult bulkWriteResult,
+            final String bulkWriteCorrelationId) {
+        return new WriteResultAndErrors(writeModels, bulkWriteResult, Collections.emptyList(), null, bulkWriteCorrelationId);
     }
 
     /**
@@ -63,12 +68,14 @@ public final class WriteResultAndErrors {
      *
      * @param writeModels the requested write models.
      * @param mongoBulkWriteException the exception.
+     * @param bulkWriteCorrelationId a correlationId to use for correlating bulk write log statements.
      * @return the write result with errors.
      */
     public static WriteResultAndErrors failure(final List<AbstractWriteModel> writeModels,
-            final MongoBulkWriteException mongoBulkWriteException) {
+            final MongoBulkWriteException mongoBulkWriteException,
+            final String bulkWriteCorrelationId) {
         return new WriteResultAndErrors(writeModels, mongoBulkWriteException.getWriteResult(),
-                mongoBulkWriteException.getWriteErrors(), null);
+                mongoBulkWriteException.getWriteErrors(), null, bulkWriteCorrelationId);
     }
 
     /**
@@ -77,12 +84,14 @@ public final class WriteResultAndErrors {
      *
      * @param writeModels the requested write models.
      * @param unexpectedError the unexpected error.
+     * @param bulkWriteCorrelationId a correlationId to use for correlating bulk write log statements.
      * @return the write result with an unexpected error.
      */
     public static WriteResultAndErrors unexpectedError(final List<AbstractWriteModel> writeModels,
-            final Throwable unexpectedError) {
+            final Throwable unexpectedError,
+            final String bulkWriteCorrelationId) {
         return new WriteResultAndErrors(writeModels, BulkWriteResult.unacknowledged(), Collections.emptyList(),
-                unexpectedError);
+                unexpectedError, bulkWriteCorrelationId);
     }
 
     /**
@@ -121,6 +130,15 @@ public final class WriteResultAndErrors {
         return Optional.ofNullable(unexpectedError);
     }
 
+    /**
+     * Retrieve the correlationId of the bulk write operation to use for correlating log statements.
+     *
+     * @return the correlationId of the bulk write operation.
+     */
+    public String getBulkWriteCorrelationId() {
+        return bulkWriteCorrelationId;
+    }
+
     @Override
     public boolean equals(final Object o) {
         if (o instanceof WriteResultAndErrors) {
@@ -128,7 +146,8 @@ public final class WriteResultAndErrors {
             return Objects.equals(writeModels, that.writeModels) &&
                     Objects.equals(bulkWriteResult, that.bulkWriteResult) &&
                     Objects.equals(bulkWriteErrors, that.bulkWriteErrors) &&
-                    Objects.equals(unexpectedError, that.unexpectedError);
+                    Objects.equals(unexpectedError, that.unexpectedError) &&
+                    Objects.equals(bulkWriteCorrelationId, that.bulkWriteCorrelationId);
         } else {
             return false;
         }
@@ -136,7 +155,7 @@ public final class WriteResultAndErrors {
 
     @Override
     public int hashCode() {
-        return Objects.hash(writeModels, bulkWriteResult, bulkWriteErrors, unexpectedError);
+        return Objects.hash(writeModels, bulkWriteResult, bulkWriteErrors, unexpectedError, bulkWriteCorrelationId);
     }
 
     @Override
@@ -146,6 +165,7 @@ public final class WriteResultAndErrors {
                 ",bulkWriteResult=" + bulkWriteResult +
                 ",bulkWriteErrors=" + bulkWriteErrors +
                 ",unexpectedError=" + unexpectedError +
+                ",bulkWriteCorrelationId=" + bulkWriteCorrelationId +
                 "]";
     }
 }

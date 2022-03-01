@@ -37,7 +37,8 @@ final class LikeFunction implements FilterFunction {
     private static String toJavaRegex(final String patternString) {
         return Pattern.quote(patternString)
                 .replaceAll("\\*", "\\\\E.*\\\\Q")
-                .replaceAll("\\?", "\\\\E.\\\\Q");
+                .replaceAll("\\?", "\\\\E.\\\\Q")
+                .replaceAll("\\|", "\\\\E|\\\\Q");
     }
 
 }

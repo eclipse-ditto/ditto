@@ -23,6 +23,7 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 import java.net.MalformedURLException;
 import java.net.URL;
 
+import org.junit.Ignore;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;

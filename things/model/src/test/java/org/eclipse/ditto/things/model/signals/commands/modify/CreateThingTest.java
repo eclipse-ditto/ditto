@@ -33,6 +33,7 @@ import org.eclipse.ditto.base.model.signals.commands.GlobalCommandRegistry;
 import org.eclipse.ditto.things.model.signals.commands.TestConstants;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommand;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.PoliciesConflictingException;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 

@@ -34,6 +34,7 @@ import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThingRespon
 import org.eclipse.ditto.things.service.persistence.actors.ETagTestUtils;
 import org.eclipse.ditto.wot.integration.provider.WotThingDescriptionProvider;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import com.typesafe.config.ConfigFactory;

@@ -73,7 +73,8 @@ final class BulkWriteResultAckFlow {
         if (wasNotAcknowledged(writeResultAndErrors)) {
             // All failed.
             acknowledgeFailures(getAllMetadata(writeResultAndErrors));
-            return Collections.singleton(logResult("NotAcknowledged", writeResultAndErrors, false));
+            return Collections.singleton(logResult("NotAcknowledged", writeResultAndErrors, false,
+                    false));
         } else {
             final var consistencyError = checkForConsistencyError(writeResultAndErrors);
             switch (consistencyError.status) {
@@ -85,16 +86,17 @@ final class BulkWriteResultAckFlow {
                 case INCORRECT_PATCH:
                     reportIncorrectPatch(writeResultAndErrors);
 
-                    return getConsistencyOKResult(writeResultAndErrors);
+                    return getConsistencyOKResult(writeResultAndErrors, true);
                 case OK:
                 default:
-                    return getConsistencyOKResult(writeResultAndErrors);
+                    return getConsistencyOKResult(writeResultAndErrors, false);
             }
         }
     }
 
-    private Iterable<String> getConsistencyOKResult(final WriteResultAndErrors writeResultAndErrors) {
-        return acknowledgeSuccessesAndFailures(writeResultAndErrors);
+    private Iterable<String> getConsistencyOKResult(final WriteResultAndErrors writeResultAndErrors,
+            final boolean containsIncorrectPatch) {
+        return acknowledgeSuccessesAndFailures(writeResultAndErrors, containsIncorrectPatch);
     }
 
     private void reportIncorrectPatch(final WriteResultAndErrors writeResultAndErrors) {
@@ -102,16 +104,17 @@ final class BulkWriteResultAckFlow {
         // It is not possible to identify which patches are not applied; therefore request all patch updates to retry.
         writeResultAndErrors.getWriteModels().forEach(model -> {
             final var response =
-                    createFailureResponse(model.getMetadata()).setDittoHeaders(INCORRECT_PATCH_HEADERS);
+                    createFailureResponse(model.getMetadata(), INCORRECT_PATCH_HEADERS);
             model.getMetadata().getOrigin().ifPresent(updater -> updater.tell(response, ActorRef.noSender()));
         });
     }
 
-    private Collection<String> acknowledgeSuccessesAndFailures(final WriteResultAndErrors writeResultAndErrors) {
+    private Collection<String> acknowledgeSuccessesAndFailures(final WriteResultAndErrors writeResultAndErrors,
+            final boolean containsIncorrectPatch) {
         final List<BulkWriteError> errors = writeResultAndErrors.getBulkWriteErrors();
         final Collection<String> logEntries = new ArrayList<>(errors.size() + 1);
         final Collection<Metadata> failedMetadata = new ArrayList<>(errors.size());
-        logEntries.add(logResult("Acknowledged", writeResultAndErrors, errors.isEmpty()));
+        logEntries.add(logResult("Acknowledged", writeResultAndErrors, errors.isEmpty(), containsIncorrectPatch));
         final BitSet failedIndices = new BitSet(writeResultAndErrors.getWriteModels().size());
         for (final BulkWriteError error : errors) {
             final Metadata metadata = writeResultAndErrors.getWriteModels().get(error.getIndex()).getMetadata();
@@ -140,7 +143,7 @@ final class BulkWriteResultAckFlow {
         errorsCounter.increment(metadataList.size());
         for (final Metadata metadata : metadataList) {
             metadata.sendNAck(); // also stops timer even if no acknowledgement is requested
-            final UpdateThingResponse response = createFailureResponse(metadata);
+            final UpdateThingResponse response = createFailureResponse(metadata, DittoHeaders.empty());
             metadata.getOrigin().ifPresentOrElse(
                     origin -> origin.tell(response, ActorRef.noSender()),
                     () -> {
@@ -167,14 +170,14 @@ final class BulkWriteResultAckFlow {
         return Duration.ZERO.minus(duration).isNegative();
     }
 
-    private static UpdateThingResponse createFailureResponse(final Metadata metadata) {
+    private static UpdateThingResponse createFailureResponse(final Metadata metadata, final DittoHeaders dittoHeaders) {
         return UpdateThingResponse.of(
                 metadata.getThingId(),
                 metadata.getThingRevision(),
                 metadata.getPolicyId().orElse(null),
                 metadata.getPolicyId().flatMap(policyId -> metadata.getPolicyRevision()).orElse(null),
                 false,
-                DittoHeaders.empty()
+                dittoHeaders
         );
     }
 
@@ -226,34 +229,38 @@ final class BulkWriteResultAckFlow {
     }
 
     private static String logResult(final String status, final WriteResultAndErrors writeResultAndErrors,
-            final boolean isCompleteSuccess) {
+            final boolean containsNoErrors, final boolean containsIncorrectPatch) {
         final Optional<Throwable> unexpectedError = writeResultAndErrors.getUnexpectedError();
         if (unexpectedError.isPresent()) {
             final Throwable error = unexpectedError.get();
             final StringWriter stackTraceWriter = new StringWriter();
             stackTraceWriter.append(String.format("%s: UnexpectedError[stacktrace=", status));
             error.printStackTrace(new PrintWriter(stackTraceWriter));
-            return stackTraceWriter.append("]").toString();
-        } else if (isCompleteSuccess) {
+            return stackTraceWriter.append("] - correlation: ")
+                    .append(writeResultAndErrors.getBulkWriteCorrelationId())
+                    .toString();
+        } else if (containsNoErrors) {
             final BulkWriteResult bulkWriteResult = writeResultAndErrors.getBulkWriteResult();
 
             return String.format(
-                    "%s: Success[ack=%b,errors=%d,matched=%d,upserts=%d,inserted=%d,modified=%d,deleted=%d]",
+                    "%s: %s[ack=%b,errors=%d,matched=%d,upserts=%d,inserted=%d,modified=%d,deleted=%d] - correlation: %s",
                     status,
+                    containsIncorrectPatch ? "IncorrectPatch" : "Success",
                     bulkWriteResult.wasAcknowledged(),
                     writeResultAndErrors.getBulkWriteErrors().size(),
                     bulkWriteResult.getMatchedCount(),
                     bulkWriteResult.getUpserts().size(),
                     bulkWriteResult.getInsertedCount(),
                     bulkWriteResult.getModifiedCount(),
-                    bulkWriteResult.getDeletedCount());
+                    bulkWriteResult.getDeletedCount(),
+                    writeResultAndErrors.getBulkWriteCorrelationId());
         } else {
             // partial success
             final BulkWriteResult bulkWriteResult = writeResultAndErrors.getBulkWriteResult();
 
             return String.format(
                     "%s: PartialSuccess[ack=%b,errorCount=%d,matched=%d,upserts=%d,inserted=%d,modified=%d," +
-                            "deleted=%d,errors=%s]",
+                            "deleted=%d,errors=%s] - correlation: %s",
                     status,
                     bulkWriteResult.wasAcknowledged(),
                     writeResultAndErrors.getBulkWriteErrors().size(),
@@ -262,7 +269,8 @@ final class BulkWriteResultAckFlow {
                     bulkWriteResult.getInsertedCount(),
                     bulkWriteResult.getModifiedCount(),
                     bulkWriteResult.getDeletedCount(),
-                    writeResultAndErrors.getBulkWriteErrors()
+                    writeResultAndErrors.getBulkWriteErrors(),
+                    writeResultAndErrors.getBulkWriteCorrelationId()
             );
         }
     }

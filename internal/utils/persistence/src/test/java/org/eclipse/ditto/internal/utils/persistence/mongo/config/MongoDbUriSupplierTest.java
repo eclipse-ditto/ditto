@@ -26,6 +26,7 @@ import java.util.Collections;
 import java.util.Map;
 
 import org.eclipse.ditto.internal.utils.config.DittoConfigError;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import com.typesafe.config.Config;

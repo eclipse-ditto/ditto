@@ -29,6 +29,7 @@ import org.eclipse.ditto.things.model.signals.commands.modify.ThingModifyCommand
 import org.eclipse.ditto.things.model.signals.commands.query.ThingQueryCommand;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 import org.eclipse.ditto.things.model.signals.events.ThingModifiedEvent;
+import org.junit.Ignore;
 import org.junit.Test;
 
 /**

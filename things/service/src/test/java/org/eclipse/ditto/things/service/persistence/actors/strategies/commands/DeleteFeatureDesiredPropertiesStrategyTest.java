@@ -27,6 +27,7 @@ import org.eclipse.ditto.things.model.signals.commands.modify.DeleteFeatureDesir
 import org.eclipse.ditto.things.model.signals.commands.modify.DeleteFeatureDesiredPropertiesResponse;
 import org.eclipse.ditto.things.model.signals.events.FeatureDesiredPropertiesDeleted;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 /**

@@ -24,6 +24,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.signals.GlobalErrorRegistry;
 import org.eclipse.ditto.thingsearch.model.signals.commands.query.TestConstants;
+import org.junit.Ignore;
 import org.junit.Test;
 
 /**

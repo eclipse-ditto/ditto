@@ -22,6 +22,7 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 
 import java.nio.ByteBuffer;
 import java.time.Instant;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -36,6 +37,7 @@ import org.eclipse.ditto.connectivity.service.messaging.TestConstants;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.ConnectionMonitor;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.ArgumentMatchers;
 
@@ -144,6 +146,43 @@ public final class AtMostOnceConsumerStreamTest {
 
             // Buffer is full. No messages can be offered anymore. Backpressure applies.
             assertThat(sourceQueue.get().offer(consumerRecord)).isEqualTo(QueueOfferResult.dropped());
+        }};
+    }
+
+    @Test
+    public void filtersExpiredMessages() {
+        new TestKit(actorSystem) {{
+            /*
+             * Given we have a kafka source which emits records that are all transformed to External messages.
+             */
+            final ConsumerRecord<String, ByteBuffer> consumerRecord =
+                    new ConsumerRecord<>("topic", 1, 1, Instant.now().toEpochMilli(), TimestampType.LOG_APPEND_TIME,
+                            -1L, NULL_SIZE, NULL_SIZE, "Key", ByteBufferUtils.fromUtf8String("Value"),
+                            new RecordHeaders());
+            final AtMostOnceKafkaConsumerSourceSupplier sourceSupplier =
+                    mock(AtMostOnceKafkaConsumerSourceSupplier.class);
+            when(sourceSupplier.get()).thenReturn(source);
+            final KafkaMessageTransformer messageTransformer = mock(KafkaMessageTransformer.class);
+            final ExternalMessage message = mock(ExternalMessage.class);
+            when(message.getHeaders()).thenReturn(Map.of("creation-time", "0", "ttl", "1000"));
+            final TransformationResult result = TransformationResult.successful(message);
+            when(messageTransformer.transform(ArgumentMatchers.<ConsumerRecord<String, ByteBuffer>>any()))
+                    .thenReturn(result);
+            final ConnectionMonitor connectionMonitor = mock(ConnectionMonitor.class);
+            final Materializer materializer = Materializer.createMaterializer(actorSystem);
+            final Sink<DittoRuntimeException, TestSubscriber.Probe<DittoRuntimeException>> dreSink =
+                    TestSink.create(actorSystem);
+
+            // When starting the stream
+            new AtMostOnceConsumerStream(sourceSupplier, TestConstants.KAFKA_THROTTLING_CONFIG, messageTransformer,
+                    false, materializer,
+                    connectionMonitor, inboundMappingSink, dreSink,
+                    ConnectionId.generateRandom(),
+                    "someUniqueId");
+
+            assertThat(sourceQueue.get().offer(consumerRecord)).isEqualTo(QueueOfferResult.enqueued());
+            inboundSinkProbe.request(1);
+            inboundSinkProbe.expectNoMessage();
         }};
     }
 

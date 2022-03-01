@@ -36,6 +36,7 @@ import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyConfli
 import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyPreconditionFailedException;
 import org.eclipse.ditto.policies.model.signals.commands.modify.CreatePolicy;
 import org.eclipse.ditto.policies.model.signals.events.PolicyEvent;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.Mockito;
 

@@ -22,6 +22,7 @@ import org.eclipse.ditto.connectivity.model.signals.commands.TestConstants;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.connectivity.model.signals.commands.modify.OpenConnection;
+import org.junit.Ignore;
 import org.junit.Test;
 
 /**

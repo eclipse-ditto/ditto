@@ -24,6 +24,7 @@ import org.eclipse.ditto.things.model.signals.commands.modify.DeleteThingDefinit
 import org.eclipse.ditto.things.model.signals.commands.modify.DeleteThingDefinitionResponse;
 import org.eclipse.ditto.things.model.signals.events.ThingDefinitionDeleted;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 /**

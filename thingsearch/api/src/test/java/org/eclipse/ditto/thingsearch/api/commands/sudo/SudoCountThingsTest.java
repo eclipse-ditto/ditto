@@ -17,6 +17,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.thingsearch.model.signals.commands.ThingSearchCommand;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.mutabilitydetector.unittesting.MutabilityAssert;
 import org.mutabilitydetector.unittesting.MutabilityMatchers;

@@ -47,16 +47,21 @@ Or have a look at the ["Hello World"](https://eclipse.org/ditto/intro-hello-worl
 
 ### Build and start Ditto locally
 
-In order to build Ditto, you'll need
-* JDK 11 >= 11.0.5 and
-* Apache Maven 3.x installed.
-* a running Docker daemon (at least version 18.06 CE).
+In order to build Ditto, you'll need:
+* JDK >= 17 
+* Apache Maven >= 3.8.x installed.
+* a running Docker daemon
 
 In order to first build Ditto and then start the built Docker images.
 
 #### 1. Build Ditto with Maven
 ```bash
 mvn clean install
+```
+
+Skip tests:
+```bash
+mvn clean install -DskipTests
 ```
 
 #### 2. Build local Ditto Docker snapshot images

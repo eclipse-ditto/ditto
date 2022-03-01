@@ -13,10 +13,10 @@
 package org.eclipse.ditto.connectivity.service.messaging.httppush;
 
 import static org.assertj.core.api.Assertions.assertThat;
-
-import java.util.Map;
+import static org.mockito.Mockito.when;
 
 import org.junit.Test;
+import org.mockito.Mockito;
 
 /**
  * Unit tests for {@link DefaultHttpPushFactory}.
@@ -25,24 +25,25 @@ public final class DefaultHttpPushFactoryTest {
 
     @Test
     public void ensureParsedParallelismIsAlwaysFactorOfTwo() {
-        assertThat(DefaultHttpPushFactory.parseParallelism(Map.of(HttpPushFactory.PARALLELISM_JSON_KEY, "1")))
-                .isEqualTo(1);
-        assertThat(DefaultHttpPushFactory.parseParallelism(Map.of(HttpPushFactory.PARALLELISM_JSON_KEY, "2")))
-                .isEqualTo(2);
-        assertThat(DefaultHttpPushFactory.parseParallelism(Map.of(HttpPushFactory.PARALLELISM_JSON_KEY, "3")))
-                .isEqualTo(4);
-        assertThat(DefaultHttpPushFactory.parseParallelism(Map.of(HttpPushFactory.PARALLELISM_JSON_KEY, "4")))
-                .isEqualTo(4);
-        assertThat(DefaultHttpPushFactory.parseParallelism(Map.of(HttpPushFactory.PARALLELISM_JSON_KEY, "5")))
-                .isEqualTo(8);
-        assertThat(DefaultHttpPushFactory.parseParallelism(Map.of(HttpPushFactory.PARALLELISM_JSON_KEY, "8")))
-                .isEqualTo(8);
-        assertThat(DefaultHttpPushFactory.parseParallelism(Map.of(HttpPushFactory.PARALLELISM_JSON_KEY, "9")))
-                .isEqualTo(16);
-        assertThat(DefaultHttpPushFactory.parseParallelism(Map.of(HttpPushFactory.PARALLELISM_JSON_KEY, "10")))
-                .isEqualTo(16);
-        assertThat(DefaultHttpPushFactory.parseParallelism(Map.of(HttpPushFactory.PARALLELISM_JSON_KEY, "16")))
-                .isEqualTo(16);
+        final var mockConf = Mockito.mock(HttpPushSpecificConfig.class);
+        when(mockConf.parallelism()).thenReturn(1);
+        assertThat(DefaultHttpPushFactory.parseParallelism(mockConf)).isEqualTo(1);
+        when(mockConf.parallelism()).thenReturn(2);
+        assertThat(DefaultHttpPushFactory.parseParallelism(mockConf)).isEqualTo(2);
+        when(mockConf.parallelism()).thenReturn(3);
+        assertThat(DefaultHttpPushFactory.parseParallelism(mockConf)).isEqualTo(4);
+        when(mockConf.parallelism()).thenReturn(4);
+        assertThat(DefaultHttpPushFactory.parseParallelism(mockConf)).isEqualTo(4);
+        when(mockConf.parallelism()).thenReturn(5);
+        assertThat(DefaultHttpPushFactory.parseParallelism(mockConf)).isEqualTo(8);
+        when(mockConf.parallelism()).thenReturn(8);
+        assertThat(DefaultHttpPushFactory.parseParallelism(mockConf)).isEqualTo(8);
+        when(mockConf.parallelism()).thenReturn(9);
+        assertThat(DefaultHttpPushFactory.parseParallelism(mockConf)).isEqualTo(16);
+        when(mockConf.parallelism()).thenReturn(10);
+        assertThat(DefaultHttpPushFactory.parseParallelism(mockConf)).isEqualTo(16);
+        when(mockConf.parallelism()).thenReturn(16);
+        assertThat(DefaultHttpPushFactory.parseParallelism(mockConf)).isEqualTo(16);
     }
 
 }

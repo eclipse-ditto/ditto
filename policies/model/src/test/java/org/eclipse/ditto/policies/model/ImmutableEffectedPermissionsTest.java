@@ -20,6 +20,7 @@ import java.util.Arrays;
 
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.policies.model.assertions.DittoPolicyAssertions;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;

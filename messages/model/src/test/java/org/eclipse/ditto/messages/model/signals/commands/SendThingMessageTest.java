@@ -34,6 +34,7 @@ import org.eclipse.ditto.messages.model.MessagesModelFactory;
 import org.eclipse.ditto.messages.model.ThingIdInvalidException;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.base.model.signals.commands.Command;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.junit.MockitoJUnitRunner;

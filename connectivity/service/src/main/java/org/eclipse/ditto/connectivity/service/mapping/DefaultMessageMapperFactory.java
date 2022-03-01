@@ -131,6 +131,9 @@ public final class DefaultMessageMapperFactory implements MessageMapperFactory {
         final MessageMapperConfiguration options =
                 DefaultMessageMapperConfiguration.of(mapperId, configuredAndDefaultOptions,
                         configuredIncomingConditions, configuredOutgoingConditions);
+        if (mapper.isEmpty()) {
+            LOGGER.info("Mapper {} with mapping engine {} not found.", mapperId, mappingContext.getMappingEngine());
+        }
         return mapper.map(WrappingMessageMapper::wrap).flatMap(m -> configureInstance(m, options));
     }
 
@@ -181,6 +184,7 @@ public final class DefaultMessageMapperFactory implements MessageMapperFactory {
             final Iterable<Class<?>> payloadMappers = ClassIndex.getAnnotated(PayloadMapper.class);
             final Map<String, Class<?>> mappers = new HashMap<>();
             for (final Class<?> payloadMapper : payloadMappers) {
+                LOGGER.info("Loading payload mapper <{}>.", payloadMapper);
                 if (!MessageMapper.class.isAssignableFrom(payloadMapper)) {
                     throw new IllegalStateException("The class " + payloadMapper.getName() + " does not implement " +
                             MessageMapper.class.getName());
@@ -196,16 +200,20 @@ public final class DefaultMessageMapperFactory implements MessageMapperFactory {
                 }
 
                 Stream.of(aliases).forEach(alias -> {
-                    final Class<?> mappingClass = mappers.putIfAbsent(alias, payloadMapper);
-
-                    if (null != mappingClass &&
-                            annotation.priority() == mappingClass.getAnnotation(PayloadMapper.class).priority()) {
+                    final Class<?> existingMapper = mappers.get(alias);
+                    if (existingMapper == null) {
+                        mappers.put(alias, payloadMapper);
+                        LOGGER.info("Registered mapper {} for alias {}.", payloadMapper.getName(), alias);
+                    } else if (annotation.priority() == existingMapper.getAnnotation(PayloadMapper.class).priority()) {
                         throw new IllegalStateException("Mapper alias <" + alias + "> was already registered and is " +
                                 "tried to register again for " + payloadMapper.getName());
                     } else if (annotation.priority() >
-                            mappers.get(alias).getAnnotation(PayloadMapper.class).priority()) {
+                            existingMapper.getAnnotation(PayloadMapper.class).priority()) {
                         mappers.replace(alias, payloadMapper);
                         LOGGER.info("Replaced mapper {} by higher priority", payloadMapper.getName());
+                    } else {
+                        LOGGER.info("Skipped registration of mapper {} because of lower priority",
+                                payloadMapper.getName());
                     }
                 });
             }
@@ -258,7 +266,7 @@ public final class DefaultMessageMapperFactory implements MessageMapperFactory {
             }
             return Optional.ofNullable(result);
         } else {
-            log.info("Mapper {} not found.", mappingEngine);
+            log.info("Mapper {} not found in {}.", mappingEngine, registeredMappers);
             return Optional.empty();
         }
     }
@@ -273,14 +281,18 @@ public final class DefaultMessageMapperFactory implements MessageMapperFactory {
             final Throwable error = mapperTry.failed().get();
             if (error instanceof ClassNotFoundException || error instanceof InstantiationException ||
                     error instanceof ClassCastException) {
+                LOGGER.warn("Could not instantiate message mapper.", error);
                 return null;
             } else {
                 throw new IllegalStateException("There was an unknown error when trying to creating instance for '"
                         + clazz + "'", error);
             }
         }
-
-        return mapperTry.get();
+        final MessageMapper messageMapper = mapperTry.get();
+        if (messageMapper == null) {
+            LOGGER.warn("Could not instantiate message mapper because result was null.");
+        }
+        return messageMapper;
     }
 
     private Predicate<? super Map.Entry<String, Class<?>>> requiresNoMandatoryConfiguration() {

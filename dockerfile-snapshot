@@ -9,7 +9,7 @@
 #
 # SPDX-License-Identifier: EPL-2.0
 
-FROM docker.io/adoptopenjdk/openjdk11-openj9:jdk-11.0.12_7_openj9-0.27.0-alpine-slim
+FROM docker.io/eclipse-temurin:17-jdk
 
 ARG TARGET_DIR
 ARG SERVICE_STARTER
@@ -24,9 +24,8 @@ ENV HTTP_PORT=8080 \
 EXPOSE 8080
 
 RUN set -x \
-    && apk upgrade --update-cache \
-    && apk add --no-cache tini openssl \
-    && apk add --no-cache --virtual .tmp-deps wget ca-certificates shadow \
+    && apt-get update \
+    && apt-get install -y tini \
     && groupadd --system --gid 1000 ditto \
     && useradd --no-log-init --system --home-dir $DITTO_HOME --shell /bin/sh --gid ditto --uid 1000 ditto \
     && mkdir -p $DITTO_HOME \
@@ -35,12 +34,11 @@ RUN set -x \
     && ln -s ${SERVICE_STARTER}-${SERVICE_VERSION}-allinone.jar starter.jar \
     && chown -R ditto:ditto $DITTO_HOME \
     && cd $DITTO_LOGS \
-    && chown -R ditto:ditto $DITTO_LOGS \
-    && apk del .tmp-deps
+    && chown -R ditto:ditto $DITTO_LOGS
 
 USER ditto
 WORKDIR $DITTO_HOME
-ENTRYPOINT ["/sbin/tini", "--"]
+ENTRYPOINT ["/usr/bin/tini", "--"]
 CMD ["java", "-jar", "/opt/ditto/starter.jar"]
 
 COPY ${TARGET_DIR}/${SERVICE_STARTER}-${SERVICE_VERSION}-allinone.jar $DITTO_HOME

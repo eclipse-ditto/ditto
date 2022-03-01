@@ -397,6 +397,7 @@ public final class HttpPushFactoryTest {
                 "  username = \"username\"\n" +
                 "  password = \"password\"\n" +
                 "}");
+
         return DefaultHttpProxyConfig.ofProxy(config);
     }
 }
