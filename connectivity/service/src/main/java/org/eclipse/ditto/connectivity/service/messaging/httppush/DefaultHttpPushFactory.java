@@ -188,11 +188,11 @@ final class DefaultHttpPushFactory implements HttpPushFactory {
             final ConnectHttp connectHttpsWithCustomSSLContext =
                     ConnectHttp.toHostHttps(baseUri).withCustomHttpsContext(httpsConnectionContext);
             // explicitly added <T> as in (some?) IntelliJ idea the line would show an error:
-            flow = http.cachedHostConnectionPoolHttps(connectHttpsWithCustomSSLContext, poolSettings, log);
+            flow = http.<HttpPushContext>cachedHostConnectionPoolHttps(connectHttpsWithCustomSSLContext, poolSettings, log);
         } else {
             // explicitly added <T> as in (some?) IntelliJ idea the line would show an error:
             // no SSL, hence no need for SSLContextCreator
-            flow = http.cachedHostConnectionPool(ConnectHttp.toHost(baseUri), poolSettings, log);
+            flow = http.<HttpPushContext>cachedHostConnectionPool(ConnectHttp.toHost(baseUri), poolSettings, log);
         }
 
         // make requests in parallel

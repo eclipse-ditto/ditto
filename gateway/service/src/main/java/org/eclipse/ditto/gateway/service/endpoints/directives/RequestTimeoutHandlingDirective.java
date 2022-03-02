@@ -100,10 +100,11 @@ public final class RequestTimeoutHandlingDirective {
         final Duration duration = mutableTimer.getDuration();
         final String requestPath = mutableTimer.getTag(TracingTags.REQUEST_PATH);
 
-        if (requestPath != null && requestPath.contains("/search/things") &&
-                SEARCH_WARN_TIMEOUT_MS.minus(duration).isNegative()) {
-            logger.warn("Encountered slow search which took over <{}> ms: <{}> ms!", SEARCH_WARN_TIMEOUT_MS.toMillis(),
-                    duration.toMillis());
+        if (requestPath != null && requestPath.contains("/search/things")) {
+            if (SEARCH_WARN_TIMEOUT_MS.minus(duration).isNegative()) {
+                logger.warn("Encountered slow search which took over <{}> ms: <{}> ms!", SEARCH_WARN_TIMEOUT_MS.toMillis(),
+                        duration.toMillis());
+            }
         } else if (HTTP_WARN_TIMEOUT_MS.minus(duration).isNegative()) {
             logger.warn("Encountered slow HTTP request which took over <{}> ms: <{}> ms!",
                     HTTP_WARN_TIMEOUT_MS.toMillis(), duration.toMillis());

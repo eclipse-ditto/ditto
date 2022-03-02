@@ -24,7 +24,6 @@ import java.util.List;
 
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonFactory;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -180,6 +179,19 @@ public final class ImmutableFeatureDefinitionTest {
         assertThatExceptionOfType(FeatureDefinitionEmptyException.class)
                 .isThrownBy(() -> ImmutableFeatureDefinition.fromJson(JsonFactory.newArray()))
                 .withMessage("Feature Definition must not be empty!")
+                .withNoCause();
+    }
+
+    @Test
+    public void fromJsonWithIncorrectTypeFailsWithException() {
+        final JsonArray jsonArray = JsonFactory.newArrayBuilder()
+                .add(1.5)
+                .add(FIRST_IDENTIFIER.toString())
+                .build();
+
+        assertThatExceptionOfType(DefinitionIdentifierInvalidException.class)
+                .isThrownBy(() -> ImmutableFeatureDefinition.fromJson(jsonArray))
+                .withMessage("Definition identifier <1.5> is invalid!")
                 .withNoCause();
     }
 
