@@ -242,9 +242,10 @@ Gathering logs for a running Ditto installation can be achieved by:
 * writing logs to log files: this can be done by setting the environment variable `DITTO_LOGGING_FILE_APPENDER` to `true`
    * configure the amount of log files, and the total amount of space used for logs files via these environment 
      variables. It is also possible to clean up old log files and archives at start up.
-     In case `DITTO_LOGGING_TOTAL_LOG_FILE_SIZE` is used it is necessary to configure also `DITTO_LOGGING_MAX_LOG_FILE_HISTORY_IN_DAYS`.
-       * `DITTO_LOGGING_FILE_NAME_PATTERN` (default: /var/log/ditto/<service-name>.log.%d{yyyy-MM-dd}.gz)
-       * `DITTO_LOGGING_MAX_LOG_FILE_HISTORY_IN_DAYS` (default: 10) 
+     In case `DITTO_LOGGING_TOTAL_LOG_FILE_SIZE` is used it is necessary to configure also `DITTO_LOGGING_MAX_LOG_FILE_HISTORY`.
+     The detailed meaning of these config values is described in the [logback documentation](https://logback.qos.ch/manual/appenders.html#TimeBasedRollingPolicy).  
+       * `DITTO_LOGGING_FILE_NAME_PATTERN` (default: /var/log/ditto/<service-name>.log.%d{yyyy-MM-dd}.gz) - the rollover period is inferred from the fileNamePattern
+       * `DITTO_LOGGING_MAX_LOG_FILE_HISTORY` (default: 10)
        * `DITTO_LOGGING_TOTAL_LOG_FILE_SIZE` (default: 1GB)
        * `DITTO_LOGGING_CLEAN_HISTORY_ON_START` (default: false)
    * the format in which logging is done is "LogstashEncoder" format - that way the logfiles may easily be imported into
