@@ -812,7 +812,7 @@ public final class ConnectionPersistenceActor
         broadcastToClientActorsIfStarted(closeConnection)
                 .thenAccept(response -> getSelf().tell(command, ActorRef.noSender()))
                 .exceptionally(error -> {
-                    // stop client actors anyway---the closed status is already persisted.
+                    // stop client actors anyway --- the closed status is already persisted.
                     stopClientActors();
                     return handleException("disconnect", command.getSender(), error);
                 });
@@ -1182,7 +1182,7 @@ public final class ConnectionPersistenceActor
         CHECK_LOGGING_ACTIVE,
 
         /**
-         * Indicates the the priority of the connection should get updated
+         * Indicates the priority of the connection should get updated
          */
         TRIGGER_UPDATE_PRIORITY
     }
