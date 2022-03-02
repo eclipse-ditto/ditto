@@ -223,10 +223,11 @@ final class ThingsUpdater extends AbstractActorWithTimers {
             final Function<M, DittoHeaders> getDittoHeaders) {
 
         final ThingId id = getId.apply(message);
-        log.debug("Forwarding incoming {} to shard region of {}", message.getClass().getSimpleName(), id);
+        final DittoHeaders dittoHeaders = getDittoHeaders.apply(message);
+        log.withCorrelationId(dittoHeaders)
+                .debug("Forwarding incoming {} to shard region of {}", message.getClass().getSimpleName(), id);
         final String type = getType.apply(message);
         final JsonObject jsonObject = toJson.apply(message);
-        final DittoHeaders dittoHeaders = getDittoHeaders.apply(message);
         final ShardedMessageEnvelope messageEnvelope = ShardedMessageEnvelope.of(id, type, jsonObject, dittoHeaders);
 
         final ActorRef sender = getSender();

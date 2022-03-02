@@ -247,7 +247,7 @@ public final class FeaturePropertyModified extends AbstractThingEvent<FeaturePro
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" + super.toString() + ", featureId=" + featureId
-                + ", propertyPointer=" + propertyPointer + ", propertyValue" + propertyValue + "]";
+                + ", propertyPointer=" + propertyPointer + ", propertyValue=" + propertyValue + "]";
     }
 
 }

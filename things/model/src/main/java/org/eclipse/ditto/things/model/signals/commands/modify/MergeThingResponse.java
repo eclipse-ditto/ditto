@@ -197,6 +197,11 @@ public final class MergeThingResponse extends AbstractCommandResponse<MergeThing
     }
 
     @Override
+    protected boolean canEqual(@Nullable final Object other) {
+        return other instanceof MergeThingResponse;
+    }
+
+    @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
                 super.toString() +

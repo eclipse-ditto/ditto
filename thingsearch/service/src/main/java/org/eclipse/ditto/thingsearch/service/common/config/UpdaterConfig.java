@@ -132,7 +132,7 @@ public interface UpdaterConfig {
         /**
          * Whether force-update-after-start is enabled.
          */
-        FORCE_UPDATE_AFTER_START_ENABLED("force-update-after-start-enabled", true),
+        FORCE_UPDATE_AFTER_START_ENABLED("force-update-after-start-enabled", false),
 
         /**
          * The timeout after when to explicitly do a "force update" after a ThingUpdater was started.
