@@ -204,6 +204,32 @@ public final class OutboundMappingProcessorActor
         }
     }
 
+    private static void issueFailedAcknowledgements(final Signal<?> signal,
+            final Predicate<AcknowledgementLabel> isFailedAckLabel,
+            final DittoRuntimeException dre,
+            final ActorRef sender) {
+
+        final Set<AcknowledgementRequest> requestedAcks = signal.getDittoHeaders().getAcknowledgementRequests();
+        final boolean customAckRequested = requestedAcks.stream()
+                .anyMatch(request -> !DittoAcknowledgementLabel.contains(request.getLabel()));
+
+        final Optional<EntityId> entityIdWithType = extractEntityId(signal);
+        if (customAckRequested && entityIdWithType.isPresent()) {
+            final List<AcknowledgementLabel> failedAckLabels = requestedAcks.stream()
+                    .map(AcknowledgementRequest::getLabel)
+                    .filter(isFailedAckLabel)
+                    .collect(Collectors.toList());
+            if (!failedAckLabels.isEmpty()) {
+                final DittoHeaders dittoHeaders = signal.getDittoHeaders();
+                final List<Acknowledgement> ackList = failedAckLabels.stream()
+                        .map(label -> failedAck(label, entityIdWithType.get(), dittoHeaders, dre))
+                        .collect(Collectors.toList());
+                final Acknowledgements failedAcks = Acknowledgements.of(ackList, dittoHeaders);
+                sender.tell(failedAcks, ActorRef.noSender());
+            }
+        }
+    }
+
     private int determinePoolSize(final int connectionPoolSize, final int maxPoolSize) {
         if (connectionPoolSize > maxPoolSize) {
             dittoLoggingAdapter.info("Configured pool size <{}> is greater than the configured max pool size <{}>." +
@@ -403,11 +429,11 @@ public final class OutboundMappingProcessorActor
                             .warning("Could not retrieve extra data due to: {} {}", error.getClass().getSimpleName(),
                                     error.getMessage());
                     // recover from all errors to keep message-mapping-stream running despite enrichment failures
-                    return Collections.singletonList(recoverFromEnrichmentError(outboundSignal, target, error));
+                    return recoverFromEnrichmentError(outboundSignal, target, error);
                 });
     }
 
-    private static Optional<EntityId> extractEntityId(Signal<?> signal) {
+    private static Optional<EntityId> extractEntityId(final Signal<?> signal) {
         return Optional.of(signal)
                 .filter(WithEntityId.class::isInstance)
                 .map(WithEntityId.class::cast)
@@ -415,7 +441,7 @@ public final class OutboundMappingProcessorActor
     }
 
     // Called inside future; must be thread-safe
-    private OutboundSignalWithSender recoverFromEnrichmentError(final OutboundSignalWithSender outboundSignal,
+    private List<OutboundSignalWithSender> recoverFromEnrichmentError(final OutboundSignalWithSender outboundSignal,
             final Target target, final Throwable error) {
 
         final var dittoRuntimeException = DittoRuntimeException.asDittoRuntimeException(error, t ->
@@ -441,7 +467,11 @@ public final class OutboundMappingProcessorActor
                     ConnectionFailure.internal(getSelf(), dittoRuntimeException, "Signal enrichment failed");
             clientActor.tell(connectionFailure, getSelf());
         }
-        return outboundSignal.setTargets(Collections.singletonList(target));
+        if (mappingConfig.getPublishFailedEnrichments()) {
+            return Collections.singletonList(outboundSignal.setTargets(Collections.singletonList(target)));
+        } else {
+            return Collections.singletonList(outboundSignal.setFailedEnrichment(dittoRuntimeException, target));
+        }
     }
 
     private void logEnrichmentFailure(final OutboundSignal outboundSignal, final DittoRuntimeException error) {
@@ -624,23 +654,48 @@ public final class OutboundMappingProcessorActor
                         return List.of();
                     } else {
                         final ActorRef sender = outboundSignals.get(0).sender;
-                        final List<Mapped> mappedSignals = outboundSignals.stream()
-                                .map(OutboundSignalWithSender::asMapped)
-                                .collect(Collectors.toList());
                         final List<Target> targetsToPublishAt = outboundSignals.stream()
                                 .map(OutboundSignal::getTargets)
                                 .flatMap(List::stream)
                                 .collect(Collectors.toList());
                         final Predicate<AcknowledgementLabel> willPublish =
                                 ConnectionValidator.getTargetIssuedAcknowledgementLabels(connection.getId(),
-                                                targetsToPublishAt)
+                                        targetsToPublishAt)
                                         .collect(Collectors.toSet())::contains;
+                        final var signalsWithoutEnrichmentFailures =
+                                filterFailedEnrichments(outboundSignals, willPublish);
+                        final List<Mapped> mappedSignals = signalsWithoutEnrichmentFailures
+                                .map(OutboundSignalWithSender::asMapped)
+                                .collect(Collectors.toList());
                         issueWeakAcknowledgements(outbound.getSource(),
                                 willPublish.negate().and(outboundMappingProcessor::isTargetIssuedAck),
                                 sender);
                         return List.of(OutboundSignalFactory.newMultiMappedOutboundSignal(mappedSignals, sender));
                     }
                 });
+    }
+
+    private static Stream<OutboundSignalWithSender> filterFailedEnrichments(
+            final Collection<OutboundSignalWithSender> signals,
+            final Predicate<AcknowledgementLabel> predicate) {
+
+        return signals.stream().filter(signal -> {
+            if (null != signal.enrichmentFailure) {
+                final var optionalAcknowledgementLabel = signal.getTargets()
+                        .get(signal.getTargets().indexOf(signal.enrichmentFailure.second()))
+                        .getIssuedAcknowledgementLabel();
+                if (optionalAcknowledgementLabel.isPresent()) {
+                    final Predicate<AcknowledgementLabel> perTargetPredicate =
+                            optionalAcknowledgementLabel.get()::equals;
+                    final var combinedPredicate = predicate.and(perTargetPredicate);
+                    issueFailedAcknowledgements(signal.getSource(), combinedPredicate, signal.enrichmentFailure.first(),
+                            signal.sender);
+                }
+                return false;
+            } else {
+                return true;
+            }
+        });
     }
 
     private Collection<OutboundSignalWithSender> applyFilter(final OutboundSignalWithSender outboundSignalWithExtra,
@@ -740,31 +795,44 @@ public final class OutboundMappingProcessorActor
         return Acknowledgement.weak(label, entityId, dittoHeaders, payload);
     }
 
+    private static Acknowledgement failedAck(final AcknowledgementLabel label,
+            final EntityId entityId,
+            final DittoHeaders dittoHeaders,
+            final DittoRuntimeException dre) {
+        final JsonValue payload = JsonValue.of("Acknowledgement was issued automatically as failed ack, " +
+                "because the signal enrichment failed: " + dre.getMessage());
+        return Acknowledgement.of(label, entityId, dre.getHttpStatus(), dittoHeaders, payload);
+    }
+
     static final class OutboundSignalWithSender implements OutboundSignal {
 
         private final OutboundSignal delegate;
         private final ActorRef sender;
 
         @Nullable
+        private final Pair<DittoRuntimeException, Target> enrichmentFailure;
+        @Nullable
         private final JsonObject extra;
 
         private OutboundSignalWithSender(final OutboundSignal delegate,
                 final ActorRef sender,
+                @Nullable final Pair<DittoRuntimeException, Target> enrichmentFailure,
                 @Nullable final JsonObject extra) {
 
             this.delegate = delegate;
             this.sender = sender;
+            this.enrichmentFailure = enrichmentFailure;
             this.extra = extra;
         }
 
         static OutboundSignalWithSender of(final Signal<?> signal, final ActorRef sender) {
             final OutboundSignal outboundSignal =
                     OutboundSignalFactory.newOutboundSignal(signal, Collections.emptyList());
-            return new OutboundSignalWithSender(outboundSignal, sender, null);
+            return new OutboundSignalWithSender(outboundSignal, sender, null, null);
         }
 
         static OutboundSignalWithSender of(final OutboundSignal outboundSignal, final ActorRef sender) {
-            return new OutboundSignalWithSender(outboundSignal, sender, null);
+            return new OutboundSignalWithSender(outboundSignal, sender, null, null);
         }
 
         @Override
@@ -789,18 +857,25 @@ public final class OutboundMappingProcessorActor
 
         private OutboundSignalWithSender setTargets(final List<Target> targets) {
             return new OutboundSignalWithSender(OutboundSignalFactory.newOutboundSignal(delegate.getSource(), targets),
-                    sender, extra);
+                    sender, enrichmentFailure, extra);
+        }
+
+        // Also set target, because enrichment can fail per target.
+        private OutboundSignalWithSender setFailedEnrichment(final DittoRuntimeException e, final Target t) {
+            return new OutboundSignalWithSender(
+                    OutboundSignalFactory.newOutboundSignal(delegate.getSource(), getTargets()),
+                    sender, Pair.apply(e, t), extra);
         }
 
         private OutboundSignalWithSender setExtra(final JsonObject extra) {
             return new OutboundSignalWithSender(
                     OutboundSignalFactory.newOutboundSignal(delegate.getSource(), getTargets()),
-                    sender, extra
+                    sender, enrichmentFailure, extra
             );
         }
 
         private OutboundSignalWithSender mapped(final Mapped mapped) {
-            return new OutboundSignalWithSender(mapped, sender, extra);
+            return new OutboundSignalWithSender(mapped, sender, enrichmentFailure, extra);
         }
 
         private Mapped asMapped() {
@@ -812,6 +887,7 @@ public final class OutboundMappingProcessorActor
             return getClass().getSimpleName() + " [" +
                     "delegate=" + delegate +
                     ", sender=" + sender +
+                    ", enrichmentFailure=" + enrichmentFailure +
                     ", extra=" + extra +
                     "]";
         }
@@ -827,12 +903,13 @@ public final class OutboundMappingProcessorActor
             final OutboundSignalWithSender that = (OutboundSignalWithSender) o;
             return Objects.equals(delegate, that.delegate) &&
                     Objects.equals(sender, that.sender) &&
+                    Objects.equals(enrichmentFailure, that.enrichmentFailure) &&
                     Objects.equals(extra, that.extra);
         }
 
         @Override
         public int hashCode() {
-            return Objects.hash(delegate, sender, extra);
+            return Objects.hash(delegate, sender, enrichmentFailure, extra);
         }
 
     }

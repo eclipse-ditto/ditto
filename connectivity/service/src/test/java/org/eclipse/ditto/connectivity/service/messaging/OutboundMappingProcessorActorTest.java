@@ -52,14 +52,16 @@ import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThingRespon
 import org.eclipse.ditto.things.model.signals.events.ThingModified;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.FixMethodOrder;
 import org.junit.Test;
+import org.junit.runners.MethodSorters;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
 import akka.testkit.TestProbe;
 import akka.testkit.javadsl.TestKit;
-
+@FixMethodOrder(MethodSorters.DEFAULT)
 /**
  * Tests in addition to {@link MessageMappingProcessorActorTest}
  * for {@link OutboundMappingProcessorActor} only.
@@ -118,6 +120,31 @@ public final class OutboundMappingProcessorActorTest {
                     .collect(Collectors.toList());
             assertThat(ackLabels).containsExactlyInAnyOrder("source1", "target1", "target2");
             acks.forEach(ack -> assertThat(ack.isWeak()).describedAs("Expect weak ack, got: " + ack).isTrue());
+        }};
+    }
+
+    @Test
+    public void eventsWithFailedEnrichmentIssueFailedAcks() {
+        new TestKit(actorSystem) {{
+            final Props props =
+                    OutboundMappingProcessorActor.props(clientActorProbe.ref(), getProcessors(), CONNECTION,
+                            TestConstants.CONNECTIVITY_CONFIG, 3);
+            final ActorRef underTest = actorSystem.actorOf(props);
+
+            final OutboundSignal outboundSignal = outboundTwinEvent(
+                    Attributes.newBuilder().set("target2", "wayne").build(),
+                    List.of("source1", "target1", "target2", "unknown"),
+                    List.of(target1(), target2())
+            );
+            underTest.tell(outboundSignal, getRef());
+            proxyActorProbe.expectMsgClass(RetrieveThing.class);
+
+            final Acknowledgements acks = expectMsgClass(Acknowledgements.class);
+            final List<String> fackLabels = acks.getFailedAcknowledgements()
+                    .stream()
+                    .map(ack -> ack.getLabel().toString())
+                    .collect(Collectors.toList());
+            assertThat(fackLabels).containsExactlyInAnyOrder("target2");
         }};
     }
 
