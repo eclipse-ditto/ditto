@@ -15,6 +15,7 @@ package org.eclipse.ditto.connectivity.service.messaging.monitoring.metrics;
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.util.Objects;
+import java.util.Optional;
 
 import javax.annotation.Nullable;
 
@@ -25,11 +26,11 @@ import org.eclipse.ditto.connectivity.model.MetricType;
 /**
  * Identifies a counter by connection id, metric direction, metric type and address.
  */
-final class CounterKey {
+public final class CounterKey {
 
     private final ConnectionId connectionId;
-    private final MetricType metricType;
-    private final MetricDirection metricDirection;
+    @Nullable private final MetricType metricType;
+    @Nullable private final MetricDirection metricDirection;
     private final String address;
 
     /**
@@ -40,16 +41,22 @@ final class CounterKey {
      * @param metricDirection the metricDirection
      * @param address the address
      */
-    private CounterKey(final ConnectionId connectionId, final MetricType metricType,
-            final MetricDirection metricDirection, final String address) {
+    private CounterKey(final ConnectionId connectionId,
+            @Nullable final MetricType metricType,
+            @Nullable final MetricDirection metricDirection,
+            final String address) {
+
         this.connectionId = checkNotNull(connectionId, "connectionId");
-        this.metricType = checkNotNull(metricType, "metricType");
-        this.metricDirection = checkNotNull(metricDirection, "metricDirection");
+        this.metricType = metricType;
+        this.metricDirection = metricDirection;
         this.address = checkNotNull(address, "address");
     }
 
-    static CounterKey of(final ConnectionId connectionId, final MetricType metricType,
-            final MetricDirection metricDirection, final String address) {
+    public static CounterKey of(final ConnectionId connectionId,
+            @Nullable final MetricType metricType,
+            @Nullable final MetricDirection metricDirection,
+            final String address) {
+
         return new CounterKey(connectionId, metricType, metricDirection, address);
     }
 
@@ -57,12 +64,12 @@ final class CounterKey {
         return connectionId;
     }
 
-    MetricType getMetricType() {
-        return metricType;
+    Optional<MetricType> getMetricType() {
+        return Optional.ofNullable(metricType);
     }
 
-    MetricDirection getMetricDirection() {
-        return metricDirection;
+    Optional<MetricDirection> getMetricDirection() {
+        return Optional.ofNullable(metricDirection);
     }
 
     String getAddress() {
