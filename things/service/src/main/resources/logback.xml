@@ -50,7 +50,6 @@
                 <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
                     <level>info</level>
                 </filter>
-<!--                <file>/var/log/ditto/things.log</file>-->
                 <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
                     <!-- The rollover period is inferred from the fileNamePattern -->
                     <!-- daily rollover as default -->
