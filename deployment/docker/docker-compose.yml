@@ -44,7 +44,7 @@ services:
       # - DITTO_LOGGING_FILE_APPENDER=true
     # Set additional configuration options here
     # -Dditto.policies...
-    command: java -jar ${JVM_CMD_ARGS_ENV} starter.jar
+    #command: java -jar starter.jar
     # only needed if DITTO_LOGGING_FILE_APPENDER is set
     # volumes:
     #  - ditto_log_files:/var/log/ditto
@@ -69,7 +69,7 @@ services:
       # - DITTO_LOGGING_FILE_APPENDER=true
     # Set additional configuration options here
     # -Dditto.things...
-    command: java -jar ${JVM_CMD_ARGS_ENV} starter.jar
+    #command: java -jar starter.jar
     # only needed if DITTO_LOGGING_FILE_APPENDER is set
     # volumes:
     #  - ditto_log_files:/var/log/ditto
@@ -94,7 +94,7 @@ services:
       # - DITTO_LOGGING_FILE_APPENDER=true
     # Set additional configuration options here
     # -Dditto.things-search...
-    command: java -jar ${JVM_CMD_ARGS_ENV} starter.jar
+    #command: java -jar starter.jar
     # only needed if DITTO_LOGGING_FILE_APPENDER is set
     # volumes:
     #  - ditto_log_files:/var/log/ditto
@@ -119,7 +119,7 @@ services:
       # - DITTO_LOGGING_FILE_APPENDER=true
     # Set additional configuration options here
     # -Dditto.concierge...
-    command: java -jar ${JVM_CMD_ARGS_ENV} starter.jar
+   #command: java -jar starter.jar
     # only needed if DITTO_LOGGING_FILE_APPENDER is set
     # volumes:
     #  - ditto_log_files:/var/log/ditto
@@ -146,7 +146,7 @@ services:
       # - DITTO_LOGGING_FILE_APPENDER=true
     # Set additional configuration options here
     # -Dditto.connectivity...
-    command: java -jar ${JVM_CMD_ARGS_ENV} starter.jar
+    #command: java -jar --add-opens java.base/java.nio=ALL-UNNAMED --add-opens java.base/sun.nio.ch=ALL-UNNAMED --add-opens java.base/sun.security.util=ALL-UNNAMED starter.jar
     # only needed if DITTO_LOGGING_FILE_APPENDER is set
     #volumes:
     #  - ditto_log_files:/var/log/ditto
@@ -177,7 +177,7 @@ services:
     # Set additional configuration options here
     # -Dditto.gateway...
     # Setting the devops password via java VM environment
-    command: java -Dditto.gateway.authentication.devops.password=foobar -jar ${JVM_CMD_ARGS_ENV} starter.jar
+    #command: java -Dditto.gateway.authentication.devops.password=foobar -jar starter.jar
     # only needed if DITTO_LOGGING_FILE_APPENDER is set
     # volumes:
     #  - ditto_log_files:/var/log/ditto
