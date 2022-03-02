@@ -1,7 +1,7 @@
 ---
 title: "W3C WoT (Web of Things) integration"
 published: true
-permalink: 2022-02-24-wot-integration.html
+permalink: 2022-03-03-wot-integration.html
 layout: post
 author: thomas_jaeckle
 tags: [blog, wot, http]
@@ -11,13 +11,13 @@ toc: true
 ---
 
 The upcoming Eclipse Ditto **version 2.4.0** will add support for [W3C WoT (Web of Things)](https://www.w3.org/WoT/) 
-integration by referencing to WoT Thing Model in Ditto managed twins describing the Things' capabilities.
+integration by referencing WoT Thing Model in Ditto managed twins describing the Things' capabilities.
 
-By integrating WoT, Ditto does a big step forward towards:
+By integrating WoT, Ditto takes a big step forward towards:
 * increased interoperability
 * introspection of twins to find out their capabilities 
-    * which `properties` are provided and their data types and formats
-    * which `actions` can be invoked on the devices, including their expected input/output data types and formats 
+    * which `properties` are provided and their data type and format
+    * which `actions` can be invoked on the devices, including their expected input/output data type and format 
     * which `events` the devices are able to emit, including their data type and format
 * addition of semantic context to Ditto managed digital twins and their capabilities
 * description of Ditto twin HTTP APIs in an open, established, well specified, "web optimized", active IoT standard
@@ -53,8 +53,7 @@ For a full example of the different aspects of the WoT integration, please check
 [WoT integration example](basic-wot-integration-example.html).
 
 To summarize:
-* you can "link" a Thing via its [Thing Definition](basic-thing.html#definition) to a public available 
-  WoT Thing Model via its HTTP(s) endpoint.
+* "link" a Thing with a public available WoT Thing Model by specifying the URL in its [Thing Definition](basic-thing.html#definition).
 * creation of a new Thing can use a Thing Model (e.g. the example model [https://eclipse.github.io/ditto-examples/wot/models/floor-lamp-1.0.0.tm.jsonld](https://eclipse.github.io/ditto-examples/wot/models/floor-lamp-1.0.0.tm.jsonld)) in order to generate a JSON skeleton:
     ```bash
     curl --location --request PUT -u ditto:ditto 'http://localhost:8080/api/2/things/io.eclipseprojects.ditto:floor-lamp-0815' \
@@ -63,7 +62,7 @@ To summarize:
         "definition": "https://eclipse.github.io/ditto-examples/wot/models/floor-lamp-1.0.0.tm.jsonld"
     }'
     ```
-* resulting to a Thing looking like this:
+* which results in a Thing like this:
   ```json
   {
     "thingId": "io.eclipseprojects.ditto:floor-lamp-0815",
@@ -162,8 +161,8 @@ To summarize:
   }
   ```
 * the WoT Thing Description of Things containing a Thing Model in their `"definition"` may then be retrieved by invoking 
-  the existing<br/>
-  `GET /api/2/things/<thingId>` endpoint, providing the `Accept` header pointing to `application/td+json`:
+  the existing endpoint<br/>
+  `GET /api/2/things/<thingId>` with the `Accept` header `application/td+json`:
   ```bash
   curl --location --request GET -u ditto:ditto 'http://localhost:8080/api/2/things/io.eclipseprojects.ditto:floor-lamp-0815' \
   --header 'Accept: application/td+json'

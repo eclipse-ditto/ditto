@@ -5,14 +5,14 @@ tags: [wot]
 permalink: basic-wot-integration-example.html
 ---
 
-Wrapping up the [WoT integration](basic-wot-integration.html) as practical example.
+Wrapping up the [WoT integration](basic-wot-integration.html) with a practical example.
 
-{% include tip.html content="In order to experiment with Thing Models and having them exposed as HTTP resources, simply create them as a [GitHub Gist](https://gist.github.com).<br/>
+{% include tip.html content="To experiment with Thing Models and having them exposed as HTTP resources, simply create them as a [GitHub Gist](https://gist.github.com).<br/>
     Each revision of the file will get a unique HTTP endpoint which you can use as endpoint for your Thing Model." %}
 
 ## Thing Model
 
-You can provide a WoT Thing Model at any via HTTP(s) URL addressable endpoint, for example simply put your WoT TMs into
+You can provide a WoT Thing Model via any HTTP(s) URL addressable endpoint, for example simply put your WoT TMs into
 a GitHub repository.  
 For this example, Ditto added a model into its `ditto-examples` GitHub Repo:  
 [floor-lamp-1.0.0.tm.jsonld](https://github.com/eclipse/ditto-examples/blob/master/wot/models/floor-lamp-1.0.0.tm.jsonld)
@@ -46,7 +46,7 @@ Summarizing, our example model is the model of a "Floor Lamp" with:
 
 ## Creating a new Thing based on the TM
 
-In order to create a Thing (instance) and create the Thing JSON skeleton following the WoT Thing Model, simply create 
+To create a Thing (instance) and create the Thing JSON skeleton following the WoT Thing Model, simply create 
 a Thing via the Ditto HTTP API (e.g. `PUT /api/2/things/<thingId>`):
 
 ```bash
@@ -165,7 +165,7 @@ You see that:
 
 ## Inspecting the Thing Description of the Thing
 
-The Thing we just created can now be asked for its capabilities / interaction affordances by doing the following query:
+The Thing we just created can now be asked for its capabilities / interaction affordances by sending the following request:
 
 ```bash
 curl --location --request GET -u ditto:ditto 'http://localhost:8080/api/2/things/io.eclipseprojects.ditto:floor-lamp-0815' \

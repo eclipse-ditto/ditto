@@ -43,19 +43,19 @@ describes in a standardized way which capabilities in form of `properties`, `act
 and which input/output can be expected when interacting with the thing.  
 
 Even more, a TD contains so called `forms` for the mentioned interaction capabilities which map those rather abstract
-concepts to actual endpoints, e.g. to HTTP endpoints, HTTP verbs and HTTP headers, etc.  
-Developer under the roof of the W3C, web APIs are obviously well understood and are incorporated perfectly in the 
-"WoT Thing Description" specification.  
+concepts to actual endpoints, e.g. to HTTP endpoints, HTTP verbs and HTTP headers etc.  
+Developed under the roof of the W3C, web APIs are obviously well understood and are incorporated perfectly in the 
+"WoT Thing Description" specification.
 But also other protocol bindings may be defined in a `form`, e.g. MQTT or CoAP.
 
 The "WoT Thing Description" specification version 1.0 was already published as 
-["W3C Recommendation" in April 2020](https://www.w3.org/TR/wot-thing-description/), the next version 1.1 e.g. adds the 
-new concept of "Thing Models" (TM) which can be seen as a template for generating "Thing Descriptions", 
-leaving out some mandatory fields in "Thing Descriptions" like for example the `forms` including the protocol bindings.
+["W3C Recommendation" in April 2020](https://www.w3.org/TR/wot-thing-description/), the next version 1.1 adds the 
+concept of "Thing Models" (TM) which can be seen as a template for generating "Thing Descriptions" but without some of
+its mandatory fields, e.g. `forms` including the protocol bindings.
 
-With this addition of the "Thing Model" concept, the WoT becomes a perfect fit for describing the capabilities of 
-[Digital Twins](intro-digitaltwins.html) managed in Ditto, completely optional and even possible as "retrofit" model 
-addition for already connected devices / already existing twins.
+With the addition of the "Thing Model" concept, WoT becomes a perfect fit for describing the capabilities of 
+[Digital Twins](intro-digitaltwins.html) managed in Ditto.
+It is completely optional and even possible as "retrofit" model addition for already connected devices / already existing twins.
 
 The benefits of adding such a "Thing Model" reference to digital twins managed in Ditto are:
 * possibility to define model for data (Ditto Thing `attributes` + Ditto Feature `properties`), e.g. containing:
@@ -80,7 +80,7 @@ The benefits of adding such a "Thing Model" reference to digital twins managed i
         * what it is capable of
         * which HTTP endpoints to invoke to access data / send messages
 * take advantage of an open standard
-    * W3C are experts on the web, the WoT standard relies on already established other standards like e.g. HTTP, JSON, 
+    * W3C are experts on the web, the WoT standard relies on already established other standards like HTTP, JSON, 
       JSON-LD, JsonSchema, JsonPointer, etc. 
     * the standard is in active development
     * many eyes (e.g. well known industry players like Siemens, Intel, Oracle, Fujitsu, ...) review additions, etc.
@@ -106,31 +106,30 @@ This description contains not only the interaction capabilities (`properties` th
 A [Thing Model](https://www.w3.org/TR/wot-thing-description11/#introduction-tm) can be seen as the model 
 (or interface in OOP terminology) for a potentially huge population of instances (Thing Descriptions) all "implementing"
 this contract.  
-It does not need to contain the instance specific parts which a TD must include (e.g. `security` definitions or `forms`),
-it focuses on the possible interactions (`properties`, `actions`, `events`) and their data types / semantics in a more 
+It does not need to contain the instance specific parts which a TD must include (e.g. `security` definitions or `forms`).
+It focuses on the possible interactions (`properties`, `actions`, `events`) and their data types / semantics in a more 
 abstract way.
 
-#### Thing Model modeling good practices
+#### Thing Model modeling tips
 
-When writing new WoT Thing Models to describe the capabilities of your devices, here are some good practices and tips
-which you should consider:
+Here are some tips you should consider when writing new WoT Thing Models to describe the capabilities of your devices:
 
 * put a version in your Thing Model filename:
     * The WoT specification does not require you to put the version of the Thing Model in the filename, however you should
       really do so.
-    * If you don't and e.g. just provide the file as `lamp.tm.jsonld`, you will probably just overwrite the file whenever
-      you do a change to the model.
-    * Think about an application consuming that model - on the one day a Thing would be correctly defined by the model, on
-      the next day the Thing would no longer follow the model, even if the URL to the model was not changed. 
+    * If you don't use a version and provide the file as `lamp.tm.jsonld`, you will probably overwrite the file whenever
+      you make a change to the model.
+    * Think about an application consuming that model - one day a Thing would be correctly defined by the model,
+      but the next day the Thing would no longer follow the model, even if the URL to the model was not changed. 
 * apply semantic versioning:
-    * if you only to a "bugfix" to a model, increase the "micro" version: `1.0.X`
+    * if you "fix a bug" in a model, increase the "micro" version: `1.0.X`
     * if you add something new to a model without removing/renaming (breaking) existing definitions, increase the "minor" version: `1.X.0`
     * if you need to break a model (e.g. by removing/renaming something or changing a datatype), increase the "major" version: `X.0.0`
 * treat published Thing Models as "immutable":
     * never change a "released" TM once published and accessible via public HTTP endpoint
 * provide a `title` and a `description` for your Thing Models
     * you as the model creator can add the most relevant human-readable descriptions
-    * also, for `properties`, `actions`, `events` and all defined data types
+    * also define it for `properties`, `actions`, `events` and all defined data types
     * if you need internationalization, add those to `tiles` and `descriptions` 
 * provide a semantic context by referencing ontologies in your JSON-LD `@context`
     * at some point, a machine learning or reasoning engine will try to make sense of your things and their data
@@ -157,9 +156,9 @@ which you should consider:
 
 #### Public available ontologies to reference
 
-Here collected are some ontologies which you can use in order to provide semantic context:
+Here we listed some ontologies which you can use in order to provide semantic context:
 
-To describe time related data (e.g. durations, timestamps), you can use: [W3C Time Ontology](https://www.w3.org/TR/owl-time/)  
+To describe time related data (e.g. durations, timestamps) you can use: [W3C Time Ontology](https://www.w3.org/TR/owl-time/)  
 ```json
 {
   "@context": {
@@ -171,7 +170,7 @@ To describe time related data (e.g. durations, timestamps), you can use: [W3C Ti
 }
 ```
 
-To describe geolocations, you can use: [W3C Basic Geo (WGS84 lat/long) Vocabulary](https://www.w3.org/2003/01/geo/):  
+To describe geolocations you can use: [W3C Basic Geo (WGS84 lat/long) Vocabulary](https://www.w3.org/2003/01/geo/):  
 ```json
 {
   "@context": {
@@ -209,7 +208,7 @@ To describe units you can choose between:
   }
   ```
 
-To describe "assets", you can use: [SAREF](https://ontology.tno.nl/saref/)  
+To describe "assets" you can use: [SAREF](https://ontology.tno.nl/saref/)  
 ```json
 {
   "@context": {
@@ -237,11 +236,11 @@ devices, all implementing the same "contract" (Thing Model) with the same intera
 
 ### Thing Description vs. Thing Model
 
-While WoT TD describe the instance (the Ditto Thing), a WoT Thing Model (TM) provides the model of a Thing and can be 
-referenced by the Thing by inserting its HTTP endpoint in the [Thing Definition](basic-thing.html#definition).  
+A WoT TD describes the instance (the Ditto Thing), a WoT TM provides the model of a Thing. The model can be referenced
+in the [Thing Definition](basic-thing.html#definition) with its HTTP endpoint.
 Ditto supports adding a valid HTTP(s) URL in the `"definition"`.
 
-The same applies for the [Feature Definition](basic-feature.html#feature-definition) which may also contain the HTTP
+The same applies for the [Feature Definition](basic-feature.html#feature-definition) which may also contain HTTP
 endpoints to a valid WoT Thing Model.
 
 Thing Descriptions are generated by the WoT integration in Ditto, based on the Thing Models referenced in a 
@@ -292,12 +291,12 @@ Prerequisites to use the Thing Description generation:
 * the feature toggle (environment variable `DITTO_DEVOPS_FEATURE_WOT_INTEGRATION_ENABLED=true`) is activated
 * HTTP content negotiation is applied, setting the `Accept` header to the registered WoT TD
   [IANA content type `application/td+json`](https://www.iana.org/assignments/media-types/application/td+json)
-  when retrieving the Thing e.g. via an HTTP `GET /api/2/<namespace>:<thing-name>`
+  when retrieving the Thing via HTTP `GET /api/2/<namespace>:<thing-name>`
 
 The available configuration of the WoT integration can be found in the 
 [things.conf](https://github.com/eclipse/ditto/blob/master/things/service/src/main/resources/things.conf)
 config file of the [things](architecture-services-things.html) service at path `ditto.things.wot`.  
-There you can e.g. configure which `securityDefinitions` shall be added to the generated TDs and which `base` path 
+There you can configure which `securityDefinitions` shall be added to the generated TDs and which `base` path 
 prefix to create into the TDs, depending on your public Ditto endpoint.
 
 #### Security: TD access / authorization
@@ -331,7 +330,7 @@ Function:
 Using cURL, the Thing Description for a Ditto Thing can be generated and fetched by invoking:
 
 ```bash
-curl -u ditto:ditto 'http://localhost:8080/api/2/things/io.eclipserpojects.ditto:my-thing' \
+curl -u ditto:ditto 'http://localhost:8080/api/2/things/io.eclipsepojects.ditto:my-thing' \
   --header 'Accept: application/td+json'
 ```
 
@@ -354,7 +353,7 @@ Function:
 Using cURL, the Thing Description for a Ditto Feature can be generated and fetched by invoking:
 
 ```bash
-curl -u ditto:ditto 'http://localhost:8080/api/2/things/io.eclipserpojects.ditto:my-thing/features/my-feature-1' \
+curl -u ditto:ditto 'http://localhost:8080/api/2/things/io.eclipsepojects.ditto:my-thing/features/my-feature-1' \
   --header 'Accept: application/td+json'
 ```
 
