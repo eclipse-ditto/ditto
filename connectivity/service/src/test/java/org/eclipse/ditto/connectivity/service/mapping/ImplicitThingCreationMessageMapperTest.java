@@ -79,6 +79,8 @@ public final class ImplicitThingCreationMessageMapperTest {
             .set("other-test-header", "{{ header:gateway_id }}")
             .set("empty-test-header", "{{ header:gateway_id | fn:filter(header:foobar, 'eq', 'bar') }}")
             .build();
+    
+    private static final JsonValue ALLOW_POLICY_LOCKOUT = JsonValue.of(false);
 
     private static final JsonObject INITIAL_POLICY = Policy.newBuilder()
             .forLabel("DEFAULT")
@@ -137,7 +139,7 @@ public final class ImplicitThingCreationMessageMapperTest {
         final Map<String, String> headers = createValidHeaders();
 
         underTest.configure(connection, TestConstants.CONNECTIVITY_CONFIG,
-                createMapperConfig(THING_TEMPLATE, COMMAND_HEADERS), actorSystem);
+                createMapperConfig(THING_TEMPLATE, COMMAND_HEADERS, JsonValue.of(true)), actorSystem);
 
         final ExternalMessage externalMessage = ExternalMessageFactory.newExternalMessageBuilder(headers).build();
         final List<Adaptable> mappingResult = underTest.map(externalMessage);
@@ -161,7 +163,7 @@ public final class ImplicitThingCreationMessageMapperTest {
     public void doForwardMappingContextWithDeviceIdPlaceholder() {
         final Map<String, String> headers = createValidHeaders();
         underTest.configure(connection, TestConstants.CONNECTIVITY_CONFIG,
-                createMapperConfig(THING_TEMPLATE, COMMAND_HEADERS), actorSystem);
+                createMapperConfig(THING_TEMPLATE, COMMAND_HEADERS, ALLOW_POLICY_LOCKOUT), actorSystem);
 
         final ExternalMessage externalMessage = ExternalMessageFactory.newExternalMessageBuilder(headers).build();
         final List<Adaptable> mappingResult = underTest.map(externalMessage);
@@ -175,7 +177,7 @@ public final class ImplicitThingCreationMessageMapperTest {
         assertThat(createThing.getThing().getPolicyEntityId()).isEmpty();
         assertThat(createThing.getThing().getAttributes()).isEqualTo(expectedThing.getAttributes());
         assertThat(createThing.getPolicyIdOrPlaceholder()).contains(GATEWAY_ID);
-        assertThat(createThing.getDittoHeaders().isAllowPolicyLockout()).isTrue();
+        assertThat(createThing.getDittoHeaders().isAllowPolicyLockout()).isFalse();
         assertThat(createThing.getDittoHeaders().getIfNoneMatch()).contains(EntityTagMatchers.fromStrings("*"));
     }
 
@@ -183,7 +185,7 @@ public final class ImplicitThingCreationMessageMapperTest {
     public void doForwardMappingContextWithPolicyPlaceholder() {
         final Map<String, String> headers = createValidHeaders();
         underTest.configure(connection, TestConstants.CONNECTIVITY_CONFIG,
-                createMapperConfig(THING_TEMPLATE_WITH_POLICY, COMMAND_HEADERS), actorSystem);
+                createMapperConfig(THING_TEMPLATE_WITH_POLICY, COMMAND_HEADERS, ALLOW_POLICY_LOCKOUT), actorSystem);
 
         final ExternalMessage externalMessage = ExternalMessageFactory.newExternalMessageBuilder(headers).build();
         final List<Adaptable> mappingResult = underTest.map(externalMessage);
@@ -197,14 +199,14 @@ public final class ImplicitThingCreationMessageMapperTest {
         assertThat(createThing.getThing().getPolicyEntityId()).isEqualTo(expectedThing.getPolicyEntityId());
         assertThat(createThing.getThing().getAttributes()).isEqualTo(expectedThing.getAttributes());
         assertThat(createThing.getInitialPolicy()).contains(INITIAL_POLICY);
-        assertThat(createThing.getDittoHeaders().isAllowPolicyLockout()).isTrue();
+        assertThat(createThing.getDittoHeaders().isAllowPolicyLockout()).isFalse();
         assertThat(createThing.getDittoHeaders().getIfNoneMatch()).contains(EntityTagMatchers.fromStrings("*"));
     }
 
     @Test
     public void doForwardMappingTwice() {
         underTest.configure(connection, TestConstants.CONNECTIVITY_CONFIG,
-                createMapperConfig(THING_TEMPLATE_WITH_POLICY, COMMAND_HEADERS), actorSystem);
+                createMapperConfig(THING_TEMPLATE_WITH_POLICY, COMMAND_HEADERS, ALLOW_POLICY_LOCKOUT), actorSystem);
 
         final Map<String, String> headers1 = new HashMap<>();
         headers1.put(HEADER_HONO_DEVICE_ID, "headerNamespace:headerDeviceId1");
@@ -250,7 +252,7 @@ public final class ImplicitThingCreationMessageMapperTest {
     public void doForwardWithoutPlaceholders() {
         final Map<String, String> headers = createValidHeaders();
         underTest.configure(connection, TestConstants.CONNECTIVITY_CONFIG,
-                createMapperConfig(THING_TEMPLATE_WITHOUT_PLACEHOLDERS, COMMAND_HEADERS), actorSystem);
+                createMapperConfig(THING_TEMPLATE_WITHOUT_PLACEHOLDERS, COMMAND_HEADERS, ALLOW_POLICY_LOCKOUT), actorSystem);
 
         final ExternalMessage externalMessage = ExternalMessageFactory.newExternalMessageBuilder(headers).build();
         final List<Adaptable> mappingResult = underTest.map(externalMessage);
@@ -268,7 +270,7 @@ public final class ImplicitThingCreationMessageMapperTest {
     @Test
     public void throwErrorIfMappingConfigIsMissing() {
         final DefaultMessageMapperConfiguration invalidMapperConfig = createMapperConfig(JsonObject.empty(),
-                COMMAND_HEADERS);
+                COMMAND_HEADERS, ALLOW_POLICY_LOCKOUT);
 
         assertThatExceptionOfType(MessageMapperConfigurationInvalidException.class)
                 .isThrownBy(
@@ -289,7 +291,7 @@ public final class ImplicitThingCreationMessageMapperTest {
                 .build();
 
         final DefaultMessageMapperConfiguration invalidMapperConfig = createMapperConfig(templateMissingThingId,
-                COMMAND_HEADERS);
+                COMMAND_HEADERS, ALLOW_POLICY_LOCKOUT);
 
         assertThatExceptionOfType(MessageMapperConfigurationInvalidException.class)
                 .isThrownBy(
@@ -300,7 +302,7 @@ public final class ImplicitThingCreationMessageMapperTest {
     @Test
     public void throwErrorIfHeaderForPlaceholderIsMissing() {
         underTest.configure(connection, TestConstants.CONNECTIVITY_CONFIG,
-                createMapperConfig(THING_TEMPLATE, COMMAND_HEADERS), actorSystem);
+                createMapperConfig(THING_TEMPLATE, COMMAND_HEADERS, ALLOW_POLICY_LOCKOUT), actorSystem);
 
         final Map<String, String> missingEntityHeader = new HashMap<>();
         missingEntityHeader.put(HEADER_HONO_DEVICE_ID, DEVICE_ID);
@@ -315,7 +317,7 @@ public final class ImplicitThingCreationMessageMapperTest {
     @Test
     public void throwExceptionOnErrorResponse() {
         underTest.configure(connection, TestConstants.CONNECTIVITY_CONFIG,
-                createMapperConfig(THING_TEMPLATE, COMMAND_HEADERS), actorSystem);
+                createMapperConfig(THING_TEMPLATE, COMMAND_HEADERS, ALLOW_POLICY_LOCKOUT), actorSystem);
         final ThingConflictException conflictException =
                 ThingConflictException.newBuilder(ThingId.generateRandom()).build();
         final Signal<?> thingErrorResponse = ThingErrorResponse.of(conflictException);
@@ -331,7 +333,7 @@ public final class ImplicitThingCreationMessageMapperTest {
                 .build();
 
         final DefaultMessageMapperConfiguration mapperConfig =
-                createMapperConfig(templateInvalidThingId, COMMAND_HEADERS);
+                createMapperConfig(templateInvalidThingId, COMMAND_HEADERS, ALLOW_POLICY_LOCKOUT);
 
         final var externalMessage = ExternalMessageFactory.newExternalMessageBuilder(Map.of("id", "invalid")).build();
 
@@ -343,7 +345,7 @@ public final class ImplicitThingCreationMessageMapperTest {
     @Test
     public void regularCommandResponsesAreNotMapped() {
         underTest.configure(connection, TestConstants.CONNECTIVITY_CONFIG,
-                createMapperConfig(THING_TEMPLATE, COMMAND_HEADERS), actorSystem);
+                createMapperConfig(THING_TEMPLATE, COMMAND_HEADERS, ALLOW_POLICY_LOCKOUT), actorSystem);
         final Signal<?> thingResponse =
                 CreateThingResponse.of(Thing.newBuilder().setId(ThingId.generateRandom()).build(),
                         DittoHeaders.empty());
@@ -377,10 +379,11 @@ public final class ImplicitThingCreationMessageMapperTest {
     }
 
     private DefaultMessageMapperConfiguration createMapperConfig(final JsonValue thingTemplate,
-            final JsonValue commandHeaders) {
+            final JsonValue commandHeaders, final JsonValue allowPolicyLockout) {
         final Map<String, JsonValue> options = new HashMap<>();
         options.put("thing", thingTemplate);
         options.put("commandHeaders", commandHeaders);
+        options.put("allowPolicyLockout", allowPolicyLockout);
         final Map<String, String> incomingConditions = Collections.singletonMap("implicitThingCreation",
                 "{{ header:hono_registration_status | fn:filter(header:hono_registration_status,'eq','NEW') }}");
         return DefaultMessageMapperConfiguration.of("valid", options, incomingConditions, Collections.emptyMap());

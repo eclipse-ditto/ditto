@@ -1,9 +1,9 @@
 ---
 title: Release notes 2.4.0
 tags: [release_notes]
-published: false
+published: true
 keywords: release notes, announcements, changelog
-summary: "Version 2.4.0 of Eclipse Ditto, released on ??.??.2022"
+summary: "Version 2.4.0 of Eclipse Ditto, released on xx.xx.2022"
 permalink: release_notes_240.html
 ---
 
