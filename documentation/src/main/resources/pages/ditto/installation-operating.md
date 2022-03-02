@@ -240,11 +240,12 @@ Gathering logs for a running Ditto installation can be achieved by:
    * configure `DITTO_LOGGING_LOGSTASH_SERVER` to contain the endpoint of a logstash server
     
 * writing logs to log files: this can be done by setting the environment variable `DITTO_LOGGING_FILE_APPENDER` to `true`
-   * configure the amount of log files, and the total amount of space used for logs files via these two environment 
-     variables:
+   * configure the amount of log files, and the total amount of space used for logs files via these environment 
+     variables. It is also possible to clean up old log files and archives at start up:
        * `DITTO_LOGGING_FILE_NAME_PATTERN` (default: /var/log/ditto/<service-name>.log.%d{yyyy-MM-dd}.gz)
        * `DITTO_LOGGING_MAX_LOG_FILE_HISTORY_IN_DAYS` (default: 10) 
        * `DITTO_LOGGING_TOTAL_LOG_FILE_SIZE` (default: 1GB)
+       * `DITTO_LOGGING_CLEAN_HISTORY_ON_START` (default: false)
    * the format in which logging is done is "LogstashEncoder" format - that way the logfiles may easily be imported into
      an ELK stack
    * when running Ditto in Kubernetes apply the `ditto-log-files.yaml` to your Kubernetes cluster in order to 
