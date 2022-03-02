@@ -27,13 +27,6 @@ import com.typesafe.config.Config;
 public interface Amqp10ConsumerConfig {
 
     /**
-     * Return whether rate limit based on throughput _and_ acknowledgements is enabled.
-     *
-     * @return whether rate limit is enabled.
-     */
-    boolean isRateLimitEnabled();
-
-    /**
      * Return when to forget messages for which redelivery was requested (they may be consumed by another consumer).
      *
      * @return the duration a redelivery request is kept.
@@ -63,11 +56,6 @@ public interface Amqp10ConsumerConfig {
      * {@code Amqp10ConsumerConfig}.
      */
     enum ConfigValue implements KnownConfigValue {
-
-        /**
-         * Whether consumer rate limit is enabled.
-         */
-        RATE_LIMIT_ENABLED("rate-limit-enabled", true),
 
         /**
          * When to forget messages for which redelivery was requested (they may be consumed by another consumer).

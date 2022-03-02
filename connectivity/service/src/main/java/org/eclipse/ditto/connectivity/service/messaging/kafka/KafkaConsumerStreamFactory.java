@@ -27,8 +27,6 @@ import org.eclipse.ditto.connectivity.service.config.ConnectionThrottlingConfig;
 import org.eclipse.ditto.connectivity.service.messaging.AcknowledgeableMessage;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.ConnectionMonitor;
 
-import com.typesafe.config.ConfigFactory;
-
 import akka.NotUsed;
 import akka.stream.Materializer;
 import akka.stream.javadsl.Sink;
@@ -63,12 +61,14 @@ final class KafkaConsumerStreamFactory {
     /**
      * Only used for testing purpose
      *
+     * @param throttlingConfig the throttling config to use during the test.
      * @param atMostOnceKafkaConsumerSourceSupplier source supplier for "at most once"
      * @param atLeastOnceKafkaConsumerSourceSupplier source supplier for "at least once"
      * @param consumerData the consumer data
      * @param dryRun indicates whether the connection runs in a dry run.
      */
-    KafkaConsumerStreamFactory(final AtMostOnceKafkaConsumerSourceSupplier atMostOnceKafkaConsumerSourceSupplier,
+    KafkaConsumerStreamFactory(final ConnectionThrottlingConfig throttlingConfig,
+            final AtMostOnceKafkaConsumerSourceSupplier atMostOnceKafkaConsumerSourceSupplier,
             final AtLeastOnceKafkaConsumerSourceSupplier atLeastOnceKafkaConsumerSourceSupplier,
             final ConsumerData consumerData,
             final boolean dryRun) {
@@ -76,7 +76,7 @@ final class KafkaConsumerStreamFactory {
         this.consumerData = consumerData;
         this.dryRun = dryRun;
         propertiesFactory = null;
-        throttlingConfig = ConnectionThrottlingConfig.of(ConfigFactory.empty());
+        this.throttlingConfig = throttlingConfig;
         this.atMostOnceKafkaConsumerSourceSupplier = atMostOnceKafkaConsumerSourceSupplier;
         this.atLeastOnceKafkaConsumerSourceSupplier = atLeastOnceKafkaConsumerSourceSupplier;
     }

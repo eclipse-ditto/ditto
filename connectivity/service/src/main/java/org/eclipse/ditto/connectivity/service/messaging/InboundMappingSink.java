@@ -141,7 +141,7 @@ public final class InboundMappingSink {
                         );
 
         final Flow<Object, InboundMappingOutcomes, NotUsed> flowWithOptionalThrottling;
-        if (throttlingConfig != null) {
+        if (throttlingConfig != null && throttlingConfig.isEnabled()) {
             flowWithOptionalThrottling = mapMessageFlow
                     .throttle(throttlingConfig.getLimit(), throttlingConfig.getInterval(),
                             outcomes -> (int) outcomes.getOutcomes()

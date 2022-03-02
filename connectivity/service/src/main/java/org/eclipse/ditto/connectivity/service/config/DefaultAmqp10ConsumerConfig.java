@@ -30,12 +30,10 @@ final class DefaultAmqp10ConsumerConfig implements Amqp10ConsumerConfig {
 
     private static final String CONFIG_PATH = "consumer";
 
-    private final boolean rateLimitEnabled;
     private final Duration redeliveryExpectationTimeout;
     private final ConnectionThrottlingConfig throttlingConfig;
 
     private DefaultAmqp10ConsumerConfig(final ScopedConfig config) {
-        rateLimitEnabled = config.getBoolean(ConfigValue.RATE_LIMIT_ENABLED.getConfigPath());
         redeliveryExpectationTimeout = config.getNonNegativeAndNonZeroDurationOrThrow(
                 ConfigValue.REDELIVERY_EXPECTATION_TIMEOUT);
         throttlingConfig = ConnectionThrottlingConfig.of(config);
@@ -51,11 +49,6 @@ final class DefaultAmqp10ConsumerConfig implements Amqp10ConsumerConfig {
     public static DefaultAmqp10ConsumerConfig of(final Config config) {
         return new DefaultAmqp10ConsumerConfig(
                 ConfigWithFallback.newInstance(config, CONFIG_PATH, ConfigValue.values()));
-    }
-
-    @Override
-    public boolean isRateLimitEnabled() {
-        return rateLimitEnabled;
     }
 
     @Override
@@ -77,21 +70,19 @@ final class DefaultAmqp10ConsumerConfig implements Amqp10ConsumerConfig {
             return false;
         }
         final DefaultAmqp10ConsumerConfig that = (DefaultAmqp10ConsumerConfig) o;
-        return rateLimitEnabled == that.rateLimitEnabled &&
-                Objects.equals(redeliveryExpectationTimeout, that.redeliveryExpectationTimeout) &&
+        return Objects.equals(redeliveryExpectationTimeout, that.redeliveryExpectationTimeout) &&
                 Objects.equals(throttlingConfig, that.throttlingConfig);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(rateLimitEnabled, redeliveryExpectationTimeout, throttlingConfig);
+        return Objects.hash(redeliveryExpectationTimeout, throttlingConfig);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
-                "rateLimitEnabled=" + rateLimitEnabled +
-                ", redeliveryExpectationTimeout=" + redeliveryExpectationTimeout +
+                "redeliveryExpectationTimeout=" + redeliveryExpectationTimeout +
                 ", throttlingConfig=" + throttlingConfig +
                 "]";
     }
