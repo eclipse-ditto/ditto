@@ -14,7 +14,6 @@ package org.eclipse.ditto.connectivity.api;
 
 import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
 
 import org.eclipse.ditto.placeholders.Placeholder;
 import org.eclipse.ditto.utils.jsr305.annotations.AllParametersAndReturnValuesAreNonnullByDefault;

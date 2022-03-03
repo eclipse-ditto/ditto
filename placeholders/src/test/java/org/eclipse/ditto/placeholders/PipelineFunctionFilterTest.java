@@ -101,12 +101,11 @@ public final class PipelineFunctionFilterTest {
     }
 
     @Test
-    public void testFunctionFilterWhenConditionSucceedsWithArray5() {
+    public void testFunctionFilterWhenConditionSucceedsWithSinglePreviousValueAndMultipleComparedValues() {
         when(expressionResolver.resolveAsPipelineElement("feature:id"))
                 .thenReturn(PipelineElement.resolved(Arrays.asList("foo", "bar")));
         final String params = String.format("(\"%s\",%s)", "eq", "feature:id");
-        assertThat(underTest.apply(PipelineElement.resolved(Arrays.asList("foo")), params,
-                expressionResolver)).containsExactly("foo");
+        assertThat(underTest.apply(PipelineElement.resolved("foo"), params, expressionResolver)).containsExactly("foo");
     }
 
     @Test

@@ -14,7 +14,6 @@ package org.eclipse.ditto.connectivity.api.placeholders;
 
 import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
 
 import javax.annotation.concurrent.Immutable;
 

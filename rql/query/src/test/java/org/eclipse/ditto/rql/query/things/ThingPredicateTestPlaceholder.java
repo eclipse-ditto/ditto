@@ -15,7 +15,6 @@ package org.eclipse.ditto.rql.query.things;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
 
 import org.eclipse.ditto.placeholders.Placeholder;
 import org.eclipse.ditto.utils.jsr305.annotations.AllParametersAndReturnValuesAreNonnullByDefault;

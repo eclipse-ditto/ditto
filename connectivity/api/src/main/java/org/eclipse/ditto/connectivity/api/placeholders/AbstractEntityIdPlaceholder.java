@@ -15,7 +15,6 @@ package org.eclipse.ditto.connectivity.api.placeholders;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
 
 import org.eclipse.ditto.base.model.entity.id.NamespacedEntityId;
 

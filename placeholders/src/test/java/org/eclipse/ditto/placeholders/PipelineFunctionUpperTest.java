@@ -15,8 +15,6 @@ package org.eclipse.ditto.placeholders;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
-import java.util.Collections;
-
 import org.junit.After;
 import org.junit.Test;
 import org.junit.runner.RunWith;

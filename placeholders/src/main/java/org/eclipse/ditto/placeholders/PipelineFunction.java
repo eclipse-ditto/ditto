@@ -13,7 +13,6 @@
 package org.eclipse.ditto.placeholders;
 
 import java.util.List;
-import java.util.stream.Stream;
 
 /**
  * Describes a pipeline function with {@code name}, {@code signature}, signature validation capability and
