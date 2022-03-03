@@ -28,17 +28,22 @@ import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.headers.entitytag.EntityTag;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
+import org.eclipse.ditto.internal.utils.persistentactors.results.Result;
+import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.things.model.PolicyIdMissingException;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.ThingLifecycle;
 import org.eclipse.ditto.things.model.ThingsModelFactory;
-import org.eclipse.ditto.internal.utils.persistentactors.results.Result;
 import org.eclipse.ditto.things.model.signals.commands.modify.CreateThing;
 import org.eclipse.ditto.things.model.signals.commands.modify.CreateThingResponse;
 import org.eclipse.ditto.things.model.signals.events.ThingCreated;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
+import org.eclipse.ditto.wot.integration.provider.WotThingDescriptionProvider;
+
+import akka.actor.ActorSystem;
 
 /**
  * This strategy handles the {@link CreateThingStrategy} command.
@@ -46,17 +51,16 @@ import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 @Immutable
 final class CreateThingStrategy extends AbstractThingCommandStrategy<CreateThing> {
 
-    private static final CreateThingStrategy INSTANCE = new CreateThingStrategy();
+    private final WotThingDescriptionProvider wotThingDescriptionProvider;
 
     /**
      * Constructs a new {@link CreateThingStrategy} object.
+     *
+     * @param actorSystem the actor system to use for loading the WoT extension.
      */
-    private CreateThingStrategy() {
+    CreateThingStrategy(final ActorSystem actorSystem) {
         super(CreateThing.class);
-    }
-
-    public static CreateThingStrategy getInstance() {
-        return INSTANCE;
+        wotThingDescriptionProvider = WotThingDescriptionProvider.get(actorSystem);
     }
 
     @Override
@@ -96,6 +100,19 @@ final class CreateThingStrategy extends AbstractThingCommandStrategy<CreateThing
         if (newThing.getPolicyEntityId().isEmpty()) {
             newThing = newThing.setPolicyId(PolicyId.of(context.getState()));
         }
+
+        final Thing finalNewThing = newThing;
+        newThing = wotThingDescriptionProvider.provideThingSkeletonForCreation(
+                        command.getEntityId(),
+                        newThing.getDefinition().orElse(null), commandHeaders
+                )
+                .map(wotBasedThingSkeleton ->
+                        JsonFactory.mergeJsonValues(finalNewThing.toJson(), wotBasedThingSkeleton.toJson())
+                )
+                .filter(JsonValue::isObject)
+                .map(JsonValue::asObject)
+                .map(ThingsModelFactory::newThing)
+                .orElse(finalNewThing);
 
         final Instant now = Instant.now();
         final Thing newThingWithImplicits = newThing.toBuilder()

@@ -16,6 +16,7 @@ import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.text.MessageFormat;
 import java.util.Collection;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -511,7 +512,7 @@ public final class ThingsModelFactory {
                     .map(field -> ImmutableFeatureFromScratchBuilder.newFeatureFromJson(field.getValue().asObject())
                             .useId(field.getKeyName())
                             .build())
-                    .collect(Collectors.toSet());
+                    .collect(Collectors.toCollection(LinkedHashSet::new));
 
             result = ImmutableFeatures.of(features);
         } else {

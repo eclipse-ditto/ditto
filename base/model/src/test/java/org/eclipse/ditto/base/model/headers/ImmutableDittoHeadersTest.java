@@ -84,6 +84,7 @@ public final class ImmutableDittoHeadersTest {
             Lists.list(AuthorizationModelFactory.newAuthSubject("knownRevokedSubject1"),
                     AuthorizationModelFactory.newAuthSubject("knownRevokedSubject2"));
     private static final String KNOWN_CONTENT_TYPE = "application/json";
+    private static final String KNOWN_ACCEPT = "application/json";
     private static final String KNOWN_REPLY_TO = "replies";
     private static final String KNOWN_ORIGIN = "knownOrigin";
     private static final String KNOWN_REPLY_TARGET = "5";
@@ -182,6 +183,7 @@ public final class ImmutableDittoHeadersTest {
                 .liveChannelCondition(KNOWN_LIVE_CHANNEL_CONDITION)
                 .putHeader(DittoHeaderDefinition.LIVE_CHANNEL_CONDITION_MATCHED.getKey(),
                         String.valueOf(KNOWN_LIVE_CHANNEL_CONDITION_MATCHED))
+                .accept(KNOWN_ACCEPT)
                 .build();
 
         assertThat(underTest).isEqualTo(expectedHeaderMap);
@@ -455,6 +457,7 @@ public final class ImmutableDittoHeadersTest {
                 .set(DittoHeaderDefinition.ETAG.getKey(), KNOWN_ETAG.toString())
                 .set(DittoHeaderDefinition.ORIGIN.getKey(), KNOWN_ORIGIN)
                 .set(DittoHeaderDefinition.CONTENT_TYPE.getKey(), KNOWN_CONTENT_TYPE)
+                .set(DittoHeaderDefinition.ACCEPT.getKey(), KNOWN_ACCEPT)
                 .set(DittoHeaderDefinition.REPLY_TARGET.getKey(), Integer.parseInt(KNOWN_REPLY_TARGET))
                 .set(DittoHeaderDefinition.INBOUND_PAYLOAD_MAPPER.getKey(), KNOWN_MAPPER)
                 .set(DittoHeaderDefinition.ORIGINATOR.getKey(), KNOWN_ORIGINATOR)
@@ -685,6 +688,7 @@ public final class ImmutableDittoHeadersTest {
         result.put(DittoHeaderDefinition.IF_NONE_MATCH.getKey(), KNOWN_IF_NONE_MATCH.toString());
         result.put(DittoHeaderDefinition.ETAG.getKey(), KNOWN_ETAG.toString());
         result.put(DittoHeaderDefinition.CONTENT_TYPE.getKey(), KNOWN_CONTENT_TYPE);
+        result.put(DittoHeaderDefinition.ACCEPT.getKey(), KNOWN_ACCEPT);
         result.put(DittoHeaderDefinition.ORIGIN.getKey(), KNOWN_ORIGIN);
         result.put(DittoHeaderDefinition.REPLY_TARGET.getKey(), KNOWN_REPLY_TARGET);
         result.put(DittoHeaderDefinition.INBOUND_PAYLOAD_MAPPER.getKey(), KNOWN_MAPPER);

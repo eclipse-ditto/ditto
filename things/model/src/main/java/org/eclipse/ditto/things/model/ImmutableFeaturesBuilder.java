@@ -14,8 +14,8 @@ package org.eclipse.ditto.things.model;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
-import java.util.HashMap;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
 
@@ -34,7 +34,7 @@ final class ImmutableFeaturesBuilder implements FeaturesBuilder {
     }
 
     public static FeaturesBuilder newInstance() {
-        return new ImmutableFeaturesBuilder(new HashMap<>());
+        return new ImmutableFeaturesBuilder(new LinkedHashMap<>());
     }
 
     @Override

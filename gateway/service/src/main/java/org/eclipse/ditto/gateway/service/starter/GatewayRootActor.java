@@ -50,7 +50,6 @@ import org.eclipse.ditto.gateway.service.proxy.actors.ProxyActor;
 import org.eclipse.ditto.gateway.service.security.authentication.jwt.DittoJwtAuthorizationSubjectsProvider;
 import org.eclipse.ditto.gateway.service.security.authentication.jwt.JwtAuthenticationFactory;
 import org.eclipse.ditto.gateway.service.security.authentication.jwt.JwtAuthorizationSubjectsProviderFactory;
-import org.eclipse.ditto.gateway.service.security.utils.DefaultHttpClientFacade;
 import org.eclipse.ditto.gateway.service.streaming.actors.StreamingActor;
 import org.eclipse.ditto.gateway.service.util.config.GatewayConfig;
 import org.eclipse.ditto.gateway.service.util.config.endpoints.HttpConfig;
@@ -69,6 +68,7 @@ import org.eclipse.ditto.internal.utils.health.DefaultHealthCheckingActorFactory
 import org.eclipse.ditto.internal.utils.health.HealthCheckingActorOptions;
 import org.eclipse.ditto.internal.utils.health.cluster.ClusterStatus;
 import org.eclipse.ditto.internal.utils.health.routes.StatusRoute;
+import org.eclipse.ditto.internal.utils.http.DefaultHttpClientFacade;
 import org.eclipse.ditto.internal.utils.protocol.ProtocolAdapterProvider;
 import org.eclipse.ditto.internal.utils.pubsub.DittoProtocolSub;
 import org.eclipse.ditto.protocol.HeaderTranslator;

@@ -14,10 +14,14 @@ package org.eclipse.ditto.gateway.service.endpoints.routes.sse;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
+import java.text.MessageFormat;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -27,6 +31,7 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Supplier;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
@@ -38,6 +43,7 @@ import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.exceptions.SignalEnrichmentFailedException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
+import org.eclipse.ditto.base.service.UriEncoding;
 import org.eclipse.ditto.gateway.service.endpoints.routes.AbstractRoute;
 import org.eclipse.ditto.gateway.service.endpoints.routes.things.ThingsParameter;
 import org.eclipse.ditto.gateway.service.endpoints.utils.EventSniffer;
@@ -55,6 +61,10 @@ import org.eclipse.ditto.internal.utils.pubsub.StreamingType;
 import org.eclipse.ditto.internal.utils.search.SearchSource;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.messages.model.Message;
+import org.eclipse.ditto.messages.model.signals.commands.MessageCommand;
 import org.eclipse.ditto.placeholders.TimePlaceholder;
 import org.eclipse.ditto.protocol.placeholders.ResourcePlaceholder;
 import org.eclipse.ditto.protocol.placeholders.TopicPathPlaceholder;
@@ -94,6 +104,12 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
 
     private static final String PATH_SEARCH = "search";
     private static final String PATH_THINGS = "things";
+
+    private static final Pattern INBOX_OUTBOX_PATTERN = Pattern.compile(
+            "(/features/[^/]+)?/(inbox|outbox)/messages(/.*)?");
+
+    private static final Pattern INBOX_OUTBOX_WITH_SUBJECT_PATTERN = Pattern.compile(
+            "(/features/[^/]+)?/(inbox|outbox)/messages/.+");
 
     private static final String STREAMING_TYPE_SSE = "SSE";
     private static final String LAST_EVENT_ID_HEADER = "Last-Event-ID";
@@ -194,32 +210,78 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
      *
      * @return {@code /things} SSE route.
      */
-    @SuppressWarnings("squid:S1172") // allow unused ctx-Param in order to have a consistent route-"interface"
     @Override
     public Route build(final RequestContext ctx, final Supplier<CompletionStage<DittoHeaders>> dittoHeadersSupplier) {
-        return concat(
-                rawPathPrefix(PathMatchers.slash().concat(PATH_THINGS),
-                        () -> pathEndOrSingleSlash(() -> get(() -> headerValuePF(ACCEPT_HEADER_EXTRACTOR,
-                                accept -> {
-                                    final CompletionStage<DittoHeaders> dittoHeadersCompletionStage =
-                                            dittoHeadersSupplier.get()
-                                                    .thenApply(ThingsSseRouteBuilder::getDittoHeadersWithCorrelationId);
-                                    return buildThingsSseRoute(ctx, dittoHeadersCompletionStage);
-                                })))),
-                buildSearchSseRoute(ctx, dittoHeadersSupplier)
-        );
+        return headerValuePF(ACCEPT_HEADER_EXTRACTOR, accept -> get(() ->
+                concat(
+                        // /things
+                        buildThingsSseRoute(ctx, dittoHeadersSupplier),
+                        // /search/things
+                        buildSearchSseRoute(ctx, dittoHeadersSupplier)
+                )
+        ));
+    }
+
+    private Route buildThingsSseRoute(final RequestContext ctx,
+            final Supplier<CompletionStage<DittoHeaders>> dittoHeadersSupplier) {
+
+        // /things
+        return rawPathPrefix(PathMatchers.slash().concat(PATH_THINGS), () -> {
+            final CompletionStage<DittoHeaders> dhcs = dittoHeadersSupplier.get()
+                    .thenApply(ThingsSseRouteBuilder::getDittoHeadersWithCorrelationId);
+
+            return concat(
+                    pathEndOrSingleSlash(() ->
+                            // /things
+                            buildThingsSseRouteForAllThings(ctx, dhcs)
+                    ),
+                    // /things/<thingId>
+                    rawPathPrefix(PathMatchers.slash().concat(PathMatchers.segment()), thingId ->
+                            parameterMap(parameters -> {
+                                final HashMap<String, String> params = new HashMap<>(parameters);
+                                params.put(ThingsParameter.IDS.toString(), thingId);
+
+                                return concat(
+                                        // /things/<thingId>
+                                        pathEndOrSingleSlash(() ->
+                                                createSseRoute(ctx, dhcs, JsonPointer.empty(), params)
+                                        ),
+                                        // /things/<thingId>/<jsonPointer>
+                                        rawPathPrefix(PathMatchers.slash()
+                                                        .concat(PathMatchers.remaining())
+                                                        .map(path -> UriEncoding.decode(path,
+                                                                UriEncoding.EncodingType.RFC3986))
+                                                        .map(path -> "/" + path),
+                                                jsonPointerString -> {
+                                                    if (INBOX_OUTBOX_PATTERN.matcher(jsonPointerString).matches()) {
+                                                        return createMessagesSseRoute(ctx, dhcs, thingId,
+                                                                jsonPointerString);
+                                                    } else {
+                                                        params.put(ThingsParameter.FIELDS.toString(),
+                                                                jsonPointerString);
+                                                        return createSseRoute(ctx, dhcs,
+                                                                JsonPointer.of(jsonPointerString),
+                                                                params
+                                                        );
+                                                    }
+                                                }
+                                        )
+                                );
+                            })
+                    )
+            );
+        });
     }
 
     private Route buildSearchSseRoute(final RequestContext ctx,
             final Supplier<CompletionStage<DittoHeaders>> dittoHeadersSupplier) {
 
-        return rawPathPrefix(PathMatchers.slash().concat(PATH_SEARCH).slash().concat(PATH_THINGS),
-                () -> pathEndOrSingleSlash(() -> get(() -> headerValuePF(ACCEPT_HEADER_EXTRACTOR,
-                        accept -> {
-                            final CompletionStage<DittoHeaders> dittoHeaders = dittoHeadersSupplier.get()
-                                    .thenApply(ThingsSseRouteBuilder::getDittoHeadersWithCorrelationId);
-                            return parameterMap(parameters -> createSearchSseRoute(ctx, dittoHeaders, parameters));
-                        })))
+        return rawPathPrefix(PathMatchers.slash().concat(PATH_SEARCH).slash().concat(PATH_THINGS), () ->
+                pathEndOrSingleSlash(() -> {
+                    final CompletionStage<DittoHeaders> dittoHeaders = dittoHeadersSupplier.get()
+                            .thenApply(ThingsSseRouteBuilder::getDittoHeadersWithCorrelationId);
+                    return parameterMap(parameters -> createSearchSseRoute(ctx, dittoHeaders, parameters));
+                })
         );
     }
 
@@ -233,22 +295,24 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
                 .build();
     }
 
-    private Route buildThingsSseRoute(final RequestContext ctx, final CompletionStage<DittoHeaders> dittoHeaders) {
-        return parameterMap(parameters -> createSseRoute(ctx, dittoHeaders, parameters));
+    private Route buildThingsSseRouteForAllThings(final RequestContext ctx,
+            final CompletionStage<DittoHeaders> dittoHeaders) {
+        return parameterMap(parameters -> createSseRoute(ctx, dittoHeaders, JsonPointer.empty(), parameters));
     }
 
     private Route createSseRoute(final RequestContext ctx, final CompletionStage<DittoHeaders> dittoHeadersStage,
+            final JsonPointer fieldPointer,
             final Map<String, String> parameters) {
 
         @Nullable final var filterString = parameters.get(PARAM_FILTER);
         final List<String> namespaces = getNamespaces(parameters.get(PARAM_NAMESPACES));
         final List<ThingId> targetThingIds = getThingIds(parameters.get(ThingsParameter.IDS.toString()));
-        @Nullable final ThingFieldSelector fields = getFieldSelector(parameters.get(ThingsParameter.FIELDS.toString()));
+        @Nullable final ThingFieldSelector fields =
+                getFieldSelector(parameters.get(ThingsParameter.FIELDS.toString()));
         @Nullable final ThingFieldSelector extraFields = getFieldSelector(parameters.get(PARAM_EXTRA_FIELDS));
         final CompletionStage<SignalEnrichmentFacade> facadeStage = signalEnrichmentProvider == null
                 ? CompletableFuture.completedStage(null)
                 : signalEnrichmentProvider.getFacade(ctx.getRequest());
-
 
         final var sseSourceStage = facadeStage.thenCompose(facade -> dittoHeadersStage.thenCompose(
                 dittoHeaders -> sseAuthorizationEnforcer.checkAuthorization(ctx, dittoHeaders).thenApply(unused -> {
@@ -278,7 +342,7 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
                                         authorizationContext);
                                 final var startStreaming =
                                         StartStreaming.getBuilder(StreamingType.EVENTS, connectionCorrelationId,
-                                                authorizationContext)
+                                                        authorizationContext)
                                                 .withNamespaces(namespaces)
                                                 .withFilter(filterString)
                                                 .withExtraFields(extraFields)
@@ -294,8 +358,9 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
                                 return NotUsed.getInstance();
                             })
                             .mapAsync(streamingConfig.getParallelism(), jsonifiable ->
-                                    postprocess(jsonifiable, facade, targetThingIds, namespaces, fields))
-                            .mapConcat(jsonObjects -> jsonObjects)
+                                    postprocess(jsonifiable, facade, targetThingIds, namespaces, fieldPointer,
+                                            fields))
+                            .mapConcat(jsonValues -> jsonValues)
                             .map(jsonValue -> {
                                 THINGS_SSE_COUNTER.increment();
                                 return ServerSentEvent.create(jsonValue.toString());
@@ -310,7 +375,108 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
         return completeOKWithFuture(sseSourceStage, EventStreamMarshalling.toEventStream());
     }
 
-    private Route createSearchSseRoute(final RequestContext ctx, final CompletionStage<DittoHeaders> dittoHeadersStage,
+    private Route createMessagesSseRoute(final RequestContext ctx,
+            final CompletionStage<DittoHeaders> dittoHeadersStage,
+            final String thingId,
+            final String messagePath) {
+
+        final List<ThingId> targetThingIds = List.of(ThingId.of(thingId));
+        final CompletionStage<SignalEnrichmentFacade> facadeStage = signalEnrichmentProvider == null
+                ? CompletableFuture.completedStage(null)
+                : signalEnrichmentProvider.getFacade(ctx.getRequest());
+
+        final var sseSourceStage = facadeStage.thenCompose(facade -> dittoHeadersStage.thenCompose(
+                dittoHeaders ->
+                        sseAuthorizationEnforcer.checkAuthorization(ctx, dittoHeaders).thenApply(unused -> {
+
+                            final Source<SessionedJsonifiable, SupervisedStream.WithQueue> publisherSource =
+                                    SupervisedStream.sourceQueue(10);
+
+                            return publisherSource.viaMat(KillSwitches.single(), Keep.both())
+                                    .mapMaterializedValue(pair -> {
+                                        final SupervisedStream.WithQueue withQueue = pair.first();
+                                        final KillSwitch killSwitch = pair.second();
+                                        final String connectionCorrelationId = dittoHeaders.getCorrelationId()
+                                                .orElseThrow(() -> new IllegalStateException(
+                                                        "Expected correlation-id in SSE DittoHeaders: " +
+                                                                dittoHeaders));
+
+                                        final var jsonSchemaVersion = dittoHeaders.getSchemaVersion()
+                                                .orElse(JsonSchemaVersion.LATEST);
+                                        sseConnectionSupervisor.supervise(withQueue.getSupervisedStream(),
+                                                connectionCorrelationId, dittoHeaders);
+                                        final var authorizationContext = dittoHeaders.getAuthorizationContext();
+                                        final var connect =
+                                                new Connect(withQueue.getSourceQueue(), connectionCorrelationId,
+                                                        STREAMING_TYPE_SSE, jsonSchemaVersion, null, Set.of(),
+                                                        authorizationContext);
+                                        final String resourcePathRqlStatement;
+                                        if (INBOX_OUTBOX_WITH_SUBJECT_PATTERN.matcher(messagePath).matches()) {
+                                            resourcePathRqlStatement = String.format(
+                                                    "eq(resource:path,'%s')", messagePath);
+                                        } else {
+                                            resourcePathRqlStatement = String.format(
+                                                    "like(resource:path,'%s*')", messagePath);
+                                        }
+                                        final var startStreaming = StartStreaming.getBuilder(
+                                                        StreamingType.MESSAGES,
+                                                        connectionCorrelationId,
+                                                        authorizationContext)
+                                                .withFilter(MessageFormat.format("and(" +
+                                                        "eq(entity:id,''{0}'')," +
+                                                        "{1}" +
+                                                        ")", thingId, resourcePathRqlStatement)
+                                                )
+                                                .build();
+                                        Patterns.ask(streamingActor, connect, LOCAL_ASK_TIMEOUT)
+                                                .thenApply(ActorRef.class::cast)
+                                                .thenAccept(streamingSessionActor ->
+                                                        streamingSessionActor.tell(startStreaming, ActorRef.noSender()))
+                                                .exceptionally(e -> {
+                                                    killSwitch.abort(e);
+                                                    return null;
+                                                });
+                                        return NotUsed.getInstance();
+                                    })
+                                    .filter(jsonifiable -> jsonifiable.getJsonifiable() instanceof MessageCommand)
+                                    .mapAsync(streamingConfig.getParallelism(), jsonifiable ->
+                                            postprocessMessages(targetThingIds,
+                                                    (MessageCommand<?, ?>) jsonifiable.getJsonifiable(),
+                                                    facade,
+                                                    jsonifiable
+                                            )
+                                    )
+                                    .mapConcat(messages -> messages)
+                                    .map(message -> {
+                                        THINGS_SSE_COUNTER.increment();
+                                        final Optional<Charset> charset = determineCharsetFromContentType(
+                                                message.getContentType());
+                                        final String data = message.getRawPayload()
+                                                .map(body -> new String(body.array(),
+                                                        charset.orElse(StandardCharsets.UTF_8)))
+                                                .orElse("");
+                                        return ServerSentEvent.create(data, message.getSubject());
+                                    })
+                                    .log("SSE " + PATH_THINGS + "/" + messagePath)
+                                    .keepAlive(Duration.ofSeconds(1), ServerSentEvent::heartbeat);
+                        })
+        ));
+        return completeOKWithFuture(sseSourceStage, EventStreamMarshalling.toEventStream());
+    }
+
+    private static Optional<Charset> determineCharsetFromContentType(final Optional<String> fullContentTypeString) {
+        // determine charset, if one was set in the form of:
+        // application/json; charset=utf-8
+        return fullContentTypeString.filter(ct -> ct.contains(";"))
+                .map(ct -> ct.split(";")[1])
+                .filter(charsetStr -> charsetStr.contains("="))
+                .map(charsetStr -> charsetStr.split("=")[1])
+                .filter(Charset::isSupported)
+                .map(Charset::forName);
+    }
+
+    private Route createSearchSseRoute(final RequestContext ctx,
+            final CompletionStage<DittoHeaders> dittoHeadersStage,
             final Map<String, String> parameters) {
 
         if (proxyActor == null) {
@@ -337,7 +503,8 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
 
                     return searchSourceBuilder.build()
                             .startAsPair(builder -> {})
-                            .via(AbstractRoute.throttleByConfig(streamingConfig.getSseConfig().getThrottlingConfig()))
+                            .via(AbstractRoute.throttleByConfig(
+                                    streamingConfig.getSseConfig().getThrottlingConfig()))
                             .map(pair -> {
                                 SEARCH_SSE_COUNTER.increment();
                                 return ServerSentEvent.create(pair.second().toString(),
@@ -358,30 +525,33 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
         return completeOKWithFuture(sseSourceStage, EventStreamMarshalling.toEventStream());
     }
 
-    private CompletionStage<Collection<JsonObject>> postprocess(final SessionedJsonifiable jsonifiable,
+    private CompletionStage<Collection<JsonValue>> postprocess(final SessionedJsonifiable jsonifiable,
             @Nullable final SignalEnrichmentFacade facade,
             final Collection<ThingId> targetThingIds,
             final Collection<String> namespaces,
+            final JsonPointer fieldPointer,
             @Nullable final JsonFieldSelector fields) {
 
-        final Supplier<CompletableFuture<Collection<JsonObject>>> emptySupplier =
+        final Supplier<CompletableFuture<Collection<JsonValue>>> emptySupplier =
                 () -> CompletableFuture.completedFuture(Collections.emptyList());
 
         if (jsonifiable.getJsonifiable() instanceof ThingEvent) {
             final ThingEvent<?> event = (ThingEvent<?>) jsonifiable.getJsonifiable();
             final boolean isLiveEvent = StreamingType.isLiveSignal(event);
-            if (!isLiveEvent && namespaceMatches(event, namespaces) && targetThingIdMatches(event, targetThingIds)) {
+            if (!isLiveEvent && namespaceMatches(event, namespaces) &&
+                    targetThingIdMatches(event, targetThingIds)) {
                 return jsonifiable.getSession()
                         .map(session -> jsonifiable.retrieveExtraFields(facade)
                                 .thenApply(extra ->
                                         Optional.of(session.mergeThingWithExtra(event, extra))
                                                 .filter(thing -> session.matchesFilter(thing, event))
-                                                .map(thing -> toNonemptyThingJson(thing, event, fields))
+                                                .map(thing -> toNonemptyValue(thing, event, fieldPointer, fields))
                                                 .orElseGet(Collections::emptyList)
                                 )
                                 .exceptionally(error -> {
-                                    final var errorToReport = DittoRuntimeException.asDittoRuntimeException(error, t ->
-                                            SignalEnrichmentFailedException.newBuilder().cause(t).build());
+                                    final var errorToReport =
+                                            DittoRuntimeException.asDittoRuntimeException(error, t ->
+                                                    SignalEnrichmentFailedException.newBuilder().cause(t).build());
                                     jsonifiable.getSession().map(StreamingSession::getLogger).ifPresent(logger ->
                                             logger.withCorrelationId(event)
                                                     .warning("During extra fields retrieval in <SSE> session got " +
@@ -399,15 +569,59 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
         return emptySupplier.get();
     }
 
+    private <P, M extends MessageCommand<P, ?>> CompletionStage<List<Message<P>>> postprocessMessages(
+            final List<ThingId> targetThingIds,
+            final M messageCommand,
+            @Nullable final SignalEnrichmentFacade facade,
+            final SessionedJsonifiable jsonifiable) {
+
+        final Supplier<CompletionStage<List<Message<P>>>> emptySupplier =
+                () -> CompletableFuture.completedStage(List.of());
+        if (targetThingIds.contains(messageCommand.getEntityId())) {
+            return jsonifiable.getSession()
+                    .map(session -> jsonifiable.retrieveExtraFields(facade)
+                            .thenApply(extra ->
+                                    Optional.of(session.mergeThingWithExtra(messageCommand, extra))
+                                            .filter(thing -> session.matchesFilter(thing, messageCommand))
+                                            .map(thing -> List.of(messageCommand.getMessage()))
+                                            .orElseGet(List::of)
+                            )
+                            .exceptionally(error -> {
+                                final var errorToReport =
+                                        DittoRuntimeException.asDittoRuntimeException(
+                                                error, t -> SignalEnrichmentFailedException.newBuilder()
+                                                        .cause(t)
+                                                        .build());
+                                jsonifiable.getSession()
+                                        .map(StreamingSession::getLogger)
+                                        .ifPresent(logger ->
+                                                logger.withCorrelationId(messageCommand)
+                                                        .warning("During extra fields retrieval in <SSE> session got " +
+                                                                        "exception <{}>: <{}> - emitting: <{}>",
+                                                                error.getClass().getSimpleName(),
+                                                                error.getMessage(),
+                                                                errorToReport
+                                                        )
+                                        );
+                                return List.of();
+                            })
+                    )
+                    .orElseGet(emptySupplier);
+        }
+        return emptySupplier.get();
+    }
+
     private static boolean namespaceMatches(final ThingEvent<?> event, final Collection<String> namespaces) {
         return namespaces.isEmpty() || namespaces.contains(namespaceFromId(event));
     }
 
-    private static boolean targetThingIdMatches(final ThingEvent<?> event, final Collection<ThingId> targetThingIds) {
+    private static boolean targetThingIdMatches(final ThingEvent<?> event,
+            final Collection<ThingId> targetThingIds) {
         return targetThingIds.isEmpty() || targetThingIds.contains(event.getEntityId());
     }
 
-    private static Collection<JsonObject> toNonemptyThingJson(final Thing thing, final ThingEvent<?> event,
+    private static Collection<JsonValue> toNonemptyValue(final Thing thing, final ThingEvent<?> event,
+            final JsonPointer fieldPointer,
             @Nullable final JsonFieldSelector fields) {
         final var jsonSchemaVersion = event.getDittoHeaders()
                 .getSchemaVersion()
@@ -415,7 +629,14 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
         final JsonObject thingJson = null != fields
                 ? thing.toJson(jsonSchemaVersion, fields)
                 : thing.toJson(jsonSchemaVersion);
-        return thingJson.isEmpty() ? Collections.emptyList() : Collections.singletonList(thingJson);
+        @Nullable final JsonValue returnValue;
+        if (!fieldPointer.isEmpty()) {
+            returnValue = thingJson.getValue(fieldPointer).orElse(null);
+        } else {
+            returnValue = thingJson;
+        }
+        return (thingJson.isEmpty() || null == returnValue) ? Collections.emptyList() :
+                Collections.singletonList(returnValue);
     }
 
     private static List<String> getNamespaces(@Nullable final String namespacesParameter) {

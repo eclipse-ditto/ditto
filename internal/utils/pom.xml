@@ -36,6 +36,7 @@
         <module>config</module>
         <module>ddata</module>
         <module>health</module>
+        <module>http</module>
         <module>jwt</module>
         <module>namespaces</module>
         <module>persistence</module>

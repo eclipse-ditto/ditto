@@ -15,34 +15,36 @@ package org.eclipse.ditto.gateway.service.endpoints.routes.devops;
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.util.Map;
+import java.util.function.BiFunction;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.base.api.common.RetrieveConfig;
+import org.eclipse.ditto.base.api.devops.ImmutableLoggerConfig;
+import org.eclipse.ditto.base.api.devops.signals.commands.ChangeLogLevel;
+import org.eclipse.ditto.base.api.devops.signals.commands.DevOpsCommand;
+import org.eclipse.ditto.base.api.devops.signals.commands.ExecutePiggybackCommand;
+import org.eclipse.ditto.base.api.devops.signals.commands.RetrieveLoggerConfig;
+import org.eclipse.ditto.base.model.exceptions.DittoJsonException;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.headers.DittoHeadersBuilder;
+import org.eclipse.ditto.base.service.devops.DevOpsCommandsActor;
 import org.eclipse.ditto.gateway.service.endpoints.directives.auth.DevOpsOAuth2AuthenticationDirective;
 import org.eclipse.ditto.gateway.service.endpoints.directives.auth.DevopsAuthenticationDirective;
+import org.eclipse.ditto.gateway.service.endpoints.routes.AbstractRoute;
+import org.eclipse.ditto.gateway.service.endpoints.routes.QueryParametersToHeadersMap;
 import org.eclipse.ditto.gateway.service.endpoints.routes.RouteBaseProperties;
 import org.eclipse.ditto.gateway.service.util.config.endpoints.HttpConfig;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.base.model.exceptions.DittoJsonException;
-import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.base.model.headers.DittoHeadersBuilder;
-import org.eclipse.ditto.base.api.devops.ImmutableLoggerConfig;
-import org.eclipse.ditto.gateway.service.endpoints.routes.AbstractRoute;
-import org.eclipse.ditto.gateway.service.endpoints.routes.QueryParametersToHeadersMap;
-import org.eclipse.ditto.base.service.devops.DevOpsCommandsActor;
-import org.eclipse.ditto.base.api.common.RetrieveConfig;
-import org.eclipse.ditto.base.api.devops.signals.commands.ChangeLogLevel;
-import org.eclipse.ditto.base.api.devops.signals.commands.DevOpsCommand;
-import org.eclipse.ditto.base.api.devops.signals.commands.ExecutePiggybackCommand;
-import org.eclipse.ditto.base.api.devops.signals.commands.RetrieveLoggerConfig;
 
+import akka.http.javadsl.model.ContentTypes;
+import akka.http.javadsl.model.HttpResponse;
 import akka.http.javadsl.server.PathMatchers;
 import akka.http.javadsl.server.RequestContext;
 import akka.http.javadsl.server.Route;
-import akka.japi.function.Function;
 
 /**
  * Builder for creating Akka HTTP routes for {@code /devops}.
@@ -272,16 +274,18 @@ public final class DevOpsRoute extends AbstractRoute {
                                 headersWithAggregate))));
     }
 
-    private static Function<JsonValue, JsonValue> transformResponse(final CharSequence serviceName,
+    private static BiFunction<JsonValue, HttpResponse, HttpResponse> transformResponse(final CharSequence serviceName,
             final CharSequence instance) {
 
         final JsonPointer transformerPointer = transformerPointer(serviceName, instance);
         if (transformerPointer.isEmpty()) {
-            return resp -> resp;
+            return (val, resp) -> resp;
         }
-        return resp -> resp.asObject()
+        return (val, resp) -> resp.withEntity(ContentTypes.APPLICATION_JSON, val.asObject()
                 .getValue(transformerPointer)
-                .orElse(JsonFactory.nullObject());
+                .orElse(JsonFactory.nullObject())
+                .toString()
+        );
     }
 
     private static JsonPointer transformerPointer(@Nullable final CharSequence serviceName,

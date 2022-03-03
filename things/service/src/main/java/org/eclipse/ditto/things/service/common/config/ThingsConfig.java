@@ -19,6 +19,7 @@ import org.eclipse.ditto.internal.utils.config.KnownConfigValue;
 import org.eclipse.ditto.internal.utils.health.config.WithHealthCheckConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.WithMongoDbConfig;
 import org.eclipse.ditto.internal.utils.persistence.operations.WithPersistenceOperationsConfig;
+import org.eclipse.ditto.wot.integration.config.WotConfig;
 
 /**
  * Provides the configuration settings of the Things service.
@@ -43,6 +44,13 @@ public interface ThingsConfig extends ServiceSpecificConfig, WithHealthCheckConf
     ThingConfig getThingConfig();
 
     /**
+     * Returns the WoT (Web of Things) related configuration setting to apply in the things service.
+     *
+     * @return the WoT config.
+     */
+    WotConfig getWotConfig();
+
+    /**
      * An enumeration of the known config path expressions and their associated default values for {@code ThingsConfig}.
      */
     enum ThingsConfigValue implements KnownConfigValue {
@@ -56,7 +64,7 @@ public interface ThingsConfig extends ServiceSpecificConfig, WithHealthCheckConf
         private final String path;
         private final Object defaultValue;
 
-        private ThingsConfigValue(final String thePath, final Object theDefaultValue) {
+        ThingsConfigValue(final String thePath, final Object theDefaultValue) {
             path = thePath;
             defaultValue = theDefaultValue;
         }

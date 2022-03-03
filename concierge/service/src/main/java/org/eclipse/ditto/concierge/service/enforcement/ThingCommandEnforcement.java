@@ -48,9 +48,11 @@ import org.eclipse.ditto.base.model.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.base.model.headers.DittoHeadersSettable;
 import org.eclipse.ditto.base.model.headers.LiveChannelTimeoutStrategy;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
+import org.eclipse.ditto.base.model.headers.contenttype.ContentType;
 import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.namespaces.NamespaceBlockedException;
+import org.eclipse.ditto.base.model.signals.FeatureToggle;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.commands.CommandToExceptionRegistry;
 import org.eclipse.ditto.base.model.signals.commands.ErrorResponse;
@@ -129,6 +131,7 @@ import org.eclipse.ditto.things.model.signals.commands.modify.CreateThing;
 import org.eclipse.ditto.things.model.signals.commands.modify.MergeThing;
 import org.eclipse.ditto.things.model.signals.commands.modify.ModifyThing;
 import org.eclipse.ditto.things.model.signals.commands.modify.ThingModifyCommand;
+import org.eclipse.ditto.things.model.signals.commands.query.RetrieveFeature;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThing;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThingResponse;
 import org.eclipse.ditto.things.model.signals.commands.query.ThingQueryCommand;
@@ -330,19 +333,25 @@ public final class ThingCommandEnforcement
     private Contextual<WithDittoHeaders> enforceThingCommandByPolicyEnforcer(
             final ThingCommand<?> thingCommand, final PolicyId policyId, final Enforcer enforcer) {
 
-        final ThingCommand<?> commandWithReadSubjects = authorizeByPolicyOrThrow(enforcer, thingCommand);
-
         final Contextual<WithDittoHeaders> result;
-        if (commandWithReadSubjects instanceof ThingQueryCommand) {
-            final ThingQueryCommand<?> thingQueryCommand = (ThingQueryCommand<?>) commandWithReadSubjects;
-            final Instant startTime = Instant.now();
-            if (!isResponseRequired(thingQueryCommand)) {
-                // drop query command with response-required=false
-                result = withMessageToReceiver(null, ActorRef.noSender());
-            } else if (thingQueryCommand instanceof RetrieveThing && shouldRetrievePolicyWithThing(thingQueryCommand)) {
-                final var retrieveThing = (RetrieveThing) ensureTwinChannel(thingQueryCommand);
-                result = withMessageToReceiverViaAskFuture(retrieveThing, sender(), () ->
-                        retrieveThingAndPolicy(retrieveThing, policyId, enforcer).thenCompose(response -> {
+        if (isWotTdRequestingThingQueryCommand(thingCommand)) {
+            // authorization is not necessary for WoT TD requesting thing query command, this is treated as public
+            // information:
+            FeatureToggle.checkWotIntegrationFeatureEnabled(thingCommand.getType(), thingCommand.getDittoHeaders());
+            // for retrieving the WoT TD, assume that full TD gets returned unfiltered:
+            result = forwardToThingsShardRegion(thingCommand);
+        } else {
+            final ThingCommand<?> commandWithReadSubjects = authorizeByPolicyOrThrow(enforcer, thingCommand);
+            if (commandWithReadSubjects instanceof ThingQueryCommand) {
+                final ThingQueryCommand<?> thingQueryCommand = (ThingQueryCommand<?>) commandWithReadSubjects;
+                final Instant startTime = Instant.now();
+                if (!isResponseRequired(thingQueryCommand)) {
+                    // drop query command with response-required=false
+                    result = withMessageToReceiver(null, ActorRef.noSender());
+                } else if (thingQueryCommand instanceof RetrieveThing && shouldRetrievePolicyWithThing(thingQueryCommand)) {
+                    final var retrieveThing = (RetrieveThing) ensureTwinChannel(thingQueryCommand);
+                    result = withMessageToReceiverViaAskFuture(retrieveThing, sender(), () ->
+                            retrieveThingAndPolicy(retrieveThing, policyId, enforcer).thenCompose(response ->{
                                     if (null != response) {
                                         return doSmartChannelSelection(thingQueryCommand, response, startTime, enforcer);
                                     } else {
@@ -353,23 +362,33 @@ public final class ThingCommandEnforcement
                                                 .build();
                                     }
                                 })
-                );
+                    );
+                } else {
+                    final var twinCommand = ensureTwinChannel(thingQueryCommand);
+                    result = withMessageToReceiverViaAskFuture(twinCommand, sender(), () ->
+                            askAndBuildJsonView(thingsShardRegion, thingQueryCommand, enforcer,
+                                    context.getScheduler(), context.getExecutor()).thenCompose(response ->
+                                    doSmartChannelSelection(thingQueryCommand, response, startTime, enforcer))
+                    );
+                }
+            } else if (commandWithReadSubjects.getDittoHeaders().getLiveChannelCondition().isPresent()) {
+                throw LiveChannelConditionNotAllowedException.newBuilder()
+                        .dittoHeaders(commandWithReadSubjects.getDittoHeaders())
+                        .build();
             } else {
-                final var twinCommand = ensureTwinChannel(thingQueryCommand);
-                result = withMessageToReceiverViaAskFuture(twinCommand, sender(), () ->
-                        askAndBuildJsonView(thingsShardRegion, thingQueryCommand, enforcer,
-                                context.getScheduler(), context.getExecutor()).thenCompose(response ->
-                                doSmartChannelSelection(thingQueryCommand, response, startTime, enforcer))
-                );
+                result = forwardToThingsShardRegion(commandWithReadSubjects);
             }
-        } else if (commandWithReadSubjects.getDittoHeaders().getLiveChannelCondition().isPresent()) {
-            throw LiveChannelConditionNotAllowedException.newBuilder()
-                    .dittoHeaders(commandWithReadSubjects.getDittoHeaders())
-                    .build();
-        } else {
-            result = forwardToThingsShardRegion(commandWithReadSubjects);
         }
         return result;
+    }
+
+    private boolean isWotTdRequestingThingQueryCommand(final ThingCommand<?> thingCommand) {
+        // all listed thingCommand types here must handle "Accept: application/td+json", otherwise access control
+        // will be bypassed when using the header "Accept: application/td+json"!
+        return (thingCommand instanceof RetrieveThing || thingCommand instanceof RetrieveFeature) &&
+                thingCommand.getDittoHeaders().getAccept()
+                        .filter(ContentType.APPLICATION_TD_JSON.getValue()::equals)
+                        .isPresent();
     }
 
     private CompletionStage<ThingQueryCommandResponse<?>> doSmartChannelSelection(final ThingQueryCommand<?> command,
