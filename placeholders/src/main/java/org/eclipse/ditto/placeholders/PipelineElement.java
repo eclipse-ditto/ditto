@@ -12,27 +12,18 @@
  */
 package org.eclipse.ditto.placeholders;
 
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.function.Supplier;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import java.util.stream.Stream;
-
-import org.eclipse.ditto.json.JsonArray;
-import org.eclipse.ditto.json.JsonValue;
 
 /**
  * An element going through some pipeline of functions.
  */
 public interface PipelineElement extends Iterable<String> {
-
-    /**
-     * Compiled Pattern of a string containing any unresolved non-empty JsonArray-String notations inside.
-     * All strings matching this pattern are valid JSON arrays. Not all JSON arrays match this pattern.
-     * @since 2.4.0
-     */
-    Pattern JSON_ARRAY_PATTERN = Pattern.compile("(\\[\"(?:\\\\\"|[^\"])*+\"(?:,\"(?:\\\\\"|[^\"])*+\")*+])");
 
     /**
      * Get the type of this pipeline element.
@@ -66,13 +57,23 @@ public interface PipelineElement extends Iterable<String> {
     PipelineElement onDeleted(Supplier<PipelineElement> nextPipelineElement);
 
     /**
+     * Concatenates all resolved values of the given pipelineElement with the resolved values of this pipeline element.
+     * In case this or the given pipeline element is a {@link Type#DELETED} pipeline element, the result will
+     * always be a deleted pipeline element.
+     *
+     * @param pipelineElement the pipeline element to concatenate
+     * @return the pipeline element which holds the concatenated resolved vales.
+     */
+    PipelineElement concat(PipelineElement pipelineElement);
+
+    /**
      * Evaluate this pipeline element by a visitor.
      *
      * @param visitor the visitor.
      * @param <T> the type of results.
      * @return the evaluation result.
      */
-    <T> T accept(PipelineElementVisitor<T> visitor);
+    <T> List<T> accept(PipelineElementVisitor<T> visitor);
 
     /**
      * Convert a resolved value into another resolved value and leave other elements untouched.
@@ -81,7 +82,7 @@ public interface PipelineElement extends Iterable<String> {
      * @return the mapped resolved value.
      */
     default PipelineElement map(final Function<String, String> mapper) {
-        return onResolved(mapper.andThen(PipelineElement::resolved));
+        return onResolved(mapper.andThen(Collections::singletonList).andThen(PipelineElement::resolved));
     }
 
     /**
@@ -102,63 +103,22 @@ public interface PipelineElement extends Iterable<String> {
     }
 
     /**
-     * Convert this into an optional string, conflating deletion and resolution failure.
-     *
-     * @return the optional string.
+     * @return an optional holding the first resolved value. Empty if no values were resolved.
      */
-    default Optional<String> toOptional() {
-        return accept(PipelineElement.<Optional<String>>newVisitorBuilder()
-                .deleted(Optional::empty)
-                .unresolved(Optional::empty)
-                .resolved(Optional::of)
-                .build());
+    default Optional<String> findFirst() {
+        return toStream().findFirst();
     }
 
     /**
-     * Converts this pipeline element into a stream of strings, expanding elements being a JsonArray via the
-     * {@link #expandJsonArraysInString(String)} method.
-     * If the PipelineElement contains a String not being in JsonArray format, this simply returns a Stream of one
-     * element.
+     * Converts this pipeline element into a stream of resolved strings.
+     * If the PipelineElement did not resolve any value, the stream will be empty.
      * Unresolved or deleted elements will result in an empty stream.
      *
      * @return a stream of strings which this pipeline element did resolve.
      * @since 2.4.0
      */
-    default Stream<String> toOptionalStream() {
-        return toOptional().map(PipelineElement::expandJsonArraysInString)
-                .orElse(Stream.empty());
-    }
-
-    /**
-     * Checks whether the passed {@code elementValue} contains JsonArrays ({@code ["..."]} and expands those JsonArrays
-     * to multiple strings returned as resulting stream of this operation.
-     * <p>
-     * Is able to handle an arbitrary amount of JsonArrays in the passed elementValue.
-     *
-     * @param elementValue the string value potentially containing JsonArrays as JsonArray-String values.
-     * @return a stream of a single subject when the passed in {@code elementValue} did not contain any
-     * JsonArray-String notation or else a stream of multiple strings with the JsonArrays being resolved to multiple
-     * results of the stream.
-     * @since 2.4.0
-     */
-    static Stream<String> expandJsonArraysInString(final String elementValue) {
-        final Matcher jsonArrayMatcher = JSON_ARRAY_PATTERN.matcher(elementValue);
-        final int group = 1;
-        if (jsonArrayMatcher.find()) {
-            final String beforeMatched = elementValue.substring(0, jsonArrayMatcher.start(group));
-            final String matchedStr =
-                    elementValue.substring(jsonArrayMatcher.start(group), jsonArrayMatcher.end(group));
-            final String afterMatched = elementValue.substring(jsonArrayMatcher.end(group));
-            return JsonArray.of(matchedStr).stream()
-                    .filter(JsonValue::isString)
-                    .map(JsonValue::asString)
-                    .flatMap(arrayStringElem -> expandJsonArraysInString(beforeMatched) // recurse!
-                            .flatMap(before -> expandJsonArraysInString(afterMatched) // recurse!
-                                    .map(after -> before.concat(arrayStringElem).concat(after))
-                            )
-                    );
-        }
-        return Stream.of(elementValue);
+    default Stream<String> toStream() {
+        return Stream.empty();
     }
 
     /**
@@ -174,11 +134,11 @@ public interface PipelineElement extends Iterable<String> {
     /**
      * Creat a pipeline element containing a resolved value.
      *
-     * @param value the resolved value.
+     * @param values the resolved values.
      * @return the pipeline element.
      */
-    static PipelineElement resolved(final String value) {
-        return PipelineElementResolved.of(value);
+    static PipelineElement resolved(final Collection<String> values) {
+        return values.size() > 0 ? PipelineElementResolved.of(values) : PipelineElement.unresolved();
     }
 
     /**
@@ -219,4 +179,5 @@ public interface PipelineElement extends Iterable<String> {
          */
         UNRESOLVED
     }
+
 }

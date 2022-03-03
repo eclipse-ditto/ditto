@@ -14,6 +14,7 @@ package org.eclipse.ditto.placeholders;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -51,7 +52,7 @@ public class ImmutablePlaceholderResolverTest {
         inputMap.put("two", "2");
 
         final ImmutablePlaceholderResolver<Map<String, String>> underTest = new ImmutablePlaceholderResolver<>(
-                PlaceholderFactory.newHeadersPlaceholder(), inputMap);
+                PlaceholderFactory.newHeadersPlaceholder(), Collections.singletonList(inputMap));
 
         assertThat(underTest.resolve("one"))
                 .contains("1");

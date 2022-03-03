@@ -121,7 +121,7 @@ public class ExpressionResolverTest {
     public void testPartialResolution() {
         assertThat(expressionResolver.resolvePartially("{{header:header-name}}-{{unknown:placeholder|fn:unknown}}",
                 Collections.singleton("header")))
-                .isEqualTo("header-val-{{unknown:placeholder|fn:unknown}}");
+                .containsOnly("header-val-{{unknown:placeholder|fn:unknown}}");
     }
 
     @Test

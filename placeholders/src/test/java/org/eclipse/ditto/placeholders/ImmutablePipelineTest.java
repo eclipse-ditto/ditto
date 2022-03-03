@@ -17,6 +17,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 import org.junit.Ignore;
@@ -47,10 +48,10 @@ public class ImmutablePipelineTest {
             "fn:substring-before(':')",
             "fn:unknown('foo')"
     );
-    private static final PipelineElement PIPELINE_INPUT = PipelineElement.resolved("my-gateway:my-thing");
+    private static final PipelineElement PIPELINE_INPUT = PipelineElement.resolved(Collections.singletonList("my-gateway:my-thing"));
     private static final List<PipelineElement> RESPONSES = Arrays.asList(
-            PipelineElement.resolved("my-gateway"),
-            PipelineElement.resolved("my-gateway")
+            PipelineElement.resolved(Collections.singletonList("my-gateway")),
+            PipelineElement.resolved(Collections.singletonList("my-gateway"))
     );
 
     @Mock

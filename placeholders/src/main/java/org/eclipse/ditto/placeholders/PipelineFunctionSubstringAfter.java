@@ -14,6 +14,7 @@ package org.eclipse.ditto.placeholders;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import javax.annotation.concurrent.Immutable;
@@ -40,32 +41,20 @@ final class PipelineFunctionSubstringAfter implements PipelineFunction {
     public PipelineElement apply(final PipelineElement value, final String paramsIncludingParentheses,
             final ExpressionResolver expressionResolver) {
 
-        final String splitValue = parseAndResolve(paramsIncludingParentheses, expressionResolver);
+        final Stream<String> splitValues = parseAndResolve(paramsIncludingParentheses, expressionResolver);
 
-        return value.onResolved(previousStage -> {
-            if (previousStage.contains(splitValue)) {
-                return PipelineElement.resolved(previousStage.substring(previousStage.indexOf(splitValue) + 1));
-            } else {
-                return PipelineElement.unresolved();
-            }
-        });
+        return value.onResolved(previousStage -> PipelineElement.resolved(splitValues
+                .filter(previousStage::contains)
+                .map(splitValue -> previousStage.substring(previousStage.indexOf(splitValue) + 1))
+                .collect(Collectors.toList())));
     }
 
-    @Override
-    public Stream<PipelineElement> applyStreaming(final PipelineElement value, final String paramsIncludingParentheses,
-            final ExpressionResolver expressionResolver) {
-
-        return Stream.of(apply(value, paramsIncludingParentheses, expressionResolver));
-    }
-
-    private String parseAndResolve(final String paramsIncludingParentheses,
+    private Stream<String> parseAndResolve(final String paramsIncludingParentheses,
             final ExpressionResolver expressionResolver) {
 
         final PipelineElement resolved = PipelineFunctionParameterResolverFactory.forStringParameter()
                 .apply(paramsIncludingParentheses, expressionResolver, this);
-        return resolved.toOptional().orElseThrow(() ->
-                PlaceholderFunctionSignatureInvalidException.newBuilder(paramsIncludingParentheses, this)
-                        .build());
+        return resolved.toStream();
     }
 
     /**

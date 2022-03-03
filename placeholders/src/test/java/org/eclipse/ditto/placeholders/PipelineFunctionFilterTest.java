@@ -13,8 +13,12 @@
 package org.eclipse.ditto.placeholders;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 import org.assertj.core.api.Assertions;
@@ -27,9 +31,10 @@ import org.mockito.junit.MockitoJUnitRunner;
 public final class PipelineFunctionFilterTest {
 
     private static final String KNOWN_VALUE = "some value";
-    private static final PipelineElement KNOWN_INPUT = PipelineElement.resolved(KNOWN_VALUE);
+    private static final PipelineElement KNOWN_INPUT = PipelineElement.resolved(Collections.singletonList(KNOWN_VALUE));
     private static final String KNOWN_BOOLEAN = "true";
-    private static final PipelineElement KNOWN_INPUT_BOOLEAN = PipelineElement.resolved(KNOWN_BOOLEAN);
+    private static final PipelineElement KNOWN_INPUT_BOOLEAN =
+            PipelineElement.resolved(Collections.singletonList(KNOWN_BOOLEAN));
 
     private final PipelineFunctionFilter underTest = new PipelineFunctionFilter();
 
@@ -57,15 +62,58 @@ public final class PipelineFunctionFilterTest {
     @Test
     public void applyReturnsExistingValueIfFilterConditionSucceeds() {
         when(expressionResolver.resolveAsPipelineElement("header:reply-to"))
-                .thenReturn(PipelineElement.resolved("true"));
+                .thenReturn(PipelineElement.resolved(Collections.singletonList("true")));
         final String params = String.format("(%s,\"%s\",\"%s\")", "header:reply-to", "eq", "true");
         assertThat(underTest.apply(KNOWN_INPUT, params, expressionResolver)).contains(KNOWN_VALUE);
     }
 
     @Test
+    public void testFunctionFilterWhenConditionSucceedsWithMultiplePreviousValuesAndMultipleOutcomes() {
+        final String params = String.format("(\"%s\",\"%s\")", "like", "foo|bar");
+        assertThat(underTest.apply(PipelineElement.resolved(Arrays.asList("foo", "bar")), params,
+                expressionResolver)).containsExactly("foo", "bar");
+    }
+
+    @Test
+    public void testFunctionFilterWhenConditionSucceedsWithMultiplePreviousValuesAndSingleOutcome() {
+        final String params = String.format("(\"%s\",\"%s\")", "eq", "bar");
+        assertThat(underTest.apply(PipelineElement.resolved(Arrays.asList("foo", "bar")), params,
+                expressionResolver)).containsExactly("bar");
+    }
+
+    @Test
+    public void testFunctionFilterWhenConditionSucceedsWithMultiplePreviousValuesAndSingleComparedValue() {
+        when(expressionResolver.resolveAsPipelineElement("feature:id"))
+                .thenReturn(PipelineElement.resolved(Collections.singletonList("foo")));
+        final String params = String.format("(\"%s\",%s)", "eq", "feature:id");
+        assertThat(underTest.apply(PipelineElement.resolved(Arrays.asList("foo", "bar")), params,
+                expressionResolver)).containsExactly("foo");
+    }
+
+    @Test
+    public void testFunctionFilterWhenConditionSucceedsWithMultiplePreviousValuesAndMultipleComparedValues() {
+        when(expressionResolver.resolveAsPipelineElement("feature:id"))
+                .thenReturn(PipelineElement.resolved(Arrays.asList("foo", "bar")));
+        final String params = String.format("(\"%s\",%s)", "eq", "feature:id");
+        assertThat(underTest.apply(PipelineElement.resolved(Arrays.asList("foo", "bar")), params,
+                expressionResolver)).containsExactly("foo", "bar");
+        verify(expressionResolver, times(1)).resolveAsPipelineElement(
+                "feature:id"); //Ensure that this placeholder does not need to be resolved multiple times
+    }
+
+    @Test
+    public void testFunctionFilterWhenConditionSucceedsWithArray5() {
+        when(expressionResolver.resolveAsPipelineElement("feature:id"))
+                .thenReturn(PipelineElement.resolved(Arrays.asList("foo", "bar")));
+        final String params = String.format("(\"%s\",%s)", "eq", "feature:id");
+        assertThat(underTest.apply(PipelineElement.resolved(Arrays.asList("foo")), params,
+                expressionResolver)).containsExactly("foo");
+    }
+
+    @Test
     public void applyReturnsUnresolvedValueIfFilterConditionFails() {
         when(expressionResolver.resolveAsPipelineElement("header:reply-to"))
-                .thenReturn(PipelineElement.resolved("false"));
+                .thenReturn(PipelineElement.resolved(Collections.singletonList("false")));
         final String params = String.format("(%s,\"%s\",\"%s\")", "header:reply-to", "eq", "true");
         assertThat(underTest.apply(KNOWN_INPUT, params, expressionResolver)).isEmpty();
     }
@@ -73,7 +121,7 @@ public final class PipelineFunctionFilterTest {
     @Test
     public void applyReturnsUnresolvedValueIfUnsupportedRqlFunctionDefined() {
         when(expressionResolver.resolveAsPipelineElement("header:reply-to"))
-                .thenReturn(PipelineElement.resolved("false"));
+                .thenReturn(PipelineElement.resolved(Collections.singletonList("false")));
         final String params = String.format("(%s,\"%s\",\"%s\")", "header:reply-to", "na", "true");
         assertThat(underTest.apply(KNOWN_INPUT, params, expressionResolver)).isEmpty();
     }
@@ -103,7 +151,7 @@ public final class PipelineFunctionFilterTest {
         final String params = String.format("(\"%s\",%s)", "eq", "header:some-header");
 
         when(expressionResolver.resolveAsPipelineElement("header:some-header"))
-                .thenReturn(PipelineElement.resolved("test"));
+                .thenReturn(PipelineElement.resolved(Collections.singletonList("test")));
 
         assertThat(underTest.apply(KNOWN_INPUT, params, expressionResolver)).isEmpty();
     }
@@ -113,7 +161,7 @@ public final class PipelineFunctionFilterTest {
         final String params = String.format("(%s,\"%s\",%s)", "header:reply-to", "eq", "header:some-header");
 
         when(expressionResolver.resolveAsPipelineElement("header:reply-to"))
-                .thenReturn(PipelineElement.resolved("true"));
+                .thenReturn(PipelineElement.resolved(Collections.singletonList("true")));
         when(expressionResolver.resolveAsPipelineElement("header:some-header"))
                 .thenReturn(PipelineElement.unresolved());
         assertThat(underTest.apply(KNOWN_INPUT, params, expressionResolver)).isEmpty();
@@ -121,7 +169,7 @@ public final class PipelineFunctionFilterTest {
         when(expressionResolver.resolveAsPipelineElement("header:reply-to"))
                 .thenReturn(PipelineElement.unresolved());
         when(expressionResolver.resolveAsPipelineElement("header:some-header"))
-                .thenReturn(PipelineElement.resolved("true"));
+                .thenReturn(PipelineElement.resolved(Collections.singletonList("true")));
         assertThat(underTest.apply(KNOWN_INPUT, params, expressionResolver)).isEmpty();
     }
 
@@ -130,7 +178,7 @@ public final class PipelineFunctionFilterTest {
         final String params = String.format("(\"%s\",%s)", "ne", "header:some-header");
 
         when(expressionResolver.resolveAsPipelineElement("header:some-header"))
-                .thenReturn(PipelineElement.resolved("test"));
+                .thenReturn(PipelineElement.resolved(Collections.singletonList("test")));
 
         assertThat(underTest.apply(KNOWN_INPUT, params, expressionResolver)).contains(KNOWN_VALUE);
     }
@@ -160,7 +208,7 @@ public final class PipelineFunctionFilterTest {
         final String params = String.format("(%s,\"%s\",%s)", "header:reply-to", "ne", "header:some-header");
 
         when(expressionResolver.resolveAsPipelineElement("header:reply-to"))
-                .thenReturn(PipelineElement.resolved("true"));
+                .thenReturn(PipelineElement.resolved(Collections.singletonList("true")));
         when(expressionResolver.resolveAsPipelineElement("header:some-header"))
                 .thenReturn(PipelineElement.unresolved());
         assertThat(underTest.apply(KNOWN_INPUT, params, expressionResolver)).contains(KNOWN_VALUE);
@@ -168,7 +216,7 @@ public final class PipelineFunctionFilterTest {
         when(expressionResolver.resolveAsPipelineElement("header:reply-to"))
                 .thenReturn(PipelineElement.unresolved());
         when(expressionResolver.resolveAsPipelineElement("header:some-header"))
-                .thenReturn(PipelineElement.resolved("true"));
+                .thenReturn(PipelineElement.resolved(Collections.singletonList("true")));
         assertThat(underTest.apply(KNOWN_INPUT, params, expressionResolver)).contains(KNOWN_VALUE);
     }
 
@@ -239,7 +287,7 @@ public final class PipelineFunctionFilterTest {
         final String params = String.format("(%s,\"%s\",%s)", "header:reply-to", "like", "header:some-header");
 
         when(expressionResolver.resolveAsPipelineElement("header:reply-to"))
-                .thenReturn(PipelineElement.resolved("true"));
+                .thenReturn(PipelineElement.resolved(Collections.singletonList("true")));
         when(expressionResolver.resolveAsPipelineElement("header:some-header"))
                 .thenReturn(PipelineElement.unresolved());
         assertThat(underTest.apply(KNOWN_INPUT, params, expressionResolver)).isEmpty();
@@ -247,14 +295,14 @@ public final class PipelineFunctionFilterTest {
         when(expressionResolver.resolveAsPipelineElement("header:reply-to"))
                 .thenReturn(PipelineElement.unresolved());
         when(expressionResolver.resolveAsPipelineElement("header:some-header"))
-                .thenReturn(PipelineElement.resolved("*2?7"));
+                .thenReturn(PipelineElement.resolved(Collections.singletonList("*2?7")));
         assertThat(underTest.apply(KNOWN_INPUT, params, expressionResolver)).isEmpty();
     }
 
     @Test
     public void existsSucceedsWithValueResolved() {
         when(expressionResolver.resolveAsPipelineElement("header:reply-to"))
-                .thenReturn(PipelineElement.resolved("true"));
+                .thenReturn(PipelineElement.resolved(Collections.singletonList("true")));
         final String params = String.format("(%s,'%s')", "header:reply-to", "exists");
         assertThat(underTest.apply(KNOWN_INPUT_BOOLEAN, params, expressionResolver)).contains(KNOWN_BOOLEAN);
     }
@@ -270,7 +318,7 @@ public final class PipelineFunctionFilterTest {
     @Test
     public void existsTrueSucceedsWithValueResolved() {
         when(expressionResolver.resolveAsPipelineElement("header:reply-to"))
-                .thenReturn(PipelineElement.resolved("true"));
+                .thenReturn(PipelineElement.resolved(Collections.singletonList("true")));
         final String params = String.format("(%s,'%s','%s')", "header:reply-to", "exists", "true");
         assertThat(underTest.apply(KNOWN_INPUT_BOOLEAN, params, expressionResolver)).contains(KNOWN_BOOLEAN);
     }
@@ -286,13 +334,13 @@ public final class PipelineFunctionFilterTest {
     @Test
     public void existsFalseSucceedsWithValueResolved() {
         when(expressionResolver.resolveAsPipelineElement("header:reply-to"))
-                .thenReturn(PipelineElement.resolved("true"));
+                .thenReturn(PipelineElement.resolved(Collections.singletonList("true")));
         final String params = String.format("(%s,'%s','%s')", "header:reply-to", "exists", "false");
         assertThat(underTest.apply(KNOWN_INPUT_BOOLEAN, params, expressionResolver)).isEmpty();
     }
 
     @Test
-    public void existsFalseFailsWithValueUnresolved() {
+    public void existsFalseSucceedsWithValueUnresolved() {
         when(expressionResolver.resolveAsPipelineElement("header:reply-to"))
                 .thenReturn(PipelineElement.unresolved());
         final String params = String.format("(%s,'%s','%s')", "header:reply-to", "exists", "false");
@@ -304,7 +352,7 @@ public final class PipelineFunctionFilterTest {
         final String params = String.format("(\"%s\",%s)", "exists", "header:some-header");
 
         when(expressionResolver.resolveAsPipelineElement("header:some-header"))
-                .thenReturn(PipelineElement.resolved("true"));
+                .thenReturn(PipelineElement.resolved(Collections.singletonList("true")));
 
         assertThat(underTest.apply(KNOWN_INPUT, params, expressionResolver)).contains(KNOWN_VALUE);
     }
@@ -314,7 +362,7 @@ public final class PipelineFunctionFilterTest {
         final String params = String.format("(\"%s\",%s)", "exists", "header:some-header");
 
         when(expressionResolver.resolveAsPipelineElement("header:some-header"))
-                .thenReturn(PipelineElement.resolved("false"));
+                .thenReturn(PipelineElement.resolved(Collections.singletonList("false")));
 
         assertThat(underTest.apply(KNOWN_INPUT, params, expressionResolver)).isEmpty();
     }
@@ -324,7 +372,7 @@ public final class PipelineFunctionFilterTest {
         final String params = String.format("(%s,\"%s\")", "header:some-header", "exists");
 
         when(expressionResolver.resolveAsPipelineElement("header:some-header"))
-                .thenReturn(PipelineElement.resolved("test"));
+                .thenReturn(PipelineElement.resolved(Collections.singletonList("test")));
 
         assertThat(underTest.apply(KNOWN_INPUT, params, expressionResolver)).contains(KNOWN_VALUE);
     }

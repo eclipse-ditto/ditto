@@ -255,7 +255,7 @@ public final class RawMessageMapper extends AbstractMessageMapper {
         }
         final Map<String, String> resolvedHeaders = new HashMap<>();
         incomingMessageHeaders.forEach((key, value) ->
-                resolver.resolve(value).toOptional().ifPresent(resolvedHeaderValue ->
+                resolver.resolve(value).findFirst().ifPresent(resolvedHeaderValue ->
                         resolvedHeaders.put(key, resolvedHeaderValue)
                 )
         );
@@ -271,7 +271,7 @@ public final class RawMessageMapper extends AbstractMessageMapper {
 
         final String placeholderExpression = incomingMessageHeaders.get(messageHeader);
         if (placeholderExpression != null) {
-            return expressionResolver.resolve(placeholderExpression).toOptional().orElse(null);
+            return expressionResolver.resolve(placeholderExpression).findFirst().orElse(null);
         } else {
             return null;
         }

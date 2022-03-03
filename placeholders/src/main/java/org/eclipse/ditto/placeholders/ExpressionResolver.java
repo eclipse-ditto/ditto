@@ -15,6 +15,7 @@ package org.eclipse.ditto.placeholders;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
@@ -67,31 +68,6 @@ public interface ExpressionResolver {
     }
 
     /**
-     * Resolve a single pipeline expression as a stream of pipeline elements.
-     *
-     * @param pipelineExpression the pipeline expression.
-     * @return the stream of pipeline elements after evaluation.
-     * @throws UnresolvedPlaceholderException if not all placeholders were resolved
-     * @since 2.4.0
-     */
-    Stream<PipelineElement> resolveAsArrayPipelineElement(String pipelineExpression);
-
-    /**
-     * Resolves a complete expression template as a stream of pipeline elements starting with a
-     * {@link Placeholder} followed by optional pipeline stages (e.g. functions).
-     *
-     * @param expressionTemplate the expressionTemplate to resolve {@link Placeholder}s and execute optional
-     * pipeline stages
-     * @return the stream of pipeline elements after evaluation.
-     * @throws PlaceholderFunctionTooComplexException thrown if the {@code expressionTemplate} contains a placeholder
-     * function chain which is too complex (e.g. too much chained function calls)
-     * @since 2.4.0
-     */
-    default Stream<PipelineElement> resolveAsArray(final String expressionTemplate) {
-        return ExpressionResolver.substituteArray(expressionTemplate, this::resolveAsArrayPipelineElement);
-    }
-
-    /**
      * Resolves a complete expression template starting with a {@link Placeholder} followed by optional pipeline stages
      * (e.g. functions). Keep unresolvable expressions as is.
      *
@@ -105,7 +81,7 @@ public interface ExpressionResolver {
      * provided {@code forbiddenUnresolvedExpressionPrefixes} list.
      * @since 2.0.0
      */
-    default String resolvePartially(final String expressionTemplate,
+    default Stream<String> resolvePartially(final String expressionTemplate,
             final Collection<String> forbiddenUnresolvedExpressionPrefixes) {
 
         return ExpressionResolver.substitute(expressionTemplate, expression -> {
@@ -117,7 +93,7 @@ public interface ExpressionResolver {
                     throw e;
                 } else {
                     // placeholder is not supported; return the expression without resolution.
-                    return PipelineElement.resolved("{{" + expression + "}}");
+                    return PipelineElement.resolved(Collections.singletonList("{{" + expression + "}}"));
                 }
             }
 
@@ -125,9 +101,9 @@ public interface ExpressionResolver {
                 if (forbiddenUnresolvedExpressionPrefixes.stream().anyMatch(expression::startsWith)) {
                     throw UnresolvedPlaceholderException.newBuilder(expression).build();
                 }
-                return PipelineElement.resolved("{{" + expression + "}}");
+                return PipelineElement.resolved(Collections.singletonList("{{" + expression + "}}"));
             });
-        }).toOptional().orElseThrow(() -> new IllegalStateException("Impossible"));
+        }).toStream();
     }
 
     /**
@@ -140,52 +116,6 @@ public interface ExpressionResolver {
     static PipelineElement substitute(
             final String input,
             final Function<String, PipelineElement> substitutionFunction) {
-
-        final Matcher matcher = Placeholders.pattern().matcher(input);
-        final StringBuffer resultBuilder = new StringBuffer();
-
-        while (matcher.find()) {
-            final String placeholderExpression = Placeholders.groupNames()
-                    .stream()
-                    .map(matcher::group)
-                    .filter(Objects::nonNull)
-                    .findAny()
-                    .orElse("");
-            final PipelineElement element = substitutionFunction.apply(placeholderExpression);
-            switch (element.getType()) {
-                case DELETED:
-                case UNRESOLVED:
-                    // abort pipeline execution: resolution failed or the string has been deleted.
-                    return element;
-                default:
-                    // proceed to append resolution result and evaluate the next pipeline expression
-            }
-            // append resolved placeholder
-            element.map(resolvedValue -> {
-                // increment counter inside matcher for "matcher.appendTail" later
-                matcher.appendReplacement(resultBuilder, "");
-                // actually append resolved value - do not attempt to interpret as regex
-                resultBuilder.append(resolvedValue);
-                return resolvedValue;
-            });
-        }
-
-        matcher.appendTail(resultBuilder);
-        return PipelineElement.resolved(resultBuilder.toString());
-
-    }
-
-    /**
-     * Perform simple substitution on a string as a stream of pipeline elements based on a template function.
-     *
-     * @param input the input string.
-     * @param substitutionFunction the substitution function turning the content of each placeholder into a result.
-     * @return the stream of substitution results.
-     * @since 2.4.0
-     */
-    static Stream<PipelineElement> substituteArray(
-            final String input,
-            final Function<String, Stream<PipelineElement>> substitutionFunction) {
 
         final Matcher matcher = Placeholders.pattern().matcher(input);
         Collection<StringBuffer> resultBuilder = new ArrayList<>();
@@ -201,34 +131,35 @@ public interface ExpressionResolver {
 
             final Collection<StringBuffer> finalResultBuilder = resultBuilder;
 
-            final Stream<PipelineElement> elements = substitutionFunction.apply(placeholderExpression);
+            final PipelineElement element = substitutionFunction.apply(placeholderExpression);
+
+            if(element.getType() == PipelineElement.Type.DELETED) {
+                return element;
+            }
 
             final AtomicInteger counter = new AtomicInteger();
             final AtomicReference<StringBuffer> appendingBuffer = new AtomicReference<>(new StringBuffer());
 
-            resultBuilder = elements
-                    .filter(element -> !element.getType().equals(PipelineElement.Type.UNRESOLVED))
-                    .flatMap(element ->
-                            finalResultBuilder.stream()
-                                    .flatMap(string -> {
-                                        if (counter.get() == 0) {
-                                            counter.getAndIncrement();
-                                            matcher.appendReplacement(appendingBuffer.get(), "");
-                                        }
-                                        return element.toOptionalStream().map(streamElement ->
-                                                new StringBuffer(string)
-                                                        .append(appendingBuffer.get())
-                                                        .append(streamElement)
-                                                );
-                                    })
-                    ).collect(Collectors.toList());
+            resultBuilder = finalResultBuilder.stream()
+                    .flatMap(string -> {
+                        if (counter.get() == 0) {
+                            counter.getAndIncrement();
+                            matcher.appendReplacement(appendingBuffer.get(), "");
+                        }
+                        return element.toStream()
+                                .map(streamElement ->
+                                        new StringBuffer(string)
+                                                .append(appendingBuffer.get())
+                                                .append(streamElement)
+                                );
+                    })
+                    .collect(Collectors.toList());
         }
-        return resultBuilder.stream()
+        return PipelineElement.resolved(resultBuilder.stream()
                 .map(matcher::appendTail)
                 .map(StringBuffer::toString)
-                .map(PipelineElement::resolved);
+                .collect(Collectors.toList()));
 
     }
-
 
 }

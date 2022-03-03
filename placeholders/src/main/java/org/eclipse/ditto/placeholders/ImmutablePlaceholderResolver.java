@@ -12,11 +12,12 @@
  */
 package org.eclipse.ditto.placeholders;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
-import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 /**
@@ -26,16 +27,21 @@ import javax.annotation.concurrent.Immutable;
 final class ImmutablePlaceholderResolver<T> implements PlaceholderResolver<T> {
 
     private final Placeholder<T> placeholder;
-    @Nullable private final T placeholderSource;
+    private final List<T> placeholderSource;
 
-    ImmutablePlaceholderResolver(final Placeholder<T> placeholder, @Nullable final T placeholderSource) {
+    ImmutablePlaceholderResolver(final Placeholder<T> placeholder, final List<T> placeholderSource) {
         this.placeholder = placeholder;
-        this.placeholderSource = placeholderSource;
+        this.placeholderSource = Collections.unmodifiableList(new ArrayList<>(placeholderSource));
     }
 
     @Override
     public Optional<T> getPlaceholderSource() {
-        return Optional.ofNullable(placeholderSource);
+        return placeholderSource.stream().findFirst();
+    }
+
+    @Override
+    public List<T> getPlaceholderSources() {
+        return placeholderSource;
     }
 
     @Override
@@ -84,4 +90,5 @@ final class ImmutablePlaceholderResolver<T> implements PlaceholderResolver<T> {
                 ", value=" + placeholderSource +
                 "]";
     }
+
 }

@@ -25,6 +25,7 @@ import javax.annotation.concurrent.Immutable;
  */
 @Immutable
 final class ImmutableArrayFunctionExpression implements ArrayFunctionExpression {
+
     /**
      * Singleton instance of the ImmutableFunctionExpression.
      */
@@ -75,7 +76,7 @@ final class ImmutableArrayFunctionExpression implements ArrayFunctionExpression 
 
         return SUPPORTED.stream()
                 .filter(pf -> expression.startsWith(getPrefix() + ":" + pf.getName() + "("))
-                .flatMap(pf -> pf.applyStreaming(resolvedInputValue,
+                .map(pf -> pf.apply(resolvedInputValue,
                         expression.replaceFirst(getPrefix() + ":" + pf.getName(), "").trim(),
                         expressionResolver)
                 );

@@ -101,7 +101,7 @@ public final class PlaceholderFilter {
      * function chain which is too complex (e.g. too much chained function calls)
      */
     public static Optional<String> applyOrElseDelete(final String template, final ExpressionResolver resolver) {
-        return resolver.resolve(template).toOptional();
+        return resolver.resolve(template).findFirst();
     }
 
     /**
@@ -119,7 +119,7 @@ public final class PlaceholderFilter {
      * function chain which is too complex (e.g. too much chained function calls)
      */
     public static String applyOrElseRetain(final String template, final ExpressionResolver resolver) {
-        return resolver.resolve(template).toOptional().orElse(template);
+        return resolver.resolve(template).findFirst().orElse(template);
     }
 
     /**
@@ -156,6 +156,7 @@ public final class PlaceholderFilter {
         );
     }
 
+    //TODO: Yannic check if we rather should use a List<String> as return type
     private static String doApply(final String template, final ExpressionResolver expressionResolver) {
         final Supplier<String> throwUnresolvedPlaceholderException = () -> {
             throw UnresolvedPlaceholderException.newBuilder(template).build();
@@ -165,7 +166,10 @@ public final class PlaceholderFilter {
                         .resolved(Function.identity())
                         .unresolved(throwUnresolvedPlaceholderException)
                         .deleted(throwUnresolvedPlaceholderException)
-                        .build());
+                        .build())
+                .stream()
+                .findFirst()
+                .orElseThrow(() -> new IllegalStateException("TODO: probably we should use a List as return type"));
     }
 
     private PlaceholderFilter() {

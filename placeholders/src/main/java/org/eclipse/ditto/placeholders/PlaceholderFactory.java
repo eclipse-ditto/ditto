@@ -42,7 +42,8 @@ public final class PlaceholderFactory {
      */
     public static <T> PlaceholderResolver<T> newPlaceholderResolver(final Placeholder<T> placeholder,
             @Nullable final T placeholderSource) {
-        return new ImmutablePlaceholderResolver<>(placeholder, placeholderSource);
+        return new ImmutablePlaceholderResolver<>(placeholder,
+                placeholderSource == null ? Collections.emptyList() : Collections.singletonList(placeholderSource));
     }
 
     /**
@@ -54,7 +55,7 @@ public final class PlaceholderFactory {
      * @return the created PlaceholderResolver instance
      */
     public static <T> PlaceholderResolver<T> newPlaceholderResolverForValidation(final Placeholder<T> placeholder) {
-        return new ImmutablePlaceholderResolver<>(placeholder, null);
+        return new ImmutablePlaceholderResolver<>(placeholder, Collections.emptyList());
     }
 
     /**

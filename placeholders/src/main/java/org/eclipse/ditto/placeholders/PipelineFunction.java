@@ -55,20 +55,6 @@ interface PipelineFunction {
             ExpressionResolver expressionResolver);
 
     /**
-     * Executes the function by passing in a value and returning a stream of processed results.
-     *
-     * @param value the input value to process.
-     * @param paramsIncludingParentheses the passed in function parameters including parentheses, e.g.: {@code
-     * ('fallback')}
-     * @param expressionResolver the expressionResolver to use in order to resolve placeholders occurring in the
-     * function.
-     * @return processed output values, or an empty stream otherwise.
-     * @since 2.4.0
-     */
-    Stream<PipelineElement> applyStreaming(PipelineElement value, String paramsIncludingParentheses,
-            ExpressionResolver expressionResolver);
-
-    /**
      * Defines a function's signature.
      */
     interface Signature {

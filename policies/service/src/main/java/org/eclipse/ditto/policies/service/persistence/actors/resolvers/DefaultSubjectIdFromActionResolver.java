@@ -49,7 +49,7 @@ public final class DefaultSubjectIdFromActionResolver implements SubjectIdFromAc
                     try {
                         return expressionResolver
                                 .resolve(subjectId.toString())
-                                .toOptional()
+                                .findFirst()
                                 .map(SubjectId::newInstance)
                                 .orElseThrow(
                                         () -> UnresolvedPlaceholderException.newBuilder(subjectId.toString()).build());

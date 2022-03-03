@@ -17,11 +17,9 @@ import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Stream;
 
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.jwt.model.JsonWebToken;
-import org.eclipse.ditto.placeholders.PipelineElement;
 import org.eclipse.ditto.placeholders.Placeholder;
 
 /**
@@ -67,19 +65,4 @@ public final class JwtPlaceholder implements Placeholder<JsonWebToken> {
         return jwt.getBody().getValue(placeholder).map(JsonValue::formatAsString);
     }
 
-    /**
-     * Checks whether the passed {@code resolvedSubject} (resolved via JWT and header placeholder mechanism) contains
-     * JsonArrays ({@code ["..."]} and expands those JsonArrays to multiple resolved subjects returned as resulting
-     * stream of this operation.
-     * <p>
-     * Is able to handle an arbitrary amount of JsonArrays in the passed resolvedSubjects.
-     *
-     * @param resolvedSubject the resolved subjects potentially containing JsonArrays as JsonArray-String values.
-     * @return a stream of a single subject when the passed in {@code resolvedSubject} did not contain any
-     * JsonArray-String notation or else a stream of multiple subjects with the JsonArrays being resolved to multiple
-     * results of the stream.
-     */
-    public static Stream<String> expandJsonArraysInResolvedSubject(final String resolvedSubject) {
-        return PipelineElement.expandJsonArraysInString(resolvedSubject);
-    }
 }

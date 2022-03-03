@@ -224,7 +224,7 @@ public final class ImplicitThingCreationMessageMapper extends AbstractMessageMap
         final ExpressionResolver resolver = resolverFactory.apply(externalMessage.getHeaders());
         final Map<String, String> resolvedHeaders = new HashMap<>();
         errorResponseHeaders.forEach((key, value) ->
-                resolver.resolve(value).toOptional().ifPresent(resolvedHeaderValue ->
+                resolver.resolve(value).findFirst().ifPresent(resolvedHeaderValue ->
                         resolvedHeaders.put(key, resolvedHeaderValue)
                 )
         );

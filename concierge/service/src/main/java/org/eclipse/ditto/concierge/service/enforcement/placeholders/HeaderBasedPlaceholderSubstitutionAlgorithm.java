@@ -87,7 +87,7 @@ public final class HeaderBasedPlaceholderSubstitutionAlgorithm {
         requireNonNull(dittoHeaders);
 
         return ExpressionResolver.substitute(input, createReplacerFunction(dittoHeaders))
-                .toOptional()
+                .findFirst()
                 .orElse(input);
     }
 
@@ -102,6 +102,7 @@ public final class HeaderBasedPlaceholderSubstitutionAlgorithm {
                         .build();
             }
             return Optional.ofNullable(placeholderResolver.apply(dittoHeaders))
+                    .map(Collections::singletonList)
                     .map(PipelineElement::resolved)
                     .orElse(PipelineElement.unresolved());
         };

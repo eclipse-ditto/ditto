@@ -15,6 +15,8 @@ package org.eclipse.ditto.placeholders;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
+import java.util.Collections;
+
 import org.junit.After;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -25,9 +27,9 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class PipelineFunctionSubstringBeforeTest {
 
-    private static final PipelineElement KNOWN_INPUT = PipelineElement.resolved("org.eclipse.ditto:any.thing.or.else");
+    private static final PipelineElement KNOWN_INPUT = PipelineElement.resolved(Collections.singletonList("org.eclipse.ditto:any.thing.or.else"));
     private static final PipelineElement EMPTY_INPUT = PipelineElement.unresolved();
-    private static final PipelineElement UNMATCHING_INPUT = PipelineElement.resolved("any.thing.without.colon");
+    private static final PipelineElement UNMATCHING_INPUT = PipelineElement.resolved(Collections.singletonList("any.thing.without.colon"));
     private static final String SUBSTRING_AT = ":";
     private static final String EXPECTED_RESULT = "org.eclipse.ditto";
 

@@ -14,6 +14,7 @@ package org.eclipse.ditto.placeholders;
 
 import java.text.MessageFormat;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Predicate;
@@ -218,12 +219,12 @@ final class PipelineFunctionParameterResolverFactory {
             final String singleQuotedStringConstant = matcher.group(buildSingleQuotedConstantGroupName(parameterIndex));
 
             if (singleQuotedStringConstant != null) {
-                return Optional.of(PipelineElement.resolved(singleQuotedStringConstant));
+                return Optional.of(PipelineElement.resolved(Collections.singletonList(singleQuotedStringConstant)));
             } else {
                 final String doubleQuotedStringConstant =
                         matcher.group(buildDoubleQuotedConstantGroupName(parameterIndex));
                 if (doubleQuotedStringConstant != null) {
-                    return Optional.of(PipelineElement.resolved(doubleQuotedStringConstant));
+                    return Optional.of(PipelineElement.resolved(Collections.singletonList(doubleQuotedStringConstant)));
                 }
             }
 

@@ -12,11 +12,14 @@
  */
 package org.eclipse.ditto.placeholders;
 
-import java.util.Collections;
+import java.util.Collection;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Objects;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import javax.annotation.concurrent.Immutable;
 
@@ -26,14 +29,14 @@ import javax.annotation.concurrent.Immutable;
 @Immutable
 final class PipelineElementResolved implements PipelineElement {
 
-    private final String value;
+    private final Collection<String> values;
 
-    private PipelineElementResolved(final String value) {
-        this.value = value;
+    private PipelineElementResolved(final Collection<String> values) {
+        this.values = values;
     }
 
-    static PipelineElement of(final String value) {
-        return new PipelineElementResolved(value);
+    static PipelineElement of(final Collection<String> values) {
+        return new PipelineElementResolved(values);
     }
 
     @Override
@@ -43,7 +46,10 @@ final class PipelineElementResolved implements PipelineElement {
 
     @Override
     public PipelineElement onResolved(final Function<String, PipelineElement> stringProcessor) {
-        return stringProcessor.apply(value);
+        return values.stream()
+                .map(stringProcessor)
+                .reduce(PipelineElement::concat)
+                .orElse(PipelineElement.unresolved());
     }
 
     @Override
@@ -57,19 +63,36 @@ final class PipelineElementResolved implements PipelineElement {
     }
 
     @Override
-    public <T> T accept(final PipelineElementVisitor<T> visitor) {
-        return visitor.resolved(value);
+    public PipelineElement concat(final PipelineElement pipelineElement) {
+        if (pipelineElement.getType() == Type.DELETED) {
+            return pipelineElement;
+        }
+        final List<String> concatenatedValues = Stream.concat(toStream(), pipelineElement.toStream())
+                .collect(Collectors.toList());
+        return PipelineElementResolved.of(concatenatedValues);
+    }
+
+    @Override
+    public <T> List<T> accept(final PipelineElementVisitor<T> visitor) {
+        return values.stream()
+                .map(visitor::resolved)
+                .collect(Collectors.toList());
     }
 
     @Override
     public Iterator<String> iterator() {
-        return Collections.singletonList(value).iterator();
+        return values.iterator();
+    }
+
+    @Override
+    public Stream<String> toStream() {
+        return values.stream();
     }
 
     @Override
     public boolean equals(final Object that) {
         if (that instanceof PipelineElementResolved) {
-            return Objects.equals(value, ((PipelineElementResolved) that).value);
+            return Objects.equals(values, ((PipelineElementResolved) that).values);
         } else {
             return false;
         }
@@ -77,11 +100,11 @@ final class PipelineElementResolved implements PipelineElement {
 
     @Override
     public int hashCode() {
-        return value.hashCode();
+        return values.hashCode();
     }
 
     @Override
     public String toString() {
-        return getClass().getSimpleName() + "[" + value + "]";
+        return getClass().getSimpleName() + "[" + values + "]";
     }
 }

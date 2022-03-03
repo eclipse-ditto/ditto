@@ -16,7 +16,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.mockito.Mockito.verifyNoInteractions;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -31,10 +33,10 @@ public class PipelineFunctionSplitTest {
 
     private static final PipelineElement EMPTY_INPUT = PipelineElement.unresolved();
 
-    private static final PipelineElement KNOWN_INPUT = PipelineElement.resolved("foo bar baz");
+    private static final PipelineElement KNOWN_INPUT = PipelineElement.resolved(Collections.singletonList("foo bar baz"));
     private static final List<String> EXPECTED_OUTPUT = Arrays.asList("foo", "bar", "baz");
 
-    private static final PipelineElement KNOWN_INPUT_NO_MATCH = PipelineElement.resolved("unsplittable");
+    private static final PipelineElement KNOWN_INPUT_NO_MATCH = PipelineElement.resolved(Collections.singletonList("unsplittable"));
     private static final String EXPECTED_OUTPUT_NO_MATCH = "unsplittable";
 
     private final PipelineFunctionSplit function = new PipelineFunctionSplit();
@@ -54,14 +56,14 @@ public class PipelineFunctionSplitTest {
 
     @Test
     public void apply() {
-        assertThat(function.applyStreaming(KNOWN_INPUT, "(' ')", expressionResolver))
-                .containsAll(EXPECTED_OUTPUT.stream().map(PipelineElement::resolved).collect(Collectors.toList()));
+        assertThat(function.apply(KNOWN_INPUT, "(' ')", expressionResolver).toStream())
+                .containsAll(EXPECTED_OUTPUT);
     }
 
     @Test
     public void applyNoMatch() {
-        assertThat(function.applyStreaming(KNOWN_INPUT_NO_MATCH, "(' ')", expressionResolver))
-                .containsOnly(PipelineElement.resolved(EXPECTED_OUTPUT_NO_MATCH));
+        assertThat(function.apply(KNOWN_INPUT_NO_MATCH, "(' ')", expressionResolver).toStream())
+                .containsOnly(EXPECTED_OUTPUT_NO_MATCH);
     }
 
     @Test

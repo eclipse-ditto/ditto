@@ -19,6 +19,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
@@ -86,7 +87,7 @@ public class PipelineFunctionParameterResolverFactoryTest {
 
         final String params = "(" + KNOWN_PLACEHOLDER + ")";
         when(expressionResolver.resolveAsPipelineElement(anyString()))
-                .thenReturn(PipelineElement.resolved(KNOWN_VALUE));
+                .thenReturn(PipelineElement.resolved(Collections.singletonList(KNOWN_VALUE)));
 
         assertThat(parameterResolver.apply(params, expressionResolver, DUMMY)).contains(KNOWN_VALUE);
 
@@ -116,7 +117,7 @@ public class PipelineFunctionParameterResolverFactoryTest {
         final String stringPlaceholder = "(    " + KNOWN_PLACEHOLDER + "   )";
 
         when(expressionResolver.resolveAsPipelineElement(anyString())).thenReturn(
-                PipelineElement.resolved(KNOWN_VALUE));
+                PipelineElement.resolved(Collections.singletonList(KNOWN_VALUE)));
 
         assertThat(parameterResolver.apply(stringSingle, expressionResolver, DUMMY)).contains(KNOWN_VALUE);
         assertThat(parameterResolver.apply(stringDouble, expressionResolver, DUMMY)).contains(KNOWN_VALUE);
@@ -251,7 +252,7 @@ public class PipelineFunctionParameterResolverFactoryTest {
         final String parameters =
                 "(\"" + firstParameter + "\", '" + secondParameter + "', " + KNOWN_PLACEHOLDER + ")";
         when(expressionResolver.resolveAsPipelineElement(KNOWN_PLACEHOLDER))
-                .thenReturn(PipelineElement.resolved(thirdParameter));
+                .thenReturn(PipelineElement.resolved(Collections.singletonList(thirdParameter)));
 
         final List<PipelineElement> resolvedParameters = parameterResolver.apply(parameters, expressionResolver, DUMMY);
 
@@ -348,7 +349,7 @@ public class PipelineFunctionParameterResolverFactoryTest {
         final String parameters =
                 "(" + KNOWN_PLACEHOLDER + ", '" + secondParameter + "')";
         when(expressionResolver.resolveAsPipelineElement(KNOWN_PLACEHOLDER))
-                .thenReturn(PipelineElement.resolved(firstParameter));
+                .thenReturn(PipelineElement.resolved(Collections.singletonList(firstParameter)));
 
         final List<PipelineElement> resolvedParameters = parameterResolver.apply(parameters, expressionResolver, DUMMY);
 

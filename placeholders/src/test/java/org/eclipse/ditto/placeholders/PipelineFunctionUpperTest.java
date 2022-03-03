@@ -15,6 +15,8 @@ package org.eclipse.ditto.placeholders;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
+import java.util.Collections;
+
 import org.junit.After;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -25,7 +27,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class PipelineFunctionUpperTest {
 
-    private static final PipelineElement KNOWN_INPUT = PipelineElement.resolved("CamElCase");
+    private static final PipelineElement KNOWN_INPUT = PipelineElement.resolved(Collections.singletonList("CamElCase"));
     private static final String UPPER_CASE = "CAMELCASE";
 
     private final PipelineFunctionUpper function = new PipelineFunctionUpper();
