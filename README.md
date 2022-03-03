@@ -48,6 +48,14 @@ docker-compose logs -f
 Open following URL to get started: [http://localhost:8080](http://localhost:8080)<br/>
 Or have a look at the ["Hello World"](https://eclipse.org/ditto/intro-hello-world.html)
 
+Additional [deployment options](deployment/) are also available, if Docker Compose is not what you want to use.
+
+## Development Guide
+
+If you plan to develop extensions in Ditto or to contribute some code, the following steps are of interest for you.
+
+> :warning: **If you just want to start/use Ditto**, please ingore the following sections! 
+
 ### Build and start Ditto locally
 
 In order to build Ditto, you'll need:
