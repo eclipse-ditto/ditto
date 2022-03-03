@@ -66,19 +66,19 @@ public final class TopicPlaceholderTest {
                 ConnectivityPlaceholders.newTopicPathPlaceholder(), topic);
 
         assertThat(underTest.resolve("full"))
-                .contains(fullPath);
+                .containsExactly(fullPath);
         assertThat(underTest.resolve("namespace"))
-                .contains("org.eclipse.ditto");
+                .containsExactly("org.eclipse.ditto");
         assertThat(underTest.resolve("entityName"))
-                .contains("foo23");
+                .containsExactly("foo23");
         assertThat(underTest.resolve("group"))
-                .contains("things");
+                .containsExactly("things");
         assertThat(underTest.resolve("channel"))
-                .contains("twin");
+                .containsExactly("twin");
         assertThat(underTest.resolve("criterion"))
-                .contains("commands");
+                .containsExactly("commands");
         assertThat(underTest.resolve("action"))
-                .contains("modify");
+                .containsExactly("modify");
     }
 
     @Test

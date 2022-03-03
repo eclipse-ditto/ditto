@@ -13,6 +13,7 @@
 package org.eclipse.ditto.rql.query.things;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
@@ -41,11 +42,11 @@ final class ThingPredicateTestPlaceholder implements Placeholder<String> {
     }
 
     @Override
-    public Optional<String> resolve(final String placeholderSource, final String name) {
+    public List<String> resolve(final String placeholderSource, final String name) {
         if (LOWER.equals(name)) {
-            return Optional.of(placeholderSource.toLowerCase());
+            return Collections.singletonList(placeholderSource.toLowerCase());
         } else {
-            return Optional.of(placeholderSource.toUpperCase());
+            return Collections.singletonList(placeholderSource.toUpperCase());
         }
     }
 

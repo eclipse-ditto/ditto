@@ -41,20 +41,19 @@ final class PipelineFunctionSubstringAfter implements PipelineFunction {
     public PipelineElement apply(final PipelineElement value, final String paramsIncludingParentheses,
             final ExpressionResolver expressionResolver) {
 
-        final Stream<String> splitValues = parseAndResolve(paramsIncludingParentheses, expressionResolver);
+        final PipelineElement resolved = parseAndResolve(paramsIncludingParentheses, expressionResolver);
 
-        return value.onResolved(previousStage -> PipelineElement.resolved(splitValues
+        return value.onResolved(previousStage -> PipelineElement.resolved(resolved.toStream()
                 .filter(previousStage::contains)
                 .map(splitValue -> previousStage.substring(previousStage.indexOf(splitValue) + 1))
                 .collect(Collectors.toList())));
     }
 
-    private Stream<String> parseAndResolve(final String paramsIncludingParentheses,
+    private PipelineElement parseAndResolve(final String paramsIncludingParentheses,
             final ExpressionResolver expressionResolver) {
 
-        final PipelineElement resolved = PipelineFunctionParameterResolverFactory.forStringParameter()
+        return PipelineFunctionParameterResolverFactory.forStringParameter()
                 .apply(paramsIncludingParentheses, expressionResolver, this);
-        return resolved.toStream();
     }
 
     /**

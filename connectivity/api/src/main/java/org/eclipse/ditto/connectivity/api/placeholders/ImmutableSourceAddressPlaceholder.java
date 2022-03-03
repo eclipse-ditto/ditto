@@ -51,8 +51,8 @@ final class ImmutableSourceAddressPlaceholder implements SourceAddressPlaceholde
     }
 
     @Override
-    public Optional<String> resolve(final String input, final String name) {
-        return supports(name) ? Optional.of(input) : Optional.empty();
+    public List<String> resolve(final String input, final String name) {
+        return supports(name) ? Collections.singletonList(input) : Collections.emptyList();
     }
 
     private ImmutableSourceAddressPlaceholder() {

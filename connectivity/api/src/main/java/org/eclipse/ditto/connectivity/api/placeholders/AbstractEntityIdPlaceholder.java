@@ -44,16 +44,16 @@ abstract class AbstractEntityIdPlaceholder<T extends NamespacedEntityId> impleme
         return SUPPORTED.contains(name);
     }
 
-    protected Optional<String> doResolve(final T entityId, final String placeholder) {
+    protected List<String> doResolve(final T entityId, final String placeholder) {
         switch (placeholder) {
             case NAMESPACE_PLACEHOLDER:
-                return Optional.of(entityId.getNamespace());
+                return Collections.singletonList(entityId.getNamespace());
             case NAME_PLACEHOLDER:
-                return Optional.of(entityId.getName());
+                return Collections.singletonList(entityId.getName());
             case ID_PLACEHOLDER:
-                return Optional.of(entityId.toString());
+                return Collections.singletonList(entityId.toString());
             default:
-                return Optional.empty();
+                return Collections.emptyList();
         }
     }
 

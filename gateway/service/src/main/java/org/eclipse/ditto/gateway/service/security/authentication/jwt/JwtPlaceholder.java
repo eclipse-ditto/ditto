@@ -15,8 +15,10 @@ package org.eclipse.ditto.gateway.service.security.authentication.jwt;
 import static org.eclipse.ditto.base.model.common.ConditionChecker.argumentNotEmpty;
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.jwt.model.JsonWebToken;
@@ -59,10 +61,18 @@ public final class JwtPlaceholder implements Placeholder<JsonWebToken> {
     }
 
     @Override
-    public Optional<String> resolve(final JsonWebToken jwt, final String placeholder) {
+    public List<String> resolve(final JsonWebToken jwt, final String placeholder) {
         argumentNotEmpty(placeholder, "placeholder");
         checkNotNull(jwt, "jwt");
-        return jwt.getBody().getValue(placeholder).map(JsonValue::formatAsString);
+        final Optional<JsonValue> value = jwt.getBody().getValue(placeholder);
+        return value.filter(JsonValue::isArray)
+                .map(JsonValue::asArray)
+                .map(array -> array.stream()
+                        .map(JsonValue::formatAsString)
+                        .collect(Collectors.toList()))
+                .or(() -> value.map(JsonValue::formatAsString)
+                        .map(Collections::singletonList))
+                .orElseGet(Collections::emptyList);
     }
 
 }

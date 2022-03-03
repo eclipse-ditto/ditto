@@ -48,6 +48,6 @@
                  ConnectivityPlaceholders.newConnectionIdPlaceholder(), connectionId);
 
          assertThat(underTest.resolve("id"))
-                 .contains(connectionId.toString());
+                 .containsExactly(connectionId.toString());
      }
  }

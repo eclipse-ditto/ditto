@@ -46,13 +46,13 @@ public final class ImmutableConnectionIdPlaceholderTest {
     @Test
     public void resolve() {
         final String expectedResolvingResult = "myTestId";
-        final Optional<String> result = underTest.resolve(ConnectionId.of(expectedResolvingResult), "id");
-        assertThat(result).contains(expectedResolvingResult);
+        final List<String> result = underTest.resolve(ConnectionId.of(expectedResolvingResult), "id");
+        assertThat(result).containsExactly(expectedResolvingResult);
     }
 
     @Test
     public void resolveWithUnsupportedPlaceholder() {
-        final Optional<String> result = underTest.resolve(ConnectionId.of("myTestId"), "unsupported");
+        final List<String> result = underTest.resolve(ConnectionId.of("myTestId"), "unsupported");
         assertThat(result).isEmpty();
     }
 

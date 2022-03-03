@@ -18,7 +18,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.junit.Ignore;
 import org.junit.Test;
 import org.mutabilitydetector.unittesting.AllowedReason;
 import org.mutabilitydetector.unittesting.MutabilityAssert;
@@ -55,9 +54,9 @@ public class ImmutablePlaceholderResolverTest {
                 PlaceholderFactory.newHeadersPlaceholder(), Collections.singletonList(inputMap));
 
         assertThat(underTest.resolve("one"))
-                .contains("1");
+                .containsExactly("1");
         assertThat(underTest.resolve("two"))
-                .contains("2");
+                .containsExactly("2");
     }
 
 }

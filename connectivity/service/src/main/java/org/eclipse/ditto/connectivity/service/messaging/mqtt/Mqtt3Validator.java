@@ -185,7 +185,7 @@ public final class Mqtt3Validator extends AbstractMqttValidator {
         }
 
         @Override
-        public Optional<String> resolve(final String placeholderSource, final String name) {
+        public List<String> resolve(final String placeholderSource, final String name) {
             throw new UnsupportedOperationException("This placeholder is only used for validation and does not " +
                     "resolve the placeholder.");
         }

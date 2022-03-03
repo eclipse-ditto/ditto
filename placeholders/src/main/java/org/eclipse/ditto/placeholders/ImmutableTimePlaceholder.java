@@ -65,15 +65,15 @@ final class ImmutableTimePlaceholder implements TimePlaceholder {
     }
 
     @Override
-    public Optional<String> resolve(final Object someObject, final String placeholder) {
+    public List<String> resolve(final Object someObject, final String placeholder) {
         ConditionChecker.argumentNotEmpty(placeholder, "placeholder");
         switch (placeholder) {
             case NOW_PLACEHOLDER:
-                return Optional.of(Instant.now().toString());
+                return Collections.singletonList(Instant.now().toString());
             case NOW_EPOCH_MILLIS_PLACEHOLDER:
-                return Optional.of(String.valueOf(Instant.now().toEpochMilli()));
+                return Collections.singletonList(String.valueOf(Instant.now().toEpochMilli()));
             default:
-                return Optional.empty();
+                return Collections.emptyList();
         }
     }
 

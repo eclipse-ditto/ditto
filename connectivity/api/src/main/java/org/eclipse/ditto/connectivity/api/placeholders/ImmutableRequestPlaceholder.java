@@ -56,14 +56,16 @@ final class ImmutableRequestPlaceholder implements RequestPlaceholder {
     }
 
     @Override
-    public Optional<String> resolve(@Nullable final AuthorizationContext authorizationContext, final String headerKey) {
+    public List<String> resolve(@Nullable final AuthorizationContext authorizationContext, final String headerKey) {
         // precondition: supports(headerKey)
         return Optional.ofNullable(authorizationContext)
                 .flatMap(context -> context.getAuthorizationSubjects()
                         .stream()
                         .map(AuthorizationSubject::getId)
                         .findFirst()
-                );
+                )//TODO: Yannic maybe we can return the full list instead of just the first?
+                .map(Collections::singletonList)
+                .orElseGet(Collections::emptyList);
     }
 
     @Override

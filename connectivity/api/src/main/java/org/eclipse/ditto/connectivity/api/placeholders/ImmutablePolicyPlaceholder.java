@@ -15,6 +15,8 @@ package org.eclipse.ditto.connectivity.api.placeholders;
 import static org.eclipse.ditto.base.model.common.ConditionChecker.argumentNotEmpty;
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
+import java.util.Collections;
+import java.util.List;
 import java.util.Optional;
 
 import javax.annotation.concurrent.Immutable;
@@ -40,13 +42,13 @@ final class ImmutablePolicyPlaceholder extends AbstractEntityIdPlaceholder<Polic
     }
 
     @Override
-    public Optional<String> resolve(final EntityId policyId, final String placeholder) {
+    public List<String> resolve(final EntityId policyId, final String placeholder) {
         argumentNotEmpty(placeholder, "placeholder");
         checkNotNull(policyId, "Policy ID");
         if (policyId instanceof PolicyId) {
             return doResolve(((PolicyId) policyId), placeholder);
         } else {
-            return Optional.empty();
+            return Collections.emptyList();
         }
     }
 }

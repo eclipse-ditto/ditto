@@ -16,7 +16,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 
 import javax.annotation.concurrent.Immutable;
 
@@ -35,17 +34,12 @@ final class ImmutablePlaceholderResolver<T> implements PlaceholderResolver<T> {
     }
 
     @Override
-    public Optional<T> getPlaceholderSource() {
-        return placeholderSource.stream().findFirst();
-    }
-
-    @Override
     public List<T> getPlaceholderSources() {
         return placeholderSource;
     }
 
     @Override
-    public Optional<String> resolve(final T placeholderSource, final String name) {
+    public List<String> resolve(final T placeholderSource, final String name) {
         return placeholder.resolve(placeholderSource, name);
     }
 

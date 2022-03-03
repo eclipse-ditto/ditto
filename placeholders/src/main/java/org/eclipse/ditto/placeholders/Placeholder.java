@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.placeholders;
 
-import java.util.Optional;
+import java.util.List;
 
 /**
  * Definition of a placeholder expression in the format {@code prefix:name}.
@@ -28,5 +28,6 @@ public interface Placeholder<T> extends Expression {
      * @param name the placeholder variable name (i. e., the part after ':').
      * @return value of the placeholder variable if the placeholder name is supported, or an empty optional otherwise.
      */
-    Optional<String> resolve(T placeholderSource, String name);
+    List<String> resolve(T placeholderSource, String name);
+
 }
