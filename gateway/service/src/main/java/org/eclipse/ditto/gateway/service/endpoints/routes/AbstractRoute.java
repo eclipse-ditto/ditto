@@ -196,8 +196,7 @@ public abstract class AbstractRoute extends AllDirectives {
         return withCustomRequestTimeout(dittoHeaders.getTimeout().orElse(null),
                 this::validateCommandTimeout,
                 timeout -> doHandlePerRequest(ctx, dittoHeaders.toBuilder().timeout(timeout).build(), payloadSource,
-                        requestJsonToCommandFunction,
-                        null != responseTransformFunction ? responseTransformFunction : (json, resp) -> resp));
+                        requestJsonToCommandFunction, responseTransformFunction));
     }
 
     protected <M> M runWithSupervisionStrategy(final RunnableGraph<M> graph) {
