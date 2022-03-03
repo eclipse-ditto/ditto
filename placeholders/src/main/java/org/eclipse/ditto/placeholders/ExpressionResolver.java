@@ -93,7 +93,7 @@ public interface ExpressionResolver {
                     throw e;
                 } else {
                     // placeholder is not supported; return the expression without resolution.
-                    return PipelineElement.resolved(Collections.singletonList("{{" + expression + "}}"));
+                    return PipelineElement.resolved("{{" + expression + "}}");
                 }
             }
 
@@ -101,7 +101,7 @@ public interface ExpressionResolver {
                 if (forbiddenUnresolvedExpressionPrefixes.stream().anyMatch(expression::startsWith)) {
                     throw UnresolvedPlaceholderException.newBuilder(expression).build();
                 }
-                return PipelineElement.resolved(Collections.singletonList("{{" + expression + "}}"));
+                return PipelineElement.resolved("{{" + expression + "}}");
             });
         }).toStream();
     }

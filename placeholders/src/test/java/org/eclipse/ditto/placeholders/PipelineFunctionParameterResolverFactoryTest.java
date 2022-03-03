@@ -87,7 +87,7 @@ public class PipelineFunctionParameterResolverFactoryTest {
 
         final String params = "(" + KNOWN_PLACEHOLDER + ")";
         when(expressionResolver.resolveAsPipelineElement(anyString()))
-                .thenReturn(PipelineElement.resolved(Collections.singletonList(KNOWN_VALUE)));
+                .thenReturn(PipelineElement.resolved(KNOWN_VALUE));
 
         assertThat(parameterResolver.apply(params, expressionResolver, DUMMY)).contains(KNOWN_VALUE);
 
@@ -117,7 +117,7 @@ public class PipelineFunctionParameterResolverFactoryTest {
         final String stringPlaceholder = "(    " + KNOWN_PLACEHOLDER + "   )";
 
         when(expressionResolver.resolveAsPipelineElement(anyString())).thenReturn(
-                PipelineElement.resolved(Collections.singletonList(KNOWN_VALUE)));
+                PipelineElement.resolved(KNOWN_VALUE));
 
         assertThat(parameterResolver.apply(stringSingle, expressionResolver, DUMMY)).contains(KNOWN_VALUE);
         assertThat(parameterResolver.apply(stringDouble, expressionResolver, DUMMY)).contains(KNOWN_VALUE);
@@ -252,7 +252,7 @@ public class PipelineFunctionParameterResolverFactoryTest {
         final String parameters =
                 "(\"" + firstParameter + "\", '" + secondParameter + "', " + KNOWN_PLACEHOLDER + ")";
         when(expressionResolver.resolveAsPipelineElement(KNOWN_PLACEHOLDER))
-                .thenReturn(PipelineElement.resolved(Collections.singletonList(thirdParameter)));
+                .thenReturn(PipelineElement.resolved(thirdParameter));
 
         final List<PipelineElement> resolvedParameters = parameterResolver.apply(parameters, expressionResolver, DUMMY);
 
@@ -349,7 +349,7 @@ public class PipelineFunctionParameterResolverFactoryTest {
         final String parameters =
                 "(" + KNOWN_PLACEHOLDER + ", '" + secondParameter + "')";
         when(expressionResolver.resolveAsPipelineElement(KNOWN_PLACEHOLDER))
-                .thenReturn(PipelineElement.resolved(Collections.singletonList(firstParameter)));
+                .thenReturn(PipelineElement.resolved(firstParameter));
 
         final List<PipelineElement> resolvedParameters = parameterResolver.apply(parameters, expressionResolver, DUMMY);
 

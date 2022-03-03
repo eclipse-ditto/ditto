@@ -110,7 +110,7 @@ final class ImmutableExpressionResolver implements ExpressionResolver {
             return resolvedValues.size() > 0 ? PipelineElement.resolved(resolvedValues) : PipelineElement.unresolved();
         } else {
             // validation mode: all placeholders resolve to dummy value.
-            return PipelineElement.resolved(Collections.singletonList(placeholderReplacementInValidation));
+            return PipelineElement.resolved(placeholderReplacementInValidation);
         }
     }
 

@@ -29,10 +29,10 @@ public class PipelineFunctionReplaceTest {
 
     private static final PipelineElement EMPTY_INPUT = PipelineElement.unresolved();
 
-    private static final PipelineElement KNOWN_INPUT = PipelineElement.resolved(Collections.singletonList("eclipse-iot-test"));
+    private static final PipelineElement KNOWN_INPUT = PipelineElement.resolved("eclipse-iot-test");
     private static final String EXPECTED_OUTPUT = "eclipse_iot_test";
 
-    private static final PipelineElement KNOWN_INPUT_NO_MATCH = PipelineElement.resolved(Collections.singletonList("eclipse"));
+    private static final PipelineElement KNOWN_INPUT_NO_MATCH = PipelineElement.resolved("eclipse");
     private static final String EXPECTED_OUTPUT_NO_MATCH = "eclipse";
 
     private final PipelineFunctionReplace function = new PipelineFunctionReplace();

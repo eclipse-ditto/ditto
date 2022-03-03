@@ -57,7 +57,7 @@ final class PipelineFunctionFilter implements PipelineFunction {
             if (filterValuesArePreviousValues) {
                 return PipelineElement.resolved(filteredValues);
             } else if (shouldKeepAnyValue) {
-                return PipelineElement.resolved(Collections.singletonList(valueThatShouldBeFilteredConditionally));
+                return PipelineElement.resolved(valueThatShouldBeFilteredConditionally);
             }
             return PipelineElement.unresolved();
         });

@@ -82,7 +82,7 @@ public interface PipelineElement extends Iterable<String> {
      * @return the mapped resolved value.
      */
     default PipelineElement map(final Function<String, String> mapper) {
-        return onResolved(mapper.andThen(Collections::singletonList).andThen(PipelineElement::resolved));
+        return onResolved(mapper.andThen(PipelineElement::resolved));
     }
 
     /**
@@ -132,13 +132,24 @@ public interface PipelineElement extends Iterable<String> {
     }
 
     /**
-     * Creat a pipeline element containing a resolved value.
+     * Creat a pipeline element containing the resolved values.
      *
      * @param values the resolved values.
      * @return the pipeline element.
      */
     static PipelineElement resolved(final Collection<String> values) {
         return values.size() > 0 ? PipelineElementResolved.of(values) : PipelineElement.unresolved();
+    }
+
+
+    /**
+     * Creat a pipeline element containing a resolved value.
+     *
+     * @param value the resolved value.
+     * @return the pipeline element.
+     */
+    static PipelineElement resolved(final String value) {
+        return resolved(Collections.singletonList(value));
     }
 
     /**

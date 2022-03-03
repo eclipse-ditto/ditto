@@ -27,7 +27,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class PipelineFunctionUpperTest {
 
-    private static final PipelineElement KNOWN_INPUT = PipelineElement.resolved(Collections.singletonList("CamElCase"));
+    private static final PipelineElement KNOWN_INPUT = PipelineElement.resolved("CamElCase");
     private static final String UPPER_CASE = "CAMELCASE";
 
     private final PipelineFunctionUpper function = new PipelineFunctionUpper();

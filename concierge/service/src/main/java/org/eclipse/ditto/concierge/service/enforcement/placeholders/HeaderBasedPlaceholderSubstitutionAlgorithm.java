@@ -102,7 +102,6 @@ public final class HeaderBasedPlaceholderSubstitutionAlgorithm {
                         .build();
             }
             return Optional.ofNullable(placeholderResolver.apply(dittoHeaders))
-                    .map(Collections::singletonList)
                     .map(PipelineElement::resolved)
                     .orElse(PipelineElement.unresolved());
         };

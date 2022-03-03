@@ -219,12 +219,12 @@ final class PipelineFunctionParameterResolverFactory {
             final String singleQuotedStringConstant = matcher.group(buildSingleQuotedConstantGroupName(parameterIndex));
 
             if (singleQuotedStringConstant != null) {
-                return Optional.of(PipelineElement.resolved(Collections.singletonList(singleQuotedStringConstant)));
+                return Optional.of(PipelineElement.resolved(singleQuotedStringConstant));
             } else {
                 final String doubleQuotedStringConstant =
                         matcher.group(buildDoubleQuotedConstantGroupName(parameterIndex));
                 if (doubleQuotedStringConstant != null) {
-                    return Optional.of(PipelineElement.resolved(Collections.singletonList(doubleQuotedStringConstant)));
+                    return Optional.of(PipelineElement.resolved(doubleQuotedStringConstant));
                 }
             }
 

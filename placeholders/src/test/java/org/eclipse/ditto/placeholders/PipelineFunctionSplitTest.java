@@ -33,10 +33,10 @@ public class PipelineFunctionSplitTest {
 
     private static final PipelineElement EMPTY_INPUT = PipelineElement.unresolved();
 
-    private static final PipelineElement KNOWN_INPUT = PipelineElement.resolved(Collections.singletonList("foo bar baz"));
+    private static final PipelineElement KNOWN_INPUT = PipelineElement.resolved("foo bar baz");
     private static final List<String> EXPECTED_OUTPUT = Arrays.asList("foo", "bar", "baz");
 
-    private static final PipelineElement KNOWN_INPUT_NO_MATCH = PipelineElement.resolved(Collections.singletonList("unsplittable"));
+    private static final PipelineElement KNOWN_INPUT_NO_MATCH = PipelineElement.resolved("unsplittable");
     private static final String EXPECTED_OUTPUT_NO_MATCH = "unsplittable";
 
     private final PipelineFunctionSplit function = new PipelineFunctionSplit();

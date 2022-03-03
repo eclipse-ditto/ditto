@@ -43,7 +43,7 @@ public class PipelineFunctionDefaultTest {
 
     @Test
     public void applyReturnsExistingValue() {
-        final PipelineElement input = PipelineElement.resolved(Collections.singletonList(KNOWN_VALUE));
+        final PipelineElement input = PipelineElement.resolved(KNOWN_VALUE);
         final String params = "(\"" + KNOWN_FALLBACK + "\")";
         assertThat(function.apply(input, params, expressionResolver)).contains(KNOWN_VALUE);
     }
@@ -60,7 +60,7 @@ public class PipelineFunctionDefaultTest {
         final PipelineElement input = PipelineElement.unresolved();
         final String params = "(" + KNOWN_PLACEHOLDER + ")";
         when(expressionResolver.resolveAsPipelineElement(anyString()))
-                .thenReturn(PipelineElement.resolved(Collections.singletonList(KNOWN_VALUE)));
+                .thenReturn(PipelineElement.resolved(KNOWN_VALUE));
 
         assertThat(function.apply(input, params, expressionResolver)).contains(KNOWN_VALUE);
 

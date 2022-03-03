@@ -87,38 +87,38 @@ public class ImmutableFunctionExpressionTest {
     @Test
     public void testUnknownFunction() {
         assertThatExceptionOfType(PlaceholderFunctionUnknownException.class).isThrownBy(() ->
-                UNDER_TEST.resolve("fn:unknown", PipelineElement.resolved(Collections.singletonList(HEADER_VAL)), EXPRESSION_RESOLVER));
+                UNDER_TEST.resolve("fn:unknown", PipelineElement.resolved(HEADER_VAL), EXPRESSION_RESOLVER));
     }
 
     @Test
     public void testFunctionUpper() {
-        assertThat(UNDER_TEST.resolve("fn:upper()", PipelineElement.resolved(Collections.singletonList(HEADER_VAL)), EXPRESSION_RESOLVER))
+        assertThat(UNDER_TEST.resolve("fn:upper()", PipelineElement.resolved(HEADER_VAL), EXPRESSION_RESOLVER))
                 .contains(HEADER_VAL.toUpperCase());
     }
 
     @Test
     public void testFunctionUpperWrongSignature() {
         assertThatExceptionOfType(PlaceholderFunctionSignatureInvalidException.class).isThrownBy(() ->
-                UNDER_TEST.resolve("fn:upper('foo')", PipelineElement.resolved(Collections.singletonList(HEADER_VAL)),
+                UNDER_TEST.resolve("fn:upper('foo')", PipelineElement.resolved(HEADER_VAL),
                         EXPRESSION_RESOLVER));
     }
 
     @Test
     public void testFunctionLower() {
-        assertThat(UNDER_TEST.resolve("fn:lower()", PipelineElement.resolved(Collections.singletonList(HEADER_VAL)), EXPRESSION_RESOLVER))
+        assertThat(UNDER_TEST.resolve("fn:lower()", PipelineElement.resolved(HEADER_VAL), EXPRESSION_RESOLVER))
                 .contains(HEADER_VAL.toLowerCase());
     }
 
     @Test
     public void testFunctionLowerWrongSignature() {
         assertThatExceptionOfType(PlaceholderFunctionUnknownException.class).isThrownBy(() ->
-                UNDER_TEST.resolve("fn:lower", PipelineElement.resolved(Collections.singletonList(HEADER_VAL)), EXPRESSION_RESOLVER));
+                UNDER_TEST.resolve("fn:lower", PipelineElement.resolved(HEADER_VAL), EXPRESSION_RESOLVER));
     }
 
     @Test
     public void testFunctionDefaultWhenInputPresent() {
         assertThat(
-                UNDER_TEST.resolve("fn:default('constant')", PipelineElement.resolved(Collections.singletonList(HEADER_VAL)), EXPRESSION_RESOLVER))
+                UNDER_TEST.resolve("fn:default('constant')", PipelineElement.resolved(HEADER_VAL), EXPRESSION_RESOLVER))
                 .contains(HEADER_VAL);
     }
 
@@ -148,13 +148,13 @@ public class ImmutableFunctionExpressionTest {
 
     @Test
     public void testFunctionSubstringBefore() {
-        assertThat(UNDER_TEST.resolve("fn:substring-before(\"s\")", PipelineElement.resolved(Collections.singletonList(HEADER_VAL)),
+        assertThat(UNDER_TEST.resolve("fn:substring-before(\"s\")", PipelineElement.resolved(HEADER_VAL),
                 EXPRESSION_RESOLVER)).contains("caMelCa");
     }
 
     @Test
     public void testFunctionSubstringAfter() {
-        assertThat(UNDER_TEST.resolve("fn:substring-after(\"s\")", PipelineElement.resolved(Collections.singletonList(HEADER_VAL)),
+        assertThat(UNDER_TEST.resolve("fn:substring-after(\"s\")", PipelineElement.resolved(HEADER_VAL),
                 EXPRESSION_RESOLVER))
                 .contains("edStuffFOOO");
     }
@@ -162,21 +162,21 @@ public class ImmutableFunctionExpressionTest {
     @Test
     public void testFunctionFilterWhenConditionSucceeds() {
         assertThat(UNDER_TEST.resolve("fn:filter('true','eq','true')",
-                PipelineElement.resolved(Collections.singletonList(HEADER_VAL)), EXPRESSION_RESOLVER))
+                PipelineElement.resolved(HEADER_VAL), EXPRESSION_RESOLVER))
                 .contains(HEADER_VAL);
     }
 
     @Test
     public void testFunctionFilterWhenConditionFails() {
         assertThat(UNDER_TEST.resolve("fn:filter('false','eq','true')",
-                PipelineElement.resolved(Collections.singletonList(HEADER_VAL)), EXPRESSION_RESOLVER))
+                PipelineElement.resolved(HEADER_VAL), EXPRESSION_RESOLVER))
                 .isEmpty();
     }
 
     @Test
     public void testFunctionFilterWhenConditionSucceedsWithPlaceholder() {
         assertThat(UNDER_TEST.resolve(String.format("fn:filter(header:foo1,'eq','%s')", HEADER_VAL),
-                PipelineElement.resolved(Collections.singletonList(HEADER_VAL)), EXPRESSION_RESOLVER))
+                PipelineElement.resolved(HEADER_VAL), EXPRESSION_RESOLVER))
                 .contains(HEADER_VAL);
     }
 

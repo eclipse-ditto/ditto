@@ -46,8 +46,7 @@ final class PipelineFunctionSubstringBefore implements PipelineFunction {
 
         return value.onResolved(previousStage -> {
             if (previousStage.contains(splitValue)) {
-                return PipelineElement.resolved(
-                        Collections.singletonList(previousStage.substring(0, previousStage.indexOf(splitValue))));
+                return PipelineElement.resolved(previousStage.substring(0, previousStage.indexOf(splitValue)));
             } else {
                 return PipelineElement.unresolved();
             }
