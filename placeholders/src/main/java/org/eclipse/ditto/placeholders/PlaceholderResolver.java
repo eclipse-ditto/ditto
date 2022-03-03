@@ -16,7 +16,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 /**
- * Resolves a passed in placeholder {@code name} from the {@link #getPlaceholderSources()} () resolver}.
+ * Resolves a passed in placeholder {@code name} from the {@link #getPlaceholderSources() sources}.
  * If this PlaceholderResolver is only used for validation, a constant value of {@code "valid"} is returned instead
  * of asking the resolver.
  */
@@ -27,6 +27,12 @@ public interface PlaceholderResolver<T> extends Placeholder<T> {
      */
     List<T> getPlaceholderSources();
 
+    /**
+     * Resolves the passed in {@code name} from the {@link #getPlaceholderSources() sources}.
+     *
+     * @param name the placeholder name to resolve from the resolver.
+     * @return the resolved value or an empty optional if it could not be resolved.
+     */
     default List<String> resolve(final String name) {
         return getPlaceholderSources().stream()
                 .flatMap(source -> resolve(source, name).stream())

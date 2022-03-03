@@ -149,14 +149,6 @@ final class ImmutableExpressionResolver implements ExpressionResolver {
         return new ImmutablePipeline(ImmutableFunctionExpression.INSTANCE, pipelineStages);
     }
 
-    private ArrayPipeline getArrayPipelineFromExpressions(final List<String> pipelineStagesExpressions,
-            final int skip) {
-        final List<String> pipelineStages = pipelineStagesExpressions.stream()
-                .skip(skip) // ignore pre-processed expressions
-                .collect(Collectors.toList());
-        return new ImmutableArrayPipeline(ImmutableArrayFunctionExpression.INSTANCE, pipelineStages);
-    }
-
     private Optional<String> getPlaceholderPrefix(final String placeholder) {
         final int separatorIndex = placeholder.indexOf(SEPARATOR);
         if (separatorIndex == -1) {

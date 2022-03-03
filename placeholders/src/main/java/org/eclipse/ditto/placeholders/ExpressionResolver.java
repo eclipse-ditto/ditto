@@ -73,14 +73,14 @@ public interface ExpressionResolver {
      * @param expressionTemplate the expressionTemplate to resolve {@link Placeholder}s and execute optional
      * pipeline stages
      * @param forbiddenUnresolvedExpressionPrefixes a collection of expression prefixes which must be resolved
-     * @return the resolved String, a signifier for resolution failure, or one for deletion.
+     * @return the resolved PipelineElement.
      * @throws PlaceholderFunctionTooComplexException thrown if the {@code expressionTemplate} contains a placeholder
      * function chain which is too complex (e.g. too much chained function calls)
      * @throws UnresolvedPlaceholderException if placeholders could not be resolved which contained prefixed in the
      * provided {@code forbiddenUnresolvedExpressionPrefixes} list.
-     * @since 2.0.0
+     * @since 2.4.0
      */
-    default Stream<String> resolvePartially(final String expressionTemplate,
+    default PipelineElement resolvePartially(final String expressionTemplate,
             final Collection<String> forbiddenUnresolvedExpressionPrefixes) {
 
         return ExpressionResolver.substitute(expressionTemplate, expression -> {
@@ -102,7 +102,7 @@ public interface ExpressionResolver {
                 }
                 return PipelineElement.resolved("{{" + expression + "}}");
             });
-        }).toStream();
+        });
     }
 
     /**
