@@ -231,11 +231,19 @@ Example configuration:
   the content-type header. Default to `text/plain; charset=UTF-8`.
 * `incomingMessageHeaders` (optional): A JSON object containing the following headers needed to construct a message
   command or response envelope containing the incoming message as payload in the field `"value"`. 
-  Placeholder expressions reading from the protocol headers of incoming messages may be used.
+  The following placeholders may be used in the headers:
+
+    | Placeholder                       | Description                                                                                            |
+    |-----------------------------------|--------------|
+    | `{%raw%}{{ header:<header-name> }}{%endraw%}` | header value from the external message, e.g. from protocol headers                                     |
+    | `{%raw%}{{ request:subjectId }}{%endraw%}` | the first authenticated subjectId which did the request - the one of the connection source in this case |
+    | `{%raw%}{{ time:now }}{%endraw%}` | the current timestamp in ISO-8601 format as string in UTC timezone                                                    | 
+    | `{%raw%}{{ time:now_epoch_millis }}{%endraw%}` | the current timestamp in "milliseconds since epoch" formatted as string                                | 
+
    * `content-type` (optional): The content type with which to encode the incoming message as payload.
-     Default to `{%raw%}{{ header:content-type | fn:default('application/octet-stream') }}{%endraw%}`.
-     If resolved to the Ditto protocol content type `application/vnd.eclipse.ditto+json`, then the entire payload
-     is interpreted as a Ditto protocol message instead.
+      Default to `{%raw%}{{ header:content-type | fn:default('application/octet-stream') }}{%endraw%}`.
+      If resolved to the Ditto protocol content type `application/vnd.eclipse.ditto+json`, then the entire payload
+      is interpreted as a Ditto protocol message instead.
    * `status` (optional): Include for message responses. Exclude for message commands. Default to
      `{%raw%}{{ header:status }}{%endraw%}`.
    * `subject` (mandatory for MQTT 3): Subject of the message. Default to `{%raw%}{{ header:subject }}{%endraw%}`.
@@ -257,8 +265,39 @@ The created thing contains the values defined in the template, configured in the
 
 * `thing` (required): The values of the thing that is created implicitly. It can either contain fixed values
  or header placeholders (e.g. `{%raw%}{{ header:device_id }}{%endraw%}`).
+    * the following placeholders may be used inside the `"thing"` JSON:
+
+      | Placeholder                       | Description                                                                                             |
+      |------------------------------------|--------------|
+      | `{%raw%}{{ header:<header-name> }}{%endraw%}` | header value from the external message, e.g. from protocol headers                                      |
+      | `{%raw%}{{ request:subjectId }}{%endraw%}` | the first authenticated subjectId which did the request - the one of the connection source in this case |
+      | `{%raw%}{{ time:now }}{%endraw%}` | the current timestamp in ISO-8601 format as string in UTC timezone                                                     | 
+      | `{%raw%}{{ time:now_epoch_millis }}{%endraw%}` | the current timestamp in "milliseconds since epoch" formatted as string                                 | 
+
+    * The `"thing"` JSON may also include:
+      * an inline policy: `"_policy"` containing the [Policy JSON](basic-policy.html#model-specification) to create a new policy
+        from and link with the thing
+      * a "copy policy from" statement: `"_copyPolicyFrom"` - see also [create Thing alternatives](protocol-examples-creatething.html#alternative-creatething-commands)
+          * either including a policyId to copy from
+          * or containing the link to a thing to copy the policy from in the form: `{% raw %}{{ ref:things/<theThingId>/policyId }}{% endraw %}`
+
+* `commandHeaders` (optional, default: `{"If-None-Match": "*"}`): The Ditto headers to use for constructing the "create thing" command for creating the
+  twin and to use for creating errors.
+    * in this configured headers, the following placeholders may be used:
+
+      | Placeholder                       | Description                                                                                             |
+      |-----------------------------------|--------------|
+      | `{%raw%}{{ header:<header-name> }}{%endraw%}` | header value from the external message, e.g. from protocol headers                                      |
+      | `{%raw%}{{ request:subjectId }}{%endraw%}` | the first authenticated subjectId which did the request - the one of the connection source in this case |
+      | `{%raw%}{{ time:now }}{%endraw%}` | the current timestamp in ISO-8601 format as string in UTC timezone                                                     | 
+      | `{%raw%}{{ time:now_epoch_millis }}{%endraw%}` | the current timestamp in "milliseconds since epoch" formatted as string                                 | 
+
+* `allowPolicyLockout` (optional, default: `true`): whether it should be allowed to create policies without having `WRITE`
+  permissions in the created policy for the subject which creates the policy 
+  (the [authorizationContext](connectivity-manage-connections.html#authorization) of the connection source which 
+  received the message for which a thing should be created implicitly)
  
-Example of a template defined in  `options`:
+Example of a template defined in `options`:
 ```json
 {
   "thing": {
@@ -266,7 +305,12 @@ Example of a template defined in  `options`:
     "attributes": {
       "CreatedBy": "ImplicitThingCreation"
     }
-  }
+  },
+  "commandHeaders": {
+    "If-None-Match": "*",
+    "correlation-id": "{%raw%}{{ header:correlation-id }}{%endraw%}"
+  },
+  "allowPolicyLockout": true
 }
 ```
 
@@ -283,12 +327,12 @@ This mapper creates a [merge Thing command](protocol-specification-things-merge.
   (default applied Ditto headers if not configured: `"response-required": false`, `"if-match": "*"`).
    * in this configured headers, the following placeholders may be used:
 
-       | Placeholder                       | Description                                                                                             |
-       |---------------------------------------------------------------------------------------------------------|--------------|
-       | `{%raw%}{{ header:<header-name> }}{%endraw%}` | header value from the external message, e.g. from protocol headers                                      |
+       | Placeholder                       | Description                                                                                            |
+       |-----------------------------------|--------------|
+       | `{%raw%}{{ header:<header-name> }}{%endraw%}` | header value from the external message, e.g. from protocol headers                                     |
        | `{%raw%}{{ request:subjectId }}{%endraw%}` | the first authenticated subjectId which did the request - the one of the connection source in this case |
-       | `{%raw%}{{ time:now }}{%endraw%}` | the current timestamp in ISO-8601 format as string in UTC timezone                                                     | 
-       | `{%raw%}{{ time:now_epoch_millis }}{%endraw%}` | the current timestamp in "milliseconds since epoch" formatted as string                                 | 
+       | `{%raw%}{{ time:now }}{%endraw%}` | the current timestamp in ISO-8601 format as string in UTC timezone                                                    | 
+       | `{%raw%}{{ time:now_epoch_millis }}{%endraw%}` | the current timestamp in "milliseconds since epoch" formatted as string                                | 
 
 
 Example configuration:
