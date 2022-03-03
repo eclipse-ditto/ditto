@@ -212,7 +212,7 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
      */
     @Override
     public Route build(final RequestContext ctx, final Supplier<CompletionStage<DittoHeaders>> dittoHeadersSupplier) {
-        return get(() -> headerValuePF(ACCEPT_HEADER_EXTRACTOR, accept ->
+        return headerValuePF(ACCEPT_HEADER_EXTRACTOR, accept -> get(() ->
                 concat(
                         // /things
                         buildThingsSseRoute(ctx, dittoHeadersSupplier),
