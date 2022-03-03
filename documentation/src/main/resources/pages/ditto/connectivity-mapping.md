@@ -314,7 +314,6 @@ Example of a template defined in `options`:
 }
 ```
 
-
 ### UpdateTwinWithLiveResponse mapper
 
 This mapper creates a [merge Thing command](protocol-specification-things-merge.html) when a 
