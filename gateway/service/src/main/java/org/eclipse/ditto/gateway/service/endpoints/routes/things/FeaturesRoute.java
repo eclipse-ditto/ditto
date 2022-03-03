@@ -19,7 +19,6 @@ import org.eclipse.ditto.gateway.service.endpoints.routes.AbstractRoute;
 import org.eclipse.ditto.gateway.service.endpoints.routes.RouteBaseProperties;
 import org.eclipse.ditto.gateway.service.util.config.endpoints.MessageConfig;
 import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.json.JsonKey;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.ThingsModelFactory;
 import org.eclipse.ditto.things.model.signals.commands.modify.DeleteFeature;
@@ -58,11 +57,6 @@ final class FeaturesRoute extends AbstractRoute {
     static final String PATH_PROPERTIES = "properties";
     static final String PATH_DESIRED_PROPERTIES = "desiredProperties";
     static final String PATH_DEFINITION = "definition";
-
-    static final JsonKey FEATURE_JSON_KEY = JsonKey.of(PATH_FEATURES);
-    static final JsonKey PROPERTIES_JSON_KEY = JsonKey.of(PATH_PROPERTIES);
-    static final JsonKey DESIRED_PROPERTIES_JSON_KEY = JsonKey.of(PATH_DESIRED_PROPERTIES);
-    static final JsonKey DEFINITION_JSON_KEY = JsonKey.of(PATH_DEFINITION);
 
     private final MessagesRoute messagesRoute;
 

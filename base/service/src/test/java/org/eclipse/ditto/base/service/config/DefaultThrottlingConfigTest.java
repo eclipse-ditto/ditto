@@ -19,7 +19,6 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 import java.time.Duration;
 
 import org.assertj.core.api.JUnitSoftAssertions;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 
@@ -52,6 +51,10 @@ public final class DefaultThrottlingConfigTest {
     public void underTestReturnsDefaultValuesIfBaseConfigWasEmpty() {
         final ThrottlingConfig underTest = ThrottlingConfig.of(ConfigFactory.empty());
 
+        softly.assertThat(underTest.isEnabled())
+                .as(ThrottlingConfig.ConfigValue.ENABLED.getConfigPath())
+                .isEqualTo(ThrottlingConfig.ConfigValue.ENABLED.getDefaultValue());
+
         softly.assertThat(underTest.getInterval())
                 .as(ThrottlingConfig.ConfigValue.INTERVAL.getConfigPath())
                 .isEqualTo(ThrottlingConfig.ConfigValue.INTERVAL.getDefaultValue());
@@ -64,6 +67,10 @@ public final class DefaultThrottlingConfigTest {
     @Test
     public void underTestReturnsValuesOfConfigFile() {
         final ThrottlingConfig underTest = ThrottlingConfig.of(ConfigFactory.load("throttling-test"));
+
+        softly.assertThat(underTest.isEnabled())
+                .as(ThrottlingConfig.ConfigValue.ENABLED.getConfigPath())
+                .isEqualTo(true);
 
         softly.assertThat(underTest.getInterval())
                 .as(ThrottlingConfig.ConfigValue.INTERVAL.getConfigPath())

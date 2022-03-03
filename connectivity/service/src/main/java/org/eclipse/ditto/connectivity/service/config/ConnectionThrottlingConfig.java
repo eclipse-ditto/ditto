@@ -23,15 +23,15 @@ import com.typesafe.config.Config;
 public interface ConnectionThrottlingConfig extends ThrottlingConfig {
 
     /**
-     * Return the factor of many unacknowledged messages are allowed in relation to {@link #getLimit()}.
+     * Return the factor of many unacknowledged messages are allowed in relation to {@link #getLimit() limit}.
      *
      * @return the factor of maximum number of messages in flight.
      */
     double getMaxInFlightFactor();
 
     /**
-     * Returns how many unacknowledged messages are allowed utilizung {@link #getLimit()} and
-     * {@link #getMaxInFlightFactor()}.
+     * Returns how many unacknowledged messages are allowed utilizing {@link #getLimit() limit} and
+     * {@link #getMaxInFlightFactor() max inflight factor}.
      *
      * @return the maximum number of messages in flight.
      */

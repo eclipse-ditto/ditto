@@ -16,6 +16,8 @@ import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.eclipse.ditto.internal.utils.akka.logging.DittoLogger;
+import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.Metadata;
 
@@ -40,6 +42,8 @@ public final class ChangeQueueActor extends AbstractActor {
     public static final String ACTOR_NAME = "changeQueueActor";
 
     private static final Duration ASK_SELF_TIMEOUT = Duration.ofSeconds(5L);
+
+    private static final DittoLogger LOG = DittoLoggerFactory.getLogger(ChangeQueueActor.class);
 
     /**
      * Caching changes of 1 Thing per key.
@@ -107,7 +111,20 @@ public final class ChangeQueueActor extends AbstractActor {
         }
         return repeat
                 .flatMapConcat(ChangeQueueActor.askSelf(changeQueueActor))
-                .filter(map -> !map.isEmpty());
+                .filter(map -> {
+                    final boolean notEmpty = !map.isEmpty();
+                    if (notEmpty) {
+                        if (LOG.isDebugEnabled()) {
+                            LOG.debug("Emitting dumped map for shouldAcknowledge <{}> and [thingId:<[updateReasons]>]: {}",
+                                    shouldAcknowledge, map.entrySet().stream()
+                                            .map(e -> e.getKey() + ":<" + e.getValue().getUpdateReasons() + ">")
+                                            .toList()
+                            );
+                        }
+                        LOG.trace("Emitting dumped map for shouldAcknowledge <{}>: {}", shouldAcknowledge, map);
+                    }
+                    return notEmpty;
+                });
     }
 
     private void dump(final Control dump) {

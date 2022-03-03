@@ -23,7 +23,6 @@ import java.util.Map;
 import org.assertj.core.api.JUnitSoftAssertions;
 import org.eclipse.ditto.base.service.config.ThrottlingConfig;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 
@@ -66,9 +65,6 @@ public final class DefaultAmqp10ConfigTest {
     public void underTestReturnsDefaultValuesIfBaseConfigWasEmpty() {
         final DefaultAmqp10Config underTest = DefaultAmqp10Config.of(ConfigFactory.empty());
 
-        softly.assertThat(underTest.getConsumerConfig().isRateLimitEnabled())
-                .as(Amqp10ConsumerConfig.ConfigValue.RATE_LIMIT_ENABLED.getConfigPath())
-                .isEqualTo(Amqp10ConsumerConfig.ConfigValue.RATE_LIMIT_ENABLED.getDefaultValue());
         softly.assertThat(underTest.getConsumerConfig().getRedeliveryExpectationTimeout())
                 .as(Amqp10ConsumerConfig.ConfigValue.REDELIVERY_EXPECTATION_TIMEOUT.getConfigPath())
                 .isEqualTo(Amqp10ConsumerConfig.ConfigValue.REDELIVERY_EXPECTATION_TIMEOUT.getDefaultValue());
@@ -108,9 +104,6 @@ public final class DefaultAmqp10ConfigTest {
     public void underTestReturnsValuesOfConfigFile() {
         final DefaultAmqp10Config underTest = DefaultAmqp10Config.of(amqp10TestConf);
 
-        softly.assertThat(underTest.getConsumerConfig().isRateLimitEnabled())
-                .as(Amqp10ConsumerConfig.ConfigValue.RATE_LIMIT_ENABLED.getConfigPath())
-                .isEqualTo(false);
         softly.assertThat(underTest.getConsumerConfig().getThrottlingConfig().getMaxInFlightFactor())
                 .as(ConnectionThrottlingConfig.ConfigValue.MAX_IN_FLIGHT_FACTOR.getConfigPath())
                 .isEqualTo(2.0);

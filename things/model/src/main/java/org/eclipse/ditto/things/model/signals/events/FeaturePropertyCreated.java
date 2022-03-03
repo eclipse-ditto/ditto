@@ -247,7 +247,7 @@ public final class FeaturePropertyCreated extends AbstractThingEvent<FeatureProp
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" + super.toString() + ", featureId=" + featureId
-                + ", propertyPointer=" + propertyPointer + ", propertyValue" + propertyValue + "]";
+                + ", propertyPointer=" + propertyPointer + ", propertyValue=" + propertyValue + "]";
     }
 
 }

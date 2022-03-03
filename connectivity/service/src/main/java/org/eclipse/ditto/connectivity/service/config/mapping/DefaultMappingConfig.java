@@ -34,6 +34,7 @@ public final class DefaultMappingConfig implements MappingConfig {
     private final int bufferSize;
     private final int parallelism;
     private final int maxPoolSize;
+    private final boolean publishFailedEnrichments;
     private final JavaScriptConfig javaScriptConfig;
     private final MapperLimitsConfig mapperLimitsConfig;
 
@@ -41,6 +42,7 @@ public final class DefaultMappingConfig implements MappingConfig {
         bufferSize = config.getNonNegativeIntOrThrow(MappingConfigValue.BUFFER_SIZE);
         parallelism = config.getPositiveIntOrThrow(MappingConfigValue.PARALLELISM);
         maxPoolSize = config.getPositiveIntOrThrow(MappingConfigValue.MAX_POOL_SIZE);
+        publishFailedEnrichments = config.getBoolean(MappingConfigValue.PUBLISH_FAILED_ENRICHMENTS.getConfigPath());
         mapperLimitsConfig = DefaultMapperLimitsConfig.of(config);
         javaScriptConfig = DefaultJavaScriptConfig.of(config);
     }
@@ -75,6 +77,11 @@ public final class DefaultMappingConfig implements MappingConfig {
     }
 
     @Override
+    public boolean getPublishFailedEnrichments() {
+        return publishFailedEnrichments;
+    }
+
+    @Override
     public JavaScriptConfig getJavaScriptConfig() {
         return javaScriptConfig;
     }
@@ -96,13 +103,14 @@ public final class DefaultMappingConfig implements MappingConfig {
         return bufferSize == that.bufferSize &&
                 parallelism == that.parallelism &&
                 maxPoolSize == that.maxPoolSize &&
+                publishFailedEnrichments == that.publishFailedEnrichments &&
                 Objects.equals(javaScriptConfig, that.javaScriptConfig) &&
                 Objects.equals(mapperLimitsConfig, that.mapperLimitsConfig);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(bufferSize, parallelism, maxPoolSize, javaScriptConfig, mapperLimitsConfig);
+        return Objects.hash(bufferSize, parallelism, maxPoolSize, publishFailedEnrichments, javaScriptConfig, mapperLimitsConfig);
     }
 
     @Override
@@ -111,6 +119,7 @@ public final class DefaultMappingConfig implements MappingConfig {
                 "bufferSize=" + bufferSize +
                 ", parallelism=" + parallelism +
                 ", maxPoolSize=" + maxPoolSize +
+                ", publishFailedEnrichments=" + publishFailedEnrichments +
                 ", javaScriptConfig=" + javaScriptConfig +
                 ", mapperLimitsConfig=" + mapperLimitsConfig +
                 "]";
