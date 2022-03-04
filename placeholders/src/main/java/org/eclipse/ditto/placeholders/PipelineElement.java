@@ -63,6 +63,7 @@ public interface PipelineElement extends Iterable<String> {
      *
      * @param pipelineElement the pipeline element to concatenate
      * @return the pipeline element which holds the concatenated resolved vales.
+     * @since 2.4.0
      */
     PipelineElement concat(PipelineElement pipelineElement);
 

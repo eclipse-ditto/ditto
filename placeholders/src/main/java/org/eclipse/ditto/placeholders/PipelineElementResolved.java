@@ -12,7 +12,9 @@
  */
 package org.eclipse.ditto.placeholders;
 
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
@@ -31,10 +33,10 @@ import org.eclipse.ditto.base.model.common.ConditionChecker;
 @Immutable
 final class PipelineElementResolved implements PipelineElement {
 
-    private final Collection<String> values;
+    private final List<String> values;
 
     private PipelineElementResolved(final Collection<String> values) {
-        this.values = ConditionChecker.checkNotEmpty(values, "values");
+        this.values = Collections.unmodifiableList(new ArrayList<>(ConditionChecker.checkNotEmpty(values, "values")));
     }
 
     static PipelineElement of(final Collection<String> values) {
