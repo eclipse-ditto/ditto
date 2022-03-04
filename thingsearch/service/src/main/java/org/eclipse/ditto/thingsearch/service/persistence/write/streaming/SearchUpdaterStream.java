@@ -20,7 +20,6 @@ import java.util.function.Function;
 import org.eclipse.ditto.internal.utils.namespaces.BlockedNamespaces;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.thingsearch.service.common.config.PersistenceStreamConfig;
-import org.eclipse.ditto.thingsearch.service.common.config.StreamCacheConfig;
 import org.eclipse.ditto.thingsearch.service.common.config.StreamStageConfig;
 import org.eclipse.ditto.thingsearch.service.common.config.UpdaterConfig;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.AbstractWriteModel;
@@ -99,13 +98,8 @@ public final class SearchUpdaterStream {
 
         final var streamConfig = updaterConfig.getStreamConfig();
 
-        final StreamCacheConfig cacheConfig = streamConfig.getCacheConfig();
-        final String dispatcherName = cacheConfig.getDispatcherName();
-        final var messageDispatcher = actorSystem.dispatchers().lookup(dispatcherName);
-
         final var enforcementFlow =
-                EnforcementFlow.of(actorSystem, streamConfig, thingsShard, policiesShard, messageDispatcher,
-                        actorSystem.getScheduler());
+                EnforcementFlow.of(actorSystem, streamConfig, thingsShard, policiesShard, actorSystem.getScheduler());
 
         final var mongoSearchUpdaterFlow =
                 MongoSearchUpdaterFlow.of(database, streamConfig.getPersistenceConfig(), searchUpdateMapper);

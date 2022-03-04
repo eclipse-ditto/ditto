@@ -30,15 +30,16 @@ import com.typesafe.config.ConfigValueFactory;
 @Immutable
 public final class DefaultStreamCacheConfig implements StreamCacheConfig {
 
-    private static final String CONFIG_PATH = "cache";
-
+    private final String configPath;
     private final String dispatcherName;
     private final Duration retryDelay;
     private final DefaultCacheConfig genericCacheConfig;
 
-    private DefaultStreamCacheConfig(final ConfigWithFallback streamCacheScopedConfig,
+    private DefaultStreamCacheConfig(final String configPath,
+            final ConfigWithFallback streamCacheScopedConfig,
             final DefaultCacheConfig genericCacheConfig) {
 
+        this.configPath = configPath;
         dispatcherName = streamCacheScopedConfig.getString(StreamCacheConfigValue.DISPATCHER_NAME.getConfigPath());
         retryDelay = streamCacheScopedConfig.getNonNegativeDurationOrThrow(StreamCacheConfigValue.RETRY_DELAY);
         this.genericCacheConfig = genericCacheConfig;
@@ -47,14 +48,15 @@ public final class DefaultStreamCacheConfig implements StreamCacheConfig {
     /**
      * Returns an instance of DefaultStreamCacheConfig based on the settings of the specified Config.
      *
-     * @param config is supposed to provide the settings of the stream cache config at {@value CONFIG_PATH}.
+     * @param config is supposed to provide the settings of the stream cache config at {@value configPath}.
+     * @param configPath the supposed path of the nested cache config settings.
      * @return the instance.
      * @throws org.eclipse.ditto.internal.utils.config.DittoConfigError if {@code config} is invalid.
      */
-    public static DefaultStreamCacheConfig of(final Config config) {
-        return new DefaultStreamCacheConfig(
-                ConfigWithFallback.newInstance(config, CONFIG_PATH, StreamCacheConfigValue.values()),
-                DefaultCacheConfig.of(config, CONFIG_PATH));
+    public static DefaultStreamCacheConfig of(final Config config, final String configPath) {
+        return new DefaultStreamCacheConfig(configPath,
+                ConfigWithFallback.newInstance(config, configPath, StreamCacheConfigValue.values()),
+                DefaultCacheConfig.of(config, configPath));
     }
 
     @Override
@@ -93,7 +95,7 @@ public final class DefaultStreamCacheConfig implements StreamCacheConfig {
                     .withFallback(genericCacheConfig.render())
                     .withValue(StreamCacheConfigValue.DISPATCHER_NAME.getConfigPath(), ConfigValueFactory.fromAnyRef(dispatcherName))
                     .withValue(StreamCacheConfigValue.RETRY_DELAY.getConfigPath(), ConfigValueFactory.fromAnyRef(retryDelay))
-                    .atKey(CONFIG_PATH);
+                    .atKey(configPath);
     }
 
     @Override
@@ -105,20 +107,22 @@ public final class DefaultStreamCacheConfig implements StreamCacheConfig {
             return false;
         }
         final DefaultStreamCacheConfig that = (DefaultStreamCacheConfig) o;
-        return dispatcherName.equals(that.dispatcherName) &&
+        return configPath.equals(that.configPath) &&
+                dispatcherName.equals(that.dispatcherName) &&
                 retryDelay.equals(that.retryDelay) &&
                 genericCacheConfig.equals(that.genericCacheConfig);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(dispatcherName, retryDelay, genericCacheConfig);
+        return Objects.hash(configPath, dispatcherName, retryDelay, genericCacheConfig);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
-                "dispatcherName=" + dispatcherName +
+                "configPath=" + configPath +
+                ", dispatcherName=" + dispatcherName +
                 ", retryDelay=" + retryDelay +
                 ", genericCacheConfig=" + genericCacheConfig +
                 "]";
