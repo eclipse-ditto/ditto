@@ -68,8 +68,8 @@ public final class MetricAlertRegistry {
     private static MetricsAlertFactory getThrottledAlert() {
         return (source, connectionType, config, isGauge) -> {
             // target counter is INBOUND + THROTTLED
-            final CounterKey target = CounterKey.of(source.getConnectionId(), MetricType.THROTTLED,
-                    MetricDirection.INBOUND, source.getAddress());
+            final CounterKey target = CounterKey.of(source.getConnectionId(), source.getAddress(), MetricType.THROTTLED,
+                    MetricDirection.INBOUND);
 
             return new ThrottledMetricsAlert(THROTTLING_DETECTION_WINDOW,
                     calculateThrottlingLimitFromConfig(connectionType, config, isGauge),

@@ -44,7 +44,7 @@ public class MetricsAlertGaugeTest {
         when(consumerConf.getThrottlingConfig()).thenReturn(throttlingConf);
         when(throttlingConf.getMaxInFlight()).thenReturn(2);
         sut = MetricAlertRegistry.getMetricsAlertGaugeOrDefault(
-                CounterKey.of(ConnectionId.generateRandom(), null, null, ""), MetricAlertRegistry.COUNTER_ACK_HANDLING,
+                CounterKey.of(ConnectionId.generateRandom(), ""), MetricAlertRegistry.COUNTER_ACK_HANDLING,
                 ConnectionType.AMQP_10, connectivityConf);
         sut.reset();
     }

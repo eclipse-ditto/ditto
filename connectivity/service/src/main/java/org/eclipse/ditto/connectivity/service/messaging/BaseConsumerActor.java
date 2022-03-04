@@ -139,7 +139,7 @@ public abstract class BaseConsumerActor extends AbstractActorWithTimers {
                 .tag(TracingTags.CONNECTION_TYPE, connectionType.getName())
                 .start();
         final var ackCounter = MetricAlertRegistry.getMetricsAlertGaugeOrDefault(
-                CounterKey.of(connectionId, null, null, sourceAddress), MetricAlertRegistry.COUNTER_ACK_HANDLING,
+                CounterKey.of(connectionId, sourceAddress), MetricAlertRegistry.COUNTER_ACK_HANDLING,
                 connectionType, connectivityConfig)
                 .tag(TracingTags.CONNECTION_ID, connectionId.toString())
                 .tag(TracingTags.CONNECTION_TYPE, connectionType.toString())
