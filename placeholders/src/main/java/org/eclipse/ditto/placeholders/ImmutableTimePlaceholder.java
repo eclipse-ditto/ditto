@@ -64,7 +64,7 @@ final class ImmutableTimePlaceholder implements TimePlaceholder {
     }
 
     @Override
-    public List<String> resolve(final Object someObject, final String placeholder) {
+    public List<String> resolveValues(final Object someObject, final String placeholder) {
         ConditionChecker.argumentNotEmpty(placeholder, "placeholder");
         switch (placeholder) {
             case NOW_PLACEHOLDER:

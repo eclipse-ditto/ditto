@@ -15,7 +15,6 @@ package org.eclipse.ditto.connectivity.api.placeholders;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import org.eclipse.ditto.policies.model.PolicyId;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.mutabilitydetector.unittesting.MutabilityAssert;
 import org.mutabilitydetector.unittesting.MutabilityMatchers;
@@ -54,22 +53,22 @@ public class ImmutablePolicyPlaceholderTest {
 
     @Test
     public void testReplacePolicyId() {
-        assertThat(UNDER_TEST.resolve(POLICY_ID, "id")).contains(POLICY_ID.toString());
+        assertThat(UNDER_TEST.resolveValues(POLICY_ID, "id")).contains(POLICY_ID.toString());
     }
 
     @Test
     public void testReplacePolicyName() {
-        assertThat(UNDER_TEST.resolve(POLICY_ID, "name")).contains(NAME);
+        assertThat(UNDER_TEST.resolveValues(POLICY_ID, "name")).contains(NAME);
     }
 
     @Test
     public void testReplacePolicyNamespace() {
-        assertThat(UNDER_TEST.resolve(POLICY_ID, "namespace")).contains(NAMESPACE);
+        assertThat(UNDER_TEST.resolveValues(POLICY_ID, "namespace")).contains(NAMESPACE);
     }
 
     @Test
     public void testUnknownPlaceholderReturnsEmpty() {
-        assertThat(UNDER_TEST.resolve(POLICY_ID, "policy_id")).isEmpty();
+        assertThat(UNDER_TEST.resolveValues(POLICY_ID, "policy_id")).isEmpty();
     }
 
 }

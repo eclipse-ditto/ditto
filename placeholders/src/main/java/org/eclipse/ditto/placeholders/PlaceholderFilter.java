@@ -162,7 +162,7 @@ public final class PlaceholderFilter {
             throw UnresolvedPlaceholderException.newBuilder(template).build();
         };
         return expressionResolver.resolve(template)
-                .accept(PipelineElement.<String>newVisitorBuilder()
+                .evaluate(PipelineElement.<String>newVisitorBuilder()
                         .resolved(Function.identity())
                         .unresolved(throwUnresolvedPlaceholderException)
                         .deleted(throwUnresolvedPlaceholderException)

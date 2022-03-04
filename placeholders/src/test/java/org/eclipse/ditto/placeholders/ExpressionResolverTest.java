@@ -119,7 +119,7 @@ public class ExpressionResolverTest {
 
     @Test
     public void testPartialResolution() {
-        assertThat(expressionResolver.resolvePartially("{{header:header-name}}-{{unknown:placeholder|fn:unknown}}",
+        assertThat(expressionResolver.resolvePartiallyAsPipelineElement("{{header:header-name}}-{{unknown:placeholder|fn:unknown}}",
                 Collections.singleton("header")))
                 .containsOnly("header-val-{{unknown:placeholder|fn:unknown}}");
     }
@@ -128,7 +128,7 @@ public class ExpressionResolverTest {
     public void testPartialResolutionWithForbiddenUnresolvedExpression() {
         final Set<String> forbiddenUnresolvedExpressionPrefixes = Collections.singleton("unknown");
         assertThatThrownBy(() ->
-                expressionResolver.resolvePartially(
+                expressionResolver.resolvePartiallyAsPipelineElement(
                         "{{header:header-name}}-{{unknown:placeholder|fn:unknown}}",
                         forbiddenUnresolvedExpressionPrefixes
                 )

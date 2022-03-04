@@ -65,19 +65,19 @@ public final class TopicPlaceholderTest {
         final PlaceholderResolver<TopicPath> underTest = PlaceholderFactory.newPlaceholderResolver(
                 ConnectivityPlaceholders.newTopicPathPlaceholder(), topic);
 
-        assertThat(underTest.resolve("full"))
+        assertThat(underTest.resolveValues("full"))
                 .containsExactly(fullPath);
-        assertThat(underTest.resolve("namespace"))
+        assertThat(underTest.resolveValues("namespace"))
                 .containsExactly("org.eclipse.ditto");
-        assertThat(underTest.resolve("entityName"))
+        assertThat(underTest.resolveValues("entityName"))
                 .containsExactly("foo23");
-        assertThat(underTest.resolve("group"))
+        assertThat(underTest.resolveValues("group"))
                 .containsExactly("things");
-        assertThat(underTest.resolve("channel"))
+        assertThat(underTest.resolveValues("channel"))
                 .containsExactly("twin");
-        assertThat(underTest.resolve("criterion"))
+        assertThat(underTest.resolveValues("criterion"))
                 .containsExactly("commands");
-        assertThat(underTest.resolve("action"))
+        assertThat(underTest.resolveValues("action"))
                 .containsExactly("modify");
     }
 
@@ -99,9 +99,9 @@ public final class TopicPlaceholderTest {
 
 
         assertThatExceptionOfType(NullPointerException.class).isThrownBy(
-                () -> topicPlaceholder.resolve(knownTopicPath, null));
+                () -> topicPlaceholder.resolveValues(knownTopicPath, null));
         assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(
-                () -> topicPlaceholder.resolve(knownTopicPath, ""));
+                () -> topicPlaceholder.resolveValues(knownTopicPath, ""));
         assertThatExceptionOfType(UnresolvedPlaceholderException.class).isThrownBy(
                 () -> PlaceholderFilter.apply("{{ topic:unknown }}", knownTopicPath, topicPlaceholder));
         assertThatExceptionOfType(UnresolvedPlaceholderException.class).isThrownBy(

@@ -50,7 +50,7 @@ final class ImmutableSourceAddressPlaceholder implements SourceAddressPlaceholde
     }
 
     @Override
-    public List<String> resolve(final String input, final String name) {
+    public List<String> resolveValues(final String input, final String name) {
         return supports(name) ? Collections.singletonList(input) : Collections.emptyList();
     }
 

@@ -63,7 +63,7 @@ final class ImmutableResourcePlaceholder implements ResourcePlaceholder {
     }
 
     @Override
-    public List<String> resolve(final WithResource withResource, final String placeholder) {
+    public List<String> resolveValues(final WithResource withResource, final String placeholder) {
         ConditionChecker.argumentNotEmpty(placeholder, "placeholder");
         switch (placeholder) {
             case TYPE_PLACEHOLDER:

@@ -14,7 +14,6 @@ package org.eclipse.ditto.connectivity.api.placeholders;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import org.junit.Ignore;
 import org.junit.Test;
 import org.mutabilitydetector.unittesting.MutabilityAssert;
 import org.mutabilitydetector.unittesting.MutabilityMatchers;
@@ -45,12 +44,12 @@ public final class ImmutableFeaturePlaceholderTest {
 
     @Test
     public void testReplaceFeatureId() {
-        assertThat(UNDER_TEST.resolve(FEATURE_ID, "id")).contains(FEATURE_ID);
+        assertThat(UNDER_TEST.resolveValues(FEATURE_ID, "id")).contains(FEATURE_ID);
     }
 
     @Test
     public void testUnknownPlaceholderReturnsEmpty() {
-        assertThat(UNDER_TEST.resolve(FEATURE_ID, "feature_id")).isEmpty();
+        assertThat(UNDER_TEST.resolveValues(FEATURE_ID, "feature_id")).isEmpty();
     }
 
 }

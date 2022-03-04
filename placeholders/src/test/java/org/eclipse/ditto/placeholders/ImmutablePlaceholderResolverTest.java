@@ -53,9 +53,9 @@ public class ImmutablePlaceholderResolverTest {
         final ImmutablePlaceholderResolver<Map<String, String>> underTest = new ImmutablePlaceholderResolver<>(
                 PlaceholderFactory.newHeadersPlaceholder(), Collections.singletonList(inputMap));
 
-        assertThat(underTest.resolve("one"))
+        assertThat(underTest.resolveValues("one"))
                 .containsExactly("1");
-        assertThat(underTest.resolve("two"))
+        assertThat(underTest.resolveValues("two"))
                 .containsExactly("2");
     }
 

@@ -61,7 +61,7 @@ public final class JwtPlaceholder implements Placeholder<JsonWebToken> {
     }
 
     @Override
-    public List<String> resolve(final JsonWebToken jwt, final String placeholder) {
+    public List<String> resolveValues(final JsonWebToken jwt, final String placeholder) {
         argumentNotEmpty(placeholder, "placeholder");
         checkNotNull(jwt, "jwt");
         final Optional<JsonValue> value = jwt.getBody().getValue(placeholder);

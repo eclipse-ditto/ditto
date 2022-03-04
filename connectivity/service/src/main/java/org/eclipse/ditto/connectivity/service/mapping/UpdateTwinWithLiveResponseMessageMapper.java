@@ -196,7 +196,7 @@ public class UpdateTwinWithLiveResponseMessageMapper extends AbstractMessageMapp
 
     private static String potentiallySubstitutePlaceholders(final String stringValue,
             final ExpressionResolver expressionResolver) {
-        return expressionResolver.resolvePartially(stringValue, Set.of()).findFirst().orElse(stringValue);
+        return expressionResolver.resolvePartiallyAsPipelineElement(stringValue, Set.of()).findFirst().orElse(stringValue);
     }
 
     @Override

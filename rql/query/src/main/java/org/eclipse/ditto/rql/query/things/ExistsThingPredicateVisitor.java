@@ -142,7 +142,7 @@ public final class ExistsThingPredicateVisitor implements ExistsFieldExpressionV
             return additionalPlaceholderResolvers.stream()
                     .filter(pr -> placeholderPrefix.equals(pr.getPrefix()))
                     .filter(pr -> pr.supports(placeholderName))
-                    .map(pr -> pr.resolve(placeholderName))
+                    .map(pr -> pr.resolveValues(placeholderName))
                     .anyMatch(resolvedValues -> !resolvedValues.isEmpty());
         } else {
             return false;

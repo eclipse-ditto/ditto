@@ -41,7 +41,7 @@ final class ImmutablePolicyPlaceholder extends AbstractEntityIdPlaceholder<Polic
     }
 
     @Override
-    public List<String> resolve(final EntityId policyId, final String placeholder) {
+    public List<String> resolveValues(final EntityId policyId, final String placeholder) {
         argumentNotEmpty(placeholder, "placeholder");
         checkNotNull(policyId, "Policy ID");
         if (policyId instanceof PolicyId) {

@@ -165,7 +165,7 @@ public class CreateBsonPredicateVisitor implements PredicateVisitor<Function<Str
             return additionalPlaceholderResolvers.stream()
                     .filter(pr -> prefix.equals(pr.getPrefix()))
                     .filter(pr -> pr.supports(name))
-                    .flatMap(pr -> pr.resolve(name).stream())
+                    .flatMap(pr -> pr.resolveValues(name).stream())
                     .findFirst()
                     .orElse(null);
         }

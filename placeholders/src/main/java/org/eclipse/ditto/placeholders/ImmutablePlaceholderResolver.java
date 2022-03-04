@@ -39,8 +39,8 @@ final class ImmutablePlaceholderResolver<T> implements PlaceholderResolver<T> {
     }
 
     @Override
-    public List<String> resolve(final T placeholderSource, final String name) {
-        return placeholder.resolve(placeholderSource, name);
+    public List<String> resolveValues(final T placeholderSource, final String name) {
+        return placeholder.resolveValues(placeholderSource, name);
     }
 
     @Override

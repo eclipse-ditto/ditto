@@ -23,6 +23,8 @@ import java.util.stream.Stream;
 
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.base.model.common.ConditionChecker;
+
 /**
  * Pipeline elements containing a resolved value.
  */
@@ -32,7 +34,7 @@ final class PipelineElementResolved implements PipelineElement {
     private final Collection<String> values;
 
     private PipelineElementResolved(final Collection<String> values) {
-        this.values = values;
+        this.values = ConditionChecker.checkNotEmpty(values, "values");
     }
 
     static PipelineElement of(final Collection<String> values) {
@@ -73,10 +75,18 @@ final class PipelineElementResolved implements PipelineElement {
     }
 
     @Override
-    public <T> List<T> accept(final PipelineElementVisitor<T> visitor) {
+    public <T> List<T> evaluate(final PipelineElementVisitor<T> visitor) {
         return values.stream()
                 .map(visitor::resolved)
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    public <T> T accept(final PipelineElementVisitor<T> visitor) {
+        return values.stream().findFirst()
+                .map(visitor::resolved)
+                .orElseThrow(() -> new IllegalStateException(
+                        "This can never happen, because we validate that values isn't empty."));
     }
 
     @Override

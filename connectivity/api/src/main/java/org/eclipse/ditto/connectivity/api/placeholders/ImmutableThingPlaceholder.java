@@ -41,7 +41,7 @@ final class ImmutableThingPlaceholder extends AbstractEntityIdPlaceholder<ThingI
     }
 
     @Override
-    public List<String> resolve(final EntityId thingId, final String placeholder) {
+    public List<String> resolveValues(final EntityId thingId, final String placeholder) {
         argumentNotEmpty(placeholder, "placeholder");
         checkNotNull(thingId, "Thing ID");
         if (thingId instanceof ThingId) {

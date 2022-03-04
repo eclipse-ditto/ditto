@@ -42,7 +42,7 @@ final class ImmutableEntityIdPlaceholder extends AbstractEntityIdPlaceholder<Nam
     }
 
     @Override
-    public List<String> resolve(final EntityId entityId, final String placeholder) {
+    public List<String> resolveValues(final EntityId entityId, final String placeholder) {
         argumentNotEmpty(placeholder, "placeholder");
         checkNotNull(entityId, "Entity ID");
         try {

@@ -16,7 +16,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.things.model.ThingId;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.mutabilitydetector.unittesting.MutabilityAssert;
 import org.mutabilitydetector.unittesting.MutabilityMatchers;
@@ -56,37 +55,37 @@ public class ImmutableEntityPlaceholderTest {
 
     @Test
     public void testReplacePolicyId() {
-        assertThat(UNDER_TEST.resolve(POLICY_ID, "id")).contains(POLICY_ID.toString());
+        assertThat(UNDER_TEST.resolveValues(POLICY_ID, "id")).contains(POLICY_ID.toString());
     }
 
     @Test
     public void testReplaceThingId() {
-        assertThat(UNDER_TEST.resolve(THING_ID, "id")).contains(THING_ID.toString());
+        assertThat(UNDER_TEST.resolveValues(THING_ID, "id")).contains(THING_ID.toString());
     }
 
     @Test
     public void testReplacePolicyName() {
-        assertThat(UNDER_TEST.resolve(POLICY_ID, "name")).contains(NAME);
+        assertThat(UNDER_TEST.resolveValues(POLICY_ID, "name")).contains(NAME);
     }
 
     @Test
     public void testReplaceThingName() {
-        assertThat(UNDER_TEST.resolve(THING_ID, "name")).contains(NAME);
+        assertThat(UNDER_TEST.resolveValues(THING_ID, "name")).contains(NAME);
     }
 
     @Test
     public void testReplacePolicyNamespace() {
-        assertThat(UNDER_TEST.resolve(POLICY_ID, "namespace")).contains(NAMESPACE);
+        assertThat(UNDER_TEST.resolveValues(POLICY_ID, "namespace")).contains(NAMESPACE);
     }
 
     @Test
     public void testReplaceThingNamespace() {
-        assertThat(UNDER_TEST.resolve(THING_ID, "namespace")).contains(NAMESPACE);
+        assertThat(UNDER_TEST.resolveValues(THING_ID, "namespace")).contains(NAMESPACE);
     }
 
     @Test
     public void testUnknownPlaceholderReturnsEmpty() {
-        assertThat(UNDER_TEST.resolve(POLICY_ID, "policy_id")).isEmpty();
+        assertThat(UNDER_TEST.resolveValues(POLICY_ID, "policy_id")).isEmpty();
     }
 
 }

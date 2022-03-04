@@ -56,7 +56,7 @@ final class ImmutableRequestPlaceholder implements RequestPlaceholder {
     }
 
     @Override
-    public List<String> resolve(@Nullable final AuthorizationContext authorizationContext, final String headerKey) {
+    public List<String> resolveValues(@Nullable final AuthorizationContext authorizationContext, final String headerKey) {
         // precondition: supports(headerKey)
         return Optional.ofNullable(authorizationContext)
                 .flatMap(context -> context.getAuthorizationSubjects()

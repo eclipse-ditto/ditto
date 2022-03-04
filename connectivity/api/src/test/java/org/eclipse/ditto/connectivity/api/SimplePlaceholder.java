@@ -47,7 +47,7 @@ class SimplePlaceholder implements Placeholder<String> {
     }
 
     @Override
-    public List<String> resolve(final String placeholderSource, final String name) {
+    public List<String> resolveValues(final String placeholderSource, final String name) {
         return supports(name) ? Collections.singletonList(placeholderSource) : Collections.emptyList();
     }
 }

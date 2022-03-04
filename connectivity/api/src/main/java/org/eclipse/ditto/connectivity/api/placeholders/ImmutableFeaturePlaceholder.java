@@ -39,7 +39,7 @@ final class ImmutableFeaturePlaceholder implements FeaturePlaceholder {
     static final ImmutableFeaturePlaceholder INSTANCE = new ImmutableFeaturePlaceholder();
 
     @Override
-    public List<String> resolve(final CharSequence featureId, final String placeholder) {
+    public List<String> resolveValues(final CharSequence featureId, final String placeholder) {
         checkNotNull(featureId, "featureId");
         argumentNotEmpty(placeholder, "placeholder");
         if (ID_PLACEHOLDER.equals(placeholder)) {

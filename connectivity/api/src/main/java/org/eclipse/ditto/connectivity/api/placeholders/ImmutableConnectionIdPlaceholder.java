@@ -55,7 +55,7 @@ final class ImmutableConnectionIdPlaceholder implements ConnectionIdPlaceholder 
     }
 
     @Override
-    public List<String> resolve(final ConnectionId connectionId, final String placeholder) {
+    public List<String> resolveValues(final ConnectionId connectionId, final String placeholder) {
         argumentNotEmpty(placeholder, "placeholder");
         checkNotNull(connectionId, "Connection ID");
         if (ID_PLACEHOLDER.equals(placeholder)) {

@@ -47,9 +47,9 @@ public class PlaceholderFilterTest {
     @Test
     public void testHeadersPlaceholder() {
         assertThatExceptionOfType(NullPointerException.class).isThrownBy(
-                () -> headersPlaceholder.resolve(HEADERS, null));
+                () -> headersPlaceholder.resolveValues(HEADERS, null));
         assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(
-                () -> headersPlaceholder.resolve(HEADERS, ""));
+                () -> headersPlaceholder.resolveValues(HEADERS, ""));
         assertThatExceptionOfType(UnresolvedPlaceholderException.class).isThrownBy(
                 () -> PlaceholderFilter.apply("{{ header:unknown }}", HEADERS, headersPlaceholder));
         assertThatExceptionOfType(UnresolvedPlaceholderException.class).isThrownBy(

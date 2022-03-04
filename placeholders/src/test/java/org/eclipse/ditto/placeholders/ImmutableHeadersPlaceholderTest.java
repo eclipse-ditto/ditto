@@ -19,7 +19,6 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.mutabilitydetector.unittesting.MutabilityAssert;
 import org.mutabilitydetector.unittesting.MutabilityMatchers;
@@ -64,22 +63,22 @@ public class ImmutableHeadersPlaceholderTest {
 
     @Test
     public void testReplaceDeviceIdHeader() {
-        assertThat(UNDER_TEST.resolve(HEADERS, "device_id")).contains(DEVICE_ID);
+        assertThat(UNDER_TEST.resolveValues(HEADERS, "device_id")).contains(DEVICE_ID);
     }
 
     @Test
     public void testUnresolvableHeaderReturnsEmpty() {
-        assertThat(UNDER_TEST.resolve(HEADERS, "thing_id")).isEmpty();
+        assertThat(UNDER_TEST.resolveValues(HEADERS, "thing_id")).isEmpty();
     }
 
     @Test
     public void testResolvingWithNull() {
-        assertThatExceptionOfType(NullPointerException.class).isThrownBy(() -> UNDER_TEST.resolve(HEADERS, null));
+        assertThatExceptionOfType(NullPointerException.class).isThrownBy(() -> UNDER_TEST.resolveValues(HEADERS, null));
     }
 
     @Test
     public void testResolvingWithEmptyString() {
-        assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(() -> UNDER_TEST.resolve(HEADERS, ""));
+        assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(() -> UNDER_TEST.resolveValues(HEADERS, ""));
     }
 
 }

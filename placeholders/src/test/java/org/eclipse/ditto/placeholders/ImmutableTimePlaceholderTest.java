@@ -50,7 +50,7 @@ public final class ImmutableTimePlaceholderTest {
 
     @Test
     public void testReplaceCurrentTimestampIso() {
-        final List<Instant> resolved = UNDER_TEST.resolve(SOME_OBJECT, "now").stream()
+        final List<Instant> resolved = UNDER_TEST.resolveValues(SOME_OBJECT, "now").stream()
                 .map(Instant::parse)
                 .collect(Collectors.toList());
         assertThat(resolved).allSatisfy(i -> {
@@ -65,7 +65,7 @@ public final class ImmutableTimePlaceholderTest {
 
     @Test
     public void testReplaceCurrentTimestampMillisSinceEpoch() {
-        final List<Instant> resolved = UNDER_TEST.resolve(SOME_OBJECT, "now_epoch_millis").stream()
+        final List<Instant> resolved = UNDER_TEST.resolveValues(SOME_OBJECT, "now_epoch_millis").stream()
                 .map(Long::parseLong)
                 .map(Instant::ofEpochMilli)
                 .collect(Collectors.toList());

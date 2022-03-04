@@ -53,7 +53,7 @@ final class ImmutableHeadersPlaceholder implements HeadersPlaceholder {
     }
 
     @Override
-    public List<String> resolve(final Map<String, String> headers, final String headerKey) {
+    public List<String> resolveValues(final Map<String, String> headers, final String headerKey) {
         ConditionChecker.argumentNotEmpty(headerKey, "headerKey");
         ConditionChecker.argumentNotNull(headers, "headers");
         return Optional.ofNullable(headers.get(headerKey))

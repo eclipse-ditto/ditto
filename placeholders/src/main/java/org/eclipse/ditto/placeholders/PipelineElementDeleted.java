@@ -58,8 +58,13 @@ final class PipelineElementDeleted implements PipelineElement {
     }
 
     @Override
-    public <T> List<T> accept(final PipelineElementVisitor<T> visitor) {
+    public <T> List<T> evaluate(final PipelineElementVisitor<T> visitor) {
         return Collections.singletonList(visitor.deleted());
+    }
+
+    @Override
+    public <T> T accept(final PipelineElementVisitor<T> visitor) {
+        return visitor.deleted();
     }
 
     @Override

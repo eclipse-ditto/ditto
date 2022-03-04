@@ -41,7 +41,7 @@ final class ThingPredicateTestPlaceholder implements Placeholder<String> {
     }
 
     @Override
-    public List<String> resolve(final String placeholderSource, final String name) {
+    public List<String> resolveValues(final String placeholderSource, final String name) {
         if (LOWER.equals(name)) {
             return Collections.singletonList(placeholderSource.toLowerCase());
         } else {
