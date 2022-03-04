@@ -15,6 +15,7 @@ package org.eclipse.ditto.connectivity.api.placeholders;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
@@ -56,15 +57,13 @@ final class ImmutableRequestPlaceholder implements RequestPlaceholder {
     }
 
     @Override
-    public List<String> resolveValues(@Nullable final AuthorizationContext authorizationContext, final String headerKey) {
+    public List<String> resolveValues(@Nullable final AuthorizationContext authorizationContext,
+            final String headerKey) {
         // precondition: supports(headerKey)
         return Optional.ofNullable(authorizationContext)
-                .flatMap(context -> context.getAuthorizationSubjects()
-                        .stream()
+                .map(context -> context.getAuthorizationSubjects().stream()
                         .map(AuthorizationSubject::getId)
-                        .findFirst()
-                )//TODO: Yannic maybe we can return the full list instead of just the first?
-                .map(Collections::singletonList)
+                        .collect(Collectors.toList()))
                 .orElseGet(Collections::emptyList);
     }
 
