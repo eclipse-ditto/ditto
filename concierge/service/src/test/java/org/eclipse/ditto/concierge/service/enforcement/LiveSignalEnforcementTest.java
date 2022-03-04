@@ -254,7 +254,7 @@ public final class LiveSignalEnforcementTest {
     }
 
     @Test
-    public void correlatiIdSameAfterResponseSuccessfull() {
+    public void correlationIdSameAfterResponseSuccessful() {
         final PolicyId policyId = PolicyId.of("policy", "id");
         final JsonObject thingWithPolicy = newThingWithPolicyId(policyId);
         final JsonObject policy = PoliciesModelFactory.newPolicyBuilder(policyId)
