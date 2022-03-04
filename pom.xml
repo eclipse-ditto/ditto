@@ -240,7 +240,7 @@
             (org\.eclipse\.ditto.*)|(com\.lihaoyi.*)
         </ditto.thirdPartyLicences.excludedGroups>
 
-        <japicmp-maven-plugin.version>0.15.4</japicmp-maven-plugin.version>
+        <japicmp-maven-plugin.version>0.15.7</japicmp-maven-plugin.version>
 
         <sonar.coverage.jacoco.xmlReportPaths>${project.basedir}/target/site/jacoco/jacoco.xml</sonar.coverage.jacoco.xmlReportPaths>
     </properties>
@@ -388,9 +388,6 @@
                             </file>
                         </newVersion>
                         <parameter>
-                            <packagingSupporteds>
-                                <packagingSupported>jar</packagingSupported>
-                            </packagingSupporteds>
                             <onlyModified>true</onlyModified>
                             <accessModifier>public</accessModifier>
                             <breakBuildOnModifications>false</breakBuildOnModifications>
