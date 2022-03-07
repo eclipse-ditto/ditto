@@ -62,11 +62,18 @@ public interface StreamConfig {
     PersistenceStreamConfig getPersistenceConfig();
 
     /**
-     * Returns the configuration settings of the stream cache.
+     * Returns the configuration settings of the policy enforcers to cache.
      *
      * @return the config.
      */
-    StreamCacheConfig getCacheConfig();
+    StreamCacheConfig getPolicyCacheConfig();
+
+    /**
+     * Returns the configuration settings of the things to cache.
+     *
+     * @return the config.
+     */
+    StreamCacheConfig getThingCacheConfig();
 
     /**
      * An enumeration of known config path expressions and their associated default values for {@code StreamConfig}.
