@@ -23,8 +23,18 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.WithFeatureId;
+import org.eclipse.ditto.base.model.signals.WithOptionalEntity;
+import org.eclipse.ditto.json.JsonKey;
+import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.things.model.Feature;
-import org.eclipse.ditto.things.model.signals.commands.modify.ModifyThing;
+import org.eclipse.ditto.things.model.Thing;
+import org.eclipse.ditto.things.model.ThingsModelFactory;
+import org.eclipse.ditto.things.model.signals.commands.modify.ThingModifyCommand;
+import org.eclipse.ditto.things.model.signals.commands.modify.ThingModifyCommandResponse;
+import org.eclipse.ditto.things.model.signals.events.ThingModifiedEvent;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Placeholder implementation that replaces {@code feature:id}. The input value is a String and must be a
@@ -35,6 +45,7 @@ import org.eclipse.ditto.things.model.signals.commands.modify.ModifyThing;
 @Immutable
 final class ImmutableFeaturePlaceholder implements FeaturePlaceholder {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(ImmutableFeaturePlaceholder.class);
     private static final String ID_PLACEHOLDER = "id";
 
     private static final List<String> SUPPORTED = Collections.singletonList(ID_PLACEHOLDER);
@@ -49,20 +60,60 @@ final class ImmutableFeaturePlaceholder implements FeaturePlaceholder {
         checkNotNull(signal, "signal");
         argumentNotEmpty(placeholder, "placeholder");
         if (ID_PLACEHOLDER.equals(placeholder)) {
-            final List<String> featureIds;
-            if (signal instanceof WithFeatureId) {
-                featureIds = Collections.singletonList(((WithFeatureId) signal).getFeatureId());
-            } else if (signal instanceof ModifyThing) {
-                featureIds = ((ModifyThing) signal).getThing()
-                        .getFeatures()
+            return resolveIdPlaceholder(signal);
+        }
+        return List.of();
+    }
+
+    private static List<String> resolveIdPlaceholder(final Signal<?> signal) {
+        final List<String> featureIds;
+        if (signal instanceof WithFeatureId) {
+            featureIds = Collections.singletonList(((WithFeatureId) signal).getFeatureId());
+        } else if (signal instanceof ThingModifyCommand || signal instanceof ThingModifiedEvent ||
+                signal instanceof ThingModifyCommandResponse) {
+            featureIds = ((WithOptionalEntity) signal).getEntity()
+                    .map(value -> resolveFeatureIds(signal.getResourcePath(), value))
+                    .orElseGet(List::of);
+        } else {
+            featureIds = List.of();
+        }
+        return featureIds;
+    }
+
+    private static List<String> resolveFeatureIds(final JsonPointer path, final JsonValue value) {
+        final List<String> featureIds;
+        if (path.isEmpty()) {
+            // MergeThing is related to the full thing. We can expect value to be a Thing JSON
+            if (value.isObject()) {
+                final Thing thing = ThingsModelFactory.newThing(value.asObject());
+                featureIds = thing.getFeatures()
                         .map(features -> features.stream().map(Feature::getId).collect(Collectors.toList()))
                         .orElseGet(List::of);
             } else {
+                LOGGER.info("MergeThing command had empty path but non-object value. " +
+                        "Can't resolve placeholder <feature:id>.");
                 featureIds = List.of();
             }
-            return featureIds;
+        } else if (path.get(0).map(JsonKey::toString).filter("features"::equals).isEmpty()) {
+            // MergeThing is not related to features therefore stop resolving.
+            featureIds = List.of();
+        } else if (path.getLevelCount() > 1) {
+            // MergeThing is not related to a specific feature therefore use this feature ID.
+            featureIds = path.get(1).map(JsonKey::toString)
+                    .stream()
+                    .toList();
+        } else {
+            // MergeThing is related to features. Therefore use all of the modified feature IDs.
+            if (value.isObject()) {
+                featureIds = ThingsModelFactory.newFeatures(value.asObject())
+                        .stream()
+                        .map(Feature::getId)
+                        .collect(Collectors.toList());
+            } else {
+                featureIds = List.of();
+            }
         }
-        return List.of();
+        return featureIds;
     }
 
     @Override
