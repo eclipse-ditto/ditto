@@ -51,23 +51,45 @@ public final class ThrottledLoggerMetricsAlert implements MetricsAlert {
     public boolean evaluateCondition(final MeasurementWindow window, final long slot, final long value) {
         // make sure only one log entry is written per time slot
         final long current = currentSlot.get();
+        final var expectedWindow = MeasurementWindow.ONE_DAY_WITH_ONE_MINUTE_RESOLUTION;
+        final boolean result;
         if (current != slot && currentSlot.compareAndSet(current, slot)) {
-            return MeasurementWindow.ONE_DAY_WITH_ONE_MINUTE_RESOLUTION == window;
+            result = expectedWindow == window;
         } else {
-            return false;
+            result = false;
         }
+
+        LOGGER.debug("Evaluating connection throttle alert: <{}> to <{}>, based on slot: <{}>:<{}> " +
+                        "and window: <{}>:<{}>.", getClass().getSimpleName(), result, slot, current,
+                window, expectedWindow);
+        return result;
     }
 
     @Override
     public void triggerAction(final long ts, final long newValue) {
-        final String message = String.format("Throttling event occurred for %s %s metric at address '%s'.",
-                counterKey.getMetricDirection(), counterKey.getMetricType(), counterKey.getAddress());
         final ConnectionLogger connectionLogger = connectionLoggerSupplier.apply(counterKey.getAddress());
         if (connectionLogger != null) {
-            connectionLogger.failure(message);
+            connectionLogger.failure(getFailedMessage());
         } else {
             LOGGER.debug("Failed to retrieve the connection logger to write throttled log entry.");
         }
+    }
+
+    private String getFailedMessage() {
+        final String message;
+        if (counterKey.getMetricType().isPresent() && counterKey.getMetricDirection().isPresent()) {
+            message = String.format("Throttling event occurred for %s %s metric at address '%s'.",
+                    counterKey.getMetricDirection(), counterKey.getMetricType(), counterKey.getAddress());
+        } else if (counterKey.getMetricDirection().isPresent()) {
+            message = String.format("Throttling event occurred for %s metric at address '%s'.",
+                    counterKey.getMetricDirection(), counterKey.getAddress());
+        } else if (counterKey.getMetricType().isPresent()) {
+            message = String.format("Throttling event occurred for %s metric at address '%s'.",
+                    counterKey.getMetricType(), counterKey.getAddress());
+        } else {
+            message = String.format("Throttling event occurred at address '%s'.", counterKey.getAddress());
+        }
+        return message;
     }
 
     private static final class Factory implements MetricsAlertFactory {
@@ -80,7 +102,7 @@ public final class ThrottledLoggerMetricsAlert implements MetricsAlert {
 
         @Override
         public MetricsAlert create(final CounterKey counterKey, final ConnectionType connectionType,
-                final ConnectivityConfig connectivityConfig) {
+                final ConnectivityConfig connectivityConfig, final boolean isGauge) {
             return new ThrottledLoggerMetricsAlert(counterKey, connectionLoggerSupplier);
         }
     }

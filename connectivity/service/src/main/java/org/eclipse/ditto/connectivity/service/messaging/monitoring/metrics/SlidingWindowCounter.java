@@ -59,14 +59,14 @@ public final class SlidingWindowCounter {
     private final Map<MeasurementWindow, Long> lastTimestampOverrides;
 
     private SlidingWindowCounter(final SlidingWindowCounterBuilder builder) {
-        this.metricsCounter = builder.metricsCounter;
-        this.clock = builder.clock;
-        this.metricsAlert = builder.metricsAlert;
-        this.cleanUpEnabled = builder.cleanUpEnabled;
-        this.windowsForRecording = builder.recordingMeasurementWindows;
-        this.windowsForReporting = builder.reportingMeasurementWindows;
-        this.maximumPerSlot = builder.maximumPerSlot;
-        this.lastTimestampOverrides = builder.lastTimestampOverrides;
+        metricsCounter = builder.metricsCounter;
+        clock = builder.clock;
+        metricsAlert = builder.metricsAlert;
+        cleanUpEnabled = builder.cleanUpEnabled;
+        windowsForRecording = builder.recordingMeasurementWindows;
+        windowsForReporting = builder.reportingMeasurementWindows;
+        maximumPerSlot = builder.maximumPerSlot;
+        lastTimestampOverrides = builder.lastTimestampOverrides;
 
         minResolution = Stream.of(windowsForRecording)
                 .map(MeasurementWindow::getResolution)

@@ -43,6 +43,8 @@ import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.messaging.InboundMappingSink.ExternalMessageWithSender;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.ConnectionMonitor;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.DefaultConnectionMonitorRegistry;
+import org.eclipse.ditto.connectivity.service.messaging.monitoring.metrics.CounterKey;
+import org.eclipse.ditto.connectivity.service.messaging.monitoring.metrics.MetricAlertRegistry;
 import org.eclipse.ditto.internal.models.acks.config.AcknowledgementConfig;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.internal.utils.config.InstanceIdentifierSupplier;
@@ -65,7 +67,6 @@ import kamon.context.Context;
 public abstract class BaseConsumerActor extends AbstractActorWithTimers {
 
     private static final String TIMER_ACK_HANDLING = "connectivity_ack_handling";
-    private static final String COUNTER_ACK_HANDLING = "connectivity_ack_handling_counter";
 
     protected final String sourceAddress;
     protected final Source source;
@@ -76,6 +77,7 @@ public abstract class BaseConsumerActor extends AbstractActorWithTimers {
     protected final ConnectivityStatusResolver connectivityStatusResolver;
 
     private final Sink<Object, ?> inboundMappingSink;
+    private final ConnectivityConfig connectivityConfig;
     private final AcknowledgementConfig acknowledgementConfig;
 
     @Nullable private ResourceStatus resourceStatus;
@@ -95,6 +97,7 @@ public abstract class BaseConsumerActor extends AbstractActorWithTimers {
         this.connectivityStatusResolver = checkNotNull(connectivityStatusResolver, "connectivityStatusResolver");
         resetResourceStatus();
 
+        this.connectivityConfig = connectivityConfig;
         acknowledgementConfig = connectivityConfig.getAcknowledgementConfig();
 
         inboundMonitor = DefaultConnectionMonitorRegistry.fromConfig(connectivityConfig)
@@ -135,7 +138,9 @@ public abstract class BaseConsumerActor extends AbstractActorWithTimers {
                 .tag(TracingTags.CONNECTION_ID, connectionId.toString())
                 .tag(TracingTags.CONNECTION_TYPE, connectionType.getName())
                 .start();
-        final var ackCounter = DittoMetrics.gauge(COUNTER_ACK_HANDLING)
+        final var ackCounter = MetricAlertRegistry.getMetricsAlertGaugeOrDefault(
+                CounterKey.of(connectionId, sourceAddress), MetricAlertRegistry.COUNTER_ACK_HANDLING,
+                connectionType, connectivityConfig)
                 .tag(TracingTags.CONNECTION_ID, connectionId.toString())
                 .tag(TracingTags.CONNECTION_TYPE, connectionType.toString())
                 .increment();
