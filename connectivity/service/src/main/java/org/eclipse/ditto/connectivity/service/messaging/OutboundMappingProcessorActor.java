@@ -76,10 +76,14 @@ import org.eclipse.ditto.internal.utils.akka.controlflow.AbstractGraphActor;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.internal.utils.pubsub.StreamingType;
+import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.placeholders.ExpressionResolver;
+import org.eclipse.ditto.placeholders.PipelineElement;
 import org.eclipse.ditto.placeholders.PlaceholderFactory;
 import org.eclipse.ditto.placeholders.PlaceholderResolver;
 import org.eclipse.ditto.placeholders.TimePlaceholder;
@@ -368,8 +372,9 @@ public final class OutboundMappingProcessorActor
 
         final OutboundSignalWithSender outboundSignal = outboundSignalWithExtraFields.first();
         final FilteredTopic filteredTopic = outboundSignalWithExtraFields.second();
-        final Optional<JsonFieldSelector> extraFieldsOptional =
-                Optional.ofNullable(filteredTopic).flatMap(FilteredTopic::getExtraFields);
+        final ExpressionResolver expressionResolver =
+                Resolvers.forSignal(outboundSignal.getSource(), connection.getId());
+        final Optional<JsonFieldSelector> extraFieldsOptional = getExtraFields(expressionResolver, filteredTopic);
         if (extraFieldsOptional.isEmpty()) {
             return CompletableFuture.completedFuture(Collections.singletonList(outboundSignal));
         }
@@ -405,6 +410,20 @@ public final class OutboundMappingProcessorActor
                     // recover from all errors to keep message-mapping-stream running despite enrichment failures
                     return Collections.singletonList(recoverFromEnrichmentError(outboundSignal, target, error));
                 });
+    }
+
+    private static Optional<JsonFieldSelector> getExtraFields(final ExpressionResolver expressionResolver,
+            @Nullable final FilteredTopic filteredTopic) {
+
+        return Optional.ofNullable(filteredTopic)
+                .flatMap(FilteredTopic::getExtraFields)
+                .map(extraFields -> extraFields.getPointers().stream()
+                        .map(JsonPointer::toString)
+                        .map(expressionResolver::resolve)
+                        .flatMap(PipelineElement::toStream)
+                        .map(JsonPointer::of)
+                        .collect(Collectors.toList()))
+                .map(JsonFactory::newFieldSelector);
     }
 
     private static Optional<EntityId> extractEntityId(Signal<?> signal) {
