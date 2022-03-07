@@ -95,6 +95,7 @@ import org.eclipse.ditto.rql.parser.RqlPredicateParser;
 import org.eclipse.ditto.rql.query.criteria.Criteria;
 import org.eclipse.ditto.rql.query.filter.QueryFilterCriteriaFactory;
 import org.eclipse.ditto.rql.query.things.ThingPredicateVisitor;
+import org.eclipse.ditto.things.model.ThingFieldSelector;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingNotAccessibleException;
 import org.eclipse.ditto.things.model.signals.events.ThingEventToThingConverter;
@@ -423,7 +424,8 @@ public final class OutboundMappingProcessorActor
                         .flatMap(PipelineElement::toStream)
                         .map(JsonPointer::of)
                         .collect(Collectors.toList()))
-                .map(JsonFactory::newFieldSelector);
+                .map(JsonFactory::newFieldSelector)
+                .map(ThingFieldSelector::fromJsonFieldSelector);
     }
 
     private static Optional<EntityId> extractEntityId(Signal<?> signal) {
