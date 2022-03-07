@@ -174,7 +174,7 @@ public final class ImplicitThingCreationMessageMapper extends AbstractMessageMap
 
         final String resolvedTemplate;
         if (Placeholders.containsAnyPlaceholder(thingTemplate)) {
-            resolvedTemplate = applyPlaceholderReplacement(thingTemplate, expressionResolver);
+            resolvedTemplate = PlaceholderFilter.apply(thingTemplate, expressionResolver);
         } else {
             resolvedTemplate = thingTemplate;
         }
@@ -202,10 +202,6 @@ public final class ImplicitThingCreationMessageMapper extends AbstractMessageMap
     private static ExpressionResolver getHeadersExpressionResolver(final Map<String, String> headers) {
         return PlaceholderFactory.newExpressionResolver(
                 PlaceholderFactory.newPlaceholderResolver(HEADERS_PLACEHOLDER, headers));
-    }
-
-    private static String applyPlaceholderReplacement(final String template, final ExpressionResolver resolver) {
-        return PlaceholderFilter.apply(template, resolver);
     }
 
     private Signal<CreateThing> getCreateThingSignal(final ExternalMessage message, final String template) {

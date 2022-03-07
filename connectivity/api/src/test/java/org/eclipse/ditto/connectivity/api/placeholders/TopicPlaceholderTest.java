@@ -103,17 +103,17 @@ public final class TopicPlaceholderTest {
         assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(
                 () -> topicPlaceholder.resolveValues(knownTopicPath, ""));
         assertThatExceptionOfType(UnresolvedPlaceholderException.class).isThrownBy(
-                () -> PlaceholderFilter.apply("{{ topic:unknown }}", knownTopicPath, topicPlaceholder));
+                () -> PlaceholderFilter.applyForAll("{{ topic:unknown }}", knownTopicPath, topicPlaceholder));
         assertThatExceptionOfType(UnresolvedPlaceholderException.class).isThrownBy(
-                () -> PlaceholderFilter.apply("{{ {{  topic:name  }} }}", knownTopicPath, topicPlaceholder));
-        assertThat(PlaceholderFilter.apply("eclipse:ditto", knownTopicPath, topicPlaceholder)).isEqualTo(
-                "eclipse:ditto");
-        assertThat(PlaceholderFilter.apply("prefix:{{ topic:channel }}:{{ topic:group }}:suffix", knownTopicPath,
-                topicPlaceholder)).isEqualTo("prefix:twin:things:suffix");
+                () -> PlaceholderFilter.applyForAll("{{ {{  topic:name  }} }}", knownTopicPath, topicPlaceholder));
+        assertThat(PlaceholderFilter.applyForAll("eclipse:ditto", knownTopicPath, topicPlaceholder))
+                .containsExactly("eclipse:ditto");
+        assertThat(PlaceholderFilter.applyForAll("prefix:{{ topic:channel }}:{{ topic:group }}:suffix", knownTopicPath,
+                topicPlaceholder)).containsExactly("prefix:twin:things:suffix");
 
-        assertThat(PlaceholderFilter.apply("{{topic:subject}}", knownTopicPathSubject1,
-                topicPlaceholder)).isEqualTo(knownSubject);
-        assertThat(PlaceholderFilter.apply("{{  topic:action-subject}}", knownTopicPathSubject2,
-                topicPlaceholder)).isEqualTo(knownSubject2);
+        assertThat(PlaceholderFilter.applyForAll("{{topic:subject}}", knownTopicPathSubject1,
+                topicPlaceholder)).containsExactly(knownSubject);
+        assertThat(PlaceholderFilter.applyForAll("{{  topic:action-subject}}", knownTopicPathSubject2,
+                topicPlaceholder)).containsExactly(knownSubject2);
     }
 }

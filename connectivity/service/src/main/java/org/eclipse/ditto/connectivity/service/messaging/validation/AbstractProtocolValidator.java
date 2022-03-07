@@ -14,6 +14,7 @@ package org.eclipse.ditto.connectivity.service.messaging.validation;
 
 import java.text.MessageFormat;
 import java.util.Collection;
+import java.util.List;
 import java.util.function.Supplier;
 
 import org.eclipse.ditto.base.model.exceptions.DittoJsonException;
@@ -264,10 +265,10 @@ public abstract class AbstractProtocolValidator {
      * @throws ConnectionConfigurationInvalidException in case the template's placeholders could not completely be
      * resolved
      */
-    protected String validateTemplateAndReplace(final String template, final DittoHeaders headers,
+    protected List<String> validateTemplateAndReplace(final String template, final DittoHeaders headers,
             final String stringUsedInPlaceholderReplacement, final Placeholder<?>... placeholders) {
         try {
-            return PlaceholderFilter.validateAndReplace(template, stringUsedInPlaceholderReplacement, placeholders);
+            return PlaceholderFilter.validateAndReplaceAll(template, stringUsedInPlaceholderReplacement, placeholders);
         } catch (final DittoRuntimeException exception) {
             throw ConnectionConfigurationInvalidException
                     .newBuilder(exception.getMessage())
