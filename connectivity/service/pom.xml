@@ -409,7 +409,7 @@ jmh-generator-annprocess). jmh-generator-annprocess overwrites the whole META-IN
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-failsafe-plugin</artifactId>
                 <configuration>
-                    <classesDirectory>${build.outputDirectory}</classesDirectory>
+                    <classesDirectory>${project.build.outputDirectory}</classesDirectory>
                 </configuration>
             </plugin>
         </plugins>
