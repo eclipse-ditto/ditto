@@ -17,11 +17,14 @@ import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.WithFeatureId;
+import org.eclipse.ditto.things.model.Feature;
+import org.eclipse.ditto.things.model.signals.commands.modify.ModifyThing;
 
 /**
  * Placeholder implementation that replaces {@code feature:id}. The input value is a String and must be a
@@ -49,12 +52,17 @@ final class ImmutableFeaturePlaceholder implements FeaturePlaceholder {
             final List<String> featureIds;
             if (signal instanceof WithFeatureId) {
                 featureIds = Collections.singletonList(((WithFeatureId) signal).getFeatureId());
+            } else if (signal instanceof ModifyThing) {
+                featureIds = ((ModifyThing) signal).getThing()
+                        .getFeatures()
+                        .map(features -> features.stream().map(Feature::getId).collect(Collectors.toList()))
+                        .orElseGet(List::of);
             } else {
-                featureIds = Collections.emptyList();
+                featureIds = List.of();
             }
             return featureIds;
         }
-        return Collections.emptyList();
+        return List.of();
     }
 
     @Override
