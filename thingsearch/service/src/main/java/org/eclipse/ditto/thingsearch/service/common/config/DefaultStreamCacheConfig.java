@@ -48,7 +48,7 @@ public final class DefaultStreamCacheConfig implements StreamCacheConfig {
     /**
      * Returns an instance of DefaultStreamCacheConfig based on the settings of the specified Config.
      *
-     * @param config is supposed to provide the settings of the stream cache config at {@value configPath}.
+     * @param config is supposed to provide the settings of the stream cache config.
      * @param configPath the supposed path of the nested cache config settings.
      * @return the instance.
      * @throws org.eclipse.ditto.internal.utils.config.DittoConfigError if {@code config} is invalid.
