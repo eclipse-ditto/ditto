@@ -213,7 +213,7 @@ final class EnforcementFlow {
                 .<Map.Entry<ThingId, JsonObject>>map(thing -> new AbstractMap.SimpleImmutableEntry<>(thingId, thing))
                 .recoverWithRetries(1, new PFBuilder<Throwable, Source<Map.Entry<ThingId, JsonObject>, NotUsed>>()
                         .match(Throwable.class, error -> {
-                            log.error("Unexpected response for SudoRetrieveThing via cache" + thingId, error);
+                            log.error("Unexpected response for SudoRetrieveThing via cache: <{}>", thingId, error);
                             return Source.empty();
                         })
                         .build());

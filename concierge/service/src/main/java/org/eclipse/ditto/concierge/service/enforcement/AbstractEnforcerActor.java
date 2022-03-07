@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.concierge.service.enforcement;
 
+import java.util.function.UnaryOperator;
+
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
@@ -62,7 +64,7 @@ public abstract class AbstractEnforcerActor extends AbstractGraphActor<Contextua
             @Nullable final Cache<CacheKey, Entry<CacheKey>> thingIdCache,
             @Nullable final Cache<CacheKey, Entry<Enforcer>> policyEnforcerCache) {
 
-        super(WithDittoHeaders.class);
+        super(WithDittoHeaders.class, UnaryOperator.identity());
 
         final var actorContext = getContext();
         final var actorSystem = actorContext.getSystem();
