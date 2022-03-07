@@ -83,27 +83,26 @@ final class ImmutableFeaturePlaceholder implements FeaturePlaceholder {
     private static List<String> resolveFeatureIds(final JsonPointer path, final JsonValue value) {
         final List<String> featureIds;
         if (path.isEmpty()) {
-            // MergeThing is related to the full thing. We can expect value to be a Thing JSON
+            // Signal is related to the full thing. We can expect value to be a Thing JSON
             if (value.isObject()) {
                 final Thing thing = ThingsModelFactory.newThing(value.asObject());
                 featureIds = thing.getFeatures()
                         .map(features -> features.stream().map(Feature::getId).collect(Collectors.toList()))
                         .orElseGet(List::of);
             } else {
-                LOGGER.info("MergeThing command had empty path but non-object value. " +
-                        "Can't resolve placeholder <feature:id>.");
+                LOGGER.info("Signal had empty path but non-object value. Can't resolve placeholder <feature:id>.");
                 featureIds = List.of();
             }
         } else if (path.get(0).map(JsonKey::toString).filter("features"::equals).isEmpty()) {
-            // MergeThing is not related to features therefore stop resolving.
+            // Signal is not related to features therefore stop resolving.
             featureIds = List.of();
         } else if (path.getLevelCount() > 1) {
-            // MergeThing is not related to a specific feature therefore use this feature ID.
+            // Signal is not related to a specific feature therefore use this feature ID.
             featureIds = path.get(1).map(JsonKey::toString)
                     .stream()
                     .toList();
         } else {
-            // MergeThing is related to features. Therefore use all of the modified feature IDs.
+            // Signal is related to features. Therefore use all of the modified feature IDs.
             if (value.isObject()) {
                 featureIds = ThingsModelFactory.newFeatures(value.asObject())
                         .stream()
