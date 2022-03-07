@@ -37,6 +37,7 @@ import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
 import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
 import org.eclipse.ditto.connectivity.model.ConnectivityStatus;
+import org.eclipse.ditto.connectivity.model.RecoveryStatus;
 import org.eclipse.ditto.connectivity.model.ResourceStatus;
 import org.eclipse.ditto.connectivity.model.signals.commands.ConnectivityCommandResponse;
 import org.eclipse.ditto.connectivity.model.signals.commands.TestConstants;
@@ -44,7 +45,6 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.assertions.DittoJsonAssertions;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -57,9 +57,9 @@ public final class RetrieveConnectionStatusResponseTest {
     private static final Instant IN_CONNECTION_STATUS_SINCE = Instant.now();
     private static List<ResourceStatus> clientStatus =
             Arrays.asList(
-                    newClientStatus("client1", ConnectivityStatus.OPEN, "Client is connected",
+                    newClientStatus("client1", ConnectivityStatus.OPEN, RecoveryStatus.SUCCEEDED, "Client is connected",
                             IN_CONNECTION_STATUS_SINCE),
-                    newClientStatus("client2", ConnectivityStatus.FAILED, "Client failed to connect.",
+                    newClientStatus("client2", ConnectivityStatus.FAILED, RecoveryStatus.ONGOING,  "Client failed to connect.",
                             IN_CONNECTION_STATUS_SINCE.plusSeconds(3))
             );
     private static List<ResourceStatus> sourceStatus =
@@ -81,6 +81,7 @@ public final class RetrieveConnectionStatusResponseTest {
             .set(ConnectivityCommandResponse.JsonFields.JSON_CONNECTION_ID, TestConstants.ID.toString())
             .set(RetrieveConnectionStatusResponse.JsonFields.CONNECTION_STATUS, ConnectivityStatus.OPEN.getName())
             .set(RetrieveConnectionStatusResponse.JsonFields.LIVE_STATUS, ConnectivityStatus.CLOSED.getName())
+            .set(RetrieveConnectionStatusResponse.JsonFields.RECOVERY_STATUS, RecoveryStatus.UNKNOWN.getName())
             .set(RetrieveConnectionStatusResponse.JsonFields.CONNECTED_SINCE, IN_CONNECTION_STATUS_SINCE.toString())
             .set(RetrieveConnectionStatusResponse.JsonFields.CLIENT_STATUS,
                     JsonFactory.newArrayBuilder()
@@ -88,6 +89,7 @@ public final class RetrieveConnectionStatusResponseTest {
                                             .set(ResourceStatus.JsonFields.TYPE, ResourceStatus.ResourceType.CLIENT.getName())
                                             .set(ResourceStatus.JsonFields.CLIENT, "client1")
                                             .set(ResourceStatus.JsonFields.STATUS, ConnectivityStatus.OPEN.getName())
+                                            .set(ResourceStatus.JsonFields.RECOVERY_STATUS, RecoveryStatus.SUCCEEDED.getName())
                                             .set(ResourceStatus.JsonFields.STATUS_DETAILS, "Client is connected")
                                             .set(ResourceStatus.JsonFields.IN_STATE_SINCE,
                                                     IN_CONNECTION_STATUS_SINCE.toString())
@@ -96,6 +98,7 @@ public final class RetrieveConnectionStatusResponseTest {
                                             .set(ResourceStatus.JsonFields.TYPE, ResourceStatus.ResourceType.CLIENT.getName())
                                             .set(ResourceStatus.JsonFields.CLIENT, "client2")
                                             .set(ResourceStatus.JsonFields.STATUS, ConnectivityStatus.FAILED.getName())
+                                            .set(ResourceStatus.JsonFields.RECOVERY_STATUS, RecoveryStatus.ONGOING.getName())
                                             .set(ResourceStatus.JsonFields.STATUS_DETAILS, "Client failed to connect.")
                                             .set(ResourceStatus.JsonFields.IN_STATE_SINCE,
                                                     IN_CONNECTION_STATUS_SINCE.plusSeconds(3).toString())
@@ -216,6 +219,7 @@ public final class RetrieveConnectionStatusResponseTest {
                 RetrieveConnectionStatusResponse.getBuilder(TestConstants.ID, DittoHeaders.empty())
                         .connectionStatus(ConnectivityStatus.OPEN)
                         .liveStatus(ConnectivityStatus.CLOSED)
+                        .recoveryStatus(RecoveryStatus.UNKNOWN)
                         .connectedSince(IN_CONNECTION_STATUS_SINCE)
                         .clientStatus(clientStatus)
                         .sourceStatus(sourceStatus)
@@ -234,6 +238,7 @@ public final class RetrieveConnectionStatusResponseTest {
                 RetrieveConnectionStatusResponse.getBuilder(TestConstants.ID, DittoHeaders.empty())
                         .connectionStatus(ConnectivityStatus.OPEN)
                         .liveStatus(ConnectivityStatus.CLOSED)
+                        .recoveryStatus(RecoveryStatus.UNKNOWN)
                         .connectedSince(IN_CONNECTION_STATUS_SINCE)
                         .clientStatus(clientStatus)
                         .sourceStatus(sourceStatus)
@@ -250,6 +255,7 @@ public final class RetrieveConnectionStatusResponseTest {
                 RetrieveConnectionStatusResponse.getBuilder(TestConstants.ID, DittoHeaders.empty())
                         .connectionStatus(ConnectivityStatus.OPEN)
                         .liveStatus(ConnectivityStatus.CLOSED)
+                        .recoveryStatus(RecoveryStatus.UNKNOWN)
                         .connectedSince(IN_CONNECTION_STATUS_SINCE)
                         .clientStatus(clientStatus)
                         .sourceStatus(sourceStatus)
@@ -266,6 +272,7 @@ public final class RetrieveConnectionStatusResponseTest {
                 RetrieveConnectionStatusResponse.getBuilder(TestConstants.ID, DittoHeaders.empty())
                         .connectionStatus(ConnectivityStatus.OPEN)
                         .liveStatus(ConnectivityStatus.CLOSED)
+                        .recoveryStatus(RecoveryStatus.UNKNOWN)
                         .connectedSince(IN_CONNECTION_STATUS_SINCE)
                         .clientStatus(Collections.emptyList())
                         .sourceStatus(Collections.emptyList())

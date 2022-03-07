@@ -43,6 +43,7 @@ import org.eclipse.ditto.base.model.signals.commands.CommandResponseJsonDeserial
 import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
 import org.eclipse.ditto.connectivity.model.ConnectivityStatus;
+import org.eclipse.ditto.connectivity.model.RecoveryStatus;
 import org.eclipse.ditto.connectivity.model.ResourceStatus;
 import org.eclipse.ditto.connectivity.model.WithConnectionId;
 import org.eclipse.ditto.connectivity.model.signals.commands.ConnectivityCommandResponse;
@@ -138,11 +139,13 @@ public final class RetrieveConnectionStatusResponse extends AbstractCommandRespo
         checkNotNull(connectionId, "connectionId");
         checkNotNull(connectionClosedAt, "connectionClosedAt");
         final ResourceStatus resourceStatus =
-                ConnectivityModelFactory.newClientStatus(client, clientStatus, statusDetails, connectionClosedAt);
+                ConnectivityModelFactory.newClientStatus(client, clientStatus, RecoveryStatus.UNKNOWN,
+                        statusDetails, connectionClosedAt);
 
         return getBuilder(connectionId, dittoHeaders)
                 .connectionStatus(clientStatus)
                 .liveStatus(clientStatus)
+                .recoveryStatus(RecoveryStatus.UNKNOWN)
                 .connectedSince(null)
                 .clientStatus(Collections.singletonList(resourceStatus))
                 .sourceStatus(Collections.emptyList())
@@ -203,6 +206,15 @@ public final class RetrieveConnectionStatusResponse extends AbstractCommandRespo
     public ConnectivityStatus getLiveStatus() {
         return ConnectivityStatus.forName(jsonObject.getValue(JsonFields.LIVE_STATUS).orElse("UNKNOWN"))
                 .orElse(ConnectivityStatus.UNKNOWN);
+    }
+
+    /**
+     * @return the current RecoveryStatus of the related {@link org.eclipse.ditto.connectivity.model.Connection}.
+     */
+    public RecoveryStatus getRecoveryStatus() {
+        return jsonObject.getValue(JsonFields.RECOVERY_STATUS)
+                .flatMap(RecoveryStatus::forName)
+                .orElse(RecoveryStatus.UNKNOWN);
     }
 
     /**
@@ -331,6 +343,9 @@ public final class RetrieveConnectionStatusResponse extends AbstractCommandRespo
         public static final JsonFieldDefinition<String> LIVE_STATUS =
                 JsonFieldDefinition.ofString("liveStatus", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
+        public static final JsonFieldDefinition<String> RECOVERY_STATUS =
+                JsonFieldDefinition.ofString("recoveryStatus", FieldType.REGULAR, JsonSchemaVersion.V_2);
+
         public static final JsonFieldDefinition<String> CONNECTED_SINCE =
                 JsonFieldDefinition.ofString("connectedSince", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
@@ -360,6 +375,7 @@ public final class RetrieveConnectionStatusResponse extends AbstractCommandRespo
         private final DittoHeaders dittoHeaders;
         @Nullable private ConnectivityStatus connectionStatus;
         @Nullable private ConnectivityStatus liveStatus;
+        @Nullable private RecoveryStatus recoveryStatus;
         @Nullable private Instant connectedSince;
         @Nullable private List<ResourceStatus> clientStatus;
         @Nullable private List<ResourceStatus> sourceStatus;
@@ -381,6 +397,11 @@ public final class RetrieveConnectionStatusResponse extends AbstractCommandRespo
 
         public Builder liveStatus(final ConnectivityStatus liveStatus) {
             this.liveStatus = checkNotNull(liveStatus, "Live Connection Status");
+            return this;
+        }
+
+        public Builder recoveryStatus(final RecoveryStatus recoveryStatus) {
+            this.recoveryStatus = checkNotNull(recoveryStatus, "recoveryStatus");
             return this;
         }
 
@@ -458,6 +479,10 @@ public final class RetrieveConnectionStatusResponse extends AbstractCommandRespo
 
             if (liveStatus != null) {
                 jsonObjectBuilder.set(JsonFields.LIVE_STATUS, liveStatus.toString());
+            }
+
+            if (recoveryStatus != null) {
+                jsonObjectBuilder.set(JsonFields.RECOVERY_STATUS, recoveryStatus.toString());
             }
 
             if (connectedSince != null) {

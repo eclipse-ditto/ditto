@@ -55,6 +55,11 @@ public interface ResourceStatus extends Jsonifiable.WithFieldSelectorAndPredicat
     ConnectivityStatus getStatus();
 
     /**
+     * @return the current recovery status of the resource (only applicable for the {@code CLIENT} resource).
+     */
+    Optional<RecoveryStatus> getRecoveryStatus();
+
+    /**
      * @return the optional status details
      */
     Optional<String> getStatusDetails();
@@ -186,6 +191,12 @@ public interface ResourceStatus extends Jsonifiable.WithFieldSelectorAndPredicat
          */
         public static final JsonFieldDefinition<String> STATUS =
                 JsonFactory.newStringFieldDefinition("status", FieldType.REGULAR, JsonSchemaVersion.V_2);
+
+        /**
+         * JSON field containing the {@code RecoveryStatus} value.
+         */
+        public static final JsonFieldDefinition<String> RECOVERY_STATUS =
+                JsonFactory.newStringFieldDefinition("recoveryStatus", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the {@code client} value.

@@ -38,11 +38,13 @@ final class ImmutableResourceStatus implements ResourceStatus {
     private final ResourceType type;
     private final String client;
     private final ConnectivityStatus status;
+    @Nullable private final RecoveryStatus recoveryStatus;
     @Nullable private final String address;
     @Nullable private final String statusDetails;
     @Nullable private final Instant inStateSince;
 
     private ImmutableResourceStatus(final ResourceType type, final String client, final ConnectivityStatus status,
+            @Nullable final RecoveryStatus recoveryStatus,
             @Nullable final String address,
             @Nullable final String statusDetails,
             @Nullable final Instant inStateSince) {
@@ -50,6 +52,7 @@ final class ImmutableResourceStatus implements ResourceStatus {
         this.type = checkNotNull(type, "type");
         this.client = checkNotNull(client, "client");
         this.status = checkNotNull(status, "status");
+        this.recoveryStatus = recoveryStatus;
         this.address = address;
         this.statusDetails = statusDetails;
         this.inStateSince = inStateSince;
@@ -74,7 +77,31 @@ final class ImmutableResourceStatus implements ResourceStatus {
             @Nullable final String statusDetails,
             @Nullable final Instant inStateSince) {
 
-        return new ImmutableResourceStatus(type, client, status, address, statusDetails, inStateSince);
+        return new ImmutableResourceStatus(type, client, status, null, address, statusDetails, inStateSince);
+    }
+
+    /**
+     * Creates a new {@code ImmutableResourceStatus} instance.
+     *
+     * @param type a resource type
+     * @param client the client identifier of the resource
+     * @param status the current status of the resource
+     * @param recoveryStatus the current recovery status of the resource
+     * @param address an address describing the resource
+     * @param statusDetails the optional status details
+     * @param inStateSince the instant since the resource is in the given state
+     * @return a new instance of ImmutableResourceStatus
+     * @throws NullPointerException if any non-nullable argument is {@code null}.
+     */
+    public static ImmutableResourceStatus of(final ResourceType type,
+            final String client,
+            final ConnectivityStatus status,
+            @Nullable final RecoveryStatus recoveryStatus,
+            @Nullable final String address,
+            @Nullable final String statusDetails,
+            @Nullable final Instant inStateSince) {
+
+        return new ImmutableResourceStatus(type, client, status, recoveryStatus, address, statusDetails, inStateSince);
     }
 
     /**
@@ -94,7 +121,7 @@ final class ImmutableResourceStatus implements ResourceStatus {
             @Nullable final String address,
             @Nullable final String statusDetails) {
 
-        return new ImmutableResourceStatus(type, client, status, address, statusDetails, null);
+        return new ImmutableResourceStatus(type, client, status, null, address, statusDetails, null);
     }
 
     @Override
@@ -118,6 +145,11 @@ final class ImmutableResourceStatus implements ResourceStatus {
     }
 
     @Override
+    public Optional<RecoveryStatus> getRecoveryStatus() {
+        return Optional.ofNullable(recoveryStatus);
+    }
+
+    @Override
     public Optional<String> getStatusDetails() {
         return Optional.ofNullable(statusDetails);
     }
@@ -137,6 +169,9 @@ final class ImmutableResourceStatus implements ResourceStatus {
             jsonObjectBuilder.set(JsonFields.ADDRESS, address, predicate);
         }
         jsonObjectBuilder.set(JsonFields.STATUS, status.getName(), predicate);
+        if (recoveryStatus != null) {
+            jsonObjectBuilder.set(JsonFields.RECOVERY_STATUS, recoveryStatus.getName(), predicate);
+        }
         if (statusDetails != null) {
             jsonObjectBuilder.set(JsonFields.STATUS_DETAILS, statusDetails, predicate);
         }
@@ -155,10 +190,11 @@ final class ImmutableResourceStatus implements ResourceStatus {
      * @throws JsonParseException if {@code jsonObject} is not an appropriate JSON object.
      */
     public static ResourceStatus fromJson(final JsonObject jsonObject) {
-        return ImmutableResourceStatus.of(
+        return new ImmutableResourceStatus(
                 ResourceType.forName(jsonObject.getValueOrThrow(JsonFields.TYPE)).orElse(ResourceType.UNKNOWN),
                 jsonObject.getValueOrThrow(JsonFields.CLIENT),
                 ConnectivityStatus.forName(jsonObject.getValueOrThrow(JsonFields.STATUS)).orElse(ConnectivityStatus.UNKNOWN),
+                jsonObject.getValue(JsonFields.RECOVERY_STATUS).flatMap(RecoveryStatus::forName).orElse(null),
                 jsonObject.getValue(JsonFields.ADDRESS).orElse(null),
                 jsonObject.getValue(JsonFields.STATUS_DETAILS).orElse(null),
                 jsonObject.getValue(JsonFields.IN_STATE_SINCE).map(Instant::parse).orElse(null)
@@ -177,6 +213,7 @@ final class ImmutableResourceStatus implements ResourceStatus {
         return type == that.type &&
                 Objects.equals(client, that.client) &&
                 Objects.equals(status, that.status) &&
+                Objects.equals(recoveryStatus, that.recoveryStatus) &&
                 Objects.equals(address, that.address) &&
                 Objects.equals(inStateSince, that.inStateSince) &&
                 Objects.equals(statusDetails, that.statusDetails);
@@ -184,7 +221,7 @@ final class ImmutableResourceStatus implements ResourceStatus {
 
     @Override
     public int hashCode() {
-        return Objects.hash(type, client, status, address, statusDetails, inStateSince);
+        return Objects.hash(type, client, status, recoveryStatus, address, statusDetails, inStateSince);
     }
 
     @Override
@@ -193,6 +230,7 @@ final class ImmutableResourceStatus implements ResourceStatus {
                 "type=" + type +
                 ", client=" + client +
                 ", status=" + status +
+                ", recoveryStatus=" + recoveryStatus +
                 ", address=" + address +
                 ", statusDetails=" + statusDetails +
                 ", inStateSince=" + inStateSince +
