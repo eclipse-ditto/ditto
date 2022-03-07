@@ -20,6 +20,9 @@ import java.util.List;
 
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.base.model.signals.Signal;
+import org.eclipse.ditto.base.model.signals.WithFeatureId;
+
 /**
  * Placeholder implementation that replaces {@code feature:id}. The input value is a String and must be a
  * valid Feature ID.
@@ -39,11 +42,17 @@ final class ImmutableFeaturePlaceholder implements FeaturePlaceholder {
     static final ImmutableFeaturePlaceholder INSTANCE = new ImmutableFeaturePlaceholder();
 
     @Override
-    public List<String> resolveValues(final CharSequence featureId, final String placeholder) {
-        checkNotNull(featureId, "featureId");
+    public List<String> resolveValues(final Signal<?> signal, final String placeholder) {
+        checkNotNull(signal, "signal");
         argumentNotEmpty(placeholder, "placeholder");
         if (ID_PLACEHOLDER.equals(placeholder)) {
-            return Collections.singletonList(featureId.toString());
+            final List<String> featureIds;
+            if (signal instanceof WithFeatureId) {
+                featureIds = Collections.singletonList(((WithFeatureId) signal).getFeatureId());
+            } else {
+                featureIds = Collections.emptyList();
+            }
+            return featureIds;
         }
         return Collections.emptyList();
     }

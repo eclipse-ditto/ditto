@@ -25,7 +25,6 @@ import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.base.model.entity.id.WithEntityId;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.signals.Signal;
-import org.eclipse.ditto.base.model.signals.WithFeatureId;
 import org.eclipse.ditto.connectivity.api.ExternalMessage;
 import org.eclipse.ditto.connectivity.api.OutboundSignal;
 import org.eclipse.ditto.connectivity.api.placeholders.ConnectivityPlaceholders;
@@ -56,13 +55,7 @@ public final class Resolvers {
                     (e, s, t, a, c) -> WithEntityId.getEntityIdOfType(EntityId.class, s).orElse(null)),
             ResolverCreator.of(ConnectivityPlaceholders.newThingPlaceholder(),
                     (e, s, t, a, c) -> WithEntityId.getEntityIdOfType(EntityId.class, s).orElse(null)),
-            ResolverCreator.of(ConnectivityPlaceholders.newFeaturePlaceholder(), (e, s, t, a, c) -> {
-                if (s instanceof WithFeatureId) {
-                    return ((WithFeatureId) s).getFeatureId();
-                } else {
-                    return null;
-                }
-            }),
+            ResolverCreator.of(ConnectivityPlaceholders.newFeaturePlaceholder(), (e, s, t, a, c) -> s),
             ResolverCreator.of(ConnectivityPlaceholders.newTopicPathPlaceholder(), (e, s, t, a, c) -> t),
             ResolverCreator.of(ConnectivityPlaceholders.newResourcePlaceholder(), (e, s, t, a, c) -> s),
             ResolverCreator.of(ConnectivityPlaceholders.newTimePlaceholder(), (e, s, t, a, c) -> new Object()),

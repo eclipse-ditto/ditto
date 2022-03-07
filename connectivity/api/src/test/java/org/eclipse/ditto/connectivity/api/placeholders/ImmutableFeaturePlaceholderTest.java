@@ -13,8 +13,13 @@
 package org.eclipse.ditto.connectivity.api.placeholders;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.when;
 
+import org.eclipse.ditto.base.model.signals.Signal;
+import org.eclipse.ditto.base.model.signals.WithFeatureId;
+import org.junit.BeforeClass;
 import org.junit.Test;
+import org.mockito.Mockito;
 import org.mutabilitydetector.unittesting.MutabilityAssert;
 import org.mutabilitydetector.unittesting.MutabilityMatchers;
 
@@ -28,6 +33,15 @@ public final class ImmutableFeaturePlaceholderTest {
 
     private static final String FEATURE_ID = "FluxCapacitor";
     private static final FeaturePlaceholder UNDER_TEST = ImmutableFeaturePlaceholder.INSTANCE;
+    private static Signal<?> signalWithFeatureId;
+    private static Signal<?> signalWithOutFeatureId;
+
+    @BeforeClass
+    public static void setupClass() {
+        signalWithFeatureId = Mockito.mock(Signal.class, Mockito.withSettings().extraInterfaces(WithFeatureId.class));
+        signalWithOutFeatureId = Mockito.mock(Signal.class);
+        when(((WithFeatureId) signalWithFeatureId).getFeatureId()).thenReturn(FEATURE_ID);
+    }
 
     @Test
     public void assertImmutability() {
@@ -44,12 +58,17 @@ public final class ImmutableFeaturePlaceholderTest {
 
     @Test
     public void testReplaceFeatureId() {
-        assertThat(UNDER_TEST.resolveValues(FEATURE_ID, "id")).contains(FEATURE_ID);
+        assertThat(UNDER_TEST.resolveValues(signalWithFeatureId, "id")).contains(FEATURE_ID);
     }
 
     @Test
     public void testUnknownPlaceholderReturnsEmpty() {
-        assertThat(UNDER_TEST.resolveValues(FEATURE_ID, "feature_id")).isEmpty();
+        assertThat(UNDER_TEST.resolveValues(signalWithFeatureId, "feature_id")).isEmpty();
+    }
+
+    @Test
+    public void testSignalWhichIsNotWithFeatureIdReturnsEmpty() {
+        assertThat(UNDER_TEST.resolveValues(signalWithOutFeatureId, "id")).isEmpty();
     }
 
 }

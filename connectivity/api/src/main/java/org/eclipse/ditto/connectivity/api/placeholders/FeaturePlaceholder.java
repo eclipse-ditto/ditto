@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.connectivity.api.placeholders;
 
+import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.placeholders.Placeholder;
 
 /**
@@ -21,5 +22,5 @@ import org.eclipse.ditto.placeholders.Placeholder;
  *
  * @since 1.5.0
  */
-public interface FeaturePlaceholder extends Placeholder<CharSequence> {
+public interface FeaturePlaceholder extends Placeholder<Signal<?>> {
 }
