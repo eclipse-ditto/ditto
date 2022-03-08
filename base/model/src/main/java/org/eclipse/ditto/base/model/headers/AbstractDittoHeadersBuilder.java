@@ -361,6 +361,12 @@ public abstract class AbstractDittoHeadersBuilder<S extends AbstractDittoHeaders
     }
 
     @Override
+    public S accept(@Nullable final CharSequence accept) {
+        putCharSequence(DittoHeaderDefinition.ACCEPT, accept);
+        return myself;
+    }
+
+    @Override
     public S eTag(final EntityTag eTag) {
         putCharSequence(DittoHeaderDefinition.ETAG, eTag.toString());
         return myself;

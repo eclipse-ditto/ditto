@@ -38,6 +38,7 @@ import org.eclipse.ditto.protocol.mappingstrategies.IllegalAdaptableException;
 import org.eclipse.ditto.things.model.ThingIdInvalidException;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.AttributePointerInvalidException;
 import org.eclipse.ditto.thingsearch.model.signals.commands.exceptions.InvalidNamespacesException;
+import org.eclipse.ditto.wot.model.WotThingModelInvalidException;
 
 public final class ConciergeServiceGlobalErrorRegistryTest extends GlobalErrorRegistryTestCases {
 
@@ -66,7 +67,8 @@ public final class ConciergeServiceGlobalErrorRegistryTest extends GlobalErrorRe
                 PathUnknownException.class,
                 UnknownTopicPathException.class,
                 AskException.class,
-                IllegalAdaptableException.class);
+                IllegalAdaptableException.class,
+                WotThingModelInvalidException.class);
     }
 
 }

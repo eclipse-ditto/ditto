@@ -25,6 +25,8 @@ import java.util.stream.Collectors;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.signals.ShardedMessageEnvelope;
+import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
+import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLogger;
 import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.internal.utils.metrics.instruments.counter.Counter;
 import org.eclipse.ditto.thingsearch.api.commands.sudo.UpdateThingResponse;
@@ -46,6 +48,9 @@ import akka.stream.javadsl.Flow;
  * Flow that sends acknowledgements to ThingUpdater according to bulk write results.
  */
 final class BulkWriteResultAckFlow {
+
+    private static final ThreadSafeDittoLogger LOGGER =
+            DittoLoggerFactory.getThreadSafeLogger(BulkWriteResultAckFlow.class);
 
     private static final String ERRORS_COUNTER_NAME = "search-index-update-errors";
 
@@ -104,7 +109,11 @@ final class BulkWriteResultAckFlow {
         // It is not possible to identify which patches are not applied; therefore request all patch updates to retry.
         writeResultAndErrors.getWriteModels().forEach(model -> {
             final var response =
-                    createFailureResponse(model.getMetadata(), INCORRECT_PATCH_HEADERS);
+                    createFailureResponse(model.getMetadata(), INCORRECT_PATCH_HEADERS.toBuilder()
+                            .correlationId(writeResultAndErrors.getBulkWriteCorrelationId()).build());
+            LOGGER.withCorrelationId(writeResultAndErrors.getBulkWriteCorrelationId())
+                    .warn("Encountered incorrect patch update for metadata: <{}> and filter: <{}>",
+                            model.getMetadata(), model.getFilter());
             model.getMetadata().getOrigin().ifPresent(updater -> updater.tell(response, ActorRef.noSender()));
         });
     }

@@ -21,8 +21,12 @@ import org.eclipse.ditto.placeholders.Placeholder;
  */
 public interface EntityIdPlaceholder extends Placeholder<EntityId> {
 
+    /**
+     * Returns the singleton instance of the {@link EntityIdPlaceholder}.
+     *
+     * @return the singleton instance.
+     */
     static EntityIdPlaceholder getInstance() {
         return ImmutableEntityIdPlaceholder.INSTANCE;
     }
-
 }

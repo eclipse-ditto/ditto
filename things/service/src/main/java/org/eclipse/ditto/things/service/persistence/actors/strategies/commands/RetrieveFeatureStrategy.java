@@ -17,19 +17,27 @@ import java.util.Optional;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.base.model.entity.metadata.Metadata;
+import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.headers.DittoHeadersSettable;
+import org.eclipse.ditto.base.model.headers.contenttype.ContentType;
 import org.eclipse.ditto.base.model.headers.entitytag.EntityTag;
+import org.eclipse.ditto.base.model.signals.FeatureToggle;
+import org.eclipse.ditto.internal.utils.persistentactors.results.Result;
+import org.eclipse.ditto.internal.utils.persistentactors.results.ResultFactory;
+import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.things.model.Feature;
 import org.eclipse.ditto.things.model.Features;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingId;
-import org.eclipse.ditto.internal.utils.persistentactors.results.Result;
-import org.eclipse.ditto.internal.utils.persistentactors.results.ResultFactory;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveFeature;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveFeatureResponse;
+import org.eclipse.ditto.things.model.signals.commands.query.RetrieveWotThingDescriptionResponse;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
+import org.eclipse.ditto.wot.integration.provider.WotThingDescriptionProvider;
+
+import akka.actor.ActorSystem;
 
 /**
  * This strategy handles the {@link org.eclipse.ditto.things.model.signals.commands.query.RetrieveFeature} command.
@@ -37,11 +45,16 @@ import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 @Immutable
 final class RetrieveFeatureStrategy extends AbstractThingCommandStrategy<RetrieveFeature> {
 
+    private final WotThingDescriptionProvider wotThingDescriptionProvider;
+
     /**
      * Constructs a new {@code RetrieveFeatureStrategy} object.
+     *
+     * @param actorSystem the actor system to use for loading the WoT extension.
      */
-    RetrieveFeatureStrategy() {
+    RetrieveFeatureStrategy(final ActorSystem actorSystem) {
         super(RetrieveFeature.class);
+        wotThingDescriptionProvider = WotThingDescriptionProvider.get(actorSystem);
     }
 
     @Override
@@ -53,13 +66,51 @@ final class RetrieveFeatureStrategy extends AbstractThingCommandStrategy<Retriev
 
         final ThingId thingId = context.getState();
 
-        return extractFeatures(thing)
-                .map(features -> getFeatureResult(features, thingId, command, thing))
-                .orElseGet(() -> ResultFactory.newErrorResult(ExceptionFactory.featureNotFound(thingId,
-                        command.getFeatureId(), command.getDittoHeaders()), command));
+        final boolean wotThingDescriptionRequested = command.getDittoHeaders().getAccept()
+                .filter(ContentType.APPLICATION_TD_JSON.getValue()::equals)
+                .isPresent();
+
+        if (wotThingDescriptionRequested) {
+            FeatureToggle.checkWotIntegrationFeatureEnabled(command.getType(), command.getDittoHeaders());
+            try {
+                return ResultFactory.newQueryResult(command,
+                        appendETagHeaderIfProvided(command, getRetrieveThingDescriptionResponse(thing, command), thing));
+            } catch (final DittoRuntimeException e) {
+                return ResultFactory.newErrorResult(e, command);
+            }
+        } else {
+            return extractFeatures(thing)
+                    .map(features -> getFeatureResult(features, thingId, command, thing))
+                    .orElseGet(() -> ResultFactory.newErrorResult(ExceptionFactory.featureNotFound(thingId,
+                            command.getFeatureId(), command.getDittoHeaders()), command));
+        }
     }
 
-    private Optional<Features> extractFeatures(final @Nullable Thing thing) {
+    private DittoHeadersSettable<?> getRetrieveThingDescriptionResponse(@Nullable final Thing thing,
+            final RetrieveFeature command) {
+        final String featureId = command.getFeatureId();
+        if (thing != null) {
+            return thing.getFeatures()
+                    .flatMap(f -> f.getFeature(featureId))
+                    .map(feature -> wotThingDescriptionProvider
+                            .provideFeatureTD(command.getEntityId(), thing, feature, command.getDittoHeaders())
+                    )
+                    .map(td -> RetrieveWotThingDescriptionResponse.of(command.getEntityId(), td.toJson(),
+                            command.getDittoHeaders()
+                                    .toBuilder()
+                                    .contentType(ContentType.APPLICATION_TD_JSON)
+                                    .build())
+                    )
+                    .map(DittoHeadersSettable.class::cast)
+                    .orElseGet(() -> ExceptionFactory.featureNotFound(command.getEntityId(), featureId,
+                            command.getDittoHeaders()));
+        } else {
+            return ExceptionFactory.featureNotFound(command.getEntityId(), featureId,
+                    command.getDittoHeaders());
+        }
+    }
+
+    private Optional<Features> extractFeatures(@Nullable final Thing thing) {
         return getEntityOrThrow(thing).getFeatures();
     }
 

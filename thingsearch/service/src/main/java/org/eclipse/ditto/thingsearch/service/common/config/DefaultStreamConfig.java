@@ -34,12 +34,16 @@ public final class DefaultStreamConfig implements StreamConfig {
     private static final String RETRIEVAL_CONFIG_PATH = "retrieval";
     private static final String ASK_WITH_RETRY_CONFIG_PATH = "ask-with-retry";
 
+    private static final String POLICY_CACHE_CONFIG_PATH = "policy-cache";
+    private static final String THING_CACHE_CONFIG_PATH = "thing-cache";
+
     private final int maxArraySize;
     private final Duration writeInterval;
+    private final AskWithRetryConfig askWithRetryConfig;
     private final StreamStageConfig retrievalConfig;
     private final PersistenceStreamConfig persistenceStreamConfig;
-    private final StreamCacheConfig streamCacheConfig;
-    private final AskWithRetryConfig askWithRetryConfig;
+    private final StreamCacheConfig policyCacheConfig;
+    private final StreamCacheConfig thingCacheConfig;
 
     private DefaultStreamConfig(final ConfigWithFallback streamScopedConfig) {
         maxArraySize = streamScopedConfig.getNonNegativeIntOrThrow(StreamConfigValue.MAX_ARRAY_SIZE);
@@ -47,7 +51,8 @@ public final class DefaultStreamConfig implements StreamConfig {
         askWithRetryConfig = DefaultAskWithRetryConfig.of(streamScopedConfig, ASK_WITH_RETRY_CONFIG_PATH);
         retrievalConfig = DefaultStreamStageConfig.getInstance(streamScopedConfig, RETRIEVAL_CONFIG_PATH);
         persistenceStreamConfig = DefaultPersistenceStreamConfig.of(streamScopedConfig);
-        streamCacheConfig = DefaultStreamCacheConfig.of(streamScopedConfig);
+        policyCacheConfig = DefaultStreamCacheConfig.of(streamScopedConfig, POLICY_CACHE_CONFIG_PATH);
+        thingCacheConfig = DefaultStreamCacheConfig.of(streamScopedConfig, THING_CACHE_CONFIG_PATH);
     }
 
     /**
@@ -87,8 +92,13 @@ public final class DefaultStreamConfig implements StreamConfig {
     }
 
     @Override
-    public StreamCacheConfig getCacheConfig() {
-        return streamCacheConfig;
+    public StreamCacheConfig getPolicyCacheConfig() {
+        return policyCacheConfig;
+    }
+
+    @Override
+    public StreamCacheConfig getThingCacheConfig() {
+        return thingCacheConfig;
     }
 
     @Override
@@ -105,13 +115,14 @@ public final class DefaultStreamConfig implements StreamConfig {
                 askWithRetryConfig.equals(that.askWithRetryConfig) &&
                 retrievalConfig.equals(that.retrievalConfig) &&
                 persistenceStreamConfig.equals(that.persistenceStreamConfig) &&
-                streamCacheConfig.equals(that.streamCacheConfig);
+                policyCacheConfig.equals(that.policyCacheConfig) &&
+                thingCacheConfig.equals(that.thingCacheConfig);
     }
 
     @Override
     public int hashCode() {
         return Objects.hash(maxArraySize, writeInterval, askWithRetryConfig, retrievalConfig,
-                persistenceStreamConfig, streamCacheConfig);
+                persistenceStreamConfig, policyCacheConfig, thingCacheConfig);
     }
 
     @Override
@@ -122,7 +133,8 @@ public final class DefaultStreamConfig implements StreamConfig {
                 ", askWithRetryConfig=" + askWithRetryConfig +
                 ", retrievalConfig=" + retrievalConfig +
                 ", persistenceStreamConfig=" + persistenceStreamConfig +
-                ", streamCacheConfig=" + streamCacheConfig +
+                ", policyCacheConfig=" + policyCacheConfig +
+                ", thingCacheConfig=" + thingCacheConfig +
                 "]";
     }
 

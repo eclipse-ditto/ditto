@@ -174,7 +174,6 @@
                 <groupId>com.github.siom79.japicmp</groupId>
                 <artifactId>japicmp-maven-plugin</artifactId>
                 <configuration>
-                    <skip>true</skip> <!-- TODO TJ unskip once 2.3.0 was released -->
                     <parameter>
                         <excludes>
                             <!-- Always exclude the 'internal' package -->

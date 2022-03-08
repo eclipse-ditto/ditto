@@ -174,13 +174,24 @@ public final class ThingMerged extends AbstractThingEvent<ThingMerged> implement
 
     @Override
     public boolean equals(final Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        if (!super.equals(o)) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        if (!super.equals(o)) {
+            return false;
+        }
         final ThingMerged that = (ThingMerged) o;
         return that.canEqual(this) && thingId.equals(that.thingId) &&
                 path.equals(that.path) &&
                 value.equals(that.value);
+    }
+
+    @Override
+    protected boolean canEqual(@Nullable final Object other) {
+        return other instanceof ThingMerged;
     }
 
     @Override
@@ -190,8 +201,7 @@ public final class ThingMerged extends AbstractThingEvent<ThingMerged> implement
 
     @Override
     public String toString() {
-        return getClass().getSimpleName() + " [" +
-                "thingId=" + thingId +
+        return getClass().getSimpleName() + " [" + super.toString() +
                 ", path=" + path +
                 ", value=" + value +
                 "]";

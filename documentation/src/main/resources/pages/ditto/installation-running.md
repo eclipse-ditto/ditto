@@ -7,6 +7,12 @@ permalink: installation-running.html
 
 ## Start Ditto
 
+Resource requirements:
+* in order to start Ditto locally (via Docker Compose), you'll need **at least**:
+  * 2 CPU cores to be used by Docker
+  * 4 GB of RAM to be used by Docker
+* if you decide to run Ditto in a local Kubernetes environment, you'll need some additional resources for Kubernetes
+
 In order to start Ditto, you'll need:
 * a [MongoDB](https://github.com/mongodb/mongo) service or container with version __4.2__ as backing datastore of Ditto.
   (if you want to use a managed MongoDB service have a look in the [section](#managed-mongodb-service) below)
@@ -15,7 +21,7 @@ In order to start Ditto, you'll need:
     * or by using the pre-built [Ditto images on Docker Hub](https://hub.docker.com/u/eclipse/).
 * some other tools like docker-compose, helm, k3s, minikube or openshift to run Ditto.
  
-You can choose from several options to deploy Ditto.
+You can choose from several options to run/deploy Ditto.
 A good starting point here is [Ditto Deployment](https://github.com/eclipse/ditto/blob/master/deployment/README.md).
 After completing the deployment of your choice Ditto should be up & running.
 

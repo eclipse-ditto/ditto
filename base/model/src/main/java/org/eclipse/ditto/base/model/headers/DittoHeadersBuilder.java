@@ -157,6 +157,15 @@ public interface DittoHeadersBuilder<B extends DittoHeadersBuilder<B, R>, R exte
     B contentType(@Nullable ContentType contentType);
 
     /**
+     * Sets the accept value.
+     *
+     * @param accept the accept value to be set.
+     * @return this builder for Method Chaining.
+     * @since 2.4.0
+     */
+    B accept(@Nullable CharSequence accept);
+
+    /**
      * Sets the ETag value.
      *
      * @param eTag The ETag value to be set.

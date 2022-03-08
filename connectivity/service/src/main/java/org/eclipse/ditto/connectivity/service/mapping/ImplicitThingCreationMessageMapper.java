@@ -15,23 +15,27 @@ package org.eclipse.ditto.connectivity.service.mapping;
 import static org.eclipse.ditto.base.model.exceptions.DittoJsonException.wrapJsonRuntimeException;
 
 import java.util.Collections;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Function;
+import java.util.function.BiFunction;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.common.Placeholders;
 import org.eclipse.ditto.base.model.entity.id.NamespacedEntityIdInvalidException;
+import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.entitytag.EntityTagMatcher;
 import org.eclipse.ditto.base.model.headers.entitytag.EntityTagMatchers;
 import org.eclipse.ditto.base.model.signals.GlobalErrorRegistry;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.connectivity.api.ExternalMessage;
+import org.eclipse.ditto.connectivity.api.placeholders.ConnectivityPlaceholders;
 import org.eclipse.ditto.connectivity.model.MessageMapperConfigurationInvalidException;
 import org.eclipse.ditto.connectivity.service.config.mapping.MappingConfig;
+import org.eclipse.ditto.edge.api.placeholders.RequestPlaceholder;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLogger;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.json.JsonFactory;
@@ -42,6 +46,7 @@ import org.eclipse.ditto.placeholders.ExpressionResolver;
 import org.eclipse.ditto.placeholders.HeadersPlaceholder;
 import org.eclipse.ditto.placeholders.PlaceholderFactory;
 import org.eclipse.ditto.placeholders.PlaceholderFilter;
+import org.eclipse.ditto.placeholders.TimePlaceholder;
 import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.protocol.Adaptable;
@@ -72,7 +77,9 @@ public final class ImplicitThingCreationMessageMapper extends AbstractMessageMap
     private static final DittoLogger LOGGER = DittoLoggerFactory.getLogger(ImplicitThingCreationMessageMapper.class);
 
     private static final DittoProtocolAdapter DITTO_PROTOCOL_ADAPTER = DittoProtocolAdapter.newInstance();
+    private static final TimePlaceholder TIME_PLACEHOLDER = TimePlaceholder.getInstance();
     private static final HeadersPlaceholder HEADERS_PLACEHOLDER = PlaceholderFactory.newHeadersPlaceholder();
+    private static final RequestPlaceholder REQUEST_PLACEHOLDER = ConnectivityPlaceholders.newRequestPlaceholder();
     private static final String THING_TEMPLATE = "thing";
     private static final String ALLOW_POLICY_LOCKOUT_OPTION = "allowPolicyLockout";
     private static final String COMMAND_HEADERS = "commandHeaders";
@@ -80,8 +87,9 @@ public final class ImplicitThingCreationMessageMapper extends AbstractMessageMap
     private static final String THING_ID_CONFIGURATION_PROPERTY = THING_TEMPLATE + "/" + THING_ID;
     private static final String POLICY_ID = "policyId";
     private static final String POLICY_ID_CONFIGURATION_PROPERTY = THING_TEMPLATE + "/" + POLICY_ID;
+    public static final EntityTagMatcher ASTERISK = EntityTagMatcher.asterisk();
 
-    private final Function<Map<String, String>, ExpressionResolver> resolverFactory;
+    private final BiFunction<Map<String, String>, AuthorizationContext, ExpressionResolver> resolverFactory;
 
     private String thingTemplate;
     private Map<String, String> commandHeaders;
@@ -92,7 +100,7 @@ public final class ImplicitThingCreationMessageMapper extends AbstractMessageMap
      */
     @SuppressWarnings("unused")
     public ImplicitThingCreationMessageMapper() {
-        this(ImplicitThingCreationMessageMapper::getHeadersExpressionResolver);
+        this(ImplicitThingCreationMessageMapper::getExpressionResolver);
     }
 
     /**
@@ -100,7 +108,8 @@ public final class ImplicitThingCreationMessageMapper extends AbstractMessageMap
      *
      * @param resolverFactory the creator of expression resolver.
      */
-    public ImplicitThingCreationMessageMapper(final Function<Map<String, String>, ExpressionResolver> resolverFactory) {
+    public ImplicitThingCreationMessageMapper(
+            final BiFunction<Map<String, String>, AuthorizationContext, ExpressionResolver> resolverFactory) {
         this.resolverFactory = resolverFactory;
     }
 
@@ -112,13 +121,16 @@ public final class ImplicitThingCreationMessageMapper extends AbstractMessageMap
         commandHeaders = configuration.findProperty(COMMAND_HEADERS, JsonValue::isObject, JsonValue::asObject)
                 .filter(configuredHeaders -> !configuredHeaders.isEmpty())
                 .map(configuredHeaders -> {
-                    final Map<String, String> newCommandHeaders = new HashMap<>();
+                    final Map<String, String> newCommandHeaders = new LinkedHashMap<>();
+                    newCommandHeaders.put(DittoHeaderDefinition.IF_NONE_MATCH.getKey(), ASTERISK.toString());
                     for (final JsonField field : configuredHeaders) {
                         newCommandHeaders.put(field.getKeyName(), field.getValue().formatAsString());
                     }
                     return Collections.unmodifiableMap(newCommandHeaders);
                 })
-                .orElse(Map.of());
+                .orElseGet(() -> DittoHeaders.newBuilder()
+                        .ifNoneMatch(EntityTagMatchers.fromList(Collections.singletonList(ASTERISK)))
+                        .build());
 
         final JsonObject thingJson = JsonObject.of(thingTemplate);
 
@@ -170,7 +182,8 @@ public final class ImplicitThingCreationMessageMapper extends AbstractMessageMap
         LOGGER.withCorrelationId(message.getInternalHeaders()).debug("Received ExternalMessage: {}", message);
 
         final Map<String, String> externalHeaders = message.getHeaders();
-        final ExpressionResolver expressionResolver = resolverFactory.apply(externalHeaders);
+        final ExpressionResolver expressionResolver = resolverFactory.apply(externalHeaders,
+                message.getAuthorizationContext().orElse(null));
 
         final String resolvedTemplate;
         if (Placeholders.containsAnyPlaceholder(thingTemplate)) {
@@ -179,17 +192,14 @@ public final class ImplicitThingCreationMessageMapper extends AbstractMessageMap
             resolvedTemplate = thingTemplate;
         }
 
-        if (Placeholders.containsAnyPlaceholder(thingTemplate)) {
-            commandHeaders = resolveCommandHeaders(message, commandHeaders);
-        }
+        commandHeaders = resolveCommandHeaders(expressionResolver, commandHeaders);
 
         final Signal<CreateThing> createThing = getCreateThingSignal(message, resolvedTemplate);
         final Adaptable adaptable = DITTO_PROTOCOL_ADAPTER.toAdaptable(createThing);
 
         // we cannot set the header on CreateThing directly because it is filtered when mapped to an adaptable
-        final DittoHeaders modifiedHeaders = adaptable.getDittoHeaders().toBuilder()
+        final DittoHeaders modifiedHeaders = DittoHeaders.of(commandHeaders).toBuilder()
                 .allowPolicyLockout(allowPolicyLockout)
-                .ifNoneMatch(EntityTagMatchers.fromList(Collections.singletonList(EntityTagMatcher.asterisk())))
                 .build();
         final Adaptable adaptableWithModifiedHeaders = adaptable.setDittoHeaders(modifiedHeaders);
 
@@ -199,9 +209,13 @@ public final class ImplicitThingCreationMessageMapper extends AbstractMessageMap
         return Collections.singletonList(adaptableWithModifiedHeaders);
     }
 
-    private static ExpressionResolver getHeadersExpressionResolver(final Map<String, String> headers) {
+    private static ExpressionResolver getExpressionResolver(final Map<String, String> headers,
+            @Nullable final AuthorizationContext authorizationContext) {
         return PlaceholderFactory.newExpressionResolver(
-                PlaceholderFactory.newPlaceholderResolver(HEADERS_PLACEHOLDER, headers));
+                PlaceholderFactory.newPlaceholderResolver(TIME_PLACEHOLDER, new Object()),
+                PlaceholderFactory.newPlaceholderResolver(HEADERS_PLACEHOLDER, headers),
+                PlaceholderFactory.newPlaceholderResolver(REQUEST_PLACEHOLDER, authorizationContext)
+        );
     }
 
     private Signal<CreateThing> getCreateThingSignal(final ExternalMessage message, final String template) {
@@ -215,17 +229,14 @@ public final class ImplicitThingCreationMessageMapper extends AbstractMessageMap
         return CreateThing.of(newThing, inlinePolicyJson, copyPolicyFrom, dittoHeaders);
     }
 
-    private Map<String, String> resolveCommandHeaders(final ExternalMessage externalMessage,
-            final Map<String, String> errorResponseHeaders) {
-        final ExpressionResolver resolver = resolverFactory.apply(externalMessage.getHeaders());
-        final Map<String, String> resolvedHeaders = new HashMap<>();
-        errorResponseHeaders.forEach((key, value) ->
+    private static Map<String, String> resolveCommandHeaders(final ExpressionResolver resolver,
+            final Map<String, String> unresolvedHeaders) {
+        final Map<String, String> resolvedHeaders = new LinkedHashMap<>();
+        unresolvedHeaders.forEach((key, value) ->
                 resolver.resolve(value).findFirst().ifPresent(resolvedHeaderValue ->
                         resolvedHeaders.put(key, resolvedHeaderValue)
                 )
         );
-        // throws IllegalArgumentException or SubjectInvalidException
-        // if resolved headers are missing mandatory headers or the resolved subject is invalid.
         return resolvedHeaders;
     }
 

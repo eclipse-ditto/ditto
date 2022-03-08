@@ -206,6 +206,7 @@
         <module>things</module>
         <module>thingsearch</module>
         <module>utils</module>
+        <module>wot</module>
         <module>edge</module>
     </modules>
 

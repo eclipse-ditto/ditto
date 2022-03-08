@@ -46,6 +46,10 @@ final class ThrottledMetricsAlert implements MetricsAlert {
 
     @Override
     public boolean evaluateCondition(final MeasurementWindow window, final long slot, final long value) {
+        final boolean result = targetMeasurementWindow == window && value > threshold;
+        LOGGER.debug("{}: Evaluating connection throttle alert: <{}> to <{}>, based on window: <{}>:<{}> " +
+                "and threshold: <{}>:<{}>.", slot, getClass().getSimpleName(), result, window, targetMeasurementWindow,
+                value, threshold);
         return targetMeasurementWindow == window && value > threshold;
     }
 

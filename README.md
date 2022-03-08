@@ -25,6 +25,9 @@ Find the documentation on the project site: [https://eclipse.org/ditto/](https:/
 In order to start up Ditto via *Docker Compose*, you'll need:
 * a running Docker daemon
 * Docker Compose installed
+* for a "single instance" setup on a local machine:
+  * at least 2 CPU cores which can be used by Docker
+  * at least 4 GB of RAM which can be used by Docker
 
 You also have other possibilities to run Ditto, please have a look [here](https://github.com/eclipse/ditto/tree/master/deployment) to explore them.
 
@@ -44,6 +47,14 @@ docker-compose logs -f
 
 Open following URL to get started: [http://localhost:8080](http://localhost:8080)<br/>
 Or have a look at the ["Hello World"](https://eclipse.org/ditto/intro-hello-world.html)
+
+Additional [deployment options](deployment/) are also available, if Docker Compose is not what you want to use.
+
+## Development Guide
+
+If you plan to develop extensions in Ditto or to contribute some code, the following steps are of interest for you.
+
+> :warning: **If you just want to start/use Ditto**, please ingore the following sections! 
 
 ### Build and start Ditto locally
 

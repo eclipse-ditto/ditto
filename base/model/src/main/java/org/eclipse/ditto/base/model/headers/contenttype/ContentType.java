@@ -34,9 +34,9 @@ public final class ContentType {
             Arrays.asList("javascript", "ecmascript");
 
     private static final Pattern TEXT_PATTERN = Pattern.compile("^(text/.*)|" +
-            "(application/(vnd\\..+\\+)?(" + String.join("|", APPLICATION_TYPES_CONSIDERED_TO_BE_STRING) + "))$");
+            "(application/((vnd\\.)?.+\\+)?(" + String.join("|", APPLICATION_TYPES_CONSIDERED_TO_BE_STRING) + "))$");
 
-    private static final Pattern JSON_PATTERN = Pattern.compile("(application/(vnd\\..+\\+)?json)");
+    private static final Pattern JSON_PATTERN = Pattern.compile("(application/((vnd\\.)?.+\\+)?json)");
 
     // application content type for JSON Merge Patch
     private static final String JSON_MERGE_PATCH = "application/merge-patch+json";
@@ -45,6 +45,18 @@ public final class ContentType {
      * The well known content-type "application/json".
      */
     public static final ContentType APPLICATION_JSON = ContentType.of("application/json");
+
+    /**
+     * The content-type "application/tm+json" for WoT Thing Model JSON.
+     * @since 2.4.0
+     */
+    public static final ContentType APPLICATION_TM_JSON = ContentType.of("application/tm+json");
+
+    /**
+     * The content-type "application/td+json" for WoT Thing Description JSON.
+     * @since 2.4.0
+     */
+    public static final ContentType APPLICATION_TD_JSON = ContentType.of("application/td+json");
 
     /**
      * The content-type "application/merge-patch+json".

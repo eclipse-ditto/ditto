@@ -35,7 +35,14 @@ public interface ThrottlingConfig {
     String CONFIG_PATH = "throttling";
 
     /**
-     * Returns the consumer throttling interval meaning in which duration may the configured
+     * Returns whether throttling should be enabled or not.
+     *
+     * @return whether throttling should be enabled or not.
+     */
+    boolean isEnabled();
+
+    /**
+     * Returns the throttling interval meaning in which duration may the configured
      * {@link #getLimit() limit} be processed before throttling further messages.
      *
      * @return the consumer throttling interval.
@@ -43,8 +50,8 @@ public interface ThrottlingConfig {
     Duration getInterval();
 
     /**
-     * Returns the consumer throttling limit defining processed messages per configured
-     * {@link #getInterval()}  interval}.
+     * Returns the throttling limit defining processed messages per configured
+     * {@link #getInterval() interval}.
      *
      * @return the consumer throttling limit.
      */
@@ -57,6 +64,7 @@ public interface ThrottlingConfig {
      */
     default Config render() {
         final Map<String, Object> map = new HashMap<>();
+        map.put(ConfigValue.ENABLED.getConfigPath(), isEnabled());
         map.put(ConfigValue.INTERVAL.getConfigPath(), getInterval().toMillis() + "ms");
         map.put(ConfigValue.LIMIT.getConfigPath(), getLimit());
         return ConfigFactory.parseMap(map).atKey(CONFIG_PATH);
@@ -75,18 +83,23 @@ public interface ThrottlingConfig {
 
     /**
      * An enumeration of the known config path expressions and their associated default values for
-     * {@code Amqp10Config}.
+     * {@code ThrottlingConfig}.
      */
     enum ConfigValue implements KnownConfigValue {
 
         /**
-         * The consumer throttling interval meaning in which duration may the configured
+         * Whether throttling should be enabled.
+         */
+        ENABLED("enabled", false),
+
+        /**
+         * The throttling interval meaning in which duration may the configured
          * {@link #LIMIT limit} be processed before throttling further messages.
          */
         INTERVAL("interval", Duration.ofSeconds(1)),
 
         /**
-         * The consumer throttling limit defining processed messages per configured
+         * The throttling limit defining processed messages per configured
          * {@link #INTERVAL interval}.
          */
         LIMIT("limit", 100);

@@ -17,9 +17,6 @@ the client can only be notified, it cannot send data back (it can use plain HTTP
 For a detailed introduction into SSEs, please visit 
 the [HTML5 specification](https://html.spec.whatwg.org/multipage/server-sent-events.html).
 
-{% include warning.html content="Although SSEs are a HTML5 standard, they still cannot be used with the Microsoft
-Internet Explorer on the client side or anything behind a Microsoft Azure Application Gateway on the server side." %}
-
 ### SSEs in JavaScript
 
 Using the `EventSource` object in JavaScript is also covered in the [HTML5 specification](https://html.spec.whatwg.org/multipage/server-sent-events.html#server-sent-events-intro).
@@ -41,8 +38,7 @@ When the endpoint is invoked with an HTTP header `Accept` with value `text/event
 [change notifications](basic-changenotifications.html) is created by Ditto and for each notification for which the 
 caller has READ permissions (see [authorization](basic-auth.html#authorization)), an event is sent to the client.
 
-The format of the event at the `/things` endpoint is always in the form of a [Thing JSON](basic-thing.html#model-specification)
-(in API 1 format or API 2 format depending on which endpoint the SSE was created).
+The format of the event at the `/things` endpoint is always in the form of a [Thing JSON](basic-thing.html#model-specification).
 
 For partial updates to a `Thing` however, only the changed part is sent back via the SSE, not the complete `Thing`.
 
@@ -180,6 +176,79 @@ the JavaScript snippet would log to console:
   }
 }
 ```
+
+## SSE API `/things/<thingId>`
+
+### Subscribe for changes of a single Thing
+
+Opening the SSE on the `/things/<thingId>` endpoint is used for connecting to the SSE stream in order to watch changes
+for only one specific thing:
+```
+http://localhost:8080/api/2/things/<thingId>
+```
+
+Example - only get the changes of the thing `org.eclipse.ditto:thing-1`:
+```
+http://localhost:8080/api/2/things/org.eclipse.ditto:thing-1
+```
+
+### Subscribe for changes of a specific path inside a Thing
+
+Opening the SSE on the `/things/<thingId>/<jsonPointer>` endpoint is used for connecting to the SSE stream in
+order to watch changes for only one specific thing on only a specific path in that thing:
+```
+http://localhost:8080/api/2/things/<thingId>/<jsonPointer>
+```
+The data contained in the event will be the same as when the endpoint would be queried via a normal HTTP `GET`.
+
+Example - only get the value of the attribute `location` whenever that changes:
+```
+http://localhost:8080/api/2/things/org.eclipse.ditto:thing-1/attributes/location
+```
+
+### Subscribe for messages for a specific Thing
+
+Opening the SSE on the `/things/<thingId>/inbox/messages` or `/things/<thingId>/outbox/messages` endpoint is used for
+connecting to the SSE stream in order to receive [messages](basic-messages.html) sent to or sent by the thing:
+```
+http://localhost:8080/api/2/things/<thingId>/inbox/messages
+http://localhost:8080/api/2/things/<thingId>/outbox/messages
+```
+
+In order to subscribe just for a specific [message subject](basic-messages.html#elements), just use the same path as
+you would for e.g. sending the message via HTTP `POST`:
+```
+http://localhost:8080/api/2/things/<thingId>/inbox/messages/<subject>
+http://localhost:8080/api/2/things/<thingId>/outbox/messages/<subject>
+```
+
+Example - receive whenever a device sends a "smoke-alarm" message to its outbox:
+```
+http://localhost:8080/api/2/things/org.eclipse.ditto:thing-1/outbox/messages/smoke-alarm
+```
+
+### Subscribe for messages of a specific Feature of a specific Thing
+
+Opening the SSE on the `/things/<thingId>/features/<featureId>/inbox/messages` or
+`/things/<thingId>/features/<featureId>//outbox/messages` endpoint is used for
+connecting to the SSE stream in order to receive [messages](basic-messages.html) sent to or sent by the thing feature:
+```
+http://localhost:8080/api/2/things/<thingId>/features/<featureId>/inbox/messages
+http://localhost:8080/api/2/things/<thingId>/features/<featureId>/outbox/messages
+```
+
+In order to subscribe just for a specific [message subject](basic-messages.html#elements), just use the same path as
+you would for e.g. sending the message via HTTP `POST`:
+```
+http://localhost:8080/api/2/things/<thingId>/features/<featureId>/inbox/messages/<subject>
+http://localhost:8080/api/2/things/<thingId>/features/<featureId>/outbox/messages/<subject>
+```
+
+Example - receive whenever a device sends a "ping" message to the outbox of its "Pinger" feature:
+```
+http://localhost:8080/api/2/things/org.eclipse.ditto:thing-1/features/Pinger/outbox/messages/ping
+```
+
 
 ## SSE API `/search/things`
 

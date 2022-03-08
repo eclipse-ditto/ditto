@@ -165,6 +165,16 @@ ssl-config {
 }
 ```
 
+### Rate limiting
+
+Since Ditto *2.4.0* , by default [connections](basic-connections.html) and [websockets](httpapi-protocol-bindings-websocket.html)
+are no longer artificially throttled / rate limited when *consuming messages*.  
+There are however configuration options in place in order to enable throttling on a "per-connection" / "per-websocket"
+basis.  
+Please consult the available `throttling` configuration sections in the 
+[Ditto service configuration files](#ditto-configuration).
+
+
 ## Restricting entity creation
 
 By default, Ditto allows anyone to create a new entity (policy or thing) in any namespace. However, this behavior can
@@ -240,11 +250,14 @@ Gathering logs for a running Ditto installation can be achieved by:
    * configure `DITTO_LOGGING_LOGSTASH_SERVER` to contain the endpoint of a logstash server
     
 * writing logs to log files: this can be done by setting the environment variable `DITTO_LOGGING_FILE_APPENDER` to `true`
-   * configure the amount of log files, and the total amount of space used for logs files via these two environment 
-     variables:
-       * `DITTO_LOGGING_FILE_NAME_PATTERN` (default: /var/log/ditto/<service-name>.log.%d{yyyy-MM-dd}.gz)
-       * `DITTO_LOGGING_MAX_LOG_FILE_HISTORY_IN_DAYS` (default: 10) 
+   * configure the amount of log files, and the total amount of space used for logs files via these environment 
+     variables. It is also possible to clean up old log files and archives at start up.
+     In case `DITTO_LOGGING_TOTAL_LOG_FILE_SIZE` is used it is necessary to configure also `DITTO_LOGGING_MAX_LOG_FILE_HISTORY`.
+     The detailed meaning of these config values is described in the [logback documentation](https://logback.qos.ch/manual/appenders.html#TimeBasedRollingPolicy).  
+       * `DITTO_LOGGING_FILE_NAME_PATTERN` (default: /var/log/ditto/<service-name>.log.%d{yyyy-MM-dd}.gz) - the rollover period is inferred from the fileNamePattern
+       * `DITTO_LOGGING_MAX_LOG_FILE_HISTORY` (default: 10)
        * `DITTO_LOGGING_TOTAL_LOG_FILE_SIZE` (default: 1GB)
+       * `DITTO_LOGGING_CLEAN_HISTORY_ON_START` (default: false)
    * the format in which logging is done is "LogstashEncoder" format - that way the logfiles may easily be imported into
      an ELK stack
    * when running Ditto in Kubernetes apply the `ditto-log-files.yaml` to your Kubernetes cluster in order to 

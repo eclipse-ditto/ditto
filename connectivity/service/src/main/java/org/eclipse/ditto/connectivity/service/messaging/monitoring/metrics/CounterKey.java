@@ -15,6 +15,7 @@ package org.eclipse.ditto.connectivity.service.messaging.monitoring.metrics;
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.util.Objects;
+import java.util.Optional;
 
 import javax.annotation.Nullable;
 
@@ -25,44 +26,67 @@ import org.eclipse.ditto.connectivity.model.MetricType;
 /**
  * Identifies a counter by connection id, metric direction, metric type and address.
  */
-final class CounterKey {
+public final class CounterKey {
 
     private final ConnectionId connectionId;
-    private final MetricType metricType;
-    private final MetricDirection metricDirection;
     private final String address;
 
-    /**
-     * New map key.
-     *
-     * @param connectionId connection id
-     * @param metricType the metricType
-     * @param metricDirection the metricDirection
-     * @param address the address
-     */
-    private CounterKey(final ConnectionId connectionId, final MetricType metricType,
-            final MetricDirection metricDirection, final String address) {
+    @Nullable private final MetricType metricType;
+    @Nullable private final MetricDirection metricDirection;
+
+    private CounterKey(final ConnectionId connectionId,
+            final String address,
+            @Nullable final MetricType metricType,
+            @Nullable final MetricDirection metricDirection) {
+
         this.connectionId = checkNotNull(connectionId, "connectionId");
-        this.metricType = checkNotNull(metricType, "metricType");
-        this.metricDirection = checkNotNull(metricDirection, "metricDirection");
         this.address = checkNotNull(address, "address");
+
+        this.metricType = metricType;
+        this.metricDirection = metricDirection;
     }
 
-    static CounterKey of(final ConnectionId connectionId, final MetricType metricType,
-            final MetricDirection metricDirection, final String address) {
-        return new CounterKey(connectionId, metricType, metricDirection, address);
+    /**
+     * Returns a new {@code CounterKey}.
+     *
+     * @param connectionId the connection id of the counter.
+     * @param address the address of the counter.
+     * @return the CounterKey.
+     */
+    public static CounterKey of(final ConnectionId connectionId, final String address) {
+
+        return new CounterKey(connectionId, address, null, null);
+    }
+
+    /**
+     *
+     * Returns a new {@code CounterKey}.
+     *
+     * @param connectionId the connection id of the counter.
+     * @param address the address of the counter.
+     * @param metricType the metric type of the counter.
+     * @param metricDirection the metric direction of the counter.
+     * @return the CounterKey.
+     */
+    public static CounterKey of(final ConnectionId connectionId,
+            final String address,
+            final MetricType metricType,
+            final MetricDirection metricDirection) {
+        checkNotNull(metricType, "metricType");
+        checkNotNull(metricDirection, "metricDirection");
+        return new CounterKey(connectionId, address, metricType, metricDirection);
     }
 
     ConnectionId getConnectionId() {
         return connectionId;
     }
 
-    MetricType getMetricType() {
-        return metricType;
+    Optional<MetricType> getMetricType() {
+        return Optional.ofNullable(metricType);
     }
 
-    MetricDirection getMetricDirection() {
-        return metricDirection;
+    Optional<MetricDirection> getMetricDirection() {
+        return Optional.ofNullable(metricDirection);
     }
 
     String getAddress() {

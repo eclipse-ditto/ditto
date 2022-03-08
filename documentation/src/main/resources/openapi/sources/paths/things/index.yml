@@ -9,22 +9,21 @@
 #
 # SPDX-License-Identifier: EPL-2.0
 get:
-  summary: Retrieve multiple things with specified IDs
+  summary: Retrieve visible things or things with specified IDs
   description: |-
-    Returns all things passed in by the required parameter `ids`, which you (the authorized subject) are allowed to read.
+    Returns all visible things or things passed in by the required parameter `ids`, which you (the authorized subject) are allowed to read.
 
     Optionally, if you want to retrieve only some of the thing's fields, you can use the specific field selectors (see parameter `fields`) .
 
-    Tip: If you don't know the thing IDs, start with the search resource.
+    Tip: In order to formulate a `filter` which things to search for, take a look at the `/search` resource.
   tags:
     - Things
   parameters:
     - name: ids
       in: query
       description: |-
-        Contains a comma-separated list of `thingId`s to retrieve in one
-        single request.
-      required: true
+        Contains a comma-separated list of `thingId`s to retrieve in one single request.
+      required: false
       schema:
         type: string
     - $ref: '../../parameters/thingFieldsQueryParam.yml'
@@ -32,8 +31,8 @@ get:
   responses:
     '200':
       description: |-
-        The successfully completed request contains as its result the first 200 for the user available Things.
-        The Things are sorted in the same order as the Thing IDs were provided in the `ids` parameter.
+        The successfully completed request contains a list of the for the user available Things, or the Things asked for via the `ids` paramter.
+        The Things are sorted either by their ID, or in the same order as the Thing IDs were provided in the `ids` parameter.
       content:
         application/json:
           schema:
@@ -42,8 +41,7 @@ get:
               $ref: '../../schemas/things/thing.yml'
     '400':
       description: |-
-        The request could not be completed. At least one of the defined
-        query parameters was invalid.
+        The request could not be completed. At least one of the defined query parameters was invalid.
       content:
         application/json:
           schema:
@@ -56,8 +54,7 @@ get:
             $ref: '../../schemas/errors/advancedError.yml'
     '414':
       description: |-
-        The request could not be completed due to an URI length exceeding 8k
-        characters.
+        The request could not be completed due to an URI length exceeding 8k characters.
 post:
   summary: Create a new thing
   description: |-

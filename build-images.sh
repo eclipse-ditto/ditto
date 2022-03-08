@@ -29,7 +29,7 @@ SERVICES=(
   "policies:policies"
   "things:things"
   "thingsearch:things-search"
-  "connectivity:connectivity"
+  "connectivity:connectivity:--add-opens java.base/java.nio=ALL-UNNAMED --add-opens java.base/sun.nio.ch=ALL-UNNAMED --add-opens java.base/sun.security.util=ALL-UNNAMED"
 )
 : "${HTTP_PROXY_LOCAL:=$HTTP_PROXY}"
 : "${HTTPS_PROXY_LOCAL:=$HTTPS_PROXY}"
@@ -52,9 +52,11 @@ build_docker_image() {
   module_name_base=$(echo "$1" | awk -F ":" '{ print $1 }')
   module_name=$(printf "ditto-%s" "$module_name_base")
   image_tag=$(printf "${CONTAINER_REGISTRY}/ditto-%s" "$(echo "$1" | awk -F ":" '{ print $2 }')")
-  printf "\nBuilding Docker image <%s> for service module <%s>\n" \
+  jvm_args=$(echo "$1" | awk -F ":" '{ print $3 }')
+  printf "\nBuilding Docker image <%s> for service module <%s> with jvm_args <%s>\n" \
     "$image_tag" \
-    "$module_name"
+    "$module_name" \
+    "$jvm_args"
 
     $DOCKER_BIN build --pull -f $SCRIPTDIR/$DOCKERFILE \
       --build-arg HTTP_PROXY="$HTTP_PROXY_LOCAL" \
@@ -62,6 +64,7 @@ build_docker_image() {
       --build-arg TARGET_DIR="$module_name_base"/service/target \
       --build-arg SERVICE_STARTER="$module_name"-service \
       --build-arg SERVICE_VERSION=$SERVICE_VERSION \
+      --build-arg JVM_CMD_ARGS="$jvm_args" \
       -t "$image_tag":$IMAGE_VERSION \
       "$SCRIPTDIR"
 

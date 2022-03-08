@@ -29,7 +29,9 @@ import org.eclipse.ditto.base.model.headers.contenttype.ContentType;
 import org.eclipse.ditto.connectivity.api.ExternalMessage;
 import org.eclipse.ditto.connectivity.api.ExternalMessageBuilder;
 import org.eclipse.ditto.connectivity.api.ExternalMessageFactory;
+import org.eclipse.ditto.connectivity.api.placeholders.ConnectivityPlaceholders;
 import org.eclipse.ditto.connectivity.service.config.mapping.MappingConfig;
+import org.eclipse.ditto.edge.api.placeholders.RequestPlaceholder;
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.json.JsonFactory;
@@ -45,7 +47,9 @@ import org.eclipse.ditto.messages.model.MessageHeaders;
 import org.eclipse.ditto.messages.model.MessagesModelFactory;
 import org.eclipse.ditto.messages.model.signals.commands.MessageDeserializer;
 import org.eclipse.ditto.placeholders.ExpressionResolver;
+import org.eclipse.ditto.placeholders.HeadersPlaceholder;
 import org.eclipse.ditto.placeholders.PlaceholderFactory;
+import org.eclipse.ditto.placeholders.TimePlaceholder;
 import org.eclipse.ditto.protocol.Adaptable;
 import org.eclipse.ditto.protocol.MessagePath;
 import org.eclipse.ditto.protocol.Payload;
@@ -74,6 +78,10 @@ public final class RawMessageMapper extends AbstractMessageMapper {
      */
     private static final ContentType DEFAULT_OUTGOING_CONTENT_TYPE =
             ContentType.of(ContentTypes.TEXT_PLAIN_UTF8.toString());
+
+    private static final TimePlaceholder TIME_PLACEHOLDER = TimePlaceholder.getInstance();
+    private static final HeadersPlaceholder HEADERS_PLACEHOLDER = PlaceholderFactory.newHeadersPlaceholder();
+    private static final RequestPlaceholder REQUEST_PLACEHOLDER = ConnectivityPlaceholders.newRequestPlaceholder();
 
     /**
      * Default incoming content type is binary.
@@ -236,9 +244,12 @@ public final class RawMessageMapper extends AbstractMessageMapper {
 
     private static Optional<MessageHeaders> evaluateIncomingMessageHeaders(final ExternalMessage externalMessage,
             final Map<String, String> incomingMessageHeaders) {
-        final ExpressionResolver resolver =
-                PlaceholderFactory.newExpressionResolver(PlaceholderFactory.newHeadersPlaceholder(),
-                        externalMessage.getHeaders());
+        final ExpressionResolver resolver = PlaceholderFactory.newExpressionResolver(
+                PlaceholderFactory.newPlaceholderResolver(TIME_PLACEHOLDER, new Object()),
+                PlaceholderFactory.newPlaceholderResolver(HEADERS_PLACEHOLDER, externalMessage.getHeaders()),
+                PlaceholderFactory.newPlaceholderResolver(REQUEST_PLACEHOLDER,
+                        externalMessage.getAuthorizationContext().orElse(null))
+        );
         final String contentTypeKey = DittoHeaderDefinition.CONTENT_TYPE.getKey();
         final String contentType = resolve(resolver, incomingMessageHeaders, contentTypeKey);
         if (contentType == null) {

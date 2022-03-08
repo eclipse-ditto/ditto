@@ -262,7 +262,7 @@
                         </executions>
                         <configuration>
                             <supportNative>true</supportNative>
-                            <jrubyVersion>9.1.12.0</jrubyVersion>
+                            <jrubyVersion>9.3.3.0</jrubyVersion>
                             <addProjectClasspath>true</addProjectClasspath>
                             <jrubyVerbose>false</jrubyVerbose>
                         </configuration>
@@ -424,7 +424,7 @@
                         </executions>
                         <configuration>
                             <supportNative>true</supportNative>
-                            <jrubyVersion>9.1.12.0</jrubyVersion>
+                            <jrubyVersion>9.3.3.0</jrubyVersion>
                             <addProjectClasspath>true</addProjectClasspath>
                             <jrubyVerbose>false</jrubyVerbose>
                         </configuration>

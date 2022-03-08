@@ -167,6 +167,7 @@ public final class SshTunnelActor extends AbstractActorWithTimers implements Cre
             final String status = sshSession.isOpen() ? "open" : "closed";
             final String msg =
                     String.format("Inconsistent tunnel state. Session %s with %d port forwards.", status, forwards);
+            logger.debug(msg);
             notifyParentAndCleanup(msg);
         }
     }
@@ -198,7 +199,9 @@ public final class SshTunnelActor extends AbstractActorWithTimers implements Cre
                 final SshdSocketAddress localAddress =
                         sshSession.startLocalPortForwarding(0, targetAddress);
 
-                connectionLogger.success("SSH tunnel established successfully");
+                final String msg = "SSH tunnel established successfully";
+                connectionLogger.success(msg);
+                logger.debug(msg);
 
                 inStateSince = Instant.now();
                 final TunnelStarted tunnelStarted = new TunnelStarted(localAddress.getPort());
@@ -215,9 +218,13 @@ public final class SshTunnelActor extends AbstractActorWithTimers implements Cre
 
     private void handleTunnelClosed(final TunnelClosed tunnelClosed) {
         if (tunnelClosed.getError() != null) {
-            connectionLogger.failure("SSH Tunnel failed: {0}", getMessage(tunnelClosed.getError()));
+            final String message = String.format("SSH Tunnel failed: %s", getMessage(tunnelClosed.getError()));
+            connectionLogger.failure(message);
+            logger.warning(message);
         } else {
-            connectionLogger.success("SSH Tunnel closed");
+            final String msg = "SSH Tunnel closed";
+            connectionLogger.success(msg);
+            logger.debug(msg);
         }
         notifyParentAndCleanup(tunnelClosed);
     }
@@ -238,10 +245,7 @@ public final class SshTunnelActor extends AbstractActorWithTimers implements Cre
 
     private void notifyParentAndCleanup(final TunnelClosed tunnelClosed) {
         logException(tunnelClosed.getMessage(), tunnelClosed.getError());
-        if (error == null) {
-            // propagate only the first error that occurred
-            getContext().getParent().tell(tunnelClosed, getSelf());
-        }
+        getContext().getParent().tell(tunnelClosed, getSelf());
         cleanupActorState(tunnelClosed.getError());
     }
 
@@ -305,6 +309,7 @@ public final class SshTunnelActor extends AbstractActorWithTimers implements Cre
         sshUser = credentials.getUsername();
         sshUserAuthMethod = UserAuthMethodFactory.PASSWORD;
         logger.debug("Username ({}) for ssh session is '{}'.", sshUserAuthMethod, sshUser);
+
         return null;
     }
 
@@ -313,6 +318,7 @@ public final class SshTunnelActor extends AbstractActorWithTimers implements Cre
         sshUser = credentials.getUsername();
         sshUserAuthMethod = UserAuthMethodFactory.PUBLIC_KEY;
         logger.debug("Username ({}) for ssh session is '{}'.", sshUserAuthMethod, sshUser);
+
         return null;
     }
 

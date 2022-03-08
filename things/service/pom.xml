@@ -55,6 +55,14 @@
             <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-placeholders</artifactId>
         </dependency>
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-wot-model</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-wot-integration</artifactId>
+        </dependency>
 
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
@@ -76,6 +84,10 @@
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-internal-utils-persistent-actors</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-internal-utils-http</artifactId>
         </dependency>
 
         <dependency>

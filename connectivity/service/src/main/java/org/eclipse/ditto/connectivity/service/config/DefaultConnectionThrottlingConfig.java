@@ -58,6 +58,11 @@ final class DefaultConnectionThrottlingConfig implements ConnectionThrottlingCon
     }
 
     @Override
+    public boolean isEnabled() {
+        return throttlingConfig.isEnabled();
+    }
+
+    @Override
     public Duration getInterval() {
         return throttlingConfig.getInterval();
     }

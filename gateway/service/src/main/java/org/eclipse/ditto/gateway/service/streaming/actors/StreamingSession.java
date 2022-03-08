@@ -18,7 +18,9 @@ import java.util.function.BiPredicate;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.base.model.entity.id.WithEntityId;
 import org.eclipse.ditto.base.model.signals.Signal;
+import org.eclipse.ditto.edge.api.placeholders.EntityIdPlaceholder;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.placeholders.PlaceholderFactory;
@@ -39,6 +41,7 @@ import akka.actor.ActorRef;
  */
 public final class StreamingSession {
 
+    private static final EntityIdPlaceholder ENTITY_ID_PLACEHOLDER = EntityIdPlaceholder.getInstance();
     private static final TopicPathPlaceholder TOPIC_PATH_PLACEHOLDER = TopicPathPlaceholder.getInstance();
     private static final ResourcePlaceholder RESOURCE_PLACEHOLDER = ResourcePlaceholder.getInstance();
     private static final TimePlaceholder TIME_PLACEHOLDER = TimePlaceholder.getInstance();
@@ -51,15 +54,17 @@ public final class StreamingSession {
     private final ActorRef streamingSessionActor;
     private final ThreadSafeDittoLoggingAdapter logger;
 
-    private StreamingSession(final List<String> namespaces, @Nullable final Criteria eventFilterCriteria,
+    private StreamingSession(final List<String> namespaces, @Nullable final Criteria filterCriteria,
             @Nullable final ThingFieldSelector extraFields, final ActorRef streamingSessionActor,
             final ThreadSafeDittoLoggingAdapter logger) {
         this.namespaces = namespaces;
-        thingPredicate = eventFilterCriteria == null
+        thingPredicate = filterCriteria == null
                 ? (thing, signal) -> true
-                : (thing, signal) -> ThingPredicateVisitor.apply(eventFilterCriteria,
+                : (thing, signal) -> ThingPredicateVisitor.apply(filterCriteria,
                         PlaceholderFactory.newPlaceholderResolver(TOPIC_PATH_PLACEHOLDER,
                                 PROTOCOL_ADAPTER.toTopicPath(signal)),
+                        PlaceholderFactory.newPlaceholderResolver(ENTITY_ID_PLACEHOLDER,
+                                        ((WithEntityId) signal).getEntityId()),
                         PlaceholderFactory.newPlaceholderResolver(RESOURCE_PLACEHOLDER, signal),
                         PlaceholderFactory.newPlaceholderResolver(TIME_PLACEHOLDER, new Object())
                 )
@@ -69,11 +74,11 @@ public final class StreamingSession {
         this.logger = logger;
     }
 
-    static StreamingSession of(final List<String> namespaces, @Nullable final Criteria eventFilterCriteria,
+    static StreamingSession of(final List<String> namespaces, @Nullable final Criteria filterCriteria,
             @Nullable final ThingFieldSelector extraFields, final ActorRef streamingSessionActor,
             final ThreadSafeDittoLoggingAdapter logger) {
 
-        return new StreamingSession(namespaces, eventFilterCriteria, extraFields, streamingSessionActor, logger);
+        return new StreamingSession(namespaces, filterCriteria, extraFields, streamingSessionActor, logger);
     }
 
     /**

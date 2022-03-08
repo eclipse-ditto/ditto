@@ -15,6 +15,7 @@ package org.eclipse.ditto.connectivity.service.messaging.amqp;
 import java.time.Duration;
 
 import org.eclipse.ditto.connectivity.service.config.Amqp10Config;
+import org.eclipse.ditto.connectivity.service.config.ConnectionThrottlingConfig;
 
 import akka.actor.AbstractActor;
 import akka.actor.Actor;
@@ -65,13 +66,13 @@ interface MessageRateLimiterBehavior<S> extends Actor, Timers {
      * @return the rate limiter as a part of the actor state.
      */
     default MessageRateLimiter<S> initMessageRateLimiter(final Amqp10Config config) {
-        final boolean enabled = config.getConsumerConfig().isRateLimitEnabled();
-        if (enabled) {
+        final ConnectionThrottlingConfig throttlingConfig = config.getConsumerConfig().getThrottlingConfig();
+        if (throttlingConfig.isEnabled()) {
             // schedule periodic throughput check
             timers().startPeriodicTimer(Control.CHECK_RATE_LIMIT, Control.CHECK_RATE_LIMIT,
-                    config.getConsumerConfig().getThrottlingConfig().getInterval());
+                    throttlingConfig.getInterval());
         }
-        return MessageRateLimiter.of(config, enabled);
+        return MessageRateLimiter.of(config);
     }
 
     /**

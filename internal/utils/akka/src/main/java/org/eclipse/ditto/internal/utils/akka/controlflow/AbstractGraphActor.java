@@ -16,6 +16,7 @@ import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.util.Collections;
 import java.util.Map;
+import java.util.function.UnaryOperator;
 
 import org.eclipse.ditto.base.model.entity.id.WithEntityId;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
@@ -63,10 +64,13 @@ public abstract class AbstractGraphActor<T, M> extends AbstractActor {
      * Constructs a new AbstractGraphActor object.
      *
      * @param matchClass the type of the message to be streamed if matched in this actor's receive handler.
+     * @param loggerEnhancer a function which can enhance the {@code logger} of this instance, e.g. with additional MDC
+     * values.
      * @throws NullPointerException if {@code matchClass} is {@code null}.
      */
     @SuppressWarnings("unchecked")
-    protected AbstractGraphActor(final Class<?> matchClass) {
+    protected AbstractGraphActor(final Class<?> matchClass,
+            final UnaryOperator<ThreadSafeDittoLoggingAdapter> loggerEnhancer) {
         this.matchClass = checkNotNull((Class<M>) matchClass, "matchClass");
 
         final Map<String, String> tags = Collections.singletonMap("class", getClass().getSimpleName());
@@ -76,7 +80,7 @@ public abstract class AbstractGraphActor<T, M> extends AbstractActor {
         enqueueFailureCounter = DittoMetrics.counter("graph_actor_enqueue_failure", tags);
         dequeueCounter = DittoMetrics.counter("graph_actor_dequeue", tags);
 
-        logger = DittoLoggerFactory.getThreadSafeDittoLoggingAdapter(this);
+        this.logger = loggerEnhancer.apply(DittoLoggerFactory.getThreadSafeDittoLoggingAdapter(this));
         materializer = Materializer.createMaterializer(this::getContext);
     }
 

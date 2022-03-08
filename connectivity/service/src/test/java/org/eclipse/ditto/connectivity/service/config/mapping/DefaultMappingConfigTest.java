@@ -19,7 +19,6 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 import org.assertj.core.api.JUnitSoftAssertions;
 import org.eclipse.ditto.connectivity.service.config.javascript.JavaScriptConfig;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 
@@ -63,7 +62,7 @@ public final class DefaultMappingConfigTest {
 
         softly.assertThat(underTest.toString())
                 .contains(underTest.getClass().getSimpleName())
-                .contains("javaScriptConfig", "mapperLimitsConfig", "bufferSize", "parallelism", "maxPoolSize");
+                .contains("javaScriptConfig", "mapperLimitsConfig", "publishFailedEnrichments", "bufferSize", "parallelism", "maxPoolSize");
     }
 
     @Test
@@ -79,8 +78,12 @@ public final class DefaultMappingConfigTest {
                 .isEqualTo(67890);
 
         softly.assertThat(underTest.getMaxPoolSize())
-                .describedAs(MappingConfig.MappingConfigValue.PARALLELISM.getConfigPath())
+                .describedAs(MappingConfig.MappingConfigValue.MAX_POOL_SIZE.getConfigPath())
                 .isEqualTo(37);
+
+        softly.assertThat(underTest.getPublishFailedEnrichments())
+                .describedAs(MappingConfig.MappingConfigValue.PUBLISH_FAILED_ENRICHMENTS.getConfigPath())
+                .isEqualTo(true);
     }
 
 }

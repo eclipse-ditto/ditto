@@ -36,11 +36,6 @@ public final class PersistenceConstants {
     public static final String THINGS_COLLECTION_NAME = "searchThings";
 
     /**
-     * The collection name for the collection storing state about things sync.
-     */
-    public static final String THINGS_SYNC_STATE_COLLECTION_NAME = "searchThingsSyncThings";
-
-    /**
      * The collection name for the background sync collection storing background sync progress.
      */
     public static final String BACKGROUND_SYNC_COLLECTION_NAME = "searchThingsSync";
