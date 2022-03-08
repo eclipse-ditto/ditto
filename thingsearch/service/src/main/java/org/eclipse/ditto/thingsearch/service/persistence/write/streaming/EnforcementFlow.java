@@ -59,7 +59,6 @@ import akka.NotUsed;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Scheduler;
-import akka.dispatch.MessageDispatcher;
 import akka.japi.pf.PFBuilder;
 import akka.stream.javadsl.Flow;
 import akka.stream.javadsl.Keep;
@@ -83,15 +82,15 @@ final class EnforcementFlow {
             final ActorRef thingsShardRegion,
             final Cache<EnforcementCacheKey, Entry<Enforcer>> policyEnforcerCache,
             final AskWithRetryConfig askWithRetryConfig,
-            final StreamCacheConfig streamCacheConfig,
+            final StreamCacheConfig thingCacheConfig,
             final int maxArraySize,
-            final Executor cacheDispatcher) {
+            final Executor thingCacheDispatcher) {
 
         thingsFacade = createThingsFacade(actorSystem, thingsShardRegion, askWithRetryConfig.getAskTimeout(),
-                streamCacheConfig, cacheDispatcher);
+                thingCacheConfig, thingCacheDispatcher);
         this.policyEnforcerCache = policyEnforcerCache;
         searchUpdateObserver = SearchUpdateObserver.get(actorSystem);
-        cacheRetryDelay = streamCacheConfig.getRetryDelay();
+        cacheRetryDelay = thingCacheConfig.getRetryDelay();
         this.maxArraySize = maxArraySize;
     }
 
@@ -102,7 +101,6 @@ final class EnforcementFlow {
      * @param updaterStreamConfig configuration of the updater stream.
      * @param thingsShardRegion the shard region to retrieve things from.
      * @param policiesShardRegion the shard region to retrieve policies from.
-     * @param cacheDispatcher dispatcher for the enforcer cache.
      * @param scheduler the scheduler to use for retrying timed out asks for the policy enforcer cache loader.
      * @return an EnforcementFlow object.
      */
@@ -110,21 +108,25 @@ final class EnforcementFlow {
             final StreamConfig updaterStreamConfig,
             final ActorRef thingsShardRegion,
             final ActorRef policiesShardRegion,
-            final MessageDispatcher cacheDispatcher,
             final Scheduler scheduler) {
 
         final var askWithRetryConfig = updaterStreamConfig.getAskWithRetryConfig();
-        final var streamCacheConfig = updaterStreamConfig.getCacheConfig();
+        final var policyCacheConfig = updaterStreamConfig.getPolicyCacheConfig();
+        final var policyCacheDispatcher = actorSystem.dispatchers()
+                .lookup(policyCacheConfig.getDispatcherName());
 
         final AsyncCacheLoader<EnforcementCacheKey, Entry<PolicyEnforcer>> policyEnforcerCacheLoader =
                 new PolicyEnforcerCacheLoader(askWithRetryConfig, scheduler, policiesShardRegion);
         final Cache<EnforcementCacheKey, Entry<Enforcer>> policyEnforcerCache =
-                CacheFactory.createCache(policyEnforcerCacheLoader, streamCacheConfig,
-                                "things-search_enforcementflow_enforcer_cache_policy", cacheDispatcher)
+                CacheFactory.createCache(policyEnforcerCacheLoader, policyCacheConfig,
+                                "things-search_enforcementflow_enforcer_cache_policy", policyCacheDispatcher)
                         .projectValues(PolicyEnforcer::project, PolicyEnforcer::embed);
 
+        final var thingCacheConfig = updaterStreamConfig.getThingCacheConfig();
+        final var thingCacheDispatcher = actorSystem.dispatchers()
+                .lookup(thingCacheConfig.getDispatcherName());
         return new EnforcementFlow(actorSystem, thingsShardRegion, policyEnforcerCache, askWithRetryConfig,
-                streamCacheConfig, updaterStreamConfig.getMaxArraySize(), cacheDispatcher);
+                thingCacheConfig, updaterStreamConfig.getMaxArraySize(), thingCacheDispatcher);
     }
 
     private static EnforcementCacheKey getPolicyCacheKey(final PolicyId policyId) {
@@ -211,7 +213,7 @@ final class EnforcementFlow {
                 .<Map.Entry<ThingId, JsonObject>>map(thing -> new AbstractMap.SimpleImmutableEntry<>(thingId, thing))
                 .recoverWithRetries(1, new PFBuilder<Throwable, Source<Map.Entry<ThingId, JsonObject>, NotUsed>>()
                         .match(Throwable.class, error -> {
-                            log.error("Unexpected response for SudoRetrieveThing via cache" + thingId, error);
+                            log.error("Unexpected response for SudoRetrieveThing via cache: <{}>", thingId, error);
                             return Source.empty();
                         })
                         .build());
@@ -298,13 +300,13 @@ final class EnforcementFlow {
     private static CachingSignalEnrichmentFacade createThingsFacade(final ActorSystem actorSystem,
             final ActorRef thingsShardRegion,
             final Duration timeout,
-            final CacheConfig streamCacheConfig,
-            final Executor cacheDispatcher) {
+            final CacheConfig thingCacheConfig,
+            final Executor thingCacheDispatcher) {
 
         final var sudoRetrieveThingFacade = SudoSignalEnrichmentFacade.of(thingsShardRegion, timeout);
         final var cachingSignalEnrichmentFacadeProvider = CachingSignalEnrichmentFacadeProvider.get(actorSystem);
         return cachingSignalEnrichmentFacadeProvider.getSignalEnrichmentFacade(actorSystem, sudoRetrieveThingFacade,
-                streamCacheConfig, cacheDispatcher, "things-search_enforcementflow_enforcer_cache_things");
+                thingCacheConfig, thingCacheDispatcher, "things-search_enforcementflow_enforcer_cache_things");
     }
 
 }

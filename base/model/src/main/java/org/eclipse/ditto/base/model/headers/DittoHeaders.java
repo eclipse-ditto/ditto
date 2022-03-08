@@ -125,6 +125,14 @@ public interface DittoHeaders extends Jsonifiable<JsonObject>, Map<String, Strin
     Optional<String> getContentType();
 
     /**
+     * Returns the accept header of the command.
+     *
+     * @return the accept header.
+     * @since 2.4.0
+     */
+    Optional<String> getAccept();
+
+    /**
      * Returns the parsed content-type of the entity.
      *
      * @return the parsed content-type.

@@ -129,7 +129,7 @@ public final class ThingSearchRoute extends AbstractRoute {
     }
 
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
-    private static Set<String> calculateNamespaces(final Optional<String> namespacesString) {
+    public static Set<String> calculateNamespaces(final Optional<String> namespacesString) {
         final Function<String, Set<String>> splitAndRemoveEmpty =
                 s -> Arrays.stream(s.split(","))
                         .filter(segment -> !segment.isEmpty())
@@ -141,7 +141,7 @@ public final class ThingSearchRoute extends AbstractRoute {
     }
 
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
-    private static List<String> calculateOptions(final Optional<String> optionsString) {
+    public static List<String> calculateOptions(final Optional<String> optionsString) {
         return optionsString
                 .map(s -> Arrays.asList(s.split(",")))
                 .orElse(null);

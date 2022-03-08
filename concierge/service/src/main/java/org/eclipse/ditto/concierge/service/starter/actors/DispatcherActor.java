@@ -23,6 +23,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
+import java.util.function.UnaryOperator;
 
 import javax.annotation.concurrent.Immutable;
 
@@ -78,7 +79,7 @@ public final class DispatcherActor
             final ActorRef pubSubMediator,
             final Flow<ImmutableDispatch, ImmutableDispatch, NotUsed> handler) {
 
-        super(WithDittoHeaders.class);
+        super(WithDittoHeaders.class, UnaryOperator.identity());
 
         enforcementConfig = DittoConciergeConfig.of(
                 DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config())

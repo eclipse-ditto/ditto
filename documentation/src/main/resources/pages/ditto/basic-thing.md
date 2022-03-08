@@ -40,8 +40,7 @@ A Thing may contain a definition. The definition can also be used to find Things
 to a corresponding model defining the capabilities/features of it.  
 The definition can for example point to a:  
 * [Eclipse Vorto](https://www.eclipse.org/vorto/) "information model" using the syntax `<namespace>:<name>:<version>`
-* [WoT Thing Model](https://www.w3.org/TR/wot-thing-description11/#thing-model) - "Web of Things" Thing Model in form of
-  a URL to the thing model in JSON-LD format
+* or a valid HTTP(s) URL (e.g. in order to define that the Thing is described by a [WoT (Web of Things) Thing Model](basic-wot-integration.html#thing-model-describing-a-ditto-thing))
 
 
 ### Attributes

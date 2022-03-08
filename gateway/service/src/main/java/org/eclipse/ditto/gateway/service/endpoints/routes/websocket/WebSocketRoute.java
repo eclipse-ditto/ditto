@@ -627,14 +627,18 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
         final int throttlingLimit = websocketConfig.getThrottlingConfig().getLimit();
         final int messagesPerInterval =
                 Math.max(throttlingLimit, (int) (throttlingLimit * websocketConfig.getThrottlingRejectionFactor()));
-        return LimitRateByRejection.of(rateLimitInterval, messagesPerInterval, either -> {
-            final TooManyRequestsException.Builder builder =
-                    TooManyRequestsException.newBuilder().retryAfter(rateLimitInterval);
-            if (either.isRight()) {
-                builder.dittoHeaders(either.right().get().getDittoHeaders());
-            }
-            return builder.build();
-        });
+        if (websocketConfig.getThrottlingConfig().isEnabled()) {
+            return LimitRateByRejection.of(rateLimitInterval, messagesPerInterval, either -> {
+                final TooManyRequestsException.Builder builder =
+                        TooManyRequestsException.newBuilder().retryAfter(rateLimitInterval);
+                if (either.isRight()) {
+                    builder.dittoHeaders(either.right().get().getDittoHeaders());
+                }
+                return builder.build();
+            });
+        } else {
+            return Filter.multiplexByEither(Right::apply);
+        }
     }
 
     private static DittoHeaders getInitialInternalHeaders(final JsonSchemaVersion jsonSchemaVersion,

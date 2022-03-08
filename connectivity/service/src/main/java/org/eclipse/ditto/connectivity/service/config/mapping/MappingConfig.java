@@ -47,6 +47,11 @@ public interface MappingConfig {
     int getMaxPoolSize();
 
     /**
+     * @return whether messages with failed enrichments should be published.
+     */
+    boolean getPublishFailedEnrichments();
+
+    /**
      * Returns the config of the JavaScript message mapping.
      *
      * @return the config.
@@ -79,7 +84,12 @@ public interface MappingConfig {
         /**
          * The maximum parallelism used for mapping inbound and outbound messages in mapping processor actor.
          */
-        MAX_POOL_SIZE("max-pool-size", 5);
+        MAX_POOL_SIZE("max-pool-size", 5),
+
+        /**
+         * If messages with failed enrichments should be published.
+         */
+        PUBLISH_FAILED_ENRICHMENTS("publish-failed-enrichments", false);
 
         private final String path;
         private final Object defaultValue;

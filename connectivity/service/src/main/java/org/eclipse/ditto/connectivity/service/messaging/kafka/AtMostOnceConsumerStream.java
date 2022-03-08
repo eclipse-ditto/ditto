@@ -83,11 +83,20 @@ final class AtMostOnceConsumerStream implements KafkaConsumerStream {
                                 "Please contact the service team", result
                 )))
                 .run(materializer);
-        consumerControl = sourceSupplier.get()
+
+        final var source = sourceSupplier.get()
                 .filter(consumerRecord -> isNotDryRun(consumerRecord, dryRun))
                 .map(kafkaMessageTransformer::transform)
-                .filter(result -> !result.isExpired())
-                .throttle(throttlingConfig.getLimit(), throttlingConfig.getInterval())
+                .filter(result -> !result.isExpired());
+
+        final Source<TransformationResult, Consumer.Control> throttledSource;
+        if (throttlingConfig.isEnabled()) {
+            throttledSource = source.throttle(throttlingConfig.getLimit(), throttlingConfig.getInterval());
+        } else {
+            throttledSource = source;
+        }
+
+        consumerControl = throttledSource
                 .flatMapConcat(this::processTransformationResult)
                 .mapAsync(throttlingConfig.getMaxInFlight(), x -> x)
                 .toMat(Sink.ignore(), Consumer::createDrainingControl)

@@ -30,6 +30,8 @@ import org.eclipse.ditto.internal.utils.persistence.mongo.config.MongoDbConfig;
 import org.eclipse.ditto.internal.utils.persistence.operations.DefaultPersistenceOperationsConfig;
 import org.eclipse.ditto.internal.utils.persistence.operations.PersistenceOperationsConfig;
 import org.eclipse.ditto.internal.utils.tracing.config.TracingConfig;
+import org.eclipse.ditto.wot.integration.config.DefaultWotConfig;
+import org.eclipse.ditto.wot.integration.config.WotConfig;
 
 /**
  * This class implements the config of the Ditto Things service.
@@ -45,6 +47,7 @@ public final class DittoThingsConfig implements ThingsConfig {
     private final MongoDbConfig mongoDbConfig;
     private final HealthCheckConfig healthCheckConfig;
     private final ThingConfig thingConfig;
+    private final WotConfig wotConfig;
 
     private DittoThingsConfig(final ScopedConfig dittoScopedConfig) {
         serviceSpecificConfig = DittoServiceConfig.of(dittoScopedConfig, CONFIG_PATH);
@@ -53,6 +56,7 @@ public final class DittoThingsConfig implements ThingsConfig {
         mongoDbConfig = DefaultMongoDbConfig.of(dittoScopedConfig);
         healthCheckConfig = DefaultHealthCheckConfig.of(dittoScopedConfig);
         thingConfig = DefaultThingConfig.of(serviceSpecificConfig);
+        wotConfig = DefaultWotConfig.of(serviceSpecificConfig);
     }
 
     /**
@@ -118,6 +122,11 @@ public final class DittoThingsConfig implements ThingsConfig {
     }
 
     @Override
+    public WotConfig getWotConfig() {
+        return wotConfig;
+    }
+
+    @Override
     public boolean equals(@Nullable final Object o) {
         if (this == o) {
             return true;
@@ -131,13 +140,14 @@ public final class DittoThingsConfig implements ThingsConfig {
                 Objects.equals(persistenceOperationsConfig, that.persistenceOperationsConfig) &&
                 Objects.equals(mongoDbConfig, that.mongoDbConfig) &&
                 Objects.equals(healthCheckConfig, that.healthCheckConfig) &&
-                Objects.equals(thingConfig, that.thingConfig);
+                Objects.equals(thingConfig, that.thingConfig) &&
+                Objects.equals(wotConfig, that.wotConfig);
     }
 
     @Override
     public int hashCode() {
         return Objects.hash(serviceSpecificConfig, logIncomingMessages, persistenceOperationsConfig, mongoDbConfig,
-                healthCheckConfig, thingConfig);
+                healthCheckConfig, thingConfig, wotConfig);
     }
 
     @Override
@@ -149,6 +159,7 @@ public final class DittoThingsConfig implements ThingsConfig {
                 ", mongoDbConfig=" + mongoDbConfig +
                 ", healthCheckConfig=" + healthCheckConfig +
                 ", thingConfig=" + thingConfig +
+                ", wotConfig=" + wotConfig +
                 "]";
     }
 

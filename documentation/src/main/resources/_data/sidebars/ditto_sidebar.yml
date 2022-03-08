@@ -23,9 +23,9 @@ entries:
       - title: Release Notes
         output: web
         folderitems:
-          - title: 2.4.0
-            url: /release_notes_240.html
-            output: web
+#          - title: 2.4.0
+#            url: /release_notes_240.html
+#            output: web
           - title: 2.3.2
             url: /release_notes_232.html
             output: web
@@ -248,6 +248,17 @@ entries:
           - title: Acknowledgements / QoS
             url: /basic-acknowledgements.html
             output: web
+
+            subfolders:
+              - title: WoT (Web of Things)
+                output: web
+                subfolderitems:
+                  - title: WoT integration
+                    url: /basic-wot-integration.html
+                    output: web
+                  - title: WoT integration example
+                    url: /basic-wot-integration-example.html
+                    output: web
 
       - title: Advanced concepts
         output: web

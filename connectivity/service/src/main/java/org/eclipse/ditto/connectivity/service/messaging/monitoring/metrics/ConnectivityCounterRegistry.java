@@ -122,7 +122,7 @@ public final class ConnectivityCounterRegistry implements ConnectionMonitorRegis
                 .forEach(metricType -> {
                     final ConnectionId connectionId = connection.getId();
                     final ConnectionType connectionType = connection.getConnectionType();
-                    final CounterKey key = CounterKey.of(connectionId, metricType, metricDirection, address);
+                    final CounterKey key = CounterKey.of(connectionId, address, metricType, metricDirection);
                     final MetricsAlert delegatingAlert = new DelegatingAlert(() -> alertRegistry.getAlert(key,
                             connectionType, connectivityConfig));
                     counters.computeIfAbsent(key,
@@ -168,7 +168,7 @@ public final class ConnectivityCounterRegistry implements ConnectionMonitorRegis
             final MetricType metricType,
             final MetricDirection metricDirection,
             final String address) {
-        final CounterKey key = CounterKey.of(connectionId, metricType, metricDirection, address);
+        final CounterKey key = CounterKey.of(connectionId, address, metricType, metricDirection);
         final MetricsAlert alert = alertRegistry.getAlert(key, connectionType, connectivityConfig);
 
         return counters.computeIfAbsent(key,

@@ -24,11 +24,12 @@ public interface MetricsAlertFactory {
     /**
      * Creates a new instance of a metrics alert.
      *
-     * @param counterKey the key that identifies a counter
-     * @param connectionType the connection type
-     * @param connectivityConfig the connectivity config
-     * @return the new metrics alert
+     * @param counterKey the key that identifies a counter.
+     * @param connectionType the connection type.
+     * @param connectivityConfig the connectivity config.
+     * @param isGauge whether the alert is a gauge or not.
+     * @return the new metrics alert.
      */
     MetricsAlert create(final CounterKey counterKey, final ConnectionType connectionType,
-            final ConnectivityConfig connectivityConfig);
+            final ConnectivityConfig connectivityConfig, final boolean isGauge);
 }

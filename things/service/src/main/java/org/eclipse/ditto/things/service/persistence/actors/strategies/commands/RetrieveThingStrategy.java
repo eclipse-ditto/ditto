@@ -19,8 +19,11 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.model.entity.metadata.Metadata;
+import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeadersSettable;
+import org.eclipse.ditto.base.model.headers.contenttype.ContentType;
 import org.eclipse.ditto.base.model.headers.entitytag.EntityTag;
+import org.eclipse.ditto.base.model.signals.FeatureToggle;
 import org.eclipse.ditto.internal.utils.persistentactors.results.Result;
 import org.eclipse.ditto.internal.utils.persistentactors.results.ResultFactory;
 import org.eclipse.ditto.json.JsonFieldSelector;
@@ -32,8 +35,13 @@ import org.eclipse.ditto.things.model.ThingsModelFactory;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingNotAccessibleException;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThing;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThingResponse;
+import org.eclipse.ditto.things.model.signals.commands.query.RetrieveWotThingDescriptionResponse;
 import org.eclipse.ditto.things.model.signals.commands.query.ThingQueryCommand;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
+import org.eclipse.ditto.wot.integration.provider.WotThingDescriptionProvider;
+import org.eclipse.ditto.wot.model.ThingDescription;
+
+import akka.actor.ActorSystem;
 
 /**
  * This strategy handles the {@link RetrieveThing} command.
@@ -41,11 +49,16 @@ import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 @Immutable
 final class RetrieveThingStrategy extends AbstractThingCommandStrategy<RetrieveThing> {
 
+    private final WotThingDescriptionProvider wotThingDescriptionProvider;
+
     /**
      * Constructs a new {@code RetrieveThingStrategy} object.
+     *
+     * @param actorSystem the actor system to use for loading the WoT extension.
      */
-    RetrieveThingStrategy() {
+    RetrieveThingStrategy(final ActorSystem actorSystem) {
         super(RetrieveThing.class);
+        wotThingDescriptionProvider = WotThingDescriptionProvider.get(actorSystem);
     }
 
     @Override
@@ -67,8 +80,22 @@ final class RetrieveThingStrategy extends AbstractThingCommandStrategy<RetrieveT
             final RetrieveThing command,
             @Nullable final Metadata metadata) {
 
-        return ResultFactory.newQueryResult(command,
-                appendETagHeaderIfProvided(command, getRetrieveThingResponse(thing, command), thing));
+        final boolean wotThingDescriptionRequested = command.getDittoHeaders().getAccept()
+                .filter(ContentType.APPLICATION_TD_JSON.getValue()::equals)
+                .isPresent();
+
+        if (wotThingDescriptionRequested) {
+            FeatureToggle.checkWotIntegrationFeatureEnabled(command.getType(), command.getDittoHeaders());
+            try {
+                return ResultFactory.newQueryResult(command,
+                        appendETagHeaderIfProvided(command, getRetrieveThingDescriptionResponse(thing, command), thing));
+            } catch (final DittoRuntimeException e) {
+                return ResultFactory.newErrorResult(e, command);
+            }
+        } else {
+            return ResultFactory.newQueryResult(command,
+                    appendETagHeaderIfProvided(command, getRetrieveThingResponse(thing, command), thing));
+        }
     }
 
     private static DittoHeadersSettable<?> getRetrieveThingResponse(@Nullable final Thing thing,
@@ -90,6 +117,21 @@ final class RetrieveThingStrategy extends AbstractThingCommandStrategy<RetrieveT
                     return thing.toJson(command.getImplementedSchemaVersion(), expandedFieldSelector);
                 })
                 .orElseGet(() -> thing.toJson(command.getImplementedSchemaVersion()));
+    }
+
+    private DittoHeadersSettable<?> getRetrieveThingDescriptionResponse(@Nullable final Thing thing,
+            final RetrieveThing command) {
+        if (thing != null) {
+            final ThingDescription wotThingDescription = wotThingDescriptionProvider
+                    .provideThingTD(thing.getDefinition().orElse(null),
+                            command.getEntityId(),
+                            thing,
+                            command.getDittoHeaders());
+            return RetrieveWotThingDescriptionResponse.of(command.getEntityId(), wotThingDescription.toJson(),
+                    command.getDittoHeaders().toBuilder().contentType(ContentType.APPLICATION_TD_JSON).build());
+        } else {
+            return notAccessible(command);
+        }
     }
 
     private static ThingNotAccessibleException notAccessible(final ThingQueryCommand<?> command) {

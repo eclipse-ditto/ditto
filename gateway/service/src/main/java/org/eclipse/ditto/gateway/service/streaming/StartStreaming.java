@@ -24,8 +24,8 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
-import org.eclipse.ditto.things.model.ThingFieldSelector;
 import org.eclipse.ditto.internal.utils.pubsub.StreamingType;
+import org.eclipse.ditto.things.model.ThingFieldSelector;
 
 /**
  * Message indicating a demand to receive entities of a specified {@link StreamingType} via a "streaming" connection.
@@ -139,7 +139,7 @@ public final class StartStreaming implements StreamControlMessage {
                 ", connectionCorrelationId=" + connectionCorrelationId +
                 ", authorizationContext=" + authorizationContext +
                 ", namespaces=" + namespaces +
-                ", eventFilter=" + filter +
+                ", filter=" + filter +
                 ", extraFields=" + extraFields +
                 "]";
     }

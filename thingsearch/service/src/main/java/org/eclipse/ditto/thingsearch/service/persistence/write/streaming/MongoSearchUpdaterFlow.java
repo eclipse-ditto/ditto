@@ -23,17 +23,24 @@ import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLogger;
 import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.internal.utils.metrics.instruments.timer.StartedTimer;
 import org.eclipse.ditto.thingsearch.service.common.config.PersistenceStreamConfig;
+import org.eclipse.ditto.thingsearch.service.persistence.BulkWriteComplete;
 import org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.AbstractWriteModel;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.WriteResultAndErrors;
 
 import com.mongodb.MongoBulkWriteException;
 import com.mongodb.client.model.BulkWriteOptions;
+import com.mongodb.client.model.DeleteManyModel;
+import com.mongodb.client.model.DeleteOneModel;
+import com.mongodb.client.model.ReplaceOneModel;
+import com.mongodb.client.model.UpdateManyModel;
+import com.mongodb.client.model.UpdateOneModel;
 import com.mongodb.client.model.WriteModel;
 import com.mongodb.reactivestreams.client.MongoCollection;
 import com.mongodb.reactivestreams.client.MongoDatabase;
 
 import akka.NotUsed;
+import akka.actor.ActorRef;
 import akka.japi.Pair;
 import akka.japi.pf.PFBuilder;
 import akka.stream.javadsl.Flow;
@@ -47,6 +54,7 @@ final class MongoSearchUpdaterFlow {
     private static final String TRACE_THING_BULK_UPDATE = "things_search_thing_bulkUpdate";
     private static final String COUNT_THING_BULK_UPDATES_PER_BULK = "things_search_thing_bulkUpdate_updates_per_bulk";
     private static final String UPDATE_TYPE_TAG = "update_type";
+
     private static final ThreadSafeDittoLogger LOGGER =
             DittoLoggerFactory.getThreadSafeLogger(MongoSearchUpdaterFlow.class);
 
@@ -138,12 +146,12 @@ final class MongoSearchUpdaterFlow {
         final String bulkWriteCorrelationId = UUID.randomUUID().toString();
         if (LOGGER.isDebugEnabled()) {
             LOGGER.withCorrelationId(bulkWriteCorrelationId)
-                    .debug("Executing BulkWrite containing [<thingId>:{correlationIds}:<filter>]: {}", abstractWriteModels.stream()
-                            .map(writeModel -> "<" + writeModel.getMetadata().getThingId() + ">:" +
-                                    writeModel.getMetadata().getEventsCorrelationIds()
+                    .debug("Executing BulkWrite containing [<thingId>:{correlationIds}:<filter>]: {}", pairs.stream()
+                            .map(writeModelPair -> "<" + writeModelPair.first().getMetadata().getThingId() + ">:" +
+                                    writeModelPair.first().getMetadata().getEventsCorrelationIds()
                                             .stream()
                                             .collect(Collectors.joining(",", "{", "}"))
-                                    + ":<" + writeModel.getFilter() + ">"
+                                    + ":<" + extractFilterBson(writeModelPair.second()) + ">"
                             )
                             .toList());
 
@@ -168,10 +176,29 @@ final class MongoSearchUpdaterFlow {
                 )
                 .map(resultAndErrors -> {
                     stopBulkWriteTimer(bulkWriteTimer);
-                    abstractWriteModels.forEach(writeModel ->
-                            ConsistencyLag.startS6Acknowledge(writeModel.getMetadata()));
+                    abstractWriteModels.forEach(writeModel -> {
+                                writeModel.getMetadata().getOrigin().ifPresent(origin ->
+                                        origin.tell(BulkWriteComplete.of(bulkWriteCorrelationId), ActorRef.noSender()));
+                                ConsistencyLag.startS6Acknowledge(writeModel.getMetadata());
+                            }
+                    );
                     return resultAndErrors;
                 });
+    }
+
+    private static String extractFilterBson(final WriteModel<BsonDocument> writeModel) {
+        if (writeModel instanceof UpdateManyModel) {
+            return ((UpdateManyModel<BsonDocument>) writeModel).getFilter().toString();
+        } else if (writeModel instanceof UpdateOneModel) {
+            return ((UpdateOneModel<BsonDocument>) writeModel).getFilter().toString();
+        } else if (writeModel instanceof ReplaceOneModel) {
+            return ((ReplaceOneModel<BsonDocument>) writeModel).getFilter().toString();
+        } else if (writeModel instanceof DeleteOneModel) {
+            return ((DeleteOneModel<BsonDocument>) writeModel).getFilter().toString();
+        } else if (writeModel instanceof DeleteManyModel) {
+            return ((DeleteManyModel<BsonDocument>) writeModel).getFilter().toString();
+        }
+        return "no filter";
     }
 
     private static StartedTimer startBulkWriteTimer(final List<?> writeModels) {

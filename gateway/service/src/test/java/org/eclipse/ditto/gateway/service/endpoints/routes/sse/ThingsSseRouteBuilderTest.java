@@ -144,6 +144,14 @@ public final class ThingsSseRouteBuilderTest extends EndpointTestBase {
     }
 
     @Test
+    public void getWithAcceptHeaderAndNoQueryParametersOnSpecificThingOpensSseConnection() {
+        executeThingsRouteTest(HttpRequest.GET(THINGS_ROUTE + "/org.eclipse.ditto:my-thing-1").addHeader(acceptHeader),
+                StartStreaming.getBuilder(StreamingType.EVENTS, connectionCorrelationId,
+                        AuthorizationModelFactory.newAuthContext(DittoAuthorizationContextType.UNSPECIFIED,
+                                Collections.emptySet())).build());
+    }
+
+    @Test
     public void searchWithoutQueryParameters() {
         final TestRouteResult routeResult = underTest.run(HttpRequest.GET(SEARCH_ROUTE).addHeader(acceptHeader));
         final CompletableFuture<Void> assertions =
@@ -216,6 +224,57 @@ public final class ThingsSseRouteBuilderTest extends EndpointTestBase {
                                 AuthorizationModelFactory.newAuthContext(DittoAuthorizationContextType.UNSPECIFIED,
                                         Collections.emptySet()))
                         .withFilter(filter)
+                        .build());
+    }
+
+    @Test
+    public void getWithAcceptHeaderAndSpecificThingAndFilterOpensSseConnection() {
+        final String filter = "eq(attributes/manufacturer,\"ACME\")";
+
+        final String requestUrl = THINGS_ROUTE + "/org.eclipse.ditto:my-thing-1?filter=" + filter;
+
+        executeThingsRouteTest(HttpRequest.GET(requestUrl).addHeader(acceptHeader),
+                StartStreaming.getBuilder(StreamingType.EVENTS, connectionCorrelationId,
+                                AuthorizationModelFactory.newAuthContext(DittoAuthorizationContextType.UNSPECIFIED,
+                                        Collections.emptySet()))
+                        .withFilter(filter)
+                        .build());
+    }
+
+    @Test
+    public void getWithAcceptHeaderAndSpecificThingAndSubpathSseConnection() {
+        final String requestUrl = THINGS_ROUTE + "/org.eclipse.ditto:my-thing-1/attributes/manufacturer";
+
+        executeThingsRouteTest(HttpRequest.GET(requestUrl).addHeader(acceptHeader),
+                StartStreaming.getBuilder(StreamingType.EVENTS, connectionCorrelationId,
+                                AuthorizationModelFactory.newAuthContext(DittoAuthorizationContextType.UNSPECIFIED,
+                                        Collections.emptySet()))
+                        .build());
+    }
+
+    @Test
+    public void getWithAcceptHeaderAndSpecificThingForMessageInboxOpensSseConnection() {
+        final String thingId = "org.eclipse.ditto:my-thing-1";
+        final String requestUrl = THINGS_ROUTE + "/" + thingId + "/inbox/messages";
+
+        executeThingsRouteTest(HttpRequest.GET(requestUrl).addHeader(acceptHeader),
+                StartStreaming.getBuilder(StreamingType.MESSAGES, connectionCorrelationId,
+                                AuthorizationModelFactory.newAuthContext(DittoAuthorizationContextType.UNSPECIFIED,
+                                        Collections.emptySet()))
+                        .withFilter(String.format("and(eq(entity:id,'%s'),like(resource:path,'%s*'))", thingId, "/inbox/messages"))
+                        .build());
+    }
+
+    @Test
+    public void getWithAcceptHeaderAndSpecificThingForMessageInboxSpecifiedSubjectOpensSseConnection() {
+        final String thingId = "org.eclipse.ditto:my-thing-1";
+        final String requestUrl = THINGS_ROUTE + "/" + thingId + "/inbox/messages/hello-world";
+
+        executeThingsRouteTest(HttpRequest.GET(requestUrl).addHeader(acceptHeader),
+                StartStreaming.getBuilder(StreamingType.MESSAGES, connectionCorrelationId,
+                                AuthorizationModelFactory.newAuthContext(DittoAuthorizationContextType.UNSPECIFIED,
+                                        Collections.emptySet()))
+                        .withFilter(String.format("and(eq(entity:id,'%s'),eq(resource:path,'%s'))", thingId, "/inbox/messages/hello-world"))
                         .build());
     }
 

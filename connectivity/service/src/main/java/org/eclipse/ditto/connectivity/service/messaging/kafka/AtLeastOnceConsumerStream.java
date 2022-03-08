@@ -90,10 +90,19 @@ final class AtLeastOnceConsumerStream implements KafkaConsumerStream {
                 .run(materializer);
 
         this.materializer = materializer;
-        consumerControl = sourceSupplier.get()
+
+        final var source = sourceSupplier.get()
                 .filter(committableMessage -> isNotDryRun(committableMessage.record(), dryRun))
-                .map(kafkaMessageTransformer::transform)
-                .throttle(throttlingConfig.getLimit(), throttlingConfig.getInterval())
+                .map(kafkaMessageTransformer::transform);
+
+        final Source<CommittableTransformationResult, Consumer.Control> throttledSource;
+        if (throttlingConfig.isEnabled()) {
+            throttledSource = source.throttle(throttlingConfig.getLimit(), throttlingConfig.getInterval());
+        } else {
+            throttledSource = source;
+        }
+
+        consumerControl = throttledSource
                 .flatMapConcat(this::processTransformationResult)
                 .mapAsync(throttlingConfig.getMaxInFlight(), x -> x)
                 .toMat(Committer.sink(committerSettings), Consumer::createDrainingControl)

@@ -23,9 +23,14 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
+
+import org.eclipse.ditto.json.JsonField;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonValue;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
@@ -125,7 +130,14 @@ public final class ConfigWithFallback implements ScopedConfig, ConfigMergeable {
     private static Config arrayToConfig(final KnownConfigValue[] knownConfigValues) {
         final Map<String, Object> fallbackValues = new HashMap<>(knownConfigValues.length);
         for (final KnownConfigValue knownConfigValue : knownConfigValues) {
-            fallbackValues.put(knownConfigValue.getConfigPath(), knownConfigValue.getDefaultValue());
+            final Object fallbackValue = knownConfigValue.getDefaultValue();
+            if (fallbackValue instanceof JsonObject) {
+                final Map<String, JsonValue> fallbackMap = ((JsonObject) fallbackValue).stream()
+                        .collect(Collectors.toMap(f -> f.getKey().toString(), JsonField::getValue));
+                fallbackValues.put(knownConfigValue.getConfigPath(), fallbackMap);
+            } else {
+                fallbackValues.put(knownConfigValue.getConfigPath(), fallbackValue);
+            }
         }
         return ConfigFactory.parseMap(fallbackValues);
     }

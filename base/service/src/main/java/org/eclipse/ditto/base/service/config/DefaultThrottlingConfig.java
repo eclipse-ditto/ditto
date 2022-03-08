@@ -28,16 +28,23 @@ import com.typesafe.config.Config;
 @Immutable
 final class DefaultThrottlingConfig implements ThrottlingConfig {
 
+    private final boolean enabled;
     private final Duration interval;
     private final int limit;
 
     private DefaultThrottlingConfig(final ScopedConfig config) {
-        interval = config.getNonNegativeDurationOrThrow(ConfigValue.INTERVAL);
-        limit = config.getNonNegativeIntOrThrow(ConfigValue.LIMIT);
+        enabled = config.getBoolean(ConfigValue.ENABLED.getConfigPath());
+        interval = config.getNonNegativeAndNonZeroDurationOrThrow(ConfigValue.INTERVAL);
+        limit = config.getPositiveIntOrThrow(ConfigValue.LIMIT);
     }
 
     static DefaultThrottlingConfig of(final Config config) {
         return new DefaultThrottlingConfig(ConfigWithFallback.newInstance(config, CONFIG_PATH, ConfigValue.values()));
+    }
+
+    @Override
+    public boolean isEnabled() {
+        return enabled;
     }
 
     @Override
@@ -59,18 +66,21 @@ final class DefaultThrottlingConfig implements ThrottlingConfig {
             return false;
         }
         final DefaultThrottlingConfig that = (DefaultThrottlingConfig) o;
-        return limit == that.limit && Objects.equals(interval, that.interval);
+        return enabled == that.enabled &&
+                limit == that.limit &&
+                Objects.equals(interval, that.interval);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(interval, limit);
+        return Objects.hash(enabled, interval, limit);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
-                "interval=" + interval +
+                "enabled=" + enabled +
+                ", interval=" + interval +
                 ", limit=" + limit +
                 "]";
     }

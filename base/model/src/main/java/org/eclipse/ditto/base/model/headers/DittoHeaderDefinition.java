@@ -108,6 +108,15 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
     CONTENT_TYPE("content-type", String.class, true, true, HeaderValueValidators.getNoOpValidator()),
 
     /**
+     * Header definition for the accept header of a command.
+     * <p>
+     * Key: {@code "accept"}, Java type: {@link String}.
+     * </p>
+     * @since 2.4.0
+     */
+    ACCEPT("accept", String.class, true, true, HeaderValueValidators.getNoOpValidator()),
+
+    /**
      * Header definition for the reply to address. MUST be lower-case.
      * "reply-to" is a standard internet message header (RFC-5322).
      * <p>

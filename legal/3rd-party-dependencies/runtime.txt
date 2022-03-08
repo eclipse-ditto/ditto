@@ -6,8 +6,8 @@ io.netty:netty-codec-socks:jar:4.1.70.Final:runtime
 io.netty:netty-handler-proxy:jar:4.1.70.Final:runtime
 io.perfmark:perfmark-api:jar:0.23.0:runtime
 javax.inject:javax.inject:jar:1:runtime
-net.jodah:failsafe:jar:2.4.0:runtime
-net.logstash.logback:logstash-logback-encoder:jar:6.6:runtime
+net.jodah:failsafe:jar:2.4.4:runtime
+net.logstash.logback:logstash-logback-encoder:jar:7.0.1:runtime
 org.codehaus.mojo:animal-sniffer-annotations:jar:1.19:runtime
 org.jctools:jctools-core:jar:2.1.2:runtime
 org.jetbrains:annotations:jar:16.0.3:runtime

@@ -46,6 +46,8 @@ import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.ThingsModelFactory;
 import org.eclipse.ditto.things.model.signals.events.ThingCreated;
 import org.eclipse.ditto.thingsearch.api.UpdateReason;
+import org.eclipse.ditto.thingsearch.api.commands.sudo.UpdateThing;
+import org.eclipse.ditto.thingsearch.service.persistence.BulkWriteComplete;
 import org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.AbstractWriteModel;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.Metadata;
@@ -75,7 +77,6 @@ import akka.cluster.pubsub.DistributedPubSubMediator;
 import akka.stream.testkit.TestPublisher;
 import akka.testkit.TestProbe;
 import akka.testkit.javadsl.TestKit;
-import scala.concurrent.duration.FiniteDuration;
 
 /**
  * Unit test for {@link ThingUpdater}.
@@ -231,7 +232,7 @@ public final class ThingUpdaterTest {
         new TestKit(actorSystem) {{
             final Props props = Props.create(ThingUpdater.class,
                     () -> new ThingUpdater(pubSubTestProbe.ref(), changeQueueTestProbe.ref(), 0.0,
-                            Duration.ofMinutes(1), 0.0, mongoClientExtension, false, true,
+                            Duration.ZERO, 0.0, mongoClientExtension, false, true,
                             writeModel -> {}));
             final var underTest = childActorOf(props, THING_ID.toString());
 
@@ -248,6 +249,7 @@ public final class ThingUpdaterTest {
             underTest.tell(writeModel, ActorRef.noSender());
 
             // WHEN: updater is requested to compute incremental update against the same write model
+            underTest.tell(UpdateThing.of(THING_ID, UpdateReason.UNKNOWN, DittoHeaders.empty()), getRef());
             underTest.tell(writeModel, getRef());
 
             // THEN: expect no update.
@@ -259,7 +261,6 @@ public final class ThingUpdaterTest {
     public void forceUpdateAfterInitialStart() throws InterruptedException {
         new TestKit(actorSystem) {{
             final PolicyId policyId = PolicyId.of(THING_ID);
-            final Duration forceUpdateAfterStartTimeout = Duration.ofSeconds(1);
 
             final TestPublisher.Probe<Object> probe = TestPublisher.probe(1, actorSystem);
             doAnswer(invocation -> {
@@ -291,7 +292,7 @@ public final class ThingUpdaterTest {
             };
             final Props props = Props.create(ThingUpdater.class,
                     () -> new ThingUpdater(pubSubTestProbe.ref(), changeQueueTestProbe.ref(), 0.0,
-                            forceUpdateAfterStartTimeout, 0.0, mongoClientExtension, true, true,
+                            Duration.ZERO, 0.0, mongoClientExtension, true, true,
                             recoveryCompleteConsumer));
             final var underTest = childActorOf(props, THING_ID.toString());
 
@@ -313,6 +314,7 @@ public final class ThingUpdaterTest {
             final var writeModel = ThingWriteModel.of(Metadata.of(THING_ID, 1235L, policyId, 1L, null), document);
 
             // WHEN: updater is requested to compute incremental update against the next update
+            underTest.tell(UpdateThing.of(THING_ID, UpdateReason.UNKNOWN, DittoHeaders.empty()), getRef());
             underTest.tell(writeModel, getRef());
 
             final UpdateOneModel<?> updateOneModel = expectMsgClass(UpdateOneModel.class);
@@ -321,14 +323,13 @@ public final class ThingUpdaterTest {
                     Filters.eq(PersistenceConstants.FIELD_REVISION, BsonNumber.apply(1234L))
             ));
 
-            // WHEN: force-update-after-start-timeout passes
-            final var waitDuration =
-                    FiniteDuration.apply(forceUpdateAfterStartTimeout.multipliedBy(10).toMillis(), "ms");
-
             // THEN: an update is triggered
-            changeQueueTestProbe.expectMsgClass(waitDuration, Metadata.class);
+            changeQueueTestProbe.expectMsgClass(Metadata.class);
 
             // WHEN: updater is requested to compute incremental update against the same write model
+            underTest.tell(BulkWriteComplete.of("correlation-id"), getRef());
+            underTest.tell(ThingUpdater.FORCE_UPDATE_AFTER_START, getRef());
+            underTest.tell(UpdateThing.of(THING_ID, UpdateReason.UNKNOWN, DittoHeaders.empty()), getRef());
             underTest.tell(writeModel, getRef());
 
             // THEN: expect full forced update
@@ -337,9 +338,106 @@ public final class ThingUpdaterTest {
         }};
     }
 
+    @Test
+    public void parallelUpdatesProvokingIncorrectPatchUpdate() throws InterruptedException {
+        new TestKit(actorSystem) {{
+            final PolicyId policyId = PolicyId.of(THING_ID);
+
+            final TestPublisher.Probe<Object> probe = TestPublisher.probe(1, actorSystem);
+            doAnswer(invocation -> {
+                probe.subscribe(invocation.getArgument(0, Subscriber.class));
+                return null;
+            }).when(findPublisher).subscribe(any());
+
+            DocumentCodec codec = new DocumentCodec();
+            DecoderContext decoderContext = DecoderContext.builder().build();
+            final BsonDocument existingIndexBsonDocument = new BsonDocument()
+                    .append(PersistenceConstants.FIELD_ID, new BsonString(THING_ID.toString()))
+                    .append(PersistenceConstants.FIELD_REVISION, new BsonInt64(1234L))
+                    .append(PersistenceConstants.FIELD_POLICY_ID, new BsonString(THING_ID.toString()))
+                    .append(PersistenceConstants.FIELD_POLICY_REVISION, new BsonInt64(1L))
+                    .append(PersistenceConstants.FIELD_NAMESPACE, new BsonString(THING_ID.getNamespace()))
+                    .append(PersistenceConstants.FIELD_GLOBAL_READ, new BsonString("pre:ditto"))
+                    .append(PersistenceConstants.FIELD_SORTING, new BsonDocument().append("Lorem ipsum",
+                            new BsonString("Lorem ipsum dolor sit amet, consectetur adipiscing elit, " +
+                                    "sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.")))
+                    .append(PersistenceConstants.FIELD_INTERNAL, new BsonArray());
+
+            final CountDownLatch recoveryCompleteLatch = new CountDownLatch(1);
+            final Consumer<AbstractWriteModel> recoveryCompleteConsumer = writeModel -> {
+                assertThat(writeModel).isEqualTo(
+                        ThingWriteModel.of(
+                                Metadata.of(THING_ID, 1234L, PolicyId.of(THING_ID), 1L, null),
+                                existingIndexBsonDocument));
+                recoveryCompleteLatch.countDown();
+            };
+            final Props props = Props.create(ThingUpdater.class,
+                    () -> new ThingUpdater(pubSubTestProbe.ref(), changeQueueTestProbe.ref(), 0.0,
+                            Duration.ZERO, 0.0, mongoClientExtension, true, true,
+                            recoveryCompleteConsumer));
+            final var underTest = childActorOf(props, THING_ID.toString());
+
+            probe.expectRequest();
+            final var existingIndexDocument = codec.decode(new BsonDocumentReader(existingIndexBsonDocument),
+                    decoderContext);
+            probe.sendNext(existingIndexDocument);
+
+            // wait until Actor was recovered:
+            assertThat(recoveryCompleteLatch.await(5L, TimeUnit.SECONDS)).isTrue();
+
+            final var document = new BsonDocument()
+                    .append("_revision", new BsonInt64(1235))
+                    .append("d", new BsonArray())
+                    .append("s", new BsonDocument().append("Lorem ipsum", new BsonString(
+                            "Lorem ipsum dolor sit amet, consectetur adipiscing elit, " +
+                                    "sed do eiusmod tempor incididunt ut labore et dolore magna aliqua."
+                    )));
+            final var writeModel = ThingWriteModel.of(Metadata.of(THING_ID, 1235L, policyId, 1L, null), document);
+
+            // WHEN: updater is requested to compute incremental update against an update
+            underTest.tell(UpdateThing.of(THING_ID, UpdateReason.UNKNOWN, DittoHeaders.empty()), getRef());
+            underTest.tell(writeModel, getRef());
+
+            final UpdateOneModel<?> updateOneModel = expectMsgClass(UpdateOneModel.class);
+            Assertions.assertThat(updateOneModel.getFilter()).isEqualTo(Filters.and(
+                    Filters.eq(PersistenceConstants.FIELD_ID, new BsonString(THING_ID.toString())),
+                    Filters.eq(PersistenceConstants.FIELD_REVISION, BsonNumber.apply(1234L))
+            ));
+
+            // THEN: an update is triggered
+            changeQueueTestProbe.expectMsgClass(Metadata.class);
+
+            // WHEN: updater is requested to compute incremental update against another update
+            final var document2 = new BsonDocument()
+                    .append("_revision", new BsonInt64(1236))
+                    .append("d", new BsonArray())
+                    .append("s", document.get("s").asDocument()
+                            .append("The real lorem ipsum", new BsonString("Lorem ipsum!")));
+            final var writeModel2 = ThingWriteModel.of(Metadata.of(THING_ID, 1236L, policyId, 1L, null), document2);
+            underTest.tell(UpdateThing.of(THING_ID, UpdateReason.UNKNOWN, DittoHeaders.empty()), getRef());
+            underTest.tell(writeModel2, getRef());
+
+            // THEN: no UpdateOneModel/ReplaceOneModel is expected yet, as the bulkWrite did not yet complete
+            expectNoMessage(Duration.ofSeconds(2));
+
+            // WHEN: updater is notified about the completed bulkWrite
+            underTest.tell(BulkWriteComplete.of("correlation-id"), getRef());
+
+            // THEN: expect UpdateOneModel for writeModel2 is generated - including the expected revisionNumber in the filter
+            final UpdateOneModel<?> updateOneModel2 = expectMsgClass(UpdateOneModel.class);
+            Assertions.assertThat(updateOneModel2.getFilter()).isEqualTo(Filters.and(
+                    Filters.eq(PersistenceConstants.FIELD_ID, new BsonString(THING_ID.toString())),
+                    Filters.eq(PersistenceConstants.FIELD_REVISION, BsonNumber.apply(1235L))
+            ));
+
+            // THEN: an update is triggered
+            changeQueueTestProbe.expectMsgClass(Metadata.class);
+        }};
+    }
+
     private ActorRef createThingUpdaterActor() {
         final Props props = Props.create(ThingUpdater.class,
-                () -> new ThingUpdater(pubSubTestProbe.ref(), changeQueueTestProbe.ref(), 0.0, Duration.ofMinutes(1),
+                () -> new ThingUpdater(pubSubTestProbe.ref(), changeQueueTestProbe.ref(), 0.0, Duration.ZERO,
                         0.0, mongoClientExtension, false, false,
                         writeModel -> {}));
         return actorSystem.actorOf(props, THING_ID.toString());

@@ -41,6 +41,7 @@ import org.eclipse.ditto.protocol.mappingstrategies.IllegalAdaptableException;
 import org.eclipse.ditto.things.model.ThingIdInvalidException;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.AttributePointerInvalidException;
 import org.eclipse.ditto.thingsearch.model.signals.commands.exceptions.InvalidNamespacesException;
+import org.eclipse.ditto.wot.model.WotThingModelInvalidException;
 
 public final class ConnectivityServiceGlobalErrorRegistryTest extends GlobalErrorRegistryTestCases {
 
@@ -72,7 +73,9 @@ public final class ConnectivityServiceGlobalErrorRegistryTest extends GlobalErro
                 UnknownTopicPathException.class,
                 MessageRejectedException.class,
                 JwtInvalidException.class,
-                IllegalAdaptableException.class);
+                IllegalAdaptableException.class,
+                WotThingModelInvalidException.class
+        );
     }
 
 }

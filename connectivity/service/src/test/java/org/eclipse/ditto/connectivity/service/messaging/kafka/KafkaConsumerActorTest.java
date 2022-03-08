@@ -127,7 +127,9 @@ public class KafkaConsumerActorTest extends AbstractConsumerActorTest<ConsumerRe
                 .build();
         final ConsumerData consumerData = new ConsumerData(connectionSource, address, "xy");
         final KafkaConsumerStreamFactory consumerStreamFactory =
-                new KafkaConsumerStreamFactory(sourceSupplier, null, consumerData, false);
+                new KafkaConsumerStreamFactory(ConnectivityConfig.of(actorSystem.settings().config())
+                        .getConnectionConfig().getKafkaConfig().getConsumerConfig().getThrottlingConfig(),
+                        sourceSupplier, null, consumerData, false);
         final ConnectivityConfig connectivityConfig = ConnectivityConfig.of(actorSystem.settings().config());
         return KafkaConsumerActor.props(CONNECTION,
                 consumerStreamFactory,

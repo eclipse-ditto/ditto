@@ -30,84 +30,84 @@
    * Maven sources: https://search.maven.org/remotecontent?filepath=com/eclipsesource/minimal-json/minimal-json/0.9.5/minimal-json-0.9.5-sources.jar
 
 
-## Jackson-annotations (2.12.6)
+## Jackson-annotations (2.13.1)
 
-* Maven coordinates: `com.fasterxml.jackson.core:jackson-annotations:2.12.6`
+* Maven coordinates: `com.fasterxml.jackson.core:jackson-annotations:2.13.1`
 * License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
 * Project: http://github.com/FasterXML/jackson
 * Sources: 
    * declared as SCM: https://github.com/FasterXML/jackson-annotations
-   * Maven sources: https://search.maven.org/remotecontent?filepath=com/fasterxml/jackson/core/jackson-annotations/2.12.6/jackson-annotations-2.12.6-sources.jar
+   * Maven sources: https://search.maven.org/remotecontent?filepath=com/fasterxml/jackson/core/jackson-annotations/2.13.1/jackson-annotations-2.13.1-sources.jar
 
 
-## Jackson-core (2.12.6)
+## Jackson-core (2.13.1)
 
-* Maven coordinates: `com.fasterxml.jackson.core:jackson-core:2.12.6`
+* Maven coordinates: `com.fasterxml.jackson.core:jackson-core:2.13.1`
 * License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
 * Project: https://github.com/FasterXML/jackson-core
 * Sources: 
    * declared as SCM: https://github.com/FasterXML/jackson-core
-   * Maven sources: https://search.maven.org/remotecontent?filepath=com/fasterxml/jackson/core/jackson-core/2.12.6/jackson-core-2.12.6-sources.jar
+   * Maven sources: https://search.maven.org/remotecontent?filepath=com/fasterxml/jackson/core/jackson-core/2.13.1/jackson-core-2.13.1-sources.jar
 
 
-## jackson-databind (2.12.6)
+## jackson-databind (2.13.1)
 
-* Maven coordinates: `com.fasterxml.jackson.core:jackson-databind:2.12.6`
+* Maven coordinates: `com.fasterxml.jackson.core:jackson-databind:2.13.1`
 * License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
 * Project: http://github.com/FasterXML/jackson
 * Sources: 
    * declared as SCM: https://github.com/FasterXML/jackson-databind
-   * Maven sources: https://search.maven.org/remotecontent?filepath=com/fasterxml/jackson/core/jackson-databind/2.12.6/jackson-databind-2.12.6-sources.jar
+   * Maven sources: https://search.maven.org/remotecontent?filepath=com/fasterxml/jackson/core/jackson-databind/2.13.1/jackson-databind-2.13.1-sources.jar
 
 
-## Jackson dataformat: CBOR (2.12.6)
+## Jackson dataformat: CBOR (2.13.1)
 
-* Maven coordinates: `com.fasterxml.jackson.dataformat:jackson-dataformat-cbor:2.12.6`
+* Maven coordinates: `com.fasterxml.jackson.dataformat:jackson-dataformat-cbor:2.13.1`
 * License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
 * Project: http://github.com/FasterXML/jackson-dataformats-binary
 * Sources: 
    * declared as SCM: https://github.com/FasterXML/jackson-dataformats-binary/jackson-dataformat-cbor
-   * Maven sources: https://search.maven.org/remotecontent?filepath=com/fasterxml/jackson/dataformat/jackson-dataformat-cbor/2.12.6/jackson-dataformat-cbor-2.12.6-sources.jar
+   * Maven sources: https://search.maven.org/remotecontent?filepath=com/fasterxml/jackson/dataformat/jackson-dataformat-cbor/2.13.1/jackson-dataformat-cbor-2.13.1-sources.jar
 
 
-## Jackson datatype: jdk8 (2.12.6)
+## Jackson datatype: jdk8 (2.13.1)
 
-* Maven coordinates: `com.fasterxml.jackson.datatype:jackson-datatype-jdk8:2.12.6`
+* Maven coordinates: `com.fasterxml.jackson.datatype:jackson-datatype-jdk8:2.13.1`
 * License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
 * Project: https://github.com/FasterXML/jackson-modules-java8/jackson-datatype-jdk8
 * Sources: 
    * declared as SCM: https://github.com/FasterXML/jackson-modules-java8/jackson-datatype-jdk8
-   * Maven sources: https://search.maven.org/remotecontent?filepath=com/fasterxml/jackson/datatype/jackson-datatype-jdk8/2.12.6/jackson-datatype-jdk8-2.12.6-sources.jar
+   * Maven sources: https://search.maven.org/remotecontent?filepath=com/fasterxml/jackson/datatype/jackson-datatype-jdk8/2.13.1/jackson-datatype-jdk8-2.13.1-sources.jar
 
 
-## Jackson datatype: JSR310 (2.12.6)
+## Jackson datatype: JSR310 (2.13.1)
 
-* Maven coordinates: `com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.12.6`
+* Maven coordinates: `com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.13.1`
 * License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
 * Project: https://github.com/FasterXML/jackson-modules-java8/jackson-datatype-jsr310
 * Sources: 
    * declared as SCM: https://github.com/FasterXML/jackson-modules-java8/jackson-datatype-jsr310
-   * Maven sources: https://search.maven.org/remotecontent?filepath=com/fasterxml/jackson/datatype/jackson-datatype-jsr310/2.12.6/jackson-datatype-jsr310-2.12.6-sources.jar
+   * Maven sources: https://search.maven.org/remotecontent?filepath=com/fasterxml/jackson/datatype/jackson-datatype-jsr310/2.13.1/jackson-datatype-jsr310-2.13.1-sources.jar
 
 
-## Jackson-module-parameter-names (2.12.6)
+## Jackson-module-parameter-names (2.13.1)
 
-* Maven coordinates: `com.fasterxml.jackson.module:jackson-module-parameter-names:2.12.6`
+* Maven coordinates: `com.fasterxml.jackson.module:jackson-module-parameter-names:2.13.1`
 * License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
 * Project: https://github.com/FasterXML/jackson-modules-java8/jackson-module-parameter-names
 * Sources: 
    * declared as SCM: https://github.com/FasterXML/jackson-modules-java8/jackson-module-parameter-names
-   * Maven sources: https://search.maven.org/remotecontent?filepath=com/fasterxml/jackson/module/jackson-module-parameter-names/2.12.6/jackson-module-parameter-names-2.12.6-sources.jar
+   * Maven sources: https://search.maven.org/remotecontent?filepath=com/fasterxml/jackson/module/jackson-module-parameter-names/2.13.1/jackson-module-parameter-names-2.13.1-sources.jar
 
 
-## jackson-module-scala (2.12.6)
+## jackson-module-scala (2.13.1)
 
-* Maven coordinates: `com.fasterxml.jackson.module:jackson-module-scala_2.13:2.12.6`
+* Maven coordinates: `com.fasterxml.jackson.module:jackson-module-scala_2.13:2.13.1`
 * License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
 * Project: http://wiki.fasterxml.com/JacksonModuleScala
 * Sources: 
    * declared as SCM: https://github.com/FasterXML/jackson-module-scala
-   * Maven sources: https://search.maven.org/remotecontent?filepath=com/fasterxml/jackson/module/jackson-module-scala_2.13/2.12.6/jackson-module-scala_2.13-2.12.6-sources.jar
+   * Maven sources: https://search.maven.org/remotecontent?filepath=com/fasterxml/jackson/module/jackson-module-scala_2.13/2.13.1/jackson-module-scala_2.13-2.13.1-sources.jar
 
 
 ## Caffeine cache (3.0.5)
@@ -360,24 +360,24 @@
    * Maven sources: https://search.maven.org/remotecontent?filepath=com/lightbend/akka/management/akka-management_2.13/1.1.2/akka-management_2.13-1.1.2-sources.jar
 
 
-## akka-rabbitmq (5.1.2)
+## akka-rabbitmq (6.0.0)
 
-* Maven coordinates: `com.newmotion:akka-rabbitmq_2.13:5.1.2`
+* Maven coordinates: `com.newmotion:akka-rabbitmq_2.13:6.0.0`
 * License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
 * Project: https://github.com/NewMotion/akka-rabbitmq
 * Sources: 
    * declared as SCM: https://github.com/NewMotion/akka-rabbitmq
-   * Maven sources: https://search.maven.org/remotecontent?filepath=com/newmotion/akka-rabbitmq_2.13/5.1.2/akka-rabbitmq_2.13-5.1.2-sources.jar
+   * Maven sources: https://search.maven.org/remotecontent?filepath=com/newmotion/akka-rabbitmq_2.13/6.0.0/akka-rabbitmq_2.13-6.0.0-sources.jar
 
 
-## RabbitMQ Java Client (5.7.3)
+## RabbitMQ Java Client (5.14.1)
 
-* Maven coordinates: `com.rabbitmq:amqp-client:5.7.3`
-* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html), [GPL-2.0](https://spdx.org/licenses/GPL-2.0.html), [MPL 1.1](https://spdx.org/licenses/MPL 1.1.html)
+* Maven coordinates: `com.rabbitmq:amqp-client:5.14.1`
+* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html), [GPL-2.0](https://spdx.org/licenses/GPL-2.0.html), [MPL 2.0](https://spdx.org/licenses/MPL 2.0.html)
 * Project: https://www.rabbitmq.com
 * Sources: 
    * declared as SCM: https://github.com/rabbitmq/rabbitmq-java-client
-   * Maven sources: https://search.maven.org/remotecontent?filepath=com/rabbitmq/amqp-client/5.7.3/amqp-client-5.7.3-sources.jar
+   * Maven sources: https://search.maven.org/remotecontent?filepath=com/rabbitmq/amqp-client/5.14.1/amqp-client-5.14.1-sources.jar
 
 
 ## ParaNamer Core (2.8)
@@ -400,14 +400,14 @@
    * Maven sources: https://search.maven.org/remotecontent?filepath=com/typesafe/config/1.4.1/config-1.4.1-sources.jar
 
 
-## ssl-config-core (0.4.3)
+## ssl-config-core (0.6.0)
 
-* Maven coordinates: `com.typesafe:ssl-config-core_2.13:0.4.3`
+* Maven coordinates: `com.typesafe:ssl-config-core_2.13:0.6.0`
 * License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
 * Project: https://github.com/lightbend/ssl-config
 * Sources: 
    * declared as SCM: https://github.com/lightbend/ssl-config
-   * Maven sources: https://search.maven.org/remotecontent?filepath=com/typesafe/ssl-config-core_2.13/0.4.3/ssl-config-core_2.13-0.4.3-sources.jar
+   * Maven sources: https://search.maven.org/remotecontent?filepath=com/typesafe/ssl-config-core_2.13/0.6.0/ssl-config-core_2.13-0.6.0-sources.jar
 
 
 ## akka-actor (2.6.18)
@@ -990,24 +990,24 @@
    * Maven sources: https://search.maven.org/remotecontent?filepath=org/apache/kafka/kafka-clients/2.8.1/kafka-clients-2.8.1-sources.jar
 
 
-## Proton-J (0.33.8)
+## Proton-J (0.33.10)
 
-* Maven coordinates: `org.apache.qpid:proton-j:0.33.8`
+* Maven coordinates: `org.apache.qpid:proton-j:0.33.10`
 * License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
 * Project: https://qpid.apache.org/proton/proton-j
 * Sources: 
    * declared as SCM: https://gitbox.apache.org/repos/asf?p=qpid-proton-j/proton-j
-   * Maven sources: https://search.maven.org/remotecontent?filepath=org/apache/qpid/proton-j/0.33.8/proton-j-0.33.8-sources.jar
+   * Maven sources: https://search.maven.org/remotecontent?filepath=org/apache/qpid/proton-j/0.33.10/proton-j-0.33.10-sources.jar
 
 
-## QpidJMS Client (1.0.0)
+## QpidJMS Client (1.5.0)
 
-* Maven coordinates: `org.apache.qpid:qpid-jms-client:1.0.0`
+* Maven coordinates: `org.apache.qpid:qpid-jms-client:1.5.0`
 * License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
 * Project: https://qpid.apache.org/qpid-jms-client
 * Sources: 
    * declared as SCM: https://gitbox.apache.org/repos/asf?p=qpid-jms/qpid-jms-client
-   * Maven sources: https://search.maven.org/remotecontent?filepath=org/apache/qpid/qpid-jms-client/1.0.0/qpid-jms-client-1.0.0-sources.jar
+   * Maven sources: https://search.maven.org/remotecontent?filepath=org/apache/qpid/qpid-jms-client/1.5.0/qpid-jms-client-1.5.0-sources.jar
 
 
 ## Apache Mina SSHD :: Common support utilities (2.7.0)
@@ -1050,44 +1050,44 @@
    * Maven sources: https://search.maven.org/remotecontent?filepath=org/checkerframework/checker-compat-qual/2.5.5/checker-compat-qual-2.5.5-sources.jar
 
 
-## Commons Compiler (2.7.8)
+## commons-compiler (3.1.6)
 
-* Maven coordinates: `org.codehaus.janino:commons-compiler:2.7.8`
+* Maven coordinates: `org.codehaus.janino:commons-compiler:3.1.6`
 * License: [BSD-3-Clause](https://spdx.org/licenses/BSD-3-Clause.html)
-* Project: http://docs.codehaus.org/display/JANINO/Home/commons-compiler
+* Project: http://janino-compiler.github.io/commons-compiler/
 * Sources: 
-   * declared as SCM: https://fisheye.codehaus.org/browse/janino/tags/janino_2.7.8/commons-compiler/
-   * Maven sources: https://search.maven.org/remotecontent?filepath=org/codehaus/janino/commons-compiler/2.7.8/commons-compiler-2.7.8-sources.jar
+   * declared as SCM: https://github.com/janino-compiler/commons-compiler
+   * Maven sources: https://search.maven.org/remotecontent?filepath=org/codehaus/janino/commons-compiler/3.1.6/commons-compiler-3.1.6-sources.jar
 
 
-## Janino (2.7.8)
+## janino (3.1.6)
 
-* Maven coordinates: `org.codehaus.janino:janino:2.7.8`
+* Maven coordinates: `org.codehaus.janino:janino:3.1.6`
 * License: [BSD-3-Clause](https://spdx.org/licenses/BSD-3-Clause.html)
-* Project: http://docs.codehaus.org/display/JANINO/Home/janino
+* Project: http://janino-compiler.github.io/janino/
 * Sources: 
-   * declared as SCM: https://fisheye.codehaus.org/browse/janino/tags/janino_2.7.8/janino/
-   * Maven sources: https://search.maven.org/remotecontent?filepath=org/codehaus/janino/janino/2.7.8/janino-2.7.8-sources.jar
+   * declared as SCM: https://github.com/janino-compiler/janino
+   * Maven sources: https://search.maven.org/remotecontent?filepath=org/codehaus/janino/janino/3.1.6/janino-3.1.6-sources.jar
 
 
-## fluency core (2.6.0)
+## fluency core (2.6.1)
 
-* Maven coordinates: `org.komamitsu:fluency-core:2.6.0`
+* Maven coordinates: `org.komamitsu:fluency-core:2.6.1`
 * License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
 * Project: https://github.com/komamitsu/fluency
 * Sources: 
    * declared as SCM: https://github.com/komamitsu/fluency
-   * Maven sources: https://search.maven.org/remotecontent?filepath=org/komamitsu/fluency-core/2.6.0/fluency-core-2.6.0-sources.jar
+   * Maven sources: https://search.maven.org/remotecontent?filepath=org/komamitsu/fluency-core/2.6.1/fluency-core-2.6.1-sources.jar
 
 
-## fluency fluentd (2.6.0)
+## fluency fluentd (2.6.1)
 
-* Maven coordinates: `org.komamitsu:fluency-fluentd:2.6.0`
+* Maven coordinates: `org.komamitsu:fluency-fluentd:2.6.1`
 * License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
 * Project: https://github.com/komamitsu/fluency
 * Sources: 
    * declared as SCM: https://github.com/komamitsu/fluency
-   * Maven sources: https://search.maven.org/remotecontent?filepath=org/komamitsu/fluency-fluentd/2.6.0/fluency-fluentd-2.6.0-sources.jar
+   * Maven sources: https://search.maven.org/remotecontent?filepath=org/komamitsu/fluency-fluentd/2.6.1/fluency-fluentd-2.6.1-sources.jar
 
 
 ## LmdbJava (0.7.0)
@@ -1170,54 +1170,54 @@
    * Maven sources: https://search.maven.org/remotecontent?filepath=org/mozilla/rhino-runtime/1.7.14/rhino-runtime-1.7.14-sources.jar
 
 
-## asm (7.2)
+## asm (9.2)
 
-* Maven coordinates: `org.ow2.asm:asm:7.2`
+* Maven coordinates: `org.ow2.asm:asm:9.2`
 * License: [BSD-3-Clause](https://spdx.org/licenses/BSD-3-Clause.html)
 * Project: http://asm.ow2.io/
 * Sources: 
    * declared as SCM: https://gitlab.ow2.org/asm/asm/
-   * Maven sources: https://search.maven.org/remotecontent?filepath=org/ow2/asm/asm/7.2/asm-7.2-sources.jar
+   * Maven sources: https://search.maven.org/remotecontent?filepath=org/ow2/asm/asm/9.2/asm-9.2-sources.jar
 
 
-## asm-analysis (7.2)
+## asm-analysis (9.2)
 
-* Maven coordinates: `org.ow2.asm:asm-analysis:7.2`
+* Maven coordinates: `org.ow2.asm:asm-analysis:9.2`
 * License: [BSD-3-Clause](https://spdx.org/licenses/BSD-3-Clause.html)
 * Project: http://asm.ow2.io/
 * Sources: 
    * declared as SCM: https://gitlab.ow2.org/asm/asm/
-   * Maven sources: https://search.maven.org/remotecontent?filepath=org/ow2/asm/asm-analysis/7.2/asm-analysis-7.2-sources.jar
+   * Maven sources: https://search.maven.org/remotecontent?filepath=org/ow2/asm/asm-analysis/9.2/asm-analysis-9.2-sources.jar
 
 
-## asm-commons (7.2)
+## asm-commons (9.2)
 
-* Maven coordinates: `org.ow2.asm:asm-commons:7.2`
+* Maven coordinates: `org.ow2.asm:asm-commons:9.2`
 * License: [BSD-3-Clause](https://spdx.org/licenses/BSD-3-Clause.html)
 * Project: http://asm.ow2.io/
 * Sources: 
    * declared as SCM: https://gitlab.ow2.org/asm/asm/
-   * Maven sources: https://search.maven.org/remotecontent?filepath=org/ow2/asm/asm-commons/7.2/asm-commons-7.2-sources.jar
+   * Maven sources: https://search.maven.org/remotecontent?filepath=org/ow2/asm/asm-commons/9.2/asm-commons-9.2-sources.jar
 
 
-## asm-tree (7.2)
+## asm-tree (9.2)
 
-* Maven coordinates: `org.ow2.asm:asm-tree:7.2`
+* Maven coordinates: `org.ow2.asm:asm-tree:9.2`
 * License: [BSD-3-Clause](https://spdx.org/licenses/BSD-3-Clause.html)
 * Project: http://asm.ow2.io/
 * Sources: 
    * declared as SCM: https://gitlab.ow2.org/asm/asm/
-   * Maven sources: https://search.maven.org/remotecontent?filepath=org/ow2/asm/asm-tree/7.2/asm-tree-7.2-sources.jar
+   * Maven sources: https://search.maven.org/remotecontent?filepath=org/ow2/asm/asm-tree/9.2/asm-tree-9.2-sources.jar
 
 
-## asm-util (7.2)
+## asm-util (9.2)
 
-* Maven coordinates: `org.ow2.asm:asm-util:7.2`
+* Maven coordinates: `org.ow2.asm:asm-util:9.2`
 * License: [BSD-3-Clause](https://spdx.org/licenses/BSD-3-Clause.html)
 * Project: http://asm.ow2.io/
 * Sources: 
    * declared as SCM: https://gitlab.ow2.org/asm/asm/
-   * Maven sources: https://search.maven.org/remotecontent?filepath=org/ow2/asm/asm-util/7.2/asm-util-7.2-sources.jar
+   * Maven sources: https://search.maven.org/remotecontent?filepath=org/ow2/asm/asm-util/9.2/asm-util-9.2-sources.jar
 
 
 ## reactive-streams (1.0.3)
@@ -1270,44 +1270,34 @@
    * Maven sources: https://search.maven.org/remotecontent?filepath=org/scala-lang/modules/scala-java8-compat_2.13/1.0.0/scala-java8-compat_2.13-1.0.0-sources.jar
 
 
-## scala-parser-combinators (1.1.2)
+## JCL 1.2 implemented over SLF4J (1.7.33)
 
-* Maven coordinates: `org.scala-lang.modules:scala-parser-combinators_2.13:1.1.2`
-* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
-* Project: http://www.scala-lang.org/
-* Sources: 
-   * declared as SCM: https://github.com/scala/scala-parser-combinators
-   * Maven sources: https://search.maven.org/remotecontent?filepath=org/scala-lang/modules/scala-parser-combinators_2.13/1.1.2/scala-parser-combinators_2.13-1.1.2-sources.jar
-
-
-## JCL 1.2 implemented over SLF4J (1.7.32)
-
-* Maven coordinates: `org.slf4j:jcl-over-slf4j:1.7.32`
+* Maven coordinates: `org.slf4j:jcl-over-slf4j:1.7.33`
 * License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
 * Project: http://www.slf4j.org
 * Sources: 
    * declared as SCM: https://github.com/qos-ch/slf4j/jcl-over-slf4j
-   * Maven sources: https://search.maven.org/remotecontent?filepath=org/slf4j/jcl-over-slf4j/1.7.32/jcl-over-slf4j-1.7.32-sources.jar
+   * Maven sources: https://search.maven.org/remotecontent?filepath=org/slf4j/jcl-over-slf4j/1.7.33/jcl-over-slf4j-1.7.33-sources.jar
 
 
-## JUL to SLF4J bridge (1.7.32)
+## JUL to SLF4J bridge (1.7.33)
 
-* Maven coordinates: `org.slf4j:jul-to-slf4j:1.7.32`
+* Maven coordinates: `org.slf4j:jul-to-slf4j:1.7.33`
 * License: [MIT](https://spdx.org/licenses/MIT.html)
 * Project: http://www.slf4j.org
 * Sources: 
    * declared as SCM: https://github.com/qos-ch/slf4j/jul-to-slf4j
-   * Maven sources: https://search.maven.org/remotecontent?filepath=org/slf4j/jul-to-slf4j/1.7.32/jul-to-slf4j-1.7.32-sources.jar
+   * Maven sources: https://search.maven.org/remotecontent?filepath=org/slf4j/jul-to-slf4j/1.7.33/jul-to-slf4j-1.7.33-sources.jar
 
 
-## SLF4J API Module (1.7.32)
+## SLF4J API Module (1.7.33)
 
-* Maven coordinates: `org.slf4j:slf4j-api:1.7.32`
+* Maven coordinates: `org.slf4j:slf4j-api:1.7.33`
 * License: [MIT](https://spdx.org/licenses/MIT.html)
 * Project: http://www.slf4j.org
 * Sources: 
    * declared as SCM: https://github.com/qos-ch/slf4j/slf4j-api
-   * Maven sources: https://search.maven.org/remotecontent?filepath=org/slf4j/slf4j-api/1.7.32/slf4j-api-1.7.32-sources.jar
+   * Maven sources: https://search.maven.org/remotecontent?filepath=org/slf4j/slf4j-api/1.7.33/slf4j-api-1.7.33-sources.jar
 
 
 ## bytebuffer (5.0.1)

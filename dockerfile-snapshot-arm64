@@ -9,24 +9,25 @@
 #
 # SPDX-License-Identifier: EPL-2.0
 
-FROM docker.io/arm64v8/eclipse-temurin:17-jdk-centos7
+FROM docker.io/arm64v8/eclipse-temurin:17-jdk
 
 ARG TARGET_DIR
 ARG SERVICE_STARTER
 ARG SERVICE_VERSION
+ARG JVM_CMD_ARGS=""
 
 ENV HTTP_PORT=8080 \
     HOSTING_ENVIRONMENT=Docker \
     DITTO_HOME=/opt/ditto \
-    DITTO_LOGS=/var/log/ditto
+    DITTO_LOGS=/var/log/ditto \
+    JVM_CMD_ARGS_ENV=${JVM_CMD_ARGS}
 
 # Http port
 EXPOSE 8080
 
 RUN set -x \
-    && yum install -y wget ca-certificates shadow \
-    && wget https://github.com/krallin/tini/releases/download/v0.19.0/tini-arm64 -O /sbin/tini \
-    && chmod 755 /sbin/tini \
+    && apt-get update \
+    && apt-get install -y tini \
     && groupadd --system --gid 1000 ditto \
     && useradd --no-log-init --system --home-dir $DITTO_HOME --shell /bin/sh --gid ditto --uid 1000 ditto \
     && mkdir -p $DITTO_HOME \
@@ -35,13 +36,11 @@ RUN set -x \
     && ln -s ${SERVICE_STARTER}-${SERVICE_VERSION}-allinone.jar starter.jar \
     && chown -R ditto:ditto $DITTO_HOME \
     && cd $DITTO_LOGS \
-    && chown -R ditto:ditto $DITTO_LOGS \
-    && yum remove -y wget
+    && chown -R ditto:ditto $DITTO_LOGS
 
 USER ditto
 WORKDIR $DITTO_HOME
-ENTRYPOINT ["/sbin/tini", "--"]
-CMD ["java", "-jar", "/opt/ditto/starter.jar"]
+ENTRYPOINT ["/usr/bin/tini", "--"]
+CMD ["sh", "-c", "java -jar ${JVM_CMD_ARGS_ENV} /opt/ditto/starter.jar"]
 
 COPY ${TARGET_DIR}/${SERVICE_STARTER}-${SERVICE_VERSION}-allinone.jar $DITTO_HOME
-
