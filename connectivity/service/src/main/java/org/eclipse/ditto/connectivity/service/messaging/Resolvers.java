@@ -35,6 +35,7 @@ import org.eclipse.ditto.placeholders.PlaceholderFactory;
 import org.eclipse.ditto.placeholders.PlaceholderResolver;
 import org.eclipse.ditto.protocol.Adaptable;
 import org.eclipse.ditto.protocol.TopicPath;
+import org.eclipse.ditto.protocol.adapter.DittoProtocolAdapter;
 
 /**
  * Creator of expression resolvers for incoming and outgoing messages.
@@ -44,6 +45,8 @@ public final class Resolvers {
     private Resolvers() {
         throw new AssertionError();
     }
+
+    private static final DittoProtocolAdapter PROTOCOL_ADAPTER = DittoProtocolAdapter.newInstance();
 
     /**
      * Placeholder resolver creators for incoming and outgoing messages.
@@ -113,7 +116,7 @@ public final class Resolvers {
         return PlaceholderFactory.newExpressionResolver(
                 RESOLVER_CREATORS.stream()
                         .map(creator -> creator.create(signal.getDittoHeaders(), signal,
-                                null,
+                                PROTOCOL_ADAPTER.toTopicPath(signal),
                                 signal.getDittoHeaders().getAuthorizationContext(),
                                 connectionId))
                         .toArray(PlaceholderResolver[]::new)
@@ -156,7 +159,7 @@ public final class Resolvers {
                 RESOLVER_CREATORS.stream()
                         .map(creator -> creator.create(outboundSignal.getSource().getDittoHeaders(),
                                 outboundSignal.getSource(),
-                                null,
+                                PROTOCOL_ADAPTER.toTopicPath(outboundSignal.getSource()),
                                 outboundSignal.getSource().getDittoHeaders().getAuthorizationContext(),
                                 sendingConnectionId))
                         .toArray(PlaceholderResolver[]::new)

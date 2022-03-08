@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Contributors to the Eclipse Foundation
+ * Copyright (c) 2020 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.connectivity.api.placeholders;
+package org.eclipse.ditto.edge.api.placeholders;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.argumentNotEmpty;
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
@@ -21,31 +21,31 @@ import java.util.List;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.model.entity.id.EntityId;
-import org.eclipse.ditto.things.model.ThingId;
+import org.eclipse.ditto.policies.model.PolicyId;
 
 /**
- * Placeholder implementation that replaces {@code thing:id}, {@code thing:namespace} and {@code thing:name}.
- * The input value is a String and must be a valid Thing ID.
+ * Placeholder implementation that replaces {@code policy:id}, {@code policy:namespace} and {@code policy:name}.
+ * The input value is a String and must be a valid Policy ID.
  */
 @Immutable
-final class ImmutableThingPlaceholder extends AbstractEntityIdPlaceholder<ThingId> implements ThingPlaceholder {
+final class ImmutablePolicyPlaceholder extends AbstractEntityIdPlaceholder<PolicyId> implements PolicyPlaceholder {
 
     /**
-     * Singleton instance of the ImmutableThingPlaceholder.
+     * Singleton instance of the ImmutablePolicyPlaceholder.
      */
-    static final ImmutableThingPlaceholder INSTANCE = new ImmutableThingPlaceholder();
+    static final ImmutablePolicyPlaceholder INSTANCE = new ImmutablePolicyPlaceholder();
 
     @Override
     public String getPrefix() {
-        return "thing";
+        return "policy";
     }
 
     @Override
-    public List<String> resolveValues(final EntityId thingId, final String placeholder) {
+    public List<String> resolveValues(final EntityId policyId, final String placeholder) {
         argumentNotEmpty(placeholder, "placeholder");
-        checkNotNull(thingId, "Thing ID");
-        if (thingId instanceof ThingId) {
-            return doResolve(((ThingId) thingId), placeholder);
+        checkNotNull(policyId, "Policy ID");
+        if (policyId instanceof PolicyId) {
+            return doResolve(((PolicyId) policyId), placeholder);
         } else {
             return Collections.emptyList();
         }

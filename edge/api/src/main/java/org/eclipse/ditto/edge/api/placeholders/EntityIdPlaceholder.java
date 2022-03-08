@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.connectivity.api.placeholders;
+package org.eclipse.ditto.edge.api.placeholders;
 
 import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.placeholders.Placeholder;
@@ -20,4 +20,9 @@ import org.eclipse.ditto.placeholders.Placeholder;
  * (a valid Entity ID) to resolve its placeholders.
  */
 public interface EntityIdPlaceholder extends Placeholder<EntityId> {
+
+    static EntityIdPlaceholder getInstance() {
+        return ImmutableEntityIdPlaceholder.INSTANCE;
+    }
+
 }
