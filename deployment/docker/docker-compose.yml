@@ -183,7 +183,7 @@ services:
     #  - ditto_log_files:/var/log/ditto
 
   swagger-ui:
-    image: docker.io/swaggerapi/swagger-ui:v3.38.0
+    image: docker.io/swaggerapi/swagger-ui:v4.6.1
     mem_limit: 32m
     restart: always
     volumes:
@@ -193,7 +193,7 @@ services:
     command: nginx -g 'daemon off;'
 
   nginx:
-    image: docker.io/nginx:1.20-alpine
+    image: docker.io/nginx:1.21-alpine
     mem_limit: 32m
     restart: always
     volumes:
