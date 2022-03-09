@@ -135,15 +135,18 @@ final class MongoSearchUpdaterFlow {
         final var abstractWriteModels = pairs.stream().map(Pair::first).toList();
         final var writeModels = pairs.stream().map(Pair::second).toList();
 
+        final String bulkWriteCorrelationId = UUID.randomUUID().toString();
         if (writeModels.isEmpty()) {
-            LOGGER.debug("Requested to make empty update by write models <{}>", abstractWriteModels);
+            LOGGER.withCorrelationId(bulkWriteCorrelationId)
+                    .debug("Requested to make empty update by write models <{}>", abstractWriteModels);
             for (final var abstractWriteModel : abstractWriteModels) {
                 abstractWriteModel.getMetadata().sendWeakAck(null);
+                abstractWriteModel.getMetadata().getOrigin().ifPresent(origin ->
+                        origin.tell(BulkWriteComplete.of(bulkWriteCorrelationId), ActorRef.noSender()));
             }
             return Source.empty();
         }
 
-        final String bulkWriteCorrelationId = UUID.randomUUID().toString();
         if (LOGGER.isDebugEnabled()) {
             LOGGER.withCorrelationId(bulkWriteCorrelationId)
                     .debug("Executing BulkWrite containing [<thingId>:{correlationIds}:<filter>]: {}", pairs.stream()
