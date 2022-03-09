@@ -89,6 +89,7 @@ public abstract class SearchUpdateMapper implements Extension {
                     if (mongoWriteModelOpt.isEmpty()) {
                         logger.debug("Write model is unchanged, skipping update: <{}>", model);
                         model.getMetadata().sendWeakAck(null);
+                        model.getMetadata().sendBulkWriteCompleteToOrigin(null);
                         return List.<Pair<AbstractWriteModel, WriteModel<BsonDocument>>>of();
                     } else {
                         ConsistencyLag.startS5MongoBulkWrite(model.getMetadata());

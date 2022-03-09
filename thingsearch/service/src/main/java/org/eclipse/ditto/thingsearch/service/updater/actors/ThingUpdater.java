@@ -86,6 +86,9 @@ final class ThingUpdater extends AbstractActorWithStashWithTimers {
             AcknowledgementRequest.of(DittoAcknowledgementLabel.SEARCH_PERSISTED);
 
     static final String FORCE_UPDATE_AFTER_START = "FORCE_UPDATE_AFTER_START";
+    static final String BULK_RESULT_AWAITING_TIMEOUT = "BULK_RESULT_AWAITING_TIMEOUT";
+
+    private static final Duration BULK_RESULT_AWAITING_TIMEOUT_DURATION = Duration.ofMinutes(2);
 
     private static final Counter INCORRECT_PATCH_UPDATE_COUNT = DittoMetrics.counter("search_incorrect_patch_updates");
     private static final Counter UPDATE_FAILURE_COUNT = DittoMetrics.counter("search_update_failures");
@@ -93,7 +96,6 @@ final class ThingUpdater extends AbstractActorWithStashWithTimers {
     private static final Counter PATCH_SKIP_COUNT = DittoMetrics.counter("search_patch_skips");
     private static final Counter FULL_UPDATE_COUNT = DittoMetrics.counter("search_full_updates");
 
-    private static final Duration BULK_RESULT_AWAITING_TIMEOUT = Duration.ofMinutes(2);
     private static final Duration THING_DELETION_TIMEOUT = Duration.ofMinutes(5);
 
     private static final DittoLogger LOGGER = DittoLoggerFactory.getLogger(ThingUpdater.class);
@@ -227,25 +229,26 @@ final class ThingUpdater extends AbstractActorWithStashWithTimers {
     }
 
     private Receive recoveredAwaitingBulkWriteResultBehavior() {
-        getContext().setReceiveTimeout(BULK_RESULT_AWAITING_TIMEOUT);
+        getTimers().startSingleTimer(BULK_RESULT_AWAITING_TIMEOUT, BULK_RESULT_AWAITING_TIMEOUT,
+                BULK_RESULT_AWAITING_TIMEOUT_DURATION);
         return ReceiveBuilder.create()
                 .match(AbstractWriteModel.class, writeModel -> {
-                    log.debug("Stashing received writeModel while being in " +
+                    log.info("Stashing received writeModel while being in " +
                                     "'recoveredAwaitingBulkWriteResultBehavior': <{}> with revision: <{}>",
                             writeModel.getClass().getSimpleName(), writeModel.getMetadata().getThingRevision());
                     stash();
                 })
                 .match(BulkWriteComplete.class, bulkWriteComplete -> {
-                    log.withCorrelationId(bulkWriteComplete.getBulkWriteCorrelationId())
+                    log.withCorrelationId(bulkWriteComplete.getBulkWriteCorrelationId().orElse(null))
                             .debug("Got confirmation bulkWrite was performed - switching to 'recoveredBehavior'");
-                    getContext().cancelReceiveTimeout();
+                    getTimers().cancel(BULK_RESULT_AWAITING_TIMEOUT);
                     getContext().become(recoveredBehavior(), true);
                     unstashAll();
                 })
-                .match(ReceiveTimeout.class, rt -> {
-                    log.warning("Encountered ReceiveTimeout being in 'recoveredAwaitingBulkWriteResultBehavior' - " +
+                .matchEquals(BULK_RESULT_AWAITING_TIMEOUT, bra -> {
+                    log.warning("Encountered timeout being in 'recoveredAwaitingBulkWriteResultBehavior' - " +
                             "switching back to 'recoveredBehavior'");
-                    getContext().cancelReceiveTimeout();
+                    getTimers().cancel(BULK_RESULT_AWAITING_TIMEOUT);
                     getContext().become(recoveredBehavior(), true);
                     unstashAll();
                 })

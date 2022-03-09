@@ -77,7 +77,7 @@ final class BulkWriteResultAckFlow {
     private Iterable<String> checkBulkWriteResult(final WriteResultAndErrors writeResultAndErrors) {
         if (wasNotAcknowledged(writeResultAndErrors)) {
             // All failed.
-            acknowledgeFailures(getAllMetadata(writeResultAndErrors));
+            acknowledgeFailures(getAllMetadata(writeResultAndErrors), writeResultAndErrors.getBulkWriteCorrelationId());
             return Collections.singleton(logResult("NotAcknowledged", writeResultAndErrors, false,
                     false));
         } else {
@@ -85,7 +85,8 @@ final class BulkWriteResultAckFlow {
             switch (consistencyError.status) {
                 case CONSISTENCY_ERROR:
                     // write result is not consistent; there is a bug with Ditto or with its environment
-                    acknowledgeFailures(getAllMetadata(writeResultAndErrors));
+                    acknowledgeFailures(getAllMetadata(writeResultAndErrors),
+                            writeResultAndErrors.getBulkWriteCorrelationId());
 
                     return Collections.singleton(consistencyError.message);
                 case INCORRECT_PATCH:
@@ -134,24 +135,28 @@ final class BulkWriteResultAckFlow {
                 // duplicate key error is considered success
             }
         }
-        acknowledgeFailures(failedMetadata);
-        acknowledgeSuccesses(failedIndices, writeResultAndErrors.getWriteModels());
+        acknowledgeFailures(failedMetadata, writeResultAndErrors.getBulkWriteCorrelationId());
+        acknowledgeSuccesses(failedIndices, writeResultAndErrors.getBulkWriteCorrelationId(),
+                writeResultAndErrors.getWriteModels());
 
         return logEntries;
     }
 
-    private static void acknowledgeSuccesses(final BitSet failedIndices, final List<AbstractWriteModel> writeModels) {
+    private static void acknowledgeSuccesses(final BitSet failedIndices, final String bulkWriteCorrelationId,
+            final List<AbstractWriteModel> writeModels) {
         for (int i = 0; i < writeModels.size(); ++i) {
             if (!failedIndices.get(i)) {
                 writeModels.get(i).getMetadata().sendAck();
+                writeModels.get(i).getMetadata().sendBulkWriteCompleteToOrigin(bulkWriteCorrelationId);
             }
         }
     }
 
-    private void acknowledgeFailures(final Collection<Metadata> metadataList) {
+    private void acknowledgeFailures(final Collection<Metadata> metadataList, final String bulkWriteCorrelationId) {
         errorsCounter.increment(metadataList.size());
         for (final Metadata metadata : metadataList) {
             metadata.sendNAck(); // also stops timer even if no acknowledgement is requested
+            metadata.sendBulkWriteCompleteToOrigin(bulkWriteCorrelationId);
             final UpdateThingResponse response = createFailureResponse(metadata, DittoHeaders.empty());
             metadata.getOrigin().ifPresentOrElse(
                     origin -> origin.tell(response, ActorRef.noSender()),
