@@ -23,9 +23,9 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.model.entity.metadata.Metadata;
-import org.eclipse.ditto.internal.utils.persistentactors.results.Result;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.base.model.signals.events.Event;
+import org.eclipse.ditto.internal.utils.persistentactors.results.Result;
 
 /**
  * Abstract base implementation of {@code CommandStrategy}.
@@ -61,7 +61,7 @@ public abstract class AbstractCommandStrategy<C extends Command<?>, S, K, E exte
         if (isDefined(context, entity, command)) {
             if (context.getLog().isDebugEnabled()) {
                 context.getLog().withCorrelationId(command)
-                        .debug("Applying command <{}>", command);
+                        .debug("Applying command in <{}>: <{}>", getClass().getSimpleName(), command);
             }
             @Nullable final Metadata metadata = calculateRelativeMetadata(entity, command).orElse(null);
             return doApply(context, entity, nextRevision, command, metadata);
