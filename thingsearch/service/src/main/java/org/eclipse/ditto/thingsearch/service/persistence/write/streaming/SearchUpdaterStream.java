@@ -40,6 +40,7 @@ import akka.stream.javadsl.RestartSink;
 import akka.stream.javadsl.RestartSource;
 import akka.stream.javadsl.Sink;
 import akka.stream.javadsl.Source;
+import akka.stream.javadsl.SubSource;
 
 /**
  * Stream from the cache of Thing changes to the persistence of the search index.
@@ -117,17 +118,18 @@ public final class SearchUpdaterStream {
      * @return kill-switch to terminate the stream.
      */
     public KillSwitch start(final ActorContext actorContext) {
-        final Source<Source<AbstractWriteModel, NotUsed>, NotUsed> restartSource = createRestartSource();
-        final Sink<Source<AbstractWriteModel, NotUsed>, NotUsed> restartSink = createRestartSink();
+        final Source<SubSource<AbstractWriteModel, NotUsed>, NotUsed> restartSource = createRestartSource();
+        final Sink<SubSource<AbstractWriteModel, NotUsed>, NotUsed> restartSink = createRestartSink();
 
         return restartSource.viaMat(KillSwitches.single(), Keep.right())
                 .toMat(restartSink, Keep.left())
                 .run(actorContext.system());
     }
 
-    private Source<Source<AbstractWriteModel, NotUsed>, NotUsed> createRestartSource() {
+    private Source<SubSource<AbstractWriteModel, NotUsed>, NotUsed> createRestartSource() {
         final var streamConfig = updaterConfig.getStreamConfig();
         final StreamStageConfig retrievalConfig = streamConfig.getRetrievalConfig();
+        final PersistenceStreamConfig persistenceConfig = streamConfig.getPersistenceConfig();
 
         final var acknowledgedSource =
                 ChangeQueueActor.createSource(changeQueueActor, true, streamConfig.getWriteInterval());
@@ -137,9 +139,10 @@ public final class SearchUpdaterStream {
         final var mergedSource =
                 acknowledgedSource.mergePrioritized(unacknowledgedSource, 1023, 1, true);
 
-        final Source<Source<AbstractWriteModel, NotUsed>, NotUsed> source =
+        final Source<SubSource<AbstractWriteModel, NotUsed>, NotUsed> source =
                 mergedSource.via(filterMapKeysByBlockedNamespaces())
-                        .via(enforcementFlow.create(retrievalConfig.getParallelism()))
+                        .via(enforcementFlow.create(
+                                retrievalConfig.getParallelism(), persistenceConfig.getMaxBulkSize()))
                         .map(writeModelSource ->
                                 writeModelSource.via(blockNamespaceFlow(SearchUpdaterStream::namespaceOfWriteModel)));
 
@@ -150,14 +153,14 @@ public final class SearchUpdaterStream {
                 () -> source);
     }
 
-    private Sink<Source<AbstractWriteModel, NotUsed>, NotUsed> createRestartSink() {
+    private Sink<SubSource<AbstractWriteModel, NotUsed>, NotUsed> createRestartSink() {
         final var streamConfig = updaterConfig.getStreamConfig();
         final PersistenceStreamConfig persistenceConfig = streamConfig.getPersistenceConfig();
 
         final int parallelism = persistenceConfig.getParallelism();
         final int maxBulkSize = persistenceConfig.getMaxBulkSize();
         final String logName = "SearchUpdaterStream/BulkWriteResult";
-        final Sink<Source<AbstractWriteModel, NotUsed>, NotUsed> sink =
+        final Sink<SubSource<AbstractWriteModel, NotUsed>, NotUsed> sink =
                 mongoSearchUpdaterFlow.start(true, parallelism, maxBulkSize)
                         .via(bulkWriteResultAckFlow.start(persistenceConfig.getAckDelay()))
                         .log(logName)

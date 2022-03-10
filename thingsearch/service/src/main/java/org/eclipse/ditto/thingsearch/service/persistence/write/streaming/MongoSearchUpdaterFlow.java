@@ -43,6 +43,7 @@ import akka.japi.Pair;
 import akka.japi.pf.PFBuilder;
 import akka.stream.javadsl.Flow;
 import akka.stream.javadsl.Source;
+import akka.stream.javadsl.SubSource;
 
 /**
  * Flow mapping write models to write results via the search persistence.
@@ -103,22 +104,18 @@ final class MongoSearchUpdaterFlow {
      * @param maxBulkSize How many writes to perform in one bulk.
      * @return the sink.
      */
-    public Flow<Source<AbstractWriteModel, NotUsed>, WriteResultAndErrors, NotUsed> start(
+    public Flow<SubSource<AbstractWriteModel, NotUsed>, WriteResultAndErrors, NotUsed> start(
             final boolean shouldAcknowledge,
             final int parallelism,
             final int maxBulkSize) {
 
-        final Flow<Source<AbstractWriteModel, NotUsed>, List<AbstractWriteModel>, NotUsed> batchFlow =
-                Flow.<Source<AbstractWriteModel, NotUsed>>create()
-                        .flatMapConcat(source -> source.grouped(maxBulkSize));
-
-        final Flow<List<AbstractWriteModel>, WriteResultAndErrors, NotUsed> writeFlow =
-                Flow.<List<AbstractWriteModel>>create()
+        return Flow.<SubSource<AbstractWriteModel, NotUsed>>create()
+                .flatMapConcat(source -> source.grouped(maxBulkSize)
                         .flatMapConcat(searchUpdateMapper::processWriteModels)
-                        .flatMapMerge(parallelism, writeModels ->
-                                executeBulkWrite(shouldAcknowledge, writeModels).async(DISPATCHER_NAME, parallelism));
-
-        return batchFlow.via(writeFlow);
+                        .flatMapMerge(parallelism, writeModels -> executeBulkWrite(shouldAcknowledge, writeModels))
+                        .mergeSubstreamsWithParallelism(maxBulkSize)
+                        .async(MongoSearchUpdaterFlow.DISPATCHER_NAME, Math.max(parallelism, maxBulkSize))
+                );
     }
 
     private Source<WriteResultAndErrors, NotUsed> executeBulkWrite(final boolean shouldAcknowledge,
@@ -146,14 +143,17 @@ final class MongoSearchUpdaterFlow {
 
         if (LOGGER.isDebugEnabled()) {
             LOGGER.withCorrelationId(bulkWriteCorrelationId)
-                    .debug("Executing BulkWrite containing [<thingId>:{correlationIds}:<filter>]: {}", pairs.stream()
-                            .map(writeModelPair -> "<" + writeModelPair.first().getMetadata().getThingId() + ">:" +
-                                    writeModelPair.first().getMetadata().getEventsCorrelationIds()
-                                            .stream()
-                                            .collect(Collectors.joining(",", "{", "}"))
-                                    + ":<" + extractFilterBson(writeModelPair.second()) + ">"
-                            )
-                            .toList());
+                    .debug("Executing BulkWrite containing <{}> things: [<thingId>:{correlationIds}:<filter>]: {}",
+                            pairs.size(),
+                            pairs.stream()
+                                    .map(writeModelPair -> "<" + writeModelPair.first().getMetadata().getThingId() +
+                                            ">:" +
+                                            writeModelPair.first().getMetadata().getEventsCorrelationIds()
+                                                    .stream()
+                                                    .collect(Collectors.joining(",", "{", "}"))
+                                            + ":<" + extractFilterBson(writeModelPair.second()) + ">"
+                                    )
+                                    .toList());
 
             // only log the complete MongoDB writeModels on "TRACE" as they get really big and almost crash the logging backend:
             LOGGER.withCorrelationId(bulkWriteCorrelationId)

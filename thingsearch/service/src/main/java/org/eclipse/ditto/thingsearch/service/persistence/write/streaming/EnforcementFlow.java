@@ -14,9 +14,7 @@ package org.eclipse.ditto.thingsearch.service.persistence.write.streaming;
 
 import java.time.Duration;
 import java.time.Instant;
-import java.util.AbstractMap;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletionStage;
@@ -59,10 +57,12 @@ import akka.NotUsed;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Scheduler;
+import akka.japi.Pair;
 import akka.japi.pf.PFBuilder;
 import akka.stream.javadsl.Flow;
 import akka.stream.javadsl.Keep;
 import akka.stream.javadsl.Source;
+import akka.stream.javadsl.SubSource;
 
 /**
  * Converts Thing changes into write models by retrieving data and applying enforcement via an enforcer cache.
@@ -158,48 +158,36 @@ final class EnforcementFlow {
      * Create a flow from Thing changes to write models by retrieving data from Things shard region and enforcer cache.
      *
      * @param parallelism how many thing retrieves to perform in parallel to the caching facade.
+     * @param maxBulkSize the maximum configured bulk size which is used in this context to create this amount of
+     * subSources.
      * @return the flow.
      */
-    public Flow<Map<ThingId, Metadata>, Source<AbstractWriteModel, NotUsed>, NotUsed> create(final int parallelism) {
+    public Flow<Map<ThingId, Metadata>, SubSource<AbstractWriteModel, NotUsed>, NotUsed> create(
+            final int parallelism,
+            final int maxBulkSize) {
 
         return Flow.<Map<ThingId, Metadata>>create()
                 .map(changeMap -> {
                     log.info("Updating search index for <{}> changed things", changeMap.size());
-                    return retrieveThingJsonsFromCachingFacade(parallelism, changeMap).flatMapConcat(responseMap ->
-                            Source.fromIterator(changeMap.values()::iterator)
-                                    .flatMapMerge(parallelism, metadataRef -> {
-                                                final JsonObject thing = responseMap.get(metadataRef.getThingId());
+                    return Source.fromIterator(changeMap.values()::iterator)
+                            .groupBy(maxBulkSize, m -> Math.floorMod(m.getThingId().hashCode(), maxBulkSize))
+                            .flatMapMerge(parallelism, changedMetadata ->
+                                    retrieveThingFromCachingFacade(changedMetadata.getThingId(), changedMetadata)
+                                            .async(MongoSearchUpdaterFlow.DISPATCHER_NAME, parallelism)
+                                            .map(pair -> {
+                                                final Metadata metadataRef = changeMap.get(pair.first());
+                                                final JsonObject thing = pair.second();
                                                 searchUpdateObserver.process(metadataRef, thing);
                                                 return computeWriteModel(metadataRef, thing)
                                                         .async(MongoSearchUpdaterFlow.DISPATCHER_NAME, parallelism);
-                                            }
-                                    )
-                    );
+                                            })
+                            ).flatMapConcat(source -> source);
                 });
 
     }
 
-    private Source<Map<ThingId, JsonObject>, NotUsed> retrieveThingJsonsFromCachingFacade(
-            final int parallelism, final Map<ThingId, Metadata> changeMap) {
-
-        return Source.fromIterator(changeMap.entrySet()::iterator)
-                .flatMapMerge(parallelism, entry -> retrieveThingFromCachingFacade(entry)
-                        .async(MongoSearchUpdaterFlow.DISPATCHER_NAME, parallelism))
-                .<Map<ThingId, JsonObject>>fold(new HashMap<>(), (map, entry) -> {
-                    map.put(entry.getKey(), entry.getValue());
-                    return map;
-                })
-                .map(result -> {
-                    log.debug("Got things from caching facade with size: <{}>", result.size());
-                    return result;
-                });
-    }
-
-    private Source<Map.Entry<ThingId, JsonObject>, NotUsed> retrieveThingFromCachingFacade(
-            final Map.Entry<ThingId, Metadata> entry) {
-
-        final var thingId = entry.getKey();
-        final var metadata = entry.getValue();
+    private Source<Pair<ThingId, JsonObject>, NotUsed> retrieveThingFromCachingFacade(final ThingId thingId,
+            final Metadata metadata) {
         ConsistencyLag.startS3RetrieveThing(metadata);
         final CompletionStage<JsonObject> thingFuture;
         if (metadata.shouldInvalidateThing()) {
@@ -210,8 +198,8 @@ final class EnforcementFlow {
 
         return Source.completionStage(thingFuture)
                 .filter(thing -> !thing.isEmpty())
-                .<Map.Entry<ThingId, JsonObject>>map(thing -> new AbstractMap.SimpleImmutableEntry<>(thingId, thing))
-                .recoverWithRetries(1, new PFBuilder<Throwable, Source<Map.Entry<ThingId, JsonObject>, NotUsed>>()
+                .map(thing -> Pair.create(thingId, thing))
+                .recoverWithRetries(1, new PFBuilder<Throwable, Source<Pair<ThingId, JsonObject>, NotUsed>>()
                         .match(Throwable.class, error -> {
                             log.error("Unexpected response for SudoRetrieveThing via cache: <{}>", thingId, error);
                             return Source.empty();

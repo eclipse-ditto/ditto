@@ -71,7 +71,6 @@ import akka.actor.PoisonPill;
 import akka.actor.Props;
 import akka.actor.ReceiveTimeout;
 import akka.cluster.sharding.ShardRegion;
-import akka.japi.pf.ReceiveBuilder;
 import akka.pattern.Patterns;
 import akka.stream.javadsl.Sink;
 
@@ -86,9 +85,6 @@ final class ThingUpdater extends AbstractActorWithStashWithTimers {
             AcknowledgementRequest.of(DittoAcknowledgementLabel.SEARCH_PERSISTED);
 
     static final String FORCE_UPDATE_AFTER_START = "FORCE_UPDATE_AFTER_START";
-    static final String BULK_RESULT_AWAITING_TIMEOUT = "BULK_RESULT_AWAITING_TIMEOUT";
-
-    private static final Duration BULK_RESULT_AWAITING_TIMEOUT_DURATION = Duration.ofMinutes(2);
 
     private static final Counter INCORRECT_PATCH_UPDATE_COUNT = DittoMetrics.counter("search_incorrect_patch_updates");
     private static final Counter UPDATE_FAILURE_COUNT = DittoMetrics.counter("search_update_failures");
@@ -209,51 +205,23 @@ final class ThingUpdater extends AbstractActorWithStashWithTimers {
     }
 
     private Receive recoveredBehavior() {
-        return recoveredBehavior("recoveredBehavior");
-    }
-
-    private Receive recoveredBehavior(final String currentBehaviorHintForLogging) {
         return shutdownBehaviour.createReceive()
                 .match(ThingEvent.class, this::processThingEvent)
                 .match(AbstractWriteModel.class, this::onNextWriteModel)
                 .match(PolicyReferenceTag.class, this::processPolicyReferenceTag)
                 .match(UpdateThing.class, this::updateThing)
                 .match(UpdateThingResponse.class, this::processUpdateThingResponse)
+                .match(BulkWriteComplete.class, bwc -> log
+                        .withCorrelationId(bwc.getBulkWriteCorrelationId().orElse(null))
+                        .debug("Received BulkWriteComplete")
+                )
                 .match(ReceiveTimeout.class, this::stopThisActor)
                 .matchEquals(FORCE_UPDATE_AFTER_START, this::forceUpdateAfterStart)
                 .matchAny(m -> {
-                    log.warning("Unknown message in '{}': {}", currentBehaviorHintForLogging, m);
+                    log.warning("Unknown message in 'recoveredBehavior': {}", m);
                     unhandled(m);
                 })
                 .build();
-    }
-
-    private Receive recoveredAwaitingBulkWriteResultBehavior() {
-        getTimers().startSingleTimer(BULK_RESULT_AWAITING_TIMEOUT, BULK_RESULT_AWAITING_TIMEOUT,
-                BULK_RESULT_AWAITING_TIMEOUT_DURATION);
-        return ReceiveBuilder.create()
-                .match(AbstractWriteModel.class, writeModel -> {
-                    log.info("Stashing received writeModel while being in " +
-                                    "'recoveredAwaitingBulkWriteResultBehavior': <{}> with revision: <{}>",
-                            writeModel.getClass().getSimpleName(), writeModel.getMetadata().getThingRevision());
-                    stash();
-                })
-                .match(BulkWriteComplete.class, bulkWriteComplete -> {
-                    log.withCorrelationId(bulkWriteComplete.getBulkWriteCorrelationId().orElse(null))
-                            .debug("Got confirmation bulkWrite was performed - switching to 'recoveredBehavior'");
-                    getTimers().cancel(BULK_RESULT_AWAITING_TIMEOUT);
-                    getContext().become(recoveredBehavior(), true);
-                    unstashAll();
-                })
-                .matchEquals(BULK_RESULT_AWAITING_TIMEOUT, bra -> {
-                    log.warning("Encountered timeout being in 'recoveredAwaitingBulkWriteResultBehavior' - " +
-                            "switching back to 'recoveredBehavior'");
-                    getTimers().cancel(BULK_RESULT_AWAITING_TIMEOUT);
-                    getContext().become(recoveredBehavior(), true);
-                    unstashAll();
-                })
-                .build()
-                .orElse(recoveredBehavior("recoveredAwaitingBulkWriteResultBehavior"));
     }
 
     private void matchAnyDuringRecovery(final Object message) {
@@ -318,9 +286,6 @@ final class ThingUpdater extends AbstractActorWithStashWithTimers {
         }
         getSender().tell(mongoWriteModel, getSelf());
         lastWriteModel = nextWriteModel;
-
-        log.debug("Responded with mongoWriteModel - switching to 'recoveredAwaitingBulkWriteResultBehavior'");
-        getContext().become(recoveredAwaitingBulkWriteResultBehavior(), true);
     }
 
     private Optional<BsonDiff> tryComputeDiff(final BsonDocument minuend, final BsonDocument subtrahend) {

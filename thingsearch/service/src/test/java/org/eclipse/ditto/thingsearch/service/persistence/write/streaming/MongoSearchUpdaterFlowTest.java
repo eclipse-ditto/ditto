@@ -17,11 +17,14 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 
 import java.time.Duration;
+import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
@@ -62,6 +65,7 @@ import akka.stream.javadsl.Keep;
 import akka.stream.javadsl.RestartSink;
 import akka.stream.javadsl.Sink;
 import akka.stream.javadsl.Source;
+import akka.stream.javadsl.SubSource;
 import akka.testkit.javadsl.TestKit;
 
 /**
@@ -99,7 +103,6 @@ public final class MongoSearchUpdaterFlowTest {
 
             // GIVEN: Persistence has high latency
 
-            final var latency = Duration.ofSeconds(1);
             final MongoDatabase db = Mockito.mock(MongoDatabase.class);
             final MongoCollection<Document> collection = Mockito.mock(MongoCollection.class);
             Mockito.when(db.getCollection(any(), any(Class.class))).thenReturn(collection);
@@ -107,32 +110,47 @@ public final class MongoSearchUpdaterFlowTest {
                 final var size = inv.<List<?>>getArgument(0).size();
                 final BulkWriteResult result = BulkWriteResult.acknowledged(0, size, 0, size, List.of(), List.of());
                 return Source.single(result)
-                        .delay(latency, DelayOverflowStrategy.backpressure())
+                        .delay(Duration.of(ThreadLocalRandom.current().nextInt(1, 4), ChronoUnit.SECONDS),
+                                DelayOverflowStrategy.backpressure())
                         .runWith(Sink.asPublisher(AsPublisher.WITHOUT_FANOUT), actorSystem);
             }).when(collection).bulkWrite(any(), any(BulkWriteOptions.class));
 
             final MongoSearchUpdaterFlow flow = MongoSearchUpdaterFlow.of(db,
                     DefaultPersistenceStreamConfig.of(ConfigFactory.empty()), SearchUpdateMapper.get(actorSystem));
 
-            // WHEN: 25 updates go through 32 parallel streams
+            // WHEN: 25 changes each in 3 iterations go through 32 parallel streams with maxBulkSize 4
 
+            final int numberOfIterations = 3;
             final int numberOfChanges = 25;
-            final CountDownLatch latch = new CountDownLatch(numberOfChanges);
+            final CountDownLatch latch = new CountDownLatch(numberOfChanges*numberOfIterations);
 
-            final Sink<Source<AbstractWriteModel, NotUsed>, CompletionStage<Done>> sink =
-                    flow.start(false, 32, 1)
+            final int parallelism = 32;
+            final int maxBulkSize = 4;
+            final Sink<SubSource<AbstractWriteModel, NotUsed>, CompletionStage<Done>> sink =
+                    flow.start(false, parallelism, maxBulkSize)
                             .map(writeResultAndErrors -> {
-                                latch.countDown();
+                                if (writeResultAndErrors.getBulkWriteErrors().isEmpty()) {
+                                    writeResultAndErrors.getWriteModels().forEach(writeModel -> {
+                                        // a single writeResultAndErrors can contain multiple applied writeModels
+                                        latch.countDown();
+                                    });
+                                }
                                 return writeResultAndErrors;
                             })
                             .toMat(Sink.ignore(), Keep.right());
 
-            final Metadata metadata = Metadata.of(ThingId.of("thing:id"), 1L, PolicyId.of("policy:id"), 1L, null);
-            final AbstractWriteModel abstractWriteModel = ThingWriteModel.of(metadata, new BsonDocument());
+            final List<AbstractWriteModel> writeModels = new ArrayList<>();
+            for (int j=0; j<numberOfIterations; j++) {
+                for (int i=0; i<numberOfChanges; i++) {
+                    final Metadata metadata = Metadata.of(ThingId.of("thing:id-" + i), 1L, PolicyId.of("policy:id-" + i), 1L, null);
+                    writeModels.add(ThingWriteModel.of(metadata, new BsonDocument()));
+                }
+            }
             final Thread testRunnerThread = Thread.currentThread();
             final AtomicReference<Throwable> errorBox = new AtomicReference<>();
-            Source.repeat(Source.single(abstractWriteModel))
-                    .take(numberOfChanges)
+            Source.single(Source.from(writeModels)
+                    .groupBy(maxBulkSize, w -> Math.floorMod(w.getMetadata().getThingId().hashCode(), maxBulkSize))
+            )
                     .runWith(Objects.requireNonNull(sink), actorSystem)
                     .exceptionally(error -> {
                         errorBox.set(error);
@@ -176,10 +194,10 @@ public final class MongoSearchUpdaterFlowTest {
                     DefaultPersistenceStreamConfig.of(ConfigFactory.empty()),
                     SearchUpdateMapper.get(actorSystem));
 
-            final Sink<Source<AbstractWriteModel, NotUsed>, ?> sink =
+            final Sink<SubSource<AbstractWriteModel, NotUsed>, ?> sink =
                     flow.start(false, 1, 1).to(Sink.ignore());
 
-            final Sink<Source<AbstractWriteModel, NotUsed>, ?> restartSink =
+            final Sink<SubSource<AbstractWriteModel, NotUsed>, ?> restartSink =
                     RestartSink.withBackoff(Duration.ZERO, Duration.ZERO, 1.0, () -> sink);
 
             // WHEN: Many changes stream through MongoSearchUpdaterFlow
@@ -190,7 +208,7 @@ public final class MongoSearchUpdaterFlowTest {
             final AbstractWriteModel abstractWriteModel = Mockito.mock(AbstractWriteModel.class);
             final WriteModel<BsonDocument> mongoWriteModel = new DeleteOneModel<>(new Document());
             Mockito.when(abstractWriteModel.toMongo()).thenReturn(mongoWriteModel);
-            Source.repeat(Source.single(abstractWriteModel))
+            Source.repeat(Source.single(abstractWriteModel).groupBy(1, foo -> 0))
                     .take(numberOfChanges)
                     .buffer(1, OverflowStrategy.backpressure())
                     .map(source -> {
