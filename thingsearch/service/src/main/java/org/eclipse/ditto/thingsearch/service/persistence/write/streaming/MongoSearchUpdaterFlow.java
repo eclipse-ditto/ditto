@@ -112,8 +112,8 @@ final class MongoSearchUpdaterFlow {
         return Flow.<SubSource<AbstractWriteModel, NotUsed>>create()
                 .flatMapConcat(source -> source.grouped(maxBulkSize)
                         .flatMapConcat(searchUpdateMapper::processWriteModels)
-                        .flatMapMerge(parallelism, writeModels -> executeBulkWrite(shouldAcknowledge, writeModels))
                         .mergeSubstreamsWithParallelism(maxBulkSize)
+                        .flatMapMerge(parallelism, writeModels -> executeBulkWrite(shouldAcknowledge, writeModels))
                         .async(MongoSearchUpdaterFlow.DISPATCHER_NAME, parallelism)
                 );
     }
