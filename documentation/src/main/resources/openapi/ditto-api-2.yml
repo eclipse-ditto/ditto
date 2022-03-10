@@ -65,6 +65,11 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/Thing'
+            application/td+json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/WotThingDescription'
         '400':
           description: The request could not be completed. At least one of the defined query parameters was invalid.
           content:
@@ -251,6 +256,9 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Thing'
+            application/td+json:
+              schema:
+                $ref: '#/components/schemas/WotThingDescription'
         '304':
           $ref: '#/components/responses/NotModified'
         '400':
@@ -2236,6 +2244,9 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Feature'
+            application/td+json:
+              schema:
+                $ref: '#/components/schemas/WotThingDescription'
         '304':
           $ref: '#/components/responses/NotModified'
         '400':
@@ -7467,6 +7478,9 @@ components:
     WhoAmISubject:
       type: string
       description: An auth subject that can be used to provide access for a caller (e.g. in subject entries of policies).
+    WotThingDescription:
+      type: object
+      desciption: A WoT Thing Description version 1.1
   securitySchemes:
     NginxBasic:
       type: http

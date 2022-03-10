@@ -50,6 +50,9 @@ get:
         application/json:
           schema:
             $ref: '../../schemas/features/feature.yml'
+        application/td+json:
+          schema:
+            $ref: '../../schemas/wot-thingDescription.yml'
     '304':
       $ref: '../../responses/notModified.yml'
     '400':
