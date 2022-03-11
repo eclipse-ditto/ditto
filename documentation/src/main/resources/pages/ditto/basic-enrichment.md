@@ -102,6 +102,16 @@ It is possible to use the wildcard operator '*' as feature ID and add a property
 extraFields=features/*/properties/unit
 ```
 
+If you however want to see a property only for the features changed within this event you could make use of placeholders.
+The following example would enrich the definition of all features that have changed within this event.
+```
+extraFields=features/{{feature:id}}/definition
+```
+Please have a look at available placeholders for the use case:
+* [Signal enrichment for Websocket](basic-placeholders.html#scope-websocket-signal-enrichment)
+* [Signal enrichment for SSE](basic-placeholders.html#scope-sse-signal-enrichment)
+* [Signal enrichment for connections](basic-placeholders.html#scope-connections)
+
 ## Enrich and filter
 
 In combination with [event filtering](basic-changenotifications.html#filtering) enriched data can also be used to 

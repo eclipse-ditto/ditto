@@ -151,6 +151,30 @@ or subscriptions for live messages, the following placeholders are available in 
 * [resource placeholder](basic-placeholders.html#resource-placeholder)
 * [time placeholder](basic-placeholders.html#time-placeholder) 
 
+### Scope: Websocket Signal Enrichment
+When [declaring extra fields](basic-enrichment.md) which should be enriched to a published signal for a Websocket connection, the following placeholders are available in general:
+* [entity placeholder](basic-placeholders.html#entity-placeholder)
+* [thing placeholder](basic-placeholders.html#thing-placeholder)
+* [policy placeholder](basic-placeholders.html#policy-placeholder)
+* [feature placeholder](basic-placeholders.html#feature-placeholder)
+* [header placeholder](basic-placeholders.html#header-placeholder)
+* [request placeholder](basic-placeholders.html#request-placeholder)
+* [resource placeholder](basic-placeholders.html#resource-placeholder)
+* [topic placeholder](basic-placeholders.html#topic-placeholder)
+* [time placeholder](basic-placeholders.html#time-placeholder)
+
+### Scope: SSE Signal Enrichment
+When [declaring extra fields](basic-enrichment.md) which should be enriched to a published signal for a Websocket connection, the following placeholders are available in general:
+* [entity placeholder](basic-placeholders.html#entity-placeholder)
+* [thing placeholder](basic-placeholders.html#thing-placeholder)
+* [policy placeholder](basic-placeholders.html#policy-placeholder)
+* [feature placeholder](basic-placeholders.html#feature-placeholder)
+* [header placeholder](basic-placeholders.html#header-placeholder)
+* [request placeholder](basic-placeholders.html#request-placeholder)
+* [resource placeholder](basic-placeholders.html#resource-placeholder)
+* [topic placeholder](basic-placeholders.html#topic-placeholder)
+* [time placeholder](basic-placeholders.html#time-placeholder)
+
 ### Scope: Connections
 
 In [connections](basic-connections.html), the following placeholders are available in general:
