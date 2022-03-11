@@ -126,6 +126,7 @@ public final class KafkaValidator extends AbstractProtocolValidator {
 
         validateTargetAddress(addressWithoutPlaceholders, dittoHeaders, placeholderReplacement);
         validateHeaderMapping(target.getHeaderMapping(), dittoHeaders);
+        validateExtraFields(target);
     }
 
     private static void validateSourceAddress(final String address, final DittoHeaders dittoHeaders,

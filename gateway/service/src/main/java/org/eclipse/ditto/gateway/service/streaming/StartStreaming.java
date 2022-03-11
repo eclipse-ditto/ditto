@@ -13,6 +13,7 @@
 package org.eclipse.ditto.gateway.service.streaming;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
+import static org.eclipse.ditto.placeholders.PlaceholderFactory.newHeadersPlaceholder;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -24,7 +25,16 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
+import org.eclipse.ditto.base.model.common.Placeholders;
+import org.eclipse.ditto.edge.api.placeholders.EntityIdPlaceholder;
+import org.eclipse.ditto.edge.api.placeholders.FeaturePlaceholder;
+import org.eclipse.ditto.edge.api.placeholders.RequestPlaceholder;
+import org.eclipse.ditto.edge.api.placeholders.ThingPlaceholder;
 import org.eclipse.ditto.internal.utils.pubsub.StreamingType;
+import org.eclipse.ditto.placeholders.PlaceholderFilter;
+import org.eclipse.ditto.placeholders.TimePlaceholder;
+import org.eclipse.ditto.protocol.placeholders.ResourcePlaceholder;
+import org.eclipse.ditto.protocol.placeholders.TopicPathPlaceholder;
 import org.eclipse.ditto.things.model.ThingFieldSelector;
 
 /**
@@ -47,8 +57,28 @@ public final class StartStreaming implements StreamControlMessage {
         @Nullable final Collection<String> namespacesFromBuilder = builder.namespaces;
         namespaces = null != namespacesFromBuilder ? List.copyOf(namespacesFromBuilder) : Collections.emptyList();
         filter = Objects.toString(builder.filter, null);
-        extraFields = builder.extraFields;
+        extraFields = validateExtraFields(builder.extraFields);
         correlationId = builder.correlationId;
+    }
+
+    @Nullable
+    private static ThingFieldSelector validateExtraFields(@Nullable final ThingFieldSelector extraFields) {
+        if (extraFields == null) {
+            return null;
+        }
+        final String fieldSelector = extraFields.toString();
+        if (Placeholders.containsAnyPlaceholder(fieldSelector)) {
+            PlaceholderFilter.validate(fieldSelector,
+                    newHeadersPlaceholder(),
+                    EntityIdPlaceholder.getInstance(),
+                    ThingPlaceholder.getInstance(),
+                    FeaturePlaceholder.getInstance(),
+                    TopicPathPlaceholder.getInstance(),
+                    ResourcePlaceholder.getInstance(),
+                    TimePlaceholder.getInstance(),
+                    RequestPlaceholder.getInstance());
+        }
+        return extraFields;
     }
 
     /**

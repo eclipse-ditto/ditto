@@ -17,6 +17,9 @@ import java.util.Collection;
 import java.util.List;
 import java.util.function.Supplier;
 
+import javax.annotation.Nullable;
+
+import org.eclipse.ditto.base.model.common.Placeholders;
 import org.eclipse.ditto.base.model.exceptions.DittoJsonException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
@@ -24,6 +27,7 @@ import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.ConnectionConfigurationInvalidException;
 import org.eclipse.ditto.connectivity.model.ConnectionType;
 import org.eclipse.ditto.connectivity.model.ConnectionUriInvalidException;
+import org.eclipse.ditto.connectivity.model.FilteredTopic;
 import org.eclipse.ditto.connectivity.model.HeaderMapping;
 import org.eclipse.ditto.connectivity.model.Source;
 import org.eclipse.ditto.connectivity.model.Target;
@@ -33,6 +37,7 @@ import org.eclipse.ditto.connectivity.service.mapping.DittoMessageMapper;
 import org.eclipse.ditto.connectivity.service.mapping.MessageMapperFactory;
 import org.eclipse.ditto.connectivity.service.mapping.MessageMapperRegistry;
 import org.eclipse.ditto.connectivity.service.messaging.Resolvers;
+import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.placeholders.Placeholder;
 import org.eclipse.ditto.placeholders.PlaceholderFilter;
 
@@ -186,6 +191,21 @@ public abstract class AbstractProtocolValidator {
     protected void validateHeaderMapping(final HeaderMapping headerMapping, final DittoHeaders dittoHeaders) {
         headerMapping.getMapping().forEach((key, value)
                 -> validateTemplate(value, dittoHeaders, Resolvers.getPlaceholders()));
+    }
+
+    protected static void validateExtraFields(final Target target) {
+        target.getTopics().stream().map(FilteredTopic::getExtraFields)
+                .forEach(extraFields -> extraFields.ifPresent(AbstractProtocolValidator::validateExtraFields));
+    }
+
+    private static void validateExtraFields(@Nullable final JsonFieldSelector extraFields) {
+        if (extraFields == null) {
+            return;
+        }
+        final String fieldSelector = extraFields.toString();
+        if (Placeholders.containsAnyPlaceholder(fieldSelector)) {
+            PlaceholderFilter.validate(fieldSelector, Resolvers.getPlaceholders());
+        }
     }
 
     /**

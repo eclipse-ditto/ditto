@@ -447,8 +447,12 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
 
         return Filter.multiplexByEither(
                 cmdString -> {
-                    final Optional<StreamControlMessage> streamControlMessage =
-                            protocolMessageExtractor.apply(cmdString);
+                    final Optional<StreamControlMessage> streamControlMessage;
+                    try {
+                        streamControlMessage = protocolMessageExtractor.apply(cmdString);
+                    } catch (final DittoRuntimeException dre) {
+                        return Left.apply(dre);
+                    }
                     Either<DittoRuntimeException, Either<StreamControlMessage, Signal<?>>> result;
                     if (streamControlMessage.isPresent()) {
                         result = Right.apply(Left.apply(streamControlMessage.get()));
@@ -540,13 +544,13 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
                 SupervisedStream.sourceQueue(websocketConfig.getPublisherBackpressureBufferSize());
 
         final Source<SessionedJsonifiable, Connect> sourceToPreMaterialize = publisherSource.mapMaterializedValue(
-                withQueue -> {
-                    webSocketSupervisor.supervise(withQueue.getSupervisedStream(), connectionCorrelationId,
-                            additionalHeaders);
-                    return new Connect(withQueue.getSourceQueue(), connectionCorrelationId, STREAMING_TYPE_WS, version,
-                            optJsonWebToken.map(JsonWebToken::getExpirationTime).orElse(null),
-                            readDeclaredAcknowledgementLabels(additionalHeaders), connectionAuthContext);
-                })
+                        withQueue -> {
+                            webSocketSupervisor.supervise(withQueue.getSupervisedStream(), connectionCorrelationId,
+                                    additionalHeaders);
+                            return new Connect(withQueue.getSourceQueue(), connectionCorrelationId, STREAMING_TYPE_WS, version,
+                                    optJsonWebToken.map(JsonWebToken::getExpirationTime).orElse(null),
+                                    readDeclaredAcknowledgementLabels(additionalHeaders), connectionAuthContext);
+                        })
                 .recoverWithRetries(1, new PFBuilder<Throwable, Source<SessionedJsonifiable, NotUsed>>()
                         .match(GatewayWebsocketSessionExpiredException.class,
                                 ex -> {
@@ -750,10 +754,10 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
             final ActorRef streamingSessionActor = session.getStreamingSessionActor();
             WithEntityId.getEntityIdOfType(EntityId.class, jsonifiable).ifPresent(entityId ->
                     dittoHeaders.getAcknowledgementRequests()
-                    .stream()
-                    .map(request -> weakAck(request.getLabel(), entityId, dittoHeaders))
-                    .map(IncomingSignal::of)
-                    .forEach(weakAck -> streamingSessionActor.tell(weakAck, ActorRef.noSender()))
+                            .stream()
+                            .map(request -> weakAck(request.getLabel(), entityId, dittoHeaders))
+                            .map(IncomingSignal::of)
+                            .forEach(weakAck -> streamingSessionActor.tell(weakAck, ActorRef.noSender()))
             );
         });
     }
@@ -808,9 +812,9 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
         return sessionedJsonifiable.getSession()
                 .filter(session -> jsonifiable instanceof Signal)
                 .map(session -> {
-                        // evaluate to false if filter is present but does not match or has insufficient info to match
-                        final Signal<?> signal = (Signal<?>) jsonifiable;
-                        return session.matchesFilter(session.mergeThingWithExtra(signal, extra), signal);
+                    // evaluate to false if filter is present but does not match or has insufficient info to match
+                    final Signal<?> signal = (Signal<?>) jsonifiable;
+                    return session.matchesFilter(session.mergeThingWithExtra(signal, extra), signal);
                 })
                 .orElse(true);
     }
