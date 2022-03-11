@@ -7,7 +7,10 @@ permalink: basic-wot-integration.html
 
 Eclipse Ditto added support for **optional** WoT (Web of Things) integration in Ditto version `2.4.0`.  
 The integration is based on the
-[Web of Things (WoT) Thing Description 1.1 - W3C Working Draft February/March 2022](https://www.w3.org/TR/wot-thing-description11/).
+[Web of Things (WoT) Thing Description 1.1 - W3C Working Draft 11 March 2022](https://www.w3.org/TR/2022/WD-wot-thing-description11-20220311/).
+
+Using this integration, Ditto managed digital twins can be linked to WoT "Thing Models" from which Ditto can create
+WoT "Thing Descriptions" containing the API descriptions of the twins.
 
 {% include warning.html content="As WoT Thing Description version 1.1 was not yet published as \"W3C Recommendation\", 
     when Ditto `2.4.0` was released, the WoT integration is currently marked as **experimental**.<br/>This means that 
@@ -39,8 +42,8 @@ Source: [Web of Things in a Nutshell](https://www.w3.org/WoT/documentation/)
 At its core, the specification of the so-called "WoT Thing Description" (TD) defines IoT device's metadata and 
 interaction capabilities.  
 The idea of such a TD (Thing Description) is that a device (or e.g. a digital twin service acting as intermediate) 
-describes in a standardized way which capabilities in form of `properties`, `actions` and `events` a thing provides 
-and which input/output can be expected when interacting with the thing.  
+describes in a standardized way which capabilities in form of `properties`, `actions` and `events` a Thing provides 
+and which input/output can be expected when interacting with the Thing.  
 
 Even more, a TD contains so called `forms` for the mentioned interaction capabilities which map those rather abstract
 concepts to actual endpoints, e.g. to HTTP endpoints, HTTP verbs and HTTP headers etc.  
@@ -70,22 +73,23 @@ The benefits of adding such a "Thing Model" reference to digital twins managed i
   * saref: [https://ontology.tno.nl/saref/](https://ontology.tno.nl/saref/)
   * OM-2 "Ontology of units of measure": [http://www.ontology-of-units-of-measure.org/page/om-2](http://www.ontology-of-units-of-measure.org/page/om-2)
   * or any other JSON-LD described ontology
-* improves interoperability
+* interoperability
     * different IoT systems and devices may engage with each other in a standardized way
     * models and included data formats are not proprietary, but are defined in an open standard
     * avoids vendor lock-in, even a lock-in to Ditto
-* enables introspection of digital twins
+* introspection of digital twins
     * Ditto managed twins can describe themselves
-    * if backed by a WoT Thing Model, the twin will tell you as response exactly 
+    * if backed by a WoT Thing Model, the twin can tell you (when asking for `Accept: application/td+json` concent-type) exactly 
         * what it is capable of
         * which HTTP endpoints to invoke to access data / send messages
-* take advantage of an open standard
+* advantage of being backed by an open standard
     * W3C are experts on the web, the WoT standard relies on already established other standards like HTTP, JSON, 
       JSON-LD, JsonSchema, JsonPointer, etc. 
     * the standard is in active development
     * many eyes (e.g. well known industry players like Siemens, Intel, Oracle, Fujitsu, ...) review additions, etc.
-    * W3C perform a completely open specification process, no decision is made secretly, new versions evolve over years
-* use the tooling landscape / open ecosystem evolving around the WoT standard, e.g.:
+    * W3C performs a completely open specification process, no decision is made secretly, even the meeting minutes are 
+      totally public and the specifications develop over GitHub, making it open to review
+* utilization of the tooling landscape / open ecosystem evolving around the WoT standard, e.g.:
     * the [Eclipse edi{TD}or](https://eclipse.github.io/editdor/) online-editor for WoT TDs and TMs
     * the [Eclipse thingweb.node-wot](https://github.com/eclipse/thingweb.node-wot) project providing 
       [node.wot NPM modules](https://www.npmjs.com/org/node-wot), e.g. in order to "consume" Thing Descriptions in 
@@ -95,15 +99,15 @@ The benefits of adding such a "Thing Model" reference to digital twins managed i
 
 ### WoT Thing Description
 
-A [Thing Description](https://www.w3.org/TR/wot-thing-description11/#introduction-td) describes exactly one instance of 
-a device/thing.  
+A [Thing Description](https://www.w3.org/TR/2022/WD-wot-thing-description11-20220311/#introduction-td) describes exactly one instance of 
+a device/Thing.  
 This description contains not only the interaction capabilities (`properties` the devices provide, 
 `actions` which can be invoked by the devices and `events` the devices emit), but also contain concrete API endpoints 
 (via the `forms`) to invoke in order to actually interact with the devices.
 
 ### WoT Thing Model
 
-A [Thing Model](https://www.w3.org/TR/wot-thing-description11/#introduction-tm) can be seen as the model 
+A [Thing Model](https://www.w3.org/TR/2022/WD-wot-thing-description11-20220311/#introduction-tm) can be seen as the model 
 (or interface in OOP terminology) for a potentially huge population of instances (Thing Descriptions) all "implementing"
 this contract.  
 It does not need to contain the instance specific parts which a TD must include (e.g. `security` definitions or `forms`).
@@ -130,15 +134,15 @@ Here are some tips you should consider when writing new WoT Thing Models to desc
 * provide a `title` and a `description` for your Thing Models
     * you as the model creator can add the most relevant human-readable descriptions
     * also define it for `properties`, `actions`, `events` and all defined data types
-    * if you need internationalization, add those to `tiles` and `descriptions` 
+    * if you need internationalization, add those to `titles` and `descriptions` 
 * provide a semantic context by referencing ontologies in your JSON-LD `@context`
-    * at some point, a machine learning or reasoning engine will try to make sense of your things and their data
-    * support the machines to be able to understand your things semantics
+    * at some point, a machine learning or reasoning engine will try to make sense of your Things and their data
+    * support the machines to be able to understand your Things semantics
     * find out more about Linked Data and JSON-LD here: [https://json-ld.org](https://json-ld.org)
     * e.g. make use of [public ontologies](#public-available-ontologies-to-reference)
 * use the linked ontologies in order to describe your model in a semantic way, e.g. in the `properties` of a 
   "Temperature sensor" model 
-  (see also the [example in the TD specification](https://www.w3.org/TR/wot-thing-description11/#semantic-annotations-example-version-units)):
+  (see also the [example in the TD specification](https://www.w3.org/TR/2022/WD-wot-thing-description11-20220311/#semantic-annotations-example-version-units)):
     ```json
     {
       "properties": {
@@ -228,7 +232,7 @@ Mapping a WoT Thing Description (TD) to a Ditto [Thing](basic-thing.html) can be
 2. another possible mapping is that a WoT TD describes exactly one Ditto [Feature](basic-feature.html) (being part of a Thing)
 3. the most advanced option is that:
     * a WoT TD describes a Ditto Thing
-    * and in addition contains "sub things" as Features of the Thing, all described by their own TD
+    * and in addition contains "sub Things" as Features of the Thing, all described by their own TD
 
 The third option adds the possibility to provide common aspects which many similar devices support as part of the similar 
 devices, all implementing the same "contract" (Thing Model) with the same interaction capabilities 
@@ -252,11 +256,11 @@ This table shows an overview of how those elements map to Ditto concepts for the
 
 | WoT element                                                                                             | Ditto concept                                                                                                      |
 |---------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------|
-| [Thing](https://www.w3.org/TR/wot-thing-description11/#thing)                                           | [Ditto Thing](basic-thing.html)                                                                                    |
-| [Properties](https://www.w3.org/TR/wot-thing-description11/#propertyaffordance)                         | Thing [attributes](basic-thing.html#attributes)                                                                    |
-| [Actions](https://www.w3.org/TR/wot-thing-description11/#actionaffordance)                              | Thing [messages](basic-messages.html#elements) with **Direction** *to* (messages in the "inbox") of a Thing ID.    |
-| [Events](https://www.w3.org/TR/wot-thing-description11/#eventaffordance)                                | Thing [messages](basic-messages.html#elements) with **Direction** *from* (messages in the "outbox") of a Thing ID. |
-| [Composition via `tm:submodel`](https://www.w3.org/TR/wot-thing-description11/#thing-model-composition) | Thing [features](basic-thing.html#features) representing different aspects of a Ditto Thing.                       |
+| [Thing](https://www.w3.org/TR/2022/WD-wot-thing-description11-20220311/#thing)                                           | [Ditto Thing](basic-thing.html)                                                                                    |
+| [Properties](https://www.w3.org/TR/2022/WD-wot-thing-description11-20220311/#propertyaffordance)                         | Thing [attributes](basic-thing.html#attributes)                                                                    |
+| [Actions](https://www.w3.org/TR/2022/WD-wot-thing-description11-20220311/#actionaffordance)                              | Thing [messages](basic-messages.html#elements) with **Direction** *to* (messages in the "inbox") of a Thing ID.    |
+| [Events](https://www.w3.org/TR/2022/WD-wot-thing-description11-20220311/#eventaffordance)                                | Thing [messages](basic-messages.html#elements) with **Direction** *from* (messages in the "outbox") of a Thing ID. |
+| [Composition via `tm:submodel`](https://www.w3.org/TR/2022/WD-wot-thing-description11-20220311/#thing-model-composition) | Thing [features](basic-thing.html#features) representing different aspects of a Ditto Thing.                       |
 
 
 ### Thing Model describing a Ditto Feature
@@ -265,10 +269,10 @@ This table shows an overview of how those elements map to Ditto concepts for the
 
 | WoT element                                                                     | Ditto concept                                                                                                                                                                     |
 |---------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| [Thing](https://www.w3.org/TR/wot-thing-description11/#thing)                   | Feature.<br/>In Ditto, a Feature is an aspect of a [Ditto Thing](basic-thing.html). As the Feature is defined by its properties and messages it supports, it maps to a WoT Thing. |
-| [Properties](https://www.w3.org/TR/wot-thing-description11/#propertyaffordance) | Feature [properties](basic-feature.html#feature-properties)                                                                                                                       |
-| [Actions](https://www.w3.org/TR/wot-thing-description11/#actionaffordance)      | Feature [messages](basic-messages.html#elements) with **Direction** *to* (messages in the "inbox") of a Thing ID + Feature ID combination.                                        |
-| [Events](https://www.w3.org/TR/wot-thing-description11/#eventaffordance)        | Feature [messages](basic-messages.html#elements) with **Direction** *from* (messages in the "outbox") of a Thing ID + Feature ID combination.                                     |
+| [Thing](https://www.w3.org/TR/2022/WD-wot-thing-description11-20220311/#thing)                   | Feature.<br/>In Ditto, a Feature is an aspect of a [Ditto Thing](basic-thing.html). As the Feature is defined by its properties and messages it supports, it maps to a WoT Thing. |
+| [Properties](https://www.w3.org/TR/2022/WD-wot-thing-description11-20220311/#propertyaffordance) | Feature [properties](basic-feature.html#feature-properties)                                                                                                                       |
+| [Actions](https://www.w3.org/TR/2022/WD-wot-thing-description11-20220311/#actionaffordance)      | Feature [messages](basic-messages.html#elements) with **Direction** *to* (messages in the "inbox") of a Thing ID + Feature ID combination.                                        |
+| [Events](https://www.w3.org/TR/2022/WD-wot-thing-description11-20220311/#eventaffordance)        | Feature [messages](basic-messages.html#elements) with **Direction** *from* (messages in the "outbox") of a Thing ID + Feature ID combination.                                     |
 
 
 ## Integration in Ditto
@@ -276,16 +280,16 @@ This table shows an overview of how those elements map to Ditto concepts for the
 The WoT integration in Ditto covers several aspects:
 * referencing HTTP(s) URLs to WoT Thing Models in [Thing Definitions](basic-thing.html#definition) and in [Feature Definitions](basic-feature.html#feature-definition)
 * generation of WoT Thing Descriptions for Thing and Feature instances based on referenced Thing Models
-    * resolving potential [extensions via `tm:extends` and imports via `tm:ref`](https://www.w3.org/TR/wot-thing-description11/#thing-model-extension-import)
-    * resolving potential Thing level [compositions via `tm:submodel`](https://www.w3.org/TR/wot-thing-description11/#thing-model-composition)
-    * resolving potential [TM placeholders](https://www.w3.org/TR/wot-thing-description11/#thing-model-td-placeholder)
+    * resolving potential [extensions via `tm:extends` and imports via `tm:ref`](https://www.w3.org/TR/2022/WD-wot-thing-description11-20220311/#thing-model-extension-import)
+    * resolving potential Thing level [compositions via `tm:submodel`](https://www.w3.org/TR/2022/WD-wot-thing-description11-20220311/#thing-model-composition)
+    * resolving potential [TM placeholders](https://www.w3.org/TR/2022/WD-wot-thing-description11-20220311/#thing-model-td-placeholder)
 * upon creation of new Things, generation of a "JSON skeleton" following the WoT Thing Model, including referenced TM submodels as Features of the Thing 
 
 ### Thing Description generation
 
 WoT Thing Models are intended to be used as templates for generating (instance specific) Thing Descriptions, 
 the rules for doing that are specified: 
-[Derivation of Thing Description Instances](https://www.w3.org/TR/wot-thing-description11/#thing-model-td-generation)
+[Derivation of Thing Description Instances](https://www.w3.org/TR/2022/WD-wot-thing-description11-20220311/#thing-model-td-generation)
 
 Prerequisites to use the Thing Description generation:
 * the feature toggle (environment variable `DITTO_DEVOPS_FEATURE_WOT_INTEGRATION_ENABLED=true`) is activated
@@ -295,7 +299,7 @@ Prerequisites to use the Thing Description generation:
 
 The available configuration of the WoT integration can be found in the 
 [things.conf](https://github.com/eclipse/ditto/blob/master/things/service/src/main/resources/things.conf)
-config file of the [things](architecture-services-things.html) service at path `ditto.things.wot`.  
+config file of the [things service](architecture-services-things.html) at path `ditto.things.wot`.  
 There you can configure which `securityDefinitions` shall be added to the generated TDs and which `base` path 
 prefix to create into the TDs, depending on your public Ditto endpoint.
 
@@ -359,21 +363,21 @@ curl -u ditto:ditto 'http://localhost:8080/api/2/things/io.eclipsepojects.ditto:
 
 #### Resolving Thing Model placeholders
 
-WoT Thing Models may contain [placeholders](https://www.w3.org/TR/wot-thing-description11/#thing-model-td-placeholder)
+WoT Thing Models may contain [placeholders](https://www.w3.org/TR/2022/WD-wot-thing-description11-20220311/#thing-model-td-placeholder)
 which **must** be resolved during generation of the TD from a TM.  
 
 In order to resolve TM placeholders, Ditto applies the following strategy:
-* when generating a TD for a Thing, it looks in the Things' attribute `"model-placeholders"` (being a JsonObject) in
+* when generating a TD for a Thing, it looks in the Things' attribute `"model-placeholders"` (being a JSONObject) in
    order to lookup placeholders
-* when generating a TD for a Feature, it looks in the Feature's property `"model-placeholders"` (being a JsonObject) in
+* when generating a TD for a Feature, it looks in the Feature's property `"model-placeholders"` (being a JSON Object) in
    order to lookup placeholders
 * when a placeholder was not found in the `"model-placeholders"` of the Thing/Feature, a fallback to the Ditto 
   configuration is done:
     * placeholder fallbacks can be configured in Ditto via the 
       [things.conf](https://github.com/eclipse/ditto/blob/master/things/service/src/main/resources/things.conf) 
-      configuration file of the [things](architecture-services-things.html) service at path 
+      configuration file of the [things service](architecture-services-things.html) at path 
       `ditto.things.wot.to-thing-description.placeholders`.<br/>  
-      This map may contain static values, but use and Json type as value (e.g. also a JsonObject), e.g.:
+      This map may contain static values, but use and JSON type as value (e.g. also a JSON Object), e.g.:
       ```
       FOO = "bar"
       TM_REQUIRED = [
