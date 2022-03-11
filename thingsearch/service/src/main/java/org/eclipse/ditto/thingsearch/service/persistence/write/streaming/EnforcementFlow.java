@@ -158,19 +158,17 @@ final class EnforcementFlow {
      * Create a flow from Thing changes to write models by retrieving data from Things shard region and enforcer cache.
      *
      * @param parallelism how many thing retrieves to perform in parallel to the caching facade.
-     * @param maxBulkSize the maximum configured bulk size which is used in this context to create this amount of
-     * subSources.
+     * @param bulkShardCount the configured amount of shards to create substreams for.
      * @return the flow.
      */
     public Flow<Map<ThingId, Metadata>, SubSource<AbstractWriteModel, NotUsed>, NotUsed> create(
             final int parallelism,
-            final int maxBulkSize) {
+            final int bulkShardCount) {
 
         return Flow.<Map<ThingId, Metadata>>create()
                 .map(changeMap -> {
                     log.info("Updating search index for <{}> changed things", changeMap.size());
                     return Source.fromIterator(changeMap.values()::iterator)
-                            .groupBy(maxBulkSize, m -> Math.floorMod(m.getThingId().hashCode(), maxBulkSize))
                             .flatMapMerge(parallelism, changedMetadata ->
                                     retrieveThingFromCachingFacade(changedMetadata.getThingId(), changedMetadata)
                                             .async(MongoSearchUpdaterFlow.DISPATCHER_NAME, parallelism)
@@ -181,7 +179,9 @@ final class EnforcementFlow {
                                                 return computeWriteModel(metadataRef, thing)
                                                         .async(MongoSearchUpdaterFlow.DISPATCHER_NAME, parallelism);
                                             })
-                            ).flatMapConcat(source -> source);
+                            ).flatMapConcat(source -> source)
+                            .groupBy(bulkShardCount, m ->
+                                    Math.floorMod(m.getMetadata().getThingId().hashCode(), bulkShardCount));
                 });
 
     }

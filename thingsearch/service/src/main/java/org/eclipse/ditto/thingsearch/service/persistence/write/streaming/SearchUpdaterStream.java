@@ -142,7 +142,7 @@ public final class SearchUpdaterStream {
         final Source<SubSource<AbstractWriteModel, NotUsed>, NotUsed> source =
                 mergedSource.via(filterMapKeysByBlockedNamespaces())
                         .via(enforcementFlow.create(
-                                retrievalConfig.getParallelism(), persistenceConfig.getMaxBulkSize()))
+                                retrievalConfig.getParallelism(), persistenceConfig.getBulkShardCount()))
                         .map(writeModelSource ->
                                 writeModelSource.via(blockNamespaceFlow(SearchUpdaterStream::namespaceOfWriteModel)));
 
