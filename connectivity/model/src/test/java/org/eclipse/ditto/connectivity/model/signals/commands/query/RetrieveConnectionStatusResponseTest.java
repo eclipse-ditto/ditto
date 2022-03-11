@@ -55,20 +55,20 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 public final class RetrieveConnectionStatusResponseTest {
 
     private static final Instant IN_CONNECTION_STATUS_SINCE = Instant.now();
-    private static List<ResourceStatus> clientStatus =
+    private static final List<ResourceStatus> clientStatus =
             Arrays.asList(
                     newClientStatus("client1", ConnectivityStatus.OPEN, RecoveryStatus.SUCCEEDED, "Client is connected",
                             IN_CONNECTION_STATUS_SINCE),
                     newClientStatus("client2", ConnectivityStatus.FAILED, RecoveryStatus.ONGOING,  "Client failed to connect.",
                             IN_CONNECTION_STATUS_SINCE.plusSeconds(3))
             );
-    private static List<ResourceStatus> sourceStatus =
+    private static final List<ResourceStatus> sourceStatus =
             Arrays.asList(
                     newSourceStatus("client1", ConnectivityStatus.OPEN, "source1","open since ..."),
                     newSourceStatus("client1", ConnectivityStatus.FAILED, "source1","this consumer fails ..."),
                     newSourceStatus("client1", ConnectivityStatus.CLOSED, "source2","closed since 123")
             );
-    private static List<ResourceStatus> targetStatus =
+    private static final List<ResourceStatus> targetStatus =
             Arrays.asList(
                     newTargetStatus("client1", ConnectivityStatus.OPEN, "target1","open since ..."),
                     newTargetStatus("client1", ConnectivityStatus.FAILED, "target2","this publisher fails ..."),

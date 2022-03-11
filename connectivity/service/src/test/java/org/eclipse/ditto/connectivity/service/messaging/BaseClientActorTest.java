@@ -245,8 +245,8 @@ public final class BaseClientActorTest {
                     final RecoveryStatus unknown) {
                 dummyClientActor.tell(RetrieveConnectionStatus.of(randomConnectionId, DittoHeaders.empty()), getRef());
                 final ResourceStatus clientStatus = (ResourceStatus)
-                        fishForMessage(Duration.ofSeconds(1), "Client status", o -> o instanceof ResourceStatus rs &&
-                                rs.getResourceType() == ResourceStatus.ResourceType.CLIENT);
+                        fishForMessage(Duration.ofSeconds(1), "Client status", o -> o instanceof ResourceStatus rs
+                                && rs.getResourceType() == ResourceStatus.ResourceType.CLIENT);
                 assertThat(clientStatus.getRecoveryStatus()).contains(unknown);
             }
         };
