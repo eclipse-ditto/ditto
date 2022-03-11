@@ -13,6 +13,9 @@ toc: true
 The upcoming Eclipse Ditto **version 2.4.0** will add support for [W3C WoT (Web of Things)](https://www.w3.org/WoT/) 
 integration by referencing WoT Thing Model in Ditto managed twins describing the Things' capabilities.
 
+Using this integration, Ditto managed digital twins can be linked to WoT "Thing Models" from which Ditto can create 
+WoT "Thing Descriptions" containing the API descriptions of the twins.
+
 By integrating WoT, Ditto takes a big step forward towards:
 * increased interoperability
 * introspection of twins to find out their capabilities 
@@ -32,9 +35,9 @@ To learn more about WoT (Web of Things), please visit: [Web of Things in a Nutsh
 The WoT integration in Ditto covers several aspects:
 * referencing HTTP(s) URLs to WoT Thing Models in [Thing Definitions](basic-thing.html#definition) and in [Feature Definitions](basic-feature.html#feature-definition)
 * generation of WoT Thing Descriptions for Thing and Feature instances based on referenced Thing Models
-    * resolving potential [extensions via `tm:extends` and imports via `tm:ref`](https://www.w3.org/TR/wot-thing-description11/#thing-model-extension-import)
-    * resolving potential Thing level [compositions via `tm:submodel`](https://www.w3.org/TR/wot-thing-description11/#thing-model-composition)
-    * resolving potential [TM placeholders](https://www.w3.org/TR/wot-thing-description11/#thing-model-td-placeholder)
+    * resolving potential [extensions via `tm:extends` and imports via `tm:ref`](https://www.w3.org/TR/2022/WD-wot-thing-description11-20220311/#thing-model-extension-import)
+    * resolving potential Thing level [compositions via `tm:submodel`](https://www.w3.org/TR/2022/WD-wot-thing-description11-20220311/#thing-model-composition)
+    * resolving potential [TM placeholders](https://www.w3.org/TR/2022/WD-wot-thing-description11-20220311/#thing-model-td-placeholder)
 * upon creation of new Things, generation of a "JSON skeleton" following the WoT Thing Model, including referenced 
   TM submodels as Features of the Thing
 
@@ -53,10 +56,10 @@ For a full example of the different aspects of the WoT integration, please check
 [WoT integration example](basic-wot-integration-example.html).
 
 To summarize:
-* "link" a Thing with a public available WoT Thing Model by specifying the URL in its [Thing Definition](basic-thing.html#definition).
+* "link" a Thing with a publicly available WoT Thing Model by specifying the URL in its [Thing Definition](basic-thing.html#definition).
 * creation of a new Thing can use a Thing Model (e.g. the example model [https://eclipse.github.io/ditto-examples/wot/models/floor-lamp-1.0.0.tm.jsonld](https://eclipse.github.io/ditto-examples/wot/models/floor-lamp-1.0.0.tm.jsonld)) in order to generate a JSON skeleton:
     ```bash
-    curl --location --request PUT -u ditto:ditto 'http://localhost:8080/api/2/things/io.eclipseprojects.ditto:floor-lamp-0815' \
+    curl --location --request PUT -u ditto:ditto 'https://ditto.eclipseprojects.io/api/2/things/io.eclipseprojects.ditto:floor-lamp-0815' \
     --header 'Content-Type: application/json' \
     --data-raw '{
         "definition": "https://eclipse.github.io/ditto-examples/wot/models/floor-lamp-1.0.0.tm.jsonld"
@@ -164,12 +167,12 @@ To summarize:
   the existing endpoint<br/>
   `GET /api/2/things/<thingId>` with the `Accept` header `application/td+json`:
   ```bash
-  curl --location --request GET -u ditto:ditto 'http://localhost:8080/api/2/things/io.eclipseprojects.ditto:floor-lamp-0815' \
+  curl --location --request GET -u ditto:ditto 'https://ditto.eclipseprojects.io/api/2/things/io.eclipseprojects.ditto:floor-lamp-0815' \
   --header 'Accept: application/td+json'
   ```
 * Features of Things are handled as WoT "submodels" and also can describe themselves with the same approach, e.g.: 
   ```bash
-  curl --location --request GET -u ditto:ditto 'http://localhost:8080/api/2/things/io.eclipseprojects.ditto:floor-lamp-0815/features/Spot1' \
+  curl --location --request GET -u ditto:ditto 'https://ditto.eclipseprojects.io/api/2/things/io.eclipseprojects.ditto:floor-lamp-0815/features/Spot1' \
   --header 'Accept: application/td+json'
   ```
 
