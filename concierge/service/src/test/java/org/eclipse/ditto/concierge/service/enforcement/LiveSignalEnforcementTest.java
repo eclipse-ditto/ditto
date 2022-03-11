@@ -26,7 +26,9 @@ import java.util.UUID;
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
 import org.eclipse.ditto.base.model.auth.DittoAuthorizationContextType;
+import org.eclipse.ditto.base.model.entity.id.WithEntityId;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.signals.events.Event;
@@ -119,7 +121,7 @@ public final class LiveSignalEnforcementTest {
             mockEntitiesActorInstance.setReply(TestSetup.POLICY_SUDO, sudoRetrievePolicyResponse);
 
             final ActorRef underTest = newEnforcerActor(getRef());
-            underTest.tell(thingMessageCommand(), getRef());
+            underTest.tell(thingMessageCommand("abc"), getRef());
             TestSetup.fishForMsgClass(this, MessageSendNotAllowedException.class);
         }};
     }
@@ -254,6 +256,118 @@ public final class LiveSignalEnforcementTest {
     }
 
     @Test
+    public void correlationIdSameAfterResponseSuccessful() {
+        final PolicyId policyId = PolicyId.of("policy", "id");
+        final JsonObject thingWithPolicy = newThingWithPolicyId(policyId);
+        final JsonObject policy = PoliciesModelFactory.newPolicyBuilder(policyId)
+                .setRevision(1L)
+                .forLabel("authorize-self")
+                .setSubject(GOOGLE, SUBJECT_ID)
+                .setGrantedPermissions(PoliciesResourceType.thingResource("/"),
+                        Permissions.newInstance(Permission.READ, Permission.WRITE))
+                .setRevokedPermissions(PoliciesResourceType.thingResource("/features/x/properties/key2"),
+                        Permissions.newInstance(Permission.READ))
+                .build()
+                .toJson(FieldType.all());
+        final SudoRetrieveThingResponse sudoRetrieveThingResponse =
+                SudoRetrieveThingResponse.of(thingWithPolicy, DittoHeaders.empty());
+        final SudoRetrievePolicyResponse sudoRetrievePolicyResponse =
+                SudoRetrievePolicyResponse.of(policyId, policy, DittoHeaders.empty());
+
+        new TestKit(system) {{
+            mockEntitiesActorInstance.setReply(TestSetup.THING_SUDO, sudoRetrieveThingResponse);
+            mockEntitiesActorInstance.setReply(TestSetup.POLICY_SUDO, sudoRetrievePolicyResponse);
+
+            final ActorRef underTest = newEnforcerActor(getRef());
+
+            final DittoHeaders headers = headers();
+            final ThingCommand<?> read = getRetrieveThingCommand(headers);
+
+            underTest.tell(read, getRef());
+
+            final var responseHeaders = headers.toBuilder()
+                    .authorizationContext(AuthorizationContext.newInstance(
+                            DittoAuthorizationContextType.PRE_AUTHENTICATED_CONNECTION,
+                            AuthorizationSubject.newInstance("myIssuer:mySubject")))
+                    .build();
+
+            final ThingCommandResponse<?> readResponse = getRetrieveThingResponse(responseHeaders);
+
+            // Second message right after the response for the first was sent, should have the same correlation-id (Not suffixed).
+            underTest.tell(readResponse, getRef());
+            final RetrieveThingResponse retrieveThingResponse =
+                    TestSetup.fishForMsgClass(this, RetrieveThingResponse.class);
+            assertThat(retrieveThingResponse.getDittoHeaders().getCorrelationId()).isEqualTo(
+                    read.getDittoHeaders().getCorrelationId());
+
+            underTest.tell(read, getRef());
+
+            underTest.tell(readResponse, getRef());
+            final RetrieveThingResponse retrieveThingResponse2 =
+                    TestSetup.fishForMsgClass(this, RetrieveThingResponse.class);
+            assertThat(retrieveThingResponse2.getDittoHeaders().getCorrelationId()).isEqualTo(
+                    read.getDittoHeaders().getCorrelationId());
+        }};
+    }
+
+    @Test
+    public void correlationIdDifferentInCaseOfConflict() {
+        final PolicyId policyId = PolicyId.of("policy:id");
+        final JsonObject thingWithPolicy = newThingWithPolicyId(policyId);
+        final JsonObject policy = PoliciesModelFactory.newPolicyBuilder(policyId)
+                .setRevision(1L)
+                .forLabel("authorize-self")
+                .setSubject(GOOGLE, SUBJECT_ID)
+                .setGrantedPermissions(PoliciesResourceType.messageResource(JsonPointer.empty()),
+                        Permissions.newInstance(Permission.READ, Permission.WRITE))
+                .build()
+                .toJson(FieldType.all());
+        final SudoRetrieveThingResponse sudoRetrieveThingResponse =
+                SudoRetrieveThingResponse.of(thingWithPolicy, DittoHeaders.empty());
+        final SudoRetrievePolicyResponse sudoRetrievePolicyResponse =
+                SudoRetrievePolicyResponse.of(policyId, policy, DittoHeaders.empty());
+
+        new TestKit(system) {{
+            mockEntitiesActorInstance.setReply(TestSetup.THING_SUDO, sudoRetrieveThingResponse);
+            mockEntitiesActorInstance.setReply(TestSetup.POLICY_SUDO, sudoRetrievePolicyResponse);
+
+            final ActorRef underTest = newEnforcerActor(getRef());
+
+            final MessageCommand<?, ?> message = thingMessageCommand("abc");
+
+            underTest.tell(message, getRef());
+            final DistributedPubSubMediator.Publish firstPublishRead =
+                    pubSubMediatorProbe.expectMsgClass(DistributedPubSubMediator.Publish.class);
+            assertThat(firstPublishRead.topic()).isEqualTo(StreamingType.MESSAGES.getDistributedPubSubTopic());
+            assertThat(firstPublishRead.msg()).isInstanceOf(MessageCommand.class);
+            assertThat((CharSequence) ((WithEntityId) firstPublishRead.msg()).getEntityId()).isEqualTo(
+                    message.getEntityId());
+            assertThat((CharSequence) ((WithDittoHeaders) firstPublishRead.msg()).getDittoHeaders()
+                    .getCorrelationId()
+                    .orElseThrow()).isEqualTo(
+                    message.getDittoHeaders().getCorrelationId().orElseThrow());
+
+            underTest.tell(message, getRef());
+            final DistributedPubSubMediator.Publish secondPublishRead =
+                    pubSubMediatorProbe.expectMsgClass(DistributedPubSubMediator.Publish.class);
+            assertThat(secondPublishRead.topic()).isEqualTo(StreamingType.MESSAGES.getDistributedPubSubTopic());
+            assertThat(secondPublishRead.msg()).isInstanceOf(MessageCommand.class);
+            assertThat((CharSequence) ((WithEntityId) secondPublishRead.msg()).getEntityId()).isEqualTo(
+                    message.getEntityId());
+            // Assure second command has suffixed correlation-id, because of conflict with first command.
+            assertThat((CharSequence) ((WithDittoHeaders) secondPublishRead.msg()).getDittoHeaders()
+                    .getCorrelationId()
+                    .orElseThrow()).startsWith(
+                    message.getDittoHeaders().getCorrelationId().orElseThrow());
+            assertThat((CharSequence) ((WithDittoHeaders) secondPublishRead.msg()).getDittoHeaders()
+                    .getCorrelationId()
+                    .orElseThrow()).isNotEqualTo(
+                    message.getDittoHeaders().getCorrelationId().orElseThrow());
+
+        }};
+    }
+
+    @Test
     public void acceptMessageCommandByPolicy() {
         final PolicyId policyId = PolicyId.of("policy:id");
         final JsonObject thingWithPolicy = newThingWithPolicyId(policyId);
@@ -276,7 +390,7 @@ public final class LiveSignalEnforcementTest {
 
             final ActorRef underTest = newEnforcerActor(getRef());
 
-            final MessageCommand<?, ?> msgCommand = thingMessageCommand();
+            final MessageCommand<?, ?> msgCommand = thingMessageCommand("abc");
             mockEntitiesActorInstance.setReply(msgCommand);
             underTest.tell(msgCommand, getRef());
             final DistributedPubSubMediator.Publish publish =
@@ -419,11 +533,12 @@ public final class LiveSignalEnforcementTest {
         return ModifyFeature.of(TestSetup.THING_ID, TestSetup.FEATURE, headers);
     }
 
-    private static MessageCommand<?, ?> thingMessageCommand() {
+    private static MessageCommand<?, ?> thingMessageCommand(final String correlationId) {
         final Message<Object> message = Message.newBuilder(
-                        MessageBuilder.newHeadersBuilder(MessageDirection.TO, TestSetup.THING_ID, "my-subject")
-                                .contentType("text/plain")
-                                .build())
+                MessageBuilder.newHeadersBuilder(MessageDirection.TO, TestSetup.THING_ID, "my-subject")
+                        .contentType("text/plain")
+                        .correlationId(correlationId)
+                        .build())
                 .payload("Hello you!")
                 .build();
         return SendThingMessage.of(TestSetup.THING_ID, message, headers());
@@ -441,10 +556,10 @@ public final class LiveSignalEnforcementTest {
 
     private static MessageCommand<?, ?> featureMessageCommand() {
         final Message<?> message = Message.newBuilder(
-                        MessageBuilder.newHeadersBuilder(MessageDirection.TO, TestSetup.THING_ID, "my-subject")
-                                .contentType("text/plain")
-                                .featureId("foo")
-                                .build())
+                MessageBuilder.newHeadersBuilder(MessageDirection.TO, TestSetup.THING_ID, "my-subject")
+                        .contentType("text/plain")
+                        .featureId("foo")
+                        .build())
                 .payload("Hello you!")
                 .build();
         return SendFeatureMessage.of(TestSetup.THING_ID, "foo", message, headers());

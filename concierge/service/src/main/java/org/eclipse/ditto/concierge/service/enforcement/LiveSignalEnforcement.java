@@ -256,6 +256,7 @@ public final class LiveSignalEnforcement extends AbstractEnforcementWithAsk<Sign
                         final var receiver = responseReceiverEntry.get();
                         log().info("Scheduling CommandResponse <{}> to original sender <{}>", liveResponse, receiver);
                         commandResponseContextual = withMessageToReceiver(liveResponse, receiver);
+                        responseReceiverCache.invalidate(correlationId);
                     } else {
                         log().info("Got <{}> with unknown correlation ID: <{}>", liveResponse.getType(), correlationId);
                         commandResponseContextual = withMessageToReceiver(null, null);
@@ -396,13 +397,16 @@ public final class LiveSignalEnforcement extends AbstractEnforcementWithAsk<Sign
             final DistributedPub<T> pub) {
 
         // using pub/sub to publish the command to any interested parties (e.g. a Websocket):
-        log(signal).debug("Publish message to pub-sub: <{}>", signal);
 
         if (enforcementConfig.shouldDispatchGlobally(signal)) {
             return responseReceiverCache.insertResponseReceiverConflictFree(signal,
                     newSignal -> sender(),
-                    (newSignal, receiver) -> publishSignal(newSignal, ackExtractor, pub));
+                    (newSignal, receiver) -> {
+                        log(newSignal).debug("Publish message to pub-sub: <{}>", newSignal);
+                        return publishSignal(newSignal, ackExtractor, pub);
+                    });
         } else {
+            log(signal).debug("Publish message to pub-sub: <{}>", signal);
             return CompletableFuture.completedStage(publishSignal(signal, ackExtractor, pub));
         }
     }
