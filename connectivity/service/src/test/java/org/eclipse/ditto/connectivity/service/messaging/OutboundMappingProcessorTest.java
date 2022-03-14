@@ -54,13 +54,17 @@ import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapt
 import org.eclipse.ditto.internal.utils.protocol.DittoProtocolAdapterProvider;
 import org.eclipse.ditto.internal.utils.protocol.ProtocolAdapterProvider;
 import org.eclipse.ditto.internal.utils.protocol.config.ProtocolConfig;
+import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.messages.model.Message;
 import org.eclipse.ditto.messages.model.MessageDirection;
 import org.eclipse.ditto.messages.model.MessageHeaders;
 import org.eclipse.ditto.messages.model.signals.commands.MessageCommand;
 import org.eclipse.ditto.messages.model.signals.commands.SendThingMessage;
+import org.eclipse.ditto.protocol.JsonifiableAdaptable;
+import org.eclipse.ditto.protocol.ProtocolFactory;
 import org.eclipse.ditto.protocol.TopicPath;
+import org.eclipse.ditto.protocol.adapter.DittoProtocolAdapter;
 import org.eclipse.ditto.things.model.signals.events.ThingModifiedEvent;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -147,9 +151,9 @@ public final class OutboundMappingProcessorTest {
                 ConnectivityModelFactory.newPayloadMappingDefinition(mappings);
         final Connection connection =
                 ConnectivityModelFactory.newConnectionBuilder(ConnectionId.of("theConnection"),
-                                ConnectionType.AMQP_10,
-                                ConnectivityStatus.OPEN,
-                                "amqp://localhost:5671")
+                        ConnectionType.AMQP_10,
+                        ConnectivityStatus.OPEN,
+                        "amqp://localhost:5671")
                         .payloadMappingDefinition(payloadMappingDefinition)
                         .sources(List.of(ConnectivityModelFactory.newSourceBuilder()
                                 .address("address")
@@ -266,12 +270,12 @@ public final class OutboundMappingProcessorTest {
                     .build();
             final Message<Object> message =
                     Message.newBuilder(
-                                    MessageHeaders.newBuilder(MessageDirection.TO, TestConstants.Things.THING_ID, "ditto")
-                                            // adding the ack requests additionally to the message headers would break the test
-                                            // as the messageHeaders are merged into the DittoHeaders and overwrite them
-                                            .acknowledgementRequest(AcknowledgementRequest.of(targetIssuedAckLabel),
-                                                    AcknowledgementRequest.of(customAckLabel))
-                                            .build())
+                            MessageHeaders.newBuilder(MessageDirection.TO, TestConstants.Things.THING_ID, "ditto")
+                                    // adding the ack requests additionally to the message headers would break the test
+                                    // as the messageHeaders are merged into the DittoHeaders and overwrite them
+                                    .acknowledgementRequest(AcknowledgementRequest.of(targetIssuedAckLabel),
+                                            AcknowledgementRequest.of(customAckLabel))
+                                    .build())
                             .build();
             final MessageCommand signal = SendThingMessage.of(TestConstants.Things.THING_ID, message, dittoHeaders);
             final OutboundSignal outboundSignal = Mockito.mock(OutboundSignal.class);
@@ -357,8 +361,10 @@ public final class OutboundMappingProcessorTest {
             verify(mock, times(dropped)).onDropped(any(String.class), any());
 
             assertThat(captor.getAllValues()).allSatisfy(em ->
-                    assertThat(em.getExternalMessage().getTextPayload())
-                            .contains(TestConstants.signalToDittoProtocolJsonString(signal)));
+                    assertThat(removeCorrelationId(ProtocolFactory.jsonifiableAdaptableFromJson(
+                            JsonFactory.newObject(em.getExternalMessage().getTextPayload().orElseThrow()))).toJsonString())
+                            .contains(removeCorrelationId(ProtocolFactory.wrapAsJsonifiableAdaptable(
+                                    DittoProtocolAdapter.newInstance().toAdaptable(signal))).toJsonString()));
 
             if (assertTargets && mapped > 0) {
                 assertThat(captor.getAllValues()
@@ -368,6 +374,12 @@ public final class OutboundMappingProcessorTest {
                         .containsExactlyInAnyOrderElementsOf(expectedTargets);
             }
         }};
+    }
+
+    // The correlation-id gets substituted with the internal correlation-id which changes the order in which the
+    // headers are represented in string, this makes the string comparison fail.
+    private static JsonifiableAdaptable removeCorrelationId(final JsonifiableAdaptable adaptable) {
+        return adaptable.setDittoHeaders(adaptable.getDittoHeaders().toBuilder().correlationId(null).build());
     }
 
 }

@@ -288,6 +288,8 @@ components:
       $ref: "./schemas/whoami/whoami.yml"
     WhoAmISubject:
       $ref: "./schemas/whoami/whoamiSubject.yml"
+    WotThingDescription:
+      $ref: "./schemas/wot-thingDescription.yml"
 
   securitySchemes:
     NginxBasic:
