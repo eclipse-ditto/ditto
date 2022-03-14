@@ -175,7 +175,7 @@ public final class SearchConsistencyIT {
             final ActorRef pubSub,
             final UpdaterConfig config) {
 
-        ChangeQueueActor.createSource(changeQueue, true, java.time.Duration.ofSeconds(1));
+        ChangeQueueActor.createSource(changeQueue, true, java.time.Duration.ofSeconds(3));
         final var updaterProps = ThingUpdater.props(pubSub, changeQueue, config);
         final var updater = actorSystem.actorOf(updaterProps, THING_ID.toString() + Math.random());
 
@@ -194,7 +194,7 @@ public final class SearchConsistencyIT {
                 .newObjectBuilder().set("char", EXPECTED_CHAR).set("number", EXPECTED_NUMBER).build())));
         probe.send(updater2, getThingEvent(ThingsModelFactory.newAttributes(JsonFactory
                 .newObjectBuilder().set("number", EXPECTED_NUMBER).set("char", EXPECTED_CHAR).build())));
-        assertSearchPersisted(Duration.ofSeconds(5));
+        assertSearchPersisted(Duration.ofSeconds(10));
     }
 
     private static ThingEvent<?> getThingEvent(final Attributes attributes) {
