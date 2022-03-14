@@ -46,7 +46,7 @@ pipeline {
                 configFileProvider([configFile(fileId: 'mvn-bdc-settings', variable: 'MVN_SETTINGS')]) {
                     sh "mvn -s $MVN_SETTINGS clean deploy javadoc:jar source:jar " +
                                "-T1C --batch-mode --errors " +
-                               "-Pbuild-documentation,ditto " +
+                               "-Pditto " +
                                "-Drevision=${theVersion} " +
                                "${params.EXTRA_MAVEN_ARGS ?: ''}"
                 }
