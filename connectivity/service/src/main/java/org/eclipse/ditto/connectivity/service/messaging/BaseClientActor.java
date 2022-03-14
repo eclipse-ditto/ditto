@@ -69,6 +69,7 @@ import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
 import org.eclipse.ditto.connectivity.model.ConnectivityStatus;
 import org.eclipse.ditto.connectivity.model.FilteredTopic;
+import org.eclipse.ditto.connectivity.model.RecoveryStatus;
 import org.eclipse.ditto.connectivity.model.ResourceStatus;
 import org.eclipse.ditto.connectivity.model.Source;
 import org.eclipse.ditto.connectivity.model.SshTunnel;
@@ -288,13 +289,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         when(TESTING, inTestingState());
 
         // start with UNKNOWN state but send self OpenConnection because client actors are never created closed
-        final var startingData = BaseClientData.BaseClientDataBuilder.from(connection.getId(),
-                        connection,
-                        ConnectivityStatus.UNKNOWN,
-                        ConnectivityStatus.OPEN,
-                        "initialized",
-                        Instant.now())
-                .build();
+        final var startingData = BaseClientData.BaseClientDataBuilder.initialized(connection).build();
         startWith(UNKNOWN, startingData);
 
         onTransition(this::onTransition);
@@ -931,6 +926,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
                     .using(data.resetSession()
                             .resetFailureCount()
                             .setConnectionStatus(ConnectivityStatus.MISCONFIGURED)
+                            .setRecoveryStatus(RecoveryStatus.ONGOING)
                             .setConnectionStatusDetails(
                                     ConnectionFailure.determineFailureDescription(Instant.now(), error, null))
                     );
@@ -1040,6 +1036,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
                                 .using(data.resetSession()
                                         .resetFailureCount()
                                         .setConnectionStatus(ConnectivityStatus.MISCONFIGURED)
+                                        .setRecoveryStatus(RecoveryStatus.ONGOING)
                                         .setConnectionStatusDetails(
                                                 ConnectionFailure.determineFailureDescription(Instant.now(), e, null)));
                     }
@@ -1061,6 +1058,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
                                 .resetFailureCount()
                                 // don't set the state, preserve the old one (e.g. MISCONFIGURED)
                                 // Preserve old status details
+                                .setRecoveryStatus(RecoveryStatus.BACK_OFF_LIMIT_REACHED)
                                 .setConnectionStatusDetails(data.getConnectionStatusDetails().orElse(timeoutMessage) +
                                         " Reached maximum retries and thus will not try to reconnect any longer.")
                         );
@@ -1073,6 +1071,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
                     .using(data.resetSession()
                             .resetFailureCount()
                             .setConnectionStatus(ConnectivityStatus.FAILED)
+                            .setRecoveryStatus(RecoveryStatus.UNKNOWN)
                             .setConnectionStatusDetails(timeoutMessage + " Desired state was: " +
                                     data.getDesiredConnectionStatus())
                     );
@@ -1098,6 +1097,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
             } catch (final ConnectionFailedException e) {
                 return goToConnecting(reconnectTimeoutStrategy.getNextTimeout())
                         .using(data.setConnectionStatus(ConnectivityStatus.MISCONFIGURED)
+                                .setRecoveryStatus(RecoveryStatus.ONGOING)
                                 .setConnectionStatusDetails(
                                         ConnectionFailure.determineFailureDescription(Instant.now(), e, null))
                                 .resetSession());
@@ -1209,6 +1209,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
             return goTo(CONNECTED).using(data.resetSession()
                     .resetFailureCount()
                     .setConnectionStatus(ConnectivityStatus.OPEN)
+                    .setRecoveryStatus(RecoveryStatus.SUCCEEDED)
                     .setConnectionStatusDetails("Connected at " + Instant.now())
             );
         } else {
@@ -1257,6 +1258,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
 
         final BaseClientData nextStateData = data.resetSession()
                 .setConnectionStatus(ConnectivityStatus.CLOSED)
+                .setRecoveryStatus(RecoveryStatus.UNKNOWN)
                 .setConnectionStatusDetails("Disconnected at " + Instant.now());
 
         if (event.shutdownAfterDisconnected()) {
@@ -1327,6 +1329,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
                             "Going to 'CONNECTING'", event, nextBackoff, resolvedStatus);
                     return goToConnecting(nextBackoff).using(data.resetSession()
                             .setConnectionStatus(resolvedStatus)
+                            .setRecoveryStatus(RecoveryStatus.ONGOING)
                             .setConnectionStatusDetails(event.getFailureDescription())
                     );
                 }
@@ -1344,6 +1347,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
                         .using(data.resetSession()
                                 .resetFailureCount()
                                 .setConnectionStatus(connectivityStatusResolver.resolve(event))
+                                .setRecoveryStatus(RecoveryStatus.BACK_OFF_LIMIT_REACHED)
                                 .setConnectionStatusDetails(event.getFailureDescription()
                                         + " Reached maximum retries after backing off after failure and thus will " +
                                         "not try to reconnect any longer.")
@@ -1355,6 +1359,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         return goTo(INITIALIZED)
                 .using(data.resetSession()
                         .setConnectionStatus(connectivityStatusResolver.resolve(event))
+                        .setRecoveryStatus(RecoveryStatus.UNKNOWN)
                         .setConnectionStatusDetails(event.getFailureDescription())
                 );
     }
@@ -1420,6 +1425,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         final ResourceStatus clientStatus =
                 ConnectivityModelFactory.newClientStatus(getInstanceIdentifier(),
                         clientConnectionStatus,
+                        data.getRecoveryStatus(),
                         "[" + stateName().name() + "] " + data.getConnectionStatusDetails().orElse(""),
                         getInConnectionStatusSince());
         sender.tell(clientStatus, getSelf());
