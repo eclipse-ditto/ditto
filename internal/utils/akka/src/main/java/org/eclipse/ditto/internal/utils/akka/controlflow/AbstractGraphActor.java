@@ -204,7 +204,8 @@ public abstract class AbstractGraphActor<T, M> extends AbstractActor {
             enqueueSuccessCounter.increment();
         } else if (QueueOfferResult.dropped().equals(result)) {
             enqueueDroppedCounter.increment();
-            logger.error("Dropped message! - result was: {}", result);
+            logger.error("Dropped message as result of backpressure strategy! - result was: {} - adjust queue " +
+                    "size or scaling if this appears regularly", result);
         } else if (result instanceof QueueOfferResult.Failure) {
             final var failure = (QueueOfferResult.Failure) result;
             logger.error(failure.cause(), "Enqueue failed!");

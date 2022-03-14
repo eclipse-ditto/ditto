@@ -31,6 +31,7 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.model.acks.AcknowledgementLabel;
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
+import org.eclipse.ditto.base.model.common.ConditionChecker;
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.json.JsonField;
@@ -230,7 +231,10 @@ public final class ConnectivityModelFactory {
      * @param inStateSince the instant since the resource is in the given state
      * @return a new AddressMetric which is initialised with the extracted data from {@code jsonObject}.
      * @throws NullPointerException if any non-nullable argument is {@code null}.
+     * @deprecated since 2.4.0: use
+     * {@link #newClientStatus(String, ConnectivityStatus, RecoveryStatus, String, java.time.Instant)} instead
      */
+    @Deprecated
     public static ResourceStatus newClientStatus(final String client,
             final ConnectivityStatus status,
             @Nullable final String statusDetails,
@@ -238,6 +242,29 @@ public final class ConnectivityModelFactory {
 
         return ImmutableResourceStatus.of(ResourceStatus.ResourceType.CLIENT, client, status, null, statusDetails,
                 inStateSince);
+    }
+
+    /**
+     * Returns a new source {@code ResourceStatus}.
+     *
+     * @param client a client identifier e.g. on which node this client is running
+     * @param status the ConnectionStatus of the source metrics to create
+     * @param recoveryStatus the RecoveryStatus of the client
+     * @param statusDetails the optional details about the connection status
+     * @param inStateSince the instant since the resource is in the given state
+     * @return a new AddressMetric which is initialised with the extracted data from {@code jsonObject}.
+     * @throws NullPointerException if any non-nullable argument is {@code null}.
+     * @since 2.4.0
+     */
+    public static ResourceStatus newClientStatus(final String client,
+            final ConnectivityStatus status,
+            final RecoveryStatus recoveryStatus,
+            @Nullable final String statusDetails,
+            @Nullable final Instant inStateSince) {
+
+        return ImmutableResourceStatus.of(ResourceStatus.ResourceType.CLIENT, client, status,
+                ConditionChecker.checkNotNull(recoveryStatus, "recoveryStatus"), null,
+                statusDetails, inStateSince);
     }
 
 
