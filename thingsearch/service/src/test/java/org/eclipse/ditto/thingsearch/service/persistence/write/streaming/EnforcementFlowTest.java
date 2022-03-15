@@ -16,9 +16,13 @@ package org.eclipse.ditto.thingsearch.service.persistence.write.streaming;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.IntStream;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.FieldType;
@@ -55,7 +59,9 @@ import org.junit.runners.MethodSorters;
 import com.typesafe.config.ConfigFactory;
 
 import akka.NotUsed;
+import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
+import akka.japi.Pair;
 import akka.stream.Attributes;
 import akka.stream.javadsl.Flow;
 import akka.stream.javadsl.Keep;
@@ -65,6 +71,7 @@ import akka.stream.testkit.TestPublisher;
 import akka.stream.testkit.TestSubscriber;
 import akka.stream.testkit.javadsl.TestSink;
 import akka.stream.testkit.javadsl.TestSource;
+import akka.testkit.TestActor;
 import akka.testkit.TestProbe;
 import akka.testkit.javadsl.TestKit;
 import scala.concurrent.duration.Duration;
@@ -111,7 +118,7 @@ public final class EnforcementFlowTest {
 
             final StreamConfig streamConfig = DefaultStreamConfig.of(ConfigFactory.empty());
             final EnforcementFlow underTest =
-                    EnforcementFlow.of(system, streamConfig, thingsProbe.ref(), policiesProbe.ref(), 
+                    EnforcementFlow.of(system, streamConfig, thingsProbe.ref(), policiesProbe.ref(),
                             system.getScheduler());
 
             materializeTestProbes(underTest.create(1, 1));
@@ -288,8 +295,10 @@ public final class EnforcementFlowTest {
                                     .setAttribute(JsonPointer.of("x"), JsonValue.of(5))
                                     .build(), 3,
                             deletedTime.minusSeconds(5), headers, null),
-                    ThingMerged.of(thingId, JsonPointer.of("attributes/y"), JsonValue.of(6), 4, deletedTime.minusSeconds(4), headers, null),
-                    AttributeModified.of(thingId, JsonPointer.of("z"), JsonValue.of(7), 5, deletedTime.minusSeconds(3), headers, null),
+                    ThingMerged.of(thingId, JsonPointer.of("attributes/y"), JsonValue.of(6), 4,
+                            deletedTime.minusSeconds(4), headers, null),
+                    AttributeModified.of(thingId, JsonPointer.of("z"), JsonValue.of(7), 5, deletedTime.minusSeconds(3),
+                            headers, null),
                     AttributeDeleted.of(thingId, JsonPointer.of("w"), 6, deletedTime.minusSeconds(2), headers, null)
             );
 
@@ -590,18 +599,103 @@ public final class EnforcementFlowTest {
         }};
     }
 
+    @Test
+    public void updatesDoNotGetReordered() {
+        new TestKit(system) {{
+            final DittoHeaders headers = DittoHeaders.empty();
+            final PolicyId policyId = PolicyId.of("policy:id");
+            final Thing thing = Thing.newBuilder().setPolicyId(policyId).build();
+            final var policy = Policy.newBuilder(policyId).setRevision(1).build();
+
+            final List<Map<ThingId, Metadata>> changeMaps = IntStream.range(1, 5).mapToObj(i -> {
+                final ThingId thingId = ThingId.of("thing:" + i);
+                final Thing ithThing = thing.toBuilder().setId(thingId).setRevision(i).build();
+                final List<ThingEvent<?>> events = List.of(ThingModified.of(ithThing, i, null, headers, null));
+                final Metadata metadata = Metadata.of(thingId, i, policyId, 1L, events, null, null);
+                return Map.of(thingId, metadata);
+            }).toList();
+
+            final TestProbe thingsProbe = TestProbe.apply(system);
+            final TestProbe policiesProbe = TestProbe.apply(system);
+
+            final StreamConfig streamConfig = DefaultStreamConfig.of(ConfigFactory.parseString(
+                    "stream.ask-with-retry.ask-timeout=15s"));
+            final EnforcementFlow underTest = EnforcementFlow.of(system, streamConfig, thingsProbe.ref(),
+                    policiesProbe.ref(), system.getScheduler());
+
+            materializeTestProbes(underTest.create(2, 1), 16);
+
+            sinkProbe.ensureSubscription();
+            sourceProbe.ensureSubscription();
+            sinkProbe.request(4);
+            assertThat(sourceProbe.expectRequest()).isEqualTo(16);
+            changeMaps.forEach(sourceProbe::sendNext);
+            sourceProbe.sendComplete();
+
+            final var sudoRetrievePolicyResponse = SudoRetrievePolicyResponse.of(policyId, policy, DittoHeaders.empty());
+            policiesProbe.setAutoPilot(new TestActor.AutoPilot() {
+                @Override
+                public TestActor.AutoPilot run(final ActorRef sender, final Object msg) {
+                    sender.tell(sudoRetrievePolicyResponse, policiesProbe.ref());
+                    return keepRunning();
+                }
+            });
+
+            thingsProbe.setAutoPilot(new TestActor.AutoPilot() {
+                @Override
+                public TestActor.AutoPilot run(final ActorRef sender, final Object msg) {
+                    if (msg instanceof final SudoRetrieveThing command) {
+                        final var thingId = (ThingId) command.getEntityId();
+                        final int i = Integer.parseInt(thingId.getName());
+                        final var response = SudoRetrieveThingResponse.of(
+                                thing.toBuilder()
+                                        .setId(thingId)
+                                        .setRevision(i)
+                                        .setAttribute(JsonPointer.of("x"), JsonValue.of(i))
+                                        .build()
+                                        .toJson(FieldType.all()),
+                                command.getDittoHeaders()
+                        );
+                        final var future = new CompletableFuture<Integer>();
+                        future.completeOnTimeout(i, 4 - i, TimeUnit.SECONDS);
+                        future.whenComplete((j, error) -> sender.tell(response, getRef()));
+                    }
+                    return keepRunning();
+                }
+            });
+
+            for (final var changeMap : changeMaps) {
+                final var expectedMetadata = changeMap.values().iterator().next();
+                final var list = sinkProbe.expectNext();
+                final AbstractWriteModel writeModel = list.get(0);
+                assertThat(writeModel.getMetadata()).isEqualTo(expectedMetadata);
+            }
+            sinkProbe.expectComplete();
+        }};
+    }
+
     private void materializeTestProbes(
-            final Flow<Map<ThingId, Metadata>, SubSource<AbstractWriteModel, NotUsed>, NotUsed> enforcementFlow) {
+            final Flow<Map<ThingId, Metadata>, SubSource<AbstractWriteModel, NotUsed>, NotUsed> enforcementFlow,
+            final int parallelism) {
+
         final var source = TestSource.<Map<ThingId, Metadata>>probe(system);
         final var sink = TestSink.<List<AbstractWriteModel>>probe(system);
         final var runnableGraph =
                 source.viaMat(enforcementFlow, Keep.left())
-                        .mapAsync(1, s -> s.mergeSubstreamsWithParallelism(1).runWith(Sink.seq(), system))
-                        .withAttributes(Attributes.inputBuffer(1, 1))
+                        // TODO
+                        //.mapAsync(parallelism, s -> s.mergeSubstreams().runWith(Sink.seq(), system))
+                        .flatMapMerge(parallelism, SubSource::mergeSubstreams)
+                        .map(List::of)
+                        .withAttributes(Attributes.inputBuffer(parallelism, parallelism))
                         .toMat(sink, Keep.both());
         final var materializedValue = runnableGraph.run(() -> system);
         sourceProbe = materializedValue.first();
         sinkProbe = materializedValue.second();
+    }
+
+    private void materializeTestProbes(
+            final Flow<Map<ThingId, Metadata>, SubSource<AbstractWriteModel, NotUsed>, NotUsed> enforcementFlow) {
+        materializeTestProbes(enforcementFlow, 1);
     }
 
 }

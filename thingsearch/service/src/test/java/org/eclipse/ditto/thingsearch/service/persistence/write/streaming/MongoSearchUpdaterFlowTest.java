@@ -75,7 +75,6 @@ public final class MongoSearchUpdaterFlowTest {
 
     private final ActorSystem actorSystem =
             ActorSystem.create(UUID.randomUUID().toString(), ConfigFactory.load("test"));
-    private final Materializer materializer = SystemMaterializer.get(actorSystem).materializer();
 
     @After
     public void shutdownActorSystem() {
