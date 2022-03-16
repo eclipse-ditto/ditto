@@ -36,7 +36,6 @@ public final class DefaultPersistenceStreamConfig implements PersistenceStreamCo
     static final String CONFIG_PATH = "persistence";
 
     private final int maxBulkSize;
-    private final int bulkShardCount;
     private final Duration ackDelay;
     private final WriteConcern withAcknowledgementsWriteConcern;
     private final DefaultStreamStageConfig defaultStreamStageConfig;
@@ -45,8 +44,6 @@ public final class DefaultPersistenceStreamConfig implements PersistenceStreamCo
             final DefaultStreamStageConfig defaultStreamStageConfig) {
 
         maxBulkSize = persistenceStreamScopedConfig.getPositiveIntOrThrow(PersistenceStreamConfigValue.MAX_BULK_SIZE);
-        bulkShardCount = persistenceStreamScopedConfig
-                .getPositiveIntOrThrow(PersistenceStreamConfigValue.BULK_SHARD_COUNT);
         ackDelay = persistenceStreamScopedConfig.getNonNegativeDurationOrThrow(PersistenceStreamConfigValue.ACK_DELAY);
         final var writeConcernString = persistenceStreamScopedConfig.getString(
                 PersistenceStreamConfigValue.WITH_ACKS_WRITE_CONCERN.getConfigPath());
@@ -79,11 +76,6 @@ public final class DefaultPersistenceStreamConfig implements PersistenceStreamCo
     }
 
     @Override
-    public int getBulkShardCount() {
-        return bulkShardCount;
-    }
-
-    @Override
     public Duration getAckDelay() {
         return ackDelay;
     }
@@ -113,7 +105,6 @@ public final class DefaultPersistenceStreamConfig implements PersistenceStreamCo
         }
         final DefaultPersistenceStreamConfig that = (DefaultPersistenceStreamConfig) o;
         return maxBulkSize == that.maxBulkSize &&
-                bulkShardCount == that.bulkShardCount &&
                 Objects.equals(ackDelay, that.ackDelay) &&
                 Objects.equals(withAcknowledgementsWriteConcern, that.withAcknowledgementsWriteConcern) &&
                 Objects.equals(defaultStreamStageConfig, that.defaultStreamStageConfig);
@@ -121,7 +112,7 @@ public final class DefaultPersistenceStreamConfig implements PersistenceStreamCo
 
     @Override
     public int hashCode() {
-        return Objects.hash(maxBulkSize, bulkShardCount, ackDelay, withAcknowledgementsWriteConcern,
+        return Objects.hash(maxBulkSize, ackDelay, withAcknowledgementsWriteConcern,
                 defaultStreamStageConfig);
     }
 
@@ -129,7 +120,6 @@ public final class DefaultPersistenceStreamConfig implements PersistenceStreamCo
     public String toString() {
         return getClass().getSimpleName() + " [" +
                 "maxBulkSize=" + maxBulkSize +
-                ", bulkShardCount=" + bulkShardCount +
                 ", ackDelay=" + ackDelay +
                 ", withAcknowledgementsWriteConcern=" + withAcknowledgementsWriteConcern +
                 ", defaultStreamStageConfig=" + defaultStreamStageConfig +

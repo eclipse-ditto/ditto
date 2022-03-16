@@ -69,10 +69,6 @@ public final class DefaultPersistenceStreamConfigTest {
                 .as(PersistenceStreamConfigValue.MAX_BULK_SIZE.getConfigPath())
                 .isEqualTo(PersistenceStreamConfigValue.MAX_BULK_SIZE.getDefaultValue());
 
-        softly.assertThat(underTest.getBulkShardCount())
-                .as(PersistenceStreamConfigValue.BULK_SHARD_COUNT.getConfigPath())
-                .isEqualTo(PersistenceStreamConfigValue.BULK_SHARD_COUNT.getDefaultValue());
-
         softly.assertThat(underTest.getAckDelay())
                 .as(PersistenceStreamConfigValue.ACK_DELAY.getConfigPath())
                 .isEqualTo(PersistenceStreamConfigValue.ACK_DELAY.getDefaultValue());
@@ -98,10 +94,6 @@ public final class DefaultPersistenceStreamConfigTest {
         softly.assertThat(underTest.getMaxBulkSize())
                 .as(PersistenceStreamConfigValue.MAX_BULK_SIZE.getConfigPath())
                 .isEqualTo(65);
-
-        softly.assertThat(underTest.getBulkShardCount())
-                .as(PersistenceStreamConfigValue.BULK_SHARD_COUNT.getConfigPath())
-                .isEqualTo(44);
 
         softly.assertThat(underTest.getAckDelay())
                 .as(PersistenceStreamConfigValue.ACK_DELAY.getConfigPath())

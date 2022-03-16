@@ -126,7 +126,7 @@ public abstract class SearchUpdateMapper implements Extension {
         final var writeModelFutures = models.stream()
                 .map(model -> toIncrementalMongo(model, logger))
                 .map(CompletionStage::toCompletableFuture)
-                .collect(Collectors.toList());
+                .toList();
 
         final var allFutures = CompletableFuture.allOf(writeModelFutures.toArray(CompletableFuture[]::new));
         return allFutures.thenApply(aVoid ->

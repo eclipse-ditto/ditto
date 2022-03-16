@@ -34,16 +34,6 @@ public interface PersistenceStreamConfig extends StreamStageConfig {
     int getMaxBulkSize();
 
     /**
-     * Returns the amount of shards to create based on the hash of the thingId to process the configured
-     * {@link #getMaxBulkSize()}.
-     * E.g. when {@code maxBulkSize = 40} and {@code bulkShardCount = 4}, then for the maximum 40 search-updates
-     * processed in one bulk, 4 substreams will be created, grouped by the hash of the affected thingIds.
-     *
-     * @return the bulk shard count.
-     */
-    int getBulkShardCount();
-
-    /**
      * Returns the delay between DB acknowledgement and sending "search-persisted" acknowledgement.
      *
      * @return the delay.
@@ -69,12 +59,6 @@ public interface PersistenceStreamConfig extends StreamStageConfig {
          * The amount of write operations to perform in one bulk.
          */
         MAX_BULK_SIZE("max-bulk-size", 100),
-
-        /**
-         * The amount of shards to create based on the hash of the thingId to process the configured
-         * {@link #MAX_BULK_SIZE}.
-         */
-        BULK_SHARD_COUNT("bulk-shard-count", 4),
 
         /**
          * Internal delay between acknowledgement from database and the sending of "search-persisted" acknowledgements.
