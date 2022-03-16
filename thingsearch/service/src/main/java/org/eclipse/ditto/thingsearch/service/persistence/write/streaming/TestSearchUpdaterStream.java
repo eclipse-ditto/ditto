@@ -75,8 +75,8 @@ public final class TestSearchUpdaterStream {
         final AbstractWriteModel writeModel = EnforcedThingMapper.toWriteModel(thingJson, enforcer, policyRevision, -1,
                 null);
 
-        return Source.single(Source.single(writeModel).groupBy(1, foo -> 0))
-                .via(mongoSearchUpdaterFlow.start(false, 1, 1));
+        final var source = Source.single(writeModel).groupBy(1, foo -> 0);
+        return mongoSearchUpdaterFlow.start(source, false, 1).mergeSubstreams();
     }
 
     /**
@@ -101,8 +101,8 @@ public final class TestSearchUpdaterStream {
      */
     private Source<WriteResultAndErrors, NotUsed> delete(final Metadata metadata) {
         final AbstractWriteModel writeModel = ThingDeleteModel.of(metadata);
-        return Source.single(Source.single(writeModel).groupBy(1, foo -> 0))
-                .via(mongoSearchUpdaterFlow.start(false, 1, 1));
+        final var source = Source.single(writeModel).groupBy(1, foo -> 0);
+        return mongoSearchUpdaterFlow.start(source, false, 1).mergeSubstreams();
     }
 
 }

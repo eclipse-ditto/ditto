@@ -16,8 +16,6 @@ package org.eclipse.ditto.thingsearch.service.persistence.write.streaming;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -61,11 +59,9 @@ import com.typesafe.config.ConfigFactory;
 import akka.NotUsed;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
-import akka.japi.Pair;
 import akka.stream.Attributes;
 import akka.stream.javadsl.Flow;
 import akka.stream.javadsl.Keep;
-import akka.stream.javadsl.Sink;
 import akka.stream.javadsl.SubSource;
 import akka.stream.testkit.TestPublisher;
 import akka.stream.testkit.TestSubscriber;
@@ -121,12 +117,12 @@ public final class EnforcementFlowTest {
                     EnforcementFlow.of(system, streamConfig, thingsProbe.ref(), policiesProbe.ref(),
                             system.getScheduler());
 
-            materializeTestProbes(underTest.create(1, 1));
+            materializeTestProbes(underTest);
 
             sinkProbe.ensureSubscription();
             sourceProbe.ensureSubscription();
             sinkProbe.request(1);
-            assertThat(sourceProbe.expectRequest()).isEqualTo(1);
+            assertThat(sourceProbe.expectRequest()).isEqualTo(16);
             sourceProbe.sendNext(inputMap);
             sourceProbe.sendComplete();
 
@@ -172,7 +168,7 @@ public final class EnforcementFlowTest {
                 EnforcementFlow.of(system, streamConfig, thingsProbe.ref(), policiesProbe.ref(),
                         system.getScheduler());
 
-        materializeTestProbes(underTest.create(1, 1));
+        materializeTestProbes(underTest);
 
         sinkProbe.ensureSubscription();
         sourceProbe.ensureSubscription();
@@ -248,12 +244,12 @@ public final class EnforcementFlowTest {
                     EnforcementFlow.of(system, streamConfig, thingsProbe.ref(), policiesProbe.ref(),
                             system.getScheduler());
 
-            materializeTestProbes(underTest.create(1, 1));
+            materializeTestProbes(underTest);
 
             sinkProbe.ensureSubscription();
             sourceProbe.ensureSubscription();
             sinkProbe.request(1);
-            assertThat(sourceProbe.expectRequest()).isEqualTo(1);
+            assertThat(sourceProbe.expectRequest()).isEqualTo(16);
             sourceProbe.sendNext(inputMap);
             sourceProbe.sendComplete();
 
@@ -313,12 +309,12 @@ public final class EnforcementFlowTest {
                     EnforcementFlow.of(system, streamConfig, thingsProbe.ref(), policiesProbe.ref(),
                             system.getScheduler());
 
-            materializeTestProbes(underTest.create(1, 1));
+            materializeTestProbes(underTest);
 
             sinkProbe.ensureSubscription();
             sourceProbe.ensureSubscription();
             sinkProbe.request(1);
-            assertThat(sourceProbe.expectRequest()).isEqualTo(1);
+            assertThat(sourceProbe.expectRequest()).isEqualTo(16);
             sourceProbe.sendNext(inputMap);
             sourceProbe.sendComplete();
 
@@ -366,12 +362,12 @@ public final class EnforcementFlowTest {
                     EnforcementFlow.of(system, streamConfig, thingsProbe.ref(), policiesProbe.ref(),
                             system.getScheduler());
 
-            materializeTestProbes(underTest.create(1, 1));
+            materializeTestProbes(underTest);
 
             sinkProbe.ensureSubscription();
             sourceProbe.ensureSubscription();
             sinkProbe.request(1);
-            assertThat(sourceProbe.expectRequest()).isEqualTo(1);
+            assertThat(sourceProbe.expectRequest()).isEqualTo(16);
             sourceProbe.sendNext(inputMap);
             sourceProbe.sendComplete();
 
@@ -411,12 +407,12 @@ public final class EnforcementFlowTest {
                     EnforcementFlow.of(system, streamConfig, thingsProbe.ref(), policiesProbe.ref(),
                             system.getScheduler());
 
-            materializeTestProbes(underTest.create(1, 1));
+            materializeTestProbes(underTest);
 
             sinkProbe.ensureSubscription();
             sourceProbe.ensureSubscription();
             sinkProbe.request(1);
-            assertThat(sourceProbe.expectRequest()).isEqualTo(1);
+            assertThat(sourceProbe.expectRequest()).isEqualTo(16);
             sourceProbe.sendNext(inputMap);
             sourceProbe.sendComplete();
 
@@ -455,12 +451,12 @@ public final class EnforcementFlowTest {
                     EnforcementFlow.of(system, streamConfig, thingsProbe.ref(), policiesProbe.ref(),
                             system.getScheduler());
 
-            materializeTestProbes(underTest.create(1, 1));
+            materializeTestProbes(underTest);
 
             sinkProbe.ensureSubscription();
             sourceProbe.ensureSubscription();
             sinkProbe.request(1);
-            assertThat(sourceProbe.expectRequest()).isEqualTo(1);
+            assertThat(sourceProbe.expectRequest()).isEqualTo(16);
             sourceProbe.sendNext(inputMap);
             sourceProbe.sendComplete();
 
@@ -498,12 +494,12 @@ public final class EnforcementFlowTest {
                     EnforcementFlow.of(system, streamConfig, thingsProbe.ref(), policiesProbe.ref(),
                             system.getScheduler());
 
-            materializeTestProbes(underTest.create(1, 1));
+            materializeTestProbes(underTest);
 
             sinkProbe.ensureSubscription();
             sourceProbe.ensureSubscription();
             sinkProbe.request(1);
-            assertThat(sourceProbe.expectRequest()).isEqualTo(1);
+            assertThat(sourceProbe.expectRequest()).isEqualTo(16);
             sourceProbe.sendNext(inputMap);
             sourceProbe.sendComplete();
 
@@ -565,12 +561,12 @@ public final class EnforcementFlowTest {
                     EnforcementFlow.of(system, streamConfig, thingsProbe.ref(), policiesProbe.ref(),
                             system.getScheduler());
 
-            materializeTestProbes(underTest.create(1, 1));
+            materializeTestProbes(underTest);
 
             sinkProbe.ensureSubscription();
             sourceProbe.ensureSubscription();
             sinkProbe.request(1);
-            assertThat(sourceProbe.expectRequest()).isEqualTo(1);
+            assertThat(sourceProbe.expectRequest()).isEqualTo(16);
             sourceProbe.sendNext(inputMap);
             sourceProbe.sendComplete();
 
@@ -623,7 +619,7 @@ public final class EnforcementFlowTest {
             final EnforcementFlow underTest = EnforcementFlow.of(system, streamConfig, thingsProbe.ref(),
                     policiesProbe.ref(), system.getScheduler());
 
-            materializeTestProbes(underTest.create(2, 1), 16);
+            materializeTestProbes(underTest);
 
             sinkProbe.ensureSubscription();
             sourceProbe.ensureSubscription();
@@ -632,7 +628,8 @@ public final class EnforcementFlowTest {
             changeMaps.forEach(sourceProbe::sendNext);
             sourceProbe.sendComplete();
 
-            final var sudoRetrievePolicyResponse = SudoRetrievePolicyResponse.of(policyId, policy, DittoHeaders.empty());
+            final var sudoRetrievePolicyResponse =
+                    SudoRetrievePolicyResponse.of(policyId, policy, DittoHeaders.empty());
             policiesProbe.setAutoPilot(new TestActor.AutoPilot() {
                 @Override
                 public TestActor.AutoPilot run(final ActorRef sender, final Object msg) {
@@ -666,7 +663,7 @@ public final class EnforcementFlowTest {
 
             for (final var changeMap : changeMaps) {
                 final var expectedMetadata = changeMap.values().iterator().next();
-                final var list = sinkProbe.expectNext();
+                final var list = sinkProbe.expectNext(FiniteDuration.apply(10, "s"));
                 final AbstractWriteModel writeModel = list.get(0);
                 assertThat(writeModel.getMetadata()).isEqualTo(expectedMetadata);
             }
@@ -674,20 +671,13 @@ public final class EnforcementFlowTest {
         }};
     }
 
-    private void materializeTestProbes(
-            final Flow<Map<ThingId, Metadata>, SubSource<AbstractWriteModel, NotUsed>, NotUsed> enforcementFlow,
-            final int parallelism) {
-
+    private void materializeTestProbes(final EnforcementFlow enforcementFlow) {
         final var source = TestSource.<Map<ThingId, Metadata>>probe(system);
         final var sink = TestSink.<List<AbstractWriteModel>>probe(system);
-        final var runnableGraph =
-                source.viaMat(enforcementFlow, Keep.left())
-                        // TODO
-                        //.mapAsync(parallelism, s -> s.mergeSubstreams().runWith(Sink.seq(), system))
-                        .flatMapMerge(parallelism, SubSource::mergeSubstreams)
-                        .map(List::of)
-                        .withAttributes(Attributes.inputBuffer(parallelism, parallelism))
-                        .toMat(sink, Keep.both());
+        final var runnableGraph = enforcementFlow.create(source, 16, 1, system)
+                .map(List::of)
+                .mergeSubstreams()
+                .toMat(sink, Keep.both());
         final var materializedValue = runnableGraph.run(() -> system);
         sourceProbe = materializedValue.first();
         sinkProbe = materializedValue.second();
@@ -695,7 +685,21 @@ public final class EnforcementFlowTest {
 
     private void materializeTestProbes(
             final Flow<Map<ThingId, Metadata>, SubSource<AbstractWriteModel, NotUsed>, NotUsed> enforcementFlow) {
-        materializeTestProbes(enforcementFlow, 1);
+
+        final var source = TestSource.<Map<ThingId, Metadata>>probe(system);
+        final var sink = TestSink.<List<AbstractWriteModel>>probe(system);
+
+        final var runnableGraph =
+                source.via(enforcementFlow)
+                        // TODO
+                        //.mapAsync(parallelism, s -> s.mergeSubstreams().runWith(Sink.seq(), system))
+                        .flatMapMerge(1, SubSource::mergeSubstreams)
+                        .map(List::of)
+                        .withAttributes(Attributes.inputBuffer(1, 1))
+                        .toMat(sink, Keep.both());
+        final var materializedValue = runnableGraph.run(() -> system);
+        sourceProbe = materializedValue.first();
+        sinkProbe = materializedValue.second();
     }
 
 }

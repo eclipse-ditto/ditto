@@ -41,7 +41,6 @@ import com.mongodb.reactivestreams.client.MongoDatabase;
 import akka.NotUsed;
 import akka.japi.Pair;
 import akka.japi.pf.PFBuilder;
-import akka.stream.javadsl.Flow;
 import akka.stream.javadsl.Source;
 import akka.stream.javadsl.SubSource;
 
@@ -98,24 +97,20 @@ final class MongoSearchUpdaterFlow {
      * Create a new flow through the search persistence.
      * No logging or recovery is attempted.
      *
+     * @param subSource sub-source of write models.
      * @param shouldAcknowledge whether to use a write concern to guarantee the consistency of acknowledgements.
      * {@link org.eclipse.ditto.base.model.acks.DittoAcknowledgementLabel#SEARCH_PERSISTED} was required or not.
-     * @param parallelism How many write operations may run in parallel for this sink.
      * @param maxBulkSize How many writes to perform in one bulk.
-     * @return the sink.
+     * @return sub-source of write results.
      */
-    public Flow<SubSource<AbstractWriteModel, NotUsed>, WriteResultAndErrors, NotUsed> start(
+    public SubSource<WriteResultAndErrors, NotUsed> start(
+            final SubSource<AbstractWriteModel, NotUsed> subSource,
             final boolean shouldAcknowledge,
-            final int parallelism,
             final int maxBulkSize) {
 
-        return Flow.<SubSource<AbstractWriteModel, NotUsed>>create()
-                .flatMapConcat(source -> source.grouped(maxBulkSize)
-                        .flatMapConcat(searchUpdateMapper::processWriteModels)
-                        .flatMapMerge(parallelism, writeModels -> executeBulkWrite(shouldAcknowledge, writeModels))
-                        .mergeSubstreams()
-                        .async(MongoSearchUpdaterFlow.DISPATCHER_NAME, parallelism)
-                );
+        return subSource.grouped(maxBulkSize)
+                .flatMapConcat(searchUpdateMapper::processWriteModels)
+                .flatMapConcat(writeModels -> executeBulkWrite(shouldAcknowledge, writeModels));
     }
 
     private Source<WriteResultAndErrors, NotUsed> executeBulkWrite(final boolean shouldAcknowledge,

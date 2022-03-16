@@ -61,6 +61,7 @@ import akka.japi.Pair;
 import akka.japi.pf.PFBuilder;
 import akka.stream.javadsl.Flow;
 import akka.stream.javadsl.Keep;
+import akka.stream.javadsl.Sink;
 import akka.stream.javadsl.Source;
 import akka.stream.javadsl.SubSource;
 
@@ -157,33 +158,30 @@ final class EnforcementFlow {
     /**
      * Create a flow from Thing changes to write models by retrieving data from Things shard region and enforcer cache.
      *
-     * @param parallelism how many thing retrieves to perform in parallel to the caching facade.
+     * @param source the source of change maps.
+     * @param parallelismPerBulkShard how many thing retrieves to perform in parallel to the caching facade per bulk
+     * shard.
      * @param bulkShardCount the configured amount of shards to create substreams for.
      * @return the flow.
      */
-    public Flow<Map<ThingId, Metadata>, SubSource<AbstractWriteModel, NotUsed>, NotUsed> create(
-            final int parallelism,
-            final int bulkShardCount) {
+    public <T> SubSource<AbstractWriteModel, T> create(
+            final Source<Map<ThingId, Metadata>, T> source,
+            final int parallelismPerBulkShard,
+            final int bulkShardCount,
+            final ActorSystem system) {
 
-        return Flow.<Map<ThingId, Metadata>>create()
-                .map(changeMap -> {
-                    log.info("Updating search index for <{}> changed things", changeMap.size());
-                    return Source.fromIterator(changeMap.values()::iterator)
-                            .flatMapMerge(parallelism, changedMetadata ->
-                                    retrieveThingFromCachingFacade(changedMetadata.getThingId(), changedMetadata)
-                                            .async(MongoSearchUpdaterFlow.DISPATCHER_NAME, parallelism)
-                                            .map(pair -> {
-                                                final Metadata metadataRef = changeMap.get(pair.first());
-                                                final JsonObject thing = pair.second();
-                                                searchUpdateObserver.process(metadataRef, thing);
-                                                return computeWriteModel(metadataRef, thing)
-                                                        .async(MongoSearchUpdaterFlow.DISPATCHER_NAME, parallelism);
-                                            })
-                            ).flatMapConcat(source -> source)
-                            .groupBy(bulkShardCount, m ->
-                                    Math.floorMod(m.getMetadata().getThingId().hashCode(), bulkShardCount));
+        return source.flatMapConcat(changeMap -> Source.fromIterator(changeMap.entrySet()::iterator))
+                .groupBy(bulkShardCount, m -> Math.floorMod(m.getKey().hashCode(), bulkShardCount))
+                .mapAsync(parallelismPerBulkShard, entry -> {
+                    final var changedMetadata = entry.getValue();
+                    return retrieveThingFromCachingFacade(changedMetadata.getThingId(), changedMetadata)
+                            .flatMapConcat(pair -> {
+                                final JsonObject thing = pair.second();
+                                searchUpdateObserver.process(changedMetadata, thing);
+                                return computeWriteModel(changedMetadata, thing);
+                            })
+                            .runWith(Sink.head(), system);
                 });
-
     }
 
     private Source<Pair<ThingId, JsonObject>, NotUsed> retrieveThingFromCachingFacade(final ThingId thingId,

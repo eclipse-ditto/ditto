@@ -23,11 +23,11 @@ import org.eclipse.ditto.thingsearch.service.common.config.PersistenceStreamConf
 import org.eclipse.ditto.thingsearch.service.common.config.StreamStageConfig;
 import org.eclipse.ditto.thingsearch.service.common.config.UpdaterConfig;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.AbstractWriteModel;
+import org.eclipse.ditto.thingsearch.service.persistence.write.model.WriteResultAndErrors;
 
 import com.mongodb.reactivestreams.client.MongoDatabase;
 
 import akka.NotUsed;
-import akka.actor.ActorContext;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.stream.Attributes;
@@ -36,7 +36,6 @@ import akka.stream.KillSwitches;
 import akka.stream.RestartSettings;
 import akka.stream.javadsl.Flow;
 import akka.stream.javadsl.Keep;
-import akka.stream.javadsl.RestartSink;
 import akka.stream.javadsl.RestartSource;
 import akka.stream.javadsl.Sink;
 import akka.stream.javadsl.Source;
@@ -58,13 +57,15 @@ public final class SearchUpdaterStream {
     private final BulkWriteResultAckFlow bulkWriteResultAckFlow;
     private final ActorRef changeQueueActor;
     private final BlockedNamespaces blockedNamespaces;
+    private final ActorSystem actorSystem;
 
     private SearchUpdaterStream(final UpdaterConfig updaterConfig,
             final EnforcementFlow enforcementFlow,
             final MongoSearchUpdaterFlow mongoSearchUpdaterFlow,
             final BulkWriteResultAckFlow bulkWriteResultAckFlow,
             final ActorRef changeQueueActor,
-            final BlockedNamespaces blockedNamespaces) {
+            final BlockedNamespaces blockedNamespaces,
+            final ActorSystem actorSystem) {
 
         this.updaterConfig = updaterConfig;
         this.enforcementFlow = enforcementFlow;
@@ -72,6 +73,7 @@ public final class SearchUpdaterStream {
         this.bulkWriteResultAckFlow = bulkWriteResultAckFlow;
         this.changeQueueActor = changeQueueActor;
         this.blockedNamespaces = blockedNamespaces;
+        this.actorSystem = actorSystem;
     }
 
     /**
@@ -108,25 +110,22 @@ public final class SearchUpdaterStream {
         final var bulkWriteResultAckFlow = BulkWriteResultAckFlow.of(updaterShard);
 
         return new SearchUpdaterStream(updaterConfig, enforcementFlow, mongoSearchUpdaterFlow, bulkWriteResultAckFlow,
-                changeQueueActor, blockedNamespaces);
+                changeQueueActor, blockedNamespaces, actorSystem);
     }
 
     /**
      * Start a perpetual search updater stream killed only by the kill-switch.
      *
-     * @param actorContext where to create actors for this stream.
      * @return kill-switch to terminate the stream.
      */
-    public KillSwitch start(final ActorContext actorContext) {
-        final Source<SubSource<AbstractWriteModel, NotUsed>, NotUsed> restartSource = createRestartSource();
-        final Sink<SubSource<AbstractWriteModel, NotUsed>, NotUsed> restartSink = createRestartSink();
-
-        return restartSource.viaMat(KillSwitches.single(), Keep.right())
-                .toMat(restartSink, Keep.left())
-                .run(actorContext.system());
+    public KillSwitch start() {
+        return createRestartResultSource().viaMat(KillSwitches.single(), Keep.right())
+                .flatMapConcat(SubSource::mergeSubstreams)
+                .to(Sink.ignore())
+                .run(actorSystem);
     }
 
-    private Source<SubSource<AbstractWriteModel, NotUsed>, NotUsed> createRestartSource() {
+    private Source<SubSource<String, NotUsed>, NotUsed> createRestartResultSource() {
         final var streamConfig = updaterConfig.getStreamConfig();
         final StreamStageConfig retrievalConfig = streamConfig.getRetrievalConfig();
         final PersistenceStreamConfig persistenceConfig = streamConfig.getPersistenceConfig();
@@ -139,42 +138,31 @@ public final class SearchUpdaterStream {
         final var mergedSource =
                 acknowledgedSource.mergePrioritized(unacknowledgedSource, 1023, 1, true);
 
-        final Source<SubSource<AbstractWriteModel, NotUsed>, NotUsed> source =
-                mergedSource.via(filterMapKeysByBlockedNamespaces())
-                        .via(enforcementFlow.create(
-                                retrievalConfig.getParallelism(), persistenceConfig.getBulkShardCount()))
-                        .map(writeModelSource ->
-                                writeModelSource.via(blockNamespaceFlow(SearchUpdaterStream::namespaceOfWriteModel)));
+        final SubSource<AbstractWriteModel, NotUsed> enforcementSource = enforcementFlow.create(
+                        mergedSource.via(filterMapKeysByBlockedNamespaces()),
+                        retrievalConfig.getParallelism(),
+                        persistenceConfig.getParallelism(),
+                        actorSystem)
+                .via(blockNamespaceFlow(SearchUpdaterStream::namespaceOfWriteModel));
 
-        final var backOffConfig = retrievalConfig.getExponentialBackOffConfig();
-
-        return RestartSource.withBackoff(
-                RestartSettings.create(backOffConfig.getMin(), backOffConfig.getMax(), backOffConfig.getRandomFactor()),
-                () -> source);
-    }
-
-    private Sink<SubSource<AbstractWriteModel, NotUsed>, NotUsed> createRestartSink() {
-        final var streamConfig = updaterConfig.getStreamConfig();
-        final PersistenceStreamConfig persistenceConfig = streamConfig.getPersistenceConfig();
-
-        final int parallelism = persistenceConfig.getParallelism();
-        final int maxBulkSize = persistenceConfig.getMaxBulkSize();
         final String logName = "SearchUpdaterStream/BulkWriteResult";
-        final Sink<SubSource<AbstractWriteModel, NotUsed>, NotUsed> sink =
-                mongoSearchUpdaterFlow.start(true, parallelism, maxBulkSize)
-                        .via(bulkWriteResultAckFlow.start(persistenceConfig.getAckDelay()))
+        final SubSource<WriteResultAndErrors, NotUsed> persistenceSource = mongoSearchUpdaterFlow.start(
+                enforcementSource,
+                true,
+                persistenceConfig.getMaxBulkSize()
+        );
+        final SubSource<String, NotUsed> loggingSource =
+                persistenceSource.via(bulkWriteResultAckFlow.start(persistenceConfig.getAckDelay()))
                         .log(logName)
                         .withAttributes(Attributes.logLevels(
                                 Attributes.logLevelInfo(),
                                 Attributes.logLevelWarning(),
-                                Attributes.logLevelError()))
-                        .to(Sink.ignore());
+                                Attributes.logLevelError()));
 
-        final var backOffConfig = persistenceConfig.getExponentialBackOffConfig();
-
-        return RestartSink.withBackoff(
+        final var backOffConfig = retrievalConfig.getExponentialBackOffConfig();
+        return RestartSource.withBackoff(
                 RestartSettings.create(backOffConfig.getMin(), backOffConfig.getMax(), backOffConfig.getRandomFactor()),
-                () -> sink);
+                () -> Source.single(loggingSource));
     }
 
     private <T> Flow<Map<ThingId, T>, Map<ThingId, T>, NotUsed> filterMapKeysByBlockedNamespaces() {

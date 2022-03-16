@@ -20,15 +20,11 @@ import java.time.Duration;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 import java.util.UUID;
-import java.util.concurrent.CompletionStage;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.Supplier;
 
 import org.bson.BsonDocument;
 import org.bson.Document;
@@ -41,31 +37,19 @@ import org.eclipse.ditto.thingsearch.service.persistence.write.model.ThingWriteM
 import org.junit.After;
 import org.junit.Test;
 import org.mockito.Mockito;
-import org.reactivestreams.Publisher;
 
-import com.mongodb.MongoBulkWriteException;
-import com.mongodb.MongoException;
 import com.mongodb.bulk.BulkWriteResult;
 import com.mongodb.client.model.BulkWriteOptions;
-import com.mongodb.client.model.DeleteOneModel;
-import com.mongodb.client.model.WriteModel;
 import com.mongodb.reactivestreams.client.MongoCollection;
 import com.mongodb.reactivestreams.client.MongoDatabase;
 import com.typesafe.config.ConfigFactory;
 
-import akka.Done;
-import akka.NotUsed;
 import akka.actor.ActorSystem;
 import akka.stream.DelayOverflowStrategy;
-import akka.stream.Materializer;
-import akka.stream.OverflowStrategy;
-import akka.stream.SystemMaterializer;
 import akka.stream.javadsl.AsPublisher;
 import akka.stream.javadsl.Keep;
-import akka.stream.javadsl.RestartSink;
 import akka.stream.javadsl.Sink;
 import akka.stream.javadsl.Source;
-import akka.stream.javadsl.SubSource;
 import akka.testkit.javadsl.TestKit;
 
 /**
@@ -79,20 +63,6 @@ public final class MongoSearchUpdaterFlowTest {
     @After
     public void shutdownActorSystem() {
         TestKit.shutdownActorSystem(actorSystem);
-    }
-
-    @Test
-    public void streamIsRestartableAfterMongoBulkWriteException() throws Exception {
-        final BulkWriteResult bulkWriteResult = Mockito.mock(BulkWriteResult.class);
-        final MongoBulkWriteException error = Mockito.mock(MongoBulkWriteException.class);
-        Mockito.when(error.getWriteResult()).thenReturn(bulkWriteResult);
-
-        testStreamRestart(() -> error);
-    }
-
-    @Test
-    public void streamIsRestartableAfterGenericMongoException() throws Exception {
-        testStreamRestart(new FakeMongoExceptionSupplier());
     }
 
     @Test
@@ -121,12 +91,25 @@ public final class MongoSearchUpdaterFlowTest {
 
             final int numberOfIterations = 3;
             final int numberOfChanges = 25;
-            final CountDownLatch latch = new CountDownLatch(numberOfChanges*numberOfIterations);
+            final CountDownLatch latch = new CountDownLatch(numberOfChanges * numberOfIterations);
+
+            final List<AbstractWriteModel> writeModels = new ArrayList<>();
+            for (int j = 0; j < numberOfIterations; j++) {
+                for (int i = 0; i < numberOfChanges; i++) {
+                    final Metadata metadata =
+                            Metadata.of(ThingId.of("thing:id-" + i), 1L, PolicyId.of("policy:id-" + i), 1L, null);
+                    writeModels.add(ThingWriteModel.of(metadata, new BsonDocument()));
+                }
+            }
+            final Thread testRunnerThread = Thread.currentThread();
+            final AtomicReference<Throwable> errorBox = new AtomicReference<>();
 
             final int parallelism = 32;
             final int maxBulkSize = 4;
-            final Sink<SubSource<AbstractWriteModel, NotUsed>, CompletionStage<Done>> sink =
-                    flow.start(false, parallelism, maxBulkSize)
+            final var writeModelSource = Source.from(writeModels)
+                    .groupBy(parallelism, w -> Math.floorMod(w.getMetadata().getThingId().hashCode(), parallelism));
+            final var runnableGraph =
+                    flow.start(writeModelSource, false, maxBulkSize)
                             .map(writeResultAndErrors -> {
                                 if (writeResultAndErrors.getBulkWriteErrors().isEmpty()) {
                                     writeResultAndErrors.getWriteModels().forEach(writeModel -> {
@@ -136,26 +119,14 @@ public final class MongoSearchUpdaterFlowTest {
                                 }
                                 return writeResultAndErrors;
                             })
+                            .mergeSubstreams()
                             .toMat(Sink.ignore(), Keep.right());
 
-            final List<AbstractWriteModel> writeModels = new ArrayList<>();
-            for (int j=0; j<numberOfIterations; j++) {
-                for (int i=0; i<numberOfChanges; i++) {
-                    final Metadata metadata = Metadata.of(ThingId.of("thing:id-" + i), 1L, PolicyId.of("policy:id-" + i), 1L, null);
-                    writeModels.add(ThingWriteModel.of(metadata, new BsonDocument()));
-                }
-            }
-            final Thread testRunnerThread = Thread.currentThread();
-            final AtomicReference<Throwable> errorBox = new AtomicReference<>();
-            Source.single(Source.from(writeModels)
-                    .groupBy(maxBulkSize, w -> Math.floorMod(w.getMetadata().getThingId().hashCode(), maxBulkSize))
-            )
-                    .runWith(Objects.requireNonNull(sink), actorSystem)
-                    .exceptionally(error -> {
-                        errorBox.set(error);
-                        testRunnerThread.interrupt();
-                        return null;
-                    });
+            runnableGraph.run(actorSystem).exceptionally(error -> {
+                errorBox.set(error);
+                testRunnerThread.interrupt();
+                return null;
+            });
 
             // THEN: updates complete quickly
 
@@ -171,73 +142,6 @@ public final class MongoSearchUpdaterFlowTest {
                 }
             }
         }};
-    }
-
-    @SuppressWarnings("unchecked")
-    private void testStreamRestart(final Supplier<Throwable> errorSupplier) throws Exception {
-
-        new TestKit(actorSystem) {{
-
-            // GIVEN: The persistence fails with an error on every write
-
-            final MongoDatabase db = Mockito.mock(MongoDatabase.class);
-            final MongoCollection<BsonDocument> collection = Mockito.mock(MongoCollection.class);
-            final Publisher<BulkWriteResult> publisher = s -> s.onError(errorSupplier.get());
-            Mockito.when(db.getCollection(any(), any(Class.class))).thenReturn(collection);
-            Mockito.when(collection.bulkWrite(any(), any(BulkWriteOptions.class)))
-                    .thenReturn(publisher);
-
-            // GIVEN: MongoSearchUpdaterFlow is wrapped inside a RestartSink
-
-            final MongoSearchUpdaterFlow flow = MongoSearchUpdaterFlow.of(db,
-                    DefaultPersistenceStreamConfig.of(ConfigFactory.empty()),
-                    SearchUpdateMapper.get(actorSystem));
-
-            final Sink<SubSource<AbstractWriteModel, NotUsed>, ?> sink =
-                    flow.start(false, 1, 1).to(Sink.ignore());
-
-            final Sink<SubSource<AbstractWriteModel, NotUsed>, ?> restartSink =
-                    RestartSink.withBackoff(Duration.ZERO, Duration.ZERO, 1.0, () -> sink);
-
-            // WHEN: Many changes stream through MongoSearchUpdaterFlow
-
-            final int numberOfChanges = 25;
-            final CountDownLatch latch = new CountDownLatch(numberOfChanges);
-
-            final AbstractWriteModel abstractWriteModel = Mockito.mock(AbstractWriteModel.class);
-            final WriteModel<BsonDocument> mongoWriteModel = new DeleteOneModel<>(new Document());
-            Mockito.when(abstractWriteModel.toMongo()).thenReturn(mongoWriteModel);
-            Source.repeat(Source.single(abstractWriteModel).groupBy(1, foo -> 0))
-                    .take(numberOfChanges)
-                    .buffer(1, OverflowStrategy.backpressure())
-                    .map(source -> {
-                        latch.countDown();
-                        return source;
-                    })
-                    .runWith(restartSink, actorSystem);
-
-            // THEN: MongoSearchUpdaterFlow should keep restarting and keep consuming changes from the stream
-
-            latch.await(5L, TimeUnit.SECONDS);
-            assertThat(latch.getCount()).isZero();
-        }};
-    }
-
-    private static final class FakeMongoException extends MongoException {
-
-        private FakeMongoException(final int i) {
-            super("Fake MongoException #" + i);
-        }
-    }
-
-    private static final class FakeMongoExceptionSupplier implements Supplier<Throwable> {
-
-        private static final AtomicInteger i = new AtomicInteger();
-
-        @Override
-        public MongoException get() {
-            return new FakeMongoException(i.incrementAndGet());
-        }
     }
 
 }
