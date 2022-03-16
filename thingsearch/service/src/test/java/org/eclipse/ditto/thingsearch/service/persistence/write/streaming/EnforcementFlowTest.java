@@ -48,21 +48,19 @@ import org.eclipse.ditto.thingsearch.service.persistence.write.model.AbstractWri
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.Metadata;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.ThingDeleteModel;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.ThingWriteModel;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.FixMethodOrder;
 import org.junit.Test;
 import org.junit.runners.MethodSorters;
 
 import com.typesafe.config.ConfigFactory;
 
-import akka.NotUsed;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
-import akka.stream.Attributes;
-import akka.stream.javadsl.Flow;
+import akka.stream.KillSwitches;
+import akka.stream.UniqueKillSwitch;
 import akka.stream.javadsl.Keep;
-import akka.stream.javadsl.SubSource;
 import akka.stream.testkit.TestPublisher;
 import akka.stream.testkit.TestSubscriber;
 import akka.stream.testkit.javadsl.TestSink;
@@ -79,18 +77,19 @@ import scala.concurrent.duration.FiniteDuration;
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
 public final class EnforcementFlowTest {
 
-    private static ActorSystem system;
+    private ActorSystem system;
 
     private TestPublisher.Probe<Map<ThingId, Metadata>> sourceProbe;
     private TestSubscriber.Probe<List<AbstractWriteModel>> sinkProbe;
+    private UniqueKillSwitch killSwitch;
 
-    @BeforeClass
-    public static void init() {
+    @Before
+    public void init() {
         system = ActorSystem.create("test", ConfigFactory.load("actors-test.conf"));
     }
 
-    @AfterClass
-    public static void cleanup() {
+    @After
+    public void cleanup() {
         if (system != null) {
             TestKit.shutdownActorSystem(system);
         }
@@ -677,28 +676,10 @@ public final class EnforcementFlowTest {
         final var runnableGraph = enforcementFlow.create(source, 16, 1, system)
                 .map(List::of)
                 .mergeSubstreams()
+                .viaMat(KillSwitches.single(), Keep.both())
                 .toMat(sink, Keep.both());
         final var materializedValue = runnableGraph.run(() -> system);
-        sourceProbe = materializedValue.first();
-        sinkProbe = materializedValue.second();
-    }
-
-    private void materializeTestProbes(
-            final Flow<Map<ThingId, Metadata>, SubSource<AbstractWriteModel, NotUsed>, NotUsed> enforcementFlow) {
-
-        final var source = TestSource.<Map<ThingId, Metadata>>probe(system);
-        final var sink = TestSink.<List<AbstractWriteModel>>probe(system);
-
-        final var runnableGraph =
-                source.via(enforcementFlow)
-                        // TODO
-                        //.mapAsync(parallelism, s -> s.mergeSubstreams().runWith(Sink.seq(), system))
-                        .flatMapMerge(1, SubSource::mergeSubstreams)
-                        .map(List::of)
-                        .withAttributes(Attributes.inputBuffer(1, 1))
-                        .toMat(sink, Keep.both());
-        final var materializedValue = runnableGraph.run(() -> system);
-        sourceProbe = materializedValue.first();
+        sourceProbe = materializedValue.first().first();
         sinkProbe = materializedValue.second();
     }
 
