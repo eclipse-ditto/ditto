@@ -13,6 +13,7 @@
 package org.eclipse.ditto.thingsearch.service.persistence.write.streaming;
 
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -109,6 +110,7 @@ final class MongoSearchUpdaterFlow {
             final int maxBulkSize) {
 
         return subSource.grouped(maxBulkSize)
+                .map(MongoSearchUpdaterFlow::sortBySeqNr)
                 .flatMapConcat(searchUpdateMapper::processWriteModels)
                 .flatMapConcat(writeModels -> executeBulkWrite(shouldAcknowledge, writeModels));
     }
@@ -204,6 +206,19 @@ final class MongoSearchUpdaterFlow {
         } catch (final IllegalStateException e) {
             // it is okay if the timer stopped already; simply return the result.
         }
+    }
+
+    /**
+     * Sort a list of write models by sequence number so that for each thing ID, any earlier update is guaranteed to
+     * be applied earlier than any later update.
+     *
+     * @param writeModels A list of write models in a batch update.
+     * @return The sorted write models.
+     */
+    private static List<AbstractWriteModel> sortBySeqNr(final List<AbstractWriteModel> writeModels) {
+        return writeModels.stream()
+                .sorted(Comparator.comparing(writeModel -> writeModel.getMetadata().getThingRevision()))
+                .toList();
     }
 
 }
