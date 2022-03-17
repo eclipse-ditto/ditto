@@ -41,6 +41,7 @@ import org.eclipse.ditto.base.model.acks.DittoAcknowledgementLabel;
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.common.CharsetDeterminer;
 import org.eclipse.ditto.base.model.common.Placeholders;
+import org.eclipse.ditto.base.model.entity.id.WithEntityId;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.signals.Signal;
@@ -449,10 +450,11 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
         final SendingOrDropped result;
         if (publishTargetOptional.isPresent()) {
             final T publishTarget = publishTargetOptional.get();
-            l.info("Publishing mapped message of type <{}> to PublishTarget <{}>", outboundSource.getType(),
-                    publishTarget);
-            l.debug("Publishing mapped message of type <{}> to PublishTarget <{}>: {}", outboundSource.getType(),
-                    publishTarget, sendingContext.getExternalMessage());
+            final Object entityId = outboundSource instanceof WithEntityId wEntityId ? wEntityId.getEntityId() : "?";
+            l.info("Publishing mapped message of type <{}> for id <{}> to PublishTarget <{}>",
+                    outboundSource.getType(), entityId, publishTarget);
+            l.debug("Publishing mapped message of type <{}> for id <{}> to PublishTarget <{}>: {}", outboundSource.getType(),
+                    entityId, publishTarget, sendingContext.getExternalMessage());
             @Nullable final Target autoAckTarget = sendingContext.getAutoAckTarget().orElse(null);
 
             final HeaderMapping headerMapping = genericTarget.getHeaderMapping();

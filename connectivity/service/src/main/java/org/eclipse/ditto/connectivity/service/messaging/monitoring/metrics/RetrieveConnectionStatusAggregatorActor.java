@@ -26,6 +26,7 @@ import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.ConnectionType;
 import org.eclipse.ditto.connectivity.model.ConnectivityStatus;
+import org.eclipse.ditto.connectivity.model.RecoveryStatus;
 import org.eclipse.ditto.connectivity.model.ResourceStatus;
 import org.eclipse.ditto.connectivity.model.SshTunnel;
 import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConnectionStatusResponse;
@@ -66,6 +67,7 @@ public final class RetrieveConnectionStatusAggregatorActor extends AbstractActor
         responseBuilder = RetrieveConnectionStatusResponse.getBuilder(connection.getId(), originalHeaders)
                 .connectionStatus(connection.getConnectionStatus())
                 .liveStatus(ConnectivityStatus.UNKNOWN)
+                .recoveryStatus(RecoveryStatus.UNKNOWN)
                 .connectedSince(Instant.EPOCH)
                 .clientStatus(Collections.emptyList())
                 .sourceStatus(Collections.emptyList())
@@ -155,6 +157,7 @@ public final class RetrieveConnectionStatusAggregatorActor extends AbstractActor
         final RetrieveConnectionStatusResponse tmpResponse = responseBuilder.build();
         final List<ResourceStatus> clientStatus = tmpResponse.getClientStatus();
         final ConnectivityStatus liveClientStatus = determineLiveStatus(clientStatus);
+        final RecoveryStatus recoveryStatus = determineRecoveryStatus(clientStatus);
         final ConnectivityStatus liveSourceStatus = determineLiveStatus(tmpResponse.getSourceStatus());
         final ConnectivityStatus liveTargetStatus = determineLiveStatus(tmpResponse.getTargetStatus());
         final ConnectivityStatus liveSshTunnelStatus = determineLiveStatus(tmpResponse.getSshTunnelStatus());
@@ -171,9 +174,37 @@ public final class RetrieveConnectionStatusAggregatorActor extends AbstractActor
 
         responseBuilder
                 .connectedSince(earliestConnectedSince.orElse(null))
-                .liveStatus(liveStatus);
+                .liveStatus(liveStatus)
+                .recoveryStatus(recoveryStatus);
         sender.tell(responseBuilder.build(), getSelf());
         stopSelf();
+    }
+
+    private static RecoveryStatus determineRecoveryStatus(final List<ResourceStatus> resourceStatus) {
+        final boolean allSucceeded = resourceStatus.stream()
+                .map(ResourceStatus::getRecoveryStatus)
+                .flatMap(Optional::stream)
+                .allMatch(RecoveryStatus.SUCCEEDED::equals);
+        final boolean anyBackoff = resourceStatus.stream()
+                .map(ResourceStatus::getRecoveryStatus)
+                .flatMap(Optional::stream)
+                .anyMatch(RecoveryStatus.BACK_OFF_LIMIT_REACHED::equals);
+        final boolean anyOngoing = resourceStatus.stream()
+                .map(ResourceStatus::getRecoveryStatus)
+                .flatMap(Optional::stream)
+                .anyMatch(RecoveryStatus.ONGOING::equals);
+
+        final RecoveryStatus recoveryStatus;
+        if (allSucceeded) {
+            recoveryStatus = RecoveryStatus.SUCCEEDED;
+        } else if (anyBackoff) {
+            recoveryStatus = RecoveryStatus.BACK_OFF_LIMIT_REACHED;
+        } else if (anyOngoing) {
+            recoveryStatus = RecoveryStatus.ONGOING;
+        } else {
+            recoveryStatus = RecoveryStatus.UNKNOWN;
+        }
+        return recoveryStatus;
     }
 
     private static ConnectivityStatus determineLiveStatus(final List<ResourceStatus> resourceStatus) {

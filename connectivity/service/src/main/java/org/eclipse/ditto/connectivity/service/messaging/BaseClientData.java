@@ -26,6 +26,7 @@ import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.connectivity.model.ConnectivityStatus;
+import org.eclipse.ditto.connectivity.model.RecoveryStatus;
 import org.eclipse.ditto.connectivity.service.messaging.tunnel.SshTunnelState;
 
 import akka.actor.ActorRef;
@@ -40,6 +41,7 @@ public final class BaseClientData {
     private final ConnectionId connectionId;
     private final Connection connection;
     private final ConnectivityStatus connectionStatus;
+    private final RecoveryStatus recoveryStatus;
     private final ConnectivityStatus desiredConnectionStatus;
     @Nullable private final String connectionStatusDetails;
     private final Instant inConnectionStatusSince;
@@ -49,10 +51,10 @@ public final class BaseClientData {
 
     /**
      * Constructs new instance of BaseClientData, the data of the {@link BaseClientActor}.
-     *
-     * @param connectionId the ID of the {@link org.eclipse.ditto.connectivity.model.Connection}.
+     *  @param connectionId the ID of the {@link org.eclipse.ditto.connectivity.model.Connection}.
      * @param connection the optional {@link org.eclipse.ditto.connectivity.model.Connection}.
      * @param connectionStatus the current {@link org.eclipse.ditto.connectivity.model.ConnectivityStatus} of the Connection.
+     * @param recoveryStatus the current {@link org.eclipse.ditto.connectivity.model.RecoveryStatus} of the Connection.
      * @param desiredConnectionStatus the desired {@link org.eclipse.ditto.connectivity.model.ConnectivityStatus} of the Connection.
      * @param connectionStatusDetails the optional details about the ConnectionStatus.
      * @param inConnectionStatusSince the instant since when the Client is in its current ConnectionStatus.
@@ -60,6 +62,7 @@ public final class BaseClientData {
      */
     private BaseClientData(final ConnectionId connectionId, final Connection connection,
             final ConnectivityStatus connectionStatus,
+            final RecoveryStatus recoveryStatus,
             final ConnectivityStatus desiredConnectionStatus,
             @Nullable final String connectionStatusDetails,
             final Instant inConnectionStatusSince,
@@ -69,6 +72,7 @@ public final class BaseClientData {
         this.connectionId = connectionId;
         this.connection = connection;
         this.connectionStatus = connectionStatus;
+        this.recoveryStatus = recoveryStatus;
         this.desiredConnectionStatus = desiredConnectionStatus;
         this.connectionStatusDetails = connectionStatusDetails;
         this.inConnectionStatusSince = inConnectionStatusSince;
@@ -96,6 +100,13 @@ public final class BaseClientData {
      */
     public ConnectivityStatus getConnectionStatus() {
         return connectionStatus;
+    }
+
+    /**
+     * @return the current recovery status
+     */
+    public RecoveryStatus getRecoveryStatus() {
+        return recoveryStatus;
     }
 
     /**
@@ -155,6 +166,16 @@ public final class BaseClientData {
      */
     public BaseClientData setConnectionStatus(final ConnectivityStatus connectionStatus) {
         return BaseClientDataBuilder.from(this).setConnectionStatus(connectionStatus).build();
+    }
+
+    /**
+     * Updates the current recovery status returning a new instance of BaseClientData.
+     *
+     * @param recoveryStatus the new recovery status to use
+     * @return the new instance of BaseClientData
+     */
+    public BaseClientData setRecoveryStatus(final RecoveryStatus recoveryStatus) {
+        return BaseClientDataBuilder.from(this).setRecoveryStatus(recoveryStatus).build();
     }
 
     /**
@@ -233,6 +254,7 @@ public final class BaseClientData {
         return Objects.equals(connectionId, that.connectionId) &&
                 Objects.equals(connection, that.connection) &&
                 connectionStatus == that.connectionStatus &&
+                recoveryStatus == that.recoveryStatus &&
                 desiredConnectionStatus == that.desiredConnectionStatus &&
                 Objects.equals(connectionStatusDetails, that.connectionStatusDetails) &&
                 Objects.equals(inConnectionStatusSince, that.inConnectionStatusSince) &&
@@ -243,7 +265,7 @@ public final class BaseClientData {
 
     @Override
     public int hashCode() {
-        return Objects.hash(connectionId, connection, connectionStatus, desiredConnectionStatus,
+        return Objects.hash(connectionId, connection, connectionStatus, recoveryStatus, desiredConnectionStatus,
                 connectionStatusDetails, inConnectionStatusSince, sessionSenders, sshTunnelState, failureCount);
     }
 
@@ -253,6 +275,7 @@ public final class BaseClientData {
                 "connectionId=" + connectionId +
                 ", connection=" + connection +
                 ", connectionStatus=" + connectionStatus +
+                ", recoveryStatus=" + recoveryStatus +
                 ", desiredConnectionStatus=" + desiredConnectionStatus +
                 ", connectionStatusDetails=" + connectionStatusDetails +
                 ", inConnectionStatusSince=" + inConnectionStatusSince +
@@ -267,6 +290,7 @@ public final class BaseClientData {
         private ConnectionId connectionId;
         private Connection connection;
         private ConnectivityStatus connectionStatus;
+        private RecoveryStatus recoveryStatus;
         private ConnectivityStatus desiredConnectionStatus;
         private String connectionStatusDetails;
         private Instant inConnectionStatusSince;
@@ -278,18 +302,20 @@ public final class BaseClientData {
             return new BaseClientDataBuilder(data);
         }
 
-        static BaseClientDataBuilder from(final ConnectionId connectionId, final Connection connection,
-                final ConnectivityStatus connectionStatus,
-                final ConnectivityStatus desiredConnectionStatus,
-                @Nullable final String connectionStatusDetails,
-                final Instant inConnectionStatusSince) {
-            return new BaseClientDataBuilder(connectionId, connection, connectionStatus, desiredConnectionStatus, connectionStatusDetails, inConnectionStatusSince);
+        static BaseClientDataBuilder initialized(final Connection connection) {
+            return new BaseClientDataBuilder(connection.getId(), connection,
+                    ConnectivityStatus.UNKNOWN,
+                    RecoveryStatus.UNKNOWN,
+                    ConnectivityStatus.OPEN,
+                    "initialized",
+                    Instant.now());
         }
 
         private BaseClientDataBuilder(final BaseClientData data) {
             connectionId = data.getConnectionId();
             connection = data.getConnection();
             connectionStatus = data.getConnectionStatus();
+            recoveryStatus = data.getRecoveryStatus();
             connectionStatusDetails = data.getConnectionStatusDetails().orElse(null);
             desiredConnectionStatus = data.getDesiredConnectionStatus();
             inConnectionStatusSince = data.getInConnectionStatusSince();
@@ -298,14 +324,17 @@ public final class BaseClientData {
             failureCount = data.getFailureCount();
         }
 
-        private BaseClientDataBuilder(final ConnectionId connectionId, final Connection connection,
+        private BaseClientDataBuilder(final ConnectionId connectionId,
+                final Connection connection,
                 final ConnectivityStatus connectionStatus,
+                final RecoveryStatus recoveryStatus,
                 final ConnectivityStatus desiredConnectionStatus,
                 @Nullable final String connectionStatusDetails,
                 final Instant inConnectionStatusSince) {
             this.connectionId = connectionId;
             this.connection = connection;
             this.connectionStatus = connectionStatus;
+            this.recoveryStatus = recoveryStatus;
             this.connectionStatusDetails = connectionStatusDetails;
             this.desiredConnectionStatus = desiredConnectionStatus;
             this.inConnectionStatusSince = inConnectionStatusSince;
@@ -324,6 +353,11 @@ public final class BaseClientData {
 
         public BaseClientDataBuilder setConnectionStatus(final ConnectivityStatus connectionStatus) {
             this.connectionStatus = connectionStatus;
+            return this;
+        }
+
+        public BaseClientDataBuilder setRecoveryStatus(final RecoveryStatus recoveryStatus) {
+            this.recoveryStatus = recoveryStatus;
             return this;
         }
 
@@ -358,8 +392,9 @@ public final class BaseClientData {
         }
 
         public BaseClientData build() {
-            return new BaseClientData(connectionId, connection, connectionStatus, desiredConnectionStatus,
-                    connectionStatusDetails, inConnectionStatusSince, sessionSenders, sshTunnelState, failureCount);
+            return new BaseClientData(connectionId, connection, connectionStatus, recoveryStatus,
+                    desiredConnectionStatus, connectionStatusDetails, inConnectionStatusSince, sessionSenders,
+                    sshTunnelState, failureCount);
         }
     }
 

@@ -7481,6 +7481,161 @@ components:
     WotThingDescription:
       type: object
       desciption: A WoT Thing Description version 1.1
+      properties:
+        '@context':
+          oneOf:
+            - type: array
+              items:
+                type: string
+                enum:
+                  - 'https://www.w3.org/2019/wot/td/v1'
+                  - 'http://www.w3.org/ns/td'
+                  - 'https://www.w3.org/2022/wot/td/v1.1'
+            - type: string
+              enum:
+                - 'https://www.w3.org/2019/wot/td/v1'
+                - 'http://www.w3.org/ns/td'
+                - 'https://www.w3.org/2022/wot/td/v1.1'
+          example:
+            - 'https://www.w3.org/2022/wot/td/v1.1'
+        title:
+          type: string
+          example: My fancy Thing
+        titles:
+          type: object
+          additionalProperties:
+            type: string
+        description:
+          type: string
+          example: Does fancy stuff with IoT
+        descriptions:
+          type: object
+          additionalProperties:
+            type: string
+        '@type':
+          oneOf:
+            - type: string
+            - type: array
+              items:
+                type: string
+          example: Thing
+        id:
+          type: string
+          example: 'urn:org.eclipse.ditto:my-fancy-thing'
+        base:
+          type: string
+          format: iri-reference
+          example: 'https://ditto.eclipseprojects.io/api/2/org.eclipse.ditto:my-fancy-thing'
+        version:
+          type: object
+          properties:
+            model:
+              type: string
+            instance:
+              type: string
+          required:
+            - instance
+          example:
+            model: 1.0.0
+            instance: 1.0.0
+        links:
+          type: array
+          items:
+            type: object
+            properties:
+              href:
+                type: string
+                format: iri-reference
+              rel:
+                type: string
+              type:
+                type: string
+              anchor:
+                type: string
+            required:
+              - href
+            additionalProperties: true
+        security:
+          oneOf:
+            - type: string
+            - type: array
+              items:
+                type: string
+          example: basic_sc
+        securityDefinitions:
+          type: object
+          additionalProperties:
+            type: object
+          example:
+            basic_sc:
+              in: header
+              scheme: basic
+        support:
+          type: string
+          format: iri-reference
+          example: 'https://www.eclipse.org/ditto/'
+        created:
+          type: string
+          format: date-time
+        modified:
+          type: string
+          format: date-time
+        forms:
+          type: array
+          items:
+            type: object
+            properties:
+              op:
+                type: string
+              href:
+                type: string
+              'htv:methodName':
+                type: string
+              contentType:
+                type: string
+              additionalResponses:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    success:
+                      type: boolean
+                    schema:
+                      type: string
+        properties:
+          type: object
+          additionalProperties:
+            type: object
+        actions:
+          type: object
+          additionalProperties:
+            type: object
+        events:
+          type: object
+          additionalProperties:
+            type: object
+        uriVariables:
+          type: object
+          additionalProperties:
+            type: object
+        schemaDefinitions:
+          type: object
+          additionalProperties:
+            type: object
+        profile:
+          oneOf:
+            - type: array
+              items:
+                type: string
+                format: iri-reference
+            - type: string
+              format: iri-reference
+      required:
+        - '@context'
+        - title
+        - security
+        - securityDefinitions
+      additionalProperties: true
   securitySchemes:
     NginxBasic:
       type: http

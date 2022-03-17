@@ -18,6 +18,7 @@ import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.connectivity.model.ConnectionIdInvalidException;
 import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
 import org.eclipse.ditto.connectivity.model.ConnectivityStatus;
+import org.eclipse.ditto.connectivity.model.RecoveryStatus;
 import org.eclipse.ditto.connectivity.model.signals.commands.modify.CheckConnectionLogsActive;
 import org.eclipse.ditto.connectivity.model.signals.commands.modify.CloseConnection;
 import org.eclipse.ditto.connectivity.model.signals.commands.modify.CreateConnection;
@@ -114,7 +115,7 @@ public class MockClientActor extends AbstractActor {
                 .match(RetrieveConnectionStatus.class, rcs -> {
                     log.info("Retrieve connection status...");
                     sender().tell(ConnectivityModelFactory.newClientStatus("client1",
-                                    ConnectivityStatus.OPEN, "connection is open", TestConstants.INSTANT),
+                                    ConnectivityStatus.OPEN, RecoveryStatus.SUCCEEDED, "connection is open", TestConstants.INSTANT),
                             getSelf());
 
                     // simulate consumer and pusblisher actor response
