@@ -48,7 +48,9 @@ import org.eclipse.ditto.thingsearch.service.persistence.write.model.AbstractWri
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.Metadata;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.ThingDeleteModel;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.ThingWriteModel;
+import org.hamcrest.Matchers;
 import org.junit.After;
+import org.junit.Assume;
 import org.junit.Before;
 import org.junit.FixMethodOrder;
 import org.junit.Test;
@@ -596,6 +598,7 @@ public final class EnforcementFlowTest {
 
     @Test
     public void updatesDoNotGetReordered() {
+        Assume.assumeThat(System.getProperty("build.environment"), Matchers.not(Matchers.equalTo("Github")));
         new TestKit(system) {{
             final DittoHeaders headers = DittoHeaders.empty();
             final PolicyId policyId = PolicyId.of("policy:id");
