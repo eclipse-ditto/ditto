@@ -13,6 +13,7 @@
 package org.eclipse.ditto.thingsearch.service.persistence.write.streaming;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
@@ -138,12 +139,11 @@ public final class SearchUpdaterStream {
         final var mergedSource =
                 acknowledgedSource.mergePrioritized(unacknowledgedSource, 1023, 1, true);
 
-        final SubSource<AbstractWriteModel, NotUsed> enforcementSource = enforcementFlow.create(
+        final SubSource<List<AbstractWriteModel>, NotUsed> enforcementSource = enforcementFlow.create(
                         mergedSource.via(filterMapKeysByBlockedNamespaces()),
                         retrievalConfig.getParallelism(),
                         persistenceConfig.getParallelism(),
-                        actorSystem)
-                .via(blockNamespaceFlow(SearchUpdaterStream::namespaceOfWriteModel));
+                        actorSystem);
 
         final String logName = "SearchUpdaterStream/BulkWriteResult";
         final SubSource<WriteResultAndErrors, NotUsed> persistenceSource = mongoSearchUpdaterFlow.start(

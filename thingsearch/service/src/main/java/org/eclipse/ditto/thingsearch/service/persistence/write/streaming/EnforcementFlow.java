@@ -164,7 +164,7 @@ final class EnforcementFlow {
      * @param bulkShardCount the configured amount of shards to create substreams for.
      * @return the flow.
      */
-    public <T> SubSource<AbstractWriteModel, T> create(
+    public <T> SubSource<List<AbstractWriteModel>, T> create(
             final Source<Map<ThingId, Metadata>, T> source,
             final int parallelismPerBulkShard,
             final int bulkShardCount,
@@ -181,8 +181,7 @@ final class EnforcementFlow {
                                 return computeWriteModel(changedMetadata, thing);
                             })
                             .runWith(Sink.seq(), system);
-                })
-                .mapConcat(writeModels -> writeModels);
+                });
     }
 
     private Source<Pair<ThingId, JsonObject>, NotUsed> retrieveThingFromCachingFacade(final ThingId thingId,

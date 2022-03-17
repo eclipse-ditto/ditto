@@ -674,6 +674,7 @@ public final class EnforcementFlowTest {
         final var source = TestSource.<Map<ThingId, Metadata>>probe(system);
         final var sink = TestSink.<List<AbstractWriteModel>>probe(system);
         final var runnableGraph = enforcementFlow.create(source, 16, 1, system)
+                .mapConcat(x -> x)
                 .map(List::of)
                 .mergeSubstreams()
                 .viaMat(KillSwitches.single(), Keep.both())

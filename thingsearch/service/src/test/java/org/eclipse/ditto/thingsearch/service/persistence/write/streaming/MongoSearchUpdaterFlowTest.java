@@ -107,7 +107,8 @@ public final class MongoSearchUpdaterFlowTest {
             final int parallelism = 32;
             final int maxBulkSize = 4;
             final var writeModelSource = Source.from(writeModels)
-                    .groupBy(parallelism, w -> Math.floorMod(w.getMetadata().getThingId().hashCode(), parallelism));
+                    .groupBy(parallelism, w -> Math.floorMod(w.getMetadata().getThingId().hashCode(), parallelism))
+                    .map(List::of);
             final var runnableGraph =
                     flow.start(writeModelSource, false, maxBulkSize)
                             .map(writeResultAndErrors -> {

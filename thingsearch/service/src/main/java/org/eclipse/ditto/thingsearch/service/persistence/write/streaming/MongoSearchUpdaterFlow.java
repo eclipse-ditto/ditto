@@ -105,11 +105,11 @@ final class MongoSearchUpdaterFlow {
      * @return sub-source of write results.
      */
     public SubSource<WriteResultAndErrors, NotUsed> start(
-            final SubSource<AbstractWriteModel, NotUsed> subSource,
+            final SubSource<List<AbstractWriteModel>, NotUsed> subSource,
             final boolean shouldAcknowledge,
             final int maxBulkSize) {
 
-        return subSource.grouped(maxBulkSize)
+        return subSource.flatMapConcat(models -> Source.from(models).grouped(maxBulkSize))
                 .map(MongoSearchUpdaterFlow::sortBySeqNr)
                 .flatMapConcat(searchUpdateMapper::processWriteModels)
                 .flatMapConcat(writeModels -> executeBulkWrite(shouldAcknowledge, writeModels));
