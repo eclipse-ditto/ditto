@@ -180,8 +180,9 @@ final class EnforcementFlow {
                                 searchUpdateObserver.process(changedMetadata, thing);
                                 return computeWriteModel(changedMetadata, thing);
                             })
-                            .runWith(Sink.head(), system);
-                });
+                            .runWith(Sink.seq(), system);
+                })
+                .mapConcat(writeModels -> writeModels);
     }
 
     private Source<Pair<ThingId, JsonObject>, NotUsed> retrieveThingFromCachingFacade(final ThingId thingId,
