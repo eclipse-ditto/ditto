@@ -614,7 +614,7 @@ public final class EnforcementFlowTest {
             final TestProbe policiesProbe = TestProbe.apply(system);
 
             final StreamConfig streamConfig = DefaultStreamConfig.of(ConfigFactory.parseString(
-                    "stream.ask-with-retry.ask-timeout=15s"));
+                    "stream.ask-with-retry.ask-timeout=30s"));
             final EnforcementFlow underTest = EnforcementFlow.of(system, streamConfig, thingsProbe.ref(),
                     policiesProbe.ref(), system.getScheduler());
 
@@ -662,7 +662,7 @@ public final class EnforcementFlowTest {
 
             for (final var changeMap : changeMaps) {
                 final var expectedMetadata = changeMap.values().iterator().next();
-                final var list = sinkProbe.expectNext(FiniteDuration.apply(10, "s"));
+                final var list = sinkProbe.expectNext(FiniteDuration.apply(60, "s"));
                 final AbstractWriteModel writeModel = list.get(0);
                 assertThat(writeModel.getMetadata()).isEqualTo(expectedMetadata);
             }
