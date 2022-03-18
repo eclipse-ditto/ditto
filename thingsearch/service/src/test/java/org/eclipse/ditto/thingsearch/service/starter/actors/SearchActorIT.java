@@ -102,14 +102,12 @@ public final class SearchActorIT {
 
     @BeforeClass
     public static void startMongoResource() {
-        final var dispatcherConfig = ConfigFactory.parseString("search-dispatcher {\n" +
-                "  type = PinnedDispatcher\n" +
-                "  executor = \"thread-pool-executor\"\n" +
-                "}\n" +
-                "search-updater-dispatcher {\n" +
-                "  type = PinnedDispatcher\n" +
-                "  executor = \"thread-pool-executor\"\n" +
-                "}");
+        final var dispatcherConfig = ConfigFactory.parseString("""
+                search-dispatcher {
+                  type = PinnedDispatcher
+                  executor = "thread-pool-executor"
+                }
+                """);
         actorsTestConfig = ConfigFactory.load("actors-test.conf").withFallback(dispatcherConfig);
 
         queryParser = SearchRootActor.getQueryParser(DefaultLimitsConfig.of(ConfigFactory.empty()),
