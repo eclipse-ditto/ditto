@@ -57,11 +57,6 @@ final class MongoSearchUpdaterFlow {
     private static final ThreadSafeDittoLogger LOGGER =
             DittoLoggerFactory.getThreadSafeLogger(MongoSearchUpdaterFlow.class);
 
-    /**
-     * Config key of the dispatcher for the search updater.
-     */
-    static final String DISPATCHER_NAME = "search-updater-dispatcher";
-
     private final MongoCollection<BsonDocument> collection;
     private final MongoCollection<BsonDocument> collectionWithAcknowledgements;
     private final SearchUpdateMapper searchUpdateMapper;

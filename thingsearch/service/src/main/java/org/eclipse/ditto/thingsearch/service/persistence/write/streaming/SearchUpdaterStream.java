@@ -190,8 +190,4 @@ public final class SearchUpdaterStream {
                 });
     }
 
-    private static String namespaceOfWriteModel(final AbstractWriteModel writeModel) {
-        return writeModel.getMetadata().getThingId().getNamespace();
-    }
-
 }
