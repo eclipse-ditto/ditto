@@ -194,7 +194,6 @@ final class EnforcementFlow {
         }
 
         return Source.completionStage(thingFuture)
-                .filter(thing -> !thing.isEmpty())
                 .map(thing -> Pair.create(thingId, thing))
                 .recoverWithRetries(1, new PFBuilder<Throwable, Source<Pair<ThingId, JsonObject>, NotUsed>>()
                         .match(Throwable.class, error -> {
@@ -214,7 +213,7 @@ final class EnforcementFlow {
                     return Instant.EPOCH;
                 })))
                 .orElse(null);
-        if (latestEvent instanceof ThingDeleted || thing == null) {
+        if (latestEvent instanceof ThingDeleted || thing == null || thing.isEmpty()) {
             return Source.single(ThingDeleteModel.of(metadata));
         } else {
             return getEnforcer(metadata, thing)
