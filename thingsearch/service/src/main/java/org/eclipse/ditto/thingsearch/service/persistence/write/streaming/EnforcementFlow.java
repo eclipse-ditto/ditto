@@ -14,9 +14,9 @@ package org.eclipse.ditto.thingsearch.service.persistence.write.streaming;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Executor;
 
@@ -165,23 +165,22 @@ final class EnforcementFlow {
      * @return the flow.
      */
     public <T> SubSource<List<AbstractWriteModel>, T> create(
-            final Source<Map<ThingId, Metadata>, T> source,
+            final Source<Collection<Metadata>, T> source,
             final int parallelismPerBulkShard,
             final int bulkShardCount,
             final ActorSystem system) {
 
-        return source.flatMapConcat(changeMap -> Source.fromIterator(changeMap.entrySet()::iterator))
-                .groupBy(bulkShardCount, m -> Math.floorMod(m.getKey().hashCode(), bulkShardCount))
-                .mapAsync(parallelismPerBulkShard, entry -> {
-                    final var changedMetadata = entry.getValue();
-                    return retrieveThingFromCachingFacade(changedMetadata.getThingId(), changedMetadata)
-                            .flatMapConcat(pair -> {
-                                final JsonObject thing = pair.second();
-                                searchUpdateObserver.process(changedMetadata, thing);
-                                return computeWriteModel(changedMetadata, thing);
-                            })
-                            .runWith(Sink.seq(), system);
-                });
+        return source.flatMapConcat(changes -> Source.fromIterator(changes::iterator))
+                .groupBy(bulkShardCount, metadata -> Math.floorMod(metadata.getThingId().hashCode(), bulkShardCount))
+                .mapAsync(parallelismPerBulkShard, changedMetadata ->
+                        retrieveThingFromCachingFacade(changedMetadata.getThingId(), changedMetadata)
+                                .flatMapConcat(pair -> {
+                                    final JsonObject thing = pair.second();
+                                    searchUpdateObserver.process(changedMetadata, thing);
+                                    return computeWriteModel(changedMetadata, thing);
+                                })
+                                .runWith(Sink.seq(), system)
+                );
     }
 
     private Source<Pair<ThingId, JsonObject>, NotUsed> retrieveThingFromCachingFacade(final ThingId thingId,

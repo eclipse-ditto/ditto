@@ -12,18 +12,18 @@
  */
 package org.eclipse.ditto.thingsearch.service.persistence.write.streaming;
 
-import java.util.HashMap;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
 
 import org.eclipse.ditto.internal.utils.namespaces.BlockedNamespaces;
-import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.thingsearch.service.common.config.PersistenceStreamConfig;
 import org.eclipse.ditto.thingsearch.service.common.config.StreamStageConfig;
 import org.eclipse.ditto.thingsearch.service.common.config.UpdaterConfig;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.AbstractWriteModel;
+import org.eclipse.ditto.thingsearch.service.persistence.write.model.Metadata;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.WriteResultAndErrors;
 
 import com.mongodb.reactivestreams.client.MongoDatabase;
@@ -165,21 +165,21 @@ public final class SearchUpdaterStream {
                 () -> Source.single(loggingSource));
     }
 
-    private <T> Flow<Map<ThingId, T>, Map<ThingId, T>, NotUsed> filterMapKeysByBlockedNamespaces() {
-        return Flow.<Map<ThingId, T>>create()
-                .<Map<ThingId, T>, NotUsed>flatMapConcat(map ->
-                        Source.fromIterator(map.entrySet()::iterator)
-                                .via(blockNamespaceFlow(entry -> entry.getKey().getNamespace()))
-                                .fold(new HashMap<>(), (accumulator, entry) -> {
-                                    accumulator.put(entry.getKey(), entry.getValue());
+    private Flow<Collection<Metadata>, Collection<Metadata>, NotUsed> filterMapKeysByBlockedNamespaces() {
+        return Flow.<Collection<Metadata>>create()
+                .<Collection<Metadata>, NotUsed>flatMapConcat(map ->
+                        Source.fromIterator(map::iterator)
+                                .via(blockNamespaceFlow(entry -> entry.getThingId().getNamespace()))
+                                .fold(new ArrayList<>(), (accumulator, entry) -> {
+                                    accumulator.add(entry);
                                     return accumulator;
                                 })
                 )
                 .withAttributes(Attributes.inputBuffer(1, 1));
     }
 
-    private <T> Flow<T, T, NotUsed> blockNamespaceFlow(final Function<T, String> namespaceExtractor) {
-        return Flow.<T>create()
+    private Flow<Metadata, Metadata, NotUsed> blockNamespaceFlow(final Function<Metadata, String> namespaceExtractor) {
+        return Flow.<Metadata>create()
                 .flatMapConcat(element -> {
                     final String namespace = namespaceExtractor.apply(element);
                     final CompletionStage<Boolean> shouldUpdate = blockedNamespaces.contains(namespace)

@@ -16,8 +16,8 @@ package org.eclipse.ditto.thingsearch.service.persistence.write.streaming;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.time.Instant;
+import java.util.Collection;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.IntStream;
@@ -61,7 +61,6 @@ import com.typesafe.config.ConfigFactory;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.stream.KillSwitches;
-import akka.stream.UniqueKillSwitch;
 import akka.stream.javadsl.Keep;
 import akka.stream.testkit.TestPublisher;
 import akka.stream.testkit.TestSubscriber;
@@ -81,9 +80,8 @@ public final class EnforcementFlowTest {
 
     private ActorSystem system;
 
-    private TestPublisher.Probe<Map<ThingId, Metadata>> sourceProbe;
+    private TestPublisher.Probe<Collection<Metadata>> sourceProbe;
     private TestSubscriber.Probe<List<AbstractWriteModel>> sinkProbe;
-    private UniqueKillSwitch killSwitch;
 
     @Before
     public void init() {
@@ -108,7 +106,7 @@ public final class EnforcementFlowTest {
             final ThingId thingId = ThingId.of("thing:id");
             final PolicyId policyId = PolicyId.of("policy:id");
             final Metadata metadata = Metadata.of(thingId, thingRev1, policyId, policyRev1, null);
-            final Map<ThingId, Metadata> inputMap = Map.of(thingId, metadata);
+            final Collection<Metadata> input = List.of(metadata);
 
             final TestProbe thingsProbe = TestProbe.apply(system);
             final TestProbe policiesProbe = TestProbe.apply(system);
@@ -124,7 +122,7 @@ public final class EnforcementFlowTest {
             sourceProbe.ensureSubscription();
             sinkProbe.request(1);
             assertThat(sourceProbe.expectRequest()).isEqualTo(16);
-            sourceProbe.sendNext(inputMap);
+            sourceProbe.sendNext(input);
             sourceProbe.sendComplete();
 
             // WHEN: thing and policy are retrieved with up-to-date revisions
@@ -174,7 +172,7 @@ public final class EnforcementFlowTest {
         sinkProbe.ensureSubscription();
         sourceProbe.ensureSubscription();
         sinkProbe.request(2);
-        sourceProbe.sendNext(Map.of(thingId, metadata1));
+        sourceProbe.sendNext(List.of(metadata1));
 
         thingsProbe.expectMsgClass(SudoRetrieveThing.class);
         final var thing = Thing.newBuilder().setId(thingId).setPolicyId(policyId).setRevision(thingRev2).build();
@@ -194,7 +192,7 @@ public final class EnforcementFlowTest {
 
         // WHEN: a metadata with 'invalidateCache' flag is enqueued
         final Metadata metadata2 = metadata1.invalidateCaches(true, true);
-        sourceProbe.sendNext(Map.of(thingId, metadata2));
+        sourceProbe.sendNext(List.of(metadata2));
         sourceProbe.sendComplete();
         thingsProbe.expectMsgClass(SudoRetrieveThing.class);
         thingsProbe.reply(SudoRetrieveThingResponse.of(thingJson, DittoHeaders.empty()));
@@ -235,7 +233,7 @@ public final class EnforcementFlowTest {
             );
 
             final Metadata metadata = Metadata.of(thingId, 5L, policyId, 1L, events, null, null);
-            final Map<ThingId, Metadata> inputMap = Map.of(thingId, metadata);
+            final List<Metadata> inputMap = List.of(metadata);
 
             final TestProbe thingsProbe = TestProbe.apply(system);
             final TestProbe policiesProbe = TestProbe.apply(system);
@@ -300,7 +298,7 @@ public final class EnforcementFlowTest {
             );
 
             final Metadata metadata = Metadata.of(thingId, 5L, policyId, 1L, events, null, null);
-            final Map<ThingId, Metadata> inputMap = Map.of(thingId, metadata);
+            final List<Metadata> inputMap = List.of(metadata);
 
             final TestProbe thingsProbe = TestProbe.apply(system);
             final TestProbe policiesProbe = TestProbe.apply(system);
@@ -353,7 +351,7 @@ public final class EnforcementFlowTest {
 
             final Metadata metadata = Metadata.of(thingId, 6L, policyId, 1L, events, null, null)
                     .invalidateCaches(true, true);
-            final Map<ThingId, Metadata> inputMap = Map.of(thingId, metadata);
+            final List<Metadata> inputMap = List.of(metadata);
 
             final TestProbe thingsProbe = TestProbe.apply(system);
             final TestProbe policiesProbe = TestProbe.apply(system);
@@ -398,7 +396,7 @@ public final class EnforcementFlowTest {
             );
 
             final Metadata metadata = Metadata.of(thingId, 7L, policyId, 1L, events, null, null);
-            final Map<ThingId, Metadata> inputMap = Map.of(thingId, metadata);
+            final List<Metadata> inputMap = List.of(metadata);
 
             final TestProbe thingsProbe = TestProbe.apply(system);
             final TestProbe policiesProbe = TestProbe.apply(system);
@@ -442,7 +440,7 @@ public final class EnforcementFlowTest {
             );
 
             final Metadata metadata = Metadata.of(thingId, 6L, policyId, 1L, events, null, null);
-            final Map<ThingId, Metadata> inputMap = Map.of(thingId, metadata);
+            final List<Metadata> inputMap = List.of(metadata);
 
             final TestProbe thingsProbe = TestProbe.apply(system);
             final TestProbe policiesProbe = TestProbe.apply(system);
@@ -485,7 +483,7 @@ public final class EnforcementFlowTest {
             );
 
             final Metadata metadata = Metadata.of(thingId, 6L, policyId, 1L, events, null, null);
-            final Map<ThingId, Metadata> inputMap = Map.of(thingId, metadata);
+            final List<Metadata> inputMap = List.of(metadata);
 
             final TestProbe thingsProbe = TestProbe.apply(system);
             final TestProbe policiesProbe = TestProbe.apply(system);
@@ -552,7 +550,7 @@ public final class EnforcementFlowTest {
             );
 
             final Metadata metadata = Metadata.of(thingId, 6L, policyId, 1L, events, null, null);
-            final Map<ThingId, Metadata> inputMap = Map.of(thingId, metadata);
+            final List<Metadata> inputMap = List.of(metadata);
 
             final TestProbe thingsProbe = TestProbe.apply(system);
             final TestProbe policiesProbe = TestProbe.apply(system);
@@ -605,12 +603,12 @@ public final class EnforcementFlowTest {
             final Thing thing = Thing.newBuilder().setPolicyId(policyId).build();
             final var policy = Policy.newBuilder(policyId).setRevision(1).build();
 
-            final List<Map<ThingId, Metadata>> changeMaps = IntStream.range(1, 5).mapToObj(i -> {
+            final List<List<Metadata>> changeMaps = IntStream.range(1, 5).mapToObj(i -> {
                 final ThingId thingId = ThingId.of("thing:" + i);
                 final Thing ithThing = thing.toBuilder().setId(thingId).setRevision(i).build();
                 final List<ThingEvent<?>> events = List.of(ThingModified.of(ithThing, i, null, headers, null));
                 final Metadata metadata = Metadata.of(thingId, i, policyId, 1L, events, null, null);
-                return Map.of(thingId, metadata);
+                return List.of(metadata);
             }).toList();
 
             final TestProbe thingsProbe = TestProbe.apply(system);
@@ -664,7 +662,7 @@ public final class EnforcementFlowTest {
             });
 
             for (final var changeMap : changeMaps) {
-                final var expectedMetadata = changeMap.values().iterator().next();
+                final var expectedMetadata = changeMap.iterator().next();
                 final var list = sinkProbe.expectNext(FiniteDuration.apply(60, "s"));
                 final AbstractWriteModel writeModel = list.get(0);
                 assertThat(writeModel.getMetadata()).isEqualTo(expectedMetadata);
@@ -674,7 +672,7 @@ public final class EnforcementFlowTest {
     }
 
     private void materializeTestProbes(final EnforcementFlow enforcementFlow) {
-        final var source = TestSource.<Map<ThingId, Metadata>>probe(system);
+        final var source = TestSource.<Collection<Metadata>>probe(system);
         final var sink = TestSink.<List<AbstractWriteModel>>probe(system);
         final var runnableGraph = enforcementFlow.create(source, 16, 1, system)
                 .mapConcat(x -> x)
