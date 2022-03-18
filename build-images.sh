@@ -29,7 +29,7 @@ SERVICES=(
   "policies:policies"
   "things:things"
   "thingsearch:things-search"
-  "connectivity:connectivity:--add-opens java.base/java.nio=ALL-UNNAMED --add-opens java.base/sun.nio.ch=ALL-UNNAMED --add-opens java.base/sun.security.util=ALL-UNNAMED"
+  "connectivity:connectivity"
 )
 : "${HTTP_PROXY_LOCAL:=$HTTP_PROXY}"
 : "${HTTPS_PROXY_LOCAL:=$HTTPS_PROXY}"
