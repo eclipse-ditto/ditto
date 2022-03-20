@@ -18,23 +18,20 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.stream.Collectors;
 
-import org.bson.BsonDocument;
 import org.eclipse.ditto.internal.utils.akka.AkkaClassLoader;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.internal.utils.metrics.instruments.timer.StartedTimer;
 import org.eclipse.ditto.thingsearch.service.common.config.DittoSearchConfig;
 import org.eclipse.ditto.thingsearch.service.common.config.SearchConfig;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.AbstractWriteModel;
+import org.eclipse.ditto.thingsearch.service.updater.actors.MongoWriteModel;
 import org.slf4j.Logger;
-
-import com.mongodb.client.model.WriteModel;
 
 import akka.NotUsed;
 import akka.actor.AbstractExtensionId;
 import akka.actor.ActorSystem;
 import akka.actor.ExtendedActorSystem;
 import akka.actor.Extension;
-import akka.japi.Pair;
 import akka.stream.javadsl.Source;
 
 /**
@@ -60,7 +57,7 @@ public abstract class SearchUpdateMapper implements Extension {
      * @param writeModels the write models.
      * @return Ditto write models together with their processed MongoDB write models.
      */
-    public abstract Source<List<Pair<AbstractWriteModel, WriteModel<BsonDocument>>>, NotUsed>
+    public abstract Source<List<MongoWriteModel>, NotUsed>
     processWriteModels(final List<AbstractWriteModel> writeModels);
 
     /**
@@ -81,7 +78,7 @@ public abstract class SearchUpdateMapper implements Extension {
      * @return a singleton list of write model together with its update document, or an empty list if there is no
      * change.
      */
-    protected static CompletionStage<List<Pair<AbstractWriteModel, WriteModel<BsonDocument>>>>
+    protected static CompletionStage<List<MongoWriteModel>>
     toIncrementalMongo(final AbstractWriteModel model, final Logger logger) {
 
         return model.toIncrementalMongo()
@@ -90,12 +87,12 @@ public abstract class SearchUpdateMapper implements Extension {
                         logger.debug("Write model is unchanged, skipping update: <{}>", model);
                         model.getMetadata().sendWeakAck(null);
                         model.getMetadata().sendBulkWriteCompleteToOrigin(null);
-                        return List.<Pair<AbstractWriteModel, WriteModel<BsonDocument>>>of();
+                        return List.<MongoWriteModel>of();
                     } else {
                         ConsistencyLag.startS5MongoBulkWrite(model.getMetadata());
                         final var result = mongoWriteModelOpt.orElseThrow();
                         logger.debug("MongoWriteModel={}", result);
-                        return List.of(Pair.create(model, result));
+                        return List.of(result);
                     }
                 })
                 .handle((result, error) -> {
@@ -120,7 +117,7 @@ public abstract class SearchUpdateMapper implements Extension {
      * @param logger the logger.
      * @return a list of write models together with their update documents.
      */
-    protected static CompletionStage<List<Pair<AbstractWriteModel, WriteModel<BsonDocument>>>> toIncrementalMongo(
+    protected static CompletionStage<List<MongoWriteModel>> toIncrementalMongo(
             final Collection<AbstractWriteModel> models, final Logger logger) {
 
         final var writeModelFutures = models.stream()

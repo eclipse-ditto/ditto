@@ -24,6 +24,7 @@ import org.bson.BsonDocument;
 import org.bson.BsonString;
 import org.bson.conversions.Bson;
 import org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants;
+import org.eclipse.ditto.thingsearch.service.updater.actors.MongoWriteModel;
 
 import com.mongodb.client.model.Filters;
 import com.mongodb.client.model.WriteModel;
@@ -63,20 +64,19 @@ public abstract class AbstractWriteModel {
      *
      * @return either the MongoDB write model of this object or an incremental update converting
      */
-    @SuppressWarnings("unchecked")
-    public CompletionStage<Optional<WriteModel<BsonDocument>>> toIncrementalMongo() {
+    public CompletionStage<Optional<MongoWriteModel>> toIncrementalMongo() {
         final var origin = metadata.getOrigin();
         if (origin.isPresent()) {
             return Patterns.ask(origin.orElseThrow(), this, Duration.ofSeconds(10L))
                     .thenApply(answer -> {
-                        if (answer instanceof WriteModel) {
-                            return Optional.of((WriteModel<BsonDocument>) answer);
+                        if (answer instanceof MongoWriteModel mongoWriteModel) {
+                            return Optional.of(mongoWriteModel);
                         } else {
                             return Optional.empty();
                         }
                     });
         } else {
-            return CompletableFuture.completedStage(Optional.of(toMongo()));
+            return CompletableFuture.completedStage(Optional.of(MongoWriteModel.of(this, toMongo(), false)));
         }
     }
 

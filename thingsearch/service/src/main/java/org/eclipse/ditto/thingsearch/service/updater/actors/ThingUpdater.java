@@ -95,7 +95,7 @@ final class ThingUpdater extends AbstractActorWithStashWithTimers {
     private static final Duration THING_DELETION_TIMEOUT = Duration.ofMinutes(5);
 
     private static final DittoLogger LOGGER = DittoLoggerFactory.getLogger(ThingUpdater.class);
-            // logger for "trace" statements
+    // logger for "trace" statements
 
     private final DittoDiagnosticLoggingAdapter log;
     private final ThingId thingId;
@@ -237,11 +237,15 @@ final class ThingUpdater extends AbstractActorWithStashWithTimers {
 
     private void onNextWriteModel(final AbstractWriteModel nextWriteModel) {
         final WriteModel<BsonDocument> mongoWriteModel;
+        final boolean isPatchUpdate;
+
         final boolean forceUpdate = (forceUpdateProbability > 0 && Math.random() < forceUpdateProbability) ||
                 forceNextUpdate;
-        if (!forceUpdate && lastWriteModel instanceof ThingWriteModel && nextWriteModel instanceof ThingWriteModel) {
-            final var last = (ThingWriteModel) lastWriteModel;
-            final var next = (ThingWriteModel) nextWriteModel;
+
+        if (!forceUpdate &&
+                lastWriteModel instanceof final ThingWriteModel last &&
+                nextWriteModel instanceof final ThingWriteModel next) {
+
             final Optional<BsonDiff> diff = tryComputeDiff(next.getThingDocument(), last.getThingDocument());
             if (diff.isPresent() && diff.get().isDiffSmaller()) {
                 final var aggregationPipeline = diff.get().consumeAndExport();
@@ -260,6 +264,7 @@ final class ThingUpdater extends AbstractActorWithStashWithTimers {
                 log.debug("Using incremental update <{}>", mongoWriteModel.getClass().getSimpleName());
                 LOGGER.trace("Using incremental update <{}>", mongoWriteModel);
                 PATCH_UPDATE_COUNT.increment();
+                isPatchUpdate = true;
             } else {
                 mongoWriteModel = nextWriteModel.toMongo();
                 log.debug("Using replacement because diff is bigger or nonexistent: <{}>",
@@ -269,6 +274,7 @@ final class ThingUpdater extends AbstractActorWithStashWithTimers {
                             diff.map(BsonDiff::consumeAndExport));
                 }
                 FULL_UPDATE_COUNT.increment();
+                isPatchUpdate = false;
             }
         } else {
             mongoWriteModel = nextWriteModel.toMongo();
@@ -283,8 +289,9 @@ final class ThingUpdater extends AbstractActorWithStashWithTimers {
                 LOGGER.trace("Using replacement <{}>", mongoWriteModel);
             }
             FULL_UPDATE_COUNT.increment();
+            isPatchUpdate = false;
         }
-        getSender().tell(mongoWriteModel, getSelf());
+        getSender().tell(MongoWriteModel.of(nextWriteModel, mongoWriteModel, isPatchUpdate), getSelf());
         lastWriteModel = nextWriteModel;
     }
 

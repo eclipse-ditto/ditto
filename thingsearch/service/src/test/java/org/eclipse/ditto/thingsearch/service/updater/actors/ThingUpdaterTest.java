@@ -317,7 +317,8 @@ public final class ThingUpdaterTest {
             underTest.tell(UpdateThing.of(THING_ID, UpdateReason.UNKNOWN, DittoHeaders.empty()), getRef());
             underTest.tell(writeModel, getRef());
 
-            final UpdateOneModel<?> updateOneModel = expectMsgClass(UpdateOneModel.class);
+            final MongoWriteModel mongoWriteModel = expectMsgClass(MongoWriteModel.class);
+            final UpdateOneModel<?> updateOneModel = (UpdateOneModel<?>) mongoWriteModel.getBson();
             Assertions.assertThat(updateOneModel.getFilter()).isEqualTo(Filters.and(
                     Filters.eq(PersistenceConstants.FIELD_ID, new BsonString(THING_ID.toString())),
                     Filters.eq(PersistenceConstants.FIELD_REVISION, BsonNumber.apply(1234L))
@@ -333,7 +334,8 @@ public final class ThingUpdaterTest {
             underTest.tell(writeModel, getRef());
 
             // THEN: expect full forced update
-            final ReplaceOneModel<?> replaceOneModel = expectMsgClass(ReplaceOneModel.class);
+            final MongoWriteModel mongoWriteModel2 = expectMsgClass(MongoWriteModel.class);
+            final ReplaceOneModel<?> replaceOneModel = (ReplaceOneModel<?>) mongoWriteModel2.getBson();
             Assertions.assertThat(replaceOneModel.getReplacement()).isEqualTo(document);
         }};
     }

@@ -27,6 +27,7 @@ import org.eclipse.ditto.thingsearch.service.common.config.PersistenceStreamConf
 import org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.AbstractWriteModel;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.WriteResultAndErrors;
+import org.eclipse.ditto.thingsearch.service.updater.actors.MongoWriteModel;
 
 import com.mongodb.MongoBulkWriteException;
 import com.mongodb.client.model.BulkWriteOptions;
@@ -40,7 +41,6 @@ import com.mongodb.reactivestreams.client.MongoCollection;
 import com.mongodb.reactivestreams.client.MongoDatabase;
 
 import akka.NotUsed;
-import akka.japi.Pair;
 import akka.japi.pf.PFBuilder;
 import akka.stream.javadsl.Source;
 import akka.stream.javadsl.SubSource;
@@ -111,7 +111,7 @@ final class MongoSearchUpdaterFlow {
     }
 
     private Source<WriteResultAndErrors, NotUsed> executeBulkWrite(final boolean shouldAcknowledge,
-            final Collection<Pair<AbstractWriteModel, WriteModel<BsonDocument>>> pairs) {
+            final Collection<MongoWriteModel> writeModels) {
 
         final MongoCollection<BsonDocument> theCollection;
         if (shouldAcknowledge) {
@@ -119,31 +119,25 @@ final class MongoSearchUpdaterFlow {
         } else {
             theCollection = collection;
         }
-        final var abstractWriteModels = pairs.stream().map(Pair::first).toList();
-        final var writeModels = pairs.stream().map(Pair::second).toList();
 
         final String bulkWriteCorrelationId = UUID.randomUUID().toString();
+
         if (writeModels.isEmpty()) {
-            LOGGER.withCorrelationId(bulkWriteCorrelationId)
-                    .debug("Requested to make empty update by write models <{}>", abstractWriteModels);
-            for (final var abstractWriteModel : abstractWriteModels) {
-                abstractWriteModel.getMetadata().sendWeakAck(null);
-                abstractWriteModel.getMetadata().sendBulkWriteCompleteToOrigin(bulkWriteCorrelationId);
-            }
+            LOGGER.withCorrelationId(bulkWriteCorrelationId).debug("Requested to make empty update");
             return Source.empty();
         }
 
         if (LOGGER.isDebugEnabled()) {
             LOGGER.withCorrelationId(bulkWriteCorrelationId)
                     .debug("Executing BulkWrite containing <{}> things: [<thingId>:{correlationIds}:<filter>]: {}",
-                            pairs.size(),
-                            pairs.stream()
-                                    .map(writeModelPair -> "<" + writeModelPair.first().getMetadata().getThingId() +
+                            writeModels.size(),
+                            writeModels.stream()
+                                    .map(writeModelPair -> "<" + writeModelPair.getDitto().getMetadata().getThingId() +
                                             ">:" +
-                                            writeModelPair.first().getMetadata().getEventsCorrelationIds()
+                                            writeModelPair.getDitto().getMetadata().getEventsCorrelationIds()
                                                     .stream()
                                                     .collect(Collectors.joining(",", "{", "}"))
-                                            + ":<" + extractFilterBson(writeModelPair.second()) + ">"
+                                            + ":<" + extractFilterBson(writeModelPair.getBson()) + ">"
                                     )
                                     .toList());
 
@@ -152,24 +146,25 @@ final class MongoSearchUpdaterFlow {
                     .trace("Executing BulkWrite <{}>", writeModels);
         }
         final var bulkWriteTimer = startBulkWriteTimer(writeModels);
-        return Source.fromPublisher(theCollection.bulkWrite(writeModels, new BulkWriteOptions().ordered(false)))
+        final var bsons = writeModels.stream().map(MongoWriteModel::getBson).toList();
+        return Source.fromPublisher(theCollection.bulkWrite(bsons, new BulkWriteOptions().ordered(false)))
                 .map(bulkWriteResult -> WriteResultAndErrors.success(
-                        abstractWriteModels, bulkWriteResult, bulkWriteCorrelationId))
+                        writeModels, bulkWriteResult, bulkWriteCorrelationId))
                 .recoverWithRetries(1, new PFBuilder<Throwable, Source<WriteResultAndErrors, NotUsed>>()
                         .match(MongoBulkWriteException.class, bulkWriteException ->
                                 Source.single(WriteResultAndErrors.failure(
-                                        abstractWriteModels, bulkWriteException, bulkWriteCorrelationId))
+                                        writeModels, bulkWriteException, bulkWriteCorrelationId))
                         )
                         .matchAny(error ->
                                 Source.single(WriteResultAndErrors.unexpectedError(
-                                        abstractWriteModels, error, bulkWriteCorrelationId))
+                                        writeModels, error, bulkWriteCorrelationId))
                         )
                         .build()
                 )
                 .map(resultAndErrors -> {
                     stopBulkWriteTimer(bulkWriteTimer);
-                    abstractWriteModels.forEach(writeModel ->
-                            ConsistencyLag.startS6Acknowledge(writeModel.getMetadata())
+                    writeModels.forEach(writeModel ->
+                            ConsistencyLag.startS6Acknowledge(writeModel.getDitto().getMetadata())
                     );
                     return resultAndErrors;
                 });
@@ -190,7 +185,7 @@ final class MongoSearchUpdaterFlow {
         return "no filter";
     }
 
-    private static StartedTimer startBulkWriteTimer(final List<?> writeModels) {
+    private static StartedTimer startBulkWriteTimer(final Collection<?> writeModels) {
         DittoMetrics.histogram(COUNT_THING_BULK_UPDATES_PER_BULK).record((long) writeModels.size());
         return DittoMetrics.timer(TRACE_THING_BULK_UPDATE).tag(UPDATE_TYPE_TAG, "bulkUpdate").start();
     }
