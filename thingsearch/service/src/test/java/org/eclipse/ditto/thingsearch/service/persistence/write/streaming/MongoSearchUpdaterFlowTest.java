@@ -110,7 +110,7 @@ public final class MongoSearchUpdaterFlowTest {
                     .groupBy(parallelism, w -> Math.floorMod(w.getMetadata().getThingId().hashCode(), parallelism))
                     .map(List::of);
             final var runnableGraph =
-                    flow.start(writeModelSource, false, maxBulkSize)
+                    flow.start(writeModelSource, false)
                             .map(writeResultAndErrors -> {
                                 if (writeResultAndErrors.getBulkWriteErrors().isEmpty()) {
                                     writeResultAndErrors.getWriteModels().forEach(writeModel -> {

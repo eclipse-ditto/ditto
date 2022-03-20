@@ -96,16 +96,13 @@ final class MongoSearchUpdaterFlow {
      * @param subSource sub-source of write models.
      * @param shouldAcknowledge whether to use a write concern to guarantee the consistency of acknowledgements.
      * {@link org.eclipse.ditto.base.model.acks.DittoAcknowledgementLabel#SEARCH_PERSISTED} was required or not.
-     * @param maxBulkSize How many writes to perform in one bulk.
      * @return sub-source of write results.
      */
     public SubSource<WriteResultAndErrors, NotUsed> start(
             final SubSource<List<AbstractWriteModel>, NotUsed> subSource,
-            final boolean shouldAcknowledge,
-            final int maxBulkSize) {
+            final boolean shouldAcknowledge) {
 
-        return subSource.flatMapConcat(models -> Source.from(models).grouped(maxBulkSize))
-                .map(MongoSearchUpdaterFlow::sortBySeqNr)
+        return subSource.map(MongoSearchUpdaterFlow::sortBySeqNr)
                 .flatMapConcat(searchUpdateMapper::processWriteModels)
                 .flatMapConcat(writeModels -> executeBulkWrite(shouldAcknowledge, writeModels));
     }

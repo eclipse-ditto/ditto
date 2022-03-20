@@ -168,19 +168,26 @@ final class EnforcementFlow {
             final Source<Collection<Metadata>, T> source,
             final int parallelismPerBulkShard,
             final int bulkShardCount,
+            final int maxBulkSize,
             final ActorSystem system) {
 
-        return source.flatMapConcat(changes -> Source.fromIterator(changes::iterator))
-                .groupBy(bulkShardCount, metadata -> Math.floorMod(metadata.getThingId().hashCode(), bulkShardCount))
-                .mapAsync(parallelismPerBulkShard, changedMetadata ->
-                        retrieveThingFromCachingFacade(changedMetadata.getThingId(), changedMetadata)
-                                .flatMapConcat(pair -> {
-                                    final JsonObject thing = pair.second();
-                                    searchUpdateObserver.process(changedMetadata, thing);
-                                    return computeWriteModel(changedMetadata, thing);
-                                })
-                                .runWith(Sink.seq(), system)
-                );
+        return source.flatMapConcat(changes -> Source.fromIterator(changes::iterator)
+                        .groupBy(bulkShardCount, metadata -> Math.floorMod(metadata.getThingId().hashCode(), bulkShardCount))
+                        .mapAsync(parallelismPerBulkShard, changedMetadata ->
+                                retrieveThingFromCachingFacade(changedMetadata.getThingId(), changedMetadata)
+                                        .flatMapConcat(pair -> {
+                                            final JsonObject thing = pair.second();
+                                            searchUpdateObserver.process(changedMetadata, thing);
+                                            return computeWriteModel(changedMetadata, thing);
+                                        })
+                                        .runWith(Sink.seq(), system)
+                        )
+                        .mapConcat(models -> models)
+                        .grouped(maxBulkSize)
+                        .mergeSubstreams())
+                .filterNot(List::isEmpty)
+                .groupBy(bulkShardCount, models ->
+                        Math.floorMod(models.get(0).getMetadata().getThingId().hashCode(), bulkShardCount));
     }
 
     private Source<Pair<ThingId, JsonObject>, NotUsed> retrieveThingFromCachingFacade(final ThingId thingId,

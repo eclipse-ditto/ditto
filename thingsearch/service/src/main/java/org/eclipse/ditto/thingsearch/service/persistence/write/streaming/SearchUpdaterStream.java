@@ -140,16 +140,16 @@ public final class SearchUpdaterStream {
                 acknowledgedSource.mergePrioritized(unacknowledgedSource, 1023, 1, true);
 
         final SubSource<List<AbstractWriteModel>, NotUsed> enforcementSource = enforcementFlow.create(
-                        mergedSource.via(filterMapKeysByBlockedNamespaces()),
-                        retrievalConfig.getParallelism(),
-                        persistenceConfig.getParallelism(),
-                        actorSystem);
+                mergedSource.via(filterMapKeysByBlockedNamespaces()),
+                retrievalConfig.getParallelism(),
+                persistenceConfig.getParallelism(),
+                persistenceConfig.getMaxBulkSize(),
+                actorSystem);
 
         final String logName = "SearchUpdaterStream/BulkWriteResult";
         final SubSource<WriteResultAndErrors, NotUsed> persistenceSource = mongoSearchUpdaterFlow.start(
                 enforcementSource,
-                true,
-                persistenceConfig.getMaxBulkSize()
+                true
         );
         final SubSource<String, NotUsed> loggingSource =
                 persistenceSource.via(bulkWriteResultAckFlow.start(persistenceConfig.getAckDelay()))

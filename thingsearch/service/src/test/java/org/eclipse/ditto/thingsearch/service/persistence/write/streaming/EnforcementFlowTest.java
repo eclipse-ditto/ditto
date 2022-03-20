@@ -674,7 +674,7 @@ public final class EnforcementFlowTest {
     private void materializeTestProbes(final EnforcementFlow enforcementFlow) {
         final var source = TestSource.<Collection<Metadata>>probe(system);
         final var sink = TestSink.<List<AbstractWriteModel>>probe(system);
-        final var runnableGraph = enforcementFlow.create(source, 16, 1, system)
+        final var runnableGraph = enforcementFlow.create(source, 16, 1, 1, system)
                 .mapConcat(x -> x)
                 .map(List::of)
                 .mergeSubstreams()

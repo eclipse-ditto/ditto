@@ -78,7 +78,7 @@ public final class TestSearchUpdaterStream {
         final var source = Source.single(writeModel)
                 .groupBy(1, foo -> 0)
                 .grouped(1);
-        return mongoSearchUpdaterFlow.start(source, false, 1).mergeSubstreams();
+        return mongoSearchUpdaterFlow.start(source, false).mergeSubstreams();
     }
 
     /**
@@ -106,7 +106,7 @@ public final class TestSearchUpdaterStream {
         final var source = Source.single(writeModel)
                 .groupBy(1, foo -> 0)
                 .grouped(1);
-        return mongoSearchUpdaterFlow.start(source, false, 1).mergeSubstreams();
+        return mongoSearchUpdaterFlow.start(source, false).mergeSubstreams();
     }
 
 }
