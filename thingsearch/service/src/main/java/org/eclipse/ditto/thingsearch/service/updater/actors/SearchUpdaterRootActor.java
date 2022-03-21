@@ -105,7 +105,7 @@ public final class SearchUpdaterRootActor extends AbstractActor {
                 SearchUpdaterStream.of(updaterConfig, actorSystem, thingsShard, policiesShard, updaterShard,
                         changeQueueActor, dittoMongoClient.getDefaultDatabase(), blockedNamespaces,
                         searchUpdateMapper);
-        updaterStreamKillSwitch = searchUpdaterStream.start(actorSystem);
+        updaterStreamKillSwitch = searchUpdaterStream.start();
 
         final var searchUpdaterPersistence =
                 MongoThingsSearchUpdaterPersistence.of(dittoMongoClient.getDefaultDatabase(),

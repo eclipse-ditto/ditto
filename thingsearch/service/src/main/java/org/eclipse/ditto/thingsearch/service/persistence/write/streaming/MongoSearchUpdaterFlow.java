@@ -13,6 +13,7 @@
 package org.eclipse.ditto.thingsearch.service.persistence.write.streaming;
 
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -23,10 +24,10 @@ import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLogger;
 import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.internal.utils.metrics.instruments.timer.StartedTimer;
 import org.eclipse.ditto.thingsearch.service.common.config.PersistenceStreamConfig;
-import org.eclipse.ditto.thingsearch.service.persistence.BulkWriteComplete;
 import org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.AbstractWriteModel;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.WriteResultAndErrors;
+import org.eclipse.ditto.thingsearch.service.updater.actors.MongoWriteModel;
 
 import com.mongodb.MongoBulkWriteException;
 import com.mongodb.client.model.BulkWriteOptions;
@@ -40,11 +41,9 @@ import com.mongodb.reactivestreams.client.MongoCollection;
 import com.mongodb.reactivestreams.client.MongoDatabase;
 
 import akka.NotUsed;
-import akka.actor.ActorRef;
-import akka.japi.Pair;
 import akka.japi.pf.PFBuilder;
-import akka.stream.javadsl.Flow;
 import akka.stream.javadsl.Source;
+import akka.stream.javadsl.SubSource;
 
 /**
  * Flow mapping write models to write results via the search persistence.
@@ -57,11 +56,6 @@ final class MongoSearchUpdaterFlow {
 
     private static final ThreadSafeDittoLogger LOGGER =
             DittoLoggerFactory.getThreadSafeLogger(MongoSearchUpdaterFlow.class);
-
-    /**
-     * Config key of the dispatcher for the search updater.
-     */
-    static final String DISPATCHER_NAME = "search-updater-dispatcher";
 
     private final MongoCollection<BsonDocument> collection;
     private final MongoCollection<BsonDocument> collectionWithAcknowledgements;
@@ -99,32 +93,22 @@ final class MongoSearchUpdaterFlow {
      * Create a new flow through the search persistence.
      * No logging or recovery is attempted.
      *
+     * @param subSource sub-source of write models.
      * @param shouldAcknowledge whether to use a write concern to guarantee the consistency of acknowledgements.
      * {@link org.eclipse.ditto.base.model.acks.DittoAcknowledgementLabel#SEARCH_PERSISTED} was required or not.
-     * @param parallelism How many write operations may run in parallel for this sink.
-     * @param maxBulkSize How many writes to perform in one bulk.
-     * @return the sink.
+     * @return sub-source of write results.
      */
-    public Flow<Source<AbstractWriteModel, NotUsed>, WriteResultAndErrors, NotUsed> start(
-            final boolean shouldAcknowledge,
-            final int parallelism,
-            final int maxBulkSize) {
+    public SubSource<WriteResultAndErrors, NotUsed> start(
+            final SubSource<List<AbstractWriteModel>, NotUsed> subSource,
+            final boolean shouldAcknowledge) {
 
-        final Flow<Source<AbstractWriteModel, NotUsed>, List<AbstractWriteModel>, NotUsed> batchFlow =
-                Flow.<Source<AbstractWriteModel, NotUsed>>create()
-                        .flatMapConcat(source -> source.grouped(maxBulkSize));
-
-        final Flow<List<AbstractWriteModel>, WriteResultAndErrors, NotUsed> writeFlow =
-                Flow.<List<AbstractWriteModel>>create()
-                        .flatMapConcat(searchUpdateMapper::processWriteModels)
-                        .flatMapMerge(parallelism, writeModels ->
-                                executeBulkWrite(shouldAcknowledge, writeModels).async(DISPATCHER_NAME, parallelism));
-
-        return batchFlow.via(writeFlow);
+        return subSource.map(MongoSearchUpdaterFlow::sortBySeqNr)
+                .flatMapConcat(searchUpdateMapper::processWriteModels)
+                .flatMapConcat(writeModels -> executeBulkWrite(shouldAcknowledge, writeModels));
     }
 
     private Source<WriteResultAndErrors, NotUsed> executeBulkWrite(final boolean shouldAcknowledge,
-            final Collection<Pair<AbstractWriteModel, WriteModel<BsonDocument>>> pairs) {
+            final Collection<MongoWriteModel> writeModels) {
 
         final MongoCollection<BsonDocument> theCollection;
         if (shouldAcknowledge) {
@@ -132,58 +116,52 @@ final class MongoSearchUpdaterFlow {
         } else {
             theCollection = collection;
         }
-        final var abstractWriteModels = pairs.stream().map(Pair::first).toList();
-        final var writeModels = pairs.stream().map(Pair::second).toList();
 
         final String bulkWriteCorrelationId = UUID.randomUUID().toString();
+
         if (writeModels.isEmpty()) {
-            LOGGER.withCorrelationId(bulkWriteCorrelationId)
-                    .debug("Requested to make empty update by write models <{}>", abstractWriteModels);
-            for (final var abstractWriteModel : abstractWriteModels) {
-                abstractWriteModel.getMetadata().sendWeakAck(null);
-                abstractWriteModel.getMetadata().getOrigin().ifPresent(origin ->
-                        origin.tell(BulkWriteComplete.of(bulkWriteCorrelationId), ActorRef.noSender()));
-            }
+            LOGGER.withCorrelationId(bulkWriteCorrelationId).debug("Requested to make empty update");
             return Source.empty();
         }
 
         if (LOGGER.isDebugEnabled()) {
             LOGGER.withCorrelationId(bulkWriteCorrelationId)
-                    .debug("Executing BulkWrite containing [<thingId>:{correlationIds}:<filter>]: {}", pairs.stream()
-                            .map(writeModelPair -> "<" + writeModelPair.first().getMetadata().getThingId() + ">:" +
-                                    writeModelPair.first().getMetadata().getEventsCorrelationIds()
-                                            .stream()
-                                            .collect(Collectors.joining(",", "{", "}"))
-                                    + ":<" + extractFilterBson(writeModelPair.second()) + ">"
-                            )
-                            .toList());
+                    .debug("Executing BulkWrite containing <{}> things: [<thingId>:{correlationIds}:<filter>]: {}",
+                            writeModels.size(),
+                            writeModels.stream()
+                                    .map(writeModelPair -> "<" + writeModelPair.getDitto().getMetadata().getThingId() +
+                                            ">:" +
+                                            writeModelPair.getDitto().getMetadata().getEventsCorrelationIds()
+                                                    .stream()
+                                                    .collect(Collectors.joining(",", "{", "}"))
+                                            + ":<" + extractFilterBson(writeModelPair.getBson()) + ">"
+                                    )
+                                    .toList());
 
             // only log the complete MongoDB writeModels on "TRACE" as they get really big and almost crash the logging backend:
             LOGGER.withCorrelationId(bulkWriteCorrelationId)
                     .trace("Executing BulkWrite <{}>", writeModels);
         }
         final var bulkWriteTimer = startBulkWriteTimer(writeModels);
-        return Source.fromPublisher(theCollection.bulkWrite(writeModels, new BulkWriteOptions().ordered(false)))
+        final var bsons = writeModels.stream().map(MongoWriteModel::getBson).toList();
+        return Source.fromPublisher(theCollection.bulkWrite(bsons, new BulkWriteOptions().ordered(false)))
                 .map(bulkWriteResult -> WriteResultAndErrors.success(
-                        abstractWriteModels, bulkWriteResult, bulkWriteCorrelationId))
+                        writeModels, bulkWriteResult, bulkWriteCorrelationId))
                 .recoverWithRetries(1, new PFBuilder<Throwable, Source<WriteResultAndErrors, NotUsed>>()
                         .match(MongoBulkWriteException.class, bulkWriteException ->
                                 Source.single(WriteResultAndErrors.failure(
-                                        abstractWriteModels, bulkWriteException, bulkWriteCorrelationId))
+                                        writeModels, bulkWriteException, bulkWriteCorrelationId))
                         )
                         .matchAny(error ->
                                 Source.single(WriteResultAndErrors.unexpectedError(
-                                        abstractWriteModels, error, bulkWriteCorrelationId))
+                                        writeModels, error, bulkWriteCorrelationId))
                         )
                         .build()
                 )
                 .map(resultAndErrors -> {
                     stopBulkWriteTimer(bulkWriteTimer);
-                    abstractWriteModels.forEach(writeModel -> {
-                                writeModel.getMetadata().getOrigin().ifPresent(origin ->
-                                        origin.tell(BulkWriteComplete.of(bulkWriteCorrelationId), ActorRef.noSender()));
-                                ConsistencyLag.startS6Acknowledge(writeModel.getMetadata());
-                            }
+                    writeModels.forEach(writeModel ->
+                            ConsistencyLag.startS6Acknowledge(writeModel.getDitto().getMetadata())
                     );
                     return resultAndErrors;
                 });
@@ -204,7 +182,7 @@ final class MongoSearchUpdaterFlow {
         return "no filter";
     }
 
-    private static StartedTimer startBulkWriteTimer(final List<?> writeModels) {
+    private static StartedTimer startBulkWriteTimer(final Collection<?> writeModels) {
         DittoMetrics.histogram(COUNT_THING_BULK_UPDATES_PER_BULK).record((long) writeModels.size());
         return DittoMetrics.timer(TRACE_THING_BULK_UPDATE).tag(UPDATE_TYPE_TAG, "bulkUpdate").start();
     }
@@ -215,6 +193,19 @@ final class MongoSearchUpdaterFlow {
         } catch (final IllegalStateException e) {
             // it is okay if the timer stopped already; simply return the result.
         }
+    }
+
+    /**
+     * Sort a list of write models by sequence number so that for each thing ID, any earlier update is guaranteed to
+     * be applied earlier than any later update.
+     *
+     * @param writeModels A list of write models in a batch update.
+     * @return The sorted write models.
+     */
+    private static List<AbstractWriteModel> sortBySeqNr(final List<AbstractWriteModel> writeModels) {
+        return writeModels.stream()
+                .sorted(Comparator.comparing(writeModel -> writeModel.getMetadata().getThingRevision()))
+                .toList();
     }
 
 }

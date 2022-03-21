@@ -190,8 +190,8 @@ public final class SearchConsistencyIT {
     @Test
     public void assertConsistencyInCaseOfConflict() {
         final var probe = TestProbe.apply(actorSystem);
-        updaterStream1.start(actorSystem);
-        updaterStream2.start(actorSystem);
+        updaterStream1.start();
+        updaterStream2.start();
         probe.send(updater1, getRecoveryWriteModel());
         probe.send(updater2, getRecoveryWriteModel());
         probe.send(updater1, getThingEvent(ThingsModelFactory.newAttributes(JsonFactory
