@@ -239,6 +239,17 @@ final class ThingUpdater extends AbstractActorWithStashWithTimers {
         final WriteModel<BsonDocument> mongoWriteModel;
         final boolean isPatchUpdate;
 
+        if (isNextWriteModelOutDated(forceNextUpdate, lastWriteModel, nextWriteModel)) {
+            final var lastMetadata = lastWriteModel.getMetadata();
+            final var nextMetadata = nextWriteModel.getMetadata();
+            skipNextUpdate(nextWriteModel, String.format("reordering of revisions <%d,%d> -> <%d,%d>",
+                    lastMetadata.getThingRevision(),
+                    lastMetadata.getPolicyRevision().orElse(0L),
+                    nextMetadata.getThingRevision(),
+                    nextMetadata.getPolicyRevision().orElse(0L)));
+            return;
+        }
+
         final boolean forceUpdate = (forceUpdateProbability > 0 && Math.random() < forceUpdateProbability) ||
                 forceNextUpdate;
 
@@ -250,11 +261,7 @@ final class ThingUpdater extends AbstractActorWithStashWithTimers {
             if (diff.isPresent() && diff.get().isDiffSmaller()) {
                 final var aggregationPipeline = diff.get().consumeAndExport();
                 if (aggregationPipeline.isEmpty()) {
-                    log.debug("Skipping update due to empty diff <{}>", nextWriteModel.getClass().getSimpleName());
-                    LOGGER.trace("Skipping update due to empty diff <{}>", nextWriteModel);
-                    getSender().tell(Done.getInstance(), getSelf());
-                    PATCH_SKIP_COUNT.increment();
-
+                    skipNextUpdate(nextWriteModel, "empty diff");
                     return;
                 }
                 final var filter = ((ThingWriteModel) nextWriteModel)
@@ -470,8 +477,37 @@ final class ThingUpdater extends AbstractActorWithStashWithTimers {
         Patterns.pipe(writeModelFuture, getContext().getDispatcher()).to(getSelf());
     }
 
+    private void skipNextUpdate(final AbstractWriteModel nextWriteModel, final String reason) {
+        log.debug("Skipping update due to {} <{}>", reason, nextWriteModel.getClass().getSimpleName());
+        LOGGER.trace("Skipping update due to {} <{}>", reason, nextWriteModel);
+        getSender().tell(Done.getInstance(), getSelf());
+        PATCH_SKIP_COUNT.increment();
+    }
+
     private static Duration randomizeTimeout(final Duration minTimeout, final double randomFactor) {
         final long randomDelayMillis = (long) (Math.random() * randomFactor * minTimeout.toMillis());
         return minTimeout.plus(Duration.ofMillis(randomDelayMillis));
+    }
+
+    private static boolean isNextWriteModelOutDated(final boolean forceNextUpdate,
+            @Nullable final AbstractWriteModel lastWriteModel,
+            final AbstractWriteModel nextWriteModel) {
+
+        if (lastWriteModel == null) {
+            return false;
+        } else {
+            final var lastMetadata = lastWriteModel.getMetadata();
+            final var nextMetadata = nextWriteModel.getMetadata();
+            final boolean isStrictlyOlder = nextMetadata.getThingRevision() < lastMetadata.getThingRevision() ||
+                    nextMetadata.getThingRevision() == lastMetadata.getThingRevision() &&
+                            nextMetadata.getPolicyRevision().flatMap(nextPolicyRevision ->
+                                            lastMetadata.getPolicyRevision().map(lastPolicyRevision ->
+                                                    nextPolicyRevision < lastPolicyRevision))
+                                    .orElse(false);
+            final boolean hasSameRevisions = nextMetadata.getThingRevision() == lastMetadata.getThingRevision() &&
+                    nextMetadata.getPolicyRevision().equals(lastMetadata.getPolicyRevision());
+
+            return isStrictlyOlder || hasSameRevisions && !forceNextUpdate;
+        }
     }
 }

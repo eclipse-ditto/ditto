@@ -750,7 +750,7 @@ public final class EnforcementFlowTest {
             final int bulkShardCount, final int bulkSize) {
         final var source = TestSource.<Collection<Metadata>>probe(system);
         final var sink = TestSink.<List<AbstractWriteModel>>probe(system);
-        final var runnableGraph = enforcementFlow.create(source, parallelism, bulkShardCount, bulkSize, system)
+        final var runnableGraph = enforcementFlow.create(source, parallelism, bulkShardCount, bulkSize)
                 .mergeSubstreams()
                 .viaMat(KillSwitches.single(), Keep.both())
                 .toMat(sink, Keep.both());

@@ -64,7 +64,7 @@ public abstract class AbstractWriteModel {
      *
      * @return either the MongoDB write model of this object or an incremental update converting
      */
-    public CompletionStage<Optional<MongoWriteModel>> toIncrementalMongo() {
+    public final CompletionStage<Optional<MongoWriteModel>> toIncrementalMongo() {
         final var origin = metadata.getOrigin();
         if (origin.isPresent()) {
             return Patterns.ask(origin.orElseThrow(), this, Duration.ofSeconds(10L))

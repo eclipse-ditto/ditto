@@ -143,8 +143,8 @@ public final class SearchUpdaterStream {
                 mergedSource.via(filterMapKeysByBlockedNamespaces()),
                 retrievalConfig.getParallelism(),
                 persistenceConfig.getParallelism(),
-                persistenceConfig.getMaxBulkSize(),
-                actorSystem);
+                persistenceConfig.getMaxBulkSize()
+        );
 
         final String logName = "SearchUpdaterStream/BulkWriteResult";
         final SubSource<WriteResultAndErrors, NotUsed> persistenceSource = mongoSearchUpdaterFlow.start(

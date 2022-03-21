@@ -51,6 +51,7 @@ import org.eclipse.ditto.thingsearch.service.persistence.BulkWriteComplete;
 import org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.AbstractWriteModel;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.Metadata;
+import org.eclipse.ditto.thingsearch.service.persistence.write.model.ThingDeleteModel;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.ThingWriteModel;
 import org.eclipse.ditto.thingsearch.service.starter.actors.MongoClientExtension;
 import org.junit.After;
@@ -243,7 +244,7 @@ public final class ThingUpdaterTest {
                             "Lorem ipsum dolor sit amet, consectetur adipiscing elit, " +
                                     "sed do eiusmod tempor incididunt ut labore et dolore magna aliqua."
                     )));
-            final var writeModel = ThingWriteModel.of(Metadata.of(THING_ID, -1, null, null, null), document);
+            final var writeModel = ThingWriteModel.of(Metadata.of(THING_ID, 1234, null, null, null), document);
 
             // GIVEN: updater is recovered with a write model
             underTest.tell(writeModel, ActorRef.noSender());
@@ -254,6 +255,70 @@ public final class ThingUpdaterTest {
 
             // THEN: expect no update.
             expectMsg(Done.done());
+        }};
+    }
+
+    @Test
+    public void refuseToPerformOutOfOrderUpdate() {
+        new TestKit(actorSystem) {{
+            final Props props = Props.create(ThingUpdater.class,
+                    () -> new ThingUpdater(pubSubTestProbe.ref(), changeQueueTestProbe.ref(), 0.0,
+                            Duration.ZERO, 0.0, mongoClientExtension, false, true,
+                            writeModel -> {}));
+            final var underTest = childActorOf(props, THING_ID.toString());
+
+            final var document = new BsonDocument()
+                    .append("_revision", new BsonInt64(1234))
+                    .append("d", new BsonArray())
+                    .append("s", new BsonDocument().append("Lorem ipsum", new BsonString(
+                            "Lorem ipsum dolor sit amet, consectetur adipiscing elit, " +
+                                    "sed do eiusmod tempor incididunt ut labore et dolore magna aliqua."
+                    )));
+            final var writeModel = ThingWriteModel.of(Metadata.of(THING_ID, 1234, null, null, null), document);
+
+            // GIVEN: updater is recovered with a write model
+            underTest.tell(writeModel, ActorRef.noSender());
+
+            // WHEN: updater is requested to compute incremental update of an older write model
+            underTest.tell(UpdateThing.of(THING_ID, UpdateReason.UNKNOWN, DittoHeaders.empty()), getRef());
+            final var olderWriteModel = ThingDeleteModel.of(Metadata.of(THING_ID, 1233, null, null, null));
+            underTest.tell(olderWriteModel, getRef());
+
+            // THEN: expect no update.
+            expectMsg(Done.done());
+        }};
+    }
+
+    @Test
+    public void forceUpdateOnSameSequenceNumber() {
+        new TestKit(actorSystem) {{
+            final Props props = Props.create(ThingUpdater.class,
+                    () -> new ThingUpdater(pubSubTestProbe.ref(), changeQueueTestProbe.ref(), 0.0,
+                            Duration.ZERO, 0.0, mongoClientExtension, false, true,
+                            writeModel -> {}));
+            final var underTest = childActorOf(props, THING_ID.toString());
+
+            final var document = new BsonDocument()
+                    .append("_revision", new BsonInt64(1234))
+                    .append("d", new BsonArray())
+                    .append("s", new BsonDocument().append("Lorem ipsum", new BsonString(
+                            "Lorem ipsum dolor sit amet, consectetur adipiscing elit, " +
+                                    "sed do eiusmod tempor incididunt ut labore et dolore magna aliqua."
+                    )));
+            final var writeModel = ThingWriteModel.of(Metadata.of(THING_ID, 1234, null, null, null), document);
+
+            // GIVEN: updater is recovered with a write model
+            underTest.tell(writeModel, ActorRef.noSender());
+
+            // WHEN: updater is requested to compute incremental update of an older write model
+            final var forceUpdateHeaders = DittoHeaders.newBuilder().putHeader("force-update", "true").build();
+            underTest.tell(UpdateThing.of(THING_ID, UpdateReason.UNKNOWN, forceUpdateHeaders), getRef());
+            final var olderWriteModel = ThingDeleteModel.of(Metadata.of(THING_ID, 1234, null, null, null));
+            underTest.tell(olderWriteModel, getRef());
+
+            // THEN: expect an update.
+            final var mongoWriteModel = expectMsgClass(MongoWriteModel.class);
+            assertThat(mongoWriteModel.getDitto()).isEqualTo(olderWriteModel);
         }};
     }
 
