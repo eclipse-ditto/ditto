@@ -16,6 +16,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import org.awaitility.Awaitility;
@@ -224,7 +225,7 @@ public final class SearchConsistencyIT {
                                     .get(timeout.toMillis(), TimeUnit.MILLISECONDS);
 
                     return persistedDocuments.size() == 1 &&
-                            persistedDocuments.get(0).toString().equals(getExpectedDocument().toString());
+                            documentIsExpected(persistedDocuments.get(0));
                 });
     }
 
@@ -242,73 +243,73 @@ public final class SearchConsistencyIT {
         return ThingWriteModel.of(metadata, thingDocument);
     }
 
-    private static Document getExpectedDocument() {
-        return new Document()
-                .append(PersistenceConstants.FIELD_ID, THING_ID.toString())
-                .append(PersistenceConstants.FIELD_REVISION, REVISION)
-                .append(PersistenceConstants.FIELD_NAMESPACE, THING_ID.getNamespace())
-                .append(PersistenceConstants.FIELD_GLOBAL_READ, List.of("integration:test"))
-                .append(PersistenceConstants.FIELD_POLICY_ID, POLICY_ID.toString())
-                .append(PersistenceConstants.FIELD_POLICY_REVISION, INITIAL_REVISION)
-                .append(PersistenceConstants.FIELD_SORTING, new Document()
-                        .append(PersistenceConstants.FIELD_REVISION, REVISION)
-                        .append(PersistenceConstants.FIELD_NAMESPACE, THING_ID.getNamespace())
-                        .append("thingId", THING_ID.toString())
-                        .append("policyId", POLICY_ID.toString())
-                        .append("attributes", new Document()
-                                .append("number", EXPECTED_NUMBER)
-                                .append("char", EXPECTED_CHAR))
-                        .append("_modified", MODIFIED))
-                .append(PersistenceConstants.FIELD_INTERNAL, List.of(
-                        new Document()
-                                .append(PersistenceConstants.FIELD_INTERNAL_KEY,
-                                        "/" + PersistenceConstants.FIELD_REVISION)
-                                .append(PersistenceConstants.FIELD_INTERNAL_VALUE, REVISION)
-                                .append(PersistenceConstants.FIELD_GRANTED,
-                                        List.of("integration:test"))
-                                .append(PersistenceConstants.FIELD_REVOKED, Collections.emptyList()),
-                        new Document()
-                                .append(PersistenceConstants.FIELD_INTERNAL_KEY,
-                                        "/" + PersistenceConstants.FIELD_NAMESPACE)
-                                .append(PersistenceConstants.FIELD_INTERNAL_VALUE, THING_ID.getNamespace())
-                                .append(PersistenceConstants.FIELD_GRANTED,
-                                        List.of("integration:test"))
-                                .append(PersistenceConstants.FIELD_REVOKED, Collections.emptyList()),
-                        new Document()
-                                .append(PersistenceConstants.FIELD_INTERNAL_KEY,
-                                        "/thingId")
-                                .append(PersistenceConstants.FIELD_INTERNAL_VALUE, THING_ID.toString())
-                                .append(PersistenceConstants.FIELD_GRANTED,
-                                        List.of("integration:test"))
-                                .append(PersistenceConstants.FIELD_REVOKED, Collections.emptyList()),
-                        new Document()
-                                .append(PersistenceConstants.FIELD_INTERNAL_KEY,
-                                        "/policyId")
-                                .append(PersistenceConstants.FIELD_INTERNAL_VALUE, POLICY_ID.toString())
-                                .append(PersistenceConstants.FIELD_GRANTED,
-                                        List.of("integration:test"))
-                                .append(PersistenceConstants.FIELD_REVOKED, Collections.emptyList()),
-                        new Document()
-                                .append(PersistenceConstants.FIELD_INTERNAL_KEY,
-                                        "/attributes/number")
-                                .append(PersistenceConstants.FIELD_INTERNAL_VALUE, EXPECTED_NUMBER)
-                                .append(PersistenceConstants.FIELD_GRANTED,
-                                        List.of("integration:test"))
-                                .append(PersistenceConstants.FIELD_REVOKED, Collections.emptyList()),
-                        new Document()
-                                .append(PersistenceConstants.FIELD_INTERNAL_KEY,
-                                        "/attributes/char")
-                                .append(PersistenceConstants.FIELD_INTERNAL_VALUE, EXPECTED_CHAR)
-                                .append(PersistenceConstants.FIELD_GRANTED,
-                                        List.of("integration:test"))
-                                .append(PersistenceConstants.FIELD_REVOKED, Collections.emptyList()),
-                        new Document()
-                                .append(PersistenceConstants.FIELD_INTERNAL_KEY,
-                                        "/_modified")
-                                .append(PersistenceConstants.FIELD_INTERNAL_VALUE, MODIFIED)
-                                .append(PersistenceConstants.FIELD_GRANTED,
-                                        List.of("integration:test"))
-                                .append(PersistenceConstants.FIELD_REVOKED, Collections.emptyList())));
+    private static boolean documentIsExpected(final Map<String, Object> actual) {
+        final var sorting = (Document) actual.get(PersistenceConstants.FIELD_SORTING);
+        final var sortingAttributes = (Document) sorting.get("attributes");
+        final var internal = (List<Document>) actual.get(PersistenceConstants.FIELD_INTERNAL);
+
+        return actual.get(PersistenceConstants.FIELD_ID).equals(THING_ID.toString()) &&
+                actual.get(PersistenceConstants.FIELD_REVISION).equals(REVISION) &&
+                actual.get(PersistenceConstants.FIELD_NAMESPACE).equals(THING_ID.getNamespace()) &&
+                actual.get(PersistenceConstants.FIELD_GLOBAL_READ).equals(List.of("integration:test")) &&
+                actual.get(PersistenceConstants.FIELD_POLICY_ID).equals(POLICY_ID.toString()) &&
+                actual.get(PersistenceConstants.FIELD_POLICY_REVISION).equals(INITIAL_REVISION) &&
+                sorting.get(PersistenceConstants.FIELD_REVISION).equals(Long.valueOf(REVISION).intValue()) &&
+                sorting.get(PersistenceConstants.FIELD_NAMESPACE).equals(NAMESPACE) &&
+                sorting.get("thingId").equals(THING_ID.toString()) &&
+                sorting.get("policyId").equals(POLICY_ID.toString()) &&
+                sorting.get("_modified").equals(MODIFIED.toString()) &&
+                sortingAttributes.get("number").equals(Long.valueOf(EXPECTED_NUMBER).intValue()) &&
+                sortingAttributes.get("char").equals(EXPECTED_CHAR) &&
+                internal.contains(new Document()
+                        .append(PersistenceConstants.FIELD_INTERNAL_KEY,
+                                "/" + PersistenceConstants.FIELD_REVISION)
+                        .append(PersistenceConstants.FIELD_INTERNAL_VALUE, Long.valueOf(REVISION).intValue())
+                        .append(PersistenceConstants.FIELD_GRANTED,
+                                List.of("integration:test"))
+                        .append(PersistenceConstants.FIELD_REVOKED, Collections.emptyList())) &&
+                internal.contains(new Document()
+                        .append(PersistenceConstants.FIELD_INTERNAL_KEY,
+                                "/" + PersistenceConstants.FIELD_NAMESPACE)
+                        .append(PersistenceConstants.FIELD_INTERNAL_VALUE, THING_ID.getNamespace())
+                        .append(PersistenceConstants.FIELD_GRANTED,
+                                List.of("integration:test"))
+                        .append(PersistenceConstants.FIELD_REVOKED, Collections.emptyList())) &&
+                internal.contains(new Document()
+                        .append(PersistenceConstants.FIELD_INTERNAL_KEY,
+                                "/thingId")
+                        .append(PersistenceConstants.FIELD_INTERNAL_VALUE, THING_ID.toString())
+                        .append(PersistenceConstants.FIELD_GRANTED,
+                                List.of("integration:test"))
+                        .append(PersistenceConstants.FIELD_REVOKED, Collections.emptyList())) &&
+                internal.contains(new Document()
+                        .append(PersistenceConstants.FIELD_INTERNAL_KEY,
+                                "/policyId")
+                        .append(PersistenceConstants.FIELD_INTERNAL_VALUE, POLICY_ID.toString())
+                        .append(PersistenceConstants.FIELD_GRANTED,
+                                List.of("integration:test"))
+                        .append(PersistenceConstants.FIELD_REVOKED, Collections.emptyList())) &&
+                internal.contains(new Document()
+                        .append(PersistenceConstants.FIELD_INTERNAL_KEY,
+                                "/attributes/number")
+                        .append(PersistenceConstants.FIELD_INTERNAL_VALUE, Long.valueOf(EXPECTED_NUMBER).intValue())
+                        .append(PersistenceConstants.FIELD_GRANTED,
+                                List.of("integration:test"))
+                        .append(PersistenceConstants.FIELD_REVOKED, Collections.emptyList())) &&
+                internal.contains(new Document()
+                        .append(PersistenceConstants.FIELD_INTERNAL_KEY,
+                                "/attributes/char")
+                        .append(PersistenceConstants.FIELD_INTERNAL_VALUE, EXPECTED_CHAR)
+                        .append(PersistenceConstants.FIELD_GRANTED,
+                                List.of("integration:test"))
+                        .append(PersistenceConstants.FIELD_REVOKED, Collections.emptyList())) &&
+                internal.contains(new Document()
+                        .append(PersistenceConstants.FIELD_INTERNAL_KEY,
+                                "/_modified")
+                        .append(PersistenceConstants.FIELD_INTERNAL_VALUE, MODIFIED.toString())
+                        .append(PersistenceConstants.FIELD_GRANTED,
+                                List.of("integration:test"))
+                        .append(PersistenceConstants.FIELD_REVOKED, Collections.emptyList()));
     }
 
     private static final class UpdaterShardMock extends AbstractActor {
