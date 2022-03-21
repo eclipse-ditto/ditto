@@ -129,9 +129,9 @@ public final class SearchConsistencyIT {
     @Before()
     public void setup() {
         mongoClient = provideClientWrapper();
-        final var config = ConfigFactory.load("consistency-it");
+        final var config = ConfigFactory.load("test");
         final var updaterConfig = DefaultUpdaterConfig.of(ConfigFactory.load("updater-test"));
-        actorSystem = ActorSystem.create(getClass().getSimpleName(), config);
+        actorSystem = ActorSystem.create("AkkaTestSystem", config);
         final var pubSubMediator = DistributedPubSub.get(actorSystem).mediator();
         final ActorRef changeQueue1 = createChangeQueue(actorSystem);
         final ActorRef changeQueue2 = createChangeQueue(actorSystem);
@@ -214,6 +214,7 @@ public final class SearchConsistencyIT {
         final var materializer = Materializer.createMaterializer(actorSystem);
         Awaitility.await()
                 .atMost(timeout)
+                .pollInterval(Duration.ofSeconds(1))
                 .until(() -> {
                     final var persistedDocuments =
                             Source.fromPublisher(mongoClient.getCollection(PersistenceConstants.THINGS_COLLECTION_NAME)
@@ -384,6 +385,5 @@ public final class SearchConsistencyIT {
         }
 
     }
-
 
 }
