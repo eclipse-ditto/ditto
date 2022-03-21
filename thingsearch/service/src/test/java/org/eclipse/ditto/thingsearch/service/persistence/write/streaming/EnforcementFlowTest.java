@@ -674,6 +674,7 @@ public final class EnforcementFlowTest {
 
     @Test
     public void thereCanBeMultipleUpdatesPerBulk() {
+        Assume.assumeThat(System.getProperty("build.environment"), Matchers.not(Matchers.equalTo("Github")));
         new TestKit(system) {{
             final DittoHeaders headers = DittoHeaders.empty();
             final PolicyId policyId = PolicyId.of("policy:id");
