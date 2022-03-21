@@ -131,7 +131,8 @@ public final class SearchConsistencyIT {
     public void setup() {
         mongoClient = provideClientWrapper();
         final var config = ConfigFactory.load("test");
-        final var updaterConfig = DefaultUpdaterConfig.of(ConfigFactory.load("updater-test"));
+        final var updaterConfig =
+                DefaultUpdaterConfig.of(ConfigFactory.load("updater-test"));
         actorSystem = ActorSystem.create("AkkaTestSystem", config);
         final var pubSubMediator = DistributedPubSub.get(actorSystem).mediator();
         final ActorRef changeQueue1 = createChangeQueue(actorSystem);
@@ -140,7 +141,6 @@ public final class SearchConsistencyIT {
         updater2 = createSearchUpdaterShardRegion(changeQueue2, pubSubMediator, updaterConfig);
         updaterStream1 = createSearchUpdaterStream(updaterConfig, updater1, changeQueue1);
         updaterStream2 = createSearchUpdaterStream(updaterConfig, updater2, changeQueue2);
-
     }
 
     @After()
@@ -157,6 +157,7 @@ public final class SearchConsistencyIT {
 
     private static ActorRef createChangeQueue(final ActorRefFactory actorSystem) {
         final var changeQueueProps = ChangeQueueActor.props();
+
         return actorSystem.actorOf(changeQueueProps);
     }
 
@@ -168,6 +169,7 @@ public final class SearchConsistencyIT {
         final var db = mongoClient.getDefaultDatabase();
         final var blockedNamespaces = BlockedNamespaces.of(actorSystem);
         final var updateMapper = SearchUpdateMapper.get(actorSystem);
+
         return SearchUpdaterStream.of(updaterConfig, actorSystem, thingsShard, policiesShard, updaterShard, changeQueue,
                 db, blockedNamespaces, updateMapper);
     }
@@ -181,6 +183,7 @@ public final class SearchConsistencyIT {
         final var updater = actorSystem.actorOf(updaterProps, THING_ID.toString() + Math.random());
 
         final var shardMockProps = UpdaterShardMock.props(updater);
+
         return actorSystem.actorOf(shardMockProps);
     }
 
@@ -195,11 +198,13 @@ public final class SearchConsistencyIT {
                 .newObjectBuilder().set("char", EXPECTED_CHAR).set("number", EXPECTED_NUMBER).build())));
         probe.send(updater2, getThingEvent(ThingsModelFactory.newAttributes(JsonFactory
                 .newObjectBuilder().set("number", EXPECTED_NUMBER).set("char", EXPECTED_CHAR).build())));
+
         assertSearchPersisted(Duration.ofSeconds(10));
     }
 
     private static ThingEvent<?> getThingEvent(final Attributes attributes) {
         final var dittoHeaders = getDittoHeadersWithSearchPersistedAck();
+
         return AttributesModified.of(THING_ID, attributes, REVISION, MODIFIED, dittoHeaders, null);
     }
 
@@ -240,12 +245,13 @@ public final class SearchConsistencyIT {
                 .append(PersistenceConstants.FIELD_GLOBAL_READ, new BsonString("integration:test"))
                 .append(PersistenceConstants.FIELD_SORTING, new BsonDocument())
                 .append(PersistenceConstants.FIELD_INTERNAL, new BsonArray());
+
         return ThingWriteModel.of(metadata, thingDocument);
     }
 
     private static boolean documentIsExpected(final Map<String, Object> actual) {
         final var sorting = (Document) actual.get(PersistenceConstants.FIELD_SORTING);
-        final var sortingAttributes = (Document) sorting.get("attributes");
+        final var sortingAttributes = (Document) sorting.get(PersistenceConstants.FIELD_ATTRIBUTES);
         final var internal = (List<Document>) actual.get(PersistenceConstants.FIELD_INTERNAL);
 
         return actual.get(PersistenceConstants.FIELD_ID).equals(THING_ID.toString()) &&
@@ -340,7 +346,6 @@ public final class SearchConsistencyIT {
 
     private static final class ThingShardMock extends AbstractActor {
 
-
         private ThingShardMock() {
         }
 
@@ -365,7 +370,6 @@ public final class SearchConsistencyIT {
 
     private static final class PolicyShardMock extends AbstractActor {
 
-
         private PolicyShardMock() {
         }
 
@@ -381,7 +385,8 @@ public final class SearchConsistencyIT {
         }
 
         private void sendSudoRetrievePolicyResponse(final WithDittoHeaders srt) {
-            final var response = SudoRetrievePolicyResponse.of(POLICY_ID, POLICY, srt.getDittoHeaders());
+            final var response =
+                    SudoRetrievePolicyResponse.of(POLICY_ID, POLICY, srt.getDittoHeaders());
             getSender().tell(response, getSelf());
         }
 
