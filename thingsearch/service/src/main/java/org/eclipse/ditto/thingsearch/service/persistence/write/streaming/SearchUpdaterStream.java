@@ -27,9 +27,9 @@ import org.eclipse.ditto.thingsearch.service.persistence.write.model.AbstractWri
 import com.mongodb.reactivestreams.client.MongoDatabase;
 
 import akka.NotUsed;
-import akka.actor.ActorContext;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
+import akka.actor.ClassicActorSystemProvider;
 import akka.stream.Attributes;
 import akka.stream.KillSwitch;
 import akka.stream.KillSwitches;
@@ -113,16 +113,16 @@ public final class SearchUpdaterStream {
     /**
      * Start a perpetual search updater stream killed only by the kill-switch.
      *
-     * @param actorContext where to create actors for this stream.
+     * @param actorSystem where to create actors for this stream.
      * @return kill-switch to terminate the stream.
      */
-    public KillSwitch start(final ActorContext actorContext) {
+    public KillSwitch start(final ClassicActorSystemProvider actorSystem) {
         final Source<Source<AbstractWriteModel, NotUsed>, NotUsed> restartSource = createRestartSource();
         final Sink<Source<AbstractWriteModel, NotUsed>, NotUsed> restartSink = createRestartSink();
 
         return restartSource.viaMat(KillSwitches.single(), Keep.right())
                 .toMat(restartSink, Keep.left())
-                .run(actorContext.system());
+                .run(actorSystem);
     }
 
     private Source<Source<AbstractWriteModel, NotUsed>, NotUsed> createRestartSource() {
