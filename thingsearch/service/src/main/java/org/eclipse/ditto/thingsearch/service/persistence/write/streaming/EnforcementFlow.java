@@ -221,6 +221,7 @@ final class EnforcementFlow {
                 })))
                 .orElse(null);
         if (latestEvent instanceof ThingDeleted || thing == null || thing.isEmpty()) {
+            log.info("Computed single ThingDeleteModel for metadata <{}> and thing <{}>", metadata, thing);
             return Source.single(ThingDeleteModel.of(metadata));
         } else {
             return getEnforcer(metadata, thing)
@@ -233,10 +234,14 @@ final class EnforcementFlow {
                                         metadata);
                             } catch (final JsonRuntimeException e) {
                                 log.error(e.getMessage(), e);
+                                log.info("Computed - due to <{}: {}> - ThingDeleteModel for metadata <{}> and thing <{}>",
+                                        e.getClass().getSimpleName(), e.getMessage(), metadata, thing);
                                 return ThingDeleteModel.of(metadata);
                             }
                         } else {
                             // no enforcer; delete thing from search index
+                            log.info("Computed - due to missing enforcer - ThingDeleteModel for metadata <{}> " +
+                                    "and thing <{}>", metadata, thing);
                             return ThingDeleteModel.of(metadata);
                         }
                     });

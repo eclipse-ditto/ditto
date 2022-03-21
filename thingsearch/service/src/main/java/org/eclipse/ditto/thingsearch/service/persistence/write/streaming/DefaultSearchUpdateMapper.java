@@ -40,9 +40,7 @@ public final class DefaultSearchUpdateMapper extends SearchUpdateMapper {
     }
 
     @Override
-    public Source<List<MongoWriteModel>, NotUsed>
-    processWriteModels(final List<AbstractWriteModel> writeModels) {
-
+    public Source<List<MongoWriteModel>, NotUsed> processWriteModels(final List<AbstractWriteModel> writeModels) {
         return Source.single(writeModels).mapAsync(1, models -> toIncrementalMongo(models, logger));
     }
 

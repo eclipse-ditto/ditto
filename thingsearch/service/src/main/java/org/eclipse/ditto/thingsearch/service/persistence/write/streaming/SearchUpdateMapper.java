@@ -57,8 +57,7 @@ public abstract class SearchUpdateMapper implements Extension {
      * @param writeModels the write models.
      * @return Ditto write models together with their processed MongoDB write models.
      */
-    public abstract Source<List<MongoWriteModel>, NotUsed>
-    processWriteModels(final List<AbstractWriteModel> writeModels);
+    public abstract Source<List<MongoWriteModel>, NotUsed> processWriteModels(List<AbstractWriteModel> writeModels);
 
     /**
      * Load a {@code SearchUpdateListener} dynamically according to the search configuration.
