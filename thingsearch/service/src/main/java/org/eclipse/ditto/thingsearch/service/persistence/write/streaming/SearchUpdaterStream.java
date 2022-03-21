@@ -120,8 +120,9 @@ public final class SearchUpdaterStream {
      * @return kill-switch to terminate the stream.
      */
     public KillSwitch start() {
-        return createRestartResultSource().viaMat(KillSwitches.single(), Keep.right())
+        return createRestartResultSource()
                 .flatMapConcat(SubSource::mergeSubstreams)
+                .viaMat(KillSwitches.single(), Keep.right())
                 .to(Sink.ignore())
                 .run(actorSystem);
     }

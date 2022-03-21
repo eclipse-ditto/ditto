@@ -160,7 +160,6 @@ jobs:
           build-args: |
             SERVICE_STARTER=ditto-connectivity-service
             SERVICE_VERSION=${{ env.IMAGE_TAG }}
-            JVM_CMD_ARGS=--add-opens java.base/java.nio=ALL-UNNAMED --add-opens java.base/sun.nio.ch=ALL-UNNAMED --add-opens java.base/sun.security.util=ALL-UNNAMED
           pull: true
           push: true
           tags: |
@@ -254,7 +253,6 @@ jobs:
           build-args: |
             SERVICE_STARTER=ditto-connectivity-service
             SERVICE_VERSION=${{ env.IMAGE_TAG }}
-            JVM_CMD_ARGS=--add-opens java.base/java.nio=ALL-UNNAMED --add-opens java.base/sun.nio.ch=ALL-UNNAMED --add-opens java.base/sun.security.util=ALL-UNNAMED
           pull: true
           push: true
           tags: |
