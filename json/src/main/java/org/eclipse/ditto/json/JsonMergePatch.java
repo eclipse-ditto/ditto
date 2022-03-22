@@ -21,8 +21,14 @@ import javax.annotation.Nullable;
 /**
  * Can be used to get the diff in form of a JSON merge Patch according to
  * <a href="https://datatracker.ietf.org/doc/html/rfc7386">RFC 7386</a> between two {@link JsonValue json values}.
+ *
+ * @since 2.4.0
  */
 public final class JsonMergePatch {
+
+    private JsonMergePatch() {
+        throw new AssertionError();
+    }
 
     /**
      * This method computes the change from the given {@code oldValue} to the given {@code newValue}.
@@ -31,6 +37,7 @@ public final class JsonMergePatch {
      * @param oldValue the original value
      * @param newValue the new changed value
      * @return a JSON merge patch according to <a href="https://datatracker.ietf.org/doc/html/rfc7386">RFC 7386</a> or empty if values are equal.
+     * @since 2.4.0
      */
     public static Optional<JsonValue> compute(final JsonValue oldValue, final JsonValue newValue) {
         @Nullable final JsonValue diff;
@@ -51,6 +58,7 @@ public final class JsonMergePatch {
      * @param oldJsonObject the original JSON object
      * @param newJsonObject the new changed JSON object
      * @return a JSON merge patch according to <a href="https://datatracker.ietf.org/doc/html/rfc7386">RFC 7386</a> or empty if values are equal.
+     * @since 2.4.0
      */
     public static Optional<JsonObject> compute(final JsonObject oldJsonObject, final JsonObject newJsonObject) {
         final JsonObjectBuilder builder = JsonObject.newBuilder();
