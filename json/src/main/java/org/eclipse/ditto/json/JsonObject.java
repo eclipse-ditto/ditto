@@ -14,6 +14,7 @@ package org.eclipse.ditto.json;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Predicate;
 
 import javax.annotation.Nullable;
 
@@ -403,5 +404,26 @@ public interface JsonObject extends JsonValue, JsonValueContainer<JsonField> {
      * @throws NullPointerException if {@code index} is {@code null}.
      */
     Optional<JsonField> getField(CharSequence key);
+
+    /**
+     * Filters the {@link JsonField json fields} of this object and all nested objects based on the given predicate.
+     *
+     * @param predicate The predicate that all fields should pass.
+     * @return the filtered JSON object.
+     * @since 2.4.0
+     */
+    default JsonObject filter(final Predicate<JsonField> predicate) {
+        return stream()
+                .filter(predicate)
+                .map(field -> {
+                    final JsonValue value = field.getValue();
+                    if (value.isObject()) {
+                        return JsonField.newInstance(field.getKey(), value.asObject().filter(predicate));
+                    } else {
+                        return JsonField.newInstance(field.getKey(), value);
+                    }
+                })
+                .collect(JsonCollectors.fieldsToObject());
+    }
 
 }
