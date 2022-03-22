@@ -42,7 +42,6 @@ public final class JsonMergePatch {
      * @param oldValue the original value
      * @param newValue the new changed value
      * @return a JSON merge patch according to <a href="https://datatracker.ietf.org/doc/html/rfc7386">RFC 7386</a> or empty if values are equal.
-     * @since 2.4.0
      */
     public static Optional<JsonMergePatch> compute(final JsonValue oldValue, final JsonValue newValue) {
         return computeForValue(oldValue, newValue).map(JsonMergePatch::of);
@@ -102,7 +101,6 @@ public final class JsonMergePatch {
      * @param path The path on which the given {@code mergePatch} should be applied later.
      * @param mergePatch the actual patch.
      * @return the merge patch.
-     * @since 2.4.0
      */
     public static JsonMergePatch of(final JsonPointer path, final JsonValue mergePatch) {
         return new JsonMergePatch(JsonFactory.newObject(path, mergePatch));
@@ -113,7 +111,6 @@ public final class JsonMergePatch {
      *
      * @param mergePatch the actual patch.
      * @return the merge patch.
-     * @since 2.4.0
      */
     public static JsonMergePatch of(final JsonValue mergePatch) {
         return new JsonMergePatch(mergePatch);
@@ -183,7 +180,6 @@ public final class JsonMergePatch {
      *
      * @param jsonValue the json value that should be patched.
      * @return the patched json value.
-     * @since 2.4.0
      */
     public JsonValue applyOn(final JsonValue jsonValue) {
         return mergeJsonValues(mergePatch, jsonValue);
@@ -191,7 +187,6 @@ public final class JsonMergePatch {
 
     /**
      * @return the merge patch json value
-     * @since 2.4.0
      */
     public JsonValue asJsonValue() {
         return mergePatch;
