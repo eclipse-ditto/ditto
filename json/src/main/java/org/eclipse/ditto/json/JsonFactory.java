@@ -377,7 +377,7 @@ public final class JsonFactory {
      * @since 2.0.0
      */
     public static JsonValue mergeJsonValues(final JsonValue jsonValue1, final JsonValue jsonValue2) {
-        return JsonValueMerger.mergeJsonValues(jsonValue1, jsonValue2);
+        return JsonMergePatch.of(jsonValue1).applyOn(jsonValue2);
     }
 
     /**
