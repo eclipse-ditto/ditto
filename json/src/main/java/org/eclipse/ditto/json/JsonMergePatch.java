@@ -140,7 +140,7 @@ public final class JsonMergePatch {
 
     private static JsonObject mergeJsonObjects(final JsonObject jsonObject1, final JsonObject jsonObject2) {
 
-        if (jsonObject1.isNull() || (jsonObject1.isNull() && jsonObject2.isNull())) {
+        if (jsonObject1.isNull()) {
             return JsonFactory.nullObject();
         }
 
