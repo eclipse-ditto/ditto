@@ -314,6 +314,7 @@
                             --add-opens java.base/java.lang=ALL-UNNAMED
                             --add-opens java.base/java.util=ALL-UNNAMED
                             --add-opens java.base/sun.security.util=ALL-UNNAMED
+                            ${surefireArgLine}
                         </argLine>
                         <systemProperties>
                             <kamon.auto-start>true</kamon.auto-start>
@@ -610,6 +611,9 @@
                             <goals>
                                 <goal>prepare-agent</goal>
                             </goals>
+                            <configuration>
+                              <propertyName>surefireArgLine</propertyName>
+                            </configuration>
                         </execution>
                         <execution>
                             <id>report</id>
