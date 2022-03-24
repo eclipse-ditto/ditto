@@ -67,7 +67,7 @@ public final class RegexPatterns {
      * @since 2.2.0
      */
     public static final String ALLOWED_NAMESPACE_CHARACTERS_REGEX_INNER =
-            "([.\\-])" + ALLOWED_NAMESPACE_CHARACTERS_REGEX;
+            "([.-])" + ALLOWED_NAMESPACE_CHARACTERS_REGEX;
 
     /**
      * @deprecated Use {@link #ALLOWED_NAMESPACE_CHARACTERS_REGEX_INNER}. The name of the variable actually described
