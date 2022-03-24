@@ -113,7 +113,8 @@ class MockHiveMqtt5ClientFactory implements HiveMqtt5ClientFactory {
             final boolean applyLastWillConfig,
             @Nullable final MqttClientConnectedListener connectedListener,
             @Nullable final MqttClientDisconnectedListener disconnectedListener,
-            final ConnectionLogger connectionLogger) {
+            final ConnectionLogger connectionLogger,
+            final boolean doubleDecodingEnabled) {
 
         final Mqtt5AsyncClient client = mock(Mqtt5AsyncClient.class);
         doReturn(client).when(client).toAsync();
@@ -186,10 +187,12 @@ class MockHiveMqtt5ClientFactory implements HiveMqtt5ClientFactory {
             final boolean applyLastWillConfig,
             @Nullable final MqttClientConnectedListener connectedListener,
             @Nullable final MqttClientDisconnectedListener disconnectedListener,
-            final ConnectionLogger connectionLogger) {
+            final ConnectionLogger connectionLogger,
+            final boolean doubleDecodingEnabled) {
+
         final Mqtt5Client client =
                 newClient(connection, identifier, mqttConfig, mqttSpecificConfig, applyLastWillConfig,
-                        connectedListener, disconnectedListener, connectionLogger);
+                        connectedListener, disconnectedListener, connectionLogger, doubleDecodingEnabled);
         final Mqtt5ClientBuilder builder = Mockito.mock(Mqtt5ClientBuilder.class);
         final Mqtt5ClientAdvancedConfigBuilder.Nested<Mqtt5ClientBuilder> advancedConfig =
                 Mockito.mock(Mqtt5ClientAdvancedConfigBuilder.Nested.class);

@@ -15,10 +15,8 @@ package org.eclipse.ditto.connectivity.model;
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkArgument;
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
-import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.net.URLDecoder;
 import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -826,8 +824,8 @@ final class ImmutableConnection implements Connection {
             final String userInfo = uri.getUserInfo();
             if (userInfo != null && userInfo.contains(USERNAME_PASSWORD_SEPARATOR)) {
                 final int separatorIndex = userInfo.indexOf(USERNAME_PASSWORD_SEPARATOR);
-                userName = tryDecodeUriComponent(userInfo.substring(0, separatorIndex));
-                password = tryDecodeUriComponent(userInfo.substring(separatorIndex + 1));
+                userName = userInfo.substring(0, separatorIndex);
+                password = userInfo.substring(separatorIndex + 1);
             } else {
                 userName = null;
                 password = null;
@@ -835,15 +833,6 @@ final class ImmutableConnection implements Connection {
 
             // must be initialized after all else
             uriStringWithMaskedPassword = createUriStringWithMaskedPassword();
-        }
-
-        private static String tryDecodeUriComponent(final String string) {
-            try {
-                final String withoutPlus = string.replace("+", "%2B");
-                return URLDecoder.decode(withoutPlus, "UTF-8");
-            } catch (final IllegalArgumentException | UnsupportedEncodingException e) {
-                return string;
-            }
         }
 
         private String createUriStringWithMaskedPassword() {

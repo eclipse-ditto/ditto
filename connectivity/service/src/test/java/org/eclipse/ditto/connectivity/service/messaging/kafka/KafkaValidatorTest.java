@@ -15,6 +15,7 @@ package org.eclipse.ditto.connectivity.service.messaging.kafka;
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.eclipse.ditto.connectivity.service.messaging.TestConstants.Authorization.AUTHORIZATION_CONTEXT;
+import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
@@ -32,8 +33,10 @@ import org.eclipse.ditto.connectivity.model.ConnectivityStatus;
 import org.eclipse.ditto.connectivity.model.Topic;
 import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.messaging.TestConstants;
-import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
-import org.junit.*;
+import org.junit.AfterClass;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.Test;
 
 import akka.actor.ActorSystem;
 import akka.testkit.javadsl.TestKit;
@@ -68,12 +71,12 @@ public final class KafkaValidatorTest {
 
     @Before
     public void setUp() {
-        underTest = KafkaValidator.getInstance();
+        underTest = KafkaValidator.getInstance(true);
     }
 
     @Test
     public void testImmutability() {
-        assertInstancesOf(KafkaValidator.class, areImmutable());
+        assertInstancesOf(KafkaValidator.class, areImmutable(), provided(KafkaSpecificConfig.class).isAlsoImmutable());
     }
 
     @Test

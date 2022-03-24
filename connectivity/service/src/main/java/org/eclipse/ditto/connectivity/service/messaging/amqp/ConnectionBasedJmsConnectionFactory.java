@@ -49,13 +49,17 @@ public final class ConnectionBasedJmsConnectionFactory implements JmsConnectionF
     private final Map<String, String> defaultConfig;
     private final Supplier<SshTunnelState> sshTunnelConfigSupplier;
     private final PlainCredentialsSupplier credentialsSupplier;
+    private final boolean doubleEncodingEnabled;
 
     private ConnectionBasedJmsConnectionFactory(final Map<String, String> defaultConfig,
             final Supplier<SshTunnelState> sshTunnelConfigSupplier,
-            final PlainCredentialsSupplier credentialsSupplier) {
+            final PlainCredentialsSupplier credentialsSupplier,
+            final boolean doubleEncodingEnabled) {
+
         this.defaultConfig = checkNotNull(defaultConfig, "defaultConfig");
         this.sshTunnelConfigSupplier = checkNotNull(sshTunnelConfigSupplier, "sshTunnelConfigSupplier");
         this.credentialsSupplier = credentialsSupplier;
+        this.doubleEncodingEnabled = doubleEncodingEnabled;
     }
 
     /**
@@ -65,9 +69,13 @@ public final class ConnectionBasedJmsConnectionFactory implements JmsConnectionF
      * @return the instance.
      */
     public static ConnectionBasedJmsConnectionFactory getInstance(final Map<String, String> defaultConfig,
-            final Supplier<SshTunnelState> sshTunnelConfigSupplier, final ActorSystem actorSystem) {
+            final Supplier<SshTunnelState> sshTunnelConfigSupplier,
+            final ActorSystem actorSystem,
+            final boolean doubleEncodingEnabled) {
+
         final PlainCredentialsSupplier credentialsSupplier = SaslPlainCredentialsSupplier.of(actorSystem);
-        return new ConnectionBasedJmsConnectionFactory(defaultConfig, sshTunnelConfigSupplier, credentialsSupplier);
+        return new ConnectionBasedJmsConnectionFactory(defaultConfig, sshTunnelConfigSupplier, credentialsSupplier,
+                doubleEncodingEnabled);
     }
 
     @Override
@@ -93,15 +101,19 @@ public final class ConnectionBasedJmsConnectionFactory implements JmsConnectionF
 
     private String buildAmqpConnectionUri(final Connection connection, final String clientId) {
         return buildAmqpConnectionUri(connection, clientId, sshTunnelConfigSupplier, defaultConfig,
-                credentialsSupplier);
+                credentialsSupplier, doubleEncodingEnabled);
     }
 
-    public static String buildAmqpConnectionUri(final Connection connection, final String clientId,
-            final Supplier<SshTunnelState> sshTunnelConfigSupplier, final Map<String, String> defaultConfig,
-            final PlainCredentialsSupplier plainCredentialsSupplier) {
+    public static String buildAmqpConnectionUri(final Connection connection,
+            final String clientId,
+            final Supplier<SshTunnelState> sshTunnelConfigSupplier,
+            final Map<String, String> defaultConfig,
+            final PlainCredentialsSupplier plainCredentialsSupplier,
+            final boolean doubleDecodingEnabled) {
+
         final URI uri = sshTunnelConfigSupplier.get().getURI(connection);
         final var amqpSpecificConfig = AmqpSpecificConfig.withDefault(clientId, connection, defaultConfig,
-                plainCredentialsSupplier);
+                plainCredentialsSupplier, doubleDecodingEnabled);
         final var connectionUri = amqpSpecificConfig.render(uri.toString());
         LOGGER.debug("[{}] URI: {}", clientId, connectionUri);
         return connectionUri;

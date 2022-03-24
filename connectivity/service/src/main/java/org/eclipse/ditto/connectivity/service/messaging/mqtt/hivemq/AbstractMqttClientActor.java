@@ -263,7 +263,8 @@ abstract class AbstractMqttClientActor<S, P, Q extends MqttClient, R> extends Ba
                         true, // this is the publisher client, always respect last will config
                         getMqttClientConnectedListener(PUBLISHER),
                         getMqttClientDisconnectedListener(PUBLISHER, cancelReconnect),
-                        connectionLogger);
+                        connectionLogger,
+                        connectivityConfig().getConnectionConfig().doubleDecodingEnabled());
                 publisherClient = new ClientWithCancelSwitch(createdClient, cancelReconnect);
             } else {
                 // use the same client for subscribers and publisher
@@ -329,7 +330,8 @@ abstract class AbstractMqttClientActor<S, P, Q extends MqttClient, R> extends Ba
                 applyLastWillConfig,
                 getMqttClientConnectedListener(clientRole),
                 getMqttClientDisconnectedListener(clientRole, cancelReconnect),
-                connectionLogger);
+                connectionLogger,
+                connectivityConfig().getConnectionConfig().doubleDecodingEnabled());
         client = new ClientWithCancelSwitch(createdClient, cancelReconnect);
 
         if (willSubscribe) {
@@ -356,7 +358,7 @@ abstract class AbstractMqttClientActor<S, P, Q extends MqttClient, R> extends Ba
         try {
             testClient =
                     getClientFactory().newClient(connectionToBeTested, mqttClientId, mqttConfig, testMqttSpecificConfig,
-                            false, connectionLogger);
+                            false, connectionLogger, connectivityConfig().getConnectionConfig().doubleDecodingEnabled());
         } catch (final Exception e) {
             return CompletableFuture.completedFuture(new Status.Failure(e.getCause()));
         }

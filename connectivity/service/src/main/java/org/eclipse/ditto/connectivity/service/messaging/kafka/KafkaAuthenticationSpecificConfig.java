@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.connectivity.service.messaging.kafka;
 
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 import java.text.MessageFormat;
 import java.util.Collections;
 import java.util.HashMap;
@@ -39,8 +41,10 @@ final class KafkaAuthenticationSpecificConfig implements KafkaSpecificConfig {
     private static final Map<String, String> SASL_MECHANISMS_WITH_LOGIN_MODULE = new HashMap<>();
 
     @Nullable private static KafkaAuthenticationSpecificConfig instance;
+    private final boolean doubleDecodingEnabled;
 
-    private KafkaAuthenticationSpecificConfig() {
+    private KafkaAuthenticationSpecificConfig(final boolean doubleDecodingEnabled) {
+        this.doubleDecodingEnabled = doubleDecodingEnabled;
         SASL_MECHANISMS_WITH_LOGIN_MODULE.put(PLAIN_SASL_MECHANISM,
                 "org.apache.kafka.common.security.plain.PlainLoginModule");
         SASL_MECHANISMS_WITH_LOGIN_MODULE.put("SCRAM-SHA-256",
@@ -49,10 +53,10 @@ final class KafkaAuthenticationSpecificConfig implements KafkaSpecificConfig {
                 "org.apache.kafka.common.security.scram.ScramLoginModule");
     }
 
-    public static KafkaAuthenticationSpecificConfig getInstance() {
+    public static KafkaAuthenticationSpecificConfig getInstance(final boolean doubleDecodingEnabled) {
         KafkaAuthenticationSpecificConfig result = instance;
         if (null == result) {
-            result = new KafkaAuthenticationSpecificConfig();
+            result = new KafkaAuthenticationSpecificConfig(doubleDecodingEnabled);
             instance = result;
         }
         return result;
@@ -89,8 +93,10 @@ final class KafkaAuthenticationSpecificConfig implements KafkaSpecificConfig {
     @Override
     public Map<String, String> apply(final Connection connection) {
 
-        final Optional<String> username = connection.getUsername();
-        final Optional<String> password = connection.getPassword();
+        final Optional<String> username =
+                connection.getUsername().map(u -> doubleDecodingEnabled ? tryDecodeUriComponent(u) : u);
+        final Optional<String> password =
+                connection.getPassword().map(p -> doubleDecodingEnabled ? tryDecodeUriComponent(p) : p);
         // chose to not use isApplicable() but directly check username and password since we need to Optional#get them.
         if (isValid(connection) && username.isPresent() && password.isPresent()) {
             final String saslMechanism = getSaslMechanismOrDefault(connection).toUpperCase();
@@ -101,6 +107,15 @@ final class KafkaAuthenticationSpecificConfig implements KafkaSpecificConfig {
                     SaslConfigs.SASL_JAAS_CONFIG, jaasConfig);
         }
         return Collections.emptyMap();
+    }
+
+    private static String tryDecodeUriComponent(final String string) {
+        try {
+            final String withoutPlus = string.replace("+", "%2B");
+            return URLDecoder.decode(withoutPlus, StandardCharsets.UTF_8);
+        } catch (final IllegalArgumentException e) {
+            return string;
+        }
     }
 
     private static String getJaasConfig(final String loginModule, final String username, final String password) {

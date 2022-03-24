@@ -14,6 +14,8 @@ package org.eclipse.ditto.connectivity.service.messaging.amqp;
 
 import static org.apache.qpid.jms.provider.failover.FailoverProviderFactory.FAILOVER_OPTION_PREFIX;
 
+import java.io.UnsupportedEncodingException;
+import java.net.URLDecoder;
 import java.text.MessageFormat;
 import java.time.Duration;
 import java.util.Collections;
@@ -50,9 +52,11 @@ public final class AmqpSpecificConfig {
     private final boolean failoverEnabled;
     private final PlainCredentialsSupplier plainCredentialsSupplier;
 
-    private AmqpSpecificConfig(final Map<String, String> amqpParameters, final Map<String, String> jmsParameters,
+    private AmqpSpecificConfig(final Map<String, String> amqpParameters,
+            final Map<String, String> jmsParameters,
             final boolean failoverEnabled,
             final PlainCredentialsSupplier plainCredentialsSupplier) {
+
         this.amqpParameters = Collections.unmodifiableMap(new LinkedHashMap<>(amqpParameters));
         this.jmsParameters = Collections.unmodifiableMap(new LinkedHashMap<>(jmsParameters));
         this.failoverEnabled = failoverEnabled;
@@ -66,11 +70,15 @@ public final class AmqpSpecificConfig {
      * @param connection the connection.
      * @param defaultConfig the default config values.
      * @param plainCredentialsSupplier supplier of username-password credentials.
+     * @param doubleDecodingEnabled whether the username and password should be double decoded.
      * @return the AMQP specific config.
      */
-    public static AmqpSpecificConfig withDefault(final String clientId, final Connection connection,
+    public static AmqpSpecificConfig withDefault(final String clientId,
+            final Connection connection,
             final Map<String, String> defaultConfig,
-            final PlainCredentialsSupplier plainCredentialsSupplier) {
+            final PlainCredentialsSupplier plainCredentialsSupplier,
+            final boolean doubleDecodingEnabled) {
+
         final var amqpParameters = new LinkedHashMap<>(filterForAmqpParameters(defaultConfig));
         final Optional<UserPasswordCredentials> credentialsOptional = plainCredentialsSupplier.get(connection);
         addSaslMechanisms(amqpParameters, credentialsOptional.isPresent());
@@ -79,7 +87,7 @@ public final class AmqpSpecificConfig {
 
         final var jmsParameters = new LinkedHashMap<>(filterForJmsParameters(defaultConfig));
         addParameter(jmsParameters, CLIENT_ID, clientId);
-        credentialsOptional.ifPresent(credentials -> addCredentials(jmsParameters, credentials));
+        credentialsOptional.ifPresent(credentials -> addCredentials(jmsParameters, credentials, doubleDecodingEnabled));
         addFailoverParameters(jmsParameters, connection);
         addSpecificConfigParameters(jmsParameters, connection, AmqpSpecificConfig::isPermittedJmsConfig);
 
@@ -153,10 +161,25 @@ public final class AmqpSpecificConfig {
     }
 
     private static void addCredentials(final LinkedHashMap<String, String> parameters,
-            final UserPasswordCredentials credentials) {
-        addParameter(parameters, USERNAME, credentials.getUsername());
-        addParameter(parameters, PASSWORD, credentials.getPassword());
+            final UserPasswordCredentials credentials, final boolean doubleDecodingEnabled) {
+
+        final String username =
+                doubleDecodingEnabled ? tryDecodeUriComponent(credentials.getUsername()) : credentials.getUsername();
+        final String password =
+                doubleDecodingEnabled ? tryDecodeUriComponent(credentials.getPassword()) : credentials.getPassword();
+        addParameter(parameters, USERNAME, username);
+        addParameter(parameters, PASSWORD, password);
     }
+
+    private static String tryDecodeUriComponent(final String string) {
+        try {
+            final String withoutPlus = string.replace("+", "%2B");
+            return URLDecoder.decode(withoutPlus, "UTF-8");
+        } catch (final IllegalArgumentException | UnsupportedEncodingException e) {
+            return string;
+        }
+    }
+
 
     private static void addTransportParameters(final LinkedHashMap<String, String> parameters,
             final Connection connection) {

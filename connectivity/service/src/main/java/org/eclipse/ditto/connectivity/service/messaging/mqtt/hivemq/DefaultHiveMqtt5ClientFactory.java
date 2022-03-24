@@ -54,10 +54,12 @@ public final class DefaultHiveMqtt5ClientFactory extends AbstractHiveMqttClientF
             final boolean applyLastWillConfig,
             @Nullable final MqttClientConnectedListener connectedListener,
             @Nullable final MqttClientDisconnectedListener disconnectedListener,
-            final ConnectionLogger connectionLogger) {
+            final ConnectionLogger connectionLogger,
+            final boolean doubleDecodingEnabled) {
 
         return newClientBuilder(connection, identifier, mqttConfig, mqttSpecificConfig,
-                applyLastWillConfig, connectedListener, disconnectedListener, connectionLogger).buildAsync();
+                applyLastWillConfig, connectedListener, disconnectedListener, connectionLogger,
+                doubleDecodingEnabled).buildAsync();
     }
 
     @Override
@@ -68,11 +70,13 @@ public final class DefaultHiveMqtt5ClientFactory extends AbstractHiveMqttClientF
             final boolean applyLastWillConfig,
             @Nullable final MqttClientConnectedListener connectedListener,
             @Nullable final MqttClientDisconnectedListener disconnectedListener,
-            final ConnectionLogger connectionLogger) {
+            final ConnectionLogger connectionLogger,
+            final boolean doubleDecodingEnabled) {
+
         final Mqtt5ClientBuilder mqtt5ClientBuilder =
                 configureClientBuilder(MqttClient.builder().useMqttVersion5(), connection, identifier,
                         connectedListener, disconnectedListener, connectionLogger, mqttConfig.getEventLoopThreads());
-        configureSimpleAuth(mqtt5ClientBuilder.simpleAuth(), connection);
+        configureSimpleAuth(mqtt5ClientBuilder.simpleAuth(), connection, doubleDecodingEnabled);
         if (applyLastWillConfig) {
             configureWillPublish(mqtt5ClientBuilder, mqttSpecificConfig);
         }

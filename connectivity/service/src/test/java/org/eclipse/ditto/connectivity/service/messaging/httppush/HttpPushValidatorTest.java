@@ -16,6 +16,7 @@ import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.eclipse.ditto.connectivity.service.messaging.TestConstants.Authorization.AUTHORIZATION_CONTEXT;
 import static org.eclipse.ditto.connectivity.service.messaging.httppush.HttpPushSpecificConfig.OMIT_REQUEST_BODY;
+import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
@@ -35,8 +36,10 @@ import org.eclipse.ditto.connectivity.model.Topic;
 import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.config.HttpPushConfig;
 import org.eclipse.ditto.connectivity.service.messaging.TestConstants;
-import org.eclipse.ditto.connectivity.service.messaging.kafka.KafkaValidator;
-import org.junit.*;
+import org.junit.AfterClass;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.Test;
 
 import com.typesafe.config.ConfigFactory;
 
@@ -78,7 +81,7 @@ public final class HttpPushValidatorTest {
 
     @Test
     public void testImmutability() {
-        assertInstancesOf(KafkaValidator.class, areImmutable());
+        assertInstancesOf(HttpPushValidator.class, areImmutable(), provided(HttpPushConfig.class).isAlsoImmutable());
     }
 
     @Test

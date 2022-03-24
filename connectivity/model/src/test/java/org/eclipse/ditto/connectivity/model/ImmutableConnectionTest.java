@@ -36,7 +36,6 @@ import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -471,7 +470,7 @@ public final class ImmutableConnectionTest {
     public void parsePasswordWithPlusSignDoubleEncoded() {
         final ImmutableConnection.ConnectionUri underTest =
                 ImmutableConnection.ConnectionUri.of("amqps://foo:bar%252Bbaz@hono.eclipse.org:5671/vhost");
-        assertThat(underTest.getPassword()).contains("bar+baz");
+        assertThat(underTest.getPassword()).contains("bar%2Bbaz");
     }
 
     @Test
