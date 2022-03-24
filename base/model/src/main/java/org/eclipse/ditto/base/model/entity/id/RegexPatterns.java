@@ -82,33 +82,11 @@ public final class RegexPatterns {
     public static final String NAMESPACE_REGEX = "(?<" + NAMESPACE_GROUP_NAME + ">|(?:" +
             "(?:" + ALLOWED_NAMESPACE_CHARACTERS_REGEX + ")" +
             "(?:" + ALLOWED_NAMESPACE_CHARACTERS_REGEX_INNER + ")*+))";
-
-    /**
-     * Regex pattern that matches URL escapes. E.G. %3A for a colon (':').
-     */
-    public static final String URL_ESCAPES = "%\\p{XDigit}{2}";
-
-    /**
-     * Adds the $ to allowed characters. Its defined as separate constant because names are not allowed to start
-     * with $.
-     */
-    public static final String ALLOWED_CHARACTERS_IN_NAME_INCLUDING_DOLLAR = ALLOWED_CHARACTERS_IN_NAME + "$";
-
-    /**
-     * First part of an entity name.
-     */
-    public static final String URI_PATH_SEGMENT = "(?:[" + ALLOWED_CHARACTERS_IN_NAME + "]|" + URL_ESCAPES + ")";
-
-    /**
-     * Second part of an entity name: This part allows the $ symbol.
-     */
-    public static final String URI_PATH_SEGMENT_INCLUDING_DOLLAR =
-            "(?:[" + ALLOWED_CHARACTERS_IN_NAME_INCLUDING_DOLLAR + "]|" + URL_ESCAPES + ")";
     /**
      * The regex pattern for an Entity Name.
      */
-    public static final String ENTITY_NAME_REGEX = "(?<" + ENTITY_NAME_GROUP_NAME +
-            ">" + URI_PATH_SEGMENT + URI_PATH_SEGMENT_INCLUDING_DOLLAR + "*+)";
+    public static final String ENTITY_NAME_REGEX =
+            "(?<" + ENTITY_NAME_GROUP_NAME + ">" + ALLOWED_CHARACTERS_IN_NAME + "++)";
 
     /**
      * The regex pattern for an Entity ID.
