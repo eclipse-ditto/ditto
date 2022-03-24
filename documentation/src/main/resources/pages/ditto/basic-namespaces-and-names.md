@@ -18,7 +18,7 @@ The namespace must conform to the following notation:
 * underscore may be used
 
 When writing a Java application, you can use the following regex to validate your namespaces:  
-    ``(?<ns>|(?:(?:[a-zA-Z]\w*+)(?:([.\-])[a-zA-Z]\w*+)*+))``
+    ``(?<ns>|(?:(?:[a-zA-Z]\w*+)(?:[.-][a-zA-Z]\w*+)*+))``
     (see [RegexPatterns#NAMESPACE_REGEX](https://github.com/eclipse/ditto/blob/master/base/model/src/main/java/org/eclipse/ditto/base/model/entity/id/RegexPatterns.java)).
 	
 Examples for valid namespaces:
@@ -52,7 +52,7 @@ A namespaced ID must conform to the following expectations:
 * have a maximum length of 256 characters
 
 When writing a Java application, you can use the following regex to validate your namespaced IDs:  
-	``(?<ns>|(?:(?:[a-zA-Z]\w*+)(?:([.\-])[a-zA-Z]\w*+)*+)):(?<name>[^\x00-\x1F\x7F-\xFF/]++)``
+	``(?<ns>|(?:(?:[a-zA-Z]\w*+)(?:[.-][a-zA-Z]\w*+)*+)):(?<name>[^\x00-\x1F\x7F-\xFF/]++)``
 	(see [RegexPatterns#ID_REGEX](https://github.com/eclipse/ditto/blob/master/base/model/src/main/java/org/eclipse/ditto/base/model/entity/id/RegexPatterns.java)).
 
 Examples for valid IDs:
