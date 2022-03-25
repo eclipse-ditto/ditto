@@ -82,6 +82,37 @@ public final class RegexPatterns {
     public static final String NAMESPACE_REGEX = "(?<" + NAMESPACE_GROUP_NAME + ">|(?:" +
             "(?:" + ALLOWED_NAMESPACE_CHARACTERS_REGEX + ")" +
             "(?:" + ALLOWED_NAMESPACE_CHARACTERS_REGEX_INNER + ")*+))";
+
+    /**
+     * Regex pattern that matches URL escapes. E.G. %3A for a colon (':').
+     * @deprecated since 2.4.0
+     */
+    @Deprecated
+    public static final String URL_ESCAPES = "%\\p{XDigit}{2}";
+
+    /**
+     * Adds the $ to allowed characters. Its defined as separate constant because names are not allowed to start
+     * with $.
+     * @deprecated since 2.4.0
+     */
+    @Deprecated
+    public static final String ALLOWED_CHARACTERS_IN_NAME_INCLUDING_DOLLAR = ALLOWED_CHARACTERS_IN_NAME + "$";
+
+    /**
+     * First part of an entity name.
+     * @deprecated since 2.4.0
+     */
+    @Deprecated
+    public static final String URI_PATH_SEGMENT = "(?:[" + ALLOWED_CHARACTERS_IN_NAME + "]|" + URL_ESCAPES + ")";
+
+    /**
+     * Second part of an entity name: This part allows the $ symbol.
+     * @deprecated since 2.4.0
+     */
+    @Deprecated
+    public static final String URI_PATH_SEGMENT_INCLUDING_DOLLAR =
+            "(?:[" + ALLOWED_CHARACTERS_IN_NAME_INCLUDING_DOLLAR + "]|" + URL_ESCAPES + ")";
+
     /**
      * The regex pattern for an Entity Name.
      */
