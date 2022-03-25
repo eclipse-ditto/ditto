@@ -14,8 +14,6 @@ package org.eclipse.ditto.connectivity.service.messaging.amqp;
 
 import static org.apache.qpid.jms.provider.failover.FailoverProviderFactory.FAILOVER_OPTION_PREFIX;
 
-import java.io.UnsupportedEncodingException;
-import java.net.URLDecoder;
 import java.text.MessageFormat;
 import java.time.Duration;
 import java.util.Collections;
@@ -80,14 +78,14 @@ public final class AmqpSpecificConfig {
             final boolean doubleDecodingEnabled) {
 
         final var amqpParameters = new LinkedHashMap<>(filterForAmqpParameters(defaultConfig));
-        final Optional<UserPasswordCredentials> credentialsOptional = plainCredentialsSupplier.get(connection);
+        final Optional<UserPasswordCredentials> credentialsOptional = plainCredentialsSupplier.get(connection, doubleDecodingEnabled);
         addSaslMechanisms(amqpParameters, credentialsOptional.isPresent());
         addTransportParameters(amqpParameters, connection);
         addSpecificConfigParameters(amqpParameters, connection, AmqpSpecificConfig::isPermittedAmqpConfig);
 
         final var jmsParameters = new LinkedHashMap<>(filterForJmsParameters(defaultConfig));
         addParameter(jmsParameters, CLIENT_ID, clientId);
-        credentialsOptional.ifPresent(credentials -> addCredentials(jmsParameters, credentials, doubleDecodingEnabled));
+        credentialsOptional.ifPresent(credentials -> addCredentials(jmsParameters, credentials));
         addFailoverParameters(jmsParameters, connection);
         addSpecificConfigParameters(jmsParameters, connection, AmqpSpecificConfig::isPermittedJmsConfig);
 
@@ -161,23 +159,10 @@ public final class AmqpSpecificConfig {
     }
 
     private static void addCredentials(final LinkedHashMap<String, String> parameters,
-            final UserPasswordCredentials credentials, final boolean doubleDecodingEnabled) {
+            final UserPasswordCredentials credentials) {
 
-        final String username =
-                doubleDecodingEnabled ? tryDecodeUriComponent(credentials.getUsername()) : credentials.getUsername();
-        final String password =
-                doubleDecodingEnabled ? tryDecodeUriComponent(credentials.getPassword()) : credentials.getPassword();
-        addParameter(parameters, USERNAME, username);
-        addParameter(parameters, PASSWORD, password);
-    }
-
-    private static String tryDecodeUriComponent(final String string) {
-        try {
-            final String withoutPlus = string.replace("+", "%2B");
-            return URLDecoder.decode(withoutPlus, "UTF-8");
-        } catch (final IllegalArgumentException | UnsupportedEncodingException e) {
-            return string;
-        }
+        addParameter(parameters, USERNAME, credentials.getUsername());
+        addParameter(parameters, PASSWORD, credentials.getPassword());
     }
 
 

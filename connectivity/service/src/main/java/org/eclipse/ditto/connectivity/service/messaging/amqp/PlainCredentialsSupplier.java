@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.connectivity.service.messaging.amqp;
 
+import java.io.UnsupportedEncodingException;
+import java.net.URLDecoder;
 import java.util.Optional;
 
 import org.eclipse.ditto.connectivity.model.Connection;
@@ -29,9 +31,10 @@ public interface PlainCredentialsSupplier {
      * Get the username-password credentials of a connection.
      *
      * @param connection the connection.
+     * @param doubleDecodingEnabled whether double decoding of usernames and passwords is enabled.
      * @return the optional credentials.
      */
-    Optional<UserPasswordCredentials> get(Connection connection);
+    Optional<UserPasswordCredentials> get(Connection connection, boolean doubleDecodingEnabled);
 
     /**
      * Remove userinfo from a connection URI.
@@ -49,9 +52,23 @@ public interface PlainCredentialsSupplier {
      * @return the URI.
      */
     static PlainCredentialsSupplier fromUri() {
-        return connection ->
+        return (connection, doubleDecodingEnabled) ->
                 connection.getUsername().flatMap(username ->
-                        connection.getPassword().map(password ->
-                                UserPasswordCredentials.newInstance(username, password)));
+                        connection.getPassword().map(password -> {
+                            final String u =
+                                    doubleDecodingEnabled ? tryDecodeUriComponent(username) : username;
+                            final String p =
+                                    doubleDecodingEnabled ? tryDecodeUriComponent(password) : password;
+                                return UserPasswordCredentials.newInstance(u, p);}));
     }
+
+    private static String tryDecodeUriComponent(final String string) {
+        try {
+            final String withoutPlus = string.replace("+", "%2B");
+            return URLDecoder.decode(withoutPlus, "UTF-8");
+        } catch (final IllegalArgumentException | UnsupportedEncodingException e) {
+            return string;
+        }
+    }
+
 }

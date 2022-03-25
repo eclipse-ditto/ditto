@@ -116,7 +116,8 @@ public final class AmqpSpecificConfigTest {
     @Test
     public void withPlainCredentials() {
         final UserPasswordCredentials credentials = UserPasswordCredentials.newInstance("foo", "bar");
-        final PlainCredentialsSupplier plainCredentialsSupplier = connection -> Optional.of(credentials);
+        final PlainCredentialsSupplier plainCredentialsSupplier =
+                (connection, doubleDecodingEnabled) -> Optional.of(credentials);
         final Connection connection = TestConstants.createConnection();
         final AmqpSpecificConfig underTest = AmqpSpecificConfig.withDefault("CID", connection, Map.of(),
                 plainCredentialsSupplier, true);
