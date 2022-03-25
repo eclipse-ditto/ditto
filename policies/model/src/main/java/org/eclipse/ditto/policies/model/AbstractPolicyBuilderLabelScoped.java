@@ -18,6 +18,11 @@ import javax.annotation.Nullable;
 
 import org.eclipse.ditto.base.model.entity.metadata.Metadata;
 
+/**
+ * Abstract implementation for a fully delegating label scoped policy builder.
+ *
+ * @since 2.4.0
+ */
 public abstract class AbstractPolicyBuilderLabelScoped implements PolicyBuilder.LabelScoped {
 
     private final PolicyBuilder delegate;
