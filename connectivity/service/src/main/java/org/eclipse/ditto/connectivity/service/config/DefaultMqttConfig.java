@@ -18,6 +18,7 @@ import java.util.Objects;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.base.service.config.ThrottlingConfig;
 import org.eclipse.ditto.internal.utils.config.ConfigWithFallback;
 import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 
@@ -41,6 +42,7 @@ final class DefaultMqttConfig implements MqttConfig {
     private final boolean useSeparateClientForPublisher;
     private final Duration reconnectMinTimeoutForMqttBrokerInitiatedDisconnect;
     private final BackOffConfig reconnectBackOffConfig;
+    private final ThrottlingConfig consumerThrottlingConfig;
 
     private DefaultMqttConfig(final ScopedConfig config) {
         eventLoopThreads = config.getNonNegativeIntOrThrow(MqttConfigValue.EVENT_LOOP_THREADS);
@@ -55,6 +57,7 @@ final class DefaultMqttConfig implements MqttConfig {
         reconnectBackOffConfig = DefaultBackOffConfig.of(config.hasPath(RECONNECT_PATH)
                 ? config.getConfig(RECONNECT_PATH)
                 : ConfigFactory.parseString("backoff" + "={}"));
+        consumerThrottlingConfig = ThrottlingConfig.of(config);
     }
 
     /**
@@ -104,6 +107,11 @@ final class DefaultMqttConfig implements MqttConfig {
     }
 
     @Override
+    public ThrottlingConfig getConsumerThrottlingConfig() {
+        return consumerThrottlingConfig;
+    }
+
+    @Override
     public BackOffConfig getReconnectBackOffConfig() {
         return reconnectBackOffConfig;
     }
@@ -116,7 +124,7 @@ final class DefaultMqttConfig implements MqttConfig {
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        final DefaultMqttConfig that = (DefaultMqttConfig) o;
+        final var that = (DefaultMqttConfig) o;
         return Objects.equals(eventLoopThreads, that.eventLoopThreads) &&
                 Objects.equals(cleanSession, that.cleanSession) &&
                 Objects.equals(reconnectForRedelivery, that.reconnectForRedelivery) &&
@@ -125,14 +133,21 @@ final class DefaultMqttConfig implements MqttConfig {
                 Objects.equals(reconnectMinTimeoutForMqttBrokerInitiatedDisconnect,
                         that.reconnectMinTimeoutForMqttBrokerInitiatedDisconnect) &&
                 Objects.equals(maxQueueSize, that.maxQueueSize) &&
-                Objects.equals(reconnectBackOffConfig, that.reconnectBackOffConfig);
+                Objects.equals(reconnectBackOffConfig, that.reconnectBackOffConfig) &&
+                Objects.equals(consumerThrottlingConfig, that.consumerThrottlingConfig);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(eventLoopThreads, cleanSession, reconnectForRedelivery,
-                reconnectForRedeliveryDelay, useSeparateClientForPublisher,
-                reconnectMinTimeoutForMqttBrokerInitiatedDisconnect, maxQueueSize, reconnectBackOffConfig);
+        return Objects.hash(eventLoopThreads,
+                cleanSession,
+                reconnectForRedelivery,
+                reconnectForRedeliveryDelay,
+                useSeparateClientForPublisher,
+                reconnectMinTimeoutForMqttBrokerInitiatedDisconnect,
+                maxQueueSize,
+                reconnectBackOffConfig,
+                consumerThrottlingConfig);
     }
 
     @Override
@@ -147,6 +162,7 @@ final class DefaultMqttConfig implements MqttConfig {
                 reconnectMinTimeoutForMqttBrokerInitiatedDisconnect +
                 ", maxQueueSize=" + maxQueueSize +
                 ", reconnectBackOffConfig=" + reconnectBackOffConfig +
+                ", consumerThrottlingConfig=" + consumerThrottlingConfig +
                 "]";
     }
 

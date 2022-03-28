@@ -16,6 +16,7 @@ import java.time.Duration;
 
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.base.service.config.ThrottlingConfig;
 import org.eclipse.ditto.internal.utils.config.KnownConfigValue;
 
 /**
@@ -87,6 +88,14 @@ public interface MqttConfig {
      * @since 2.2.0
      */
     int getMaxQueueSize();
+
+    /**
+     * Returns the {@code ThrottlingConfig} for the MQTT consumer part.
+     *
+     * @return the MQTT consumer ThrottlingConfig.
+     * @since 2.4.0
+     */
+    ThrottlingConfig getConsumerThrottlingConfig();
 
     /**
      * An enumeration of the known config path expressions and their associated default values for
