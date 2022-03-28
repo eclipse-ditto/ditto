@@ -32,9 +32,11 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.policies.api.Permission;
 import org.eclipse.ditto.policies.model.Permissions;
+import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.ResourceKey;
 import org.eclipse.ditto.policies.model.enforcers.Enforcer;
+import org.eclipse.ditto.policies.model.enforcers.PolicyEnforcers;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommand;
@@ -57,36 +59,36 @@ public final class EnforcedThingMapper {
      * Map a Thing JSON into a search index entry with synthesized metadata.
      *
      * @param thing the Thing in JSON format.
-     * @param enforcer the policy-enforcer of the Thing.
-     * @param policyRevision revision of the policy for an policy enforcer.
+     * @param policy the policy of the Thing.
+     * @param policyRevision revision of the policy.
      * @return BSON document to write into the search index.
      * @throws org.eclipse.ditto.json.JsonMissingFieldException if Thing ID or revision is missing.
      */
-    public static BsonDocument mapThing(final JsonObject thing, final Enforcer enforcer, final long policyRevision) {
-        return toWriteModel(thing, enforcer, policyRevision).getThingDocument();
+    public static BsonDocument mapThing(final JsonObject thing, final Policy policy, final long policyRevision) {
+        return toWriteModel(thing, policy, policyRevision).getThingDocument();
     }
 
     /**
      * Map a Thing JSON into a search index write model.
      *
      * @param thing the Thing in JSON format.
-     * @param enforcer the policy-enforcer of the Thing.
-     * @param policyRevision revision of the policy for an policy enforcer.
+     * @param policy the policy of the Thing.
+     * @param policyRevision revision of the policy.
      * @return BSON document to write into the search index.
      * @throws org.eclipse.ditto.json.JsonMissingFieldException if Thing ID or revision is missing.
      */
     private static ThingWriteModel toWriteModel(final JsonObject thing,
-            final Enforcer enforcer,
+            final Policy policy,
             final long policyRevision) {
 
-        return toWriteModel(thing, enforcer, policyRevision, -1, null);
+        return toWriteModel(thing, policy, policyRevision, -1, null);
     }
 
     /**
      * Map a Thing JSON into a search index write model.
      *
      * @param thing the Thing in JSON format.
-     * @param enforcer the policy-enforcer of the Thing.
+     * @param policy the policy-enforcer of the Thing.
      * @param policyRevision revision of the policy for an policy enforcer.
      * @param maxArraySize only arrays smaller than this are indexed.
      * @param oldMetadata the metadata that triggered the search update, possibly containing sender information.
@@ -94,7 +96,7 @@ public final class EnforcedThingMapper {
      * @throws org.eclipse.ditto.json.JsonMissingFieldException if Thing ID or revision is missing.
      */
     public static ThingWriteModel toWriteModel(final JsonObject thing,
-            final Enforcer enforcer,
+            final Policy policy,
             final long policyRevision,
             final int maxArraySize,
             @Nullable final Metadata oldMetadata) {
@@ -110,14 +112,15 @@ public final class EnforcedThingMapper {
                         Optional.ofNullable(oldMetadata).map(Metadata::getSenders).orElse(List.of()))
                 .withOrigin(Optional.ofNullable(oldMetadata).flatMap(Metadata::getOrigin).orElse(null));
 
-        return ThingWriteModel.of(metadata, toBsonDocument(thing, enforcer, maxArraySize, metadata));
+        return ThingWriteModel.of(metadata, toBsonDocument(thing, policy, maxArraySize, metadata));
     }
 
     static BsonDocument toBsonDocument(final JsonObject thing,
-            final Enforcer enforcer,
+            final Policy policy,
             final int maxArraySize,
             final Metadata metadata) {
 
+        final var enforcer = PolicyEnforcers.defaultEvaluator(policy);
         final var thingId = metadata.getThingId();
         final var thingRevision = metadata.getThingRevision();
         final var policyRevision = metadata.getPolicyRevision().orElse(0L);

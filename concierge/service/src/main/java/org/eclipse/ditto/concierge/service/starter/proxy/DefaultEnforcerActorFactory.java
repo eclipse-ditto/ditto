@@ -199,8 +199,7 @@ public final class DefaultEnforcerActorFactory implements EnforcerActorFactory<C
     }
 
     private static DittoHeadersSettable<?> prependDefaultNamespaceToCreateThing(final DittoHeadersSettable<?> signal) {
-        if (signal instanceof CreateThing) {
-            final CreateThing createThing = (CreateThing) signal;
+        if (signal instanceof final CreateThing createThing) {
             final Thing thing = createThing.getThing();
             final Optional<String> namespace = thing.getNamespace();
             if (namespace.isEmpty()) {

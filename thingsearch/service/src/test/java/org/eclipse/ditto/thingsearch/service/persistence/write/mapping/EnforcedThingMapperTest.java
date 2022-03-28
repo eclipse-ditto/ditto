@@ -22,37 +22,36 @@ import org.eclipse.ditto.policies.api.Permission;
 import org.eclipse.ditto.policies.model.PoliciesModelFactory;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.SubjectType;
-import org.eclipse.ditto.policies.model.enforcers.Enforcer;
-import org.eclipse.ditto.policies.model.enforcers.PolicyEnforcers;
 import org.junit.Test;
 
 public final class EnforcedThingMapperTest {
 
     @Test
     public void testV2Thing() {
-        final JsonObject thing = JsonFactory.newObject("{\n" +
-                "  \"thingId\": \"hello:world\",\n" +
-                "  \"_namespace\": \"hello\",\n" +
-                "  \"_revision\": 1024,\n" +
-                "  \"_modified\": \"2019-01-02T03:04:05.006Z\",\n" +
-                "  \"policyId\": \"hello:world\",\n" +
-                "  \"features\": {\n" +
-                "    \"hi\": {\n" +
-                "      \"definition\": [\n" +
-                "        \"earth:v0:1\",\n" +
-                "        \"mars:v0:2\"\n" +
-                "      ],\n" +
-                "      \"properties\": {\n" +
-                "        \"there\": true\n" +
-                "      }\n" +
-                "    }\n" +
-                "  },\n" +
-                "  \"attributes\": {\n" +
-                "    \"hello\": \"world\"\n" +
-                "  }\n" +
-                "}");
+        final JsonObject thing = JsonFactory.newObject("""
+                {
+                  "thingId": "hello:world",
+                  "_namespace": "hello",
+                  "_revision": 1024,
+                  "_modified": "2019-01-02T03:04:05.006Z",
+                  "policyId": "hello:world",
+                  "features": {
+                    "hi": {
+                      "definition": [
+                        "earth:v0:1",
+                        "mars:v0:2"
+                      ],
+                      "properties": {
+                        "there": true
+                      }
+                    }
+                  },
+                  "attributes": {
+                    "hello": "world"
+                  }
+                }""");
 
-        final Enforcer enforcer = PolicyEnforcers.defaultEvaluator(
+        final var policy =
                 PoliciesModelFactory.newPolicyBuilder(PolicyId.of("policy", "id"))
                         .forLabel("grant-root")
                         .setSubject("g:0", SubjectType.GENERATED)
@@ -60,47 +59,44 @@ public final class EnforcedThingMapperTest {
                         .forLabel("grant-d")
                         .setSubject("g:1", SubjectType.GENERATED)
                         .setGrantedPermissions(THING, "/features/hi/properties/there", Permission.READ)
-                        .build());
+                        .build();
 
         final long policyRevision = 56L;
 
-        final JsonObject expectedJson = JsonFactory.newObject("{\n" +
-                "  \"_id\": \"hello:world\",\n" +
-                "  \"_revision\": 1024,\n" +
-                "  \"_namespace\": \"hello\",\n" +
-                "  \"gr\":[\"g:1\",\"g:0\"],\n" +
-                "  \"policyId\": \"hello:world\",\n" +
-                "  \"__policyRev\": 56,\n" +
-                "  \"s\": {\n" +
-                "    \"thingId\": \"hello:world\",\n" +
-                "    \"_namespace\": \"hello\",\n" +
-                "    \"_revision\": 1024,\n" +
-                "    \"_modified\": \"2019-01-02T03:04:05.006Z\",\n" +
-                "    \"policyId\": \"hello:world\",\n" +
-                "    \"features\": { \"hi\": { \"definition\": [ \"earth:v0:1\", \"mars:v0:2\" ], \"properties\": { \"there\": true } } },\n" +
-                "    \"attributes\": { \"hello\": \"world\" }\n" +
-                "  },\n" +
-                "  \"d\": [\n" +
-                "    { \"k\": \"/thingId\", \"v\": \"hello:world\", \"g\": [ \"g:0\" ], \"r\": [] },\n" +
-                "    { \"k\": \"/_namespace\", \"v\": \"hello\", \"g\": [ \"g:0\" ], \"r\": [] },\n" +
-                "    { \"k\": \"/_revision\", \"v\": 1024, \"g\": [ \"g:0\" ], \"r\": [] },\n" +
-                "    { \"k\": \"/_modified\", \"v\": \"2019-01-02T03:04:05.006Z\", \"g\": [ \"g:0\" ], \"r\": [] },\n" +
-                "    { \"k\": \"/policyId\", \"v\": \"hello:world\", \"g\": [ \"g:0\" ], \"r\": [] },\n" +
-                "    { \"k\": \"/features/hi/definition\"," +
-                "      \"v\": \"earth:v0:1\", \"g\": [ \"g:0\" ], \"r\": [] },\n" +
-                "    { \"k\": \"/features/*/definition\"," +
-                "      \"v\": \"earth:v0:1\", \"g\": [ \"g:0\" ], \"r\": [] },\n" +
-                "    { \"k\": \"/features/hi/definition\"," +
-                "      \"v\": \"mars:v0:2\", \"g\": [ \"g:0\" ], \"r\": [] },\n" +
-                "    { \"k\": \"/features/*/definition\"," +
-                "      \"v\": \"mars:v0:2\", \"g\": [ \"g:0\" ], \"r\": [] },\n" +
-                "    { \"k\": \"/features/hi/properties/there\", \"v\": true, \"g\": [ \"g:1\", \"g:0\" ], \"r\": [] },\n" +
-                "    { \"k\": \"/features/*/properties/there\", \"v\": true, \"g\": [ \"g:1\", \"g:0\" ], \"r\": [] },\n" +
-                "    { \"k\": \"/attributes/hello\", \"v\": \"world\", \"g\": [ \"g:0\" ], \"r\": [] }\n" +
-                "  ]\n" +
-                "}");
+        final JsonObject expectedJson = JsonFactory.newObject("""
+                {
+                  "_id": "hello:world",
+                  "_revision": 1024,
+                  "_namespace": "hello",
+                  "gr":["g:1","g:0"],
+                  "policyId": "hello:world",
+                  "__policyRev": 56,
+                  "s": {
+                    "thingId": "hello:world",
+                    "_namespace": "hello",
+                    "_revision": 1024,
+                    "_modified": "2019-01-02T03:04:05.006Z",
+                    "policyId": "hello:world",
+                    "features": { "hi": { "definition": [ "earth:v0:1", "mars:v0:2" ], "properties": { "there": true } } },
+                    "attributes": { "hello": "world" }
+                  },
+                  "d": [
+                    { "k": "/thingId", "v": "hello:world", "g": [ "g:0" ], "r": [] },
+                    { "k": "/_namespace", "v": "hello", "g": [ "g:0" ], "r": [] },
+                    { "k": "/_revision", "v": 1024, "g": [ "g:0" ], "r": [] },
+                    { "k": "/_modified", "v": "2019-01-02T03:04:05.006Z", "g": [ "g:0" ], "r": [] },
+                    { "k": "/policyId", "v": "hello:world", "g": [ "g:0" ], "r": [] },
+                    { "k": "/features/hi/definition",      "v": "earth:v0:1", "g": [ "g:0" ], "r": [] },
+                    { "k": "/features/*/definition",      "v": "earth:v0:1", "g": [ "g:0" ], "r": [] },
+                    { "k": "/features/hi/definition",      "v": "mars:v0:2", "g": [ "g:0" ], "r": [] },
+                    { "k": "/features/*/definition",      "v": "mars:v0:2", "g": [ "g:0" ], "r": [] },
+                    { "k": "/features/hi/properties/there", "v": true, "g": [ "g:1", "g:0" ], "r": [] },
+                    { "k": "/features/*/properties/there", "v": true, "g": [ "g:1", "g:0" ], "r": [] },
+                    { "k": "/attributes/hello", "v": "world", "g": [ "g:0" ], "r": [] }
+                  ]
+                }""");
 
-        final BsonDocument result = EnforcedThingMapper.mapThing(thing, enforcer, policyRevision);
+        final BsonDocument result = EnforcedThingMapper.mapThing(thing, policy, policyRevision);
 
         assertThat(JsonFactory.newObject(result.toJson())).isEqualTo(expectedJson);
     }

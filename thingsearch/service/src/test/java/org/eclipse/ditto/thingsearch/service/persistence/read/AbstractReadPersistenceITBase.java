@@ -21,8 +21,6 @@ import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.policies.model.enforcers.Enforcer;
-import org.eclipse.ditto.policies.model.enforcers.PolicyEnforcers;
 import org.eclipse.ditto.policies.model.EffectedPermissions;
 import org.eclipse.ditto.policies.model.PoliciesModelFactory;
 import org.eclipse.ditto.policies.model.Policy;
@@ -49,18 +47,19 @@ public abstract class AbstractReadPersistenceITBase extends AbstractThingSearchP
     static final PolicyId POLICY_ID = PolicyId.of("global", "policy");
 
     protected static final Map<String, String> SIMPLE_FIELD_MAPPINGS = new HashMap<>();
+
     static {
         SIMPLE_FIELD_MAPPINGS.put(FieldExpressionUtil.FIELD_NAME_THING_ID, FieldExpressionUtil.FIELD_ID);
         SIMPLE_FIELD_MAPPINGS.put(FieldExpressionUtil.FIELD_NAME_NAMESPACE, FieldExpressionUtil.FIELD_NAMESPACE);
     }
 
-    private Enforcer policyEnforcer;
+    private Policy policy;
 
     @Before
     @Override
     public void before() {
         super.before();
-        policyEnforcer = PolicyEnforcers.defaultEvaluator(createPolicy());
+        policy = createPolicy();
     }
 
     ResultList<ThingId> findForCriteria(final Criteria criteria) {
@@ -111,8 +110,8 @@ public abstract class AbstractReadPersistenceITBase extends AbstractThingSearchP
     }
 
     Thing persistThingV2(final Thing thingV2) {
-        final Enforcer enforcer = getPolicyEnforcer(thingV2.getEntityId().orElseThrow(IllegalStateException::new));
-        log.info("EXECUTED {}", runBlockingWithReturn(writePersistence.write(thingV2, enforcer, 0L)));
+        final var policy = getPolicy(thingV2.getEntityId().orElseThrow(IllegalStateException::new));
+        log.info("EXECUTED {}", runBlockingWithReturn(writePersistence.write(thingV2, policy, 0L)));
         return thingV2;
     }
 
@@ -122,8 +121,8 @@ public abstract class AbstractReadPersistenceITBase extends AbstractThingSearchP
      *
      * @param thingId The thingId for which the policy enforcer should be got
      */
-    Enforcer getPolicyEnforcer(final ThingId thingId) {
-        return policyEnforcer;
+    Policy getPolicy(final ThingId thingId) {
+        return policy;
     }
 
     private static Policy createPolicy() {

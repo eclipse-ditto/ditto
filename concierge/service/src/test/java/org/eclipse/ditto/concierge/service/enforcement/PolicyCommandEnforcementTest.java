@@ -89,15 +89,10 @@ import akka.testkit.javadsl.TestKit;
 import scala.concurrent.duration.FiniteDuration;
 
 /**
- * Tests {@link PolicyCommandEnforcement} and {@link PolicyEnforcerCacheLoader} in context of an
+ * Tests {@link PolicyCommandEnforcement} and {@link org.eclipse.ditto.internal.utils.cacheloaders.PolicyEnforcerCacheLoader} in context of an
  * {@link EnforcerActor}.
  */
 public final class PolicyCommandEnforcementTest {
-
-    /**
-     * Configure ask-timeout with a quite high value for easier debugging.
-     */
-    private static final Duration ASK_TIMEOUT = Duration.ofMinutes(5);
 
     private static final SubjectId AUTH_SUBJECT_ID = SubjectId.newInstance(SubjectIssuer.GOOGLE, "someId");
     private static final Subject AUTH_SUBJECT = Subject.newInstance(AUTH_SUBJECT_ID);
@@ -836,10 +831,10 @@ public final class PolicyCommandEnforcementTest {
         final PolicyEntry executeEntry = PolicyEntry.newInstance("execute",
                 List.of(AUTH_SUBJECT),
                 Set.of(Resource.newInstance(
-                        PoliciesResourceType.policyResource("/entries/allowed/actions/activateTokenIntegration"),
-                        EffectedPermissions.newInstance(Set.of(Permission.EXECUTE), Set.of())),
+                                PoliciesResourceType.policyResource("/entries/allowed/actions/activateTokenIntegration"),
+                                EffectedPermissions.newInstance(Set.of(Permission.EXECUTE), Set.of())),
                         Resource.newInstance(PoliciesResourceType.policyResource(
-                                "/entries/allowed/actions/deactivateTokenIntegration"),
+                                        "/entries/allowed/actions/deactivateTokenIntegration"),
                                 EffectedPermissions.newInstance(Set.of(Permission.EXECUTE), Set.of()))
                 ));
         final PolicyEntry allowedEntry = PolicyEntry.newInstance("allowed", List.of(), Set.of());
@@ -869,12 +864,12 @@ public final class PolicyCommandEnforcementTest {
         enforcementProviders.add(enforcementProvider);
 
         return system.actorOf(EnforcerActor.props(pubSubMediator, enforcementProviders, conciergeForwarder,
-                null, null, null),
+                        null, null, null),
                 ENTITY_ID.toString());
     }
 
     private static String createUniqueName(final String prefix) {
-        return prefix + UUID.randomUUID().toString();
+        return prefix + UUID.randomUUID();
     }
 
     private static <K, V> CaffeineCache<K, V> createCache(final AsyncCacheLoader<K, V> loader) {

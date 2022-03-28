@@ -16,8 +16,8 @@ import javax.annotation.Nullable;
 
 import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyId;
-import org.eclipse.ditto.policies.model.enforcers.Enforcer;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.thingsearch.service.common.config.DefaultPersistenceStreamConfig;
@@ -63,16 +63,16 @@ public final class TestSearchUpdaterStream {
      * Write a thing into the updater stream.
      *
      * @param thing the thing
-     * @param enforcer the enforcer
+     * @param policy the policy
      * @param policyRevision the policy revision
      * @return source of write result.
      */
     public Source<WriteResultAndErrors, NotUsed> write(final Thing thing,
-            final Enforcer enforcer,
+            final Policy policy,
             final long policyRevision) {
 
         final JsonObject thingJson = thing.toJson(FieldType.all());
-        final AbstractWriteModel writeModel = EnforcedThingMapper.toWriteModel(thingJson, enforcer, policyRevision, -1,
+        final AbstractWriteModel writeModel = EnforcedThingMapper.toWriteModel(thingJson, policy, policyRevision, -1,
                 null);
 
         final var source = Source.single(writeModel)
