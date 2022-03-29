@@ -21,7 +21,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.signals.ShardedMessageEnvelope;
@@ -169,7 +168,9 @@ final class BulkWriteResultAckFlow {
         for (final Metadata metadata : metadataList) {
             metadata.sendNAck(); // also stops timer even if no acknowledgement is requested
             metadata.sendBulkWriteCompleteToOrigin(bulkWriteCorrelationId);
-            final UpdateThingResponse response = createFailureResponse(metadata, DittoHeaders.empty());
+            final UpdateThingResponse response = createFailureResponse(metadata, DittoHeaders.newBuilder()
+                    .correlationId(bulkWriteCorrelationId)
+                    .build());
             metadata.getOrigin().ifPresentOrElse(
                     origin -> origin.tell(response, ActorRef.noSender()),
                     () -> {
@@ -252,7 +253,7 @@ final class BulkWriteResultAckFlow {
                 .stream()
                 .map(MongoWriteModel::getDitto)
                 .map(AbstractWriteModel::getMetadata)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private static String logResult(final String status, final WriteResultAndErrors writeResultAndErrors,
