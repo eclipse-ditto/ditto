@@ -192,6 +192,7 @@ public final class PolicyPersistenceActor
 
     @Override
     protected void publishEvent(final PolicyEvent<?> event) {
+        pubSubMediator.tell(DistPubSubAccess.publishViaGroup(PolicyEvent.TYPE_PREFIX, event), getSender());
 
         final PolicyTag policyTag = PolicyTag.of(entityId, event.getRevision());
         pubSubMediator.tell(DistPubSubAccess.publishViaGroup(PolicyTag.PUB_SUB_TOPIC_MODIFIED, policyTag), getSender());
