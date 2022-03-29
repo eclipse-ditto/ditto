@@ -52,6 +52,11 @@ public class PipelineFunctionSubstringAfterTest {
     }
 
     @Test
+    public void applyForLongerDelimiter() {
+        assertThat(function.apply(KNOWN_INPUT, "('eclipse.ditto:')", expressionResolver)).contains(EXPECTED_RESULT);
+    }
+
+    @Test
     public void returnsEmptyForEmptyInput() {
         assertThat(function.apply(EMPTY_INPUT, "('" + SUBSTRING_AT + "')", expressionResolver)).isEmpty();
     }

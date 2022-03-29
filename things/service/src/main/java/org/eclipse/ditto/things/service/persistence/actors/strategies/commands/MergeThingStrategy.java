@@ -19,21 +19,21 @@ import java.util.function.Supplier;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.json.JsonRuntimeException;
-import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.base.model.entity.metadata.Metadata;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.headers.entitytag.EntityTag;
 import org.eclipse.ditto.base.model.json.FieldType;
+import org.eclipse.ditto.internal.utils.persistentactors.results.Result;
+import org.eclipse.ditto.internal.utils.persistentactors.results.ResultFactory;
+import org.eclipse.ditto.json.JsonMergePatch;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.json.JsonRuntimeException;
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.ThingsModelFactory;
-import org.eclipse.ditto.internal.utils.persistentactors.results.Result;
-import org.eclipse.ditto.internal.utils.persistentactors.results.ResultFactory;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommandSizeValidator;
 import org.eclipse.ditto.things.model.signals.commands.ThingResourceMapper;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingMergeInvalidException;
@@ -109,8 +109,8 @@ final class MergeThingStrategy extends AbstractThingCommandStrategy<MergeThing> 
     private Thing mergeThing(final Context<ThingId> context, final MergeThing command, final Thing thing,
             final Instant eventTs, final long nextRevision) {
         final JsonObject existingThingJson = thing.toJson(FieldType.all());
-        final JsonObject mergePatch = JsonFactory.newObject(command.getPath(), command.getValue());
-        final JsonObject mergedJson = JsonFactory.mergeJsonValues(mergePatch, existingThingJson).asObject();
+        final JsonMergePatch jsonMergePatch = JsonMergePatch.of(command.getPath(), command.getValue());
+        final JsonObject mergedJson = jsonMergePatch.applyOn(existingThingJson).asObject();
 
         ThingCommandSizeValidator.getInstance().ensureValidSize(
                 mergedJson::getUpperBoundForStringSize,

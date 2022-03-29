@@ -26,6 +26,7 @@ import org.eclipse.ditto.base.model.acks.AcknowledgementRequest;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.connectivity.api.ExternalMessage;
 import org.eclipse.ditto.connectivity.api.ExternalMessageFactory;
@@ -184,17 +185,33 @@ public final class OutboundMappingProcessor extends AbstractMappingProcessor<Out
                 .map(extra -> ProtocolFactory.setExtra(adaptableWithoutExtra, extra))
                 .orElse(adaptableWithoutExtra);
 
+        final var adaptableWithInternalCorrelationId = mappableSignals.stream()
+                .findFirst()
+                .map(signal -> setInternalCorrelationIdToAdaptable(adaptable, signal.getSource()))
+                .orElse(adaptable);
+
         return timer.overall(() -> mappableSignals.stream()
                 .flatMap(mappableSignal -> {
                     final Signal<?> source = mappableSignal.getSource();
                     final List<Target> targets = mappableSignal.getTargets();
                     final List<MessageMapper> mappers = getMappers(mappableSignal.getPayloadMapping());
-                    logger.withCorrelationId(adaptable)
+                    logger.withCorrelationId(adaptableWithInternalCorrelationId)
                             .debug("Resolved mappers for message {} to targets {}: {}", source, targets, mappers);
                     // convert messages in the order of payload mapping and forward to result handler
-                    return mappers.stream().flatMap(mapper -> runMapper(mappableSignal, adaptable, mapper, timer));
+                    return mappers.stream()
+                            .flatMap(mapper -> runMapper(mappableSignal, adaptableWithInternalCorrelationId, mapper,
+                                    timer));
                 })
-                .collect(Collectors.toList()));
+                .toList());
+    }
+
+    private static Adaptable setInternalCorrelationIdToAdaptable(final Adaptable adaptable,
+            final WithDittoHeaders internalSignal) {
+        final var optionalCorrelationId = internalSignal.getDittoHeaders().getCorrelationId();
+        final Adaptable result;
+        result = optionalCorrelationId.map(s -> adaptable.setDittoHeaders(
+                adaptable.getDittoHeaders().toBuilder().correlationId(s).build())).orElse(adaptable);
+        return result;
     }
 
     private Stream<MappingOutcome<OutboundSignal.Mapped>> runMapper(final OutboundSignal.Mappable outboundSignal,

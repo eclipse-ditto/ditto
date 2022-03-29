@@ -41,6 +41,7 @@ import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.connectivity.model.ConnectionIdInvalidException;
 import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
 import org.eclipse.ditto.connectivity.model.ConnectivityStatus;
+import org.eclipse.ditto.connectivity.model.RecoveryStatus;
 import org.eclipse.ditto.connectivity.model.signals.commands.ConnectivityCommand;
 import org.eclipse.ditto.connectivity.model.signals.commands.exceptions.ConnectionNotAccessibleException;
 import org.eclipse.ditto.connectivity.model.signals.commands.exceptions.ConnectionUnavailableException;
@@ -202,9 +203,11 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
                 RetrieveConnectionStatusResponse.getBuilder(connectionId, dittoHeadersWithCorrelationId)
                         .connectionStatus(ConnectivityStatus.OPEN)
                         .liveStatus(ConnectivityStatus.OPEN)
+                        .recoveryStatus(RecoveryStatus.SUCCEEDED)
                         .connectedSince(INSTANT)
                         .clientStatus(List.of(ConnectivityModelFactory.newClientStatus("client1",
                                 ConnectivityStatus.OPEN,
+                                RecoveryStatus.SUCCEEDED,
                                 "connection is open",
                                 INSTANT)))
                         .sourceStatus(List.of(ConnectivityModelFactory.newSourceStatus("client1",

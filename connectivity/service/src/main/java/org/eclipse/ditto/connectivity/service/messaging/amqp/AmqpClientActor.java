@@ -47,6 +47,7 @@ import org.eclipse.ditto.connectivity.model.ConnectionType;
 import org.eclipse.ditto.connectivity.model.ConnectivityStatus;
 import org.eclipse.ditto.connectivity.model.MetricDirection;
 import org.eclipse.ditto.connectivity.model.MetricType;
+import org.eclipse.ditto.connectivity.model.RecoveryStatus;
 import org.eclipse.ditto.connectivity.model.signals.commands.exceptions.ConnectionFailedException;
 import org.eclipse.ditto.connectivity.model.signals.commands.modify.TestConnection;
 import org.eclipse.ditto.connectivity.service.config.Amqp10Config;
@@ -511,6 +512,7 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
             recoverSession(jmsSession);
         }
         return stay().using(currentData.setConnectionStatus(ConnectivityStatus.OPEN)
+                .setRecoveryStatus(RecoveryStatus.SUCCEEDED)
                 .setConnectionStatusDetails("Connection restored"));
     }
 

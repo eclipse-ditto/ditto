@@ -34,6 +34,7 @@ import org.eclipse.ditto.thingsearch.service.persistence.write.model.AbstractWri
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.Metadata;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.ThingDeleteModel;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.WriteResultAndErrors;
+import org.eclipse.ditto.thingsearch.service.updater.actors.MongoWriteModel;
 
 import com.mongodb.ErrorCategory;
 import com.mongodb.bulk.BulkWriteError;
@@ -77,7 +78,7 @@ final class BulkWriteResultAckFlow {
     private Iterable<String> checkBulkWriteResult(final WriteResultAndErrors writeResultAndErrors) {
         if (wasNotAcknowledged(writeResultAndErrors)) {
             // All failed.
-            acknowledgeFailures(getAllMetadata(writeResultAndErrors));
+            acknowledgeFailures(getAllMetadata(writeResultAndErrors), writeResultAndErrors.getBulkWriteCorrelationId());
             return Collections.singleton(logResult("NotAcknowledged", writeResultAndErrors, false,
                     false));
         } else {
@@ -85,7 +86,8 @@ final class BulkWriteResultAckFlow {
             switch (consistencyError.status) {
                 case CONSISTENCY_ERROR:
                     // write result is not consistent; there is a bug with Ditto or with its environment
-                    acknowledgeFailures(getAllMetadata(writeResultAndErrors));
+                    acknowledgeFailures(getAllMetadata(writeResultAndErrors),
+                            writeResultAndErrors.getBulkWriteCorrelationId());
 
                     return Collections.singleton(consistencyError.message);
                 case INCORRECT_PATCH:
@@ -108,13 +110,22 @@ final class BulkWriteResultAckFlow {
         // Some patches are not applied due to inconsistent sequence number in the search index.
         // It is not possible to identify which patches are not applied; therefore request all patch updates to retry.
         writeResultAndErrors.getWriteModels().forEach(model -> {
-            final var response =
-                    createFailureResponse(model.getMetadata(), INCORRECT_PATCH_HEADERS.toBuilder()
-                            .correlationId(writeResultAndErrors.getBulkWriteCorrelationId()).build());
-            LOGGER.withCorrelationId(writeResultAndErrors.getBulkWriteCorrelationId())
-                    .warn("Encountered incorrect patch update for metadata: <{}> and filter: <{}>",
-                            model.getMetadata(), model.getFilter());
-            model.getMetadata().getOrigin().ifPresent(updater -> updater.tell(response, ActorRef.noSender()));
+            if (model.isPatchUpdate()) {
+                final var abstractModel = model.getDitto();
+                final var response =
+                        createFailureResponse(abstractModel.getMetadata(), INCORRECT_PATCH_HEADERS.toBuilder()
+                                .correlationId(writeResultAndErrors.getBulkWriteCorrelationId()).build());
+                LOGGER.withCorrelationId(writeResultAndErrors.getBulkWriteCorrelationId())
+                        .warn("Encountered incorrect patch update for metadata: <{}> and filter: <{}>",
+                                abstractModel.getMetadata(), abstractModel.getFilter());
+                abstractModel.getMetadata()
+                        .getOrigin()
+                        .ifPresent(updater -> updater.tell(response, ActorRef.noSender()));
+            } else {
+                LOGGER.withCorrelationId(writeResultAndErrors.getBulkWriteCorrelationId())
+                        .info("Skipping retry of full update in a batch with an incorrect patch: <{}>",
+                                model.getDitto().getMetadata().getThingId());
+            }
         });
     }
 
@@ -126,7 +137,8 @@ final class BulkWriteResultAckFlow {
         logEntries.add(logResult("Acknowledged", writeResultAndErrors, errors.isEmpty(), containsIncorrectPatch));
         final BitSet failedIndices = new BitSet(writeResultAndErrors.getWriteModels().size());
         for (final BulkWriteError error : errors) {
-            final Metadata metadata = writeResultAndErrors.getWriteModels().get(error.getIndex()).getMetadata();
+            final Metadata metadata =
+                    writeResultAndErrors.getWriteModels().get(error.getIndex()).getDitto().getMetadata();
             logEntries.add(String.format("UpdateFailed for %s due to %s", metadata, error));
             if (error.getCategory() != ErrorCategory.DUPLICATE_KEY) {
                 failedIndices.set(error.getIndex());
@@ -134,24 +146,29 @@ final class BulkWriteResultAckFlow {
                 // duplicate key error is considered success
             }
         }
-        acknowledgeFailures(failedMetadata);
-        acknowledgeSuccesses(failedIndices, writeResultAndErrors.getWriteModels());
+        acknowledgeFailures(failedMetadata, writeResultAndErrors.getBulkWriteCorrelationId());
+        acknowledgeSuccesses(failedIndices, writeResultAndErrors.getBulkWriteCorrelationId(),
+                writeResultAndErrors.getWriteModels());
 
         return logEntries;
     }
 
-    private static void acknowledgeSuccesses(final BitSet failedIndices, final List<AbstractWriteModel> writeModels) {
+    private static void acknowledgeSuccesses(final BitSet failedIndices, final String bulkWriteCorrelationId,
+            final List<MongoWriteModel> writeModels) {
         for (int i = 0; i < writeModels.size(); ++i) {
             if (!failedIndices.get(i)) {
-                writeModels.get(i).getMetadata().sendAck();
+                final var metadata = writeModels.get(i).getDitto().getMetadata();
+                metadata.sendAck();
+                metadata.sendBulkWriteCompleteToOrigin(bulkWriteCorrelationId);
             }
         }
     }
 
-    private void acknowledgeFailures(final Collection<Metadata> metadataList) {
+    private void acknowledgeFailures(final Collection<Metadata> metadataList, final String bulkWriteCorrelationId) {
         errorsCounter.increment(metadataList.size());
         for (final Metadata metadata : metadataList) {
             metadata.sendNAck(); // also stops timer even if no acknowledgement is requested
+            metadata.sendBulkWriteCompleteToOrigin(bulkWriteCorrelationId);
             final UpdateThingResponse response = createFailureResponse(metadata, DittoHeaders.empty());
             metadata.getOrigin().ifPresentOrElse(
                     origin -> origin.tell(response, ActorRef.noSender()),
@@ -217,7 +234,7 @@ final class BulkWriteResultAckFlow {
     private static boolean areUpdatesMissing(final WriteResultAndErrors resultAndErrors) {
         final var result = resultAndErrors.getBulkWriteResult();
         final long writeModelCount = resultAndErrors.getWriteModels().stream()
-                .filter(writeModel -> !(writeModel instanceof ThingDeleteModel))
+                .filter(writeModel -> !(writeModel.getDitto() instanceof ThingDeleteModel))
                 .count();
         final long matchedCount = result.getMatchedCount();
         final long upsertCount = result.getUpserts().size();
@@ -233,6 +250,7 @@ final class BulkWriteResultAckFlow {
     private static List<Metadata> getAllMetadata(final WriteResultAndErrors writeResultAndErrors) {
         return writeResultAndErrors.getWriteModels()
                 .stream()
+                .map(MongoWriteModel::getDitto)
                 .map(AbstractWriteModel::getMetadata)
                 .collect(Collectors.toList());
     }

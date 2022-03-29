@@ -25,7 +25,6 @@ import javax.net.ssl.SSLContext;
 
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.connectivity.api.BaseClientState;
 import org.eclipse.ditto.connectivity.model.ClientCertificateCredentials;
 import org.eclipse.ditto.connectivity.model.Connection;
@@ -40,7 +39,7 @@ import org.eclipse.ditto.connectivity.service.messaging.AbstractBaseClientActorT
 import org.eclipse.ditto.connectivity.service.messaging.TestConstants;
 import org.eclipse.ditto.connectivity.service.messaging.internal.ssl.SSLContextCreator;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.logs.ConnectionLogger;
-import org.eclipse.ditto.protocol.Adaptable;
+import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.protocol.ProtocolFactory;
 import org.eclipse.ditto.protocol.adapter.DittoProtocolAdapter;
 import org.eclipse.ditto.protocol.adapter.ProtocolAdapter;
@@ -342,12 +341,16 @@ public final class HttpPushClientActorTest extends AbstractBaseClientActorTest {
             assertThat(thingModifiedRequest.getHeader(customHeaderKey)).isEmpty();
 
             // THEN: the payload is the JSON string of the event as a Ditto protocol message
-            assertThat(thingModifiedRequest.entity()
+            // Remove headers, since the header order can be different.
+            assertThat(ProtocolFactory.jsonifiableAdaptableFromJson(JsonObject.of(thingModifiedRequest
+                    .entity()
                     .toStrict(10_000, SystemMaterializer.get(actorSystem).materializer())
                     .toCompletableFuture()
                     .join()
                     .getData()
-                    .utf8String()).isEqualTo(toJsonString(ADAPTER.toAdaptable((Signal<?>) thingModifiedEvent)));
+                    .utf8String())).setDittoHeaders(DittoHeaders.empty()).toJsonString()).isEqualTo(
+                    ProtocolFactory.wrapAsJsonifiableAdaptable(ADAPTER.toAdaptable(thingModifiedEvent))
+                            .setDittoHeaders(DittoHeaders.empty()).toJsonString());
         }};
     }
 
@@ -373,10 +376,6 @@ public final class HttpPushClientActorTest extends AbstractBaseClientActorTest {
             responseQueue.offer(HttpResponse.create().withStatus(StatusCodes.OK));
             assertThat(thingModifiedRequest.getUri().getPathString()).isEqualTo("/target:ditto/thing@twin");
         }};
-    }
-
-    private static String toJsonString(final Adaptable adaptable) {
-        return ProtocolFactory.wrapAsJsonifiableAdaptable(adaptable).toJsonString();
     }
 
 }

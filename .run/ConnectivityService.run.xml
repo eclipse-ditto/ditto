@@ -20,7 +20,7 @@
     </envs>
     <option name="MAIN_CLASS_NAME" value="org.eclipse.ditto.connectivity.service.ConnectivityService" />
     <module name="ditto-connectivity-service" />
-    <option name="VM_PARAMETERS" value="-Xms512m -Xmx512m --add-opens java.base/java.nio=ALL-UNNAMED --add-opens java.base/sun.nio.ch=ALL-UNNAMED" />
+    <option name="VM_PARAMETERS" value="-Xms512m -Xmx512m --add-opens java.base/java.nio=ALL-UNNAMED --add-opens java.base/sun.nio.ch=ALL-UNNAMED --add-opens java.base/sun.security.util=ALL-UNNAMED" />
     <extension name="coverage">
       <pattern>
         <option name="PATTERN" value="org.eclipse.ditto.services.connectivity.*" />

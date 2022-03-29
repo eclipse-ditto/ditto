@@ -44,7 +44,8 @@ final class PipelineFunctionSubstringAfter implements PipelineFunction {
 
         return value.onResolved(previousStage -> PipelineElement.resolved(resolved.toStream()
                 .filter(previousStage::contains)
-                .map(splitValue -> previousStage.substring(previousStage.indexOf(splitValue) + 1))
+                .map(splitValue -> previousStage.substring(previousStage.indexOf(splitValue) +
+                        splitValue.length()))
                 .collect(Collectors.toList())));
     }
 

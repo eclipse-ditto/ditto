@@ -87,8 +87,11 @@ final class RetrieveThingStrategy extends AbstractThingCommandStrategy<RetrieveT
         if (wotThingDescriptionRequested) {
             FeatureToggle.checkWotIntegrationFeatureEnabled(command.getType(), command.getDittoHeaders());
             try {
-                return ResultFactory.newQueryResult(command,
-                        appendETagHeaderIfProvided(command, getRetrieveThingDescriptionResponse(thing, command), thing));
+                // don't apply preconditions and don't provide etag in response
+                final RetrieveThing commandWithoutPreconditions = command.setDittoHeaders(
+                        command.getDittoHeaders().toBuilder().removePreconditionHeaders().build());
+                return ResultFactory.newQueryResult(commandWithoutPreconditions,
+                        getRetrieveThingDescriptionResponse(thing, commandWithoutPreconditions));
             } catch (final DittoRuntimeException e) {
                 return ResultFactory.newErrorResult(e, command);
             }

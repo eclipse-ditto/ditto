@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Contributors to the Eclipse Foundation
+ * Copyright (c) 2022 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -12,25 +12,151 @@
  */
 package org.eclipse.ditto.json;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.assertj.core.api.Assertions;
-import org.junit.Ignore;
 import org.junit.Test;
 
-/**
- * Tests {@link org.eclipse.ditto.json.JsonValueMerger}.
- */
-public class JsonValueMergerTest {
+import nl.jqno.equalsverifier.EqualsVerifier;
 
-    private static JsonValue merge(final JsonValue value1, final JsonValue value2) {
-        return JsonValueMerger.mergeJsonValues(value1, value2);
-    }
+public final class JsonMergePatchTest {
 
     @Test
     public void assertImmutability() {
-        assertInstancesOf(JsonValueMerger.class, areImmutable());
+        assertInstancesOf(JsonMergePatch.class,
+                areImmutable(),
+                provided(JsonValue.class).isAlsoImmutable());
+    }
+
+    @Test
+    public void testHashCodeAndEquals() {
+        EqualsVerifier.forClass(JsonMergePatch.class)
+                .usingGetClass()
+                .verify();
+    }
+
+    @Test
+    public void computesDiffForSingleValue() {
+        final JsonObject oldValue = JsonObject.newBuilder()
+                .set("Test", "Foo")
+                .build();
+
+        final JsonObject newValue = JsonObject.newBuilder()
+                .set("Test", "Bar")
+                .build();
+
+        final JsonMergePatch expected = JsonMergePatch.of(newValue);
+        assertThat(JsonMergePatch.compute(oldValue, newValue)).contains(expected);
+        assertThat(expected.applyOn(oldValue)).isEqualTo(newValue);
+    }
+
+    @Test
+    public void computesDiffWhenNewValueIsNotAnObject() {
+        final JsonObject oldValue = JsonObject.newBuilder()
+                .set("Test", "Foo")
+                .build();
+
+        final JsonValue newValue = JsonValue.of("bumlux");
+
+        final JsonMergePatch expected = JsonMergePatch.of(newValue);
+        assertThat(JsonMergePatch.compute(oldValue, newValue)).contains(expected);
+        assertThat(expected.applyOn(oldValue)).isEqualTo(newValue);
+    }
+
+    @Test
+    public void computesDiffWhenOldValueIsNotAnObject() {
+        final JsonValue oldValue = JsonValue.of("bumlux");
+
+        final JsonObject newValue = JsonObject.newBuilder()
+                .set("Test", "Bar")
+                .build();
+
+        final JsonMergePatch expected = JsonMergePatch.of(newValue);
+        assertThat(JsonMergePatch.compute(oldValue, newValue)).contains(expected);
+        assertThat(expected.applyOn(oldValue)).isEqualTo(newValue);
+    }
+
+    @Test
+    public void computesDiffWhenFieldWasDeleted() {
+        final JsonObject oldValue = JsonObject.newBuilder()
+                .set("Test", "Foo")
+                .set("Bum", "Lux")
+                .build();
+
+        final JsonObject newValue = JsonObject.newBuilder()
+                .set("Test", "Bar")
+                .build();
+
+        final JsonMergePatch expected = JsonMergePatch.of(newValue.setValue("Bum", JsonValue.nullLiteral()));
+        assertThat(JsonMergePatch.compute(oldValue, newValue)).contains(expected);
+        assertThat(expected.applyOn(oldValue)).isEqualTo(newValue);
+    }
+
+    @Test
+    public void computesDiffForSingleValueOutOfMultipleValues() {
+        final JsonObject oldValue = JsonObject.newBuilder()
+                .set("Test", "Foo")
+                .set("Bum", "Lux")
+                .build();
+
+        final JsonObject newValue = JsonObject.newBuilder()
+                .set("Test", "Bar")
+                .set("Bum", "Lux")
+                .build();
+
+        final JsonMergePatch expected = JsonMergePatch.of(JsonObject.newBuilder()
+                .set("Test", "Bar")
+                .build());
+
+        assertThat(JsonMergePatch.compute(oldValue, newValue)).contains(expected);
+        assertThat(expected.applyOn(oldValue)).isEqualTo(newValue);
+    }
+
+    @Test
+    public void computesDiffForMultipleValues() {
+        final JsonObject oldValue = JsonObject.newBuilder()
+                .set("Test", "Foo")
+                .set("Bum", "Lux")
+                .build();
+
+        final JsonObject newValue = JsonObject.newBuilder()
+                .set("Test", "Bar")
+                .set("Bum", "Luxes")
+                .build();
+
+        final JsonMergePatch expected = JsonMergePatch.of(newValue);
+
+        assertThat(JsonMergePatch.compute(oldValue, newValue)).contains(expected);
+        assertThat(expected.applyOn(oldValue)).isEqualTo(newValue);
+    }
+
+    @Test
+    public void computesDiffForNested() {
+        final JsonObject oldValue = JsonObject.newBuilder()
+                .set("nested", JsonObject.newBuilder()
+                        .set("Test", "Foo")
+                        .set("Bum", "Lux")
+                        .build())
+                .build();
+
+        final JsonObject newValue = JsonObject.newBuilder()
+                .set("nested", JsonObject.newBuilder()
+                        .set("Test", "Bar")
+                        .set("Bum", "Lux")
+                        .build())
+                .build();
+
+        final JsonMergePatch expected = JsonMergePatch.of(JsonObject.newBuilder()
+                .set("nested", JsonObject.newBuilder()
+                        .set("Test", "Bar")
+                        .build())
+                .build());
+
+        assertThat(JsonMergePatch.compute(oldValue, newValue)).contains(expected);
+        assertThat(expected.applyOn(oldValue)).isEqualTo(newValue);
     }
 
     @Test
@@ -65,7 +191,7 @@ public class JsonValueMergerTest {
                 .set("phoneNumber", "+01-123-456-7890")
                 .build();
 
-        final JsonValue mergedObject = merge(objectToPatch, originalObject);
+        final JsonValue mergedObject = JsonMergePatch.of(objectToPatch).applyOn(originalObject);
 
         Assertions.assertThat(mergedObject).isEqualTo(expectedObject);
     }
@@ -85,8 +211,7 @@ public class JsonValueMergerTest {
                 .set("a", "c")
                 .build();
 
-        final JsonValue mergedObject =
-                merge(objectToPatch, originalObject);
+        final JsonValue mergedObject = JsonMergePatch.of(objectToPatch).applyOn(originalObject);
 
         Assertions.assertThat(mergedObject).isEqualTo(expectedObject);
     }
@@ -104,7 +229,7 @@ public class JsonValueMergerTest {
                 .set("b", "c")
                 .build();
 
-        final JsonValue mergedObject = merge(objectToPatch, originalObject);
+        final JsonValue mergedObject = JsonMergePatch.of(objectToPatch).applyOn(originalObject);
 
         Assertions.assertThat(mergedObject).isEqualTo(expectedObject);
     }
@@ -121,7 +246,7 @@ public class JsonValueMergerTest {
 
         final JsonObject expectedObject = JsonObject.empty();
 
-        final JsonValue mergedObject = merge(objectToPatch, originalObject);
+        final JsonValue mergedObject = JsonMergePatch.of(objectToPatch).applyOn(originalObject);
 
         Assertions.assertThat(mergedObject).isEqualTo(expectedObject);
     }
@@ -141,7 +266,7 @@ public class JsonValueMergerTest {
                 .set("b", "c")
                 .build();
 
-        final JsonValue mergedObject = merge(objectToPatch, originalObject);
+        final JsonValue mergedObject = JsonMergePatch.of(objectToPatch).applyOn(originalObject);
 
         Assertions.assertThat(mergedObject).isEqualTo(expectedObject);
     }
@@ -160,7 +285,7 @@ public class JsonValueMergerTest {
                 .set("a", "c")
                 .build();
 
-        final JsonValue mergedObject = merge(objectToPatch, originalObject);
+        final JsonValue mergedObject = JsonMergePatch.of(objectToPatch).applyOn(originalObject);
 
         Assertions.assertThat(mergedObject).isEqualTo(expectedObject);
     }
@@ -179,7 +304,7 @@ public class JsonValueMergerTest {
                 .set("a", JsonFactory.newArray("[\"b\"]"))
                 .build();
 
-        final JsonValue mergedObject = merge(objectToPatch, originalObject);
+        final JsonValue mergedObject = JsonMergePatch.of(objectToPatch).applyOn(originalObject);
 
         Assertions.assertThat(mergedObject).isEqualTo(expectedObject);
     }
@@ -205,7 +330,7 @@ public class JsonValueMergerTest {
                         .build())
                 .build();
 
-        final JsonValue mergedObject = merge(objectToPatch, originalObject);
+        final JsonValue mergedObject = JsonMergePatch.of(objectToPatch).applyOn(originalObject);
 
         Assertions.assertThat(mergedObject).isEqualTo(expectedObject);
     }
@@ -226,7 +351,7 @@ public class JsonValueMergerTest {
                 .set("a", JsonFactory.newArray("[1]"))
                 .build();
 
-        final JsonValue mergedObject = merge(objectToPatch, originalObject);
+        final JsonValue mergedObject = JsonMergePatch.of(objectToPatch).applyOn(originalObject);
 
         Assertions.assertThat(mergedObject).isEqualTo(expectedObject);
     }
@@ -241,7 +366,7 @@ public class JsonValueMergerTest {
 
         final JsonValue expectedObject = JsonValue.nullLiteral();
 
-        final JsonValue mergedObject = merge(objectToPatch, originalObject);
+        final JsonValue mergedObject = JsonMergePatch.of(objectToPatch).applyOn(originalObject);
 
         Assertions.assertThat(mergedObject).isEqualTo(expectedObject);
     }
@@ -256,7 +381,7 @@ public class JsonValueMergerTest {
 
         final JsonValue expectedObject = JsonFactory.newValue("bar");
 
-        final JsonValue mergedObject = merge(objectToPatch, originalObject);
+        final JsonValue mergedObject = JsonMergePatch.of(objectToPatch).applyOn(originalObject);
 
         Assertions.assertThat(mergedObject).isEqualTo(expectedObject);
     }
@@ -276,7 +401,7 @@ public class JsonValueMergerTest {
                 .set("a", 1)
                 .build();
 
-        final JsonValue mergedObject = merge(objectToPatch, originalObject);
+        final JsonValue mergedObject = JsonMergePatch.of(objectToPatch).applyOn(originalObject);
 
         Assertions.assertThat(mergedObject).isEqualTo(expectedObject);
     }
@@ -294,7 +419,7 @@ public class JsonValueMergerTest {
                 .set("a", "b")
                 .build();
 
-        final JsonValue mergedObject = merge(objectToPatch, originalObject);
+        final JsonValue mergedObject = JsonMergePatch.of(objectToPatch).applyOn(originalObject);
 
         Assertions.assertThat(mergedObject).isEqualTo(expectedObject);
     }
@@ -317,8 +442,9 @@ public class JsonValueMergerTest {
                         .build())
                 .build();
 
-        final JsonValue mergedObject = merge(objectToPatch, originalObject);
+        final JsonValue mergedObject = JsonMergePatch.of(objectToPatch).applyOn(originalObject);
 
         Assertions.assertThat(mergedObject).isEqualTo(expectedObject);
     }
+
 }

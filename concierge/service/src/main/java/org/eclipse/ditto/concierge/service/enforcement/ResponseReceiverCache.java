@@ -159,6 +159,22 @@ final class ResponseReceiverCache implements Extension {
     }
 
     /**
+     * Invalidates the cached response receiver for the specified correlation ID argument.
+     *
+     * @param correlationId the correlation ID to invalidate the cached response receiver for.
+     * @throws NullPointerException if {@code correlationId} is {@code null}.
+     * @throws IllegalArgumentException if {@code correlationId} is empty or blank.
+     */
+    public void invalidate(final CharSequence correlationId) {
+        final var correlationIdString = checkNotNull(correlationId, "correlationId").toString();
+        ConditionChecker.checkArgument(correlationIdString,
+                Predicate.not(String::isBlank),
+                () -> "The correlationId must not be blank.");
+
+        cache.invalidate(CorrelationIdKey.forCacheRetrieval(correlationIdString));
+    }
+
+    /**
      * Insert a response receiver for a live or message command.
      *
      * @param signal the live or message command.

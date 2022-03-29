@@ -50,7 +50,7 @@ To create a Thing (instance) and create the Thing JSON skeleton following the Wo
 a Thing via the Ditto HTTP API (e.g. `PUT /api/2/things/<thingId>`):
 
 ```bash
-curl --location --request PUT -u ditto:ditto 'http://localhost:8080/api/2/things/io.eclipseprojects.ditto:floor-lamp-0815' \
+curl --location --request PUT -u ditto:ditto 'https://ditto.eclipseprojects.io/api/2/things/io.eclipseprojects.ditto:floor-lamp-0815' \
 --header 'Content-Type: application/json' \
 --data-raw '{
     "definition": "https://eclipse.github.io/ditto-examples/wot/models/floor-lamp-1.0.0.tm.jsonld"
@@ -168,7 +168,7 @@ You see that:
 The Thing we just created can now be asked for its capabilities / interaction affordances by sending the following request:
 
 ```bash
-curl --location --request GET -u ditto:ditto 'http://localhost:8080/api/2/things/io.eclipseprojects.ditto:floor-lamp-0815' \
+curl --location --request GET -u ditto:ditto 'https://ditto.eclipseprojects.io/api/2/things/io.eclipseprojects.ditto:floor-lamp-0815' \
 --header 'Accept: application/td+json'
 ```
 
@@ -189,7 +189,7 @@ That should result in an HTTP status code `200` (OK) and return the following bo
     "instance": "1.0.0"
   },
   "id": "urn:io.eclipseprojects.ditto:floor-lamp-0815",
-  "base": "http://localhost:8080/api/2/things/io.eclipseprojects.ditto:floor-lamp-0815",
+  "base": "https://ditto.eclipseprojects.io/api/2/things/io.eclipseprojects.ditto:floor-lamp-0815",
   "links": [
     {
       "rel": "type",
@@ -531,7 +531,7 @@ You see that:
 In order to inspect which capabilities / interaction affordances now a Feature provides, simply perform such a query:
 
 ```bash
-curl --location --request GET -u ditto:ditto 'http://localhost:8080/api/2/things/io.eclipseprojects.ditto:floor-lamp-0815/features/Spot1' \
+curl --location --request GET -u ditto:ditto 'https://ditto.eclipseprojects.io/api/2/things/io.eclipseprojects.ditto:floor-lamp-0815/features/Spot1' \
 --header 'Accept: application/td+json'
 ```
 
@@ -550,11 +550,11 @@ That should result in an HTTP status code `200` (OK) and return the following bo
     "instance": "1.0.0"
   },
   "id": "urn:io.eclipseprojects.ditto:floor-lamp-0815/features/Spot1",
-  "base": "http://localhost:8080/api/2/things/io.eclipseprojects.ditto:floor-lamp-0815/features/Spot1",
+  "base": "https://ditto.eclipseprojects.io/api/2/things/io.eclipseprojects.ditto:floor-lamp-0815/features/Spot1",
   "links": [
     {
       "rel": "collection",
-      "href": "http://localhost:8080/api/2/things/io.eclipseprojects.ditto:floor-lamp-0815",
+      "href": "https://ditto.eclipseprojects.io/api/2/things/io.eclipseprojects.ditto:floor-lamp-0815",
       "type": "application/td+json"
     },
     {

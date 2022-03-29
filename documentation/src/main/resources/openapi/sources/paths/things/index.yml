@@ -39,6 +39,11 @@ get:
             type: array
             items:
               $ref: '../../schemas/things/thing.yml'
+        application/td+json:
+          schema:
+            type: array
+            items:
+              $ref: '../../schemas/wot-thingDescription.yml'
     '400':
       description: |-
         The request could not be completed. At least one of the defined query parameters was invalid.

@@ -17,7 +17,8 @@
       <env name="ACTIVITY_CHECK_INTERVAL" value="1h" />
       <env name="BACKGROUND_SYNC_QUIET_PERIOD" value="1h" />
       <env name="THINGS_SEARCH_UPDATER_STREAM_PERSISTENCE_PARALLELISM" value="4" />
-      <env name="THINGS_SEARCH_UPDATER_STREAM_WRITE_INTERVAL" value="30s" />
+      <env name="THINGS_SEARCH_UPDATER_STREAM_WRITE_INTERVAL" value="1s" />
+      <env name="THINGS_SEARCH_UPDATER_STREAM_PERSISTENCE_MAX_BULK_SIZE" value="8" />
     </envs>
     <option name="MAIN_CLASS_NAME" value="org.eclipse.ditto.thingsearch.service.starter.SearchService" />
     <module name="ditto-thingsearch-service" />

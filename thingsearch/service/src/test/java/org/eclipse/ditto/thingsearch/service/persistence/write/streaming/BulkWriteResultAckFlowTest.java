@@ -34,6 +34,7 @@ import org.eclipse.ditto.thingsearch.service.persistence.write.model.Metadata;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.ThingDeleteModel;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.ThingWriteModel;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.WriteResultAndErrors;
+import org.eclipse.ditto.thingsearch.service.updater.actors.MongoWriteModel;
 import org.junit.After;
 import org.junit.Test;
 
@@ -66,7 +67,7 @@ public final class BulkWriteResultAckFlowTest {
 
     @Test
     public void allSuccess() {
-        final List<AbstractWriteModel> writeModels = generate5WriteModels();
+        final List<MongoWriteModel> writeModels = generate5WriteModels();
         final BulkWriteResult result = BulkWriteResult.acknowledged(0, 3, 1, 1,
                 List.of(new BulkWriteUpsert(0, new BsonString("upsert 0")),
                         new BulkWriteUpsert(4, new BsonString("upsert 4")))
@@ -83,7 +84,7 @@ public final class BulkWriteResultAckFlowTest {
 
     @Test
     public void partialSuccess() {
-        final List<AbstractWriteModel> writeModels = generate5WriteModels();
+        final List<MongoWriteModel> writeModels = generate5WriteModels();
         final BulkWriteResult result = BulkWriteResult.acknowledged(1, 2, 1, 2, List.of(), List.of());
         final List<BulkWriteError> updateFailure = List.of(
                 new BulkWriteError(11000, "E11000 duplicate key error", new BsonDocument(), 3),
@@ -97,7 +98,7 @@ public final class BulkWriteResultAckFlowTest {
 
         // THEN: the non-duplicate-key error triggers a failure acknowledgement
         actorSystem.log().info(message);
-        assertThat(expectUpdateThingResponse(writeModels.get(4).getMetadata().getThingId()))
+        assertThat(expectUpdateThingResponse(writeModels.get(4).getDitto().getMetadata().getThingId()))
                 .describedAs("response is failure")
                 .returns(false, UpdateThingResponse::isSuccess);
         assertThat(message).contains("Acknowledged: PartialSuccess");
@@ -105,7 +106,7 @@ public final class BulkWriteResultAckFlowTest {
 
     @Test
     public void unexpectedMongoSocketReadException() {
-        final List<AbstractWriteModel> writeModels = generate5WriteModels();
+        final List<MongoWriteModel> writeModels = generate5WriteModels();
 
         // WHEN: BulkWriteResultAckFlow receives unexpected error
         final WriteResultAndErrors resultAndErrors = WriteResultAndErrors.unexpectedError(writeModels,
@@ -115,8 +116,8 @@ public final class BulkWriteResultAckFlowTest {
 
         // THEN: all ThingUpdaters receive negative acknowledgement.
         actorSystem.log().info(message);
-        for (final AbstractWriteModel writeModel : writeModels) {
-            assertThat(expectUpdateThingResponse(writeModel.getMetadata().getThingId()))
+        for (final var writeModel : writeModels) {
+            assertThat(expectUpdateThingResponse(writeModel.getDitto().getMetadata().getThingId()))
                     .describedAs("response is failure")
                     .returns(false, UpdateThingResponse::isSuccess);
         }
@@ -127,7 +128,7 @@ public final class BulkWriteResultAckFlowTest {
     // upsert indexes are not checked since they do not participate in acknowledgement handling.
     @Test
     public void errorIndexOutOfBoundError() {
-        final List<AbstractWriteModel> writeModels = generate5WriteModels();
+        final List<MongoWriteModel> writeModels = generate5WriteModels();
         final BulkWriteResult result = BulkWriteResult.acknowledged(1, 2, 1, 2, List.of(), List.of());
         final List<BulkWriteError> updateFailure = List.of(
                 new BulkWriteError(11000, "E11000 duplicate key error", new BsonDocument(), 0),
@@ -141,8 +142,9 @@ public final class BulkWriteResultAckFlowTest {
 
         // THEN: All updates are considered failures
         actorSystem.log().info(message);
-        for (final AbstractWriteModel writeModel : writeModels) {
-            final UpdateThingResponse response = expectUpdateThingResponse(writeModel.getMetadata().getThingId());
+        for (final MongoWriteModel writeModel : writeModels) {
+            final UpdateThingResponse response =
+                    expectUpdateThingResponse(writeModel.getDitto().getMetadata().getThingId());
             assertThat(response).describedAs("response is failure").returns(false, UpdateThingResponse::isSuccess);
         }
         assertThat(message).contains("ConsistencyError[indexOutOfBound]");
@@ -152,7 +154,7 @@ public final class BulkWriteResultAckFlowTest {
     public void acknowledgements() {
         final List<TestProbe> probes =
                 IntStream.range(0, 5).mapToObj(i -> TestProbe.apply(actorSystem)).collect(Collectors.toList());
-        final List<AbstractWriteModel> writeModels = generateWriteModels(probes);
+        final List<MongoWriteModel> writeModels = generateWriteModels(probes);
         final BulkWriteResult result = BulkWriteResult.acknowledged(1, 2, 1, 2, List.of(), List.of());
         final List<BulkWriteError> updateFailure = List.of(
                 new BulkWriteError(11000, "E11000 duplicate key error", new BsonDocument(), 3),
@@ -185,14 +187,14 @@ public final class BulkWriteResultAckFlowTest {
                 .join();
     }
 
-    private List<AbstractWriteModel> generate5WriteModels() {
+    private List<MongoWriteModel> generate5WriteModels() {
         return generateWriteModels(
                 IntStream.range(0, 5).mapToObj(i -> TestProbe.apply(actorSystem)).collect(Collectors.toList()));
     }
 
-    private List<AbstractWriteModel> generateWriteModels(final List<TestProbe> probes) {
+    private List<MongoWriteModel> generateWriteModels(final List<TestProbe> probes) {
         final int howMany = probes.size();
-        final List<AbstractWriteModel> writeModels = new ArrayList<>(howMany);
+        final List<MongoWriteModel> writeModels = new ArrayList<>(howMany);
         for (int i = 0; i < howMany; ++i) {
             final ThingId thingId = ThingId.of("thing", String.valueOf(i));
             final long thingRevision = i * 10;
@@ -200,11 +202,13 @@ public final class BulkWriteResultAckFlowTest {
             final long policyRevision = i * 100;
             final Metadata metadata =
                     Metadata.of(thingId, thingRevision, policyId, policyRevision, List.of(), null, probes.get(i).ref());
+            final AbstractWriteModel abstractModel;
             if (i % 2 == 0) {
-                writeModels.add(ThingDeleteModel.of(metadata));
+                abstractModel = ThingDeleteModel.of(metadata);
             } else {
-                writeModels.add(ThingWriteModel.of(metadata, new BsonDocument()));
+                abstractModel = ThingWriteModel.of(metadata, new BsonDocument());
             }
+            writeModels.add(MongoWriteModel.of(abstractModel, abstractModel.toMongo(), false));
         }
         return writeModels;
     }
