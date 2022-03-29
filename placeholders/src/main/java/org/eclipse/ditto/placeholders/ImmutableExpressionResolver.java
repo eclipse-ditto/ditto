@@ -107,7 +107,7 @@ final class ImmutableExpressionResolver implements ExpressionResolver {
         if (placeholderReplacementInValidation == null) {
             // normal mode
             final List<String> resolvedValues = resolverPair.getKey().resolveValues(resolverPair.getValue());
-            return resolvedValues.size() > 0 ? PipelineElement.resolved(resolvedValues) : PipelineElement.unresolved();
+            return resolvedValues.isEmpty() ? PipelineElement.resolved(resolvedValues) : PipelineElement.unresolved();
         } else {
             // validation mode: all placeholders resolve to dummy value.
             return PipelineElement.resolved(placeholderReplacementInValidation);

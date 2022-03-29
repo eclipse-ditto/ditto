@@ -67,8 +67,8 @@ final class ImmutableFeaturePlaceholder implements FeaturePlaceholder {
 
     private static List<String> resolveIdPlaceholder(final Signal<?> signal) {
         final List<String> featureIds;
-        if (signal instanceof WithFeatureId) {
-            featureIds = Collections.singletonList(((WithFeatureId) signal).getFeatureId());
+        if (signal instanceof WithFeatureId withFeatureId) {
+            featureIds = Collections.singletonList((withFeatureId).getFeatureId());
         } else if (signal instanceof ThingModifyCommand || signal instanceof ThingModifiedEvent ||
                 signal instanceof ThingModifyCommandResponse) {
             featureIds = ((WithOptionalEntity) signal).getEntity()

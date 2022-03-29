@@ -161,7 +161,7 @@ public interface PipelineElement extends Iterable<String> {
      * @return the pipeline element.
      */
     static PipelineElement resolved(final Collection<String> values) {
-        return values.size() > 0 ? PipelineElementResolved.of(values) : PipelineElement.unresolved();
+        return values.isEmpty() ? PipelineElementResolved.of(values) : PipelineElement.unresolved();
     }
 
 
