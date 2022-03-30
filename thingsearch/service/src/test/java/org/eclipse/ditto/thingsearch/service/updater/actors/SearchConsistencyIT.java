@@ -243,14 +243,14 @@ public final class SearchConsistencyIT {
                 .append(PersistenceConstants.FIELD_POLICY_REVISION, new BsonInt64(INITIAL_REVISION))
                 .append(PersistenceConstants.FIELD_NAMESPACE, new BsonString(THING_ID.getNamespace()))
                 .append(PersistenceConstants.FIELD_GLOBAL_READ, new BsonString("integration:test"))
-                .append(PersistenceConstants.FIELD_SORTING, new BsonDocument())
+                .append(PersistenceConstants.FIELD_THING, new BsonDocument())
                 .append(PersistenceConstants.FIELD_INTERNAL, new BsonArray());
 
         return ThingWriteModel.of(metadata, thingDocument);
     }
 
     private static boolean documentIsExpected(final Map<String, Object> actual) {
-        final var sorting = (Document) actual.get(PersistenceConstants.FIELD_SORTING);
+        final var sorting = (Document) actual.get(PersistenceConstants.FIELD_THING);
         final var sortingAttributes = (Document) sorting.get(PersistenceConstants.FIELD_ATTRIBUTES);
         final var internal = (List<Document>) actual.get(PersistenceConstants.FIELD_INTERNAL);
 

@@ -12,10 +12,19 @@
  */
 package org.eclipse.ditto.thingsearch.service.persistence.write.mapping;
 
+import static org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants.FIELD_FEATURES;
+import static org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants.FIELD_FEATURE_ID;
+import static org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants.FIELD_F_ARRAY;
+import static org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants.FIELD_GLOBAL_READ;
+import static org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants.FIELD_NAMESPACE;
+import static org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants.FIELD_POLICY;
+import static org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants.FIELD_POLICY_ID;
+import static org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants.FIELD_POLICY_REVISION;
+import static org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants.FIELD_REVISION;
+import static org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants.FIELD_THING;
+
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
-import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
 
@@ -23,20 +32,13 @@ import org.bson.BsonArray;
 import org.bson.BsonDocument;
 import org.bson.BsonInt64;
 import org.bson.BsonString;
-import org.bson.BsonValue;
-import org.eclipse.ditto.json.JsonCollectors;
-import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.json.JsonKey;
-import org.eclipse.ditto.json.JsonNumber;
+import org.eclipse.ditto.internal.utils.persistence.mongo.DittoBsonJson;
+import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.policies.api.Permission;
-import org.eclipse.ditto.policies.model.Permissions;
 import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.ResourceKey;
-import org.eclipse.ditto.policies.model.enforcers.Enforcer;
-import org.eclipse.ditto.policies.model.enforcers.PolicyEnforcers;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommand;
@@ -112,94 +114,60 @@ public final class EnforcedThingMapper {
                         Optional.ofNullable(oldMetadata).map(Metadata::getSenders).orElse(List.of()))
                 .withOrigin(Optional.ofNullable(oldMetadata).flatMap(Metadata::getOrigin).orElse(null));
 
-        return ThingWriteModel.of(metadata, toBsonDocument(thing, policy, maxArraySize, metadata));
+        return ThingWriteModel.of(metadata, toBsonDocument(thing, policy, metadata));
     }
 
     static BsonDocument toBsonDocument(final JsonObject thing,
             final Policy policy,
-            final int maxArraySize,
             final Metadata metadata) {
 
-        final var enforcer = PolicyEnforcers.defaultEvaluator(policy);
         final var thingId = metadata.getThingId();
         final var thingRevision = metadata.getThingRevision();
         final var policyRevision = metadata.getPolicyRevision().orElse(0L);
-        final BsonValue thingCopyForSorting = JsonToBson.convert(pruneArrays(thing, maxArraySize));
-        final BsonArray flattenedValues = EnforcedThingFlattener.flattenJson(thing, enforcer, maxArraySize);
+        final var thingBson = DittoBsonJson.getInstance().parse(thing);
+        final var evaluatedPolicy = EvaluatedPolicy.of(policy, thing);
+        final var featureArray = getFeatureArray(thing, evaluatedPolicy);
+
         return new BsonDocument().append(PersistenceConstants.FIELD_ID, new BsonString(thingId.toString()))
-                .append(PersistenceConstants.FIELD_REVISION, new BsonInt64(thingRevision))
-                .append(PersistenceConstants.FIELD_NAMESPACE,
-                        new BsonString(metadata.getNamespaceInPersistence()))
-                .append(PersistenceConstants.FIELD_GLOBAL_READ, getGlobalRead(enforcer))
-                .append(PersistenceConstants.FIELD_POLICY_ID,
-                        new BsonString(metadata.getPolicyIdInPersistence()))
-                .append(PersistenceConstants.FIELD_POLICY_REVISION, new BsonInt64(policyRevision))
-                .append(PersistenceConstants.FIELD_SORTING, thingCopyForSorting)
-                .append(PersistenceConstants.FIELD_INTERNAL, flattenedValues);
+                .append(FIELD_NAMESPACE, new BsonString(thingId.getNamespace()))
+                .append(FIELD_GLOBAL_READ, evaluatedPolicy.getGlobalRead())
+                .append(FIELD_REVISION, new BsonInt64(thingRevision))
+                .append(FIELD_POLICY_ID, new BsonString(metadata.getPolicyIdInPersistence()))
+                .append(FIELD_POLICY_REVISION, new BsonInt64(policyRevision))
+                .append(FIELD_THING, thingBson)
+                .append(FIELD_POLICY, evaluatedPolicy.forThing())
+                .append(FIELD_F_ARRAY, featureArray);
     }
 
-    private static BsonArray getGlobalRead(final Enforcer enforcer) {
+    private static BsonArray getFeatureArray(final JsonObject thing, final EvaluatedPolicy evaluatedPolicy) {
+        final JsonObject features = thing.getValue(FIELD_FEATURES)
+                .filter(JsonValue::isObject)
+                .map(JsonValue::asObject)
+                .orElse(JsonObject.empty());
 
-        final BsonArray bsonArray = new BsonArray();
-
-        enforcer.getSubjectsWithPartialPermission(THING_ROOT_RESOURCE_KEY, Permissions.newInstance(Permission.READ))
-                .stream()
-                .map(Object::toString)
-                .map(BsonString::new)
-                .forEach(bsonArray::add);
-
-        return bsonArray;
+        final var array = new BsonArray();
+        for (final var field : features) {
+            array.add(getFeatureArrayElement(field, evaluatedPolicy));
+        }
+        return array;
     }
 
-    /**
-     * Truncate large arrays from the sort field.
-     *
-     * @param thing JSON representation of a thing.
-     * @param maxArraySize how large arrays may be in the search index.
-     * @return thing with large arrays truncated.
-     */
-    private static JsonObject pruneArrays(final JsonObject thing, final long maxArraySize) {
-        return maxArraySize < 0 ? thing : new ArrayPruner(maxArraySize).eval(thing).asObject();
+    private static BsonDocument getFeatureArrayElement(final JsonField featureField,
+            final EvaluatedPolicy evaluatedPolicy) {
+
+        final BsonDocument doc = new BsonDocument();
+        final var featureId = featureField.getKeyName();
+        doc.put(FIELD_FEATURE_ID, new BsonString(featureId));
+
+        final JsonObject featureContent = Optional.of(featureField.getValue())
+                .filter(JsonValue::isObject)
+                .map(JsonValue::asObject)
+                .orElse(JsonObject.empty());
+        for (final var field : featureContent) {
+            doc.put(field.getKeyName(), DittoBsonJson.getInstance().parseValue(field.getValue()));
+        }
+
+        doc.put(FIELD_POLICY, evaluatedPolicy.forFeature(featureId));
+        return doc;
     }
-
-    private static final class ArrayPruner implements JsonInternalVisitor<JsonValue> {
-
-        private final long maxArraySize;
-
-        private ArrayPruner(final long maxArraySize) {
-            this.maxArraySize = maxArraySize;
-        }
-
-        @Override
-        public JsonValue nullValue() {
-            return JsonValue.nullLiteral();
-        }
-
-        @Override
-        public JsonValue bool(final boolean value) {
-            return JsonValue.of(value);
-        }
-
-        @Override
-        public JsonValue string(final String value) {
-            return JsonValue.of(value);
-        }
-
-        @Override
-        public JsonValue number(final JsonNumber value) {
-            return value;
-        }
-
-        @Override
-        public JsonValue array(final Stream<JsonValue> values) {
-            return values.limit(maxArraySize).collect(JsonCollectors.valuesToArray());
-        }
-
-        @Override
-        public JsonValue object(final Stream<Map.Entry<String, JsonValue>> values) {
-            return values.map(entry -> JsonFactory.newField(JsonKey.of(entry.getKey()), entry.getValue()))
-                    .collect(JsonCollectors.fieldsToObject());
-        }
-    }
-
 }

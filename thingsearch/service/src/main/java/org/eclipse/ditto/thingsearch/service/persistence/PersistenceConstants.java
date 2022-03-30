@@ -82,6 +82,11 @@ public final class PersistenceConstants {
     public static final String FIELD_FEATURES = "features";
 
     /**
+     * Field name for feature ID.
+     */
+    public static final String FIELD_FEATURE_ID = "id";
+
+    /**
      * Field name for feature properties.
      */
     public static final String FIELD_PROPERTIES = "properties";
@@ -124,10 +129,20 @@ public final class PersistenceConstants {
     /**
      * Field name for hierarchical attributes for sorting.
      */
-    public static final String FIELD_SORTING = "s";
+    public static final String FIELD_THING = "t";
 
     /**
-     * Field name for internal flat attributes.
+     * Field name for the "f" array containing features for wildcard-feature queries.
+     */
+    public static final String FIELD_F_ARRAY = "f";
+
+    /**
+     * Field name for policies.
+     */
+    public static final String FIELD_POLICY = "p";
+
+    /**
+     * Field name for internal features.
      */
     public static final String FIELD_INTERNAL = "d";
 
@@ -179,7 +194,7 @@ public final class PersistenceConstants {
     /**
      * Expression of the full path of the last modified timestamp under FIELD_SORTING.
      */
-    public static final String FIELD_PATH_MODIFIED = FIELD_SORTING + DOT + FIELD_MODIFIED;
+    public static final String FIELD_PATH_MODIFIED = FIELD_THING + DOT + FIELD_MODIFIED;
 
     private PersistenceConstants() {
     }

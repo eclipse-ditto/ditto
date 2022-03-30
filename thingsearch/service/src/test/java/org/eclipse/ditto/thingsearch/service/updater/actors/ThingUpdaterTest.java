@@ -342,7 +342,7 @@ public final class ThingUpdaterTest {
                     .append(PersistenceConstants.FIELD_POLICY_REVISION, new BsonInt64(1L))
                     .append(PersistenceConstants.FIELD_NAMESPACE, new BsonString(THING_ID.getNamespace()))
                     .append(PersistenceConstants.FIELD_GLOBAL_READ, new BsonString("pre:ditto"))
-                    .append(PersistenceConstants.FIELD_SORTING, new BsonDocument().append("Lorem ipsum",
+                    .append(PersistenceConstants.FIELD_THING, new BsonDocument().append("Lorem ipsum",
                             new BsonString("Lorem ipsum dolor sit amet, consectetur adipiscing elit, " +
                                     "sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.")))
                     .append(PersistenceConstants.FIELD_INTERNAL, new BsonArray());

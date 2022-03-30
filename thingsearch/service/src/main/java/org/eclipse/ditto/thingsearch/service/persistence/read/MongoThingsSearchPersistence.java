@@ -352,7 +352,7 @@ public final class MongoThingsSearchPersistence implements ThingsSearchPersisten
         final long policyRevision =
                 Optional.ofNullable(document.getLong(PersistenceConstants.FIELD_POLICY_REVISION)).orElse(0L);
         final String nullableTimestamp =
-                document.getEmbedded(List.of(PersistenceConstants.FIELD_SORTING, PersistenceConstants.FIELD_MODIFIED),
+                document.getEmbedded(List.of(PersistenceConstants.FIELD_THING, PersistenceConstants.FIELD_MODIFIED),
                         String.class);
         final Instant modified = Optional.ofNullable(nullableTimestamp).map(Instant::parse).orElse(null);
         return Metadata.of(thingId, thingRevision, policyId, policyRevision, modified, null);

@@ -31,7 +31,6 @@ import org.eclipse.ditto.policies.model.PoliciesModelFactory;
 import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.SubjectType;
-import org.eclipse.ditto.policies.model.enforcers.PolicyEnforcers;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.Metadata;
 import org.junit.After;
@@ -112,10 +111,10 @@ public class BsonDiffVisitorIT {
         final JsonObject nextThing = getThing2(); // Thing1 with some fields updated
 
         final BsonDocument prevThingDoc =
-                EnforcedThingMapper.toBsonDocument(prevThing, policy, maxArraySize, metadata);
+                EnforcedThingMapper.toBsonDocument(prevThing, policy, metadata);
 
         final BsonDocument nextThingDoc =
-                EnforcedThingMapper.toBsonDocument(nextThing, policy, maxArraySize, metadata);
+                EnforcedThingMapper.toBsonDocument(nextThing, policy, metadata);
 
         final BsonDiff diff = BsonDiff.minusThingDocs(nextThingDoc, prevThingDoc);
 
@@ -147,10 +146,10 @@ public class BsonDiffVisitorIT {
         final JsonObject nextThing = getThing1();
 
         final BsonDocument prevThingDoc =
-                EnforcedThingMapper.toBsonDocument(prevThing, policy, maxArraySize, metadata);
+                EnforcedThingMapper.toBsonDocument(prevThing, policy, metadata);
 
         final BsonDocument nextThingDoc =
-                EnforcedThingMapper.toBsonDocument(nextThing, policy2, maxArraySize, metadata);
+                EnforcedThingMapper.toBsonDocument(nextThing, policy2, metadata);
 
         final BsonDiff diff = BsonDiff.minusThingDocs(nextThingDoc, prevThingDoc);
 
@@ -182,10 +181,10 @@ public class BsonDiffVisitorIT {
         final JsonObject nextThing = getThing2();
 
         final BsonDocument prevThingDoc =
-                EnforcedThingMapper.toBsonDocument(prevThing, policy, maxArraySize, metadata);
+                EnforcedThingMapper.toBsonDocument(prevThing, policy, metadata);
 
         final BsonDocument nextThingDoc =
-                EnforcedThingMapper.toBsonDocument(nextThing, policy2, maxArraySize, metadata);
+                EnforcedThingMapper.toBsonDocument(nextThing, policy2, metadata);
 
         final BsonDiff diff = BsonDiff.minusThingDocs(nextThingDoc, prevThingDoc);
 
@@ -217,10 +216,10 @@ public class BsonDiffVisitorIT {
         final JsonObject nextThing = getThing3(); // identical to Thing1 with fields rearranged and slightly edited
 
         final BsonDocument prevThingDoc =
-                EnforcedThingMapper.toBsonDocument(prevThing, policy, maxArraySize, metadata);
+                EnforcedThingMapper.toBsonDocument(prevThing, policy, metadata);
 
         final BsonDocument nextThingDoc =
-                EnforcedThingMapper.toBsonDocument(nextThing, policy, maxArraySize, metadata);
+                EnforcedThingMapper.toBsonDocument(nextThing, policy, metadata);
 
         assertThat(prevThingDoc).isNotEqualTo(nextThingDoc);
 
@@ -254,10 +253,10 @@ public class BsonDiffVisitorIT {
         final JsonObject nextThing = getThing4(); // identical to Thing1 with an extra fields with emtpy object as value
 
         final BsonDocument prevThingDoc =
-                EnforcedThingMapper.toBsonDocument(prevThing, policy, maxArraySize, metadata);
+                EnforcedThingMapper.toBsonDocument(prevThing, policy, metadata);
 
         final BsonDocument nextThingDoc =
-                EnforcedThingMapper.toBsonDocument(nextThing, policy, maxArraySize, metadata);
+                EnforcedThingMapper.toBsonDocument(nextThing, policy, metadata);
 
         assertThat(prevThingDoc).isNotEqualTo(nextThingDoc);
 
@@ -291,10 +290,10 @@ public class BsonDiffVisitorIT {
         final JsonObject nextThing = getThing5(); // Thing1 with string field updated to begin with '$' and end with '.'
 
         final BsonDocument prevThingDoc =
-                EnforcedThingMapper.toBsonDocument(prevThing, policy, maxArraySize, metadata);
+                EnforcedThingMapper.toBsonDocument(prevThing, policy, metadata);
 
         final BsonDocument nextThingDoc =
-                EnforcedThingMapper.toBsonDocument(nextThing, policy, maxArraySize, metadata);
+                EnforcedThingMapper.toBsonDocument(nextThing, policy, metadata);
 
         final BsonDiff diff = BsonDiff.minusThingDocs(nextThingDoc, prevThingDoc);
 

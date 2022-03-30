@@ -66,35 +66,225 @@ public final class EnforcedThingMapperTest {
         final JsonObject expectedJson = JsonFactory.newObject("""
                 {
                   "_id": "hello:world",
-                  "_revision": 1024,
                   "_namespace": "hello",
-                  "gr":["g:1","g:0"],
+                  "gr": [ "g:0", "g:1" ],
+                  "_revision": 1024,
                   "policyId": "hello:world",
                   "__policyRev": 56,
-                  "s": {
+                  "t": {
                     "thingId": "hello:world",
                     "_namespace": "hello",
                     "_revision": 1024,
                     "_modified": "2019-01-02T03:04:05.006Z",
                     "policyId": "hello:world",
-                    "features": { "hi": { "definition": [ "earth:v0:1", "mars:v0:2" ], "properties": { "there": true } } },
+                    "features": {
+                      "hi": {
+                        "definition": [ "earth:v0:1", "mars:v0:2" ],
+                        "properties": { "there": true }
+                      }
+                    },
                     "attributes": { "hello": "world" }
                   },
-                  "d": [
-                    { "k": "/thingId", "v": "hello:world", "g": [ "g:0" ], "r": [] },
-                    { "k": "/_namespace", "v": "hello", "g": [ "g:0" ], "r": [] },
-                    { "k": "/_revision", "v": 1024, "g": [ "g:0" ], "r": [] },
-                    { "k": "/_modified", "v": "2019-01-02T03:04:05.006Z", "g": [ "g:0" ], "r": [] },
-                    { "k": "/policyId", "v": "hello:world", "g": [ "g:0" ], "r": [] },
-                    { "k": "/features/hi/definition",      "v": "earth:v0:1", "g": [ "g:0" ], "r": [] },
-                    { "k": "/features/*/definition",      "v": "earth:v0:1", "g": [ "g:0" ], "r": [] },
-                    { "k": "/features/hi/definition",      "v": "mars:v0:2", "g": [ "g:0" ], "r": [] },
-                    { "k": "/features/*/definition",      "v": "mars:v0:2", "g": [ "g:0" ], "r": [] },
-                    { "k": "/features/hi/properties/there", "v": true, "g": [ "g:1", "g:0" ], "r": [] },
-                    { "k": "/features/*/properties/there", "v": true, "g": [ "g:1", "g:0" ], "r": [] },
-                    { "k": "/attributes/hello", "v": "world", "g": [ "g:0" ], "r": [] }
+                  "p": {
+                    "/": { "g": [ "g:0" ] },
+                    "/features/hi/properties/there": { "g": [ "g:1" ] }
+                  },
+                  "f": [
+                    {
+                      "id": "hi",
+                      "definition": [ "earth:v0:1", "mars:v0:2" ],
+                      "properties": { "there": true },
+                      "p": {
+                        "/": {
+                          "g": [ "g:0" ]
+                        },
+                        "/properties/there": {
+                          "g": [ "g:1" ]
+                        }
+                      }
+                    }
                   ]
-                }""");
+                }
+                """);
+
+        final BsonDocument result = EnforcedThingMapper.mapThing(thing, policy, policyRevision);
+
+        assertThat(JsonFactory.newObject(result.toJson())).isEqualTo(expectedJson);
+    }
+
+    @Test
+    public void testV2Thing2() {
+        final JsonObject thing = JsonFactory.newObject("""
+                {
+                  "thingId": "bosch:device",
+                  "_created": "2000-01-01T00:00:00Z",
+                  "_modified": "2000-01-01T00:00:01Z",
+                  "_revision": 111,
+                  "policyId": "bosch:device-policy",
+                  "attributes": {
+                    "location": {
+                      "latitude": 44.673856,
+                      "longitude": 8.261719
+                    }
+                  },
+                  "features": {
+                    "accelerometer": {
+                      "definition": [
+                        "bosch:accelerometer:1.2.3"
+                      ],
+                      "properties": {
+                        "x": 3.141
+                      }
+                    },
+                    "distance": {
+                      "definition": [
+                        "bosch:distance-sensor:4.1.0"
+                      ],
+                      "properties": {
+                        "d": 2.71828
+                      }
+                    }
+                  }
+                }
+                """);
+
+        final var policy =
+                PoliciesModelFactory.newPolicy("""
+                        {
+                          "policyId": "bosch:device-policy",
+                          "revision": 2,
+                          "entries": {
+                            "global": {
+                              "subjects": {
+                                "issuer:global": {"type":"default"}
+                              },
+                              "resources": {
+                                "thing:/": {"grant": ["READ"],"revoke": []}
+                              }
+                            },
+                            "features": {
+                              "subjects": {
+                                "issuer:features": {"type":"default"}
+                              },
+                              "resources": {
+                                "thing:/features": {"grant": ["READ"],"revoke": []},
+                                "thing:/features/distance/properties/d": {"grant": [],"revoke": ["READ"]}
+                              }
+                            },
+                            "accelerometer": {
+                              "subjects": {
+                                "issuer:accelerometer": {"type":"default"}
+                              },
+                              "resources": {
+                                "thing:/features/accelerometer": {"grant": ["READ"],"revoke": []}
+                              }
+                            },
+                            "attributes": {
+                              "subjects": {
+                                "issuer:attributes": {"type":"default"}
+                              },
+                              "resources": {
+                                "thing:/attributes": {"grant": ["READ"],"revoke": []}
+                              }
+                            }
+                          }
+                        }
+                        """);
+
+        final long policyRevision = 2L;
+
+        final JsonObject expectedJson = JsonFactory.newObject("""
+                {
+                  "_id": "bosch:device",
+                  "_namespace": "bosch",
+                  "gr": [ "issuer:attributes", "issuer:global", "issuer:features", "issuer:accelerometer" ],
+                  "_revision": 111,
+                  "policyId": "bosch:device-policy",
+                  "__policyRev": 2,
+                  "t": {
+                    "thingId": "bosch:device",
+                    "_created": "2000-01-01T00:00:00Z",
+                    "_modified": "2000-01-01T00:00:01Z",
+                    "_revision": 111,
+                    "policyId": "bosch:device-policy",
+                    "attributes": {
+                      "location": {
+                        "latitude": 44.673856,
+                        "longitude": 8.261719
+                      }
+                    },
+                    "features": {
+                      "accelerometer": {
+                        "definition": [ "bosch:accelerometer:1.2.3" ],
+                        "properties": {
+                          "x": 3.141
+                        }
+                      },
+                      "distance": {
+                        "definition": [ "bosch:distance-sensor:4.1.0" ],
+                        "properties": {
+                          "d": 2.71828
+                        }
+                      }
+                    }
+                  },
+                  "p": {
+                    "/": {
+                      "g": [ "issuer:global" ]
+                    },
+                    "/features": {
+                      "g": [ "issuer:features" ]
+                    },
+                    "/attributes": {
+                      "g": [ "issuer:attributes" ]
+                    },
+                    "/features/accelerometer": {
+                      "g": [ "issuer:accelerometer" ]
+                    },
+                    "/features/distance/properties/d": {
+                      "r": [ "issuer:features" ]
+                    }
+                  },
+                  "f": [
+                    {
+                      "id": "accelerometer",
+                      "definition": [ "bosch:accelerometer:1.2.3" ],
+                      "properties": {
+                        "x": 3.141
+                      },
+                      "p": {
+                        "/": {
+                          "g": [ "issuer:global" ]
+                        },
+                        "/features": {
+                          "g": [ "issuer:features" ]
+                        },
+                        "/id": {
+                          "g": [ "issuer:accelerometer" ]
+                        }
+                      }
+                    },
+                    {
+                      "id": "distance",
+                      "definition": [ "bosch:distance-sensor:4.1.0" ],
+                      "properties": {
+                        "d": 2.71828
+                      },
+                      "p": {
+                        "/": {
+                          "g": [ "issuer:global" ]
+                        },
+                        "/features": {
+                          "g": [ "issuer:features" ]
+                        },
+                        "/properties/d": {
+                          "r": [ "issuer:features" ]
+                        }
+                      }
+                    }
+                  ]
+                }
+                """);
 
         final BsonDocument result = EnforcedThingMapper.mapThing(thing, policy, policyRevision);
 

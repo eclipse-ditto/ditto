@@ -14,7 +14,7 @@ package org.eclipse.ditto.thingsearch.service.persistence.read.query;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants.DOT;
-import static org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants.FIELD_SORTING;
+import static org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants.FIELD_THING;
 import static org.mockito.Mockito.mock;
 import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
@@ -40,7 +40,6 @@ import org.eclipse.ditto.base.service.config.limits.DefaultLimitsConfig;
 import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import org.junit.Before;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import com.mongodb.client.model.Sorts;
@@ -88,7 +87,7 @@ public final class MongoQueryTest {
         final String attributeFieldName = "attributes.test";
         knownSortOptionsExpectedBson = Sorts.orderBy(Arrays.asList(
                 Sorts.ascending(thingIdFieldName),
-                Sorts.descending(FIELD_SORTING + DOT + attributeFieldName)));
+                Sorts.descending(FIELD_THING + DOT + attributeFieldName)));
     }
 
     @Test

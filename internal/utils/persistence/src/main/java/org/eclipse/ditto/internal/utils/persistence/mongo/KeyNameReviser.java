@@ -22,7 +22,7 @@ import javax.annotation.concurrent.Immutable;
  * This class can be used to revise the key name of a JSON object, i. e. to change its characters on the fly.
  */
 @Immutable
-final class KeyNameReviser implements Function<String, String> {
+public final class KeyNameReviser implements Function<String, String> {
 
     static final char DOLLAR_CHAR = '$';
     static final char DOLLAR_UNICODE_CHAR = '\uFF04';
