@@ -194,11 +194,13 @@ public final class PolicyPersistenceActor
     protected void publishEvent(final PolicyEvent<?> event) {
         pubSubMediator.tell(DistPubSubAccess.publishViaGroup(PolicyEvent.TYPE_PREFIX, event), getSender());
 
+        final PolicyTag policyTag = PolicyTag.of(entityId, event.getRevision());
+        pubSubMediator.tell(DistPubSubAccess.publishViaGroup(PolicyTag.PUB_SUB_TOPIC_MODIFIED, policyTag), getSender());
+
         final boolean policyEnforcerInvalidatedPreemptively = Boolean.parseBoolean(event.getDittoHeaders()
                 .getOrDefault(DittoHeaderDefinition.POLICY_ENFORCER_INVALIDATED_PREEMPTIVELY.getKey(),
                         Boolean.FALSE.toString()));
         if (!policyEnforcerInvalidatedPreemptively) {
-            final PolicyTag policyTag = PolicyTag.of(entityId, event.getRevision());
             pubSubMediator.tell(DistPubSubAccess.publish(PolicyTag.PUB_SUB_TOPIC_INVALIDATE_ENFORCERS, policyTag),
                     getSender());
         }
@@ -245,7 +247,6 @@ public final class PolicyPersistenceActor
     }
 
     @Override
-    @SuppressWarnings("unchecked")
     protected PolicyEvent<?> modifyEventBeforePersist(final PolicyEvent<?> event) {
         final PolicyEvent<?> superEvent = super.modifyEventBeforePersist(event);
 
