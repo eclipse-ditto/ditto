@@ -361,7 +361,7 @@ public final class ThingUpdaterTest {
                             recoveryCompleteConsumer));
             final var underTest = childActorOf(props, THING_ID.toString());
 
-            final long request = probe.expectRequest();
+            probe.expectRequest();
             final var existingIndexDocument = codec.decode(new BsonDocumentReader(existingIndexBsonDocument),
                     decoderContext);
             probe.sendNext(existingIndexDocument);
@@ -369,13 +369,9 @@ public final class ThingUpdaterTest {
             // wait until Actor was recovered:
             assertThat(recoveryCompleteLatch.await(5L, TimeUnit.SECONDS)).isTrue();
 
-            final var document = new BsonDocument()
-                    .append("_revision", new BsonInt64(1235))
-                    .append("d", new BsonArray())
-                    .append("s", new BsonDocument().append("Lorem ipsum", new BsonString(
-                            "Lorem ipsum dolor sit amet, consectetur adipiscing elit, " +
-                                    "sed do eiusmod tempor incididunt ut labore et dolore magna aliqua."
-                    )));
+            final var document = new BsonDocument();
+            document.putAll(existingIndexBsonDocument);
+            document.put(PersistenceConstants.FIELD_REVISION, new BsonInt64(1235L));
             final var writeModel = ThingWriteModel.of(Metadata.of(THING_ID, 1235L, policyId, 1L, null), document);
 
             // WHEN: updater is requested to compute incremental update against the next update

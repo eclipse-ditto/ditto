@@ -266,7 +266,7 @@ public final class EnforcementFlowTest {
             assertThat(document.getValue("policyId")).contains(JsonValue.of(policyId));
             assertThat(document.getValue("_revision")).contains(JsonValue.of(6));
             assertThat(document.getValue("__policyRev")).contains(JsonValue.of(1));
-            assertThat(document.getValue("s/attributes")).contains(JsonObject.of("{\"x\":5,\"y\":6,\"z\":7}"));
+            assertThat(document.getValue("t/attributes")).contains(JsonObject.of("{\"x\":5,\"y\":6,\"z\":7}"));
 
             // THEN: thing is computed in the cache
             thingsProbe.expectNoMessage(FiniteDuration.Zero());
@@ -520,7 +520,7 @@ public final class EnforcementFlowTest {
             assertThat(document.getValue("policyId")).contains(JsonValue.of(policyId));
             assertThat(document.getValue("_revision")).contains(JsonValue.of(6));
             assertThat(document.getValue("__policyRev")).contains(JsonValue.of(1));
-            assertThat(document.getValue("s/attributes")).contains(JsonObject.of("{\"x\":5,\"y\":6,\"z\":7}"));
+            assertThat(document.getValue("t/attributes")).contains(JsonObject.of("{\"x\":5,\"y\":6,\"z\":7}"));
 
             // THEN: thing is computed in the cache
             thingsProbe.expectNoMessage(FiniteDuration.Zero());
@@ -587,7 +587,7 @@ public final class EnforcementFlowTest {
             assertThat(document.getValue("policyId")).contains(JsonValue.of(policyId));
             assertThat(document.getValue("_revision")).contains(JsonValue.of(6));
             assertThat(document.getValue("__policyRev")).contains(JsonValue.of(1));
-            assertThat(document.getValue("s/attributes")).contains(JsonObject.of("{\"x\":5,\"y\":6,\"z\":7}"));
+            assertThat(document.getValue("t/attributes")).contains(JsonObject.of("{\"x\":5,\"y\":6,\"z\":7}"));
 
             // THEN: thing is computed in the cache
             thingsProbe.expectNoMessage(FiniteDuration.Zero());

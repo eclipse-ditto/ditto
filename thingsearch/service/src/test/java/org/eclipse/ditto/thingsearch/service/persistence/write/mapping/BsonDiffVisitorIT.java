@@ -49,7 +49,7 @@ import akka.testkit.javadsl.TestKit;
 /**
  * Tests incremental update.
  */
-public class BsonDiffVisitorIT {
+public final class BsonDiffVisitorIT {
 
     @ClassRule
     public static final MongoDbResource MONGO_RESOURCE = new MongoDbResource();
@@ -103,7 +103,6 @@ public class BsonDiffVisitorIT {
     public void testAggregationUpdate() {
         final var collection = client.getCollection("test");
 
-        final int maxArraySize = 99;
         final Metadata metadata =
                 Metadata.of(ThingId.of("solar.system:pluto"), 23L, PolicyId.of("solar.system:pluto"), 45L, null, null);
 
@@ -138,7 +137,6 @@ public class BsonDiffVisitorIT {
     public void testEnforcerChange() {
         final var collection = client.getCollection("test");
 
-        final int maxArraySize = 99;
         final Metadata metadata =
                 Metadata.of(ThingId.of("solar.system:pluto"), 23L, PolicyId.of("solar.system:pluto"), 45L, null, null);
 
@@ -173,7 +171,6 @@ public class BsonDiffVisitorIT {
     public void testEnforcerAndThingChange() {
         final var collection = client.getCollection("test");
 
-        final int maxArraySize = 99;
         final Metadata metadata =
                 Metadata.of(ThingId.of("solar.system:pluto"), 23L, PolicyId.of("solar.system:pluto"), 45L, null, null);
 
@@ -208,7 +205,6 @@ public class BsonDiffVisitorIT {
     public void testArrayConcat() {
         final var collection = client.getCollection("test");
 
-        final int maxArraySize = 99;
         final Metadata metadata =
                 Metadata.of(ThingId.of("solar.system:pluto"), 23L, PolicyId.of("solar.system:pluto"), 45L, null, null);
 
@@ -245,7 +241,6 @@ public class BsonDiffVisitorIT {
     public void testSetEmptyObject() {
         final var collection = client.getCollection("test");
 
-        final int maxArraySize = 99;
         final Metadata metadata =
                 Metadata.of(ThingId.of("solar.system:pluto"), 23L, PolicyId.of("solar.system:pluto"), 45L, null, null);
 
@@ -282,7 +277,6 @@ public class BsonDiffVisitorIT {
     public void testStringExpressionInUpdate() {
         final var collection = client.getCollection("test");
 
-        final int maxArraySize = 99;
         final Metadata metadata =
                 Metadata.of(ThingId.of("solar.system:pluto"), 23L, PolicyId.of("solar.system:pluto"), 45L, null, null);
 
