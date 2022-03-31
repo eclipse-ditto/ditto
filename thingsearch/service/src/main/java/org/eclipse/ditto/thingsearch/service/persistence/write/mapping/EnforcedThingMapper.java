@@ -38,6 +38,7 @@ import org.eclipse.ditto.policies.model.enforcers.Enforcer;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommand;
+import org.eclipse.ditto.thingsearch.api.UpdateReason;
 import org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.Metadata;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.ThingWriteModel;
@@ -107,8 +108,11 @@ public final class EnforcedThingMapper {
                         Optional.ofNullable(oldMetadata).flatMap(Metadata::getModified).orElse(null),
                         Optional.ofNullable(oldMetadata).map(Metadata::getEvents).orElse(List.of()),
                         Optional.ofNullable(oldMetadata).map(Metadata::getTimers).orElse(List.of()),
-                        Optional.ofNullable(oldMetadata).map(Metadata::getSenders).orElse(List.of()))
-                .withOrigin(Optional.ofNullable(oldMetadata).flatMap(Metadata::getOrigin).orElse(null));
+                        Optional.ofNullable(oldMetadata).map(Metadata::getSenders).orElse(List.of()),
+                        Optional.ofNullable(oldMetadata).flatMap(Metadata::getOrigin).orElse(null),
+                        Optional.ofNullable(oldMetadata).map(Metadata::getUpdateReasons)
+                                .orElse(List.of(UpdateReason.UNKNOWN))
+                );
 
         return ThingWriteModel.of(metadata, toBsonDocument(thing, enforcer, maxArraySize, metadata));
     }

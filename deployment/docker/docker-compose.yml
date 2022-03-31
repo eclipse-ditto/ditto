@@ -48,6 +48,12 @@ services:
     # only needed if DITTO_LOGGING_FILE_APPENDER is set
     # volumes:
     #  - ditto_log_files:/var/log/ditto
+    healthcheck:
+      test: curl --fail `hostname`:8558/alive || exit 1
+      interval: 30s
+      timeout: 15s
+      retries: 4
+      start_period: 120s
 
   things:
     image: docker.io/eclipse/ditto-things:${DITTO_VERSION:-latest}
@@ -73,6 +79,12 @@ services:
     # only needed if DITTO_LOGGING_FILE_APPENDER is set
     # volumes:
     #  - ditto_log_files:/var/log/ditto
+    healthcheck:
+      test: curl --fail `hostname`:8558/alive || exit 1
+      interval: 30s
+      timeout: 15s
+      retries: 4
+      start_period: 120s
 
   things-search:
     image: docker.io/eclipse/ditto-things-search:${DITTO_VERSION:-latest}
@@ -98,6 +110,12 @@ services:
     # only needed if DITTO_LOGGING_FILE_APPENDER is set
     # volumes:
     #  - ditto_log_files:/var/log/ditto
+    healthcheck:
+      test: curl --fail `hostname`:8558/alive || exit 1
+      interval: 30s
+      timeout: 15s
+      retries: 4
+      start_period: 120s
 
   concierge:
     image: docker.io/eclipse/ditto-concierge:${DITTO_VERSION:-latest}
@@ -123,6 +141,12 @@ services:
     # only needed if DITTO_LOGGING_FILE_APPENDER is set
     # volumes:
     #  - ditto_log_files:/var/log/ditto
+    healthcheck:
+      test: curl --fail `hostname`:8558/alive || exit 1
+      interval: 30s
+      timeout: 15s
+      retries: 4
+      start_period: 120s
 
   connectivity:
     image: docker.io/eclipse/ditto-connectivity:${DITTO_VERSION:-latest}
@@ -150,6 +174,12 @@ services:
     # only needed if DITTO_LOGGING_FILE_APPENDER is set
     #volumes:
     #  - ditto_log_files:/var/log/ditto
+    healthcheck:
+      test: curl --fail `hostname`:8558/alive || exit 1
+      interval: 30s
+      timeout: 15s
+      retries: 4
+      start_period: 120s
 
   gateway:
     image: docker.io/eclipse/ditto-gateway:${DITTO_VERSION:-latest}
@@ -181,6 +211,12 @@ services:
     # only needed if DITTO_LOGGING_FILE_APPENDER is set
     # volumes:
     #  - ditto_log_files:/var/log/ditto
+    healthcheck:
+      test: curl --fail `hostname`:8558/alive || exit 1
+      interval: 30s
+      timeout: 15s
+      retries: 4
+      start_period: 120s
 
   swagger-ui:
     image: docker.io/swaggerapi/swagger-ui:v4.6.1

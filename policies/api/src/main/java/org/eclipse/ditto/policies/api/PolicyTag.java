@@ -16,15 +16,20 @@ import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.internal.models.streaming.AbstractEntityIdWithRevision;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.policies.model.PolicyId;
-import org.eclipse.ditto.internal.models.streaming.AbstractEntityIdWithRevision;
 
 /**
  * Represents the ID and revision of a Policy.
  */
 @Immutable
 public final class PolicyTag extends AbstractEntityIdWithRevision<PolicyId> {
+
+    /**
+     * Defines a Publish/Subscribe topic on which PolicyTag message are published whenever the policy was modified.
+     */
+    public static final String PUB_SUB_TOPIC_MODIFIED = "policy-modified";
 
     /**
      * Defines a Publish/Subscribe topic on which PolicyTag message are published whenever the policy enforcer caches
