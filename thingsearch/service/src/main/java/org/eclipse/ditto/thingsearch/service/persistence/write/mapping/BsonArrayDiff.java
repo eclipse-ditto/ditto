@@ -12,6 +12,9 @@
  */
 package org.eclipse.ditto.thingsearch.service.persistence.write.mapping;
 
+import static org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants.FIELD_FEATURE_ID;
+import static org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants.FIELD_F_ARRAY;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -19,6 +22,7 @@ import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 import org.bson.BsonArray;
@@ -27,6 +31,8 @@ import org.bson.BsonInt32;
 import org.bson.BsonString;
 import org.bson.BsonValue;
 import org.eclipse.ditto.json.JsonPointer;
+
+import akka.japi.Pair;
 
 /**
  * Diff between 2 BSON arrays. Only used for the flattened key-value array because Ditto has no API for array
@@ -43,6 +49,32 @@ final class BsonArrayDiff {
             final BsonArray subtrahend) {
 
         return diff(key, minuend, subtrahend, (v, j) -> j);
+    }
+
+    static BsonDiff diffFeaturesArray(final BsonArray minuend, final BsonArray subtrahend) {
+        final BsonSizeVisitor bsonSizeVisitor = new BsonSizeVisitor();
+        final int replacementSize = bsonSizeVisitor.eval(subtrahend);
+        if (minuend.equals(subtrahend)) {
+            return BsonDiff.empty(replacementSize);
+        }
+        final JsonPointer internalArrayKey = JsonPointer.of(FIELD_F_ARRAY);
+        final Map<BsonValue, Integer> kMap = IntStream.range(0, subtrahend.size())
+                .boxed()
+                .collect(Collectors.toMap(
+                        i -> subtrahend.get(i).asDocument().get(FIELD_FEATURE_ID),
+                        Function.identity(),
+                        (x, y) -> x
+                ));
+        final BiFunction<BsonDocument, Integer, Integer> kMapGet =
+                // use 0 as default value to re-use root grant/revoke
+                (doc, j) -> kMap.getOrDefault(doc.get(FIELD_FEATURE_ID), 0);
+        final BsonValue difference = diff(internalArrayKey, minuend, subtrahend, kMapGet);
+        return new BsonDiff(
+                replacementSize,
+                bsonSizeVisitor.eval(difference),
+                Stream.of(Pair.create(internalArrayKey, difference)),
+                Stream.empty()
+        );
     }
 
     private static BsonValue diff(final JsonPointer key,
