@@ -222,6 +222,8 @@ services:
     image: docker.io/swaggerapi/swagger-ui:v4.6.1
     mem_limit: 32m
     restart: always
+    environment:
+      - QUERY_CONFIG_ENABLED=true
     volumes:
        - ../../documentation/src/main/resources/openapi:/usr/share/nginx/html/openapi:ro
        - ../../documentation/src/main/resources/images:/usr/share/nginx/html/images:ro
