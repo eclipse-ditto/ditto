@@ -46,22 +46,22 @@ Which placeholder values are available depends on the context where the placehol
 |----------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `{%raw%}{{ header:<header-name> }}{%endraw%}`  | Value of the header with the given name. For incoming signals the headers of the used protocol are used. For outgoing values the Ditto protocol headers are used.(both case-insensitive) |
 ### Topic Placeholder
-| Placeholder    | Description                                                                           |
-|----------------|---------------------------------------------------------------------------------------|
-| `topic:full`            | full [Ditto Protocol topic path](protocol-specification-topic.html)<br/>in the form `{namespace}/{entityId}/{group}/`<br/>`{channel}/{criterion}/{action-subject}`                              |
-| `topic:namespace`       | Ditto Protocol [topic namespace](protocol-specification-topic.html#namespace)                                                                                                                   |
-| `topic:entityName`      | Ditto Protocol [topic entity name](protocol-specification-topic.html#entity-name)                                                                                                               |
-| `topic:group`           | Ditto Protocol [topic group](protocol-specification-topic.html#group)                                                                                                                           |
-| `topic:channel`         | Ditto Protocol [topic channel](protocol-specification-topic.html#channel)                                                                                                                       |
-| `topic:criterion`       | Ditto Protocol [topic criterion](protocol-specification-topic.html#criterion)                                                                                                                   |
-| `topic:action`          | Ditto Protocol [topic action](protocol-specification-topic.html#action-optional)                                                                                                                |
-| `topic:subject`         | Ditto Protocol [topic subject](protocol-specification-topic.html#messages-criterion-actions) (for message commands)                                                                             |
-| `topic:action-subject`  | either Ditto Protocol [topic action](protocol-specification-topic.html#action-optional) or [topic subject](protocol-specification-topic.html#messages-criterion-actions) (for message commands) |
+| Placeholder                               | Description                                                                                                                                                                                     |
+|-------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `{%raw%}{{ topic:full }}{%endraw%}`       | full [Ditto Protocol topic path](protocol-specification-topic.html)<br/>in the form `{namespace}/{entityName}/{group}/`<br/>`{channel}/{criterion}/{action-subject}`                            |
+| `{%raw%}{{ topic:namespace }}{%endraw%}`  | Ditto Protocol [topic namespace](protocol-specification-topic.html#namespace)                                                                                                                   |
+| `{%raw%}{{ topic:entityName }}{%endraw%}` | Ditto Protocol [topic entity name](protocol-specification-topic.html#entity-name)                                                                                                               |
+| `{%raw%}{{ topic:group }}{%endraw%}`      | Ditto Protocol [topic group](protocol-specification-topic.html#group)                                                                                                                           |
+| `{%raw%}{{ topic:channel }}{%endraw%}`    | Ditto Protocol [topic channel](protocol-specification-topic.html#channel)                                                                                                                       |
+| `{%raw%}{{ topic:criterion }}{%endraw%}`  | Ditto Protocol [topic criterion](protocol-specification-topic.html#criterion)                                                                                                                   |
+| `{%raw%}{{ topic:action }}{%endraw%}`     | Ditto Protocol [topic action](protocol-specification-topic.html#action-optional)                                                                                                                |
+| `{%raw%}{{ topic:subject }}{%endraw%}`    | Ditto Protocol [topic subject](protocol-specification-topic.html#messages-criterion-actions) (for message commands)                                                                             |
+| `{%raw%}{{ topic:action-subject }}{%endraw%}`          | either Ditto Protocol [topic action](protocol-specification-topic.html#action-optional) or [topic subject](protocol-specification-topic.html#messages-criterion-actions) (for message commands) |
 ### Resource Placeholder
-| Placeholder    | Description                                                                           |
-|----------------|---------------------------------------------------------------------------------------|
-| `resource:type`         | the type of the Ditto Protocol [path](protocol-specification.html#path) , one of: `"thing" "policy" "message" "connection"`                                                                     |
-| `resource:path`         | the affected resource's path being the Ditto Protocol [path](protocol-specification.html#path) in JsonPointer notation, e.g. `/` when a complete thing was created/modified/deleted             |
+| Placeholder               | Description                                                                           |
+|---------------------------|---------------------------------------------------------------------------------------|
+| `{%raw%}{{ resource:type }}{%endraw%}` | the type of the Ditto Protocol [path](protocol-specification.html#path) , one of: `"thing" "policy" "message" "connection"`                                                                     |
+| `{%raw%}{{ resource:path }}{%endraw%}` | the affected resource's path being the Ditto Protocol [path](protocol-specification.html#path) in JsonPointer notation, e.g. `/` when a complete thing was created/modified/deleted             |
 ### Request Placeholder
 | Placeholder    | Description                                                                           |
 |----------------|---------------------------------------------------------------------------------------|
@@ -81,8 +81,8 @@ Which placeholder values are available depends on the context where the placehol
 
 Whenever creating or modifying [things](basic-thing.html) or [policies](basic-policy.html), the following placeholders
 may be used:
-* [request placeholder](basic-placeholders.html#request-placeholder)
-* [time placeholder](basic-placeholders.html#time-placeholder)
+* [request placeholder](#request-placeholder)
+* [time placeholder](#time-placeholder)
 
 
 ### Scope: OpenID Connect configuration
@@ -93,7 +93,7 @@ placeholder can be used in order to extract certain claims from the
 [authorization subjects](basic-policy.html#subjects) for Ditto's [policy based authorization](basic-policy.html).
 
 The following placeholders may be used inside the configuration file:
-* [JWT placeholder](basic-placeholders.html#jwt-placeholder)
+* [JWT placeholder](#jwt-placeholder)
 
 In combination with [functions](#function-expressions), use of this placeholder can provide and modify the subjects to
 extract from a JWT in a very powerful way.  
@@ -138,56 +138,57 @@ are resolved in the following way:
 ### Scope: Policy actions
 
 In [policy actions](basic-policy.html#actions), the following placeholders are available in general:
-* [header placeholder](basic-placeholders.html#header-placeholder)
-* [JWT placeholder](basic-placeholders.html#jwt-placeholder)
-* [Policy entry placeholder](basic-placeholders.html#policy-entry-placeholder)
-* [time placeholder](basic-placeholders.html#time-placeholder)
+* [header placeholder](#header-placeholder)
+* [JWT placeholder](#jwt-placeholder)
+* [Policy entry placeholder](#policy-entry-placeholder)
+* [time placeholder](#time-placeholder)
 
 ### Scope: RQL expressions when filtering for Ditto Protocol messages
 
 When using [RQL expressions](basic-rql.html) in scope of either [change notifications](basic-changenotifications.html)
 or subscriptions for live messages, the following placeholders are available in general:
-* [topic placeholder](basic-placeholders.html#topic-placeholder)
-* [resource placeholder](basic-placeholders.html#resource-placeholder)
-* [time placeholder](basic-placeholders.html#time-placeholder) 
+* [topic placeholder](#topic-placeholder)
+* [resource placeholder](#resource-placeholder)
+* [time placeholder](#time-placeholder)
+Note that in RQL expressions placeholders must not be surrounded by curly braces.
 
 ### Scope: Websocket Signal Enrichment
 When [declaring extra fields](basic-enrichment.md) which should be enriched to a published signal for a Websocket connection, the following placeholders are available in general:
-* [entity placeholder](basic-placeholders.html#entity-placeholder)
-* [thing placeholder](basic-placeholders.html#thing-placeholder)
-* [policy placeholder](basic-placeholders.html#policy-placeholder)
-* [feature placeholder](basic-placeholders.html#feature-placeholder)
-* [header placeholder](basic-placeholders.html#header-placeholder)
-* [request placeholder](basic-placeholders.html#request-placeholder)
-* [resource placeholder](basic-placeholders.html#resource-placeholder)
-* [topic placeholder](basic-placeholders.html#topic-placeholder)
-* [time placeholder](basic-placeholders.html#time-placeholder)
+* [entity placeholder](#entity-placeholder)
+* [thing placeholder](#thing-placeholder)
+* [policy placeholder](#policy-placeholder)
+* [feature placeholder](#feature-placeholder)
+* [header placeholder](#header-placeholder)
+* [request placeholder](#request-placeholder)
+* [resource placeholder](#resource-placeholder)
+* [topic placeholder](#topic-placeholder)
+* [time placeholder](#time-placeholder)
 
 ### Scope: SSE Signal Enrichment
 When [declaring extra fields](basic-enrichment.md) which should be enriched to a published signal for a Websocket connection, the following placeholders are available in general:
-* [entity placeholder](basic-placeholders.html#entity-placeholder)
-* [thing placeholder](basic-placeholders.html#thing-placeholder)
-* [policy placeholder](basic-placeholders.html#policy-placeholder)
-* [feature placeholder](basic-placeholders.html#feature-placeholder)
-* [header placeholder](basic-placeholders.html#header-placeholder)
-* [request placeholder](basic-placeholders.html#request-placeholder)
-* [resource placeholder](basic-placeholders.html#resource-placeholder)
-* [topic placeholder](basic-placeholders.html#topic-placeholder)
-* [time placeholder](basic-placeholders.html#time-placeholder)
+* [entity placeholder](#entity-placeholder)
+* [thing placeholder](#thing-placeholder)
+* [policy placeholder](#policy-placeholder)
+* [feature placeholder](#feature-placeholder)
+* [header placeholder](#header-placeholder)
+* [request placeholder](#request-placeholder)
+* [resource placeholder](#resource-placeholder)
+* [topic placeholder](#topic-placeholder)
+* [time placeholder](#time-placeholder)
 
 ### Scope: Connections
 
 In [connections](basic-connections.html), the following placeholders are available in general:
-* [entity placeholder](basic-placeholders.html#entity-placeholder)
-* [thing placeholder](basic-placeholders.html#thing-placeholder)
-* [policy placeholder](basic-placeholders.html#policy-placeholder)
-* [connection placeholder](basic-placeholders.html#connection-placeholder)
-* [feature placeholder](basic-placeholders.html#feature-placeholder)
-* [header placeholder](basic-placeholders.html#header-placeholder)
-* [request placeholder](basic-placeholders.html#request-placeholder)
-* [resource placeholder](basic-placeholders.html#resource-placeholder)
-* [topic placeholder](basic-placeholders.html#topic-placeholder)
-* [time placeholder](basic-placeholders.html#time-placeholder)
+* [entity placeholder](#entity-placeholder)
+* [thing placeholder](#thing-placeholder)
+* [policy placeholder](#policy-placeholder)
+* [connection placeholder](#connection-placeholder)
+* [feature placeholder](#feature-placeholder)
+* [header placeholder](#header-placeholder)
+* [request placeholder](#request-placeholder)
+* [resource placeholder](#resource-placeholder)
+* [topic placeholder](#topic-placeholder)
+* [time placeholder](#time-placeholder)
 
 #### Examples
 
