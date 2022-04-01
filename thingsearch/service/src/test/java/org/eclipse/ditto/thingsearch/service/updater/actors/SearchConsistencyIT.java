@@ -179,7 +179,7 @@ public final class SearchConsistencyIT {
             final UpdaterConfig config) {
 
         ChangeQueueActor.createSource(changeQueue, true, java.time.Duration.ofSeconds(3));
-        final var updaterProps = ThingUpdater.props(pubSub, changeQueue, config);
+        final var updaterProps = ThingUpdaterOld.props(pubSub, changeQueue, config);
         final var updater = actorSystem.actorOf(updaterProps, THING_ID.toString() + Math.random());
 
         final var shardMockProps = UpdaterShardMock.props(updater);

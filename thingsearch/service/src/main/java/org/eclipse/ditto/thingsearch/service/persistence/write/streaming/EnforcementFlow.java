@@ -46,7 +46,9 @@ import org.eclipse.ditto.thingsearch.service.persistence.write.mapping.EnforcedT
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.AbstractWriteModel;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.Metadata;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.ThingDeleteModel;
+import org.eclipse.ditto.thingsearch.service.updater.actors.MongoWriteModel;
 import org.eclipse.ditto.thingsearch.service.updater.actors.SearchUpdateObserver;
+import org.eclipse.ditto.thingsearch.service.updater.actors.ThingUpdater;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -61,7 +63,6 @@ import akka.japi.pf.PFBuilder;
 import akka.stream.javadsl.Flow;
 import akka.stream.javadsl.Keep;
 import akka.stream.javadsl.Source;
-import akka.stream.javadsl.SubSource;
 
 /**
  * Converts Thing changes into write models by retrieving data and applying enforcement via an enforcer cache.
@@ -158,17 +159,14 @@ final class EnforcementFlow {
      * @param source the source of change maps.
      * @param parallelismPerBulkShard how many thing retrieves to perform in parallel to the caching facade per bulk
      * shard.
-     * @param bulkShardCount the configured amount of shards to create substreams for.
      * @return the flow.
      */
-    public <T> SubSource<List<AbstractWriteModel>, T> create(
+    public <T> Source<List<AbstractWriteModel>, T> create(
             final Source<Collection<Metadata>, T> source,
             final int parallelismPerBulkShard,
-            final int bulkShardCount,
             final int maxBulkSize) {
 
         return source.flatMapConcat(changes -> Source.fromIterator(changes::iterator)
-                        .groupBy(bulkShardCount, metadata -> Math.floorMod(metadata.getThingId().hashCode(), bulkShardCount))
                         .flatMapMerge(parallelismPerBulkShard, changedMetadata ->
                                 retrieveThingFromCachingFacade(changedMetadata.getThingId(), changedMetadata)
                                         .flatMapConcat(pair -> {
@@ -177,11 +175,27 @@ final class EnforcementFlow {
                                             return computeWriteModel(changedMetadata, thing);
                                         })
                         )
-                        .grouped(maxBulkSize)
-                        .mergeSubstreams())
-                .filterNot(List::isEmpty)
-                .groupBy(bulkShardCount, models ->
-                        Math.floorMod(models.get(0).getMetadata().getThingId().hashCode(), bulkShardCount));
+                        .grouped(maxBulkSize))
+                .filterNot(List::isEmpty);
+    }
+
+    // TODO
+    public Flow<ThingUpdater.Data, MongoWriteModel, NotUsed> create() {
+        return Flow.<ThingUpdater.Data>create()
+                .flatMapConcat(data -> retrieveThingFromCachingFacade(data.metadata().getThingId(), data.metadata())
+                        .flatMapConcat(pair -> {
+                            final JsonObject thing = pair.second();
+                            searchUpdateObserver.process(data.metadata(), thing);
+                            return computeWriteModel(data.metadata(), thing);
+                        })
+                        // TODO: searchUpdateMapper
+                        .flatMapConcat(writeModel -> writeModel.toIncrementalMongo(data.lastWriteModel().orElse(null))
+                                .map(Source::single)
+                                .orElseGet(() -> {
+                                    data.metadata().sendWeakAck(null);
+                                    return Source.empty();
+                                }))
+                );
     }
 
     private Source<Pair<ThingId, JsonObject>, NotUsed> retrieveThingFromCachingFacade(final ThingId thingId,

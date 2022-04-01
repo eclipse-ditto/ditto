@@ -104,11 +104,7 @@ public final class MongoSearchUpdaterFlowTest {
             final Thread testRunnerThread = Thread.currentThread();
             final AtomicReference<Throwable> errorBox = new AtomicReference<>();
 
-            final int parallelism = 32;
-            final int maxBulkSize = 4;
-            final var writeModelSource = Source.from(writeModels)
-                    .groupBy(parallelism, w -> Math.floorMod(w.getMetadata().getThingId().hashCode(), parallelism))
-                    .map(List::of);
+            final var writeModelSource = Source.from(writeModels).map(List::of);
             final var runnableGraph =
                     flow.start(writeModelSource, false)
                             .map(writeResultAndErrors -> {
@@ -120,7 +116,6 @@ public final class MongoSearchUpdaterFlowTest {
                                 }
                                 return writeResultAndErrors;
                             })
-                            .mergeSubstreams()
                             .toMat(Sink.ignore(), Keep.right());
 
             runnableGraph.run(actorSystem).exceptionally(error -> {

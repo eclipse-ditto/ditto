@@ -179,6 +179,16 @@ public final class Metadata {
     }
 
     /**
+     * Return a Metadata object for a deleted Thing.
+     *
+     * @param thingId the ID of the deleted thing.
+     * @return the Metadata object.
+     */
+    public static Metadata ofDeleted(final ThingId thingId) {
+        return Metadata.of(thingId, -1, null, null, null);
+    }
+
+    /**
      * Recover the metadata from an UpdateThingResponse.
      *
      * @param updateThingResponse the response.

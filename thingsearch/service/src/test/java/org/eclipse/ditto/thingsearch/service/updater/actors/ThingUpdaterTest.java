@@ -80,7 +80,7 @@ import akka.testkit.TestProbe;
 import akka.testkit.javadsl.TestKit;
 
 /**
- * Unit test for {@link ThingUpdater}.
+ * Unit test for {@link ThingUpdaterOld}.
  */
 public final class ThingUpdaterTest {
 
@@ -231,8 +231,8 @@ public final class ThingUpdaterTest {
     @Test
     public void recoverLastWriteModel() {
         new TestKit(actorSystem) {{
-            final Props props = Props.create(ThingUpdater.class,
-                    () -> new ThingUpdater(pubSubTestProbe.ref(), changeQueueTestProbe.ref(), 0.0,
+            final Props props = Props.create(ThingUpdaterOld.class,
+                    () -> new ThingUpdaterOld(pubSubTestProbe.ref(), changeQueueTestProbe.ref(), 0.0,
                             Duration.ZERO, 0.0, mongoClientExtension, false, true,
                             writeModel -> {}));
             final var underTest = childActorOf(props, THING_ID.toString());
@@ -261,8 +261,8 @@ public final class ThingUpdaterTest {
     @Test
     public void refuseToPerformOutOfOrderUpdate() {
         new TestKit(actorSystem) {{
-            final Props props = Props.create(ThingUpdater.class,
-                    () -> new ThingUpdater(pubSubTestProbe.ref(), changeQueueTestProbe.ref(), 0.0,
+            final Props props = Props.create(ThingUpdaterOld.class,
+                    () -> new ThingUpdaterOld(pubSubTestProbe.ref(), changeQueueTestProbe.ref(), 0.0,
                             Duration.ZERO, 0.0, mongoClientExtension, false, true,
                             writeModel -> {}));
             final var underTest = childActorOf(props, THING_ID.toString());
@@ -292,8 +292,8 @@ public final class ThingUpdaterTest {
     @Test
     public void forceUpdateOnSameSequenceNumber() {
         new TestKit(actorSystem) {{
-            final Props props = Props.create(ThingUpdater.class,
-                    () -> new ThingUpdater(pubSubTestProbe.ref(), changeQueueTestProbe.ref(), 0.0,
+            final Props props = Props.create(ThingUpdaterOld.class,
+                    () -> new ThingUpdaterOld(pubSubTestProbe.ref(), changeQueueTestProbe.ref(), 0.0,
                             Duration.ZERO, 0.0, mongoClientExtension, false, true,
                             writeModel -> {}));
             final var underTest = childActorOf(props, THING_ID.toString());
@@ -355,8 +355,8 @@ public final class ThingUpdaterTest {
                                 existingIndexBsonDocument));
                 recoveryCompleteLatch.countDown();
             };
-            final Props props = Props.create(ThingUpdater.class,
-                    () -> new ThingUpdater(pubSubTestProbe.ref(), changeQueueTestProbe.ref(), 0.0,
+            final Props props = Props.create(ThingUpdaterOld.class,
+                    () -> new ThingUpdaterOld(pubSubTestProbe.ref(), changeQueueTestProbe.ref(), 0.0,
                             Duration.ZERO, 0.0, mongoClientExtension, true, true,
                             recoveryCompleteConsumer));
             final var underTest = childActorOf(props, THING_ID.toString());
@@ -390,7 +390,7 @@ public final class ThingUpdaterTest {
 
             // WHEN: updater is requested to compute incremental update against the same write model
             underTest.tell(BulkWriteComplete.of("correlation-id"), getRef());
-            underTest.tell(ThingUpdater.FORCE_UPDATE_AFTER_START, getRef());
+            underTest.tell(ThingUpdaterOld.FORCE_UPDATE_AFTER_START, getRef());
             underTest.tell(UpdateThing.of(THING_ID, UpdateReason.UNKNOWN, DittoHeaders.empty()), getRef());
             underTest.tell(writeModel, getRef());
 
@@ -402,8 +402,8 @@ public final class ThingUpdaterTest {
     }
 
     private ActorRef createThingUpdaterActor() {
-        final Props props = Props.create(ThingUpdater.class,
-                () -> new ThingUpdater(pubSubTestProbe.ref(), changeQueueTestProbe.ref(), 0.0, Duration.ZERO,
+        final Props props = Props.create(ThingUpdaterOld.class,
+                () -> new ThingUpdaterOld(pubSubTestProbe.ref(), changeQueueTestProbe.ref(), 0.0, Duration.ZERO,
                         0.0, mongoClientExtension, false, false,
                         writeModel -> {}));
         return actorSystem.actorOf(props, THING_ID.toString());

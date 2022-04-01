@@ -25,6 +25,7 @@ import org.eclipse.ditto.thingsearch.service.common.config.UpdaterConfig;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.AbstractWriteModel;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.Metadata;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.WriteResultAndErrors;
+import org.eclipse.ditto.thingsearch.service.updater.actors.ThingUpdater;
 
 import com.mongodb.reactivestreams.client.MongoDatabase;
 
@@ -34,13 +35,10 @@ import akka.actor.ActorSystem;
 import akka.stream.Attributes;
 import akka.stream.KillSwitch;
 import akka.stream.KillSwitches;
-import akka.stream.RestartSettings;
 import akka.stream.javadsl.Flow;
 import akka.stream.javadsl.Keep;
-import akka.stream.javadsl.RestartSource;
 import akka.stream.javadsl.Sink;
 import akka.stream.javadsl.Source;
-import akka.stream.javadsl.SubSource;
 
 /**
  * Stream from the cache of Thing changes to the persistence of the search index.
@@ -120,14 +118,18 @@ public final class SearchUpdaterStream {
      * @return kill-switch to terminate the stream.
      */
     public KillSwitch start() {
-        return createRestartResultSource()
-                .flatMapConcat(SubSource::mergeSubstreams)
+        return createSource()
                 .viaMat(KillSwitches.single(), Keep.right())
                 .to(Sink.ignore())
                 .run(actorSystem);
     }
 
-    private Source<SubSource<String, NotUsed>, NotUsed> createRestartResultSource() {
+    // TODO
+    public Flow<ThingUpdater.Data, ThingUpdater.Result, NotUsed> flow() {
+        return enforcementFlow.create().via(mongoSearchUpdaterFlow.create());
+    }
+
+    private Source<String, NotUsed> createSource() {
         final var streamConfig = updaterConfig.getStreamConfig();
         final StreamStageConfig retrievalConfig = streamConfig.getRetrievalConfig();
         final PersistenceStreamConfig persistenceConfig = streamConfig.getPersistenceConfig();
@@ -140,30 +142,24 @@ public final class SearchUpdaterStream {
         final var mergedSource =
                 acknowledgedSource.mergePrioritized(unacknowledgedSource, 1023, 1, true);
 
-        final SubSource<List<AbstractWriteModel>, NotUsed> enforcementSource = enforcementFlow.create(
+        final Source<List<AbstractWriteModel>, NotUsed> enforcementSource = enforcementFlow.create(
                 mergedSource.via(filterMapKeysByBlockedNamespaces()),
                 retrievalConfig.getParallelism(),
-                persistenceConfig.getParallelism(),
                 persistenceConfig.getMaxBulkSize()
         );
 
         final String logName = "SearchUpdaterStream/BulkWriteResult";
-        final SubSource<WriteResultAndErrors, NotUsed> persistenceSource = mongoSearchUpdaterFlow.start(
+        final Source<WriteResultAndErrors, NotUsed> persistenceSource = mongoSearchUpdaterFlow.start(
                 enforcementSource,
                 true
         );
-        final SubSource<String, NotUsed> loggingSource =
-                persistenceSource.via(bulkWriteResultAckFlow.start(persistenceConfig.getAckDelay()))
-                        .log(logName)
-                        .withAttributes(Attributes.logLevels(
-                                Attributes.logLevelInfo(),
-                                Attributes.logLevelWarning(),
-                                Attributes.logLevelError()));
 
-        final var backOffConfig = retrievalConfig.getExponentialBackOffConfig();
-        return RestartSource.withBackoff(
-                RestartSettings.create(backOffConfig.getMin(), backOffConfig.getMax(), backOffConfig.getRandomFactor()),
-                () -> Source.single(loggingSource));
+        return persistenceSource.via(bulkWriteResultAckFlow.start(persistenceConfig.getAckDelay()))
+                .log(logName)
+                .withAttributes(Attributes.logLevels(
+                        Attributes.logLevelInfo(),
+                        Attributes.logLevelWarning(),
+                        Attributes.logLevelError()));
     }
 
     private Flow<Collection<Metadata>, Collection<Metadata>, NotUsed> filterMapKeysByBlockedNamespaces() {

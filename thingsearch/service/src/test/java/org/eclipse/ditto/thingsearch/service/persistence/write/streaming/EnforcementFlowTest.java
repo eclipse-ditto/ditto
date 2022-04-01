@@ -696,7 +696,7 @@ public final class EnforcementFlowTest {
             final EnforcementFlow underTest = EnforcementFlow.of(system, streamConfig, thingsProbe.ref(),
                     policiesProbe.ref(), system.getScheduler());
 
-            materializeTestProbes(underTest, 16, 1, 16);
+            materializeTestProbes(underTest, 16, 16);
 
             sinkProbe.ensureSubscription();
             sourceProbe.ensureSubscription();
@@ -743,16 +743,15 @@ public final class EnforcementFlowTest {
     }
 
     private void materializeTestProbes(final EnforcementFlow enforcementFlow) {
-        materializeTestProbes(enforcementFlow, 16, 1, 1);
+        materializeTestProbes(enforcementFlow, 16, 1);
     }
 
 
     private void materializeTestProbes(final EnforcementFlow enforcementFlow, final int parallelism,
-            final int bulkShardCount, final int bulkSize) {
+            final int bulkSize) {
         final var source = TestSource.<Collection<Metadata>>probe(system);
         final var sink = TestSink.<List<AbstractWriteModel>>probe(system);
-        final var runnableGraph = enforcementFlow.create(source, parallelism, bulkShardCount, bulkSize)
-                .mergeSubstreams()
+        final var runnableGraph = enforcementFlow.create(source, parallelism, bulkSize)
                 .viaMat(KillSwitches.single(), Keep.both())
                 .toMat(sink, Keep.both());
         final var materializedValue = runnableGraph.run(() -> system);

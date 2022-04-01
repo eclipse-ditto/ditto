@@ -28,6 +28,7 @@ import org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.AbstractWriteModel;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.WriteResultAndErrors;
 import org.eclipse.ditto.thingsearch.service.updater.actors.MongoWriteModel;
+import org.eclipse.ditto.thingsearch.service.updater.actors.ThingUpdater;
 
 import com.mongodb.MongoBulkWriteException;
 import com.mongodb.client.model.BulkWriteOptions;
@@ -42,6 +43,7 @@ import com.mongodb.reactivestreams.client.MongoDatabase;
 
 import akka.NotUsed;
 import akka.japi.pf.PFBuilder;
+import akka.stream.javadsl.Flow;
 import akka.stream.javadsl.Source;
 import akka.stream.javadsl.SubSource;
 
@@ -98,13 +100,20 @@ final class MongoSearchUpdaterFlow {
      * {@link org.eclipse.ditto.base.model.acks.DittoAcknowledgementLabel#SEARCH_PERSISTED} was required or not.
      * @return sub-source of write results.
      */
-    public SubSource<WriteResultAndErrors, NotUsed> start(
-            final SubSource<List<AbstractWriteModel>, NotUsed> subSource,
+    public Source<WriteResultAndErrors, NotUsed> start(
+            final Source<List<AbstractWriteModel>, NotUsed> subSource,
             final boolean shouldAcknowledge) {
 
         return subSource.map(MongoSearchUpdaterFlow::sortBySeqNr)
                 .flatMapConcat(searchUpdateMapper::processWriteModels)
                 .flatMapConcat(writeModels -> executeBulkWrite(shouldAcknowledge, writeModels));
+    }
+
+    // TODO
+    public Flow<MongoWriteModel, ThingUpdater.Result, NotUsed> create() {
+        return Flow.<MongoWriteModel>create()
+                .flatMapConcat(writeModel -> executeBulkWrite(true, List.of(writeModel))
+                        .map(resultOrErrors -> new ThingUpdater.Result(writeModel, resultOrErrors)));
     }
 
     private Source<WriteResultAndErrors, NotUsed> executeBulkWrite(final boolean shouldAcknowledge,

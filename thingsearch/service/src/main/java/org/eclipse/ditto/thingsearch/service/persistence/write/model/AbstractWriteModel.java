@@ -80,6 +80,11 @@ public abstract class AbstractWriteModel {
         }
     }
 
+    // TODO
+    public Optional<MongoWriteModel> toIncrementalMongo(@Nullable final AbstractWriteModel previousWriteModel) {
+        return Optional.of(MongoWriteModel.of(this, toMongo(), false));
+    }
+
     /**
      * @return Metadata of this write model.
      */
