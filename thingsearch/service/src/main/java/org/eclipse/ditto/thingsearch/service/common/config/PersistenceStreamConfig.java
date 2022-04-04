@@ -58,7 +58,7 @@ public interface PersistenceStreamConfig extends StreamStageConfig {
         /**
          * The amount of write operations to perform in one bulk.
          */
-        MAX_BULK_SIZE("max-bulk-size", 250),
+        MAX_BULK_SIZE("max-bulk-size", 100),
 
         /**
          * Internal delay between acknowledgement from database and the sending of "search-persisted" acknowledgements.

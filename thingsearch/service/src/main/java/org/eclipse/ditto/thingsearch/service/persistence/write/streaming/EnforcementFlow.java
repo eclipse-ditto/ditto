@@ -14,11 +14,9 @@ package org.eclipse.ditto.thingsearch.service.persistence.write.streaming;
 
 import java.time.Duration;
 import java.time.Instant;
-import java.util.AbstractMap;
+import java.util.Collection;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Executor;
 
@@ -59,10 +57,13 @@ import akka.NotUsed;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Scheduler;
+import akka.japi.Pair;
 import akka.japi.pf.PFBuilder;
 import akka.stream.javadsl.Flow;
 import akka.stream.javadsl.Keep;
+import akka.stream.javadsl.Sink;
 import akka.stream.javadsl.Source;
+import akka.stream.javadsl.SubSource;
 
 /**
  * Converts Thing changes into write models by retrieving data and applying enforcement via an enforcer cache.
@@ -157,49 +158,37 @@ final class EnforcementFlow {
     /**
      * Create a flow from Thing changes to write models by retrieving data from Things shard region and enforcer cache.
      *
-     * @param parallelism how many thing retrieves to perform in parallel to the caching facade.
+     * @param source the source of change maps.
+     * @param parallelismPerBulkShard how many thing retrieves to perform in parallel to the caching facade per bulk
+     * shard.
+     * @param bulkShardCount the configured amount of shards to create substreams for.
      * @return the flow.
      */
-    public Flow<Map<ThingId, Metadata>, Source<AbstractWriteModel, NotUsed>, NotUsed> create(final int parallelism) {
+    public <T> SubSource<List<AbstractWriteModel>, T> create(
+            final Source<Collection<Metadata>, T> source,
+            final int parallelismPerBulkShard,
+            final int bulkShardCount,
+            final int maxBulkSize) {
 
-        return Flow.<Map<ThingId, Metadata>>create()
-                .map(changeMap -> {
-                    log.info("Updating search index for <{}> changed things", changeMap.size());
-                    return retrieveThingJsonsFromCachingFacade(parallelism, changeMap).flatMapConcat(responseMap ->
-                            Source.fromIterator(changeMap.values()::iterator)
-                                    .flatMapMerge(parallelism, metadataRef -> {
-                                                final JsonObject thing = responseMap.get(metadataRef.getThingId());
-                                                searchUpdateObserver.process(metadataRef, thing);
-                                                return computeWriteModel(metadataRef, thing)
-                                                        .async(MongoSearchUpdaterFlow.DISPATCHER_NAME, parallelism);
-                                            }
-                                    )
-                    );
-                });
-
+        return source.flatMapConcat(changes -> Source.fromIterator(changes::iterator)
+                        .groupBy(bulkShardCount, metadata -> Math.floorMod(metadata.getThingId().hashCode(), bulkShardCount))
+                        .flatMapMerge(parallelismPerBulkShard, changedMetadata ->
+                                retrieveThingFromCachingFacade(changedMetadata.getThingId(), changedMetadata)
+                                        .flatMapConcat(pair -> {
+                                            final JsonObject thing = pair.second();
+                                            searchUpdateObserver.process(changedMetadata, thing);
+                                            return computeWriteModel(changedMetadata, thing);
+                                        })
+                        )
+                        .grouped(maxBulkSize)
+                        .mergeSubstreams())
+                .filterNot(List::isEmpty)
+                .groupBy(bulkShardCount, models ->
+                        Math.floorMod(models.get(0).getMetadata().getThingId().hashCode(), bulkShardCount));
     }
 
-    private Source<Map<ThingId, JsonObject>, NotUsed> retrieveThingJsonsFromCachingFacade(
-            final int parallelism, final Map<ThingId, Metadata> changeMap) {
-
-        return Source.fromIterator(changeMap.entrySet()::iterator)
-                .flatMapMerge(parallelism, entry -> retrieveThingFromCachingFacade(entry)
-                        .async(MongoSearchUpdaterFlow.DISPATCHER_NAME, parallelism))
-                .<Map<ThingId, JsonObject>>fold(new HashMap<>(), (map, entry) -> {
-                    map.put(entry.getKey(), entry.getValue());
-                    return map;
-                })
-                .map(result -> {
-                    log.debug("Got things from caching facade with size: <{}>", result.size());
-                    return result;
-                });
-    }
-
-    private Source<Map.Entry<ThingId, JsonObject>, NotUsed> retrieveThingFromCachingFacade(
-            final Map.Entry<ThingId, Metadata> entry) {
-
-        final var thingId = entry.getKey();
-        final var metadata = entry.getValue();
+    private Source<Pair<ThingId, JsonObject>, NotUsed> retrieveThingFromCachingFacade(final ThingId thingId,
+            final Metadata metadata) {
         ConsistencyLag.startS3RetrieveThing(metadata);
         final CompletionStage<JsonObject> thingFuture;
         if (metadata.shouldInvalidateThing()) {
@@ -209,9 +198,8 @@ final class EnforcementFlow {
         }
 
         return Source.completionStage(thingFuture)
-                .filter(thing -> !thing.isEmpty())
-                .<Map.Entry<ThingId, JsonObject>>map(thing -> new AbstractMap.SimpleImmutableEntry<>(thingId, thing))
-                .recoverWithRetries(1, new PFBuilder<Throwable, Source<Map.Entry<ThingId, JsonObject>, NotUsed>>()
+                .map(thing -> Pair.create(thingId, thing))
+                .recoverWithRetries(1, new PFBuilder<Throwable, Source<Pair<ThingId, JsonObject>, NotUsed>>()
                         .match(Throwable.class, error -> {
                             log.error("Unexpected response for SudoRetrieveThing via cache: <{}>", thingId, error);
                             return Source.empty();
@@ -229,7 +217,8 @@ final class EnforcementFlow {
                     return Instant.EPOCH;
                 })))
                 .orElse(null);
-        if (latestEvent instanceof ThingDeleted || thing == null) {
+        if (latestEvent instanceof ThingDeleted || thing == null || thing.isEmpty()) {
+            log.info("Computed single ThingDeleteModel for metadata <{}> and thing <{}>", metadata, thing);
             return Source.single(ThingDeleteModel.of(metadata));
         } else {
             return getEnforcer(metadata, thing)
@@ -242,10 +231,14 @@ final class EnforcementFlow {
                                         metadata);
                             } catch (final JsonRuntimeException e) {
                                 log.error(e.getMessage(), e);
+                                log.info("Computed - due to <{}: {}> - ThingDeleteModel for metadata <{}> and thing <{}>",
+                                        e.getClass().getSimpleName(), e.getMessage(), metadata, thing);
                                 return ThingDeleteModel.of(metadata);
                             }
                         } else {
                             // no enforcer; delete thing from search index
+                            log.info("Computed - due to missing enforcer - ThingDeleteModel for metadata <{}> " +
+                                    "and thing <{}>", metadata, thing);
                             return ThingDeleteModel.of(metadata);
                         }
                     });

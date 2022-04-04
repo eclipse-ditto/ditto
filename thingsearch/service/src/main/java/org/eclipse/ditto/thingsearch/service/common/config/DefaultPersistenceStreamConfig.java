@@ -43,11 +43,11 @@ public final class DefaultPersistenceStreamConfig implements PersistenceStreamCo
     private DefaultPersistenceStreamConfig(final ConfigWithFallback persistenceStreamScopedConfig,
             final DefaultStreamStageConfig defaultStreamStageConfig) {
 
-        maxBulkSize = persistenceStreamScopedConfig.getInt(PersistenceStreamConfigValue.MAX_BULK_SIZE.getConfigPath());
+        maxBulkSize = persistenceStreamScopedConfig.getPositiveIntOrThrow(PersistenceStreamConfigValue.MAX_BULK_SIZE);
         ackDelay = persistenceStreamScopedConfig.getNonNegativeDurationOrThrow(PersistenceStreamConfigValue.ACK_DELAY);
         final var writeConcernString = persistenceStreamScopedConfig.getString(
                 PersistenceStreamConfigValue.WITH_ACKS_WRITE_CONCERN.getConfigPath());
-        withAcknowledgementsWriteConcern = Optional.ofNullable(WriteConcern.valueOf(writeConcernString))
+        withAcknowledgementsWriteConcern = Optional.of(WriteConcern.valueOf(writeConcernString))
                 .orElseThrow(() -> {
                     final String msg =
                             MessageFormat.format("Could not parse a WriteConcern from configured string <{0}>",
@@ -112,7 +112,8 @@ public final class DefaultPersistenceStreamConfig implements PersistenceStreamCo
 
     @Override
     public int hashCode() {
-        return Objects.hash(maxBulkSize, ackDelay, withAcknowledgementsWriteConcern, defaultStreamStageConfig);
+        return Objects.hash(maxBulkSize, ackDelay, withAcknowledgementsWriteConcern,
+                defaultStreamStageConfig);
     }
 
     @Override

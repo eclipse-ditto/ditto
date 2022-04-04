@@ -71,7 +71,6 @@ import akka.actor.PoisonPill;
 import akka.actor.Props;
 import akka.actor.ReceiveTimeout;
 import akka.cluster.sharding.ShardRegion;
-import akka.japi.pf.ReceiveBuilder;
 import akka.pattern.Patterns;
 import akka.stream.javadsl.Sink;
 
@@ -93,11 +92,10 @@ final class ThingUpdater extends AbstractActorWithStashWithTimers {
     private static final Counter PATCH_SKIP_COUNT = DittoMetrics.counter("search_patch_skips");
     private static final Counter FULL_UPDATE_COUNT = DittoMetrics.counter("search_full_updates");
 
-    private static final Duration BULK_RESULT_AWAITING_TIMEOUT = Duration.ofMinutes(2);
     private static final Duration THING_DELETION_TIMEOUT = Duration.ofMinutes(5);
 
     private static final DittoLogger LOGGER = DittoLoggerFactory.getLogger(ThingUpdater.class);
-            // logger for "trace" statements
+    // logger for "trace" statements
 
     private final DittoDiagnosticLoggingAdapter log;
     private final ThingId thingId;
@@ -207,50 +205,23 @@ final class ThingUpdater extends AbstractActorWithStashWithTimers {
     }
 
     private Receive recoveredBehavior() {
-        return recoveredBehavior("recoveredBehavior");
-    }
-
-    private Receive recoveredBehavior(final String currentBehaviorHintForLogging) {
         return shutdownBehaviour.createReceive()
                 .match(ThingEvent.class, this::processThingEvent)
                 .match(AbstractWriteModel.class, this::onNextWriteModel)
                 .match(PolicyReferenceTag.class, this::processPolicyReferenceTag)
                 .match(UpdateThing.class, this::updateThing)
                 .match(UpdateThingResponse.class, this::processUpdateThingResponse)
+                .match(BulkWriteComplete.class, bwc -> log
+                        .withCorrelationId(bwc.getBulkWriteCorrelationId().orElse(null))
+                        .debug("Received BulkWriteComplete")
+                )
                 .match(ReceiveTimeout.class, this::stopThisActor)
                 .matchEquals(FORCE_UPDATE_AFTER_START, this::forceUpdateAfterStart)
                 .matchAny(m -> {
-                    log.warning("Unknown message in '{}': {}", currentBehaviorHintForLogging, m);
+                    log.warning("Unknown message in 'recoveredBehavior': {}", m);
                     unhandled(m);
                 })
                 .build();
-    }
-
-    private Receive recoveredAwaitingBulkWriteResultBehavior() {
-        getContext().setReceiveTimeout(BULK_RESULT_AWAITING_TIMEOUT);
-        return ReceiveBuilder.create()
-                .match(AbstractWriteModel.class, writeModel -> {
-                    log.debug("Stashing received writeModel while being in " +
-                                    "'recoveredAwaitingBulkWriteResultBehavior': <{}> with revision: <{}>",
-                            writeModel.getClass().getSimpleName(), writeModel.getMetadata().getThingRevision());
-                    stash();
-                })
-                .match(BulkWriteComplete.class, bulkWriteComplete -> {
-                    log.withCorrelationId(bulkWriteComplete.getBulkWriteCorrelationId())
-                            .debug("Got confirmation bulkWrite was performed - switching to 'recoveredBehavior'");
-                    getContext().cancelReceiveTimeout();
-                    getContext().become(recoveredBehavior(), true);
-                    unstashAll();
-                })
-                .match(ReceiveTimeout.class, rt -> {
-                    log.warning("Encountered ReceiveTimeout being in 'recoveredAwaitingBulkWriteResultBehavior' - " +
-                            "switching back to 'recoveredBehavior'");
-                    getContext().cancelReceiveTimeout();
-                    getContext().become(recoveredBehavior(), true);
-                    unstashAll();
-                })
-                .build()
-                .orElse(recoveredBehavior("recoveredAwaitingBulkWriteResultBehavior"));
     }
 
     private void matchAnyDuringRecovery(final Object message) {
@@ -266,29 +237,42 @@ final class ThingUpdater extends AbstractActorWithStashWithTimers {
 
     private void onNextWriteModel(final AbstractWriteModel nextWriteModel) {
         final WriteModel<BsonDocument> mongoWriteModel;
+        final boolean isPatchUpdate;
+
+        if (isNextWriteModelOutDated(forceNextUpdate, lastWriteModel, nextWriteModel)) {
+            final var lastMetadata = lastWriteModel.getMetadata();
+            final var nextMetadata = nextWriteModel.getMetadata();
+            skipNextUpdate(nextWriteModel, String.format("reordering of revisions <%d,%d> -> <%d,%d>",
+                    lastMetadata.getThingRevision(),
+                    lastMetadata.getPolicyRevision().orElse(0L),
+                    nextMetadata.getThingRevision(),
+                    nextMetadata.getPolicyRevision().orElse(0L)));
+            return;
+        }
+
         final boolean forceUpdate = (forceUpdateProbability > 0 && Math.random() < forceUpdateProbability) ||
                 forceNextUpdate;
-        if (!forceUpdate && lastWriteModel instanceof ThingWriteModel && nextWriteModel instanceof ThingWriteModel) {
-            final var last = (ThingWriteModel) lastWriteModel;
-            final var next = (ThingWriteModel) nextWriteModel;
+
+        if (!forceUpdate &&
+                lastWriteModel instanceof final ThingWriteModel last &&
+                nextWriteModel instanceof final ThingWriteModel next) {
+
             final Optional<BsonDiff> diff = tryComputeDiff(next.getThingDocument(), last.getThingDocument());
             if (diff.isPresent() && diff.get().isDiffSmaller()) {
                 final var aggregationPipeline = diff.get().consumeAndExport();
                 if (aggregationPipeline.isEmpty()) {
-                    log.debug("Skipping update due to empty diff <{}>", nextWriteModel.getClass().getSimpleName());
-                    LOGGER.trace("Skipping update due to empty diff <{}>", nextWriteModel);
-                    getSender().tell(Done.getInstance(), getSelf());
-                    PATCH_SKIP_COUNT.increment();
-
+                    skipNextUpdate(nextWriteModel, "empty diff");
                     return;
                 }
                 final var filter = ((ThingWriteModel) nextWriteModel)
                         .asPatchUpdate(lastWriteModel.getMetadata().getThingRevision())
                         .getFilter();
                 mongoWriteModel = new UpdateOneModel<>(filter, aggregationPipeline);
-                log.debug("Using incremental update <{}>", mongoWriteModel.getClass().getSimpleName());
+                log.debug("Using incremental update <{}> with filter: <{}>",
+                        mongoWriteModel.getClass().getSimpleName(), filter);
                 LOGGER.trace("Using incremental update <{}>", mongoWriteModel);
                 PATCH_UPDATE_COUNT.increment();
+                isPatchUpdate = true;
             } else {
                 mongoWriteModel = nextWriteModel.toMongo();
                 log.debug("Using replacement because diff is bigger or nonexistent: <{}>",
@@ -298,6 +282,7 @@ final class ThingUpdater extends AbstractActorWithStashWithTimers {
                             diff.map(BsonDiff::consumeAndExport));
                 }
                 FULL_UPDATE_COUNT.increment();
+                isPatchUpdate = false;
             }
         } else {
             mongoWriteModel = nextWriteModel.toMongo();
@@ -312,12 +297,10 @@ final class ThingUpdater extends AbstractActorWithStashWithTimers {
                 LOGGER.trace("Using replacement <{}>", mongoWriteModel);
             }
             FULL_UPDATE_COUNT.increment();
+            isPatchUpdate = false;
         }
-        getSender().tell(mongoWriteModel, getSelf());
+        getSender().tell(MongoWriteModel.of(nextWriteModel, mongoWriteModel, isPatchUpdate), getSelf());
         lastWriteModel = nextWriteModel;
-
-        log.debug("Responded with mongoWriteModel - switching to 'recoveredAwaitingBulkWriteResultBehavior'");
-        getContext().become(recoveredAwaitingBulkWriteResultBehavior(), true);
     }
 
     private Optional<BsonDiff> tryComputeDiff(final BsonDocument minuend, final BsonDocument subtrahend) {
@@ -394,8 +377,9 @@ final class ThingUpdater extends AbstractActorWithStashWithTimers {
         if (isFailure || isIncorrectPatch) {
             // discard last write model: index document is not known
             lastWriteModel = null;
-            final Metadata metadata =
-                    exportMetadata(null, null).invalidateCaches(true, true);
+            final Metadata metadata = exportMetadata(null, null)
+                    .invalidateCaches(true, true)
+                    .withUpdateReason(UpdateReason.RETRY);
             final String warningTemplate;
             // check first for incorrect patch update otherwise the else branch is never triggered.
             if (isIncorrectPatch) {
@@ -407,7 +391,7 @@ final class ThingUpdater extends AbstractActorWithStashWithTimers {
             }
             log.withCorrelationId(response)
                     .warning(warningTemplate, Metadata.fromResponse(response), metadata);
-            enqueueMetadata(metadata.withUpdateReason(UpdateReason.RETRY));
+            enqueueMetadata(metadata);
         }
     }
 
@@ -453,8 +437,9 @@ final class ThingUpdater extends AbstractActorWithStashWithTimers {
             DittoTracing.wrapTimer(DittoTracing.extractTraceContext(thingEvent), timer);
             ConsistencyLag.startS0InUpdater(timer);
             enqueueMetadata(
-                    exportMetadataWithSender(shouldAcknowledge, thingEvent, getSender(), timer).withUpdateReason(
-                            UpdateReason.THING_UPDATE));
+                    exportMetadataWithSender(shouldAcknowledge, thingEvent, getSender(), timer)
+                            .withUpdateReason(UpdateReason.THING_UPDATE)
+            );
         }
 
         if (thingEvent instanceof ThingDeleted) {
@@ -495,8 +480,37 @@ final class ThingUpdater extends AbstractActorWithStashWithTimers {
         Patterns.pipe(writeModelFuture, getContext().getDispatcher()).to(getSelf());
     }
 
+    private void skipNextUpdate(final AbstractWriteModel nextWriteModel, final String reason) {
+        log.debug("Skipping update due to {} <{}>", reason, nextWriteModel.getClass().getSimpleName());
+        LOGGER.trace("Skipping update due to {} <{}>", reason, nextWriteModel);
+        getSender().tell(Done.getInstance(), getSelf());
+        PATCH_SKIP_COUNT.increment();
+    }
+
     private static Duration randomizeTimeout(final Duration minTimeout, final double randomFactor) {
         final long randomDelayMillis = (long) (Math.random() * randomFactor * minTimeout.toMillis());
         return minTimeout.plus(Duration.ofMillis(randomDelayMillis));
+    }
+
+    private static boolean isNextWriteModelOutDated(final boolean forceNextUpdate,
+            @Nullable final AbstractWriteModel lastWriteModel,
+            final AbstractWriteModel nextWriteModel) {
+
+        if (lastWriteModel == null) {
+            return false;
+        } else {
+            final var lastMetadata = lastWriteModel.getMetadata();
+            final var nextMetadata = nextWriteModel.getMetadata();
+            final boolean isStrictlyOlder = nextMetadata.getThingRevision() < lastMetadata.getThingRevision() ||
+                    nextMetadata.getThingRevision() == lastMetadata.getThingRevision() &&
+                            nextMetadata.getPolicyRevision().flatMap(nextPolicyRevision ->
+                                            lastMetadata.getPolicyRevision().map(lastPolicyRevision ->
+                                                    nextPolicyRevision < lastPolicyRevision))
+                                    .orElse(false);
+            final boolean hasSameRevisions = nextMetadata.getThingRevision() == lastMetadata.getThingRevision() &&
+                    nextMetadata.getPolicyRevision().equals(lastMetadata.getPolicyRevision());
+
+            return isStrictlyOlder || hasSameRevisions && !forceNextUpdate;
+        }
     }
 }

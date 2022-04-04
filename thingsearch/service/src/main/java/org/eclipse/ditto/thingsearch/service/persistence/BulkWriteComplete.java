@@ -12,6 +12,9 @@
  */
 package org.eclipse.ditto.thingsearch.service.persistence;
 
+import java.util.Optional;
+
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 /**
@@ -20,9 +23,9 @@ import javax.annotation.concurrent.Immutable;
 @Immutable
 public final class BulkWriteComplete {
 
-    private final String bulkWriteCorrelationId;
+    @Nullable private final String bulkWriteCorrelationId;
 
-    private BulkWriteComplete(final String bulkWriteCorrelationId) {
+    private BulkWriteComplete(@Nullable final String bulkWriteCorrelationId) {
         this.bulkWriteCorrelationId = bulkWriteCorrelationId;
     }
 
@@ -32,14 +35,14 @@ public final class BulkWriteComplete {
      * @param bulkWriteCorrelationId the correlationId of the bulkWrite.
      * @return the instance.
      */
-    public static BulkWriteComplete of(final String bulkWriteCorrelationId) {
+    public static BulkWriteComplete of(@Nullable final String bulkWriteCorrelationId) {
         return new BulkWriteComplete(bulkWriteCorrelationId);
     }
 
     /**
      * @return the correlationId of the bulkWrite.
      */
-    public String getBulkWriteCorrelationId() {
-        return bulkWriteCorrelationId;
+    public Optional<String> getBulkWriteCorrelationId() {
+        return Optional.ofNullable(bulkWriteCorrelationId);
     }
 }

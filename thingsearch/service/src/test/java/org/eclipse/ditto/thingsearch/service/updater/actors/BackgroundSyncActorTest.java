@@ -10,7 +10,6 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-
 package org.eclipse.ditto.thingsearch.service.updater.actors;
 
 import static org.assertj.core.api.Assertions.assertThat;

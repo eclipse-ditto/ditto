@@ -18,7 +18,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
@@ -35,6 +34,7 @@ import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 import org.eclipse.ditto.thingsearch.api.UpdateReason;
 import org.eclipse.ditto.thingsearch.api.commands.sudo.UpdateThingResponse;
+import org.eclipse.ditto.thingsearch.service.persistence.BulkWriteComplete;
 
 import akka.actor.ActorRef;
 
@@ -139,6 +139,8 @@ public final class Metadata {
      * @param events the events included in the metadata causing the search update.
      * @param timers the timers measuring the search updater's consistency lag.
      * @param senders the senders.
+     * @param origin the origin.
+     * @param updateReasons the update reasons.
      * @return the new Metadata object.
      */
     public static Metadata of(final ThingId thingId,
@@ -148,10 +150,12 @@ public final class Metadata {
             @Nullable final Instant modified,
             final List<ThingEvent<?>> events,
             final Collection<StartedTimer> timers,
-            final Collection<ActorRef> senders) {
+            final Collection<ActorRef> senders,
+            @Nullable final ActorRef origin,
+            final Collection<UpdateReason> updateReasons) {
 
         return new Metadata(thingId, thingRevision, policyId, policyRevision, modified, events, timers, senders,
-                false, false, null, List.of(UpdateReason.UNKNOWN));
+                false, false, origin, updateReasons);
     }
 
     /**
@@ -379,14 +383,11 @@ public final class Metadata {
      * @return the new metadata with concatenated senders.
      */
     public Metadata append(final Metadata newMetadata) {
-        final List<ThingEvent<?>> newEvents =
-                Stream.concat(events.stream(), newMetadata.events.stream()).collect(Collectors.toList());
-        final List<StartedTimer> newTimers =
-                Stream.concat(timers.stream(), newMetadata.timers.stream()).collect(Collectors.toList());
-        final List<ActorRef> newSenders =
-                Stream.concat(senders.stream(), newMetadata.senders.stream()).collect(Collectors.toList());
-        final List<UpdateReason> newReasons =
-                Stream.concat(updateReasons.stream(), newMetadata.updateReasons.stream()).collect(Collectors.toList());
+        final List<ThingEvent<?>> newEvents = Stream.concat(events.stream(), newMetadata.events.stream()).toList();
+        final List<StartedTimer> newTimers = Stream.concat(timers.stream(), newMetadata.timers.stream()).toList();
+        final List<ActorRef> newSenders = Stream.concat(senders.stream(), newMetadata.senders.stream()).toList();
+        final List<UpdateReason> newReasons = Stream.concat(updateReasons.stream(), newMetadata.updateReasons.stream())
+                .toList();
         return new Metadata(newMetadata.thingId, newMetadata.thingRevision, newMetadata.policyId,
                 newMetadata.policyRevision, newMetadata.modified, newEvents, newTimers, newSenders,
                 invalidateThing || newMetadata.invalidateThing,
@@ -417,6 +418,17 @@ public final class Metadata {
      */
     public void sendWeakAck(@Nullable final JsonValue payload) {
         send(Acknowledgement.weak(DittoAcknowledgementLabel.SEARCH_PERSISTED, thingId, DittoHeaders.empty(), payload));
+    }
+
+    /**
+     * Send {@link BulkWriteComplete} message to ThingUpdater {@code origin}.
+     *
+     * @param bulkWriteCorrelationId the correlation-id of the bulk write.
+     */
+    public void sendBulkWriteCompleteToOrigin(@Nullable final String bulkWriteCorrelationId) {
+        if (null != origin) {
+            origin.tell(BulkWriteComplete.of(bulkWriteCorrelationId), ActorRef.noSender());
+        }
     }
 
     private void send(final Acknowledgement ack) {

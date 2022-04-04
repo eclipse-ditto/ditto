@@ -13,6 +13,7 @@
 package org.eclipse.ditto.thingsearch.service.persistence.write.streaming;
 
 import java.time.Duration;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -97,7 +98,7 @@ public final class ChangeQueueActor extends AbstractActor {
      * @param writeInterval minimum delays between cache dumps.
      * @return source of queue snapshots.
      */
-    public static Source<Map<ThingId, Metadata>, NotUsed> createSource(
+    public static Source<Collection<Metadata>, NotUsed> createSource(
             final ActorRef changeQueueActor,
             final boolean shouldAcknowledge,
             final Duration writeInterval) {
@@ -124,7 +125,8 @@ public final class ChangeQueueActor extends AbstractActor {
                         LOG.trace("Emitting dumped map for shouldAcknowledge <{}>: {}", shouldAcknowledge, map);
                     }
                     return notEmpty;
-                });
+                })
+                .map(Map::values);
     }
 
     private void dump(final Control dump) {
