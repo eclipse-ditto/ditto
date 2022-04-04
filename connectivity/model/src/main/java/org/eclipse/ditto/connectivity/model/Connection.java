@@ -134,16 +134,18 @@ public interface Connection extends Jsonifiable.WithFieldSelectorAndPredicate<Js
     /**
      * Returns the username part of the URI of this {@code Connection}.
      *
+     * @param shouldUriDecode whether the username should be URI-decoded.
      * @return the username.
      */
-    Optional<String> getUsername();
+    Optional<String> getUsername(boolean shouldUriDecode);
 
     /**
      * Returns the password part of the URI of this {@code Connection}.
      *
+     * @param shouldUriDecode whether the password should be URI-decoded.
      * @return the password.
      */
-    Optional<String> getPassword();
+    Optional<String> getPassword(boolean shouldUriDecode);
 
     /**
      * Returns the hostname part of the URI of this {@code Connection}.

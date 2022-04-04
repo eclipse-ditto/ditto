@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq;
 
-import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.List;
@@ -57,11 +56,11 @@ abstract class AbstractHiveMqttClientFactory {
     // duplicate code unavoidable because there is no common interface
     // between Mqtt3SimpleAuthBuilder.Nested and Mqtt5SimpleAuthBuilder.Nested
     @SuppressWarnings("Duplicates")
-    void configureSimpleAuth(final Mqtt3SimpleAuthBuilder.Nested<?> simpleAuth, final Connection connection, final boolean doubleDecodingEnabled) {
-        final Optional<String> username =
-                connection.getUsername().map(u -> doubleDecodingEnabled ? tryDecodeUriComponent(u) : u);
-        final Optional<String> password =
-                connection.getPassword().map(p -> doubleDecodingEnabled ? tryDecodeUriComponent(p) : p);
+    void configureSimpleAuth(final Mqtt3SimpleAuthBuilder.Nested<?> simpleAuth, final Connection connection,
+            final boolean doubleDecodingEnabled) {
+
+        final Optional<String> username = connection.getUsername(doubleDecodingEnabled);
+        final Optional<String> password = connection.getPassword(doubleDecodingEnabled);
         if (username.isPresent() && password.isPresent()) {
             simpleAuth.username(username.get())
                     .password(password.get().getBytes(StandardCharsets.UTF_8))
@@ -69,23 +68,14 @@ abstract class AbstractHiveMqttClientFactory {
         }
     }
 
-    private static String tryDecodeUriComponent(final String string) {
-        try {
-            final String withoutPlus = string.replace("+", "%2B");
-            return URLDecoder.decode(withoutPlus, StandardCharsets.UTF_8);
-        } catch (final IllegalArgumentException e) {
-            return string;
-        }
-    }
-
     // duplicate code unavoidable because there is no common interface
     // between Mqtt3SimpleAuthBuilder.Nested and Mqtt5SimpleAuthBuilder.Nested
     @SuppressWarnings("Duplicates")
-    void configureSimpleAuth(final Mqtt5SimpleAuthBuilder.Nested<?> simpleAuth, final Connection connection, final boolean doubleDecodingEnabled) {
-        final Optional<String> username =
-                connection.getUsername().map(u -> doubleDecodingEnabled ? tryDecodeUriComponent(u) : u);
-        final Optional<String> password =
-                connection.getPassword().map(p -> doubleDecodingEnabled ? tryDecodeUriComponent(p) : p);
+    void configureSimpleAuth(final Mqtt5SimpleAuthBuilder.Nested<?> simpleAuth, final Connection connection,
+            final boolean doubleDecodingEnabled) {
+
+        final Optional<String> username = connection.getUsername(doubleDecodingEnabled);
+        final Optional<String> password = connection.getPassword(doubleDecodingEnabled);
         if (username.isPresent() && password.isPresent()) {
             simpleAuth.username(username.get())
                     .password(password.get().getBytes(StandardCharsets.UTF_8))

@@ -12,8 +12,6 @@
  */
 package org.eclipse.ditto.connectivity.service.messaging.amqp;
 
-import java.io.UnsupportedEncodingException;
-import java.net.URLDecoder;
 import java.util.Optional;
 
 import org.eclipse.ditto.connectivity.model.Connection;
@@ -52,23 +50,9 @@ public interface PlainCredentialsSupplier {
      * @return the URI.
      */
     static PlainCredentialsSupplier fromUri() {
-        return (connection, doubleDecodingEnabled) ->
-                connection.getUsername().flatMap(username ->
-                        connection.getPassword().map(password -> {
-                            final String u =
-                                    doubleDecodingEnabled ? tryDecodeUriComponent(username) : username;
-                            final String p =
-                                    doubleDecodingEnabled ? tryDecodeUriComponent(password) : password;
-                                return UserPasswordCredentials.newInstance(u, p);}));
-    }
-
-    private static String tryDecodeUriComponent(final String string) {
-        try {
-            final String withoutPlus = string.replace("+", "%2B");
-            return URLDecoder.decode(withoutPlus, "UTF-8");
-        } catch (final IllegalArgumentException | UnsupportedEncodingException e) {
-            return string;
-        }
+        return (connection, doubleDecodingEnabled) -> connection.getUsername(doubleDecodingEnabled).flatMap(username ->
+                connection.getPassword(doubleDecodingEnabled)
+                        .map(password -> UserPasswordCredentials.newInstance(username, password)));
     }
 
 }

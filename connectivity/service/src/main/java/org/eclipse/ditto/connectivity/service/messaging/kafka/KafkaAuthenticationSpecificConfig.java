@@ -12,8 +12,6 @@
  */
 package org.eclipse.ditto.connectivity.service.messaging.kafka;
 
-import java.net.URLDecoder;
-import java.nio.charset.StandardCharsets;
 import java.text.MessageFormat;
 import java.util.Collections;
 import java.util.HashMap;
@@ -64,7 +62,7 @@ final class KafkaAuthenticationSpecificConfig implements KafkaSpecificConfig {
 
     @Override
     public boolean isApplicable(final Connection connection) {
-        return connection.getUsername().isPresent() && connection.getPassword().isPresent();
+        return connection.getUsername(false).isPresent() && connection.getPassword(false).isPresent();
     }
 
     @Override
@@ -93,10 +91,8 @@ final class KafkaAuthenticationSpecificConfig implements KafkaSpecificConfig {
     @Override
     public Map<String, String> apply(final Connection connection) {
 
-        final Optional<String> username =
-                connection.getUsername().map(u -> doubleDecodingEnabled ? tryDecodeUriComponent(u) : u);
-        final Optional<String> password =
-                connection.getPassword().map(p -> doubleDecodingEnabled ? tryDecodeUriComponent(p) : p);
+        final Optional<String> username = connection.getUsername(doubleDecodingEnabled);
+        final Optional<String> password = connection.getPassword(doubleDecodingEnabled);
         // chose to not use isApplicable() but directly check username and password since we need to Optional#get them.
         if (isValid(connection) && username.isPresent() && password.isPresent()) {
             final String saslMechanism = getSaslMechanismOrDefault(connection).toUpperCase();
@@ -107,15 +103,6 @@ final class KafkaAuthenticationSpecificConfig implements KafkaSpecificConfig {
                     SaslConfigs.SASL_JAAS_CONFIG, jaasConfig);
         }
         return Collections.emptyMap();
-    }
-
-    private static String tryDecodeUriComponent(final String string) {
-        try {
-            final String withoutPlus = string.replace("+", "%2B");
-            return URLDecoder.decode(withoutPlus, StandardCharsets.UTF_8);
-        } catch (final IllegalArgumentException e) {
-            return string;
-        }
     }
 
     private static String getJaasConfig(final String loginModule, final String username, final String password) {

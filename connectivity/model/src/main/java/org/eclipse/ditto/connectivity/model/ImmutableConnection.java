@@ -15,8 +15,10 @@ package org.eclipse.ditto.connectivity.model;
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkArgument;
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
+import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.net.URLDecoder;
 import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -319,13 +321,22 @@ final class ImmutableConnection implements Connection {
     }
 
     @Override
-    public Optional<String> getUsername() {
-        return uri.getUserName();
+    public Optional<String> getUsername(final boolean shouldUriDecode) {
+        return uri.getUserName().map(ImmutableConnection::tryDecodeUriComponent);
     }
 
     @Override
-    public Optional<String> getPassword() {
-        return uri.getPassword();
+    public Optional<String> getPassword(final boolean shouldUriDecode) {
+        return uri.getPassword().map(ImmutableConnection::tryDecodeUriComponent);
+    }
+
+    private static String tryDecodeUriComponent(final String string) {
+        try {
+            final String withoutPlus = string.replace("+", "%2B");
+            return URLDecoder.decode(withoutPlus, "UTF-8");
+        } catch (final IllegalArgumentException | UnsupportedEncodingException e) {
+            return string;
+        }
     }
 
     @Override
