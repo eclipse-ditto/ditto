@@ -322,12 +322,14 @@ final class ImmutableConnection implements Connection {
 
     @Override
     public Optional<String> getUsername(final boolean shouldUriDecode) {
-        return uri.getUserName().map(ImmutableConnection::tryDecodeUriComponent);
+        final Optional<String> username = uri.getUserName();
+        return shouldUriDecode ? username.map(ImmutableConnection::tryDecodeUriComponent) : username;
     }
 
     @Override
     public Optional<String> getPassword(final boolean shouldUriDecode) {
-        return uri.getPassword().map(ImmutableConnection::tryDecodeUriComponent);
+        final Optional<String> password = uri.getPassword();
+        return shouldUriDecode ? password.map(ImmutableConnection::tryDecodeUriComponent) : password;
     }
 
     private static String tryDecodeUriComponent(final String string) {
