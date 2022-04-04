@@ -12,69 +12,92 @@ The general syntax of a placeholder is `{% raw %}{{ prefix:name }}{% endraw %}`.
 Which placeholder values are available depends on the context where the placeholder is used. 
 
 ### Entity Placeholder
-| Placeholder    | Description                                                                           |
-|----------------|---------------------------------------------------------------------------------------|
-| `{%raw%}{{ entity:id }}{%endraw%}`             | full ID composed of ''namespace'' + '':'' as a separator + ''name'' for things and policies                                                                                                     | 
-| `{%raw%}{{ entity:namespace }}{%endraw%}`      | Namespace (i.e. first part of an ID) for things and policies                                                                                                                                    |
-| `{%raw%}{{ entity:name }}{%endraw%}`           | Name (i.e. second part of an ID ) for things and policies |
+
+| Placeholder                               | Description                                                                                 |
+|-------------------------------------------|---------------------------------------------------------------------------------------------|
+| `{%raw%}{{ entity:id }}{%endraw%}`        | full ID composed of ''namespace'' + '':'' as a separator + ''name'' for things and policies | 
+| `{%raw%}{{ entity:namespace }}{%endraw%}` | Namespace (i.e. first part of an ID) for things and policies                                |
+| `{%raw%}{{ entity:name }}{%endraw%}`      | Name (i.e. second part of an ID ) for things and policies                                   |
+
 ### Thing Placeholder
-| Placeholder    | Description                                                                           |
-|----------------|---------------------------------------------------------------------------------------|
-| `{%raw%}{{ thing:id }}{%endraw%}`              | full ID composed of ''namespace'' + '':'' as a separator + ''name''                                                                                                                             |
-| `{%raw%}{{ thing:namespace }}{%endraw%}`       | the namespace (i.e. first part of an ID) of the related thing                                                                                                                                   |
-| `{%raw%}{{ thing:name }}{%endraw%}`            | the name (i.e. second part of an ID ) of the related thing                                                                                                                                      |
+
+| Placeholder                              | Description                                                         |
+|------------------------------------------|---------------------------------------------------------------------|
+| `{%raw%}{{ thing:id }}{%endraw%}`        | full ID composed of ''namespace'' + '':'' as a separator + ''name'' |
+| `{%raw%}{{ thing:namespace }}{%endraw%}` | the namespace (i.e. first part of an ID) of the related thing       |
+| `{%raw%}{{ thing:name }}{%endraw%}`      | the name (i.e. second part of an ID ) of the related thing          |
+
 ### Feature Placeholder
-| Placeholder    | Description                                                                           |
-|----------------|---------------------------------------------------------------------------------------|
-| `{%raw%}{{ feature:id }}{%endraw%}`            | the ID of the feature (only available if the processed signal was related to a feature)                                                                                                         |
+
+| Placeholder                         | Description                                                                             |
+|-------------------------------------|-----------------------------------------------------------------------------------------|
+| `{%raw%}{{ feature:id }}{%endraw%}` | the ID of the feature (only available if the processed signal was related to a feature) |
+
 ### Policy Placeholder
+
 | Placeholder                               | Description                                                         |
 |-------------------------------------------|---------------------------------------------------------------------|
 | `{%raw%}{{ policy:id }}{%endraw%}`        | full ID composed of ''namespace'' + '':'' as a separator + ''name'' |
 | `{%raw%}{{ policy:namespace }}{%endraw%}` | the namespace (i.e. first part of an ID) of the related policy      |
 | `{%raw%}{{ policy:name }}{%endraw%}`      | the name (i.e. second part of an ID ) of the related policy         |
+
 ### Policy Entry Placeholder
-| Placeholder                                 | Description                                                         |
-|---------------------------------------------|---------------------------------------------------------------------|
-| `{%raw%}{{ policy-entry:label }}{%endraw%}` |  label of the policy entry in which the token integration subject is injected |
+
+| Placeholder                                 | Description                                                                  |
+|---------------------------------------------|------------------------------------------------------------------------------|
+| `{%raw%}{{ policy-entry:label }}{%endraw%}` | label of the policy entry in which the token integration subject is injected |
+
 ### Connection Placeholder
-| Placeholder                            | Description                                                                                                                   |
-|----------------------------------------|-------------------------------------------------------------------------------------------------------------------------------|
+
+| Placeholder                            | Description                                                |
+|----------------------------------------|------------------------------------------------------------|
 | `{%raw%}{{ connection:id }}{%endraw%}` | the ID of the connection which receives/publishes a signal |
+
 ### Header Placeholder
-| Placeholder    | Description                                                                                                                                                                              |
-|----------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `{%raw%}{{ header:<header-name> }}{%endraw%}`  | Value of the header with the given name. For incoming signals the headers of the used protocol are used. For outgoing values the Ditto protocol headers are used.(both case-insensitive) |
+
+| Placeholder                                   | Description                                                                                                                                                                              |
+|-----------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `{%raw%}{{ header:<header-name> }}{%endraw%}` | Value of the header with the given name. For incoming signals the headers of the used protocol are used. For outgoing values the Ditto protocol headers are used.(both case-insensitive) |
+
 ### Topic Placeholder
-| Placeholder                               | Description                                                                                                                                                                                     |
-|-------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `{%raw%}{{ topic:full }}{%endraw%}`       | full [Ditto Protocol topic path](protocol-specification-topic.html)<br/>in the form `{namespace}/{entityName}/{group}/`<br/>`{channel}/{criterion}/{action-subject}`                            |
-| `{%raw%}{{ topic:namespace }}{%endraw%}`  | Ditto Protocol [topic namespace](protocol-specification-topic.html#namespace)                                                                                                                   |
-| `{%raw%}{{ topic:entityName }}{%endraw%}` | Ditto Protocol [topic entity name](protocol-specification-topic.html#entity-name)                                                                                                               |
-| `{%raw%}{{ topic:group }}{%endraw%}`      | Ditto Protocol [topic group](protocol-specification-topic.html#group)                                                                                                                           |
-| `{%raw%}{{ topic:channel }}{%endraw%}`    | Ditto Protocol [topic channel](protocol-specification-topic.html#channel)                                                                                                                       |
-| `{%raw%}{{ topic:criterion }}{%endraw%}`  | Ditto Protocol [topic criterion](protocol-specification-topic.html#criterion)                                                                                                                   |
-| `{%raw%}{{ topic:action }}{%endraw%}`     | Ditto Protocol [topic action](protocol-specification-topic.html#action-optional)                                                                                                                |
-| `{%raw%}{{ topic:subject }}{%endraw%}`    | Ditto Protocol [topic subject](protocol-specification-topic.html#messages-criterion-actions) (for message commands)                                                                             |
-| `{%raw%}{{ topic:action-subject }}{%endraw%}`          | either Ditto Protocol [topic action](protocol-specification-topic.html#action-optional) or [topic subject](protocol-specification-topic.html#messages-criterion-actions) (for message commands) |
+
+| Placeholder                                   | Description                                                                                                                                                                                     |
+|-----------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `{%raw%}{{ topic:full }}{%endraw%}`           | full [Ditto Protocol topic path](protocol-specification-topic.html)<br/>in the form `{namespace}/{entityName}/{group}/`<br/>`{channel}/{criterion}/{action-subject}`                            |
+| `{%raw%}{{ topic:namespace }}{%endraw%}`      | Ditto Protocol [topic namespace](protocol-specification-topic.html#namespace)                                                                                                                   |
+| `{%raw%}{{ topic:entityName }}{%endraw%}`     | Ditto Protocol [topic entity name](protocol-specification-topic.html#entity-name)                                                                                                               |
+| `{%raw%}{{ topic:group }}{%endraw%}`          | Ditto Protocol [topic group](protocol-specification-topic.html#group)                                                                                                                           |
+| `{%raw%}{{ topic:channel }}{%endraw%}`        | Ditto Protocol [topic channel](protocol-specification-topic.html#channel)                                                                                                                       |
+| `{%raw%}{{ topic:criterion }}{%endraw%}`      | Ditto Protocol [topic criterion](protocol-specification-topic.html#criterion)                                                                                                                   |
+| `{%raw%}{{ topic:action }}{%endraw%}`         | Ditto Protocol [topic action](protocol-specification-topic.html#action-optional)                                                                                                                |
+| `{%raw%}{{ topic:subject }}{%endraw%}`        | Ditto Protocol [topic subject](protocol-specification-topic.html#messages-criterion-actions) (for message commands)                                                                             |
+| `{%raw%}{{ topic:action-subject }}{%endraw%}` | either Ditto Protocol [topic action](protocol-specification-topic.html#action-optional) or [topic subject](protocol-specification-topic.html#messages-criterion-actions) (for message commands) |
+
 ### Resource Placeholder
-| Placeholder               | Description                                                                           |
-|---------------------------|---------------------------------------------------------------------------------------|
-| `{%raw%}{{ resource:type }}{%endraw%}` | the type of the Ditto Protocol [path](protocol-specification.html#path) , one of: `"thing" "policy" "message" "connection"`                                                                     |
-| `{%raw%}{{ resource:path }}{%endraw%}` | the affected resource's path being the Ditto Protocol [path](protocol-specification.html#path) in JsonPointer notation, e.g. `/` when a complete thing was created/modified/deleted             |
+
+| Placeholder                            | Description                                                                                                                                                                         |
+|----------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `{%raw%}{{ resource:type }}{%endraw%}` | the type of the Ditto Protocol [path](protocol-specification.html#path) , one of: `"thing" "policy" "message" "connection"`                                                         |
+| `{%raw%}{{ resource:path }}{%endraw%}` | the affected resource's path being the Ditto Protocol [path](protocol-specification.html#path) in JsonPointer notation, e.g. `/` when a complete thing was created/modified/deleted |
+
 ### Request Placeholder
-| Placeholder    | Description                                                                           |
-|----------------|---------------------------------------------------------------------------------------|
-| `{%raw%}{{ request:subjectId }}{%endraw%}` | the first authenticated subjectId which sent the command / did the request   |
+
+| Placeholder                                | Description                                                                |
+|--------------------------------------------|----------------------------------------------------------------------------|
+| `{%raw%}{{ request:subjectId }}{%endraw%}` | the first authenticated subjectId which sent the command / did the request |
+
 ### Time Placeholder
-| Placeholder    | Description                                                                           |
-|----------------|---------------------------------------------------------------------------------------|
-| `{%raw%}{{ time:now }}{%endraw%}` | the current timestamp in ISO-8601 format as string in UTC timezone                    | 
-| `{%raw%}{{ time:now_epoch_millis }}{%endraw%}` | the current timestamp in "milliseconds since epoch" formatted as string  |
+
+| Placeholder                                    | Description                                                             |
+|------------------------------------------------|-------------------------------------------------------------------------|
+| `{%raw%}{{ time:now }}{%endraw%}`              | the current timestamp in ISO-8601 format as string in UTC timezone      | 
+| `{%raw%}{{ time:now_epoch_millis }}{%endraw%}` | the current timestamp in "milliseconds since epoch" formatted as string |
+
 ### JWT Placeholder
-| Placeholder    | Description                                                                           |
-|----------------|---------------------------------------------------------------------------------------|
-| `{%raw%}{{ jwt:<claim-pointer> }}{%endraw%}` | Any standard or custom claims in the body of the authenticated JWT in JsonPointer notation - e.g., `jwt:sub` for the JWT "subject" or `jwt:extra/roles` for (potentially multiple) "roles" extracted from a JsonObject in the JWT named `extra`.<br/>JWT claims being JSON arrays are expanded (each value of the array is added) and provided [functions](#function-expressions) are performed on each array element.  |
+
+| Placeholder                                  | Description                                                                                                                                                                                                                                                                                                                                                                                                            |
+|----------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `{%raw%}{{ jwt:<claim-pointer> }}{%endraw%}` | Any standard or custom claims in the body of the authenticated JWT in JsonPointer notation - e.g., `jwt:sub` for the JWT "subject" or `jwt:extra/roles` for (potentially multiple) "roles" extracted from a JsonObject in the JWT named `extra`.<br/>JWT claims being JSON arrays are expanded (each value of the array is added) and provided [functions](#function-expressions) are performed on each array element. |
 
 
 ### Scope: Entity creation / modification
@@ -195,32 +218,32 @@ In [connections](basic-connections.html), the following placeholders are availab
 For a topic path with the intention of [creating a Thing](protocol-examples-creatething.html) 
 _org.eclipse.ditto/device-123/things/twin/commands/create_ these placeholders would be resolved as follows:
 
-| Placeholder            | Resolved value |
-|------------------------|----------------|
+| Placeholder            | Resolved value                                             |
+|------------------------|------------------------------------------------------------|
 | `topic:full`           | _org.eclipse.ditto/device-123/things/twin/commands/create_ |
-| `topic:namespace`      | _org.eclipse.ditto_ |
-| `topic:entityName`     | _device-123_ |
-| `topic:group`          | _things_ |
-| `topic:channel`        | _twin_ |
-| `topic:criterion`      | _commands_ |
-| `topic:action`         | _create_ |
-| `topic:subject`        | &#10060; |
-| `topic:action-subject` | _create_ |
+| `topic:namespace`      | _org.eclipse.ditto_                                        |
+| `topic:entityName`     | _device-123_                                               |
+| `topic:group`          | _things_                                                   |
+| `topic:channel`        | _twin_                                                     |
+| `topic:criterion`      | _commands_                                                 |
+| `topic:action`         | _create_                                                   |
+| `topic:subject`        | &#10060;                                                   |
+| `topic:action-subject` | _create_                                                   |
 
 For a topic path with the intention of [sending a message to a Thing](protocol-specification-things-messages.html#sending-a-message-to-a-thing) 
 _org.eclipse.ditto/device-123/things/live/messages/hello.world_ these placeholders are resolved as follows:
 
-| Placeholder            | Resolved value |
-|------------------------|----------------|
+| Placeholder            | Resolved value                                                  |
+|------------------------|-----------------------------------------------------------------|
 | `topic:full`           | _org.eclipse.ditto/device-123/things/live/messages/hello.world_ |
-| `topic:namespace`      | _org.eclipse.ditto_ |
-| `topic:entityName`     | _device-123_ |
-| `topic:group`          | _things_ |
-| `topic:channel`        | _live_ |
-| `topic:criterion`      | _messages_ |
-| `topic:action`         | &#10060; |
-| `topic:subject`        | _hello.world_ |
-| `topic:action-subject` | _hello.world_ |
+| `topic:namespace`      | _org.eclipse.ditto_                                             |
+| `topic:entityName`     | _device-123_                                                    |
+| `topic:group`          | _things_                                                        |
+| `topic:channel`        | _live_                                                          |
+| `topic:criterion`      | _messages_                                                      |
+| `topic:action`         | &#10060;                                                        |
+| `topic:subject`        | _hello.world_                                                   |
+| `topic:action-subject` | _hello.world_                                                   |
 
 
 ## Function expressions

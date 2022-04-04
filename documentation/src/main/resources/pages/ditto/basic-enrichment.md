@@ -103,8 +103,11 @@ extraFields=features/*/properties/unit
 ```
 
 If you however want to see a property only for the features changed within this event you could make use of placeholders.
-The following example would enrich the definition of all features that have changed within this event.
+The following example would enrich the definition of all features that have changed within this event:
+```
 {%raw%}extraFields=features/{{feature:id}}/definition{%endraw%}
+```
+
 Please have a look at available placeholders for the use case:
 * [Signal enrichment for Websocket](basic-placeholders.html#scope-websocket-signal-enrichment)
 * [Signal enrichment for SSE](basic-placeholders.html#scope-sse-signal-enrichment)
