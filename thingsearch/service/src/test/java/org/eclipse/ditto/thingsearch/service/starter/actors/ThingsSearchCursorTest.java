@@ -140,8 +140,7 @@ public final class ThingsSearchCursorTest {
             final var bson = CreateBsonVisitor.sudoApply(result.getCriteria())
                     .toBsonDocument(Document.class, MongoClient.DEFAULT_CODEC_REGISTRY());
             assertThat(bson.toJson().replaceAll("\\s", ""))
-                    .contains("{\"$elemMatch\":{\"$and\":[{\"k\":\"/attributes/sortKey\"}," +
-                            "{\"v\":{\"$gt\":{\"key\":\"value\"}}}]}}");
+                    .contains("{\"t.attributes.sortKey\":{\"$gt\":{\"key\":\"value\"}}}");
         } finally {
             TestKit.shutdownActorSystem(actorSystem);
         }
