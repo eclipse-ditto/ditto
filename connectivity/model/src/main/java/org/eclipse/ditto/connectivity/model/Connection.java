@@ -131,6 +131,15 @@ public interface Connection extends Jsonifiable.WithFieldSelectorAndPredicate<Js
      */
     String getProtocol();
 
+
+    /**
+     * Returns the username part of the URI of this {@code Connection}.
+     *
+     * @return the username.
+     * @deprecated since 2.4.0 use {@link #getUsername(boolean)} instead.
+     */
+    Optional<String> getUsername();
+
     /**
      * Returns the username part of the URI of this {@code Connection}.
      *
@@ -138,6 +147,14 @@ public interface Connection extends Jsonifiable.WithFieldSelectorAndPredicate<Js
      * @return the username.
      */
     Optional<String> getUsername(boolean shouldUriDecode);
+
+    /**
+     * Returns the password part of the URI of this {@code Connection}.
+     *
+     * @return the password.
+     * @deprecated since 2.4.0 use {@link #getPassword(boolean)} instead.
+     */
+    Optional<String> getPassword();
 
     /**
      * Returns the password part of the URI of this {@code Connection}.
