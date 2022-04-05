@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.thingsearch.service.updater.actors;
 
-import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
@@ -26,8 +26,12 @@ import org.eclipse.ditto.internal.utils.akka.ActorSystemResource;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.policies.api.PolicyReferenceTag;
+import org.eclipse.ditto.policies.api.PolicyTag;
+import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.events.AttributeModified;
+import org.eclipse.ditto.thingsearch.api.UpdateReason;
 import org.eclipse.ditto.thingsearch.service.common.config.DittoSearchConfig;
 import org.eclipse.ditto.thingsearch.service.common.config.SearchConfig;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.Metadata;
@@ -204,6 +208,28 @@ public final class ThingUpdaterTest {
             outletProbe.sendNext(getOKResult(REVISION + 1));
             final var data2 = inletProbe.expectNext(TEN_SECOND);
             assertThat(data2.metadata().export()).isEqualTo(Metadata.of(THING_ID, REVISION + 2, null, null, null));
+        }};
+    }
+
+    @Test
+    public void policyIdChangeTriggersSync() {
+        new TestKit(system) {{
+            // GIVEN: ThingUpdater recovers with a write model without policy ID
+            final Props props = ThingUpdater.props(flow, id -> Source.single(getThingWriteModel()), SEARCH_CONFIG);
+            final ActorRef underTest = watch(childActorOf(props, ACTOR_NAME));
+
+            // WHEN: A policy reference tag arrives with a policy ID
+            final var policyId = PolicyId.of(THING_ID);
+            final var policyTag = PolicyReferenceTag.of(THING_ID, PolicyTag.of(policyId, 1L));
+            underTest.tell(policyTag, ActorRef.noSender());
+
+            // THEN: 1 update is sent
+            inletProbe.ensureSubscription();
+            inletProbe.request(16);
+            final var data = inletProbe.expectNext();
+            assertThat(data.metadata().export()).isEqualTo(Metadata.of(THING_ID, REVISION, policyId, 1L, null));
+            assertThat(data.metadata().getUpdateReasons()).contains(UpdateReason.POLICY_UPDATE);
+            assertThat(data.metadata().getTimers()).isEmpty();
         }};
     }
 
