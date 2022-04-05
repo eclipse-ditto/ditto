@@ -229,10 +229,8 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
 
     private FSM.State<State, Data> tick(final Control tick, final Data data) {
         if (shouldPersist(data.metadata(), data.lastWriteModel().getMetadata())) {
-            final var future = Source.single(data)
-                    .via(flow)
-                    .toMat(Sink.head(), Keep.right())
-                    .run(materializer);
+            final var future =
+                    Source.single(data).via(flow).toMat(Sink.head(), Keep.right()).run(materializer);
 
             final var resultFuture = future.handle((result, error) -> {
                 if (error != null || result == null) {
