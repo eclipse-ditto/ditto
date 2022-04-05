@@ -26,6 +26,7 @@ import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.gateway.service.endpoints.routes.AbstractRoute;
 import org.eclipse.ditto.gateway.service.endpoints.routes.RouteBaseProperties;
+import org.eclipse.ditto.gateway.service.endpoints.routes.things.ThingsParameter;
 import org.eclipse.ditto.gateway.service.security.authentication.AuthenticationResult;
 import org.eclipse.ditto.gateway.service.security.authentication.jwt.JwtAuthenticationResult;
 import org.eclipse.ditto.json.JsonFactory;
@@ -119,17 +120,19 @@ public final class PoliciesRoute extends AbstractRoute {
     private Route policyId(final RequestContext ctx, final DittoHeaders dittoHeaders, final PolicyId policyId) {
         return pathEndOrSingleSlash(() ->
                 concat(
-                        get(() -> // GET /policies/<policyId>
-                                handlePerRequest(ctx, RetrievePolicy.of(policyId, dittoHeaders))
-                        ),
+                        // GET /policies/<policyId>?fields=<fieldsString>
+                        get(() -> parameterOptional(ThingsParameter.FIELDS.toString(), fieldsString ->
+                                handlePerRequest(ctx, RetrievePolicy.of(policyId, dittoHeaders,
+                                        calculateSelectedFields(fieldsString).orElse(null)))
+                        )),
                         put(() -> // PUT /policies/<policyId>
                                 ensureMediaTypeJsonWithFallbacksThenExtractDataBytes(ctx, dittoHeaders,
                                         payloadSource ->
                                                 handlePerRequest(ctx, dittoHeaders, payloadSource,
                                                         policyJson -> ModifyPolicy
                                                                 .of(policyId, PoliciesModelFactory.newPolicy(
-                                                                                createPolicyJsonObjectForPut(policyJson,
-                                                                                        policyId)),
+                                                                        createPolicyJsonObjectForPut(policyJson,
+                                                                                policyId)),
                                                                         dittoHeaders)
                                                 )
                                 )
