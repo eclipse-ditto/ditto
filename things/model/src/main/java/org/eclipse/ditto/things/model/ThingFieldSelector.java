@@ -90,10 +90,8 @@ public final class ThingFieldSelector implements JsonFieldSelector {
     public static ThingFieldSelector fromString(final String selectionString) {
         if (null == selectionString) {
             throw InvalidThingFieldSelectionException.forExtraFieldSelectionString(null);
-        } else if (FIELD_SELECTION_PATTERN.matcher(selectionString).matches()) {
-            return new ThingFieldSelector(JsonFactory.newFieldSelector(selectionString, JSON_PARSE_OPTIONS));
         } else {
-            throw InvalidThingFieldSelectionException.forExtraFieldSelectionString(selectionString);
+            return fromJsonFieldSelector(JsonFactory.newFieldSelector(selectionString, JSON_PARSE_OPTIONS));
         }
     }
 
