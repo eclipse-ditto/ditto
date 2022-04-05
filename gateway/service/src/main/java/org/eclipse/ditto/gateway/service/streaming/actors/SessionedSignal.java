@@ -97,7 +97,7 @@ final class SessionedSignal implements SessionedJsonifiable {
                 newPlaceholderResolver(RequestPlaceholder.getInstance(), getDittoHeaders().getAuthorizationContext())
         );
         final Optional<ThingFieldSelector> resolvedExtraFields = session.getExtraFields()
-                .map(extraFields -> getExtraFields(expressionResolver, extraFields));
+                .flatMap(extraFields -> getExtraFields(expressionResolver, extraFields));
         if (resolvedExtraFields.isPresent()) {
             final Optional<ThingId> thingIdOptional = WithEntityId.getEntityIdOfType(ThingId.class, signal);
             if (facade != null && thingIdOptional.isPresent()) {
@@ -117,7 +117,7 @@ final class SessionedSignal implements SessionedJsonifiable {
         }
     }
 
-    private ThingFieldSelector getExtraFields(final ExpressionResolver expressionResolver,
+    private Optional<ThingFieldSelector> getExtraFields(final ExpressionResolver expressionResolver,
             final ThingFieldSelector thingFieldSelector) {
         final List<JsonPointer> jsonPointers = thingFieldSelector.getPointers().stream()
                 .map(JsonPointer::toString)
@@ -125,8 +125,11 @@ final class SessionedSignal implements SessionedJsonifiable {
                 .flatMap(PipelineElement::toStream)
                 .map(JsonPointer::of)
                 .collect(Collectors.toList());
+        if(jsonPointers.isEmpty()) {
+            return Optional.empty();
+        }
         final JsonFieldSelector jsonFieldSelector = JsonFactory.newFieldSelector(jsonPointers);
-        return ThingFieldSelector.fromJsonFieldSelector(jsonFieldSelector);
+        return Optional.of(ThingFieldSelector.fromJsonFieldSelector(jsonFieldSelector));
     }
 
     @Override
