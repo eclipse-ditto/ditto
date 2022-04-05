@@ -81,6 +81,10 @@ public final class WriteResultAndErrors {
                 mongoBulkWriteException.getWriteErrors(), null, bulkWriteCorrelationId);
     }
 
+    public static WriteResultAndErrors failure(final Throwable error) {
+        return new WriteResultAndErrors(List.of(), BulkWriteResult.unacknowledged(), List.of(), error, "");
+    }
+
     /**
      * Create a WriteResultAndErrors from an unexpected error. Getting called suggests a bug in Ditto or in its
      * environment.

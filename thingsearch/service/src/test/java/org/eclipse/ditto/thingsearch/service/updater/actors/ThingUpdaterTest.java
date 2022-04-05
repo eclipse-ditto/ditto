@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Contributors to the Eclipse Foundation
+ * Copyright (c) 2022 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -12,401 +12,221 @@
  */
 package org.eclipse.ditto.thingsearch.service.updater.actors;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.Mockito.doAnswer;
+import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 
-import java.time.Duration;
-import java.time.Instant;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
-import java.util.function.Consumer;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+import java.util.List;
 
-import org.assertj.core.api.Assertions;
 import org.bson.BsonArray;
 import org.bson.BsonDocument;
-import org.bson.BsonDocumentReader;
 import org.bson.BsonInt64;
-import org.bson.BsonString;
-import org.bson.Document;
-import org.bson.codecs.DecoderContext;
-import org.bson.codecs.DocumentCodec;
-import org.eclipse.ditto.base.api.common.Shutdown;
-import org.eclipse.ditto.base.api.common.ShutdownReasonFactory;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
-import org.eclipse.ditto.internal.utils.persistence.mongo.DittoMongoClient;
-import org.eclipse.ditto.internal.utils.persistence.mongo.DittoMongoClientSettings;
-import org.eclipse.ditto.policies.api.PolicyReferenceTag;
-import org.eclipse.ditto.policies.api.PolicyTag;
-import org.eclipse.ditto.policies.model.PolicyId;
-import org.eclipse.ditto.things.model.Thing;
+import org.eclipse.ditto.internal.utils.akka.ActorSystemResource;
+import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
+import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.things.model.ThingId;
-import org.eclipse.ditto.things.model.ThingsModelFactory;
-import org.eclipse.ditto.things.model.signals.events.ThingCreated;
-import org.eclipse.ditto.thingsearch.api.UpdateReason;
-import org.eclipse.ditto.thingsearch.api.commands.sudo.UpdateThing;
-import org.eclipse.ditto.thingsearch.service.persistence.BulkWriteComplete;
-import org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants;
-import org.eclipse.ditto.thingsearch.service.persistence.write.model.AbstractWriteModel;
+import org.eclipse.ditto.things.model.signals.events.AttributeModified;
+import org.eclipse.ditto.thingsearch.service.common.config.DittoSearchConfig;
+import org.eclipse.ditto.thingsearch.service.common.config.SearchConfig;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.Metadata;
-import org.eclipse.ditto.thingsearch.service.persistence.write.model.ThingDeleteModel;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.ThingWriteModel;
-import org.eclipse.ditto.thingsearch.service.starter.actors.MongoClientExtension;
-import org.junit.After;
+import org.eclipse.ditto.thingsearch.service.persistence.write.model.WriteResultAndErrors;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
-import org.mockito.Mockito;
-import org.mongodb.scala.bson.BsonNumber;
-import org.reactivestreams.Subscriber;
+import org.mongodb.scala.bson.BsonInt32;
 
-import com.mongodb.client.model.Filters;
-import com.mongodb.client.model.ReplaceOneModel;
+import com.mongodb.bulk.BulkWriteResult;
 import com.mongodb.client.model.UpdateOneModel;
-import com.mongodb.reactivestreams.client.FindPublisher;
-import com.mongodb.reactivestreams.client.MongoCollection;
-import com.mongodb.reactivestreams.client.MongoDatabase;
-import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
-import akka.Done;
+import akka.NotUsed;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
-import akka.cluster.pubsub.DistributedPubSubMediator;
+import akka.actor.ReceiveTimeout;
+import akka.stream.javadsl.Flow;
+import akka.stream.javadsl.Keep;
+import akka.stream.javadsl.MergeHub;
+import akka.stream.javadsl.Source;
+import akka.stream.scaladsl.BroadcastHub;
 import akka.stream.testkit.TestPublisher;
-import akka.testkit.TestProbe;
-import akka.testkit.javadsl.TestKit;
+import akka.stream.testkit.TestSubscriber;
+import akka.stream.testkit.javadsl.TestSink;
+import akka.stream.testkit.javadsl.TestSource;
+import akka.testkit.TestKit;
+import scala.concurrent.duration.FiniteDuration;
 
 /**
- * Unit test for {@link ThingUpdaterOld}.
+ * Tests {@link ThingUpdater}.
  */
 public final class ThingUpdaterTest {
 
-    private static final String NAMESPACE = "abc";
+    private static final FiniteDuration TEN_SECOND = FiniteDuration.apply(10, "s");
 
-    private static final ThingId THING_ID = ThingId.of(NAMESPACE, "myId");
-    private static final PolicyId POLICY_ID = PolicyId.of(THING_ID);
+    private static final SearchConfig SEARCH_CONFIG =
+            DittoSearchConfig.of(DefaultScopedConfig.dittoScoped(ConfigFactory.parseString("""
+                      ditto {
+                        things-search = {}
+                        mongodb.uri = "mongodb://localhost:27017/test"
+                      }
+                    """)));
 
-    private static final long REVISION = 1L;
+    private static final ThingId THING_ID = ThingId.of("thing:id");
+    private static final long REVISION = 1234L;
 
-    private final Thing thing = ThingsModelFactory.newThingBuilder()
-            .setId(THING_ID)
-            .setPolicyId(POLICY_ID)
-            .setRevision(REVISION).build();
+    private static final String ACTOR_NAME = URLEncoder.encode(THING_ID.toString(), StandardCharsets.UTF_8);
 
-    private ActorSystem actorSystem;
-    private TestProbe pubSubTestProbe;
-    private TestProbe changeQueueTestProbe;
-
-    private MongoClientExtension mongoClientExtension;
-    private DittoMongoClient dittoMongoClient;
-    private MongoDatabase mongoDatabase;
-    private MongoCollection<Document> searchCollection;
-    private FindPublisher<Document> findPublisher;
+    @Rule
+    public final ActorSystemResource actorSystemResource = ActorSystemResource.newInstance();
+    private ActorSystem system;
+    private Flow<ThingUpdater.Data, ThingUpdater.Result, NotUsed> flow;
+    private TestSubscriber.Probe<ThingUpdater.Data> inletProbe;
+    private TestPublisher.Probe<ThingUpdater.Result> outletProbe;
 
     @Before
-    public void setUpBase() {
-        final Config config = ConfigFactory.load("test");
-        startActorSystem(config);
-        mongoClientExtension = Mockito.mock(MongoClientExtension.class);
-        dittoMongoClient = Mockito.mock(DittoMongoClient.class);
-        Mockito.when(mongoClientExtension.getSearchClient()).thenReturn(dittoMongoClient);
-        mongoDatabase = Mockito.mock(MongoDatabase.class);
-        Mockito.when(dittoMongoClient.getDefaultDatabase()).thenReturn(mongoDatabase);
-        Mockito.when(dittoMongoClient.getDittoSettings()).thenReturn(DittoMongoClientSettings.getBuilder().build());
-        searchCollection = Mockito.mock(MongoCollection.class);
-        Mockito.when(mongoDatabase.getCollection(PersistenceConstants.THINGS_COLLECTION_NAME))
-                .thenReturn(searchCollection);
-        findPublisher = Mockito.mock(FindPublisher.class);
-        Mockito.when(searchCollection.find(Filters.eq(PersistenceConstants.FIELD_ID, THING_ID.toString())))
-                .thenReturn(findPublisher);
-        Mockito.when(findPublisher.limit(anyInt())).thenReturn(findPublisher);
-        Mockito.when(findPublisher.skip(anyInt())).thenReturn(findPublisher);
-        Mockito.when(findPublisher.sort(any())).thenReturn(findPublisher);
-    }
+    public void init() {
+        system = actorSystemResource.getActorSystem();
 
-    @After
-    public void tearDownBase() {
-        shutdownActorSystem();
-    }
+        final var inletPair =
+                MergeHub.of(ThingUpdater.Data.class).toMat(TestSink.probe(system), Keep.both()).run(system);
+        final var outletPair =
+                TestSource.<ThingUpdater.Result>probe(system).toMat(BroadcastHub.sink(), Keep.both()).run(system);
 
-    private void startActorSystem(final Config config) {
-        shutdownActorSystem();
-        actorSystem = ActorSystem.create("AkkaTestSystem", config);
-        pubSubTestProbe = TestProbe.apply(actorSystem);
-        changeQueueTestProbe = TestProbe.apply(actorSystem);
-    }
-
-    private void shutdownActorSystem() {
-        if (actorSystem != null) {
-            TestKit.shutdownActorSystem(actorSystem);
-            actorSystem = null;
-        }
-        pubSubTestProbe = null;
-    }
-
-    @Test
-    public void createThing() {
-        final DittoHeaders dittoHeaders = DittoHeaders.empty();
-        new TestKit(actorSystem) {
-            {
-                final ActorRef underTest = createThingUpdaterActor();
-
-                final ThingCreated thingCreated = ThingCreated.of(thing, 1L, Instant.now(), dittoHeaders, null);
-                underTest.tell(thingCreated, getRef());
-
-                final Metadata metadata = changeQueueTestProbe.expectMsgClass(Metadata.class);
-                Assertions.assertThat((CharSequence) metadata.getThingId()).isEqualTo(THING_ID);
-                Assertions.assertThat(metadata.getThingRevision()).isEqualTo(1L);
-                Assertions.assertThat(metadata.getPolicyId()).isEmpty();
-                Assertions.assertThat(metadata.getPolicyRevision()).contains(-1L);
-            }
-        };
-    }
-
-    @Test
-    public void policyReferenceTagTriggersPolicyUpdate() {
-        final long newPolicyRevision = REVISION + 2L;
-        new TestKit(actorSystem) {
-            {
-                final ActorRef underTest = createThingUpdaterActor();
-
-                final PolicyId policyId = PolicyId.of(THING_ID);
-                underTest.tell(PolicyReferenceTag.of(THING_ID, PolicyTag.of(policyId, newPolicyRevision)),
-                        ActorRef.noSender());
-                changeQueueTestProbe.expectMsg(Metadata.of(THING_ID, -1L, policyId, newPolicyRevision, null)
-                        .withOrigin(underTest).withUpdateReason(UpdateReason.POLICY_UPDATE));
-
-                underTest.tell(PolicyReferenceTag.of(THING_ID, PolicyTag.of(policyId, REVISION)),
-                        ActorRef.noSender());
-                changeQueueTestProbe.expectNoMessage();
-            }
-        };
-    }
-
-    @Test
-    public void policyIdChangeTriggersSync() {
-        final PolicyId policyId1 = PolicyId.of("policy", "1");
-        final PolicyId policyId2 = PolicyId.of("policy", "2");
-
-        new TestKit(actorSystem) {
-            {
-                final ActorRef underTest = createThingUpdaterActor();
-
-                // establish policy ID
-                underTest.tell(PolicyReferenceTag.of(THING_ID, PolicyTag.of(policyId1, 99L)),
-                        ActorRef.noSender());
-                changeQueueTestProbe.expectMsg(Metadata.of(THING_ID, -1L, policyId1, 99L, null)
-                        .withOrigin(underTest).withUpdateReason(UpdateReason.POLICY_UPDATE));
-
-                underTest.tell(PolicyReferenceTag.of(THING_ID, PolicyTag.of(policyId2, 9L)),
-                        ActorRef.noSender());
-                changeQueueTestProbe.expectMsg(Metadata.of(THING_ID, -1L, policyId2, 9L, null)
-                        .withOrigin(underTest).withUpdateReason(UpdateReason.POLICY_UPDATE));
-            }
-        };
-    }
-
-    @Test
-    public void shutdownOnCommand() {
-        new TestKit(actorSystem) {
-            {
-                final ActorRef underTest = watch(createThingUpdaterActor());
-
-                final DistributedPubSubMediator.Subscribe subscribe =
-                        DistPubSubAccess.subscribe(Shutdown.TYPE, underTest);
-                pubSubTestProbe.expectMsg(subscribe);
-                pubSubTestProbe.reply(new DistributedPubSubMediator.SubscribeAck(subscribe));
-
-                underTest.tell(Shutdown.getInstance(ShutdownReasonFactory.getPurgeNamespaceReason(NAMESPACE),
-                        DittoHeaders.empty()), pubSubTestProbe.ref());
-                expectTerminated(underTest);
-            }
-        };
-
+        flow = Flow.fromSinkAndSource(inletPair.first(), outletPair.second());
+        inletProbe = inletPair.second();
+        outletProbe = outletPair.first();
     }
 
     @Test
     public void recoverLastWriteModel() {
-        new TestKit(actorSystem) {{
-            final Props props = Props.create(ThingUpdaterOld.class,
-                    () -> new ThingUpdaterOld(pubSubTestProbe.ref(), changeQueueTestProbe.ref(), 0.0,
-                            Duration.ZERO, 0.0, mongoClientExtension, false, true,
-                            writeModel -> {}));
-            final var underTest = childActorOf(props, THING_ID.toString());
+        new TestKit(system) {{
+            // GIVEN: ThingUpdater recovers with a write model of revision 1234
+            final Props props = ThingUpdater.props(flow, id -> Source.single(getThingWriteModel()), SEARCH_CONFIG);
+            final ActorRef underTest = watch(childActorOf(props, ACTOR_NAME));
 
-            final var document = new BsonDocument()
-                    .append("_revision", new BsonInt64(1234))
-                    .append("d", new BsonArray())
-                    .append("s", new BsonDocument().append("Lorem ipsum", new BsonString(
-                            "Lorem ipsum dolor sit amet, consectetur adipiscing elit, " +
-                                    "sed do eiusmod tempor incididunt ut labore et dolore magna aliqua."
-                    )));
-            final var writeModel = ThingWriteModel.of(Metadata.of(THING_ID, 1234, null, null, null), document);
+            // WHEN: An event of the same revision arrives
+            underTest.tell(AttributeModified.of(THING_ID, JsonPointer.of("x"), JsonValue.of(5), REVISION, null,
+                    DittoHeaders.empty(), null), ActorRef.noSender());
 
-            // GIVEN: updater is recovered with a write model
-            underTest.tell(writeModel, ActorRef.noSender());
-
-            // WHEN: updater is requested to compute incremental update against the same write model
-            underTest.tell(UpdateThing.of(THING_ID, UpdateReason.UNKNOWN, DittoHeaders.empty()), getRef());
-            underTest.tell(writeModel, getRef());
-
-            // THEN: expect no update.
-            expectMsg(Done.done());
+            // THEN: No update is sent to the database during the actor's lifetime
+            inletProbe.ensureSubscription();
+            inletProbe.request(16);
+            inletProbe.expectNoMessage();
+            underTest.tell(ReceiveTimeout.getInstance(), ActorRef.noSender());
+            expectTerminated(underTest, TEN_SECOND);
+            inletProbe.expectNoMessage();
         }};
     }
 
     @Test
-    public void refuseToPerformOutOfOrderUpdate() {
-        new TestKit(actorSystem) {{
-            final Props props = Props.create(ThingUpdaterOld.class,
-                    () -> new ThingUpdaterOld(pubSubTestProbe.ref(), changeQueueTestProbe.ref(), 0.0,
-                            Duration.ZERO, 0.0, mongoClientExtension, false, true,
-                            writeModel -> {}));
-            final var underTest = childActorOf(props, THING_ID.toString());
+    public void updateFromEvent() {
+        new TestKit(system) {{
+            // GIVEN: ThingUpdater recovers with a write model of revision 1234
+            final Props props = ThingUpdater.props(flow, id -> Source.single(getThingWriteModel()), SEARCH_CONFIG);
+            final ActorRef underTest = watch(childActorOf(props, ACTOR_NAME));
 
-            final var document = new BsonDocument()
-                    .append("_revision", new BsonInt64(1234))
-                    .append("d", new BsonArray())
-                    .append("s", new BsonDocument().append("Lorem ipsum", new BsonString(
-                            "Lorem ipsum dolor sit amet, consectetur adipiscing elit, " +
-                                    "sed do eiusmod tempor incididunt ut labore et dolore magna aliqua."
-                    )));
-            final var writeModel = ThingWriteModel.of(Metadata.of(THING_ID, 1234, null, null, null), document);
+            // WHEN: An event of the next revision arrives
+            final var event = AttributeModified.of(THING_ID, JsonPointer.of("x"), JsonValue.of(6), REVISION + 1, null,
+                    DittoHeaders.empty(), null);
+            underTest.tell(event, ActorRef.noSender());
 
-            // GIVEN: updater is recovered with a write model
-            underTest.tell(writeModel, ActorRef.noSender());
-
-            // WHEN: updater is requested to compute incremental update of an older write model
-            underTest.tell(UpdateThing.of(THING_ID, UpdateReason.UNKNOWN, DittoHeaders.empty()), getRef());
-            final var olderWriteModel = ThingDeleteModel.of(Metadata.of(THING_ID, 1233, null, null, null));
-            underTest.tell(olderWriteModel, getRef());
-
-            // THEN: expect no update.
-            expectMsg(Done.done());
+            // THEN: 1 update is sent
+            inletProbe.ensureSubscription();
+            inletProbe.request(16);
+            final var data = inletProbe.expectNext();
+            assertThat(data.metadata().export()).isEqualTo(Metadata.of(THING_ID, REVISION + 1, null, null, null));
+            assertThat(data.metadata().getTimers().size()).isEqualTo(1);
+            assertThat(data.lastWriteModel()).isEqualTo(getThingWriteModel());
         }};
     }
 
     @Test
-    public void forceUpdateOnSameSequenceNumber() {
-        new TestKit(actorSystem) {{
-            final Props props = Props.create(ThingUpdaterOld.class,
-                    () -> new ThingUpdaterOld(pubSubTestProbe.ref(), changeQueueTestProbe.ref(), 0.0,
-                            Duration.ZERO, 0.0, mongoClientExtension, false, true,
-                            writeModel -> {}));
-            final var underTest = childActorOf(props, THING_ID.toString());
+    public void combineUpdatesFrom2Events() {
+        new TestKit(system) {{
+            // GIVEN: ThingUpdater recovers with a write model of revision 1234
+            final Props props = ThingUpdater.props(flow, id -> Source.single(getThingWriteModel()), SEARCH_CONFIG);
 
-            final var document = new BsonDocument()
-                    .append("_revision", new BsonInt64(1234))
-                    .append("d", new BsonArray())
-                    .append("s", new BsonDocument().append("Lorem ipsum", new BsonString(
-                            "Lorem ipsum dolor sit amet, consectetur adipiscing elit, " +
-                                    "sed do eiusmod tempor incididunt ut labore et dolore magna aliqua."
-                    )));
-            final var writeModel = ThingWriteModel.of(Metadata.of(THING_ID, 1234, null, null, null), document);
+            // WHEN: 2 event of the next revisions arrive
+            final var event1 = AttributeModified.of(THING_ID, JsonPointer.of("x"), JsonValue.of(6), REVISION + 1, null,
+                    DittoHeaders.empty(), null);
+            final var event2 = AttributeModified.of(THING_ID, JsonPointer.of("x"), JsonValue.of(7), REVISION + 2, null,
+                    DittoHeaders.empty(), null);
+            final ActorRef underTest = watch(childActorOf(props, ACTOR_NAME));
+            underTest.tell(event1, ActorRef.noSender());
+            underTest.tell(event2, ActorRef.noSender());
 
-            // GIVEN: updater is recovered with a write model
-            underTest.tell(writeModel, ActorRef.noSender());
+            // THEN: 1 update is sent
+            inletProbe.ensureSubscription();
+            inletProbe.request(16);
+            final var data = inletProbe.expectNext();
+            assertThat(data.metadata().export()).isEqualTo(Metadata.of(THING_ID, REVISION + 2, null, null, null));
+            assertThat(data.metadata().getTimers().size()).isEqualTo(2);
+            assertThat(data.metadata().getEvents().size()).isEqualTo(2);
+            assertThat(data.lastWriteModel()).isEqualTo(getThingWriteModel());
 
-            // WHEN: updater is requested to compute incremental update of an older write model
-            final var forceUpdateHeaders = DittoHeaders.newBuilder().putHeader("force-update", "true").build();
-            underTest.tell(UpdateThing.of(THING_ID, UpdateReason.UNKNOWN, forceUpdateHeaders), getRef());
-            final var olderWriteModel = ThingDeleteModel.of(Metadata.of(THING_ID, 1234, null, null, null));
-            underTest.tell(olderWriteModel, getRef());
-
-            // THEN: expect an update.
-            final var mongoWriteModel = expectMsgClass(MongoWriteModel.class);
-            assertThat(mongoWriteModel.getDitto()).isEqualTo(olderWriteModel);
+            // THEN: no other updates are sent
+            underTest.tell(ReceiveTimeout.getInstance(), ActorRef.noSender());
+            outletProbe.ensureSubscription();
+            outletProbe.expectRequest();
+            outletProbe.sendError(new IllegalStateException("Expected exception"));
+            expectTerminated(underTest, TEN_SECOND);
+            inletProbe.expectNoMessage();
         }};
     }
 
     @Test
-    public void forceUpdateAfterInitialStart() throws InterruptedException {
-        new TestKit(actorSystem) {{
-            final PolicyId policyId = PolicyId.of(THING_ID);
+    public void stashEventsDuringPersistence() {
+        new TestKit(system) {{
+            // GIVEN: an event triggers persistence
+            final Props props = ThingUpdater.props(flow, id -> Source.single(getThingWriteModel()), SEARCH_CONFIG);
+            final var event1 = AttributeModified.of(THING_ID, JsonPointer.of("x"), JsonValue.of(6), REVISION + 1, null,
+                    DittoHeaders.empty(), null);
+            final var event2 = AttributeModified.of(THING_ID, JsonPointer.of("x"), JsonValue.of(7), REVISION + 2, null,
+                    DittoHeaders.empty(), null);
+            final ActorRef underTest = watch(childActorOf(props, ACTOR_NAME));
+            underTest.tell(event1, ActorRef.noSender());
 
-            final TestPublisher.Probe<Object> probe = TestPublisher.probe(1, actorSystem);
-            doAnswer(invocation -> {
-                probe.subscribe(invocation.getArgument(0, Subscriber.class));
-                return null;
-            }).when(findPublisher).subscribe(any());
+            // WHEN: a second event arrives during persistence
+            inletProbe.ensureSubscription();
+            inletProbe.request(16);
+            final var data1 = inletProbe.expectNext();
+            assertThat(data1.metadata().export()).isEqualTo(Metadata.of(THING_ID, REVISION + 1, null, null, null));
+            underTest.tell(event2, ActorRef.noSender());
 
-            DocumentCodec codec = new DocumentCodec();
-            DecoderContext decoderContext = DecoderContext.builder().build();
-            final BsonDocument existingIndexBsonDocument = new BsonDocument()
-                    .append(PersistenceConstants.FIELD_ID, new BsonString(THING_ID.toString()))
-                    .append(PersistenceConstants.FIELD_REVISION, new BsonInt64(1234L))
-                    .append(PersistenceConstants.FIELD_POLICY_ID, new BsonString(THING_ID.toString()))
-                    .append(PersistenceConstants.FIELD_POLICY_REVISION, new BsonInt64(1L))
-                    .append(PersistenceConstants.FIELD_NAMESPACE, new BsonString(THING_ID.getNamespace()))
-                    .append(PersistenceConstants.FIELD_GLOBAL_READ, new BsonString("pre:ditto"))
-                    .append(PersistenceConstants.FIELD_THING, new BsonDocument().append("Lorem ipsum",
-                            new BsonString("Lorem ipsum dolor sit amet, consectetur adipiscing elit, " +
-                                    "sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.")))
-                    .append(PersistenceConstants.FIELD_INTERNAL, new BsonArray());
+            // THEN: no second update is sent until the first event is persisted
+            inletProbe.expectNoMessage();
 
-            final CountDownLatch recoveryCompleteLatch = new CountDownLatch(1);
-            final Consumer<AbstractWriteModel> recoveryCompleteConsumer = writeModel -> {
-                assertThat(writeModel).isEqualTo(
-                        ThingWriteModel.of(
-                                Metadata.of(THING_ID, 1234L, PolicyId.of(THING_ID), 1L, null),
-                                existingIndexBsonDocument));
-                recoveryCompleteLatch.countDown();
-            };
-            final Props props = Props.create(ThingUpdaterOld.class,
-                    () -> new ThingUpdaterOld(pubSubTestProbe.ref(), changeQueueTestProbe.ref(), 0.0,
-                            Duration.ZERO, 0.0, mongoClientExtension, true, true,
-                            recoveryCompleteConsumer));
-            final var underTest = childActorOf(props, THING_ID.toString());
-
-            probe.expectRequest();
-            final var existingIndexDocument = codec.decode(new BsonDocumentReader(existingIndexBsonDocument),
-                    decoderContext);
-            probe.sendNext(existingIndexDocument);
-
-            // wait until Actor was recovered:
-            assertThat(recoveryCompleteLatch.await(5L, TimeUnit.SECONDS)).isTrue();
-
-            final var document = new BsonDocument();
-            document.putAll(existingIndexBsonDocument);
-            document.put(PersistenceConstants.FIELD_REVISION, new BsonInt64(1235L));
-            final var writeModel = ThingWriteModel.of(Metadata.of(THING_ID, 1235L, policyId, 1L, null), document);
-
-            // WHEN: updater is requested to compute incremental update against the next update
-            underTest.tell(UpdateThing.of(THING_ID, UpdateReason.UNKNOWN, DittoHeaders.empty()), getRef());
-            underTest.tell(writeModel, getRef());
-
-            final MongoWriteModel mongoWriteModel = expectMsgClass(MongoWriteModel.class);
-            final UpdateOneModel<?> updateOneModel = (UpdateOneModel<?>) mongoWriteModel.getBson();
-            Assertions.assertThat(updateOneModel.getFilter()).isEqualTo(Filters.and(
-                    Filters.eq(PersistenceConstants.FIELD_ID, new BsonString(THING_ID.toString())),
-                    Filters.eq(PersistenceConstants.FIELD_REVISION, BsonNumber.apply(1234L))
-            ));
-
-            // THEN: an update is triggered
-            changeQueueTestProbe.expectMsgClass(Metadata.class);
-
-            // WHEN: updater is requested to compute incremental update against the same write model
-            underTest.tell(BulkWriteComplete.of("correlation-id"), getRef());
-            underTest.tell(ThingUpdaterOld.FORCE_UPDATE_AFTER_START, getRef());
-            underTest.tell(UpdateThing.of(THING_ID, UpdateReason.UNKNOWN, DittoHeaders.empty()), getRef());
-            underTest.tell(writeModel, getRef());
-
-            // THEN: expect full forced update
-            final MongoWriteModel mongoWriteModel2 = expectMsgClass(MongoWriteModel.class);
-            final ReplaceOneModel<?> replaceOneModel = (ReplaceOneModel<?>) mongoWriteModel2.getBson();
-            Assertions.assertThat(replaceOneModel.getReplacement()).isEqualTo(document);
+            outletProbe.ensureSubscription();
+            outletProbe.expectRequest();
+            outletProbe.sendNext(getOKResult(REVISION + 1));
+            final var data2 = inletProbe.expectNext(TEN_SECOND);
+            assertThat(data2.metadata().export()).isEqualTo(Metadata.of(THING_ID, REVISION + 2, null, null, null));
         }};
     }
 
-    private ActorRef createThingUpdaterActor() {
-        final Props props = Props.create(ThingUpdaterOld.class,
-                () -> new ThingUpdaterOld(pubSubTestProbe.ref(), changeQueueTestProbe.ref(), 0.0, Duration.ZERO,
-                        0.0, mongoClientExtension, false, false,
-                        writeModel -> {}));
-        return actorSystem.actorOf(props, THING_ID.toString());
+    private static ThingUpdater.Result getOKResult(final long revision) {
+        final var mongoWriteModel =
+                MongoWriteModel.of(getThingWriteModel(revision),
+                        new UpdateOneModel<>(new BsonDocument(), new BsonDocument()), true);
+        return new ThingUpdater.Result(mongoWriteModel,
+                WriteResultAndErrors.success(List.of(mongoWriteModel),
+                        BulkWriteResult.acknowledged(0, 1, 0, 1, List.of(), List.of()), String.valueOf(revision))
+        );
     }
 
+    private static ThingWriteModel getThingWriteModel() {
+        return getThingWriteModel(REVISION);
+    }
+
+    private static ThingWriteModel getThingWriteModel(final long revision) {
+        final var document = new BsonDocument()
+                .append("_revision", new BsonInt64(revision))
+                .append("f", new BsonArray())
+                .append("t", new BsonDocument().append("attributes",
+                        new BsonDocument().append("x", BsonInt32.apply(5))));
+        return ThingWriteModel.of(Metadata.of(THING_ID, revision, null, null, null), document);
+    }
 }

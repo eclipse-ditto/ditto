@@ -189,7 +189,7 @@ final class EnforcementFlow {
                             return computeWriteModel(data.metadata(), thing);
                         })
                         // TODO: searchUpdateMapper
-                        .flatMapConcat(writeModel -> writeModel.toIncrementalMongo(data.lastWriteModel().orElse(null))
+                        .flatMapConcat(writeModel -> writeModel.toIncrementalMongo(data.lastWriteModel())
                                 .map(Source::single)
                                 .orElseGet(() -> {
                                     data.metadata().sendWeakAck(null);

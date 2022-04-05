@@ -202,6 +202,15 @@ public final class Metadata {
     }
 
     /**
+     * Create a copy of this object containing only the IDs and revisions of the thing and policy.
+     *
+     * @return the exported metadata.
+     */
+    public Metadata export() {
+        return Metadata.of(thingId, thingRevision, policyId, policyRevision, null);
+    }
+
+    /**
      * Create a copy of this metadata requesting cache invalidation.
      *
      * @param invalidateThing whether to invalidate the cached thing.
