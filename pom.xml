@@ -486,7 +486,7 @@
                 <plugin>
                     <groupId>org.sonatype.plugins</groupId>
                     <artifactId>nexus-staging-maven-plugin</artifactId>
-                    <version>1.6.8</version>
+                    <version>1.6.12</version>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
@@ -691,7 +691,7 @@
                                 <configuration>
                                     <outputDirectory>${project.build.outputDirectory}/META-INF</outputDirectory>
                                     <excludedGroups>${ditto.thirdPartyLicences.excludedGroups}</excludedGroups>
-                                    <includedScopes>compile</includedScopes>
+                                    <includedScopes>compile,runtime</includedScopes>
                                     <failOnMissing>true</failOnMissing>
                                     <fileTemplate>${maven.multiModuleProjectDirectory}/legal/templates/third-party-file.ftl
                                     </fileTemplate>
@@ -723,7 +723,7 @@
                                 <configuration>
                                     <outputDirectory>./legal</outputDirectory>
                                     <excludedGroups>${ditto.thirdPartyLicences.excludedGroups}</excludedGroups>
-                                    <includedScopes>compile</includedScopes>
+                                    <includedScopes>compile,runtime</includedScopes>
                                     <failOnMissing>true</failOnMissing>
                                     <fileTemplate>./legal/templates/third-party-file.ftl</fileTemplate>
                                     <thirdPartyFilename>NOTICE-THIRD-PARTY.md</thirdPartyFilename>

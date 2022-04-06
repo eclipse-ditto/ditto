@@ -20,7 +20,6 @@ import java.util.BitSet;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
@@ -183,7 +182,9 @@ public final class BulkWriteResultAckFlow {
         for (final Metadata metadata : metadataList) {
             metadata.sendNAck(); // also stops timer even if no acknowledgement is requested
             metadata.sendBulkWriteCompleteToOrigin(bulkWriteCorrelationId);
-            final UpdateThingResponse response = createFailureResponse(metadata, DittoHeaders.empty());
+            final UpdateThingResponse response = createFailureResponse(metadata, DittoHeaders.newBuilder()
+                    .correlationId(bulkWriteCorrelationId)
+                    .build());
             metadata.getOrigin().ifPresentOrElse(
                     origin -> origin.tell(response, ActorRef.noSender()),
                     () -> {
@@ -269,7 +270,7 @@ public final class BulkWriteResultAckFlow {
                 .stream()
                 .map(MongoWriteModel::getDitto)
                 .map(AbstractWriteModel::getMetadata)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private static String logResult(final String status, final WriteResultAndErrors writeResultAndErrors,

@@ -21,17 +21,16 @@ import java.util.function.Function;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.policies.model.PolicyId;
-import org.eclipse.ditto.policies.api.PolicyReferenceTag;
-import org.eclipse.ditto.policies.api.PolicyTag;
-import org.eclipse.ditto.thingsearch.service.common.config.DittoSearchConfig;
-import org.eclipse.ditto.thingsearch.service.persistence.write.ThingsSearchUpdaterPersistence;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.internal.utils.namespaces.BlockNamespaceBehavior;
 import org.eclipse.ditto.internal.utils.namespaces.BlockedNamespaces;
-import org.eclipse.ditto.policies.model.signals.events.PolicyEvent;
+import org.eclipse.ditto.policies.api.PolicyReferenceTag;
+import org.eclipse.ditto.policies.api.PolicyTag;
+import org.eclipse.ditto.policies.model.PolicyId;
+import org.eclipse.ditto.thingsearch.service.common.config.DittoSearchConfig;
+import org.eclipse.ditto.thingsearch.service.persistence.write.ThingsSearchUpdaterPersistence;
 
 import akka.NotUsed;
 import akka.actor.AbstractActor;
@@ -48,13 +47,14 @@ import akka.stream.javadsl.Sink;
 import akka.stream.javadsl.Source;
 
 /**
- * Cluster singleton that forwards policy events to updater shard region with buffering.
+ * Actor that forwards policy tags (emitted by PolicyPersistence after each policy modification) to updater
+ * shard region with buffering.
  */
-final class PolicyEventForwarder extends AbstractActor {
+final class PolicyModificationForwarder extends AbstractActor {
 
     private static final Duration ASK_SELF_TIMEOUT = Duration.ofSeconds(10L);
 
-    static final String ACTOR_NAME = "thingsSearchPolicyEventForwarder";
+    static final String ACTOR_NAME = "thingsSearchPolicyModificationForwarder";
 
     private final DiagnosticLoggingAdapter log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
 
@@ -67,7 +67,7 @@ final class PolicyEventForwarder extends AbstractActor {
     @Nullable private KillSwitch killSwitch;
 
     @SuppressWarnings("unused")
-    private PolicyEventForwarder(final ActorRef pubSubMediator,
+    private PolicyModificationForwarder(final ActorRef pubSubMediator,
             final ActorRef thingsUpdater,
             final BlockedNamespaces blockedNamespaces,
             final ThingsSearchUpdaterPersistence persistence) {
@@ -78,14 +78,14 @@ final class PolicyEventForwarder extends AbstractActor {
         interval = DittoSearchConfig.of(DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config()))
                 .getUpdaterConfig().getStreamConfig().getWriteInterval();
 
-        pubSubMediator.tell(DistPubSubAccess.subscribeViaGroup(PolicyEvent.TYPE_PREFIX, ACTOR_NAME, getSelf()),
+        pubSubMediator.tell(DistPubSubAccess.subscribeViaGroup(PolicyTag.PUB_SUB_TOPIC_MODIFIED, ACTOR_NAME, getSelf()),
                 getSelf());
 
         restartPolicyReferenceTagStream();
     }
 
     /**
-     * Create Props for this cluster singleton.
+     * Create Props for this actor.
      *
      * @param pubSubMediator Akka pub-sub-mediator
      * @param thingsUpdater thingsUpdater
@@ -97,7 +97,7 @@ final class PolicyEventForwarder extends AbstractActor {
             final BlockedNamespaces blockedNamespaces,
             final ThingsSearchUpdaterPersistence persistence) {
 
-        return Props.create(PolicyEventForwarder.class, pubSubMediator, thingsUpdater, blockedNamespaces, persistence);
+        return Props.create(PolicyModificationForwarder.class, pubSubMediator, thingsUpdater, blockedNamespaces, persistence);
     }
 
     @Override
@@ -109,8 +109,8 @@ final class PolicyEventForwarder extends AbstractActor {
     @Override
     public Receive createReceive() {
         return ReceiveBuilder.create()
-                .match(PolicyEvent.class, this::policyEvent)
-                .match(PolicyTag.class, this::updatePolicyRevision)
+                .match(PolicyTag.class, this::policyTag)
+                .match(LocalWrappedPolicyTag.class, this::updatePolicyRevision)
                 .match(PolicyReferenceTag.class, this::forwardToThingsUpdater)
                 .matchEquals(Control.DUMP_POLICY_REVISIONS, this::dumpPolicyRevisions)
                 .matchEquals(Control.STREAM_COMPLETED, this::streamTerminated)
@@ -120,21 +120,22 @@ final class PolicyEventForwarder extends AbstractActor {
     }
 
     /**
-     * Convert policy event to policy tag after blocking purged namespace.
+     * Apply PolicyTag after checking for blocking purged namespace.
      *
-     * @param policyEvent incoming policy event
+     * @param policyTag incoming policy tag
      */
-    private void policyEvent(final PolicyEvent<?> policyEvent) {
+    private void policyTag(final PolicyTag policyTag) {
         final ActorRef self = getSelf();
-        blockNamespaceBehavior.block(policyEvent)
-                .whenComplete((result, error) -> {
-                    if (error == null) {
-                        self.tell(PolicyTag.of(policyEvent.getPolicyEntityId(), policyEvent.getRevision()), self);
+        blockNamespaceBehavior.isBlocked(policyTag.getEntityId())
+                .whenComplete((isBlocked, error) -> {
+                    if (null == error && !isBlocked) {
+                        self.tell(new LocalWrappedPolicyTag(policyTag), self);
                     }
                 });
     }
 
-    private void updatePolicyRevision(final PolicyTag policyTag) {
+    private void updatePolicyRevision(final LocalWrappedPolicyTag wrappedPolicyTag) {
+        final PolicyTag policyTag = wrappedPolicyTag.delegate;
         final PolicyId policyId = policyTag.getEntityId();
         final long revision = policyTag.getRevision();
         policyRevisions.merge(policyId, revision, Long::max);
@@ -158,12 +159,11 @@ final class PolicyEventForwarder extends AbstractActor {
     }
 
     private void streamTerminated(final Object streamTerminated) {
-        if (streamTerminated instanceof Status.Failure) {
-            final Status.Failure failure = (Status.Failure) streamTerminated;
-            final String errorMessage = "PolicyEventForwarder stream terminated (should NEVER happen!), restarting";
+        if (streamTerminated instanceof Status.Failure failure) {
+            final String errorMessage = "PolicyModificationForwarder stream terminated (should NEVER happen!), restarting";
             log.error(failure.cause(), errorMessage);
         } else {
-            log.info("PolicyEventForwarder stream completed; restarting");
+            log.info("PolicyModificationForwarder stream completed; restarting");
         }
         restartPolicyReferenceTagStream();
     }
@@ -209,8 +209,8 @@ final class PolicyEventForwarder extends AbstractActor {
                 return persistence.getPolicyReferenceTags(map);
             }
         } else {
-            if (dumpResult instanceof Throwable) {
-                log.error((Throwable) dumpResult, "dump failed");
+            if (dumpResult instanceof Throwable throwable) {
+                log.error(throwable, "dump failed");
             } else {
                 log.warning("Unexpected dump result: <{}>", dumpResult);
             }
@@ -223,4 +223,11 @@ final class PolicyEventForwarder extends AbstractActor {
         STREAM_COMPLETED
     }
 
+    private static final class LocalWrappedPolicyTag {
+        private final PolicyTag delegate;
+
+        private LocalWrappedPolicyTag(final PolicyTag delegate) {
+            this.delegate = delegate;
+        }
+    }
 }
