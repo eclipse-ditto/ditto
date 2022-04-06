@@ -28,6 +28,7 @@ import javax.annotation.Nullable;
 import org.bson.BsonDocument;
 import org.eclipse.ditto.base.model.acks.AcknowledgementRequest;
 import org.eclipse.ditto.base.model.acks.DittoAcknowledgementLabel;
+import org.eclipse.ditto.base.service.actors.ShutdownBehaviour;
 import org.eclipse.ditto.internal.models.streaming.IdentifiableStreamingMessage;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLogger;
@@ -58,9 +59,13 @@ import akka.actor.ActorRef;
 import akka.actor.FSM;
 import akka.actor.Props;
 import akka.actor.ReceiveTimeout;
+import akka.cluster.pubsub.DistributedPubSubMediator;
 import akka.japi.pf.FSMStateFunctionBuilder;
+import akka.japi.pf.PFBuilder;
 import akka.pattern.Patterns;
+import akka.stream.KillSwitches;
 import akka.stream.Materializer;
+import akka.stream.UniqueKillSwitch;
 import akka.stream.javadsl.Flow;
 import akka.stream.javadsl.Keep;
 import akka.stream.javadsl.Sink;
@@ -73,6 +78,12 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
 
     // TODO: use circuit breaker
     private static final Duration RETRY_DELAY = Duration.ofSeconds(10L);
+
+    private static final Duration BLOCK_NAMESPACE_SHUTDOWN_DELAY = Duration.ofMinutes(2);
+
+    // alias Ditto Shutdown class because FSM shadows it
+    private static final Class<org.eclipse.ditto.base.api.common.Shutdown> SHUTDOWN_CLASS =
+            org.eclipse.ditto.base.api.common.Shutdown.class;
 
     // logger for "trace" statements
     private static final DittoLogger LOGGER = DittoLoggerFactory.getLogger(ThingUpdaterOld.class);
@@ -89,12 +100,22 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
     private final Materializer materializer;
     private final Duration writeInterval;
     private boolean shuttingDown = false;
+    @Nullable private UniqueKillSwitch killSwitch;
 
     // TODO
     public record Data(Metadata metadata, AbstractWriteModel lastWriteModel) {}
 
     // TODO
-    public record Result(MongoWriteModel mongoWriteModel, WriteResultAndErrors resultAndErrors) {}
+    public record Result(MongoWriteModel mongoWriteModel, WriteResultAndErrors resultAndErrors) {
+
+        public static Result fromError(final Metadata metadata, final Throwable error) {
+            final var mockWriteModel = MongoWriteModel.of(
+                    ThingDeleteModel.of(metadata),
+                    new DeleteOneModel<>(new BsonDocument()),
+                    false);
+            return new Result(mockWriteModel, WriteResultAndErrors.failure(error));
+        }
+    }
 
     enum State {
         RECOVERING,
@@ -107,10 +128,10 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
         TICK
     }
 
-    // TODO: add shutdown behavior
     private ThingUpdater(final Flow<Data, Result, NotUsed> flow,
             final Function<ThingId, Source<AbstractWriteModel, NotUsed>> recoveryFunction,
-            final SearchConfig config) {
+            final SearchConfig config,
+            final ActorRef pubSubMediator) {
 
         log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
         thingId = tryToGetThingId();
@@ -120,29 +141,37 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
 
         getContext().setReceiveTimeout(config.getUpdaterConfig().getMaxIdleTime());
 
-        final var deletedMetadata = Metadata.ofDeleted(thingId);
-        startWith(State.RECOVERING, new Data(deletedMetadata, ThingDeleteModel.of(deletedMetadata)));
+        startWith(State.RECOVERING, getInitialData(thingId));
         when(State.RECOVERING, recovering());
         when(State.READY, ready());
         when(State.PERSISTING, persisting());
         when(State.RETRYING, retrying());
         onTransition(this::handleTransition);
+        whenUnhandled(unhandled());
         initialize();
 
-        recoverLastWriteModel(thingId, recoveryFunction);
+        killSwitch = recoverLastWriteModel(thingId, recoveryFunction);
+
+        // subscribe for Shutdown commands
+        ShutdownBehaviour.fromId(thingId, pubSubMediator, getSelf());
     }
 
+    // TODO
     public static Props props(final Flow<Data, Result, NotUsed> flow,
             final Function<ThingId, Source<AbstractWriteModel, NotUsed>> recoveryFunction,
-            final SearchConfig config) {
+            final SearchConfig config,
+            final ActorRef pubSubMediator) {
 
-        return Props.create(ThingUpdater.class, flow, recoveryFunction, config);
+        return Props.create(ThingUpdater.class, flow, recoveryFunction, config, pubSubMediator);
     }
 
     @Override
     public void postStop() {
+        if (killSwitch != null) {
+            killSwitch.shutdown();
+        }
         switch (stateName()) {
-            case PERSISTING, RETRYING -> log().warning("Shut down during <{}>", stateName());
+            case PERSISTING, RETRYING -> log.warning("Shut down during <{}>", stateName());
         }
         try {
             super.postStop();
@@ -151,9 +180,19 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
         }
     }
 
+    private FSMStateFunctionBuilder<State, Data> unhandled() {
+        return matchAnyEvent((message, data) -> {
+            log.warning("Unknown message in <{}>: <{}>", stateName(), message);
+            return stay();
+        });
+    }
+
     private FSMStateFunctionBuilder<State, Data> recovering() {
         return matchEvent(AbstractWriteModel.class, this::recoveryComplete)
+                .event(Throwable.class, this::recoveryFailed)
                 .event(ReceiveTimeout.class, this::shutdown)
+                .event(SHUTDOWN_CLASS, this::shutdownNow)
+                .event(DistributedPubSubMediator.SubscribeAck.class, this::subscribeAck)
                 .anyEvent(this::stashAndStay);
     }
 
@@ -167,18 +206,32 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
                 .event(PolicyReferenceTag.class, this::onPolicyReferenceTag)
                 .event(UpdateThing.class, this::updateThing)
                 .eventEquals(Control.TICK, this::tick)
-                .event(ReceiveTimeout.class, this::shutdown);
+                .event(ReceiveTimeout.class, this::shutdown)
+                .event(SHUTDOWN_CLASS, this::shutdownNow)
+                .event(DistributedPubSubMediator.SubscribeAck.class, this::subscribeAck);
     }
 
     private FSMStateFunctionBuilder<State, Data> persisting() {
         return matchEvent(Result.class, this::onResult)
                 .event(ThingEvent.class, this::onEventWhenPersisting)
                 .event(ReceiveTimeout.class, this::shutdown)
+                .event(SHUTDOWN_CLASS, this::shutdownNow)
+                .event(DistributedPubSubMediator.SubscribeAck.class, this::subscribeAck)
                 .anyEvent(this::stashAndStay);
     }
 
+    private FSM.State<State, Data> subscribeAck(final DistributedPubSubMediator.SubscribeAck trigger, final Data data) {
+        log.debug("Received <{}> in state <{}>", trigger, stateName());
+        return stay();
+    }
+
+    private FSM.State<State, Data> shutdownNow(final Object trigger, final Data data) {
+        log.info("Shutting down now due to <{}> during <{}>", trigger, stateName());
+        return stop();
+    }
+
     private FSM.State<State, Data> shutdown(final Object trigger, final Data data) {
-        log().info("Shutting down due to <{}> during <{}>", trigger, stateName());
+        log.info("Shutting down due to <{}> during <{}>", trigger, stateName());
         shuttingDown = true;
         return switch (stateName()) {
             case RECOVERING -> stop();
@@ -207,12 +260,17 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
     }
 
     private FSM.State<State, Data> onResult(final Result result, final Data data) {
+        killSwitch = null;
         final var writeResultAndErrors = result.resultAndErrors();
         final var pair = BulkWriteResultAckFlow.checkBulkWriteResult(writeResultAndErrors, null);
         pair.second().forEach(log::info);
         if (shuttingDown) {
-            log().debug("Shutting down after completing persistence operation");
+            log.info("Shutting down after completing persistence operation");
             return stop();
+        } else if (result.resultAndErrors().isNamespaceBlockedException()) {
+            log.info("Disabling actor because namespace is blocked");
+            getContext().setReceiveTimeout(BLOCK_NAMESPACE_SHUTDOWN_DELAY);
+            return goTo(State.RECOVERING).using(getInitialData(thingId));
         }
         return switch (pair.first()) {
             case UNACKNOWLEDGED, CONSISTENCY_ERROR, INCORRECT_PATCH -> {
@@ -229,18 +287,18 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
 
     private FSM.State<State, Data> tick(final Control tick, final Data data) {
         if (shouldPersist(data.metadata(), data.lastWriteModel().getMetadata())) {
-            final var future =
-                    Source.single(data).via(flow).toMat(Sink.head(), Keep.right()).run(materializer);
+            final var pair = Source.single(data)
+                    .viaMat(KillSwitches.single(), Keep.right())
+                    .via(flow)
+                    .toMat(Sink.head(), Keep.both())
+                    .run(materializer);
 
-            final var resultFuture = future.handle((result, error) -> {
+            killSwitch = pair.first();
+            final var resultFuture = pair.second().handle((result, error) -> {
                 if (error != null || result == null) {
-                    final var mockWriteModel = MongoWriteModel.of(
-                            ThingDeleteModel.of(data.metadata()),
-                            new DeleteOneModel<>(new BsonDocument()),
-                            false);
                     final var errorToReport =
                             error != null ? error : new IllegalStateException("Persistence produced no result");
-                    return new Result(mockWriteModel, WriteResultAndErrors.failure(errorToReport));
+                    return Result.fromError(data.metadata(), errorToReport);
                 } else {
                     return result;
                 }
@@ -359,7 +417,13 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
 
         log.debug("Recovered: <{}>", lastWriteModel.getClass().getSimpleName());
         LOGGER.trace("Recovered: <{}>", lastWriteModel);
+        killSwitch = null;
         return goTo(State.READY).using(new Data(lastWriteModel.getMetadata(), lastWriteModel));
+    }
+
+    private FSM.State<State, Data> recoveryFailed(final Throwable error, final Data initialData) {
+        log.error(error, "Recovery failed");
+        return stop();
     }
 
     private FSM.State<State, Data> stashAndStay(final Object message, final Data initialData) {
@@ -370,22 +434,24 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
     private ThingId tryToGetThingId() {
         final Charset utf8 = StandardCharsets.UTF_8;
         try {
-            return getThingId(utf8);
+            final String actorName = self().path().name();
+            return ThingId.of(URLDecoder.decode(actorName, utf8.name()));
         } catch (final UnsupportedEncodingException e) {
             throw new IllegalStateException(MessageFormat.format("Charset <{0}> is unsupported!", utf8.name()), e);
         }
     }
 
-    private ThingId getThingId(final Charset charset) throws UnsupportedEncodingException {
-        final String actorName = self().path().name();
-        return ThingId.of(URLDecoder.decode(actorName, charset.name()));
-    }
-
-    private void recoverLastWriteModel(final ThingId thingId,
+    private UniqueKillSwitch recoverLastWriteModel(final ThingId thingId,
             final Function<ThingId, Source<AbstractWriteModel, NotUsed>> recoveryFunction) {
 
-        final var writeModelFuture = recoveryFunction.apply(thingId).runWith(Sink.head(), materializer);
-        Patterns.pipe(writeModelFuture, getContext().getDispatcher()).to(getSelf());
+        final var pair = recoveryFunction.apply(thingId)
+                .<Object>map(writeModel -> writeModel)
+                .recover(new PFBuilder<Throwable, Object>().matchAny(x -> x).build())
+                .viaMat(KillSwitches.single(), Keep.right())
+                .toMat(Sink.head(), Keep.both())
+                .run(materializer);
+        Patterns.pipe(pair.second(), getContext().getDispatcher()).to(getSelf());
+        return pair.first();
     }
 
     private void tickNow() {
@@ -420,5 +486,10 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
         if (!getContext().system().deadLetters().equals(sender)) {
             getSender().tell(StreamAck.success(message.asIdentifierString()), getSelf());
         }
+    }
+
+    private static Data getInitialData(final ThingId thingId) {
+        final var deletedMetadata = Metadata.ofDeleted(thingId);
+        return new Data(deletedMetadata, ThingDeleteModel.of(deletedMetadata));
     }
 }

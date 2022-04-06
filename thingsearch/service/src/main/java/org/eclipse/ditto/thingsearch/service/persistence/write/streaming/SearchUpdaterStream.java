@@ -15,9 +15,11 @@ package org.eclipse.ditto.thingsearch.service.persistence.write.streaming;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
 
+import org.eclipse.ditto.base.model.namespaces.NamespaceBlockedException;
 import org.eclipse.ditto.internal.utils.namespaces.BlockedNamespaces;
 import org.eclipse.ditto.thingsearch.service.common.config.PersistenceStreamConfig;
 import org.eclipse.ditto.thingsearch.service.common.config.StreamStageConfig;
@@ -126,7 +128,22 @@ public final class SearchUpdaterStream {
 
     // TODO
     public Flow<ThingUpdater.Data, ThingUpdater.Result, NotUsed> flow() {
-        return enforcementFlow.create().via(mongoSearchUpdaterFlow.create());
+        final Flow<ThingUpdater.Data, ThingUpdater.Data, NotUsed> blockNamespace =
+                blockNamespaceFlow(data -> data.metadata().getThingId().getNamespace());
+
+        return Flow.<ThingUpdater.Data>create().flatMapConcat(data -> Source.single(data)
+                .via(blockNamespace)
+                .map(Optional::of)
+                .orElse(Source.single(Optional.empty()))
+                .flatMapConcat(optional -> {
+                    if (optional.isPresent()) {
+                        return Source.single(optional.get())
+                                .via(enforcementFlow.create())
+                                .via(mongoSearchUpdaterFlow.create());
+                    } else {
+                        return Source.single(asNamespaceBlockedException(data));
+                    }
+                }));
     }
 
     private Source<String, NotUsed> createSource() {
@@ -175,8 +192,8 @@ public final class SearchUpdaterStream {
                 .withAttributes(Attributes.inputBuffer(1, 1));
     }
 
-    private Flow<Metadata, Metadata, NotUsed> blockNamespaceFlow(final Function<Metadata, String> namespaceExtractor) {
-        return Flow.<Metadata>create()
+    private <T> Flow<T, T, NotUsed> blockNamespaceFlow(final Function<T, String> namespaceExtractor) {
+        return Flow.<T>create()
                 .flatMapConcat(element -> {
                     final String namespace = namespaceExtractor.apply(element);
                     final CompletionStage<Boolean> shouldUpdate = blockedNamespaces.contains(namespace)
@@ -185,6 +202,11 @@ public final class SearchUpdaterStream {
                             .filter(Boolean::valueOf)
                             .map(bool -> element);
                 });
+    }
+
+    private static ThingUpdater.Result asNamespaceBlockedException(final ThingUpdater.Data data) {
+        final var error = NamespaceBlockedException.newBuilder(data.metadata().getThingId().getNamespace()).build();
+        return ThingUpdater.Result.fromError(data.metadata(), error);
     }
 
 }

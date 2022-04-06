@@ -15,12 +15,14 @@ package org.eclipse.ditto.thingsearch.service.updater.actors;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
+import java.nio.charset.Charset;
 import java.util.List;
 
 import org.bson.BsonArray;
 import org.bson.BsonDocument;
 import org.bson.BsonInt64;
+import org.eclipse.ditto.base.api.common.Shutdown;
+import org.eclipse.ditto.base.api.common.ShutdownReasonFactory;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.internal.utils.akka.ActorSystemResource;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
@@ -32,9 +34,11 @@ import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.events.AttributeModified;
 import org.eclipse.ditto.thingsearch.api.UpdateReason;
+import org.eclipse.ditto.thingsearch.api.commands.sudo.UpdateThing;
 import org.eclipse.ditto.thingsearch.service.common.config.DittoSearchConfig;
 import org.eclipse.ditto.thingsearch.service.common.config.SearchConfig;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.Metadata;
+import org.eclipse.ditto.thingsearch.service.persistence.write.model.ThingDeleteModel;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.ThingWriteModel;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.WriteResultAndErrors;
 import org.junit.Before;
@@ -61,6 +65,7 @@ import akka.stream.testkit.TestSubscriber;
 import akka.stream.testkit.javadsl.TestSink;
 import akka.stream.testkit.javadsl.TestSource;
 import akka.testkit.TestKit;
+import akka.testkit.TestProbe;
 import scala.concurrent.duration.FiniteDuration;
 
 /**
@@ -81,7 +86,7 @@ public final class ThingUpdaterTest {
     private static final ThingId THING_ID = ThingId.of("thing:id");
     private static final long REVISION = 1234L;
 
-    private static final String ACTOR_NAME = URLEncoder.encode(THING_ID.toString(), StandardCharsets.UTF_8);
+    private static final String ACTOR_NAME = getActorName(THING_ID.getName());
 
     @Rule
     public final ActorSystemResource actorSystemResource = ActorSystemResource.newInstance();
@@ -108,7 +113,9 @@ public final class ThingUpdaterTest {
     public void recoverLastWriteModel() {
         new TestKit(system) {{
             // GIVEN: ThingUpdater recovers with a write model of revision 1234
-            final Props props = ThingUpdater.props(flow, id -> Source.single(getThingWriteModel()), SEARCH_CONFIG);
+            final Props props =
+                    ThingUpdater.props(flow, id -> Source.single(getThingWriteModel()), SEARCH_CONFIG,
+                            TestProbe.apply(system).ref());
             final ActorRef underTest = watch(childActorOf(props, ACTOR_NAME));
 
             // WHEN: An event of the same revision arrives
@@ -129,7 +136,8 @@ public final class ThingUpdaterTest {
     public void updateFromEvent() {
         new TestKit(system) {{
             // GIVEN: ThingUpdater recovers with a write model of revision 1234
-            final Props props = ThingUpdater.props(flow, id -> Source.single(getThingWriteModel()), SEARCH_CONFIG);
+            final Props props =
+                    ThingUpdater.props(flow, id -> Source.single(getThingWriteModel()), SEARCH_CONFIG, testActor());
             final ActorRef underTest = watch(childActorOf(props, ACTOR_NAME));
 
             // WHEN: An event of the next revision arrives
@@ -151,7 +159,9 @@ public final class ThingUpdaterTest {
     public void combineUpdatesFrom2Events() {
         new TestKit(system) {{
             // GIVEN: ThingUpdater recovers with a write model of revision 1234
-            final Props props = ThingUpdater.props(flow, id -> Source.single(getThingWriteModel()), SEARCH_CONFIG);
+            final Props props =
+                    ThingUpdater.props(flow, id -> Source.single(getThingWriteModel()), SEARCH_CONFIG,
+                            TestProbe.apply(system).ref());
 
             // WHEN: 2 event of the next revisions arrive
             final var event1 = AttributeModified.of(THING_ID, JsonPointer.of("x"), JsonValue.of(6), REVISION + 1, null,
@@ -185,7 +195,8 @@ public final class ThingUpdaterTest {
     public void stashEventsDuringPersistence() {
         new TestKit(system) {{
             // GIVEN: an event triggers persistence
-            final Props props = ThingUpdater.props(flow, id -> Source.single(getThingWriteModel()), SEARCH_CONFIG);
+            final Props props =
+                    ThingUpdater.props(flow, id -> Source.single(getThingWriteModel()), SEARCH_CONFIG, testActor());
             final var event1 = AttributeModified.of(THING_ID, JsonPointer.of("x"), JsonValue.of(6), REVISION + 1, null,
                     DittoHeaders.empty(), null);
             final var event2 = AttributeModified.of(THING_ID, JsonPointer.of("x"), JsonValue.of(7), REVISION + 2, null,
@@ -215,7 +226,8 @@ public final class ThingUpdaterTest {
     public void policyIdChangeTriggersSync() {
         new TestKit(system) {{
             // GIVEN: ThingUpdater recovers with a write model without policy ID
-            final Props props = ThingUpdater.props(flow, id -> Source.single(getThingWriteModel()), SEARCH_CONFIG);
+            final Props props =
+                    ThingUpdater.props(flow, id -> Source.single(getThingWriteModel()), SEARCH_CONFIG, testActor());
             final ActorRef underTest = watch(childActorOf(props, ACTOR_NAME));
 
             // WHEN: A policy reference tag arrives with a policy ID
@@ -230,6 +242,94 @@ public final class ThingUpdaterTest {
             assertThat(data.metadata().export()).isEqualTo(Metadata.of(THING_ID, REVISION, policyId, 1L, null));
             assertThat(data.metadata().getUpdateReasons()).contains(UpdateReason.POLICY_UPDATE);
             assertThat(data.metadata().getTimers()).isEmpty();
+        }};
+    }
+
+    @Test
+    public void triggerUpdateOnCommand() {
+        new TestKit(system) {{
+            final Props props =
+                    ThingUpdater.props(flow, id -> Source.single(getThingWriteModel()), SEARCH_CONFIG, testActor());
+            final ActorRef underTest = watch(childActorOf(props, ACTOR_NAME));
+
+            final var command = UpdateThing.of(THING_ID, UpdateReason.MANUAL_REINDEXING, DittoHeaders.empty());
+            underTest.tell(command, ActorRef.noSender());
+
+            inletProbe.ensureSubscription();
+            inletProbe.request(16);
+            final var data = inletProbe.expectNext();
+            assertThat(data.metadata().export()).isEqualTo(Metadata.of(THING_ID, REVISION, null, null, null));
+            assertThat(data.metadata().getTimers()).isEmpty();
+            assertThat(data.lastWriteModel()).isEqualTo(getThingWriteModel());
+        }};
+    }
+
+    @Test
+    public void forceUpdateOnCommand() {
+        new TestKit(system) {{
+            final Props props =
+                    ThingUpdater.props(flow, id -> Source.single(getThingWriteModel()), SEARCH_CONFIG, testActor());
+            final var expectedMetadata = Metadata.of(THING_ID, REVISION, null, null, null);
+            final ActorRef underTest = watch(childActorOf(props, ACTOR_NAME));
+
+            final var command = UpdateThing.of(THING_ID, UpdateReason.MANUAL_REINDEXING, DittoHeaders.newBuilder()
+                    .putHeader("force-update", "true")
+                    .build());
+            underTest.tell(command, ActorRef.noSender());
+
+            inletProbe.ensureSubscription();
+            inletProbe.request(16);
+            final var data = inletProbe.expectNext();
+            assertThat(data.metadata().export()).isEqualTo(expectedMetadata);
+            assertThat(data.metadata().getTimers()).isEmpty();
+            assertThat(data.lastWriteModel()).isEqualTo(ThingDeleteModel.of(expectedMetadata));
+        }};
+    }
+
+    @Test
+    public void shutdownOnCommand() {
+        new TestKit(system) {{
+            final Props recoveryProps =
+                    ThingUpdater.props(flow, id -> Source.never(), SEARCH_CONFIG, TestProbe.apply(system).ref());
+            final Props props =
+                    ThingUpdater.props(flow, id -> Source.single(getThingWriteModel()), SEARCH_CONFIG,
+                            TestProbe.apply(system).ref());
+            final var shutdown =
+                    Shutdown.getInstance(ShutdownReasonFactory.getPurgeNamespaceReason("thing"), DittoHeaders.empty());
+            final var event = AttributeModified.of(THING_ID, JsonPointer.of("x"), JsonValue.of(6), REVISION + 1, null,
+                    DittoHeaders.empty(), null);
+
+            // shutdown during recovery
+            final var actor1 = watch(childActorOf(recoveryProps, getActorName("1")));
+            actor1.tell(shutdown, testActor());
+            expectTerminated(actor1, TEN_SECOND);
+
+            // shutdown when persisting
+            final var actor3 = watch(childActorOf(props, getActorName("3")));
+            actor3.tell(event, testActor());
+            inletProbe.ensureSubscription();
+            inletProbe.request(16);
+            inletProbe.expectNext();
+            actor3.tell(shutdown, testActor());
+            expectTerminated(actor3, TEN_SECOND);
+
+            // shutdown when retrying
+            final var actor4 = watch(childActorOf(props, getActorName("4")));
+            actor4.tell(event, testActor());
+            inletProbe.expectNext();
+            outletProbe.ensureSubscription();
+            assertThat(outletProbe.expectRequest()).isEqualTo(16);
+            outletProbe.sendError(new IllegalStateException("expected"));
+            actor4.tell(shutdown, testActor());
+            expectTerminated(actor4, TEN_SECOND);
+
+            // shutdown when ready
+            final var actor5 = watch(childActorOf(props, getActorName("5")));
+            actor5.tell(event, testActor());
+            inletProbe.expectNext();
+            outletProbe.sendNext(getOKResult(REVISION + 2));
+            actor5.tell(shutdown, testActor());
+            expectTerminated(actor5, TEN_SECOND);
         }};
     }
 
@@ -254,5 +354,9 @@ public final class ThingUpdaterTest {
                 .append("t", new BsonDocument().append("attributes",
                         new BsonDocument().append("x", BsonInt32.apply(5))));
         return ThingWriteModel.of(Metadata.of(THING_ID, revision, null, null, null), document);
+    }
+
+    private static String getActorName(final String name) {
+        return URLEncoder.encode(THING_ID.getNamespace() + ":" + name, Charset.defaultCharset());
     }
 }
