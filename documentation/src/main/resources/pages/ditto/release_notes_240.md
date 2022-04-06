@@ -3,7 +3,7 @@ title: Release notes 2.4.0
 tags: [release_notes]
 published: true
 keywords: release notes, announcements, changelog
-summary: "Version 2.4.0 of Eclipse Ditto, released on xx.xx.2022"
+summary: "Version 2.4.0 of Eclipse Ditto, released on 14.04.2022"
 permalink: release_notes_240.html
 ---
 
@@ -177,19 +177,19 @@ See separate [Changelog](https://github.com/eclipse/ditto-clients/blob/master/ja
 
 ## Roadmap
 
-Looking forward, the current plans for Ditto 2.5.0 are:
-* Enhance MQTT (3.1.1 and 5) connections to use reactive MQTT driver (with backpressure support)
-* Improvements of MongoDB search index of [things-search](architecture-services-things-search.html), using a new index 
-  structure:
+Looking forward, the plan for Ditto 2.5.0 is to work on:
+* Enhancing MQTT (3.1.1 and 5) connections to use reactive MQTT driver (with backpressure support)
+* Improving of MongoDB based search index used in [things-search](architecture-services-things-search.html),
+  using a new index structure:
   * smaller index size for large thing / policy combinations
   * fewer used CPU resources on MongoDB
   * faster search queries
   * better vertical scalability of search index
-* Finalize the experimental WoT (Web of Things) integration when the "Thing Description 1.1" is published as W3C Recommendation
 
-Looking even more ahead, early rough plans for Ditto 3.0.0 are:
-* Simplify Ditto's architecture by:
+Looking even more ahead, the plan for Ditto 3.0.0 is to work on:
+* Simplifying Ditto's architecture by:
   * removing the [concierge service](architecture-services-concierge.html)
-  * potentially even removing the [gateway service](architecture-services-gateway.html) and merging its 
+  * potentially (to be evaluated) even removing the [gateway service](architecture-services-gateway.html) and merging its 
     functionality (providing HTTP + WS endpoints) into the 
     [connectivity service](architecture-services-connectivity.html)
+* Finalizing the experimental WoT (Web of Things) integration when the "Thing Description 1.1" is published as W3C Recommendation

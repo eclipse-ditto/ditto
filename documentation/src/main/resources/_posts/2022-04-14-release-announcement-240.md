@@ -1,7 +1,7 @@
 ---
 title: "Announcing Eclipse Ditto Release 2.4.0"
 published: true
-permalink: 2022-04-06-release-announcement-240.html
+permalink: 2022-04-14-release-announcement-240.html
 layout: post
 author: thomas_jaeckle
 tags: [blog]
