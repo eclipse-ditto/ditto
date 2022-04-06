@@ -58,6 +58,7 @@ public final class SearchUpdaterStream {
     private final BulkWriteResultAckFlow bulkWriteResultAckFlow;
     private final ActorRef changeQueueActor;
     private final BlockedNamespaces blockedNamespaces;
+    private final SearchUpdateMapper searchUpdateMapper;
     private final ActorSystem actorSystem;
 
     private SearchUpdaterStream(final UpdaterConfig updaterConfig,
@@ -66,6 +67,7 @@ public final class SearchUpdaterStream {
             final BulkWriteResultAckFlow bulkWriteResultAckFlow,
             final ActorRef changeQueueActor,
             final BlockedNamespaces blockedNamespaces,
+            final SearchUpdateMapper searchUpdateMapper,
             final ActorSystem actorSystem) {
 
         this.updaterConfig = updaterConfig;
@@ -74,6 +76,7 @@ public final class SearchUpdaterStream {
         this.bulkWriteResultAckFlow = bulkWriteResultAckFlow;
         this.changeQueueActor = changeQueueActor;
         this.blockedNamespaces = blockedNamespaces;
+        this.searchUpdateMapper = searchUpdateMapper;
         this.actorSystem = actorSystem;
     }
 
@@ -111,7 +114,7 @@ public final class SearchUpdaterStream {
         final var bulkWriteResultAckFlow = BulkWriteResultAckFlow.of(updaterShard);
 
         return new SearchUpdaterStream(updaterConfig, enforcementFlow, mongoSearchUpdaterFlow, bulkWriteResultAckFlow,
-                changeQueueActor, blockedNamespaces, actorSystem);
+                changeQueueActor, blockedNamespaces, searchUpdateMapper, actorSystem);
     }
 
     /**
@@ -138,7 +141,7 @@ public final class SearchUpdaterStream {
                 .flatMapConcat(optional -> {
                     if (optional.isPresent()) {
                         return Source.single(optional.get())
-                                .via(enforcementFlow.create())
+                                .via(enforcementFlow.create(searchUpdateMapper))
                                 .via(mongoSearchUpdaterFlow.create());
                     } else {
                         return Source.single(asNamespaceBlockedException(data));

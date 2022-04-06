@@ -180,7 +180,7 @@ final class EnforcementFlow {
     }
 
     // TODO
-    public Flow<ThingUpdater.Data, MongoWriteModel, NotUsed> create() {
+    public Flow<ThingUpdater.Data, MongoWriteModel, NotUsed> create(final SearchUpdateMapper mapper) {
         return Flow.<ThingUpdater.Data>create()
                 .flatMapConcat(data -> retrieveThingFromCachingFacade(data.metadata().getThingId(), data.metadata())
                         .flatMapConcat(pair -> {
@@ -188,13 +188,11 @@ final class EnforcementFlow {
                             searchUpdateObserver.process(data.metadata(), thing);
                             return computeWriteModel(data.metadata(), thing);
                         })
-                        // TODO: searchUpdateMapper
-                        .flatMapConcat(writeModel -> writeModel.toIncrementalMongo(data.lastWriteModel())
-                                .map(Source::single)
-                                .orElseGet(() -> {
+                        .flatMapConcat(writeModel -> mapper.processWriteModel(writeModel, data.lastWriteModel())
+                                .orElse(Source.lazily(() -> {
                                     data.metadata().sendWeakAck(null);
                                     return Source.empty();
-                                }))
+                                })))
                 );
     }
 

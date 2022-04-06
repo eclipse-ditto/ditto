@@ -402,7 +402,7 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
                         l.warning("Timer measuring consistency lag timed out for event <{}>", thingEvent))
                 .start();
         DittoTracing.wrapTimer(DittoTracing.extractTraceContext(thingEvent), timer);
-        ConsistencyLag.startS0InUpdater(timer); // TODO: rename segments--delay during persistence measurable?
+        ConsistencyLag.startS0InUpdater(timer); // TODO: rename segments
         final var metadata = exportMetadataWithSender(shouldAcknowledge, thingEvent, getSender(), timer, data)
                 .withUpdateReason(UpdateReason.THING_UPDATE);
         return Optional.of(metadata);

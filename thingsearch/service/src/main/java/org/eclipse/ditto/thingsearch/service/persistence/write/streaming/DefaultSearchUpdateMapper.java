@@ -12,8 +12,6 @@
  */
 package org.eclipse.ditto.thingsearch.service.persistence.write.streaming;
 
-import java.util.List;
-
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLogger;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.AbstractWriteModel;
@@ -40,8 +38,9 @@ public final class DefaultSearchUpdateMapper extends SearchUpdateMapper {
     }
 
     @Override
-    public Source<List<MongoWriteModel>, NotUsed> processWriteModels(final List<AbstractWriteModel> writeModels) {
-        return Source.single(writeModels).mapAsync(1, models -> toIncrementalMongo(models, logger));
+    public Source<MongoWriteModel, NotUsed> processWriteModel(final AbstractWriteModel writeModel,
+            final AbstractWriteModel lastWriteModel) {
+        return toIncrementalMongo(writeModel, lastWriteModel, logger);
     }
 
 }

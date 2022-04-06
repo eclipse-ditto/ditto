@@ -45,7 +45,6 @@ import akka.NotUsed;
 import akka.japi.pf.PFBuilder;
 import akka.stream.javadsl.Flow;
 import akka.stream.javadsl.Source;
-import akka.stream.javadsl.SubSource;
 
 /**
  * Flow mapping write models to write results via the search persistence.
@@ -103,10 +102,8 @@ final class MongoSearchUpdaterFlow {
     public Source<WriteResultAndErrors, NotUsed> start(
             final Source<List<AbstractWriteModel>, NotUsed> subSource,
             final boolean shouldAcknowledge) {
-
-        return subSource.map(MongoSearchUpdaterFlow::sortBySeqNr)
-                .flatMapConcat(searchUpdateMapper::processWriteModels)
-                .flatMapConcat(writeModels -> executeBulkWrite(shouldAcknowledge, writeModels));
+        // TODO
+        return Source.empty();
     }
 
     // TODO
