@@ -66,8 +66,7 @@ public final class BulkWriteResultAckFlow {
 
         if (wasNotAcknowledged(writeResultAndErrors)) {
             // All failed.
-            acknowledgeFailures(getAllMetadata(writeResultAndErrors)
-            );
+            acknowledgeFailures(getAllMetadata(writeResultAndErrors));
             return Pair.create(Status.UNACKNOWLEDGED,
                     List.of(logResult("NotAcknowledged", writeResultAndErrors, false, false)));
         } else {

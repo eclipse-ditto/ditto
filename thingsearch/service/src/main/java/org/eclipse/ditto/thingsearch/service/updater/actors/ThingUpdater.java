@@ -53,6 +53,7 @@ import org.eclipse.ditto.thingsearch.service.persistence.write.streaming.Consist
 
 import com.mongodb.client.model.DeleteOneModel;
 
+import akka.Done;
 import akka.NotUsed;
 import akka.actor.AbstractFSMWithStash;
 import akka.actor.ActorRef;
@@ -213,6 +214,7 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
 
     private FSMStateFunctionBuilder<State, Data> persisting() {
         return matchEvent(Result.class, this::onResult)
+                .event(Done.class, this::onDone)
                 .event(ThingEvent.class, this::onEventWhenPersisting)
                 .event(ReceiveTimeout.class, this::shutdown)
                 .event(SHUTDOWN_CLASS, this::shutdownNow)
@@ -285,22 +287,32 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
         };
     }
 
+    private FSM.State<State, Data> onDone(final Done done, final Data data) {
+        killSwitch = null;
+        log.debug("Update skipped");
+        return goTo(State.READY);
+    }
+
     private FSM.State<State, Data> tick(final Control tick, final Data data) {
         if (shouldPersist(data.metadata(), data.lastWriteModel().getMetadata())) {
             final var pair = Source.single(data)
                     .viaMat(KillSwitches.single(), Keep.right())
                     .via(flow)
-                    .toMat(Sink.head(), Keep.both())
+                    .toMat(Sink.seq(), Keep.both())
                     .run(materializer);
 
             killSwitch = pair.first();
             final var resultFuture = pair.second().handle((result, error) -> {
-                if (error != null || result == null) {
-                    final var errorToReport =
-                            error != null ? error : new IllegalStateException("Persistence produced no result");
+                if (error != null || result == null || result.size() > 1) {
+                    final var errorToReport = error != null
+                            ? error
+                            : new IllegalStateException("Got unexpected persistence results: " + result);
                     return Result.fromError(data.metadata(), errorToReport);
+                } else if (result.isEmpty()) {
+                    // no result; no change sent to persistence and all acknowledgement requests were fulfilled.
+                    return Done.done();
                 } else {
-                    return result;
+                    return result.get(0);
                 }
             });
 
