@@ -148,9 +148,7 @@ public final class BulkWriteResultAckFlow {
             final List<MongoWriteModel> writeModels) {
         for (int i = 0; i < writeModels.size(); ++i) {
             if (!failedIndices.get(i)) {
-                final var metadata = writeModels.get(i).getDitto().getMetadata();
-                metadata.sendAck();
-                metadata.sendBulkWriteCompleteToOrigin(bulkWriteCorrelationId);
+                writeModels.get(i).getDitto().getMetadata().sendAck();
             }
         }
     }

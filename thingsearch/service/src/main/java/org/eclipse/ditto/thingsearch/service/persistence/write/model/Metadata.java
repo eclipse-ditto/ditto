@@ -34,7 +34,6 @@ import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 import org.eclipse.ditto.thingsearch.api.UpdateReason;
 import org.eclipse.ditto.thingsearch.api.commands.sudo.UpdateThingResponse;
-import org.eclipse.ditto.thingsearch.service.persistence.BulkWriteComplete;
 
 import akka.actor.ActorRef;
 
@@ -437,17 +436,6 @@ public final class Metadata {
      */
     public void sendWeakAck(@Nullable final JsonValue payload) {
         send(Acknowledgement.weak(DittoAcknowledgementLabel.SEARCH_PERSISTED, thingId, DittoHeaders.empty(), payload));
-    }
-
-    /**
-     * Send {@link BulkWriteComplete} message to ThingUpdater {@code origin}.
-     *
-     * @param bulkWriteCorrelationId the correlation-id of the bulk write.
-     */
-    public void sendBulkWriteCompleteToOrigin(@Nullable final String bulkWriteCorrelationId) {
-        if (null != origin) {
-            origin.tell(BulkWriteComplete.of(bulkWriteCorrelationId), ActorRef.noSender());
-        }
     }
 
     private void send(final Acknowledgement ack) {
