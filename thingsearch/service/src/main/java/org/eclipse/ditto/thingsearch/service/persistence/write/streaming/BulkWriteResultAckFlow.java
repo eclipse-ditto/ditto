@@ -103,15 +103,9 @@ public final class BulkWriteResultAckFlow {
         writeResultAndErrors.getWriteModels().forEach(model -> {
             if (model.isPatchUpdate()) {
                 final var abstractModel = model.getDitto();
-                final var response =
-                        createFailureResponse(abstractModel.getMetadata(), INCORRECT_PATCH_HEADERS.toBuilder()
-                                .correlationId(writeResultAndErrors.getBulkWriteCorrelationId()).build());
                 LOGGER.withCorrelationId(writeResultAndErrors.getBulkWriteCorrelationId())
                         .warn("Encountered incorrect patch update for metadata: <{}> and filter: <{}>",
                                 abstractModel.getMetadata(), abstractModel.getFilter());
-                abstractModel.getMetadata()
-                        .getOrigin()
-                        .ifPresent(updater -> updater.tell(response, ActorRef.noSender()));
             } else {
                 LOGGER.withCorrelationId(writeResultAndErrors.getBulkWriteCorrelationId())
                         .info("Skipping retry of full update in a batch with an incorrect patch: <{}>",
