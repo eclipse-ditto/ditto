@@ -52,8 +52,6 @@ import org.eclipse.ditto.thingsearch.service.persistence.write.model.ThingWriteM
  */
 public final class EnforcedThingMapper {
 
-    private static final ResourceKey THING_ROOT_RESOURCE_KEY = ResourceKey.newInstance(ThingCommand.RESOURCE_TYPE, "/");
-
     private EnforcedThingMapper() {
         throw new AssertionError();
     }
@@ -84,7 +82,7 @@ public final class EnforcedThingMapper {
             final Policy policy,
             final long policyRevision) {
 
-        return toWriteModel(thing, policy, policyRevision, -1, null);
+        return toWriteModel(thing, policy, policyRevision, null);
     }
 
     /**
@@ -93,7 +91,6 @@ public final class EnforcedThingMapper {
      * @param thing the Thing in JSON format.
      * @param policy the policy-enforcer of the Thing.
      * @param policyRevision revision of the policy for an policy enforcer.
-     * @param maxArraySize only arrays smaller than this are indexed.
      * @param oldMetadata the metadata that triggered the search update, possibly containing sender information.
      * @return BSON document to write into the search index.
      * @throws org.eclipse.ditto.json.JsonMissingFieldException if Thing ID or revision is missing.
@@ -101,7 +98,6 @@ public final class EnforcedThingMapper {
     public static ThingWriteModel toWriteModel(final JsonObject thing,
             final Policy policy,
             final long policyRevision,
-            final int maxArraySize,
             @Nullable final Metadata oldMetadata) {
 
         final String extractedThing = thing.getValueOrThrow(Thing.JsonFields.ID);

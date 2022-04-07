@@ -98,7 +98,7 @@ public final class SearchRootActor extends DittoRootActor {
         fieldMappings.put(key, value);
     }
 
-    private ThingsSearchPersistence getThingsSearchPersistence(final SearchConfig searchConfig,
+    private MongoThingsSearchPersistence getThingsSearchPersistence(final SearchConfig searchConfig,
             final DittoMongoClient mongoDbClient) {
 
         final ActorContext context = getContext();

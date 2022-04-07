@@ -26,6 +26,7 @@ import org.eclipse.ditto.thingsearch.service.persistence.write.model.AbstractWri
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.Metadata;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.ThingDeleteModel;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.WriteResultAndErrors;
+import org.eclipse.ditto.thingsearch.service.updater.actors.ThingUpdater;
 
 import com.mongodb.reactivestreams.client.MongoDatabase;
 import com.typesafe.config.ConfigFactory;
@@ -54,8 +55,8 @@ public final class TestSearchUpdaterStream {
             final SearchUpdateMapper searchUpdateMapper) {
 
         final var mongoSearchUpdaterFlow = MongoSearchUpdaterFlow.of(database,
-                DefaultPersistenceStreamConfig.of(ConfigFactory.empty()),
-                searchUpdateMapper);
+                DefaultPersistenceStreamConfig.of(ConfigFactory.empty())
+        );
         return new TestSearchUpdaterStream(mongoSearchUpdaterFlow);
     }
 
@@ -72,11 +73,15 @@ public final class TestSearchUpdaterStream {
             final long policyRevision) {
 
         final JsonObject thingJson = thing.toJson(FieldType.all());
-        final AbstractWriteModel writeModel = EnforcedThingMapper.toWriteModel(thingJson, policy, policyRevision, -1,
+        final AbstractWriteModel writeModel = EnforcedThingMapper.toWriteModel(thingJson, policy, policyRevision,
                 null);
+        final var mongoWriteModel =
+                writeModel.toIncrementalMongo(
+                        ThingDeleteModel.of(Metadata.ofDeleted(thing.getEntityId().orElseThrow()))).orElseThrow();
 
-        final var source = Source.single(writeModel).grouped(1);
-        return mongoSearchUpdaterFlow.start(source, false);
+        return Source.single(mongoWriteModel)
+                .via(mongoSearchUpdaterFlow.create())
+                .map(ThingUpdater.Result::resultAndErrors);
     }
 
     /**
@@ -101,8 +106,9 @@ public final class TestSearchUpdaterStream {
      */
     private Source<WriteResultAndErrors, NotUsed> delete(final Metadata metadata) {
         final AbstractWriteModel writeModel = ThingDeleteModel.of(metadata);
-        final var source = Source.single(writeModel).grouped(1);
-        return mongoSearchUpdaterFlow.start(source, false);
+        return Source.single(writeModel.toIncrementalMongo(writeModel).orElseThrow())
+                .via(mongoSearchUpdaterFlow.create())
+                .map(ThingUpdater.Result::resultAndErrors);
     }
 
 }

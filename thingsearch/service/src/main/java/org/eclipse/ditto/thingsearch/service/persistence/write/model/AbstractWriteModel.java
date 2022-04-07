@@ -12,11 +12,8 @@
  */
 package org.eclipse.ditto.thingsearch.service.persistence.write.model;
 
-import java.time.Duration;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionStage;
 
 import javax.annotation.Nullable;
 
@@ -28,8 +25,6 @@ import org.eclipse.ditto.thingsearch.service.updater.actors.MongoWriteModel;
 
 import com.mongodb.client.model.Filters;
 import com.mongodb.client.model.WriteModel;
-
-import akka.pattern.Patterns;
 
 /**
  * Interface for write models of Thing changes for MongoDB.
@@ -58,27 +53,6 @@ public abstract class AbstractWriteModel {
      * @return MongoDB write model.
      */
     public abstract WriteModel<BsonDocument> toMongo();
-
-    /**
-     * Convert this into a MongoDB write model taking previous updates cached at the origin into consideration.
-     *
-     * @return either the MongoDB write model of this object or an incremental update converting
-     */
-    public final CompletionStage<Optional<MongoWriteModel>> toIncrementalMongo() {
-        final var origin = metadata.getOrigin();
-        if (origin.isPresent()) {
-            return Patterns.ask(origin.orElseThrow(), this, Duration.ofSeconds(10L))
-                    .thenApply(answer -> {
-                        if (answer instanceof MongoWriteModel mongoWriteModel) {
-                            return Optional.of(mongoWriteModel);
-                        } else {
-                            return Optional.empty();
-                        }
-                    });
-        } else {
-            return CompletableFuture.completedStage(Optional.of(MongoWriteModel.of(this, toMongo(), false)));
-        }
-    }
 
     // TODO
     public Optional<MongoWriteModel> toIncrementalMongo(@Nullable final AbstractWriteModel previousWriteModel) {

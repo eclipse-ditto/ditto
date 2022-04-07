@@ -86,7 +86,7 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
             org.eclipse.ditto.base.api.common.Shutdown.class;
 
     // logger for "trace" statements
-    private static final DittoLogger LOGGER = DittoLoggerFactory.getLogger(ThingUpdaterOld.class);
+    private static final DittoLogger LOGGER = DittoLoggerFactory.getLogger(ThingUpdater.class);
 
     private static final AcknowledgementRequest SEARCH_PERSISTED_REQUEST =
             AcknowledgementRequest.of(DittoAcknowledgementLabel.SEARCH_PERSISTED);
@@ -262,7 +262,7 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
     private FSM.State<State, Data> onResult(final Result result, final Data data) {
         killSwitch = null;
         final var writeResultAndErrors = result.resultAndErrors();
-        final var pair = BulkWriteResultAckFlow.checkBulkWriteResult(writeResultAndErrors, null);
+        final var pair = BulkWriteResultAckFlow.checkBulkWriteResult(writeResultAndErrors);
         pair.second().forEach(log::info);
         if (shuttingDown) {
             log.info("Shutting down after completing persistence operation");
@@ -273,7 +273,7 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
             return goTo(State.RECOVERING).using(getInitialData(thingId));
         }
         return switch (pair.first()) {
-            case UNACKNOWLEDGED, CONSISTENCY_ERROR, INCORRECT_PATCH -> {
+            case UNACKNOWLEDGED, CONSISTENCY_ERROR, INCORRECT_PATCH, WRITE_ERROR -> {
                 final var metadata = data.metadata().export();
                 yield goTo(State.RETRYING).using(new Data(metadata, ThingDeleteModel.of(Metadata.ofDeleted(thingId))));
             }
