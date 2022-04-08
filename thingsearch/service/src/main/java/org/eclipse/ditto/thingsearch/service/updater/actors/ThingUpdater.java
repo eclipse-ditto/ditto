@@ -298,21 +298,20 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
             final var pair = Source.single(data)
                     .viaMat(KillSwitches.single(), Keep.right())
                     .via(flow)
-                    .toMat(Sink.seq(), Keep.both())
+                    .<Object>map(result -> result)
+                    .orElse(Source.single(Done.done()))
+                    .toMat(Sink.head(), Keep.both())
                     .run(materializer);
 
             killSwitch = pair.first();
             final var resultFuture = pair.second().handle((result, error) -> {
-                if (error != null || result == null || result.size() > 1) {
+                if (error != null || result == null) {
                     final var errorToReport = error != null
                             ? error
-                            : new IllegalStateException("Got unexpected persistence results: " + result);
+                            : new IllegalStateException("Got no persistence result");
                     return Result.fromError(data.metadata(), errorToReport);
-                } else if (result.isEmpty()) {
-                    // no result; no change sent to persistence and all acknowledgement requests were fulfilled.
-                    return Done.done();
                 } else {
-                    return result.get(0);
+                    return result;
                 }
             });
 
