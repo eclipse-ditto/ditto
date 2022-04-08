@@ -13,8 +13,8 @@
 package org.eclipse.ditto.things.model.signals.commands.query;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.base.model.signals.commands.WithSelectedFields;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommand;
+import org.eclipse.ditto.things.model.signals.commands.WithSelectedFields;
 
 /**
  * Aggregates all {@link org.eclipse.ditto.things.model.signals.commands.ThingCommand}s which query the state of things (read, ...).
