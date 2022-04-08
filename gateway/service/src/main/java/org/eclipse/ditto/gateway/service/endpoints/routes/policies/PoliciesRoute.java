@@ -26,7 +26,6 @@ import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.gateway.service.endpoints.routes.AbstractRoute;
 import org.eclipse.ditto.gateway.service.endpoints.routes.RouteBaseProperties;
-import org.eclipse.ditto.gateway.service.endpoints.routes.things.ThingsParameter;
 import org.eclipse.ditto.gateway.service.security.authentication.AuthenticationResult;
 import org.eclipse.ditto.gateway.service.security.authentication.jwt.JwtAuthenticationResult;
 import org.eclipse.ditto.json.JsonFactory;
@@ -121,7 +120,7 @@ public final class PoliciesRoute extends AbstractRoute {
         return pathEndOrSingleSlash(() ->
                 concat(
                         // GET /policies/<policyId>?fields=<fieldsString>
-                        get(() -> parameterOptional(ThingsParameter.FIELDS.toString(), fieldsString ->
+                        get(() -> parameterOptional(PoliciesParameter.FIELDS.toString(), fieldsString ->
                                 handlePerRequest(ctx, RetrievePolicy.of(policyId, dittoHeaders,
                                         calculateSelectedFields(fieldsString).orElse(null)))
                         )),
