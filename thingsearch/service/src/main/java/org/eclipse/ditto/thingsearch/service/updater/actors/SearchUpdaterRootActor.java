@@ -56,9 +56,9 @@ public final class SearchUpdaterRootActor extends AbstractActor {
     /**
      * The main cluster role of the cluster member where this actor and its children start.
      */
-    public static final String CLUSTER_ROLE = "things-search";
+    public static final String CLUSTER_ROLE = "things-wildcard-search";
 
-    private static final String SEARCH_ROLE = "things-search";
+    private static final String SEARCH_ROLE = "things-wildcard-search";
 
     private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 
