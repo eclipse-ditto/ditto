@@ -54,7 +54,13 @@ public abstract class AbstractWriteModel {
      */
     public abstract WriteModel<BsonDocument> toMongo();
 
-    // TODO
+    /**
+     * Convert this into a MongoDB write model taking the previous update into consideration.
+     *
+     * @param previousWriteModel The previous write model.
+     * @return Either the MongoDB write model of this object or an incremental update converting the document of
+     * the previous model into this one.
+     */
     public Optional<MongoWriteModel> toIncrementalMongo(@Nullable final AbstractWriteModel previousWriteModel) {
         return Optional.of(MongoWriteModel.of(this, toMongo(), false));
     }

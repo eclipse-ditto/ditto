@@ -75,7 +75,6 @@ final class EnforcementFlow {
     private final CachingSignalEnrichmentFacade thingsFacade;
     private final Cache<EnforcementCacheKey, Entry<Policy>> policyEnforcerCache;
     private final Duration cacheRetryDelay;
-    private final int maxArraySize;
     private final SearchUpdateObserver searchUpdateObserver;
 
     private EnforcementFlow(final ActorSystem actorSystem,
@@ -83,7 +82,6 @@ final class EnforcementFlow {
             final Cache<EnforcementCacheKey, Entry<Policy>> policyEnforcerCache,
             final AskWithRetryConfig askWithRetryConfig,
             final StreamCacheConfig thingCacheConfig,
-            final int maxArraySize,
             final Executor thingCacheDispatcher) {
 
         thingsFacade = createThingsFacade(actorSystem, thingsShardRegion, askWithRetryConfig.getAskTimeout(),
@@ -91,7 +89,6 @@ final class EnforcementFlow {
         this.policyEnforcerCache = policyEnforcerCache;
         searchUpdateObserver = SearchUpdateObserver.get(actorSystem);
         cacheRetryDelay = thingCacheConfig.getRetryDelay();
-        this.maxArraySize = maxArraySize;
     }
 
     /**
@@ -125,7 +122,7 @@ final class EnforcementFlow {
         final var thingCacheDispatcher = actorSystem.dispatchers()
                 .lookup(thingCacheConfig.getDispatcherName());
         return new EnforcementFlow(actorSystem, thingsShardRegion, policyEnforcerCache, askWithRetryConfig,
-                thingCacheConfig, updaterStreamConfig.getMaxArraySize(), thingCacheDispatcher);
+                thingCacheConfig, thingCacheDispatcher);
     }
 
     private static EnforcementCacheKey getPolicyCacheKey(final PolicyId policyId) {
@@ -179,7 +176,12 @@ final class EnforcementFlow {
                 .filterNot(List::isEmpty);
     }
 
-    // TODO
+    /**
+     * Create an enforcement flow for a thing-updater.
+     *
+     * @param mapper The search-update mapper.
+     * @return The enforcement flow.
+     */
     public Flow<ThingUpdater.Data, MongoWriteModel, NotUsed> create(final SearchUpdateMapper mapper) {
         return Flow.<ThingUpdater.Data>create()
                 .flatMapConcat(data -> retrieveThingFromCachingFacade(data.metadata().getThingId(), data.metadata())

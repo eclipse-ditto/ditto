@@ -21,9 +21,14 @@ import javax.annotation.concurrent.NotThreadSafe;
 import org.bson.BsonDocument;
 import org.bson.BsonInvalidOperationException;
 import org.bson.conversions.Bson;
+import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
+import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLogger;
+import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
+import org.eclipse.ditto.internal.utils.metrics.instruments.counter.Counter;
 import org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants;
 import org.eclipse.ditto.thingsearch.service.persistence.write.mapping.BsonDiff;
 import org.eclipse.ditto.thingsearch.service.updater.actors.MongoWriteModel;
+import org.eclipse.ditto.thingsearch.service.updater.actors.ThingUpdater;
 import org.mongodb.scala.bson.BsonNumber;
 
 import com.mongodb.client.model.Filters;
@@ -37,6 +42,12 @@ import com.mongodb.client.model.WriteModel;
  */
 @NotThreadSafe
 public final class ThingWriteModel extends AbstractWriteModel {
+
+    private static final ThreadSafeDittoLogger LOGGER = DittoLoggerFactory.getThreadSafeLogger(ThingUpdater.class);
+
+    private static final Counter PATCH_UPDATE_COUNT = DittoMetrics.counter("search_patch_updates");
+    private static final Counter PATCH_SKIP_COUNT = DittoMetrics.counter("search_patch_skips");
+    private static final Counter FULL_UPDATE_COUNT = DittoMetrics.counter("search_full_updates");
 
     private final BsonDocument thingDocument;
     private final boolean isPatchUpdate;
@@ -150,34 +161,34 @@ public final class ThingWriteModel extends AbstractWriteModel {
         final boolean isPatchUpdate;
 
         if (isNextWriteModelOutDated(lastWriteModel, this)) {
-            // TODO: more informative error
-            throw new IllegalStateException("Received out-of-date write model");
+            throw new IllegalStateException(
+                    String.format("Received out-of-date write model. this=<%s>, lastWriteModel=<%s>", this,
+                            lastWriteModel));
         }
         final Optional<BsonDiff> diff = tryComputeDiff(getThingDocument(), lastWriteModel.getThingDocument());
         if (diff.isPresent() && diff.get().isDiffSmaller()) {
             final var aggregationPipeline = diff.get().consumeAndExport();
             if (aggregationPipeline.isEmpty()) {
-                // TODO: logging + metrics
-                // skipNextUpdate(this, "empty diff");
+                LOGGER.debug("Skipping update due to {} <{}>", "empty diff", ((AbstractWriteModel) this).getClass().getSimpleName());
+                LOGGER.trace("Skipping update due to {} <{}>", "empty diff", this);
+                PATCH_SKIP_COUNT.increment();
                 return Optional.empty();
             }
             final var filter = asPatchUpdate(lastWriteModel.getMetadata().getThingRevision()).getFilter();
             mongoWriteModel = new UpdateOneModel<>(filter, aggregationPipeline);
-            // TODO: logging + metrics
-            // log.debug("Using incremental update <{}>", mongoWriteModel.getClass().getSimpleName());
-            // LOGGER.trace("Using incremental update <{}>", mongoWriteModel);
-            // PATCH_UPDATE_COUNT.increment();
+             LOGGER.debug("Using incremental update <{}>", mongoWriteModel.getClass().getSimpleName());
+             LOGGER.trace("Using incremental update <{}>", mongoWriteModel);
+             PATCH_UPDATE_COUNT.increment();
             isPatchUpdate = true;
         } else {
             mongoWriteModel = this.toMongo();
-            // TODO: logging + metrics
-            // log.debug("Using replacement because diff is bigger or nonexistent: <{}>",
-            //        mongoWriteModel.getClass().getSimpleName());
-            // if (LOGGER.isTraceEnabled()) {
-            //    LOGGER.trace("Using replacement because diff is bigger or nonexistent. Diff=<{}>",
-            //            diff.map(BsonDiff::consumeAndExport));
-            // }
-            // FULL_UPDATE_COUNT.increment();
+             LOGGER.debug("Using replacement because diff is bigger or nonexistent: <{}>",
+                    mongoWriteModel.getClass().getSimpleName());
+             if (LOGGER.isTraceEnabled()) {
+                LOGGER.trace("Using replacement because diff is bigger or nonexistent. Diff=<{}>",
+                        diff.map(BsonDiff::consumeAndExport));
+             }
+             FULL_UPDATE_COUNT.increment();
             isPatchUpdate = false;
         }
         return Optional.of(MongoWriteModel.of(this, mongoWriteModel, isPatchUpdate));
@@ -187,31 +198,25 @@ public final class ThingWriteModel extends AbstractWriteModel {
         try {
             return Optional.of(BsonDiff.minusThingDocs(minuend, subtrahend));
         } catch (final BsonInvalidOperationException e) {
-            // TODO add logging
-            // log.error(e, "Failed to compute BSON diff between <{}> and <{}>", minuend, subtrahend);
-
+            LOGGER.error("Failed to compute BSON diff between <{}> and <{}>", minuend, subtrahend, e);
             return Optional.empty();
         }
     }
 
-    private static boolean isNextWriteModelOutDated(@Nullable final AbstractWriteModel lastWriteModel,
+    private static boolean isNextWriteModelOutDated(final AbstractWriteModel lastWriteModel,
             final AbstractWriteModel nextWriteModel) {
 
-        if (lastWriteModel == null) {
-            return false;
-        } else {
-            final var lastMetadata = lastWriteModel.getMetadata();
-            final var nextMetadata = nextWriteModel.getMetadata();
-            final boolean isStrictlyOlder = nextMetadata.getThingRevision() < lastMetadata.getThingRevision() ||
-                    nextMetadata.getThingRevision() == lastMetadata.getThingRevision() &&
-                            nextMetadata.getPolicyRevision().flatMap(nextPolicyRevision ->
-                                            lastMetadata.getPolicyRevision().map(lastPolicyRevision ->
-                                                    nextPolicyRevision < lastPolicyRevision))
-                                    .orElse(false);
-            final boolean hasSameRevisions = nextMetadata.getThingRevision() == lastMetadata.getThingRevision() &&
-                    nextMetadata.getPolicyRevision().equals(lastMetadata.getPolicyRevision());
+        final var lastMetadata = lastWriteModel.getMetadata();
+        final var nextMetadata = nextWriteModel.getMetadata();
+        final boolean isStrictlyOlder = nextMetadata.getThingRevision() < lastMetadata.getThingRevision() ||
+                nextMetadata.getThingRevision() == lastMetadata.getThingRevision() &&
+                        nextMetadata.getPolicyRevision().flatMap(nextPolicyRevision ->
+                                        lastMetadata.getPolicyRevision().map(lastPolicyRevision ->
+                                                nextPolicyRevision < lastPolicyRevision))
+                                .orElse(false);
+        final boolean hasSameRevisions = nextMetadata.getThingRevision() == lastMetadata.getThingRevision() &&
+                nextMetadata.getPolicyRevision().equals(lastMetadata.getPolicyRevision());
 
-            return isStrictlyOlder || hasSameRevisions;
-        }
+        return isStrictlyOlder || hasSameRevisions;
     }
 }

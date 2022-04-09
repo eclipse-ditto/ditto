@@ -35,6 +35,7 @@ import org.eclipse.ditto.internal.utils.akka.logging.DittoLogger;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.akka.streaming.StreamAck;
 import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
+import org.eclipse.ditto.internal.utils.metrics.instruments.counter.Counter;
 import org.eclipse.ditto.internal.utils.metrics.instruments.timer.StartedTimer;
 import org.eclipse.ditto.internal.utils.tracing.DittoTracing;
 import org.eclipse.ditto.policies.api.PolicyReferenceTag;
@@ -77,6 +78,9 @@ import akka.stream.javadsl.Source;
  */
 public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State, ThingUpdater.Data> {
 
+    private static final Counter INCORRECT_PATCH_UPDATE_COUNT = DittoMetrics.counter("search_incorrect_patch_updates");
+    private static final Counter UPDATE_FAILURE_COUNT = DittoMetrics.counter("search_update_failures");
+
     // TODO: use circuit breaker
     private static final Duration RETRY_DELAY = Duration.ofSeconds(10L);
 
@@ -103,10 +107,20 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
     private boolean shuttingDown = false;
     @Nullable private UniqueKillSwitch killSwitch;
 
-    // TODO
+    /**
+     * Data of the thing-updater.
+     *
+     * @param metadata The most up-to-date metadata known to this actor.
+     * @param lastWriteModel The last write model confirmed to be written to the persistence.
+     */
     public record Data(Metadata metadata, AbstractWriteModel lastWriteModel) {}
 
-    // TODO
+    /**
+     * The result of a persistence operation.
+     *
+     * @param mongoWriteModel The write model describing the persistence operation.
+     * @param resultAndErrors The result of the persistence operation.
+     */
     public record Result(MongoWriteModel mongoWriteModel, WriteResultAndErrors resultAndErrors) {
 
         public static Result fromError(final Metadata metadata, final Throwable error) {
@@ -157,7 +171,15 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
         ShutdownBehaviour.fromId(thingId, pubSubMediator, getSelf());
     }
 
-    // TODO
+    /**
+     * Create props of this actor.
+     *
+     * @param flow Flow to perform persistence operations.
+     * @param recoveryFunction The function to recover the previous write model on start up.
+     * @param config Configuration of search service.
+     * @param pubSubMediator The pubsub mediator.
+     * @return The Props object.
+     */
     public static Props props(final Flow<Data, Result, NotUsed> flow,
             final Function<ThingId, Source<AbstractWriteModel, NotUsed>> recoveryFunction,
             final SearchConfig config,
@@ -274,6 +296,10 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
             getContext().setReceiveTimeout(BLOCK_NAMESPACE_SHUTDOWN_DELAY);
             return goTo(State.RECOVERING).using(getInitialData(thingId));
         }
+        switch (pair.first()) {
+            case INCORRECT_PATCH -> INCORRECT_PATCH_UPDATE_COUNT.increment();
+            case UNACKNOWLEDGED, CONSISTENCY_ERROR, WRITE_ERROR -> UPDATE_FAILURE_COUNT.increment();
+        }
         return switch (pair.first()) {
             case UNACKNOWLEDGED, CONSISTENCY_ERROR, INCORRECT_PATCH, WRITE_ERROR -> {
                 final var metadata = data.metadata().export();
@@ -295,6 +321,7 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
 
     private FSM.State<State, Data> tick(final Control tick, final Data data) {
         if (shouldPersist(data.metadata(), data.lastWriteModel().getMetadata())) {
+            ConsistencyLag.startS2WaitForDemand(data.metadata());
             final var pair = Source.single(data)
                     .viaMat(KillSwitches.single(), Keep.right())
                     .via(flow)
@@ -413,7 +440,7 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
                         l.warning("Timer measuring consistency lag timed out for event <{}>", thingEvent))
                 .start();
         DittoTracing.wrapTimer(DittoTracing.extractTraceContext(thingEvent), timer);
-        ConsistencyLag.startS0InUpdater(timer); // TODO: rename segments
+        ConsistencyLag.startS1InUpdater(timer);
         final var metadata = exportMetadataWithSender(shouldAcknowledge, thingEvent, getSender(), timer, data)
                 .withUpdateReason(UpdateReason.THING_UPDATE);
         return Optional.of(metadata);

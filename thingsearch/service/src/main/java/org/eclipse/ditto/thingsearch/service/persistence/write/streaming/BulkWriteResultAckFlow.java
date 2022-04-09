@@ -20,12 +20,10 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
-import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLogger;
 import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.internal.utils.metrics.instruments.counter.Counter;
-import org.eclipse.ditto.thingsearch.api.commands.sudo.UpdateThingResponse;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.AbstractWriteModel;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.Metadata;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.ThingDeleteModel;
@@ -37,7 +35,6 @@ import com.mongodb.bulk.BulkWriteError;
 import com.mongodb.bulk.BulkWriteResult;
 
 import akka.NotUsed;
-import akka.actor.ActorRef;
 import akka.japi.Pair;
 import akka.stream.javadsl.Flow;
 
@@ -51,17 +48,18 @@ public final class BulkWriteResultAckFlow {
     private static final ThreadSafeDittoLogger LOGGER =
             DittoLoggerFactory.getThreadSafeLogger(BulkWriteResultAckFlow.class);
 
-    private static final DittoHeaders INCORRECT_PATCH_HEADERS = DittoHeaders.newBuilder()
-            .putHeader(SearchUpdaterStream.FORCE_UPDATE_INCORRECT_PATCH, "true")
-            .build();
-
     private BulkWriteResultAckFlow() {}
 
     static Flow<WriteResultAndErrors, Pair<Status, List<String>>, NotUsed> start() {
         return Flow.<WriteResultAndErrors>create().map(BulkWriteResultAckFlow::checkBulkWriteResult);
     }
 
-    // TODO
+    /**
+     * Check the result of an update operation, acknowledge successes and failures, and generate a report.
+     *
+     * @param writeResultAndErrors The result of an update operation.
+     * @return The report.
+     */
     public static Pair<Status, List<String>> checkBulkWriteResult(final WriteResultAndErrors writeResultAndErrors) {
 
         if (wasNotAcknowledged(writeResultAndErrors)) {
@@ -131,14 +129,13 @@ public final class BulkWriteResultAckFlow {
             }
         }
         acknowledgeFailures(failedMetadata);
-        acknowledgeSuccesses(failedIndices, writeResultAndErrors.getBulkWriteCorrelationId(),
+        acknowledgeSuccesses(failedIndices,
                 writeResultAndErrors.getWriteModels());
 
         return logEntries;
     }
 
-    private static void acknowledgeSuccesses(final BitSet failedIndices, final String bulkWriteCorrelationId,
-            final List<MongoWriteModel> writeModels) {
+    private static void acknowledgeSuccesses(final BitSet failedIndices, final List<MongoWriteModel> writeModels) {
         for (int i = 0; i < writeModels.size(); ++i) {
             if (!failedIndices.get(i)) {
                 writeModels.get(i).getDitto().getMetadata().sendAck();
@@ -151,21 +148,6 @@ public final class BulkWriteResultAckFlow {
         for (final Metadata metadata : metadataList) {
             metadata.sendNAck(); // also stops timer even if no acknowledgement is requested
         }
-    }
-
-    private static Flow<WriteResultAndErrors, WriteResultAndErrors, NotUsed> getDelayFlow() {
-        return Flow.create();
-    }
-
-    private static UpdateThingResponse createFailureResponse(final Metadata metadata, final DittoHeaders dittoHeaders) {
-        return UpdateThingResponse.of(
-                metadata.getThingId(),
-                metadata.getThingRevision(),
-                metadata.getPolicyId().orElse(null),
-                metadata.getPolicyId().flatMap(policyId -> metadata.getPolicyRevision()).orElse(null),
-                false,
-                dittoHeaders
-        );
     }
 
     private static boolean wasNotAcknowledged(final WriteResultAndErrors writeResultAndErrors) {

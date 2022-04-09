@@ -34,11 +34,6 @@ import akka.stream.javadsl.Source;
  */
 public final class SearchUpdaterStream {
 
-    /**
-     * Header to request this actor to perform a force-update due to a previous patch not being applied.
-     */
-    public static final String FORCE_UPDATE_INCORRECT_PATCH = "force-update-incorrect-patch";
-
     private final EnforcementFlow enforcementFlow;
     private final MongoSearchUpdaterFlow mongoSearchUpdaterFlow;
     private final BlockedNamespaces blockedNamespaces;
@@ -85,7 +80,11 @@ public final class SearchUpdaterStream {
         return new SearchUpdaterStream(enforcementFlow, mongoSearchUpdaterFlow, blockedNamespaces, searchUpdateMapper);
     }
 
-    // TODO
+    /**
+     * Create a flow for a thing-updater.
+     *
+     * @return The flow.
+     */
     public Flow<ThingUpdater.Data, ThingUpdater.Result, NotUsed> flow() {
         final Flow<ThingUpdater.Data, ThingUpdater.Data, NotUsed> blockNamespace =
                 blockNamespaceFlow(data -> data.metadata().getThingId().getNamespace());

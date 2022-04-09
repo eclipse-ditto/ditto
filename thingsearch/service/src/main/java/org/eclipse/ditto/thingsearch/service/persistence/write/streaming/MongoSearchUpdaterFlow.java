@@ -13,7 +13,6 @@
 package org.eclipse.ditto.thingsearch.service.persistence.write.streaming;
 
 import java.util.Collection;
-import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -25,7 +24,6 @@ import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.internal.utils.metrics.instruments.timer.StartedTimer;
 import org.eclipse.ditto.thingsearch.service.common.config.PersistenceStreamConfig;
 import org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants;
-import org.eclipse.ditto.thingsearch.service.persistence.write.model.AbstractWriteModel;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.WriteResultAndErrors;
 import org.eclipse.ditto.thingsearch.service.updater.actors.MongoWriteModel;
 import org.eclipse.ditto.thingsearch.service.updater.actors.ThingUpdater;
@@ -82,7 +80,11 @@ final class MongoSearchUpdaterFlow {
         );
     }
 
-    // TODO
+    /**
+     * Create a flow that performs the database operation described by a MongoWriteModel.
+     *
+     * @return The flow.
+     */
     public Flow<MongoWriteModel, ThingUpdater.Result, NotUsed> create() {
         return Flow.<MongoWriteModel>create()
                 .flatMapConcat(writeModel -> executeBulkWrite(List.of(writeModel))
