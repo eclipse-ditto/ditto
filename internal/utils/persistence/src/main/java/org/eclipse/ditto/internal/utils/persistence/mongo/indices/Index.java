@@ -38,13 +38,13 @@ public final class Index {
     private final boolean unique;
     private final boolean sparse;
     private final boolean background;
-    private final BsonDocument partialFilterExpression;
+    private final BsonDocument wildcardProjection;
 
     @Nullable
     private final Long expireAfterSeconds;
 
     private Index(final BsonDocument keys, final String name, final boolean unique, final boolean sparse,
-            final boolean background, final BsonDocument partialFilterExpression,
+            final boolean background, final BsonDocument wildcardProjection,
             @Nullable final Long expireAfterSeconds) {
 
         this.keys = requireNonNull(keys);
@@ -53,7 +53,7 @@ public final class Index {
         this.sparse = sparse;
         this.background = background;
         this.expireAfterSeconds = expireAfterSeconds;
-        this.partialFilterExpression = partialFilterExpression;
+        this.wildcardProjection = wildcardProjection;
     }
 
     /**
@@ -91,15 +91,15 @@ public final class Index {
                 ? ((Number) expireAfterSecondsObject).longValue()
                 : null;
 
-        final String partialFilterExpressionName = "partialFilterExpression";
-        final BsonDocument partialFilterExpression;
-        if (document.containsKey(partialFilterExpressionName)) {
-            partialFilterExpression = BsonUtil.toBsonDocument((Document) document.get(partialFilterExpressionName));
+        final String wildcardProjectionName = "wildcardProjection";
+        final BsonDocument wildcardProjection;
+        if (document.containsKey(wildcardProjectionName)) {
+            wildcardProjection = BsonUtil.toBsonDocument((Document) document.get(wildcardProjectionName));
         } else {
-            partialFilterExpression = new BsonDocument();
+            wildcardProjection = new BsonDocument();
         }
 
-        return new Index(keyDbObject, name, unique, sparse, background, partialFilterExpression, expireAfterSeconds);
+        return new Index(keyDbObject, name, unique, sparse, background, wildcardProjection, expireAfterSeconds);
     }
 
     /**
@@ -110,17 +110,17 @@ public final class Index {
      * @return a copy of this object with expiration set.
      */
     public Index withExpireAfterSeconds(final long expireAfterSeconds) {
-        return new Index(keys, name, unique, sparse, background, partialFilterExpression, expireAfterSeconds);
+        return new Index(keys, name, unique, sparse, background, wildcardProjection, expireAfterSeconds);
     }
 
     /**
-     * Create a copy of this object with a partial filter expression.
+     * Create a copy of this object with a wildcard projection.
      *
-     * @param partialFilterExpression the partial filter expression.
-     * @return a copy of this object with partial filter expression set.
+     * @param wildcardProjection the wildcard projection.
+     * @return a copy of this object with wildcard projection.
      */
-    public Index withPartialFilterExpression(final BsonDocument partialFilterExpression) {
-        return new Index(keys, name, unique, sparse, background, partialFilterExpression, expireAfterSeconds);
+    public Index withWildcardProjection(final BsonDocument wildcardProjection) {
+        return new Index(keys, name, unique, sparse, background, wildcardProjection, expireAfterSeconds);
     }
 
     /**
@@ -135,8 +135,8 @@ public final class Index {
                 .sparse(sparse)
                 .background(background);
 
-        if (!partialFilterExpression.isEmpty()) {
-            options.partialFilterExpression(partialFilterExpression);
+        if (!wildcardProjection.isEmpty()) {
+            options.wildcardProjection(wildcardProjection);
         }
 
         getExpireAfterSeconds().ifPresent(n -> options.expireAfter(n, TimeUnit.SECONDS));
@@ -212,13 +212,13 @@ public final class Index {
                 background == indexInfo.background &&
                 Objects.equals(keys, indexInfo.keys) &&
                 Objects.equals(name, indexInfo.name) &&
-                Objects.equals(partialFilterExpression, indexInfo.partialFilterExpression) &&
+                Objects.equals(wildcardProjection, indexInfo.wildcardProjection) &&
                 Objects.equals(expireAfterSeconds, indexInfo.expireAfterSeconds);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(keys, name, unique, sparse, background, partialFilterExpression, expireAfterSeconds);
+        return Objects.hash(keys, name, unique, sparse, background, wildcardProjection, expireAfterSeconds);
     }
 
     @Override
@@ -229,7 +229,7 @@ public final class Index {
                 ", unique=" + unique +
                 ", sparse=" + sparse +
                 ", background=" + background +
-                ", partialFilterExpression=" + partialFilterExpression +
+                ", wildcardProjection=" + wildcardProjection +
                 ", expireAfterSeconds=" + expireAfterSeconds +
                 ']';
     }
