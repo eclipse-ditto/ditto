@@ -177,7 +177,7 @@ public final class SshTunnelActor extends AbstractActorWithTimers implements Cre
             logger.debug("SSH session connected successfully.");
             sshSession = connectFuture.getClientSession();
             sshSession.addSessionListener(new TunnelSessionListener(getSelf(), logger));
-            sshSession.addChannelListener(new TunnelChannelListener(getSelf()));
+            sshSession.addChannelListener(new TunnelChannelListener(getSelf(), logger));
             sshSession.setServerKeyVerifier(serverKeyVerifier);
             sshSession.setUserAuthFactoriesNames(sshUserAuthMethod);
             connection.getSshTunnel()
