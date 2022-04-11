@@ -18,16 +18,17 @@ import java.util.Map;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.json.JsonField;
-import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonParseException;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.Jsonifiable;
-import org.eclipse.ditto.things.model.ThingId;
+import org.eclipse.ditto.json.JsonField;
+import org.eclipse.ditto.json.JsonFieldSelector;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonParseException;
 import org.eclipse.ditto.protocol.Adaptable;
 import org.eclipse.ditto.protocol.JsonifiableMapper;
 import org.eclipse.ditto.protocol.TopicPath;
+import org.eclipse.ditto.things.model.ThingId;
 
 /**
  * Abstract base class for implementations of {@link MappingStrategies}. It implements the {@link #find(String)}
@@ -72,6 +73,11 @@ abstract class AbstractMappingStrategies<T extends Jsonifiable.WithPredicate<Jso
         return adaptable.getPayload().getHttpStatus()
                 .map(HttpStatus.CREATED::equals)
                 .orElseThrow(() -> JsonParseException.newBuilder().build());
+    }
+
+    @Nullable
+    protected static JsonFieldSelector selectedFieldsFrom(final Adaptable adaptable) {
+        return adaptable.getPayload().getFields().orElse(null);
     }
 
     protected static ThingId thingIdFrom(final Adaptable adaptable) {

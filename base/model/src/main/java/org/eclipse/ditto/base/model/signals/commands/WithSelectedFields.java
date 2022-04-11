@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Contributors to the Eclipse Foundation
+ * Copyright (c) 2022 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -10,18 +10,24 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.things.model.signals.commands;
+package org.eclipse.ditto.base.model.signals.commands;
 
 import java.util.Optional;
 
 import org.eclipse.ditto.json.JsonFieldSelector;
 
 /**
- * @deprecated since 2.4.0 use {@link org.eclipse.ditto.base.model.signals.commands.WithSelectedFields} instead.
+ * Command enabled for field selecting.
+ *
+ * @since 2.4.0
  */
-public interface WithSelectedFields extends org.eclipse.ditto.base.model.signals.commands.WithSelectedFields {
+public interface WithSelectedFields {
 
-    @Override
+    /**
+     * Returns the selected fields which are to be included in the JSON of the retrieved entity.
+     *
+     * @return the selected fields.
+     */
     default Optional<JsonFieldSelector> getSelectedFields() {
         return Optional.empty();
     }
