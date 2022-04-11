@@ -76,10 +76,21 @@
 
     <root level="${LOG_LEVEL:-INFO}">
         <!-- Logging INFO messages can be disabled by setting environment variable -->
-        <if condition='isNull("DITTO_LOGGING_DISABLE_SYSOUT_LOG")'>
+        <if condition='isDefined("DITTO_LOGGING_DISABLE_SYSOUT_LOG")'>
             <then>
-                <appender-ref ref="STDOUT"/>
+                <if condition='property("DITTO_LOGGING_DISABLE_SYSOUT_LOG").equals("true")'>
+                    <then>
+                        <!-- don't use the "STDOUT" appender -->
+                    </then>
+                    <else>
+                        <appender-ref ref="STDOUT"/>
+                    </else>
+                </if>
             </then>
+            <else>
+                <!-- if not defined, assume logging to STDOUT is desired -->
+                <appender-ref ref="STDOUT"/>
+            </else>
         </if>
 
         <!-- Always log ERRORs to syserr -->
