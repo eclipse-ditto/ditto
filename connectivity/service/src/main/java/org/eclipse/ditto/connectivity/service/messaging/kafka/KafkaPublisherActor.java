@@ -306,7 +306,7 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
         private KafkaExceptionConverter() {}
 
         @Override
-        protected HttpStatus getHttpStatusForGenericException(final Exception exception) {
+        protected HttpStatus getHttpStatusForGenericException(final Throwable exception) {
             // return 500 for retryable exceptions -> sender will retry
             // return 400 for non-retryable exceptions -> sender will give up
             return exception instanceof RetriableException
