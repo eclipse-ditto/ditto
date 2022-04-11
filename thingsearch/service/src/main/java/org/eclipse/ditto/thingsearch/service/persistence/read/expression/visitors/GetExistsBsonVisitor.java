@@ -123,7 +123,7 @@ public final class GetExistsBsonVisitor extends AbstractFieldBsonCreator impleme
 
     @Override
     Bson visitRootLevelField(final String fieldName) {
-        return Filters.exists(String.join(DOT, FIELD_THING, fieldName));
+        return Filters.exists(fieldName);
     }
 
     private Bson matchKey(final CharSequence key) {
