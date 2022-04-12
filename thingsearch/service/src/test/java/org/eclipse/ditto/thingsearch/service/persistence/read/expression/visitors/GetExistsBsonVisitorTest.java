@@ -140,11 +140,12 @@ public class GetExistsBsonVisitorTest {
                 "/_modified",
                 "/");
     }
+
     @Test
     public void testSimplePropertyNoLoadingSlash() {
-        final Bson filterBson = underTest.visitSimple("_modified");
+        final Bson filterBson = underTest.visitSimple("_id");
         final BsonDocument document = toBsonDocument(filterBson);
-        assertThat(document).isEqualTo(new BsonDocument("t._modified", EXISTS));
+        assertThat(document).isEqualTo(new BsonDocument("_id", EXISTS));
     }
 
 }

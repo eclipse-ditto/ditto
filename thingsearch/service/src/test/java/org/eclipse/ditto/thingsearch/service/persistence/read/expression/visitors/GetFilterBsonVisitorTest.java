@@ -118,9 +118,9 @@ public class GetFilterBsonVisitorTest {
 
     @Test
     public void testSimplePropertyNoLeadingSlash() {
-        final Bson attributeFilter = underTest.visitSimple("_modified");
+        final Bson attributeFilter = underTest.visitSimple("_id");
         final BsonDocument document = toBsonDocument(attributeFilter);
-        assertThat(document).isEqualTo(new BsonDocument("t._modified", BSON_VALUE));
+        assertThat(document).isEqualTo(new BsonDocument("_id", BSON_VALUE));
     }
 
 }
