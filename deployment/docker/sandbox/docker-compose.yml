@@ -203,3 +203,20 @@ services:
     depends_on:
       - gateway
       - swagger-ui
+    healthcheck:
+      test: wget --no-verbose --tries=1 --spider http://localhost/status || exit 1
+      interval: 30s
+      timeout: 15s
+      retries: 60
+      start_period: 120s
+
+  autoheal:
+    image: willfarrell/autoheal
+    mem_limit: 32m
+    restart: always
+    volumes:
+      - '/var/run/docker.sock:/var/run/docker.sock'
+    environment:
+      - AUTOHEAL_CONTAINER_LABEL=all
+      - AUTOHEAL_INTERVAL=10
+      - CURL_TIMEOUT=30
