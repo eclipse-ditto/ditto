@@ -109,7 +109,7 @@ public final class GetFilterBsonVisitor extends AbstractFieldBsonCreator impleme
 
     @Override
     Bson visitRootLevelField(final String fieldName) {
-        return predicateFunction.apply(fieldName);
+        return predicateFunction.apply(String.join(DOT, FIELD_THING, fieldName));
     }
 
     private Bson matchValue(final CharSequence key) {

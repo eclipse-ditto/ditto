@@ -70,17 +70,19 @@ public abstract class AbstractFieldBsonCreator {
     }
 
     Optional<Bson> getFeatureWildcardAuthorizationBson(final JsonPointer pointer) {
-        final Stream<JsonPointer> fixedPaths = Stream.of(
+        final Stream<CharSequence> fixedPaths = Stream.of(
                 JsonPointer.empty(),    // root grants
                 JsonPointer.of("/features"), // features grants
                 JsonPointer.of("/id")); // feature grants
-
-        return Optional.ofNullable(authorizationSubjectIds).map(nonNullSubjectsIds ->
-                Stream.concat(fixedPaths, collectPaths(pointer)).reduce(null,
-                        (child, p) -> getAuthFilter(nonNullSubjectsIds, p, child),
-                        (b1, b2) -> b1) // TODO
-        );
-
+        final Stream<CharSequence> collectedPaths = collectPaths(pointer);
+        final List<CharSequence> allPaths = Stream.concat(fixedPaths, collectedPaths).toList();
+        return Optional.ofNullable(authorizationSubjectIds).map(nonNullSubjectsIds -> {
+            Bson child = null;
+            for (final CharSequence path : allPaths) {
+                child = getAuthFilter(nonNullSubjectsIds, path, child);
+            }
+            return child;
+        });
     }
 
     public final Bson visitSimple(final String fieldName) {
