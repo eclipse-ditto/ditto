@@ -19,7 +19,6 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 import org.eclipse.ditto.policies.model.Label;
 import org.eclipse.ditto.policies.model.PoliciesModelFactory;
 import org.eclipse.ditto.policies.model.PolicyEntry;
-import org.junit.Ignore;
 import org.junit.Test;
 
 /**
@@ -49,11 +48,11 @@ public class ImmutablePolicyEntryPlaceholderTest {
 
     @Test
     public void testReplaceTopic() {
-        assertThat(ImmutablePolicyEntryPlaceholder.INSTANCE.resolve(ENTRY, "label")).contains(LABEL.toString());
+        assertThat(ImmutablePolicyEntryPlaceholder.INSTANCE.resolveValues(ENTRY, "label")).contains(LABEL.toString());
     }
 
     @Test
     public void testResultIsEmptyForUnknownPlaceholder() {
-        assertThat(ImmutablePolicyEntryPlaceholder.INSTANCE.resolve(ENTRY, "invalid")).isEmpty();
+        assertThat(ImmutablePolicyEntryPlaceholder.INSTANCE.resolveValues(ENTRY, "invalid")).isEmpty();
     }
 }

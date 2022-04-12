@@ -12,22 +12,42 @@
  */
 package org.eclipse.ditto.gateway.service.streaming.actors;
 
+import static org.eclipse.ditto.placeholders.PlaceholderFactory.newExpressionResolver;
+import static org.eclipse.ditto.placeholders.PlaceholderFactory.newHeadersPlaceholder;
+import static org.eclipse.ditto.placeholders.PlaceholderFactory.newPlaceholderResolver;
+
+import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.base.model.entity.id.WithEntityId;
 import org.eclipse.ditto.base.model.exceptions.SignalEnrichmentFailedException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.Jsonifiable;
 import org.eclipse.ditto.base.model.signals.Signal;
+import org.eclipse.ditto.edge.api.placeholders.EntityIdPlaceholder;
+import org.eclipse.ditto.edge.api.placeholders.FeaturePlaceholder;
+import org.eclipse.ditto.edge.api.placeholders.RequestPlaceholder;
+import org.eclipse.ditto.edge.api.placeholders.ThingPlaceholder;
 import org.eclipse.ditto.internal.models.signalenrichment.SignalEnrichmentFacade;
 import org.eclipse.ditto.internal.utils.tracing.instruments.trace.StartedTrace;
+import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
+import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.placeholders.ExpressionResolver;
+import org.eclipse.ditto.placeholders.PipelineElement;
+import org.eclipse.ditto.placeholders.TimePlaceholder;
+import org.eclipse.ditto.protocol.adapter.DittoProtocolAdapter;
+import org.eclipse.ditto.protocol.placeholders.ResourcePlaceholder;
+import org.eclipse.ditto.protocol.placeholders.TopicPathPlaceholder;
 import org.eclipse.ditto.things.model.ThingFieldSelector;
 import org.eclipse.ditto.things.model.ThingId;
 
@@ -36,6 +56,8 @@ import org.eclipse.ditto.things.model.ThingId;
  */
 @Immutable
 final class SessionedSignal implements SessionedJsonifiable {
+
+    private static final DittoProtocolAdapter PROTOCOL_ADAPTER = DittoProtocolAdapter.newInstance();
 
     private final Signal<?> signal;
     private final DittoHeaders sessionHeaders;
@@ -62,11 +84,25 @@ final class SessionedSignal implements SessionedJsonifiable {
 
     @Override
     public CompletionStage<JsonObject> retrieveExtraFields(@Nullable final SignalEnrichmentFacade facade) {
-        final Optional<ThingFieldSelector> extraFields = session.getExtraFields();
-        if (extraFields.isPresent()) {
+        final ExpressionResolver expressionResolver = newExpressionResolver(
+                newPlaceholderResolver(newHeadersPlaceholder(), getDittoHeaders()),
+                newPlaceholderResolver(EntityIdPlaceholder.getInstance(),
+                        WithEntityId.getEntityIdOfType(EntityId.class, signal).orElse(null)),
+                newPlaceholderResolver(ThingPlaceholder.getInstance(),
+                        WithEntityId.getEntityIdOfType(EntityId.class, signal).orElse(null)),
+                newPlaceholderResolver(FeaturePlaceholder.getInstance(), signal),
+                newPlaceholderResolver(TopicPathPlaceholder.getInstance(), PROTOCOL_ADAPTER.toTopicPath(signal)),
+                newPlaceholderResolver(ResourcePlaceholder.getInstance(), signal),
+                newPlaceholderResolver(TimePlaceholder.getInstance(), new Object()),
+                newPlaceholderResolver(RequestPlaceholder.getInstance(), getDittoHeaders().getAuthorizationContext())
+        );
+        final Optional<ThingFieldSelector> resolvedExtraFields = session.getExtraFields()
+                .flatMap(extraFields -> getExtraFields(expressionResolver, extraFields));
+        if (resolvedExtraFields.isPresent()) {
             final Optional<ThingId> thingIdOptional = WithEntityId.getEntityIdOfType(ThingId.class, signal);
             if (facade != null && thingIdOptional.isPresent()) {
-                return facade.retrievePartialThing(thingIdOptional.get(), extraFields.get(), sessionHeaders, signal);
+                return facade.retrievePartialThing(thingIdOptional.get(), resolvedExtraFields.get(), sessionHeaders,
+                        signal);
             }
             final CompletableFuture<JsonObject> future = new CompletableFuture<>();
             future.completeExceptionally(SignalEnrichmentFailedException.newBuilder()
@@ -81,6 +117,21 @@ final class SessionedSignal implements SessionedJsonifiable {
         }
     }
 
+    private Optional<ThingFieldSelector> getExtraFields(final ExpressionResolver expressionResolver,
+            final ThingFieldSelector thingFieldSelector) {
+        final List<JsonPointer> jsonPointers = thingFieldSelector.getPointers().stream()
+                .map(JsonPointer::toString)
+                .map(expressionResolver::resolve)
+                .flatMap(PipelineElement::toStream)
+                .map(JsonPointer::of)
+                .collect(Collectors.toList());
+        if(jsonPointers.isEmpty()) {
+            return Optional.empty();
+        }
+        final JsonFieldSelector jsonFieldSelector = JsonFactory.newFieldSelector(jsonPointers);
+        return Optional.of(ThingFieldSelector.fromJsonFieldSelector(jsonFieldSelector));
+    }
+
     @Override
     public Optional<StreamingSession> getSession() {
         return Optional.of(session);
@@ -90,4 +141,5 @@ final class SessionedSignal implements SessionedJsonifiable {
     public void finishTrace() {
         trace.finish();
     }
+
 }

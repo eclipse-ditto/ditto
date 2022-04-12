@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Contributors to the Eclipse Foundation
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -10,16 +10,19 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.connectivity.api.placeholders;
+package org.eclipse.ditto.edge.api.placeholders;
 
+import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.placeholders.Placeholder;
 
 /**
  * A {@link org.eclipse.ditto.placeholders.Placeholder} that requires a {@code String}
- * (a valid Feature ID) to resolve its placeholders.
- * A {@link org.eclipse.ditto.placeholders.Placeholder} that requires a {@code String} (a valid Feature ID) to resolve its placeholders.
- *
- * @since 1.5.0
+ * (a valid Thing ID) to resolve its placeholders.
  */
-public interface FeaturePlaceholder extends Placeholder<CharSequence> {
+public interface ThingPlaceholder extends Placeholder<EntityId> {
+
+    static ThingPlaceholder getInstance() {
+        return ImmutableThingPlaceholder.INSTANCE;
+    }
+
 }

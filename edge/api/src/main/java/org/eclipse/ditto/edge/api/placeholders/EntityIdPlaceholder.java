@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Contributors to the Eclipse Foundation
+ * Copyright (c) 2020 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -10,14 +10,23 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.connectivity.api.placeholders;
+package org.eclipse.ditto.edge.api.placeholders;
 
 import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.placeholders.Placeholder;
 
 /**
  * A {@link org.eclipse.ditto.placeholders.Placeholder} that requires a {@code String}
- * (a valid Thing ID) to resolve its placeholders.
+ * (a valid Entity ID) to resolve its placeholders.
  */
-public interface ThingPlaceholder extends Placeholder<EntityId> {
+public interface EntityIdPlaceholder extends Placeholder<EntityId> {
+
+    /**
+     * Returns the singleton instance of the {@link EntityIdPlaceholder}.
+     *
+     * @return the singleton instance.
+     */
+    static EntityIdPlaceholder getInstance() {
+        return ImmutableEntityIdPlaceholder.INSTANCE;
+    }
 }

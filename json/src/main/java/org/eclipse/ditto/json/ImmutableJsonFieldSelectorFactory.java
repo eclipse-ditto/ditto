@@ -21,6 +21,7 @@ import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import javax.annotation.concurrent.Immutable;
@@ -42,6 +43,23 @@ import javax.annotation.concurrent.Immutable;
  */
 @Immutable
 final class ImmutableJsonFieldSelectorFactory {
+
+    private static final String PLACEHOLDER_GROUP_NAME = "p";
+    private static final String PLACEHOLDER_START = Pattern.quote("{{");
+    private static final String PLACEHOLDER_END = Pattern.quote("}}");
+
+    /*
+     * Caution: If you adapt this regex, make sure to adapt it also in org.eclipse.ditto.base.model.common.Placeholders.
+     * It had to be duplicated because it couldn't be used here due to dependency cycles.
+     */
+    private static final String PLACEHOLDER_GROUP = "(?<" + PLACEHOLDER_GROUP_NAME + ">((}[^}]|[^}])*+))";
+    private static final String ANY_NUMBER_OF_SPACES = "\\s*+";
+    private static final String PLACEHOLDER_REGEX = PLACEHOLDER_START
+            + ANY_NUMBER_OF_SPACES // allow arbitrary number of spaces
+            + PLACEHOLDER_GROUP // the content of the placeholder
+            + ANY_NUMBER_OF_SPACES  // allow arbitrary number of spaces
+            + PLACEHOLDER_END; // end of placeholder
+    private static final Pattern PLACEHOLDER_PATTERN = Pattern.compile(PLACEHOLDER_REGEX);
 
     private static final String OPENING_PARENTHESIS = "(";
     private static final String CLOSING_PARENTHESIS = ")";
@@ -146,7 +164,7 @@ final class ImmutableJsonFieldSelectorFactory {
         final Set<JsonPointer> result = new LinkedHashSet<>();
 
         for (final String rawJsonKey : rawJsonKeys) {
-            if (isJsonSelectorFormat(rawJsonKey)) {
+            if (isJsonSelectorFormat(rawJsonKey) && !containsPlaceholder(rawJsonKey)) {
                 result.addAll(flattenToJsonPointers(rawJsonKey));
             } else {
                 // slashes are already treated by the constructor of the JSON pointer
@@ -155,6 +173,10 @@ final class ImmutableJsonFieldSelectorFactory {
         }
 
         return result;
+    }
+
+    private static boolean containsPlaceholder(final String jsonKey) {
+        return PLACEHOLDER_PATTERN.matcher(jsonKey).find();
     }
 
     private static boolean isJsonSelectorFormat(final String jsonKey) {

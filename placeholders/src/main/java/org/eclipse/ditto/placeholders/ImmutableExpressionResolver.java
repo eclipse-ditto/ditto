@@ -25,7 +25,6 @@ import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
@@ -90,19 +89,6 @@ final class ImmutableExpressionResolver implements ExpressionResolver {
         }
     }
 
-    @Override
-    public Stream<PipelineElement> resolveAsArrayPipelineElement(final String placeholderExpression) {
-        final List<String> pipelineStagesExpressions = getPipelineStagesExpressions(placeholderExpression);
-        final String firstPlaceholderInPipe = getFirstExpressionInPipe(pipelineStagesExpressions);
-        if (isFirstPlaceholderFunction(firstPlaceholderInPipe)) {
-            return getArrayPipelineFromExpressions(pipelineStagesExpressions, 0).execute(PipelineElement.unresolved(),
-                    this);
-        } else {
-            final PipelineElement pipelineInput = resolveSinglePlaceholder(firstPlaceholderInPipe);
-            return getArrayPipelineFromExpressions(pipelineStagesExpressions, 1).execute(pipelineInput, this);
-        }
-    }
-
     private Optional<Map.Entry<PlaceholderResolver<?>, String>> findPlaceholderResolver(
             final String placeholderInPipeline) {
         return getPlaceholderPrefix(placeholderInPipeline)
@@ -120,10 +106,8 @@ final class ImmutableExpressionResolver implements ExpressionResolver {
 
         if (placeholderReplacementInValidation == null) {
             // normal mode
-            return resolverPair.getKey()
-                    .resolve(resolverPair.getValue())
-                    .map(PipelineElement::resolved)
-                    .orElseGet(PipelineElement::unresolved);
+            final List<String> resolvedValues = resolverPair.getKey().resolveValues(resolverPair.getValue());
+            return PipelineElement.resolved(resolvedValues);
         } else {
             // validation mode: all placeholders resolve to dummy value.
             return PipelineElement.resolved(placeholderReplacementInValidation);
@@ -163,14 +147,6 @@ final class ImmutableExpressionResolver implements ExpressionResolver {
                 .skip(skip) // ignore pre-processed expressions
                 .collect(Collectors.toList());
         return new ImmutablePipeline(ImmutableFunctionExpression.INSTANCE, pipelineStages);
-    }
-
-    private ArrayPipeline getArrayPipelineFromExpressions(final List<String> pipelineStagesExpressions,
-            final int skip) {
-        final List<String> pipelineStages = pipelineStagesExpressions.stream()
-                .skip(skip) // ignore pre-processed expressions
-                .collect(Collectors.toList());
-        return new ImmutableArrayPipeline(ImmutableArrayFunctionExpression.INSTANCE, pipelineStages);
     }
 
     private Optional<String> getPlaceholderPrefix(final String placeholder) {
