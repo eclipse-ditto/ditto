@@ -243,7 +243,7 @@ or `pre-authenticated:service`. `*` will match any number of characters, and `?`
 Gathering logs for a running Ditto installation can be achieved by:
 
 * sending logs to STDOUT/STDERR: this is the default
-   * can be disabled by setting the environment variable `DITTO_LOGGING_DISABLE_SYSOUT_LOG`
+   * can be disabled by setting the environment variable `DITTO_LOGGING_DISABLE_SYSOUT_LOG` to `true`
    * Benefits: simple, works with all Docker logging drivers (e.g. "awslogs", "splunk", etc.)
 
 * pushing logs into ELK stack: this can be done by setting the environment variable `DITTO_LOGGING_LOGSTASH_SERVER`
@@ -254,10 +254,11 @@ Gathering logs for a running Ditto installation can be achieved by:
      variables. It is also possible to clean up old log files and archives at start up.
      In case `DITTO_LOGGING_TOTAL_LOG_FILE_SIZE` is used it is necessary to configure also `DITTO_LOGGING_MAX_LOG_FILE_HISTORY`.
      The detailed meaning of these config values is described in the [logback documentation](https://logback.qos.ch/manual/appenders.html#TimeBasedRollingPolicy).  
-       * `DITTO_LOGGING_FILE_NAME_PATTERN` (default: /var/log/ditto/<service-name>.log.%d{yyyy-MM-dd}.gz) - the rollover period is inferred from the fileNamePattern
-       * `DITTO_LOGGING_MAX_LOG_FILE_HISTORY` (default: 10)
-       * `DITTO_LOGGING_TOTAL_LOG_FILE_SIZE` (default: 1GB)
-       * `DITTO_LOGGING_CLEAN_HISTORY_ON_START` (default: false)
+       * `DITTO_LOGGING_FILE_APPENDER_THRESHOLD` (default: `info`) - the threshold `level` to use for logging (only greater or equal levels will be logged)
+       * `DITTO_LOGGING_FILE_NAME_PATTERN` (default: `/var/log/ditto/<service-name>.log.%d{yyyy-MM-dd}.gz`) - the rollover period is inferred from the fileNamePattern
+       * `DITTO_LOGGING_MAX_LOG_FILE_HISTORY` (default: `10`)
+       * `DITTO_LOGGING_TOTAL_LOG_FILE_SIZE` (default: `1GB`)
+       * `DITTO_LOGGING_CLEAN_HISTORY_ON_START` (default: `false`)
    * the format in which logging is done is "LogstashEncoder" format - that way the logfiles may easily be imported into
      an ELK stack
    * when running Ditto in Kubernetes apply the `ditto-log-files.yaml` to your Kubernetes cluster in order to 
