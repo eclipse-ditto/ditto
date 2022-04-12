@@ -161,9 +161,10 @@ public final class ThingWriteModel extends AbstractWriteModel {
         final boolean isPatchUpdate;
 
         if (isNextWriteModelOutDated(lastWriteModel, this)) {
-            throw new IllegalStateException(
-                    String.format("Received out-of-date write model. this=<%s>, lastWriteModel=<%s>", this,
-                            lastWriteModel));
+            // possible due to background sync
+            LOGGER.debug("Received out-of-date write model. this=<{}>, lastWriteModel=<{}>", this, lastWriteModel);
+            PATCH_SKIP_COUNT.increment();
+            return Optional.empty();
         }
         final Optional<BsonDiff> diff = tryComputeDiff(getThingDocument(), lastWriteModel.getThingDocument());
         if (diff.isPresent() && diff.get().isDiffSmaller()) {
