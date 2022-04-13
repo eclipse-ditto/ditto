@@ -49,8 +49,8 @@ import akka.stream.javadsl.Source;
  */
 final class MongoSearchUpdaterFlow {
 
-    private static final String TRACE_THING_BULK_UPDATE = "things_search_thing_bulkUpdate";
-    private static final String COUNT_THING_BULK_UPDATES_PER_BULK = "things_search_thing_bulkUpdate_updates_per_bulk";
+    private static final String TRACE_THING_BULK_UPDATE = "things_wildcard_search_thing_bulkUpdate";
+    private static final String COUNT_THING_BULK_UPDATES_PER_BULK = "things_wildcard_search_thing_bulkUpdate_updates_per_bulk";
     private static final String UPDATE_TYPE_TAG = "update_type";
 
     private static final ThreadSafeDittoLogger LOGGER =

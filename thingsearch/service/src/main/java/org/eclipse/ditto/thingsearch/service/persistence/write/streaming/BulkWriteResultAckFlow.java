@@ -44,7 +44,7 @@ import akka.stream.javadsl.Flow;
  */
 public final class BulkWriteResultAckFlow {
 
-    private static final Counter ERRORS_COUNTER = DittoMetrics.counter("search-index-update-errors");
+    private static final Counter ERRORS_COUNTER = DittoMetrics.counter("wildcard-search-index-update-errors");
 
     private static final ThreadSafeDittoLogger LOGGER =
             DittoLoggerFactory.getThreadSafeLogger(BulkWriteResultAckFlow.class);

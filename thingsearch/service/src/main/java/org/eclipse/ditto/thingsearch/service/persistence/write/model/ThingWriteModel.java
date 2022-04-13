@@ -45,9 +45,9 @@ public final class ThingWriteModel extends AbstractWriteModel {
 
     private static final ThreadSafeDittoLogger LOGGER = DittoLoggerFactory.getThreadSafeLogger(ThingUpdater.class);
 
-    private static final Counter PATCH_UPDATE_COUNT = DittoMetrics.counter("search_patch_updates");
-    private static final Counter PATCH_SKIP_COUNT = DittoMetrics.counter("search_patch_skips");
-    private static final Counter FULL_UPDATE_COUNT = DittoMetrics.counter("search_full_updates");
+    private static final Counter PATCH_UPDATE_COUNT = DittoMetrics.counter("wildcard_search_patch_updates");
+    private static final Counter PATCH_SKIP_COUNT = DittoMetrics.counter("wildcard_search_patch_skips");
+    private static final Counter FULL_UPDATE_COUNT = DittoMetrics.counter("wildcard_search_full_updates");
 
     private final BsonDocument thingDocument;
     private final boolean isPatchUpdate;

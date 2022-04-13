@@ -81,8 +81,8 @@ import akka.stream.javadsl.Source;
  */
 public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State, ThingUpdater.Data> {
 
-    private static final Counter INCORRECT_PATCH_UPDATE_COUNT = DittoMetrics.counter("search_incorrect_patch_updates");
-    private static final Counter UPDATE_FAILURE_COUNT = DittoMetrics.counter("search_update_failures");
+    private static final Counter INCORRECT_PATCH_UPDATE_COUNT = DittoMetrics.counter("wildcard_search_incorrect_patch_updates");
+    private static final Counter UPDATE_FAILURE_COUNT = DittoMetrics.counter("wildcard_search_update_failures");
 
     private static final Duration BLOCK_NAMESPACE_SHUTDOWN_DELAY = Duration.ofMinutes(2);
 

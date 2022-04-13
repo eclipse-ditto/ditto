@@ -28,7 +28,7 @@ public final class ConsistencyLag {
     /**
      * Name of the search updater consistency lag timer.
      */
-    public static final String TIMER_NAME = "things_search_updater_consistency_lag";
+    public static final String TIMER_NAME = "things_wildcard_search_updater_consistency_lag";
 
     /**
      * Tag for differentiating between search updates requiring acks and those who not require them.
