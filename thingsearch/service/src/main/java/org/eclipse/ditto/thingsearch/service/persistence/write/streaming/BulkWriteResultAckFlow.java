@@ -20,6 +20,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
+import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLogger;
 import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
@@ -72,8 +73,7 @@ public final class BulkWriteResultAckFlow {
             switch (consistencyError.status()) {
                 case CONSISTENCY_ERROR:
                     // write result is not consistent; there is a bug with Ditto or with its environment
-                    acknowledgeFailures(getAllMetadata(writeResultAndErrors)
-                    );
+                    acknowledgeFailures(getAllMetadata(writeResultAndErrors));
 
                     return Pair.create(consistencyError.status(), List.of(consistencyError.message));
                 case INCORRECT_PATCH:
@@ -205,12 +205,16 @@ public final class BulkWriteResultAckFlow {
         final Optional<Throwable> unexpectedError = writeResultAndErrors.getUnexpectedError();
         if (unexpectedError.isPresent()) {
             final Throwable error = unexpectedError.get();
-            final StringWriter stackTraceWriter = new StringWriter();
-            stackTraceWriter.append(String.format("%s: UnexpectedError[stacktrace=", status));
-            error.printStackTrace(new PrintWriter(stackTraceWriter));
-            return stackTraceWriter.append("] - correlation: ")
-                    .append(writeResultAndErrors.getBulkWriteCorrelationId())
-                    .toString();
+            if (error instanceof DittoRuntimeException dittoRuntimeException) {
+                return dittoRuntimeException.toJsonString();
+            } else {
+                final StringWriter stackTraceWriter = new StringWriter();
+                stackTraceWriter.append(String.format("%s: UnexpectedError[stacktrace=", status));
+                error.printStackTrace(new PrintWriter(stackTraceWriter));
+                return stackTraceWriter.append("] - correlation: ")
+                        .append(writeResultAndErrors.getBulkWriteCorrelationId())
+                        .toString();
+            }
         } else if (containsNoErrors) {
             final BulkWriteResult bulkWriteResult = writeResultAndErrors.getBulkWriteResult();
 

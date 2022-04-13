@@ -26,6 +26,7 @@ import java.util.function.Function;
 import javax.annotation.Nullable;
 
 import org.bson.BsonDocument;
+import org.eclipse.ditto.base.api.common.ShutdownReasonType;
 import org.eclipse.ditto.base.model.acks.AcknowledgementRequest;
 import org.eclipse.ditto.base.model.acks.DittoAcknowledgementLabel;
 import org.eclipse.ditto.base.service.actors.ShutdownBehaviour;
@@ -39,6 +40,7 @@ import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.internal.utils.metrics.instruments.counter.Counter;
 import org.eclipse.ditto.internal.utils.metrics.instruments.timer.StartedTimer;
 import org.eclipse.ditto.internal.utils.tracing.DittoTracing;
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.policies.api.PolicyReferenceTag;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.events.ThingDeleted;
@@ -250,8 +252,10 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
         return stay();
     }
 
-    private FSM.State<State, Data> shutdownNow(final Object trigger, final Data data) {
-        log.info("Shutting down now due to <{}> during <{}>", trigger, stateName());
+    private FSM.State<State, Data> shutdownNow(final org.eclipse.ditto.base.api.common.Shutdown shutdown,
+            final Data data) {
+        log.info("Shutting down now due to <{}> during <{}>", shutdown, stateName());
+        data.metadata().sendWeakAck(getDescription(shutdown));
         return stop();
     }
 
@@ -536,5 +540,17 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
     private static Data getInitialData(final ThingId thingId) {
         final var deletedMetadata = Metadata.ofDeleted(thingId);
         return new Data(deletedMetadata, ThingDeleteModel.of(deletedMetadata));
+    }
+
+    private static JsonValue getDescription(final org.eclipse.ditto.base.api.common.Shutdown shutdown) {
+        final var type = shutdown.getReason().getType();
+        if (type instanceof ShutdownReasonType.Known knownType) {
+            return JsonValue.of(switch (knownType) {
+                case PURGE_NAMESPACE -> "The namespace is being purged.";
+                case PURGE_ENTITIES -> "The entities are being purged.";
+            });
+        } else {
+            return JsonValue.of(type.toString());
+        }
     }
 }

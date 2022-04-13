@@ -13,10 +13,10 @@
 package org.eclipse.ditto.thingsearch.service.persistence.read.expression.visitors;
 
 import static org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants.DESIRED_PROPERTIES;
-import static org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants.DOT;
 import static org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants.FIELD_ATTRIBUTES_PATH;
 import static org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants.FIELD_DESIRED_PROPERTIES;
 import static org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants.FIELD_FEATURES_PATH;
+import static org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants.FIELD_FEATURE_ID;
 import static org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants.FIELD_F_ARRAY;
 import static org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants.FIELD_PROPERTIES;
 import static org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants.FIELD_THING;
@@ -27,8 +27,8 @@ import java.util.List;
 
 import javax.annotation.Nullable;
 
-import org.bson.Document;
 import org.bson.conversions.Bson;
+import org.eclipse.ditto.json.JsonKey;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.rql.query.expression.ExistsFieldExpression;
 import org.eclipse.ditto.rql.query.expression.visitors.ExistsFieldExpressionVisitor;
@@ -73,7 +73,7 @@ public final class GetExistsBsonVisitor extends AbstractFieldBsonCreator impleme
     public Bson visitFeature(final String featureId) {
         if (FEATURE_ID_WILDCARD.equals(featureId)) {
             // any feature exists
-            return Filters.gt(FIELD_F_ARRAY, 0);
+            return Filters.exists(toDottedPath(FIELD_F_ARRAY, List.of(JsonKey.of(FIELD_FEATURE_ID))));
         } else {
             return matchKey(FIELD_FEATURES_PATH + featureId);
         }

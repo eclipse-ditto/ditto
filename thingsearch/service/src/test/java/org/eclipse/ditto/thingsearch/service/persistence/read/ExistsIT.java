@@ -146,6 +146,13 @@ public final class ExistsIT extends AbstractReadPersistenceITBase {
         assertThat(results).isEqualTo(expected);
     }
 
+    @Test
+    public void existsByAnyFeature() {
+        final Criteria crit = cf.existsCriteria(ef.existsByFeatureId("*"));
+        final Collection<ThingId> result = findForCriteria(crit);
+        assertThat(result).isNotEmpty();
+    }
+
     private void insertThings() {
         final Attributes attributes1 = createAttributes(THING1_KNOWN_ATTR, THING1_KNOWN_ATTR_VALUE).toBuilder()
                 .setAll(createEmptyAttributes())
