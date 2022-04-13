@@ -51,9 +51,8 @@ public final class OAuthTokenIntegrationSubjectIdFactory implements TokenIntegra
                 PlaceholderFactory.newPlaceholderResolver(PlaceholderFactory.newHeadersPlaceholder(), dittoHeaders),
                 PlaceholderFactory.newPlaceholderResolver(JwtPlaceholder.getInstance(), jwt)
         );
-        final String issuerWithSubject = expressionResolver.resolvePartially(subjectTemplate,
-                Set.of(JwtPlaceholder.PREFIX));
-        return JwtPlaceholder.expandJsonArraysInResolvedSubject(issuerWithSubject)
+        return expressionResolver.resolvePartiallyAsPipelineElement(subjectTemplate, Set.of(JwtPlaceholder.PREFIX))
+                .toStream()
                 .map(SubjectId::newInstance)
                 .collect(Collectors.toCollection(LinkedHashSet::new));
     }

@@ -30,8 +30,8 @@ import org.eclipse.ditto.connectivity.api.ExternalMessage;
 import org.eclipse.ditto.connectivity.api.ExternalMessageBuilder;
 import org.eclipse.ditto.connectivity.api.ExternalMessageFactory;
 import org.eclipse.ditto.connectivity.api.placeholders.ConnectivityPlaceholders;
-import org.eclipse.ditto.connectivity.api.placeholders.RequestPlaceholder;
 import org.eclipse.ditto.connectivity.service.config.mapping.MappingConfig;
+import org.eclipse.ditto.edge.api.placeholders.RequestPlaceholder;
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.json.JsonFactory;
@@ -266,7 +266,7 @@ public final class RawMessageMapper extends AbstractMessageMapper {
         }
         final Map<String, String> resolvedHeaders = new HashMap<>();
         incomingMessageHeaders.forEach((key, value) ->
-                resolver.resolve(value).toOptional().ifPresent(resolvedHeaderValue ->
+                resolver.resolve(value).findFirst().ifPresent(resolvedHeaderValue ->
                         resolvedHeaders.put(key, resolvedHeaderValue)
                 )
         );
@@ -282,7 +282,7 @@ public final class RawMessageMapper extends AbstractMessageMapper {
 
         final String placeholderExpression = incomingMessageHeaders.get(messageHeader);
         if (placeholderExpression != null) {
-            return expressionResolver.resolve(placeholderExpression).toOptional().orElse(null);
+            return expressionResolver.resolve(placeholderExpression).findFirst().orElse(null);
         } else {
             return null;
         }

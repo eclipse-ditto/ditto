@@ -18,6 +18,7 @@ import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -47,19 +48,18 @@ public class PlaceholderFilterTest {
     @Test
     public void testHeadersPlaceholder() {
         assertThatExceptionOfType(NullPointerException.class).isThrownBy(
-                () -> headersPlaceholder.resolve(HEADERS, null));
+                () -> headersPlaceholder.resolveValues(HEADERS, null));
         assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(
-                () -> headersPlaceholder.resolve(HEADERS, ""));
+                () -> headersPlaceholder.resolveValues(HEADERS, ""));
         assertThatExceptionOfType(UnresolvedPlaceholderException.class).isThrownBy(
-                () -> PlaceholderFilter.apply("{{ header:unknown }}", HEADERS, headersPlaceholder));
+                () -> PlaceholderFilter.applyForAll("{{ header:unknown }}", HEADERS, headersPlaceholder));
         assertThatExceptionOfType(UnresolvedPlaceholderException.class).isThrownBy(
-                () -> PlaceholderFilter.apply("{{ {{  header:device-id  }} }}", HEADERS, headersPlaceholder));
-        assertThat(PlaceholderFilter.apply(HEADERS.get("device-id"), HEADERS, headersPlaceholder))
-                .isEqualTo(DEVICE_ID);
+                () -> PlaceholderFilter.applyForAll("{{ {{  header:device-id  }} }}", HEADERS, headersPlaceholder));
+        assertThat(PlaceholderFilter.applyForAll(HEADERS.get("device-id"), HEADERS, headersPlaceholder))
+                .containsExactly(DEVICE_ID);
         assertThat(
-                PlaceholderFilter.apply("http-protocol-adapter:commands:{{ header:device-id }}", HEADERS,
-                        headersPlaceholder)).isEqualTo(
-                "http-protocol-adapter:commands:device-12345");
+                PlaceholderFilter.applyForAll("http-protocol-adapter:commands:{{ header:device-id }}", HEADERS,
+                        headersPlaceholder)).containsExactly("http-protocol-adapter:commands:device-12345");
     }
 
     @Test
@@ -67,35 +67,35 @@ public class PlaceholderFilterTest {
 
         // no whitespace
         assertThat(filterChain("{{header:gateway-id}}/{{header:source}}:{{header:device-id}}",
-                filterChain)).isEqualTo("http-protocol-adapter/commands:" + DEVICE_ID);
+                filterChain)).containsExactly("http-protocol-adapter/commands:" + DEVICE_ID);
 
         // multi whitespace
         assertThat(filterChain("{{  header:gateway-id  }}/{{  header:source  }}:{{  header:device-id  }}",
-                filterChain)).isEqualTo("http-protocol-adapter/commands:" + DEVICE_ID);
+                filterChain)).containsExactly("http-protocol-adapter/commands:" + DEVICE_ID);
 
         // mixed whitespace
         assertThat(filterChain("{{header:gateway-id }}/{{  header:source }}:{{header:device-id }}",
-                filterChain)).isEqualTo("http-protocol-adapter/commands:" + DEVICE_ID);
+                filterChain)).containsExactly("http-protocol-adapter/commands:" + DEVICE_ID);
 
         // no separators
         assertThat(filterChain("{{header:gateway-id }}{{  header:source }}{{header:device-id }}",
-                filterChain)).isEqualTo("http-protocol-adaptercommands" + DEVICE_ID);
+                filterChain)).containsExactly("http-protocol-adaptercommands" + DEVICE_ID);
 
         // whitespace separators
         assertThat(filterChain("{{header:gateway-id }}  {{  header:source }}  {{header:device-id }}",
-                filterChain)).isEqualTo("http-protocol-adapter  commands  " + DEVICE_ID);
+                filterChain)).containsExactly("http-protocol-adapter  commands  " + DEVICE_ID);
 
         // pre/postfix whitespace
         assertThat(filterChain("  {{header:gateway-id }}{{  header:source }}{{header:device-id }}  ",
-                filterChain)).isEqualTo("  http-protocol-adaptercommands" + DEVICE_ID + "  ");
+                filterChain)).containsExactly("  http-protocol-adaptercommands" + DEVICE_ID + "  ");
 
         // pre/postfix
         assertThat(filterChain("-----{{header:gateway-id }}{{  header:source }}{{header:device-id }}-----",
-                filterChain)).isEqualTo("-----http-protocol-adaptercommands" + DEVICE_ID + "-----");
+                filterChain)).containsExactly("-----http-protocol-adaptercommands" + DEVICE_ID + "-----");
 
         // pre/postfix and separators
         assertThat(filterChain("-----{{header:gateway-id }}///{{  header:source }}///{{header:device-id }}-----",
-                filterChain)).isEqualTo("-----http-protocol-adapter///commands///" + DEVICE_ID + "-----");
+                filterChain)).containsExactly("-----http-protocol-adapter///commands///" + DEVICE_ID + "-----");
     }
 
     @Test
@@ -190,55 +190,55 @@ public class PlaceholderFilterTest {
     public void testValidateAndReplace() {
         final String replacement = UUID.randomUUID().toString();
         // no whitespace
-        assertThat(PlaceholderFilter.validateAndReplace("{{header:gateway-id}}/{{header:source}}:{{header:device-id}}",
+        assertThat(PlaceholderFilter.validateAndReplaceAll("{{header:gateway-id}}/{{header:source}}:{{header:device-id}}",
                 replacement, placeholders))
-                .isEqualTo(String.format("%s/%s:%s", replacement, replacement, replacement));
+                .containsExactly(String.format("%s/%s:%s", replacement, replacement, replacement));
 
         // multi whitespace
-        assertThat(PlaceholderFilter.validateAndReplace(
+        assertThat(PlaceholderFilter.validateAndReplaceAll(
                 "{{  header:gateway-id  }}/{{  header:source  }}:{{  header:device-id  }}", replacement, placeholders))
-                .isEqualTo(String.format("%s/%s:%s", replacement, replacement, replacement));
+                .containsExactly(String.format("%s/%s:%s", replacement, replacement, replacement));
 
         // mixed whitespace
-        assertThat(PlaceholderFilter.validateAndReplace(
+        assertThat(PlaceholderFilter.validateAndReplaceAll(
                 "{{header:gateway-id }}/{{  header:source }}:{{header:device-id }}",
                 replacement, placeholders))
-                .isEqualTo(String.format("%s/%s:%s", replacement, replacement, replacement));
+                .containsExactly(String.format("%s/%s:%s", replacement, replacement, replacement));
 
         // no separators
         assertThat(
-                PlaceholderFilter.validateAndReplace("{{header:gateway-id }}{{  header:source }}{{header:device-id }}",
+                PlaceholderFilter.validateAndReplaceAll("{{header:gateway-id }}{{  header:source }}{{header:device-id }}",
                         replacement, placeholders))
-                .isEqualTo(String.format("%s%s%s", replacement, replacement, replacement));
+                .containsExactly(String.format("%s%s%s", replacement, replacement, replacement));
 
         // whitespace separators
         assertThat(
-                PlaceholderFilter.validateAndReplace(
+                PlaceholderFilter.validateAndReplaceAll(
                         "{{header:gateway-id }}  {{  header:source }}  {{header:device-id }}",
                         replacement, placeholders))
-                .isEqualTo(String.format("%s  %s  %s", replacement, replacement, replacement));
+                .containsExactly(String.format("%s  %s  %s", replacement, replacement, replacement));
 
         // pre/postfix whitespace
         assertThat(
-                PlaceholderFilter.validateAndReplace(
+                PlaceholderFilter.validateAndReplaceAll(
                         "  {{header:gateway-id }}{{  header:source }}{{header:device-id }}  ",
                         replacement, placeholders))
-                .isEqualTo(String.format("  %s%s%s  ", replacement, replacement, replacement));
+                .containsExactly(String.format("  %s%s%s  ", replacement, replacement, replacement));
 
         // pre/postfix
-        assertThat(PlaceholderFilter.validateAndReplace(
+        assertThat(PlaceholderFilter.validateAndReplaceAll(
                 "-----{{header:gateway-id }}{{  header:source }}{{header:device-id }}-----", replacement, placeholders))
-                .isEqualTo(String.format("-----%s%s%s-----", replacement, replacement, replacement));
+                .containsExactly(String.format("-----%s%s%s-----", replacement, replacement, replacement));
 
         // pre/postfix and separators
-        assertThat(PlaceholderFilter.validateAndReplace(
+        assertThat(PlaceholderFilter.validateAndReplaceAll(
                 "-----{{header:gateway-id }}///{{  header:source }}///{{header:device-id }}-----", replacement,
                 placeholders))
-                .isEqualTo(String.format("-----%s///%s///%s-----", replacement, replacement, replacement));
+                .containsExactly(String.format("-----%s///%s///%s-----", replacement, replacement, replacement));
     }
 
-    private static String filterChain(final String template, final PlaceholderResolver... tuples) {
-        return PlaceholderFilter.apply(template, PlaceholderFactory.newExpressionResolver(tuples));
+    private static List<String> filterChain(final String template, final PlaceholderResolver... tuples) {
+        return PlaceholderFilter.applyForAll(template, PlaceholderFactory.newExpressionResolver(tuples));
     }
 
 }

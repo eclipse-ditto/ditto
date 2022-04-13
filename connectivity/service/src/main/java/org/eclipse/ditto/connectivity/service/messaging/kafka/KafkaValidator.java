@@ -38,6 +38,7 @@ import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.messaging.Resolvers;
 import org.eclipse.ditto.connectivity.service.messaging.validation.AbstractProtocolValidator;
 import org.eclipse.ditto.placeholders.PlaceholderFactory;
+import org.eclipse.ditto.placeholders.UnresolvedPlaceholderException;
 
 import akka.actor.ActorSystem;
 
@@ -107,9 +108,7 @@ public final class KafkaValidator extends AbstractProtocolValidator {
 
         final String placeholderReplacement = UUID.randomUUID().toString();
         source.getAddresses().forEach(address -> {
-            final String addressWithoutPlaceholders = validateTemplateAndReplace(address, dittoHeaders,
-                    placeholderReplacement, Resolvers.getPlaceholders());
-            validateSourceAddress(addressWithoutPlaceholders, dittoHeaders, placeholderReplacement);
+            validateSourceAddress(address, dittoHeaders, placeholderReplacement);
         });
 
         validateSourceQos(source, dittoHeaders);
@@ -121,10 +120,13 @@ public final class KafkaValidator extends AbstractProtocolValidator {
 
         final String placeholderReplacement = UUID.randomUUID().toString();
         final String addressWithoutPlaceholders = validateTemplateAndReplace(target.getAddress(), dittoHeaders,
-                placeholderReplacement, Resolvers.getPlaceholders());
+                placeholderReplacement, Resolvers.getPlaceholders()).stream()
+                .findFirst()
+                .orElseThrow(() -> UnresolvedPlaceholderException.newBuilder(target.getAddress()).build());
 
         validateTargetAddress(addressWithoutPlaceholders, dittoHeaders, placeholderReplacement);
         validateHeaderMapping(target.getHeaderMapping(), dittoHeaders);
+        validateExtraFields(target);
     }
 
     private static void validateSourceAddress(final String address, final DittoHeaders dittoHeaders,

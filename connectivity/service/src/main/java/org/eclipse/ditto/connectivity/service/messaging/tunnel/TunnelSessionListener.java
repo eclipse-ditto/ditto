@@ -40,7 +40,7 @@ final class TunnelSessionListener implements SessionListener {
 
     @Override
     public void sessionException(final Session session, final Throwable reason) {
-        logger.debug("Exception occurred in ssh session ({}): {}", session,
+        logger.debug("Exception occurred in SSH session ({}): {}", session,
                 reason != null
                         ? String.format("[%s] %s", reason.getClass().getName(), reason.getMessage())
                         : "<no reason>");
@@ -54,12 +54,12 @@ final class TunnelSessionListener implements SessionListener {
 
     @Override
     public void sessionEstablished(final Session session) {
-        logger.debug("SSH session established: {} ", session);
+        logger.debug("SSH session established: {}", session);
     }
 
     @Override
     public void sessionCreated(final Session session) {
-        logger.debug("SSH session created: {} ", session);
+        logger.debug("SSH session created: {}", session);
     }
 
     @Override

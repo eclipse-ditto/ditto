@@ -17,7 +17,6 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
 import java.util.function.Predicate;
 
 import org.eclipse.ditto.placeholders.Expression;
@@ -143,8 +142,8 @@ public final class ExistsThingPredicateVisitor implements ExistsFieldExpressionV
             return additionalPlaceholderResolvers.stream()
                     .filter(pr -> placeholderPrefix.equals(pr.getPrefix()))
                     .filter(pr -> pr.supports(placeholderName))
-                    .map(pr -> pr.resolve(placeholderName))
-                    .anyMatch(Optional::isPresent);
+                    .map(pr -> pr.resolveValues(placeholderName))
+                    .anyMatch(resolvedValues -> !resolvedValues.isEmpty());
         } else {
             return false;
         }

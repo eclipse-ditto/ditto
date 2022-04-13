@@ -10,11 +10,12 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.connectivity.api.placeholders;
+package org.eclipse.ditto.edge.api.placeholders;
 
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
@@ -56,14 +57,14 @@ final class ImmutableRequestPlaceholder implements RequestPlaceholder {
     }
 
     @Override
-    public Optional<String> resolve(@Nullable final AuthorizationContext authorizationContext, final String headerKey) {
+    public List<String> resolveValues(@Nullable final AuthorizationContext authorizationContext,
+            final String headerKey) {
         // precondition: supports(headerKey)
         return Optional.ofNullable(authorizationContext)
-                .flatMap(context -> context.getAuthorizationSubjects()
-                        .stream()
+                .map(context -> context.getAuthorizationSubjects().stream()
                         .map(AuthorizationSubject::getId)
-                        .findFirst()
-                );
+                        .collect(Collectors.toList()))
+                .orElseGet(Collections::emptyList);
     }
 
     @Override

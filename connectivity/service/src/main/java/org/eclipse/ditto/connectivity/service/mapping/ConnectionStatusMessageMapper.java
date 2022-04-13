@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.connectivity.service.mapping;
 
+import static org.eclipse.ditto.placeholders.PlaceholderFilter.apply;
+
 import java.time.Instant;
 import java.util.Collections;
 import java.util.List;
@@ -35,7 +37,6 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.placeholders.ExpressionResolver;
 import org.eclipse.ditto.placeholders.HeadersPlaceholder;
 import org.eclipse.ditto.placeholders.PlaceholderFactory;
-import org.eclipse.ditto.placeholders.PlaceholderFilter;
 import org.eclipse.ditto.protocol.Adaptable;
 import org.eclipse.ditto.protocol.adapter.DittoProtocolAdapter;
 import org.eclipse.ditto.things.model.Feature;
@@ -128,8 +129,8 @@ public class ConnectionStatusMessageMapper extends AbstractMessageMapper {
         final Map<String, String> externalHeaders = externalMessage.getHeaders();
 
         final ExpressionResolver expressionResolver = getExpressionResolver(externalHeaders);
-        final ThingId thingId = ThingId.of(applyPlaceholderReplacement(mappingOptionThingId, expressionResolver));
-        final String featureId = applyPlaceholderReplacement(mappingOptionFeatureId, expressionResolver);
+        final ThingId thingId = ThingId.of(apply(mappingOptionThingId, expressionResolver));
+        final String featureId = apply(mappingOptionFeatureId, expressionResolver);
 
         //Check if time is convertible
         final long creationTime = extractLongHeader(externalHeaders, HEADER_HONO_CREATION_TIME,
@@ -213,10 +214,6 @@ public class ConnectionStatusMessageMapper extends AbstractMessageMapper {
         LOGGER.withCorrelationId(newDittoHeaders)
                 .debug("ModifyFeature for ConnectionStatus created by mapper: {}", modifyFeature);
         return DITTO_PROTOCOL_ADAPTER.toAdaptable(modifyFeature);
-    }
-
-    private String applyPlaceholderReplacement(final String template, final ExpressionResolver expressionResolver) {
-        return PlaceholderFilter.apply(template, expressionResolver);
     }
 
     private static ExpressionResolver getExpressionResolver(final Map<String, String> headers) {

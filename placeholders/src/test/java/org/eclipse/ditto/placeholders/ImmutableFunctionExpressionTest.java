@@ -21,7 +21,6 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-import org.junit.Ignore;
 import org.junit.Test;
 import org.mutabilitydetector.unittesting.MutabilityAssert;
 import org.mutabilitydetector.unittesting.MutabilityMatchers;
@@ -42,7 +41,8 @@ public class ImmutableFunctionExpressionTest {
             "lower",
             "upper",
             "delete",
-            "replace"
+            "replace",
+            "split"
     )));
     private static final HeadersPlaceholder HEADERS_PLACEHOLDER = PlaceholderFactory.newHeadersPlaceholder();
 

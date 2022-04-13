@@ -16,6 +16,7 @@ import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.time.Instant;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.function.Predicate;
 
 import javax.annotation.Nullable;
@@ -152,6 +153,11 @@ public final class ThingMerged extends AbstractThingEvent<ThingMerged> implement
      */
     public JsonValue getValue() {
         return value;
+    }
+
+    @Override
+    public Optional<JsonValue> getEntity() {
+        return Optional.of(value);
     }
 
     @Override

@@ -14,7 +14,6 @@ package org.eclipse.ditto.policies.service.persistence.actors.resolvers;
 
 import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
 
 import javax.annotation.concurrent.Immutable;
 
@@ -42,11 +41,11 @@ final class ImmutablePolicyEntryPlaceholder implements PolicyEntryPlaceholder {
     }
 
     @Override
-    public Optional<String> resolve(final PolicyEntry policyEntry, final String name) {
+    public List<String> resolveValues(final PolicyEntry policyEntry, final String name) {
         if (LABEL.equals(name)) {
-            return Optional.of(policyEntry.getLabel().toString());
+            return Collections.singletonList(policyEntry.getLabel().toString());
         } else {
-            return Optional.empty();
+            return Collections.emptyList();
         }
     }
 

@@ -18,6 +18,7 @@ import org.apache.sshd.common.channel.ChannelListener;
 import org.apache.sshd.common.forward.TcpipClientChannel;
 
 import akka.actor.ActorRef;
+import akka.event.LoggingAdapter;
 
 /**
  * A channel listener that reports exceptions to the {@code SshTunnelActor}.
@@ -25,21 +26,41 @@ import akka.actor.ActorRef;
 final class TunnelChannelListener implements ChannelListener {
 
     private final ActorRef sshTunnelActor;
+    private final LoggingAdapter logger;
 
     /**
      * Instantiates a new {@code TunnelChannelListener}.
      *
      * @param sshTunnelActor actor reference of SshTunnelActor to notify about errors
+     * @param logger the logger
      */
-    TunnelChannelListener(final ActorRef sshTunnelActor) {this.sshTunnelActor = sshTunnelActor;}
+    TunnelChannelListener(final ActorRef sshTunnelActor, final LoggingAdapter logger) {
+        this.sshTunnelActor = sshTunnelActor;
+        this.logger = logger;
+    }
+
+    @Override
+    public void channelInitialized(final Channel channel) {
+        logger.debug("SSH channel initialized: {}", channel);
+    }
+
+    @Override
+    public void channelOpenSuccess(final Channel channel) {
+        logger.debug("SSH channel opened successfully: {}", channel);
+    }
 
     @Override
     public void channelOpenFailure(final Channel channel, final Throwable reason) {
         if (reason != null) {
             final SshTunnelActor.TunnelClosed tunnelClosed =
-                    new SshTunnelActor.TunnelClosed("Opening channel failed with exception", reason);
+                    new SshTunnelActor.TunnelClosed("Opening SSH channel failed with exception", reason);
             sshTunnelActor.tell(tunnelClosed, ActorRef.noSender());
         }
+    }
+
+    @Override
+    public void channelStateChanged(final Channel channel, final String hint) {
+        logger.debug("SSH channel state changed for {}. Reason of change was: {}", channel, hint);
     }
 
     @Override
@@ -48,14 +69,13 @@ final class TunnelChannelListener implements ChannelListener {
         // channelClosed with empty reason is a normal closing
         if (reason != null) {
             final SshTunnelActor.TunnelClosed tunnelClosed =
-                    new SshTunnelActor.TunnelClosed("Channel closed with exception", reason);
+                    new SshTunnelActor.TunnelClosed("SSH channel closed with exception", reason);
             sshTunnelActor.tell(tunnelClosed, ActorRef.noSender());
         }
 
         // attach a listener to the open future, otherwise we have no access to the exception that caused the opening
         // to fail (e.g. channelOpenFailure is not called with an exception)
-        if (channel instanceof TcpipClientChannel) {
-            final TcpipClientChannel tcpipClientChannel = (TcpipClientChannel) channel;
+        if (channel instanceof TcpipClientChannel tcpipClientChannel) {
             final OpenFuture openFuture = tcpipClientChannel.getOpenFuture();
             if (openFuture != null) {
                 tcpipClientChannel.getOpenFuture()
@@ -63,7 +83,7 @@ final class TunnelChannelListener implements ChannelListener {
                             final Throwable exception = future.getException();
                             if (exception != null) {
                                 final SshTunnelActor.TunnelClosed tunnelClosed =
-                                        new SshTunnelActor.TunnelClosed("Opening channel failed with exception",
+                                        new SshTunnelActor.TunnelClosed("Opening SSH channel failed with exception",
                                                 exception);
                                 sshTunnelActor.tell(tunnelClosed, ActorRef.noSender());
                             }

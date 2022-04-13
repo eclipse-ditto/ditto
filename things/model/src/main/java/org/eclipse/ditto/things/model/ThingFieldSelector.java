@@ -19,6 +19,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.regex.Pattern;
 
+import org.eclipse.ditto.base.model.common.Placeholders;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonParseOptions;
@@ -65,6 +66,12 @@ public final class ThingFieldSelector implements JsonFieldSelector {
             return (ThingFieldSelector) jsonFieldSelector;
         } else if (null == jsonFieldSelector) {
             throw InvalidThingFieldSelectionException.forExtraFieldSelectionString(null);
+        } else if (Placeholders.containsAnyPlaceholder(jsonFieldSelector.toString())) {
+            /*
+             * if the thing field selector contains a placeholder we cannot validate that only available fields are
+             * selected.
+             */
+            return new ThingFieldSelector(jsonFieldSelector);
         } else if (FIELD_SELECTION_PATTERN.matcher(jsonFieldSelector.toString()).matches()) {
             return new ThingFieldSelector(jsonFieldSelector);
         } else {
@@ -83,10 +90,8 @@ public final class ThingFieldSelector implements JsonFieldSelector {
     public static ThingFieldSelector fromString(final String selectionString) {
         if (null == selectionString) {
             throw InvalidThingFieldSelectionException.forExtraFieldSelectionString(null);
-        } else if (FIELD_SELECTION_PATTERN.matcher(selectionString).matches()) {
-            return new ThingFieldSelector(JsonFactory.newFieldSelector(selectionString, JSON_PARSE_OPTIONS));
         } else {
-            throw InvalidThingFieldSelectionException.forExtraFieldSelectionString(selectionString);
+            return fromJsonFieldSelector(JsonFactory.newFieldSelector(selectionString, JSON_PARSE_OPTIONS));
         }
     }
 

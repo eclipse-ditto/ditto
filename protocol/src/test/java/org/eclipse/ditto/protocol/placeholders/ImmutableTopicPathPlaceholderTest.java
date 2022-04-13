@@ -16,7 +16,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import org.eclipse.ditto.protocol.TopicPath;
 import org.eclipse.ditto.things.model.ThingId;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.mutabilitydetector.unittesting.MutabilityAssert;
 import org.mutabilitydetector.unittesting.MutabilityMatchers;
@@ -72,72 +71,72 @@ public final class ImmutableTopicPathPlaceholderTest {
 
     @Test
     public void testReplaceFull() {
-        assertThat(UNDER_TEST.resolve(KNOWN_TOPIC_PATH, "full")).contains(KNOWN_TOPIC_PATH.getPath());
+        assertThat(UNDER_TEST.resolveValues(KNOWN_TOPIC_PATH, "full")).contains(KNOWN_TOPIC_PATH.getPath());
     }
 
     @Test
     public void testReplaceNamespace() {
-        assertThat(UNDER_TEST.resolve(KNOWN_TOPIC_PATH, "namespace")).contains(KNOWN_NAMESPACE);
+        assertThat(UNDER_TEST.resolveValues(KNOWN_TOPIC_PATH, "namespace")).contains(KNOWN_NAMESPACE);
     }
 
     @Test
     public void testReplaceEntityName() {
-        assertThat(UNDER_TEST.resolve(KNOWN_TOPIC_PATH, "entityName")).contains(KNOWN_NAME);
+        assertThat(UNDER_TEST.resolveValues(KNOWN_TOPIC_PATH, "entityName")).contains(KNOWN_NAME);
     }
 
     @Test
     public void testReplaceChannel() {
-        assertThat(UNDER_TEST.resolve(KNOWN_TOPIC_PATH, "channel")).contains(KNOWN_CHANNEL.getName());
+        assertThat(UNDER_TEST.resolveValues(KNOWN_TOPIC_PATH, "channel")).contains(KNOWN_CHANNEL.getName());
     }
 
     @Test
     public void testReplaceGroup() {
-        assertThat(UNDER_TEST.resolve(KNOWN_TOPIC_PATH, "group")).contains(KNOWN_GROUP.getName());
+        assertThat(UNDER_TEST.resolveValues(KNOWN_TOPIC_PATH, "group")).contains(KNOWN_GROUP.getName());
     }
 
     @Test
     public void testReplaceCriterion() {
-        assertThat(UNDER_TEST.resolve(KNOWN_TOPIC_PATH, "criterion")).contains(KNOWN_CRITERION.getName());
+        assertThat(UNDER_TEST.resolveValues(KNOWN_TOPIC_PATH, "criterion")).contains(KNOWN_CRITERION.getName());
     }
 
     @Test
     public void testReplaceAction() {
-        assertThat(UNDER_TEST.resolve(KNOWN_TOPIC_PATH, "action")).contains(KNOWN_ACTION.getName());
+        assertThat(UNDER_TEST.resolveValues(KNOWN_TOPIC_PATH, "action")).contains(KNOWN_ACTION.getName());
     }
 
     @Test
     public void testReplaceSubjectEmpty() {
-        assertThat(UNDER_TEST.resolve(KNOWN_TOPIC_PATH, "subject")).isEmpty();
+        assertThat(UNDER_TEST.resolveValues(KNOWN_TOPIC_PATH, "subject")).isEmpty();
     }
 
     @Test
     public void testReplaceSubject() {
-        assertThat(UNDER_TEST.resolve(KNOWN_TOPIC_PATH_SUBJECT1, "subject")).contains(KNOWN_SUBJECT);
+        assertThat(UNDER_TEST.resolveValues(KNOWN_TOPIC_PATH_SUBJECT1, "subject")).contains(KNOWN_SUBJECT);
     }
 
     @Test
     public void testReplaceWeirdSubject() {
-        assertThat(UNDER_TEST.resolve(KNOWN_TOPIC_PATH_SUBJECT2, "subject")).contains(KNOWN_SUBJECT2);
+        assertThat(UNDER_TEST.resolveValues(KNOWN_TOPIC_PATH_SUBJECT2, "subject")).contains(KNOWN_SUBJECT2);
     }
 
     @Test
     public void testReplaceActionOrSubject() {
-        assertThat(UNDER_TEST.resolve(KNOWN_TOPIC_PATH, "action-subject")).contains(KNOWN_ACTION.getName());
+        assertThat(UNDER_TEST.resolveValues(KNOWN_TOPIC_PATH, "action-subject")).contains(KNOWN_ACTION.getName());
     }
 
     @Test
     public void testReplaceActionOrSubjectWithSubject() {
-        assertThat(UNDER_TEST.resolve(KNOWN_TOPIC_PATH_SUBJECT1, "action-subject")).contains(KNOWN_SUBJECT);
+        assertThat(UNDER_TEST.resolveValues(KNOWN_TOPIC_PATH_SUBJECT1, "action-subject")).contains(KNOWN_SUBJECT);
     }
 
     @Test
     public void testReplaceActionOrSubjectWithWeirdSubject() {
-        assertThat(UNDER_TEST.resolve(KNOWN_TOPIC_PATH_SUBJECT2, "action-subject")).contains(KNOWN_SUBJECT2);
+        assertThat(UNDER_TEST.resolveValues(KNOWN_TOPIC_PATH_SUBJECT2, "action-subject")).contains(KNOWN_SUBJECT2);
     }
 
     @Test
     public void testUnknownPlaceholderReturnsEmpty() {
-        assertThat(UNDER_TEST.resolve(KNOWN_TOPIC_PATH, "foo")).isEmpty();
+        assertThat(UNDER_TEST.resolveValues(KNOWN_TOPIC_PATH, "foo")).isEmpty();
     }
 
 }
