@@ -42,7 +42,7 @@ import org.eclipse.ditto.internal.utils.tracing.config.TracingConfig;
 @Immutable
 public final class DittoSearchConfig implements SearchConfig, WithConfigPath {
 
-    private static final String CONFIG_PATH = "things-search";
+    private static final String CONFIG_PATH = "search";
 
     private final DittoServiceConfig dittoServiceConfig;
     @Nullable private final String mongoHintsByNamespace;
