@@ -34,6 +34,10 @@ public final class Placeholders {
     private static final String PLACEHOLDER_START = Pattern.quote("{{");
     private static final String PLACEHOLDER_END = Pattern.quote("}}");
 
+    /*
+     * Caution: If you adapt this regex, make sure to adapt it also in org.eclipse.ditto.json.ImmutableJsonFieldSelectorFactory.
+     * It had to be duplicated because it couldn't be used here due to dependency cycles.
+     */
     private static final String PLACEHOLDER_GROUP = "(?<" + PLACEHOLDER_GROUP_NAME + ">((}[^}]|[^}])*+))";
     private static final String LEGACY_PLACEHOLDER_GROUP = "(?<" + LEGACY_PLACEHOLDER_GROUP_NAME + ">([^}]*+))";
     private static final String ANY_NUMBER_OF_SPACES = "\\s*+";

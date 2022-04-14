@@ -16,7 +16,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import org.eclipse.ditto.base.model.signals.WithResource;
 import org.eclipse.ditto.json.JsonPointer;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.mutabilitydetector.unittesting.MutabilityAssert;
 import org.mutabilitydetector.unittesting.MutabilityMatchers;
@@ -74,25 +73,25 @@ public final class ImmutableResourcePlaceholderTest {
 
     @Test
     public void testReplaceTypePolicy() {
-        assertThat(UNDER_TEST.resolve(KNOWN_WITH_RESOURCE_ROOT, "type"))
+        assertThat(UNDER_TEST.resolveValues(KNOWN_WITH_RESOURCE_ROOT, "type"))
                 .contains(KNOWN_RESOURCE_TYPE_POLICY);
     }
 
     @Test
     public void testReplacePath() {
-        assertThat(UNDER_TEST.resolve(KNOWN_WITH_RESOURCE_ROOT, "path"))
+        assertThat(UNDER_TEST.resolveValues(KNOWN_WITH_RESOURCE_ROOT, "path"))
                 .contains(KNOWN_JSON_POINTER_ROOT.toString());
     }
 
     @Test
     public void testReplaceTypeThing() {
-        assertThat(UNDER_TEST.resolve(KNOWN_WITH_RESOURCE_ATTRIBUTE, "type"))
+        assertThat(UNDER_TEST.resolveValues(KNOWN_WITH_RESOURCE_ATTRIBUTE, "type"))
                 .contains(KNOWN_RESOURCE_TYPE_THING);
     }
 
     @Test
     public void testReplacePathThing() {
-        assertThat(UNDER_TEST.resolve(KNOWN_WITH_RESOURCE_ATTRIBUTE, "path"))
+        assertThat(UNDER_TEST.resolveValues(KNOWN_WITH_RESOURCE_ATTRIBUTE, "path"))
                 .contains(KNOWN_JSON_POINTER_ATTRIBUTE.toString());
     }
 

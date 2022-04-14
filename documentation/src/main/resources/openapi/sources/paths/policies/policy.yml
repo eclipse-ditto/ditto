@@ -15,10 +15,17 @@ get:
     response contains the policy as JSON object.
 
     Tip: If you don't know the policy ID of a thing, request it via GET `/things/{thingId}`.
+
+    Optionally, you can use the field selectors (see parameter `fields`) to only get specific fields,
+    which you are interested in.
+
+    ### Example:
+    Use the field selector `_revision` to retrieve the revision of the policy.
   tags:
     - Policies
   parameters:
     - $ref: '../../parameters/policyIdPathParam.yml'
+    - $ref: '../../parameters/policyFieldsQueryParam.yml'
     - $ref: '../../parameters/ifMatchHeaderParam.yml'
     - $ref: '../../parameters/ifNoneMatchHeaderParam.yml'
     - $ref: '../../parameters/timeoutParam.yml'

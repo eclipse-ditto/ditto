@@ -42,7 +42,7 @@ import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayInternalE
 import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayWebsocketSessionClosedException;
 import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayWebsocketSessionExpiredException;
 import org.eclipse.ditto.base.model.signals.events.Event;
-import org.eclipse.ditto.connectivity.api.placeholders.EntityIdPlaceholder;
+import org.eclipse.ditto.edge.api.placeholders.EntityIdPlaceholder;
 import org.eclipse.ditto.gateway.service.security.authentication.jwt.JwtAuthenticationResultProvider;
 import org.eclipse.ditto.gateway.service.security.authentication.jwt.JwtValidator;
 import org.eclipse.ditto.gateway.service.streaming.Connect;

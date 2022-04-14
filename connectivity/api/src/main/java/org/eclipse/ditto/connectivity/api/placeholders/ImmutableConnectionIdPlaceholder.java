@@ -17,7 +17,6 @@ import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
 
 import javax.annotation.concurrent.Immutable;
 
@@ -56,13 +55,13 @@ final class ImmutableConnectionIdPlaceholder implements ConnectionIdPlaceholder 
     }
 
     @Override
-    public Optional<String> resolve(final ConnectionId connectionId, final String placeholder) {
+    public List<String> resolveValues(final ConnectionId connectionId, final String placeholder) {
         argumentNotEmpty(placeholder, "placeholder");
         checkNotNull(connectionId, "Connection ID");
         if (ID_PLACEHOLDER.equals(placeholder)) {
-            return Optional.of(connectionId.toString());
+            return Collections.singletonList(connectionId.toString());
         }
-        return Optional.empty();
+        return Collections.emptyList();
     }
 
 }

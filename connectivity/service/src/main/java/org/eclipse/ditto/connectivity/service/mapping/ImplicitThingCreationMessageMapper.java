@@ -33,9 +33,9 @@ import org.eclipse.ditto.base.model.signals.GlobalErrorRegistry;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.connectivity.api.ExternalMessage;
 import org.eclipse.ditto.connectivity.api.placeholders.ConnectivityPlaceholders;
-import org.eclipse.ditto.connectivity.api.placeholders.RequestPlaceholder;
 import org.eclipse.ditto.connectivity.model.MessageMapperConfigurationInvalidException;
 import org.eclipse.ditto.connectivity.service.config.mapping.MappingConfig;
+import org.eclipse.ditto.edge.api.placeholders.RequestPlaceholder;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLogger;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.json.JsonFactory;
@@ -187,7 +187,7 @@ public final class ImplicitThingCreationMessageMapper extends AbstractMessageMap
 
         final String resolvedTemplate;
         if (Placeholders.containsAnyPlaceholder(thingTemplate)) {
-            resolvedTemplate = applyPlaceholderReplacement(thingTemplate, expressionResolver);
+            resolvedTemplate = PlaceholderFilter.apply(thingTemplate, expressionResolver);
         } else {
             resolvedTemplate = thingTemplate;
         }
@@ -218,10 +218,6 @@ public final class ImplicitThingCreationMessageMapper extends AbstractMessageMap
         );
     }
 
-    private static String applyPlaceholderReplacement(final String template, final ExpressionResolver resolver) {
-        return PlaceholderFilter.apply(template, resolver);
-    }
-
     private Signal<CreateThing> getCreateThingSignal(final ExternalMessage message, final String template) {
         final JsonObject thingJson = wrapJsonRuntimeException(() -> JsonFactory.newObject(template));
         final Thing newThing = ThingsModelFactory.newThing(thingJson);
@@ -237,7 +233,7 @@ public final class ImplicitThingCreationMessageMapper extends AbstractMessageMap
             final Map<String, String> unresolvedHeaders) {
         final Map<String, String> resolvedHeaders = new LinkedHashMap<>();
         unresolvedHeaders.forEach((key, value) ->
-                resolver.resolve(value).toOptional().ifPresent(resolvedHeaderValue ->
+                resolver.resolve(value).findFirst().ifPresent(resolvedHeaderValue ->
                         resolvedHeaders.put(key, resolvedHeaderValue)
                 )
         );

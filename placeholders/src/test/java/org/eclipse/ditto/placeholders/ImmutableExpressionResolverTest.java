@@ -22,7 +22,6 @@ import java.util.stream.Collectors;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.mutabilitydetector.unittesting.AllowedReason;
 import org.mutabilitydetector.unittesting.MutabilityAssert;
@@ -65,7 +64,8 @@ public class ImmutableExpressionResolverTest {
     @BeforeClass
     public static void setupClass() {
         final ImmutablePlaceholderResolver<Map<String, String>> headersResolver =
-                new ImmutablePlaceholderResolver<>(PlaceholderFactory.newHeadersPlaceholder(), KNOWN_HEADERS);
+                new ImmutablePlaceholderResolver<>(PlaceholderFactory.newHeadersPlaceholder(),
+                        Collections.singletonList(KNOWN_HEADERS));
         underTest = new ImmutableExpressionResolver(Collections.singletonList(headersResolver));
     }
 
@@ -77,39 +77,39 @@ public class ImmutableExpressionResolverTest {
 
     @Test
     public void testSuccessfulArrayExpressionResolution() {
-        assertThat(underTest.resolveAsArray("{{ header:splitted | fn:split(' ') | fn:upper() }}"))
+        assertThat(underTest.resolve("{{ header:splitted | fn:split(' ') | fn:upper() }}").toStream())
                 .containsExactlyElementsOf(Arrays.stream(KNOWN_HEADERS.get("splitted").split(" "))
                         .map(String::toUpperCase)
-                        .map(PipelineElement::resolved)
                         .collect(Collectors.toList())
                 );
     }
 
     @Test
     public void testSuccessfulArrayExpressionResolutionForTwoCombinedExpressions() {
-        assertThat(underTest.resolveAsArray(
-                "{{ header:splitted | fn:split(' ')  }}_{{ header:one }}")
+        assertThat(underTest.resolve(
+                "{{ header:splitted | fn:split(' ')  }}_{{ header:one }}").toStream()
         ).containsExactlyElementsOf(Arrays.asList(
-                PipelineElement.resolved("one_1"),
-                PipelineElement.resolved("two_1"),
-                PipelineElement.resolved("three_1")
+                "one_1",
+                "two_1",
+                "three_1"
         ));
     }
 
     @Test
     public void testSuccessfulArrayExpressionResolutionForTwoCombinedArrayExpressions() {
-        assertThat(underTest.resolveAsArray(
+        assertThat(underTest.resolve(
                 "{{ header:splitted | fn:split(' ') | fn:upper() }}:{{ header:splitted | fn:split(' ') | fn:lower() }}")
+                .toStream()
         ).containsExactlyElementsOf(Arrays.asList(
-                PipelineElement.resolved("ONE:one"),
-                PipelineElement.resolved("TWO:one"),
-                PipelineElement.resolved("THREE:one"),
-                PipelineElement.resolved("ONE:two"),
-                PipelineElement.resolved("TWO:two"),
-                PipelineElement.resolved("THREE:two"),
-                PipelineElement.resolved("ONE:three"),
-                PipelineElement.resolved("TWO:three"),
-                PipelineElement.resolved("THREE:three")
+                "ONE:one",
+                "ONE:two",
+                "ONE:three",
+                "TWO:one",
+                "TWO:two",
+                "TWO:three",
+                "THREE:one",
+                "THREE:two",
+                "THREE:three"
         ));
     }
 
@@ -178,9 +178,8 @@ public class ImmutableExpressionResolverTest {
 
     @Test
     public void testSuccessfulArrayPlaceholderResolution() {
-        assertThat(underTest.resolveAsArrayPipelineElement("header:splitted | fn:split(' ')"))
+        assertThat(underTest.resolveAsPipelineElement("header:splitted | fn:split(' ')").toStream())
                 .containsExactlyElementsOf(Arrays.stream(KNOWN_HEADERS.get("splitted").split(" "))
-                        .map(PipelineElement::resolved)
                         .collect(Collectors.toList())
                 );
     }

@@ -268,7 +268,8 @@ final class ThingUpdater extends AbstractActorWithStashWithTimers {
                         .asPatchUpdate(lastWriteModel.getMetadata().getThingRevision())
                         .getFilter();
                 mongoWriteModel = new UpdateOneModel<>(filter, aggregationPipeline);
-                log.debug("Using incremental update <{}>", mongoWriteModel.getClass().getSimpleName());
+                log.debug("Using incremental update <{}> with filter: <{}>",
+                        mongoWriteModel.getClass().getSimpleName(), filter);
                 LOGGER.trace("Using incremental update <{}>", mongoWriteModel);
                 PATCH_UPDATE_COUNT.increment();
                 isPatchUpdate = true;
@@ -376,8 +377,9 @@ final class ThingUpdater extends AbstractActorWithStashWithTimers {
         if (isFailure || isIncorrectPatch) {
             // discard last write model: index document is not known
             lastWriteModel = null;
-            final Metadata metadata =
-                    exportMetadata(null, null).invalidateCaches(true, true);
+            final Metadata metadata = exportMetadata(null, null)
+                    .invalidateCaches(true, true)
+                    .withUpdateReason(UpdateReason.RETRY);
             final String warningTemplate;
             // check first for incorrect patch update otherwise the else branch is never triggered.
             if (isIncorrectPatch) {
@@ -389,7 +391,7 @@ final class ThingUpdater extends AbstractActorWithStashWithTimers {
             }
             log.withCorrelationId(response)
                     .warning(warningTemplate, Metadata.fromResponse(response), metadata);
-            enqueueMetadata(metadata.withUpdateReason(UpdateReason.RETRY));
+            enqueueMetadata(metadata);
         }
     }
 
@@ -435,8 +437,9 @@ final class ThingUpdater extends AbstractActorWithStashWithTimers {
             DittoTracing.wrapTimer(DittoTracing.extractTraceContext(thingEvent), timer);
             ConsistencyLag.startS0InUpdater(timer);
             enqueueMetadata(
-                    exportMetadataWithSender(shouldAcknowledge, thingEvent, getSender(), timer).withUpdateReason(
-                            UpdateReason.THING_UPDATE));
+                    exportMetadataWithSender(shouldAcknowledge, thingEvent, getSender(), timer)
+                            .withUpdateReason(UpdateReason.THING_UPDATE)
+            );
         }
 
         if (thingEvent instanceof ThingDeleted) {

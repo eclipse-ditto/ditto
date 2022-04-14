@@ -58,7 +58,7 @@ final class RequestedAcksFilter {
             final String requestedAcksValue = getDefaultRequestedAcks(headerDefined, signal);
             final String fullFilter = "fn:default('" + requestedAcksValue + "')|" + filter;
             final ExpressionResolver resolver = Resolvers.forExternalMessage(externalMessage, connectionId);
-            final Optional<String> resolverResult = resolver.resolveAsPipelineElement(fullFilter).toOptional();
+            final Optional<String> resolverResult = resolver.resolveAsPipelineElement(fullFilter).findFirst();
             if (resolverResult.isEmpty()) {
                 // filter tripped: set requested-acks to []
                 return signal.setDittoHeaders(DittoHeaders.newBuilder(signal.getDittoHeaders())
@@ -74,7 +74,7 @@ final class RequestedAcksFilter {
                 // - evaluate filter again against unresolved and set requested-acks accordingly
                 // - if filter is not resolved, then keep requested-acks undefined for the default behavior
                 final Optional<String> unsetFilterResult =
-                        resolver.resolveAsPipelineElement(filter).toOptional();
+                        resolver.resolveAsPipelineElement(filter).findFirst();
                 return unsetFilterResult.<Signal<?>>map(newAckRequests ->
                         signal.setDittoHeaders(DittoHeaders.newBuilder(signal.getDittoHeaders())
                                 .putHeader(REQUESTED_ACKS_KEY, newAckRequests)

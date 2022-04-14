@@ -1,0 +1,71 @@
+# Copyright (c) 2022 Contributors to the Eclipse Foundation
+#
+# See the NOTICE file(s) distributed with this work for additional
+# information regarding copyright ownership.
+#
+# This program and the accompanying materials are made available under the
+# terms of the Eclipse Public License 2.0 which is available at
+# http://www.eclipse.org/legal/epl-2.0
+#
+# SPDX-License-Identifier: EPL-2.0
+name: fields
+in: query
+description: |-
+  Contains a comma-separated list of fields to be included in the returned
+  JSON.
+
+  #### Selectable fields
+
+  * `policyId`
+  * `entries`
+
+     Supports selecting arbitrary sub-fields by using a comma-separated list:
+      * several entry paths can be passed as a comma-separated list of JSON pointers (RFC-6901)
+
+        For example:
+          * `?fields=entries/ditto` would select only the `ditto` entry value(if present)
+          * `?fields=entries/ditto,entries/user` would select only `ditto` and
+             `user` entry values (if present)
+
+    Supports selecting arbitrary sub-fields of objects by wrapping sub-fields inside parentheses `( )`:
+      * a comma-separated list of sub-fields (a sub-field is a JSON pointer (RFC-6901)
+        separated with `/`) to select
+
+      * sub-selectors can be used to request only specific sub-fields by placing expressions
+        in parentheses `( )` after a selected subfield
+
+        For example:
+         * `?fields=entries(ditto,user)` would select only `ditto`
+            and `user` entry values (if present)
+         * `?fields=entries(ditto/subjects)` would select the `subjects` value
+            inside the `ditto` entry
+         * `?fields=entries/ditto/subjects(issuer:google,issuer:azure)` would select the `issuer:google` and
+            `issuer:azure` values inside the `subjects` object inside the `entries` object
+
+  * `_namespace`
+
+    Specifically selects the namespace also contained in the `policyId`
+
+  * `_revision`
+
+    Specifically selects the revision of the policy. The revision is a counter, which is incremented on each modification of a policy.
+
+  * `_created`
+
+    Specifically selects the created timestamp of the policy in ISO-8601 UTC format. The timestamp is set on creation of a policy.
+
+  * `_modified`
+
+    Specifically selects the modified timestamp of the policy in ISO-8601 UTC format. The timestamp is set on each modification of a policy.
+
+  * `_metadata`
+
+    Specifically selects the Metadata of the policy. The content is a JSON object having the policy's JSON structure with the difference that the JSON leaves of the policy are JSON objects containing the metadata.
+
+  #### Examples
+
+  * `?fields=policyId,entries,_revision`
+  * `?fields=entries(ditto,user),_namespace`
+required: false
+schema:
+  type: string

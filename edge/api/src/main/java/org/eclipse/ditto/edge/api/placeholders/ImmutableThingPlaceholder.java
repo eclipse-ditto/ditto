@@ -10,12 +10,13 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.connectivity.api.placeholders;
+package org.eclipse.ditto.edge.api.placeholders;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.argumentNotEmpty;
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
-import java.util.Optional;
+import java.util.Collections;
+import java.util.List;
 
 import javax.annotation.concurrent.Immutable;
 
@@ -40,13 +41,13 @@ final class ImmutableThingPlaceholder extends AbstractEntityIdPlaceholder<ThingI
     }
 
     @Override
-    public Optional<String> resolve(final EntityId thingId, final String placeholder) {
+    public List<String> resolveValues(final EntityId thingId, final String placeholder) {
         argumentNotEmpty(placeholder, "placeholder");
         checkNotNull(thingId, "Thing ID");
         if (thingId instanceof ThingId) {
             return doResolve(((ThingId) thingId), placeholder);
         } else {
-            return Optional.empty();
+            return Collections.emptyList();
         }
     }
 }

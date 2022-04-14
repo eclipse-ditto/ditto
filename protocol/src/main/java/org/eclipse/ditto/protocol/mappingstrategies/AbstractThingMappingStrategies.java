@@ -16,15 +16,17 @@ import java.util.Map;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.base.model.json.Jsonifiable;
 import org.eclipse.ditto.json.JsonField;
-import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonParseException;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
-import org.eclipse.ditto.base.model.json.Jsonifiable;
 import org.eclipse.ditto.policies.model.PolicyId;
+import org.eclipse.ditto.protocol.Adaptable;
+import org.eclipse.ditto.protocol.JsonifiableMapper;
+import org.eclipse.ditto.protocol.TopicPath;
+import org.eclipse.ditto.protocol.UnknownPathException;
 import org.eclipse.ditto.things.model.Attributes;
 import org.eclipse.ditto.things.model.Feature;
 import org.eclipse.ditto.things.model.FeatureDefinition;
@@ -33,10 +35,6 @@ import org.eclipse.ditto.things.model.Features;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingDefinition;
 import org.eclipse.ditto.things.model.ThingsModelFactory;
-import org.eclipse.ditto.protocol.Adaptable;
-import org.eclipse.ditto.protocol.JsonifiableMapper;
-import org.eclipse.ditto.protocol.TopicPath;
-import org.eclipse.ditto.protocol.UnknownPathException;
 
 /**
  * Provides helper methods to map from {@link Adaptable}s to things commands.
@@ -52,15 +50,6 @@ abstract class AbstractThingMappingStrategies<T extends Jsonifiable.WithPredicat
 
     protected AbstractThingMappingStrategies(final Map<String, JsonifiableMapper<T>> mappingStrategies) {
         super(mappingStrategies);
-    }
-
-    protected static AuthorizationSubject authorizationSubjectFrom(final Adaptable adaptable) {
-        return AuthorizationSubject.newInstance(leafValue(adaptable.getPayload().getPath()));
-    }
-
-    @Nullable
-    protected static JsonFieldSelector selectedFieldsFrom(final Adaptable adaptable) {
-        return adaptable.getPayload().getFields().orElse(null);
     }
 
     @Nullable

@@ -565,6 +565,11 @@
                 <artifactId>ditto-internal-models-streaming</artifactId>
                 <version>${project.version}</version>
             </dependency>
+            <dependency>
+                <groupId>org.eclipse.ditto</groupId>
+                <artifactId>ditto-edge-api</artifactId>
+                <version>${project.version}</version>
+            </dependency>
 
             <dependency>
                 <groupId>org.eclipse.ditto</groupId>

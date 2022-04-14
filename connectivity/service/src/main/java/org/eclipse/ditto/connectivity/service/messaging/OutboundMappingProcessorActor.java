@@ -75,10 +75,14 @@ import org.eclipse.ditto.internal.models.signalenrichment.SignalEnrichmentFacade
 import org.eclipse.ditto.internal.utils.akka.controlflow.AbstractGraphActor;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.internal.utils.pubsub.StreamingType;
+import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.placeholders.ExpressionResolver;
+import org.eclipse.ditto.placeholders.PipelineElement;
 import org.eclipse.ditto.placeholders.PlaceholderFactory;
 import org.eclipse.ditto.placeholders.PlaceholderResolver;
 import org.eclipse.ditto.placeholders.TimePlaceholder;
@@ -90,6 +94,7 @@ import org.eclipse.ditto.rql.parser.RqlPredicateParser;
 import org.eclipse.ditto.rql.query.criteria.Criteria;
 import org.eclipse.ditto.rql.query.filter.QueryFilterCriteriaFactory;
 import org.eclipse.ditto.rql.query.things.ThingPredicateVisitor;
+import org.eclipse.ditto.things.model.ThingFieldSelector;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingNotAccessibleException;
 import org.eclipse.ditto.things.model.signals.events.ThingEventToThingConverter;
@@ -390,8 +395,9 @@ public final class OutboundMappingProcessorActor
 
         final OutboundSignalWithSender outboundSignal = outboundSignalWithExtraFields.first();
         final FilteredTopic filteredTopic = outboundSignalWithExtraFields.second();
-        final Optional<JsonFieldSelector> extraFieldsOptional =
-                Optional.ofNullable(filteredTopic).flatMap(FilteredTopic::getExtraFields);
+        final ExpressionResolver expressionResolver =
+                Resolvers.forSignal(outboundSignal.getSource(), connection.getId());
+        final Optional<JsonFieldSelector> extraFieldsOptional = getExtraFields(expressionResolver, filteredTopic);
         if (extraFieldsOptional.isEmpty()) {
             return CompletableFuture.completedFuture(Collections.singletonList(outboundSignal));
         }
@@ -427,6 +433,22 @@ public final class OutboundMappingProcessorActor
                     // recover from all errors to keep message-mapping-stream running despite enrichment failures
                     return recoverFromEnrichmentError(outboundSignal, target, error);
                 });
+    }
+
+    private static Optional<JsonFieldSelector> getExtraFields(final ExpressionResolver expressionResolver,
+            @Nullable final FilteredTopic filteredTopic) {
+
+        return Optional.ofNullable(filteredTopic)
+                .flatMap(FilteredTopic::getExtraFields)
+                .map(extraFields -> extraFields.getPointers().stream()
+                        .map(JsonPointer::toString)
+                        .map(expressionResolver::resolve)
+                        .flatMap(PipelineElement::toStream)
+                        .map(JsonPointer::of)
+                        .collect(Collectors.toList()))
+                .filter(jsonPointers -> !jsonPointers.isEmpty())
+                .map(JsonFactory::newFieldSelector)
+                .map(ThingFieldSelector::fromJsonFieldSelector);
     }
 
     private static Optional<EntityId> extractEntityId(final Signal<?> signal) {

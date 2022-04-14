@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.connectivity.api.placeholders;
+package org.eclipse.ditto.edge.api.placeholders;
 
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.placeholders.Placeholder;
@@ -20,4 +20,9 @@ import org.eclipse.ditto.placeholders.Placeholder;
  * {@link AuthorizationContext}.
  */
 public interface RequestPlaceholder extends Placeholder<AuthorizationContext> {
+
+    static RequestPlaceholder getInstance() {
+        return ImmutableRequestPlaceholder.INSTANCE;
+    }
+
 }

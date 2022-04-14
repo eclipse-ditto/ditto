@@ -18,28 +18,68 @@ import org.apache.sshd.common.channel.ChannelListener;
 import org.apache.sshd.common.forward.TcpipClientChannel;
 
 import akka.actor.ActorRef;
+import akka.event.LoggingAdapter;
 
 /**
  * A channel listener that reports exceptions to the {@code SshTunnelActor}.
  */
 final class TunnelChannelListener implements ChannelListener {
 
+    private static final String TUNNEL_EXCEPTION_MESSAGE = "Opening SSH channel failed with exception";
     private final ActorRef sshTunnelActor;
+    private final LoggingAdapter logger;
+    private int initialSshChannelWindowSize;
 
     /**
      * Instantiates a new {@code TunnelChannelListener}.
      *
      * @param sshTunnelActor actor reference of SshTunnelActor to notify about errors
+     * @param initialSshChannelWindowSize the initial window size to use for the RemoteWindow of the SSH channel
+     * @param logger the logger
      */
-    TunnelChannelListener(final ActorRef sshTunnelActor) {this.sshTunnelActor = sshTunnelActor;}
+    TunnelChannelListener(final ActorRef sshTunnelActor, final String initialSshChannelWindowSize, final LoggingAdapter logger) {
+        this.sshTunnelActor = sshTunnelActor;
+        this.logger = logger;
+        try {
+            this.initialSshChannelWindowSize = Integer.parseInt(initialSshChannelWindowSize);
+        }
+        catch (final NumberFormatException e) {
+            final SshTunnelActor.TunnelClosed tunnelClosed =
+                    new SshTunnelActor.TunnelClosed(TUNNEL_EXCEPTION_MESSAGE, e);
+            sshTunnelActor.tell(tunnelClosed, ActorRef.noSender());
+        }
+    }
+
+    @Override
+    public void channelInitialized(final Channel channel) {
+        logger.debug("SSH channel initialized: {}", channel);
+    }
+
+    @Override
+    public void channelOpenSuccess(final Channel channel) {
+        if (initialSshChannelWindowSize > 0) {
+            // workaround to handle an initial window size of 0
+            // If SSH server sends an initial window size of 0 then this causes problems when sending data over
+            // the SSH channel right after creation. Writing results in SocketTimeoutException and
+            // SSH_MSG_CHANNEL_WINDOW_ADJUST from server is not handled properly.
+            // Expanding the remote window fixes this problem
+            channel.getRemoteWindow().expand(initialSshChannelWindowSize);
+        }
+        logger.debug("SSH channel opened successfully: {}", channel);
+    }
 
     @Override
     public void channelOpenFailure(final Channel channel, final Throwable reason) {
         if (reason != null) {
             final SshTunnelActor.TunnelClosed tunnelClosed =
-                    new SshTunnelActor.TunnelClosed("Opening channel failed with exception", reason);
+                    new SshTunnelActor.TunnelClosed(TUNNEL_EXCEPTION_MESSAGE, reason);
             sshTunnelActor.tell(tunnelClosed, ActorRef.noSender());
         }
+    }
+
+    @Override
+    public void channelStateChanged(final Channel channel, final String hint) {
+        logger.debug("SSH channel state changed for {}. Reason of change was: {}", channel, hint);
     }
 
     @Override
@@ -48,14 +88,13 @@ final class TunnelChannelListener implements ChannelListener {
         // channelClosed with empty reason is a normal closing
         if (reason != null) {
             final SshTunnelActor.TunnelClosed tunnelClosed =
-                    new SshTunnelActor.TunnelClosed("Channel closed with exception", reason);
+                    new SshTunnelActor.TunnelClosed("SSH channel closed with exception", reason);
             sshTunnelActor.tell(tunnelClosed, ActorRef.noSender());
         }
 
         // attach a listener to the open future, otherwise we have no access to the exception that caused the opening
         // to fail (e.g. channelOpenFailure is not called with an exception)
-        if (channel instanceof TcpipClientChannel) {
-            final TcpipClientChannel tcpipClientChannel = (TcpipClientChannel) channel;
+        if (channel instanceof TcpipClientChannel tcpipClientChannel) {
             final OpenFuture openFuture = tcpipClientChannel.getOpenFuture();
             if (openFuture != null) {
                 tcpipClientChannel.getOpenFuture()
@@ -63,8 +102,7 @@ final class TunnelChannelListener implements ChannelListener {
                             final Throwable exception = future.getException();
                             if (exception != null) {
                                 final SshTunnelActor.TunnelClosed tunnelClosed =
-                                        new SshTunnelActor.TunnelClosed("Opening channel failed with exception",
-                                                exception);
+                                        new SshTunnelActor.TunnelClosed(TUNNEL_EXCEPTION_MESSAGE, exception);
                                 sshTunnelActor.tell(tunnelClosed, ActorRef.noSender());
                             }
                         });

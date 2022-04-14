@@ -91,6 +91,12 @@ public final class PoliciesRouteTest extends EndpointTestBase {
     }
 
     @Test
+    public void getPolicyWithFields() {
+        getRoute(getPreAuthResult()).run(HttpRequest.GET("/policies/org.eclipse.ditto%3Adummy?fields=_revision"))
+                .assertStatusCode(StatusCodes.OK);
+    }
+
+    @Test
     public void deletePolicy() {
         getRoute(getPreAuthResult()).run(HttpRequest.DELETE("/policies/org.eclipse.ditto%3Adummy"))
                 .assertStatusCode(StatusCodes.OK);
