@@ -281,7 +281,8 @@ public final class ThingUpdaterTest {
 
             // WHEN: updater is requested to compute incremental update of an older write model
             underTest.tell(UpdateThing.of(THING_ID, UpdateReason.UNKNOWN, DittoHeaders.empty()), getRef());
-            final var olderWriteModel = ThingDeleteModel.of(Metadata.of(THING_ID, 1233, null, null, null));
+            final var olderWriteModel =
+                    ThingWriteModel.of(Metadata.of(THING_ID, 1233, null, null, null), document);
             underTest.tell(olderWriteModel, getRef());
 
             // THEN: expect no update.
