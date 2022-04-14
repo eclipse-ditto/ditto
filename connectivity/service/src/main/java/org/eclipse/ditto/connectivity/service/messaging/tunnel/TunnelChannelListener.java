@@ -28,20 +28,20 @@ final class TunnelChannelListener implements ChannelListener {
     private static final String TUNNEL_EXCEPTION_MESSAGE = "Opening SSH channel failed with exception";
     private final ActorRef sshTunnelActor;
     private final LoggingAdapter logger;
-    private int initialWindowSize;
+    private int initialSshChannelWindowSize;
 
     /**
      * Instantiates a new {@code TunnelChannelListener}.
      *
      * @param sshTunnelActor actor reference of SshTunnelActor to notify about errors
-     * @param initialWindowSize the initial window size to use for the Remote Window
+     * @param initialSshChannelWindowSize the initial window size to use for the RemoteWindow of the SSH channel
      * @param logger the logger
      */
-    TunnelChannelListener(final ActorRef sshTunnelActor, final String initialWindowSize, final LoggingAdapter logger) {
+    TunnelChannelListener(final ActorRef sshTunnelActor, final String initialSshChannelWindowSize, final LoggingAdapter logger) {
         this.sshTunnelActor = sshTunnelActor;
         this.logger = logger;
         try {
-            this.initialWindowSize = Integer.parseInt(initialWindowSize);
+            this.initialSshChannelWindowSize = Integer.parseInt(initialSshChannelWindowSize);
         }
         catch (final NumberFormatException e) {
             final SshTunnelActor.TunnelClosed tunnelClosed =
@@ -57,13 +57,13 @@ final class TunnelChannelListener implements ChannelListener {
 
     @Override
     public void channelOpenSuccess(final Channel channel) {
-        if (initialWindowSize > 0) {
-            // workaround for Rebex SSH server
-            // SSH server sends initial window size of 0 which causes problems when sending data over
-            // the SSH channel right after creation. Write results in SocketTimeoutException and
+        if (initialSshChannelWindowSize > 0) {
+            // workaround to handle an initial window size of 0
+            // If SSH server sends an initial window size of 0 then this causes problems when sending data over
+            // the SSH channel right after creation. Writing results in SocketTimeoutException and
             // SSH_MSG_CHANNEL_WINDOW_ADJUST from server is not handled properly.
-            // Expanding the remote window fixes the problem
-            channel.getRemoteWindow().expand(initialWindowSize);
+            // Expanding the remote window fixes this problem
+            channel.getRemoteWindow().expand(initialSshChannelWindowSize);
         }
         logger.debug("SSH channel opened successfully: {}", channel);
     }
