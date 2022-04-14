@@ -144,7 +144,7 @@ public interface LimitsConfig {
             /**
              * The config path expression common to to all config settings of the Things-Search service.
              */
-            public static final String THINGS_SEARCH_PATH = "things-search";
+            public static final String THINGS_SEARCH_PATH = "search";
 
             private Constants() {
                 throw new AssertionError();
