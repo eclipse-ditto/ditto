@@ -25,7 +25,7 @@ import org.eclipse.ditto.protocol.TopicPath;
 /**
  * Placeholder implementation that replaces:
  * <ul>
- * <li>{@code topic:full} -> {@code {namespace}/{entityId}/{group}/{channel}/{criterion}/{action-subject}}</li>
+ * <li>{@code topic:full} -> {@code {namespace}/{entityName}/{group}/{channel}/{criterion}/{action-subject}}</li>
  * <li>{@code topic:namespace}</li>
  * <li>{@code topic:entityName}</li>
  * <li>{@code topic:group}</li>
