@@ -78,7 +78,7 @@ public final class ThingUpdaterTest {
     private static final SearchConfig SEARCH_CONFIG =
             DittoSearchConfig.of(DefaultScopedConfig.dittoScoped(ConfigFactory.parseString("""
                       ditto {
-                        things-search = {}
+                        search = {}
                         mongodb.uri = "mongodb://localhost:27017/test"
                       }
                     """)));

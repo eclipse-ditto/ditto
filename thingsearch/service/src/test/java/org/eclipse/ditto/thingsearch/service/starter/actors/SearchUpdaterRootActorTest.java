@@ -19,6 +19,7 @@ import org.eclipse.ditto.thingsearch.service.common.config.DittoSearchConfig;
 import org.eclipse.ditto.thingsearch.service.common.config.SearchConfig;
 import org.eclipse.ditto.thingsearch.service.persistence.read.MongoThingsSearchPersistence;
 import org.eclipse.ditto.thingsearch.service.persistence.read.ThingsSearchPersistence;
+import org.eclipse.ditto.thingsearch.service.starter.SearchService;
 import org.eclipse.ditto.thingsearch.service.updater.actors.SearchUpdaterRootActor;
 import org.eclipse.ditto.internal.utils.akka.streaming.TimestampPersistence;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
@@ -34,7 +35,7 @@ public final class SearchUpdaterRootActorTest extends AbstractDittoRootActorTest
 
     @Override
     protected String serviceName() {
-        return "things-search";
+        return SearchService.SERVICE_NAME;
     }
 
     @Override
