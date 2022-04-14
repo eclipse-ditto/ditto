@@ -408,7 +408,7 @@ public final class MessageMappingProcessorActorTest extends AbstractMessageMappi
 
             final TestProbe collectorProbe = TestProbe.apply("collector", actorSystem);
             inboundMappingProcessorActor.tell(
-                    new InboundMappingSink.ExternalMessageWithSender(inboundMessage, collectorProbe.ref()),
+                    new ExternalMessageWithSender(inboundMessage, collectorProbe.ref()),
                     ActorRef.noSender()
             );
 
@@ -467,7 +467,7 @@ public final class MessageMappingProcessorActorTest extends AbstractMessageMappi
 
             final TestProbe collectorProbe = TestProbe.apply("collector", actorSystem);
             inboundMappingProcessorActor.tell(
-                    new InboundMappingSink.ExternalMessageWithSender(inboundMessage, collectorProbe.ref()),
+                    new ExternalMessageWithSender(inboundMessage, collectorProbe.ref()),
                     ActorRef.noSender()
             );
 
@@ -591,7 +591,7 @@ public final class MessageMappingProcessorActorTest extends AbstractMessageMappi
 
             final TestProbe collectorProbe = TestProbe.apply("collector", actorSystem);
             inboundMappingProcessorActor.tell(
-                    new InboundMappingSink.ExternalMessageWithSender(message, collectorProbe.ref()),
+                    new ExternalMessageWithSender(message, collectorProbe.ref()),
                     ActorRef.noSender()
             );
 
@@ -633,7 +633,7 @@ public final class MessageMappingProcessorActorTest extends AbstractMessageMappi
 
             final TestProbe collectorProbe = TestProbe.apply("collector", actorSystem);
             inboundMappingProcessorActor.tell(
-                    new InboundMappingSink.ExternalMessageWithSender(message,collectorProbe.ref()),
+                    new ExternalMessageWithSender(message,collectorProbe.ref()),
                     ActorRef.noSender()
             );
 
@@ -656,7 +656,7 @@ public final class MessageMappingProcessorActorTest extends AbstractMessageMappi
                     Acknowledgement.of(label, KNOWN_THING_ID, HttpStatus.BAD_REQUEST,
                             DittoHeaders.empty(), JsonValue.of("payload"));
             inboundMappingProcessorActor.tell(
-                    new InboundMappingSink.ExternalMessageWithSender(toExternalMessage(acknowledgement),
+                    new ExternalMessageWithSender(toExternalMessage(acknowledgement),
                             sender.ref()),
                     ActorRef.noSender()
             );
@@ -668,7 +668,7 @@ public final class MessageMappingProcessorActorTest extends AbstractMessageMappi
             // Acknowledgements
             final Signal<?> acknowledgements = Acknowledgements.of(List.of(acknowledgement), DittoHeaders.empty());
             inboundMappingProcessorActor.tell(
-                    new InboundMappingSink.ExternalMessageWithSender(toExternalMessage(acknowledgements),
+                    new ExternalMessageWithSender(toExternalMessage(acknowledgements),
                             sender.ref()),
                     ActorRef.noSender()
             );
@@ -685,7 +685,7 @@ public final class MessageMappingProcessorActorTest extends AbstractMessageMappi
                     .channel(TopicPath.Channel.LIVE.getName())
                     .build());
             inboundMappingProcessorActor.tell(
-                    new InboundMappingSink.ExternalMessageWithSender(toExternalMessage(liveResponse),
+                    new ExternalMessageWithSender(toExternalMessage(liveResponse),
                             sender.ref()),
                     ActorRef.noSender()
             );
@@ -716,7 +716,7 @@ public final class MessageMappingProcessorActorTest extends AbstractMessageMappi
                                     .build(),
                             JsonValue.of("payload"));
             inboundMappingProcessorActor.tell(
-                    new InboundMappingSink.ExternalMessageWithSender(
+                    new ExternalMessageWithSender(
                             toExternalMessage(acknowledgement, builder -> {}),
                             getRef()),
                     ActorRef.noSender()
@@ -760,7 +760,7 @@ public final class MessageMappingProcessorActorTest extends AbstractMessageMappi
                     .build();
 
             inboundMappingProcessorActor.tell(
-                    new InboundMappingSink.ExternalMessageWithSender(externalMessage, getRef()),
+                    new ExternalMessageWithSender(externalMessage, getRef()),
                     ActorRef.noSender()
             );
 
@@ -780,7 +780,7 @@ public final class MessageMappingProcessorActorTest extends AbstractMessageMappi
                             .acknowledgementRequest(AcknowledgementRequest.parseAcknowledgementRequest("dummy-request"))
                             .build());
             inboundMappingProcessorActor.tell(
-                    new InboundMappingSink.ExternalMessageWithSender(toExternalMessage(retrieveFeature),
+                    new ExternalMessageWithSender(toExternalMessage(retrieveFeature),
                             getRef()),
                     ActorRef.noSender()
             );

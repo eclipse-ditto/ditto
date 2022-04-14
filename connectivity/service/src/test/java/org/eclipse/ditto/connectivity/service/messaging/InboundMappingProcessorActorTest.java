@@ -91,10 +91,7 @@ public final class InboundMappingProcessorActorTest {
                     // attach non-null payload mapping to avoid using the default mapper
                     .withPayloadMapping(Mockito.mock(PayloadMapping.class))
                     .build();
-            underTest.tell(
-                    new InboundMappingSink.ExternalMessageWithSender(message, getRef()),
-                    ActorRef.noSender()
-            );
+            underTest.tell(new ExternalMessageWithSender(message, getRef()), ActorRef.noSender());
 
             // THEN: InboundDispatchingActor receives 1 error outcome with the exception thrown.
             final InboundMappingOutcomes outcomes =

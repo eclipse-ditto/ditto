@@ -96,7 +96,7 @@ public final class MappingSinksTest {
                                 .withText(string)
                                 .withPayloadMapping(ConnectivityModelFactory.newPayloadMapping("javascript"))
                                 .build();
-                        return new InboundMappingSink.ExternalMessageWithSender(message, testActor());
+                        return new ExternalMessageWithSender(message, testActor());
                     })
                     .collect(Collectors.toList());
 
