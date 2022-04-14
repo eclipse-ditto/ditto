@@ -496,7 +496,16 @@ final class ThingUpdater extends AbstractActorWithStashWithTimers {
             @Nullable final AbstractWriteModel lastWriteModel,
             final AbstractWriteModel nextWriteModel) {
 
-        if (lastWriteModel == null) {
+        if (nextWriteModel instanceof ThingDeleteModel && nextWriteModel.getMetadata().getThingRevision() < 0) {
+            /*
+             * This branch is required because missed ThingDeletes will always have revision -1.
+             * This also comes with a downside that it can happen that a thing delete model will come after a create
+             * model in wrong order, so the thing will be removed from the index incorrectly.
+             * However, in this case the thing will become eventually consistent either by the next background sync or
+             * the next update.
+             */
+            return false;
+        } else if (lastWriteModel == null) {
             return false;
         } else {
             final var lastMetadata = lastWriteModel.getMetadata();
