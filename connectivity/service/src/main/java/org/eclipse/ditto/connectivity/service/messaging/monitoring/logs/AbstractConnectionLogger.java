@@ -84,7 +84,7 @@ abstract class AbstractConnectionLogger<
     }
 
     @Override
-    public void exception(final ConnectionMonitor.InfoProvider infoProvider, @Nullable final Exception exception) {
+    public void exception(final ConnectionMonitor.InfoProvider infoProvider, @Nullable final Throwable exception) {
         if (null != exception) {
             exception(infoProvider, defaultExceptionMessage, type.getType(), exception.getMessage());
         } else {

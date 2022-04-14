@@ -89,7 +89,7 @@ public interface ConnectionLogger extends Closeable {
      * @param infoProvider containing additional information on the event.
      * @param exception the exception that caused a failure. Its message is used in the log entry.
      */
-    void exception(ConnectionMonitor.InfoProvider infoProvider, @Nullable Exception exception);
+    void exception(ConnectionMonitor.InfoProvider infoProvider, @Nullable Throwable exception);
 
     /**
      * Log an exception event.

@@ -206,11 +206,10 @@ public interface ConnectionMonitor {
 
     /**
      * Record an exception event.
-     *
-     * @param signal that was processed during the exception.
+     *  @param signal that was processed during the exception.
      * @param exception the exception.
      */
-    default void exception(final Signal<?> signal, final Exception exception) {
+    default void exception(final Signal<?> signal, final Throwable exception) {
         exception(InfoProviderFactory.forSignal(signal), exception);
     }
 
@@ -219,27 +218,25 @@ public interface ConnectionMonitor {
      *
      * @param exception the exception.
      */
-    default void exception(final Exception exception) {
+    default void exception(final Throwable exception) {
         exception(InfoProviderFactory.empty(), exception);
     }
 
     /**
      * Record an exception event.
-     *
-     * @param headers that were processed during the exception.
+     *  @param headers that were processed during the exception.
      * @param exception the exception.
      */
-    default void exception(final Map<String, String> headers, final Exception exception) {
+    default void exception(final Map<String, String> headers, final Throwable exception) {
         exception(InfoProviderFactory.forHeaders(headers), exception);
     }
 
     /**
      * Record an exception event.
-     *
-     * @param externalMessage that was processed during the success event.
+     *  @param externalMessage that was processed during the success event.
      * @param exception the exception that caused the failure.
      */
-    default void exception(final ExternalMessage externalMessage, final Exception exception) {
+    default void exception(final ExternalMessage externalMessage, final Throwable exception) {
         exception(InfoProviderFactory.forExternalMessage(externalMessage), exception);
     }
 
@@ -256,11 +253,10 @@ public interface ConnectionMonitor {
 
     /**
      * Record an exception event.
-     *
-     * @param infoProvider that provides useful information for the success event.
+     *  @param infoProvider that provides useful information for the success event.
      * @param exception the exception that caused the failure.
      */
-    default void exception(final InfoProvider infoProvider, final Exception exception) {
+    default void exception(final InfoProvider infoProvider, final Throwable exception) {
         getLogger().exception(infoProvider, exception);
         getCounter().recordFailure();
     }
@@ -273,8 +269,7 @@ public interface ConnectionMonitor {
      * @param messageArguments additional message arguments that are part of {@code message}.
      * {@link java.text.MessageFormat#format(String, Object...)} is used for applying message arguments to {@code message}.
      */
-    default void exception(final Map<String, String> headers, final String message,
-            final Object... messageArguments) {
+    default void exception(final Map<String, String> headers, final String message, final Object... messageArguments) {
         getLogger().exception(InfoProviderFactory.forHeaders(headers), message, messageArguments);
         getCounter().recordFailure();
     }
@@ -287,8 +282,10 @@ public interface ConnectionMonitor {
      * @param messageArguments additional message arguments that are part of {@code message}.
      * {@link java.text.MessageFormat#format(String, Object...)} is used for applying message arguments to {@code message}.
      */
-    default void exception(final ExternalMessage externalMessage, final String message,
+    default void exception(final ExternalMessage externalMessage,
+            final String message,
             final Object... messageArguments) {
+
         getLogger().exception(InfoProviderFactory.forExternalMessage(externalMessage), message, messageArguments);
         getCounter().recordFailure();
     }

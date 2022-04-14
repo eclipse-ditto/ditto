@@ -125,7 +125,7 @@ final class DefaultMuteableConnectionLogger implements MuteableConnectionLogger 
     }
 
     @Override
-    public void exception(final ConnectionMonitor.InfoProvider infoProvider, @Nullable final Exception exception) {
+    public void exception(final ConnectionMonitor.InfoProvider infoProvider, @Nullable final Throwable exception) {
         if (isMuted()) {
             logTraceWithCorrelationId(infoProvider.getCorrelationId(), "Not logging exception since logger is muted.");
         } else {
