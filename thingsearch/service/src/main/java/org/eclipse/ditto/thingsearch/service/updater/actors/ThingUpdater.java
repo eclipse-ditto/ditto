@@ -327,7 +327,7 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
     private FSM.State<State, Data> onDone(final Done done, final Data data) {
         killSwitch = null;
         log.debug("Update skipped");
-        return goTo(State.READY);
+        return goTo(State.READY).using(new Data(data.metadata().export(), data.lastWriteModel()));
     }
 
     private FSM.State<State, Data> tick(final Control tick, final Data data) {
@@ -504,7 +504,7 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
     }
 
     private void tickNow() {
-        startTimerWithFixedDelay(Control.TICK.name(), Control.TICK, writeInterval);
+        cancelTimer(Control.TICK.name());
         getSelf().tell(Control.TICK, ActorRef.noSender());
     }
 
