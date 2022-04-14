@@ -56,12 +56,14 @@ abstract class AbstractHiveMqttClientFactory {
     // duplicate code unavoidable because there is no common interface
     // between Mqtt3SimpleAuthBuilder.Nested and Mqtt5SimpleAuthBuilder.Nested
     @SuppressWarnings("Duplicates")
-    void configureSimpleAuth(final Mqtt3SimpleAuthBuilder.Nested<?> simpleAuth, final Connection connection) {
-        final Optional<String> possibleUsername = connection.getUsername();
-        final Optional<String> possiblePassword = connection.getPassword();
-        if (possibleUsername.isPresent() && possiblePassword.isPresent()) {
-            simpleAuth.username(possibleUsername.get())
-                    .password(possiblePassword.get().getBytes(StandardCharsets.UTF_8))
+    void configureSimpleAuth(final Mqtt3SimpleAuthBuilder.Nested<?> simpleAuth, final Connection connection,
+            final boolean doubleDecodingEnabled) {
+
+        final Optional<String> username = connection.getUsername(doubleDecodingEnabled);
+        final Optional<String> password = connection.getPassword(doubleDecodingEnabled);
+        if (username.isPresent() && password.isPresent()) {
+            simpleAuth.username(username.get())
+                    .password(password.get().getBytes(StandardCharsets.UTF_8))
                     .applySimpleAuth();
         }
     }
@@ -69,12 +71,14 @@ abstract class AbstractHiveMqttClientFactory {
     // duplicate code unavoidable because there is no common interface
     // between Mqtt3SimpleAuthBuilder.Nested and Mqtt5SimpleAuthBuilder.Nested
     @SuppressWarnings("Duplicates")
-    void configureSimpleAuth(final Mqtt5SimpleAuthBuilder.Nested<?> simpleAuth, final Connection connection) {
-        final Optional<String> possibleUsername = connection.getUsername();
-        final Optional<String> possiblePassword = connection.getPassword();
-        if (possibleUsername.isPresent() && possiblePassword.isPresent()) {
-            simpleAuth.username(possibleUsername.get())
-                    .password(possiblePassword.get().getBytes(StandardCharsets.UTF_8))
+    void configureSimpleAuth(final Mqtt5SimpleAuthBuilder.Nested<?> simpleAuth, final Connection connection,
+            final boolean doubleDecodingEnabled) {
+
+        final Optional<String> username = connection.getUsername(doubleDecodingEnabled);
+        final Optional<String> password = connection.getPassword(doubleDecodingEnabled);
+        if (username.isPresent() && password.isPresent()) {
+            simpleAuth.username(username.get())
+                    .password(password.get().getBytes(StandardCharsets.UTF_8))
                     .applySimpleAuth();
         }
     }

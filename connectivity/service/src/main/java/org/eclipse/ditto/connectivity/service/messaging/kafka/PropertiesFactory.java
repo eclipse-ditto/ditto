@@ -42,30 +42,38 @@ import akka.kafka.ProducerSettings;
  */
 final class PropertiesFactory {
 
-    private static final Collection<KafkaSpecificConfig> COMMON_SPECIFIC_CONFIGS =
-            List.of(KafkaAuthenticationSpecificConfig.getInstance(), KafkaBootstrapServerSpecificConfig.getInstance());
-
-    private static final Collection<KafkaSpecificConfig> CONSUMER_SPECIFIC_CONFIGS;
-    private static final Collection<KafkaSpecificConfig> PRODUCER_SPECIFIC_CONFIGS;
-
-    static {
-        final List<KafkaSpecificConfig> consumerSpecificConfigs = new ArrayList<>(COMMON_SPECIFIC_CONFIGS);
-        consumerSpecificConfigs.add(KafkaConsumerGroupSpecificConfig.getInstance());
-        consumerSpecificConfigs.add(KafkaConsumerOffsetResetSpecificConfig.getInstance());
-        CONSUMER_SPECIFIC_CONFIGS = List.copyOf(consumerSpecificConfigs);
-        PRODUCER_SPECIFIC_CONFIGS = List.copyOf(COMMON_SPECIFIC_CONFIGS);
-    }
+    private final Collection<KafkaSpecificConfig> commonSpecificConfigs;
+    private final Collection<KafkaSpecificConfig> consumerSpecificConfigs;
+    private final Collection<KafkaSpecificConfig> producerSpecificConfigs;
 
     private final Connection connection;
     private final KafkaConfig config;
     private final String clientId;
     private final String bootstrapServers;
+    private final boolean doubleDecodingEnabled;
 
-    private PropertiesFactory(final Connection connection, final KafkaConfig config, final String clientId) {
+    private PropertiesFactory(final Connection connection,
+            final KafkaConfig config,
+            final String clientId,
+            final boolean doubleDecodingEnabled) {
+
         this.connection = checkNotNull(connection, "connection");
         this.config = checkNotNull(config, "config");
         this.clientId = checkNotNull(clientId, "clientId");
-        this.bootstrapServers = KafkaBootstrapServerSpecificConfig.getInstance().getBootstrapServers(connection);
+        bootstrapServers = KafkaBootstrapServerSpecificConfig.getInstance().getBootstrapServers(connection);
+        this.doubleDecodingEnabled = doubleDecodingEnabled;
+        commonSpecificConfigs = List.of(KafkaAuthenticationSpecificConfig.getInstance(doubleDecodingEnabled),
+                KafkaBootstrapServerSpecificConfig.getInstance());
+        consumerSpecificConfigs = getConsumerSpecificConfigs(commonSpecificConfigs);
+        producerSpecificConfigs = List.copyOf(commonSpecificConfigs);
+    }
+
+    private static Collection<KafkaSpecificConfig> getConsumerSpecificConfigs(
+            final Collection<KafkaSpecificConfig> commonSpecificConfigs) {
+        final Collection<KafkaSpecificConfig> consumerSpecificConfigs = new ArrayList<>(commonSpecificConfigs);
+        consumerSpecificConfigs.add(KafkaConsumerGroupSpecificConfig.getInstance());
+        consumerSpecificConfigs.add(KafkaConsumerOffsetResetSpecificConfig.getInstance());
+        return List.copyOf(consumerSpecificConfigs);
     }
 
     /**
@@ -77,8 +85,12 @@ final class PropertiesFactory {
      * @return the instance.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    static PropertiesFactory newInstance(final Connection connection, final KafkaConfig config, final String clientId) {
-        return new PropertiesFactory(connection, config, clientId);
+    static PropertiesFactory newInstance(final Connection connection,
+            final KafkaConfig config,
+            final String clientId,
+            final boolean doubleDecodingEnabled) {
+
+        return new PropertiesFactory(connection, config, clientId, doubleDecodingEnabled);
     }
 
     /**
@@ -87,7 +99,7 @@ final class PropertiesFactory {
      * @return the settings.
      */
     ConsumerSettings<String, ByteBuffer> getConsumerSettings(final boolean dryRun) {
-        final Config alpakkaConfig = this.config.getConsumerConfig().getAlpakkaConfig();
+        final Config alpakkaConfig = config.getConsumerConfig().getAlpakkaConfig();
         final ConnectionCheckerSettings connectionCheckerSettings =
                 ConnectionCheckerSettings.apply(alpakkaConfig.getConfig("connection-checker"));
         final ConsumerSettings<String, ByteBuffer> consumerSettings =
@@ -105,12 +117,12 @@ final class PropertiesFactory {
     }
 
     CommitterSettings getCommitterSettings() {
-        final Config committerConfig = this.config.getCommitterConfig().getAlpakkaConfig();
+        final Config committerConfig = config.getCommitterConfig().getAlpakkaConfig();
         return CommitterSettings.apply(committerConfig);
     }
 
     ProducerSettings<String, ByteBuffer> getProducerSettings() {
-        final Config alpakkaConfig = this.config.getProducerConfig().getAlpakkaConfig();
+        final Config alpakkaConfig = config.getProducerConfig().getAlpakkaConfig();
         return ProducerSettings.apply(alpakkaConfig, new StringSerializer(), new ByteBufferSerializer())
                 .withBootstrapServers(bootstrapServers)
                 .withProperties(getClientIdProperties())
@@ -124,7 +136,7 @@ final class PropertiesFactory {
 
     private Map<String, String> getConsumerSpecificConfigProperties() {
         final Map<String, String> properties = new HashMap<>();
-        for (final KafkaSpecificConfig specificConfig : CONSUMER_SPECIFIC_CONFIGS) {
+        for (final KafkaSpecificConfig specificConfig : consumerSpecificConfigs) {
             properties.putAll(specificConfig.apply(connection));
         }
         return properties;
@@ -132,7 +144,7 @@ final class PropertiesFactory {
 
     private Map<String, String> getProducerSpecificConfigProperties() {
         final Map<String, String> properties = new HashMap<>();
-        for (final KafkaSpecificConfig specificConfig : PRODUCER_SPECIFIC_CONFIGS) {
+        for (final KafkaSpecificConfig specificConfig : producerSpecificConfigs) {
             properties.putAll(specificConfig.apply(connection));
         }
         return properties;
@@ -147,7 +159,8 @@ final class PropertiesFactory {
     }
 
     private boolean isConnectionAuthenticated() {
-        final KafkaSpecificConfig authenticationSpecificConfig = KafkaAuthenticationSpecificConfig.getInstance();
+        final KafkaSpecificConfig authenticationSpecificConfig =
+                KafkaAuthenticationSpecificConfig.getInstance(doubleDecodingEnabled);
         return authenticationSpecificConfig.isApplicable(connection);
     }
 

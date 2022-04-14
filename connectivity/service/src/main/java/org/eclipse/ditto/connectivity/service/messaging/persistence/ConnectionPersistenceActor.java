@@ -1134,7 +1134,7 @@ public final class ConnectionPersistenceActor
                         AmqpValidator.newInstance(),
                         Mqtt3Validator.newInstance(mqttConfig),
                         Mqtt5Validator.newInstance(mqttConfig),
-                        KafkaValidator.getInstance(),
+                        KafkaValidator.getInstance(connectivityConfig.getConnectionConfig().doubleDecodingEnabled()),
                         HttpPushValidator.newInstance(connectivityConfig.getConnectionConfig().getHttpPushConfig()));
 
         final DittoConnectivityCommandValidator dittoCommandValidator =

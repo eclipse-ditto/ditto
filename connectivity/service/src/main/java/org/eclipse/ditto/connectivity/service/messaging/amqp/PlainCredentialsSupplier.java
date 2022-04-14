@@ -29,9 +29,10 @@ public interface PlainCredentialsSupplier {
      * Get the username-password credentials of a connection.
      *
      * @param connection the connection.
+     * @param doubleDecodingEnabled whether double decoding of usernames and passwords is enabled.
      * @return the optional credentials.
      */
-    Optional<UserPasswordCredentials> get(Connection connection);
+    Optional<UserPasswordCredentials> get(Connection connection, boolean doubleDecodingEnabled);
 
     /**
      * Remove userinfo from a connection URI.
@@ -49,9 +50,9 @@ public interface PlainCredentialsSupplier {
      * @return the URI.
      */
     static PlainCredentialsSupplier fromUri() {
-        return connection ->
-                connection.getUsername().flatMap(username ->
-                        connection.getPassword().map(password ->
-                                UserPasswordCredentials.newInstance(username, password)));
+        return (connection, doubleDecodingEnabled) -> connection.getUsername(doubleDecodingEnabled).flatMap(username ->
+                connection.getPassword(doubleDecodingEnabled)
+                        .map(password -> UserPasswordCredentials.newInstance(username, password)));
     }
+
 }
