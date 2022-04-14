@@ -193,12 +193,12 @@ public final class OutboundMappingProcessorActor
             final List<AcknowledgementLabel> weakAckLabels = requestedAcks.stream()
                     .map(AcknowledgementRequest::getLabel)
                     .filter(isWeakAckLabel)
-                    .collect(Collectors.toList());
+                    .toList();
             if (!weakAckLabels.isEmpty()) {
                 final DittoHeaders dittoHeaders = signal.getDittoHeaders();
                 final List<Acknowledgement> ackList = weakAckLabels.stream()
                         .map(label -> weakAck(label, entityIdWithType.get(), dittoHeaders))
-                        .collect(Collectors.toList());
+                        .toList();
                 final Acknowledgements weakAcks = Acknowledgements.of(ackList, dittoHeaders);
                 sender.tell(weakAcks, ActorRef.noSender());
             }
@@ -219,12 +219,12 @@ public final class OutboundMappingProcessorActor
             final List<AcknowledgementLabel> failedAckLabels = requestedAcks.stream()
                     .map(AcknowledgementRequest::getLabel)
                     .filter(isFailedAckLabel)
-                    .collect(Collectors.toList());
+                    .toList();
             if (!failedAckLabels.isEmpty()) {
                 final DittoHeaders dittoHeaders = signal.getDittoHeaders();
                 final List<Acknowledgement> ackList = failedAckLabels.stream()
                         .map(label -> failedAck(label, entityIdWithType.get(), dittoHeaders, dre))
-                        .collect(Collectors.toList());
+                        .toList();
                 final Acknowledgements failedAcks = Acknowledgements.of(ackList, dittoHeaders);
                 sender.tell(failedAcks, ActorRef.noSender());
             }
@@ -312,9 +312,9 @@ public final class OutboundMappingProcessorActor
 
     @Override
     protected OutboundSignalWithSender mapMessage(final OutboundSignal message) {
-        if (message instanceof OutboundSignalWithSender) {
+        if (message instanceof OutboundSignalWithSender outboundSignalWithSender) {
             // message contains original sender already
-            return (OutboundSignalWithSender) message;
+            return outboundSignalWithSender;
         } else {
             return OutboundSignalWithSender.of(message, getSender());
         }
@@ -382,8 +382,7 @@ public final class OutboundMappingProcessorActor
                                                     Collections.singletonList(targetAndSelector.first())),
                                             targetAndSelector.second()));
 
-                    return Stream.concat(outboundSignalWithoutExtraFields, outboundSignalWithExtraFields)
-                            .collect(Collectors.toList());
+                    return Stream.concat(outboundSignalWithoutExtraFields, outboundSignalWithExtraFields).toList();
                 });
     }
 
@@ -599,8 +598,7 @@ public final class OutboundMappingProcessorActor
                             return Source.empty();
                         })
                         .onError((mapperId, exception, topicPath, unused) -> {
-                            if (exception instanceof DittoRuntimeException) {
-                                final DittoRuntimeException e = (DittoRuntimeException) exception;
+                            if (exception instanceof DittoRuntimeException e) {
                                 monitorsForOther.forEach(monitor ->
                                         monitor.getLogger().failure(infoProvider, e));
                                 logger.withCorrelationId(e)
@@ -675,7 +673,7 @@ public final class OutboundMappingProcessorActor
                         final List<Target> targetsToPublishAt = outboundSignals.stream()
                                 .map(OutboundSignal::getTargets)
                                 .flatMap(List::stream)
-                                .collect(Collectors.toList());
+                                .toList();
                         final Predicate<AcknowledgementLabel> willPublish =
                                 ConnectionValidator.getTargetIssuedAcknowledgementLabels(connection.getId(),
                                         targetsToPublishAt)
@@ -684,10 +682,13 @@ public final class OutboundMappingProcessorActor
                                 filterFailedEnrichments(outboundSignals, willPublish);
                         final List<Mapped> mappedSignals = signalsWithoutEnrichmentFailures
                                 .map(OutboundSignalWithSender::asMapped)
-                                .collect(Collectors.toList());
+                                .toList();
                         issueWeakAcknowledgements(outbound.getSource(),
                                 willPublish.negate().and(outboundMappingProcessor::isTargetIssuedAck),
                                 sender);
+                        if (mappedSignals.isEmpty()) {
+                            return List.of();
+                        }
                         return List.of(OutboundSignalFactory.newMultiMappedOutboundSignal(mappedSignals, sender));
                     }
                 });
