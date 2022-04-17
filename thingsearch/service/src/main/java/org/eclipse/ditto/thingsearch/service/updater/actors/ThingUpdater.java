@@ -308,6 +308,8 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
             getContext().setReceiveTimeout(BLOCK_NAMESPACE_SHUTDOWN_DELAY);
             return goTo(State.RECOVERING).using(getInitialData(thingId));
         }
+        // TODO: change to debug log
+        log.info("Got Result=<{}>", pair.first());
         switch (pair.first()) {
             case INCORRECT_PATCH -> INCORRECT_PATCH_UPDATE_COUNT.increment();
             case UNACKNOWLEDGED, CONSISTENCY_ERROR, WRITE_ERROR -> UPDATE_FAILURE_COUNT.increment();
@@ -327,12 +329,16 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
 
     private FSM.State<State, Data> onDone(final Done done, final Data data) {
         killSwitch = null;
-        log.debug("Update skipped");
-        return goTo(State.READY).using(new Data(data.metadata().export(), data.lastWriteModel()));
+        // TODO: convert to debug
+        final var nextMetadata = data.metadata().export();
+        log.info("Update skipped: <{}>", nextMetadata);
+        return goTo(State.READY).using(new Data(nextMetadata, data.lastWriteModel()));
     }
 
     private FSM.State<State, Data> tick(final Control tick, final Data data) {
         if (shouldPersist(data.metadata(), data.lastWriteModel().getMetadata())) {
+            // TODO: convert to debug log with condition
+            log.info("Persisting <{}>", data.metadata().export());
             ConsistencyLag.startS2WaitForDemand(data.metadata());
             final var pair = Source.single(data)
                     .viaMat(KillSwitches.single(), Keep.right())
@@ -358,8 +364,12 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
             return goTo(State.PERSISTING);
         } else if (shuttingDown) {
             // shutting down during READY without pending updates
+            // TODO: convert to debug log with condition
+            log.info("Shutting down when requested to persist <{}>", data.metadata().export());
             return stop();
         } else {
+            // TODO: convert to debug log with condition
+            log.info("Decided not to persist <{}>", data.metadata().export());
             return stay();
         }
     }
