@@ -81,7 +81,8 @@ import akka.stream.javadsl.Source;
  */
 public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State, ThingUpdater.Data> {
 
-    private static final Counter INCORRECT_PATCH_UPDATE_COUNT = DittoMetrics.counter("wildcard_search_incorrect_patch_updates");
+    private static final Counter INCORRECT_PATCH_UPDATE_COUNT =
+            DittoMetrics.counter("wildcard_search_incorrect_patch_updates");
     private static final Counter UPDATE_FAILURE_COUNT = DittoMetrics.counter("wildcard_search_update_failures");
 
     private static final Duration BLOCK_NAMESPACE_SHUTDOWN_DELAY = Duration.ofMinutes(2);
@@ -394,6 +395,10 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
             log.debug("Received new Policy-Reference-Tag for thing <{}> with revision <{}>,  policy-id <{}> and " +
                             "policy-revision <{}>: <{}>.",
                     thingId, thingRevision, policyId, policyRevision, policyReferenceTag.asIdentifierString());
+        } else {
+            log.info("Got policy update <{}> at revision <{}>. Previous known policy is <{}> at <{}>.",
+                    policyReferenceTag.getPolicyTag().getEntityId(), policyReferenceTag.getPolicyTag().getRevision(),
+                    policyId, policyRevision);
         }
 
         acknowledge(policyReferenceTag);
@@ -402,7 +407,8 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
         final var policyIdOfTag = policyTag.getEntityId();
         if (!Objects.equals(policyId, policyIdOfTag) || policyRevision < policyTag.getRevision()) {
             final var newMetadata = Metadata.of(thingId, thingRevision, policyIdOfTag, policyTag.getRevision(), null)
-                    .withUpdateReason(UpdateReason.POLICY_UPDATE);
+                    .withUpdateReason(UpdateReason.POLICY_UPDATE)
+                    .invalidateCaches(false, true);
             return enqueue(newMetadata, data);
         } else {
             log.debug("Dropping <{}> because my policyId=<{}> and policyRevision=<{}>",
