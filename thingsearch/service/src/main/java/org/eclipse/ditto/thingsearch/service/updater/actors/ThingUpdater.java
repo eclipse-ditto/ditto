@@ -274,19 +274,21 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
     }
 
     private void handleTransition(final State previousState, final State nextState) {
-        switch (nextState) {
-            case READY, RETRYING -> {
-                final Duration delay;
-                if (nextState == State.READY) {
-                    delay = writeInterval;
-                } else {
-                    backOff = backOff.calculateNextBackOff();
-                    delay = backOff.getRestartDelay();
+        if (previousState != nextState) {
+            switch (nextState) {
+                case READY, RETRYING -> {
+                    final Duration delay;
+                    if (nextState == State.READY) {
+                        delay = writeInterval;
+                    } else {
+                        backOff = backOff.calculateNextBackOff();
+                        delay = backOff.getRestartDelay();
+                    }
+                    startSingleTimer(Control.TICK.name(), Control.TICK, delay);
+                    unstashAll();
                 }
-                startSingleTimer(Control.TICK.name(), Control.TICK, delay);
-                unstashAll();
+                default -> cancelTimer(Control.TICK.name());
             }
-            default -> cancelTimer(Control.TICK.name());
         }
     }
 
