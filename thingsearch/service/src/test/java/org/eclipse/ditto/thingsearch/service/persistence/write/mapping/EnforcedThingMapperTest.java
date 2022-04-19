@@ -86,8 +86,8 @@ public final class EnforcedThingMapperTest {
                     "attributes": { "hello": "world" }
                   },
                   "p": {
-                    "/": { "g": [ "g:0" ] },
-                    "/features/hi/properties/there": { "g": [ "g:1" ] }
+                    "·g": [ "g:0" ],
+                    "features":{"hi":{"properties":{"there":{"·g": [ "g:1" ] } } } }
                   },
                   "f": [
                     {
@@ -95,12 +95,8 @@ public final class EnforcedThingMapperTest {
                       "definition": [ "earth:v0:1", "mars:v0:2" ],
                       "properties": { "there": true },
                       "p": {
-                        "/": {
-                          "g": [ "g:0" ]
-                        },
-                        "/properties/there": {
-                          "g": [ "g:1" ]
-                        }
+                        "·g": [ "g:0" ],
+                        "properties":{"there":{"·g": [ "g:1" ] } }
                       }
                     }
                   ]
@@ -229,20 +225,22 @@ public final class EnforcedThingMapperTest {
                     }
                   },
                   "p": {
-                    "/": {
-                      "g": [ "issuer:global" ]
+                    "·g": [ "issuer:global" ],
+                    "features": {
+                      "·g": [ "issuer:features" ],
+                      "accelerometer": {
+                        "·g": [ "issuer:accelerometer" ]
+                      },
+                      "distance" : {
+                        "properties" : {
+                          "d" : {
+                            "·r" : [ "issuer:features" ]
+                          }
+                        }
+                      }
                     },
-                    "/features": {
-                      "g": [ "issuer:features" ]
-                    },
-                    "/attributes": {
-                      "g": [ "issuer:attributes" ]
-                    },
-                    "/features/accelerometer": {
-                      "g": [ "issuer:accelerometer" ]
-                    },
-                    "/features/distance/properties/d": {
-                      "r": [ "issuer:features" ]
+                    "attributes": {
+                      "·g": [ "issuer:attributes" ]
                     }
                   },
                   "f": [
@@ -253,14 +251,12 @@ public final class EnforcedThingMapperTest {
                         "x": 3.141
                       },
                       "p": {
-                        "/": {
-                          "g": [ "issuer:global" ]
+                        "·g": [ "issuer:global" ],
+                        "features" : {
+                          "·g": [ "issuer:features" ]
                         },
-                        "/features": {
-                          "g": [ "issuer:features" ]
-                        },
-                        "/id": {
-                          "g": [ "issuer:accelerometer" ]
+                        "id": {
+                          "·g": [ "issuer:accelerometer" ]
                         }
                       }
                     },
@@ -271,14 +267,14 @@ public final class EnforcedThingMapperTest {
                         "d": 2.71828
                       },
                       "p": {
-                        "/": {
-                          "g": [ "issuer:global" ]
+                        "·g": [ "issuer:global" ],
+                        "features" : {
+                          "·g": [ "issuer:features" ]
                         },
-                        "/features": {
-                          "g": [ "issuer:features" ]
-                        },
-                        "/properties/d": {
-                          "r": [ "issuer:features" ]
+                        "properties": {
+                          "d" : {
+                            "·r": [ "issuer:features" ]
+                          }
                         }
                       }
                     }

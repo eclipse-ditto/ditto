@@ -142,44 +142,21 @@ public final class PersistenceConstants {
     public static final String FIELD_POLICY = "p";
 
     /**
-     * Field name for internal features.
+     * Special character used as prefix for grant (g) and revoke (r) fields in index document to avoid conflict
+     * actual fields in a thing. The character is part of the restricted fields (see
+     * {@link org.eclipse.ditto.base.model.entity.id.RegexPatterns#CONTROL_CHARS}).
      */
-    public static final String FIELD_INTERNAL = "d";
-
-    /**
-     * Field name of attribute's value.
-     */
-    public static final String FIELD_INTERNAL_VALUE = "v";
-
-    /**
-     * Path to an attribute's value.
-     */
-    public static final String FIELD_PATH_VALUE = FIELD_INTERNAL + DOT + FIELD_INTERNAL_VALUE;
-
-    /**
-     * Field name of a key of an attribute or feature property.
-     */
-    public static final String FIELD_INTERNAL_KEY = "k";
-
-    /**
-     * Path to an attributes/properties key.
-     */
-    public static final String FIELD_PATH_KEY = FIELD_INTERNAL + DOT + FIELD_INTERNAL_KEY;
+    private static final String FIELD_PERMISSION_PREFIX = Character.valueOf((char) 183).toString();
 
     /**
      * Field name for policy read grants.
      */
-    public static final String FIELD_GRANTED = "g";
-
-    /**
-     * Full path of the granted field.
-     */
-    public static final String FIELD_GRANTED_PATH = FIELD_INTERNAL + DOT + FIELD_GRANTED;
+    public static final String FIELD_GRANTED = FIELD_PERMISSION_PREFIX + "g";
 
     /**
      * Field name for policy read revokes.
      */
-    public static final String FIELD_REVOKED = "r";
+    public static final String FIELD_REVOKED = FIELD_PERMISSION_PREFIX + "r";
 
     /**
      * Mark a document for deletion.

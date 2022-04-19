@@ -26,6 +26,7 @@ import org.bson.BsonDocument;
 import org.bson.BsonString;
 import org.bson.BsonValue;
 import org.bson.conversions.Bson;
+import org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants;
 
 import com.mongodb.reactivestreams.client.MongoClients;
 
@@ -63,13 +64,20 @@ final class FilterAssertions {
     }
 
     private static String revokePath(final String path) {
-        return String.join(".", "p", path, "r");
+        return toPolicyPath(path, PersistenceConstants.FIELD_REVOKED);
     }
 
     private static String grantPath(final String path) {
-        return String.join(".", "p", path, "g");
+        return toPolicyPath(path, PersistenceConstants.FIELD_GRANTED);
     }
 
+    private static String toPolicyPath(final String path, final String lastField) {
+        if (path.isEmpty()) {
+            return String.join(PersistenceConstants.DOT, PersistenceConstants.FIELD_POLICY, lastField);
+        } else {
+            return String.join(PersistenceConstants.DOT, PersistenceConstants.FIELD_POLICY, path, lastField);
+        }
+    }
 
     private static BsonDocument nin(final Collection<String> subjects) {
         return new BsonDocument("$nin",

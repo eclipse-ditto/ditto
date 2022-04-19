@@ -70,15 +70,15 @@ public abstract class AbstractFieldBsonCreator {
     }
 
     Optional<Bson> getFeatureWildcardAuthorizationBson(final JsonPointer pointer) {
-        final Stream<CharSequence> fixedPaths = Stream.of(
+        final Stream<JsonPointer> fixedPaths = Stream.of(
                 JsonPointer.empty(),    // root grants
                 JsonPointer.of("/features"), // features grants
                 JsonPointer.of("/id")); // feature grants
-        final Stream<CharSequence> collectedPaths = collectPaths(pointer);
-        final List<CharSequence> allPaths = Stream.concat(fixedPaths, collectedPaths).toList();
+        final Stream<JsonPointer> collectedPaths = collectPaths(pointer);
+        final List<JsonPointer> allPaths = Stream.concat(fixedPaths, collectedPaths).toList();
         return Optional.ofNullable(authorizationSubjectIds).map(nonNullSubjectsIds -> {
             Bson child = null;
-            for (final CharSequence path : allPaths) {
+            for (final JsonPointer path : allPaths) {
                 child = getAuthFilter(nonNullSubjectsIds, path, child);
             }
             return child;
@@ -99,13 +99,13 @@ public abstract class AbstractFieldBsonCreator {
         }
     }
 
-    private Bson getAuthFilter(final Iterable<String> authSubjectIds, final CharSequence pointer,
+    private Bson getAuthFilter(final Iterable<String> authSubjectIds, final JsonPointer pointer,
             @Nullable final Bson child) {
 
-        // p.<pointer>.g
-        final var grant = String.join(DOT, FIELD_POLICY, pointer, FIELD_GRANTED);
-        // p.<pointer>.r
-        final var revoke = String.join(DOT, FIELD_POLICY, pointer, FIELD_REVOKED);
+        // p.<dotted-path>.·g
+        final var grant = toDottedPath(FIELD_POLICY, pointer, FIELD_GRANTED);
+        // p.<dotted-path>.·r
+        final var revoke = toDottedPath(FIELD_POLICY, pointer, FIELD_REVOKED);
 
         final Bson or = child != null
                 ? Filters.or(Filters.in(grant, authSubjectIds), child)
@@ -119,7 +119,7 @@ public abstract class AbstractFieldBsonCreator {
      * @param pointer the pointer for which to collect all contained paths
      * @return stream of paths contained in pointer, without root pointer.
      */
-    private Stream<CharSequence> collectPaths(final JsonPointer pointer) {
+    private Stream<JsonPointer> collectPaths(final JsonPointer pointer) {
         if (pointer.isEmpty()) {
             return Stream.empty();
         }
@@ -130,10 +130,19 @@ public abstract class AbstractFieldBsonCreator {
         return String.join(DOT, prefix, toDottedPath(jsonPointer));
     }
 
+    static String toDottedPath(final CharSequence prefix, final Iterable<JsonKey> jsonPointer,
+            final CharSequence suffix) {
+        if (jsonPointer.iterator().hasNext()) {
+            return String.join(DOT, prefix, toDottedPath(jsonPointer), suffix);
+        } else {
+            return String.join(DOT, prefix, suffix);
+        }
+    }
+
     static String toDottedPath(final Iterable<JsonKey> jsonPointer) {
         return StreamSupport.stream(jsonPointer.spliterator(), false)
                 .map(k -> KEY_NAME_REVISER.apply(k.toString()))
-                .collect(Collectors.joining("."));
+                .collect(Collectors.joining(DOT));
     }
 
 }

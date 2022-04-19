@@ -58,7 +58,7 @@ public class GetFilterBsonVisitorTest {
         final BsonValue valueFilter = document.getArray(AND).get(0);
         final BsonValue authFilter = document.getArray(AND).get(1);
         assertThat(valueFilter).isEqualTo(new BsonDocument("t.attributes.a1", BSON_VALUE));
-        assertAuthFilter(authFilter, List.of("subject1", "subject2"), "/attributes/a1", "/attributes", "/");
+        assertAuthFilter(authFilter, List.of("subject1", "subject2"), "attributes.a1", "attributes", "");
     }
 
     @Test
@@ -69,11 +69,11 @@ public class GetFilterBsonVisitorTest {
         final BsonValue authFilter = document.getArray(AND).get(1);
         assertThat(valueFilter).isEqualTo(new BsonDocument("t.features.f1.properties.temperature", BSON_VALUE));
         assertAuthFilter(authFilter, List.of("subject1", "subject2"),
-                "/features/f1/properties/temperature",
-                "/features/f1/properties",
-                "/features/f1",
-                "/features",
-                "/");
+                "features.f1.properties.temperature",
+                "features.f1.properties",
+                "features.f1",
+                "features",
+                "");
     }
 
     @Test
@@ -84,11 +84,11 @@ public class GetFilterBsonVisitorTest {
         final BsonValue authFilter = document.getArray(AND).get(1);
         assertThat(valueFilter).isEqualTo(new BsonDocument("t.features.f1.desiredProperties.targetTemperature", BSON_VALUE));
         assertAuthFilter(authFilter, List.of("subject1", "subject2"),
-                "/features/f1/desiredProperties/targetTemperature",
-                "/features/f1/desiredProperties",
-                "/features/f1",
-                "/features",
-                "/");
+                "features.f1.desiredProperties.targetTemperature",
+                "features.f1.desiredProperties",
+                "features.f1",
+                "features",
+                "");
     }
     @Test
     public void testWildcardFeatureProperty() {
@@ -99,11 +99,11 @@ public class GetFilterBsonVisitorTest {
         final BsonValue authFilter = elemMatchAnd.get(1);
         assertThat(valueFilter).isEqualTo(new BsonDocument("properties.temperature", BSON_VALUE));
         assertAuthFilter(authFilter, List.of("subject1", "subject2"),
-                "/properties/temperature",
-                "/properties",
-                "/id",
-                "/features",
-                "/");
+                "properties.temperature",
+                "properties",
+                "id",
+                "features",
+                "");
     }
 
     @Test
@@ -113,7 +113,7 @@ public class GetFilterBsonVisitorTest {
         final BsonValue valueFilter = document.getArray(AND).get(0);
         final BsonValue authFilter = document.getArray(AND).get(1);
         assertThat(valueFilter).isEqualTo(new BsonDocument("t._modified", BSON_VALUE));
-        assertAuthFilter(authFilter, List.of("subject1", "subject2"), "/_modified", "/");
+        assertAuthFilter(authFilter, List.of("subject1", "subject2"), "_modified", "");
     }
 
     @Test

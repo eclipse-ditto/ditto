@@ -22,11 +22,14 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 import org.bson.BsonArray;
 import org.bson.BsonDocument;
 import org.bson.BsonString;
+import org.bson.BsonValue;
 import org.eclipse.ditto.internal.utils.persistence.mongo.KeyNameReviser;
+import org.eclipse.ditto.json.JsonKey;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.policies.api.Permission;
@@ -86,7 +89,8 @@ final class EvaluatedPolicy {
             addPermissions(doc, FEATURES_POINTER, thingPermissions.get(FEATURES_POINTER));
         }
         if (featurePermissions.containsKey(featureId)) {
-            featurePermissions.get(featureId).forEach((path, permissions) -> addPermissions(doc, path, permissions));
+            featurePermissions.get(featureId)
+                    .forEach((path, permissions) -> addPermissions(doc, path, permissions));
         }
         return doc;
     }
@@ -114,11 +118,34 @@ final class EvaluatedPolicy {
         if (!permissions.second().isEmpty()) {
             innerDoc.put(FIELD_REVOKED, toSubjectsBson(permissions.second()));
         }
-        doc.put(toBsonKey(path), innerDoc);
+        setDocumentAtPath(doc, path, innerDoc);
     }
 
-    private static String toBsonKey(final JsonPointer path) {
-        return KEY_NAME_REVISER.apply(path.toString());
+    private static void setDocumentAtPath(final BsonDocument doc, final JsonPointer path, final BsonDocument innerDoc) {
+        final BsonDocument docAtPath;
+        // find/add the document where to append innerDoc
+        if (path.isEmpty()) {
+            docAtPath = doc;
+        } else {
+            docAtPath = StreamSupport.stream(path.spliterator(), false)
+                    .reduce(doc, (d, jsonKey) -> {
+                        final String bsonKey = toBsonKey(jsonKey);
+                        final BsonValue child = d.get(bsonKey);
+                        if (child == null) {
+                            final BsonDocument newChild = new BsonDocument();
+                            d.append(bsonKey, newChild);
+                            return newChild;
+                        } else {
+                            return child.asDocument();
+                        }
+                    }, EvaluatedPolicy::merge);
+        }
+        // append all fields of innerDoc
+        innerDoc.forEach(docAtPath::append);
+    }
+
+    private static String toBsonKey(final JsonKey key) {
+        return KEY_NAME_REVISER.apply(key.toString());
     }
 
     private static BsonArray toSubjectsBson(final Set<String> subjects) {
@@ -185,5 +212,10 @@ final class EvaluatedPolicy {
             final var featureLevelPointer = innerPointer.orElse(FEATURE_ID_POINTER);
             addPathToPermissions(map, featureLevelPointer, isGrant, subjects);
         }
+    }
+
+    private static BsonDocument merge(final BsonDocument b1, final BsonDocument b2) {
+        b1.forEach(b2::append);
+        return b1;
     }
 }

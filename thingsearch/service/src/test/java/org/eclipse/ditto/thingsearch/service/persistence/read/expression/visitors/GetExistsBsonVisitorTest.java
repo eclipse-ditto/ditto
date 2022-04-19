@@ -49,7 +49,7 @@ public class GetExistsBsonVisitorTest {
         final BsonValue existsFilter = document.getArray(AND).get(0);
         final BsonValue authFilter = document.getArray(AND).get(1);
         assertThat(existsFilter).isEqualTo(new BsonDocument("t.attributes.a1", EXISTS));
-        assertAuthFilter(authFilter, List.of("subject1", "subject2"), "/attributes/a1", "/attributes", "/");
+        assertAuthFilter(authFilter, List.of("subject1", "subject2"), "attributes.a1", "attributes", "");
     }
 
     @Test
@@ -59,7 +59,7 @@ public class GetExistsBsonVisitorTest {
         final BsonValue existsFilter = document.getArray(AND).get(0);
         final BsonValue authFilter = document.getArray(AND).get(1);
         assertThat(existsFilter).isEqualTo(new BsonDocument("t.features.f1", EXISTS));
-        assertAuthFilter(authFilter, List.of("subject1", "subject2"), "/features/f1", "/features", "/");
+        assertAuthFilter(authFilter, List.of("subject1", "subject2"), "features.f1", "features", "");
     }
 
     @Test
@@ -69,8 +69,8 @@ public class GetExistsBsonVisitorTest {
         final BsonValue existsFilter = document.getArray(AND).get(0);
         final BsonValue authFilter = document.getArray(AND).get(1);
         assertThat(existsFilter).isEqualTo(new BsonDocument("t.features.f1.properties", EXISTS));
-        assertAuthFilter(authFilter, List.of("subject1", "subject2"), "/features/f1/properties","/features/f1",
-                "/features", "/");
+        assertAuthFilter(authFilter, List.of("subject1", "subject2"), "features.f1.properties","features.f1",
+                "features", "");
     }
 
     @Test
@@ -80,8 +80,8 @@ public class GetExistsBsonVisitorTest {
         final BsonValue existsFilter = document.getArray(AND).get(0);
         final BsonValue authFilter = document.getArray(AND).get(1);
         assertThat(existsFilter).isEqualTo(new BsonDocument("t.features.f1.desiredProperties", EXISTS));
-        assertAuthFilter(authFilter, List.of("subject1", "subject2"), "/features/f1/desiredProperties","/features/f1",
-                "/features", "/");
+        assertAuthFilter(authFilter, List.of("subject1", "subject2"), "features.f1.desiredProperties","features.f1",
+                "features", "");
     }
 
     @Test
@@ -92,11 +92,11 @@ public class GetExistsBsonVisitorTest {
         final BsonValue authFilter = document.getArray(AND).get(1);
         assertThat(existsFilter).isEqualTo(new BsonDocument("t.features.f1.properties.temperature", EXISTS));
         assertAuthFilter(authFilter, List.of("subject1", "subject2"),
-                "/features/f1/properties/temperature",
-                "/features/f1/properties",
-                "/features/f1",
-                "/features",
-                "/");
+                "features.f1.properties.temperature",
+                "features.f1.properties",
+                "features.f1",
+                "features",
+                "");
     }
 
     @Test
@@ -107,11 +107,11 @@ public class GetExistsBsonVisitorTest {
         final BsonValue authFilter = document.getArray(AND).get(1);
         assertThat(existsFilter).isEqualTo(new BsonDocument("t.features.f1.desiredProperties.targetTemperature", EXISTS));
         assertAuthFilter(authFilter, List.of("subject1", "subject2"),
-                "/features/f1/desiredProperties/targetTemperature",
-                "/features/f1/desiredProperties",
-                "/features/f1",
-                "/features",
-                "/");
+                "features.f1.desiredProperties.targetTemperature",
+                "features.f1.desiredProperties",
+                "features.f1",
+                "features",
+                "");
     }
     @Test
     public void testWildcardFeatureProperty() {
@@ -122,11 +122,11 @@ public class GetExistsBsonVisitorTest {
         final BsonValue authFilter = elemMatchAnd.get(1);
         assertThat(existsFilter).isEqualTo(new BsonDocument("properties.temperature", EXISTS));
         assertAuthFilter(authFilter, List.of("subject1", "subject2"),
-                "/properties/temperature",
-                "/properties",
-                "/id",
-                "/features",
-                "/");
+                "properties.temperature",
+                "properties",
+                "id",
+                "features",
+                "");
     }
 
     @Test
@@ -137,8 +137,8 @@ public class GetExistsBsonVisitorTest {
         final BsonValue authFilter = document.getArray(AND).get(1);
         assertThat(existsFilter).isEqualTo(new BsonDocument("t._modified", EXISTS));
         assertAuthFilter(authFilter, List.of("subject1", "subject2"),
-                "/_modified",
-                "/");
+                "_modified",
+                "");
     }
 
     @Test
