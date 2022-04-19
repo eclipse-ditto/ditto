@@ -284,7 +284,7 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
                         backOff = backOff.calculateNextBackOff();
                         delay = backOff.getRestartDelay();
                     }
-                    startSingleTimer(Control.TICK.name(), Control.TICK, delay);
+                    startTimerWithFixedDelay(Control.TICK.name(), Control.TICK, delay);
                     unstashAll();
                 }
                 default -> cancelTimer(Control.TICK.name());
