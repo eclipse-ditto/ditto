@@ -522,7 +522,6 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
     }
 
     private void tickNow() {
-        cancelTimer(Control.TICK.name());
         getSelf().tell(Control.TICK, ActorRef.noSender());
     }
 
