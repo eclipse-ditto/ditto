@@ -37,7 +37,7 @@ services:
     environment:
       - TZ=Europe/Berlin
       - BIND_HOSTNAME=0.0.0.0
-      - JAVA_TOOL_OPTIONS=-XX:+ExitOnOutOfMemoryError -XX:+UseContainerSupport -XX:+UseStringDeduplication -Xss512k -XX:MaxRAMPercentage=50 -XX:+UseG1GC -XX:MaxGCPauseMillis=150 -Dakka.coordinated-shutdown.exit-jvm=on -Dakka.cluster.shutdown-after-unsuccessful-join-seed-nodes=180s -Dakka.cluster.failure-detector.threshold=15.0 -Dakka.cluster.failure-detector.expected-response-after=10s -Dakka.cluster.failure-detector.acceptable-heartbeat-pause=20s
+      - JAVA_TOOL_OPTIONS=-XX:ActiveProcessorCount=2 -XX:+ExitOnOutOfMemoryError -XX:+UseContainerSupport -XX:+UseStringDeduplication -Xss512k -XX:MaxRAMPercentage=50 -XX:+UseG1GC -XX:MaxGCPauseMillis=150 -Dakka.coordinated-shutdown.exit-jvm=on -Dakka.cluster.shutdown-after-unsuccessful-join-seed-nodes=180s -Dakka.cluster.failure-detector.threshold=15.0 -Dakka.cluster.failure-detector.expected-response-after=10s -Dakka.cluster.failure-detector.acceptable-heartbeat-pause=20s -Dakka.cluster.downing-provider-class=
       - MONGO_DB_HOSTNAME=mongodb
       # in order to write logs into a file you can enable this by setting the following env variable
       # the log file(s) can be found in /var/log/ditto directory on the host machine
@@ -68,7 +68,7 @@ services:
     environment:
       - TZ=Europe/Berlin
       - BIND_HOSTNAME=0.0.0.0
-      - JAVA_TOOL_OPTIONS=-XX:+ExitOnOutOfMemoryError -XX:+UseContainerSupport -XX:+UseStringDeduplication -Xss512k -XX:MaxRAMPercentage=50 -XX:+UseG1GC -XX:MaxGCPauseMillis=150 -Dakka.coordinated-shutdown.exit-jvm=on -Dakka.cluster.shutdown-after-unsuccessful-join-seed-nodes=180s -Dakka.cluster.failure-detector.threshold=15.0 -Dakka.cluster.failure-detector.expected-response-after=10s -Dakka.cluster.failure-detector.acceptable-heartbeat-pause=20s
+      - JAVA_TOOL_OPTIONS=-XX:ActiveProcessorCount=2 -XX:+ExitOnOutOfMemoryError -XX:+UseContainerSupport -XX:+UseStringDeduplication -Xss512k -XX:MaxRAMPercentage=50 -XX:+UseG1GC -XX:MaxGCPauseMillis=150 -Dakka.coordinated-shutdown.exit-jvm=on -Dakka.cluster.shutdown-after-unsuccessful-join-seed-nodes=180s -Dakka.cluster.failure-detector.threshold=15.0 -Dakka.cluster.failure-detector.expected-response-after=10s -Dakka.cluster.failure-detector.acceptable-heartbeat-pause=20s -Dakka.cluster.downing-provider-class=
       - MONGO_DB_HOSTNAME=mongodb
       # in order to write logs into a file you can enable this by setting the following env variable
       # the log file(s) can be found in /var/log/ditto directory on the host machine
@@ -99,7 +99,7 @@ services:
     environment:
       - TZ=Europe/Berlin
       - BIND_HOSTNAME=0.0.0.0
-      - JAVA_TOOL_OPTIONS=-XX:+ExitOnOutOfMemoryError -XX:+UseContainerSupport -XX:+UseStringDeduplication -Xss512k -XX:MaxRAMPercentage=50 -XX:+UseG1GC -XX:MaxGCPauseMillis=150 -Dakka.coordinated-shutdown.exit-jvm=on -Dakka.cluster.shutdown-after-unsuccessful-join-seed-nodes=180s -Dakka.cluster.failure-detector.threshold=15.0 -Dakka.cluster.failure-detector.expected-response-after=10s -Dakka.cluster.failure-detector.acceptable-heartbeat-pause=20s
+      - JAVA_TOOL_OPTIONS=-XX:ActiveProcessorCount=2 -XX:+ExitOnOutOfMemoryError -XX:+UseContainerSupport -XX:+UseStringDeduplication -Xss512k -XX:MaxRAMPercentage=50 -XX:+UseG1GC -XX:MaxGCPauseMillis=150 -Dakka.coordinated-shutdown.exit-jvm=on -Dakka.cluster.shutdown-after-unsuccessful-join-seed-nodes=180s -Dakka.cluster.failure-detector.threshold=15.0 -Dakka.cluster.failure-detector.expected-response-after=10s -Dakka.cluster.failure-detector.acceptable-heartbeat-pause=20s -Dakka.cluster.downing-provider-class=
       - MONGO_DB_HOSTNAME=mongodb
       # in order to write logs into a file you can enable this by setting the following env variable
       # the log file(s) can be found in /var/log/ditto directory on the host machine
@@ -130,7 +130,7 @@ services:
     environment:
       - TZ=Europe/Berlin
       - BIND_HOSTNAME=0.0.0.0
-      - JAVA_TOOL_OPTIONS=-XX:+ExitOnOutOfMemoryError -XX:+UseContainerSupport -XX:+UseStringDeduplication -Xss512k -XX:MaxRAMPercentage=50 -XX:+UseG1GC -XX:MaxGCPauseMillis=150 -Dakka.coordinated-shutdown.exit-jvm=on -Dakka.cluster.shutdown-after-unsuccessful-join-seed-nodes=180s -Dakka.cluster.failure-detector.threshold=15.0 -Dakka.cluster.failure-detector.expected-response-after=10s -Dakka.cluster.failure-detector.acceptable-heartbeat-pause=20s
+      - JAVA_TOOL_OPTIONS=-XX:ActiveProcessorCount=2 -XX:+ExitOnOutOfMemoryError -XX:+UseContainerSupport -XX:+UseStringDeduplication -Xss512k -XX:MaxRAMPercentage=50 -XX:+UseG1GC -XX:MaxGCPauseMillis=150 -Dakka.coordinated-shutdown.exit-jvm=on -Dakka.cluster.shutdown-after-unsuccessful-join-seed-nodes=180s -Dakka.cluster.failure-detector.threshold=15.0 -Dakka.cluster.failure-detector.expected-response-after=10s -Dakka.cluster.failure-detector.acceptable-heartbeat-pause=20s -Dakka.cluster.downing-provider-class=
       - MONGO_DB_HOSTNAME=mongodb
       # in order to write logs into a file you can enable this by setting the following env variable
       # the log file(s) can be found in /var/log/ditto directory on the host machine
@@ -163,7 +163,7 @@ services:
       - TZ=Europe/Berlin
       - BIND_HOSTNAME=0.0.0.0
       # if connections to rabbitmq broker are used, you might want to disable ExitOnOutOfMemoryError, because the amqp-client has a bug throwing OOM exceptions and causing a restart loop
-      - JAVA_TOOL_OPTIONS=-XX:+ExitOnOutOfMemoryError -XX:+UseContainerSupport -XX:+UseStringDeduplication -Xss512k -XX:MaxRAMPercentage=50 -XX:+UseG1GC -XX:MaxGCPauseMillis=150 -Dakka.coordinated-shutdown.exit-jvm=on -Dakka.cluster.shutdown-after-unsuccessful-join-seed-nodes=180s -Dakka.cluster.failure-detector.threshold=15.0 -Dakka.cluster.failure-detector.expected-response-after=10s -Dakka.cluster.failure-detector.acceptable-heartbeat-pause=20s
+      - JAVA_TOOL_OPTIONS=-XX:ActiveProcessorCount=2 -XX:+ExitOnOutOfMemoryError -XX:+UseContainerSupport -XX:+UseStringDeduplication -Xss512k -XX:MaxRAMPercentage=50 -XX:+UseG1GC -XX:MaxGCPauseMillis=150 -Dakka.coordinated-shutdown.exit-jvm=on -Dakka.cluster.shutdown-after-unsuccessful-join-seed-nodes=180s -Dakka.cluster.failure-detector.threshold=15.0 -Dakka.cluster.failure-detector.expected-response-after=10s -Dakka.cluster.failure-detector.acceptable-heartbeat-pause=20s -Dakka.cluster.downing-provider-class=
       - MONGO_DB_HOSTNAME=mongodb
       # in order to write logs into a file you can enable this by setting the following env variable
       # the log file(s) can be found in /var/log/ditto directory on the host machine
@@ -198,7 +198,7 @@ services:
       - TZ=Europe/Berlin
       - BIND_HOSTNAME=0.0.0.0
       - ENABLE_PRE_AUTHENTICATION=true
-      - JAVA_TOOL_OPTIONS=-XX:+ExitOnOutOfMemoryError -XX:+UseContainerSupport -XX:+UseStringDeduplication -Xss512k -XX:MaxRAMPercentage=50 -XX:+UseG1GC -XX:MaxGCPauseMillis=150 -Dakka.coordinated-shutdown.exit-jvm=on -Dakka.cluster.shutdown-after-unsuccessful-join-seed-nodes=180s -Dakka.cluster.failure-detector.threshold=15.0 -Dakka.cluster.failure-detector.expected-response-after=10s -Dakka.cluster.failure-detector.acceptable-heartbeat-pause=20s
+      - JAVA_TOOL_OPTIONS=-XX:ActiveProcessorCount=2 -XX:+ExitOnOutOfMemoryError -XX:+UseContainerSupport -XX:+UseStringDeduplication -Xss512k -XX:MaxRAMPercentage=50 -XX:+UseG1GC -XX:MaxGCPauseMillis=150 -Dakka.coordinated-shutdown.exit-jvm=on -Dakka.cluster.shutdown-after-unsuccessful-join-seed-nodes=180s -Dakka.cluster.failure-detector.threshold=15.0 -Dakka.cluster.failure-detector.expected-response-after=10s -Dakka.cluster.failure-detector.acceptable-heartbeat-pause=20s -Dakka.cluster.downing-provider-class=
       # in order to write logs into a file you can enable this by setting the following env variable
       # the log file(s) can be found in /var/log/ditto directory on the host machine
       # - DITTO_LOGGING_FILE_APPENDER=true
