@@ -260,9 +260,14 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
 
     private FSM.State<State, Data> shutdownNow(final org.eclipse.ditto.base.api.common.Shutdown shutdown,
             final Data data) {
-        log.info("Shutting down now due to <{}> during <{}>", shutdown, stateName());
-        data.metadata().sendWeakAck(getDescription(shutdown));
-        return stop();
+        final var shutdownReason = shutdown.getReason();
+        if (shutdownReason.isRelevantFor(thingId.getNamespace()) || shutdownReason.isRelevantFor(thingId)) {
+            log.info("Shutting down now due to <{}> during <{}>", shutdown, stateName());
+            data.metadata().sendWeakAck(getDescription(shutdown));
+            return stop();
+        } else {
+            return stay();
+        }
     }
 
     private FSM.State<State, Data> shutdown(final Object trigger, final Data data) {
