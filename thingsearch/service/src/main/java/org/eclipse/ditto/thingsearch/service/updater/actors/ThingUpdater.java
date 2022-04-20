@@ -63,7 +63,6 @@ import akka.actor.AbstractFSMWithStash;
 import akka.actor.ActorRef;
 import akka.actor.FSM;
 import akka.actor.Props;
-import akka.actor.ReceiveTimeout;
 import akka.cluster.pubsub.DistributedPubSubMediator;
 import akka.japi.pf.FSMStateFunctionBuilder;
 import akka.japi.pf.PFBuilder;
@@ -145,6 +144,12 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
         TICK
     }
 
+    enum ShutdownTrigger  {
+        DELETE,
+        IDLE,
+        NAMESPACE_BLOCKED
+    }
+
     private ThingUpdater(final Flow<Data, Result, NotUsed> flow,
             final Function<ThingId, Source<AbstractWriteModel, NotUsed>> recoveryFunction,
             final SearchConfig config,
@@ -158,7 +163,7 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
         backOff = ExponentialBackOff.initial(
                 config.getUpdaterConfig().getStreamConfig().getPersistenceConfig().getExponentialBackOffConfig());
 
-        getContext().setReceiveTimeout(config.getUpdaterConfig().getMaxIdleTime());
+        startSingleTimer(ShutdownTrigger.IDLE.name(), ShutdownTrigger.IDLE, config.getUpdaterConfig().getMaxIdleTime());
 
         startWith(State.RECOVERING, getInitialData(thingId));
         when(State.RECOVERING, recovering());
@@ -217,7 +222,7 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
     private FSMStateFunctionBuilder<State, Data> recovering() {
         return matchEvent(AbstractWriteModel.class, this::recoveryComplete)
                 .event(Throwable.class, this::recoveryFailed)
-                .event(ReceiveTimeout.class, this::shutdown)
+                .event(ShutdownTrigger.class, this::shutdown)
                 .event(SHUTDOWN_CLASS, this::shutdownNow)
                 .event(DistributedPubSubMediator.SubscribeAck.class, this::subscribeAck)
                 .anyEvent(this::stashAndStay);
@@ -233,7 +238,7 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
                 .event(PolicyReferenceTag.class, this::onPolicyReferenceTag)
                 .event(UpdateThing.class, this::updateThing)
                 .eventEquals(Control.TICK, this::tick)
-                .event(ReceiveTimeout.class, this::shutdown)
+                .event(ShutdownTrigger.class, this::shutdown)
                 .event(SHUTDOWN_CLASS, this::shutdownNow)
                 .event(DistributedPubSubMediator.SubscribeAck.class, this::subscribeAck);
     }
@@ -242,7 +247,7 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
         return matchEvent(Result.class, this::onResult)
                 .event(Done.class, this::onDone)
                 .event(ThingEvent.class, this::onEventWhenPersisting)
-                .event(ReceiveTimeout.class, this::shutdown)
+                .event(ShutdownTrigger.class, this::shutdown)
                 .event(SHUTDOWN_CLASS, this::shutdownNow)
                 .event(DistributedPubSubMediator.SubscribeAck.class, this::subscribeAck)
                 .anyEvent(this::stashAndStay);
@@ -307,7 +312,7 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
             return stop();
         } else if (result.resultAndErrors().isNamespaceBlockedException()) {
             log.info("Disabling actor because namespace is blocked");
-            getContext().setReceiveTimeout(BLOCK_NAMESPACE_SHUTDOWN_DELAY);
+            startSingleTimer(ShutdownTrigger.NAMESPACE_BLOCKED.name(), ShutdownTrigger.NAMESPACE_BLOCKED, BLOCK_NAMESPACE_SHUTDOWN_DELAY);
             return goTo(State.RECOVERING).using(getInitialData(thingId));
         }
         // TODO: change to debug log
