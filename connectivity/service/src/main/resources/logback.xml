@@ -72,6 +72,7 @@
 
     <logger name="akka.management.cluster.bootstrap.contactpoint.HttpClusterBootstrapRoutes" level="WARN"/>
     <logger name="akka.management.cluster.bootstrap.internal.BootstrapCoordinator" level="WARN"/>
+    <logger name="akka.actor.CoordinatedShutdown" level="DEBUG"/>
 
     <logger name="org.apache.kafka" level="WARN"/>
 
