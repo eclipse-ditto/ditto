@@ -607,7 +607,7 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
      * If not resolvable, the returned Optional will be empty.
      */
     private static Optional<String> resolveTargetAddress(final ExpressionResolver resolver, final String value) {
-        return resolver.resolve(value).toOptional();
+        return resolver.resolve(value).findFirst();
     }
 
     private static Charset determineCharset(final CharSequence contentType) {

@@ -144,7 +144,7 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
         TICK
     }
 
-    enum ShutdownTrigger  {
+    enum ShutdownTrigger {
         DELETE,
         IDLE,
         NAMESPACE_BLOCKED
@@ -317,7 +317,8 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
             return stop();
         } else if (result.resultAndErrors().isNamespaceBlockedException()) {
             log.info("Disabling actor because namespace is blocked");
-            startSingleTimer(ShutdownTrigger.NAMESPACE_BLOCKED.name(), ShutdownTrigger.NAMESPACE_BLOCKED, BLOCK_NAMESPACE_SHUTDOWN_DELAY);
+            startSingleTimer(ShutdownTrigger.NAMESPACE_BLOCKED.name(), ShutdownTrigger.NAMESPACE_BLOCKED,
+                    BLOCK_NAMESPACE_SHUTDOWN_DELAY);
             return goTo(State.RECOVERING).using(getInitialData(thingId));
         }
         log.debug("Got Result=<{}>", pair.first());

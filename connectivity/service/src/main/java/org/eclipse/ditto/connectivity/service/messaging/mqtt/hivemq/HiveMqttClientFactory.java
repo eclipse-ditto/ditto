@@ -42,6 +42,7 @@ interface HiveMqttClientFactory<Q, B> {
      * @param connectedListener the connected listener passed to the created client
      * @param disconnectedListener the disconnected listener passed to the created client
      * @param connectionLogger the connection logger
+     * @param doubleDecodingEnabled whether username and password should get double decoded.
      * @return the new client.
      */
     Q newClient(Connection connection,
@@ -51,7 +52,8 @@ interface HiveMqttClientFactory<Q, B> {
             boolean applyLastWillConfig,
             @Nullable MqttClientConnectedListener connectedListener,
             @Nullable MqttClientDisconnectedListener disconnectedListener,
-            ConnectionLogger connectionLogger);
+            ConnectionLogger connectionLogger,
+            boolean doubleDecodingEnabled);
 
     /**
      * Creates a new MQTT client builder.
@@ -65,6 +67,7 @@ interface HiveMqttClientFactory<Q, B> {
      * @param connectedListener the connected listener passed to the created client
      * @param disconnectedListener the disconnected listener passed to the created client
      * @param connectionLogger the connection logger
+     * @param doubleDecodingEnabled whether username and password should get double decoded.
      * @return the new mqtt client builder.
      */
     B newClientBuilder(Connection connection,
@@ -74,7 +77,8 @@ interface HiveMqttClientFactory<Q, B> {
             boolean applyLastWillConfig,
             @Nullable MqttClientConnectedListener connectedListener,
             @Nullable MqttClientDisconnectedListener disconnectedListener,
-            ConnectionLogger connectionLogger);
+            ConnectionLogger connectionLogger,
+            boolean doubleDecodingEnabled);
 
     /**
      * Creates a new client.
@@ -86,6 +90,7 @@ interface HiveMqttClientFactory<Q, B> {
      * specific config
      * @param applyLastWillConfig whether to apply the last will configuration
      * @param connectionLogger the connection logger
+     * @param doubleDecodingEnabled whether username and password should get double decoded.
      * @return the new client.
      */
     default Q newClient(final Connection connection,
@@ -93,9 +98,11 @@ interface HiveMqttClientFactory<Q, B> {
             final MqttConfig mqttConfig,
             final MqttSpecificConfig mqttSpecificConfig,
             final boolean applyLastWillConfig,
-            final ConnectionLogger connectionLogger) {
+            final ConnectionLogger connectionLogger,
+            final boolean doubleDecodingEnabled) {
+
         return newClient(connection, identifier, mqttConfig, mqttSpecificConfig, applyLastWillConfig,
-                null, null, connectionLogger);
+                null, null, connectionLogger, doubleDecodingEnabled);
     }
 
 }

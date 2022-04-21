@@ -25,7 +25,7 @@ import org.eclipse.ditto.protocol.TopicPath;
 /**
  * Placeholder implementation that replaces:
  * <ul>
- * <li>{@code topic:full} -> {@code {namespace}/{entityId}/{group}/{channel}/{criterion}/{action-subject}}</li>
+ * <li>{@code topic:full} -> {@code {namespace}/{entityName}/{group}/{channel}/{criterion}/{action-subject}}</li>
  * <li>{@code topic:namespace}</li>
  * <li>{@code topic:entityName}</li>
  * <li>{@code topic:group}</li>
@@ -79,35 +79,38 @@ final class ImmutableTopicPathPlaceholder implements TopicPathPlaceholder {
     }
 
     @Override
-    public Optional<String> resolve(final TopicPath topicPath, final String placeholder) {
+    public List<String> resolveValues(final TopicPath topicPath, final String placeholder) {
         ConditionChecker.argumentNotEmpty(placeholder, "placeholder");
         switch (placeholder) {
             case NAMESPACE_PLACEHOLDER:
-                return Optional.of(topicPath.getNamespace());
+                return Collections.singletonList(topicPath.getNamespace());
             case ENTITY_NAME_PLACEHOLDER:
-                return Optional.of(topicPath.getEntityName());
+                return Collections.singletonList(topicPath.getEntityName());
             case GROUP_PLACEHOLDER:
-                return Optional.of(topicPath.getGroup().getName());
+                return Collections.singletonList(topicPath.getGroup().getName());
             case CHANNEL_PLACEHOLDER:
-                return Optional.of(topicPath.getChannel().getName());
+                return Collections.singletonList(topicPath.getChannel().getName());
             case CRITERION_PLACEHOLDER:
-                return Optional.of(topicPath.getCriterion().getName());
+                return Collections.singletonList(topicPath.getCriterion().getName());
             case ACTION_PLACEHOLDER:
-                return topicPath.getAction().map(TopicPath.Action::getName);
+                return topicPath.getAction()
+                        .map(TopicPath.Action::getName)
+                        .map(Collections::singletonList)
+                        .orElseGet(Collections::emptyList);
             case SUBJECT_PLACEHOLDER:
-                return topicPath.getSubject();
+                return topicPath.getSubject()
+                        .map(Collections::singletonList)
+                        .orElseGet(Collections::emptyList);
             case ACTION_OR_SUBJECT_PLACEHOLDER:
                 // treat action-subject as synonyms:
-                return Optional.ofNullable(
-                        topicPath.getSubject()
-                                .orElseGet(() ->
-                                        topicPath.getAction().map(TopicPath.Action::getName).orElse(null)
-                                )
-                );
+                return Optional.ofNullable(topicPath.getSubject()
+                                .orElseGet(() -> topicPath.getAction().map(TopicPath.Action::getName).orElse(null)))
+                        .map(Collections::singletonList)
+                        .orElseGet(Collections::emptyList);
             case FULL_PLACEHOLDER:
-                return Optional.of(topicPath.getPath());
+                return Collections.singletonList(topicPath.getPath());
             default:
-                return Optional.empty();
+                return Collections.emptyList();
         }
     }
 

@@ -10,12 +10,13 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.connectivity.api.placeholders;
+package org.eclipse.ditto.edge.api.placeholders;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.argumentNotEmpty;
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
-import java.util.Optional;
+import java.util.Collections;
+import java.util.List;
 
 import javax.annotation.concurrent.Immutable;
 
@@ -41,7 +42,7 @@ final class ImmutableEntityIdPlaceholder extends AbstractEntityIdPlaceholder<Nam
     }
 
     @Override
-    public Optional<String> resolve(final EntityId entityId, final String placeholder) {
+    public List<String> resolveValues(final EntityId entityId, final String placeholder) {
         argumentNotEmpty(placeholder, "placeholder");
         checkNotNull(entityId, "Entity ID");
         try {
@@ -49,7 +50,7 @@ final class ImmutableEntityIdPlaceholder extends AbstractEntityIdPlaceholder<Nam
             return doResolve(namespacedEntityId, placeholder);
         } catch (final NamespacedEntityIdInvalidException e) {
             // not a namespaced entity ID; does not resolve.
-            return Optional.empty();
+            return Collections.emptyList();
         }
     }
 }

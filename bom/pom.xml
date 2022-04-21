@@ -34,7 +34,7 @@
 
         <!-- ### Compile dependencies versions -->
         <minimal-json.version>0.9.5</minimal-json.version>
-        <jackson-bom.version>2.13.2</jackson-bom.version>
+        <jackson-bom.version>2.13.2.20220328</jackson-bom.version>
         <typesafe-config.version>1.4.2</typesafe-config.version>
         <ssl-config-core.version>0.6.0</ssl-config-core.version>
         <akka-bom.version>2.6.19</akka-bom.version>
@@ -563,6 +563,11 @@
             <dependency>
                 <groupId>org.eclipse.ditto</groupId>
                 <artifactId>ditto-internal-models-streaming</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.ditto</groupId>
+                <artifactId>ditto-edge-api</artifactId>
                 <version>${project.version}</version>
             </dependency>
 

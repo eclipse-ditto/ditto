@@ -40,7 +40,6 @@ import org.eclipse.ditto.connectivity.model.TargetBuilder;
 import org.eclipse.ditto.connectivity.service.config.MqttConfig;
 import org.eclipse.ditto.connectivity.service.messaging.TestConstants;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.Mockito;
 
@@ -173,7 +172,7 @@ public final class Mqtt3ValidatorTest extends AbstractMqttValidatorTest {
     }
 
     @Test
-    public void testInvalidSourceTopicFilters() {
+    public void testInvalidSourceEnforcementFilters() {
         final Source mqttSourceWithValidFilter = ConnectivityModelFactory.newSourceBuilder()
                 .authorizationContext(AUTHORIZATION_CONTEXT)
                 .enforcement(newSourceAddressEnforcement("things/+/{{ thing:id }}/#"))
@@ -182,12 +181,12 @@ public final class Mqtt3ValidatorTest extends AbstractMqttValidatorTest {
                 .build();
         final Source mqttSourceWithInvalidFilter = ConnectivityModelFactory.newSourceBuilder()
                 .authorizationContext(AUTHORIZATION_CONTEXT)
-                .enforcement(newSourceAddressEnforcement("things/#/{{ thing:id }}/+"))
+                .enforcement(newSourceAddressEnforcement("things/+/{{ thing:wasd }}/#"))
                 .address("#")
                 .qos(1)
                 .build();
 
-        testInvalidSourceTopicFilters(mqttSourceWithValidFilter, mqttSourceWithInvalidFilter);
+        testInvalidSourceEnforcementFilters(mqttSourceWithValidFilter, mqttSourceWithInvalidFilter);
     }
 
     @Test
@@ -200,7 +199,7 @@ public final class Mqtt3ValidatorTest extends AbstractMqttValidatorTest {
                         .qos(1)
                         .build();
 
-        testInvalidSourceTopicFilters(mqttSourceWithInvalidFilter);
+        testInvalidSourceEnforcementFilters(mqttSourceWithInvalidFilter);
     }
 
     @Test

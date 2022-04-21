@@ -12,6 +12,11 @@
  */
 package org.eclipse.ditto.connectivity.api.placeholders;
 
+import org.eclipse.ditto.edge.api.placeholders.EntityIdPlaceholder;
+import org.eclipse.ditto.edge.api.placeholders.FeaturePlaceholder;
+import org.eclipse.ditto.edge.api.placeholders.PolicyPlaceholder;
+import org.eclipse.ditto.edge.api.placeholders.RequestPlaceholder;
+import org.eclipse.ditto.edge.api.placeholders.ThingPlaceholder;
 import org.eclipse.ditto.placeholders.TimePlaceholder;
 import org.eclipse.ditto.protocol.placeholders.ResourcePlaceholder;
 import org.eclipse.ditto.protocol.placeholders.TopicPathPlaceholder;
@@ -26,35 +31,35 @@ public final class ConnectivityPlaceholders {
      * @return the singleton instance of {@link ThingPlaceholder}
      */
     public static ThingPlaceholder newThingPlaceholder() {
-        return ImmutableThingPlaceholder.INSTANCE;
+        return ThingPlaceholder.getInstance();
     }
 
     /**
      * @return the singleton instance of  {@link PolicyPlaceholder}
      */
     public static PolicyPlaceholder newPolicyPlaceholder() {
-        return ImmutablePolicyPlaceholder.INSTANCE;
+        return PolicyPlaceholder.getInstance();
     }
 
     /**
      * @return the singleton instance of {@link FeaturePlaceholder}
      */
     public static FeaturePlaceholder newFeaturePlaceholder() {
-        return ImmutableFeaturePlaceholder.INSTANCE;
+        return FeaturePlaceholder.getInstance();
     }
 
     /**
      * @return the singleton instance of {@link EntityIdPlaceholder}
      */
     public static EntityIdPlaceholder newEntityPlaceholder() {
-        return ImmutableEntityIdPlaceholder.INSTANCE;
+        return EntityIdPlaceholder.getInstance();
     }
 
     /**
      * @return the singleton instance of the placeholder with prefix {@code request}.
      */
     public static RequestPlaceholder newRequestPlaceholder() {
-        return ImmutableRequestPlaceholder.INSTANCE;
+        return RequestPlaceholder.getInstance();
     }
 
     /**

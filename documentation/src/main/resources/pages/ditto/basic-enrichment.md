@@ -46,6 +46,12 @@ For example a Thing could look like this:
         "value": 23.42,
         "unit": "Celcius"
       }
+    },
+    "humidity": {
+      "properties": {
+        "value": 45,
+        "unit": "%"
+      }
     }
   }
 }
@@ -97,10 +103,24 @@ In that case, each emitted Ditto Protocol event would include an `extra` section
 ```
 
 It is possible to use the wildcard operator '*' as feature ID and add a property of multiple features
-(syntax is the same as for [field selector with wildcard](httpapi-concepts.html#field-selector-with-wildcard)):
+(syntax is the same as for [field selector with wildcard](httpapi-concepts.html#field-selector-with-wildcard)).
+This would add the property 'unit' of all features:
 ```
 extraFields=features/*/properties/unit
 ```
+
+If you however want to see a property only for the features changed within this event you could make use of placeholders.
+The following example would enrich the unit of all features that have changed within this event:
+```
+{%raw%}extraFields=features/{{feature:id}}/properties/unit{%endraw%}
+```
+
+{% include note.html content="Please note that 'deleted' events cannot be enriched with the deleted values." %}
+
+Please have a look at available placeholders for the use case:
+* [Signal enrichment for Websocket](basic-placeholders.html#scope-websocket-signal-enrichment)
+* [Signal enrichment for SSE](basic-placeholders.html#scope-sse-signal-enrichment)
+* [Signal enrichment for connections](basic-placeholders.html#scope-connections)
 
 ## Enrich and filter
 

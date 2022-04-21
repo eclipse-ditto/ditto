@@ -50,9 +50,11 @@ public final class AmqpSpecificConfig {
     private final boolean failoverEnabled;
     private final PlainCredentialsSupplier plainCredentialsSupplier;
 
-    private AmqpSpecificConfig(final Map<String, String> amqpParameters, final Map<String, String> jmsParameters,
+    private AmqpSpecificConfig(final Map<String, String> amqpParameters,
+            final Map<String, String> jmsParameters,
             final boolean failoverEnabled,
             final PlainCredentialsSupplier plainCredentialsSupplier) {
+
         this.amqpParameters = Collections.unmodifiableMap(new LinkedHashMap<>(amqpParameters));
         this.jmsParameters = Collections.unmodifiableMap(new LinkedHashMap<>(jmsParameters));
         this.failoverEnabled = failoverEnabled;
@@ -66,13 +68,17 @@ public final class AmqpSpecificConfig {
      * @param connection the connection.
      * @param defaultConfig the default config values.
      * @param plainCredentialsSupplier supplier of username-password credentials.
+     * @param doubleDecodingEnabled whether the username and password should be double decoded.
      * @return the AMQP specific config.
      */
-    public static AmqpSpecificConfig withDefault(final String clientId, final Connection connection,
+    public static AmqpSpecificConfig withDefault(final String clientId,
+            final Connection connection,
             final Map<String, String> defaultConfig,
-            final PlainCredentialsSupplier plainCredentialsSupplier) {
+            final PlainCredentialsSupplier plainCredentialsSupplier,
+            final boolean doubleDecodingEnabled) {
+
         final var amqpParameters = new LinkedHashMap<>(filterForAmqpParameters(defaultConfig));
-        final Optional<UserPasswordCredentials> credentialsOptional = plainCredentialsSupplier.get(connection);
+        final Optional<UserPasswordCredentials> credentialsOptional = plainCredentialsSupplier.get(connection, doubleDecodingEnabled);
         addSaslMechanisms(amqpParameters, credentialsOptional.isPresent());
         addTransportParameters(amqpParameters, connection);
         addSpecificConfigParameters(amqpParameters, connection, AmqpSpecificConfig::isPermittedAmqpConfig);
@@ -154,9 +160,11 @@ public final class AmqpSpecificConfig {
 
     private static void addCredentials(final LinkedHashMap<String, String> parameters,
             final UserPasswordCredentials credentials) {
+
         addParameter(parameters, USERNAME, credentials.getUsername());
         addParameter(parameters, PASSWORD, credentials.getPassword());
     }
+
 
     private static void addTransportParameters(final LinkedHashMap<String, String> parameters,
             final Connection connection) {

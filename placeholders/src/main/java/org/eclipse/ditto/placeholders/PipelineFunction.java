@@ -13,7 +13,6 @@
 package org.eclipse.ditto.placeholders;
 
 import java.util.List;
-import java.util.stream.Stream;
 
 /**
  * Describes a pipeline function with {@code name}, {@code signature}, signature validation capability and
@@ -52,20 +51,6 @@ interface PipelineFunction {
      * @return processed output value, or an empty optional otherwise.
      */
     PipelineElement apply(PipelineElement value, String paramsIncludingParentheses,
-            ExpressionResolver expressionResolver);
-
-    /**
-     * Executes the function by passing in a value and returning a stream of processed results.
-     *
-     * @param value the input value to process.
-     * @param paramsIncludingParentheses the passed in function parameters including parentheses, e.g.: {@code
-     * ('fallback')}
-     * @param expressionResolver the expressionResolver to use in order to resolve placeholders occurring in the
-     * function.
-     * @return processed output values, or an empty stream otherwise.
-     * @since 2.4.0
-     */
-    Stream<PipelineElement> applyStreaming(PipelineElement value, String paramsIncludingParentheses,
             ExpressionResolver expressionResolver);
 
     /**

@@ -47,7 +47,7 @@
          final PlaceholderResolver<ConnectionId> underTest = PlaceholderFactory.newPlaceholderResolver(
                  ConnectivityPlaceholders.newConnectionIdPlaceholder(), connectionId);
 
-         assertThat(underTest.resolve("id"))
-                 .contains(connectionId.toString());
+         assertThat(underTest.resolveValues("id"))
+                 .containsExactly(connectionId.toString());
      }
  }

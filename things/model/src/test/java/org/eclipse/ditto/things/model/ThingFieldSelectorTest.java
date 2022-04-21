@@ -98,6 +98,13 @@ public final class ThingFieldSelectorTest {
     }
 
     @Test
+    public void test() {
+        assertThatCode(() -> ThingFieldSelector.fromString(
+                "/features/{{feature:id}}/definition,/features/{{fn:default('*')|fn:filter(topic:action,'eq','deleted')|fn:filter(resource.type,'eq','thing')|fn:filter(resource:path,'like','/|/features')}}/definition"))
+                .doesNotThrowAnyException();
+    }
+
+    @Test
     public void fromJsonFieldSelectorWithThingFieldSelectorReturnsSameInstance() {
         final ThingFieldSelector initial = ThingFieldSelector.fromString("thingId");
         final ThingFieldSelector result = ThingFieldSelector.fromJsonFieldSelector(initial);

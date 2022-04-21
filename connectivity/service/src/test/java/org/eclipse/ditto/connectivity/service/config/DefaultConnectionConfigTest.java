@@ -26,7 +26,6 @@ import org.eclipse.ditto.internal.models.signalenrichment.SignalEnrichmentConfig
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.SnapshotConfig;
 import org.eclipse.ditto.internal.utils.persistentactors.cleanup.CleanupConfig;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 
@@ -156,6 +155,10 @@ public final class DefaultConnectionConfigTest {
         softly.assertThat(underTest.areAllClientActorsOnOneNode())
                 .as(ConnectionConfig.ConnectionConfigValue.ALL_CLIENT_ACTORS_ON_ONE_NODE.getConfigPath())
                 .isEqualTo(true);
+
+        softly.assertThat(underTest.doubleDecodingEnabled())
+                .as(ConnectionConfig.ConnectionConfigValue.DOUBLE_DECODING_ENABLED.getConfigPath())
+                .isEqualTo(false);
     }
 
 }

@@ -70,14 +70,16 @@ final class SignalEnforcementFilter implements EnforcementFilter<Signal<?>> {
     @Override
     public void match(final Signal<?> filterInput) {
         final EntityId entityId = extractEntityId(filterInput)
-                        .orElseThrow(() -> getEnforcementFailedException(filterInput.getDittoHeaders()));
+                .orElseThrow(() -> getEnforcementFailedException(filterInput.getDittoHeaders()));
         final List<UnresolvedPlaceholderException> exceptions = new LinkedList<>();
 
         for (final Placeholder<EntityId> filterPlaceholder : filterPlaceholders) {
             for (final String filter : enforcement.getFilters()) {
                 try {
-                    final String resolved = PlaceholderFilter.apply(filter, entityId, filterPlaceholder);
-                    if (inputValue.equals(resolved)) {
+                    final boolean anyResolvedToInputValue = PlaceholderFilter.applyForAll(filter, entityId, filterPlaceholder)
+                            .stream()
+                            .anyMatch(inputValue::equals);
+                    if (anyResolvedToInputValue) {
                         return;
                     }
                 } catch (final UnresolvedPlaceholderException unresolved) {
@@ -143,4 +145,5 @@ final class SignalEnforcementFilter implements EnforcementFilter<Signal<?>> {
                 ", inputValue=" + inputValue +
                 "]";
     }
+
 }

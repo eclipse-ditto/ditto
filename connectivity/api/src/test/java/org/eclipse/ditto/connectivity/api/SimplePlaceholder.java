@@ -14,7 +14,6 @@ package org.eclipse.ditto.connectivity.api;
 
 import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
 
 import org.eclipse.ditto.placeholders.Placeholder;
 import org.eclipse.ditto.utils.jsr305.annotations.AllParametersAndReturnValuesAreNonnullByDefault;
@@ -48,7 +47,7 @@ class SimplePlaceholder implements Placeholder<String> {
     }
 
     @Override
-    public Optional<String> resolve(final String placeholderSource, final String name) {
-        return supports(name) ? Optional.of(placeholderSource) : Optional.empty();
+    public List<String> resolveValues(final String placeholderSource, final String name) {
+        return supports(name) ? Collections.singletonList(placeholderSource) : Collections.emptyList();
     }
 }

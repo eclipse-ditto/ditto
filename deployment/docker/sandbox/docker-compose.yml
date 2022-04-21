@@ -14,6 +14,7 @@ services:
   mongodb:
     image: docker.io/mongo:4.2
     mem_limit: 256m
+    cpu_shares: 100
     restart: always
     networks:
       default:
@@ -28,6 +29,7 @@ services:
   policies:
     image: docker.io/eclipse/ditto-policies:${DITTO_VERSION:-latest}
     mem_limit: 512m
+    cpu_shares: 200
     restart: always
     networks:
       default:
@@ -36,18 +38,19 @@ services:
     environment:
       - TZ=Europe/Berlin
       - BIND_HOSTNAME=0.0.0.0
-      - JAVA_TOOL_OPTIONS=-XX:+ExitOnOutOfMemoryError -XX:+UseContainerSupport -XX:+UseStringDeduplication -Xss512k -XX:MaxRAMPercentage=50 -XX:+UseG1GC -XX:MaxGCPauseMillis=150 -Dakka.coordinated-shutdown.exit-jvm=on -Dakka.cluster.shutdown-after-unsuccessful-join-seed-nodes=180s -Dakka.cluster.failure-detector.threshold=15.0 -Dakka.cluster.failure-detector.expected-response-after=10s -Dakka.cluster.failure-detector.acceptable-heartbeat-pause=20s
+      - JAVA_TOOL_OPTIONS=-XX:ActiveProcessorCount=1 -XX:+ExitOnOutOfMemoryError -XX:+UseContainerSupport -XX:+UseStringDeduplication -Xss512k -XX:MaxRAMPercentage=50 -XX:+UseG1GC -XX:MaxGCPauseMillis=500 -Dakka.coordinated-shutdown.exit-jvm=on -Dakka.cluster.shutdown-after-unsuccessful-join-seed-nodes=280s -Dakka.cluster.failure-detector.threshold=15.0 -Dakka.cluster.failure-detector.expected-response-after=10s -Dakka.cluster.failure-detector.acceptable-heartbeat-pause=20s -Dakka.cluster.downing-provider-class=""
       - MONGO_DB_HOSTNAME=mongodb
     healthcheck:
       test: curl --fail `hostname`:8558/alive || exit 1
       interval: 30s
       timeout: 15s
       retries: 4
-      start_period: 180s
+      start_period: 300s
 
   things:
     image: docker.io/eclipse/ditto-things:${DITTO_VERSION:-latest}
     mem_limit: 512m
+    cpu_shares: 200
     restart: always
     networks:
       default:
@@ -60,18 +63,19 @@ services:
       - BIND_HOSTNAME=0.0.0.0
       - DITTO_DEVOPS_FEATURE_WOT_INTEGRATION_ENABLED=true
       - THINGS_WOT_TO_THING_DESCRIPTION_BASE_PREFIX=https://ditto.eclipseprojects.io
-      - JAVA_TOOL_OPTIONS=-XX:+ExitOnOutOfMemoryError -XX:+UseContainerSupport -XX:+UseStringDeduplication -Xss512k -XX:MaxRAMPercentage=50 -XX:+UseG1GC -XX:MaxGCPauseMillis=150 -Dakka.coordinated-shutdown.exit-jvm=on -Dakka.cluster.shutdown-after-unsuccessful-join-seed-nodes=180s -Dakka.cluster.failure-detector.threshold=15.0 -Dakka.cluster.failure-detector.expected-response-after=10s -Dakka.cluster.failure-detector.acceptable-heartbeat-pause=20s
+      - JAVA_TOOL_OPTIONS=-XX:ActiveProcessorCount=1 -XX:+ExitOnOutOfMemoryError -XX:+UseContainerSupport -XX:+UseStringDeduplication -Xss512k -XX:MaxRAMPercentage=50 -XX:+UseG1GC -XX:MaxGCPauseMillis=500 -Dakka.coordinated-shutdown.exit-jvm=on -Dakka.cluster.shutdown-after-unsuccessful-join-seed-nodes=280s -Dakka.cluster.failure-detector.threshold=15.0 -Dakka.cluster.failure-detector.expected-response-after=10s -Dakka.cluster.failure-detector.acceptable-heartbeat-pause=20s -Dakka.cluster.downing-provider-class=""
       - MONGO_DB_HOSTNAME=mongodb
     healthcheck:
       test: curl --fail `hostname`:8558/alive || exit 1
       interval: 30s
       timeout: 15s
       retries: 4
-      start_period: 180s
+      start_period: 300s
 
   things-search:
     image: docker.io/eclipse/ditto-things-search:${DITTO_VERSION:-latest}
     mem_limit: 512m
+    cpu_shares: 200
     restart: always
     networks:
       default:
@@ -82,18 +86,19 @@ services:
     environment:
       - TZ=Europe/Berlin
       - BIND_HOSTNAME=0.0.0.0
-      - JAVA_TOOL_OPTIONS=-XX:+ExitOnOutOfMemoryError -XX:+UseContainerSupport -XX:+UseStringDeduplication -Xss512k -XX:MaxRAMPercentage=50 -XX:+UseG1GC -XX:MaxGCPauseMillis=150 -Dakka.coordinated-shutdown.exit-jvm=on -Dakka.cluster.shutdown-after-unsuccessful-join-seed-nodes=180s -Dakka.cluster.failure-detector.threshold=15.0 -Dakka.cluster.failure-detector.expected-response-after=10s -Dakka.cluster.failure-detector.acceptable-heartbeat-pause=20s
+      - JAVA_TOOL_OPTIONS=-XX:ActiveProcessorCount=1 -XX:+ExitOnOutOfMemoryError -XX:+UseContainerSupport -XX:+UseStringDeduplication -Xss512k -XX:MaxRAMPercentage=50 -XX:+UseG1GC -XX:MaxGCPauseMillis=500 -Dakka.coordinated-shutdown.exit-jvm=on -Dakka.cluster.shutdown-after-unsuccessful-join-seed-nodes=280s -Dakka.cluster.failure-detector.threshold=15.0 -Dakka.cluster.failure-detector.expected-response-after=10s -Dakka.cluster.failure-detector.acceptable-heartbeat-pause=20s -Dakka.cluster.downing-provider-class=""
       - MONGO_DB_HOSTNAME=mongodb
     healthcheck:
       test: curl --fail `hostname`:8558/alive || exit 1
       interval: 30s
       timeout: 15s
       retries: 4
-      start_period: 180s
+      start_period: 300s
 
   concierge:
     image: docker.io/eclipse/ditto-concierge:${DITTO_VERSION:-latest}
     mem_limit: 512m
+    cpu_shares: 200
     restart: always
     networks:
       default:
@@ -105,18 +110,19 @@ services:
       - TZ=Europe/Berlin
       - BIND_HOSTNAME=0.0.0.0
       - DITTO_DEVOPS_FEATURE_WOT_INTEGRATION_ENABLED=true
-      - JAVA_TOOL_OPTIONS=-XX:+ExitOnOutOfMemoryError -XX:+UseContainerSupport -XX:+UseStringDeduplication -Xss512k -XX:MaxRAMPercentage=50 -XX:+UseG1GC -XX:MaxGCPauseMillis=150 -Dakka.coordinated-shutdown.exit-jvm=on -Dakka.cluster.shutdown-after-unsuccessful-join-seed-nodes=180s -Dakka.cluster.failure-detector.threshold=15.0 -Dakka.cluster.failure-detector.expected-response-after=10s -Dakka.cluster.failure-detector.acceptable-heartbeat-pause=20s
+      - JAVA_TOOL_OPTIONS=-XX:ActiveProcessorCount=1 -XX:+ExitOnOutOfMemoryError -XX:+UseContainerSupport -XX:+UseStringDeduplication -Xss512k -XX:MaxRAMPercentage=50 -XX:+UseG1GC -XX:MaxGCPauseMillis=500 -Dakka.coordinated-shutdown.exit-jvm=on -Dakka.cluster.shutdown-after-unsuccessful-join-seed-nodes=280s -Dakka.cluster.failure-detector.threshold=15.0 -Dakka.cluster.failure-detector.expected-response-after=10s -Dakka.cluster.failure-detector.acceptable-heartbeat-pause=20s -Dakka.cluster.downing-provider-class=""
       - MONGO_DB_HOSTNAME=mongodb
     healthcheck:
       test: curl --fail `hostname`:8558/alive || exit 1
       interval: 30s
       timeout: 15s
       retries: 4
-      start_period: 180s
+      start_period: 300s
 
   connectivity:
     image: docker.io/eclipse/ditto-connectivity:${DITTO_VERSION:-latest}
     mem_limit: 768m
+    cpu_shares: 300
     restart: always
     networks:
       default:
@@ -130,18 +136,19 @@ services:
       - BIND_HOSTNAME=0.0.0.0
       - DITTO_DEVOPS_FEATURE_WOT_INTEGRATION_ENABLED=true
       # if connections to rabbitmq broker are used, you might want to disable ExitOnOutOfMemoryError, because the amqp-client has a bug throwing OOM exceptions and causing a restart loop
-      - JAVA_TOOL_OPTIONS=-XX:+ExitOnOutOfMemoryError -XX:+UseContainerSupport -XX:+UseStringDeduplication -Xss512k -XX:MaxRAMPercentage=50 -XX:+UseG1GC -XX:MaxGCPauseMillis=150 -Dakka.coordinated-shutdown.exit-jvm=on -Dakka.cluster.shutdown-after-unsuccessful-join-seed-nodes=180s -Dakka.cluster.failure-detector.threshold=15.0 -Dakka.cluster.failure-detector.expected-response-after=10s -Dakka.cluster.failure-detector.acceptable-heartbeat-pause=20s
+      - JAVA_TOOL_OPTIONS=-XX:ActiveProcessorCount=1 -XX:+ExitOnOutOfMemoryError -XX:+UseContainerSupport -XX:+UseStringDeduplication -Xss512k -XX:MaxRAMPercentage=50 -XX:+UseG1GC -XX:MaxGCPauseMillis=500 -Dakka.coordinated-shutdown.exit-jvm=on -Dakka.cluster.shutdown-after-unsuccessful-join-seed-nodes=280s -Dakka.cluster.failure-detector.threshold=15.0 -Dakka.cluster.failure-detector.expected-response-after=10s -Dakka.cluster.failure-detector.acceptable-heartbeat-pause=20s -Dakka.cluster.downing-provider-class=""
       - MONGO_DB_HOSTNAME=mongodb
     healthcheck:
       test: curl --fail `hostname`:8558/alive || exit 1
       interval: 30s
       timeout: 15s
       retries: 4
-      start_period: 180s
+      start_period: 300s
 
   gateway:
     image: docker.io/eclipse/ditto-gateway:${DITTO_VERSION:-latest}
     mem_limit: 512m
+    cpu_shares: 200
     restart: always
     networks:
       default:
@@ -156,17 +163,18 @@ services:
       - ENABLE_PRE_AUTHENTICATION=true
       - DEVOPS_SECURE_STATUS=false
       - DITTO_DEVOPS_FEATURE_WOT_INTEGRATION_ENABLED=true
-      - JAVA_TOOL_OPTIONS=-XX:+ExitOnOutOfMemoryError -XX:+UseContainerSupport -XX:+UseStringDeduplication -Xss512k -XX:MaxRAMPercentage=50 -XX:+UseG1GC -XX:MaxGCPauseMillis=150 -Dakka.coordinated-shutdown.exit-jvm=on -Dakka.cluster.shutdown-after-unsuccessful-join-seed-nodes=180s -Dakka.cluster.failure-detector.threshold=15.0 -Dakka.cluster.failure-detector.expected-response-after=10s -Dakka.cluster.failure-detector.acceptable-heartbeat-pause=20s
+      - JAVA_TOOL_OPTIONS=-XX:ActiveProcessorCount=1 -XX:+ExitOnOutOfMemoryError -XX:+UseContainerSupport -XX:+UseStringDeduplication -Xss512k -XX:MaxRAMPercentage=50 -XX:+UseG1GC -XX:MaxGCPauseMillis=500 -Dakka.coordinated-shutdown.exit-jvm=on -Dakka.cluster.shutdown-after-unsuccessful-join-seed-nodes=280s -Dakka.cluster.failure-detector.threshold=15.0 -Dakka.cluster.failure-detector.expected-response-after=10s -Dakka.cluster.failure-detector.acceptable-heartbeat-pause=20s -Dakka.cluster.downing-provider-class=""
     healthcheck:
       test: curl --fail `hostname`:8558/alive || exit 1
       interval: 30s
       timeout: 15s
       retries: 4
-      start_period: 180s
+      start_period: 300s
 
   swagger-ui:
     image: docker.io/swaggerapi/swagger-ui:v3.38.0
     mem_limit: 32m
+    cpu_shares: 50
     restart: always
     volumes:
        - ../../../documentation/src/main/resources/openapi:/usr/share/nginx/html/openapi:ro
@@ -183,8 +191,9 @@ services:
 #       - ./nodered/flows-ditto.json:/data/flows-ditto.json:rw
 
   nginx:
-    image: docker.io/nginx:1.13-alpine
+    image: docker.io/nginx:1.21-alpine
     mem_limit: 32m
+    cpu_shares: 100
     restart: always
     volumes:
        - ./nginx.conf:/etc/nginx/nginx.conf:ro
@@ -203,3 +212,20 @@ services:
     depends_on:
       - gateway
       - swagger-ui
+    healthcheck:
+      test: wget --no-verbose --tries=1 --spider http://localhost/status || exit 1
+      interval: 30s
+      timeout: 15s
+      retries: 60
+      start_period: 120s
+
+  autoheal:
+    image: willfarrell/autoheal
+    mem_limit: 32m
+    restart: always
+    volumes:
+      - '/var/run/docker.sock:/var/run/docker.sock'
+    environment:
+      - AUTOHEAL_CONTAINER_LABEL=all
+      - AUTOHEAL_INTERVAL=10
+      - CURL_TIMEOUT=30

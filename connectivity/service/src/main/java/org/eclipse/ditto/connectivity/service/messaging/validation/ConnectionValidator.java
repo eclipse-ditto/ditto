@@ -172,7 +172,7 @@ public final class ConnectionValidator {
 
         if (!ackLabel.isFullyResolved()) {
             return connectionIdResolver.resolve(ackLabel.toString())
-                    .toOptional()
+                    .findFirst()
                     .map(AcknowledgementLabel::of);
         } else {
             return Optional.of(ackLabel);

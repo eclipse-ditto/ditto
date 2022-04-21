@@ -10,13 +10,12 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.connectivity.api.placeholders;
+package org.eclipse.ditto.edge.api.placeholders;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
 import org.eclipse.ditto.things.model.ThingId;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.mutabilitydetector.unittesting.MutabilityAssert;
 import org.mutabilitydetector.unittesting.MutabilityMatchers;
@@ -55,34 +54,34 @@ public class ImmutableThingPlaceholderTest {
 
     @Test
     public void testReplaceThingId() {
-        assertThat(UNDER_TEST.resolve(THING_ID, "id")).contains(THING_ID.toString());
+        assertThat(UNDER_TEST.resolveValues(THING_ID, "id")).contains(THING_ID.toString());
     }
 
     @Test
     public void testReplaceThingName() {
-        assertThat(UNDER_TEST.resolve(THING_ID, "name")).contains(NAME);
+        assertThat(UNDER_TEST.resolveValues(THING_ID, "name")).contains(NAME);
     }
 
     @Test
     public void testReplaceThingNamespace() {
-        assertThat(UNDER_TEST.resolve(THING_ID, "namespace")).contains(NAMESPACE);
+        assertThat(UNDER_TEST.resolveValues(THING_ID, "namespace")).contains(NAMESPACE);
     }
 
     @Test
     public void testUnknownPlaceholderReturnsEmpty() {
-        assertThat(UNDER_TEST.resolve(THING_ID, "thing_id")).isEmpty();
+        assertThat(UNDER_TEST.resolveValues(THING_ID, "thing_id")).isEmpty();
     }
 
     @Test
     public void testResolvingWithNull() {
         assertThatExceptionOfType(NullPointerException.class)
-                .isThrownBy(() -> UNDER_TEST.resolve(THING_ID, null));
+                .isThrownBy(() -> UNDER_TEST.resolveValues(THING_ID, null));
     }
 
     @Test
     public void testResolvingWithEmptyString() {
         assertThatExceptionOfType(IllegalArgumentException.class)
-                .isThrownBy(() -> UNDER_TEST.resolve(THING_ID, ""));
+                .isThrownBy(() -> UNDER_TEST.resolveValues(THING_ID, ""));
     }
 
 }

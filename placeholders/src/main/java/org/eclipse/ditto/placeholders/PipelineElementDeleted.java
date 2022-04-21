@@ -14,6 +14,7 @@ package org.eclipse.ditto.placeholders;
 
 import java.util.Collections;
 import java.util.Iterator;
+import java.util.List;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -49,6 +50,16 @@ final class PipelineElementDeleted implements PipelineElement {
     @Override
     public PipelineElement onDeleted(final Supplier<PipelineElement> nextPipelineElement) {
         return nextPipelineElement.get();
+    }
+
+    @Override
+    public PipelineElement concat(final PipelineElement pipelineElement) {
+        return this;
+    }
+
+    @Override
+    public <T> List<T> evaluate(final PipelineElementVisitor<T> visitor) {
+        return Collections.singletonList(visitor.deleted());
     }
 
     @Override

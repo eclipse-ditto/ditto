@@ -17,7 +17,6 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -171,9 +170,7 @@ public class CreateBsonPredicateVisitor implements PredicateVisitor<Function<Str
             return additionalPlaceholderResolvers.stream()
                     .filter(pr -> prefix.equals(pr.getPrefix()))
                     .filter(pr -> pr.supports(name))
-                    .map(pr -> pr.resolve(name))
-                    .filter(Optional::isPresent)
-                    .map(Optional::get)
+                    .flatMap(pr -> pr.resolveValues(name).stream())
                     .findFirst()
                     .orElse(null);
         }

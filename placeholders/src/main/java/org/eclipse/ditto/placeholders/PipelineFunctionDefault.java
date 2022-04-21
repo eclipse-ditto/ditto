@@ -14,7 +14,6 @@ package org.eclipse.ditto.placeholders;
 
 import java.util.Collections;
 import java.util.List;
-import java.util.stream.Stream;
 
 import javax.annotation.concurrent.Immutable;
 
@@ -45,13 +44,6 @@ final class PipelineFunctionDefault implements PipelineFunction {
         // evaluate parameter first to fail fast.
         final PipelineElement parameter = parseAndResolveThrow(paramsIncludingParentheses, expressionResolver);
         return value.onUnresolved(() -> parameter);
-    }
-
-    @Override
-    public Stream<PipelineElement> applyStreaming(final PipelineElement value, final String paramsIncludingParentheses,
-            final ExpressionResolver expressionResolver) {
-
-        return Stream.of(apply(value, paramsIncludingParentheses, expressionResolver));
     }
 
     private PipelineElement parseAndResolveThrow(final String paramsIncludingParentheses,

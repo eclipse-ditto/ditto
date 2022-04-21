@@ -18,42 +18,30 @@ import static org.eclipse.ditto.connectivity.api.placeholders.ConnectivityPlaceh
 import static org.eclipse.ditto.connectivity.api.placeholders.ConnectivityPlaceholders.newThingPlaceholder;
 
 import java.text.MessageFormat;
-import java.util.AbstractMap;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
-import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.IntPredicate;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.connectivity.api.EnforcementFactoryFactory;
 import org.eclipse.ditto.connectivity.api.placeholders.SourceAddressPlaceholder;
-import org.eclipse.ditto.connectivity.api.placeholders.ThingPlaceholder;
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.ConnectionConfigurationInvalidException;
 import org.eclipse.ditto.connectivity.model.Enforcement;
+import org.eclipse.ditto.connectivity.model.FilteredTopic;
 import org.eclipse.ditto.connectivity.model.Source;
 import org.eclipse.ditto.connectivity.model.Target;
 import org.eclipse.ditto.connectivity.service.config.MqttConfig;
 import org.eclipse.ditto.connectivity.service.messaging.Resolvers;
 import org.eclipse.ditto.connectivity.service.messaging.validation.AbstractProtocolValidator;
-import org.eclipse.ditto.placeholders.ExpressionResolver;
-import org.eclipse.ditto.placeholders.Placeholder;
-import org.eclipse.ditto.placeholders.PlaceholderFactory;
 import org.eclipse.ditto.placeholders.PlaceholderFilter;
-import org.eclipse.ditto.placeholders.UnresolvedPlaceholderException;
-import org.eclipse.ditto.things.model.ThingId;
 
 import com.hivemq.client.internal.util.UnsignedDataTypes;
 import com.hivemq.client.mqtt.datatypes.MqttQos;
@@ -72,8 +60,8 @@ public abstract class AbstractMqttValidator extends AbstractProtocolValidator {
     protected static final Collection<String> ACCEPTED_SCHEMES = List.of("tcp", "ssl");
     protected static final Collection<String> SECURE_SCHEMES = List.of("ssl");
 
-    private static final String ERROR_DESCRIPTION = "''{0}'' is not a valid value for MQTT enforcement. Valid" +
-            " values are: ''{1}''.";
+    private static final String ERROR_DESCRIPTION =
+            "''{0}'' is not a valid value for MQTT enforcement. Valid" + " values are: ''{1}''.";
 
     private final MqttConfig mqttConfig;
 
@@ -88,9 +76,7 @@ public abstract class AbstractMqttValidator extends AbstractProtocolValidator {
         if (qos.isEmpty()) {
             final String message =
                     MessageFormat.format("MQTT Source <{0}> must contain QoS value.", sourceDescription.get());
-            throw ConnectionConfigurationInvalidException.newBuilder(message)
-                    .dittoHeaders(dittoHeaders)
-                    .build();
+            throw ConnectionConfigurationInvalidException.newBuilder(message).dittoHeaders(dittoHeaders).build();
         }
 
         validateSourceQoS(qos.get(), dittoHeaders, sourceDescription);
@@ -104,13 +90,12 @@ public abstract class AbstractMqttValidator extends AbstractProtocolValidator {
         if (qos.isEmpty()) {
             final String message =
                     MessageFormat.format("MQTT Target <{0}> must contain QoS value.", targetDescription.get());
-            throw ConnectionConfigurationInvalidException.newBuilder(message)
-                    .dittoHeaders(dittoHeaders)
-                    .build();
+            throw ConnectionConfigurationInvalidException.newBuilder(message).dittoHeaders(dittoHeaders).build();
         }
 
         validateTargetQoS(qos.get(), dittoHeaders, targetDescription);
         validateTemplate(target.getAddress(), dittoHeaders, Resolvers.getPlaceholders());
+        validateExtraFields(target);
     }
 
     /**
@@ -120,14 +105,11 @@ public abstract class AbstractMqttValidator extends AbstractProtocolValidator {
      * @return quality of service.
      */
     public static MqttQos getHiveQoS(final int qos) {
-        switch (qos) {
-            case 1:
-                return MqttQos.AT_LEAST_ONCE;
-            case 2:
-                return MqttQos.EXACTLY_ONCE;
-            default:
-                return MqttQos.AT_MOST_ONCE;
-        }
+        return switch (qos) {
+            case 1 -> MqttQos.AT_LEAST_ONCE;
+            case 2 -> MqttQos.EXACTLY_ONCE;
+            default -> MqttQos.AT_MOST_ONCE;
+        };
     }
 
     protected static void validateSourceEnforcement(@Nullable final Enforcement enforcement,
@@ -135,25 +117,7 @@ public abstract class AbstractMqttValidator extends AbstractProtocolValidator {
         if (enforcement != null) {
 
             validateEnforcementInput(enforcement, sourceDescription, dittoHeaders);
-
-            final ThingId dummyThingId = ThingId.of("namespace", "name");
-            final Map<String, String> filtersMap =
-                    applyEntityPlaceholderToAddresses(enforcement.getFilters(),
-                            dummyThingId, filter -> {
-                                throw invalidValueForConfig(filter, "filters", sourceDescription.get())
-                                        .description("Placeholder substitution failed. " +
-                                                "Please check the placeholder variables against the documentation.")
-                                        .dittoHeaders(dittoHeaders)
-                                        .build();
-                            });
-            filtersMap.forEach((filter, mqttTopic) ->
-                    validateMqttTopic(mqttTopic, true, errorMessage ->
-                            invalidValueForConfig(filter, "filters", sourceDescription.get())
-                                    .description(
-                                            "The filter is not a valid MQTT topic after placeholder substitution. " +
-                                                    "Wildcard characters are allowed.")
-                                    .dittoHeaders(dittoHeaders)
-                                    .build()));
+            validateEnforcementFilters(enforcement.getFilters(), sourceDescription, dittoHeaders);
         }
     }
 
@@ -161,12 +125,10 @@ public abstract class AbstractMqttValidator extends AbstractProtocolValidator {
             final Supplier<String> sourceDescription, final DittoHeaders dittoHeaders) {
         final SourceAddressPlaceholder sourceAddressPlaceholder = newSourceAddressPlaceholder();
         try {
-            EnforcementFactoryFactory
-                    .newEnforcementFilterFactory(enforcement, sourceAddressPlaceholder)
+            EnforcementFactoryFactory.newEnforcementFilterFactory(enforcement, sourceAddressPlaceholder)
                     .getFilter("dummyTopic");
         } catch (final DittoRuntimeException e) {
-            throw invalidValueForConfig(enforcement.getInput(), "input", sourceDescription.get())
-                    .cause(e)
+            throw invalidValueForConfig(enforcement.getInput(), "input", sourceDescription.get()).cause(e)
                     .description(MessageFormat.format(ERROR_DESCRIPTION, enforcement.getInput(),
                             sourceAddressPlaceholder.getSupportedNames()))
                     .dittoHeaders(dittoHeaders)
@@ -177,8 +139,7 @@ public abstract class AbstractMqttValidator extends AbstractProtocolValidator {
     /*
      * MQTT Source does not support exactly-once delivery.
      */
-    protected static void validateSourceQoS(final int qos,
-            final DittoHeaders dittoHeaders,
+    protected static void validateSourceQoS(final int qos, final DittoHeaders dittoHeaders,
             final Supplier<String> errorSiteDescription) {
 
         validateQoS(qos, dittoHeaders, errorSiteDescription, i -> 0 <= i && i <= 2);
@@ -187,8 +148,7 @@ public abstract class AbstractMqttValidator extends AbstractProtocolValidator {
     /*
      * MQTT Sink supports quality-of-service 0, 1, 2.
      */
-    protected static void validateTargetQoS(final int qos,
-            final DittoHeaders dittoHeaders,
+    protected static void validateTargetQoS(final int qos, final DittoHeaders dittoHeaders,
             final Supplier<String> errorSiteDescription) {
 
         validateQoS(qos, dittoHeaders, errorSiteDescription, i -> 0 <= i && i <= 2);
@@ -198,9 +158,7 @@ public abstract class AbstractMqttValidator extends AbstractProtocolValidator {
             final Supplier<String> errorSiteDescription, final IntPredicate predicate) {
 
         if (!predicate.test(qos)) {
-            throw invalidValueForConfig(qos, QOS, errorSiteDescription.get())
-                    .dittoHeaders(dittoHeaders)
-                    .build();
+            throw invalidValueForConfig(qos, QOS, errorSiteDescription.get()).dittoHeaders(dittoHeaders).build();
         }
     }
 
@@ -210,10 +168,7 @@ public abstract class AbstractMqttValidator extends AbstractProtocolValidator {
                 .flatMap(source -> source.getAddresses().stream())
                 .forEach(a -> validateAddress(a, true, dittoHeaders));
         // no wildcards allowed for publish targets
-        connection.getTargets()
-                .stream()
-                .map(Target::getAddress)
-                .forEach(a -> validateAddress(a, false, dittoHeaders));
+        connection.getTargets().stream().map(Target::getAddress).forEach(a -> validateAddress(a, false, dittoHeaders));
     }
 
     protected void validateSpecificConfig(final Connection connection, final DittoHeaders dittoHeaders) {
@@ -221,9 +176,8 @@ public abstract class AbstractMqttValidator extends AbstractProtocolValidator {
         mqttSpecificConfig.getKeepAliveInterval().ifPresent(keepAlive -> {
             final long seconds = keepAlive.toSeconds();
             if (!UnsignedDataTypes.isUnsignedShort(seconds)) {
-                throw ConnectionConfigurationInvalidException
-                        .newBuilder("Keep alive interval '" + seconds +
-                                "' is not within the allowed range of [0, 65535] seconds.")
+                throw ConnectionConfigurationInvalidException.newBuilder(
+                                "Keep alive interval '" + seconds + "' is not within the allowed range of [0, 65535] seconds.")
                         .description("Please adjust the interval to be within the allowed range.")
                         .dittoHeaders(dittoHeaders)
                         .build();
@@ -241,9 +195,7 @@ public abstract class AbstractMqttValidator extends AbstractProtocolValidator {
             final DittoHeaders dittoHeaders) {
         validateMqttTopic(address, wildcardAllowed, errorMessage -> {
             final String message = MessageFormat.format(INVALID_TOPIC_FORMAT, address, errorMessage);
-            return ConnectionConfigurationInvalidException.newBuilder(message)
-                    .dittoHeaders(dittoHeaders)
-                    .build();
+            return ConnectionConfigurationInvalidException.newBuilder(message).dittoHeaders(dittoHeaders).build();
         });
     }
 
@@ -264,61 +216,34 @@ public abstract class AbstractMqttValidator extends AbstractProtocolValidator {
     }
 
     private static ConnectionConfigurationInvalidException.Builder invalidValueForConfig(final Object value,
-            final String configName,
-            final String location) {
+            final String configName, final String location) {
 
-        final String message = MessageFormat.format("Invalid value ''{0}'' for configuration ''{1}'' in {2}",
-                value, configName, location);
+        final String message =
+                MessageFormat.format("Invalid value ''{0}'' for configuration ''{1}'' in {2}", value, configName,
+                        location);
         return ConnectionConfigurationInvalidException.newBuilder(message);
     }
 
     /**
-     * Apply {@link ThingPlaceholder}s to addresses and collect the result as a map.
+     * Validates that enforcementFilters are valid Strings or Placeholders.
      *
-     * @param addresses addresses to apply placeholder substitution.
-     * @param entityId the entity ID.
-     * @param unresolvedPlaceholderListener what to do if placeholder substitution fails.
-     * @return map from successfully filtered addresses to the result of placeholder substitution.
-     * @throws UnresolvedPlaceholderException if not all placeholders could be resolved
+     * @param enforcementFilters enforcementFilters to apply placeholder substitution.
      */
-    private static <T extends EntityId> Map<String, String> applyEntityPlaceholderToAddresses(
-            final Collection<String> addresses,
-            final T entityId,
-            final Consumer<String> unresolvedPlaceholderListener) {
-
-        return addresses.stream()
-                .flatMap(address -> {
-                    final String filteredAddress =
-                            applyEntityPlaceholder(address, entityId, unresolvedPlaceholderListener);
-                    return filteredAddress == null
-                            ? Stream.empty()
-                            : Stream.of(new AbstractMap.SimpleEntry<>(address, filteredAddress));
-                })
-                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
-    }
-
-    @Nullable
-    private static <T extends EntityId> String applyEntityPlaceholder(final String address, final T entityId,
-            final Consumer<String> unresolvedPlaceholderListener) {
-
-        final List<Placeholder<EntityId>> placeholders = Arrays.asList(
-                newThingPlaceholder(),
-                newPolicyPlaceholder(),
-                newEntityPlaceholder()
-        );
-
-        for (final Placeholder<EntityId> placeholder : placeholders) {
-            try {
-                final ExpressionResolver expressionResolver =
-                        PlaceholderFactory.newExpressionResolver(placeholder, entityId);
-                return PlaceholderFilter.apply(address, expressionResolver);
-            } catch (final UnresolvedPlaceholderException e) {
-                // do nothing, next placeholder will be executed, unresolved placeholder will be reported if none of
-                // the placeholders can be applied successfully
-            }
+    private static void validateEnforcementFilters(final Collection<String> enforcementFilters,
+            final Supplier<String> sourceDescription,
+            final DittoHeaders dittoHeaders) {
+        try {
+            enforcementFilters.forEach(
+                    enforcementFilter -> PlaceholderFilter.validate(enforcementFilter, newThingPlaceholder(),
+                            newPolicyPlaceholder(), newEntityPlaceholder()));
+        } catch (final DittoRuntimeException dre) {
+            throw invalidValueForConfig(enforcementFilters, "filters", sourceDescription.get())
+                    .cause(dre)
+                    .description("Placeholder substitution failed. Please check the placeholder variables against " +
+                            "the documentation.")
+                    .dittoHeaders(dittoHeaders)
+                    .build();
         }
-
-        unresolvedPlaceholderListener.accept(address);
-        return null;
     }
+
 }
