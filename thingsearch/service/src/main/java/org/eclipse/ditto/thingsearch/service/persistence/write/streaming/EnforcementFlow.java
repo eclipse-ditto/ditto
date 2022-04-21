@@ -31,6 +31,7 @@ import org.eclipse.ditto.internal.utils.cache.entry.Entry;
 import org.eclipse.ditto.internal.utils.cacheloaders.EnforcementCacheKey;
 import org.eclipse.ditto.internal.utils.cacheloaders.PolicyCacheLoader;
 import org.eclipse.ditto.internal.utils.cacheloaders.config.AskWithRetryConfig;
+import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonRuntimeException;
 import org.eclipse.ditto.policies.model.Policy;
@@ -40,6 +41,8 @@ import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.events.ThingDeleted;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
+import org.eclipse.ditto.thingsearch.service.common.config.DittoSearchConfig;
+import org.eclipse.ditto.thingsearch.service.common.config.SearchConfig;
 import org.eclipse.ditto.thingsearch.service.common.config.StreamCacheConfig;
 import org.eclipse.ditto.thingsearch.service.common.config.StreamConfig;
 import org.eclipse.ditto.thingsearch.service.persistence.write.mapping.EnforcedThingMapper;
@@ -76,6 +79,7 @@ final class EnforcementFlow {
     private final Cache<EnforcementCacheKey, Entry<Policy>> policyEnforcerCache;
     private final Duration cacheRetryDelay;
     private final SearchUpdateObserver searchUpdateObserver;
+    private final int maxArraySize;
 
     private EnforcementFlow(final ActorSystem actorSystem,
             final ActorRef thingsShardRegion,
@@ -89,6 +93,9 @@ final class EnforcementFlow {
         this.policyEnforcerCache = policyEnforcerCache;
         searchUpdateObserver = SearchUpdateObserver.get(actorSystem);
         cacheRetryDelay = thingCacheConfig.getRetryDelay();
+        final SearchConfig searchConfig =
+                DittoSearchConfig.of(DefaultScopedConfig.dittoScoped(actorSystem.settings().config()));
+        maxArraySize = searchConfig.getUpdaterConfig().getStreamConfig().getMaxArraySize();
     }
 
     /**
@@ -237,8 +244,7 @@ final class EnforcementFlow {
                         if (entry.exists()) {
                             try {
                                 return EnforcedThingMapper.toWriteModel(thing, entry.getValueOrThrow(),
-                                        entry.getRevision(),
-                                        metadata);
+                                        entry.getRevision(), metadata, maxArraySize);
                             } catch (final JsonRuntimeException e) {
                                 log.error(e.getMessage(), e);
                                 log.info(

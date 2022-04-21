@@ -74,7 +74,7 @@ public final class TestSearchUpdaterStream {
 
         final JsonObject thingJson = thing.toJson(FieldType.all());
         final AbstractWriteModel writeModel = EnforcedThingMapper.toWriteModel(thingJson, policy, policyRevision,
-                null);
+                null, -1);
         final var mongoWriteModel =
                 writeModel.toIncrementalMongo(
                         ThingDeleteModel.of(Metadata.ofDeleted(thing.getEntityId().orElseThrow()))).orElseThrow();

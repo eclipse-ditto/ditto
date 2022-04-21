@@ -63,7 +63,7 @@ public final class EnforcedThingMapper {
      * @return BSON document to write into the search index.
      * @throws org.eclipse.ditto.json.JsonMissingFieldException if Thing ID or revision is missing.
      */
-    public static BsonDocument mapThing(final JsonObject thing, final Policy policy, final long policyRevision) {
+    static BsonDocument mapThing(final JsonObject thing, final Policy policy, final long policyRevision) {
         return toWriteModel(thing, policy, policyRevision).getThingDocument();
     }
 
@@ -80,7 +80,7 @@ public final class EnforcedThingMapper {
             final Policy policy,
             final long policyRevision) {
 
-        return toWriteModel(thing, policy, policyRevision, null);
+        return toWriteModel(thing, policy, policyRevision, null, -1);
     }
 
     /**
@@ -90,13 +90,14 @@ public final class EnforcedThingMapper {
      * @param policy the policy-enforcer of the Thing.
      * @param policyRevision revision of the policy for an policy enforcer.
      * @param oldMetadata the metadata that triggered the search update, possibly containing sender information.
+     * @param maxArraySize only arrays smaller than this are indexed.
      * @return BSON document to write into the search index.
      * @throws org.eclipse.ditto.json.JsonMissingFieldException if Thing ID or revision is missing.
      */
     public static ThingWriteModel toWriteModel(final JsonObject thing,
             final Policy policy,
             final long policyRevision,
-            @Nullable final Metadata oldMetadata) {
+            @Nullable final Metadata oldMetadata, final int maxArraySize) {
 
         final String extractedThing = thing.getValueOrThrow(Thing.JsonFields.ID);
         final var thingId = ThingId.of(extractedThing);
@@ -111,17 +112,20 @@ public final class EnforcedThingMapper {
                         .orElse(List.of(UpdateReason.UNKNOWN))
         );
 
-        return ThingWriteModel.of(metadata, toBsonDocument(thing, policy, metadata));
+        return ThingWriteModel.of(metadata, toBsonDocument(thing, policy, metadata, maxArraySize));
     }
 
-    static BsonDocument toBsonDocument(final JsonObject thing,
-            final Policy policy,
-            final Metadata metadata) {
+    static BsonDocument toBsonDocument(final JsonObject thing, final Policy policy, final Metadata metadata) {
+        return toBsonDocument(thing, policy, metadata, -1);
+    }
 
+    static BsonDocument toBsonDocument(final JsonObject thing, final Policy policy, final Metadata metadata, final int maxArraySize) {
+
+        final var enforced = IndexLengthRestrictionEnforcerVisitor.enforce(thing, maxArraySize);
         final var thingId = metadata.getThingId();
         final var thingRevision = metadata.getThingRevision();
         final var policyRevision = metadata.getPolicyRevision().orElse(0L);
-        final var thingBson = DittoBsonJson.getInstance().parse(thing);
+        final var thingBson = DittoBsonJson.getInstance().parse(enforced);
         final var evaluatedPolicy = EvaluatedPolicy.of(policy, thing);
         final var featureArray = getFeatureArray(thing, evaluatedPolicy);
 
