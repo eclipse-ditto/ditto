@@ -30,7 +30,7 @@ public final class JwtAuthenticationFactory {
     private final OAuthConfig oAuthConfig;
     private final CacheConfig publicKeyCacheConfig;
     private final HttpClientFacade httpClientFacade;
-    private final JwtAuthorizationSubjectsProviderFactory jwtAuthorizationSubjectsProviderFactory;
+    private final JwtAuthorizationSubjectsProvider jwtAuthorizationSubjectsProvider;
 
     @Nullable private JwtValidator jwtValidator;
     @Nullable private JwtSubjectIssuersConfig jwtSubjectIssuersConfig;
@@ -39,13 +39,13 @@ public final class JwtAuthenticationFactory {
     private JwtAuthenticationFactory(final OAuthConfig oAuthConfig,
             final CacheConfig publicKeyCacheConfig,
             final HttpClientFacade httpClientFacade,
-            final JwtAuthorizationSubjectsProviderFactory jwtAuthorizationSubjectsProviderFactory) {
+            final JwtAuthorizationSubjectsProvider jwtAuthorizationSubjectsProvider) {
 
         this.oAuthConfig = checkNotNull(oAuthConfig, "authenticationConfig");
         this.publicKeyCacheConfig = checkNotNull(publicKeyCacheConfig, "publicKeyCacheConfig");
         this.httpClientFacade = checkNotNull(httpClientFacade, "httpClientFacade");
-        this.jwtAuthorizationSubjectsProviderFactory =
-                checkNotNull(jwtAuthorizationSubjectsProviderFactory, "jwtAuthorizationSubjectsProviderFactory");
+        this.jwtAuthorizationSubjectsProvider =
+                checkNotNull(jwtAuthorizationSubjectsProvider, "jwtAuthorizationSubjectsProvider");
     }
 
     /**
@@ -54,16 +54,16 @@ public final class JwtAuthenticationFactory {
      * @param oAuthConfig the OAuth configuration.
      * @param publicKeyCacheConfig the public key cache configuration.
      * @param httpClientFacade the client facade of the HTTP client.
-     * @param jwtAuthorizationSubjectsProviderFactory used to instantiate a new auth subjects provider.
+     * @param jwtAuthorizationSubjectsProvider the subjects provider.
      * @return the new created instance.
      */
     public static JwtAuthenticationFactory newInstance(final OAuthConfig oAuthConfig,
             final CacheConfig publicKeyCacheConfig,
             final HttpClientFacade httpClientFacade,
-            final JwtAuthorizationSubjectsProviderFactory jwtAuthorizationSubjectsProviderFactory) {
+            final JwtAuthorizationSubjectsProvider jwtAuthorizationSubjectsProvider) {
 
         return new JwtAuthenticationFactory(oAuthConfig, publicKeyCacheConfig, httpClientFacade,
-                jwtAuthorizationSubjectsProviderFactory);
+                jwtAuthorizationSubjectsProvider);
     }
 
     public JwtValidator getJwtValidator() {
@@ -94,10 +94,7 @@ public final class JwtAuthenticationFactory {
     }
 
     public JwtAuthenticationResultProvider newJwtAuthenticationResultProvider() {
-        final var authorizationSubjectsProvider =
-               jwtAuthorizationSubjectsProviderFactory.newProvider(getJwtSubjectIssuersConfig());
-
-        return DefaultJwtAuthenticationResultProvider.of(authorizationSubjectsProvider);
+        return DefaultJwtAuthenticationResultProvider.of(jwtAuthorizationSubjectsProvider);
     }
 
 }

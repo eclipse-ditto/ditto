@@ -29,28 +29,28 @@ import org.eclipse.ditto.placeholders.PipelineElement;
 import org.eclipse.ditto.placeholders.PlaceholderFactory;
 import org.eclipse.ditto.policies.model.SubjectId;
 
+import akka.actor.ActorSystem;
+
 /**
  * Implementation of {@link JwtAuthorizationSubjectsProvider} for Google JWTs.
  */
 @Immutable
-public final class DittoJwtAuthorizationSubjectsProvider implements JwtAuthorizationSubjectsProvider {
+public final class DittoJwtAuthorizationSubjectsProvider extends JwtAuthorizationSubjectsProvider {
 
     private final JwtSubjectIssuersConfig jwtSubjectIssuersConfig;
 
-    private DittoJwtAuthorizationSubjectsProvider(final JwtSubjectIssuersConfig jwtSubjectIssuersConfig) {
-        this.jwtSubjectIssuersConfig = jwtSubjectIssuersConfig;
+    private DittoJwtAuthorizationSubjectsProvider(final ActorSystem actorSystem,
+            final JwtSubjectIssuersConfig jwtSubjectIssuersConfig) {
+
+        super(actorSystem);
+        this.jwtSubjectIssuersConfig = checkNotNull(jwtSubjectIssuersConfig);
     }
 
-    /**
-     * Returns a new {@code DittoAuthorizationSubjectsProvider}.
-     *
-     * @param jwtSubjectIssuersConfig the subject issuer configuration.
-     * @return the DittoAuthorizationSubjectsProvider.
-     * @throws NullPointerException if any argument is {@code null}.
-     */
-    public static DittoJwtAuthorizationSubjectsProvider of(final JwtSubjectIssuersConfig jwtSubjectIssuersConfig) {
+    public static DittoJwtAuthorizationSubjectsProvider of(final ActorSystem actorSystem,
+            final JwtSubjectIssuersConfig jwtSubjectIssuersConfig) {
+
         checkNotNull(jwtSubjectIssuersConfig);
-        return new DittoJwtAuthorizationSubjectsProvider(jwtSubjectIssuersConfig);
+        return new DittoJwtAuthorizationSubjectsProvider(actorSystem, jwtSubjectIssuersConfig);
     }
 
     @Override

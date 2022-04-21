@@ -54,7 +54,7 @@ public final class StatsRouteTest extends EndpointTestBase {
     private void setUp(final ActorRef proxyActor) {
         final var devopsJwtAuthenticationFactory =
                 JwtAuthenticationFactory.newInstance(devOpsConfig.getOAuthConfig(), cacheConfig, httpClientFacade,
-                        authorizationSubjectsProviderFactory);
+                        authorizationSubjectsProvider);
         final var jwtAuthenticationProvider = JwtAuthenticationProvider.newInstance(
                 devopsJwtAuthenticationFactory.newJwtAuthenticationResultProvider(),
                 devopsJwtAuthenticationFactory.getJwtValidator());

@@ -12,32 +12,56 @@
  */
 package org.eclipse.ditto.gateway.service.endpoints.routes;
 
+import java.util.List;
+
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
+import org.eclipse.ditto.gateway.service.util.config.DittoGatewayConfig;
+import org.eclipse.ditto.gateway.service.util.config.GatewayConfig;
+import org.eclipse.ditto.internal.utils.akka.AkkaClassLoader;
+import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 
+import akka.actor.AbstractExtensionId;
+import akka.actor.ActorSystem;
+import akka.actor.ExtendedActorSystem;
+import akka.actor.Extension;
 import akka.http.javadsl.server.Route;
 
 /**
  * Provider for custom routes.
  * You can distinguish between routes for unauthorized access and authorized access.
  */
-public interface CustomApiRoutesProvider {
+public abstract class CustomApiRoutesProvider implements Extension {
 
-    /**
-     * Provides a custom route for unauthorized access.
-     *
-     * @param apiVersion the API version.
-     * @param correlationId the correlation ID.
-     * @return custom route for unauthorized access.
-     */
-    Route unauthorized(JsonSchemaVersion apiVersion, CharSequence correlationId);
+    private static final ExtensionId EXTENSION_ID = new ExtensionId();
 
-    /**
-     * Provides a custom route for authorized access.
-     *
-     * @param headers headers of the request.
-     * @return custom route for authorized access.
-     */
-    Route authorized(DittoHeaders headers);
+    protected final ActorSystem actorSystem;
+
+    protected CustomApiRoutesProvider(final ActorSystem actorSystem) {
+        this.actorSystem = actorSystem;
+    }
+
+    public abstract Route unauthorized(RouteBaseProperties routeBaseProperties, JsonSchemaVersion version, CharSequence correlationId);
+
+    public abstract Route authorized(RouteBaseProperties routeBaseProperties, DittoHeaders headers);
+
+    public static CustomApiRoutesProvider get(final ActorSystem actorSystem) {
+        return EXTENSION_ID.get(actorSystem);
+    }
+
+    private static final class ExtensionId extends AbstractExtensionId<CustomApiRoutesProvider> {
+
+        @Override
+        public CustomApiRoutesProvider createExtension(final ExtendedActorSystem system) {
+            final GatewayConfig gatewayConfig =
+                    DittoGatewayConfig.of(DefaultScopedConfig.dittoScoped(
+                            system.settings().config()));
+
+            return AkkaClassLoader.instantiate(system, CustomApiRoutesProvider.class,
+                    gatewayConfig.getHttpConfig().getCustomApiRoutesProvider(),
+                    List.of(ActorSystem.class),
+                    List.of(system));
+        }
+    }
 
 }

@@ -95,6 +95,7 @@ public final class RootRoute extends AllDirectives {
     private final CloudEventsRoute cloudEventsRoute;
 
     private final CustomApiRoutesProvider customApiRoutesProvider;
+    private final RouteBaseProperties routeBaseProperties;
     private final GatewayAuthenticationDirective apiAuthenticationDirective;
     private final GatewayAuthenticationDirective wsAuthenticationDirective;
     private final CorsEnablingDirective corsDirective;
@@ -123,6 +124,7 @@ public final class RootRoute extends AllDirectives {
         whoamiRoute = builder.whoamiRoute;
         cloudEventsRoute = builder.cloudEventsRoute;
         customApiRoutesProvider = builder.customApiRoutesProvider;
+        routeBaseProperties = builder.routeBaseProperties;
         apiAuthenticationDirective = builder.httpAuthenticationDirective;
         wsAuthenticationDirective = builder.wsAuthenticationDirective;
         requestTimeoutHandlingDirective = RequestTimeoutHandlingDirective.getInstance(httpConfig);
@@ -144,7 +146,6 @@ public final class RootRoute extends AllDirectives {
 
     public static RootRouteBuilder getBuilder(final HttpConfig httpConfig) {
         return new Builder(httpConfig)
-                .customApiRoutesProvider(NoopCustomApiRoutesProvider.getInstance())
                 .customHeadersHandler(NoopCustomHeadersHandler.getInstance())
                 .rejectionHandler(DittoRejectionHandlerFactory.createInstance());
     }
@@ -222,7 +223,7 @@ public final class RootRoute extends AllDirectives {
 
         return rawPathPrefix(PathMatchers.slash().concat(HTTP_PATH_API_PREFIX), () -> // /api
                 ensureSchemaVersion(apiVersion -> // /api/<apiVersion>
-                        customApiRoutesProvider.unauthorized(apiVersion, correlationId).orElse(
+                        customApiRoutesProvider.unauthorized(routeBaseProperties, apiVersion, correlationId).orElse(
                                 apiAuthentication(apiVersion, correlationId, auth -> {
                                             final CompletionStage<DittoHeaders> dittoHeadersPromise =
                                                     rootRouteHeadersStepBuilder
@@ -272,7 +273,7 @@ public final class RootRoute extends AllDirectives {
     private Route buildApiSubRoutes(final RequestContext ctx, final DittoHeaders dittoHeaders,
             final AuthenticationResult authenticationResult) {
 
-        final Route customApiSubRoutes = customApiRoutesProvider.authorized(dittoHeaders);
+        final Route customApiSubRoutes = customApiRoutesProvider.authorized(routeBaseProperties, dittoHeaders);
 
         return concat(
                 // /api/{apiVersion}/policies
@@ -405,6 +406,7 @@ public final class RootRoute extends AllDirectives {
         private CloudEventsRoute cloudEventsRoute;
 
         private CustomApiRoutesProvider customApiRoutesProvider;
+        private RouteBaseProperties routeBaseProperties;
         private GatewayAuthenticationDirective httpAuthenticationDirective;
         private GatewayAuthenticationDirective wsAuthenticationDirective;
         private ExceptionHandler exceptionHandler;
@@ -493,8 +495,11 @@ public final class RootRoute extends AllDirectives {
         }
 
         @Override
-        public RootRouteBuilder customApiRoutesProvider(final CustomApiRoutesProvider provider) {
+        public RootRouteBuilder customApiRoutesProvider(final CustomApiRoutesProvider provider,
+                final RouteBaseProperties routeBaseProperties) {
+
             customApiRoutesProvider = provider;
+            this.routeBaseProperties = routeBaseProperties;
             return this;
         }
 

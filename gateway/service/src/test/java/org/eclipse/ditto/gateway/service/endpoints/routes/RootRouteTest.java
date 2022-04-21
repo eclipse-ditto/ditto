@@ -120,7 +120,7 @@ public final class RootRouteTest extends EndpointTestBase {
         final var jwtAuthenticationFactory = JwtAuthenticationFactory.newInstance(authConfig.getOAuthConfig(),
                 cacheConfig,
                 httpClientFacade,
-                authorizationSubjectsProviderFactory);
+                authorizationSubjectsProvider);
         final var authenticationDirectiveFactory =
                 new DittoGatewayAuthenticationDirectiveFactory(authConfig, jwtAuthenticationFactory, messageDispatcher);
 
@@ -162,6 +162,8 @@ public final class RootRouteTest extends EndpointTestBase {
                 .httpAuthenticationDirective(authenticationDirectiveFactory.buildHttpAuthentication())
                 .wsAuthenticationDirective(authenticationDirectiveFactory.buildWsAuthentication())
                 .dittoHeadersSizeChecker(DittoHeadersSizeChecker.of(4096, 20))
+                .customApiRoutesProvider(CustomApiRoutesProvider.get(routeBaseProperties.getActorSystem()),
+                        routeBaseProperties)
                 .build();
 
         rootTestRoute = testRoute(rootRoute);

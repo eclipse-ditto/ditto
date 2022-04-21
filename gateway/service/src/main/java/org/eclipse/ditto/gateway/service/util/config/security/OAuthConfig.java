@@ -18,8 +18,8 @@ import java.util.Map;
 
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.policies.model.SubjectIssuer;
 import org.eclipse.ditto.internal.utils.config.KnownConfigValue;
+import org.eclipse.ditto.policies.model.SubjectIssuer;
 import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
 
 /**
@@ -66,12 +66,16 @@ public interface OAuthConfig {
      */
     String getTokenIntegrationSubject();
 
+    String getJwtAuthorizationSubjectsProvider();
+
     enum OAuthConfigValue implements KnownConfigValue {
         PROTOCOL("protocol", "https"),
         ALLOWED_CLOCK_SKEW("allowed-clock-skew", Duration.ofSeconds(10)),
         OPENID_CONNECT_ISSUERS("openid-connect-issuers", Collections.emptyMap()),
         OPENID_CONNECT_ISSUERS_EXTENSION("openid-connect-issuers-extension", Collections.emptyMap()),
-        TOKEN_INTEGRATION_SUBJECT("token-integration-subject", "integration:{{policy-entry:label}}:{{jwt:aud}}");
+        TOKEN_INTEGRATION_SUBJECT("token-integration-subject", "integration:{{policy-entry:label}}:{{jwt:aud}}"),
+        JWT_AUTHORIZATION_SUBJECTS_PROVIDER("jwt-authorization-subjects-provider",
+                "org.eclipse.ditto.gateway.service.security.authentication.jwt.DittoJwtAuthorizationSubjectsProvider");
 
         private final String path;
         private final Object defaultValue;

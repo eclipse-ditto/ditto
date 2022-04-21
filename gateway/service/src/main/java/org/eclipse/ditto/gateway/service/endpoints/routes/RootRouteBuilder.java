@@ -28,9 +28,9 @@ import org.eclipse.ditto.gateway.service.endpoints.routes.things.ThingsRoute;
 import org.eclipse.ditto.gateway.service.endpoints.routes.thingsearch.ThingSearchRoute;
 import org.eclipse.ditto.gateway.service.endpoints.routes.websocket.WebSocketRouteBuilder;
 import org.eclipse.ditto.gateway.service.endpoints.routes.whoami.WhoamiRoute;
-import org.eclipse.ditto.protocol.HeaderTranslator;
 import org.eclipse.ditto.internal.utils.health.routes.StatusRoute;
 import org.eclipse.ditto.internal.utils.protocol.ProtocolAdapterProvider;
+import org.eclipse.ditto.protocol.HeaderTranslator;
 
 import akka.http.javadsl.server.ExceptionHandler;
 import akka.http.javadsl.server.RejectionHandler;
@@ -186,7 +186,7 @@ public interface RootRouteBuilder {
      * @param provider the provider to set.
      * @return the Builder to allow method chaining.
      */
-    RootRouteBuilder customApiRoutesProvider(CustomApiRoutesProvider provider);
+    RootRouteBuilder customApiRoutesProvider(CustomApiRoutesProvider provider, RouteBaseProperties routeBaseProperties);
 
     /**
      * Sets the custom headers handler.
