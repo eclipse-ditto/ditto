@@ -36,7 +36,7 @@ import org.eclipse.ditto.things.model.signals.events.ThingEvent;
  * Abstract base class for {@link org.eclipse.ditto.things.model.signals.commands.ThingCommand} strategies.
  *
  * @param <C> the type of the handled command - of type {@code Command} as also
- * {@link org.eclipse.ditto.things.api.commands.sudo.SudoCommand} are handled which are no ThingCommands.
+ * {@link org.eclipse.ditto.things.api.commands.sudo.ThingSudoCommand} are handled which are no ThingCommands.
  */
 @Immutable
 abstract class AbstractThingCommandStrategy<C extends Command<C>>

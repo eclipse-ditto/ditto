@@ -24,6 +24,7 @@ import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.internal.utils.persistence.SnapshotAdapter;
 import org.eclipse.ditto.internal.utils.persistentactors.AbstractPersistenceSupervisor;
 import org.eclipse.ditto.internal.utils.pubsub.DistributedPub;
+import org.eclipse.ditto.policies.enforcement.CreationRestrictionEnforcer;
 import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.signals.announcements.PolicyAnnouncement;
@@ -97,6 +98,12 @@ public final class PolicySupervisorActor extends AbstractPersistenceSupervisor<P
     protected Props getPersistenceActorProps(final PolicyId entityId) {
         return PolicyPersistenceActor.props(entityId, snapshotAdapter, pubSubMediator, announcementManager,
                 policyConfig);
+    }
+
+    @Override
+    protected Props getPersistenceEnforcerProps(final PolicyId entityId,
+            final CreationRestrictionEnforcer creationRestrictionEnforcer) {
+        return PolicyEnforcerActor.props(entityId, creationRestrictionEnforcer, pubSubMediator);
     }
 
     @Override

@@ -13,7 +13,7 @@
 package org.eclipse.ditto.policies.service.persistence.actors;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
-import static org.eclipse.ditto.internal.utils.persistentactors.AbstractShardedPersistenceActor.JOURNAL_TAG_ALWAYS_ALIVE;
+import static org.eclipse.ditto.internal.utils.persistentactors.AbstractPersistenceActor.JOURNAL_TAG_ALWAYS_ALIVE;
 import static org.eclipse.ditto.policies.service.persistence.TestConstants.Policy.SUBJECT_TYPE;
 import static org.eclipse.ditto.policies.service.persistence.testhelper.ETagTestUtils.modifyPolicyEntryResponse;
 import static org.eclipse.ditto.policies.service.persistence.testhelper.ETagTestUtils.modifyPolicyResponse;
@@ -48,8 +48,8 @@ import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.internal.utils.cluster.ShardRegionExtractor;
 import org.eclipse.ditto.internal.utils.persistence.SnapshotAdapter;
+import org.eclipse.ditto.internal.utils.persistentactors.AbstractPersistenceActor;
 import org.eclipse.ditto.internal.utils.persistentactors.AbstractPersistenceSupervisor;
-import org.eclipse.ditto.internal.utils.persistentactors.AbstractShardedPersistenceActor;
 import org.eclipse.ditto.internal.utils.pubsub.DistributedPub;
 import org.eclipse.ditto.policies.api.PoliciesMessagingConstants;
 import org.eclipse.ditto.policies.api.PolicyTag;
@@ -1673,7 +1673,7 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
                 // WHEN: CheckForActivity is sent to a persistence actor of nonexistent policy after startup
                 final ActorRef underTest = actorSystem.actorOf(parentProps);
 
-                final Object checkForActivity = AbstractShardedPersistenceActor.checkForActivity(1L);
+                final Object checkForActivity = AbstractPersistenceActor.checkForActivity(1L);
                 underTest.tell(checkForActivity, getRef());
                 underTest.tell(checkForActivity, getRef());
                 underTest.tell(checkForActivity, getRef());
@@ -1736,7 +1736,7 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
                 Assertions.assertThat(subjectDeleted.getDittoHeaders().getJournalTags()).isEmpty();
 
                 // THEN: the persistent actor should stop itself after activity checks.
-                final var checkForActivity = AbstractShardedPersistenceActor.checkForActivity(Integer.MAX_VALUE);
+                final var checkForActivity = AbstractPersistenceActor.checkForActivity(Integer.MAX_VALUE);
                 underTest.tell(checkForActivity, ActorRef.noSender());
                 expectMsg(AbstractPersistenceSupervisor.Control.PASSIVATE);
             }

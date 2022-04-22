@@ -23,7 +23,7 @@ import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.internal.utils.persistence.SnapshotAdapter;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.ActivityCheckConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.SnapshotConfig;
-import org.eclipse.ditto.internal.utils.persistentactors.AbstractShardedPersistenceActor;
+import org.eclipse.ditto.internal.utils.persistentactors.AbstractPersistenceActor;
 import org.eclipse.ditto.internal.utils.persistentactors.commands.CommandStrategy;
 import org.eclipse.ditto.internal.utils.persistentactors.commands.DefaultContext;
 import org.eclipse.ditto.internal.utils.persistentactors.events.EventStrategy;
@@ -57,7 +57,7 @@ import akka.persistence.RecoveryCompleted;
  * PersistentActor which "knows" the state of a single {@link Thing}.
  */
 public final class ThingPersistenceActor
-        extends AbstractShardedPersistenceActor<Command<?>, Thing, ThingId, ThingId, ThingEvent<?>> {
+        extends AbstractPersistenceActor<Command<?>, Thing, ThingId, ThingId, ThingEvent<?>> {
 
     /**
      * The prefix of the persistenceId for Things.

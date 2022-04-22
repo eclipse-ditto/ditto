@@ -674,7 +674,7 @@
             </dependency>
             <dependency>
                 <groupId>org.eclipse.ditto</groupId>
-                <artifactId>ditto-concierge-api</artifactId>
+                <artifactId>ditto-concierge-api</artifactId> <!-- TODO TJ remove -->
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -685,6 +685,11 @@
             <dependency>
                 <groupId>org.eclipse.ditto</groupId>
                 <artifactId>ditto-policies-api</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.ditto</groupId>
+                <artifactId>ditto-policies-enforcement</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>

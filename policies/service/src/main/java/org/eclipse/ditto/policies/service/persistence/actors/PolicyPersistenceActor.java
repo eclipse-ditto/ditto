@@ -28,7 +28,7 @@ import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.internal.utils.persistence.SnapshotAdapter;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.ActivityCheckConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.SnapshotConfig;
-import org.eclipse.ditto.internal.utils.persistentactors.AbstractShardedPersistenceActor;
+import org.eclipse.ditto.internal.utils.persistentactors.AbstractPersistenceActor;
 import org.eclipse.ditto.internal.utils.persistentactors.commands.CommandStrategy;
 import org.eclipse.ditto.internal.utils.persistentactors.commands.DefaultContext;
 import org.eclipse.ditto.internal.utils.persistentactors.events.EventStrategy;
@@ -53,7 +53,7 @@ import akka.persistence.RecoveryCompleted;
  * PersistentActor which "knows" the state of a single {@link Policy}.
  */
 public final class PolicyPersistenceActor
-        extends AbstractShardedPersistenceActor<Command<?>, Policy, PolicyId, PolicyId, PolicyEvent<?>> {
+        extends AbstractPersistenceActor<Command<?>, Policy, PolicyId, PolicyId, PolicyEvent<?>> {
 
     /**
      * The prefix of the persistenceId for Policies.

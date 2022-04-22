@@ -34,6 +34,7 @@ import org.eclipse.ditto.connectivity.service.config.DittoConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.messaging.ClientActorPropsFactory;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.internal.utils.persistentactors.AbstractPersistenceSupervisor;
+import org.eclipse.ditto.policies.enforcement.CreationRestrictionEnforcer;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
@@ -161,6 +162,12 @@ public final class ConnectionSupervisorActor extends AbstractPersistenceSupervis
     protected Props getPersistenceActorProps(final ConnectionId entityId) {
         return ConnectionPersistenceActor.props(entityId, proxyActor, pubSubMediator, propsFactory, commandInterceptor,
                 connectionPriorityProviderFactory, connectivityConfigOverwrites);
+    }
+
+    @Override
+    protected Props getPersistenceEnforcerProps(final ConnectionId entityId,
+            final CreationRestrictionEnforcer creationRestrictionEnforcer) {
+        return null; // TODO TJ implement
     }
 
     @Override

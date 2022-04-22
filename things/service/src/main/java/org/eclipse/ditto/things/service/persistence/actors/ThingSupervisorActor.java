@@ -19,15 +19,16 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeExceptionBuilder;
-import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.base.service.actors.ShutdownBehaviour;
 import org.eclipse.ditto.base.service.config.supervision.ExponentialBackOffConfig;
-import org.eclipse.ditto.things.service.common.config.DittoThingsConfig;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.internal.utils.persistentactors.AbstractPersistenceSupervisor;
 import org.eclipse.ditto.internal.utils.pubsub.DistributedPub;
+import org.eclipse.ditto.policies.enforcement.CreationRestrictionEnforcer;
+import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingUnavailableException;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
+import org.eclipse.ditto.things.service.common.config.DittoThingsConfig;
 
 import akka.actor.ActorKilledException;
 import akka.actor.ActorRef;
@@ -86,6 +87,12 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
     @Nonnull
     protected Props getPersistenceActorProps(@Nonnull final ThingId entityId) {
         return thingPersistenceActorPropsFactory.props(entityId, distributedPub);
+    }
+
+    @Override
+    protected Props getPersistenceEnforcerProps(final ThingId entityId,
+            final CreationRestrictionEnforcer creationRestrictionEnforcer) {
+        return null; // TODO TJ implement
     }
 
     @Override

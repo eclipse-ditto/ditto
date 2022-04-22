@@ -67,8 +67,7 @@ public final class PolicyEnforcerCacheLoader implements AsyncCacheLoader<Enforce
 
     private static Entry<PolicyEnforcer> handleSudoRetrievePolicyResponse(final Object response,
             @Nullable final EnforcementContext cacheLookupContext) {
-        if (response instanceof SudoRetrievePolicyResponse) {
-            final var sudoRetrievePolicyResponse = (SudoRetrievePolicyResponse) response;
+        if (response instanceof SudoRetrievePolicyResponse sudoRetrievePolicyResponse) {
             final var policy = sudoRetrievePolicyResponse.getPolicy();
             final long revision = policy.getRevision().map(PolicyRevision::toLong)
                     .orElseThrow(() -> new IllegalStateException("Bad SudoRetrievePolicyResponse: no revision"));

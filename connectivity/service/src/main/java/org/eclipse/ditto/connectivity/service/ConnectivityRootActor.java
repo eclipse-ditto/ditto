@@ -20,8 +20,8 @@ import javax.naming.NamingException;
 
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.service.actors.DittoRootActor;
-import org.eclipse.ditto.concierge.api.actors.ConciergeEnforcerClusterRouterFactory;
 import org.eclipse.ditto.concierge.api.actors.ConciergeForwarderActor;
+import org.eclipse.ditto.concierge.api.actors.ShardRegions;
 import org.eclipse.ditto.connectivity.api.ConnectivityMessagingConstants;
 import org.eclipse.ditto.connectivity.model.signals.commands.ConnectivityCommandInterceptor;
 import org.eclipse.ditto.connectivity.service.config.ConnectionIdsRetrievalConfig;
@@ -207,12 +207,8 @@ public final class ConnectivityRootActor extends DittoRootActor {
     private ActorRef getConciergeForwarder(final ClusterConfig clusterConfig, final ActorRef pubSubMediator,
             final UnaryOperator<Signal<?>> conciergeForwarderSignalTransformer) {
 
-        final ActorRef conciergeEnforcerRouter =
-                ConciergeEnforcerClusterRouterFactory.createConciergeEnforcerClusterRouter(getContext(),
-                        clusterConfig.getNumberOfShards());
-
         return startChildActor(ConciergeForwarderActor.ACTOR_NAME,
-                ConciergeForwarderActor.props(pubSubMediator, conciergeEnforcerRouter,
+                ConciergeForwarderActor.props(pubSubMediator, ShardRegions.of(getContext().getSystem(), clusterConfig),
                         conciergeForwarderSignalTransformer));
     }
 

@@ -16,12 +16,14 @@ import java.util.Optional;
 import java.util.function.Function;
 
 import org.eclipse.ditto.base.model.entity.id.WithEntityId;
+import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.concierge.api.ConciergeMessagingConstants;
-import org.eclipse.ditto.concierge.api.ConciergeWrapper;
+import org.eclipse.ditto.connectivity.model.signals.commands.ConnectivityCommand;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
-import org.eclipse.ditto.base.model.signals.Signal;
+import org.eclipse.ditto.policies.model.signals.commands.PolicyCommand;
+import org.eclipse.ditto.things.model.signals.commands.ThingCommand;
 
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
@@ -44,14 +46,14 @@ public class ConciergeForwarderActor extends AbstractActor {
     private final DittoDiagnosticLoggingAdapter log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
 
     private final ActorRef pubSubMediator;
-    private final ActorRef conciergeEnforcer;
+    private final ShardRegions shardRegions;
     private final Function<Signal<?>, Signal<?>> signalTransformer;
 
     @SuppressWarnings("unused")
-    private ConciergeForwarderActor(final ActorRef pubSubMediator, final ActorRef conciergeEnforcer,
+    private ConciergeForwarderActor(final ActorRef pubSubMediator, final ShardRegions shardRegions,
             final Function<Signal<?>, Signal<?>> signalTransformer) {
         this.pubSubMediator = pubSubMediator;
-        this.conciergeEnforcer = conciergeEnforcer;
+        this.shardRegions = shardRegions;
         this.signalTransformer = signalTransformer;
     }
 
@@ -59,26 +61,27 @@ public class ConciergeForwarderActor extends AbstractActor {
      * Creates Akka configuration object Props for this actor.
      *
      * @param pubSubMediator the PubSub mediator Actor.
-     * @param conciergeEnforcer the ActorRef of the concierge EnforcerActor.
+     * @param shardRegions TODO TJ doc
      * @return the Akka configuration Props object.
      */
-    public static Props props(final ActorRef pubSubMediator, final ActorRef conciergeEnforcer) {
-        return props(pubSubMediator, conciergeEnforcer, Function.identity());
+    public static Props props(final ActorRef pubSubMediator, final ShardRegions shardRegions) {
+
+        return props(pubSubMediator, shardRegions, Function.identity());
     }
 
     /**
      * Creates Akka configuration object Props for this actor.
      *
      * @param pubSubMediator the PubSub mediator Actor.
-     * @param conciergeEnforcer the ActorRef of the concierge EnforcerActor.
-     * @param signalTransformer a function which transforms signals before forwarding them to the {@code
-     * conciergeEnforcer}
+     * @param shardRegions TODO TJ doc
+     * @param signalTransformer a function which transforms signals before forwarding them to the responsible
+     * {@code shardRegion}
      * @return the Akka configuration Props object.
      */
-    public static Props props(final ActorRef pubSubMediator, final ActorRef conciergeEnforcer,
+    public static Props props(final ActorRef pubSubMediator, final ShardRegions shardRegions,
             final Function<Signal<?>, Signal<?>> signalTransformer) {
 
-        return Props.create(ConciergeForwarderActor.class, pubSubMediator, conciergeEnforcer, signalTransformer);
+        return Props.create(ConciergeForwarderActor.class, pubSubMediator, shardRegions, signalTransformer);
     }
 
     @Override
@@ -91,6 +94,18 @@ public class ConciergeForwarderActor extends AbstractActor {
                 )
                 .matchAny(m -> log.warning("Got unknown message: {}", m))
                 .build();
+    }
+
+    private void forwardToThings(final Signal<?> signal) {
+        shardRegions.things().forward(signal, getContext());
+    }
+
+    private void forwardToPolicies(final PolicyCommand<?> policyCommand) {
+        shardRegions.policies().forward(policyCommand, getContext());
+    }
+
+    private void forwardToConnectivity(final ConnectivityCommand<?> connectivityCommand) {
+        shardRegions.connections().forward(connectivityCommand, getContext());
     }
 
     /**
@@ -108,11 +123,17 @@ public class ConciergeForwarderActor extends AbstractActor {
         final DittoDiagnosticLoggingAdapter l = log.withCorrelationId(signal);
         toSignalWithEntityId(transformedSignal).ifPresentOrElse(
                 transformedSignalWithEntityId -> {
-                    l.info("Forwarding signal with ID <{}> and type <{}> to concierge enforcer",
+                    l.info("Forwarding signal with ID <{}> and type <{}> to responsible service",
                             transformedSignalWithEntityId.getEntityId(), signalType);
-                    final Object msg = ConciergeWrapper.wrapForEnforcerRouter(transformedSignalWithEntityId);
-                    l.debug("Forwarding message to concierge enforcer: <{}>", msg);
-                    conciergeEnforcer.forward(msg, ctx);
+                    l.debug("Forwarding message to responsible service: <{}>", transformedSignalWithEntityId);
+
+                    ReceiveBuilder.create()
+                            .match(ThingCommand.class, this::forwardToThings)
+                            .match(PolicyCommand.class, this::forwardToPolicies)
+                            .match(ConnectivityCommand.class, this::forwardToConnectivity)
+                            .build()
+                            .onMessage()
+                            .apply(transformedSignalWithEntityId);
                 },
                 () -> {
                     l.info("Sending signal without ID and type <{}> via pubSub to concierge-dispatcherActor",
@@ -120,7 +141,7 @@ public class ConciergeForwarderActor extends AbstractActor {
                     l.debug("Sending signal without ID and type <{}> via pubSub to concierge-dispatcherActor: <{}>",
                             signalType, transformedSignal);
                     final DistributedPubSubMediator.Send msg = wrapForPubSub(transformedSignal);
-                    l.debug("Forwarding message to concierge-dispatcherActor via pub/sub: <{}>.", msg);
+                    l.debug("Forwarding message to dispatcherActor: <{}>.", msg);
                     pubSubMediator.forward(msg, ctx);
                 }
         );
