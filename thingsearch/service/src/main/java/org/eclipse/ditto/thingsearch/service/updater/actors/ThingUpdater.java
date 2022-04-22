@@ -29,6 +29,7 @@ import org.bson.BsonDocument;
 import org.eclipse.ditto.base.api.common.ShutdownReasonType;
 import org.eclipse.ditto.base.model.acks.AcknowledgementRequest;
 import org.eclipse.ditto.base.model.acks.DittoAcknowledgementLabel;
+import org.eclipse.ditto.base.model.signals.acks.Acknowledgements;
 import org.eclipse.ditto.base.service.actors.ShutdownBehaviour;
 import org.eclipse.ditto.base.service.config.supervision.ExponentialBackOff;
 import org.eclipse.ditto.internal.models.streaming.IdentifiableStreamingMessage;
@@ -96,7 +97,6 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
     private static final AcknowledgementRequest SEARCH_PERSISTED_REQUEST =
             AcknowledgementRequest.of(DittoAcknowledgementLabel.SEARCH_PERSISTED);
 
-    private static final Duration THING_DELETION_TIMEOUT = Duration.ofMinutes(5);
     private static final String FORCE_UPDATE = "force-update";
 
     private final DittoDiagnosticLoggingAdapter log;
@@ -104,6 +104,7 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
     private final Flow<Data, Result, NotUsed> flow;
     private final Materializer materializer;
     private final Duration writeInterval;
+    private final Duration thingDeletionTimeout;
     private ExponentialBackOff backOff;
     private boolean shuttingDown = false;
     @Nullable private UniqueKillSwitch killSwitch;
@@ -152,8 +153,7 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
 
     private ThingUpdater(final Flow<Data, Result, NotUsed> flow,
             final Function<ThingId, Source<AbstractWriteModel, NotUsed>> recoveryFunction,
-            final SearchConfig config,
-            final ActorRef pubSubMediator) {
+            final SearchConfig config, final ActorRef pubSubMediator) {
 
         log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
         thingId = tryToGetThingId();
@@ -162,6 +162,7 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
         writeInterval = config.getUpdaterConfig().getStreamConfig().getWriteInterval();
         backOff = ExponentialBackOff.initial(
                 config.getUpdaterConfig().getStreamConfig().getPersistenceConfig().getExponentialBackOffConfig());
+        thingDeletionTimeout = config.getUpdaterConfig().getStreamConfig().getThingDeletionTimeout();
 
         startSingleTimer(ShutdownTrigger.IDLE.name(), ShutdownTrigger.IDLE, config.getUpdaterConfig().getMaxIdleTime());
 
@@ -457,19 +458,24 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
                 thingEvent.getDittoHeaders().getAcknowledgementRequests().contains(SEARCH_PERSISTED_REQUEST);
 
         // check if the revision is valid (thingEvent.revision = 1 + sequenceNumber)
-        if (thingEvent.getRevision() <= data.metadata().getThingRevision() && !shouldAcknowledge) {
+        if (thingEvent.getRevision() <= data.metadata().getThingRevision()) {
             l.debug("Dropped thing event for thing id <{}> with revision <{}> because it was older than or "
                             + "equal to the current sequence number <{}> of the update actor.", thingId,
                     thingEvent.getRevision(), data.metadata().getThingRevision());
+            if (shouldAcknowledge) {
+                final String hint = String.format("Thing event with revision <%d> for thing <%s> dropped.", thingEvent.getRevision(),
+                        thingId);
+                exportMetadataWithSender(shouldAcknowledge, thingEvent, getSender(), null, data).sendWeakAck(JsonValue.of(hint));
+            }
             return Optional.empty();
         }
 
         l.debug("Applying thing event <{}>.", thingEvent);
         if (thingEvent instanceof ThingDeleted) {
-            // will stop this actor after 5 minutes (finishing up updating the index):
-            // this time should be longer than the consistency lag, otherwise the actor will be stopped before the
-            // actual "delete" is applied to the search index:
-            getContext().setReceiveTimeout(THING_DELETION_TIMEOUT);
+            // will stop this actor after configured timeout (finishing up updating the index)
+            startSingleTimer(ShutdownTrigger.DELETE.name(), ShutdownTrigger.DELETE, thingDeletionTimeout);
+        } else {
+            cancelTimer(ShutdownTrigger.DELETE.name());
         }
         if (shouldAcknowledge) {
             tickNow();

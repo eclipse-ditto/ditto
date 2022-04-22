@@ -39,6 +39,7 @@ public final class DefaultStreamConfig implements StreamConfig {
 
     private final int maxArraySize;
     private final Duration writeInterval;
+    private final Duration thingDeletionTimeout;
     private final AskWithRetryConfig askWithRetryConfig;
     private final StreamStageConfig retrievalConfig;
     private final PersistenceStreamConfig persistenceStreamConfig;
@@ -48,6 +49,7 @@ public final class DefaultStreamConfig implements StreamConfig {
     private DefaultStreamConfig(final ConfigWithFallback streamScopedConfig) {
         maxArraySize = streamScopedConfig.getNonNegativeIntOrThrow(StreamConfigValue.MAX_ARRAY_SIZE);
         writeInterval = streamScopedConfig.getNonNegativeDurationOrThrow(StreamConfigValue.WRITE_INTERVAL);
+        thingDeletionTimeout = streamScopedConfig.getNonNegativeDurationOrThrow(StreamConfigValue.THING_DELETION_TIMEOUT);
         askWithRetryConfig = DefaultAskWithRetryConfig.of(streamScopedConfig, ASK_WITH_RETRY_CONFIG_PATH);
         retrievalConfig = DefaultStreamStageConfig.getInstance(streamScopedConfig, RETRIEVAL_CONFIG_PATH);
         persistenceStreamConfig = DefaultPersistenceStreamConfig.of(streamScopedConfig);
@@ -74,6 +76,11 @@ public final class DefaultStreamConfig implements StreamConfig {
     @Override
     public Duration getWriteInterval() {
         return writeInterval;
+    }
+
+    @Override
+    public Duration getThingDeletionTimeout() {
+        return thingDeletionTimeout;
     }
 
     @Override
@@ -112,6 +119,7 @@ public final class DefaultStreamConfig implements StreamConfig {
         final DefaultStreamConfig that = (DefaultStreamConfig) o;
         return maxArraySize == that.maxArraySize &&
                 writeInterval.equals(that.writeInterval) &&
+                thingDeletionTimeout.equals(that.thingDeletionTimeout) &&
                 askWithRetryConfig.equals(that.askWithRetryConfig) &&
                 retrievalConfig.equals(that.retrievalConfig) &&
                 persistenceStreamConfig.equals(that.persistenceStreamConfig) &&
@@ -122,7 +130,7 @@ public final class DefaultStreamConfig implements StreamConfig {
     @Override
     public int hashCode() {
         return Objects.hash(maxArraySize, writeInterval, askWithRetryConfig, retrievalConfig,
-                persistenceStreamConfig, policyCacheConfig, thingCacheConfig);
+                persistenceStreamConfig, policyCacheConfig, thingCacheConfig, thingDeletionTimeout);
     }
 
     @Override
@@ -130,6 +138,7 @@ public final class DefaultStreamConfig implements StreamConfig {
         return getClass().getSimpleName() + " [" +
                 "maxArraySize=" + maxArraySize +
                 ", writeInterval=" + writeInterval +
+                ", thingDeletionTimeout=" + thingDeletionTimeout +
                 ", askWithRetryConfig=" + askWithRetryConfig +
                 ", retrievalConfig=" + retrievalConfig +
                 ", persistenceStreamConfig=" + persistenceStreamConfig +
