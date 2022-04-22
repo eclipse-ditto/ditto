@@ -55,6 +55,10 @@ public final class ModifySplitBrainResolver extends AbstractCommand<ModifySplitB
         });
     }
 
+    static ModifySplitBrainResolver of(final boolean enabled) {
+        return new ModifySplitBrainResolver(DittoHeaders.empty(), enabled);
+    }
+
     @Override
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> predicate) {

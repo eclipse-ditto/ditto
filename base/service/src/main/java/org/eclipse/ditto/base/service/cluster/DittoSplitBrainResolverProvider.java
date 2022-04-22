@@ -41,7 +41,6 @@ final class DittoSplitBrainResolverProvider extends DowningProvider {
     @SuppressWarnings("unused")
     DittoSplitBrainResolverProvider(final ActorSystem actorSystem) {
         splitBrainResolverProvider = new SplitBrainResolverProvider(actorSystem);
-
     }
 
     @Override

@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.base.service.cluster;
 
+import java.time.Duration;
+
 import javax.annotation.Nullable;
 
 import org.slf4j.Logger;
@@ -19,6 +21,7 @@ import org.slf4j.LoggerFactory;
 
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
+import akka.actor.Cancellable;
 import akka.actor.Props;
 import akka.japi.pf.ReceiveBuilder;
 
@@ -28,15 +31,33 @@ import akka.japi.pf.ReceiveBuilder;
  */
 final class DittoSplitBrainResolver extends AbstractActor {
 
+    private static final String SBR_ENABLING_DELAY = "ditto.cluster.sbr.auto-enable-after";
+    private static final Duration AUTO_ENABLE_AFTER_FALLBACK = Duration.ofHours(1);
+    private static final ModifySplitBrainResolver ENABLE = ModifySplitBrainResolver.of(true);
     private static final Logger LOGGER = LoggerFactory.getLogger(DittoSplitBrainResolver.class);
 
     private final Props splitBrainResolverProps;
+    private final Cancellable autoEnabling;
 
     @Nullable
     private ActorRef splitBrainResolverActor;
 
     private DittoSplitBrainResolver(final Props splitBrainResolverProps) {
         this.splitBrainResolverProps = splitBrainResolverProps;
+        final Duration autoEnableAfter = getAutoEnableAfter();
+        // Enable automatically after some configurable time
+        autoEnabling = context().system()
+                .scheduler()
+                .scheduleOnce(autoEnableAfter, getSelf(), ENABLE, context().dispatcher(), getSelf());
+        LOGGER.info("SBR will be automatically enabled after <{}>", autoEnableAfter);
+    }
+
+    private Duration getAutoEnableAfter() {
+        try {
+            return context().system().settings().config().getDuration(SBR_ENABLING_DELAY);
+        } catch (final Exception ex) {
+            return AUTO_ENABLE_AFTER_FALLBACK;
+        }
     }
 
     @Override
@@ -57,6 +78,9 @@ final class DittoSplitBrainResolver extends AbstractActor {
     }
 
     private void updateEnabled(final ModifySplitBrainResolver modifySplitBrainResolver) {
+        if (!autoEnabling.isCancelled()) {
+            autoEnabling.cancel();
+        }
         if (modifySplitBrainResolver.isEnabled() && splitBrainResolverActor == null) {
             LOGGER.info("Enabling akka split brain resolver");
             splitBrainResolverActor = startChildActor(splitBrainResolverProps);
