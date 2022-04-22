@@ -15,28 +15,22 @@ package org.eclipse.ditto.gateway.service.security.authentication.jwt;
 import java.util.List;
 
 import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
+import org.eclipse.ditto.base.service.DittoExtensionPoint;
 import org.eclipse.ditto.gateway.service.util.config.DittoGatewayConfig;
-import org.eclipse.ditto.gateway.service.util.config.GatewayConfig;
-import org.eclipse.ditto.internal.utils.akka.AkkaClassLoader;
+import org.eclipse.ditto.gateway.service.util.config.security.OAuthConfig;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.jwt.model.JsonWebToken;
 
-import akka.actor.AbstractExtensionId;
 import akka.actor.ActorSystem;
-import akka.actor.ExtendedActorSystem;
-import akka.actor.Extension;
 
 /**
  * A provider for {@link AuthorizationSubject}s contained in a {@link JsonWebToken}.
  */
-public abstract class JwtAuthorizationSubjectsProvider implements Extension {
+public abstract class JwtAuthorizationSubjectsProvider extends DittoExtensionPoint {
 
-    private static final ExtensionId EXTENSION_ID = new ExtensionId();
-
-    protected final ActorSystem actorSystem;
 
     protected JwtAuthorizationSubjectsProvider(final ActorSystem actorSystem) {
-        this.actorSystem = actorSystem;
+        super(actorSystem);
     }
 
     /**
@@ -48,26 +42,23 @@ public abstract class JwtAuthorizationSubjectsProvider implements Extension {
      */
     public abstract List<AuthorizationSubject> getAuthorizationSubjects(JsonWebToken jsonWebToken);
 
+    /**
+     * Loads the implementation of {@code JwtAuthorizationSubjectsProvider} which is configured for the {@code ActorSystem}.
+     *
+     * @param actorSystem the actorSystem in which the {@code JwtAuthorizationSubjectsProvider} should be loaded.
+     * @return the {@code JwtAuthorizationSubjectsProvider} implementation.
+     */
     public static JwtAuthorizationSubjectsProvider get(final ActorSystem actorSystem) {
-        return EXTENSION_ID.get(actorSystem);
+        final var implementation =
+                getOAuthConfig(actorSystem).getJwtAuthorizationSubjectsProvider();
+
+        return new ExtensionId<>(implementation, JwtAuthorizationSubjectsProvider.class).get(actorSystem);
     }
 
-    private static final class ExtensionId extends AbstractExtensionId<JwtAuthorizationSubjectsProvider> {
-
-        @Override
-        public JwtAuthorizationSubjectsProvider createExtension(final ExtendedActorSystem system) {
-            final GatewayConfig gatewayConfig =
-                    DittoGatewayConfig.of(DefaultScopedConfig.dittoScoped(
-                            system.settings().config()));
-
-            return AkkaClassLoader.instantiate(system, JwtAuthorizationSubjectsProvider.class,
-                    gatewayConfig.getAuthenticationConfig()
-                            .getOAuthConfig()
-                            .getJwtAuthorizationSubjectsProvider(),
-                    List.of(ActorSystem.class, JwtSubjectIssuersConfig.class),
-                    List.of(system, JwtSubjectIssuersConfig.fromOAuthConfig(
-                            gatewayConfig.getAuthenticationConfig().getOAuthConfig())));
-        }
+    protected static OAuthConfig getOAuthConfig(final ActorSystem actorSystem) {
+        return DittoGatewayConfig.of(DefaultScopedConfig.dittoScoped(
+                        actorSystem.settings().config())).getAuthenticationConfig()
+                .getOAuthConfig();
     }
 
 }

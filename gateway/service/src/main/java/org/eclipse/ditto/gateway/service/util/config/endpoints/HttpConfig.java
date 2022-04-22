@@ -110,6 +110,13 @@ public interface HttpConfig extends org.eclipse.ditto.base.service.config.http.H
      */
     Set<String> getAdditionalAcceptedMediaTypes();
 
+    /**
+     * Returns the full qualified classname of the {@code org.eclipse.ditto.gateway.service.endpoints.routes.CustomApiRoutesProvider}
+     * implementation to use for custom route implementations.
+     *
+     * @return the full qualified classname of the {@code CustomApiRoutesProvider} implementation to use.
+     * @since 3.0.0
+     */
     String getCustomApiRoutesProvider();
 
     /**
@@ -192,6 +199,10 @@ public interface HttpConfig extends org.eclipse.ditto.base.service.config.http.H
         ADDITIONAL_ACCEPTED_MEDIA_TYPES("additional-accepted-media-types",
                 MediaTypes.APPLICATION_OCTET_STREAM.toString()),
 
+        /**
+         * The full qualified classname of the {@code CustomApiRoutesProvider} to instantiate.
+         * @since 3.0.0
+         */
         CUSTOM_API_ROUTES_PROVIDER("custom-api-routes-provider",
                 "org.eclipse.ditto.gateway.service.endpoints.routes.NoopCustomApiRoutesProvider");
 

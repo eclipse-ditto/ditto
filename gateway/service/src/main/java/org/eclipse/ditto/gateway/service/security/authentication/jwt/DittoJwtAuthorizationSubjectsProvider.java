@@ -16,7 +16,6 @@ import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.util.List;
 import java.util.Objects;
-import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
@@ -39,6 +38,12 @@ public final class DittoJwtAuthorizationSubjectsProvider extends JwtAuthorizatio
 
     private final JwtSubjectIssuersConfig jwtSubjectIssuersConfig;
 
+    @SuppressWarnings("unused") //Loaded via reflection by AkkaExtension.
+    public DittoJwtAuthorizationSubjectsProvider(final ActorSystem actorSystem) {
+        super(actorSystem);
+        jwtSubjectIssuersConfig = JwtSubjectIssuersConfig.fromOAuthConfig(getOAuthConfig(actorSystem));
+    }
+
     private DittoJwtAuthorizationSubjectsProvider(final ActorSystem actorSystem,
             final JwtSubjectIssuersConfig jwtSubjectIssuersConfig) {
 
@@ -46,9 +51,18 @@ public final class DittoJwtAuthorizationSubjectsProvider extends JwtAuthorizatio
         this.jwtSubjectIssuersConfig = checkNotNull(jwtSubjectIssuersConfig);
     }
 
+    /**
+     * Returns a new {@code DittoAuthorizationSubjectsProvider}.
+     *
+     * @param actorSystem the actorSystem in which the provider should exist.
+     * @param jwtSubjectIssuersConfig the subject issuer configuration.
+     * @return the DittoAuthorizationSubjectsProvider.
+     * @throws NullPointerException if any argument is {@code null}.
+     */
     public static DittoJwtAuthorizationSubjectsProvider of(final ActorSystem actorSystem,
             final JwtSubjectIssuersConfig jwtSubjectIssuersConfig) {
 
+        checkNotNull(actorSystem);
         checkNotNull(jwtSubjectIssuersConfig);
         return new DittoJwtAuthorizationSubjectsProvider(actorSystem, jwtSubjectIssuersConfig);
     }
@@ -69,7 +83,7 @@ public final class DittoJwtAuthorizationSubjectsProvider extends JwtAuthorizatio
                 .flatMap(PipelineElement::toStream)
                 .map(subject -> SubjectId.newInstance(jwtSubjectIssuerConfig.getSubjectIssuer(), subject))
                 .map(AuthorizationSubject::newInstance)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Override
