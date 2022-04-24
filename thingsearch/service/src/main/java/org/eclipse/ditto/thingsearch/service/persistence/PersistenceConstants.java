@@ -33,12 +33,12 @@ public final class PersistenceConstants {
     /**
      * The thing collection name.
      */
-    public static final String THINGS_COLLECTION_NAME = "searchThings";
+    public static final String THINGS_COLLECTION_NAME = "search";
 
     /**
      * The collection name for the background sync collection storing background sync progress.
      */
-    public static final String BACKGROUND_SYNC_COLLECTION_NAME = "searchThingsSync";
+    public static final String BACKGROUND_SYNC_COLLECTION_NAME = "searchSync";
 
     /**
      * Field name for revision.
