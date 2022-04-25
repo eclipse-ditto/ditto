@@ -13,13 +13,17 @@
 package org.eclipse.ditto.thingsearch.service.persistence;
 
 import static org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants.FIELD_DELETE_AT;
+import static org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants.FIELD_FEATURE_POLICY;
 import static org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants.FIELD_GLOBAL_READ;
 import static org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants.FIELD_ID;
 import static org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants.FIELD_NAMESPACE;
+import static org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants.FIELD_POLICY;
 import static org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants.FIELD_POLICY_ID;
 import static org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants.FIELD_POLICY_REVISION;
+import static org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants.FIELD_REVISION;
 
 import java.util.List;
+import java.util.stream.Stream;
 
 import org.bson.BsonDocument;
 import org.bson.BsonInt32;
@@ -37,11 +41,23 @@ public final class Indices {
 
     /**
      * Index for queries with effective filters.
+     * <p>
+     * All fields not included in the wildcard index are enumerated.
+     * Policy objects are excluded on thing and feature levels to prevent MongoDB from choosing an inefficient query
+     * plan according to the nested clauses for authorization.
+     * It is not possible to list the included fields because the feature array 'f' is the parent of the excluded
+     * feature policy field 'f.p'.
      */
     private static final Index WILDCARD = IndexFactory.newInstance("v_wildcard", List.of("$**"), false)
-            .withWildcardProjection(new BsonDocument()
-                    .append("t", new BsonInt32(1))
-                    .append("f", new BsonInt32(1)));
+            .withWildcardProjection(Stream.of(FIELD_ID, FIELD_NAMESPACE, FIELD_GLOBAL_READ, FIELD_REVISION,
+                    FIELD_POLICY_ID, FIELD_POLICY_REVISION, FIELD_POLICY, FIELD_FEATURE_POLICY)
+                    .reduce(new BsonDocument(),
+                            (doc, field) -> doc.append(field, new BsonInt32(0)),
+                            (doc1, doc2) -> {
+                                doc2.forEach(doc1::append);
+                                return doc1;
+                            })
+            );
 
     /**
      * Index for queries without effective filters to be executed as scans over all visible things.

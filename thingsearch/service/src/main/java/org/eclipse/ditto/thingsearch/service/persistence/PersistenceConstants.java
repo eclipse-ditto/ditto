@@ -142,6 +142,11 @@ public final class PersistenceConstants {
     public static final String FIELD_POLICY = "p";
 
     /**
+     * Field name for policies of features.
+     */
+    public static final String FIELD_FEATURE_POLICY = FIELD_F_ARRAY + DOT + FIELD_POLICY;
+
+    /**
      * Special character used as prefix for grant (g) and revoke (r) fields in index document to avoid conflict
      * actual fields in a thing. The character is part of the restricted fields (see
      * {@link org.eclipse.ditto.base.model.entity.id.RegexPatterns#CONTROL_CHARS}).
