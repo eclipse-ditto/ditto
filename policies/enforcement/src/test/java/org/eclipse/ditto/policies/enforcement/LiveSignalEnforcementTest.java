@@ -76,7 +76,7 @@ import akka.testkit.TestProbe;
 import akka.testkit.javadsl.TestKit;
 
 /**
- * Tests {@link org.eclipse.ditto.concierge.api.enforcement.LiveSignalEnforcement} in context of an {@link org.eclipse.ditto.concierge.api.enforcement.EnforcerActor}.
+ * Tests {@link LiveSignalEnforcement} in context of an {@link org.eclipse.ditto.concierge.api.enforcement.EnforcerActor}.
  */
 @SuppressWarnings({"squid:S3599", "squid:S1171"})
 public final class LiveSignalEnforcementTest {

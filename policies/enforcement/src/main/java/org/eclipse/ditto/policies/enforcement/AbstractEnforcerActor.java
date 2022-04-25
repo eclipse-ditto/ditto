@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.policies.enforcement;
 
+import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
+
 import java.util.function.UnaryOperator;
 
 import javax.annotation.Nullable;
@@ -68,7 +70,7 @@ public abstract class AbstractEnforcerActor extends AbstractGraphActor<Contextua
 
         final var actorContext = getContext();
         final var actorSystem = actorContext.getSystem();
-        this.enforcementConfig = enforcementConfig;
+        this.enforcementConfig = checkNotNull(enforcementConfig, "enforcementConfig");
 
         this.thingIdCache = thingIdCache;
         this.policyEnforcerCache = policyEnforcerCache;

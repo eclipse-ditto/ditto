@@ -195,7 +195,7 @@ public final class TestSetup {
                     system,
                     liveSignalPub,
                     ENFORCEMENT_CONFIG));
-            final Props props = EnforcerActor.props(testActorRef, enforcementProviders, conciergeForwarder, null, preEnforcer,
+            final Props props = EnforcerActor.props(testActorRef, enforcementProviders, conciergeForwarder, ENFORCEMENT_CONFIG, preEnforcer,
                     null, null);
 
             return system.actorOf(props, EnforcerActor.ACTOR_NAME);

@@ -57,6 +57,10 @@ import akka.pattern.Patterns;
  */
 public abstract class AbstractPersistenceSupervisor<E extends EntityId> extends AbstractActorWithStashWithTimers {
 
+    /**
+     * Timeout for local actor invocations - a small timeout should be more than sufficient as those are just method
+     * calls.
+     */
     private static final Duration DEFAULT_LOCAL_ASK_TIMEOUT = Duration.ofSeconds(5);
 
     protected final DittoDiagnosticLoggingAdapter log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
@@ -341,25 +345,24 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId> extends 
             final Command<?> command) {
 
         if (null != enforcerChild) {
-            Patterns.ask(enforcerChild, command,
-                            command.getDittoHeaders().getTimeout().orElse(DEFAULT_LOCAL_ASK_TIMEOUT))
+            Patterns.ask(enforcerChild, command, DEFAULT_LOCAL_ASK_TIMEOUT)
                     .whenComplete((enResponse, enThrowable) -> {
                         if (enResponse instanceof Command<?> enforcedCommand) {
-                            Patterns.ask(persistenceActorChild, enforcedCommand, enforcedCommand.getDittoHeaders()
-                                    .getTimeout().orElse(DEFAULT_LOCAL_ASK_TIMEOUT)
-                            ).whenComplete((paResponse, paThrowable) -> {
-                                if (paResponse instanceof CommandResponse<?> commandResponse) {
-                                    enforcerChild.tell(commandResponse, sender);
-                                } else if (null != paThrowable) {
-                                    sender.tell(enThrowable, persistenceActorChild);
-                                }
-                            });
+                            Patterns.ask(persistenceActorChild, enforcedCommand, DEFAULT_LOCAL_ASK_TIMEOUT)
+                                    .whenComplete((paResponse, paThrowable) -> {
+                                        if (paResponse instanceof CommandResponse<?> commandResponse) {
+                                            enforcerChild.tell(commandResponse, sender);
+                                        } else if (null != paThrowable) {
+                                            sender.tell(enThrowable, persistenceActorChild);
+                                        }
+                                    });
                         } else if (null != enThrowable) {
                             sender.tell(enThrowable, persistenceActorChild);
                         }
                     });
         } else {
-            log.withCorrelationId(command).error("Could not enforce command because enforcer actor was not present");
+            log.withCorrelationId(command)
+                    .error("Could not enforce command because enforcer actor was not present");
         }
     }
 

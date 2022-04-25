@@ -98,7 +98,7 @@ import akka.testkit.javadsl.TestKit;
 import scala.concurrent.duration.Duration;
 
 /**
- * Tests {@link org.eclipse.ditto.concierge.api.enforcement.ThingCommandEnforcement} in context of an {@link org.eclipse.ditto.concierge.api.enforcement.EnforcerActor}.
+ * Tests {@link ThingCommandEnforcement} in context of an {@link org.eclipse.ditto.concierge.api.enforcement.EnforcerActor}.
  */
 @SuppressWarnings({"squid:S3599", "squid:S1171"})
 public final class ThingCommandEnforcementTest {

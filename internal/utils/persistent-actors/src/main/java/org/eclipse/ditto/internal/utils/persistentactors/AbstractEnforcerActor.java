@@ -62,6 +62,10 @@ import akka.japi.pf.ReceiveBuilder;
 public abstract class AbstractEnforcerActor<I extends EntityId, C extends Command<?>, R extends CommandResponse<?>>
         extends AbstractActorWithStashWithTimers {
 
+    /**
+     * Timeout for local actor invocations - a small timeout should be more than sufficient as those are just method
+     * calls.
+     */
     protected static final Duration DEFAULT_LOCAL_ASK_TIMEOUT = Duration.ofSeconds(5);
 
     protected final DittoDiagnosticLoggingAdapter log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
