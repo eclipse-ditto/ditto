@@ -30,11 +30,10 @@ import org.eclipse.ditto.base.service.config.supervision.ExponentialBackOffConfi
 import org.eclipse.ditto.internal.utils.akka.actors.AbstractActorWithStashWithTimers;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
+import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.policies.enforcement.CreationRestrictionEnforcer;
 import org.eclipse.ditto.policies.enforcement.DefaultCreationRestrictionEnforcer;
 import org.eclipse.ditto.policies.enforcement.config.DefaultEntityCreationConfig;
-
-import com.typesafe.config.ConfigFactory;
 
 import akka.actor.ActorRef;
 import akka.actor.PoisonPill;
@@ -65,6 +64,7 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId> extends 
     private static final Duration DEFAULT_LOCAL_ASK_TIMEOUT = Duration.ofSeconds(5);
 
     protected final DittoDiagnosticLoggingAdapter log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
+    protected final CreationRestrictionEnforcer creationRestrictionEnforcer;
 
     @Nullable private E entityId;
     @Nullable private ActorRef persistenceActorChild;
@@ -78,6 +78,9 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId> extends 
     protected AbstractPersistenceSupervisor() {
         exponentialBackOffConfig = getExponentialBackOffConfig();
         backOff = ExponentialBackOff.initial(exponentialBackOffConfig);
+        creationRestrictionEnforcer = DefaultCreationRestrictionEnforcer.of(
+                DefaultEntityCreationConfig.of(DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config()))
+        );
     }
 
     /**
@@ -98,11 +101,9 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId> extends 
      * Get the props of the supervised persistence enforcer actor.
      *
      * @param entityId entity ID of this actor.
-     * @param creationRestrictionEnforcer TODO TJ
      * @return props of the child actor.
      */
-    protected abstract Props getPersistenceEnforcerProps(E entityId,
-            CreationRestrictionEnforcer creationRestrictionEnforcer);
+    protected abstract Props getPersistenceEnforcerProps(E entityId);
 
     /**
      * Read background configuration from actor context.
@@ -227,12 +228,8 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId> extends 
     private void startEnforcerActor() {
         if (null == enforcerChild) {
             log.debug("Starting enforcer actor for entity with ID <{}>.", entityId);
-            final CreationRestrictionEnforcer creationRestrictionEnforcer = DefaultCreationRestrictionEnforcer.of(
-                    DefaultEntityCreationConfig.of(ConfigFactory.empty()) // TODO TJ load correctly
-            );
             assert entityId != null;
-            final ActorRef enRef = getContext().actorOf(
-                    getPersistenceEnforcerProps(entityId, creationRestrictionEnforcer), "en");
+            final ActorRef enRef = getContext().actorOf(getPersistenceEnforcerProps(entityId), "en");
             enforcerChild = getContext().watch(enRef);
         } else {
             log.debug("Not starting persistence enforcer child actor because it is started already.");

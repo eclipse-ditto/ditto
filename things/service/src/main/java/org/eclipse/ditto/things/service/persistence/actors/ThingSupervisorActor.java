@@ -24,7 +24,6 @@ import org.eclipse.ditto.base.service.config.supervision.ExponentialBackOffConfi
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.internal.utils.persistentactors.AbstractPersistenceSupervisor;
 import org.eclipse.ditto.internal.utils.pubsub.DistributedPub;
-import org.eclipse.ditto.policies.enforcement.CreationRestrictionEnforcer;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingUnavailableException;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
@@ -90,8 +89,7 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
     }
 
     @Override
-    protected Props getPersistenceEnforcerProps(final ThingId entityId,
-            final CreationRestrictionEnforcer creationRestrictionEnforcer) {
+    protected Props getPersistenceEnforcerProps(final ThingId entityId) {
         return null; // TODO TJ implement
     }
 

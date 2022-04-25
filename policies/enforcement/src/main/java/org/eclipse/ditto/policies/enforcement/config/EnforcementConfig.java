@@ -58,13 +58,6 @@ public interface EnforcementConfig {
     Set<String> getSpecialLoggingInspectedNamespaces();
 
     /**
-     * Returns the configuration for the entity creation restrictions.
-     *
-     * @return the configuration.
-     */
-    EntityCreationConfig getEntityCreation();
-
-    /**
      * Check if global dispatch of a signal should be supported.
      *
      * @param signal the signal.

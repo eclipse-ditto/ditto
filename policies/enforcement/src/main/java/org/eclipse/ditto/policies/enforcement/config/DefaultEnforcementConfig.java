@@ -38,7 +38,6 @@ public final class DefaultEnforcementConfig implements EnforcementConfig {
     private final int bufferSize;
     private final boolean globalLiveResponseDispatching;
     private final Set<String> specialLoggingInspectedNamespaces;
-    private final EntityCreationConfig entityCreation;
 
     private DefaultEnforcementConfig(final ConfigWithFallback configWithFallback) {
         askWithRetryConfig = DefaultAskWithRetryConfig.of(configWithFallback, ASK_WITH_RETRY_CONFIG_PATH);
@@ -47,7 +46,6 @@ public final class DefaultEnforcementConfig implements EnforcementConfig {
                 configWithFallback.getBoolean(EnforcementConfigValue.GLOBAL_LIVE_RESPONSE_DISPATCHING.getConfigPath());
         specialLoggingInspectedNamespaces = Collections.unmodifiableSet(new HashSet<>(configWithFallback.getStringList(
                         EnforcementConfigValue.SPECIAL_LOGGING_INSPECTED_NAMESPACES.getConfigPath())));
-        entityCreation = DefaultEntityCreationConfig.of(configWithFallback);
     }
 
     /**
@@ -83,11 +81,6 @@ public final class DefaultEnforcementConfig implements EnforcementConfig {
     }
 
     @Override
-    public EntityCreationConfig getEntityCreation() {
-        return entityCreation;
-    }
-
-    @Override
     public boolean equals(final Object o) {
         if (this == o) {
             return true;
@@ -99,14 +92,13 @@ public final class DefaultEnforcementConfig implements EnforcementConfig {
         return bufferSize == that.bufferSize &&
                 globalLiveResponseDispatching == that.globalLiveResponseDispatching &&
                 askWithRetryConfig.equals(that.askWithRetryConfig) &&
-                entityCreation.equals(that.entityCreation) &&
                 specialLoggingInspectedNamespaces.equals(that.specialLoggingInspectedNamespaces);
     }
 
     @Override
     public int hashCode() {
         return Objects.hash(askWithRetryConfig, bufferSize, globalLiveResponseDispatching,
-                entityCreation, specialLoggingInspectedNamespaces);
+                specialLoggingInspectedNamespaces);
     }
 
     @Override
@@ -115,7 +107,6 @@ public final class DefaultEnforcementConfig implements EnforcementConfig {
                 "askWithRetryConfig=" + askWithRetryConfig +
                 ", bufferSize=" + bufferSize +
                 ", globalLiveResponseDispatching=" + globalLiveResponseDispatching +
-                ", entityCreation=" + entityCreation +
                 ", specialLoggingInspectedNamespaces=" + specialLoggingInspectedNamespaces +
                 "]";
     }
