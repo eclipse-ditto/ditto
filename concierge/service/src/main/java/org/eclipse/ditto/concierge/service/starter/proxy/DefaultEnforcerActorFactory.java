@@ -40,6 +40,7 @@ import org.eclipse.ditto.internal.utils.cacheloaders.PolicyEnforcerCacheLoader;
 import org.eclipse.ditto.internal.utils.cacheloaders.ThingEnforcementIdCacheLoader;
 import org.eclipse.ditto.internal.utils.cluster.ClusterUtil;
 import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
+import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.internal.utils.namespaces.BlockNamespaceBehavior;
 import org.eclipse.ditto.internal.utils.namespaces.BlockedNamespaces;
 import org.eclipse.ditto.internal.utils.namespaces.BlockedNamespacesUpdater;
@@ -53,6 +54,7 @@ import org.eclipse.ditto.policies.enforcement.EnforcerActor;
 import org.eclipse.ditto.policies.enforcement.LiveSignalEnforcement;
 import org.eclipse.ditto.policies.enforcement.PreEnforcer;
 import org.eclipse.ditto.policies.enforcement.ThingCommandEnforcement;
+import org.eclipse.ditto.policies.enforcement.config.DefaultEntityCreationConfig;
 import org.eclipse.ditto.policies.enforcement.placeholders.PlaceholderSubstitution;
 import org.eclipse.ditto.policies.enforcement.validators.CommandWithOptionalEntityValidator;
 import org.eclipse.ditto.policies.model.enforcers.Enforcer;
@@ -120,7 +122,7 @@ public final class DefaultEnforcerActorFactory implements EnforcerActorFactory<C
 
         // creation restriction
         final CreationRestrictionEnforcer creationRestriction = DefaultCreationRestrictionEnforcer.of(
-                conciergeConfig.getEnforcementConfig().getEntityCreation()
+                DefaultEntityCreationConfig.of(DefaultScopedConfig.dittoScoped(context.system().settings().config()))
         );
 
         final Set<EnforcementProvider<?>> enforcementProviders = new HashSet<>();
