@@ -36,6 +36,7 @@ import org.eclipse.ditto.policies.model.ResourceKey;
 import org.eclipse.ditto.policies.model.enforcers.Enforcer;
 import org.eclipse.ditto.policies.model.enforcers.PolicyEnforcers;
 import org.eclipse.ditto.policies.model.signals.commands.PolicyCommand;
+import org.eclipse.ditto.policies.model.signals.commands.PolicyCommandResponse;
 import org.eclipse.ditto.policies.model.signals.commands.actions.PolicyActionCommand;
 import org.eclipse.ditto.policies.model.signals.commands.actions.TopLevelPolicyActionCommand;
 import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyCommandToAccessExceptionRegistry;
@@ -48,10 +49,10 @@ import org.eclipse.ditto.policies.model.signals.commands.modify.PolicyModifyComm
 import org.eclipse.ditto.policies.model.signals.commands.query.PolicyQueryCommandResponse;
 
 /**
- * Authorizes {@link PolicyCommand}s and filters {@link PolicyQueryCommandResponse}s.
+ * Authorizes {@link PolicyCommand}s and filters {@link PolicyCommandResponse}s.
  */
 public final class PolicyCommandEnforcement
-        extends AbstractEnforcementReloaded<PolicyCommand<?>, PolicyQueryCommandResponse<?>> {
+        extends AbstractEnforcementReloaded<PolicyCommand<?>, PolicyCommandResponse<?>> {
 
     /**
      * Json fields that are always shown regardless of authorization.
@@ -125,12 +126,19 @@ public final class PolicyCommandEnforcement
     }
 
     @Override
-    public PolicyQueryCommandResponse<?> filterResponse(final PolicyQueryCommandResponse<?> commandResponse,
+    public PolicyCommandResponse<?> filterResponse(final PolicyCommandResponse<?> commandResponse,
             final PolicyEnforcer policyEnforcer) {
-        try {
-            return buildJsonViewForPolicyQueryCommandResponse(commandResponse, policyEnforcer.getEnforcer());
-        } catch (final RuntimeException e) {
-            throw reportError("Error after building JsonView", e, commandResponse.getDittoHeaders());
+
+        if (commandResponse instanceof PolicyQueryCommandResponse<?> policyQueryCommandResponse) {
+            try {
+                return buildJsonViewForPolicyQueryCommandResponse(policyQueryCommandResponse,
+                        policyEnforcer.getEnforcer());
+            } catch (final RuntimeException e) {
+                throw reportError("Error after building JsonView", e, commandResponse.getDittoHeaders());
+            }
+        } else {
+            // no filtering required for non PolicyQueryCommandResponses:
+            return commandResponse;
         }
     }
 

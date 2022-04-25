@@ -26,8 +26,8 @@ import org.eclipse.ditto.policies.enforcement.CreationRestrictionEnforcer;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.enforcers.PolicyEnforcers;
 import org.eclipse.ditto.policies.model.signals.commands.PolicyCommand;
+import org.eclipse.ditto.policies.model.signals.commands.PolicyCommandResponse;
 import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyNotAccessibleException;
-import org.eclipse.ditto.policies.model.signals.commands.query.PolicyQueryCommandResponse;
 import org.eclipse.ditto.policies.service.enforcement.PolicyCommandEnforcement;
 
 import akka.actor.ActorRef;
@@ -35,10 +35,10 @@ import akka.actor.Props;
 import akka.pattern.Patterns;
 
 /**
- * TODO TJ add javadoc
+ * Enforcer responsible for enforcing {@link PolicyCommand}s and filtering {@link PolicyCommandResponse}s.
  */
 public final class PolicyEnforcerActor
-        extends AbstractEnforcerActor<PolicyId, PolicyCommand<?>, PolicyQueryCommandResponse<?>> {
+        extends AbstractEnforcerActor<PolicyId, PolicyCommand<?>, PolicyCommandResponse<?>> {
 
     @SuppressWarnings("unused")
     private PolicyEnforcerActor(final PolicyId policyId,
@@ -49,7 +49,12 @@ public final class PolicyEnforcerActor
     }
 
     /**
-     * TODO TJ doc
+     * Creates Akka configuration object Props for this Actor.
+     *
+     * @param policyId the PolicyId this enforcer actor is responsible for.
+     * @param creationRestrictionEnforcer TODO TJ
+     * @param pubSubMediator the ActorRef of the distributed pub-sub-mediator used to subscribe for policy updates in
+     * order to perform invalidations.
      */
     public static Props props(final PolicyId policyId, final CreationRestrictionEnforcer creationRestrictionEnforcer,
             final ActorRef pubSubMediator) {
@@ -57,12 +62,12 @@ public final class PolicyEnforcerActor
     }
 
     @Override
-    protected CompletionStage<PolicyId> getPolicyIdForEnforcement() {
+    protected CompletionStage<PolicyId> providePolicyIdForEnforcement() {
         return CompletableFuture.completedStage(entityId);
     }
 
     @Override
-    protected CompletionStage<PolicyEnforcer> loadPolicyEnforcer(final PolicyId policyId) {
+    protected CompletionStage<PolicyEnforcer> providePolicyEnforcer(final PolicyId policyId) {
         return Patterns.ask(getContext().getParent(), SudoRetrievePolicy.of(policyId,
                 DittoHeaders.newBuilder()
                         .correlationId("sudoRetrievePolicyFromPolicyPersistenceEnforcerActor-" + UUID.randomUUID())

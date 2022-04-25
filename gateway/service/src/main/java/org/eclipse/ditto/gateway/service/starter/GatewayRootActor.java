@@ -313,15 +313,6 @@ final class GatewayRootActor extends DittoRootActor {
                 ConnectivityMessagingConstants.SHARD_REGION);
     }
 
-    private ActorRef startConciergeForwarder(final ActorRef pubSubMediator, final int numberOfShards) {
-        final ActorRef conciergeEnforcerRouter =
-                ConciergeEnforcerClusterRouterFactory.createConciergeEnforcerClusterRouter(getContext(),
-                        numberOfShards);
-
-        return startChildActor(ConciergeForwarderActor.ACTOR_NAME,
-                ConciergeForwarderActor.props(pubSubMediator, conciergeEnforcerRouter));
-    }
-
     private ActorRef startProxyActor(final ActorRefFactory actorSystem, final ActorRef pubSubMediator,
             final ActorRef conciergeForwarder) {
 

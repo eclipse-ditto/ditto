@@ -19,6 +19,7 @@ import javax.annotation.Nullable;
 
 import org.eclipse.ditto.base.api.commands.sudo.SudoCommand;
 import org.eclipse.ditto.base.model.entity.id.EntityId;
+import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.signals.commands.Command;
@@ -352,10 +353,14 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId> extends 
                                     .whenComplete((paResponse, paThrowable) -> {
                                         if (paResponse instanceof CommandResponse<?> commandResponse) {
                                             enforcerChild.tell(commandResponse, sender);
+                                        } else if (enResponse instanceof DittoRuntimeException dre) {
+                                            sender.tell(dre, persistenceActorChild);
                                         } else if (null != paThrowable) {
-                                            sender.tell(enThrowable, persistenceActorChild);
+                                            sender.tell(paThrowable, persistenceActorChild);
                                         }
                                     });
+                        } else if (enResponse instanceof DittoRuntimeException dre) {
+                            sender.tell(dre, persistenceActorChild);
                         } else if (null != enThrowable) {
                             sender.tell(enThrowable, persistenceActorChild);
                         }

@@ -35,6 +35,7 @@ import akka.japi.pf.ReceiveBuilder;
  * Actor which acts as a client to the concierge service. It forwards messages either to the concierge's appropriate
  * enforcer (in case of a command referring to a single entity) or to the concierge's dispatcher actor (in
  * case of commands not referring to a single entity such as search commands).
+ * TODO TJ candidate for removal
  */
 public class ConciergeForwarderActor extends AbstractActor {
 

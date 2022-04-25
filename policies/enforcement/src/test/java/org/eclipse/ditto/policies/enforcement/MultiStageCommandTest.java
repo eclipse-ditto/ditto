@@ -61,6 +61,7 @@ import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThing;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThingResponse;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import com.typesafe.config.ConfigFactory;
@@ -418,6 +419,7 @@ public final class MultiStageCommandTest {
     }
 
     @Test
+    @Ignore("TODO TJ move this test to e.g. ThingCommandEnforcementTest")
     public void createThingWithExplicitPolicyNotAuthorizedBySelf() {
         new TestKit(system) {{
             final ActorRef underTest = newEnforcerActor(getRef());
