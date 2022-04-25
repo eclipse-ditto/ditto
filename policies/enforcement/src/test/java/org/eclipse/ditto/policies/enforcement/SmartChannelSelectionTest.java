@@ -65,7 +65,7 @@ import akka.testkit.TestActorRef;
 import akka.testkit.javadsl.TestKit;
 
 /**
- * Tests {@link org.eclipse.ditto.concierge.api.enforcement.ThingCommandEnforcement} in context of an {@link org.eclipse.ditto.concierge.api.enforcement.EnforcerActor} for commands requiring smart channel
+ * Tests {@link ThingCommandEnforcement} in context of an {@code EnforcerActor} for commands requiring smart channel
  * selection.
  */
 public final class SmartChannelSelectionTest {

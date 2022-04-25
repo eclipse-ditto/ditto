@@ -321,7 +321,7 @@ public abstract class AbstractEnforcement<C extends Signal<?>> {
     }
 
     /**
-     * @return the {@link org.eclipse.ditto.concierge.api.actors.ConciergeForwarderActor} reference
+     * @return the {@code ConciergeForwarderActor} reference
      */
     protected ActorRef conciergeForwarder() {
         return context.getConciergeForwarder();
