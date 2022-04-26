@@ -67,9 +67,9 @@ public final class AggregatedDevOpsCommandResponse
     private final String responsesType;
 
     private AggregatedDevOpsCommandResponse(final JsonObject aggregatedResponses,
-            final String responsesType,
-            final HttpStatus httpStatus,
-            final DittoHeaders dittoHeaders) {
+                                            final String responsesType,
+                                            final HttpStatus httpStatus,
+                                            final DittoHeaders dittoHeaders) {
 
         super(TYPE, null, null, httpStatus, dittoHeaders);
         this.aggregatedResponses = aggregatedResponses;
@@ -80,16 +80,16 @@ public final class AggregatedDevOpsCommandResponse
      * Returns a new instance of {@code AggregatedDevOpsCommandResponse}.
      *
      * @param commandResponses the aggregated {@link DevOpsCommandResponse}s.
-     * @param responsesType the responses type of the responses to expect.
-     * @param httpStatus the HTTP status to send back as response status.
-     * @param dittoHeaders the headers of the request.
+     * @param responsesType    the responses type of the responses to expect.
+     * @param httpStatus       the HTTP status to send back as response status.
+     * @param dittoHeaders     the headers of the request.
      * @return the new RetrieveLoggerConfigResponse response.
      * @since 2.0.0
      */
     public static AggregatedDevOpsCommandResponse of(final List<CommandResponse<?>> commandResponses,
-            final String responsesType,
-            final HttpStatus httpStatus,
-            final DittoHeaders dittoHeaders) {
+                                                     final String responsesType,
+                                                     final HttpStatus httpStatus,
+                                                     final DittoHeaders dittoHeaders) {
 
         final var jsonRepresentation = buildJsonRepresentation(commandResponses, dittoHeaders);
         return new AggregatedDevOpsCommandResponse(jsonRepresentation, responsesType, httpStatus, dittoHeaders);
@@ -99,16 +99,16 @@ public final class AggregatedDevOpsCommandResponse
      * Returns a new instance of {@code AggregatedDevOpsCommandResponse}.
      *
      * @param aggregatedResponses the aggregated {@link DevOpsCommandResponse}s as a JsonObject.
-     * @param responsesType the responses type of the responses to expect.
-     * @param httpStatus the HTTP status to send back as response status.
-     * @param dittoHeaders the headers of the request.
+     * @param responsesType       the responses type of the responses to expect.
+     * @param httpStatus          the HTTP status to send back as response status.
+     * @param dittoHeaders        the headers of the request.
      * @return the new RetrieveLoggerConfigResponse response.
      * @since 2.0.0
      */
     public static AggregatedDevOpsCommandResponse of(final JsonObject aggregatedResponses,
-            final String responsesType,
-            final HttpStatus httpStatus,
-            final DittoHeaders dittoHeaders) {
+                                                     final String responsesType,
+                                                     final HttpStatus httpStatus,
+                                                     final DittoHeaders dittoHeaders) {
 
         return new AggregatedDevOpsCommandResponse(aggregatedResponses, responsesType, httpStatus, dittoHeaders);
     }
@@ -116,13 +116,13 @@ public final class AggregatedDevOpsCommandResponse
     /**
      * Creates a response to a {@code AggregatedDevOpsCommandResponse} command from a JSON string.
      *
-     * @param jsonString contains the data of the AggregatedDevOpsCommandResponse command.
+     * @param jsonString   contains the data of the AggregatedDevOpsCommandResponse command.
      * @param dittoHeaders the headers of the request.
      * @return the AggregatedDevOpsCommandResponse command which is based on the dta of {@code jsonString}.
-     * @throws NullPointerException if {@code jsonString} is {@code null}.
-     * @throws IllegalArgumentException if {@code jsonString} is empty.
+     * @throws NullPointerException                      if {@code jsonString} is {@code null}.
+     * @throws IllegalArgumentException                  if {@code jsonString} is empty.
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonString} was not in the expected
-     * format.
+     *                                                   format.
      */
     public static AggregatedDevOpsCommandResponse fromJson(final String jsonString, final DittoHeaders dittoHeaders) {
         return fromJson(JsonFactory.newObject(jsonString), dittoHeaders);
@@ -131,15 +131,15 @@ public final class AggregatedDevOpsCommandResponse
     /**
      * Creates a response to a {@code AggregatedDevOpsCommandResponse} command from a JSON object.
      *
-     * @param jsonObject the JSON object of which the response is to be created.
+     * @param jsonObject   the JSON object of which the response is to be created.
      * @param dittoHeaders the headers of the preceding command.
      * @return the response.
-     * @throws NullPointerException if {@code jsonObject} is {@code null}.
+     * @throws NullPointerException                      if {@code jsonObject} is {@code null}.
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
-     * format.
+     *                                                   format.
      */
     public static AggregatedDevOpsCommandResponse fromJson(final JsonObject jsonObject,
-            final DittoHeaders dittoHeaders) {
+                                                           final DittoHeaders dittoHeaders) {
 
         return JSON_DESERIALIZER.deserialize(jsonObject, dittoHeaders);
     }
@@ -168,8 +168,8 @@ public final class AggregatedDevOpsCommandResponse
 
     @Override
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder,
-            final JsonSchemaVersion schemaVersion,
-            final Predicate<JsonField> thePredicate) {
+                                 final JsonSchemaVersion schemaVersion,
+                                 final Predicate<JsonField> thePredicate) {
 
         super.appendPayload(jsonObjectBuilder, schemaVersion, thePredicate);
 
@@ -179,7 +179,7 @@ public final class AggregatedDevOpsCommandResponse
     }
 
     private static JsonObject buildJsonRepresentation(final List<CommandResponse<?>> commandResponses,
-            final DittoHeaders dittoHeaders) {
+                                                      final DittoHeaders dittoHeaders) {
 
         final var schemaVersion = dittoHeaders.getSchemaVersion().orElse(JsonSchemaVersion.LATEST);
         final var builder = JsonObject.newBuilder();
@@ -189,8 +189,8 @@ public final class AggregatedDevOpsCommandResponse
             final var key = String.format("/%s/%s", calculateServiceName(cmdR), calculateInstance(cmdR, i++));
             // include both regular and special fields for devops command responses
             final JsonValue responseJson;
-            if (cmdR instanceof ExecutePiggybackCommandResponse) {
-                responseJson = ((ExecutePiggybackCommandResponse) cmdR).getResponse();
+            if (cmdR instanceof ExecutePiggybackCommandResponse response) {
+                responseJson = response.getResponse();
             } else {
                 responseJson = cmdR.toJson(schemaVersion, FieldType.regularOrSpecial());
             }
