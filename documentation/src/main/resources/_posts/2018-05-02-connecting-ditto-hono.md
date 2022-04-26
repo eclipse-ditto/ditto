@@ -221,8 +221,8 @@ The result should be:
 
 ```json
 {
-    "?": {
-        "-1": {
+    "connectivity": {
+        "10.0.0.1": {
             "type": "connectivity.responses:testConnection",
             "status": 200,
             "connectionId": "hono-sandbox-connection-1",
@@ -393,8 +393,8 @@ The result looks like this:
 
 ```json
 {
-  "?": {
-    "?": {
+  "connectivity": {
+    "10.0.0.1": {
       "type": "connectivity.responses:retrieveConnectionMetrics",
       "status": 200,
       "connectionId": "hono-sandbox-connection-1",

@@ -136,7 +136,7 @@ The configured subject-issuer will be used to prefix the value of each individua
   "subjects": {
     "<provider>:<auth-subject-0>": {
       "type": "generated"
-    }
+    },
     ...
     "<provider>:<auth-subject-n>": {
       "type": "generated"
@@ -382,11 +382,11 @@ Response:
 ```json
 {
     "gateway": {
-        "1": {
+        "<gateway_service_instance>": {
             "type": "devops.responses:retrieveLoggerConfig",
             "status": 200,
             "serviceName": "gateway",
-            "instance": 1,
+            "instance": "10.0.0.1",
             "loggerConfigs": [{
                 "level": "info",
                 "logger": "ROOT"
@@ -435,11 +435,11 @@ Response:
 
 ```json
 {
-    "1": {
+    "10.0.0.1": {
         "type": "devops.responses:retrieveLoggerConfig",
         "status": 200,
         "serviceName": "gateway",
-        "instance": 1,
+        "instance": "10.0.0.1",
         "loggerConfigs": [{
             "level": "info",
             "logger": "ROOT"
@@ -490,7 +490,7 @@ variables. Response example:
 ```json
 {
   "gateway": {
-    "1": {
+    "10.0.0.1": {
       "type": "common.responses:retrieveConfig",
       "status": 200,
       "config": {
@@ -498,8 +498,8 @@ variables. Response example:
           "PATH": "/usr/games:/usr/local/games"
         },
         "service": {
-          "instance-index": "1",
-          "service-name": "gateway"
+          "instance-id": "10.0.0.1",
+          "name": "gateway"
         },
         "vm-args": [
           "-Dfile.encoding=UTF-8"
@@ -508,7 +508,7 @@ variables. Response example:
     }
   },
   "connectivity": {
-    "1": {
+    "10.0.0.1": {
       "type": "common.responses:retrieveConfig",
       "status": 200,
       "config": {
@@ -516,8 +516,8 @@ variables. Response example:
           "CONNECTIVITY_FLUSH_PENDING_RESPONSES_TIMEOUT": "3d"
         },
         "service": {
-          "instance-index": "1",
-          "service-name": "connectivity"
+          "instance-id": "10.0.0.1",
+          "name": "connectivity"
         },
         "vm-args": [
           "-Dditto.connectivity.connection.snapshot.threshold=2"
@@ -543,7 +543,7 @@ Response example:
 ```json
 {
   "gateway": {
-    "1": {
+    "10.0.0.1": {
       "type": "common.responses:retrieveConfig",
       "status": 200,
       "config": {
@@ -732,7 +732,7 @@ The response has the following details:
 ```json
 {
   "things": {
-    "1": {
+    "10.0.0.1": {
       "type": "status.responses:retrieveHealth",
       "status": 200,
       "statusInfo": {
@@ -770,7 +770,7 @@ Response example:
 ```json
 {
   "things": {
-    "1": {
+    "10.0.0.1": {
       "type": "common.responses:retrieveConfig",
       "status": 200,
       "config": {
@@ -821,7 +821,7 @@ The field `last-pid` is not a part of the configuration.
 ```json
 {
   "things": {
-    "1": {
+    "10.0.0.1": {
       "type": "common.responses:modifyConfig",
       "status": 200,
       "config": {
@@ -864,7 +864,7 @@ Response example:
 ```json
 {
   "concierge": {
-    "1": {
+    "10.0.0.1": {
       "type": "common.responses:shutdown",
       "status": 200,
       "message": "Restarting stream in <PT5760H30M5S>."
@@ -900,7 +900,7 @@ Response example:
 ```json
 {
   "things": {
-    "1": {
+    "10.0.0.1": {
       "type": "cleanup.responses:cleanupPersistence",
       "status": 200,
       "entityId": "thing:ditto:thing1"
