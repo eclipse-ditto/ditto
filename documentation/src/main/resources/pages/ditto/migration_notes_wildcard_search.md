@@ -3,14 +3,14 @@ title: Migration notes: wildcard search
 tags: []
 published: true
 keywords: migration
-summary: "Migration of the search index after wildcard search"
-permalink: release_notes_240.html
+summary: "Migration of the search index after introduction of wildcard index based search"
+permalink: migration_notes_wildcard_search.html
 ---
 
 ## Changes
 
-Ditto **TODO:version** introduces a new search index schema based on wildcard indices of MongoDB. In order to facilitate
-a smooth upgrade, the service name, cluster role, database name and collections of Search Service are changed as
+Ditto **TODO:version** introduces a new search index schema based on [wildcard indices](https://www.mongodb.com/docs/manual/core/index-wildcard/) of MongoDB. In order to facilitate
+a smooth upgrade, the service name, cluster role, database name and collections of Search service are changed as
 follows.
 - The service name is changed from `things-search` to `search`.
 - The cluster role is changed from `things-search` to `things-wildcard-search`.
@@ -20,7 +20,7 @@ follows.
 
 ## Automatic reindexing
 
-After deployment of Ditto **TODO:version**, Search Service will start reindexing things in the background. The result
+After deployment of Ditto **TODO:version**, Search service will start reindexing things in the background. The result
 of queries will be incomplete until reindexing finishes. The progress of background sync can be monitored via the
 `/status/health` HTTP endpoint under the label `backgroundSync`.
 
@@ -46,7 +46,7 @@ Here is an example status for reindexing in progress.
 }
 ```
 
-Here is an example status after completion.
+Here is an example status after completion of background sync.
 {%raw%}
 ```json
 {
