@@ -1,0 +1,86 @@
+/*
+ * Copyright (c) 2022 Contributors to the Eclipse Foundation
+ *
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
+ *
+ * SPDX-License-Identifier: EPL-2.0
+ */
+package org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.subscribing;
+
+import java.util.Objects;
+
+import javax.annotation.Nullable;
+
+import org.eclipse.ditto.base.model.common.ConditionChecker;
+import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.publish.GenericMqttPublish;
+
+import akka.NotUsed;
+
+/**
+ * Represents failed subscribing for at least one MQTT topic via one particular
+ * Subscribe message ({@link GenericMqttSubscribe}).
+ */
+final class SubscribeFailure implements SubscribeResult {
+
+    private final MqttSubscribeException mqttSubscribeException;
+
+    private SubscribeFailure(final MqttSubscribeException mqttSubscribeException) {
+        this.mqttSubscribeException = mqttSubscribeException;
+    }
+
+    /**
+     * Returns a new instance of {@code SubscribeFailure} for the specified arguments.
+     *
+     * @param mqttSubscribeException the error that caused subscribing to fail.
+     * @return the instance.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @throws IllegalArgumentException if {@code mqttTopicFilters} is empty.
+     */
+    static SubscribeFailure newInstance(final MqttSubscribeException mqttSubscribeException) {
+
+        return new SubscribeFailure(
+                ConditionChecker.checkNotNull(mqttSubscribeException, "mqttSubscribeException")
+        );
+    }
+
+    @Override
+    public boolean isSuccess() {
+        return false;
+    }
+
+    /**
+     * Throws always an IllegalStateException.
+     */
+    @Override
+    public akka.stream.javadsl.Source<GenericMqttPublish, NotUsed> getMqttPublishSourceOrThrow() {
+        throw new IllegalStateException("Failure cannot provide a MQTT Publish Source.");
+    }
+
+    @Override
+    public MqttSubscribeException getErrorOrThrow() {
+        return mqttSubscribeException;
+    }
+
+    @Override
+    public boolean equals(@Nullable final Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        final var that = (SubscribeFailure) o;
+        return Objects.equals(mqttSubscribeException, that.mqttSubscribeException);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(mqttSubscribeException);
+    }
+
+}
