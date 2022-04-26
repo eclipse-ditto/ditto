@@ -158,6 +158,7 @@
                             <!-- Don't add excludes here before checking with the whole Ditto team -->
                             <!--<exclude></exclude>-->
                             <exclude>org.eclipse.ditto.things.model.signals.commands.ThingCommandSizeValidator#DITTO_LIMITS_THINGS_MAX_SIZE_BYTES</exclude>
+                            <exclude>org.eclipse.ditto.things.model.signals.commands.ThingCommandResponse#getEntityId()</exclude>
                         </excludes>
                     </parameter>
                 </configuration>

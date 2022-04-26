@@ -132,6 +132,7 @@
                             <!-- Don't add excludes here before checking with the whole Ditto team -->
                             <!--<exclude></exclude>-->
                             <exclude>org.eclipse.ditto.messages.model.signals.commands.MessageCommandSizeValidator#DITTO_LIMITS_MESSAGES_MAX_SIZE_BYTES</exclude>
+                            <exclude>rg.eclipse.ditto.messages.model.signals.commands.MessageCommandResponse#getEntityId()</exclude>
                         </excludes>
                     </parameter>
                 </configuration>
