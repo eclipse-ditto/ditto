@@ -12,20 +12,23 @@
  */
 package org.eclipse.ditto.messages.model.signals.commands;
 
+import javax.annotation.Nullable;
+
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.json.FieldType;
+import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
+import org.eclipse.ditto.base.model.signals.Signal;
+import org.eclipse.ditto.base.model.signals.SignalWithEntityId;
+import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonKey;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.base.model.json.FieldType;
-import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.messages.model.Message;
 import org.eclipse.ditto.messages.model.MessageDirection;
 import org.eclipse.ditto.things.model.WithThingId;
-import org.eclipse.ditto.base.model.signals.SignalWithEntityId;
-import org.eclipse.ditto.base.model.signals.commands.Command;
 
 /**
  * Base interface for all commands to send messages to things and features.
@@ -103,6 +106,17 @@ public interface MessageCommand<P, C extends MessageCommand<P, C>> extends Comma
                 .addLeaf(JsonKey.of(fId)))
                 .orElse(JsonPointer.empty());
         return path.append(pathSuffix);
+    }
+
+    /**
+     * Indicates whether the specified signal argument is a {@link MessageCommand}.
+     *
+     * @param signal the signal to be checked.
+     * @return {@code true} if {@code signal} is a {@code MessageCommand}, {@code false} else.
+     * @since 3.0.0
+     */
+    static boolean isMessageCommand(@Nullable final Signal<?> signal) {
+        return Signal.hasTypePrefix(signal, MessageCommand.TYPE_PREFIX);
     }
 
     /**

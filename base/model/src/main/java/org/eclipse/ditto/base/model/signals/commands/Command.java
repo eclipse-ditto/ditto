@@ -14,6 +14,7 @@ package org.eclipse.ditto.base.model.signals.commands;
 
 import java.util.function.Predicate;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.atteo.classindex.IndexSubclasses;
@@ -73,6 +74,41 @@ public interface Command<T extends Command<T>> extends Signal<T> {
 
     @Override
     JsonObject toJson(JsonSchemaVersion schemaVersion, Predicate<JsonField> predicate);
+
+    /**
+     * Indicates whether the specified signal argument is a live command.
+     *
+     * @param signal the signal to be checked.
+     * @return {@code true} if {@code signal} is an instance of {@link Command} with channel
+     * {@value CHANNEL_LIVE} in its headers, {@code false} else.
+     * @since 3.0.0
+     */
+    static boolean isLiveCommand(@Nullable final Signal<?> signal) {
+        return isMessageCommand(signal) || Command.isCommand(signal) && Signal.isChannelLive(signal);
+    }
+
+    /**
+     * Indicates whether the specified signal argument is a {@code MessageCommand}.
+     * TODO TJ that is a really nasty workaround - fix it!
+     *
+     * @param signal the signal to be checked.
+     * @return {@code true} if {@code signal} is a {@code MessageCommand}, {@code false} else.
+     * @since 3.0.0
+     */
+    static boolean isMessageCommand(@Nullable final Signal<?> signal) {
+        return Signal.hasTypePrefix(signal, "messages.commands:");
+    }
+
+    /**
+     * Indicates whether the specified signal argument is an instance of {@code Command}.
+     *
+     * @param signal the signal to be checked.
+     * @return {@code true} if {@code signal} is an instance of {@link Command}, {@code false} else.
+     * @since 3.0.0
+     */
+    static boolean isCommand(@Nullable final Signal<?> signal) {
+        return signal instanceof Command;
+    }
 
     /**
      * Categories every command is classified into.

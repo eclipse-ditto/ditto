@@ -20,6 +20,7 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.model.common.ConditionChecker;
 import org.eclipse.ditto.base.model.entity.id.EntityId;
+import org.eclipse.ditto.base.model.entity.id.WithEntityId;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.commands.Command;
@@ -29,7 +30,6 @@ import org.eclipse.ditto.connectivity.model.LogCategory;
 import org.eclipse.ditto.connectivity.model.LogEntry;
 import org.eclipse.ditto.connectivity.model.LogLevel;
 import org.eclipse.ditto.connectivity.model.LogType;
-import org.eclipse.ditto.internal.models.signal.SignalInformationPoint;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.protocol.TopicPath;
 import org.eclipse.ditto.protocol.mappingstrategies.IllegalAdaptableException;
@@ -95,7 +95,7 @@ public final class LogEntryFactory {
     }
 
     private static Optional<EntityId> getEntityId(final Signal<?> signal) {
-        return SignalInformationPoint.getEntityId(signal);
+        return WithEntityId.getEntityId(signal);
     }
 
     /**

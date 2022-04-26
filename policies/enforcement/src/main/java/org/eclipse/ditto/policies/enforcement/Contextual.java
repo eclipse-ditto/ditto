@@ -252,7 +252,7 @@ public final class Contextual<T extends WithDittoHeaders> implements WithSender<
                 askFuture);
     }
 
-    Contextual<T> withReceiver(@Nullable final ActorRef receiver) {
+    public Contextual<T> withReceiver(@Nullable final ActorRef receiver) {
         return new Contextual<>(message,
                 self,
                 sender,

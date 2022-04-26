@@ -26,10 +26,12 @@ import javax.annotation.Nullable;
 
 import org.eclipse.ditto.base.model.acks.AcknowledgementLabel;
 import org.eclipse.ditto.base.model.entity.id.EntityId;
+import org.eclipse.ditto.base.model.entity.id.WithEntityId;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.DittoHeadersSettable;
+import org.eclipse.ditto.base.model.headers.translator.HeaderTranslator;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.WithOptionalEntity;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
@@ -37,19 +39,17 @@ import org.eclipse.ditto.base.model.signals.acks.Acknowledgements;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
 import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayCommandTimeoutException;
-import org.eclipse.ditto.connectivity.model.ConnectionIdInvalidException;
 import org.eclipse.ditto.internal.models.acks.config.AcknowledgementConfig;
 import org.eclipse.ditto.internal.models.signal.CommandHeaderRestoration;
-import org.eclipse.ditto.internal.models.signal.SignalInformationPoint;
 import org.eclipse.ditto.internal.models.signal.correlation.CommandAndCommandResponseMatchingValidator;
 import org.eclipse.ditto.internal.models.signal.correlation.MatchingValidationResult;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.messages.model.signals.commands.MessageCommandResponse;
-import org.eclipse.ditto.protocol.HeaderTranslator;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.acks.ThingAcknowledgementFactory;
+import org.eclipse.ditto.things.model.signals.commands.ThingCommand;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommandResponse;
 import org.eclipse.ditto.things.model.signals.commands.ThingErrorResponse;
 
@@ -220,8 +220,7 @@ public final class AcknowledgementAggregatorActor extends AbstractActorWithTimer
 
     private MatchingValidationResult validateResponse(final CommandResponse<?> commandResponse) {
         final MatchingValidationResult result;
-        if (SignalInformationPoint.isLiveCommand(originatingSignal) ||
-                SignalInformationPoint.isChannelSmart(originatingSignal)) {
+        if (Command.isLiveCommand(originatingSignal) || ThingCommand.isChannelSmart(originatingSignal)) {
             result = tryToValidateLiveResponse((Command<?>) originatingSignal, commandResponse);
         } else {
 
@@ -236,20 +235,25 @@ public final class AcknowledgementAggregatorActor extends AbstractActorWithTimer
             final CommandResponse<?> commandResponse) {
         try {
             return validateLiveResponse(command, commandResponse);
-        } catch (final ConnectionIdInvalidException e) {
+        } catch (final DittoRuntimeException e) {
+            // TODO TJ this catched "final ConnectionIdInvalidException e" before .. which does not make sense to have as dependency
+            if (e.getErrorCode().equals("connectivity:connection.id.invalid")) {
 
-            // This case is very unlikely as the connection ID gets set to
-            // response headers by Ditto itself.
-            log.withCorrelationId(command)
-                    .error("Headers of command response contain an invalid connection ID: {}." +
-                                    " Repeating validation without the invalid connection ID." +
-                                    " This means that the validation failure will not appear in connection log.",
-                            e.getMessage());
-            final var dittoHeadersWithoutConnectionId = DittoHeaders.newBuilder(commandResponse.getDittoHeaders())
-                    .removeHeader(DittoHeaderDefinition.CONNECTION_ID.getKey())
-                    .build();
+                // This case is very unlikely as the connection ID gets set to
+                // response headers by Ditto itself.
+                log.withCorrelationId(command)
+                        .error("Headers of command response contain an invalid connection ID: {}." +
+                                        " Repeating validation without the invalid connection ID." +
+                                        " This means that the validation failure will not appear in connection log.",
+                                e.getMessage());
+                final var dittoHeadersWithoutConnectionId = DittoHeaders.newBuilder(commandResponse.getDittoHeaders())
+                        .removeHeader(DittoHeaderDefinition.CONNECTION_ID.getKey())
+                        .build();
 
-            return validateLiveResponse(command, commandResponse.setDittoHeaders(dittoHeadersWithoutConnectionId));
+                return validateLiveResponse(command, commandResponse.setDittoHeaders(dittoHeadersWithoutConnectionId));
+            } else {
+                throw e;
+            }
         }
     }
 
@@ -273,8 +277,7 @@ public final class AcknowledgementAggregatorActor extends AbstractActorWithTimer
 
     private static Optional<JsonValue> getPayload(final ThingCommandResponse<?> thingCommandResponse) {
         final Optional<JsonValue> result;
-        if (thingCommandResponse instanceof WithOptionalEntity) {
-            final var withOptionalEntity = (WithOptionalEntity) thingCommandResponse;
+        if (thingCommandResponse instanceof WithOptionalEntity withOptionalEntity) {
             result = withOptionalEntity.getEntity(thingCommandResponse.getImplementedSchemaVersion());
         } else {
             result = Optional.empty();
@@ -311,7 +314,7 @@ public final class AcknowledgementAggregatorActor extends AbstractActorWithTimer
                     .dittoHeaders(acknowledgements.getDittoHeaders())
                     .description(MessageFormat.format(descriptionPattern, detailMessage))
                     .build();
-            return SignalInformationPoint.getEntityId(originatingSignal)
+            return WithEntityId.getEntityId(originatingSignal)
                     .map(ThingId::of)
                     .map(thingId -> ThingErrorResponse.of(thingId, gatewayCommandTimeoutException))
                     .orElseGet(() -> ThingErrorResponse.of(gatewayCommandTimeoutException));
@@ -422,8 +425,8 @@ public final class AcknowledgementAggregatorActor extends AbstractActorWithTimer
         // check originating signal for ack label of response
         // because live commands may generate twin responses due to live timeout fallback strategy
         // smart channel commands are treated as live channel commands
-        final var isChannelLive = SignalInformationPoint.isChannelLive(signal);
-        final var isChannelSmart = SignalInformationPoint.isChannelSmart(signal);
+        final var isChannelLive = Signal.isChannelLive(signal);
+        final var isChannelSmart = ThingCommand.isChannelSmart(signal);
         return isChannelLive || isChannelSmart ? LIVE_RESPONSE : TWIN_PERSISTED;
     }
 
@@ -431,7 +434,7 @@ public final class AcknowledgementAggregatorActor extends AbstractActorWithTimer
             @Nullable final Duration specifiedTimeout) {
         if (specifiedTimeout != null) {
             return specifiedTimeout;
-        } else if (SignalInformationPoint.isChannelSmart(originatingSignal)) {
+        } else if (ThingCommand.isChannelSmart(originatingSignal)) {
             return originatingSignal.getDittoHeaders().getTimeout().orElse(COMMAND_TIMEOUT)
                     .plus(SMART_CHANNEL_BUFFER);
         } else {

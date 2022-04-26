@@ -12,24 +12,22 @@
  */
 package org.eclipse.ditto.policies.service.starter;
 
-import org.eclipse.ditto.connectivity.model.signals.events.ConnectionDeleted;
 import org.eclipse.ditto.internal.utils.persistentactors.EmptyEvent;
 import org.eclipse.ditto.internal.utils.test.GlobalEventRegistryTestCases;
 import org.eclipse.ditto.policies.model.signals.events.ResourceDeleted;
+import org.eclipse.ditto.things.api.ThingSnapshotTaken;
 import org.eclipse.ditto.things.model.signals.events.ThingDeleted;
-import org.eclipse.ditto.thingsearch.model.signals.events.SubscriptionComplete;
 
 public final class PoliciesServiceGlobalEventRegistryTest extends GlobalEventRegistryTestCases {
 
     public PoliciesServiceGlobalEventRegistryTest() {
-        super(ResourceDeleted.class,
+        super(
+                ResourceDeleted.class,
 
                 // added due to ditto-model-placeholders
-                ThingDeleted.class,
-                EmptyEvent.class,
-
-                ConnectionDeleted.class,
-                SubscriptionComplete.class
+                ThingDeleted.class,         // TODO TJ strictly speaking, the policies service should not must to "know" things-model
+                ThingSnapshotTaken.class,   // TODO TJ strictly speaking, the policies service should not must to "know" things-api
+                EmptyEvent.class
         );
     }
 

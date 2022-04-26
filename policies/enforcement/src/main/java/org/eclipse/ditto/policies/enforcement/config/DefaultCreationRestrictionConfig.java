@@ -16,12 +16,11 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.base.model.common.LikeHelper;
 import org.eclipse.ditto.internal.utils.config.ConfigWithFallback;
-import org.eclipse.ditto.rql.query.LikeHelper;
 
 import com.typesafe.config.Config;
 
@@ -45,10 +44,10 @@ public class DefaultCreationRestrictionConfig implements CreationRestrictionConf
         this.authSubjectPatterns = compile(List.copyOf(configWithFallback.getStringList(AUTH_SUBJECTS_CONFIG_PATH)));
     }
 
-    private static List<Pattern> compile(List<String> patterns) {
+    private static List<Pattern> compile(final List<String> patterns) {
         return patterns.stream()
                 .map(expression -> Pattern.compile(LikeHelper.convertToRegexSyntax(expression)))
-                .collect(Collectors.toUnmodifiableList());
+                .toList();
     }
 
     /**

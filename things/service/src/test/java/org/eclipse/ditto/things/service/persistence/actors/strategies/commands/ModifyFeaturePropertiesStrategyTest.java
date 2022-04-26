@@ -17,17 +17,17 @@ import static org.eclipse.ditto.things.model.TestConstants.Thing.THING_V2;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
-import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.base.model.common.DittoSystemProperties;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.internal.utils.persistentactors.commands.CommandStrategy;
+import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.things.model.Feature;
 import org.eclipse.ditto.things.model.FeatureProperties;
 import org.eclipse.ditto.things.model.TestConstants;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.ThingTooLargeException;
-import org.eclipse.ditto.internal.utils.persistentactors.commands.CommandStrategy;
-import org.eclipse.ditto.things.model.signals.commands.ThingCommandSizeValidator;
 import org.eclipse.ditto.things.model.signals.commands.modify.CreateThing;
 import org.eclipse.ditto.things.model.signals.commands.modify.ModifyFeatureProperties;
 import org.eclipse.ditto.things.model.signals.events.FeaturePropertiesCreated;
@@ -35,7 +35,6 @@ import org.eclipse.ditto.things.model.signals.events.FeaturePropertiesModified;
 import org.eclipse.ditto.things.service.persistence.actors.ETagTestUtils;
 import org.junit.Before;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Test;
 
 /**
@@ -44,7 +43,7 @@ import org.junit.Test;
 public final class ModifyFeaturePropertiesStrategyTest extends AbstractCommandStrategyTest {
 
     private static final long THING_SIZE_LIMIT_BYTES = Long.parseLong(
-            System.getProperty(ThingCommandSizeValidator.DITTO_LIMITS_THINGS_MAX_SIZE_BYTES, "-1"));
+            System.getProperty(DittoSystemProperties.DITTO_LIMITS_THINGS_MAX_SIZE_BYTES, "-1"));
 
     private static String featureId;
     private static FeatureProperties modifiedFeatureProperties;

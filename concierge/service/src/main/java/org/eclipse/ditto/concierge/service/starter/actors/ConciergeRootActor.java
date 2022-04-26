@@ -15,10 +15,10 @@ package org.eclipse.ditto.concierge.service.starter.actors;
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import org.eclipse.ditto.base.service.actors.DittoRootActor;
-import org.eclipse.ditto.concierge.api.actors.ConciergeForwarderActor;
-import org.eclipse.ditto.concierge.api.actors.ShardRegions;
 import org.eclipse.ditto.concierge.service.starter.ConciergeConfig;
 import org.eclipse.ditto.concierge.service.starter.proxy.EnforcerActorFactory;
+import org.eclipse.ditto.edge.api.dispatching.ConciergeForwarderActor;
+import org.eclipse.ditto.edge.api.dispatching.ShardRegions;
 import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.internal.utils.health.DefaultHealthCheckingActorFactory;
 import org.eclipse.ditto.internal.utils.health.HealthCheckingActorOptions;

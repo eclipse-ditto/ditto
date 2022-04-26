@@ -28,16 +28,17 @@ import javax.annotation.Nullable;
 import org.eclipse.ditto.base.model.acks.AbstractCommandAckRequestSetter;
 import org.eclipse.ditto.base.model.acks.AcknowledgementRequest;
 import org.eclipse.ditto.base.model.entity.id.EntityId;
+import org.eclipse.ditto.base.model.entity.id.WithEntityId;
 import org.eclipse.ditto.base.model.exceptions.DittoHeaderInvalidException;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.headers.translator.HeaderTranslator;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.internal.models.acks.config.AcknowledgementConfig;
-import org.eclipse.ditto.internal.models.signal.SignalInformationPoint;
 import org.eclipse.ditto.internal.models.signal.correlation.MatchingValidationResult;
-import org.eclipse.ditto.protocol.HeaderTranslator;
-import org.eclipse.ditto.things.model.signals.commands.modify.ThingModifyCommand;
+import org.eclipse.ditto.messages.model.signals.commands.MessageCommand;
+import org.eclipse.ditto.things.model.signals.commands.ThingCommand;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorRefFactory;
@@ -141,7 +142,7 @@ public final class AcknowledgementAggregatorActorStarter {
 
         return preprocess(command,
                 (originatingSignal, shouldStart) -> {
-                    final var entityIdOptional = SignalInformationPoint.getEntityId(command);
+                    final var entityIdOptional = WithEntityId.getEntityId(command);
                     if (shouldStart && entityIdOptional.isPresent()) {
                         return doStart(entityIdOptional.get(),
                                 originatingSignal,
@@ -279,13 +280,13 @@ public final class AcknowledgementAggregatorActorStarter {
     private static boolean shouldStartForIncoming(final Signal<?> signal) {
         final boolean result;
 
-        final var isLiveSignal = SignalInformationPoint.isChannelLive(signal);
-        final var isChannelSmart = SignalInformationPoint.isChannelSmart(signal);
+        final var isLiveSignal = Signal.isChannelLive(signal);
+        final var isChannelSmart = ThingCommand.isChannelSmart(signal);
         final Collection<AcknowledgementRequest> ackRequests = signal.getDittoHeaders().getAcknowledgementRequests();
-        if (signal instanceof ThingModifyCommand && !isLiveSignal) {
+        if (signal instanceof Command<?> command && command.getCategory() == Command.Category.MODIFY && !isLiveSignal) {
             result = ackRequests.stream().anyMatch(AcknowledgementForwarderActorStarter::isNotLiveResponse);
-        } else if (SignalInformationPoint.isMessageCommand(signal) ||
-                isLiveSignal && SignalInformationPoint.isThingCommand(signal)) {
+        } else if (MessageCommand.isMessageCommand(signal) ||
+                isLiveSignal && ThingCommand.isThingCommand(signal)) {
 
             result = ackRequests.stream().anyMatch(AcknowledgementForwarderActorStarter::isNotTwinPersisted);
         } else {

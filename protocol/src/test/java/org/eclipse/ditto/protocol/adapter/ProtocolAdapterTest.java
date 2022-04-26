@@ -15,8 +15,7 @@ package org.eclipse.ditto.protocol.adapter;
 import org.assertj.core.api.AbstractObjectAssert;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.DittoHeadersSettable;
-import org.eclipse.ditto.protocol.HeaderTranslator;
-import org.eclipse.ditto.protocol.adapter.DittoProtocolAdapter;
+import org.eclipse.ditto.base.model.headers.translator.HeaderTranslator;
 
 /**
  * Super class of protocol adapter tests.

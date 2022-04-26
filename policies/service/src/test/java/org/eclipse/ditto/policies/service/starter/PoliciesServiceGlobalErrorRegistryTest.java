@@ -23,25 +23,20 @@ import org.eclipse.ditto.base.model.signals.acks.AcknowledgementCorrelationIdMis
 import org.eclipse.ditto.base.model.signals.commands.CommandNotSupportedException;
 import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayAuthenticationFailedException;
 import org.eclipse.ditto.base.model.signals.commands.exceptions.PathUnknownException;
-import org.eclipse.ditto.connectivity.model.ConnectionIdInvalidException;
-import org.eclipse.ditto.connectivity.model.signals.commands.exceptions.ConnectionConflictException;
 import org.eclipse.ditto.internal.utils.test.GlobalErrorRegistryTestCases;
 import org.eclipse.ditto.messages.model.AuthorizationSubjectBlockedException;
 import org.eclipse.ditto.placeholders.PlaceholderFunctionUnknownException;
 import org.eclipse.ditto.policies.model.PolicyEntryInvalidException;
 import org.eclipse.ditto.policies.model.PolicyIdInvalidException;
 import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyConflictException;
-import org.eclipse.ditto.protocol.UnknownChannelException;
-import org.eclipse.ditto.protocol.adapter.UnknownTopicPathException;
-import org.eclipse.ditto.protocol.mappingstrategies.IllegalAdaptableException;
 import org.eclipse.ditto.things.model.ThingIdInvalidException;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.AttributePointerInvalidException;
-import org.eclipse.ditto.thingsearch.model.signals.commands.exceptions.InvalidOptionException;
 
 public final class PoliciesServiceGlobalErrorRegistryTest extends GlobalErrorRegistryTestCases {
 
     public PoliciesServiceGlobalErrorRegistryTest() {
-        super(DittoHeaderInvalidException.class,
+        super(
+                DittoHeaderInvalidException.class,
                 PolicyEntryInvalidException.class,
                 AttributePointerInvalidException.class,
                 CommandNotSupportedException.class,
@@ -60,17 +55,7 @@ public final class PoliciesServiceGlobalErrorRegistryTest extends GlobalErrorReg
                 PathUnknownException.class,
 
                 // added due to ditto-model-placeholders
-                PlaceholderFunctionUnknownException.class,
-
-                // connectivity-model is pulled in as transitive dependency of ditto-protocol, pulled in by ditto-internal-model-acks:
-                // acks are used in Policies enabling "at least once" for policy announcements
-                ConnectionIdInvalidException.class,
-                ConnectionConflictException.class,
-                UnknownTopicPathException.class,
-                UnknownChannelException.class,
-
-                InvalidOptionException.class,
-                IllegalAdaptableException.class
+                PlaceholderFunctionUnknownException.class
         );
     }
 

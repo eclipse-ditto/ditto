@@ -15,6 +15,7 @@ package org.eclipse.ditto.internal.models.acks;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.time.Duration;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
@@ -24,16 +25,17 @@ import org.eclipse.ditto.base.model.acks.AcknowledgementRequest;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.common.ResponseType;
 import org.eclipse.ditto.base.model.correlationid.TestNameCorrelationId;
+import org.eclipse.ditto.base.model.entity.id.EntityId;
+import org.eclipse.ditto.base.model.entity.type.EntityType;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.headers.translator.HeaderTranslator;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgements;
 import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayCommandTimeoutException;
-import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.internal.models.acks.config.DefaultAcknowledgementConfig;
 import org.eclipse.ditto.internal.models.signal.correlation.MatchingValidationResult;
 import org.eclipse.ditto.internal.utils.akka.ActorSystemResource;
-import org.eclipse.ditto.protocol.HeaderTranslator;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.commands.ThingErrorResponse;
 import org.eclipse.ditto.things.model.signals.commands.modify.DeleteThing;
@@ -381,7 +383,7 @@ public final class AcknowledgementAggregatorActorTest {
 
         // GIVEN
         final var testKit = actorSystemResource.newTestKit();
-        final var connectionId = ConnectionId.generateRandom();
+        final var connectionId = EntityId.of(EntityType.of("connection"), UUID.randomUUID().toString());
         final var command = DeleteThing.of(THING_ID, DittoHeaders.newBuilder()
                 .correlationId(testNameCorrelationId.getCorrelationId())
                 .acknowledgementRequest(AcknowledgementRequest.of(AcknowledgementLabel.of("live-response")))

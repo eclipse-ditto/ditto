@@ -42,9 +42,11 @@ import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.base.model.headers.DittoHeadersSettable;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
+import org.eclipse.ditto.base.model.headers.translator.HeaderTranslator;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgements;
+import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
 import org.eclipse.ditto.base.model.signals.commands.ErrorResponse;
 import org.eclipse.ditto.base.service.config.limits.LimitsConfig;
@@ -70,24 +72,24 @@ import org.eclipse.ditto.connectivity.service.util.ConnectivityMdcEntryKey;
 import org.eclipse.ditto.internal.models.acks.AcknowledgementAggregatorActorStarter;
 import org.eclipse.ditto.internal.models.acks.config.AcknowledgementConfig;
 import org.eclipse.ditto.internal.models.signal.CommandHeaderRestoration;
-import org.eclipse.ditto.internal.models.signal.SignalInformationPoint;
 import org.eclipse.ditto.internal.models.signal.correlation.MatchingValidationResult;
 import org.eclipse.ditto.internal.models.signal.type.SemanticSignalType;
 import org.eclipse.ditto.internal.models.signal.type.SignalTypeCategory;
 import org.eclipse.ditto.internal.models.signal.type.SignalTypeFormatException;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLogger;
+import org.eclipse.ditto.messages.model.signals.commands.MessageCommand;
 import org.eclipse.ditto.messages.model.signals.commands.acks.MessageCommandAckRequestSetter;
 import org.eclipse.ditto.placeholders.ExpressionResolver;
 import org.eclipse.ditto.placeholders.PlaceholderFactory;
 import org.eclipse.ditto.placeholders.PlaceholderFilter;
-import org.eclipse.ditto.protocol.HeaderTranslator;
 import org.eclipse.ditto.protocol.ProtocolFactory;
 import org.eclipse.ditto.protocol.TopicPath;
 import org.eclipse.ditto.protocol.TopicPathBuilder;
 import org.eclipse.ditto.protocol.adapter.ProtocolAdapter;
 import org.eclipse.ditto.protocol.mappingstrategies.IllegalAdaptableException;
 import org.eclipse.ditto.things.model.ThingId;
+import org.eclipse.ditto.things.model.signals.commands.ThingCommand;
 import org.eclipse.ditto.things.model.signals.commands.ThingErrorResponse;
 import org.eclipse.ditto.things.model.signals.commands.acks.ThingLiveCommandAckRequestSetter;
 import org.eclipse.ditto.things.model.signals.commands.acks.ThingModifyCommandAckRequestSetter;
@@ -375,8 +377,7 @@ public final class InboundDispatchingSink
     }
 
     private boolean isAboutInvalidLiveResponse(final IllegalAdaptableException illegalAdaptableException) {
-        return SignalInformationPoint.isChannelLive(illegalAdaptableException) &&
-                isAboutResponse(illegalAdaptableException);
+        return Signal.isChannelLive(illegalAdaptableException) && isAboutResponse(illegalAdaptableException);
     }
 
     private boolean isAboutResponse(final IllegalAdaptableException illegalAdaptableException) {
@@ -525,7 +526,7 @@ public final class InboundDispatchingSink
     private int dispatchIncomingSignal(final IncomingSignal incomingSignal) {
         final Signal<?> signal = incomingSignal.signal;
         final ActorRef sender = incomingSignal.sender;
-        final Optional<EntityId> entityIdOptional = SignalInformationPoint.getEntityId(signal);
+        final Optional<EntityId> entityIdOptional = WithEntityId.getEntityId(signal);
         if (incomingSignal.isAckRequesting && entityIdOptional.isPresent()) {
             try {
                 startAckregatorAndForwardSignal(entityIdOptional.get(), signal, sender);
@@ -572,8 +573,8 @@ public final class InboundDispatchingSink
     }
 
     private static boolean isLive(final Signal<?> signal) {
-        return SignalInformationPoint.isMessageCommand(signal) ||
-                SignalInformationPoint.isThingCommand(signal) && SignalInformationPoint.isChannelLive(signal);
+        return MessageCommand.isMessageCommand(signal) ||
+                ThingCommand.isThingCommand(signal) && Signal.isChannelLive(signal);
     }
 
     private void startAckregatorAndForwardSignal(final EntityId entityId,
@@ -702,7 +703,7 @@ public final class InboundDispatchingSink
             final WithDittoHeaders withDittoHeaders) {
 
         final var builder = ProtocolFactory.newTopicPathBuilder(ThingId.of(withEntityId.getEntityId()));
-        if (SignalInformationPoint.isChannelLive(withDittoHeaders)) {
+        if (Signal.isChannelLive(withDittoHeaders)) {
             builder.live();
         } else {
             builder.twin();
@@ -721,7 +722,7 @@ public final class InboundDispatchingSink
             result = sender;
         } else {
             final var signalDittoHeaders = signal.getDittoHeaders();
-            if (SignalInformationPoint.isCommand(signal) && signalDittoHeaders.isResponseRequired()) {
+            if (Command.isCommand(signal) && signalDittoHeaders.isResponseRequired()) {
                 result = outboundMessageMappingProcessorActor;
             } else {
                 result = ActorRef.noSender();

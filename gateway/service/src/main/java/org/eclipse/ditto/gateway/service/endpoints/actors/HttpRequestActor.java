@@ -14,10 +14,10 @@ package org.eclipse.ditto.gateway.service.endpoints.actors;
 
 import java.util.concurrent.CompletableFuture;
 
+import org.eclipse.ditto.base.model.headers.translator.HeaderTranslator;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.gateway.service.util.config.endpoints.CommandConfig;
 import org.eclipse.ditto.gateway.service.util.config.endpoints.HttpConfig;
-import org.eclipse.ditto.protocol.HeaderTranslator;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
@@ -53,7 +53,7 @@ public final class HttpRequestActor extends AbstractHttpRequestActor {
      * request}, and {@code httpResponseFuture} which will be completed with a {@link HttpResponse}.
      *
      * @param proxyActor the proxy actor which delegates commands.
-     * @param headerTranslator the {@link org.eclipse.ditto.protocol.HeaderTranslator} used to map ditto headers
+     * @param headerTranslator the {@link org.eclipse.ditto.base.model.headers.translator.HeaderTranslator} used to map ditto headers
      * to (external) Http headers.
      * @param request the HTTP request
      * @param httpResponseFuture the completable future which is completed with a HTTP response.

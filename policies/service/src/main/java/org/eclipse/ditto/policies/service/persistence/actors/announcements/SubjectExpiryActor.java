@@ -29,6 +29,7 @@ import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.DittoHeadersBuilder;
+import org.eclipse.ditto.base.model.headers.translator.HeaderTranslator;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgements;
 import org.eclipse.ditto.internal.models.acks.AcknowledgementAggregatorActorStarter;
@@ -44,7 +45,6 @@ import org.eclipse.ditto.policies.model.signals.announcements.PolicyAnnouncement
 import org.eclipse.ditto.policies.model.signals.announcements.SubjectDeletionAnnouncement;
 import org.eclipse.ditto.policies.model.signals.commands.modify.DeleteExpiredSubject;
 import org.eclipse.ditto.policies.service.common.config.PolicyAnnouncementConfig;
-import org.eclipse.ditto.protocol.HeaderTranslator;
 
 import akka.NotUsed;
 import akka.actor.AbstractFSM;

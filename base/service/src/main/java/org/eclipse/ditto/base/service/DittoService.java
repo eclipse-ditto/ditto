@@ -27,6 +27,7 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
 
+import org.eclipse.ditto.base.model.common.DittoSystemProperties;
 import org.eclipse.ditto.base.model.signals.FeatureToggle;
 import org.eclipse.ditto.base.service.config.ServiceSpecificConfig;
 import org.eclipse.ditto.base.service.devops.DevOpsCommandsActor;
@@ -40,9 +41,6 @@ import org.eclipse.ditto.internal.utils.health.status.StatusSupplierActor;
 import org.eclipse.ditto.internal.utils.metrics.prometheus.PrometheusReporterRoute;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.WithMongoDbConfig;
 import org.eclipse.ditto.internal.utils.tracing.DittoTracing;
-import org.eclipse.ditto.messages.model.signals.commands.MessageCommandSizeValidator;
-import org.eclipse.ditto.policies.model.signals.commands.PolicyCommandSizeValidator;
-import org.eclipse.ditto.things.model.signals.commands.ThingCommandSizeValidator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -263,7 +261,7 @@ public abstract class DittoService<C extends ServiceSpecificConfig> {
     private void startPrometheusReporter() {
         try {
             prometheusReporter = PrometheusReporter.create();
-            Kamon.registerModule("prometheus reporter", prometheusReporter);
+            Kamon.addReporter("prometheus reporter", prometheusReporter);
             logger.info("Successfully added Prometheus reporter to Kamon.");
         } catch (final Exception ex) {
             logger.error("Error while adding Prometheus reporter to Kamon.", ex);
@@ -427,11 +425,11 @@ public abstract class DittoService<C extends ServiceSpecificConfig> {
      */
     protected void injectSystemPropertiesLimits(final C serviceSpecificConfig) {
         final var limitsConfig = serviceSpecificConfig.getLimitsConfig();
-        System.setProperty(ThingCommandSizeValidator.DITTO_LIMITS_THINGS_MAX_SIZE_BYTES,
+        System.setProperty(DittoSystemProperties.DITTO_LIMITS_THINGS_MAX_SIZE_BYTES,
                 Long.toString(limitsConfig.getThingsMaxSize()));
-        System.setProperty(PolicyCommandSizeValidator.DITTO_LIMITS_POLICIES_MAX_SIZE_BYTES,
+        System.setProperty(DittoSystemProperties.DITTO_LIMITS_POLICIES_MAX_SIZE_BYTES,
                 Long.toString(limitsConfig.getPoliciesMaxSize()));
-        System.setProperty(MessageCommandSizeValidator.DITTO_LIMITS_MESSAGES_MAX_SIZE_BYTES,
+        System.setProperty(DittoSystemProperties.DITTO_LIMITS_MESSAGES_MAX_SIZE_BYTES,
                 Long.toString(limitsConfig.getMessagesMaxSize()));
         System.setProperty(FeatureToggle.MERGE_THINGS_ENABLED,
                 Boolean.toString(rawConfig.getBoolean(FeatureToggle.MERGE_THINGS_ENABLED)));

@@ -29,7 +29,7 @@ public final class IdentityCache implements Cache<EnforcementCacheKey, Entry<Enf
     /**
      * The single instance of this cache.
      */
-    static final IdentityCache INSTANCE = new IdentityCache();
+    public static final IdentityCache INSTANCE = new IdentityCache();
 
     /**
      * Returns the single instance of this cache.

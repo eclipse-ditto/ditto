@@ -34,7 +34,6 @@ import org.eclipse.ditto.base.model.signals.acks.AcknowledgementRequestDuplicate
 import org.eclipse.ditto.internal.models.acks.config.AcknowledgementConfig;
 import org.eclipse.ditto.messages.model.signals.commands.MessageCommand;
 import org.eclipse.ditto.policies.model.signals.announcements.PolicyAnnouncement;
-import org.eclipse.ditto.protocol.TopicPath;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommand;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 
@@ -53,6 +52,8 @@ import akka.japi.Pair;
 final class AcknowledgementForwarderActorStarter implements Supplier<Optional<ActorRef>> {
 
     private static final String PREFIX_COUNTER_SEPARATOR = "#";
+
+    private static final String LIVE_CHANNEL = "live";
 
     private final ActorRefFactory actorRefFactory;
     private final ActorRef parent;
@@ -233,7 +234,7 @@ final class AcknowledgementForwarderActorStarter implements Supplier<Optional<Ac
     }
 
     static boolean isLiveSignal(final Signal<?> signal) {
-        return signal.getDittoHeaders().getChannel().stream().anyMatch(TopicPath.Channel.LIVE.getName()::equals);
+        return signal.getDittoHeaders().getChannel().stream().anyMatch(LIVE_CHANNEL::equals);
     }
 
     static boolean hasEffectiveAckRequests(final Signal<?> signal, final Set<AcknowledgementRequest> ackRequests) {

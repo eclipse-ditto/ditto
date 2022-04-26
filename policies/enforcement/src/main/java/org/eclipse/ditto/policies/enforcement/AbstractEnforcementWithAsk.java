@@ -211,6 +211,6 @@ public abstract class AbstractEnforcementWithAsk<C extends Signal<?>, R extends 
      * @param enforcer the enforcer that should be used for filtering.
      * @return the filtered command response.
      */
-    protected abstract R filterJsonView(R commandResponse, Enforcer enforcer);
+    public abstract R filterJsonView(R commandResponse, Enforcer enforcer);
 
 }

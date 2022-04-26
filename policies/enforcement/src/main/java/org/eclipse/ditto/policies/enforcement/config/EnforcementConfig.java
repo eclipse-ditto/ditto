@@ -18,7 +18,7 @@ import java.util.Set;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.model.signals.Signal;
-import org.eclipse.ditto.internal.models.signal.SignalInformationPoint;
+import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.internal.utils.cacheloaders.config.AskWithRetryConfig;
 import org.eclipse.ditto.internal.utils.config.KnownConfigValue;
 
@@ -65,7 +65,7 @@ public interface EnforcementConfig {
      */
     default boolean shouldDispatchGlobally(final Signal<?> signal) {
         return isDispatchLiveResponsesGlobally() &&
-                SignalInformationPoint.isCommand(signal) &&
+                signal instanceof Command<?> &&
                 signal.getDittoHeaders().isResponseRequired();
     }
 

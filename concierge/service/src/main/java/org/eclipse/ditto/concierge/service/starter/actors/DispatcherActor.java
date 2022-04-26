@@ -59,6 +59,7 @@ import akka.stream.javadsl.Sink;
 
 /**
  * Actor that dispatches signals not authorized by any entity meaning signals without entityId.
+ * TODO TJ candidate for removal - but needs to be replaced by other means
  */
 public final class DispatcherActor
         extends AbstractGraphActor<DispatcherActor.ImmutableDispatch, DittoHeadersSettable<?>> {

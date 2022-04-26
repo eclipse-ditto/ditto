@@ -43,6 +43,7 @@ import org.awaitility.Awaitility;
 import org.eclipse.ditto.base.api.persistence.cleanup.CleanupPersistence;
 import org.eclipse.ditto.base.api.persistence.cleanup.CleanupPersistenceResponse;
 import org.eclipse.ditto.base.model.common.DittoDuration;
+import org.eclipse.ditto.base.model.common.DittoSystemProperties;
 import org.eclipse.ditto.base.model.entity.Revision;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
@@ -79,7 +80,6 @@ import org.eclipse.ditto.policies.model.assertions.DittoPolicyAssertions;
 import org.eclipse.ditto.policies.model.signals.announcements.PolicyAnnouncement;
 import org.eclipse.ditto.policies.model.signals.announcements.SubjectDeletionAnnouncement;
 import org.eclipse.ditto.policies.model.signals.commands.PolicyCommand;
-import org.eclipse.ditto.policies.model.signals.commands.PolicyCommandSizeValidator;
 import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyEntryModificationInvalidException;
 import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyEntryNotAccessibleException;
 import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyModificationInvalidException;
@@ -153,7 +153,7 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
     private static final Logger LOGGER = LoggerFactory.getLogger(PolicyPersistenceActorTest.class);
 
     private static final long POLICY_SIZE_LIMIT_BYTES = Long.parseLong(
-            System.getProperty(PolicyCommandSizeValidator.DITTO_LIMITS_POLICIES_MAX_SIZE_BYTES, "-1"));
+            System.getProperty(DittoSystemProperties.DITTO_LIMITS_POLICIES_MAX_SIZE_BYTES, "-1"));
 
     @SuppressWarnings("unchecked")
     private final DistributedPub<PolicyAnnouncement<?>> policyAnnouncementPub = Mockito.mock(DistributedPub.class);

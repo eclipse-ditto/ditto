@@ -16,11 +16,12 @@ import java.util.concurrent.CompletionStage;
 import java.util.function.Supplier;
 
 import org.eclipse.ditto.base.model.headers.DittoHeadersSizeChecker;
+import org.eclipse.ditto.base.model.headers.translator.HeaderTranslator;
 import org.eclipse.ditto.base.service.actors.DittoRootActor;
 import org.eclipse.ditto.base.service.config.limits.LimitsConfig;
-import org.eclipse.ditto.concierge.api.actors.ConciergeForwarderActor;
-import org.eclipse.ditto.concierge.api.actors.ShardRegions;
 import org.eclipse.ditto.connectivity.api.ConnectivityMessagingConstants;
+import org.eclipse.ditto.edge.api.dispatching.ConciergeForwarderActor;
+import org.eclipse.ditto.edge.api.dispatching.ShardRegions;
 import org.eclipse.ditto.gateway.service.endpoints.directives.auth.DevopsAuthenticationDirective;
 import org.eclipse.ditto.gateway.service.endpoints.directives.auth.DevopsAuthenticationDirectiveFactory;
 import org.eclipse.ditto.gateway.service.endpoints.directives.auth.DittoGatewayAuthenticationDirectiveFactory;
@@ -72,7 +73,6 @@ import org.eclipse.ditto.internal.utils.http.DefaultHttpClientFacade;
 import org.eclipse.ditto.internal.utils.http.HttpClientFacade;
 import org.eclipse.ditto.internal.utils.protocol.ProtocolAdapterProvider;
 import org.eclipse.ditto.internal.utils.pubsub.DittoProtocolSub;
-import org.eclipse.ditto.protocol.HeaderTranslator;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorRefFactory;

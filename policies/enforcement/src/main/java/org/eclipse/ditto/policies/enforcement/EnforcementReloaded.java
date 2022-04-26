@@ -14,7 +14,6 @@ package org.eclipse.ditto.policies.enforcement;
 
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
-import org.eclipse.ditto.internal.utils.cacheloaders.PolicyEnforcer;
 
 /**
  * TODO TJ doc

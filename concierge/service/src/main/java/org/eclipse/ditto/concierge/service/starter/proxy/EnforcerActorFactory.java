@@ -12,8 +12,8 @@
  */
 package org.eclipse.ditto.concierge.service.starter.proxy;
 
-import org.eclipse.ditto.concierge.api.actors.ShardRegions;
 import org.eclipse.ditto.concierge.service.starter.ConciergeConfig;
+import org.eclipse.ditto.edge.api.dispatching.ShardRegions;
 
 import akka.actor.ActorContext;
 import akka.actor.ActorRef;

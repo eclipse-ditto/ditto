@@ -31,12 +31,14 @@ import org.eclipse.ditto.base.api.devops.signals.commands.DevOpsCommand;
 import org.eclipse.ditto.base.model.acks.DittoAcknowledgementLabel;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.entity.id.EntityId;
+import org.eclipse.ditto.base.model.entity.id.WithEntityId;
 import org.eclipse.ditto.base.model.exceptions.DittoJsonException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.headers.contenttype.ContentType;
+import org.eclipse.ditto.base.model.headers.translator.HeaderTranslator;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.WithOptionalEntity;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
@@ -57,7 +59,6 @@ import org.eclipse.ditto.gateway.service.util.config.endpoints.CommandConfig;
 import org.eclipse.ditto.gateway.service.util.config.endpoints.HttpConfig;
 import org.eclipse.ditto.internal.models.acks.AcknowledgementAggregatorActorStarter;
 import org.eclipse.ditto.internal.models.acks.config.AcknowledgementConfig;
-import org.eclipse.ditto.internal.models.signal.SignalInformationPoint;
 import org.eclipse.ditto.internal.models.signal.correlation.MatchingValidationResult;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
@@ -67,7 +68,7 @@ import org.eclipse.ditto.json.JsonRuntimeException;
 import org.eclipse.ditto.messages.model.Message;
 import org.eclipse.ditto.messages.model.signals.commands.MessageCommandResponse;
 import org.eclipse.ditto.messages.model.signals.commands.acks.MessageCommandAckRequestSetter;
-import org.eclipse.ditto.protocol.HeaderTranslator;
+import org.eclipse.ditto.things.model.signals.commands.ThingCommand;
 import org.eclipse.ditto.things.model.signals.commands.acks.ThingLiveCommandAckRequestSetter;
 import org.eclipse.ditto.things.model.signals.commands.acks.ThingModifyCommandAckRequestSetter;
 
@@ -286,7 +287,7 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
     }
 
     private void rememberResponseLocationUri(final CommandResponse<?> commandResponse) {
-        final var optionalEntityId = SignalInformationPoint.getEntityId(commandResponse);
+        final var optionalEntityId = WithEntityId.getEntityId(commandResponse);
         if (HttpStatus.CREATED.equals(commandResponse.getHttpStatus()) && optionalEntityId.isPresent()) {
             responseLocationUri =
                     getUriForLocationHeader(httpRequest, optionalEntityId.get(), commandResponse.getResourcePath());
@@ -478,7 +479,7 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
         final var actorContext = getContext();
         final var receiveTimeout = actorContext.getReceiveTimeout();
 
-        logger.setCorrelationId(SignalInformationPoint.getCorrelationId(receivedCommand).orElse(null));
+        logger.setCorrelationId(WithDittoHeaders.getCorrelationId(receivedCommand).orElse(null));
         logger.info("Got <{}> after <{}> before an appropriate response arrived.",
                 ReceiveTimeout.class.getSimpleName(),
                 receiveTimeout);
@@ -726,7 +727,7 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
                 .filter(timeout -> timeout.minus(maxTimeout).isNegative())
                 .orElse(maxTimeout);
 
-        if (SignalInformationPoint.isChannelSmart(originatingSignal)) {
+        if (ThingCommand.isChannelSmart(originatingSignal)) {
             return candidateTimeout.plus(commandConfig.getSmartChannelBuffer());
         } else {
             return candidateTimeout;
