@@ -12,16 +12,42 @@
  */
 package org.eclipse.ditto.gateway.service.endpoints.routes.websocket;
 
-import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
+
+import org.eclipse.ditto.base.service.DittoExtensionPoint;
 import org.eclipse.ditto.gateway.service.streaming.actors.StreamSupervisor;
-import org.eclipse.ditto.gateway.service.streaming.actors.SupervisedStream;
+import org.eclipse.ditto.gateway.service.util.config.DittoGatewayConfig;
+import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
+
+import akka.actor.ActorSystem;
 
 /**
  * Provides the means to supervise a particular WebSocket stream.
  */
-public interface WebSocketSupervisor extends StreamSupervisor {
+public abstract class WebSocketSupervisor extends DittoExtensionPoint implements StreamSupervisor {
 
-    @Override
-    void supervise(SupervisedStream supervisedStream, CharSequence connectionCorrelationId, DittoHeaders dittoHeaders);
+    /**
+     * @param actorSystem the actor system in which to load the extension.
+     */
+    protected WebSocketSupervisor(final ActorSystem actorSystem) {
+        super(actorSystem);
+    }
+
+    /**
+     * Loads the implementation of {@code WebSocketSupervisor} which is configured for the
+     * {@code ActorSystem}.
+     *
+     * @param actorSystem the actorSystem in which the {@code WebSocketSupervisor} should be loaded.
+     * @return the {@code WebSocketSupervisor} implementation.
+     * @throws NullPointerException if {@code actorSystem} is {@code null}.
+     * @since 3.0.0
+     */
+    public static WebSocketSupervisor get(final ActorSystem actorSystem) {
+        checkNotNull(actorSystem, "actorSystem");
+        final var implementation = DittoGatewayConfig.of(DefaultScopedConfig.dittoScoped(
+                actorSystem.settings().config())).getStreamingConfig().getWebsocketConfig().getConnectionSupervisor();
+
+        return new ExtensionId<>(implementation, WebSocketSupervisor.class).get(actorSystem);
+    }
 
 }

@@ -30,6 +30,7 @@ public final class DevopsAuthenticationDirectiveFactory {
 
     public static DevopsAuthenticationDirectiveFactory newInstance(
             final JwtAuthenticationFactory jwtAuthenticationFactory, final DevOpsConfig devOpsConfig) {
+
         final JwtAuthenticationProvider jwtAuthenticationProvider = JwtAuthenticationProvider.newInstance(
                 jwtAuthenticationFactory.newJwtAuthenticationResultProvider(),
                 jwtAuthenticationFactory.getJwtValidator());

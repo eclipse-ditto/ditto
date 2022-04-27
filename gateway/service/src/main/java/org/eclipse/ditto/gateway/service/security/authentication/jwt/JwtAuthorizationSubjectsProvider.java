@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.gateway.service.security.authentication.jwt;
 
+import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
+
 import java.util.List;
 
 import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
@@ -47,11 +49,13 @@ public abstract class JwtAuthorizationSubjectsProvider extends DittoExtensionPoi
      *
      * @param actorSystem the actorSystem in which the {@code JwtAuthorizationSubjectsProvider} should be loaded.
      * @return the {@code JwtAuthorizationSubjectsProvider} implementation.
+     * @throws NullPointerException if {@code actorSystem} is {@code null}.
+     * @since 3.0.0
      */
     public static JwtAuthorizationSubjectsProvider get(final ActorSystem actorSystem) {
+        checkNotNull(actorSystem, "actorSystem");
         final var implementation =
                 getOAuthConfig(actorSystem).getJwtAuthorizationSubjectsProvider();
-
         return new ExtensionId<>(implementation, JwtAuthorizationSubjectsProvider.class).get(actorSystem);
     }
 

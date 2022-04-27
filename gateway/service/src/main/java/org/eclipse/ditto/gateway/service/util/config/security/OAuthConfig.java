@@ -75,6 +75,15 @@ public interface OAuthConfig {
      */
     String getJwtAuthorizationSubjectsProvider();
 
+    /**
+     * Returns the full qualified classname of the {@code org.eclipse.ditto.gateway.service.security.authentication.jwt.JwtAuthenticationResultProvider}
+     * implementation to use for custom authorizations.
+     *
+     * @return the full qualified classname of the {@code JwtAuthenticationResultProvider} implementation to use.
+     * @since 3.0.0
+     */
+    String getJwtAuthenticationResultProvider();
+
     enum OAuthConfigValue implements KnownConfigValue {
         PROTOCOL("protocol", "https"),
         ALLOWED_CLOCK_SKEW("allowed-clock-skew", Duration.ofSeconds(10)),
@@ -86,7 +95,10 @@ public interface OAuthConfig {
          * @since 3.0.0
          */
         JWT_AUTHORIZATION_SUBJECTS_PROVIDER("jwt-authorization-subjects-provider",
-                "org.eclipse.ditto.gateway.service.security.authentication.jwt.DittoJwtAuthorizationSubjectsProvider");
+                "org.eclipse.ditto.gateway.service.security.authentication.jwt.DittoJwtAuthorizationSubjectsProvider"),
+
+        JWT_AUTHENTICATION_RESULT_PROVIDER("jwt-authentication-result-provider",
+                "org.eclipse.ditto.gateway.service.security.authentication.jwt.DefaultJwtAuthenticationResultProvider");
 
         private final String path;
         private final Object defaultValue;

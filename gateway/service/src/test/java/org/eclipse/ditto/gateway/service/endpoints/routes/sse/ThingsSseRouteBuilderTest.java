@@ -46,6 +46,8 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import com.typesafe.config.ConfigFactory;
+
 import akka.actor.ActorSystem;
 import akka.http.javadsl.model.HttpHeader;
 import akka.http.javadsl.model.HttpRequest;
@@ -79,7 +81,7 @@ public final class ThingsSseRouteBuilderTest extends EndpointTestBase {
 
     @BeforeClass
     public static void setUpClass() {
-        actorSystem = ActorSystem.create(ThingsSseRouteBuilderTest.class.getSimpleName());
+        actorSystem = ActorSystem.create(ThingsSseRouteBuilderTest.class.getSimpleName(), ConfigFactory.load("test"));
         acceptHeader = HttpHeader.parse("Accept", "text/event-stream");
     }
 
@@ -99,7 +101,7 @@ public final class ThingsSseRouteBuilderTest extends EndpointTestBase {
                 () -> CompletableFuture.completedFuture(dittoHeaders);
 
         final var sseRouteBuilder =
-                ThingsSseRouteBuilder.getInstance(streamingActor.ref(), streamingConfig, proxyActor.ref());
+                ThingsSseRouteBuilder.getInstance(actorSystem, streamingActor.ref(), streamingConfig, proxyActor.ref());
         sseRouteBuilder.withProxyActor(proxyActor.ref());
         final Route sseRoute = extractRequestContext(ctx -> sseRouteBuilder.build(ctx, dittoHeadersSupplier));
         underTest = testRoute(sseRoute);
@@ -261,7 +263,8 @@ public final class ThingsSseRouteBuilderTest extends EndpointTestBase {
                 StartStreaming.getBuilder(StreamingType.MESSAGES, connectionCorrelationId,
                                 AuthorizationModelFactory.newAuthContext(DittoAuthorizationContextType.UNSPECIFIED,
                                         Collections.emptySet()))
-                        .withFilter(String.format("and(eq(entity:id,'%s'),like(resource:path,'%s*'))", thingId, "/inbox/messages"))
+                        .withFilter(String.format("and(eq(entity:id,'%s'),like(resource:path,'%s*'))", thingId,
+                                "/inbox/messages"))
                         .build());
     }
 
@@ -274,7 +277,8 @@ public final class ThingsSseRouteBuilderTest extends EndpointTestBase {
                 StartStreaming.getBuilder(StreamingType.MESSAGES, connectionCorrelationId,
                                 AuthorizationModelFactory.newAuthContext(DittoAuthorizationContextType.UNSPECIFIED,
                                         Collections.emptySet()))
-                        .withFilter(String.format("and(eq(entity:id,'%s'),eq(resource:path,'%s'))", thingId, "/inbox/messages/hello-world"))
+                        .withFilter(String.format("and(eq(entity:id,'%s'),eq(resource:path,'%s'))", thingId,
+                                "/inbox/messages/hello-world"))
                         .build());
     }
 

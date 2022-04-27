@@ -97,6 +97,7 @@ import org.slf4j.Logger;
 
 import akka.NotUsed;
 import akka.actor.ActorRef;
+import akka.actor.ActorSystem;
 import akka.event.Logging;
 import akka.http.javadsl.model.HttpRequest;
 import akka.http.javadsl.model.HttpResponse;
@@ -175,7 +176,9 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
     private HeaderTranslator headerTranslator;
     private WebSocketConfigProvider webSocketConfigProvider;
 
-    private WebSocketRoute(final ActorRef streamingActor, final StreamingConfig streamingConfig,
+    private WebSocketRoute(final ActorSystem actorSystem,
+            final ActorRef streamingActor,
+            final StreamingConfig streamingConfig,
             final Materializer materializer) {
 
         this.streamingActor = checkNotNull(streamingActor, "streamingActor");
@@ -184,9 +187,9 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
         final EventSniffer<String> noOpEventSniffer = EventSniffer.noOp();
         incomingMessageSniffer = noOpEventSniffer;
         outgoingMessageSniffer = noOpEventSniffer;
-        authorizationEnforcer = new NoOpAuthorizationEnforcer();
-        webSocketSupervisor = new NoOpWebSocketSupervisor();
-        webSocketConfigProvider = new NoOpWebSocketConfigProvider();
+        authorizationEnforcer = WebSocketAuthorizationEnforcer.get(actorSystem);
+        webSocketSupervisor = WebSocketSupervisor.get(actorSystem);
+        webSocketConfigProvider = WebSocketConfigProvider.get(actorSystem);
         signalEnrichmentProvider = null;
         headerTranslator = HeaderTranslator.empty();
         this.materializer = materializer;
@@ -195,14 +198,19 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
     /**
      * Returns an instance of this class.
      *
+     * @param actorSystem the actorSystem in which the route should be instantiated.
      * @param streamingActor the {@link org.eclipse.ditto.gateway.service.streaming.actors.StreamingActor} reference.
      * @param streamingConfig the streaming configuration.
+     * @param materializer the materializer to use for stream materialization.
      * @return the instance.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static WebSocketRoute getInstance(final ActorRef streamingActor, final StreamingConfig streamingConfig,
+    public static WebSocketRoute getInstance(final ActorSystem actorSystem,
+            final ActorRef streamingActor,
+            final StreamingConfig streamingConfig,
             final Materializer materializer) {
-        return new WebSocketRoute(streamingActor, streamingConfig, materializer);
+
+        return new WebSocketRoute(actorSystem, streamingActor, streamingConfig, materializer);
     }
 
     @Override
@@ -232,6 +240,7 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
     @Override
     public WebSocketRouteBuilder withSignalEnrichmentProvider(
             @Nullable final GatewaySignalEnrichmentProvider provider) {
+
         signalEnrichmentProvider = provider;
         return this;
     }
@@ -893,40 +902,4 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
                 .map(ImmutableJsonWebToken::fromAuthorization);
     }
 
-    /**
-     * Null implementation for {@link WebSocketAuthorizationEnforcer} which does nothing.
-     */
-    private static final class NoOpAuthorizationEnforcer implements WebSocketAuthorizationEnforcer {
-
-        @Override
-        public CompletionStage<DittoHeaders> checkAuthorization(final DittoHeaders dittoHeaders) {
-            return CompletableFuture.completedStage(dittoHeaders);
-        }
-    }
-
-    /**
-     * Null implementation for {@link WebSocketSupervisor} which does nothing.
-     */
-    private static final class NoOpWebSocketSupervisor implements WebSocketSupervisor {
-
-        @Override
-        public void supervise(final SupervisedStream supervisedStream, final CharSequence connectionCorrelationId,
-                final DittoHeaders dittoHeaders) {
-
-            // Does nothing.
-        }
-    }
-
-    /**
-     * Null implementation for {@link WebSocketConfigProvider} which does nothing.
-     */
-    private static final class NoOpWebSocketConfigProvider implements WebSocketConfigProvider {
-
-        @Override
-        public WebsocketConfig apply(final DittoHeaders dittoHeaders,
-                final WebsocketConfig websocketConfig) {
-            // given websocketConfig is not touched
-            return websocketConfig;
-        }
-    }
 }

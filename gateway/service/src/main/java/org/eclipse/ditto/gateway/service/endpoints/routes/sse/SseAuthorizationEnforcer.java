@@ -12,10 +12,16 @@
  */
 package org.eclipse.ditto.gateway.service.endpoints.routes.sse;
 
+import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
+
 import java.util.concurrent.CompletionStage;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.service.DittoExtensionPoint;
+import org.eclipse.ditto.gateway.service.util.config.DittoGatewayConfig;
+import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 
+import akka.actor.ActorSystem;
 import akka.http.javadsl.server.RequestContext;
 
 /**
@@ -23,16 +29,41 @@ import akka.http.javadsl.server.RequestContext;
  * If the authorization check is successful nothing will happen, else a
  * {@link org.eclipse.ditto.base.model.exceptions.DittoRuntimeException DittoRuntimeException} is thrown.
  */
-public interface SseAuthorizationEnforcer {
+public abstract class SseAuthorizationEnforcer extends DittoExtensionPoint {
+
+    /**
+     * @param actorSystem the actor system in which to load the extension.
+     */
+    protected SseAuthorizationEnforcer(final ActorSystem actorSystem) {
+        super(actorSystem);
+    }
 
     /**
      * Ensures that the establishment of a SSE connection is authorized for the given arguments.
      *
      * @param requestContext the context of the HTTP request for opening the connection.
      * @param dittoHeaders the DittoHeaders with authentication information for opening the connection.
-     * @throws NullPointerException if any argument is {@code null}.
      * @return a successful future if validation succeeds or a failed future if validation fails.
+     * @throws NullPointerException if any argument is {@code null}.
      */
-    CompletionStage<Void> checkAuthorization(RequestContext requestContext, DittoHeaders dittoHeaders);
+    protected abstract CompletionStage<Void> checkAuthorization(RequestContext requestContext,
+            DittoHeaders dittoHeaders);
+
+    /**
+     * Loads the implementation of {@code SseAuthorizationEnforcer} which is configured for the
+     * {@code ActorSystem}.
+     *
+     * @param actorSystem the actorSystem in which the {@code SseAuthorizationEnforcer} should be loaded.
+     * @return the {@code SseAuthorizationEnforcer} implementation.
+     * @throws NullPointerException if {@code actorSystem} is {@code null}.
+     * @since 3.0.0
+     */
+    public static SseAuthorizationEnforcer get(final ActorSystem actorSystem) {
+        checkNotNull(actorSystem, "actorSystem");
+        final var implementation = DittoGatewayConfig.of(DefaultScopedConfig.dittoScoped(
+                actorSystem.settings().config())).getStreamingConfig().getSseConfig().getAuthorizationEnforcer();
+
+        return new ExtensionId<>(implementation, SseAuthorizationEnforcer.class).get(actorSystem);
+    }
 
 }

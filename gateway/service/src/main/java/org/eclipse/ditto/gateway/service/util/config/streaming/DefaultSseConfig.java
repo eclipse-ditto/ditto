@@ -18,7 +18,6 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.service.config.ThrottlingConfig;
 import org.eclipse.ditto.internal.utils.config.ConfigWithFallback;
-import org.eclipse.ditto.internal.utils.config.KnownConfigValue;
 import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 
 import com.typesafe.config.Config;
@@ -30,9 +29,13 @@ import com.typesafe.config.Config;
 final class DefaultSseConfig implements SseConfig {
 
     private final ThrottlingConfig throttlingConfig;
+    private final String authorizationEnforcer;
+    private final String connectionSupervisor;
 
     private DefaultSseConfig(final ScopedConfig scopedConfig) {
         throttlingConfig = ThrottlingConfig.of(scopedConfig);
+        authorizationEnforcer = scopedConfig.getString(SseConfigValue.AUTHORIZATION_ENFORCER.getConfigPath());
+        connectionSupervisor = scopedConfig.getString(SseConfigValue.CONNECTION_SUPERVISOR.getConfigPath());
     }
 
     /**
@@ -43,7 +46,8 @@ final class DefaultSseConfig implements SseConfig {
      * @throws org.eclipse.ditto.internal.utils.config.DittoConfigError if {@code config} is invalid.
      */
     public static SseConfig of(final Config config) {
-        return new DefaultSseConfig(ConfigWithFallback.newInstance(config, CONFIG_PATH, new KnownConfigValue[0]));
+        return new DefaultSseConfig(
+                ConfigWithFallback.newInstance(config, CONFIG_PATH, SseConfig.SseConfigValue.values()));
     }
 
     @Override
@@ -52,20 +56,36 @@ final class DefaultSseConfig implements SseConfig {
     }
 
     @Override
+    public String getAuthorizationEnforcer() {
+        return authorizationEnforcer;
+    }
+
+    @Override
+    public String getConnectionSupervisor() {
+        return connectionSupervisor;
+    }
+
+    @Override
     public boolean equals(final Object o) {
-        return o instanceof DefaultSseConfig &&
-                Objects.equals(throttlingConfig, ((DefaultSseConfig) o).throttlingConfig);
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        final DefaultSseConfig that = (DefaultSseConfig) o;
+        return Objects.equals(throttlingConfig, that.throttlingConfig) &&
+                Objects.equals(authorizationEnforcer, that.authorizationEnforcer) &&
+                Objects.equals(connectionSupervisor, that.connectionSupervisor);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(throttlingConfig);
+        return Objects.hash(throttlingConfig, authorizationEnforcer, connectionSupervisor);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
                 "throttlingConfig=" + throttlingConfig +
+                "authorizationEnforcer=" + authorizationEnforcer +
+                "connectionSupervisor=" + connectionSupervisor +
                 "]";
     }
 

@@ -53,8 +53,8 @@ public final class DefaultOAuthConfig implements OAuthConfig {
     private final Map<SubjectIssuer, SubjectIssuerConfig> openIdConnectIssuers;
     private final Map<SubjectIssuer, SubjectIssuerConfig> openIdConnectIssuersExtension;
     private final String tokenIntegrationSubject;
-
     private final String jwtAuthorizationSubjectsProvider;
+    private final String jwtAuthenticationResultProvider;
 
     private DefaultOAuthConfig(final ConfigWithFallback configWithFallback) {
         protocol = configWithFallback.getString(OAuthConfigValue.PROTOCOL.getConfigPath());
@@ -66,10 +66,13 @@ public final class DefaultOAuthConfig implements OAuthConfig {
                 configWithFallback.getString(OAuthConfigValue.TOKEN_INTEGRATION_SUBJECT.getConfigPath());
         jwtAuthorizationSubjectsProvider =
                 configWithFallback.getString(OAuthConfigValue.JWT_AUTHORIZATION_SUBJECTS_PROVIDER.getConfigPath());
+        jwtAuthenticationResultProvider =
+                configWithFallback.getString(OAuthConfigValue.JWT_AUTHENTICATION_RESULT_PROVIDER.getConfigPath());
     }
 
     private static Map<SubjectIssuer, SubjectIssuerConfig> loadIssuers(final ConfigWithFallback config,
             final KnownConfigValue configValue) {
+
         final ConfigObject issuersConfig = config.getObject(configValue.getConfigPath());
 
         return issuersConfig.entrySet().stream().collect(SubjectIssuerCollector.toSubjectIssuerMap());
@@ -117,6 +120,11 @@ public final class DefaultOAuthConfig implements OAuthConfig {
     }
 
     @Override
+    public String getJwtAuthenticationResultProvider() {
+        return jwtAuthenticationResultProvider;
+    }
+
+    @Override
     public boolean equals(@Nullable final Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
@@ -126,13 +134,14 @@ public final class DefaultOAuthConfig implements OAuthConfig {
                 && Objects.equals(openIdConnectIssuers, that.openIdConnectIssuers)
                 && Objects.equals(openIdConnectIssuersExtension, that.openIdConnectIssuersExtension)
                 && Objects.equals(tokenIntegrationSubject, that.tokenIntegrationSubject)
-                && Objects.equals(jwtAuthorizationSubjectsProvider, that.jwtAuthorizationSubjectsProvider);
+                && Objects.equals(jwtAuthorizationSubjectsProvider, that.jwtAuthorizationSubjectsProvider)
+                && Objects.equals(jwtAuthenticationResultProvider, that.jwtAuthenticationResultProvider);
     }
 
     @Override
     public int hashCode() {
         return Objects.hash(protocol, allowedClockSkew, openIdConnectIssuers, openIdConnectIssuersExtension,
-                tokenIntegrationSubject, jwtAuthorizationSubjectsProvider);
+                tokenIntegrationSubject, jwtAuthorizationSubjectsProvider, jwtAuthenticationResultProvider);
     }
 
     @Override
@@ -143,7 +152,8 @@ public final class DefaultOAuthConfig implements OAuthConfig {
                 ", openIdConnectIssuers=" + openIdConnectIssuers +
                 ", openIdConnectIssuersExtension=" + openIdConnectIssuersExtension +
                 ", tokenIntegrationSubject=" + tokenIntegrationSubject +
-                ", jwtAuthorizationSubjectsProvider" + jwtAuthorizationSubjectsProvider +
+                ", jwtAuthorizationSubjectsProvider=" + jwtAuthorizationSubjectsProvider +
+                ", jwtAuthenticationResultProvider=" + jwtAuthenticationResultProvider +
                 "]";
     }
 

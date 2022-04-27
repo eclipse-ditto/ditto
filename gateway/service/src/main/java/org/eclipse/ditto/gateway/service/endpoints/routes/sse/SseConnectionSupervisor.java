@@ -12,16 +12,42 @@
  */
 package org.eclipse.ditto.gateway.service.endpoints.routes.sse;
 
-import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
+
+import org.eclipse.ditto.base.service.DittoExtensionPoint;
 import org.eclipse.ditto.gateway.service.streaming.actors.StreamSupervisor;
-import org.eclipse.ditto.gateway.service.streaming.actors.SupervisedStream;
+import org.eclipse.ditto.gateway.service.util.config.DittoGatewayConfig;
+import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
+
+import akka.actor.ActorSystem;
 
 /**
  * Provides the means to supervise a particular SSE connection.
  */
-public interface SseConnectionSupervisor extends StreamSupervisor {
+public abstract class SseConnectionSupervisor extends DittoExtensionPoint implements StreamSupervisor{
 
-    @Override
-    void supervise(SupervisedStream supervisedStream, CharSequence connectionCorrelationId, DittoHeaders dittoHeaders);
+    /**
+     * @param actorSystem the actor system in which to load the extension.
+     */
+    protected SseConnectionSupervisor(final ActorSystem actorSystem) {
+        super(actorSystem);
+    }
+
+    /**
+     * Loads the implementation of {@code SseConnectionSupervisor} which is configured for the
+     * {@code ActorSystem}.
+     *
+     * @param actorSystem the actorSystem in which the {@code SseConnectionSupervisor} should be loaded.
+     * @return the {@code SseConnectionSupervisor} implementation.
+     * @throws NullPointerException if {@code actorSystem} is {@code null}.
+     * @since 3.0.0
+     */
+    public static SseConnectionSupervisor get(final ActorSystem actorSystem) {
+        checkNotNull(actorSystem, "actorSystem");
+        final var implementation = DittoGatewayConfig.of(DefaultScopedConfig.dittoScoped(
+                actorSystem.settings().config())).getStreamingConfig().getSseConfig().getConnectionSupervisor();
+
+        return new ExtensionId<>(implementation, SseConnectionSupervisor.class).get(actorSystem);
+    }
 
 }

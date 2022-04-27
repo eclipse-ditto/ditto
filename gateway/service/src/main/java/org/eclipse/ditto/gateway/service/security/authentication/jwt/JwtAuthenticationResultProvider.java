@@ -12,17 +12,31 @@
  */
 package org.eclipse.ditto.gateway.service.security.authentication.jwt;
 
+import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
+
 import java.util.concurrent.CompletionStage;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.service.DittoExtensionPoint;
+import org.eclipse.ditto.gateway.service.util.config.DittoGatewayConfig;
+import org.eclipse.ditto.gateway.service.util.config.security.OAuthConfig;
+import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.jwt.model.JsonWebToken;
+
+import akka.actor.ActorSystem;
 
 /**
  * Responsible for extraction of an {@link org.eclipse.ditto.gateway.service.security.authentication.AuthenticationResult} out of a
  * {@link JsonWebToken JSON web token}.
  */
-@FunctionalInterface
-public interface JwtAuthenticationResultProvider {
+public abstract class JwtAuthenticationResultProvider extends DittoExtensionPoint {
+
+    /**
+     * @param actorSystem the actor system in which to load the extension.
+     */
+    protected JwtAuthenticationResultProvider(final ActorSystem actorSystem) {
+        super(actorSystem);
+    }
 
     /**
      * Extracts an {@code AuthenticationResult} out of a given JsonWebToken.
@@ -32,6 +46,27 @@ public interface JwtAuthenticationResultProvider {
      * @return the authentication result based on the given JSON web token.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    CompletionStage<JwtAuthenticationResult> getAuthenticationResult(JsonWebToken jwt, DittoHeaders dittoHeaders);
+    public abstract CompletionStage<JwtAuthenticationResult> getAuthenticationResult(JsonWebToken jwt,
+            DittoHeaders dittoHeaders);
+
+    /**
+     * Loads the implementation of {@code JwtAuthenticationResultProvider} which is configured for the {@code ActorSystem}.
+     *
+     * @param actorSystem the actorSystem in which the {@code JwtAuthenticationResultProvider} should be loaded.
+     * @return the {@code JwtAuthenticationResultProvider} implementation.
+     * @throws NullPointerException if {@code actorSystem} is {@code null}.
+     * @since 3.0.0
+     */
+    public static JwtAuthenticationResultProvider get(final ActorSystem actorSystem) {
+        checkNotNull(actorSystem, "actorSystem");
+        final var implementation = getOAuthConfig(actorSystem).getJwtAuthenticationResultProvider();
+        return new ExtensionId<>(implementation, JwtAuthenticationResultProvider.class).get(actorSystem);
+    }
+
+    protected static OAuthConfig getOAuthConfig(final ActorSystem actorSystem) {
+        return DittoGatewayConfig.of(DefaultScopedConfig.dittoScoped(
+                        actorSystem.settings().config())).getAuthenticationConfig()
+                .getOAuthConfig();
+    }
 
 }

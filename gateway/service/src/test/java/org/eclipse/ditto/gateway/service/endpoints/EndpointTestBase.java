@@ -149,7 +149,7 @@ public abstract class EndpointTestBase extends JUnitRouteTest {
         jwtAuthenticationFactory = JwtAuthenticationFactory.newInstance(authConfig.getOAuthConfig(),
                 cacheConfig,
                 httpClientFacade,
-                authorizationSubjectsProvider);
+                actorSystem);
     }
 
     @Before

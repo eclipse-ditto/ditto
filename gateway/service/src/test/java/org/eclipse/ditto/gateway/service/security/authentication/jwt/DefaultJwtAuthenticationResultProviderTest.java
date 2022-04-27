@@ -13,23 +13,24 @@
 package org.eclipse.ditto.gateway.service.security.authentication.jwt;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
-import java.util.Collections;
+import java.util.UUID;
 
 import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.gateway.service.security.authentication.AuthenticationResult;
+import org.eclipse.ditto.jwt.model.ImmutableJsonWebToken;
 import org.eclipse.ditto.jwt.model.JsonWebToken;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
+
+import com.typesafe.config.ConfigFactory;
+
+import akka.actor.ActorSystem;
 
 /**
  * Unit test for {@link DefaultJwtAuthenticationResultProvider}.
@@ -37,8 +38,8 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public final class DefaultJwtAuthenticationResultProviderTest {
 
-    @Mock
-    private JwtAuthorizationSubjectsProvider authorizationSubjectsProvider;
+    private final static ActorSystem ACTOR_SYSTEM =
+            ActorSystem.create(UUID.randomUUID().toString(), ConfigFactory.load("test"));
 
     @Test
     public void assertImmutability() {
@@ -49,12 +50,9 @@ public final class DefaultJwtAuthenticationResultProviderTest {
 
     @Test
     public void getAuthorizationContext() {
-        final DefaultJwtAuthenticationResultProvider underTest =
-                DefaultJwtAuthenticationResultProvider.of(authorizationSubjectsProvider);
-        final JsonWebToken jsonWebToken = mock(JsonWebToken.class);
-        final AuthorizationSubject myTestSubj = AuthorizationSubject.newInstance("myTestSubj");
-        when(authorizationSubjectsProvider.getAuthorizationSubjects(jsonWebToken)).thenReturn(
-                Collections.singletonList(myTestSubj));
+        final JwtAuthenticationResultProvider underTest = JwtAuthenticationResultProvider.get(ACTOR_SYSTEM);
+        final JsonWebToken jsonWebToken = ImmutableJsonWebToken.fromToken(JwtTestConstants.VALID_JWT_TOKEN);
+        final AuthorizationSubject myTestSubj = AuthorizationSubject.newInstance("example:myTestSubj");
 
         final AuthenticationResult authorizationResult =
                 underTest.getAuthenticationResult(jsonWebToken, DittoHeaders.empty()).toCompletableFuture().join();

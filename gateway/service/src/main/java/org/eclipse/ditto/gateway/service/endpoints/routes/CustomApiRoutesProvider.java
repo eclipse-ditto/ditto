@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.gateway.service.endpoints.routes;
 
+import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
+
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.service.DittoExtensionPoint;
@@ -56,8 +58,11 @@ public abstract class CustomApiRoutesProvider extends DittoExtensionPoint {
      *
      * @param actorSystem the actorSystem in which the {@code CustomApiRoutesProvider} should be loaded.
      * @return the {@code CustomApiRoutesProvider} implementation.
+     * @throws NullPointerException if {@code actorSystem} is {@code null}.
+     * @since 3.0.0
      */
     public static CustomApiRoutesProvider get(final ActorSystem actorSystem) {
+        checkNotNull(actorSystem, "actorSystem");
         final var implementation = DittoGatewayConfig.of(DefaultScopedConfig.dittoScoped(
                 actorSystem.settings().config())).getHttpConfig().getCustomApiRoutesProvider();
 

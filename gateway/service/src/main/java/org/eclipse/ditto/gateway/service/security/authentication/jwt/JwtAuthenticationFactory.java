@@ -20,6 +20,8 @@ import org.eclipse.ditto.gateway.service.util.config.security.OAuthConfig;
 import org.eclipse.ditto.internal.utils.cache.config.CacheConfig;
 import org.eclipse.ditto.internal.utils.http.HttpClientFacade;
 
+import akka.actor.ActorSystem;
+
 /**
  * A factory for {@link org.eclipse.ditto.jwt.model.JsonWebToken} related security.
  */
@@ -30,7 +32,7 @@ public final class JwtAuthenticationFactory {
     private final OAuthConfig oAuthConfig;
     private final CacheConfig publicKeyCacheConfig;
     private final HttpClientFacade httpClientFacade;
-    private final JwtAuthorizationSubjectsProvider jwtAuthorizationSubjectsProvider;
+    private final ActorSystem actorSystem;
 
     @Nullable private JwtValidator jwtValidator;
     @Nullable private JwtSubjectIssuersConfig jwtSubjectIssuersConfig;
@@ -39,13 +41,12 @@ public final class JwtAuthenticationFactory {
     private JwtAuthenticationFactory(final OAuthConfig oAuthConfig,
             final CacheConfig publicKeyCacheConfig,
             final HttpClientFacade httpClientFacade,
-            final JwtAuthorizationSubjectsProvider jwtAuthorizationSubjectsProvider) {
+            final ActorSystem actorSystem) {
 
         this.oAuthConfig = checkNotNull(oAuthConfig, "authenticationConfig");
         this.publicKeyCacheConfig = checkNotNull(publicKeyCacheConfig, "publicKeyCacheConfig");
         this.httpClientFacade = checkNotNull(httpClientFacade, "httpClientFacade");
-        this.jwtAuthorizationSubjectsProvider =
-                checkNotNull(jwtAuthorizationSubjectsProvider, "jwtAuthorizationSubjectsProvider");
+        this.actorSystem = checkNotNull(actorSystem, "actorSystem");
     }
 
     /**
@@ -54,16 +55,16 @@ public final class JwtAuthenticationFactory {
      * @param oAuthConfig the OAuth configuration.
      * @param publicKeyCacheConfig the public key cache configuration.
      * @param httpClientFacade the client facade of the HTTP client.
-     * @param jwtAuthorizationSubjectsProvider the subjects provider.
+     * @param actorSystem the actor system.
      * @return the new created instance.
      */
     public static JwtAuthenticationFactory newInstance(final OAuthConfig oAuthConfig,
             final CacheConfig publicKeyCacheConfig,
             final HttpClientFacade httpClientFacade,
-            final JwtAuthorizationSubjectsProvider jwtAuthorizationSubjectsProvider) {
+            final ActorSystem actorSystem) {
 
         return new JwtAuthenticationFactory(oAuthConfig, publicKeyCacheConfig, httpClientFacade,
-                jwtAuthorizationSubjectsProvider);
+                actorSystem);
     }
 
     public JwtValidator getJwtValidator() {
@@ -94,7 +95,7 @@ public final class JwtAuthenticationFactory {
     }
 
     public JwtAuthenticationResultProvider newJwtAuthenticationResultProvider() {
-        return DefaultJwtAuthenticationResultProvider.of(jwtAuthorizationSubjectsProvider);
+        return JwtAuthenticationResultProvider.get(actorSystem);
     }
 
 }

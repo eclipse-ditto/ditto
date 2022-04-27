@@ -78,6 +78,7 @@ import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 import akka.NotUsed;
 import akka.actor.ActorRef;
 import akka.actor.ActorSelection;
+import akka.actor.ActorSystem;
 import akka.http.javadsl.marshalling.sse.EventStreamMarshalling;
 import akka.http.javadsl.model.HttpHeader;
 import akka.http.javadsl.model.MediaTypes;
@@ -133,14 +134,14 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
     private final StreamingConfig streamingConfig;
     private final QueryFilterCriteriaFactory queryFilterCriteriaFactory;
     private final ActorRef pubSubMediator;
-
-    private SseAuthorizationEnforcer sseAuthorizationEnforcer;
     private SseConnectionSupervisor sseConnectionSupervisor;
     private EventSniffer<ServerSentEvent> eventSniffer;
-    @Nullable GatewaySignalEnrichmentProvider signalEnrichmentProvider;
-    @Nullable ActorRef proxyActor;
+    private SseAuthorizationEnforcer sseAuthorizationEnforcer;
+    @Nullable private GatewaySignalEnrichmentProvider signalEnrichmentProvider;
+    @Nullable private ActorRef proxyActor;
 
-    private ThingsSseRouteBuilder(final ActorRef streamingActor,
+    private ThingsSseRouteBuilder(final ActorSystem actorSystem,
+            final ActorRef streamingActor,
             final StreamingConfig streamingConfig,
             final QueryFilterCriteriaFactory queryFilterCriteriaFactory,
             final ActorRef pubSubMediator) {
@@ -149,9 +150,9 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
         this.streamingConfig = streamingConfig;
         this.queryFilterCriteriaFactory = queryFilterCriteriaFactory;
         this.pubSubMediator = pubSubMediator;
-        sseAuthorizationEnforcer = new NoOpSseAuthorizationEnforcer();
-        sseConnectionSupervisor = new NoOpSseConnectionSupervisor();
         eventSniffer = EventSniffer.noOp();
+        sseAuthorizationEnforcer = SseAuthorizationEnforcer.get(actorSystem);
+        sseConnectionSupervisor = SseConnectionSupervisor.get(actorSystem);
     }
 
     /**
@@ -163,16 +164,19 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
      * @return the instance.
      * @throws NullPointerException if {@code streamingActor} is {@code null}.
      */
-    public static ThingsSseRouteBuilder getInstance(final ActorRef streamingActor,
+    public static ThingsSseRouteBuilder getInstance(final ActorSystem actorSystem,
+            final ActorRef streamingActor,
             final StreamingConfig streamingConfig,
             final ActorRef pubSubMediator) {
+
         checkNotNull(streamingActor, "streamingActor");
         final var queryFilterCriteriaFactory =
                 QueryFilterCriteriaFactory.modelBased(RqlPredicateParser.getInstance(),
                         TopicPathPlaceholder.getInstance(), ResourcePlaceholder.getInstance(),
                         TimePlaceholder.getInstance());
 
-        return new ThingsSseRouteBuilder(streamingActor, streamingConfig, queryFilterCriteriaFactory, pubSubMediator);
+        return new ThingsSseRouteBuilder(actorSystem, streamingActor, streamingConfig, queryFilterCriteriaFactory,
+                pubSubMediator);
     }
 
     @Override
@@ -683,29 +687,4 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
                 .tag("path", path);
     }
 
-    /**
-     * Null implementation for {@link SseAuthorizationEnforcer}.
-     */
-    private static final class NoOpSseAuthorizationEnforcer implements SseAuthorizationEnforcer {
-
-        @Override
-        public CompletionStage<Void> checkAuthorization(final RequestContext requestContext,
-                final DittoHeaders dittoHeaders) {
-            return CompletableFuture.completedStage(null);
-        }
-
-    }
-
-    /**
-     * Null implementation for {@link SseConnectionSupervisor}.
-     */
-    private static final class NoOpSseConnectionSupervisor implements SseConnectionSupervisor {
-
-        @Override
-        public void supervise(final SupervisedStream supervisedStream, final CharSequence connectionCorrelationId,
-                final DittoHeaders dittoHeaders) {
-
-            // Does nothing.
-        }
-    }
 }

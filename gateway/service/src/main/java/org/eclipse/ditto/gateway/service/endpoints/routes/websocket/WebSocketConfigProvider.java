@@ -12,14 +12,45 @@
  */
 package org.eclipse.ditto.gateway.service.endpoints.routes.websocket;
 
+import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
+
 import java.util.function.BiFunction;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.service.DittoExtensionPoint;
+import org.eclipse.ditto.gateway.service.util.config.DittoGatewayConfig;
 import org.eclipse.ditto.gateway.service.util.config.streaming.WebsocketConfig;
+import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
+
+import akka.actor.ActorSystem;
 
 /**
  * Provides a method to customize a given {@link org.eclipse.ditto.gateway.service.util.config.streaming.WebsocketConfig}.
  */
-public interface WebSocketConfigProvider extends BiFunction<DittoHeaders, WebsocketConfig, WebsocketConfig> {
+public abstract class WebSocketConfigProvider extends DittoExtensionPoint
+        implements BiFunction<DittoHeaders, WebsocketConfig, WebsocketConfig> {
 
+    /**
+     * @param actorSystem the actor system in which to load the extension.
+     */
+    protected WebSocketConfigProvider(final ActorSystem actorSystem) {
+        super(actorSystem);
+    }
+
+    /**
+     * Loads the implementation of {@code WebSocketConfigProvider} which is configured for the
+     * {@code ActorSystem}.
+     *
+     * @param actorSystem the actorSystem in which the {@code WebSocketConfigProvider} should be loaded.
+     * @return the {@code WebSocketConfigProvider} implementation.
+     * @throws NullPointerException if {@code actorSystem} is {@code null}.
+     * @since 3.0.0
+     */
+    public static WebSocketConfigProvider get(final ActorSystem actorSystem) {
+        checkNotNull(actorSystem, "actorSystem");
+        final var implementation = DittoGatewayConfig.of(DefaultScopedConfig.dittoScoped(
+                        actorSystem.settings().config())).getStreamingConfig().getWebsocketConfig().getConfigProvider();
+
+        return new ExtensionId<>(implementation, WebSocketConfigProvider.class).get(actorSystem);
+    }
 }

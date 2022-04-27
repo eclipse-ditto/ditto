@@ -12,8 +12,6 @@
  */
 package org.eclipse.ditto.gateway.service.endpoints.directives.auth;
 
-import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
-
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.concurrent.Executor;
@@ -22,62 +20,71 @@ import org.eclipse.ditto.gateway.service.security.authentication.AuthenticationC
 import org.eclipse.ditto.gateway.service.security.authentication.AuthenticationFailureAggregator;
 import org.eclipse.ditto.gateway.service.security.authentication.AuthenticationFailureAggregators;
 import org.eclipse.ditto.gateway.service.security.authentication.AuthenticationProvider;
+import org.eclipse.ditto.gateway.service.security.authentication.AuthenticationResult;
 import org.eclipse.ditto.gateway.service.security.authentication.jwt.JwtAuthenticationFactory;
 import org.eclipse.ditto.gateway.service.security.authentication.jwt.JwtAuthenticationProvider;
-import org.eclipse.ditto.gateway.service.security.authentication.jwt.JwtAuthenticationResultProvider;
-import org.eclipse.ditto.gateway.service.security.authentication.jwt.JwtValidator;
-import org.eclipse.ditto.gateway.service.util.config.security.AuthenticationConfig;
 import org.eclipse.ditto.gateway.service.security.authentication.preauth.PreAuthenticatedAuthenticationProvider;
+import org.eclipse.ditto.gateway.service.util.config.security.AuthenticationConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.mongodb.lang.Nullable;
+
+import akka.actor.ActorSystem;
 
 /**
  * Ditto's default factory for building authentication directives.
  */
-public final class DittoGatewayAuthenticationDirectiveFactory implements GatewayAuthenticationDirectiveFactory {
+public final class DittoGatewayAuthenticationDirectiveFactory extends GatewayAuthenticationDirectiveFactory {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(DittoGatewayAuthenticationDirectiveFactory.class);
+    private static final String AUTHENTICATION_DISPATCHER_NAME = "authentication-dispatcher";
 
-    private final GatewayAuthenticationDirective gatewayHttpAuthenticationDirective;
-    private final GatewayAuthenticationDirective gatewayWsAuthenticationDirective;
+    private final AuthenticationConfig authConfig;
+    private final Executor authenticationDispatcher;
+    @Nullable private GatewayAuthenticationDirective gatewayHttpAuthenticationDirective;
+    @Nullable private GatewayAuthenticationDirective gatewayWsAuthenticationDirective;
 
-    public DittoGatewayAuthenticationDirectiveFactory(final AuthenticationConfig authConfig,
-            final JwtAuthenticationFactory jwtAuthenticationFactory,
-            final Executor authenticationDispatcher) {
-        checkNotNull(jwtAuthenticationFactory, "jwtAuthenticationFactory");
-
-        checkNotNull(authConfig, "AuthenticationConfig");
-        checkNotNull(authenticationDispatcher, "authentication dispatcher");
-
-        final JwtAuthenticationResultProvider jwtAuthenticationResultProvider =
-                jwtAuthenticationFactory.newJwtAuthenticationResultProvider();
-        final JwtValidator jwtValidator = jwtAuthenticationFactory.getJwtValidator();
-
-        final JwtAuthenticationProvider jwtHttpAuthenticationProvider =
-                JwtAuthenticationProvider.newInstance(jwtAuthenticationResultProvider, jwtValidator);
-        final JwtAuthenticationProvider jwtWsAuthenticationProvider =
-                JwtAuthenticationProvider.newWsInstance(jwtAuthenticationResultProvider, jwtValidator);
-
-        gatewayHttpAuthenticationDirective =
-                generateGatewayAuthenticationDirective(authConfig, jwtHttpAuthenticationProvider,
-                        authenticationDispatcher);
-        gatewayWsAuthenticationDirective =
-                generateGatewayAuthenticationDirective(authConfig, jwtWsAuthenticationProvider,
-                        authenticationDispatcher);
+    public DittoGatewayAuthenticationDirectiveFactory(final ActorSystem actorSystem) {
+        super(actorSystem);
+        authConfig = getAuthConfig(actorSystem);
+        authenticationDispatcher = actorSystem.dispatchers().lookup(AUTHENTICATION_DISPATCHER_NAME);
     }
 
     @Override
-    public GatewayAuthenticationDirective buildHttpAuthentication() {
+    public GatewayAuthenticationDirective buildHttpAuthentication(
+            final JwtAuthenticationFactory jwtAuthenticationFactory) {
+
+        if (null == gatewayHttpAuthenticationDirective) {
+            final JwtAuthenticationProvider jwtHttpAuthenticationProvider =
+                    JwtAuthenticationProvider.newInstance(jwtAuthenticationFactory.newJwtAuthenticationResultProvider(),
+                            jwtAuthenticationFactory.getJwtValidator());
+            gatewayHttpAuthenticationDirective =
+                    generateGatewayAuthenticationDirective(authConfig, jwtHttpAuthenticationProvider,
+                            authenticationDispatcher);
+        }
         return gatewayHttpAuthenticationDirective;
     }
 
     @Override
-    public GatewayAuthenticationDirective buildWsAuthentication() {
+    public GatewayAuthenticationDirective buildWsAuthentication(
+            final JwtAuthenticationFactory jwtAuthenticationFactory) {
+
+        if (null == gatewayWsAuthenticationDirective) {
+            final JwtAuthenticationProvider jwtWsAuthenticationProvider =
+                    JwtAuthenticationProvider.newWsInstance(
+                            jwtAuthenticationFactory.newJwtAuthenticationResultProvider(),
+                            jwtAuthenticationFactory.getJwtValidator());
+            gatewayWsAuthenticationDirective =
+                    generateGatewayAuthenticationDirective(authConfig, jwtWsAuthenticationProvider,
+                            authenticationDispatcher);
+        }
         return gatewayWsAuthenticationDirective;
     }
 
     private static GatewayAuthenticationDirective generateGatewayAuthenticationDirective(
-            final AuthenticationConfig authConfig, final JwtAuthenticationProvider jwtAuthenticationProvider,
+            final AuthenticationConfig authConfig,
+            final AuthenticationProvider<AuthenticationResult> jwtAuthenticationProvider,
             final Executor authenticationDispatcher) {
 
         final Collection<AuthenticationProvider<?>> authenticationProviders = new ArrayList<>();

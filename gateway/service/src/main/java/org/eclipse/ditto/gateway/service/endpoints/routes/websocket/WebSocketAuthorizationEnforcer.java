@@ -12,26 +12,48 @@
  */
 package org.eclipse.ditto.gateway.service.endpoints.routes.websocket;
 
+import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
+
 import java.util.concurrent.CompletionStage;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.service.DittoExtensionPoint;
+import org.eclipse.ditto.gateway.service.util.config.DittoGatewayConfig;
+import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
+
+import akka.actor.ActorSystem;
 
 /**
  * Enforces authorization in order to establish a WebSocket connection.
  * If the authorization check is successful the headers are given back, possibly with new information, else a
  * {@link org.eclipse.ditto.base.model.exceptions.DittoRuntimeException DittoRuntimeException} is thrown.
  */
-public interface WebSocketAuthorizationEnforcer {
+public abstract class WebSocketAuthorizationEnforcer extends DittoExtensionPoint {
 
     /**
-     * Ensures that the establishment of a WebSocket connection is authorized for the given DittoHeaders of the initial
-     * WebSocket request.
-     *
-     * @param dittoHeaders the DittoHeaders containing already gathered context information.
-     * @throws NullPointerException if any argument is {@code null}.
-     * @return a successful future of headers containing new information if the check succeeded,
-     * or a failed future if the check failed.
+     * @param actorSystem the actor system in which to load the extension.
      */
-    CompletionStage<DittoHeaders> checkAuthorization(DittoHeaders dittoHeaders);
+    protected WebSocketAuthorizationEnforcer(final ActorSystem actorSystem) {
+        super(actorSystem);
+    }
+
+    public abstract CompletionStage<DittoHeaders> checkAuthorization(DittoHeaders dittoHeaders);
+
+    /**
+     * Loads the implementation of {@code WebSocketAuthorizationEnforcer} which is configured for the
+     * {@code ActorSystem}.
+     *
+     * @param actorSystem the actorSystem in which the {@code WebSocketAuthorizationEnforcer} should be loaded.
+     * @return the {@code WebSocketAuthorizationEnforcer} implementation.
+     * @throws NullPointerException if {@code actorSystem} is {@code null}.
+     * @since 3.0.0
+     */
+    public static WebSocketAuthorizationEnforcer get(final ActorSystem actorSystem) {
+        checkNotNull(actorSystem, "actorSystem");
+        final var implementation = DittoGatewayConfig.of(DefaultScopedConfig.dittoScoped(
+                actorSystem.settings().config())).getStreamingConfig().getWebsocketConfig().getAuthorizationEnforcer();
+
+        return new ExtensionId<>(implementation, WebSocketAuthorizationEnforcer.class).get(actorSystem);
+    }
 
 }

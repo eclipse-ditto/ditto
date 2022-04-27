@@ -23,7 +23,6 @@ import org.eclipse.ditto.concierge.api.actors.ConciergeForwarderActor;
 import org.eclipse.ditto.connectivity.api.ConnectivityMessagingConstants;
 import org.eclipse.ditto.gateway.service.endpoints.directives.auth.DevopsAuthenticationDirective;
 import org.eclipse.ditto.gateway.service.endpoints.directives.auth.DevopsAuthenticationDirectiveFactory;
-import org.eclipse.ditto.gateway.service.endpoints.directives.auth.DittoGatewayAuthenticationDirectiveFactory;
 import org.eclipse.ditto.gateway.service.endpoints.directives.auth.GatewayAuthenticationDirectiveFactory;
 import org.eclipse.ditto.gateway.service.endpoints.routes.CustomApiRoutesProvider;
 import org.eclipse.ditto.gateway.service.endpoints.routes.RootRoute;
@@ -49,7 +48,7 @@ import org.eclipse.ditto.gateway.service.health.StatusAndHealthProvider;
 import org.eclipse.ditto.gateway.service.proxy.actors.AbstractProxyActor;
 import org.eclipse.ditto.gateway.service.proxy.actors.ProxyActor;
 import org.eclipse.ditto.gateway.service.security.authentication.jwt.JwtAuthenticationFactory;
-import org.eclipse.ditto.gateway.service.security.authentication.jwt.JwtAuthorizationSubjectsProvider;
+import org.eclipse.ditto.gateway.service.security.authentication.jwt.JwtAuthenticationResultProvider;
 import org.eclipse.ditto.gateway.service.streaming.actors.StreamingActor;
 import org.eclipse.ditto.gateway.service.util.config.GatewayConfig;
 import org.eclipse.ditto.gateway.service.util.config.endpoints.HttpConfig;
@@ -80,7 +79,6 @@ import akka.actor.ActorSelection;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
 import akka.cluster.Cluster;
-import akka.dispatch.MessageDispatcher;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.event.Logging;
 import akka.http.javadsl.Http;
@@ -100,8 +98,6 @@ final class GatewayRootActor extends DittoRootActor {
      * The name of this Actor in the ActorSystem.
      */
     static final String ACTOR_NAME = "gatewayRoot";
-
-    private static final String AUTHENTICATION_DISPATCHER_NAME = "authentication-dispatcher";
 
     private final DiagnosticLoggingAdapter log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
 
@@ -127,22 +123,29 @@ final class GatewayRootActor extends DittoRootActor {
         final DefaultHttpClientFacade httpClient =
                 DefaultHttpClientFacade.getInstance(actorSystem, authenticationConfig.getHttpProxyConfig());
 
-        final JwtAuthorizationSubjectsProvider p = JwtAuthorizationSubjectsProvider.get(actorSystem);
-
         final JwtAuthenticationFactory jwtAuthenticationFactory =
-                getJwtAuthenticationFactory(httpClient, publicKeysConfig, authenticationConfig, p);
+                getJwtAuthenticationFactory(httpClient, publicKeysConfig, authenticationConfig, actorSystem);
+
+        final JwtAuthenticationResultProvider jwtAuthenticationResultProvider =
+                JwtAuthenticationResultProvider.get(actorSystem);
 
         final DevopsAuthenticationDirectiveFactory devopsAuthenticationDirectiveFactory =
-                getDevopsAuthenticationDirectiveFactory(httpClient, publicKeysConfig, authenticationConfig, p);
+                getDevopsAuthenticationDirectiveFactory(httpClient, publicKeysConfig, authenticationConfig,
+                        actorSystem);
 
         final ProtocolAdapterProvider protocolAdapterProvider =
                 ProtocolAdapterProvider.load(gatewayConfig.getProtocolConfig(), actorSystem);
         final HeaderTranslator headerTranslator = protocolAdapterProvider.getHttpHeaderTranslator();
 
         final ActorRef streamingActor = startChildActor(StreamingActor.ACTOR_NAME,
-                StreamingActor.props(dittoProtocolSub, proxyActor, jwtAuthenticationFactory.getJwtValidator(),
-                        jwtAuthenticationFactory.newJwtAuthenticationResultProvider(),
-                        gatewayConfig.getStreamingConfig(), headerTranslator, pubSubMediator, conciergeForwarder));
+                StreamingActor.props(dittoProtocolSub,
+                        proxyActor,
+                        jwtAuthenticationFactory.getJwtValidator(),
+                        jwtAuthenticationResultProvider,
+                        gatewayConfig.getStreamingConfig(),
+                        headerTranslator,
+                        pubSubMediator,
+                        conciergeForwarder));
 
         final ActorRef healthCheckActor = createHealthCheckActor(healthCheckConfig);
         final var hostname = getHostname(httpConfig);
@@ -208,12 +211,8 @@ final class GatewayRootActor extends DittoRootActor {
         final AuthenticationConfig authConfig = gatewayConfig.getAuthenticationConfig();
         final Materializer materializer = SystemMaterializer.get(actorSystem).materializer();
 
-        final MessageDispatcher authenticationDispatcher =
-                actorSystem.dispatchers().lookup(AUTHENTICATION_DISPATCHER_NAME);
-
         final GatewayAuthenticationDirectiveFactory authenticationDirectiveFactory =
-                new DittoGatewayAuthenticationDirectiveFactory(authConfig, jwtAuthenticationFactory,
-                        authenticationDispatcher);
+                GatewayAuthenticationDirectiveFactory.get(actorSystem);
 
         final DevopsAuthenticationDirective devopsAuthenticationDirective =
                 devopsAuthenticationDirectiveFactory.devops();
@@ -261,7 +260,7 @@ final class GatewayRootActor extends DittoRootActor {
                 .devopsRoute(new DevOpsRoute(routeBaseProperties, devopsAuthenticationDirective))
                 .policiesRoute(new PoliciesRoute(routeBaseProperties,
                         OAuthTokenIntegrationSubjectIdFactory.of(authConfig.getOAuthConfig())))
-                .sseThingsRoute(ThingsSseRouteBuilder.getInstance(streamingActor, streamingConfig, pubSubMediator)
+                .sseThingsRoute(ThingsSseRouteBuilder.getInstance(actorSystem, streamingActor, streamingConfig, pubSubMediator)
                         .withProxyActor(proxyActor)
                         .withSignalEnrichmentProvider(signalEnrichmentProvider))
                 .thingsRoute(new ThingsRoute(routeBaseProperties,
@@ -270,14 +269,16 @@ final class GatewayRootActor extends DittoRootActor {
                 .thingSearchRoute(new ThingSearchRoute(routeBaseProperties))
                 .whoamiRoute(new WhoamiRoute(routeBaseProperties))
                 .cloudEventsRoute(new CloudEventsRoute(routeBaseProperties, gatewayConfig.getCloudEventsConfig()))
-                .websocketRoute(WebSocketRoute.getInstance(streamingActor, streamingConfig, materializer)
+                .websocketRoute(WebSocketRoute.getInstance(actorSystem, streamingActor, streamingConfig, materializer)
                         .withSignalEnrichmentProvider(signalEnrichmentProvider)
                         .withHeaderTranslator(headerTranslator))
                 .supportedSchemaVersions(httpConfig.getSupportedSchemaVersions())
                 .protocolAdapterProvider(protocolAdapterProvider)
                 .headerTranslator(headerTranslator)
-                .httpAuthenticationDirective(authenticationDirectiveFactory.buildHttpAuthentication())
-                .wsAuthenticationDirective(authenticationDirectiveFactory.buildWsAuthentication())
+                .httpAuthenticationDirective(
+                        authenticationDirectiveFactory.buildHttpAuthentication(jwtAuthenticationFactory))
+                .wsAuthenticationDirective(
+                        authenticationDirectiveFactory.buildWsAuthentication(jwtAuthenticationFactory))
                 .dittoHeadersSizeChecker(dittoHeadersSizeChecker)
                 .customApiRoutesProvider(customApiRoutesProvider, routeBaseProperties)
                 .build();
@@ -333,22 +334,21 @@ final class GatewayRootActor extends DittoRootActor {
     private static JwtAuthenticationFactory getJwtAuthenticationFactory(final HttpClientFacade httpClient,
             final CacheConfig publicKeysConfig,
             final AuthenticationConfig authenticationConfig,
-            final JwtAuthorizationSubjectsProvider jwtAuthorizationSubjectsProvider) {
+            final ActorSystem actorSystem) {
 
         final OAuthConfig oAuthConfig = authenticationConfig.getOAuthConfig();
-        return JwtAuthenticationFactory.newInstance(oAuthConfig, publicKeysConfig, httpClient,
-                jwtAuthorizationSubjectsProvider);
+        return JwtAuthenticationFactory.newInstance(oAuthConfig, publicKeysConfig, httpClient, actorSystem);
     }
 
     private static DevopsAuthenticationDirectiveFactory getDevopsAuthenticationDirectiveFactory(
             final HttpClientFacade httpClient,
-            final CacheConfig publicKeysConfig, final AuthenticationConfig authenticationConfig,
-            final JwtAuthorizationSubjectsProvider jwtAuthorizationSubjectsProvider) {
+            final CacheConfig publicKeysConfig,
+            final AuthenticationConfig authenticationConfig,
+            final ActorSystem actorSystem) {
 
         final OAuthConfig devopsOauthConfig = authenticationConfig.getDevOpsConfig().getOAuthConfig();
         final JwtAuthenticationFactory devopsJwtAuthenticationFactory =
-                JwtAuthenticationFactory.newInstance(devopsOauthConfig, publicKeysConfig, httpClient,
-                        jwtAuthorizationSubjectsProvider);
+                JwtAuthenticationFactory.newInstance(devopsOauthConfig, publicKeysConfig, httpClient, actorSystem);
         return DevopsAuthenticationDirectiveFactory.newInstance(devopsJwtAuthenticationFactory,
                 authenticationConfig.getDevOpsConfig());
     }

@@ -63,6 +63,33 @@ public interface WebsocketConfig {
     ThrottlingConfig getThrottlingConfig();
 
     /**
+     * Returns the full qualified classname of the {@code org.eclipse.ditto.gateway.service.endpoints.routes.websocket.WebSocketAuthorizationEnforcer}
+     * implementation to use for custom authorizations.
+     *
+     * @return the full qualified classname of the {@code WebSocketAuthorizationEnforcer} implementation to use.
+     * @since 3.0.0
+     */
+    String getAuthorizationEnforcer();
+
+    /**
+     * Returns the full qualified classname of the {@code org.eclipse.ditto.gateway.service.endpoints.routes.sse.SseAuthorizationEnforcer}
+     * implementation to use for custom authorizations.
+     *
+     * @return the full qualified classname of the {@code SseAuthorizationEnforcer} implementation to use.
+     * @since 3.0.0
+     */
+    String getConfigProvider();
+
+    /**
+     * Returns the full qualified classname of the {@code org.eclipse.ditto.gateway.service.endpoints.routes.websocket.WebSocketSupervisor}
+     * implementation to use for supervising WebSocket connections.
+     *
+     * @return the full qualified classname of the {@code WebSocketSupervisor} implementation to use.
+     * @since 3.0.0
+     */
+    String getConnectionSupervisor();
+
+    /**
      * Render this object into a Config object from which a copy of this object can be constructed.
      *
      * @return a config representation.
@@ -74,6 +101,9 @@ public interface WebsocketConfig {
         map.put(WebsocketConfigValue.PUBLISHER_BACKPRESSURE_BUFFER_SIZE.getConfigPath(),
                 getPublisherBackpressureBufferSize());
         map.put(WebsocketConfigValue.THROTTLING_REJECTION_FACTOR.getConfigPath(), getThrottlingRejectionFactor());
+        map.put(WebsocketConfigValue.AUTHORIZATION_ENFORCER.getConfigPath(), getAuthorizationEnforcer());
+        map.put(WebsocketConfigValue.CONFIG_PROVIDER.getConfigPath(), getConfigProvider());
+        map.put(WebsocketConfigValue.CONNECTION_SUPERVISOR.getConfigPath(), getConnectionSupervisor());
         return ConfigFactory.parseMap(map)
                 .withFallback(getThrottlingConfig().render())
                 .atKey(CONFIG_PATH);
@@ -98,7 +128,16 @@ public interface WebsocketConfig {
         /**
          * The factor of maximum throughput at which rejections were sent.
          */
-        THROTTLING_REJECTION_FACTOR("throttling-rejection-factor", 1.25);
+        THROTTLING_REJECTION_FACTOR("throttling-rejection-factor", 1.25),
+
+        AUTHORIZATION_ENFORCER("authorization-enforcer",
+                "org.eclipse.ditto.gateway.service.endpoints.routes.websocket.NoOpWebSocketAuthorizationEnforcer"),
+
+        CONFIG_PROVIDER("config-provider",
+                "org.eclipse.ditto.gateway.service.endpoints.routes.websocket.NoOpWebSocketConfigProvider"),
+
+        CONNECTION_SUPERVISOR("connection-supervisor",
+                "org.eclipse.ditto.gateway.service.endpoints.routes.websocket.NoOpWebSocketSupervisor");
 
         private final String path;
         private final Object defaultValue;
