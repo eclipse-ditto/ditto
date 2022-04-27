@@ -26,36 +26,35 @@ import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.DittoHeadersSettable;
 import org.eclipse.ditto.concierge.api.ConciergeMessagingConstants;
 import org.eclipse.ditto.concierge.api.actors.ConciergeEnforcerClusterRouterFactory;
-import org.eclipse.ditto.concierge.api.actors.ConciergeForwarderActor;
-import org.eclipse.ditto.concierge.service.actors.ShardRegions;
-import org.eclipse.ditto.concierge.service.common.ConciergeConfig;
-import org.eclipse.ditto.concierge.service.enforcement.CreationRestrictionEnforcer;
-import org.eclipse.ditto.concierge.service.enforcement.DefaultCreationRestrictionEnforcer;
-import org.eclipse.ditto.concierge.service.enforcement.EnforcementProvider;
-import org.eclipse.ditto.concierge.service.enforcement.EnforcerActor;
-import org.eclipse.ditto.concierge.service.enforcement.LiveSignalEnforcement;
-import org.eclipse.ditto.concierge.service.enforcement.PolicyCommandEnforcement;
-import org.eclipse.ditto.concierge.service.enforcement.PreEnforcer;
-import org.eclipse.ditto.concierge.service.enforcement.ThingCommandEnforcement;
-import org.eclipse.ditto.concierge.service.enforcement.placeholders.PlaceholderSubstitution;
-import org.eclipse.ditto.concierge.service.enforcement.validators.CommandWithOptionalEntityValidator;
+import org.eclipse.ditto.concierge.service.starter.ConciergeConfig;
 import org.eclipse.ditto.concierge.service.starter.actors.CachedNamespaceInvalidator;
 import org.eclipse.ditto.concierge.service.starter.actors.DispatcherActor;
+import org.eclipse.ditto.edge.api.dispatching.ConciergeForwarderActor;
+import org.eclipse.ditto.edge.api.dispatching.ShardRegions;
 import org.eclipse.ditto.internal.utils.cache.Cache;
 import org.eclipse.ditto.internal.utils.cache.CacheFactory;
 import org.eclipse.ditto.internal.utils.cache.entry.Entry;
 import org.eclipse.ditto.internal.utils.cacheloaders.EnforcementCacheKey;
-import org.eclipse.ditto.internal.utils.cacheloaders.PolicyEnforcer;
-import org.eclipse.ditto.internal.utils.cacheloaders.PolicyEnforcerCacheLoader;
 import org.eclipse.ditto.internal.utils.cacheloaders.ThingEnforcementIdCacheLoader;
 import org.eclipse.ditto.internal.utils.cluster.ClusterUtil;
 import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
+import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.internal.utils.namespaces.BlockNamespaceBehavior;
 import org.eclipse.ditto.internal.utils.namespaces.BlockedNamespaces;
 import org.eclipse.ditto.internal.utils.namespaces.BlockedNamespacesUpdater;
 import org.eclipse.ditto.internal.utils.pubsub.DistributedAcks;
 import org.eclipse.ditto.internal.utils.pubsub.LiveSignalPub;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.policies.enforcement.CreationRestrictionEnforcer;
+import org.eclipse.ditto.policies.enforcement.DefaultCreationRestrictionEnforcer;
+import org.eclipse.ditto.policies.enforcement.EnforcementProvider;
+import org.eclipse.ditto.policies.enforcement.EnforcerActor;
+import org.eclipse.ditto.policies.enforcement.PolicyEnforcer;
+import org.eclipse.ditto.policies.enforcement.PolicyEnforcerCacheLoader;
+import org.eclipse.ditto.policies.enforcement.PreEnforcer;
+import org.eclipse.ditto.policies.enforcement.config.DefaultEntityCreationConfig;
+import org.eclipse.ditto.policies.enforcement.placeholders.PlaceholderSubstitution;
+import org.eclipse.ditto.policies.enforcement.validators.CommandWithOptionalEntityValidator;
 import org.eclipse.ditto.policies.model.enforcers.Enforcer;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingId;
@@ -121,20 +120,20 @@ public final class DefaultEnforcerActorFactory implements EnforcerActorFactory<C
 
         // creation restriction
         final CreationRestrictionEnforcer creationRestriction = DefaultCreationRestrictionEnforcer.of(
-                conciergeConfig.getEnforcementConfig().getEntityCreation()
+                DefaultEntityCreationConfig.of(DefaultScopedConfig.dittoScoped(context.system().settings().config()))
         );
 
         final Set<EnforcementProvider<?>> enforcementProviders = new HashSet<>();
-        enforcementProviders.add(new ThingCommandEnforcement.Provider(actorSystem, thingsShardRegionProxy,
-                policiesShardRegionProxy, thingIdCache, projectedEnforcerCache, preEnforcer, creationRestriction,
-                liveSignalPub, conciergeConfig.getEnforcementConfig()));
-        enforcementProviders.add(new PolicyCommandEnforcement.Provider(policiesShardRegionProxy, policyEnforcerCache,
-                creationRestriction));
-        enforcementProviders.add(new LiveSignalEnforcement.Provider(thingIdCache,
-                projectedEnforcerCache,
-                actorSystem,
-                liveSignalPub,
-                conciergeConfig.getEnforcementConfig()));
+//        enforcementProviders.add(new ThingCommandEnforcement.Provider(actorSystem, thingsShardRegionProxy,
+//                policiesShardRegionProxy, thingIdCache, projectedEnforcerCache, preEnforcer, creationRestriction,
+//                liveSignalPub, conciergeConfig.getEnforcementConfig()));
+//        enforcementProviders.add(new PolicyCommandEnforcement.Provider(policiesShardRegionProxy, policyEnforcerCache,
+//                creationRestriction));
+//        enforcementProviders.add(new LiveSignalEnforcement.Provider(thingIdCache,
+//                projectedEnforcerCache,
+//                actorSystem,
+//                liveSignalPub,
+//                conciergeConfig.getEnforcementConfig()));
 
         final ActorRef conciergeEnforcerRouter =
                 ConciergeEnforcerClusterRouterFactory.createConciergeEnforcerClusterRouter(context,
@@ -144,7 +143,7 @@ public final class DefaultEnforcerActorFactory implements EnforcerActorFactory<C
                 DispatcherActor.ACTOR_NAME);
 
         final ActorRef conciergeForwarder =
-                context.actorOf(ConciergeForwarderActor.props(pubSubMediator, conciergeEnforcerRouter),
+                context.actorOf(ConciergeForwarderActor.props(pubSubMediator, shardRegions),
                         ConciergeForwarderActor.ACTOR_NAME);
         pubSubMediator.tell(DistPubSubAccess.put(conciergeForwarder), ActorRef.noSender());
 
@@ -161,8 +160,8 @@ public final class DefaultEnforcerActorFactory implements EnforcerActorFactory<C
 
         // passes in the caches to be able to invalidate cache entries
         final Props enforcerProps =
-                EnforcerActor.props(pubSubMediator, enforcementProviders, conciergeForwarder, preEnforcer, thingIdCache,
-                        policyEnforcerCache);
+                EnforcerActor.props(pubSubMediator, enforcementProviders, conciergeForwarder,
+                        conciergeConfig.getEnforcementConfig(), preEnforcer, thingIdCache, policyEnforcerCache);
 
         return context.actorOf(enforcerProps, EnforcerActor.ACTOR_NAME);
     }

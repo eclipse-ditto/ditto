@@ -17,17 +17,16 @@ import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
-import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.FieldType;
-import org.eclipse.ditto.policies.model.Policy;
-import org.eclipse.ditto.policies.model.PolicyId;
-import org.eclipse.ditto.policies.api.TestConstants;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
 import org.eclipse.ditto.base.model.signals.commands.GlobalCommandResponseRegistry;
-import org.junit.Ignore;
+import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.policies.api.TestConstants;
+import org.eclipse.ditto.policies.model.Policy;
+import org.eclipse.ditto.policies.model.PolicyId;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -38,9 +37,9 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 public final class SudoRetrievePolicyResponseTest {
 
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder() //
-            .set(SudoCommandResponse.JsonFields.TYPE, SudoRetrievePolicyResponse.TYPE) //
-            .set(SudoCommandResponse.JsonFields.STATUS, HttpStatus.OK.getCode()) //
-            .set(SudoCommandResponse.JsonFields.JSON_POLICY_ID, TestConstants.Policy.POLICY_ID.toString()) //
+            .set(PolicySudoCommandResponse.JsonFields.TYPE, SudoRetrievePolicyResponse.TYPE) //
+            .set(PolicySudoCommandResponse.JsonFields.STATUS, HttpStatus.OK.getCode()) //
+            .set(PolicySudoCommandResponse.JsonFields.JSON_POLICY_ID, TestConstants.Policy.POLICY_ID.toString()) //
             .set(SudoRetrievePolicyResponse.JSON_POLICY,
                     TestConstants.Policy.POLICY.toJson(FieldType.regularOrSpecial())) //
             .build();

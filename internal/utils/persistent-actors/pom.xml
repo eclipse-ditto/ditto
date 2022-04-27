@@ -45,11 +45,11 @@
 
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-rql-query</artifactId>
+            <artifactId>ditto-policies-api</artifactId>
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-rql-parser</artifactId>
+            <artifactId>ditto-policies-enforcement</artifactId>
         </dependency>
 
         <dependency>

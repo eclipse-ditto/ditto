@@ -149,6 +149,7 @@
                         <excludes>
                             <!-- Don't add excludes here before checking with the whole Ditto team -->
                             <!-- <exclude></exclude> -->
+                            <exclude>org.eclipse.ditto.policies.model.signals.commands.PolicyCommandSizeValidator#DITTO_LIMITS_POLICIES_MAX_SIZE_BYTES</exclude>
                         </excludes>
                     </parameter>
                 </configuration>

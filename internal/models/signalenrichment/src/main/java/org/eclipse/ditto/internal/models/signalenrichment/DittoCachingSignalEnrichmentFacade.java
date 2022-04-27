@@ -28,7 +28,6 @@ import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.WithResource;
-import org.eclipse.ditto.internal.models.signal.SignalInformationPoint;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLogger;
 import org.eclipse.ditto.internal.utils.cache.Cache;
@@ -145,7 +144,7 @@ public final class DittoCachingSignalEnrichmentFacade implements CachingSignalEn
             final long minAcceptableSeqNr) {
 
         final List<ThingEvent<?>> thingEvents = concernedSignals.stream()
-                .filter(signal -> signal instanceof ThingEvent && !SignalInformationPoint.isChannelLive(signal))
+                .filter(signal -> signal instanceof ThingEvent && !Signal.isChannelLive(signal))
                 .map(signal -> (ThingEvent<?>) signal)
                 .collect(Collectors.toList());
 

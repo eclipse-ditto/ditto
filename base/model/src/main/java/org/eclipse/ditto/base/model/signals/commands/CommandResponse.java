@@ -14,6 +14,7 @@ package org.eclipse.ditto.base.model.signals.commands;
 
 import java.util.function.Predicate;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.atteo.classindex.IndexSubclasses;
@@ -80,6 +81,43 @@ public interface CommandResponse<T extends CommandResponse<T>> extends Signal<T>
 
     @Override
     JsonObject toJson(JsonSchemaVersion schemaVersion, Predicate<JsonField> predicate);
+
+    /**
+     * Indicates whether the specified signal argument is an instance of {@code CommandResponse}.
+     *
+     * @param signal the signal to be checked.
+     * @return {@code true} if {@code signal} is an instance of {@link CommandResponse}, {@code false} else.
+     * @since 3.0.0
+     */
+    static boolean isCommandResponse(@Nullable final Signal<?> signal) {
+        return signal instanceof CommandResponse;
+    }
+
+    /**
+     * Indicates whether the specified signal is a live command response.
+     *
+     * @param signal the signal to be checked.
+     * @return {@code true} if {@code signal} is a live command response, i.e. an instance of {@link CommandResponse}
+     * with channel {@value CHANNEL_LIVE} in its headers.
+     * {@code false} if {@code signal} is not a live command response.
+     * @since 3.0.0
+     */
+    static boolean isLiveCommandResponse(@Nullable final Signal<?> signal) {
+        return CommandResponse.isMessageCommandResponse(signal) ||
+                CommandResponse.isCommandResponse(signal) && Signal.isChannelLive(signal);
+    }
+
+    /**
+     * Indicates whether the specified signal argument is a {@code MessageCommandResponse}.
+     * TODO TJ this is a really nasty workaround - fix it
+     *
+     * @param signal the signal to be checked.
+     * @return {@code true} if {@code signal} is a {@code MessageCommandResponse}, {@code false} else.
+     * @since 3.0.0
+     */
+    static boolean isMessageCommandResponse(@Nullable final Signal<?> signal) {
+        return Signal.hasTypePrefix(signal, "messages.responses:");
+    }
 
     /**
      * This class contains common definitions for all fields of a {@code CommandResponse}'s JSON representation.

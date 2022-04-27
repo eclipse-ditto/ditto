@@ -84,10 +84,9 @@ abstract class ThreadSafeDittoLoggingAdapter extends LoggingAdapter
    * @param withDittoHeaders provides DittoHeaders which might contain the correlation ID to be put to the MDC before
    *                         each log operation.
    * @return a ThreadSafeDittoLoggingAdapter which appends the derived correlation ID to all of its log operations.
-   * @throws NullPointerException if `withDittoHeaders` is `null`.
    * @see #withCorrelationId(DittoHeaders)
    */
-  def withCorrelationId(withDittoHeaders: WithDittoHeaders): ThreadSafeDittoLoggingAdapter
+  def withCorrelationId(@Nullable withDittoHeaders: WithDittoHeaders): ThreadSafeDittoLoggingAdapter
 
   /** Obtains the correlation ID from the given DittoHeaders for log operations on the returned logger.
    * If the given headers do not contain a correlation ID or if the correlation ID is empty, this method has the same
@@ -95,9 +94,8 @@ abstract class ThreadSafeDittoLoggingAdapter extends LoggingAdapter
    *
    * @param dittoHeaders might contain the correlation ID to be put to the MDC before each log operation.
    * @return a ThreadSafeDittoLoggingAdapter which appends the obtained correlation ID to all of its log operations.
-   * @throws NullPointerException if `dittoHeaders` is `null`.
    */
-  def withCorrelationId(dittoHeaders: DittoHeaders): ThreadSafeDittoLoggingAdapter
+  def withCorrelationId(@Nullable dittoHeaders: DittoHeaders): ThreadSafeDittoLoggingAdapter
 
   /** Removes the currently set correlation ID from the MDC.
    * Log operations on the returned logger will not include a correlation ID.

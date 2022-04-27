@@ -12,11 +12,11 @@
  */
 package org.eclipse.ditto.gateway.service.proxy.actors;
 
-import org.eclipse.ditto.things.api.commands.sudo.SudoRetrieveThings;
-import org.eclipse.ditto.internal.utils.aggregator.ThingsAggregatorProxyActor;
+import org.eclipse.ditto.base.api.devops.signals.commands.DevOpsCommand;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.commands.Command;
-import org.eclipse.ditto.base.api.devops.signals.commands.DevOpsCommand;
+import org.eclipse.ditto.internal.utils.aggregator.ThingsAggregatorProxyActor;
+import org.eclipse.ditto.things.api.commands.sudo.SudoRetrieveThings;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThings;
 import org.eclipse.ditto.thingsearch.model.signals.commands.query.QueryThings;
 
@@ -68,11 +68,11 @@ public abstract class AbstractThingProxyActor extends AbstractProxyActor {
                     conciergeForwarder.tell(qt, responseActor);
                 })
 
-                /* send all other Commands to Concierge Service */
-                .match(Command.class, this::forwardToConciergeService)
+                /* send all other Commands to Concierge forwarder */
+                .match(Command.class, this::forwardToConciergeForwarder)
 
                 /* Live Signals */
-                .match(Signal.class, AbstractProxyActor::isLiveCommandOrEvent, this::forwardToConciergeService);
+                .match(Signal.class, AbstractProxyActor::isLiveCommandOrEvent, this::forwardToConciergeForwarder);
     }
 
     @Override
@@ -85,7 +85,7 @@ public abstract class AbstractThingProxyActor extends AbstractProxyActor {
         // do nothing
     }
 
-    private void forwardToConciergeService(final Signal<?> signal) {
+    private void forwardToConciergeForwarder(final Signal<?> signal) {
         conciergeForwarder.forward(signal, getContext());
     }
 

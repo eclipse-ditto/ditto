@@ -29,9 +29,7 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.model.headers.DittoHeadersSettable;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
-import org.eclipse.ditto.concierge.service.common.DittoConciergeConfig;
-import org.eclipse.ditto.concierge.service.common.EnforcementConfig;
-import org.eclipse.ditto.concierge.service.enforcement.PreEnforcer;
+import org.eclipse.ditto.concierge.service.starter.DittoConciergeConfig;
 import org.eclipse.ditto.internal.utils.akka.controlflow.AbstractGraphActor;
 import org.eclipse.ditto.internal.utils.akka.controlflow.Filter;
 import org.eclipse.ditto.internal.utils.akka.controlflow.WithSender;
@@ -39,6 +37,8 @@ import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLogger;
 import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
+import org.eclipse.ditto.policies.enforcement.PreEnforcer;
+import org.eclipse.ditto.policies.enforcement.config.EnforcementConfig;
 import org.eclipse.ditto.things.api.commands.sudo.SudoRetrieveThings;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThings;
 import org.eclipse.ditto.thingsearch.api.commands.sudo.ThingSearchSudoCommand;
@@ -59,6 +59,7 @@ import akka.stream.javadsl.Sink;
 
 /**
  * Actor that dispatches signals not authorized by any entity meaning signals without entityId.
+ * TODO TJ candidate for removal - but needs to be replaced by other means
  */
 public final class DispatcherActor
         extends AbstractGraphActor<DispatcherActor.ImmutableDispatch, DittoHeadersSettable<?>> {
@@ -75,7 +76,7 @@ public final class DispatcherActor
     private final EnforcementConfig enforcementConfig;
 
     @SuppressWarnings("unused")
-    private DispatcherActor(final ActorRef enforcerActor,
+    private DispatcherActor(final ActorRef conciergeForwarder,
             final ActorRef pubSubMediator,
             final Flow<ImmutableDispatch, ImmutableDispatch, NotUsed> handler) {
 
@@ -92,7 +93,7 @@ public final class DispatcherActor
                                 ".namespace." + loggedNamespace)));
 
         this.handler = handler;
-        final Props props = ThingsAggregatorActor.props(enforcerActor);
+        final Props props = ThingsAggregatorActor.props(conciergeForwarder);
         thingsAggregatorActor = getContext().actorOf(props, ThingsAggregatorActor.ACTOR_NAME);
 
         initActor(getSelf(), pubSubMediator);
@@ -131,18 +132,18 @@ public final class DispatcherActor
      * Create Akka actor configuration Props object with pre-enforcer.
      *
      * @param pubSubMediator Akka pub-sub mediator.
-     * @param enforcerActor the address of the enforcer actor.
+     * @param conciergeForwarder the address of the concierge forwarder actor.
      * @param preEnforcer the pre-enforcer as graph.
      * @return the Props object.
      */
     public static Props props(final ActorRef pubSubMediator,
-            final ActorRef enforcerActor,
+            final ActorRef conciergeForwarder,
             final PreEnforcer preEnforcer) {
 
         final Flow<ImmutableDispatch, ImmutableDispatch, NotUsed> dispatchFlow =
                 Flow.fromGraph(createDispatchFlow(pubSubMediator, preEnforcer));
 
-        return Props.create(DispatcherActor.class, enforcerActor, pubSubMediator, dispatchFlow);
+        return Props.create(DispatcherActor.class, conciergeForwarder, pubSubMediator, dispatchFlow);
     }
 
     /**

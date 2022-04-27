@@ -57,7 +57,7 @@ import org.eclipse.ditto.policies.service.common.config.PolicyConfig;
  * Abstract base class for {@link org.eclipse.ditto.policies.model.signals.commands.PolicyCommand} strategies.
  *
  * @param <C> the type of the handled command - of type {@code Command} as also
- * {@link org.eclipse.ditto.policies.api.commands.sudo.SudoCommand} are handled which are no PolicyCommands.
+ * {@link org.eclipse.ditto.policies.api.commands.sudo.PolicySudoCommand} are handled which are no PolicyCommands.
  * @param <E> the type of the emitted events
  */
 abstract class AbstractPolicyCommandStrategy<C extends Command<C>, E extends PolicyEvent<?>>

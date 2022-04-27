@@ -53,6 +53,16 @@
             <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-policies-api</artifactId>
         </dependency>
+
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-rql-parser</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-internal-utils-cache-loaders</artifactId>
+        </dependency>
     </dependencies>
 
     <build>

@@ -16,11 +16,12 @@ import java.util.concurrent.CompletionStage;
 import java.util.function.Supplier;
 
 import org.eclipse.ditto.base.model.headers.DittoHeadersSizeChecker;
+import org.eclipse.ditto.base.model.headers.translator.HeaderTranslator;
 import org.eclipse.ditto.base.service.actors.DittoRootActor;
 import org.eclipse.ditto.base.service.config.limits.LimitsConfig;
-import org.eclipse.ditto.concierge.api.actors.ConciergeEnforcerClusterRouterFactory;
-import org.eclipse.ditto.concierge.api.actors.ConciergeForwarderActor;
 import org.eclipse.ditto.connectivity.api.ConnectivityMessagingConstants;
+import org.eclipse.ditto.edge.api.dispatching.ConciergeForwarderActor;
+import org.eclipse.ditto.edge.api.dispatching.ShardRegions;
 import org.eclipse.ditto.gateway.service.endpoints.directives.auth.DevopsAuthenticationDirective;
 import org.eclipse.ditto.gateway.service.endpoints.directives.auth.DevopsAuthenticationDirectiveFactory;
 import org.eclipse.ditto.gateway.service.endpoints.directives.auth.GatewayAuthenticationDirectiveFactory;
@@ -71,7 +72,6 @@ import org.eclipse.ditto.internal.utils.http.DefaultHttpClientFacade;
 import org.eclipse.ditto.internal.utils.http.HttpClientFacade;
 import org.eclipse.ditto.internal.utils.protocol.ProtocolAdapterProvider;
 import org.eclipse.ditto.internal.utils.pubsub.DittoProtocolSub;
-import org.eclipse.ditto.protocol.HeaderTranslator;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorRefFactory;
@@ -107,13 +107,16 @@ final class GatewayRootActor extends DittoRootActor {
     private GatewayRootActor(final GatewayConfig gatewayConfig, final ActorRef pubSubMediator) {
 
         final ActorSystem actorSystem = context().system();
-        final int numberOfShards = gatewayConfig.getClusterConfig().getNumberOfShards();
+        final var clusterConfig = gatewayConfig.getClusterConfig();
+        final int numberOfShards = clusterConfig.getNumberOfShards();
         final AuthenticationConfig authenticationConfig = gatewayConfig.getAuthenticationConfig();
         final CacheConfig publicKeysConfig = gatewayConfig.getCachesConfig().getPublicKeysConfig();
         final HealthCheckConfig healthCheckConfig = gatewayConfig.getHealthCheckConfig();
         final HttpConfig httpConfig = gatewayConfig.getHttpConfig();
 
-        final var conciergeForwarder = startConciergeForwarder(pubSubMediator, numberOfShards);
+        final ShardRegions shardRegions = ShardRegions.of(actorSystem, clusterConfig);
+        final var conciergeForwarder = startChildActor(ConciergeForwarderActor.ACTOR_NAME,
+                ConciergeForwarderActor.props(pubSubMediator, shardRegions));
         final var proxyActor = startProxyActor(actorSystem, pubSubMediator, conciergeForwarder);
 
         pubSubMediator.tell(DistPubSubAccess.put(getSelf()), getSelf());
@@ -309,15 +312,6 @@ final class GatewayRootActor extends DittoRootActor {
         final var shardRegionProxyActorFactory = ShardRegionProxyActorFactory.newInstance(actorSystem, clusterConfig);
         return shardRegionProxyActorFactory.getShardRegionProxyActor(ConnectivityMessagingConstants.CLUSTER_ROLE,
                 ConnectivityMessagingConstants.SHARD_REGION);
-    }
-
-    private ActorRef startConciergeForwarder(final ActorRef pubSubMediator, final int numberOfShards) {
-        final ActorRef conciergeEnforcerRouter =
-                ConciergeEnforcerClusterRouterFactory.createConciergeEnforcerClusterRouter(getContext(),
-                        numberOfShards);
-
-        return startChildActor(ConciergeForwarderActor.ACTOR_NAME,
-                ConciergeForwarderActor.props(pubSubMediator, conciergeEnforcerRouter));
     }
 
     private ActorRef startProxyActor(final ActorRefFactory actorSystem, final ActorRef pubSubMediator,

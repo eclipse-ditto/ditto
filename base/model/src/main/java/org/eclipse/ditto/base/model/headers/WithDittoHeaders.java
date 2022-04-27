@@ -12,6 +12,10 @@
  */
 package org.eclipse.ditto.base.model.headers;
 
+import java.util.Optional;
+
+import javax.annotation.Nullable;
+
 /**
  * Common interface for all classes which have {@link org.eclipse.ditto.base.model.headers.DittoHeaders} available.
  */
@@ -24,4 +28,22 @@ public interface WithDittoHeaders {
      */
     DittoHeaders getDittoHeaders();
 
+    /**
+     * Returns the optional correlation ID of the specified argument's headers.
+     *
+     * @param signal the signal to get the optional correlation ID from.
+     * @return the optional correlation ID. The optional is empty if {@code signal} is {@code null}.
+     * @since 3.0.0
+     */
+    static Optional<String> getCorrelationId(@Nullable final WithDittoHeaders signal) {
+        final Optional<String> result;
+        if (null != signal) {
+            final DittoHeaders signalDittoHeaders = signal.getDittoHeaders();
+            result = signalDittoHeaders.getCorrelationId();
+        } else {
+            result = Optional.empty();
+        }
+
+        return result;
+    }
 }

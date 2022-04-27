@@ -180,29 +180,22 @@ Please consult the available `throttling` configuration sections in the
 By default, Ditto allows anyone to create a new entity (policy or thing) in any namespace. However, this behavior can
 be customized, and the ability to create new entities can be restricted.
 
-In the concierge service, you can re-configure the `entity-creation` section to suit your needs. The basic schema is:
+In the `ditto-entity-creation.conf`, you can re-configure the `entity-creation` section to suit your needs.  
+The basic schema is:
 
 ```
-ditto {
-  concierge {
-    enforcement {
-
-      # restrict entity creation
-      entity-creation {
-        grant = [
-            {
-                resource-types = [],
-                namespace = []
-                auth-subjects = []
-            }
-        ]
-        revoke = [
-            # same as "grant", but rejecting requests which already passed "grant"
-        ]
+# restrict entity creation
+ditto.entity-creation {
+   grant = [
+      {
+         resource-types = [],
+         namespace = []
+         auth-subjects = []
       }
-
-    }
-  }
+   ]
+   revoke = [
+      # same as "grant", but rejecting requests which already passed "grant"
+   ]
 }
 ```
 
@@ -222,7 +215,7 @@ This means, an existing entry, with all empty lists, will match. So the default 
 can be as simple as:
 
 ```
-entity-creation {
+ditto.entity-creation {
   grant = [{}]
 }
 ```

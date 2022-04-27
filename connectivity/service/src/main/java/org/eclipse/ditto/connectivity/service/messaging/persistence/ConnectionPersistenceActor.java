@@ -110,7 +110,7 @@ import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.ActivityCheckConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.SnapshotConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.MongoReadJournal;
-import org.eclipse.ditto.internal.utils.persistentactors.AbstractShardedPersistenceActor;
+import org.eclipse.ditto.internal.utils.persistentactors.AbstractPersistenceActor;
 import org.eclipse.ditto.internal.utils.persistentactors.EmptyEvent;
 import org.eclipse.ditto.internal.utils.persistentactors.commands.CommandStrategy;
 import org.eclipse.ditto.internal.utils.persistentactors.commands.DefaultContext;
@@ -141,8 +141,8 @@ import akka.routing.Pool;
  * remote server is delegated to a child actor that uses a specific client (AMQP 1.0 or 0.9.1).
  */
 public final class ConnectionPersistenceActor
-        extends AbstractShardedPersistenceActor<ConnectivityCommand<?>, Connection, ConnectionId, ConnectionState,
-        ConnectivityEvent<?>> {
+        extends AbstractPersistenceActor<ConnectivityCommand<?>, Connection, ConnectionId, ConnectionState,
+                ConnectivityEvent<?>> {
 
     /**
      * Prefix to prepend to the connection ID to construct the persistence ID.

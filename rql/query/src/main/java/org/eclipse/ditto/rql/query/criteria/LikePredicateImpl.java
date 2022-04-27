@@ -14,7 +14,7 @@ package org.eclipse.ditto.rql.query.criteria;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.rql.query.LikeHelper;
+import org.eclipse.ditto.base.model.common.LikeHelper;
 import org.eclipse.ditto.rql.query.criteria.visitors.PredicateVisitor;
 
 /**

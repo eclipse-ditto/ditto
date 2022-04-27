@@ -40,11 +40,6 @@ public final class ConciergeMessagingConstants {
     public static final String ENFORCER_ACTOR_PATH = ROOT_ACTOR_PATH + "/enforcer";
 
     /**
-     * Path of the concierge forwarder actor.
-     */
-    public static final String FORWARDER_ACTOR_PATH = ROOT_ACTOR_PATH + "/conciergeForwarder";
-
-    /**
      * Name of the blocked-namespace-updater singleton.
      */
     public static final String BLOCKED_NAMESPACES_UPDATER_NAME = "blockedNamespacesUpdater";

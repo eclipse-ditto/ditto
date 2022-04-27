@@ -100,6 +100,11 @@ public final class PolicySupervisorActor extends AbstractPersistenceSupervisor<P
     }
 
     @Override
+    protected Props getPersistenceEnforcerProps(final PolicyId entityId) {
+        return PolicyEnforcerActor.props(entityId, creationRestrictionEnforcer, pubSubMediator);
+    }
+
+    @Override
     protected ExponentialBackOffConfig getExponentialBackOffConfig() {
         final DittoPoliciesConfig policiesConfig = DittoPoliciesConfig.of(
                 DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config())

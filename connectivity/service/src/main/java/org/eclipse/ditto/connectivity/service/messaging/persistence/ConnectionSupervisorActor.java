@@ -164,6 +164,11 @@ public final class ConnectionSupervisorActor extends AbstractPersistenceSupervis
     }
 
     @Override
+    protected Props getPersistenceEnforcerProps(final ConnectionId entityId) {
+        return null; // TODO TJ implement
+    }
+
+    @Override
     protected ExponentialBackOffConfig getExponentialBackOffConfig() {
         final ConnectionConfig connectionConfig = DittoConnectivityConfig.of(
                 DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config())

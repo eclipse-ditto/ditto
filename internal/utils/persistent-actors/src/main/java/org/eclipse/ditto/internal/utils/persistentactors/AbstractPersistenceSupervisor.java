@@ -17,14 +17,23 @@ import java.util.concurrent.ThreadLocalRandom;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.base.api.commands.sudo.SudoCommand;
 import org.eclipse.ditto.base.model.entity.id.EntityId;
+import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
+import org.eclipse.ditto.base.model.signals.commands.Command;
+import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
 import org.eclipse.ditto.base.service.actors.ShutdownBehaviour;
 import org.eclipse.ditto.base.service.config.supervision.ExponentialBackOff;
 import org.eclipse.ditto.base.service.config.supervision.ExponentialBackOffConfig;
 import org.eclipse.ditto.internal.utils.akka.actors.AbstractActorWithStashWithTimers;
+import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
+import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
+import org.eclipse.ditto.policies.enforcement.CreationRestrictionEnforcer;
+import org.eclipse.ditto.policies.enforcement.DefaultCreationRestrictionEnforcer;
+import org.eclipse.ditto.policies.enforcement.config.DefaultEntityCreationConfig;
 
 import akka.actor.ActorRef;
 import akka.actor.PoisonPill;
@@ -33,11 +42,11 @@ import akka.actor.ReceiveTimeout;
 import akka.actor.SupervisorStrategy;
 import akka.actor.Terminated;
 import akka.cluster.sharding.ShardRegion;
-import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.pf.ReceiveBuilder;
+import akka.pattern.Patterns;
 
 /**
- * Supervisor of sharded persistent actors. It:
+ * Sharded Supervisor of persistent actors. It:
  * <ol>
  * <li>restarts failed child actor after exponential backoff,</li>
  * <li>shuts down self on command, and</li>
@@ -48,10 +57,19 @@ import akka.japi.pf.ReceiveBuilder;
  */
 public abstract class AbstractPersistenceSupervisor<E extends EntityId> extends AbstractActorWithStashWithTimers {
 
-    protected final DiagnosticLoggingAdapter log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
+    /**
+     * Timeout for local actor invocations - a small timeout should be more than sufficient as those are just method
+     * calls.
+     */
+    private static final Duration DEFAULT_LOCAL_ASK_TIMEOUT = Duration.ofSeconds(5);
+
+    protected final DittoDiagnosticLoggingAdapter log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
+    protected final CreationRestrictionEnforcer creationRestrictionEnforcer;
 
     @Nullable private E entityId;
-    @Nullable private ActorRef child;
+    @Nullable private ActorRef persistenceActorChild;
+
+    @Nullable private ActorRef enforcerChild;
 
     private final ExponentialBackOffConfig exponentialBackOffConfig;
     private ExponentialBackOff backOff;
@@ -60,6 +78,9 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId> extends 
     protected AbstractPersistenceSupervisor() {
         exponentialBackOffConfig = getExponentialBackOffConfig();
         backOff = ExponentialBackOff.initial(exponentialBackOffConfig);
+        creationRestrictionEnforcer = DefaultCreationRestrictionEnforcer.of(
+                DefaultEntityCreationConfig.of(DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config()))
+        );
     }
 
     /**
@@ -75,6 +96,14 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId> extends 
      * @return props of the child actor.
      */
     protected abstract Props getPersistenceActorProps(E entityId);
+
+    /**
+     * Get the props of the supervised persistence enforcer actor.
+     *
+     * @param entityId entity ID of this actor.
+     * @return props of the child actor.
+     */
+    protected abstract Props getPersistenceEnforcerProps(E entityId);
 
     /**
      * Read background configuration from actor context.
@@ -107,8 +136,9 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId> extends 
     protected Receive activeBehaviour() {
         return ReceiveBuilder.create()
                 .match(Terminated.class, this::childTerminated)
-                .matchEquals(Control.START_CHILD, this::startChild)
+                .matchEquals(Control.START_CHILDS, this::startChilds)
                 .matchEquals(Control.PASSIVATE, this::passivate)
+                .match(SudoCommand.class, this::forwardSudoCommandToChildIfAvailable)
                 .matchAny(this::forwardToChildIfAvailable)
                 .build();
     }
@@ -154,7 +184,7 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId> extends 
         return ReceiveBuilder.create()
                 .matchEquals(Control.INIT_DONE, initDone -> {
                     entityId = getEntityId();
-                    startChild(Control.START_CHILD);
+                    startChilds(Control.START_CHILDS);
                     unstashAll();
                     becomeActive(getShutdownBehaviour(entityId));
                 })
@@ -182,39 +212,59 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId> extends 
         getContext().getParent().tell(new ShardRegion.Passivate(PoisonPill.getInstance()), getSelf());
     }
 
-    private void startChild(final Control startChild) {
-        if (null == child) {
+    private void startChilds(final Control startChild) {
+        if (null == persistenceActorChild) {
             log.debug("Starting persistence actor for entity with ID <{}>.", entityId);
-            final ActorRef childRef = getContext().actorOf(getPersistenceActorProps(entityId), "pa");
-            child = getContext().watch(childRef);
+            assert entityId != null;
+            final ActorRef paRef = getContext().actorOf(getPersistenceActorProps(entityId), "pa");
+            persistenceActorChild = getContext().watch(paRef);
         } else {
-            log.debug("Not starting child because child is started already.");
+            log.debug("Not starting persistence child actor because it is started already.");
+        }
+
+        startEnforcerActor();
+    }
+
+    private void startEnforcerActor() {
+        if (null == enforcerChild) {
+            log.debug("Starting enforcer actor for entity with ID <{}>.", entityId);
+            assert entityId != null;
+            final ActorRef enRef = getContext().actorOf(getPersistenceEnforcerProps(entityId), "en");
+            enforcerChild = getContext().watch(enRef);
+        } else {
+            log.debug("Not starting persistence enforcer child actor because it is started already.");
         }
     }
 
     protected void restartChild() {
-        if (child != null) {
+        if (persistenceActorChild != null) {
             waitingForStopBeforeRestart = true;
-            getContext().stop(child); // start happens when "Terminated" message is received.
+            getContext().stop(persistenceActorChild); // start happens when "Terminated" message is received.
         }
     }
 
     private void childTerminated(final Terminated message) {
-        if (waitingForStopBeforeRestart) {
-            log.info("Persistence actor for entity with ID <{}> was stopped and will now be started again.", entityId);
-            child = null;
-            self().tell(Control.START_CHILD, ActorRef.noSender());
-        } else {
-            if (message.getAddressTerminated()) {
-                log.error("Persistence actor for entity with ID <{}> terminated abnormally " +
-                        "because it crashed or because of network failure!", entityId);
+        if (message.getActor().equals(persistenceActorChild)) {
+            if (waitingForStopBeforeRestart) {
+                log.info("Persistence actor for entity with ID <{}> was stopped and will now be started again.",
+                        entityId);
+                persistenceActorChild = null;
+                self().tell(Control.START_CHILDS, ActorRef.noSender());
             } else {
-                log.warning("Persistence actor for entity with ID <{}> terminated abnormally.", entityId);
+                if (message.getAddressTerminated()) {
+                    log.error("Persistence actor for entity with ID <{}> terminated abnormally " +
+                            "because it crashed or because of network failure!", entityId);
+                } else {
+                    log.warning("Persistence actor for entity with ID <{}> terminated abnormally.", entityId);
+                }
+                persistenceActorChild = null;
+                backOff = backOff.calculateNextBackOff();
+                final Duration restartDelay = backOff.getRestartDelay();
+                getTimers().startSingleTimer(Control.START_CHILDS, Control.START_CHILDS, restartDelay);
             }
-            child = null;
-            backOff = backOff.calculateNextBackOff();
-            final Duration restartDelay = backOff.getRestartDelay();
-            getTimers().startSingleTimer(Control.START_CHILD, Control.START_CHILD, restartDelay);
+        } else if (message.getActor().equals(enforcerChild)) {
+            // simply restart the enforcer actor
+            startEnforcerActor();
         }
     }
 
@@ -236,35 +286,104 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId> extends 
     }
 
     /**
+     * Forward all SudoCommand directly (bypassing enforcer) to the child if it is active or by reply immediately with
+     * an exception if the child has terminated (fail fast).
+     */
+    private void forwardSudoCommandToChildIfAvailable(final SudoCommand<?> sudoCommand) {
+        if (null != persistenceActorChild) {
+            if (persistenceActorChild.equals(getSender())) {
+                log.withCorrelationId(sudoCommand)
+                        .warning("Received unhandled SudoCommand from persistence child actor '{}': {}", entityId,
+                                sudoCommand);
+                unhandled(sudoCommand);
+            } else {
+                persistenceActorChild.forward(sudoCommand, getContext());
+            }
+        } else {
+            replyUnavailableException(sudoCommand);
+        }
+    }
+
+    /**
      * Forward all messages to the child if it is active or by reply immediately with an exception if the child has
      * terminated (fail fast).
      */
     private void forwardToChildIfAvailable(final Object message) {
-        if (null != child) {
-            if (child.equals(getSender())) {
-                log.warning("Received unhandled message from child actor '{}': {}", entityId, message);
+
+        final ActorRef sender = getSender();
+        if (message instanceof Command<?> command) {
+            if (sender.equals(persistenceActorChild)) {
+                log.withCorrelationId(command)
+                        .warning("Received unhandled message from persistence child actor '{}': {}",
+                                entityId, message);
+                unhandled(message);
+            } else if (sender.equals(enforcerChild)) {
+                log.withCorrelationId(command)
+                        .warning("Received unhandled message from persistence enforcer child actor '{}': {}",
+                                entityId, message);
                 unhandled(message);
             } else {
-                child.forward(message, getContext());
+                // all commands must be enforced by the enforcer child, so ask all commands to it:
+                enforceCommandAndForwardToPersistenceActorIfAuthorized(sender, command);
+            }
+        } else if (null != persistenceActorChild) {
+            if (persistenceActorChild.equals(sender)) {
+                log.withCorrelationId(message instanceof WithDittoHeaders withDittoHeaders ? withDittoHeaders : null)
+                        .warning("Received unhandled message from child actor '{}': {}", entityId, message);
+                unhandled(message);
+            } else {
+                persistenceActorChild.forward(message, getContext());
             }
         } else {
             replyUnavailableException(message);
         }
     }
 
+    private void enforceCommandAndForwardToPersistenceActorIfAuthorized(final ActorRef sender,
+            final Command<?> command) {
+
+        if (null != enforcerChild) {
+            Patterns.ask(enforcerChild, command, DEFAULT_LOCAL_ASK_TIMEOUT)
+                    .whenComplete((enResponse, enThrowable) -> {
+                        if (enResponse instanceof Command<?> enforcedCommand) {
+                            Patterns.ask(persistenceActorChild, enforcedCommand, DEFAULT_LOCAL_ASK_TIMEOUT)
+                                    .whenComplete((paResponse, paThrowable) -> {
+                                        if (paResponse instanceof CommandResponse<?> commandResponse) {
+                                            enforcerChild.tell(commandResponse, sender);
+                                        } else if (enResponse instanceof DittoRuntimeException dre) {
+                                            sender.tell(dre, persistenceActorChild);
+                                        } else if (null != paThrowable) {
+                                            sender.tell(paThrowable, persistenceActorChild);
+                                        }
+                                    });
+                        } else if (enResponse instanceof DittoRuntimeException dre) {
+                            sender.tell(dre, persistenceActorChild);
+                        } else if (null != enThrowable) {
+                            sender.tell(enThrowable, persistenceActorChild);
+                        }
+                    });
+        } else {
+            log.withCorrelationId(command)
+                    .error("Could not enforce command because enforcer actor was not present");
+        }
+    }
+
     private void replyUnavailableException(final Object message) {
-        log.warning("Received message during downtime of child actor for Entity with ID <{}>: <{}>", entityId, message);
+        log.withCorrelationId(message instanceof WithDittoHeaders withDittoHeaders ? withDittoHeaders : null)
+                .warning("Received message during downtime of child actor for Entity with ID <{}>: <{}>", entityId,
+                        message);
         final DittoRuntimeExceptionBuilder<?> builder = getUnavailableExceptionBuilder(entityId);
-        if (message instanceof WithDittoHeaders) {
-            builder.dittoHeaders(((WithDittoHeaders) message).getDittoHeaders());
+        if (message instanceof WithDittoHeaders withDittoHeaders) {
+            builder.dittoHeaders(withDittoHeaders.getDittoHeaders());
         }
         getSender().tell(builder.build(), getSelf());
     }
 
     private void handleMessagesDuringStartup(final Object message) {
         stash();
-        log.info("Stashed received message during startup of supervised PersistenceActor: <{}>",
-                message.getClass().getSimpleName());
+        log.withCorrelationId(message instanceof WithDittoHeaders withDittoHeaders ? withDittoHeaders : null)
+                .info("Stashed received message during startup of supervised PersistenceActor: <{}>",
+                        message.getClass().getSimpleName());
     }
 
     /**
@@ -279,10 +398,10 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId> extends 
         /**
          * Request to start child actor.
          */
-        START_CHILD,
+        START_CHILDS,
 
         /**
-         * Signals initialization is done, child actor can be started.
+         * Signals initialization is done, child actors can be started.
          */
         INIT_DONE
     }

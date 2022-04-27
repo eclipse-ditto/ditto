@@ -17,8 +17,6 @@ import org.eclipse.ditto.base.api.common.purge.PurgeEntities;
 import org.eclipse.ditto.base.api.devops.signals.commands.ExecutePiggybackCommand;
 import org.eclipse.ditto.base.api.persistence.cleanup.CleanupPersistence;
 import org.eclipse.ditto.base.model.namespaces.signals.commands.PurgeNamespace;
-import org.eclipse.ditto.connectivity.model.signals.commands.modify.ModifyConnection;
-import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConnection;
 import org.eclipse.ditto.internal.models.streaming.SudoStreamPids;
 import org.eclipse.ditto.internal.utils.health.RetrieveHealth;
 import org.eclipse.ditto.internal.utils.pubsub.api.PublishSignal;
@@ -28,10 +26,9 @@ import org.eclipse.ditto.policies.api.commands.sudo.SudoRetrievePolicy;
 import org.eclipse.ditto.policies.model.signals.commands.actions.ActivateTokenIntegration;
 import org.eclipse.ditto.policies.model.signals.commands.modify.DeleteSubject;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrieveResource;
+import org.eclipse.ditto.things.api.commands.sudo.SudoRetrieveThing;
 import org.eclipse.ditto.things.model.signals.commands.modify.ModifyFeatureProperty;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveFeature;
-import org.eclipse.ditto.thingsearch.model.signals.commands.query.QueryThings;
-import org.eclipse.ditto.thingsearch.model.signals.commands.subscription.RequestFromSubscription;
 
 public final class PoliciesServiceGlobalCommandRegistryTest extends GlobalCommandRegistryTestCases {
 
@@ -39,8 +36,9 @@ public final class PoliciesServiceGlobalCommandRegistryTest extends GlobalComman
         super(
                 SudoStreamPids.class,
                 SudoRetrievePolicy.class,
-                RetrieveFeature.class,
-                ModifyFeatureProperty.class,
+                RetrieveFeature.class,          // TODO TJ strictly speaking, the policies service should not must to "know" things-model
+                ModifyFeatureProperty.class,    // TODO TJ strictly speaking, the policies service should not must to "know" things-model
+                SudoRetrieveThing.class,        // TODO TJ strictly speaking, the policies service should not must to "know" things-api
                 ExecutePiggybackCommand.class,
                 SendClaimMessage.class,
                 Shutdown.class,
@@ -51,15 +49,7 @@ public final class PoliciesServiceGlobalCommandRegistryTest extends GlobalComman
                 CleanupPersistence.class,
                 RetrieveHealth.class,
                 PurgeEntities.class,
-                PublishSignal.class,
-
-                // connectivity-model is pulled in as transitive dependency of ditto-protocol, pulled in by ditto-internal-model-acks:
-                // acks are used in Policies enabling "at least once" for policy announcements
-                RetrieveConnection.class,
-                ModifyConnection.class,
-
-                RequestFromSubscription.class,
-                QueryThings.class
+                PublishSignal.class
         );
     }
 }

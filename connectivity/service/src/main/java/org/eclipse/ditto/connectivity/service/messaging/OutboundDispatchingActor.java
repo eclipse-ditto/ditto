@@ -29,12 +29,12 @@ import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
+import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
 import org.eclipse.ditto.connectivity.api.InboundSignal;
 import org.eclipse.ditto.connectivity.api.OutboundSignalFactory;
 import org.eclipse.ditto.connectivity.model.Target;
 import org.eclipse.ditto.internal.models.acks.AcknowledgementForwarderActor;
-import org.eclipse.ditto.internal.models.signal.SignalInformationPoint;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.thingsearch.model.signals.events.SubscriptionEvent;
@@ -171,9 +171,9 @@ final class OutboundDispatchingActor extends AbstractActor {
 
     private static boolean isLiveCommandExpectingResponse(final Signal<?> signal) {
         final var headers = signal.getDittoHeaders();
-        return SignalInformationPoint.isCommand(signal) &&
+        return Command.isCommand(signal) &&
                 headers.isResponseRequired() &&
-                SignalInformationPoint.isChannelLive(signal);
+                Signal.isChannelLive(signal);
     }
 
     private void handleInboundResponseOrAcknowledgement(final Signal<?> responseOrAck) {

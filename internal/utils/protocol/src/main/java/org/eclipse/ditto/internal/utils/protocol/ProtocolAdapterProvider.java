@@ -20,8 +20,8 @@ import java.util.List;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.base.model.headers.HeaderDefinition;
+import org.eclipse.ditto.base.model.headers.translator.HeaderTranslator;
 import org.eclipse.ditto.internal.utils.protocol.config.ProtocolConfig;
-import org.eclipse.ditto.protocol.HeaderTranslator;
 import org.eclipse.ditto.protocol.adapter.ProtocolAdapter;
 import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
 

@@ -22,13 +22,14 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.common.ResponseType;
 import org.eclipse.ditto.base.model.entity.id.EntityId;
+import org.eclipse.ditto.base.model.entity.id.WithEntityId;
+import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.UnsupportedSignalException;
 import org.eclipse.ditto.base.model.signals.WithType;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
-import org.eclipse.ditto.internal.models.signal.SignalInformationPoint;
 import org.eclipse.ditto.internal.models.signal.type.SemanticSignalType;
 import org.eclipse.ditto.internal.models.signal.type.SignalTypeFormatException;
 
@@ -132,7 +133,7 @@ public final class CommandAndCommandResponseMatchingValidator
     }
 
     private static Optional<String> getCorrelationId(final Signal<?> signal) {
-        return SignalInformationPoint.getCorrelationId(signal);
+        return WithDittoHeaders.getCorrelationId(signal);
     }
 
     private static MatchingValidationResult validateTypesMatch(final Command<?> command,
@@ -150,7 +151,7 @@ public final class CommandAndCommandResponseMatchingValidator
                 result = MatchingValidationResult.failure(command,
                         commandResponse,
                         getMessageForMismatchingTypes(commandResponse, command));
-            } else if (SignalInformationPoint.isMessageCommandResponse(commandResponse)) {
+            } else if (CommandResponse.isMessageCommandResponse(commandResponse)) {
                 if (!areCorrespondingMessageSignals(semanticCommandType, semanticCommandResponseType)) {
                     result = MatchingValidationResult.failure(command,
                             commandResponse,
@@ -241,14 +242,14 @@ public final class CommandAndCommandResponseMatchingValidator
     }
 
     private static Optional<EntityId> getEntityId(final Signal<?> signal) {
-        return SignalInformationPoint.getEntityId(signal);
+        return WithEntityId.getEntityId(signal);
     }
 
     private static MatchingValidationResult validateResourcePathsMatch(final Command<?> command,
             final CommandResponse<?> commandResponse) {
 
         final MatchingValidationResult result;
-        if (SignalInformationPoint.isThingCommand(command)) {
+        if (Signal.hasTypePrefix(command, "things.commands:")) { // TODO TJ nasty workaround - however, ThingCommand interface is not used here at all .. so might be ok after all
             final var commandResourcePath = command.getResourcePath();
             final var commandResponseResourcePath = commandResponse.getResourcePath();
             if (commandResourcePath.equals(commandResponseResourcePath) ||
