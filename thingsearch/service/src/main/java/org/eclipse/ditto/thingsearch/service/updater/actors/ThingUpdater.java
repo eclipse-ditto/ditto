@@ -29,7 +29,7 @@ import org.bson.BsonDocument;
 import org.eclipse.ditto.base.api.common.ShutdownReasonType;
 import org.eclipse.ditto.base.model.acks.AcknowledgementRequest;
 import org.eclipse.ditto.base.model.acks.DittoAcknowledgementLabel;
-import org.eclipse.ditto.base.model.signals.acks.Acknowledgements;
+import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
 import org.eclipse.ditto.base.service.actors.ShutdownBehaviour;
 import org.eclipse.ditto.base.service.config.supervision.ExponentialBackOff;
 import org.eclipse.ditto.internal.models.streaming.IdentifiableStreamingMessage;
@@ -105,6 +105,7 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
     private final Materializer materializer;
     private final Duration writeInterval;
     private final Duration thingDeletionTimeout;
+    private final boolean sendingAcksEnabled;
     private ExponentialBackOff backOff;
     private boolean shuttingDown = false;
     @Nullable private UniqueKillSwitch killSwitch;
@@ -163,6 +164,7 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
         backOff = ExponentialBackOff.initial(
                 config.getUpdaterConfig().getStreamConfig().getPersistenceConfig().getExponentialBackOffConfig());
         thingDeletionTimeout = config.getUpdaterConfig().getStreamConfig().getThingDeletionTimeout();
+        sendingAcksEnabled = config.getUpdaterConfig().getStreamConfig().isSendingAcksEnabled();
 
         startSingleTimer(ShutdownTrigger.IDLE.name(), ShutdownTrigger.IDLE, config.getUpdaterConfig().getMaxIdleTime());
 
@@ -214,7 +216,10 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
     }
 
     private FSMStateFunctionBuilder<State, Data> unhandled() {
-        return matchAnyEvent((message, data) -> {
+        return matchEvent(Acknowledgement.class, (message, data) -> {
+            log.debug("Received redirected Acknowledgement: <{}>", message);
+            return stay();
+        }).anyEvent((message, data) -> {
             log.warning("Unknown message in <{}>: <{}>", stateName(), message);
             return stay();
         });
@@ -407,7 +412,7 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
                 .withUpdateReason(updateThing.getUpdateReason());
         final Metadata nextMetadata =
                 updateThing.getDittoHeaders().getAcknowledgementRequests().contains(SEARCH_PERSISTED_REQUEST)
-                        ? metadata.withSender(getSender())
+                        ? metadata.withSender(getAckRecipient())
                         : metadata;
         return stay().using(new Data(nextMetadata, lastWriteModel));
     }
@@ -465,7 +470,8 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
             if (shouldAcknowledge) {
                 final String hint = String.format("Thing event with revision <%d> for thing <%s> dropped.", thingEvent.getRevision(),
                         thingId);
-                exportMetadataWithSender(shouldAcknowledge, thingEvent, getSender(), null, data).sendWeakAck(JsonValue.of(hint));
+                exportMetadataWithSender(shouldAcknowledge, thingEvent, getAckRecipient(), null, data).sendWeakAck(
+                        JsonValue.of(hint));
             }
             return Optional.empty();
         }
@@ -488,7 +494,7 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
                 .start();
         DittoTracing.wrapTimer(DittoTracing.extractTraceContext(thingEvent), timer);
         ConsistencyLag.startS1InUpdater(timer);
-        final var metadata = exportMetadataWithSender(shouldAcknowledge, thingEvent, getSender(), timer, data)
+        final var metadata = exportMetadataWithSender(shouldAcknowledge, thingEvent, getAckRecipient(), timer, data)
                 .withUpdateReason(UpdateReason.THING_UPDATE);
         return Optional.of(metadata);
     }
@@ -566,9 +572,9 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
     }
 
     private void acknowledge(final IdentifiableStreamingMessage message) {
-        final ActorRef sender = getSender();
+        final ActorRef sender = getAckRecipient();
         if (!getContext().system().deadLetters().equals(sender)) {
-            getSender().tell(StreamAck.success(message.asIdentifierString()), getSelf());
+            sender.tell(StreamAck.success(message.asIdentifierString()), getSelf());
         }
     }
 
@@ -586,6 +592,17 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
             });
         } else {
             return JsonValue.of(type.toString());
+        }
+    }
+
+    private ActorRef getAckRecipient() {
+        if (sendingAcksEnabled) {
+            // normal behavior - return original sender
+            return getSender();
+        } else {
+            // return self as sender to prevent acknowledgements being sent to original sender
+            // this actor just write a log statement when receiving an acknowledgement
+            return getSelf();
         }
     }
 }

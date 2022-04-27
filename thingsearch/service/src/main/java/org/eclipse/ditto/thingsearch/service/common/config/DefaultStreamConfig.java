@@ -40,6 +40,7 @@ public final class DefaultStreamConfig implements StreamConfig {
     private final int maxArraySize;
     private final Duration writeInterval;
     private final Duration thingDeletionTimeout;
+    private final boolean sendingAcksEnabled;
     private final AskWithRetryConfig askWithRetryConfig;
     private final StreamStageConfig retrievalConfig;
     private final PersistenceStreamConfig persistenceStreamConfig;
@@ -49,7 +50,9 @@ public final class DefaultStreamConfig implements StreamConfig {
     private DefaultStreamConfig(final ConfigWithFallback streamScopedConfig) {
         maxArraySize = streamScopedConfig.getInt(StreamConfigValue.MAX_ARRAY_SIZE.getConfigPath());
         writeInterval = streamScopedConfig.getNonNegativeDurationOrThrow(StreamConfigValue.WRITE_INTERVAL);
-        thingDeletionTimeout = streamScopedConfig.getNonNegativeDurationOrThrow(StreamConfigValue.THING_DELETION_TIMEOUT);
+        thingDeletionTimeout =
+                streamScopedConfig.getNonNegativeDurationOrThrow(StreamConfigValue.THING_DELETION_TIMEOUT);
+        sendingAcksEnabled = streamScopedConfig.getBoolean(StreamConfigValue.SENDING_ACKS_ENABLED.getConfigPath());
         askWithRetryConfig = DefaultAskWithRetryConfig.of(streamScopedConfig, ASK_WITH_RETRY_CONFIG_PATH);
         retrievalConfig = DefaultStreamStageConfig.getInstance(streamScopedConfig, RETRIEVAL_CONFIG_PATH);
         persistenceStreamConfig = DefaultPersistenceStreamConfig.of(streamScopedConfig);
@@ -81,6 +84,11 @@ public final class DefaultStreamConfig implements StreamConfig {
     @Override
     public Duration getThingDeletionTimeout() {
         return thingDeletionTimeout;
+    }
+
+    @Override
+    public boolean isSendingAcksEnabled() {
+        return sendingAcksEnabled;
     }
 
     @Override
@@ -118,6 +126,7 @@ public final class DefaultStreamConfig implements StreamConfig {
         }
         final DefaultStreamConfig that = (DefaultStreamConfig) o;
         return maxArraySize == that.maxArraySize &&
+                sendingAcksEnabled == that.sendingAcksEnabled &&
                 writeInterval.equals(that.writeInterval) &&
                 thingDeletionTimeout.equals(that.thingDeletionTimeout) &&
                 askWithRetryConfig.equals(that.askWithRetryConfig) &&
@@ -130,7 +139,7 @@ public final class DefaultStreamConfig implements StreamConfig {
     @Override
     public int hashCode() {
         return Objects.hash(maxArraySize, writeInterval, askWithRetryConfig, retrievalConfig,
-                persistenceStreamConfig, policyCacheConfig, thingCacheConfig, thingDeletionTimeout);
+                persistenceStreamConfig, policyCacheConfig, thingCacheConfig, thingDeletionTimeout, sendingAcksEnabled);
     }
 
     @Override
@@ -139,6 +148,7 @@ public final class DefaultStreamConfig implements StreamConfig {
                 "maxArraySize=" + maxArraySize +
                 ", writeInterval=" + writeInterval +
                 ", thingDeletionTimeout=" + thingDeletionTimeout +
+                ", sendingAcksEnabled=" + sendingAcksEnabled +
                 ", askWithRetryConfig=" + askWithRetryConfig +
                 ", retrievalConfig=" + retrievalConfig +
                 ", persistenceStreamConfig=" + persistenceStreamConfig +
