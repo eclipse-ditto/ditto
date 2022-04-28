@@ -54,7 +54,7 @@ final class PolicyModificationForwarder extends AbstractActor {
 
     private static final Duration ASK_SELF_TIMEOUT = Duration.ofSeconds(10L);
 
-    static final String ACTOR_NAME = "thingsSearchPolicyModificationForwarder";
+    static final String ACTOR_NAME = "policyModificationForwarder";
 
     private final DiagnosticLoggingAdapter log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
 
