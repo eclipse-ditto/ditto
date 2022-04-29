@@ -40,7 +40,7 @@ import akka.actor.Scheduler;
  */
 public final class Contextual<T extends WithDittoHeaders> implements WithSender<T>, WithDittoHeaders {
 
-    private static final String POLICY_ENFORCER_CACHE_DISPATCHER = "policy-enforcer-cache-dispatcher";
+    private static final String POLICY_ENFORCER_CACHE_DISPATCHER = "enforcement-cache-dispatcher";
 
     @Nullable private final T message;
     private final ActorRef self;
