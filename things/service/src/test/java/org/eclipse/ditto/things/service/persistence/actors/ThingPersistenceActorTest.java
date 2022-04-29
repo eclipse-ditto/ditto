@@ -543,7 +543,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
             {
                 final Thing initialThing = createThingV2WithRandomId();
                 final ThingId thingId = getIdOrThrow(initialThing);
-                final PolicyId policyId = initialThing.getPolicyEntityId().orElseThrow(IllegalStateException::new);
+                final PolicyId policyId = initialThing.getPolicyId().orElseThrow(IllegalStateException::new);
                 final ActorRef underTest = createPersistenceActorFor(initialThing);
 
                 final CreateThing createThing = CreateThing.of(initialThing, null, dittoHeadersV2);

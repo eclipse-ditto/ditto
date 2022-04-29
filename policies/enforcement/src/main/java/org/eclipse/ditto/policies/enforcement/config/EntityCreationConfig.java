@@ -14,6 +14,7 @@ package org.eclipse.ditto.policies.enforcement.config;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 import javax.annotation.concurrent.Immutable;
 
@@ -50,7 +51,7 @@ public interface EntityCreationConfig {
         /**
          * The list of creation config entries which would allow the creation.
          */
-        GRANT("grant", Collections.emptyList()),
+        GRANT("grant", List.of(Map.of())),
         /**
          * The list of creation config entries which would reject the creation.
          */

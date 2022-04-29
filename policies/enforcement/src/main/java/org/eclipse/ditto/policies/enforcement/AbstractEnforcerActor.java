@@ -122,7 +122,7 @@ public abstract class AbstractEnforcerActor extends AbstractGraphActor<Contextua
 
     @Override
     protected int getBufferSize() {
-        return enforcementConfig.getBufferSize();
+        return 42; // TODO TJ remove
     }
 
     @Override

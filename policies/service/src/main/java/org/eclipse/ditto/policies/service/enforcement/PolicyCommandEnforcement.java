@@ -14,6 +14,8 @@ package org.eclipse.ditto.policies.service.enforcement;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
@@ -62,13 +64,19 @@ public final class PolicyCommandEnforcement
 
     private final CreationRestrictionEnforcer creationRestrictionEnforcer;
 
+    /**
+     * Creates a new instance of the policy command enforcer using the passed {@code creationRestrictionEnforcer}.
+     *
+     * @param creationRestrictionEnforcer the CreationRestrictionEnforcer to apply in order to enforce creation of new
+     * policies based on its config.
+     */
     public PolicyCommandEnforcement(final CreationRestrictionEnforcer creationRestrictionEnforcer) {
 
         this.creationRestrictionEnforcer = creationRestrictionEnforcer;
     }
 
     @Override
-    public PolicyCommand<?> authorizeSignal(final PolicyCommand<?> command, final PolicyEnforcer policyEnforcer) {
+    public CompletionStage<PolicyCommand<?>> authorizeSignal(final PolicyCommand<?> command, final PolicyEnforcer policyEnforcer) {
 
         final Enforcer enforcer = policyEnforcer.getEnforcer();
         final var policyResourceKey = PoliciesResourceType.policyResource(command.getResourcePath());
@@ -108,11 +116,11 @@ public final class PolicyCommandEnforcement
             }
         }
 
-        return authorizedCommand;
+        return CompletableFuture.completedStage(authorizedCommand);
     }
 
     @Override
-    public PolicyCommand<?> authorizeSignalWithMissingEnforcer(final PolicyCommand<?> command) {
+    public CompletionStage<PolicyCommand<?>> authorizeSignalWithMissingEnforcer(final PolicyCommand<?> command) {
 
         final PolicyCommand<?> policyCommand = transformModifyPolicyToCreatePolicy(command);
         if (policyCommand instanceof CreatePolicy createPolicy) {
@@ -126,19 +134,21 @@ public final class PolicyCommandEnforcement
     }
 
     @Override
-    public PolicyCommandResponse<?> filterResponse(final PolicyCommandResponse<?> commandResponse,
+    public CompletionStage<PolicyCommandResponse<?>> filterResponse(final PolicyCommandResponse<?> commandResponse,
             final PolicyEnforcer policyEnforcer) {
 
         if (commandResponse instanceof PolicyQueryCommandResponse<?> policyQueryCommandResponse) {
             try {
-                return buildJsonViewForPolicyQueryCommandResponse(policyQueryCommandResponse,
-                        policyEnforcer.getEnforcer());
+                return CompletableFuture.completedStage(
+                        buildJsonViewForPolicyQueryCommandResponse(policyQueryCommandResponse,
+                                policyEnforcer.getEnforcer())
+                );
             } catch (final RuntimeException e) {
                 throw reportError("Error after building JsonView", e, commandResponse.getDittoHeaders());
             }
         } else {
             // no filtering required for non PolicyQueryCommandResponses:
-            return commandResponse;
+            return CompletableFuture.completedStage(commandResponse);
         }
     }
 

@@ -14,12 +14,15 @@ package org.eclipse.ditto.things.service.starter;
 
 import static org.eclipse.ditto.things.api.ThingsMessagingConstants.CLUSTER_ROLE;
 
+import java.util.concurrent.CompletableFuture;
+
 import org.eclipse.ditto.base.api.devops.signals.commands.RetrieveStatisticsDetails;
 import org.eclipse.ditto.base.service.actors.DittoRootActor;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.internal.utils.cluster.RetrieveStatisticsDetailsResponseSupplier;
 import org.eclipse.ditto.internal.utils.cluster.ShardRegionExtractor;
+import org.eclipse.ditto.internal.utils.cluster.ShardRegionProxyActorFactory;
 import org.eclipse.ditto.internal.utils.health.DefaultHealthCheckingActorFactory;
 import org.eclipse.ditto.internal.utils.health.HealthCheckingActorOptions;
 import org.eclipse.ditto.internal.utils.persistence.mongo.MongoClientWrapper;
@@ -30,6 +33,7 @@ import org.eclipse.ditto.internal.utils.persistentactors.cleanup.PersistenceClea
 import org.eclipse.ditto.internal.utils.pubsub.DistributedAcks;
 import org.eclipse.ditto.internal.utils.pubsub.DistributedPub;
 import org.eclipse.ditto.internal.utils.pubsub.ThingEventPubSubFactory;
+import org.eclipse.ditto.policies.enforcement.PreEnforcer;
 import org.eclipse.ditto.things.api.ThingsMessagingConstants;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 import org.eclipse.ditto.things.service.common.config.ThingsConfig;
@@ -76,9 +80,14 @@ public final class ThingsRootActor extends DittoRootActor {
                 ThingEventPubSubFactory.of(getContext(), shardRegionExtractor, distributedAcks);
         final DistributedPub<ThingEvent<?>> distributedPub = pubSubFactory.startDistributedPub();
 
+        final ShardRegionProxyActorFactory shardRegionProxyActorFactory =
+                ShardRegionProxyActorFactory.newInstance(actorSystem, clusterConfig);
+        final ActorRef policiesShardRegion =
+                shardRegionProxyActorFactory.getShardRegionProxyActor("policies", "policy");// TODO TJ make good
+
         final ActorRef thingsShardRegion = ClusterSharding.get(actorSystem)
                 .start(ThingsMessagingConstants.SHARD_REGION,
-                        getThingSupervisorActorProps(pubSubMediator, distributedPub, propsFactory),
+                        getThingSupervisorActorProps(pubSubMediator, policiesShardRegion, distributedPub, propsFactory),
                         ClusterShardingSettings.create(actorSystem).withRole(CLUSTER_ROLE),
                         shardRegionExtractor);
 
@@ -147,10 +156,17 @@ public final class ThingsRootActor extends DittoRootActor {
 
     private static Props getThingSupervisorActorProps(
             final ActorRef pubSubMediator,
+            final ActorRef policiesShardRegion,
             final DistributedPub<ThingEvent<?>> distributedPub,
             final ThingPersistenceActorPropsFactory propsFactory) {
 
-        return ThingSupervisorActor.props(pubSubMediator, distributedPub, propsFactory);
+        return ThingSupervisorActor.props(pubSubMediator, policiesShardRegion, distributedPub, propsFactory,
+                providePreEnforcer());
+    }
+
+    private static PreEnforcer providePreEnforcer() {
+        // TODO TJ provide extension mechanism here
+        return CompletableFuture::completedStage;
     }
 
     private static MongoReadJournal newMongoReadJournal(final MongoDbConfig mongoDbConfig,

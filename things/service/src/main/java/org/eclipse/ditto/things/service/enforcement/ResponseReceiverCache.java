@@ -58,7 +58,7 @@ import akka.actor.Extension;
  * is used.
  */
 @NotThreadSafe
-final class ResponseReceiverCache implements Extension {
+public final class ResponseReceiverCache implements Extension {
 
     private static final ExtensionId EXTENSION_ID = new ExtensionId();
     private static final Duration DEFAULT_ENTRY_EXPIRY = Duration.ofMinutes(2L);

@@ -43,7 +43,7 @@ final class ThingModifiedStrategy extends AbstractThingEventStrategy<ThingModifi
                 .removeDefinition();
 
         final Thing thingWithModifications = event.getThing();
-        thingWithModifications.getPolicyEntityId().ifPresent(thingBuilder::setPolicyId);
+        thingWithModifications.getPolicyId().ifPresent(thingBuilder::setPolicyId);
         thingWithModifications.getAttributes().ifPresent(thingBuilder::setAttributes);
         thingWithModifications.getDefinition().ifPresent(thingBuilder::setDefinition);
         thingWithModifications.getFeatures().ifPresent(thingBuilder::setFeatures);

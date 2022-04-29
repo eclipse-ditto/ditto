@@ -188,16 +188,16 @@ public final class TestSetup {
 
             final Set<EnforcementProvider<?>> enforcementProviders = new HashSet<>();
             final LiveSignalPub liveSignalPub = new DummyLiveSignalPub(puSubMediatorRef);
-            enforcementProviders.add(new ThingCommandEnforcement.Provider(system, thingsShardRegion,
-                    policiesShardRegion, thingIdCache, projectedEnforcerCache, preEnforcer,
-                    creationRestrictionEnforcer, liveSignalPub, ENFORCEMENT_CONFIG));
+//            enforcementProviders.add(new ThingCommandEnforcement.Provider(system, thingsShardRegion,
+//                    policiesShardRegion, thingIdCache, projectedEnforcerCache, preEnforcer,
+//                    creationRestrictionEnforcer, liveSignalPub, ENFORCEMENT_CONFIG));
 //            enforcementProviders.add(new PolicyCommandEnforcement.Provider(policiesShardRegion, policyEnforcerCache,
 //                    creationRestrictionEnforcer));
-            enforcementProviders.add(new LiveSignalEnforcement.Provider(thingIdCache,
-                    projectedEnforcerCache,
-                    system,
-                    liveSignalPub,
-                    ENFORCEMENT_CONFIG));
+//            enforcementProviders.add(new LiveSignalEnforcement.Provider(thingIdCache,
+//                    projectedEnforcerCache,
+//                    system,
+//                    liveSignalPub,
+//                    ENFORCEMENT_CONFIG));
             final Props props = EnforcerActor.props(testActorRef, enforcementProviders, conciergeForwarder, ENFORCEMENT_CONFIG, preEnforcer,
                     null, null);
 
@@ -237,11 +237,11 @@ public final class TestSetup {
                 testKit.fishForMessage(FiniteDuration.apply(5, TimeUnit.SECONDS), clazz.getName(), clazz::isInstance));
     }
 
-    private static final class DummyLiveSignalPub implements LiveSignalPub {
+    static final class DummyLiveSignalPub implements LiveSignalPub {
 
         private final ActorRef pubSubMediator;
 
-        private DummyLiveSignalPub(final ActorRef pubSubMediator) {
+        DummyLiveSignalPub(final ActorRef pubSubMediator) {
             this.pubSubMediator = pubSubMediator;
         }
 

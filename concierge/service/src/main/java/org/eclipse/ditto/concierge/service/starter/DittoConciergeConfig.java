@@ -51,7 +51,7 @@ public final class DittoConciergeConfig implements ConciergeConfig, WithConfigPa
     private DittoConciergeConfig(final ScopedConfig dittoScopedConfig) {
         serviceSpecificConfig = DittoServiceConfig.of(dittoScopedConfig, CONFIG_PATH);
         healthCheckConfig = DefaultHealthCheckConfig.of(dittoScopedConfig);
-        enforcementConfig = DefaultEnforcementConfig.of(serviceSpecificConfig);
+        enforcementConfig = DefaultEnforcementConfig.of(dittoScopedConfig);
         cachesConfig = DefaultCachesConfig.of(serviceSpecificConfig);
         thingsAggregatorConfig = DefaultThingsAggregatorConfig.of(serviceSpecificConfig);
     }
