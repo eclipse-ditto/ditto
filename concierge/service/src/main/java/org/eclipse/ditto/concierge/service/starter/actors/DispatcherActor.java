@@ -114,7 +114,7 @@ public final class DispatcherActor
 
     @Override
     protected int getBufferSize() {
-        return enforcementConfig.getBufferSize();
+        return 42; // TODO TJ remove
     }
 
     /**
