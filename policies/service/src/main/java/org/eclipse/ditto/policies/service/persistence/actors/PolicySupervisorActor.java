@@ -31,6 +31,7 @@ import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyUnavai
 import org.eclipse.ditto.policies.service.common.config.DittoPoliciesConfig;
 import org.eclipse.ditto.policies.service.common.config.PolicyAnnouncementConfig;
 import org.eclipse.ditto.policies.service.common.config.PolicyConfig;
+import org.eclipse.ditto.policies.service.enforcement.PolicyCommandEnforcement;
 import org.eclipse.ditto.policies.service.persistence.actors.announcements.PolicyAnnouncementManager;
 
 import akka.actor.ActorKilledException;
@@ -101,7 +102,8 @@ public final class PolicySupervisorActor extends AbstractPersistenceSupervisor<P
 
     @Override
     protected Props getPersistenceEnforcerProps(final PolicyId entityId) {
-        return PolicyEnforcerActor.props(entityId, creationRestrictionEnforcer, pubSubMediator);
+        return PolicyEnforcerActor.props(entityId, new PolicyCommandEnforcement(creationRestrictionEnforcer),
+                pubSubMediator);
     }
 
     @Override

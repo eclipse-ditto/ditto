@@ -21,11 +21,11 @@ import org.eclipse.ditto.base.model.entity.metadata.Metadata;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.headers.entitytag.EntityTag;
+import org.eclipse.ditto.internal.utils.persistentactors.results.Result;
+import org.eclipse.ditto.internal.utils.persistentactors.results.ResultFactory;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingId;
-import org.eclipse.ditto.internal.utils.persistentactors.results.Result;
-import org.eclipse.ditto.internal.utils.persistentactors.results.ResultFactory;
 import org.eclipse.ditto.things.model.signals.commands.modify.ModifyPolicyId;
 import org.eclipse.ditto.things.model.signals.commands.modify.ModifyPolicyIdResponse;
 import org.eclipse.ditto.things.model.signals.events.PolicyIdModified;
@@ -55,7 +55,7 @@ final class ModifyPolicyIdStrategy extends AbstractThingCommandStrategy<ModifyPo
     }
 
     private Optional<PolicyId> extractPolicyId(final @Nullable Thing thing) {
-        return getEntityOrThrow(thing).getPolicyEntityId();
+        return getEntityOrThrow(thing).getPolicyId();
     }
 
     private Result<ThingEvent<?>> getModifyResult(final Context<ThingId> context, final long nextRevision,

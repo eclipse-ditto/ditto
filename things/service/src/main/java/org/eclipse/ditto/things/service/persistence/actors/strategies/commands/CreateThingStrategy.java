@@ -97,7 +97,7 @@ final class CreateThingStrategy extends AbstractThingCommandStrategy<CreateThing
         }
 
         // for v2 upwards, set the policy-id to the thing-id if none is specified:
-        if (newThing.getPolicyEntityId().isEmpty()) {
+        if (newThing.getPolicyId().isEmpty()) {
             newThing = newThing.setPolicyId(PolicyId.of(context.getState()));
         }
 
@@ -135,7 +135,7 @@ final class CreateThingStrategy extends AbstractThingCommandStrategy<CreateThing
             final DittoHeaders dittoHeaders) {
 
         // policyId is required for v2
-        if (thing.getPolicyEntityId().isEmpty()) {
+        if (thing.getPolicyId().isEmpty()) {
             throw PolicyIdMissingException.fromThingIdOnCreate(context.getState(), dittoHeaders);
         }
 

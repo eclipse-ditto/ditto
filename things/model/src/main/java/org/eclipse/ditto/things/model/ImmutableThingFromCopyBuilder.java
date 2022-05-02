@@ -22,12 +22,12 @@ import java.util.function.Predicate;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
+import org.eclipse.ditto.base.model.entity.metadata.Metadata;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonParseException;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.base.model.entity.metadata.Metadata;
 import org.eclipse.ditto.policies.model.PolicyId;
 
 /**
@@ -55,7 +55,7 @@ final class ImmutableThingFromCopyBuilder implements ThingBuilder, ThingBuilder.
 
         final ImmutableThingFromCopyBuilder result = new ImmutableThingFromCopyBuilder();
         thing.getEntityId().ifPresent(result::setId);
-        thing.getPolicyEntityId().ifPresent(result::setPolicyId);
+        thing.getPolicyId().ifPresent(result::setPolicyId);
         thing.getAttributes().ifPresent(result::setAttributes);
         thing.getDefinition().ifPresent(result::setDefinition);
         thing.getFeatures().ifPresent(result::setFeatures);

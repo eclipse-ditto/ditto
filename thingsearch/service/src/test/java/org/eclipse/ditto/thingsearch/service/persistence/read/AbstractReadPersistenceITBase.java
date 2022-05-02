@@ -21,8 +21,6 @@ import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.policies.model.enforcers.Enforcer;
-import org.eclipse.ditto.policies.model.enforcers.PolicyEnforcers;
 import org.eclipse.ditto.policies.model.EffectedPermissions;
 import org.eclipse.ditto.policies.model.PoliciesModelFactory;
 import org.eclipse.ditto.policies.model.Policy;
@@ -32,6 +30,8 @@ import org.eclipse.ditto.policies.model.Resource;
 import org.eclipse.ditto.policies.model.ResourceKey;
 import org.eclipse.ditto.policies.model.Subject;
 import org.eclipse.ditto.policies.model.SubjectType;
+import org.eclipse.ditto.policies.model.enforcers.Enforcer;
+import org.eclipse.ditto.policies.model.enforcers.PolicyEnforcers;
 import org.eclipse.ditto.rql.query.criteria.Criteria;
 import org.eclipse.ditto.rql.query.expression.FieldExpressionUtil;
 import org.eclipse.ditto.things.model.Thing;
@@ -92,7 +92,7 @@ public abstract class AbstractReadPersistenceITBase extends AbstractThingSearchP
                 thing.getRevision()
                         .orElseThrow(() -> new IllegalArgumentException("Thing should have a revision."))
                         .toLong(),
-                thing.getPolicyEntityId().orElse(null),
+                thing.getPolicyId().orElse(null),
                 policyRevision);
     }
 

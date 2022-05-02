@@ -35,13 +35,11 @@ public final class DefaultEnforcementConfig implements EnforcementConfig {
     private static final String ASK_WITH_RETRY_CONFIG_PATH = "ask-with-retry";
 
     private final AskWithRetryConfig askWithRetryConfig;
-    private final int bufferSize;
     private final boolean globalLiveResponseDispatching;
     private final Set<String> specialLoggingInspectedNamespaces;
 
     private DefaultEnforcementConfig(final ConfigWithFallback configWithFallback) {
         askWithRetryConfig = DefaultAskWithRetryConfig.of(configWithFallback, ASK_WITH_RETRY_CONFIG_PATH);
-        bufferSize = configWithFallback.getPositiveIntOrThrow(EnforcementConfigValue.BUFFER_SIZE);
         globalLiveResponseDispatching =
                 configWithFallback.getBoolean(EnforcementConfigValue.GLOBAL_LIVE_RESPONSE_DISPATCHING.getConfigPath());
         specialLoggingInspectedNamespaces = Collections.unmodifiableSet(new HashSet<>(configWithFallback.getStringList(
@@ -66,11 +64,6 @@ public final class DefaultEnforcementConfig implements EnforcementConfig {
     }
 
     @Override
-    public int getBufferSize() {
-        return bufferSize;
-    }
-
-    @Override
     public boolean isDispatchLiveResponsesGlobally() {
         return globalLiveResponseDispatching;
     }
@@ -89,23 +82,20 @@ public final class DefaultEnforcementConfig implements EnforcementConfig {
             return false;
         }
         final DefaultEnforcementConfig that = (DefaultEnforcementConfig) o;
-        return bufferSize == that.bufferSize &&
-                globalLiveResponseDispatching == that.globalLiveResponseDispatching &&
+        return globalLiveResponseDispatching == that.globalLiveResponseDispatching &&
                 askWithRetryConfig.equals(that.askWithRetryConfig) &&
                 specialLoggingInspectedNamespaces.equals(that.specialLoggingInspectedNamespaces);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(askWithRetryConfig, bufferSize, globalLiveResponseDispatching,
-                specialLoggingInspectedNamespaces);
+        return Objects.hash(askWithRetryConfig, globalLiveResponseDispatching, specialLoggingInspectedNamespaces);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
                 "askWithRetryConfig=" + askWithRetryConfig +
-                ", bufferSize=" + bufferSize +
                 ", globalLiveResponseDispatching=" + globalLiveResponseDispatching +
                 ", specialLoggingInspectedNamespaces=" + specialLoggingInspectedNamespaces +
                 "]";

@@ -12,6 +12,10 @@
  */
 package org.eclipse.ditto.policies.enforcement;
 
+import java.util.concurrent.CompletionStage;
+import java.util.function.Consumer;
+import java.util.function.Function;
+
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
@@ -21,6 +25,10 @@ import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
 import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayInternalErrorException;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLogger;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
+import org.eclipse.ditto.policies.model.Policy;
+import org.eclipse.ditto.policies.model.PolicyId;
+
+import akka.pattern.AskTimeoutException;
 
 /**
  * TODO TJ doc
@@ -32,6 +40,20 @@ public abstract class AbstractEnforcementReloaded<S extends Signal<?>, R extends
         implements EnforcementReloaded<S, R> {
 
     protected static final DittoLogger LOGGER = DittoLoggerFactory.getLogger(AbstractEnforcementReloaded.class);
+
+    @Nullable protected Function<PolicyId, CompletionStage<PolicyEnforcer>> policyEnforcerLoader;
+    @Nullable protected Consumer<Policy> policyInjectionConsumer;
+
+    @Override
+    public void registerPolicyEnforcerLoader(
+            final Function<PolicyId, CompletionStage<PolicyEnforcer>> policyEnforcerLoader) {
+        this.policyEnforcerLoader = policyEnforcerLoader;
+    }
+
+    @Override
+    public void registerPolicyInjectionConsumer(final Consumer<Policy> policyInjectionConsumer) {
+        this.policyInjectionConsumer = policyInjectionConsumer;
+    }
 
     /**
      * Reports an error differently based on type of the error. If the error is of type
@@ -55,6 +77,50 @@ public abstract class AbstractEnforcementReloaded<S extends Signal<?>, R extends
         return dre;
     }
 
+    /**
+     * Report unexpected error or unknown response. TODO TJ fix javadoc
+     */
+    protected DittoRuntimeException reportErrorOrResponse(final String hint, @Nullable final Object response,
+            @Nullable final Throwable error, final DittoHeaders dittoHeaders) {
+
+        if (error != null) {
+            return reportError(hint, error, dittoHeaders);
+        } else if (response instanceof Throwable throwable) {
+            return reportError(hint, throwable, dittoHeaders);
+        } else if (response != null) {
+            return reportUnknownResponse(hint, response, dittoHeaders);
+        } else {
+            return reportError(hint, new NullPointerException("Response and error were null."), dittoHeaders);
+        }
+    }
+
+    /**
+     * Report unknown response.
+     *
+     * @param hint
+     * @param response
+     * @param dittoHeaders
+     * @return TODO TJ
+     */
+    protected DittoRuntimeException reportUnknownResponse(final String hint, final Object response,
+            final DittoHeaders dittoHeaders) {
+        LOGGER.withCorrelationId(dittoHeaders)
+                .error("Unexpected response {}: <{}>", hint, response);
+
+        // TODO TJ use other "internal error exception" - this one is for gateway!
+        return GatewayInternalErrorException.newBuilder().dittoHeaders(dittoHeaders).build();
+    }
+
+    /**
+     * Check whether response or error from a future is {@code AskTimeoutException}.
+     *
+     * @param response response from a future.
+     * @param error error thrown in a future.
+     * @return whether either is {@code AskTimeoutException}.
+     */
+    protected static boolean isAskTimeoutException(final Object response, @Nullable final Throwable error) {
+        return error instanceof AskTimeoutException || response instanceof AskTimeoutException;
+    }
 
     private DittoRuntimeException reportUnexpectedError(final String hint, final Throwable error,
             final DittoHeaders dittoHeaders) {

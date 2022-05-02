@@ -74,7 +74,7 @@ public final class ThingEnforcementIdCacheLoader
             final var thing = sudoRetrieveThingResponse.getThing();
             final long revision = thing.getRevision().map(ThingRevision::toLong)
                     .orElseThrow(badThingResponse("no revision"));
-            final var policyId = thing.getPolicyEntityId().orElseThrow(badThingResponse("no PolicyId"));
+            final var policyId = thing.getPolicyId().orElseThrow(badThingResponse("no PolicyId"));
             final PersistenceLifecycle persistenceLifecycle =
                     thing.getLifecycle().map(Enum::name).flatMap(PersistenceLifecycle::forName).orElse(null);
             final EnforcementContext newEnforcementContext = EnforcementContext.of(persistenceLifecycle);

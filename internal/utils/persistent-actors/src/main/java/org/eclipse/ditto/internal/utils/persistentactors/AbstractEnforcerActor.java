@@ -13,7 +13,9 @@
 package org.eclipse.ditto.internal.utils.persistentactors;
 
 import java.time.Duration;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.function.Consumer;
 
 import javax.annotation.Nullable;
 
@@ -23,6 +25,7 @@ import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
+import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayInternalErrorException;
 import org.eclipse.ditto.internal.utils.akka.actors.AbstractActorWithStashWithTimers;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
@@ -30,7 +33,9 @@ import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.policies.api.PolicyTag;
 import org.eclipse.ditto.policies.enforcement.EnforcementReloaded;
 import org.eclipse.ditto.policies.enforcement.PolicyEnforcer;
+import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyId;
+import org.eclipse.ditto.policies.model.enforcers.PolicyEnforcers;
 
 import akka.actor.ActorRef;
 import akka.cluster.pubsub.DistributedPubSubMediator;
@@ -44,8 +49,10 @@ import akka.japi.pf.ReceiveBuilder;
  * @param <I> the type of the EntityId this enforcer actor enforces commands for.
  * @param <C> the type of the Commands this enforcer actor enforces.
  * @param <R> the type of the CommandResponses this enforcer actor filters.
+ * @param <E> the type of the EnforcementReloaded this enforcer actor uses for doing command enforcements.
  */
-public abstract class AbstractEnforcerActor<I extends EntityId, C extends Command<?>, R extends CommandResponse<?>>
+public abstract class AbstractEnforcerActor<I extends EntityId, C extends Command<?>, R extends CommandResponse<?>,
+        E extends EnforcementReloaded<C, R>>
         extends AbstractActorWithStashWithTimers {
 
     /**
@@ -57,17 +64,18 @@ public abstract class AbstractEnforcerActor<I extends EntityId, C extends Comman
     protected final DittoDiagnosticLoggingAdapter log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
 
     protected final I entityId;
-    private final EnforcementReloaded<C, R> enforcement;
+    protected final E enforcement;
 
     @Nullable protected PolicyId policyIdForEnforcement;
-    @Nullable private PolicyEnforcer policyEnforcer;
+    @Nullable protected PolicyEnforcer policyEnforcer;
 
 
-    protected AbstractEnforcerActor(final I entityId, final EnforcementReloaded<C, R> enforcement,
-            final ActorRef pubSubMediator) {
+    protected AbstractEnforcerActor(final I entityId, final E enforcement, final ActorRef pubSubMediator) {
 
         this.entityId = entityId;
         this.enforcement = enforcement;
+        enforcement.registerPolicyEnforcerLoader(this::providePolicyEnforcer);
+        enforcement.registerPolicyInjectionConsumer(this::injectPolicy);
 
         // subscribe for PolicyTags in order to reload policyEnforcer when "backing policy" was modified
         pubSubMediator.tell(DistPubSubAccess.subscribe(PolicyTag.PUB_SUB_TOPIC_INVALIDATE_ENFORCERS, getSelf()),
@@ -92,12 +100,35 @@ public abstract class AbstractEnforcerActor<I extends EntityId, C extends Comman
      * @return a successful CompletionStage of either the loaded {@link PolicyEnforcer} or a failed CompletionStage with
      * the cause for the failure.
      */
-    protected abstract CompletionStage<PolicyEnforcer> providePolicyEnforcer(PolicyId policyId);
+    protected abstract CompletionStage<PolicyEnforcer> providePolicyEnforcer(@Nullable PolicyId policyId);
+
+    /**
+     * Accepts the passed in {@code injectedPolicy} in order to e.g. update the {@code policyEnforcer} this enforcer
+     * actor uses for doing policy enforcement.
+     *
+     * @param injectedPolicy the Policy to inject.
+     */
+    protected void injectPolicy(final Policy injectedPolicy) {
+        this.policyEnforcer = PolicyEnforcer.of(injectedPolicy, PolicyEnforcers.defaultEvaluator(injectedPolicy));
+    }
+
+    /**
+     * Determines whether for the passed in {@code command} the {@code policyEnforcer} of this enforcer actor should be
+     * invalidated **after** doing the enforcement (because it changed/could have changed) the authorization logic.
+     *
+     * @param command the command to check.
+     * @return {@code true} if the Policy Enforcer should be invalidated after the enforcement.
+     */
+    protected abstract boolean shouldInvalidatePolicyEnforcerAfterEnforcement(C command);
 
     @Override
     public void preStart() throws Exception {
         super.preStart();
-        reloadPolicyEnforcer();
+        final ActorRef self = getSelf();
+        reloadPolicyEnforcer(loadedPolicyEnforcer -> {
+            this.policyEnforcer = loadedPolicyEnforcer;
+            self.tell(Control.INIT_DONE, self);
+        });
     }
 
     @SuppressWarnings("unchecked")
@@ -105,7 +136,11 @@ public abstract class AbstractEnforcerActor<I extends EntityId, C extends Comman
         return ReceiveBuilder.create()
                 .match(DistributedPubSubMediator.SubscribeAck.class, s -> log.debug("Got subscribeAck <{}>.", s))
                 .match(PolicyTag.class, pt -> pt.getEntityId().equals(policyIdForEnforcement),
-                        this::refreshPolicyEnforcerAfterReceivedMatchingPolicyTag)
+                    pt -> performPolicyEnforcerReload()
+                )
+                .match(PolicyTag.class, pt -> {
+                    // ignore policy tags not intended for this actor - not necessary to log on debug!
+                })
                 .match(SudoCommand.class, sudoCommand -> log.withCorrelationId(sudoCommand)
                         .error("Received SudoCommand in enforcer which should never happen: <{}>", sudoCommand)
                 )
@@ -130,11 +165,10 @@ public abstract class AbstractEnforcerActor<I extends EntityId, C extends Comman
                 .build();
     }
 
-    private void reloadPolicyEnforcer() {
-        final ActorRef self = getSelf();
+    private void reloadPolicyEnforcer(final Consumer<PolicyEnforcer> successConsumer) {
         providePolicyIdForEnforcement()
                 .thenCompose(policyId -> {
-                    this.policyIdForEnforcement = policyId;
+                    this.policyIdForEnforcement = policyId; // policyId could be null, e.g. if entity is not yet existing
                     return providePolicyEnforcer(policyId);
                 })
                 .whenComplete((pEnf, throwable) -> {
@@ -144,12 +178,16 @@ public abstract class AbstractEnforcerActor<I extends EntityId, C extends Comman
                         getContext().stop(getSelf());
                     } else if (null != pEnf) {
                         policyEnforcer = pEnf;
-                        self.tell(Control.INIT_DONE, self);
+                        successConsumer.accept(pEnf);
                     } else {
-                        // TODO TJ complete with exception?? or what to do? terminate?
                         policyEnforcer = null;
+                        successConsumer.accept(null);
                     }
                 });
+    }
+
+    private void becomeAwaitingInitialization() {
+        getContext().become(createReceive());
     }
 
     private void becomeActive() {
@@ -159,12 +197,17 @@ public abstract class AbstractEnforcerActor<I extends EntityId, C extends Comman
     private void handleMessagesDuringStartup(final Object message) {
         stash();
         log.withCorrelationId(message instanceof WithDittoHeaders withDittoHeaders ? withDittoHeaders : null)
-                .info("Stashed received message during startup of enforcer actor: <{}>",
+                .debug("Stashed received message during startup of enforcer actor: <{}>",
                         message.getClass().getSimpleName());
     }
 
-    private void refreshPolicyEnforcerAfterReceivedMatchingPolicyTag(final PolicyTag policyTag) {
-        reloadPolicyEnforcer();
+    private void performPolicyEnforcerReload() {
+        final ActorRef self = getSelf();
+        reloadPolicyEnforcer(loadedPolicyEnforcer -> {
+            this.policyEnforcer = loadedPolicyEnforcer;
+            self.tell(Control.INIT_DONE, self);
+        });
+        becomeAwaitingInitialization();
     }
 
     /**
@@ -180,22 +223,68 @@ public abstract class AbstractEnforcerActor<I extends EntityId, C extends Comman
             return;
         }
 
+        doEnforceCommand(command, getSender())
+                .thenAccept(successfullyEnforced -> {
+                    if (shouldReloadAfterEnforcement(command, successfullyEnforced)) {
+                        // trigger reloading the policy
+                        performPolicyEnforcerReload();
+                    }
+                })
+                .toCompletableFuture()
+                .join(); // block on the actor's dispatcher in order to guarantee in-order processing and blocking the inbox
+    }
+
+    private boolean shouldReloadAfterEnforcement(final C command, final boolean successfullyEnforced) {
+        return shouldInvalidatePolicyEnforcerAfterEnforcement(command) ||
+                (successfullyEnforced && null == policyEnforcer);
+    }
+
+    private CompletionStage<Boolean> doEnforceCommand(final C command,
+            final ActorRef sender) {
+        final ActorRef self = getSelf();
         try {
-            final C authorizedCommand;
+            final CompletionStage<C> authorizedCommandStage;
             if (null != policyEnforcer) {
-                authorizedCommand = enforcement.authorizeSignal(command, policyEnforcer);
+                authorizedCommandStage = enforcement.authorizeSignal(command, policyEnforcer);
             } else {
-                authorizedCommand = enforcement.authorizeSignalWithMissingEnforcer(command);
+                authorizedCommandStage = enforcement.authorizeSignalWithMissingEnforcer(command);
             }
-            log.withCorrelationId(authorizedCommand)
-                    .info("Completed enforcement of message type <{}> with outcome 'success'",
-                            authorizedCommand.getType());
-            getSender().tell(authorizedCommand, getSelf());
+
+            return authorizedCommandStage.handle((authorizedCommand, throwable) -> {
+                final boolean successfullyEnforced;
+                if (null != authorizedCommand) {
+                    log.withCorrelationId(authorizedCommand)
+                            .info("Completed enforcement of message type <{}> with outcome 'success'",
+                                    authorizedCommand.getType());
+                    sender.tell(authorizedCommand, self);
+                    successfullyEnforced = true;
+                } else if (null != throwable) {
+                    final DittoRuntimeException dittoRuntimeException =
+                            DittoRuntimeException.asDittoRuntimeException(throwable, t ->
+                                    GatewayInternalErrorException.newBuilder()
+                                            .cause(t)
+                                            .dittoHeaders(command.getDittoHeaders())
+                                            .build()
+                            );
+                    log.withCorrelationId(dittoRuntimeException)
+                            .info("Completed enforcement of message type <{}> with outcome 'failed' and headers: <{}>",
+                                    command.getType(), command.getDittoHeaders());
+                    sender.tell(dittoRuntimeException, self);
+                    successfullyEnforced = false;
+                } else {
+                    log.withCorrelationId(command)
+                            .error("Neither authorizedCommand nor throwable were present during enforcement of command: " +
+                                    "<{}>", command);
+                    successfullyEnforced = false;
+                }
+                return successfullyEnforced;
+            });
         } catch (final DittoRuntimeException dittoRuntimeException) {
             log.withCorrelationId(dittoRuntimeException)
                     .info("Completed enforcement of message type <{}> with outcome 'failed' and headers: <{}>",
                             command.getType(), command.getDittoHeaders());
-            getSender().tell(dittoRuntimeException, getSelf());
+            sender.tell(dittoRuntimeException, self);
+            return CompletableFuture.completedStage(false);
         }
     }
 
@@ -208,10 +297,42 @@ public abstract class AbstractEnforcerActor<I extends EntityId, C extends Comman
      */
     private void filterResponse(final R commandResponse) {
         if (null != policyEnforcer) {
-            final R filteredResponse = enforcement.filterResponse(commandResponse, policyEnforcer);
-            log.withCorrelationId(filteredResponse)
-                    .info("Completed filtering of command response type <{}>", filteredResponse.getType());
-            getSender().tell(filteredResponse, getContext().getParent());
+            final ActorRef sender = getSender();
+            final ActorRef parent = getContext().getParent();
+
+            try {
+                final CompletionStage<R> filteredResponseStage =
+                        enforcement.filterResponse(commandResponse, policyEnforcer);
+                filteredResponseStage.whenComplete((filteredResponse, throwable) -> {
+                    if (null != filteredResponse) {
+                        log.withCorrelationId(filteredResponse)
+                                .info("Completed filtering of command response type <{}>", filteredResponse.getType());
+                        sender.tell(filteredResponse, parent);
+                    } else if (null != throwable) {
+                        final DittoRuntimeException dittoRuntimeException =
+                                DittoRuntimeException.asDittoRuntimeException(throwable, t ->
+                                        // TODO TJ different exception than GatewayInternalErrorException
+                                        GatewayInternalErrorException.newBuilder()
+                                                .cause(t)
+                                                .dittoHeaders(commandResponse.getDittoHeaders())
+                                                .build()
+                                );
+                        log.withCorrelationId(dittoRuntimeException)
+                                .info("Exception during filtering of command response type <{}> and headers: <{}>",
+                                        commandResponse.getType(), commandResponse.getDittoHeaders());
+                        sender.tell(dittoRuntimeException, parent);
+                    } else {
+                        log.withCorrelationId(commandResponse)
+                                .error("Neither filteredResponse nor throwable were present during filtering of " +
+                                        "commandResponse: <{}>", commandResponse);
+                    }
+                });
+            } catch (final DittoRuntimeException dittoRuntimeException) {
+                log.withCorrelationId(dittoRuntimeException)
+                        .info("Exception during filtering of command response type <{}> and headers: <{}>",
+                                commandResponse.getType(), commandResponse.getDittoHeaders());
+                sender.tell(dittoRuntimeException, parent);
+            }
         } else {
             log.withCorrelationId(commandResponse)
                     .error("Could not filter command response because policyEnforcer was missing");

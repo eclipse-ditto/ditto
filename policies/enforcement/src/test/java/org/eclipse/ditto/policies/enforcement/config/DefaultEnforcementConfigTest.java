@@ -64,9 +64,6 @@ public final class DefaultEnforcementConfigTest {
         softly.assertThat(underTest.getAskWithRetryConfig().getAskTimeout())
                 .as(AskWithRetryConfig.AskWithRetryConfigValue.ASK_TIMEOUT.getConfigPath())
                 .isEqualTo(AskWithRetryConfig.AskWithRetryConfigValue.ASK_TIMEOUT.getDefaultValue());
-        softly.assertThat(underTest.getBufferSize())
-                .as(EnforcementConfig.EnforcementConfigValue.BUFFER_SIZE.getConfigPath())
-                .isEqualTo(EnforcementConfig.EnforcementConfigValue.BUFFER_SIZE.getDefaultValue());
     }
 
     @Test
@@ -76,9 +73,6 @@ public final class DefaultEnforcementConfigTest {
         softly.assertThat(underTest.getAskWithRetryConfig().getAskTimeout())
                 .as(AskWithRetryConfig.AskWithRetryConfigValue.ASK_TIMEOUT.getConfigPath())
                 .isEqualTo(Duration.ofSeconds(33L));
-        softly.assertThat(underTest.getBufferSize())
-                .as(EnforcementConfig.EnforcementConfigValue.BUFFER_SIZE.getConfigPath())
-                .isEqualTo(1337);
     }
 
 }

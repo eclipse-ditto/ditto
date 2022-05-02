@@ -37,13 +37,6 @@ public interface EnforcementConfig {
     AskWithRetryConfig getAskWithRetryConfig();
 
     /**
-     * Returns the buffer size used for the queue in the enforcer actor.
-     *
-     * @return the buffer size.
-     */
-    int getBufferSize();
-
-    /**
      * Returns whether live responses from channels other than their subscribers should be dispatched.
      *
      * @return whether global live response dispatching is enabled.
@@ -74,11 +67,6 @@ public interface EnforcementConfig {
      * {@code EnforcementConfig}.
      */
     enum EnforcementConfigValue implements KnownConfigValue {
-
-        /**
-         * The buffer size used for the queue in the enforcer actor.
-         */
-        BUFFER_SIZE("buffer-size", 1_000),
 
         /**
          * Whether to enable dispatching live responses from channels other than the subscribers.

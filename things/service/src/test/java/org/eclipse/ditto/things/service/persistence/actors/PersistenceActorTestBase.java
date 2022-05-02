@@ -17,18 +17,21 @@ import static java.util.Objects.requireNonNull;
 import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
-import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.json.JsonField;
-import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.auth.AuthorizationModelFactory;
 import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
 import org.eclipse.ditto.base.model.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
+import org.eclipse.ditto.internal.utils.pubsub.DistributedPub;
+import org.eclipse.ditto.internal.utils.pubsub.extractors.AckExtractor;
+import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonField;
+import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.things.model.Attributes;
 import org.eclipse.ditto.things.model.Feature;
@@ -39,11 +42,9 @@ import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.ThingLifecycle;
 import org.eclipse.ditto.things.model.ThingsModelFactory;
+import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 import org.eclipse.ditto.things.service.common.config.DefaultThingConfig;
 import org.eclipse.ditto.things.service.common.config.ThingConfig;
-import org.eclipse.ditto.internal.utils.pubsub.DistributedPub;
-import org.eclipse.ditto.internal.utils.pubsub.extractors.AckExtractor;
-import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 import org.eclipse.ditto.utils.jsr305.annotations.AllParametersAndReturnValuesAreNonnullByDefault;
 import org.junit.After;
 import org.junit.BeforeClass;
@@ -68,7 +69,7 @@ public abstract class PersistenceActorTestBase {
     protected static final PolicyId POLICY_ID = PolicyId.of("org.eclipse.ditto:policyId");
     protected static final String AUTH_SUBJECT = "allowedId";
     protected static final AuthorizationSubject AUTHORIZED_SUBJECT =
-            AuthorizationModelFactory.newAuthSubject(AUTH_SUBJECT);
+            AuthorizationModelFactory.newAuthSubject("test:" + AUTH_SUBJECT);
 
     protected static final Attributes THING_ATTRIBUTES = ThingsModelFactory.newAttributesBuilder()
             .set("attrKey", "attrVal")
@@ -99,7 +100,10 @@ public abstract class PersistenceActorTestBase {
 
     protected ActorSystem actorSystem = null;
     protected TestProbe pubSubTestProbe = null;
+    protected TestProbe policiesShardRegionTestProbe = null;
     protected ActorRef pubSubMediator = null;
+
+    protected ActorRef policiesShardRegion = null;
     protected DittoHeaders dittoHeadersV2;
 
     @BeforeClass
@@ -148,6 +152,8 @@ public abstract class PersistenceActorTestBase {
         actorSystem = ActorSystem.create("AkkaTestSystem", config);
         pubSubTestProbe = TestProbe.apply("mock-pubSub-mediator", actorSystem);
         pubSubMediator = pubSubTestProbe.ref();
+        policiesShardRegionTestProbe = TestProbe.apply("mock-policiesShardRegion", actorSystem);
+        policiesShardRegion = policiesShardRegionTestProbe.ref();
 
         dittoHeadersV2 = createDittoHeadersMock(JsonSchemaVersion.V_2, "test:" + AUTH_SUBJECT);
     }
@@ -174,7 +180,8 @@ public abstract class PersistenceActorTestBase {
 
     protected ActorRef createSupervisorActorFor(final ThingId thingId) {
         final Props props =
-                ThingSupervisorActor.props(pubSubMediator, getDistributedPub(), this::getPropsOfThingPersistenceActor);
+                ThingSupervisorActor.props(pubSubMediator, policiesShardRegion, getDistributedPub(),
+                        this::getPropsOfThingPersistenceActor, CompletableFuture::completedFuture);
 
         return actorSystem.actorOf(props, thingId.toString());
     }

@@ -12,13 +12,15 @@
  */
 package org.eclipse.ditto.things.service.persistence.actors;
 
+import java.util.concurrent.CompletableFuture;
+
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.policies.model.PolicyId;
-import org.eclipse.ditto.things.model.Thing;
-import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.internal.utils.persistence.mongo.ops.eventsource.MongoEventSourceITAssertions;
 import org.eclipse.ditto.internal.utils.pubsub.DistributedPub;
 import org.eclipse.ditto.internal.utils.pubsub.extractors.AckExtractor;
+import org.eclipse.ditto.policies.model.PolicyId;
+import org.eclipse.ditto.things.model.Thing;
+import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommand;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingNotAccessibleException;
 import org.eclipse.ditto.things.model.signals.commands.modify.CreateThing;
@@ -34,6 +36,7 @@ import com.typesafe.config.Config;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
+import akka.testkit.TestProbe;
 
 /**
  * Tests {@link ThingPersistenceOperationsActor} against a local MongoDB.
@@ -101,8 +104,12 @@ public final class ThingPersistenceOperationsActorIT extends MongoEventSourceITA
 
     @Override
     protected ActorRef startEntityActor(final ActorSystem system, final ActorRef pubSubMediator, final ThingId id) {
+
+        final TestProbe policiesShardRegionTestProbe = TestProbe.apply("mock-policiesShardRegion", system);
+        final ActorRef policiesShardRegion = policiesShardRegionTestProbe.ref(); // TODO TJ is this sufficient here?
+
         final Props props =
-                ThingSupervisorActor.props(pubSubMediator,
+                ThingSupervisorActor.props(pubSubMediator, policiesShardRegion,
                         new DistributedPub<>() {
 
                             @Override
@@ -122,7 +129,8 @@ public final class ThingPersistenceOperationsActorIT extends MongoEventSourceITA
                             }
                         },
                         (thingId, distributedPub) -> ThingPersistenceActor.props(thingId, distributedPub,
-                                pubSubMediator));
+                                pubSubMediator),
+                        CompletableFuture::completedFuture);
 
         return system.actorOf(props, id.toString());
     }
