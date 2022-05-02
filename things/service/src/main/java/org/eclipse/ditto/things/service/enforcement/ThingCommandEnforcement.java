@@ -25,7 +25,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
-import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -35,6 +34,7 @@ import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
 import org.eclipse.ditto.base.model.exceptions.AskException;
 import org.eclipse.ditto.base.model.exceptions.DittoJsonException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.base.model.exceptions.EntityNotCreatableException;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.DittoHeadersBuilder;
@@ -158,12 +158,15 @@ public final class ThingCommandEnforcement
     private final ResponseReceiverCache responseReceiverCache;
 
     /**
-     * TODO TJ doc
+     * Creates a new instance of the thing command enforcer.
+     *
      * @param actorSystem
      * @param ackReceiverActor
-     * @param policiesShardRegion
-     * @param creationRestrictionEnforcer
-     * @param enforcementConfig
+     * @param policiesShardRegion the policies shard region to load policies from and to use in order to create new
+     * (inline) policies when creating new things.
+     * @param creationRestrictionEnforcer the CreationRestrictionEnforcer to apply in order to enforce creation of new
+     * things based on its config.
+     * @param enforcementConfig the configuration to apply for this command enforcement implementation.
      * @param preEnforcer
      * @param liveSignalPub
      */
@@ -178,7 +181,7 @@ public final class ThingCommandEnforcement
         this.actorSystem = actorSystem;
         this.ackReceiverActor = requireNonNull(ackReceiverActor);
         this.policiesShardRegion = requireNonNull(policiesShardRegion);
-        this.creationRestrictionEnforcer = creationRestrictionEnforcer; // TODO TJ use creationRestrictionEnforcer somewhere!
+        this.creationRestrictionEnforcer = creationRestrictionEnforcer;
         this.enforcementConfig = enforcementConfig;
 
         enforcementConfig.getSpecialLoggingInspectedNamespaces()
@@ -236,9 +239,7 @@ public final class ThingCommandEnforcement
         // DO NOT use Contextual.askFuture to handle the ask-steps of a CreateThing command! Otherwise
         // the query- and modify-commands sent immediately after may be processed before the thing is created.
         return enforceCreateThingBySelf(signal)
-                .thenCompose(pair ->
-                        handleInitialCreateThing(pair.createThing)
-                )
+                .thenCompose(this::handleInitialCreateThing)
                 .exceptionally(throwable -> {
                     final ThreadSafeDittoLogger l = LOGGER.withCorrelationId(signal);
 
@@ -336,7 +337,7 @@ public final class ThingCommandEnforcement
         final var pub = liveSignalPub.command();
         final var props = LiveResponseAndAcknowledgementForwarder.props(signal, pub.getPublisher(),
                 ackReceiverActor);
-        return actorSystem.actorOf(props);
+        return actorSystem.actorOf(props); // TODO TJ check if we should really create a root level actor here
     }
 
     private Function<Object, CompletionStage<ThingQueryCommandResponse<?>>> getFallbackResponseCaster(
@@ -566,19 +567,30 @@ public final class ThingCommandEnforcement
      * authorized in this manner in the absence of an existing enforcer. {@code ModifyThing} commands are transformed to
      * {@code CreateThing} commands before being processed.
      *
-     * @param signal TODO TJ
-     * @return optionally the authorized command extended by  read subjects.
+     * @param command the incoming command which needs to be a {@link CreateThing} to be handled in this function.
+     * @return a CompletionStage of the authorized {@link CreateThing} command extended by read subjects or a failed
+     * CompletionStage with a DittoRuntimeException as cause.
      */
-    private CompletionStage<CreateThingWithEnforcer> enforceCreateThingBySelf(final ThingCommand<?> signal) {
-        final ThingCommand<?> thingCommand = transformModifyThingToCreateThing(signal);
+    private CompletionStage<CreateThing> enforceCreateThingBySelf(final ThingCommand<?> command) {
+        final ThingCommand<?> thingCommand = transformModifyThingToCreateThing(command);
         if (thingCommand instanceof CreateThing createThingCommand) {
-            return replaceInitialPolicyWithCopiedPolicyIfPresent(createThingCommand)
-                    .thenApply(createThing -> {
-                        final Optional<JsonObject> initialPolicyOptional = createThing.getInitialPolicy();
-                        return initialPolicyOptional.map(initialPolicy ->
-                                        enforceCreateThingByOwnInlinedPolicyOrThrow(createThing, initialPolicy)
-                                ).orElseGet(() -> enforceCreateThingByAuthorizationContext(createThing));
-                    });
+            final var enforcerContext = new CreationRestrictionEnforcer.Context(command.getResourceType(),
+                    command.getEntityId().getNamespace(),
+                    command.getDittoHeaders()
+            );
+            if (creationRestrictionEnforcer.canCreate(enforcerContext)) {
+                return replaceInitialPolicyWithCopiedPolicyIfPresent(createThingCommand)
+                        .thenApply(createThing -> {
+                            final Optional<JsonObject> initialPolicyOptional = createThing.getInitialPolicy();
+                            return initialPolicyOptional.map(initialPolicy ->
+                                    enforceCreateThingByOwnInlinedPolicyOrThrow(createThing, initialPolicy)
+                            ).orElseGet(() -> enforceCreateThingByAuthorizationContext(createThing));
+                        });
+            } else {
+                throw EntityNotCreatableException.newBuilder(createThingCommand.getEntityId())
+                        .dittoHeaders(createThingCommand.getDittoHeaders())
+                        .build();
+            }
         } else {
             // Other commands cannot be authorized by policy contained in self.
             final DittoRuntimeException error;
@@ -591,7 +603,7 @@ public final class ThingCommandEnforcement
                         .dittoHeaders(thingCommand.getDittoHeaders())
                         .build();
             }
-            LOGGER.withCorrelationId(signal)
+            LOGGER.withCorrelationId(command)
                     .info("Enforcer was not existing for Thing <{}> and no auth info was inlined, responding with: {} - {}",
                             thingCommand.getEntityId(), error.getClass().getSimpleName(), error.getMessage());
             throw error;
@@ -658,7 +670,7 @@ public final class ThingCommandEnforcement
                 });
     }
 
-    private static CreateThingWithEnforcer enforceCreateThingByAuthorizationContext(final CreateThing createThing) {
+    private static CreateThing enforceCreateThingByAuthorizationContext(final CreateThing createThing) {
 
         // Command without authorization information is authorized by default.
         final var dittoHeaders = createThing.getDittoHeaders();
@@ -668,19 +680,17 @@ public final class ThingCommandEnforcement
                 .orElse(Collections.emptySet());
         final Enforcer enforcer = new AuthorizedSubjectsEnforcer(
                 AuthorizationContext.newInstance(authorizationContext.getType(), authorizedSubjects));
-        final CreateThing command = addEffectedReadSubjectsToThingSignal(createThing, enforcer);
-        return new CreateThingWithEnforcer(command, enforcer);
+        return addEffectedReadSubjectsToThingSignal(createThing, enforcer);
     }
 
-    private CreateThingWithEnforcer enforceCreateThingByOwnInlinedPolicyOrThrow(final CreateThing createThing,
+    private CreateThing enforceCreateThingByOwnInlinedPolicyOrThrow(final CreateThing createThing,
             final JsonObject inlinedPolicy) {
 
         final var initialPolicy = getInitialPolicy(createThing, inlinedPolicy);
         final var policiesValidator = PoliciesValidator.newInstance(initialPolicy);
         if (policiesValidator.isValid()) {
             final var initialEnforcer = PolicyEnforcers.defaultEvaluator(initialPolicy);
-            return attachEnforcerOrThrow(createThing, initialEnforcer,
-                    ThingCommandEnforcement::authorizeByPolicyOrThrow);
+            return authorizeByPolicyOrThrow(initialEnforcer, createThing);
         } else {
             throw PolicyInvalidException.newBuilder(MIN_REQUIRED_POLICY_PERMISSIONS, createThing.getEntityId())
                     .dittoHeaders(createThing.getDittoHeaders())
@@ -709,13 +719,6 @@ public final class ThingCommandEnforcement
                         createThing.getDittoHeaders());
             }
         }
-    }
-
-    private static CreateThingWithEnforcer attachEnforcerOrThrow(final CreateThing command, final Enforcer enforcer,
-            final BiFunction<Enforcer, ThingCommand<CreateThing>, CreateThing> authorization) {
-
-        final CreateThing authorizedCommand = authorization.apply(enforcer, command);
-        return new CreateThingWithEnforcer(authorizedCommand, enforcer);
     }
 
     /**
@@ -1100,22 +1103,6 @@ public final class ThingCommandEnforcement
                 .putHeader(DittoHeaderDefinition.LIVE_CHANNEL_CONDITION_MATCHED.getKey(), liveChannelConditionMatched)
                 .responseRequired(false);
         return dittoHeadersBuilder.build();
-    }
-
-    /**
-     * A pair of {@code CreateThing} command with {@code Enforcer}.
-     * TODO TJ candidate for removal??
-     */
-    private static final class CreateThingWithEnforcer {
-
-        private final CreateThing createThing;
-        private final Enforcer enforcer;
-
-        private CreateThingWithEnforcer(final CreateThing createThing, final Enforcer enforcer) {
-            this.createThing = createThing;
-            this.enforcer = enforcer;
-        }
-
     }
 
 }

@@ -19,6 +19,7 @@ import java.util.concurrent.CompletionStage;
 
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.base.model.exceptions.EntityNotCreatableException;
 import org.eclipse.ditto.base.model.signals.commands.CommandToExceptionRegistry;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldSelector;
@@ -87,15 +88,17 @@ public final class PolicyCommandEnforcement
                     command.getEntityId().getNamespace(),
                     command.getDittoHeaders()
             );
-            if (creationRestrictionEnforcer.canCreate(enforcerContext)
-                    && (
-                    command.getDittoHeaders().isAllowPolicyLockout()
-                            || hasUnrestrictedWritePermission(enforcer, policyResourceKey, authorizationContext)
-            )
-            ) {
-                authorizedCommand = command;
+            if (creationRestrictionEnforcer.canCreate(enforcerContext)) {
+                if (command.getDittoHeaders().isAllowPolicyLockout()
+                        || hasUnrestrictedWritePermission(enforcer, policyResourceKey, authorizationContext)) {
+                    authorizedCommand = command;
+                } else {
+                    throw errorForPolicyCommand(command);
+                }
             } else {
-                throw errorForPolicyCommand(command);
+                throw EntityNotCreatableException.newBuilder(command.getEntityId())
+                        .dittoHeaders(command.getDittoHeaders())
+                        .build();
             }
         } else if (command instanceof PolicyActionCommand) {
             authorizedCommand =
