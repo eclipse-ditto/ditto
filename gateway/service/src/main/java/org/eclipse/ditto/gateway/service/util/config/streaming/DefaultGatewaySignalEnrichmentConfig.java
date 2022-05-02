@@ -34,15 +34,15 @@ public final class DefaultGatewaySignalEnrichmentConfig implements GatewaySignal
     private static final String CACHE_CONFIG_PATH = "cache";
 
     private final Duration askTimeout;
-    private final boolean cachingEnabled;
     private final CacheConfig cacheConfig;
+    private final String signalEnrichmentProvider;
 
     private DefaultGatewaySignalEnrichmentConfig(final ConfigWithFallback configWithFallback) {
         this.askTimeout = configWithFallback.getNonNegativeAndNonZeroDurationOrThrow(
                 CachingSignalEnrichmentFacadeConfigValue.ASK_TIMEOUT);
         cacheConfig = DefaultCacheConfig.of(configWithFallback, CACHE_CONFIG_PATH);
-        cachingEnabled =
-                configWithFallback.getBoolean(CachingSignalEnrichmentFacadeConfigValue.CACHING_ENABLED.getConfigPath());
+        signalEnrichmentProvider = configWithFallback.getString(
+                CachingSignalEnrichmentFacadeConfigValue.SIGNAL_ENRICHMENT_PROVIDER.getConfigPath());
     }
 
     /**
@@ -68,8 +68,8 @@ public final class DefaultGatewaySignalEnrichmentConfig implements GatewaySignal
     }
 
     @Override
-    public boolean isCachingEnabled() {
-        return cachingEnabled;
+    public String getSignalEnrichmentProvider() {
+        return signalEnrichmentProvider;
     }
 
     @Override
@@ -77,8 +77,8 @@ public final class DefaultGatewaySignalEnrichmentConfig implements GatewaySignal
         return ConfigFactory.empty()
                 .withValue(CachingSignalEnrichmentFacadeConfigValue.ASK_TIMEOUT.getConfigPath(),
                         ConfigValueFactory.fromAnyRef(askTimeout))
-                .withValue(CachingSignalEnrichmentFacadeConfigValue.CACHING_ENABLED.getConfigPath(),
-                        ConfigValueFactory.fromAnyRef(cachingEnabled))
+                .withValue(CachingSignalEnrichmentFacadeConfigValue.SIGNAL_ENRICHMENT_PROVIDER.getConfigPath(),
+                        ConfigValueFactory.fromAnyRef(signalEnrichmentProvider))
                 .withFallback(cacheConfig.render().atKey(CACHE_CONFIG_PATH))
                 .atKey(CONFIG_PATH);
     }
@@ -95,12 +95,12 @@ public final class DefaultGatewaySignalEnrichmentConfig implements GatewaySignal
                 that = (DefaultGatewaySignalEnrichmentConfig) o;
         return Objects.equals(askTimeout, that.askTimeout) &&
                 Objects.equals(cacheConfig, that.cacheConfig) &&
-                cachingEnabled == that.cachingEnabled;
+                Objects.equals(signalEnrichmentProvider, that.signalEnrichmentProvider);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(askTimeout, cacheConfig, cachingEnabled);
+        return Objects.hash(askTimeout, cacheConfig, signalEnrichmentProvider);
     }
 
     @Override
@@ -108,7 +108,7 @@ public final class DefaultGatewaySignalEnrichmentConfig implements GatewaySignal
         return getClass().getSimpleName() + " [" +
                 "askTimeout=" + askTimeout +
                 ", cacheConfig=" + cacheConfig +
-                ", cachingEnabled" + cachingEnabled +
+                ", signalEnrichmentProvider=" + signalEnrichmentProvider +
                 "]";
     }
 

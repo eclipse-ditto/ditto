@@ -12,10 +12,17 @@
  */
 package org.eclipse.ditto.gateway.service.endpoints.utils;
 
+import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
+
 import java.util.concurrent.CompletionStage;
 
+import org.eclipse.ditto.base.service.DittoExtensionPoint;
+import org.eclipse.ditto.gateway.service.util.config.DittoGatewayConfig;
+import org.eclipse.ditto.gateway.service.util.config.streaming.GatewaySignalEnrichmentConfig;
 import org.eclipse.ditto.internal.models.signalenrichment.SignalEnrichmentFacade;
+import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 
+import akka.actor.ActorSystem;
 import akka.http.javadsl.model.HttpRequest;
 
 /**
@@ -26,7 +33,14 @@ import akka.http.javadsl.model.HttpRequest;
  * <li>Config config: configuration for the facade provider.</li>
  * </ul>
  */
-public interface GatewaySignalEnrichmentProvider {
+public abstract class GatewaySignalEnrichmentProvider extends DittoExtensionPoint {
+
+    /**
+     * @param actorSystem the actor system in which to load the extension.
+     */
+    protected GatewaySignalEnrichmentProvider(final ActorSystem actorSystem) {
+        super(actorSystem);
+    }
 
     /**
      * Create a {@link SignalEnrichmentFacade} from the HTTP request that
@@ -35,6 +49,30 @@ public interface GatewaySignalEnrichmentProvider {
      * @param request the HTTP request.
      * @return the signal-enriching facade.
      */
-    CompletionStage<SignalEnrichmentFacade> getFacade(HttpRequest request);
+    public abstract CompletionStage<SignalEnrichmentFacade> getFacade(HttpRequest request);
+
+    protected GatewaySignalEnrichmentConfig getSignalEnrichmentConfig() {
+        return DittoGatewayConfig.of(DefaultScopedConfig.dittoScoped(
+                actorSystem.settings().config())).getStreamingConfig().getSignalEnrichmentConfig();
+    }
+
+    /**
+     * Loads the implementation of {@code GatewaySignalEnrichmentProvider} which is configured for the {@code ActorSystem}.
+     *
+     * @param actorSystem the actorSystem in which the {@code GatewaySignalEnrichmentProvider} should be loaded.
+     * @return the {@code GatewaySignalEnrichmentProvider} implementation.
+     * @throws NullPointerException if {@code actorSystem} is {@code null}.
+     * @since 3.0.0
+     */
+    public static GatewaySignalEnrichmentProvider get(final ActorSystem actorSystem) {
+        checkNotNull(actorSystem, "actorSystem");
+        final var implementation = DittoGatewayConfig.of(DefaultScopedConfig.dittoScoped(
+                        actorSystem.settings().config()))
+                .getStreamingConfig()
+                .getSignalEnrichmentConfig()
+                .getSignalEnrichmentProvider();
+
+        return new ExtensionId<>(implementation, GatewaySignalEnrichmentProvider.class).get(actorSystem);
+    }
 
 }

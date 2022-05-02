@@ -21,7 +21,6 @@ import java.time.Duration;
 import org.assertj.core.api.JUnitSoftAssertions;
 import org.eclipse.ditto.internal.utils.cache.config.CacheConfig;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 
@@ -67,10 +66,6 @@ public final class DefaultGatewaySignalEnrichmentConfigTest {
                 .as(GatewaySignalEnrichmentConfig.CachingSignalEnrichmentFacadeConfigValue.ASK_TIMEOUT.getConfigPath())
                 .isEqualTo(
                         GatewaySignalEnrichmentConfig.CachingSignalEnrichmentFacadeConfigValue.ASK_TIMEOUT.getDefaultValue());
-        softly.assertThat(underTest.isCachingEnabled())
-                .as(GatewaySignalEnrichmentConfig.CachingSignalEnrichmentFacadeConfigValue.CACHING_ENABLED.getConfigPath())
-                .isEqualTo(
-                        GatewaySignalEnrichmentConfig.CachingSignalEnrichmentFacadeConfigValue.CACHING_ENABLED.getDefaultValue());
     }
 
     @Test
@@ -81,9 +76,6 @@ public final class DefaultGatewaySignalEnrichmentConfigTest {
         softly.assertThat(underTest.getAskTimeout())
                 .as(GatewaySignalEnrichmentConfig.CachingSignalEnrichmentFacadeConfigValue.ASK_TIMEOUT.getConfigPath())
                 .isEqualTo(Duration.ofSeconds(20));
-        softly.assertThat(underTest.isCachingEnabled())
-                .as(GatewaySignalEnrichmentConfig.CachingSignalEnrichmentFacadeConfigValue.CACHING_ENABLED.getConfigPath())
-                .isEqualTo(false);
     }
 
 }

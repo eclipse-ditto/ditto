@@ -18,11 +18,9 @@ import java.util.function.Supplier;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.gateway.service.endpoints.utils.EventSniffer;
 import org.eclipse.ditto.gateway.service.endpoints.utils.GatewaySignalEnrichmentProvider;
 
 import akka.actor.ActorRef;
-import akka.http.javadsl.model.sse.ServerSentEvent;
 import akka.http.javadsl.server.RequestContext;
 import akka.http.javadsl.server.Route;
 
@@ -48,7 +46,7 @@ public interface SseRouteBuilder {
      * @return this builder instance to allow method chaining.
      * @throws NullPointerException if {@code eventSniffer} is {@code null}.
      */
-    SseRouteBuilder withEventSniffer(EventSniffer<ServerSentEvent> eventSniffer);
+    SseRouteBuilder withEventSniffer(SseEventSniffer eventSniffer);
 
     /**
      * Sets the given supervisor.

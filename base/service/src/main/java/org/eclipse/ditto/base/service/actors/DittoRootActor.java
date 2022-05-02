@@ -139,8 +139,9 @@ public abstract class DittoRootActor extends AbstractActor {
      * @return the ref of the started actor.
      */
     protected ActorRef startChildActor(final String actorName, final Props props) {
-        log.info("Starting child actor <{}>.", actorName);
-        return getContext().actorOf(props, actorName);
+        final ActorRef actorRef = getContext().actorOf(props, actorName);
+        log.info("Started child actor <{}> with path <{}>.", actorName, actorRef);
+        return actorRef;
     }
 
     /**

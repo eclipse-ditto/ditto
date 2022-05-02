@@ -46,7 +46,6 @@ import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.service.UriEncoding;
 import org.eclipse.ditto.gateway.service.endpoints.routes.AbstractRoute;
 import org.eclipse.ditto.gateway.service.endpoints.routes.things.ThingsParameter;
-import org.eclipse.ditto.gateway.service.endpoints.utils.EventSniffer;
 import org.eclipse.ditto.gateway.service.endpoints.utils.GatewaySignalEnrichmentProvider;
 import org.eclipse.ditto.gateway.service.streaming.Connect;
 import org.eclipse.ditto.gateway.service.streaming.StartStreaming;
@@ -135,7 +134,7 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
     private final QueryFilterCriteriaFactory queryFilterCriteriaFactory;
     private final ActorRef pubSubMediator;
     private SseConnectionSupervisor sseConnectionSupervisor;
-    private EventSniffer<ServerSentEvent> eventSniffer;
+    private SseEventSniffer eventSniffer;
     private SseAuthorizationEnforcer sseAuthorizationEnforcer;
     @Nullable private GatewaySignalEnrichmentProvider signalEnrichmentProvider;
     @Nullable private ActorRef proxyActor;
@@ -150,7 +149,7 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
         this.streamingConfig = streamingConfig;
         this.queryFilterCriteriaFactory = queryFilterCriteriaFactory;
         this.pubSubMediator = pubSubMediator;
-        eventSniffer = EventSniffer.noOp();
+        eventSniffer = SseEventSniffer.get(actorSystem);
         sseAuthorizationEnforcer = SseAuthorizationEnforcer.get(actorSystem);
         sseConnectionSupervisor = SseConnectionSupervisor.get(actorSystem);
     }
@@ -186,7 +185,7 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
     }
 
     @Override
-    public ThingsSseRouteBuilder withEventSniffer(final EventSniffer<ServerSentEvent> eventSniffer) {
+    public ThingsSseRouteBuilder withEventSniffer(final SseEventSniffer eventSniffer) {
         this.eventSniffer = checkNotNull(eventSniffer, "eventSniffer");
         return this;
     }

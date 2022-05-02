@@ -20,7 +20,6 @@ import java.time.Duration;
 
 import org.assertj.core.api.JUnitSoftAssertions;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 
@@ -86,9 +85,6 @@ public final class DefaultStreamingConfigTest {
         softly.assertThat(underTest.getSearchIdleTimeout())
                 .as(StreamingConfig.StreamingConfigValue.SEARCH_IDLE_TIMEOUT.getConfigPath())
                 .isEqualTo(Duration.ofHours(7L));
-        softly.assertThat(underTest.getSignalEnrichmentConfig().isCachingEnabled())
-                .as(GatewaySignalEnrichmentConfig.CachingSignalEnrichmentFacadeConfigValue.CACHING_ENABLED.getConfigPath())
-                .isFalse();
         softly.assertThat(underTest.getWebsocketConfig().getThrottlingConfig().getInterval())
                 .as("websocket.throttling.interval")
                 .isEqualTo(Duration.ofSeconds(8L));

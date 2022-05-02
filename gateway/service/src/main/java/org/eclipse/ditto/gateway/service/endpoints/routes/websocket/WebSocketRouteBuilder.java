@@ -17,7 +17,6 @@ import javax.annotation.Nullable;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.translator.HeaderTranslator;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
-import org.eclipse.ditto.gateway.service.endpoints.utils.EventSniffer;
 import org.eclipse.ditto.gateway.service.endpoints.utils.GatewaySignalEnrichmentProvider;
 import org.eclipse.ditto.protocol.adapter.ProtocolAdapter;
 
@@ -35,7 +34,7 @@ public interface WebSocketRouteBuilder {
      * @return this builder instance to allow method chaining.
      * @throws NullPointerException if {@code eventSniffer} is {@code null}.
      */
-    WebSocketRouteBuilder withIncomingEventSniffer(EventSniffer<String> eventSniffer);
+    WebSocketRouteBuilder withIncomingEventSniffer(IncomingWebSocketEventSniffer eventSniffer);
 
     /**
      * Sets the given event sniffer for outgoing messages.
@@ -44,7 +43,7 @@ public interface WebSocketRouteBuilder {
      * @return this builder instance to allow method chaining.
      * @throws NullPointerException if {@code eventSniffer} is {@code null}.
      */
-    WebSocketRouteBuilder withOutgoingEventSniffer(EventSniffer<String> eventSniffer);
+    WebSocketRouteBuilder withOutgoingEventSniffer(OutgoingWebSocketEventSniffer eventSniffer);
 
     /**
      * Sets the given object to enforce authorization in order to establish the WebSocket connection.

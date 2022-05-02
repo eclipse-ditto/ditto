@@ -35,6 +35,8 @@ final class DefaultWebsocketConfig implements WebsocketConfig {
     private final String authorizationEnforcer;
     private final String configProvider;
     private final String connectionSupervisor;
+    private final String incomingEventSniffer;
+    private final String outgoingEventSniffer;
 
     private DefaultWebsocketConfig(final ScopedConfig scopedConfig) {
         subscriberBackpressureQueueSize =
@@ -47,6 +49,8 @@ final class DefaultWebsocketConfig implements WebsocketConfig {
         authorizationEnforcer = scopedConfig.getString(WebsocketConfigValue.AUTHORIZATION_ENFORCER.getConfigPath());
         configProvider = scopedConfig.getString(WebsocketConfigValue.CONFIG_PROVIDER.getConfigPath());
         connectionSupervisor = scopedConfig.getString(WebsocketConfigValue.CONNECTION_SUPERVISOR.getConfigPath());
+        incomingEventSniffer = scopedConfig.getString(WebsocketConfigValue.INCOMING_EVENT_SNIFFER.getConfigPath());
+        outgoingEventSniffer = scopedConfig.getString(WebsocketConfigValue.OUTGOING_EVENT_SNIFFER.getConfigPath());
     }
 
     /**
@@ -97,6 +101,16 @@ final class DefaultWebsocketConfig implements WebsocketConfig {
     }
 
     @Override
+    public String getIncomingEventSniffer() {
+        return incomingEventSniffer;
+    }
+
+    @Override
+    public String getOutgoingEventSniffer() {
+        return outgoingEventSniffer;
+    }
+
+    @Override
     public boolean equals(final Object o) {
         if (this == o) {
             return true;
@@ -111,13 +125,16 @@ final class DefaultWebsocketConfig implements WebsocketConfig {
                 Objects.equals(throttlingConfig, that.throttlingConfig) &&
                 Objects.equals(authorizationEnforcer, that.authorizationEnforcer) &&
                 Objects.equals(configProvider, that.configProvider) &&
-                Objects.equals(connectionSupervisor, that.connectionSupervisor);
+                Objects.equals(connectionSupervisor, that.connectionSupervisor) &&
+                Objects.equals(incomingEventSniffer, that.incomingEventSniffer) &&
+                Objects.equals(outgoingEventSniffer, that.outgoingEventSniffer);
     }
 
     @Override
     public int hashCode() {
         return Objects.hash(subscriberBackpressureQueueSize, publisherBackpressureBufferSize,
-                throttlingRejectionFactor, throttlingConfig, authorizationEnforcer, configProvider, connectionSupervisor);
+                throttlingRejectionFactor, throttlingConfig, authorizationEnforcer, configProvider,
+                connectionSupervisor, incomingEventSniffer, outgoingEventSniffer);
     }
 
     @Override
@@ -130,6 +147,8 @@ final class DefaultWebsocketConfig implements WebsocketConfig {
                 ", authorizationEnforcer=" + authorizationEnforcer +
                 ", configProvider=" + configProvider +
                 ", connectionSupervisor=" + connectionSupervisor +
+                ", incomingEventSniffer=" + incomingEventSniffer +
+                ", outgoingEventSniffer=" + outgoingEventSniffer +
                 "]";
     }
 

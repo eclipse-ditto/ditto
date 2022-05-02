@@ -26,6 +26,7 @@ import org.eclipse.ditto.gateway.service.endpoints.directives.auth.DevopsAuthent
 import org.eclipse.ditto.gateway.service.endpoints.directives.auth.DevopsAuthenticationDirectiveFactory;
 import org.eclipse.ditto.gateway.service.endpoints.directives.auth.GatewayAuthenticationDirectiveFactory;
 import org.eclipse.ditto.gateway.service.endpoints.routes.CustomApiRoutesProvider;
+import org.eclipse.ditto.gateway.service.endpoints.routes.HttpBindFlowProvider;
 import org.eclipse.ditto.gateway.service.endpoints.routes.RootRoute;
 import org.eclipse.ditto.gateway.service.endpoints.routes.RouteBaseProperties;
 import org.eclipse.ditto.gateway.service.endpoints.routes.cloudevents.CloudEventsRoute;
@@ -40,8 +41,6 @@ import org.eclipse.ditto.gateway.service.endpoints.routes.things.ThingsRoute;
 import org.eclipse.ditto.gateway.service.endpoints.routes.thingsearch.ThingSearchRoute;
 import org.eclipse.ditto.gateway.service.endpoints.routes.websocket.WebSocketRoute;
 import org.eclipse.ditto.gateway.service.endpoints.routes.whoami.WhoamiRoute;
-import org.eclipse.ditto.gateway.service.endpoints.utils.GatewayByRoundTripSignalEnrichmentProvider;
-import org.eclipse.ditto.gateway.service.endpoints.utils.GatewayCachingSignalEnrichmentProvider;
 import org.eclipse.ditto.gateway.service.endpoints.utils.GatewaySignalEnrichmentProvider;
 import org.eclipse.ditto.gateway.service.health.DittoStatusAndHealthProviderFactory;
 import org.eclipse.ditto.gateway.service.health.GatewayHttpReadinessCheck;
@@ -56,7 +55,6 @@ import org.eclipse.ditto.gateway.service.util.config.endpoints.HttpConfig;
 import org.eclipse.ditto.gateway.service.util.config.health.HealthCheckConfig;
 import org.eclipse.ditto.gateway.service.util.config.security.AuthenticationConfig;
 import org.eclipse.ditto.gateway.service.util.config.security.OAuthConfig;
-import org.eclipse.ditto.gateway.service.util.config.streaming.GatewaySignalEnrichmentConfig;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.cache.config.CacheConfig;
 import org.eclipse.ditto.internal.utils.cluster.ClusterStatusSupplier;
@@ -80,10 +78,8 @@ import akka.actor.ActorSystem;
 import akka.actor.Props;
 import akka.cluster.Cluster;
 import akka.event.DiagnosticLoggingAdapter;
-import akka.event.Logging;
 import akka.http.javadsl.Http;
 import akka.http.javadsl.ServerBinding;
-import akka.http.javadsl.server.Directives;
 import akka.http.javadsl.server.Route;
 import akka.japi.pf.ReceiveBuilder;
 import akka.stream.Materializer;
@@ -92,12 +88,12 @@ import akka.stream.SystemMaterializer;
 /**
  * The Root Actor of the API Gateway's Akka ActorSystem.
  */
-final class GatewayRootActor extends DittoRootActor {
+public final class GatewayRootActor extends DittoRootActor {
 
     /**
      * The name of this Actor in the ActorSystem.
      */
-    static final String ACTOR_NAME = "gatewayRoot";
+    public static final String ACTOR_NAME = "gatewayRoot";
 
     private final DiagnosticLoggingAdapter log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
 
@@ -150,17 +146,18 @@ final class GatewayRootActor extends DittoRootActor {
                         pubSubMediator,
                         conciergeForwarder));
 
+        CustomGatewayRootExecutor.get(actorSystem).execute(getContext());
+
         final ActorRef healthCheckActor = createHealthCheckActor(healthCheckConfig);
         final var hostname = getHostname(httpConfig);
 
         final Route rootRoute = createRoute(actorSystem, gatewayConfig, proxyActor, streamingActor,
                 healthCheckActor, pubSubMediator, healthCheckConfig, jwtAuthenticationFactory,
                 devopsAuthenticationDirectiveFactory, protocolAdapterProvider, headerTranslator);
-        final Route routeWithLogging = Directives.logRequest("http", Logging.DebugLevel(), () -> rootRoute);
 
         httpBinding = Http.get(actorSystem)
                 .newServerAt(hostname, httpConfig.getPort())
-                .bindFlow(routeWithLogging.flow(actorSystem))
+                .bindFlow(HttpBindFlowProvider.get(actorSystem).getFlow(rootRoute))
                 .thenApply(theBinding -> {
                     log.info("Serving HTTP requests on port <{}> ...", theBinding.localAddress().getPort());
                     return theBinding.addToCoordinatedShutdown(httpConfig.getCoordinatedShutdownTimeout(), actorSystem);
@@ -182,7 +179,7 @@ final class GatewayRootActor extends DittoRootActor {
      * @param pubSubMediator the pub-sub mediator.
      * @return the Akka configuration Props object.
      */
-    static Props props(final GatewayConfig gatewayConfig, final ActorRef pubSubMediator) {
+    public static Props props(final GatewayConfig gatewayConfig, final ActorRef pubSubMediator) {
         return Props.create(GatewayRootActor.class, gatewayConfig, pubSubMediator);
     }
 
@@ -233,8 +230,7 @@ final class GatewayRootActor extends DittoRootActor {
         final HttpConfig httpConfig = gatewayConfig.getHttpConfig();
 
         final var streamingConfig = gatewayConfig.getStreamingConfig();
-        final var signalEnrichmentConfig = streamingConfig.getSignalEnrichmentConfig();
-        final var signalEnrichmentProvider = signalEnrichmentProvider(signalEnrichmentConfig, actorSystem);
+        final var signalEnrichmentProvider = GatewaySignalEnrichmentProvider.get(actorSystem);
 
         final var commandConfig = gatewayConfig.getCommandConfig();
 
@@ -285,16 +281,6 @@ final class GatewayRootActor extends DittoRootActor {
                 .dittoHeadersSizeChecker(dittoHeadersSizeChecker)
                 .customApiRoutesProvider(customApiRoutesProvider, routeBaseProperties)
                 .build();
-    }
-
-    private static GatewaySignalEnrichmentProvider signalEnrichmentProvider(
-            final GatewaySignalEnrichmentConfig signalEnrichmentConfig, final ActorSystem actorSystem) {
-
-        if (signalEnrichmentConfig.isCachingEnabled()) {
-            return new GatewayCachingSignalEnrichmentProvider(actorSystem, signalEnrichmentConfig);
-        } else {
-            return new GatewayByRoundTripSignalEnrichmentProvider(actorSystem, signalEnrichmentConfig);
-        }
     }
 
     private ActorRef createHealthCheckActor(final HealthCheckConfig healthCheckConfig) {

@@ -39,19 +39,20 @@ public interface GatewaySignalEnrichmentConfig {
     Duration getAskTimeout();
 
     /**
-     * Indicates whether the signal enrichment should make use of caching or not.
-     *
-     * @return true if caching should be used, otherwise false.
-     */
-    boolean isCachingEnabled();
-
-    /**
      * Returns the cache config to apply for each connection scoped signal enrichment cache.
-     * This config will have no effect if {@link #isCachingEnabled()} returns false.
      *
      * @return the cache config to apply.
      */
     CacheConfig getCacheConfig();
+
+    /**
+     * Returns the full qualified classname of the {@code org.eclipse.ditto.gateway.service.endpoints.utils.GatewaySignalEnrichmentProvider}
+     * implementation to use for signal enrichment.
+     *
+     * @return the full qualified classname of the {@code GatewaySignalEnrichmentProvider} implementation to use.
+     * @since 3.0.0
+     */
+    String getSignalEnrichmentProvider();
 
 
     /**
@@ -68,14 +69,12 @@ public interface GatewaySignalEnrichmentConfig {
     enum CachingSignalEnrichmentFacadeConfigValue implements KnownConfigValue {
 
         /**
-         * Indicates whether the signal enrichment should make use of caching or not.
-         */
-        CACHING_ENABLED("caching-enabled", true),
-
-        /**
          * The ask timeout duration: the duration to wait for cache retrievals.
          */
-        ASK_TIMEOUT("ask-timeout", Duration.ofSeconds(10));
+        ASK_TIMEOUT("ask-timeout", Duration.ofSeconds(10)),
+
+        SIGNAL_ENRICHMENT_PROVIDER("signal-enrichment-provider",
+                "org.eclipse.ditto.gateway.service.endpoints.utils.GatewayCachingSignalEnrichmentProvider");
 
         private final String path;
         private final Object defaultValue;

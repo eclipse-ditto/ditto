@@ -52,7 +52,6 @@ import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayInternalE
 import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayWebsocketSessionClosedException;
 import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayWebsocketSessionExpiredException;
 import org.eclipse.ditto.gateway.service.endpoints.routes.AbstractRoute;
-import org.eclipse.ditto.gateway.service.endpoints.utils.EventSniffer;
 import org.eclipse.ditto.gateway.service.endpoints.utils.GatewaySignalEnrichmentProvider;
 import org.eclipse.ditto.gateway.service.security.HttpHeader;
 import org.eclipse.ditto.gateway.service.streaming.Connect;
@@ -168,8 +167,8 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
     private final StreamingConfig streamingConfig;
     private final Materializer materializer;
 
-    private EventSniffer<String> incomingMessageSniffer;
-    private EventSniffer<String> outgoingMessageSniffer;
+    private IncomingWebSocketEventSniffer incomingMessageSniffer;
+    private OutgoingWebSocketEventSniffer outgoingMessageSniffer;
     private WebSocketAuthorizationEnforcer authorizationEnforcer;
     private WebSocketSupervisor webSocketSupervisor;
     @Nullable private GatewaySignalEnrichmentProvider signalEnrichmentProvider;
@@ -184,9 +183,8 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
         this.streamingActor = checkNotNull(streamingActor, "streamingActor");
         this.streamingConfig = streamingConfig;
 
-        final EventSniffer<String> noOpEventSniffer = EventSniffer.noOp();
-        incomingMessageSniffer = noOpEventSniffer;
-        outgoingMessageSniffer = noOpEventSniffer;
+        incomingMessageSniffer = IncomingWebSocketEventSniffer.get(actorSystem);
+        outgoingMessageSniffer = OutgoingWebSocketEventSniffer.get(actorSystem);
         authorizationEnforcer = WebSocketAuthorizationEnforcer.get(actorSystem);
         webSocketSupervisor = WebSocketSupervisor.get(actorSystem);
         webSocketConfigProvider = WebSocketConfigProvider.get(actorSystem);
@@ -214,13 +212,13 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
     }
 
     @Override
-    public WebSocketRouteBuilder withIncomingEventSniffer(final EventSniffer<String> eventSniffer) {
+    public WebSocketRouteBuilder withIncomingEventSniffer(final IncomingWebSocketEventSniffer eventSniffer) {
         incomingMessageSniffer = checkNotNull(eventSniffer, "eventSniffer");
         return this;
     }
 
     @Override
-    public WebSocketRouteBuilder withOutgoingEventSniffer(final EventSniffer<String> eventSniffer) {
+    public WebSocketRouteBuilder withOutgoingEventSniffer(final OutgoingWebSocketEventSniffer eventSniffer) {
         outgoingMessageSniffer = checkNotNull(eventSniffer, "eventSniffer");
         return this;
     }

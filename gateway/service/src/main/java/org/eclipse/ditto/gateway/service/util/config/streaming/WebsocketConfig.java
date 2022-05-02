@@ -90,6 +90,24 @@ public interface WebsocketConfig {
     String getConnectionSupervisor();
 
     /**
+     * Returns the full qualified classname of the {@code org.eclipse.ditto.gateway.service.endpoints.routes.websocket.IncomingWebSocketEventSniffer}
+     * implementation to use for listening to incoming WebSocket messages.
+     *
+     * @return the full qualified classname of the {@code IncomingWebSocketEventSniffer} implementation to use.
+     * @since 3.0.0
+     */
+    String getIncomingEventSniffer();
+
+    /**
+     * Returns the full qualified classname of the {@code org.eclipse.ditto.gateway.service.endpoints.routes.websocket.OutgoingWebSocketEventSniffer}
+     * implementation to use for listening to outgoing WebSocket messages.
+     *
+     * @return the full qualified classname of the {@code OutgoingWebSocketEventSniffer} implementation to use.
+     * @since 3.0.0
+     */
+    String getOutgoingEventSniffer();
+
+    /**
      * Render this object into a Config object from which a copy of this object can be constructed.
      *
      * @return a config representation.
@@ -104,6 +122,8 @@ public interface WebsocketConfig {
         map.put(WebsocketConfigValue.AUTHORIZATION_ENFORCER.getConfigPath(), getAuthorizationEnforcer());
         map.put(WebsocketConfigValue.CONFIG_PROVIDER.getConfigPath(), getConfigProvider());
         map.put(WebsocketConfigValue.CONNECTION_SUPERVISOR.getConfigPath(), getConnectionSupervisor());
+        map.put(WebsocketConfigValue.INCOMING_EVENT_SNIFFER.getConfigPath(), getIncomingEventSniffer());
+        map.put(WebsocketConfigValue.OUTGOING_EVENT_SNIFFER.getConfigPath(), getOutgoingEventSniffer());
         return ConfigFactory.parseMap(map)
                 .withFallback(getThrottlingConfig().render())
                 .atKey(CONFIG_PATH);
@@ -130,14 +150,40 @@ public interface WebsocketConfig {
          */
         THROTTLING_REJECTION_FACTOR("throttling-rejection-factor", 1.25),
 
+        /**
+         * The full qualified classname of the {@code WebSocketAuthorizationEnforcer} to instantiate.
+         * @since 3.0.0
+         */
         AUTHORIZATION_ENFORCER("authorization-enforcer",
                 "org.eclipse.ditto.gateway.service.endpoints.routes.websocket.NoOpWebSocketAuthorizationEnforcer"),
 
+        /**
+         * The full qualified classname of the {@code WebSocketConfigProvider} to instantiate.
+         * @since 3.0.0
+         */
         CONFIG_PROVIDER("config-provider",
                 "org.eclipse.ditto.gateway.service.endpoints.routes.websocket.NoOpWebSocketConfigProvider"),
 
+        /**
+         * The full qualified classname of the {@code WebSocketSupervisor} to instantiate.
+         * @since 3.0.0
+         */
         CONNECTION_SUPERVISOR("connection-supervisor",
-                "org.eclipse.ditto.gateway.service.endpoints.routes.websocket.NoOpWebSocketSupervisor");
+                "org.eclipse.ditto.gateway.service.endpoints.routes.websocket.NoOpWebSocketSupervisor"),
+
+        /**
+         * The full qualified classname of the {@code IncomingWebSocketEventSniffer} to instantiate.
+         * @since 3.0.0
+         */
+        INCOMING_EVENT_SNIFFER("incoming-event-sniffer",
+                "org.eclipse.ditto.gateway.service.endpoints.routes.websocket.NoOpIncomingWebSocketEventSniffer"),
+
+        /**
+         * The full qualified classname of the {@code OutgoingWebSocketEventSniffer} to instantiate.
+         * @since 3.0.0
+         */
+        OUTGOING_EVENT_SNIFFER("outgoing-event-sniffer",
+                "org.eclipse.ditto.gateway.service.endpoints.routes.websocket.NoOpOutgoingWebSocketEventSniffer");
 
         private final String path;
         private final Object defaultValue;

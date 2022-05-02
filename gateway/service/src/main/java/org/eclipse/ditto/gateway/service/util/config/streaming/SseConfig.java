@@ -50,13 +50,35 @@ public interface SseConfig {
      */
     String getConnectionSupervisor();
 
+    /**
+     * Returns the full qualified classname of the {@code org.eclipse.ditto.gateway.service.endpoints.routes.sse.SseEventSniffer}
+     * implementation to use for custom SSE listeners.
+     *
+     * @return the full qualified classname of the {@code SseEventSniffer} implementation to use.
+     * @since 3.0.0
+     */
+    String getEventSniffer();
+
     enum SseConfigValue implements KnownConfigValue {
 
+        /**
+         * The full qualified classname of the {@code SseAuthorizationEnforcer} to instantiate.
+         * @since 3.0.0
+         */
         AUTHORIZATION_ENFORCER("authorization-enforcer",
                 "org.eclipse.ditto.gateway.service.endpoints.routes.sse.NoOpSseAuthorizationEnforcer"),
-
+        /**
+         * The full qualified classname of the {@code SseConnectionSupervisor} to instantiate.
+         * @since 3.0.0
+         */
         CONNECTION_SUPERVISOR("connection-supervisor",
-                "org.eclipse.ditto.gateway.service.endpoints.routes.sse.NoOpSseConnectionSupervisor");
+                "org.eclipse.ditto.gateway.service.endpoints.routes.sse.NoOpSseConnectionSupervisor"),
+        /**
+         * The full qualified classname of the {@code SseEventSniffer} to instantiate.
+         * @since 3.0.0
+         */
+        EVENT_SNIFFER("event-sniffer",
+                "org.eclipse.ditto.gateway.service.endpoints.routes.sse.NoOpSseEventSniffer");
 
         private final String path;
         private final Object defaultValue;

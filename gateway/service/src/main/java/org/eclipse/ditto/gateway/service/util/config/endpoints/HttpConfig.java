@@ -120,6 +120,15 @@ public interface HttpConfig extends org.eclipse.ditto.base.service.config.http.H
     String getCustomApiRoutesProvider();
 
     /**
+     * Returns the full qualified classname of the {@code org.eclipse.ditto.gateway.service.endpoints.routes.HttpBindFlowProvider}
+     * implementation to use for custom HTTP request processing.
+     *
+     * @return the full qualified classname of the {@code HttpBindFlowProvider} implementation to use.
+     * @since 3.0.0
+     */
+    String getBindFlowProvider();
+
+    /**
      * An enumeration of the known config path expressions and their associated default values for
      * {@code HttpConfig}.
      */
@@ -204,7 +213,14 @@ public interface HttpConfig extends org.eclipse.ditto.base.service.config.http.H
          * @since 3.0.0
          */
         CUSTOM_API_ROUTES_PROVIDER("custom-api-routes-provider",
-                "org.eclipse.ditto.gateway.service.endpoints.routes.NoopCustomApiRoutesProvider");
+                "org.eclipse.ditto.gateway.service.endpoints.routes.NoopCustomApiRoutesProvider"),
+
+        /**
+         * The full qualified classname of the {@code HttpBindFlowProvider} to instantiate.
+         * @since 3.0.0
+         */
+        BIND_FLOW_PROVIDER("bind-flow-provider",
+                "org.eclipse.ditto.gateway.service.endpoints.routes.LoggingHttpBindFlowProvider");
 
         private final String path;
         private final Object defaultValue;

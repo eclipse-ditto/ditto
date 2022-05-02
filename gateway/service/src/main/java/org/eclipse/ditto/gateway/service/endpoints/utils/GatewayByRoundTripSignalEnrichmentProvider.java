@@ -16,7 +16,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
 import org.eclipse.ditto.edge.api.dispatching.ConciergeForwarderActor;
-import org.eclipse.ditto.gateway.service.util.config.streaming.GatewaySignalEnrichmentConfig;
 import org.eclipse.ditto.internal.models.signalenrichment.ByRoundTripSignalEnrichmentFacade;
 import org.eclipse.ditto.internal.models.signalenrichment.SignalEnrichmentFacade;
 
@@ -27,7 +26,7 @@ import akka.http.javadsl.model.HttpRequest;
 /**
  * Provider for gateway-service of signal-enriching facades that make a round-trip for each query.
  */
-public final class GatewayByRoundTripSignalEnrichmentProvider implements GatewaySignalEnrichmentProvider {
+public final class GatewayByRoundTripSignalEnrichmentProvider extends GatewaySignalEnrichmentProvider {
 
     private static final String CONCIERGE_FORWARDER = "/user/gatewayRoot/" + ConciergeForwarderActor.ACTOR_NAME;
 
@@ -37,13 +36,13 @@ public final class GatewayByRoundTripSignalEnrichmentProvider implements Gateway
      * Instantiate this provider. Called by reflection.
      *
      * @param actorSystem The actor system for which this provider is instantiated.
-     * @param signalEnrichmentConfig Configuration for this provider.
      */
-    public GatewayByRoundTripSignalEnrichmentProvider(final ActorSystem actorSystem,
-            final GatewaySignalEnrichmentConfig signalEnrichmentConfig) {
+    public GatewayByRoundTripSignalEnrichmentProvider(final ActorSystem actorSystem) {
+        super(actorSystem);
+
         final ActorSelection commandHandler = actorSystem.actorSelection(CONCIERGE_FORWARDER);
         byRoundTripSignalEnrichmentFacade =
-                ByRoundTripSignalEnrichmentFacade.of(commandHandler, signalEnrichmentConfig.getAskTimeout());
+                ByRoundTripSignalEnrichmentFacade.of(commandHandler, getSignalEnrichmentConfig().getAskTimeout());
     }
 
     @Override
