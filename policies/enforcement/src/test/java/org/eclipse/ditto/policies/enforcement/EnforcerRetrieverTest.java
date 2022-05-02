@@ -27,7 +27,7 @@ import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.base.model.entity.type.EntityType;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
-import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayInternalErrorException;
+import org.eclipse.ditto.base.model.signals.commands.exceptions.DittoInternalErrorException;
 import org.eclipse.ditto.internal.utils.cache.Cache;
 import org.eclipse.ditto.internal.utils.cache.entry.Entry;
 import org.eclipse.ditto.internal.utils.cacheloaders.EnforcementCacheKey;
@@ -55,7 +55,7 @@ public class EnforcerRetrieverTest {
 
     @Test
     public void verifyLookupRevealsInnerException() throws ExecutionException, InterruptedException {
-        final DittoRuntimeException expectedException = GatewayInternalErrorException.newBuilder().build();
+        final DittoRuntimeException expectedException = DittoInternalErrorException.newBuilder().build();
         final EnforcementCacheKey entityId = EnforcementCacheKey.of(EntityId.of(EntityType.of("any"), "id"));
         when(idCache.get(any(EnforcementCacheKey.class))).thenReturn(
                 CompletableFuture.completedFuture(Optional.of(Entry.nonexistent())));
@@ -72,7 +72,7 @@ public class EnforcerRetrieverTest {
 
     @Test
     public void verifyLookupRevealsInnermostException() throws ExecutionException, InterruptedException {
-        final DittoRuntimeException expectedException = GatewayInternalErrorException.newBuilder().build();
+        final DittoRuntimeException expectedException = DittoInternalErrorException.newBuilder().build();
         final EnforcementCacheKey entityId = EnforcementCacheKey.of(EntityId.of(EntityType.of("any"), "id"));
         final EnforcementCacheKey innerEntityId =
                 EnforcementCacheKey.of(EntityId.of(EntityType.of("other"), "randomId"));
@@ -92,7 +92,7 @@ public class EnforcerRetrieverTest {
 
     @Test
     public void verifyLookupEnforcerRevealsException() throws ExecutionException, InterruptedException {
-        final DittoRuntimeException expectedException = GatewayInternalErrorException.newBuilder().build();
+        final DittoRuntimeException expectedException = DittoInternalErrorException.newBuilder().build();
         final EnforcementCacheKey entityId = EnforcementCacheKey.of(EntityId.of(EntityType.of("any"), "id"));
         when(enforcerCache.get(any(EnforcementCacheKey.class))).thenReturn(
                 CompletableFuture.completedFuture(Optional.of(Entry.nonexistent())));

@@ -26,7 +26,7 @@ import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.signals.commands.Command;
-import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayInternalErrorException;
+import org.eclipse.ditto.base.model.signals.commands.exceptions.DittoInternalErrorException;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
@@ -324,7 +324,7 @@ public final class SearchActor extends AbstractActor {
     private DittoRuntimeException asDittoRuntimeException(final Throwable error, final WithDittoHeaders trigger) {
         return DittoRuntimeException.asDittoRuntimeException(error, t -> {
             log.error(error, "SearchActor failed to execute <{}>", trigger);
-            return GatewayInternalErrorException.newBuilder()
+            return DittoInternalErrorException.newBuilder()
                     .dittoHeaders(trigger.getDittoHeaders())
                     .message(error.getClass() + ": " + error.getMessage())
                     .cause(t)

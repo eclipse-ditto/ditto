@@ -34,7 +34,7 @@ import org.eclipse.ditto.base.model.json.Jsonifiable;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
 import org.eclipse.ditto.base.model.signals.commands.WithEntity;
-import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayInternalErrorException;
+import org.eclipse.ditto.base.model.signals.commands.exceptions.DittoInternalErrorException;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
@@ -161,8 +161,8 @@ public final class ThingsAggregatorProxyActor extends AbstractActor {
                         log.error("Unexpected non-DittoRuntimeException error - responding with " +
                                         "GatewayInternalErrorException. Cause: {} - {}",
                                 response.getClass().getSimpleName(), response);
-                        final GatewayInternalErrorException responseEx =
-                                GatewayInternalErrorException.newBuilder()
+                        final DittoInternalErrorException responseEx =
+                                DittoInternalErrorException.newBuilder()
                                         .dittoHeaders(command.getDittoHeaders())
                                         .build();
                         sender.tell(responseEx, getSelf());

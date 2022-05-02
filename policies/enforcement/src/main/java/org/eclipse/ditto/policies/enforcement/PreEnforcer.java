@@ -18,7 +18,7 @@ import java.util.function.Function;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.DittoHeadersSettable;
-import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayInternalErrorException;
+import org.eclipse.ditto.base.model.signals.commands.exceptions.DittoInternalErrorException;
 import org.eclipse.ditto.internal.utils.akka.controlflow.WithSender;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLogger;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
@@ -73,10 +73,10 @@ public interface PreEnforcer {
                             DittoRuntimeException.asDittoRuntimeException(error, cause -> {
                                 LOGGER.withCorrelationId(dittoHeaders)
                                         .error("Unexpected non-DittoRuntimeException error - responding with" +
-                                                        " GatewayInternalErrorException: {} - {} - {}",
+                                                        " DittoInternalErrorException: {} - {} - {}",
                                                 error.getClass().getSimpleName(), error.getMessage(), error);
 
-                                return GatewayInternalErrorException.newBuilder()
+                                return DittoInternalErrorException.newBuilder()
                                         .dittoHeaders(dittoHeaders)
                                         .cause(cause)
                                         .build();

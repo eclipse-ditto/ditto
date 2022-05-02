@@ -47,8 +47,8 @@ import org.eclipse.ditto.base.model.signals.FeatureToggle;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.commands.CommandToExceptionRegistry;
 import org.eclipse.ditto.base.model.signals.commands.ErrorResponse;
+import org.eclipse.ditto.base.model.signals.commands.exceptions.DittoInternalErrorException;
 import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayCommandTimeoutException;
-import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayInternalErrorException;
 import org.eclipse.ditto.internal.models.signal.CommandHeaderRestoration;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLogger;
@@ -246,7 +246,7 @@ public final class ThingCommandEnforcement
                             DittoRuntimeException.asDittoRuntimeException(throwable, cause -> {
                                 l.warn("Error during thing by itself enforcement - {}: {}",
                                         cause.getClass().getSimpleName(), cause.getMessage());
-                                throw GatewayInternalErrorException.newBuilder()
+                                throw DittoInternalErrorException.newBuilder()
                                         .cause(cause)
                                         .build();
                             });
@@ -663,8 +663,7 @@ public final class ThingCommandEnforcement
                         LOGGER.withCorrelationId(adjustedHeaders)
                                 .error("Got an unexpected response while retrieving a Policy that should be copied" +
                                         " during Thing creation: {}", response);
-                        // TODO TJ other internal error than that:
-                        throw GatewayInternalErrorException.newBuilder().build();
+                        throw DittoInternalErrorException.newBuilder().build();
                     }
                 });
     }

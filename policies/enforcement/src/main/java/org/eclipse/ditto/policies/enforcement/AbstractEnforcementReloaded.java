@@ -22,7 +22,7 @@ import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
-import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayInternalErrorException;
+import org.eclipse.ditto.base.model.signals.commands.exceptions.DittoInternalErrorException;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLogger;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.policies.model.Policy;
@@ -58,7 +58,7 @@ public abstract class AbstractEnforcementReloaded<S extends Signal<?>, R extends
     /**
      * Reports an error differently based on type of the error. If the error is of type
      * {@link org.eclipse.ditto.base.model.exceptions.DittoRuntimeException}, it is returned as is
-     * (without modification), otherwise it is wrapped inside a {@link GatewayInternalErrorException}.
+     * (without modification), otherwise it is wrapped inside a {@link DittoInternalErrorException}.
      *
      * @param hint hint about the nature of the error.
      * @param throwable the error.
@@ -107,8 +107,7 @@ public abstract class AbstractEnforcementReloaded<S extends Signal<?>, R extends
         LOGGER.withCorrelationId(dittoHeaders)
                 .error("Unexpected response {}: <{}>", hint, response);
 
-        // TODO TJ use other "internal error exception" - this one is for gateway!
-        return GatewayInternalErrorException.newBuilder().dittoHeaders(dittoHeaders).build();
+        return DittoInternalErrorException.newBuilder().dittoHeaders(dittoHeaders).build();
     }
 
     /**
@@ -128,8 +127,7 @@ public abstract class AbstractEnforcementReloaded<S extends Signal<?>, R extends
                 .error("Unexpected error {} - {}: {}", hint, error.getClass().getSimpleName(),
                         error.getMessage(), error);
 
-        // TODO TJ use other internal error exception!
-        return GatewayInternalErrorException.newBuilder()
+        return DittoInternalErrorException.newBuilder()
                 .cause(error)
                 .dittoHeaders(dittoHeaders)
                 .build();

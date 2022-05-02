@@ -21,7 +21,7 @@ import java.util.concurrent.CompletionStage;
 import org.awaitility.Awaitility;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayInternalErrorException;
+import org.eclipse.ditto.base.model.signals.commands.exceptions.DittoInternalErrorException;
 import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayPlaceholderReferenceUnknownFieldException;
 import org.eclipse.ditto.internal.utils.cacheloaders.config.DefaultAskWithRetryConfig;
 import org.eclipse.ditto.json.JsonFieldSelector;
@@ -210,7 +210,7 @@ public class PolicyIdReferencePlaceholderResolverTest {
                 .until(() -> policyIdCS.toCompletableFuture().isDone());
         assertThat(policyIdCS.toCompletableFuture())
                 .hasFailedWithThrowableThat()
-                .isInstanceOf(GatewayInternalErrorException.class);
+                .isInstanceOf(DittoInternalErrorException.class);
     }
 
 }

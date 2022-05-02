@@ -21,7 +21,7 @@ import java.util.function.UnaryOperator;
 import org.eclipse.ditto.base.model.entity.id.WithEntityId;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
-import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayInternalErrorException;
+import org.eclipse.ditto.base.model.signals.commands.exceptions.DittoInternalErrorException;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
@@ -219,7 +219,7 @@ public abstract class AbstractGraphActor<T, M> extends AbstractActor {
 
     private void handleUnknownThrowable(final Throwable unknownThrowable) {
         logger.warning("Received unknown Throwable <{}>!", unknownThrowable);
-        final GatewayInternalErrorException gatewayInternalError = GatewayInternalErrorException.newBuilder()
+        final DittoInternalErrorException gatewayInternalError = DittoInternalErrorException.newBuilder()
                 .cause(unknownThrowable)
                 .build();
         getSender().tell(gatewayInternalError, getSelf());

@@ -19,12 +19,12 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.signals.commands.exceptions.DittoInternalErrorException;
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.things.model.Thing;
-import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayInternalErrorException;
 import org.eclipse.ditto.thingsearch.model.signals.commands.query.StreamThings;
 import org.eclipse.ditto.thingsearch.model.signals.commands.subscription.CancelSubscription;
 import org.eclipse.ditto.thingsearch.model.signals.commands.subscription.CreateSubscription;
@@ -170,7 +170,7 @@ public final class SubscriptionManagerTest {
         underTest.tell(CancelSubscription.of(sid3, DittoHeaders.empty()), probe3.ref());
 
         assertThat(probe4.expectMsgClass(SubscriptionFailed.class).getError())
-                .isInstanceOf(GatewayInternalErrorException.class);
+                .isInstanceOf(DittoInternalErrorException.class);
 
         CompletableFuture.allOf(
                 CompletableFuture.runAsync(

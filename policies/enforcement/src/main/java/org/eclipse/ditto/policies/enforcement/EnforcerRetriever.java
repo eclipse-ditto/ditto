@@ -21,7 +21,7 @@ import java.util.function.Function;
 
 import org.eclipse.ditto.base.model.entity.type.EntityType;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
-import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayInternalErrorException;
+import org.eclipse.ditto.base.model.signals.commands.exceptions.DittoInternalErrorException;
 import org.eclipse.ditto.internal.utils.cache.Cache;
 import org.eclipse.ditto.internal.utils.cache.entry.Entry;
 import org.eclipse.ditto.internal.utils.cacheloaders.EnforcementCacheKey;
@@ -101,7 +101,7 @@ public final class EnforcerRetriever<E> {
                             enforcerCacheFunction.apply(entityType);
                     if (enforcerCache == null) {
                         LOGGER.error("No enforcerCache for entity type: <{}>", entityType);
-                        throw GatewayInternalErrorException.newBuilder()
+                        throw DittoInternalErrorException.newBuilder()
                                 .build();
                     }
                     return retrieveByEnforcerKey(enforcerKey, enforcerEntry ->

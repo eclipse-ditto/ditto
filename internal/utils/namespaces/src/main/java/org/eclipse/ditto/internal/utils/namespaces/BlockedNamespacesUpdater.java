@@ -18,7 +18,7 @@ import org.eclipse.ditto.base.model.namespaces.signals.commands.BlockNamespaceRe
 import org.eclipse.ditto.base.model.namespaces.signals.commands.UnblockNamespace;
 import org.eclipse.ditto.base.model.namespaces.signals.commands.UnblockNamespaceResponse;
 import org.eclipse.ditto.base.model.signals.commands.Command;
-import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayInternalErrorException;
+import org.eclipse.ditto.base.model.signals.commands.exceptions.DittoInternalErrorException;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
 
@@ -101,7 +101,7 @@ public final class BlockedNamespacesUpdater extends AbstractActor {
     private Void handleError(final Throwable error, final Command<?> command, final ActorRef sender) {
         log.error(error, "Failed to perform <{}>", command);
         final var message = DittoRuntimeException.asDittoRuntimeException(error, t ->
-                GatewayInternalErrorException.newBuilder()
+                DittoInternalErrorException.newBuilder()
                         .message(error.getClass() + ": " + error.getMessage())
                         .dittoHeaders(command.getDittoHeaders())
                         .cause(t)

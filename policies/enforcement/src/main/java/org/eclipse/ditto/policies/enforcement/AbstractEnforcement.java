@@ -25,7 +25,7 @@ import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.WithType;
-import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayInternalErrorException;
+import org.eclipse.ditto.base.model.signals.commands.exceptions.DittoInternalErrorException;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.internal.utils.cacheloaders.EnforcementCacheKey;
 import org.eclipse.ditto.internal.utils.cacheloaders.config.AskWithRetryConfig;
@@ -124,7 +124,8 @@ public abstract class AbstractEnforcement<C extends Signal<?>> {
     /**
      * Reports an error differently based on type of the error. If the error is of type
      * {@link org.eclipse.ditto.base.model.exceptions.DittoRuntimeException}, it is returned as is
-     * (without modification), otherwise it is wrapped inside a {@link GatewayInternalErrorException}.
+     * (without modification), otherwise it is wrapped inside a
+     * {@link org.eclipse.ditto.base.model.signals.commands.exceptions.DittoInternalErrorException}.
      *
      * @param hint hint about the nature of the error.
      * @param throwable the error.
@@ -148,7 +149,7 @@ public abstract class AbstractEnforcement<C extends Signal<?>> {
         log().error(error, "Unexpected error {} - {}: {}", hint, error.getClass().getSimpleName(),
                 error.getMessage());
 
-        return GatewayInternalErrorException.newBuilder()
+        return DittoInternalErrorException.newBuilder()
                 .cause(error)
                 .dittoHeaders(dittoHeaders())
                 .build();
@@ -157,10 +158,10 @@ public abstract class AbstractEnforcement<C extends Signal<?>> {
     /**
      * Report unknown response.
      */
-    protected GatewayInternalErrorException reportUnknownResponse(final String hint, final Object response) {
+    protected DittoInternalErrorException reportUnknownResponse(final String hint, final Object response) {
         log().error("Unexpected response {}: <{}>", hint, response);
 
-        return GatewayInternalErrorException.newBuilder().dittoHeaders(dittoHeaders()).build();
+        return DittoInternalErrorException.newBuilder().dittoHeaders(dittoHeaders()).build();
     }
 
     /**

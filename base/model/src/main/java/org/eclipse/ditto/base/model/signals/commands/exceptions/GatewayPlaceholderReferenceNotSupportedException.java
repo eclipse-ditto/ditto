@@ -23,15 +23,16 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
 
-import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonParsableException;
+import org.eclipse.ditto.json.JsonObject;
 
 /**
  * This exception indicates that a request contains a reference placeholder which references an unsupported entity type.
+ * TODO TJ not a GatewayException
  */
 @Immutable
 @JsonParsableException(errorCode = GatewayPlaceholderReferenceNotSupportedException.ERROR_CODE)

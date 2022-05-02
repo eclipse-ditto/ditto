@@ -23,7 +23,7 @@ import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
 import org.eclipse.ditto.base.model.signals.commands.ErrorResponse;
-import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayInternalErrorException;
+import org.eclipse.ditto.base.model.signals.commands.exceptions.DittoInternalErrorException;
 import org.eclipse.ditto.internal.utils.cacheloaders.AskWithRetry;
 import org.eclipse.ditto.policies.model.enforcers.Enforcer;
 
@@ -81,7 +81,7 @@ public abstract class AbstractEnforcementWithAsk<C extends Signal<?>, R extends 
                     } else {
                         log(commandWithReadSubjects).error("Response before building JsonView was null at a place " +
                                 "where it must never be null");
-                        throw GatewayInternalErrorException.newBuilder()
+                        throw DittoInternalErrorException.newBuilder()
                                 .dittoHeaders(commandWithReadSubjects.getDittoHeaders())
                                 .build();
                     }

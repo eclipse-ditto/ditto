@@ -45,7 +45,7 @@ import org.eclipse.ditto.base.model.signals.JsonParsable;
 import org.eclipse.ditto.base.model.signals.JsonTypeNotParsableException;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
-import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayInternalErrorException;
+import org.eclipse.ditto.base.model.signals.commands.exceptions.DittoInternalErrorException;
 import org.eclipse.ditto.internal.utils.akka.actors.RetrieveConfigBehavior;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
@@ -289,7 +289,7 @@ public final class DevOpsCommandsActor extends AbstractActor implements Retrieve
         } else {
             // this should not happen
             final JsonObject error =
-                    GatewayInternalErrorException.newBuilder().dittoHeaders(command.getDittoHeaders()).build().toJson();
+                    DittoInternalErrorException.newBuilder().dittoHeaders(command.getDittoHeaders()).build().toJson();
             onError.accept(getErrorResponse(command, error));
         }
     }

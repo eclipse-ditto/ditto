@@ -21,21 +21,21 @@ import java.util.function.Consumer;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.json.JsonArray;
-import org.eclipse.ditto.json.JsonCollectors;
-import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.json.JsonFieldSelector;
-import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.things.model.Thing;
-import org.eclipse.ditto.things.model.ThingId;
+import org.eclipse.ditto.base.model.signals.commands.exceptions.DittoInternalErrorException;
 import org.eclipse.ditto.internal.utils.akka.controlflow.ResumeSource;
 import org.eclipse.ditto.internal.utils.akka.controlflow.ResumeSourceBuilder;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLogger;
 import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
-import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayInternalErrorException;
+import org.eclipse.ditto.json.JsonArray;
+import org.eclipse.ditto.json.JsonCollectors;
+import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonFieldSelector;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.things.model.Thing;
+import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingNotAccessibleException;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThing;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThingResponse;
@@ -147,7 +147,7 @@ public final class SearchSource {
         } else {
             return Optional.of(DittoRuntimeException.asDittoRuntimeException(error, e -> {
                 LOGGER.withCorrelationId(streamThings).error("Unexpected error", e);
-                return GatewayInternalErrorException.newBuilder().build();
+                return DittoInternalErrorException.newBuilder().build();
             }));
         }
     }

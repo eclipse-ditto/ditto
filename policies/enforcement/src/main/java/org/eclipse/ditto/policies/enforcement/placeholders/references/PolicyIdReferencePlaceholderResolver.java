@@ -23,7 +23,7 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayInternalErrorException;
+import org.eclipse.ditto.base.model.signals.commands.exceptions.DittoInternalErrorException;
 import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayPlaceholderReferenceNotSupportedException;
 import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayPlaceholderReferenceUnknownFieldException;
 import org.eclipse.ditto.internal.utils.akka.logging.AutoCloseableSlf4jLogger;
@@ -122,7 +122,7 @@ public final class PolicyIdReferencePlaceholderResolver implements ReferencePlac
             if (!entity.isObject()) {
                 LOGGER.withCorrelationId(dittoHeaders)
                         .error("Expected RetrieveThingResponse to contain a JsonObject as Entity but was: {}", entity);
-                throw GatewayInternalErrorException.newBuilder().dittoHeaders(dittoHeaders).build();
+                throw DittoInternalErrorException.newBuilder().dittoHeaders(dittoHeaders).build();
             }
             return entity.asObject()
                     .getValue(JsonFieldDefinition.ofString(referencePlaceholder.getReferencedField()))
@@ -145,7 +145,7 @@ public final class PolicyIdReferencePlaceholderResolver implements ReferencePlac
             LOGGER.withCorrelationId(dittoHeaders)
                     .error("Did not retrieve expected RetrieveThingResponse when resolving policy ID placeholder reference <{}>: {}",
                             referencePlaceholder, response);
-            throw GatewayInternalErrorException.newBuilder().dittoHeaders(dittoHeaders).build();
+            throw DittoInternalErrorException.newBuilder().dittoHeaders(dittoHeaders).build();
         }
     }
 

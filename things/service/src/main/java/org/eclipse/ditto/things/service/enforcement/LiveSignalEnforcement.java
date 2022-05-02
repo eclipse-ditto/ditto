@@ -27,7 +27,7 @@ import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.SignalWithEntityId;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
-import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayInternalErrorException;
+import org.eclipse.ditto.base.model.signals.commands.exceptions.DittoInternalErrorException;
 import org.eclipse.ditto.base.model.signals.commands.exceptions.PathUnknownException;
 import org.eclipse.ditto.internal.utils.cache.Cache;
 import org.eclipse.ditto.internal.utils.cache.entry.Entry;
@@ -153,7 +153,7 @@ public final class LiveSignalEnforcement extends AbstractEnforcementWithAsk<Sign
 //                    result = enforceLiveSignal(streamingType.get(), liveSignal, enforcer);
                 } else {
                     log().error("Unsupported Signal in LiveSignalEnforcement: <{}>", liveSignal);
-                    throw GatewayInternalErrorException.newBuilder()
+                    throw DittoInternalErrorException.newBuilder()
                             .dittoHeaders(liveSignal.getDittoHeaders())
                             .build();
                 }

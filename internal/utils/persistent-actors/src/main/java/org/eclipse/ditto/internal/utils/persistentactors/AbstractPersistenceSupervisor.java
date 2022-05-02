@@ -27,7 +27,7 @@ import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
-import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayInternalErrorException;
+import org.eclipse.ditto.base.model.signals.commands.exceptions.DittoInternalErrorException;
 import org.eclipse.ditto.base.service.actors.ShutdownBehaviour;
 import org.eclipse.ditto.base.service.config.supervision.ExponentialBackOff;
 import org.eclipse.ditto.base.service.config.supervision.ExponentialBackOffConfig;
@@ -387,7 +387,20 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId> extends 
             @Nullable final Throwable enforcerThrowable,
             final DittoHeaders dittoHeaders) {
 
-        if (null == persistenceActorChild) {
+        if (null != enforcerThrowable) {
+            log.withCorrelationId(dittoHeaders)
+                    .info("Encountered Throwable when interacting with enforcerChild, telling sender: {}",
+                            enforcerThrowable);
+            final DittoRuntimeException dre =
+                    DittoRuntimeException.asDittoRuntimeException(enforcerThrowable, throwable ->
+                            DittoInternalErrorException.newBuilder()
+                                    .dittoHeaders(dittoHeaders)
+                                    .cause(throwable)
+                                    .build());
+            log.withCorrelationId(dre)
+                    .debug("Received DittoRuntimeException from enforcerChild, telling sender: {}", dre);
+            sender.tell(dre, null != persistenceActorChild ? persistenceActorChild : getSelf());
+        } else if (null == persistenceActorChild) {
             final DittoRuntimeException unavailableException = getUnavailableExceptionBuilder(entityId)
                     .dittoHeaders(dittoHeaders)
                     .build();
@@ -405,17 +418,7 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId> extends 
                                     paThrowable
                             )
                     );
-        } else if (null != enforcerThrowable) {
-            log.withCorrelationId(dittoHeaders)
-                    .info("Encountered Throwable when interacting with enforcerChild, telling sender: {}",
-                            enforcerThrowable);
-            final DittoRuntimeException dre =
-                    DittoRuntimeException.asDittoRuntimeException(enforcerThrowable, throwable ->
-                            // TODO TJ use other internal error exception than "gateway":
-                            GatewayInternalErrorException.newBuilder()
-                                    .dittoHeaders(dittoHeaders)
-                                    .cause(throwable)
-                                    .build());
+        } else if (enforcerResponse instanceof DittoRuntimeException dre) {
             log.withCorrelationId(dre)
                     .debug("Received DittoRuntimeException from enforcerChild, telling sender: {}", dre);
             sender.tell(dre, persistenceActorChild);

@@ -25,7 +25,7 @@ import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
-import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayInternalErrorException;
+import org.eclipse.ditto.base.model.signals.commands.exceptions.DittoInternalErrorException;
 import org.eclipse.ditto.internal.utils.akka.actors.AbstractActorWithStashWithTimers;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
@@ -261,7 +261,7 @@ public abstract class AbstractEnforcerActor<I extends EntityId, C extends Comman
                 } else if (null != throwable) {
                     final DittoRuntimeException dittoRuntimeException =
                             DittoRuntimeException.asDittoRuntimeException(throwable, t ->
-                                    GatewayInternalErrorException.newBuilder()
+                                    DittoInternalErrorException.newBuilder()
                                             .cause(t)
                                             .dittoHeaders(command.getDittoHeaders())
                                             .build()
@@ -311,8 +311,7 @@ public abstract class AbstractEnforcerActor<I extends EntityId, C extends Comman
                     } else if (null != throwable) {
                         final DittoRuntimeException dittoRuntimeException =
                                 DittoRuntimeException.asDittoRuntimeException(throwable, t ->
-                                        // TODO TJ different exception than GatewayInternalErrorException
-                                        GatewayInternalErrorException.newBuilder()
+                                        DittoInternalErrorException.newBuilder()
                                                 .cause(t)
                                                 .dittoHeaders(commandResponse.getDittoHeaders())
                                                 .build()
