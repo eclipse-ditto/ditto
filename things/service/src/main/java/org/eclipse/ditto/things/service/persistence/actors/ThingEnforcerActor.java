@@ -134,7 +134,8 @@ public final class ThingEnforcerActor
     }
 
     @Override
-    protected boolean shouldInvalidatePolicyEnforcerBeforeEnforcement(final ThingCommand<?> command) {
+    protected boolean shouldInvalidatePolicyEnforcerAfterEnforcement(final ThingCommand<?> command) {
         return command instanceof ThingModifyCommand<?> tmc && tmc.changesAuthorization();
     }
+
 }

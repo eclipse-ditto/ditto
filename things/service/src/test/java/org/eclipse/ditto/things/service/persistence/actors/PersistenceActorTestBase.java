@@ -69,7 +69,7 @@ public abstract class PersistenceActorTestBase {
     protected static final PolicyId POLICY_ID = PolicyId.of("org.eclipse.ditto:policyId");
     protected static final String AUTH_SUBJECT = "allowedId";
     protected static final AuthorizationSubject AUTHORIZED_SUBJECT =
-            AuthorizationModelFactory.newAuthSubject(AUTH_SUBJECT);
+            AuthorizationModelFactory.newAuthSubject("test:" + AUTH_SUBJECT);
 
     protected static final Attributes THING_ATTRIBUTES = ThingsModelFactory.newAttributesBuilder()
             .set("attrKey", "attrVal")

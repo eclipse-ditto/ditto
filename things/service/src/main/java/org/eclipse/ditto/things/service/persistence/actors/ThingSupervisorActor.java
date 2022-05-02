@@ -117,11 +117,11 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
 
     @Override
     protected CompletionStage<Object> modifyPersistenceActorCommandResponse(final Command<?> enforcedCommand,
-            final Object commandResponse) {
+            final Object persistenceCommandResponse) {
 
         if (enforcedCommand instanceof RetrieveThing retrieveThing &&
                 shouldRetrievePolicyWithThing(retrieveThing) &&
-                commandResponse instanceof RetrieveThingResponse retrieveThingResponse) {
+                persistenceCommandResponse instanceof RetrieveThingResponse retrieveThingResponse) {
 
             assert entityId != null;
             return Patterns.ask(persistenceActorChild, SudoRetrieveThing.of(entityId,
@@ -158,7 +158,7 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
                         });
             });
         } else {
-            return CompletableFuture.completedFuture(commandResponse);
+            return CompletableFuture.completedFuture(persistenceCommandResponse);
         }
     }
 

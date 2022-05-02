@@ -15,21 +15,24 @@ package org.eclipse.ditto.policies.service.persistence.actors;
 import java.util.Arrays;
 import java.util.Collections;
 
+import org.eclipse.ditto.base.model.auth.AuthorizationContext;
+import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
+import org.eclipse.ditto.base.model.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.internal.utils.persistence.mongo.ops.eventsource.MongoEventSourceITAssertions;
+import org.eclipse.ditto.internal.utils.pubsub.DistributedPub;
 import org.eclipse.ditto.policies.model.EffectedPermissions;
 import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.Resource;
 import org.eclipse.ditto.policies.model.SubjectType;
-import org.eclipse.ditto.policies.service.persistence.serializer.PolicyMongoSnapshotAdapter;
-import org.eclipse.ditto.internal.utils.persistence.mongo.ops.eventsource.MongoEventSourceITAssertions;
-import org.eclipse.ditto.internal.utils.pubsub.DistributedPub;
 import org.eclipse.ditto.policies.model.signals.commands.PolicyCommand;
 import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyNotAccessibleException;
 import org.eclipse.ditto.policies.model.signals.commands.modify.CreatePolicy;
 import org.eclipse.ditto.policies.model.signals.commands.modify.CreatePolicyResponse;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicy;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicyResponse;
+import org.eclipse.ditto.policies.service.persistence.serializer.PolicyMongoSnapshotAdapter;
 import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -45,6 +48,10 @@ import akka.actor.Props;
  */
 @AllValuesAreNonnullByDefault
 public final class PolicyPersistenceOperationsActorIT extends MongoEventSourceITAssertions<PolicyId> {
+
+    private static final AuthorizationContext AUTHORIZATION_CONTEXT =
+            AuthorizationContext.newInstance(DittoAuthorizationContextType.UNSPECIFIED,
+                    AuthorizationSubject.newInstance("ditto:random-subject"));
 
     @Test
     public void purgeNamespaceWithoutSuffix() {
@@ -80,7 +87,9 @@ public final class PolicyPersistenceOperationsActorIT extends MongoEventSourceIT
                 .setResource(Resource.newInstance(PolicyCommand.RESOURCE_TYPE, "/",
                         EffectedPermissions.newInstance(Arrays.asList("READ", "WRITE"), Collections.emptyList())))
                 .build();
-        return CreatePolicy.of(policy, DittoHeaders.empty());
+        return CreatePolicy.of(policy, DittoHeaders.newBuilder()
+                .authorizationContext(AUTHORIZATION_CONTEXT)
+                .build());
     }
 
     @Override
@@ -90,7 +99,9 @@ public final class PolicyPersistenceOperationsActorIT extends MongoEventSourceIT
 
     @Override
     protected Object getRetrieveEntityCommand(final PolicyId id) {
-        return RetrievePolicy.of(id, DittoHeaders.empty());
+        return RetrievePolicy.of(id, DittoHeaders.newBuilder()
+                .authorizationContext(AUTHORIZATION_CONTEXT)
+                .build());
     }
 
     @Override

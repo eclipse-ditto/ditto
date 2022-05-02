@@ -173,9 +173,7 @@ public final class PolicyCommandEnforcementTest {
             final SudoRetrievePolicy sudoRetrievePolicy =
                     policyPersistenceActorProbe.expectMsgClass(SudoRetrievePolicy.class);
             assertThat((CharSequence) sudoRetrievePolicy.getEntityId()).isEqualTo(SUDO_RETRIEVE_POLICY.getEntityId());
-            policyPersistenceActorProbe.lastSender()
-                    .tell(PolicyNotAccessibleException.newBuilder(POLICY_ID).build(),
-                            policyPersistenceActorProbe.ref());
+            policyPersistenceActorProbe.reply(PolicyNotAccessibleException.newBuilder(POLICY_ID).build());
 
             policyPersistenceActorProbe.expectMsg(createPolicy);
             final ActorRef commandSender = policyPersistenceActorProbe.lastSender();
@@ -183,8 +181,7 @@ public final class PolicyCommandEnforcementTest {
             final SudoRetrievePolicy sudoRetrievePolicy2 =
                     policyPersistenceActorProbe.expectMsgClass(SudoRetrievePolicy.class);
             assertThat((CharSequence) sudoRetrievePolicy2.getEntityId()).isEqualTo(SUDO_RETRIEVE_POLICY.getEntityId());
-            policyPersistenceActorProbe.lastSender().tell(createDefaultPolicyResponse(),
-                    policyPersistenceActorProbe.ref());
+            policyPersistenceActorProbe.reply(createDefaultPolicyResponse());
 
             final CreatePolicyResponse mockResponse = CreatePolicyResponse.of(POLICY_ID, POLICY, DITTO_HEADERS);
             commandSender.tell(mockResponse, policyPersistenceActorProbe.ref());
@@ -203,8 +200,7 @@ public final class PolicyCommandEnforcementTest {
             final SudoRetrievePolicy sudoRetrievePolicy =
                     policyPersistenceActorProbe.expectMsgClass(SudoRetrievePolicy.class);
             assertThat((CharSequence) sudoRetrievePolicy.getEntityId()).isEqualTo(SUDO_RETRIEVE_POLICY.getEntityId());
-            policyPersistenceActorProbe.lastSender()
-                    .tell(createPolicyResponseWithoutWrite(), policyPersistenceActorProbe.ref());
+            policyPersistenceActorProbe.reply(createPolicyResponseWithoutWrite());
 
             expectMsgClass(PolicyNotAccessibleException.class);
         }};
@@ -220,11 +216,15 @@ public final class PolicyCommandEnforcementTest {
             final SudoRetrievePolicy sudoRetrievePolicy =
                     policyPersistenceActorProbe.expectMsgClass(SudoRetrievePolicy.class);
             assertThat((CharSequence) sudoRetrievePolicy.getEntityId()).isEqualTo(SUDO_RETRIEVE_POLICY.getEntityId());
-            policyPersistenceActorProbe.lastSender().tell(createDefaultPolicyResponse(), policyPersistenceActorProbe.ref());
+            policyPersistenceActorProbe.reply(createDefaultPolicyResponse());
 
             policyPersistenceActorProbe.expectMsg(modifyPolicy);
+            final ActorRef commandSender = policyPersistenceActorProbe.lastSender();
+            policyPersistenceActorProbe.expectMsgClass(SudoRetrievePolicy.class);
+            policyPersistenceActorProbe.reply(createDefaultPolicyResponse());
+
             final ModifyPolicyResponse mockResponse = ModifyPolicyResponse.modified(POLICY_ID, DITTO_HEADERS);
-            policyPersistenceActorProbe.lastSender().tell(mockResponse, policyPersistenceActorProbe.ref());
+            commandSender.tell(mockResponse, policyPersistenceActorProbe.ref());
 
             expectMsg(mockResponse);
         }};
@@ -239,26 +239,36 @@ public final class PolicyCommandEnforcementTest {
             final SudoRetrievePolicy sudoRetrievePolicy =
                     policyPersistenceActorProbe.expectMsgClass(SudoRetrievePolicy.class);
             assertThat((CharSequence) sudoRetrievePolicy.getEntityId()).isEqualTo(SUDO_RETRIEVE_POLICY.getEntityId());
-            policyPersistenceActorProbe.lastSender().tell(createDefaultPolicyResponse(), policyPersistenceActorProbe.ref());
+            policyPersistenceActorProbe.reply(createDefaultPolicyResponse());
             policyPersistenceActorProbe.expectMsg(modifyPolicy);
+            final ActorRef modifyCommandSender1 = policyPersistenceActorProbe.lastSender();
+
+            // THEN: cache is reloaded; expect SudoRetrievePolicy
+            policyPersistenceActorProbe.expectMsgClass(SudoRetrievePolicy.class);
+            policyPersistenceActorProbe.reply(createDefaultPolicyResponse());
+
             final ModifyPolicyResponse mockResponse = ModifyPolicyResponse.modified(POLICY_ID, DITTO_HEADERS);
-            policyPersistenceActorProbe.lastSender().tell(mockResponse, policyPersistenceActorProbe.ref());
+            modifyCommandSender1.tell(mockResponse, policyPersistenceActorProbe.ref());
             expectMsg(mockResponse);
 
             // WHEN: policy gets updated and emits that change via PolicyTag
             enforcerParent.tell(PolicyTag.of(POLICY_ID, 44), getRef());
 
             // THEN: cache is reloaded; expect SudoRetrievePolicy and not any other command
-            final SudoRetrievePolicy sudoRetrievePolicy2 =
-                    policyPersistenceActorProbe.expectMsgClass(SudoRetrievePolicy.class);
-            assertThat((CharSequence) sudoRetrievePolicy2.getEntityId()).isEqualTo(SUDO_RETRIEVE_POLICY.getEntityId());
-            policyPersistenceActorProbe.lastSender().tell(createDefaultPolicyResponse(), policyPersistenceActorProbe.ref());
+            policyPersistenceActorProbe.expectMsgClass(SudoRetrievePolicy.class);
+            policyPersistenceActorProbe.reply(createDefaultPolicyResponse());
 
             // WHEN: authorized modify policy command is forwarded and response is received
             enforcerParent.tell(modifyPolicy, getRef());
             policyPersistenceActorProbe.expectMsg(modifyPolicy);
+            final ActorRef modifyCommandSender2 = policyPersistenceActorProbe.lastSender();
+
+            // THEN: cache is reloaded; expect SudoRetrievePolicy
+            policyPersistenceActorProbe.expectMsgClass(SudoRetrievePolicy.class);
+            policyPersistenceActorProbe.reply(createDefaultPolicyResponse());
+
             final ModifyPolicyResponse mockResponse2 = ModifyPolicyResponse.modified(POLICY_ID, DITTO_HEADERS);
-            policyPersistenceActorProbe.lastSender().tell(mockResponse2, policyPersistenceActorProbe.ref());
+            modifyCommandSender2.tell(mockResponse2, policyPersistenceActorProbe.ref());
             expectMsg(mockResponse2);
         }};
     }
@@ -273,8 +283,7 @@ public final class PolicyCommandEnforcementTest {
             final SudoRetrievePolicy sudoRetrievePolicy =
                     policyPersistenceActorProbe.expectMsgClass(SudoRetrievePolicy.class);
             assertThat((CharSequence) sudoRetrievePolicy.getEntityId()).isEqualTo(SUDO_RETRIEVE_POLICY.getEntityId());
-            policyPersistenceActorProbe.lastSender()
-                    .tell(createPolicyResponseWithoutWrite(), policyPersistenceActorProbe.ref());
+            policyPersistenceActorProbe.reply(createPolicyResponseWithoutWrite());
 
             expectMsgClass(PolicyNotModifiableException.class);
         }};
@@ -290,8 +299,7 @@ public final class PolicyCommandEnforcementTest {
             final SudoRetrievePolicy sudoRetrievePolicy =
                     policyPersistenceActorProbe.expectMsgClass(SudoRetrievePolicy.class);
             assertThat((CharSequence) sudoRetrievePolicy.getEntityId()).isEqualTo(SUDO_RETRIEVE_POLICY.getEntityId());
-            policyPersistenceActorProbe.lastSender().tell(PolicyNotAccessibleException.newBuilder(POLICY_ID).build(),
-                    policyPersistenceActorProbe.ref());
+            policyPersistenceActorProbe.reply(PolicyNotAccessibleException.newBuilder(POLICY_ID).build());
 
             final CreatePolicy expectedCreatePolicy = CreatePolicy.of(POLICY, DITTO_HEADERS);
             policyPersistenceActorProbe.expectMsg(expectedCreatePolicy);
@@ -300,8 +308,7 @@ public final class PolicyCommandEnforcementTest {
             final SudoRetrievePolicy sudoRetrievePolicy2 =
                     policyPersistenceActorProbe.expectMsgClass(SudoRetrievePolicy.class);
             assertThat((CharSequence) sudoRetrievePolicy2.getEntityId()).isEqualTo(SUDO_RETRIEVE_POLICY.getEntityId());
-            policyPersistenceActorProbe.lastSender().tell(createDefaultPolicyResponse(),
-                    policyPersistenceActorProbe.ref());
+            policyPersistenceActorProbe.reply(createDefaultPolicyResponse());
 
             final CreatePolicyResponse mockResponse = CreatePolicyResponse.of(POLICY_ID, POLICY, DITTO_HEADERS);
             commandSender.tell(mockResponse, policyPersistenceActorProbe.ref());
@@ -322,12 +329,16 @@ public final class PolicyCommandEnforcementTest {
             final SudoRetrievePolicy sudoRetrievePolicy =
                     policyPersistenceActorProbe.expectMsgClass(SudoRetrievePolicy.class);
             assertThat((CharSequence) sudoRetrievePolicy.getEntityId()).isEqualTo(SUDO_RETRIEVE_POLICY.getEntityId());
-            policyPersistenceActorProbe.lastSender().tell(createDefaultPolicyResponse(), policyPersistenceActorProbe.ref());
+            policyPersistenceActorProbe.reply(createDefaultPolicyResponse());
 
             policyPersistenceActorProbe.expectMsg(modifyPolicyEntries);
+            final ActorRef commandSender = policyPersistenceActorProbe.lastSender();
+            policyPersistenceActorProbe.expectMsgClass(SudoRetrievePolicy.class);
+            policyPersistenceActorProbe.reply(createDefaultPolicyResponse());
+
             final ModifyPolicyEntriesResponse mockResponse =
                     ModifyPolicyEntriesResponse.of(POLICY_ID, DITTO_HEADERS);
-            policyPersistenceActorProbe.lastSender().tell(mockResponse, policyPersistenceActorProbe.ref());
+            commandSender.tell(mockResponse, policyPersistenceActorProbe.ref());
 
             expectMsg(mockResponse);
         }};
@@ -345,8 +356,7 @@ public final class PolicyCommandEnforcementTest {
             final SudoRetrievePolicy sudoRetrievePolicy =
                     policyPersistenceActorProbe.expectMsgClass(SudoRetrievePolicy.class);
             assertThat((CharSequence) sudoRetrievePolicy.getEntityId()).isEqualTo(SUDO_RETRIEVE_POLICY.getEntityId());
-            policyPersistenceActorProbe.lastSender()
-                    .tell(createPolicyResponseWithoutWriteOnEntries(), policyPersistenceActorProbe.ref());
+            policyPersistenceActorProbe.reply(createPolicyResponseWithoutWriteOnEntries());
 
             expectMsgClass(PolicyNotModifiableException.class);
         }};
@@ -362,12 +372,12 @@ public final class PolicyCommandEnforcementTest {
             final SudoRetrievePolicy sudoRetrievePolicy =
                     policyPersistenceActorProbe.expectMsgClass(SudoRetrievePolicy.class);
             assertThat((CharSequence) sudoRetrievePolicy.getEntityId()).isEqualTo(SUDO_RETRIEVE_POLICY.getEntityId());
-            policyPersistenceActorProbe.lastSender().tell(createDefaultPolicyResponse(), policyPersistenceActorProbe.ref());
+            policyPersistenceActorProbe.reply(createDefaultPolicyResponse());
 
             policyPersistenceActorProbe.expectMsg(retrievePolicy);
             final RetrievePolicyResponse mockResponse =
                     RetrievePolicyResponse.of(POLICY_ID, POLICY_FULL_JSON, DITTO_HEADERS);
-            policyPersistenceActorProbe.lastSender().tell(mockResponse, policyPersistenceActorProbe.ref());
+            policyPersistenceActorProbe.reply(mockResponse);
 
             final RetrievePolicyResponse actualResponse = expectMsgClass(mockResponse.getClass());
             assertRetrievePolicyResponse(actualResponse, mockResponse);
@@ -388,13 +398,13 @@ public final class PolicyCommandEnforcementTest {
             final SudoRetrievePolicy sudoRetrievePolicy =
                     policyPersistenceActorProbe.expectMsgClass(SudoRetrievePolicy.class);
             assertThat((CharSequence) sudoRetrievePolicy.getEntityId()).isEqualTo(SUDO_RETRIEVE_POLICY.getEntityId());
-            policyPersistenceActorProbe.lastSender().tell(createDefaultPolicyResponse(), policyPersistenceActorProbe.ref());
+            policyPersistenceActorProbe.reply(createDefaultPolicyResponse());
 
             policyPersistenceActorProbe.expectMsg(retrievePolicy);
             final DittoRuntimeException errorReply =
                     PolicyPreconditionNotModifiedException.newBuilder(ifNonMatchHeader, ifNonMatchHeader)
                             .build();
-            policyPersistenceActorProbe.lastSender().tell(errorReply, policyPersistenceActorProbe.ref());
+            policyPersistenceActorProbe.reply(errorReply);
 
             final DittoRuntimeException enforcementReply = expectMsgClass(errorReply.getClass());
             assertThat(enforcementReply).isEqualTo(errorReply);
@@ -412,13 +422,12 @@ public final class PolicyCommandEnforcementTest {
                     FiniteDuration.apply(dilated(Duration.ofSeconds(5)).toMillis(), TimeUnit.MILLISECONDS),
                     SudoRetrievePolicy.class);
             assertThat((CharSequence) sudoRetrievePolicy.getEntityId()).isEqualTo(SUDO_RETRIEVE_POLICY.getEntityId());
-            policyPersistenceActorProbe.lastSender()
-                    .tell(createPolicyResponseWithoutReadOnEntries(), policyPersistenceActorProbe.ref());
+            policyPersistenceActorProbe.reply(createPolicyResponseWithoutReadOnEntries());
 
             policyPersistenceActorProbe.expectMsg(retrievePolicy);
             final RetrievePolicyResponse mockResponse =
                     RetrievePolicyResponse.of(POLICY_ID, POLICY_FULL_JSON, DITTO_HEADERS);
-            policyPersistenceActorProbe.lastSender().tell(mockResponse, policyPersistenceActorProbe.ref());
+            policyPersistenceActorProbe.reply(mockResponse);
 
             final RetrievePolicyResponse expectedResponse = RetrievePolicyResponse.of(POLICY_ID,
                     POLICY_FULL_JSON.remove(Policy.JsonFields.ENTRIES.getPointer()), DITTO_HEADERS);
@@ -438,13 +447,12 @@ public final class PolicyCommandEnforcementTest {
             final SudoRetrievePolicy sudoRetrievePolicy =
                     policyPersistenceActorProbe.expectMsgClass(SudoRetrievePolicy.class);
             assertThat((CharSequence) sudoRetrievePolicy.getEntityId()).isEqualTo(SUDO_RETRIEVE_POLICY.getEntityId());
-            policyPersistenceActorProbe.lastSender()
-                    .tell(createPolicyResponseWithOnlyReadOnEntries(), policyPersistenceActorProbe.ref());
+            policyPersistenceActorProbe.reply(createPolicyResponseWithOnlyReadOnEntries());
 
             policyPersistenceActorProbe.expectMsg(retrievePolicy);
             final RetrievePolicyResponse mockResponse =
                     RetrievePolicyResponse.of(POLICY_ID, POLICY_FULL_JSON, DITTO_HEADERS);
-            policyPersistenceActorProbe.lastSender().tell(mockResponse, policyPersistenceActorProbe.ref());
+            policyPersistenceActorProbe.reply(mockResponse);
 
             final Collection<JsonPointer> allowlist = Collections.singletonList(Policy.JsonFields.ID.getPointer());
             final Collection<JsonPointer> expectedFields = new ArrayList<>();
@@ -472,8 +480,7 @@ public final class PolicyCommandEnforcementTest {
             final SudoRetrievePolicy sudoRetrievePolicy =
                     policyPersistenceActorProbe.expectMsgClass(SudoRetrievePolicy.class);
             assertThat((CharSequence) sudoRetrievePolicy.getEntityId()).isEqualTo(SUDO_RETRIEVE_POLICY.getEntityId());
-            policyPersistenceActorProbe.lastSender()
-                    .tell(createPolicyResponseWithoutRead(), policyPersistenceActorProbe.ref());
+            policyPersistenceActorProbe.reply(createPolicyResponseWithoutRead());
 
             expectMsgClass(PolicyNotAccessibleException.class);
         }};
@@ -489,8 +496,7 @@ public final class PolicyCommandEnforcementTest {
             final SudoRetrievePolicy sudoRetrievePolicy =
                     policyPersistenceActorProbe.expectMsgClass(SudoRetrievePolicy.class);
             assertThat((CharSequence) sudoRetrievePolicy.getEntityId()).isEqualTo(SUDO_RETRIEVE_POLICY.getEntityId());
-            policyPersistenceActorProbe.lastSender()
-                    .tell(PolicyNotAccessibleException.newBuilder(POLICY_ID).build(), policyPersistenceActorProbe.ref());
+            policyPersistenceActorProbe.reply(PolicyNotAccessibleException.newBuilder(POLICY_ID).build());
 
             expectMsgClass(PolicyNotAccessibleException.class);
         }};
@@ -507,12 +513,12 @@ public final class PolicyCommandEnforcementTest {
             final SudoRetrievePolicy sudoRetrievePolicy =
                     policyPersistenceActorProbe.expectMsgClass(SudoRetrievePolicy.class);
             assertThat((CharSequence) sudoRetrievePolicy.getEntityId()).isEqualTo(SUDO_RETRIEVE_POLICY.getEntityId());
-            policyPersistenceActorProbe.lastSender().tell(createDefaultPolicyResponse(), policyPersistenceActorProbe.ref());
+            policyPersistenceActorProbe.reply(createDefaultPolicyResponse());
 
             policyPersistenceActorProbe.expectMsg(retrievePolicyEntries);
             final RetrievePolicyEntriesResponse mockResponse =
                     RetrievePolicyEntriesResponse.of(POLICY_ID, POLICY.getEntriesSet(), DITTO_HEADERS);
-            policyPersistenceActorProbe.lastSender().tell(mockResponse, policyPersistenceActorProbe.ref());
+            policyPersistenceActorProbe.reply(mockResponse);
 
             expectMsg(mockResponse);
         }};
@@ -529,8 +535,7 @@ public final class PolicyCommandEnforcementTest {
             final SudoRetrievePolicy sudoRetrievePolicy =
                     policyPersistenceActorProbe.expectMsgClass(SudoRetrievePolicy.class);
             assertThat((CharSequence) sudoRetrievePolicy.getEntityId()).isEqualTo(SUDO_RETRIEVE_POLICY.getEntityId());
-            policyPersistenceActorProbe.lastSender()
-                    .tell(createPolicyResponseWithoutReadOnEntries(), policyPersistenceActorProbe.ref());
+            policyPersistenceActorProbe.reply(createPolicyResponseWithoutReadOnEntries());
 
             expectMsgClass(PolicyNotAccessibleException.class);
         }};
@@ -546,8 +551,7 @@ public final class PolicyCommandEnforcementTest {
             final SudoRetrievePolicy sudoRetrievePolicy =
                     policyPersistenceActorProbe.expectMsgClass(SudoRetrievePolicy.class);
             assertThat((CharSequence) sudoRetrievePolicy.getEntityId()).isEqualTo(SUDO_RETRIEVE_POLICY.getEntityId());
-            policyPersistenceActorProbe.lastSender()
-                    .tell(createPolicyResponseWithoutWrite(), policyPersistenceActorProbe.ref());
+            policyPersistenceActorProbe.reply(createPolicyResponseWithoutWrite());
 
             expectMsgClass(PolicyNotAccessibleException.class);
         }};
@@ -758,9 +762,7 @@ public final class PolicyCommandEnforcementTest {
             final SudoRetrievePolicy sudoRetrievePolicy =
                     policyPersistenceActorProbe.expectMsgClass(SudoRetrievePolicy.class);
             assertThat((CharSequence) sudoRetrievePolicy.getEntityId()).isEqualTo(SUDO_RETRIEVE_POLICY.getEntityId());
-            policyPersistenceActorProbe.lastSender()
-                    .tell(PolicyNotAccessibleException.newBuilder(POLICY_ID).build(),
-                            policyPersistenceActorProbe.ref());
+            policyPersistenceActorProbe.reply(PolicyNotAccessibleException.newBuilder(POLICY_ID).build());
 
             if (shouldFail) {
                 expectMsgClass(PolicyNotAccessibleException.class);
@@ -771,8 +773,7 @@ public final class PolicyCommandEnforcementTest {
                 final SudoRetrievePolicy sudoRetrievePolicy2 =
                         policyPersistenceActorProbe.expectMsgClass(SudoRetrievePolicy.class);
                 assertThat((CharSequence) sudoRetrievePolicy2.getEntityId()).isEqualTo(SUDO_RETRIEVE_POLICY.getEntityId());
-                policyPersistenceActorProbe.lastSender().tell(createDefaultPolicyResponse(),
-                        policyPersistenceActorProbe.ref());
+                policyPersistenceActorProbe.reply(createDefaultPolicyResponse());
 
                 final CreatePolicyResponse mockResponse = CreatePolicyResponse.of(POLICY_ID, POLICY, DITTO_HEADERS);
                 commandSender.tell(mockResponse, policyPersistenceActorProbe.ref());

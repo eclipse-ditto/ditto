@@ -49,7 +49,7 @@ import akka.japi.pf.ReceiveBuilder;
  * @param <I> the type of the EntityId this enforcer actor enforces commands for.
  * @param <C> the type of the Commands this enforcer actor enforces.
  * @param <R> the type of the CommandResponses this enforcer actor filters.
- * @param <E> TODO TJ
+ * @param <E> the type of the EnforcementReloaded this enforcer actor uses for doing command enforcements.
  */
 public abstract class AbstractEnforcerActor<I extends EntityId, C extends Command<?>, R extends CommandResponse<?>,
         E extends EnforcementReloaded<C, R>>
@@ -103,19 +103,23 @@ public abstract class AbstractEnforcerActor<I extends EntityId, C extends Comman
     protected abstract CompletionStage<PolicyEnforcer> providePolicyEnforcer(@Nullable PolicyId policyId);
 
     /**
-     * TODO TJ doc
-     * @param injectedPolicy
+     * Accepts the passed in {@code injectedPolicy} in order to e.g. update the {@code policyEnforcer} this enforcer
+     * actor uses for doing policy enforcement.
+     *
+     * @param injectedPolicy the Policy to inject.
      */
     protected void injectPolicy(final Policy injectedPolicy) {
         this.policyEnforcer = PolicyEnforcer.of(injectedPolicy, PolicyEnforcers.defaultEvaluator(injectedPolicy));
     }
 
     /**
-     * TODO TJ
-     * @param command
-     * @return
+     * Determines whether for the passed in {@code command} the {@code policyEnforcer} of this enforcer actor should be
+     * invalidated **after** doing the enforcement (because it changed/could have changed) the authorization logic.
+     *
+     * @param command the command to check.
+     * @return {@code true} if the Policy Enforcer should be invalidated after the enforcement.
      */
-    protected abstract boolean shouldInvalidatePolicyEnforcerBeforeEnforcement(C command);
+    protected abstract boolean shouldInvalidatePolicyEnforcerAfterEnforcement(C command);
 
     @Override
     public void preStart() throws Exception {
@@ -132,8 +136,11 @@ public abstract class AbstractEnforcerActor<I extends EntityId, C extends Comman
         return ReceiveBuilder.create()
                 .match(DistributedPubSubMediator.SubscribeAck.class, s -> log.debug("Got subscribeAck <{}>.", s))
                 .match(PolicyTag.class, pt -> pt.getEntityId().equals(policyIdForEnforcement),
-                        pt -> performPolicyEnforcerReload()
+                    pt -> performPolicyEnforcerReload()
                 )
+                .match(PolicyTag.class, pt -> {
+                    // ignore policy tags not intended for this actor - not necessary to log on debug!
+                })
                 .match(SudoCommand.class, sudoCommand -> log.withCorrelationId(sudoCommand)
                         .error("Received SudoCommand in enforcer which should never happen: <{}>", sudoCommand)
                 )
@@ -216,30 +223,24 @@ public abstract class AbstractEnforcerActor<I extends EntityId, C extends Comman
             return;
         }
 
-        final ActorRef sender = getSender();
-        if (shouldInvalidatePolicyEnforcerBeforeEnforcement(command)) {
-            reloadPolicyEnforcer(loadedPolicyEnforcer -> {
-                this.policyEnforcer = loadedPolicyEnforcer;
-                doEnforceCommandAfterPotentialInvalidation(command, sender)
-                        .thenAccept(successfullyEnforced -> {
-                            if (successfullyEnforced && null == policyEnforcer) {
-                                // trigger reloading the policy
-                                performPolicyEnforcerReload();
-                            }
-                        });
-            });
-        } else {
-            doEnforceCommandAfterPotentialInvalidation(command, sender)
-                    .thenAccept(successfullyEnforced -> {
-                        if (successfullyEnforced && null == policyEnforcer) {
-                            // trigger reloading the policy
-                            performPolicyEnforcerReload();
-                        }
-                    });
-        }
+        doEnforceCommand(command, getSender())
+                .thenAccept(successfullyEnforced -> {
+                    if (shouldReloadAfterEnforcement(command, successfullyEnforced)) {
+                        // trigger reloading the policy
+                        performPolicyEnforcerReload();
+                    }
+                })
+                .toCompletableFuture()
+                .join(); // block on the actor's dispatcher in order to guarantee in-order processing and blocking the inbox
     }
 
-    private CompletionStage<Boolean> doEnforceCommandAfterPotentialInvalidation(final C command, final ActorRef sender) {
+    private boolean shouldReloadAfterEnforcement(final C command, final boolean successfullyEnforced) {
+        return shouldInvalidatePolicyEnforcerAfterEnforcement(command) ||
+                (successfullyEnforced && null == policyEnforcer);
+    }
+
+    private CompletionStage<Boolean> doEnforceCommand(final C command,
+            final ActorRef sender) {
         final ActorRef self = getSelf();
         try {
             final CompletionStage<C> authorizedCommandStage;
@@ -310,6 +311,7 @@ public abstract class AbstractEnforcerActor<I extends EntityId, C extends Comman
                     } else if (null != throwable) {
                         final DittoRuntimeException dittoRuntimeException =
                                 DittoRuntimeException.asDittoRuntimeException(throwable, t ->
+                                        // TODO TJ different exception than GatewayInternalErrorException
                                         GatewayInternalErrorException.newBuilder()
                                                 .cause(t)
                                                 .dittoHeaders(commandResponse.getDittoHeaders())

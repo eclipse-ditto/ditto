@@ -13,7 +13,8 @@
 package org.eclipse.ditto.base.model.common;
 
 /**
- * TODO TJ add javadoc
+ * Holds Ditto wide system properties which must be read/applied in several services.
+ *
  * @since 3.0.0
  */
 public final class DittoSystemProperties {

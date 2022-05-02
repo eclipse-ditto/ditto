@@ -29,6 +29,7 @@ import org.eclipse.ditto.policies.model.enforcers.PolicyEnforcers;
 import org.eclipse.ditto.policies.model.signals.commands.PolicyCommand;
 import org.eclipse.ditto.policies.model.signals.commands.PolicyCommandResponse;
 import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyNotAccessibleException;
+import org.eclipse.ditto.policies.model.signals.commands.modify.PolicyModifyCommand;
 import org.eclipse.ditto.policies.service.enforcement.PolicyCommandEnforcement;
 
 import akka.actor.ActorRef;
@@ -84,9 +85,10 @@ public final class PolicyEnforcerActor
     }
 
     @Override
-    protected boolean shouldInvalidatePolicyEnforcerBeforeEnforcement(final PolicyCommand<?> command) {
-        // this should never be done - as the previous policy must be used in order to enforce incoming commands
-        return false;
+    protected boolean shouldInvalidatePolicyEnforcerAfterEnforcement(final PolicyCommand<?> command) {
+        // this should always be done for modifying commands:
+        return command instanceof PolicyModifyCommand<?>;
+        // TODO TJ optimization: only if the resources/subjects of the policy were changed
     }
 
     private static Optional<PolicyEnforcer> handleSudoRetrievePolicyResponse(final Object response) {

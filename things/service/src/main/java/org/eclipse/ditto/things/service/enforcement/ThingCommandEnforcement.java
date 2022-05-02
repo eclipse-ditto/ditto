@@ -170,7 +170,7 @@ public final class ThingCommandEnforcement
      * @param preEnforcer
      * @param liveSignalPub
      */
-    public ThingCommandEnforcement(final ActorSystem actorSystem, // TODO TJ required to start actor in actorSystem (root) ?!
+    public ThingCommandEnforcement(final ActorSystem actorSystem,
             final ActorRef ackReceiverActor,
             final ActorRef policiesShardRegion,
             final CreationRestrictionEnforcer creationRestrictionEnforcer,
@@ -199,8 +199,7 @@ public final class ThingCommandEnforcement
     }
 
     /**
-     * TODO TJ doc
-     * @return
+     * @return the policies shard region which this things specific enforcement received during construction.
      */
     public ActorRef getPoliciesShardRegion() {
         return policiesShardRegion;
@@ -790,7 +789,6 @@ public final class ThingCommandEnforcement
     /**
      * Extend a signal by subject headers given with granted and revoked READ access.
      * The subjects are provided by the given enforcer for the resource type {@link ThingConstants#ENTITY_TYPE}.
-     * TODO TJ copied from AbstractEnforcement
      *
      * @param signal the signal to extend.
      * @param enforcer the enforcer.

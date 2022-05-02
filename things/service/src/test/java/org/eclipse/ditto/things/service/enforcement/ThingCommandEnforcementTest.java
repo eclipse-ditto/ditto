@@ -292,7 +292,7 @@ public final class ThingCommandEnforcementTest {
             final ThingCommand<?> expectedReadCommand = addReadSubjectHeader(read,
                     SubjectId.newInstance(GOOGLE, TestSetup.SUBJECT_ID));
             thingPersistenceActorProbe.expectMsg(expectedReadCommand);
-            thingPersistenceActorProbe.lastSender().tell(retrieveThingResponse, thingPersistenceActorProbe.ref());
+            thingPersistenceActorProbe.reply(retrieveThingResponse);
             expectMsg(retrieveThingResponse);
         }};
     }
@@ -332,8 +332,7 @@ public final class ThingCommandEnforcementTest {
                     RetrieveThingResponse.of(THING_ID, thingWithPolicy, headers());
 
             enforcerParent.tell(getReadCommand(), getRef());
-            thingPersistenceActorProbe.lastSender().tell(retrieveThingResponseWithAttr,
-                    thingPersistenceActorProbe.ref());
+            thingPersistenceActorProbe.reply(retrieveThingResponseWithAttr);
 
             final JsonObject jsonObjectWithoutAttr = thingWithPolicy.remove(attributePointer);
             final RetrieveThingResponse retrieveThingResponseWithoutAttr =
@@ -380,7 +379,7 @@ public final class ThingCommandEnforcementTest {
             final ThingCommand<?> expectedReadCommand = addReadSubjectHeader(conditionalRetrieveThing1);
             thingPersistenceActorProbe.expectMsg(expectedReadCommand);
             final RetrieveThingResponse retrieveThingResponse = RetrieveThingResponse.of(THING_ID, thing, headers());
-            thingPersistenceActorProbe.lastSender().tell(retrieveThingResponse, thingPersistenceActorProbe.ref());
+            thingPersistenceActorProbe.reply(retrieveThingResponse);
 
             // THEN: The command is authorized and response is forwarded
             final var response1 = expectMsgClass(RetrieveThingResponse.class);
@@ -470,14 +469,13 @@ public final class ThingCommandEnforcementTest {
             expectAndAnswerSudoRetrieveThing(ThingNotAccessibleException.newBuilder(THING_ID).build());
 
             policiesShardRegionProbe.expectMsgClass(CreatePolicy.class);
-            policiesShardRegionProbe.lastSender().tell(CreatePolicyResponse.of(policyId, policy, headers()),
-                    policiesShardRegionProbe.ref());
+            policiesShardRegionProbe.reply(CreatePolicyResponse.of(policyId, policy, headers()));
 
             final CreateThing expectedCreateThing = addReadSubjectHeader(
                     CreateThing.of(thing.setPolicyId(policyId), null, headers()));
             thingPersistenceActorProbe.expectMsg(expectedCreateThing);
             final CreateThingResponse createThingResponse = CreateThingResponse.of(thing, headers());
-            thingPersistenceActorProbe.lastSender().tell(createThingResponse, thingPersistenceActorProbe.ref());
+            thingPersistenceActorProbe.reply(createThingResponse);
 
             final CreateThingResponse expectedCreateThingResponse = expectMsgClass(CreateThingResponse.class);
             assertThat(expectedCreateThingResponse.getThingCreated().orElse(null)).isEqualTo(thing);
@@ -501,14 +499,13 @@ public final class ThingCommandEnforcementTest {
             expectAndAnswerSudoRetrieveThing(ThingNotAccessibleException.newBuilder(THING_ID).build());
 
             policiesShardRegionProbe.expectMsgClass(CreatePolicy.class);
-            policiesShardRegionProbe.lastSender().tell(CreatePolicyResponse.of(policyId, policy, headers()),
-                    policiesShardRegionProbe.ref());
+            policiesShardRegionProbe.reply(CreatePolicyResponse.of(policyId, policy, headers()));
 
             final CreateThing expectedCreateThing = addReadSubjectHeader(
                     CreateThing.of(thing.setPolicyId(policyId), null, headers()), TestSetup.SUBJECT);
             thingPersistenceActorProbe.expectMsg(expectedCreateThing);
             final CreateThingResponse createThingResponse = CreateThingResponse.of(thing, headers());
-            thingPersistenceActorProbe.lastSender().tell(createThingResponse, thingPersistenceActorProbe.ref());
+            thingPersistenceActorProbe.reply(createThingResponse);
 
             // cache should be invalidated before response is sent
             expectMsg(createThingResponse);
@@ -516,10 +513,7 @@ public final class ThingCommandEnforcementTest {
     }
 
     @Test
-    public void testParallelEnforcementTaskScheduling() { // TODO TJ this test is still open to be fixed
-        final TestProbe pubSubProbe = TestProbe.apply("pubSubMediator", system);
-        final TestProbe entitiesProbe = TestProbe.apply("entities", system);
-
+    public void testParallelEnforcementTaskScheduling() {
         final Thing thing = newThing().build();
         final PolicyId policyId = PolicyId.of(THING_ID);
         final Policy policy = PoliciesModelFactory.newPolicyBuilder(policyId)
@@ -572,53 +566,43 @@ public final class ThingCommandEnforcementTest {
             // THEN: expect enforcement start: CreateThing
             expectAndAnswerSudoRetrieveThing(thingNotAccessibleException);
             policiesShardRegionProbe.expectMsgClass(CreatePolicy.class);
-            expectAndAnswerSudoRetrieveThing(thingNotAccessibleException);
 
             // THEN: no other message should come through before enforcement of CreateThing completes
             thingPersistenceActorProbe.expectNoMessage(Duration.create(150, TimeUnit.MILLISECONDS));
 
             // WHEN: CreateThing completes
-            policiesShardRegionProbe.lastSender().tell(createPolicyResponse, policiesShardRegionProbe.ref());
+            policiesShardRegionProbe.reply(createPolicyResponse);
             thingPersistenceActorProbe.expectMsgClass(CreateThing.class);
-            final ActorRef createThingSender = thingPersistenceActorProbe.lastSender();
-
-            // THEN: cache reloads immediately due to queued commands
-            entitiesProbe.expectMsgClass(SudoRetrieveThing.class);
-            entitiesProbe.reply(sudoRetrieveThingResponse);
-            entitiesProbe.expectMsgClass(SudoRetrievePolicy.class);
-
-            // WHEN: cache reload completes
-            entitiesProbe.reply(sudoRetrievePolicyResponse);
+            thingPersistenceActorProbe.reply(createThingResponse);
 
             // THEN: the next commands are dispatched until authorization change happens again
-            entitiesProbe.expectMsgClass(RetrieveThing.class);
-            final ActorRef retrieveThingSender = entitiesProbe.lastSender();
-            entitiesProbe.expectMsgClass(ModifyPolicyId.class);
-            final ActorRef modifyPolicyIdSender = entitiesProbe.lastSender();
+            thingPersistenceActorProbe.expectMsgClass(RetrieveThing.class);
+            final ActorRef retrieveThingSender = thingPersistenceActorProbe.lastSender();
+            thingPersistenceActorProbe.expectMsgClass(ModifyPolicyId.class);
+            final ActorRef modifyPolicyIdSender = thingPersistenceActorProbe.lastSender();
 
             // THEN: the authorization-changing command causes a cache reload
-            entitiesProbe.expectMsgClass(SudoRetrieveThing.class);
+            thingPersistenceActorProbe.expectMsgClass(SudoRetrieveThing.class);
 
             // WHEN: cache reload completes
-            entitiesProbe.reply(sudoRetrieveThingResponse);
+            thingPersistenceActorProbe.reply(sudoRetrieveThingResponse);
+            expectAndAnswerSudoRetrievePolicy(policyId, sudoRetrievePolicyResponse);
+
+            modifyPolicyIdSender.tell(modifyPolicyIdResponse, ActorRef.noSender());
 
             // THEN: the other queued commands are dispatched
-            entitiesProbe.expectMsgClass(ModifyAttribute.class);
-            final ActorRef modifyAttributeSender = entitiesProbe.lastSender();
-            entitiesProbe.expectMsgClass(RetrieveAttribute.class);
-            final ActorRef retrieveAttributeSender = entitiesProbe.lastSender();
+            thingPersistenceActorProbe.expectMsgClass(ModifyAttribute.class);
+            final ActorRef modifyAttributeSender = thingPersistenceActorProbe.lastSender();
+            thingPersistenceActorProbe.expectMsgClass(RetrieveAttribute.class);
+            final ActorRef retrieveAttributeSender = thingPersistenceActorProbe.lastSender();
 
-            // WHEN: responses come back from the entities shard region
-            // THEN: responses are delivered to the command sender regardless of command order
-
+            // THEN: responses are delivered to the command sender
             modifyAttributeSender.tell(modifyAttributeResponse, ActorRef.noSender());
-            modifyPolicyIdSender.tell(modifyPolicyIdResponse, ActorRef.noSender());
-            createThingSender.tell(createThingResponse, ActorRef.noSender());
 
-            // ThingModifyCommandResponses involve no detour and can be sent together
-            expectMsgClass(ModifyAttributeResponse.class);
-            expectMsgClass(ModifyPolicyIdResponse.class);
+            // and THEN: order of command responses is preserved
             expectMsgClass(CreateThingResponse.class);
+            expectMsgClass(ModifyPolicyIdResponse.class);
+            expectMsgClass(ModifyAttributeResponse.class);
 
             // ThingQueryCommandResponses involve a detour. If sent together, arrival order won't be deterministic.
             retrieveAttributeSender.tell(retrieveAttributeResponse, ActorRef.noSender());
@@ -652,14 +636,13 @@ public final class ThingCommandEnforcementTest {
             expectAndAnswerSudoRetrieveThing(ThingNotAccessibleException.newBuilder(THING_ID).build());
 
             policiesShardRegionProbe.expectMsgClass(CreatePolicy.class);
-            policiesShardRegionProbe.lastSender().tell(CreatePolicyResponse.of(PolicyId.of(THING_ID), policy, headers()),
-                    policiesShardRegionProbe.ref());
+            policiesShardRegionProbe.reply(CreatePolicyResponse.of(PolicyId.of(THING_ID), policy, headers()));
 
             final CreateThing expectedCreateThing = addReadSubjectHeader(
                     CreateThing.of(thing.setPolicyId(policyId), null, headers()));
             thingPersistenceActorProbe.expectMsg(expectedCreateThing);
             final CreateThingResponse createThingResponse = CreateThingResponse.of(thing, headers());
-            thingPersistenceActorProbe.lastSender().tell(createThingResponse, thingPersistenceActorProbe.ref());
+            thingPersistenceActorProbe.reply(createThingResponse);
 
             final CreateThingResponse expectedCreateThingResponse = expectMsgClass(CreateThingResponse.class);
             assertThat(expectedCreateThingResponse.getThingCreated().orElse(null)).isEqualTo(thing);
@@ -719,22 +702,21 @@ public final class ThingCommandEnforcementTest {
             final RetrievePolicy retrievePolicy = policiesShardRegionProbe.expectMsgClass(RetrievePolicy.class);
             assertThat(retrievePolicy.getDittoHeaders().getIfMatch()).isEmpty();
             assertThat(retrievePolicy.getDittoHeaders().getIfNoneMatch()).isEmpty();
-            policiesShardRegionProbe.lastSender().tell(RetrievePolicyResponse.of(policyId, policy,
-                    retrievePolicy.getDittoHeaders()), policiesShardRegionProbe.ref());
+            policiesShardRegionProbe.reply(RetrievePolicyResponse.of(policyId, policy,
+                    retrievePolicy.getDittoHeaders()));
 
             final PolicyId newPolicyId = PolicyId.of(THING_ID);
 
             if (lockoutExpected) {
                 // this logic is done in PolicyCommandEnforcement which is in policies-service - simulate it here:
                 policiesShardRegionProbe.expectMsgClass(CreatePolicy.class);
-                policiesShardRegionProbe.lastSender().tell(PolicyNotAccessibleException.newBuilder(newPolicyId)
+                policiesShardRegionProbe.reply(PolicyNotAccessibleException.newBuilder(newPolicyId)
                         .dittoHeaders(dittoHeaders)
-                        .build(), policiesShardRegionProbe.ref());
+                        .build());
             } else {
                 // after that, a copy of the policy is created:
                 policiesShardRegionProbe.expectMsgClass(CreatePolicy.class);
-                policiesShardRegionProbe.lastSender().tell(CreatePolicyResponse.of(newPolicyId, policy, headers()),
-                        policiesShardRegionProbe.ref());
+                policiesShardRegionProbe.reply(CreatePolicyResponse.of(newPolicyId, policy, headers()));
             }
 
             if (lockoutExpected) {
@@ -746,7 +728,7 @@ public final class ThingCommandEnforcementTest {
                 thingPersistenceActorProbe.expectMsg(expectedCreateThing);
 
                 final CreateThingResponse createThingResponse = CreateThingResponse.of(thingWithNewPolicyId, headers());
-                thingPersistenceActorProbe.lastSender().tell(createThingResponse, thingPersistenceActorProbe.ref());
+                thingPersistenceActorProbe.reply(createThingResponse);
 
                 expectMsg(createThingResponse);
             }
@@ -822,8 +804,7 @@ public final class ThingCommandEnforcementTest {
             expectAndAnswerSudoRetrieveThing(ThingNotAccessibleException.newBuilder(THING_ID).build());
 
             policiesShardRegionProbe.expectMsgClass(CreatePolicy.class);
-            policiesShardRegionProbe.lastSender().tell(CreatePolicyResponse.of(PolicyId.of(THING_ID), policy, headers()),
-                    policiesShardRegionProbe.ref());
+            policiesShardRegionProbe.reply(CreatePolicyResponse.of(PolicyId.of(THING_ID), policy, headers()));
 
             thingPersistenceActorProbe.expectMsgClass(CreateThing.class);
         }};
@@ -897,7 +878,8 @@ public final class ThingCommandEnforcementTest {
 
             final ThingConditionInvalidException thingConditionInvalidException =
                     expectMsgClass(ThingConditionInvalidException.class);
-            assertThat(thingConditionInvalidException.getErrorCode()).isEqualTo(ThingConditionInvalidException.ERROR_CODE);
+            assertThat(thingConditionInvalidException.getErrorCode()).isEqualTo(
+                    ThingConditionInvalidException.ERROR_CODE);
             assertThat(thingConditionInvalidException.getHttpStatus()).isEqualTo(HttpStatus.BAD_REQUEST);
         }};
     }
@@ -906,14 +888,14 @@ public final class ThingCommandEnforcementTest {
         final SudoRetrieveThing sudoRetrieveThing =
                 thingPersistenceActorProbe.expectMsgClass(SudoRetrieveThing.class);
         assertThat((CharSequence) sudoRetrieveThing.getEntityId()).isEqualTo(THING_ID);
-        thingPersistenceActorProbe.lastSender().tell(sudoRetrieveThingResponse, thingPersistenceActorProbe.ref());
+        thingPersistenceActorProbe.reply(sudoRetrieveThingResponse);
     }
 
     private void expectAndAnswerSudoRetrievePolicy(final PolicyId policyId, final Object sudoRetrievePolicyResponse) {
         final SudoRetrievePolicy sudoRetrievePolicy =
                 policiesShardRegionProbe.expectMsgClass(SudoRetrievePolicy.class);
         assertThat((CharSequence) sudoRetrievePolicy.getEntityId()).isEqualTo(policyId);
-        policiesShardRegionProbe.lastSender().tell(sudoRetrievePolicyResponse, policiesShardRegionProbe.ref());
+        policiesShardRegionProbe.reply(sudoRetrievePolicyResponse);
     }
 
     @SuppressWarnings("unchecked")
@@ -964,7 +946,7 @@ public final class ThingCommandEnforcementTest {
     private static String createUniqueName(final String prefix) {
         return prefix + UUID.randomUUID();
     }
-    
+
     private ActorRef createEnforcerParent() {
         return system.actorOf(Props.create(MockThingEnforcerParentActor.class,
                 pubSubMediatorProbe.ref(),
@@ -975,7 +957,7 @@ public final class ThingCommandEnforcementTest {
                 new TestSetup.DummyLiveSignalPub(pubSubMediatorProbe.ref())
         ), MockThingEnforcerParentActor.ACTOR_NAME);
     }
-    
+
     private DittoHeaders headers() {
         return DittoHeaders.newBuilder()
                 .authorizationContext(AuthorizationContext.newInstance(DittoAuthorizationContextType.UNSPECIFIED,
@@ -1042,7 +1024,8 @@ public final class ThingCommandEnforcementTest {
                     new ThingCommandEnforcement(actorSystem,
                             ackReceiverActor,
                             policiesShardRegion,
-                            DefaultCreationRestrictionEnforcer.of(DefaultEntityCreationConfig.of(ConfigFactory.empty())),
+                            DefaultCreationRestrictionEnforcer.of(
+                                    DefaultEntityCreationConfig.of(ConfigFactory.empty())),
                             DefaultEnforcementConfig.of(ConfigFactory.empty()),
                             CompletableFuture::completedFuture,
                             liveSignalPub
@@ -1062,7 +1045,8 @@ public final class ThingCommandEnforcementTest {
                         Patterns.ask(thingEnforcerActor, command, java.time.Duration.ofSeconds(2))
                                 .whenComplete((enResponse, enThrowable) -> {
                                     if (enResponse instanceof ThingCommand<?> enforcedCommand) {
-                                        Patterns.ask(thingPersistenceActor, enforcedCommand, java.time.Duration.ofSeconds(2))
+                                        Patterns.ask(thingPersistenceActor, enforcedCommand,
+                                                        java.time.Duration.ofSeconds(2))
                                                 .whenComplete((paResponse, paThrowable) -> {
                                                     if (paResponse instanceof ThingCommandResponse<?> commandResponse) {
                                                         thingEnforcerActor.tell(commandResponse, sender);

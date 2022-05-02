@@ -43,7 +43,7 @@ import akka.pattern.AskTimeoutException;
  * check if the passed in {@code signal} is authorized and forward it accordingly or respond with an error to the passed
  * in {@code sender}.
  *
- * TODO TJ candidate for removal
+ * TODO TJ candidate for removal - all implementations should in the end extends from AbstractEnforcementReloaded instead
  */
 public abstract class AbstractEnforcement<C extends Signal<?>> {
 

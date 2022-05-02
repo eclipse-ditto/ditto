@@ -23,9 +23,11 @@ import org.eclipse.ditto.base.api.commands.sudo.SudoCommand;
 import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeExceptionBuilder;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
+import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayInternalErrorException;
 import org.eclipse.ditto.base.service.actors.ShutdownBehaviour;
 import org.eclipse.ditto.base.service.config.supervision.ExponentialBackOff;
 import org.eclipse.ditto.base.service.config.supervision.ExponentialBackOffConfig;
@@ -154,22 +156,26 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId> extends 
     protected abstract DittoRuntimeExceptionBuilder<?> getUnavailableExceptionBuilder(@Nullable E entityId);
 
     /**
-     * TODO TJ doc
      * Hook for modifying an EnforcerActor enforced command before it gets sent to the PersistenceActor.
-     * @param enforcedCommandResponse
-     * @return
+     *
+     * @param enforcedCommand the already enforced command to potentially modify.
+     * @return the potentially modified command.
      */
-    protected CompletionStage<Object> modifyEnforcerActorEnforcedCommandResponse(final Object enforcedCommandResponse) {
-        return CompletableFuture.completedStage(enforcedCommandResponse);
+    protected CompletionStage<Object> modifyEnforcerActorEnforcedCommandResponse(final Object enforcedCommand) {
+        return CompletableFuture.completedStage(enforcedCommand);
     }
 
     /**
-     * TODO TJ doc
-     * Hook for modifying a PersistenceActor Response before it gets sent to the EnforcerActor again for filtering.
+     * Hook for modifying a PersistenceActor command response before it gets sent to the EnforcerActor again for
+     * filtering.
+     *
+     * @param enforcedCommand the already enforced command which was sent to the PersistenceActor.
+     * @param persistenceCommandResponse the command response sent by the PersistenceActor to potentially modify.
+     * @return the potentially modified command response.
      */
     protected CompletionStage<Object> modifyPersistenceActorCommandResponse(final Command<?> enforcedCommand,
-            final Object commandResponse) {
-        return CompletableFuture.completedStage(commandResponse);
+            final Object persistenceCommandResponse) {
+        return CompletableFuture.completedStage(persistenceCommandResponse);
     }
 
     /**
@@ -367,7 +373,8 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId> extends 
             Patterns.ask(enforcerChild, command, DEFAULT_LOCAL_ASK_TIMEOUT)
                     .thenCompose(this::modifyEnforcerActorEnforcedCommandResponse)
                     .whenComplete((enforcerResponse, enforcerThrowable) ->
-                            handleEnforcerResponse(sender, enforcerResponse, enforcerThrowable)
+                            handleEnforcerResponse(sender, enforcerResponse, enforcerThrowable,
+                                    command.getDittoHeaders())
                     );
         } else {
             log.withCorrelationId(command)
@@ -377,9 +384,15 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId> extends 
 
     private void handleEnforcerResponse(final ActorRef sender,
             @Nullable final Object enforcerResponse,
-            @Nullable final Throwable enforcerThrowable) {
+            @Nullable final Throwable enforcerThrowable,
+            final DittoHeaders dittoHeaders) {
 
-        if (enforcerResponse instanceof Command<?> enforcedCommand) {
+        if (null == persistenceActorChild) {
+            final DittoRuntimeException unavailableException = getUnavailableExceptionBuilder(entityId)
+                    .dittoHeaders(dittoHeaders)
+                    .build();
+            sender.tell(unavailableException, getSelf());
+        } else if (enforcerResponse instanceof Command<?> enforcedCommand) {
             log.withCorrelationId(enforcedCommand)
                     .debug("Received enforcedCommand from enforcerChild, forwarding to persistenceActorChild: {}",
                             enforcedCommand);
@@ -392,14 +405,20 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId> extends 
                                     paThrowable
                             )
                     );
-        } else if (enforcerResponse instanceof DittoRuntimeException dre) {
+        } else if (null != enforcerThrowable) {
+            log.withCorrelationId(dittoHeaders)
+                    .info("Encountered Throwable when interacting with enforcerChild, telling sender: {}",
+                            enforcerThrowable);
+            final DittoRuntimeException dre =
+                    DittoRuntimeException.asDittoRuntimeException(enforcerThrowable, throwable ->
+                            // TODO TJ use other internal error exception than "gateway":
+                            GatewayInternalErrorException.newBuilder()
+                                    .dittoHeaders(dittoHeaders)
+                                    .cause(throwable)
+                                    .build());
             log.withCorrelationId(dre)
                     .debug("Received DittoRuntimeException from enforcerChild, telling sender: {}", dre);
             sender.tell(dre, persistenceActorChild);
-        } else if (null != enforcerThrowable) {
-            log.info("Encountered Throwable when interacting with enforcerChild, telling sender: {}",
-                    enforcerThrowable);
-            sender.tell(enforcerThrowable, persistenceActorChild);
         } else {
             log.withCorrelationId(enforcerResponse instanceof WithDittoHeaders wdh ? wdh : null)
                     .warning("Unexpected response from enforcerChild: {}", enforcerResponse);

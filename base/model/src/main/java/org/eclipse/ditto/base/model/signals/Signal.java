@@ -31,13 +31,13 @@ public interface Signal<T extends Signal<T>> extends Jsonifiable.WithPredicate<J
         DittoHeadersSettable<T>, WithManifest, WithType, WithName, WithResource {
 
     /**
-     * TODO TJ doc
+     * The Signal {@code channel} "live".
      * @since 3.0.0
      */
     String CHANNEL_LIVE = "live";
 
     /**
-     * TODO TJ doc
+     * The Signal {@code channel} "twin".
      * @since 3.0.0
      */
     String CHANNEL_TWIN = "twin";
@@ -53,10 +53,12 @@ public interface Signal<T extends Signal<T>> extends Jsonifiable.WithPredicate<J
     }
 
     /**
-     * TODO TJ doc - moved from SignalInformationPoint
-     * @param signal
-     * @param typePrefix
-     * @return
+     * Checks whether the passed in {@code signal} (being {@link WithType}) contains the passed in {@code typePrefix}
+     * in its {@link WithType#getType()} response.
+     *
+     * @param signal the signal to check in.
+     * @param typePrefix the type prefix to check for.
+     * @return {@code true} when the passed in signal's type starts with the passed in type prefix.
      * @since 3.0.0
      */
     static boolean hasTypePrefix(@Nullable final WithType signal, final String typePrefix) {
