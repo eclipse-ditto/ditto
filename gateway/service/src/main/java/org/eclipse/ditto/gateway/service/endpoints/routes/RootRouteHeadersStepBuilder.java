@@ -27,7 +27,7 @@ import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.base.model.headers.DittoHeadersSizeChecker;
 import org.eclipse.ditto.base.model.headers.translator.HeaderTranslator;
-import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayDuplicateHeaderException;
+import org.eclipse.ditto.gateway.api.GatewayDuplicateHeaderException;
 
 import akka.http.javadsl.model.HttpHeader;
 import akka.http.javadsl.model.HttpMessage;

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Contributors to the Eclipse Foundation
+ * Copyright (c) 2022 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -10,22 +10,23 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.base.model.signals.commands.exceptions;
+package org.eclipse.ditto.gateway.api;
 
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
-import org.junit.Ignore;
 import org.junit.Test;
 
 /**
- * Unit test for {@link GatewayPlaceholderNotResolvableException}.
+ * Unit test for {@link GatewayWebsocketSessionClosedException}.
  */
-public final class GatewayPlaceholderNotResolvableExceptionTest {
+public final class GatewayWebsocketSessionClosedExceptionTest {
 
     @Test
     public void assertImmutability() {
-        assertInstancesOf(GatewayPlaceholderNotResolvableException.class, areImmutable());
+        assertInstancesOf(
+                GatewayWebsocketSessionClosedException.class,
+                areImmutable());
     }
 
 }

@@ -19,7 +19,6 @@ import java.util.Set;
 import org.eclipse.ditto.base.model.acks.AcknowledgementLabel;
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
-import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.DittoHeadersSettable;
@@ -169,14 +168,6 @@ public final class LiveResponseAndAcknowledgementForwarder extends AbstractActor
     }
 
     private boolean isValidResponse(final CommandResponse<?> response) {
-        try {
-            return responseValidator.apply(command, response).isSuccess();
-        } catch (final DittoRuntimeException e) {
-            // TODO TJ this catched "final ConnectionIdInvalidException e" before .. which does not make sense to have as dependency
-            if (e.getErrorCode().equals("connectivity:connection.id.invalid")) {
-                return false;
-            }
-            throw e;
-        }
+        return responseValidator.apply(command, response).isSuccess();
     }
 }

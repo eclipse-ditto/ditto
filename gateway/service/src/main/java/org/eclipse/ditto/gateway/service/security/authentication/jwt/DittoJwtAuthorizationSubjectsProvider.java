@@ -21,7 +21,7 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
-import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayJwtIssuerNotSupportedException;
+import org.eclipse.ditto.gateway.api.GatewayJwtIssuerNotSupportedException;
 import org.eclipse.ditto.jwt.model.JsonWebToken;
 import org.eclipse.ditto.placeholders.ExpressionResolver;
 import org.eclipse.ditto.placeholders.PipelineElement;

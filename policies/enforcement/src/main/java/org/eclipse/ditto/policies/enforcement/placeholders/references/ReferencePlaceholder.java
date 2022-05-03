@@ -25,7 +25,7 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.model.entity.id.EntityId;
-import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayPlaceholderReferenceNotSupportedException;
+import org.eclipse.ditto.base.model.signals.commands.exceptions.PlaceholderReferenceNotSupportedException;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.things.model.ThingId;
 
@@ -141,7 +141,7 @@ public final class ReferencePlaceholder {
                 final Set<CharSequence> supportedEntityTypes =
                         Arrays.stream(ReferencedEntityType.values()).map(Enum::name).collect(Collectors.toSet());
 
-                throw GatewayPlaceholderReferenceNotSupportedException
+                throw PlaceholderReferenceNotSupportedException
                         .fromUnsupportedEntityType(referencedEntityTypeString, supportedEntityTypes)
                         .build();
             }

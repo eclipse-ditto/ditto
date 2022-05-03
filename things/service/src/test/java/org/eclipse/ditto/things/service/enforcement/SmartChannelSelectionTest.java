@@ -31,7 +31,7 @@ import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.signals.Signal;
-import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayCommandTimeoutException;
+import org.eclipse.ditto.base.model.signals.commands.exceptions.CommandTimeoutException;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.policies.api.commands.sudo.SudoRetrievePolicyResponse;
@@ -184,7 +184,7 @@ public final class SmartChannelSelectionTest {
             mockEntitiesActorInstance.setReply(THING, twinResponse);
             underTest.tell(retrieveThing, getRef());
             TestSetup.fishForMsgClass(this, DistributedPubSubMediator.Publish.class);
-            assertLiveChannel(expectMsgClass(GatewayCommandTimeoutException.class));
+            assertLiveChannel(expectMsgClass(CommandTimeoutException.class));
         }};
     }
 

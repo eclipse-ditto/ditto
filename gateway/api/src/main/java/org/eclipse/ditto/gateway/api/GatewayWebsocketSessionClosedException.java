@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Contributors to the Eclipse Foundation
+ * Copyright (c) 2022 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.base.model.signals.commands.exceptions;
+package org.eclipse.ditto.gateway.api;
 
 import java.net.URI;
 
@@ -18,12 +18,12 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
 
-import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonParsableException;
+import org.eclipse.ditto.json.JsonObject;
 
 /**
  * This exception indicates that the websocket session is closed because the Authorization Context of the session

@@ -18,10 +18,9 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 
 import java.time.Duration;
 
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.junit.Ignore;
 import org.junit.Test;
 
 /**
@@ -35,7 +34,7 @@ public class TooManyRequestsExceptionTest {
 
     final JsonObject KNOWN_JSON = JsonFactory.newObject("{\n" +
             "  \"status\": 429,\n" +
-            "  \"error\": \"too.many.requests\",\n" +
+            "  \"error\": \"general:too.many.requests\",\n" +
             "  \"message\": \"You made too many requests.\",\n" +
             "  \"description\": \"Try again soon.\"\n" +
             "}");

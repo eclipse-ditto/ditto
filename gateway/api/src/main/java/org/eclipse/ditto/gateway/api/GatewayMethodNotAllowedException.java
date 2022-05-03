@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Contributors to the Eclipse Foundation
+ * Copyright (c) 2022 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -10,81 +10,84 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.base.model.signals.commands.exceptions;
+package org.eclipse.ditto.gateway.api;
 
 import java.net.URI;
+import java.text.MessageFormat;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
 
-import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonParsableException;
+import org.eclipse.ditto.json.JsonObject;
 
 /**
- * This exception indicates that a service the API Gateway proxies was not available.
+ * This exception indicates a requested HTTP method was not allowed on a API Gateway resource.
  */
 @Immutable
-@JsonParsableException(errorCode = GatewayServiceUnavailableException.ERROR_CODE)
-public final class GatewayServiceUnavailableException extends DittoRuntimeException implements GatewayException {
+@JsonParsableException(errorCode = GatewayMethodNotAllowedException.ERROR_CODE)
+public final class GatewayMethodNotAllowedException extends DittoRuntimeException implements GatewayException {
 
     /**
      * Error code of this exception.
      */
-    public static final String ERROR_CODE = ERROR_CODE_PREFIX + "service.unavailable";
+    public static final String ERROR_CODE = ERROR_CODE_PREFIX + "method.notallowed";
 
-    private static final String DEFAULT_MESSAGE = "The service you wanted to reach is currently not available.";
-    private static final String DEFAULT_DESCRIPTION = "Please contact the service team if this happens again.";
+    private static final String MESSAGE_TEMPLATE = "The provided HTTP method ''{0}'' is not allowed on this resource.";
 
-    private static final long serialVersionUID = 1164234483383740723L;
+    private static final String DEFAULT_DESCRIPTION = "Check if you used the correct resource and method combination.";
 
-    private GatewayServiceUnavailableException(final DittoHeaders dittoHeaders,
+    private static final long serialVersionUID = -4940757644888672775L;
+
+    private GatewayMethodNotAllowedException(final DittoHeaders dittoHeaders,
             @Nullable final String message,
             @Nullable final String description,
             @Nullable final Throwable cause,
             @Nullable final URI href) {
-        super(ERROR_CODE, HttpStatus.SERVICE_UNAVAILABLE, dittoHeaders, message, description, cause, href);
+        super(ERROR_CODE, HttpStatus.METHOD_NOT_ALLOWED, dittoHeaders, message, description, cause, href);
     }
 
     /**
-     * A mutable builder for a {@code GatewayServiceUnavailableException}.
+     * A mutable builder for a {@code GatewayMethodNotAllowedException}.
      *
+     * @param httpMethod the HTTP method which was used but not allowed.
      * @return the builder.
      */
-    public static Builder newBuilder() {
-        return new Builder();
+    public static Builder newBuilder(final String httpMethod) {
+        return new Builder(httpMethod);
     }
 
     /**
-     * Constructs a new {@code GatewayServiceUnavailableException} object with given message.
+     * Constructs a new {@code GatewayMethodNotAllowedException} object with given message.
      *
      * @param message detail message. This message can be later retrieved by the {@link #getMessage()} method.
      * @param dittoHeaders the headers of the command which resulted in this exception.
-     * @return the new GatewayServiceUnavailableException.
+     * @return the new GatewayMethodNotAllowedException.
      * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
      */
-    public static GatewayServiceUnavailableException fromMessage(@Nullable final String message,
+    public static GatewayMethodNotAllowedException fromMessage(@Nullable final String message,
             final DittoHeaders dittoHeaders) {
         return DittoRuntimeException.fromMessage(message, dittoHeaders, new Builder());
     }
 
     /**
-     * Constructs a new {@code GatewayServiceUnavailableException} object with the exception message extracted from the given
+     * Constructs a new {@code GatewayMethodNotAllowedException} object with the exception message extracted from the given
      * JSON object.
      *
      * @param jsonObject the JSON to read the {@link org.eclipse.ditto.base.model.exceptions.DittoRuntimeException.JsonFields#MESSAGE} field from.
      * @param dittoHeaders the headers of the command which resulted in this exception.
-     * @return the new GatewayServiceUnavailableException.
+     * @return the new GatewayMethodNotAllowedException.
      * @throws NullPointerException if any argument is {@code null}.
      * @throws org.eclipse.ditto.json.JsonMissingFieldException if this JsonObject did not contain an error message.
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
      * format.
      */
-    public static GatewayServiceUnavailableException fromJson(final JsonObject jsonObject,
+    public static GatewayMethodNotAllowedException fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
         return DittoRuntimeException.fromJson(jsonObject, dittoHeaders, new Builder());
     }
@@ -101,23 +104,27 @@ public final class GatewayServiceUnavailableException extends DittoRuntimeExcept
     }
 
     /**
-     * A mutable builder with a fluent API for a {@link GatewayServiceUnavailableException}.
+     * A mutable builder with a fluent API for a {@link GatewayMethodNotAllowedException}.
      */
     @NotThreadSafe
-    public static final class Builder extends DittoRuntimeExceptionBuilder<GatewayServiceUnavailableException> {
+    public static final class Builder extends DittoRuntimeExceptionBuilder<GatewayMethodNotAllowedException> {
 
         private Builder() {
-            message(DEFAULT_MESSAGE);
             description(DEFAULT_DESCRIPTION);
         }
 
+        private Builder(final String httpMethod) {
+            this();
+            message(MessageFormat.format(MESSAGE_TEMPLATE, httpMethod));
+        }
+
         @Override
-        protected GatewayServiceUnavailableException doBuild(final DittoHeaders dittoHeaders,
+        protected GatewayMethodNotAllowedException doBuild(final DittoHeaders dittoHeaders,
                 @Nullable final String message,
                 @Nullable final String description,
                 @Nullable final Throwable cause,
                 @Nullable final URI href) {
-            return new GatewayServiceUnavailableException(dittoHeaders, message, description, cause, href);
+            return new GatewayMethodNotAllowedException(dittoHeaders, message, description, cause, href);
         }
     }
 }

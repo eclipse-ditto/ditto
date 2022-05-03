@@ -30,7 +30,10 @@
     </properties>
 
     <dependencies>
-
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-gateway-api</artifactId>
+        </dependency>
         <dependency>
             <groupId>io.cloudevents</groupId>
             <artifactId>cloudevents-http-basic</artifactId>

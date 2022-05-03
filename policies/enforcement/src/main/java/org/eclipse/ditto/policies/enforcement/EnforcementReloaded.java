@@ -45,6 +45,12 @@ public interface EnforcementReloaded<S extends Signal<?>, R extends CommandRespo
     CompletionStage<S> authorizeSignalWithMissingEnforcer(S signal);
 
     /**
+     * TODO TJ doc
+     * @return
+     */
+    boolean shouldFilterCommandResponses();
+
+    /**
      * Filters the given {@code commandResponse} by using the given {@code enforcer}.
      *
      * @param commandResponse the command response that needs  to be filtered.

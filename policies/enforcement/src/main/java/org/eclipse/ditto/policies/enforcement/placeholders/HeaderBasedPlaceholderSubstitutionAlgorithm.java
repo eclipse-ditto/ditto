@@ -26,7 +26,7 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
-import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayPlaceholderNotResolvableException;
+import org.eclipse.ditto.base.model.signals.commands.exceptions.PlaceholderNotResolvableException;
 import org.eclipse.ditto.placeholders.ExpressionResolver;
 import org.eclipse.ditto.placeholders.PipelineElement;
 
@@ -96,7 +96,7 @@ public final class HeaderBasedPlaceholderSubstitutionAlgorithm {
             final String placeholder = placeholderWithSpaces.trim();
             final Function<DittoHeaders, String> placeholderResolver = replacementDefinitions.get(placeholder);
             if (placeholderResolver == null) {
-                throw GatewayPlaceholderNotResolvableException.newUnknownPlaceholderBuilder(placeholder,
+                throw PlaceholderNotResolvableException.newUnknownPlaceholderBuilder(placeholder,
                         knownPlaceHolders)
                         .dittoHeaders(dittoHeaders)
                         .build();

@@ -12,13 +12,13 @@
  */
 package org.eclipse.ditto.internal.utils.namespaces;
 
+import org.eclipse.ditto.base.model.exceptions.DittoInternalErrorException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.namespaces.signals.commands.BlockNamespace;
 import org.eclipse.ditto.base.model.namespaces.signals.commands.BlockNamespaceResponse;
 import org.eclipse.ditto.base.model.namespaces.signals.commands.UnblockNamespace;
 import org.eclipse.ditto.base.model.namespaces.signals.commands.UnblockNamespaceResponse;
 import org.eclipse.ditto.base.model.signals.commands.Command;
-import org.eclipse.ditto.base.model.signals.commands.exceptions.DittoInternalErrorException;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
 

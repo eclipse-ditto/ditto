@@ -47,11 +47,11 @@ import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
 import org.eclipse.ditto.base.model.signals.commands.ErrorResponse;
 import org.eclipse.ditto.base.model.signals.commands.WithEntity;
-import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayCommandTimeoutException;
-import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayServiceUnavailableException;
+import org.eclipse.ditto.base.model.signals.commands.exceptions.CommandTimeoutException;
 import org.eclipse.ditto.connectivity.api.messaging.monitoring.logs.AddConnectionLogEntry;
 import org.eclipse.ditto.connectivity.api.messaging.monitoring.logs.LogEntryFactory;
 import org.eclipse.ditto.connectivity.model.ConnectionId;
+import org.eclipse.ditto.gateway.api.GatewayServiceUnavailableException;
 import org.eclipse.ditto.gateway.service.endpoints.routes.whoami.DefaultUserInformation;
 import org.eclipse.ditto.gateway.service.endpoints.routes.whoami.Whoami;
 import org.eclipse.ditto.gateway.service.endpoints.routes.whoami.WhoamiResponse;
@@ -241,7 +241,7 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
         timeoutExceptionSupplier = () -> {
             final var actorContext = getContext();
 
-            return GatewayCommandTimeoutException.newBuilder(actorContext.getReceiveTimeout())
+            return CommandTimeoutException.newBuilder(actorContext.getReceiveTimeout())
                     .dittoHeaders(command.getDittoHeaders()
                             .toBuilder()
                             .responseRequired(false)

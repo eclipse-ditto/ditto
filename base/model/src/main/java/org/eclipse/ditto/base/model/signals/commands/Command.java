@@ -22,6 +22,7 @@ import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.signals.Signal;
+import org.eclipse.ditto.base.model.signals.WithType;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
@@ -88,15 +89,27 @@ public interface Command<T extends Command<T>> extends Signal<T> {
     }
 
     /**
-     * Indicates whether the specified signal argument is a {@code MessageCommand}.
-     * TODO TJ that is a really nasty workaround - fix it!
+     * Indicates whether the specified signal argument is a {@code ThingCommand} without requiring a direct dependency
+     * to the things-model.
+     *
+     * @param signal the signal to be checked.
+     * @return {@code true} if {@code signal} is a {@code ThingCommand}, {@code false} else.
+     * @since 3.0.0
+     */
+    static boolean isThingCommand(@Nullable final WithType signal) {
+        return WithType.hasTypePrefix(signal, WithType.THINGS_COMMANDS_PREFIX);
+    }
+
+    /**
+     * Indicates whether the specified signal argument is a {@code MessageCommand} without requiring a direct dependency
+     * to the messages-model.
      *
      * @param signal the signal to be checked.
      * @return {@code true} if {@code signal} is a {@code MessageCommand}, {@code false} else.
      * @since 3.0.0
      */
-    static boolean isMessageCommand(@Nullable final Signal<?> signal) {
-        return Signal.hasTypePrefix(signal, "messages.commands:");
+    static boolean isMessageCommand(@Nullable final WithType signal) {
+        return WithType.hasTypePrefix(signal, WithType.MESSAGES_COMMANDS_PREFIX);
     }
 
     /**

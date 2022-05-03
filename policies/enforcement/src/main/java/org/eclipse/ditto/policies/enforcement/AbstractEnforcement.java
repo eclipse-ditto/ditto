@@ -20,12 +20,12 @@ import java.util.function.UnaryOperator;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.base.model.exceptions.DittoInternalErrorException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.WithType;
-import org.eclipse.ditto.base.model.signals.commands.exceptions.DittoInternalErrorException;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.internal.utils.cacheloaders.EnforcementCacheKey;
 import org.eclipse.ditto.internal.utils.cacheloaders.config.AskWithRetryConfig;
@@ -125,7 +125,7 @@ public abstract class AbstractEnforcement<C extends Signal<?>> {
      * Reports an error differently based on type of the error. If the error is of type
      * {@link org.eclipse.ditto.base.model.exceptions.DittoRuntimeException}, it is returned as is
      * (without modification), otherwise it is wrapped inside a
-     * {@link org.eclipse.ditto.base.model.signals.commands.exceptions.DittoInternalErrorException}.
+     * {@link org.eclipse.ditto.base.model.exceptions.DittoInternalErrorException}.
      *
      * @param hint hint about the nature of the error.
      * @param throwable the error.

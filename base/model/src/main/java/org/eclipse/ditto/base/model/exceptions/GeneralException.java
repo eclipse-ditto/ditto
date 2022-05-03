@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.base.model.signals.commands.exceptions;
+package org.eclipse.ditto.base.model.exceptions;
 
 /**
  * Aggregates all {@link org.eclipse.ditto.base.model.exceptions.DittoRuntimeException}s which are emitted by Ditto

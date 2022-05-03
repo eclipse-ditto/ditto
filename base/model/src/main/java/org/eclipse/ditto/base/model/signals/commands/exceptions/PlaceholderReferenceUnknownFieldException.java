@@ -24,18 +24,17 @@ import javax.annotation.concurrent.NotThreadSafe;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeExceptionBuilder;
+import org.eclipse.ditto.base.model.exceptions.GeneralException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonParsableException;
 import org.eclipse.ditto.json.JsonObject;
 
 /**
  * This exception indicates that a request contains a reference placeholder which references an unknown field on the referenced entity.
- * TODO TJ not a GatewayException
  */
 @Immutable
-@JsonParsableException(errorCode = GatewayPlaceholderReferenceUnknownFieldException.ERROR_CODE)
-public final class GatewayPlaceholderReferenceUnknownFieldException extends DittoRuntimeException
-        implements GatewayException {
+@JsonParsableException(errorCode = PlaceholderReferenceUnknownFieldException.ERROR_CODE)
+public final class PlaceholderReferenceUnknownFieldException extends DittoRuntimeException implements GeneralException {
 
     /**
      * Error code of this exception.
@@ -50,14 +49,14 @@ public final class GatewayPlaceholderReferenceUnknownFieldException extends Ditt
 
     private static final long serialVersionUID = 3721639494927413912L;
 
-    private GatewayPlaceholderReferenceUnknownFieldException(final DittoHeaders dittoHeaders,
+    private PlaceholderReferenceUnknownFieldException(final DittoHeaders dittoHeaders,
             @Nullable final String message,
             @Nullable final String description, @Nullable final Throwable cause, @Nullable final URI href) {
         super(ERROR_CODE, HttpStatus.BAD_REQUEST, dittoHeaders, message, description, cause, href);
     }
 
     /**
-     * A mutable builder for a {@code GatewayPlaceholderReferenceUnknownFieldException} for an unsupported referenced
+     * A mutable builder for a {@code PlaceholderReferenceUnknownFieldException} for an unsupported referenced
      * entity type.
      *
      * @param unknownField the unknown field.
@@ -76,18 +75,18 @@ public final class GatewayPlaceholderReferenceUnknownFieldException extends Ditt
     }
 
     /**
-     * Constructs a new {@code GatewayPlaceholderReferenceUnknownFieldException} object with the exception message extracted
+     * Constructs a new {@code PlaceholderReferenceUnknownFieldException} object with the exception message extracted
      * from the given JSON object.
      *
      * @param jsonObject the JSON to read the {@link org.eclipse.ditto.base.model.exceptions.DittoRuntimeException.JsonFields#MESSAGE} field from.
      * @param dittoHeaders the headers of the command which resulted in this exception.
-     * @return the new {@code GatewayPlaceholderReferenceUnknownFieldException}.
+     * @return the new {@code PlaceholderReferenceUnknownFieldException}.
      * @throws NullPointerException if any argument is {@code null}.
      * @throws org.eclipse.ditto.json.JsonMissingFieldException if this JsonObject did not contain an error message.
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
      * format.
      */
-    public static GatewayPlaceholderReferenceUnknownFieldException fromJson(final JsonObject jsonObject,
+    public static PlaceholderReferenceUnknownFieldException fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
         return DittoRuntimeException.fromJson(jsonObject, dittoHeaders, new Builder());
     }
@@ -104,11 +103,11 @@ public final class GatewayPlaceholderReferenceUnknownFieldException extends Ditt
     }
 
     /**
-     * A mutable builder with a fluent API for a {@code GatewayPlaceholderReferenceUnknownFieldException}.
+     * A mutable builder with a fluent API for a {@code PlaceholderReferenceUnknownFieldException}.
      */
     @NotThreadSafe
     public static final class Builder
-            extends DittoRuntimeExceptionBuilder<GatewayPlaceholderReferenceUnknownFieldException> {
+            extends DittoRuntimeExceptionBuilder<PlaceholderReferenceUnknownFieldException> {
 
         private Builder() {description(DESCRIPTION_WITHOUT_ENTITY_ID);}
 
@@ -119,10 +118,10 @@ public final class GatewayPlaceholderReferenceUnknownFieldException extends Ditt
         }
 
         @Override
-        protected GatewayPlaceholderReferenceUnknownFieldException doBuild(final DittoHeaders dittoHeaders,
+        protected PlaceholderReferenceUnknownFieldException doBuild(final DittoHeaders dittoHeaders,
                 @Nullable final String message, @Nullable final String description, @Nullable final Throwable cause,
                 @Nullable final URI href) {
-            return new GatewayPlaceholderReferenceUnknownFieldException(dittoHeaders, message, description, cause,
+            return new PlaceholderReferenceUnknownFieldException(dittoHeaders, message, description, cause,
                     href);
         }
 

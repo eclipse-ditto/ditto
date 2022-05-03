@@ -37,6 +37,7 @@ import org.eclipse.ditto.base.api.devops.signals.commands.ExecutePiggybackComman
 import org.eclipse.ditto.base.api.devops.signals.commands.RetrieveLoggerConfig;
 import org.eclipse.ditto.base.api.devops.signals.commands.RetrieveLoggerConfigResponse;
 import org.eclipse.ditto.base.model.common.HttpStatus;
+import org.eclipse.ditto.base.model.exceptions.DittoInternalErrorException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
@@ -45,7 +46,6 @@ import org.eclipse.ditto.base.model.signals.JsonParsable;
 import org.eclipse.ditto.base.model.signals.JsonTypeNotParsableException;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
-import org.eclipse.ditto.base.model.signals.commands.exceptions.DittoInternalErrorException;
 import org.eclipse.ditto.internal.utils.akka.actors.RetrieveConfigBehavior;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;

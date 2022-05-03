@@ -25,7 +25,7 @@ import java.util.function.Function;
 import org.assertj.core.api.ThrowableAssert;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
-import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayPlaceholderNotResolvableException;
+import org.eclipse.ditto.base.model.signals.commands.exceptions.PlaceholderNotResolvableException;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -124,7 +124,7 @@ public class HeaderBasedPlaceholderSubstitutionAlgorithmTest {
 
     @Test
     public void unknownLegacyPlaceholderThrowsException() {
-        assertThatExceptionOfType(GatewayPlaceholderNotResolvableException.class)
+        assertThatExceptionOfType(PlaceholderNotResolvableException.class)
                 .isThrownBy(() -> underTest.substitute(UNKNOWN_LEGACY_REPLACER, DITTO_HEADERS));
     }
 
@@ -135,7 +135,7 @@ public class HeaderBasedPlaceholderSubstitutionAlgorithmTest {
     @Test
     public void inputContainsNestedLegacyPlaceholderThrowsException() {
         final String nestedPlaceholder = "${" + LEGACY_REPLACER + "}";
-        assertThatExceptionOfType(GatewayPlaceholderNotResolvableException.class)
+        assertThatExceptionOfType(PlaceholderNotResolvableException.class)
                 .isThrownBy(() -> underTest.substitute(nestedPlaceholder, DITTO_HEADERS));
     }
 
@@ -151,12 +151,12 @@ public class HeaderBasedPlaceholderSubstitutionAlgorithmTest {
             final ThrowableAssert.ThrowingCallable throwingCallable) {
         final String expectedMessage = "The input contains not resolvable placeholders: '" + notResolvableInput + "'.";
         assertGatewayPlaceholderNotResolvableExceptionIsThrown(expectedMessage,
-                GatewayPlaceholderNotResolvableException.NOT_RESOLVABLE_DESCRIPTION, throwingCallable);
+                PlaceholderNotResolvableException.NOT_RESOLVABLE_DESCRIPTION, throwingCallable);
     }
 
     private void assertGatewayPlaceholderNotResolvableExceptionIsThrown(final String expectedMessage,
             final String expectedDescription, final ThrowableAssert.ThrowingCallable throwingCallable) {
-        assertThatExceptionOfType(GatewayPlaceholderNotResolvableException.class)
+        assertThatExceptionOfType(PlaceholderNotResolvableException.class)
                 .isThrownBy(throwingCallable)
                 .satisfies(e -> {
                     assertThat(e.getMessage()).isEqualTo(expectedMessage);

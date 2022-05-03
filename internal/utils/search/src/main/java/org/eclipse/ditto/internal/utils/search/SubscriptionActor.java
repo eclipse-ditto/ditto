@@ -14,9 +14,9 @@ package org.eclipse.ditto.internal.utils.search;
 
 import java.time.Duration;
 
+import org.eclipse.ditto.base.model.exceptions.DittoInternalErrorException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.base.model.signals.commands.exceptions.DittoInternalErrorException;
 import org.eclipse.ditto.internal.utils.akka.actors.AbstractActorWithStashWithTimers;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;

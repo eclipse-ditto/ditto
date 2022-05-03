@@ -53,26 +53,6 @@ public interface Signal<T extends Signal<T>> extends Jsonifiable.WithPredicate<J
     }
 
     /**
-     * Checks whether the passed in {@code signal} (being {@link WithType}) contains the passed in {@code typePrefix}
-     * in its {@link WithType#getType()} response.
-     *
-     * @param signal the signal to check in.
-     * @param typePrefix the type prefix to check for.
-     * @return {@code true} when the passed in signal's type starts with the passed in type prefix.
-     * @since 3.0.0
-     */
-    static boolean hasTypePrefix(@Nullable final WithType signal, final String typePrefix) {
-        final boolean result;
-        if (null != signal) {
-            final String signalType = signal.getType();
-            result = signalType.startsWith(typePrefix);
-        } else {
-            result = false;
-        }
-        return result;
-    }
-
-    /**
      * Indicates whether the headers of the specified signal argument contain channel {@value CHANNEL_LIVE}.
      *
      * @param signal the signal to be checked.

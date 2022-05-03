@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Contributors to the Eclipse Foundation
+ * Copyright (c) 2022 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -10,83 +10,93 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.base.model.signals.commands.exceptions;
+package org.eclipse.ditto.gateway.api;
 
 import java.net.URI;
+import java.text.MessageFormat;
+import java.time.Duration;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
 
-import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonParsableException;
+import org.eclipse.ditto.json.JsonObject;
 
 /**
- * This exception indicates that a Solution or user has sent send too many requests in a defined timeframe.
+ * This exception indicates that the configured {@code "timeout"} of a HTTP call was not valid or within its allowed
+ * bounds.
+ *
+ * @since 1.1.0
  */
 @Immutable
-@JsonParsableException(errorCode = GatewayServiceTooManyRequestsException.ERROR_CODE)
-public class GatewayServiceTooManyRequestsException extends DittoRuntimeException implements GatewayException {
+@JsonParsableException(errorCode = GatewayTimeoutInvalidException.ERROR_CODE)
+public final class GatewayTimeoutInvalidException extends DittoRuntimeException implements GatewayException {
 
     /**
      * Error code of this exception.
      */
-    public static final String ERROR_CODE = ERROR_CODE_PREFIX + "too.many.requests";
+    public static final String ERROR_CODE = ERROR_CODE_PREFIX + "timeout.invalid";
 
-    private static final String DEFAULT_MESSAGE =
-            "Your Solution is temporarily blocked. Please try again in a few minutes.";
+    private static final String DEFAULT_MESSAGE = "The timeout <{0}ms> is not inside its allowed bounds <0ms - {1}ms>";
 
-    private static final String DEFAULT_DESCRIPTION =
-            "You have sent too many requests at once. Please wait before trying again.";
+    private static final String DEFAULT_DESCRIPTION = "Choose a timeout inside the bounds.";
 
-    private static final long serialVersionUID = 1164235483383640723L;
+    private static final long serialVersionUID = 4432789435789590723L;
 
-    private GatewayServiceTooManyRequestsException(final DittoHeaders dittoHeaders,
+    private GatewayTimeoutInvalidException(final DittoHeaders dittoHeaders,
             @Nullable final String message,
             @Nullable final String description,
             @Nullable final Throwable cause,
             @Nullable final URI href) {
-        super(ERROR_CODE, HttpStatus.TOO_MANY_REQUESTS, dittoHeaders, message, description, cause, href);
+
+        super(ERROR_CODE, HttpStatus.BAD_REQUEST, dittoHeaders, message, description, cause, href);
     }
 
     /**
-     * Constructs a new {@code GatewayServiceTooManyRequestsException} object with given message.
+     * A mutable builder for a {@code GatewayTimeoutInvalidException}.
+     *
+     * @param timeout the applied timeout.
+     * @param maxTimeout the configured max timeout.
+     * @return the builder.
+     */
+    public static Builder newBuilder(final Duration timeout, final Duration maxTimeout) {
+        return new Builder(timeout, maxTimeout);
+    }
+
+    /**
+     * Constructs a new {@code GatewayTimeoutInvalidException} object with given message.
      *
      * @param message detail message. This message can be later retrieved by the {@link #getMessage()} method.
      * @param dittoHeaders the headers of the command which resulted in this exception.
-     * @return the new GatewayServiceTooManyRequestsException.
+     * @return the new GatewayTimeoutInvalidException.
      * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
      */
-    public static GatewayServiceTooManyRequestsException fromMessage(@Nullable final String message,
+    public static GatewayTimeoutInvalidException fromMessage(@Nullable final String message,
             final DittoHeaders dittoHeaders) {
         return DittoRuntimeException.fromMessage(message, dittoHeaders, new Builder());
     }
 
     /**
-     * A mutable builder for a {@code GatewayServiceTooManyRequestsException}.
+     * Constructs a new {@code GatewayTimeoutInvalidException} object with the exception message extracted from the
+     * given JSON object.
      *
-     * @return the builder.
-     */
-    public static Builder newBuilder() { return new Builder(); }
-
-    /**
-     * Constructs a new {@code GatewayServiceTooManyRequestsException} object with the exception message extracted from the given
-     * JSON object.
-     *
-     * @param jsonObject the JSON to read the {@link org.eclipse.ditto.base.model.exceptions.DittoRuntimeException.JsonFields#MESSAGE} field from.
+     * @param jsonObject the JSON to read the
+     * {@link org.eclipse.ditto.base.model.exceptions.DittoRuntimeException.JsonFields#MESSAGE} field from.
      * @param dittoHeaders the headers of the command which resulted in this exception.
-     * @return the new GatewayServiceTooManyRequestsException.
+     * @return the new GatewayTimeoutInvalidException.
      * @throws NullPointerException if any argument is {@code null}.
      * @throws org.eclipse.ditto.json.JsonMissingFieldException if this JsonObject did not contain an error message.
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
      * format.
      */
-    public static GatewayServiceTooManyRequestsException fromJson(final JsonObject jsonObject,
+    public static GatewayTimeoutInvalidException fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
+
         return DittoRuntimeException.fromJson(jsonObject, dittoHeaders, new Builder());
     }
 
@@ -102,22 +112,30 @@ public class GatewayServiceTooManyRequestsException extends DittoRuntimeExceptio
     }
 
     /**
-     * A mutable builder with a fluent API for a {@link GatewayServiceTooManyRequestsException}.
+     * A mutable builder with a fluent API for a {@link GatewayTimeoutInvalidException}.
      */
     @NotThreadSafe
-    public static final class Builder extends DittoRuntimeExceptionBuilder<GatewayServiceTooManyRequestsException> {
+    public static final class Builder extends DittoRuntimeExceptionBuilder<GatewayTimeoutInvalidException> {
 
         private Builder() {
-            message(DEFAULT_MESSAGE);
             description(DEFAULT_DESCRIPTION);
         }
 
-        protected GatewayServiceTooManyRequestsException doBuild(final DittoHeaders dittoHeaders,
+        private Builder(final Duration timeout, final Duration maxTimeout) {
+            message(MessageFormat.format(DEFAULT_MESSAGE, timeout.toMillis(), maxTimeout.toMillis()));
+            description(DEFAULT_DESCRIPTION);
+        }
+
+        @Override
+        protected GatewayTimeoutInvalidException doBuild(final DittoHeaders dittoHeaders,
                 @Nullable final String message,
                 @Nullable final String description,
                 @Nullable final Throwable cause,
                 @Nullable final URI href) {
-            return new GatewayServiceTooManyRequestsException(dittoHeaders, message, description, cause, href);
+
+            return new GatewayTimeoutInvalidException(dittoHeaders, message, description, cause, href);
         }
+
     }
+
 }

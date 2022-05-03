@@ -19,10 +19,10 @@
  import javax.annotation.concurrent.Immutable;
  import javax.annotation.concurrent.NotThreadSafe;
 
- import org.eclipse.ditto.json.JsonObject;
  import org.eclipse.ditto.base.model.common.HttpStatus;
  import org.eclipse.ditto.base.model.headers.DittoHeaders;
  import org.eclipse.ditto.base.model.json.JsonParsableException;
+ import org.eclipse.ditto.json.JsonObject;
 
  /**
   * Thrown if a CloudEvent request with an unsupported dataschema is made.
@@ -31,12 +31,12 @@
   */
  @Immutable
  @JsonParsableException(errorCode = CloudEventUnsupportedDataSchemaException.ERROR_CODE)
- public final class CloudEventUnsupportedDataSchemaException extends DittoRuntimeException {
+ public final class CloudEventUnsupportedDataSchemaException extends DittoRuntimeException implements GeneralException {
 
      /**
       * Error code of this exception.
       */
-     public static final String ERROR_CODE = "cloudevent.dataschema.unsupported";
+     public static final String ERROR_CODE = ERROR_CODE_PREFIX + "cloudevent.dataschema.unsupported";
 
      private static final String DEFAULT_MESSAGE = "The provided Cloud Event dataschema is not supported for this " +
              "resource.";

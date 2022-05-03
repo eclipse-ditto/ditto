@@ -28,13 +28,13 @@ import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.base.model.entity.id.WithEntityId;
+import org.eclipse.ditto.base.model.exceptions.DittoInternalErrorException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.Jsonifiable;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
 import org.eclipse.ditto.base.model.signals.commands.WithEntity;
-import org.eclipse.ditto.base.model.signals.commands.exceptions.DittoInternalErrorException;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;

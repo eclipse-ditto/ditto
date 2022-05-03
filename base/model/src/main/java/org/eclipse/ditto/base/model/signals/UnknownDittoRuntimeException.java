@@ -16,12 +16,13 @@ import java.net.URI;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeExceptionBuilder;
+import org.eclipse.ditto.base.model.exceptions.GeneralException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonParsableException;
+import org.eclipse.ditto.json.JsonObject;
 
 /**
  * This exception can be used to deserialize DittoRuntimeExceptions which are not on the classpath.
@@ -29,9 +30,9 @@ import org.eclipse.ditto.base.model.json.JsonParsableException;
  * Do not make this exception public.
  */
 @JsonParsableException(errorCode = UnknownDittoRuntimeException.FALLBACK_ERROR_CODE)
-final class UnknownDittoRuntimeException extends DittoRuntimeException {
+final class UnknownDittoRuntimeException extends DittoRuntimeException implements GeneralException {
 
-    public static final String FALLBACK_ERROR_CODE = "unknown:unknown";
+    public static final String FALLBACK_ERROR_CODE = ERROR_CODE_PREFIX + "unknown";
 
     protected UnknownDittoRuntimeException(final String errorCode,
             final HttpStatus httpStatus,

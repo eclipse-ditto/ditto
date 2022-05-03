@@ -15,13 +15,14 @@ package org.eclipse.ditto.policies.service.starter;
 import org.eclipse.ditto.base.model.acks.AcknowledgementLabelInvalidException;
 import org.eclipse.ditto.base.model.entity.id.NamespacedEntityIdInvalidException;
 import org.eclipse.ditto.base.model.exceptions.DittoHeaderInvalidException;
+import org.eclipse.ditto.base.model.exceptions.DittoInternalErrorException;
 import org.eclipse.ditto.base.model.namespaces.NamespaceBlockedException;
 import org.eclipse.ditto.base.model.signals.JsonTypeNotParsableException;
 import org.eclipse.ditto.base.model.signals.UnsupportedSchemaVersionException;
 import org.eclipse.ditto.base.model.signals.UnsupportedSignalException;
 import org.eclipse.ditto.base.model.signals.acks.AcknowledgementCorrelationIdMissingException;
 import org.eclipse.ditto.base.model.signals.commands.CommandNotSupportedException;
-import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayAuthenticationFailedException;
+import org.eclipse.ditto.base.model.signals.commands.exceptions.CommandTimeoutException;
 import org.eclipse.ditto.base.model.signals.commands.exceptions.PathUnknownException;
 import org.eclipse.ditto.internal.utils.test.GlobalErrorRegistryTestCases;
 import org.eclipse.ditto.messages.model.AuthorizationSubjectBlockedException;
@@ -42,7 +43,8 @@ public final class PoliciesServiceGlobalErrorRegistryTest extends GlobalErrorReg
                 CommandNotSupportedException.class,
                 UnsupportedSchemaVersionException.class,
                 UnsupportedSignalException.class,
-                GatewayAuthenticationFailedException.class,
+                DittoInternalErrorException.class,
+                CommandTimeoutException.class,
                 PolicyConflictException.class,
                 AuthorizationSubjectBlockedException.class,
                 JsonTypeNotParsableException.class,

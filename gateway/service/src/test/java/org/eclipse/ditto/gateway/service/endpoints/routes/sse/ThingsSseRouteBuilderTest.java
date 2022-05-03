@@ -26,7 +26,7 @@ import org.assertj.core.util.Lists;
 import org.eclipse.ditto.base.model.auth.AuthorizationModelFactory;
 import org.eclipse.ditto.base.model.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayServiceUnavailableException;
+import org.eclipse.ditto.gateway.api.GatewayServiceUnavailableException;
 import org.eclipse.ditto.gateway.service.endpoints.EndpointTestBase;
 import org.eclipse.ditto.gateway.service.streaming.Connect;
 import org.eclipse.ditto.gateway.service.streaming.StartStreaming;

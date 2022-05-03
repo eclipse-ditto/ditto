@@ -23,6 +23,7 @@ import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.SignalWithEntityId;
+import org.eclipse.ditto.base.model.signals.WithType;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldDefinition;
@@ -78,8 +79,8 @@ public interface ThingCommand<T extends ThingCommand<T>> extends Command<T>, Wit
      * @return {@code true} if {@code signal} is a {@code ThingCommand}, {@code false} else.
      * @since 3.0.0
      */
-    static boolean isThingCommand(@Nullable final Signal<?> signal) {
-        return Signal.hasTypePrefix(signal, ThingCommand.TYPE_PREFIX);
+    static boolean isThingCommand(@Nullable final WithType signal) {
+        return WithType.hasTypePrefix(signal, ThingCommand.TYPE_PREFIX);
     }
 
     /**

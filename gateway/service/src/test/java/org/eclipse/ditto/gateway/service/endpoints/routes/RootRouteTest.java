@@ -31,7 +31,7 @@ import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.DittoHeadersSizeChecker;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.signals.commands.CommandHeaderInvalidException;
-import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayDuplicateHeaderException;
+import org.eclipse.ditto.gateway.api.GatewayDuplicateHeaderException;
 import org.eclipse.ditto.gateway.service.endpoints.EndpointTestBase;
 import org.eclipse.ditto.gateway.service.endpoints.EndpointTestConstants;
 import org.eclipse.ditto.gateway.service.endpoints.directives.auth.DevopsAuthenticationDirectiveFactory;

@@ -17,8 +17,8 @@ import javax.annotation.Nullable;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
-import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.SignalWithEntityId;
+import org.eclipse.ditto.base.model.signals.WithType;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
 import org.eclipse.ditto.json.JsonFactory;
@@ -87,8 +87,8 @@ public interface MessageCommandResponse<P, C extends MessageCommandResponse<P, C
      * @return {@code true} if {@code signal} is a {@code MessageCommandResponse}, {@code false} else.
      * @since 3.0.0
      */
-    static boolean isMessageCommandResponse(@Nullable final Signal<?> signal) {
-        return Signal.hasTypePrefix(signal, MessageCommandResponse.TYPE_PREFIX);
+    static boolean isMessageCommandResponse(@Nullable final WithType signal) {
+        return WithType.hasTypePrefix(signal, MessageCommandResponse.TYPE_PREFIX);
     }
 
     /**

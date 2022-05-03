@@ -21,11 +21,11 @@ import javax.annotation.Nullable;
 
 import org.eclipse.ditto.base.api.commands.sudo.SudoCommand;
 import org.eclipse.ditto.base.model.entity.id.EntityId;
+import org.eclipse.ditto.base.model.exceptions.DittoInternalErrorException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
-import org.eclipse.ditto.base.model.signals.commands.exceptions.DittoInternalErrorException;
 import org.eclipse.ditto.internal.utils.akka.actors.AbstractActorWithStashWithTimers;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
@@ -296,48 +296,51 @@ public abstract class AbstractEnforcerActor<I extends EntityId, C extends Comman
      * @param commandResponse the {@code CommandResponse} to filter based in the {@code policyEnforcer}.
      */
     private void filterResponse(final R commandResponse) {
-        if (null != policyEnforcer) {
-            final ActorRef sender = getSender();
-            final ActorRef parent = getContext().getParent();
+        final ActorRef sender = getSender();
+        final ActorRef parent = getContext().getParent();
 
-            try {
-                final CompletionStage<R> filteredResponseStage =
-                        enforcement.filterResponse(commandResponse, policyEnforcer);
-                filteredResponseStage.whenComplete((filteredResponse, throwable) -> {
-                    if (null != filteredResponse) {
-                        log.withCorrelationId(filteredResponse)
-                                .info("Completed filtering of command response type <{}>", filteredResponse.getType());
-                        sender.tell(filteredResponse, parent);
-                    } else if (null != throwable) {
-                        final DittoRuntimeException dittoRuntimeException =
-                                DittoRuntimeException.asDittoRuntimeException(throwable, t ->
-                                        DittoInternalErrorException.newBuilder()
-                                                .cause(t)
-                                                .dittoHeaders(commandResponse.getDittoHeaders())
-                                                .build()
-                                );
-                        log.withCorrelationId(dittoRuntimeException)
-                                .info("Exception during filtering of command response type <{}> and headers: <{}>",
-                                        commandResponse.getType(), commandResponse.getDittoHeaders());
-                        sender.tell(dittoRuntimeException, parent);
-                    } else {
-                        log.withCorrelationId(commandResponse)
-                                .error("Neither filteredResponse nor throwable were present during filtering of " +
-                                        "commandResponse: <{}>", commandResponse);
-                    }
-                });
-            } catch (final DittoRuntimeException dittoRuntimeException) {
-                log.withCorrelationId(dittoRuntimeException)
-                        .info("Exception during filtering of command response type <{}> and headers: <{}>",
-                                commandResponse.getType(), commandResponse.getDittoHeaders());
-                sender.tell(dittoRuntimeException, parent);
+        if (enforcement.shouldFilterCommandResponses()) {
+            if (null != policyEnforcer) {
+                try {
+                    final CompletionStage<R> filteredResponseStage =
+                            enforcement.filterResponse(commandResponse, policyEnforcer);
+                    filteredResponseStage.whenComplete((filteredResponse, throwable) -> {
+                        if (null != filteredResponse) {
+                            log.withCorrelationId(filteredResponse)
+                                    .info("Completed filtering of command response type <{}>", filteredResponse.getType());
+                            sender.tell(filteredResponse, parent);
+                        } else if (null != throwable) {
+                            final DittoRuntimeException dittoRuntimeException =
+                                    DittoRuntimeException.asDittoRuntimeException(throwable, t ->
+                                            DittoInternalErrorException.newBuilder()
+                                                    .cause(t)
+                                                    .dittoHeaders(commandResponse.getDittoHeaders())
+                                                    .build()
+                                    );
+                            log.withCorrelationId(dittoRuntimeException)
+                                    .info("Exception during filtering of command response type <{}> and headers: <{}>",
+                                            commandResponse.getType(), commandResponse.getDittoHeaders());
+                            sender.tell(dittoRuntimeException, parent);
+                        } else {
+                            log.withCorrelationId(commandResponse)
+                                    .error("Neither filteredResponse nor throwable were present during filtering of " +
+                                            "commandResponse: <{}>", commandResponse);
+                        }
+                    });
+                } catch (final DittoRuntimeException dittoRuntimeException) {
+                    log.withCorrelationId(dittoRuntimeException)
+                            .info("Exception during filtering of command response type <{}> and headers: <{}>",
+                                    commandResponse.getType(), commandResponse.getDittoHeaders());
+                    sender.tell(dittoRuntimeException, parent);
+                }
+            } else {
+                log.withCorrelationId(commandResponse)
+                        .error("Could not filter command response because policyEnforcer was missing");
             }
         } else {
-            log.withCorrelationId(commandResponse)
-                    .error("Could not filter command response because policyEnforcer was missing");
+            sender.tell(commandResponse, parent);
         }
     }
-
 
     /**
      * Control message for the enforcer actor.

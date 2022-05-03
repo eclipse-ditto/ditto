@@ -26,18 +26,17 @@ import javax.annotation.concurrent.NotThreadSafe;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeExceptionBuilder;
+import org.eclipse.ditto.base.model.exceptions.GeneralException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonParsableException;
 import org.eclipse.ditto.json.JsonObject;
 
 /**
  * This exception indicates that a request contains a reference placeholder which references an unsupported entity type.
- * TODO TJ not a GatewayException
  */
 @Immutable
-@JsonParsableException(errorCode = GatewayPlaceholderReferenceNotSupportedException.ERROR_CODE)
-public final class GatewayPlaceholderReferenceNotSupportedException extends DittoRuntimeException
-        implements GatewayException {
+@JsonParsableException(errorCode = PlaceholderReferenceNotSupportedException.ERROR_CODE)
+public final class PlaceholderReferenceNotSupportedException extends DittoRuntimeException implements GeneralException {
 
     /**
      * Error code of this exception.
@@ -51,14 +50,14 @@ public final class GatewayPlaceholderReferenceNotSupportedException extends Ditt
 
     private static final long serialVersionUID = -8724860134957013912L;
 
-    private GatewayPlaceholderReferenceNotSupportedException(final DittoHeaders dittoHeaders,
+    private PlaceholderReferenceNotSupportedException(final DittoHeaders dittoHeaders,
             @Nullable final String message,
             @Nullable final String description, @Nullable final Throwable cause, @Nullable final URI href) {
         super(ERROR_CODE, HttpStatus.BAD_REQUEST, dittoHeaders, message, description, cause, href);
     }
 
     /**
-     * A mutable builder for a {@code GatewayPlaceholderReferenceNotSupportedException} for an unsupported referenced
+     * A mutable builder for a {@code PlaceholderReferenceNotSupportedException} for an unsupported referenced
      * entity type.
      *
      * @param unsupportedEntityType the unknown placeholder.
@@ -80,18 +79,18 @@ public final class GatewayPlaceholderReferenceNotSupportedException extends Ditt
     }
 
     /**
-     * Constructs a new {@code GatewayPlaceholderReferenceNotSupportedException} object with the exception message extracted
+     * Constructs a new {@code PlaceholderReferenceNotSupportedException} object with the exception message extracted
      * from the given JSON object.
      *
      * @param jsonObject the JSON to read the {@link org.eclipse.ditto.base.model.exceptions.DittoRuntimeException.JsonFields#MESSAGE} field from.
      * @param dittoHeaders the headers of the command which resulted in this exception.
-     * @return the new {@code GatewayPlaceholderReferenceNotSupportedException}.
+     * @return the new {@code PlaceholderReferenceNotSupportedException}.
      * @throws NullPointerException if any argument is {@code null}.
      * @throws org.eclipse.ditto.json.JsonMissingFieldException if this JsonObject did not contain an error message.
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
      * format.
      */
-    public static GatewayPlaceholderReferenceNotSupportedException fromJson(final JsonObject jsonObject,
+    public static PlaceholderReferenceNotSupportedException fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
         return DittoRuntimeException.fromJson(jsonObject, dittoHeaders, new Builder());
     }
@@ -108,11 +107,11 @@ public final class GatewayPlaceholderReferenceNotSupportedException extends Ditt
     }
 
     /**
-     * A mutable builder with a fluent API for a {@code GatewayPlaceholderReferenceNotSupportedException}.
+     * A mutable builder with a fluent API for a {@code PlaceholderReferenceNotSupportedException}.
      */
     @NotThreadSafe
     public static final class Builder
-            extends DittoRuntimeExceptionBuilder<GatewayPlaceholderReferenceNotSupportedException> {
+            extends DittoRuntimeExceptionBuilder<PlaceholderReferenceNotSupportedException> {
 
         private Builder() {description(DESCRIPTION_WITHOUT_SUPPORTED_ENTITIES);}
 
@@ -123,10 +122,10 @@ public final class GatewayPlaceholderReferenceNotSupportedException extends Ditt
         }
 
         @Override
-        protected GatewayPlaceholderReferenceNotSupportedException doBuild(final DittoHeaders dittoHeaders,
+        protected PlaceholderReferenceNotSupportedException doBuild(final DittoHeaders dittoHeaders,
                 @Nullable final String message, @Nullable final String description, @Nullable final Throwable cause,
                 @Nullable final URI href) {
-            return new GatewayPlaceholderReferenceNotSupportedException(dittoHeaders, message, description, cause,
+            return new PlaceholderReferenceNotSupportedException(dittoHeaders, message, description, cause,
                     href);
         }
 

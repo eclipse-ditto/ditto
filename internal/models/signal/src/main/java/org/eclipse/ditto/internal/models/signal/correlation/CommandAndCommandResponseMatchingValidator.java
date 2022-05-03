@@ -49,11 +49,6 @@ import org.eclipse.ditto.internal.models.signal.type.SignalTypeFormatException;
  * a success.
  * </p>
  * <p>
- * If validation failed a {@link org.eclipse.ditto.base.model.entity.id.EntityIdInvalidException} might be thrown if
- * the headers of the {@code CommandResponse} contain an invalid value for
- * {@link org.eclipse.ditto.base.model.headers.DittoHeaderDefinition#CONNECTION_ID}.
- * </p>
- * <p>
  * If the type of the command or command response is invalid an {@link UnsupportedSignalException} is thrown.
  * </p>
  * <p>
@@ -249,7 +244,7 @@ public final class CommandAndCommandResponseMatchingValidator
             final CommandResponse<?> commandResponse) {
 
         final MatchingValidationResult result;
-        if (Signal.hasTypePrefix(command, "things.commands:")) { // TODO TJ nasty workaround - however, ThingCommand interface is not used here at all .. so might be ok after all
+        if (Command.isThingCommand(command)) {
             final var commandResourcePath = command.getResourcePath();
             final var commandResponseResourcePath = commandResponse.getResourcePath();
             if (commandResourcePath.equals(commandResponseResourcePath) ||

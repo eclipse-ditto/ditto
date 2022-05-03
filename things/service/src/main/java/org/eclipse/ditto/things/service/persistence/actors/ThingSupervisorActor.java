@@ -98,11 +98,11 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
      * for {@link ActorKilledException}'s and escalates all others.
      * </p>
      *
-     * @param pubSubMediator
-     * @param policiesShardRegion TODO TJ doc
+     * @param pubSubMediator the pub/sub mediator ActorRef to required for the creation of the ThingEnforcerActor.
+     * @param policiesShardRegion the shard region of the "policies" shard in order to e.g. load policies.
      * @param distributedPub distributed-pub access for publishing thing events.
      * @param propsFactory factory for creating Props to be used for creating
-     * @param preEnforcer TODO TJ doc
+     * @param preEnforcer the PreEnforcer to apply as extension mechanism of the enforcement.
      * @return the {@link Props} to create this actor.
      */
     public static Props props(final ActorRef pubSubMediator,

@@ -21,14 +21,14 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
 
+import org.eclipse.ditto.base.model.exceptions.DittoInternalErrorException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.SignalWithEntityId;
+import org.eclipse.ditto.base.model.signals.UnsupportedSignalException;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
-import org.eclipse.ditto.base.model.signals.commands.exceptions.DittoInternalErrorException;
-import org.eclipse.ditto.base.model.signals.commands.exceptions.PathUnknownException;
 import org.eclipse.ditto.internal.utils.cache.Cache;
 import org.eclipse.ditto.internal.utils.cache.entry.Entry;
 import org.eclipse.ditto.internal.utils.cacheloaders.EnforcementCacheKey;
@@ -209,6 +209,13 @@ public final class LiveSignalEnforcement extends AbstractEnforcementWithAsk<Sign
                 });
     }
 
+    /**
+     * TODO TJ use somewhere
+     * @param streamingType
+     * @param liveSignal
+     * @param enforcer
+     * @return
+     */
     private CompletionStage<Contextual<WithDittoHeaders>> enforceLiveSignal(final StreamingType streamingType,
             final Signal<?> liveSignal, final PolicyEnforcer enforcer) {
 
@@ -231,17 +238,10 @@ public final class LiveSignalEnforcement extends AbstractEnforcementWithAsk<Sign
                 }
             default:
                 log(liveSignal).warning("Ignoring unsupported command signal: <{}>", liveSignal);
-                // TODO TJ this was a UnknownCommandException before - which however is located in ditto-protocol
-                // where we should not have a dependency to
-                // check if we need another exception or move the UnknownCommandException
-                throw PathUnknownException.newBuilder(liveSignal.getResourcePath())
+                throw UnsupportedSignalException.newBuilder(liveSignal.getType())
                         .message("The sent command is not supported as live command")
                         .dittoHeaders(liveSignal.getDittoHeaders())
                         .build();
-//                throw UnknownCommandException.newBuilder(liveSignal.getName())
-//                        .message("The sent command is not supported as live command")
-//                        .dittoHeaders(liveSignal.getDittoHeaders())
-//                        .build();
         }
     }
 

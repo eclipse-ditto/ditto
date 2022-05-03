@@ -37,7 +37,8 @@ import akka.actor.Props;
 import akka.pattern.Patterns;
 
 /**
- * Enforcer responsible for enforcing {@link PolicyCommand}s and filtering {@link PolicyCommandResponse}s.
+ * Enforcer responsible for enforcing {@link PolicyCommand}s and filtering {@link PolicyCommandResponse}s utilizing the
+ * {@link PolicyCommandEnforcement}.
  */
 public final class PolicyEnforcerActor
         extends AbstractEnforcerActor<PolicyId, PolicyCommand<?>, PolicyCommandResponse<?>, PolicyCommandEnforcement> {

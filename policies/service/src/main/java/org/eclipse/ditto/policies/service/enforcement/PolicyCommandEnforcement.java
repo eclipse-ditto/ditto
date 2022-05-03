@@ -137,6 +137,11 @@ public final class PolicyCommandEnforcement
     }
 
     @Override
+    public boolean shouldFilterCommandResponses() {
+        return true;
+    }
+
+    @Override
     public CompletionStage<PolicyCommandResponse<?>> filterResponse(final PolicyCommandResponse<?> commandResponse,
             final PolicyEnforcer policyEnforcer) {
 

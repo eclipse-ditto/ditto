@@ -23,7 +23,6 @@ import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.internal.utils.cache.entry.Entry;
 import org.eclipse.ditto.internal.utils.cacheloaders.EnforcementCacheKey;
 import org.eclipse.ditto.internal.utils.cacheloaders.config.AskWithRetryConfig;
-import org.eclipse.ditto.internal.utils.cacheloaders.config.DefaultAskWithRetryConfig;
 import org.eclipse.ditto.internal.utils.persistentactors.AbstractEnforcerActor;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.policies.enforcement.PolicyEnforcer;
@@ -39,7 +38,6 @@ import org.eclipse.ditto.things.model.signals.commands.modify.ThingModifyCommand
 import org.eclipse.ditto.things.service.enforcement.ThingCommandEnforcement;
 
 import com.github.benmanes.caffeine.cache.AsyncCacheLoader;
-import com.typesafe.config.ConfigFactory;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
@@ -47,7 +45,8 @@ import akka.actor.Props;
 import akka.pattern.Patterns;
 
 /**
- * TODO TJ add javadoc
+ * Enforcer responsible for enforcing {@link ThingCommand}s and filtering {@link ThingCommandResponse}s utilizing the
+ * {@link ThingCommandEnforcement}.
  */
 public final class ThingEnforcerActor
         extends AbstractEnforcerActor<ThingId, ThingCommand<?>, ThingCommandResponse<?>, ThingCommandEnforcement> {
@@ -63,7 +62,12 @@ public final class ThingEnforcerActor
     }
 
     /**
-     * TODO TJ doc
+     * Creates Akka configuration object Props for this Actor.
+     *
+     * @param thingId the ThingId this enforcer actor is responsible for.
+     * @param thingCommandEnforcement the thing command enforcement logic to apply in the enforcer.
+     * @param pubSubMediator the ActorRef of the distributed pub-sub-mediator used to subscribe for policy updates in
+     * order to perform invalidations.
      */
     public static Props props(final ThingId thingId,
             final ThingCommandEnforcement thingCommandEnforcement,
@@ -88,9 +92,12 @@ public final class ThingEnforcerActor
     }
 
     /**
-     * TODO TJ doc
-     * @param response
-     * @return
+     * Extracts a {@link PolicyId} from the passed {@code response} which is expected to be a
+     * {@link SudoRetrieveThingResponse}. A {@code response} being a {@link ThingNotAccessibleException} leads to an
+     * empty Optional.
+     *
+     * @param response the response to extract the PolicyId from.
+     * @return the optional extracted PolicyId.
      */
     static Optional<PolicyId> extractPolicyIdFromSudoRetrieveThingResponse(final Object response) {
         if (response instanceof SudoRetrieveThingResponse sudoRetrieveThingResponse) {
@@ -109,16 +116,15 @@ public final class ThingEnforcerActor
         } else {
             final ActorSystem actorSystem = getContext().getSystem();
             if (null == policyEnforcerCacheLoader) {
-                // TODO TJ configure + load correctly
-                final AskWithRetryConfig askWithRetryConfig = DefaultAskWithRetryConfig.of(ConfigFactory.empty(), "foo");
+                final AskWithRetryConfig askWithRetryConfig = enforcement.getEnforcementConfig().getAskWithRetryConfig();
                 policyEnforcerCacheLoader = new PolicyEnforcerCacheLoader(askWithRetryConfig,
                         actorSystem.getScheduler(),
                         enforcement.getPoliciesShardRegion()
                 );
             }
 
-            // TODO TJ use explicit executor instead of taking up resources on the main dispatcher!
             try {
+                // TODO TJ use explicit executor instead of taking up resources on the main dispatcher!
                 return policyEnforcerCacheLoader.asyncLoad(EnforcementCacheKey.of(policyId), actorSystem.dispatcher())
                         .thenApply(entry -> {
                             if (entry.exists()) {

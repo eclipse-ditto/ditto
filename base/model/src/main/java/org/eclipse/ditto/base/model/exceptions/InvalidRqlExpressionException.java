@@ -28,12 +28,12 @@ import org.eclipse.ditto.json.JsonObject;
  */
 @Immutable
 @JsonParsableException(errorCode = InvalidRqlExpressionException.ERROR_CODE)
-public final class InvalidRqlExpressionException extends DittoRuntimeException {
+public final class InvalidRqlExpressionException extends DittoRuntimeException implements GeneralException {
 
     /**
      * Error code of this exception.
      */
-    public static final String ERROR_CODE = "rql.expression.invalid";
+    public static final String ERROR_CODE = ERROR_CODE_PREFIX + "rql.expression.invalid";
 
     static final String DEFAULT_MESSAGE = "The given RQL expression was invalid";
     static final String DEFAULT_DESCRIPTION = "Ensure that all opening parentheses have also closing ones and that " +

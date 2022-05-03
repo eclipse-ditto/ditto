@@ -14,9 +14,9 @@ package org.eclipse.ditto.internal.utils.aggregator;
 
 import java.util.UUID;
 
+import org.eclipse.ditto.base.model.exceptions.DittoInternalErrorException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.base.model.signals.commands.exceptions.DittoInternalErrorException;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.ThingIdInvalidException;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThings;

@@ -746,6 +746,11 @@
 
             <dependency>
                 <groupId>org.eclipse.ditto</groupId>
+                <artifactId>ditto-gateway-api</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.ditto</groupId>
                 <artifactId>ditto-gateway-service</artifactId>
                 <version>${project.version}</version>
             </dependency>

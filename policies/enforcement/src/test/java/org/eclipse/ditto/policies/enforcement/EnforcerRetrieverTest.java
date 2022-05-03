@@ -25,9 +25,9 @@ import java.util.concurrent.ExecutionException;
 
 import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.base.model.entity.type.EntityType;
+import org.eclipse.ditto.base.model.exceptions.DittoInternalErrorException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
-import org.eclipse.ditto.base.model.signals.commands.exceptions.DittoInternalErrorException;
 import org.eclipse.ditto.internal.utils.cache.Cache;
 import org.eclipse.ditto.internal.utils.cache.entry.Entry;
 import org.eclipse.ditto.internal.utils.cacheloaders.EnforcementCacheKey;

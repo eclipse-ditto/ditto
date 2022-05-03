@@ -16,10 +16,9 @@ import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.junit.Ignore;
 import org.junit.Test;
 
 /**
@@ -39,7 +38,7 @@ public final class DittoHeadersTooLargeExceptionTest {
 
         assertThat(json).isEqualTo(JsonFactory.newObject("{" +
                 "\"status\":431," +
-                "\"error\":\"headers.too.large\"," +
+                "\"error\":\"general:headers.too.large\"," +
                 "\"message\":\"The headers are too large.\"," +
                 "\"description\":\"The number of bytes exceeded the maximum allowed value <5>!\"" +
                 "}"));
@@ -58,7 +57,7 @@ public final class DittoHeadersTooLargeExceptionTest {
 
         assertThat(json).isEqualTo(JsonFactory.newObject("{" +
                 "\"status\":431," +
-                "\"error\":\"headers.too.large\"," +
+                "\"error\":\"general:headers.too.large\"," +
                 "\"message\":\"The headers are too large.\"," +
                 "\"description\":\"The number of authorization subjects <1> exceeded the maximum allowed value <2>.\"" +
                 "}"));

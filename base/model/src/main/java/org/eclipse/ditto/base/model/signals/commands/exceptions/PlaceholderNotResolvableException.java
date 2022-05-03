@@ -23,19 +23,20 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
 
-import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeExceptionBuilder;
+import org.eclipse.ditto.base.model.exceptions.GeneralException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonParsableException;
+import org.eclipse.ditto.json.JsonObject;
 
 /**
  * This exception indicates that a request contains a placeholder which cannot be resolved.
  */
 @Immutable
-@JsonParsableException(errorCode = GatewayPlaceholderNotResolvableException.ERROR_CODE)
-public final class GatewayPlaceholderNotResolvableException extends DittoRuntimeException implements GatewayException {
+@JsonParsableException(errorCode = PlaceholderNotResolvableException.ERROR_CODE)
+public final class PlaceholderNotResolvableException extends DittoRuntimeException implements GeneralException {
 
     /**
      * Error code of this exception.
@@ -55,7 +56,7 @@ public final class GatewayPlaceholderNotResolvableException extends DittoRuntime
 
     private static final long serialVersionUID = -8724890154457417912L;
 
-    private GatewayPlaceholderNotResolvableException(final DittoHeaders dittoHeaders,
+    private PlaceholderNotResolvableException(final DittoHeaders dittoHeaders,
             @Nullable final String message,
             @Nullable final String description,
             @Nullable final Throwable cause,
@@ -64,7 +65,7 @@ public final class GatewayPlaceholderNotResolvableException extends DittoRuntime
     }
 
     /**
-     * A mutable builder for a {@link GatewayPlaceholderNotResolvableException} for an unknown placeholder.
+     * A mutable builder for a {@link PlaceholderNotResolvableException} for an unknown placeholder.
      *
      * @param unknownPlaceholder the unknown placeholder.
      * @param supportedPlaceholders the supported placeholders.
@@ -87,7 +88,7 @@ public final class GatewayPlaceholderNotResolvableException extends DittoRuntime
 
 
     /**
-     * A mutable builder for a {@link GatewayPlaceholderNotResolvableException} for an input with non-resolvable
+     * A mutable builder for a {@link PlaceholderNotResolvableException} for an input with non-resolvable
      * placeholders (e.g. missing placeholder end string: "}}").
      *
      * @param notResolvableInput the input which is not resolvable.
@@ -103,18 +104,18 @@ public final class GatewayPlaceholderNotResolvableException extends DittoRuntime
     }
 
     /**
-     * Constructs a new {@code GatewayPlaceholderNotResolvableException} object with the exception message extracted
+     * Constructs a new {@code PlaceholderNotResolvableException} object with the exception message extracted
      * from the given JSON object.
      *
      * @param jsonObject the JSON to read the {@link org.eclipse.ditto.base.model.exceptions.DittoRuntimeException.JsonFields#MESSAGE} field from.
      * @param dittoHeaders the headers of the command which resulted in this exception.
-     * @return the new GatewayPlaceholderNotResolvableException.
+     * @return the new PlaceholderNotResolvableException.
      * @throws NullPointerException if any argument is {@code null}.
      * @throws org.eclipse.ditto.json.JsonMissingFieldException if this JsonObject did not contain an error message.
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
      * format.
      */
-    public static GatewayPlaceholderNotResolvableException fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
+    public static PlaceholderNotResolvableException fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return DittoRuntimeException.fromJson(jsonObject, dittoHeaders, new Builder());
     }
 
@@ -130,11 +131,11 @@ public final class GatewayPlaceholderNotResolvableException extends DittoRuntime
     }
 
     /**
-     * A mutable builder with a fluent API for a {@link GatewayPlaceholderNotResolvableException}.
+     * A mutable builder with a fluent API for a {@link PlaceholderNotResolvableException}.
      *
      */
     @NotThreadSafe
-    public static final class Builder extends DittoRuntimeExceptionBuilder<GatewayPlaceholderNotResolvableException> {
+    public static final class Builder extends DittoRuntimeExceptionBuilder<PlaceholderNotResolvableException> {
 
         private Builder() {
             description(UNKNOWN_DESCRIPTION_TEMPLATE);
@@ -147,12 +148,12 @@ public final class GatewayPlaceholderNotResolvableException extends DittoRuntime
         }
 
         @Override
-        protected GatewayPlaceholderNotResolvableException doBuild(final DittoHeaders dittoHeaders,
+        protected PlaceholderNotResolvableException doBuild(final DittoHeaders dittoHeaders,
                 @Nullable final String message,
                 @Nullable final String description,
                 @Nullable final Throwable cause,
                 @Nullable final URI href) {
-            return new GatewayPlaceholderNotResolvableException(dittoHeaders, message, description, cause, href);
+            return new PlaceholderNotResolvableException(dittoHeaders, message, description, cause, href);
         }
     }
 }

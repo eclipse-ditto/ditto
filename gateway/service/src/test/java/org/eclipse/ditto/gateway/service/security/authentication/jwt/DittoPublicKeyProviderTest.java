@@ -27,7 +27,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayAuthenticationProviderUnavailableException;
+import org.eclipse.ditto.gateway.api.GatewayAuthenticationProviderUnavailableException;
 import org.eclipse.ditto.gateway.service.util.config.security.OAuthConfig;
 import org.eclipse.ditto.internal.utils.cache.config.CacheConfig;
 import org.eclipse.ditto.internal.utils.http.HttpClientFacade;

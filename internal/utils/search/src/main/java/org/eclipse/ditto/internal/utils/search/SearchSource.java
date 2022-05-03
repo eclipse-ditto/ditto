@@ -21,9 +21,9 @@ import java.util.function.Consumer;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.base.model.exceptions.DittoInternalErrorException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.base.model.signals.commands.exceptions.DittoInternalErrorException;
 import org.eclipse.ditto.internal.utils.akka.controlflow.ResumeSource;
 import org.eclipse.ditto.internal.utils.akka.controlflow.ResumeSourceBuilder;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;

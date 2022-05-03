@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Contributors to the Eclipse Foundation
+ * Copyright (c) 2022 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.base.model.signals.commands.exceptions;
+package org.eclipse.ditto.gateway.api;
 
 import java.net.URI;
 
@@ -18,30 +18,34 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
 
-import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonParsableException;
+import org.eclipse.ditto.json.JsonObject;
 
 /**
- * This exception indicates that the HTTP request could not be authenticated correctly.
+ * This exception indicates that the websocket session is terminated because the JWT expired.
  */
 @Immutable
-@JsonParsableException(errorCode = GatewayAuthenticationFailedException.ERROR_CODE)
-public final class GatewayAuthenticationFailedException extends DittoRuntimeException implements GatewayException {
+@JsonParsableException(errorCode = GatewayWebsocketSessionExpiredException.ERROR_CODE)
+public final class GatewayWebsocketSessionExpiredException extends DittoRuntimeException implements GatewayException {
 
     /**
      * Error code of this exception.
      */
-    public static final String ERROR_CODE = ERROR_CODE_PREFIX + "authentication.failed";
+    public static final String ERROR_CODE = ERROR_CODE_PREFIX + "websocket.session.expired";
 
-    private static final String DEFAULT_DESCRIPTION = "Check if your credentials were correct.";
+    private static final String DEFAULT_MESSAGE =
+            "The websocket session expired because the JWT used for authentication has expired.";
 
-    private static final long serialVersionUID = 2120928636274583181L;
+    private static final String DEFAULT_DESCRIPTION =
+            "You need to periodically refresh your websocket session with a new JWT.";
 
-    private GatewayAuthenticationFailedException(final DittoHeaders dittoHeaders,
+    private static final long serialVersionUID = 4346112767217051860L;
+
+    private GatewayWebsocketSessionExpiredException(final DittoHeaders dittoHeaders,
             @Nullable final String message,
             @Nullable final String description,
             @Nullable final Throwable cause,
@@ -50,41 +54,40 @@ public final class GatewayAuthenticationFailedException extends DittoRuntimeExce
     }
 
     /**
-     * A mutable builder for a {@code GatewayAuthenticationFailedException}.
+     * A mutable builder for a {@code GatewayWebsocketSessionExpiredException}.
      *
-     * @param message the message why the authentication failed.
      * @return the builder.
      */
-    public static Builder newBuilder(final String message) {
-        return new Builder(message);
+    public static Builder newBuilder() {
+        return new Builder();
     }
 
     /**
-     * Constructs a new {@code GatewayAuthenticationFailedException} object with given message.
+     * Constructs a new {@code GatewayWebsocketSessionExpiredException} object with given message.
      *
      * @param message detail message. This message can be later retrieved by the {@link #getMessage()} method.
      * @param dittoHeaders the headers of the command which resulted in this exception.
-     * @return the new GatewayAuthenticationFailedException.
+     * @return the new GatewayWebsocketSessionExpiredException.
      * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
      */
-    public static GatewayAuthenticationFailedException fromMessage(@Nullable final String message,
+    public static GatewayWebsocketSessionExpiredException fromMessage(@Nullable final String message,
             final DittoHeaders dittoHeaders) {
         return DittoRuntimeException.fromMessage(message, dittoHeaders, new Builder());
     }
 
     /**
-     * Constructs a new {@code GatewayAuthenticationFailedException} object with the exception message extracted from the given
+     * Constructs a new {@code GatewayWebsocketSessionExpiredException} object with the exception message extracted from the given
      * JSON object.
      *
      * @param jsonObject the JSON to read the {@link org.eclipse.ditto.base.model.exceptions.DittoRuntimeException.JsonFields#MESSAGE} field from.
      * @param dittoHeaders the headers of the command which resulted in this exception.
-     * @return the new GatewayAuthenticationFailedException.
+     * @return the new GatewayWebsocketSessionExpiredException.
      * @throws NullPointerException if any argument is {@code null}.
      * @throws org.eclipse.ditto.json.JsonMissingFieldException if this JsonObject did not contain an error message.
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
      * format.
      */
-    public static GatewayAuthenticationFailedException fromJson(final JsonObject jsonObject,
+    public static GatewayWebsocketSessionExpiredException fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
         return DittoRuntimeException.fromJson(jsonObject, dittoHeaders, new Builder());
     }
@@ -101,27 +104,23 @@ public final class GatewayAuthenticationFailedException extends DittoRuntimeExce
     }
 
     /**
-     * A mutable builder with a fluent API for a {@link GatewayAuthenticationFailedException}.
+     * A mutable builder with a fluent API for a {@link GatewayWebsocketSessionExpiredException}.
      */
     @NotThreadSafe
-    public static final class Builder extends DittoRuntimeExceptionBuilder<GatewayAuthenticationFailedException> {
+    public static final class Builder extends DittoRuntimeExceptionBuilder<GatewayWebsocketSessionExpiredException> {
 
         private Builder() {
+            message(DEFAULT_MESSAGE);
             description(DEFAULT_DESCRIPTION);
         }
 
-        private Builder(final String message) {
-            this();
-            message(message);
-        }
-
         @Override
-        protected GatewayAuthenticationFailedException doBuild(final DittoHeaders dittoHeaders,
+        protected GatewayWebsocketSessionExpiredException doBuild(final DittoHeaders dittoHeaders,
                 @Nullable final String message,
                 @Nullable final String description,
                 @Nullable final Throwable cause,
                 @Nullable final URI href) {
-            return new GatewayAuthenticationFailedException(dittoHeaders, message, description, cause, href);
+            return new GatewayWebsocketSessionExpiredException(dittoHeaders, message, description, cause, href);
         }
     }
 }

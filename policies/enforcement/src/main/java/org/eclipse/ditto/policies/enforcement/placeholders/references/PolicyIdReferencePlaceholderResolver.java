@@ -21,11 +21,11 @@ import java.util.stream.Collectors;
 
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.base.model.exceptions.DittoInternalErrorException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.base.model.signals.commands.exceptions.DittoInternalErrorException;
-import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayPlaceholderReferenceNotSupportedException;
-import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayPlaceholderReferenceUnknownFieldException;
+import org.eclipse.ditto.base.model.signals.commands.exceptions.PlaceholderReferenceNotSupportedException;
+import org.eclipse.ditto.base.model.signals.commands.exceptions.PlaceholderReferenceUnknownFieldException;
 import org.eclipse.ditto.internal.utils.akka.logging.AutoCloseableSlf4jLogger;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLogger;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
@@ -149,20 +149,20 @@ public final class PolicyIdReferencePlaceholderResolver implements ReferencePlac
         }
     }
 
-    private static GatewayPlaceholderReferenceUnknownFieldException unknownFieldException(
+    private static PlaceholderReferenceUnknownFieldException unknownFieldException(
             final ReferencePlaceholder placeholder, final DittoHeaders headers) {
 
-        return GatewayPlaceholderReferenceUnknownFieldException.fromUnknownFieldAndEntityId(
+        return PlaceholderReferenceUnknownFieldException.fromUnknownFieldAndEntityId(
                 placeholder.getReferencedField().toString(),
                 placeholder.getReferencedEntityId())
                 .dittoHeaders(headers)
                 .build();
     }
 
-    private GatewayPlaceholderReferenceNotSupportedException notSupportedException(
+    private PlaceholderReferenceNotSupportedException notSupportedException(
             final CharSequence referencedEntityType, final DittoHeaders headers) {
 
-        return GatewayPlaceholderReferenceNotSupportedException.fromUnsupportedEntityType(referencedEntityType,
+        return PlaceholderReferenceNotSupportedException.fromUnsupportedEntityType(referencedEntityType,
                 supportedEntityTypeNames)
                 .dittoHeaders(headers)
                 .build();

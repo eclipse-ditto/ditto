@@ -40,12 +40,12 @@ import org.eclipse.ditto.json.JsonObjectBuilder;
  */
 @Immutable
 @JsonParsableException(errorCode = EntityNotCreatableException.ERROR_CODE)
-public final class EntityNotCreatableException extends DittoRuntimeException {
+public final class EntityNotCreatableException extends DittoRuntimeException implements GeneralException {
 
     /**
      * Error code of this exception.
      */
-    public static final String ERROR_CODE = "entity.notcreatable";
+    public static final String ERROR_CODE = ERROR_CODE_PREFIX + "entity.notcreatable";
 
     static final String MESSAGE_TEMPLATE = "The Entity with ID ''{0}'' could not be created as the creation was " +
             "configured not to be allowed.";

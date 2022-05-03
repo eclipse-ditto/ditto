@@ -32,6 +32,7 @@ import java.util.stream.Collectors;
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
 import org.eclipse.ditto.base.model.exceptions.AskException;
+import org.eclipse.ditto.base.model.exceptions.DittoInternalErrorException;
 import org.eclipse.ditto.base.model.exceptions.DittoJsonException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.exceptions.EntityNotCreatableException;
@@ -47,8 +48,7 @@ import org.eclipse.ditto.base.model.signals.FeatureToggle;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.commands.CommandToExceptionRegistry;
 import org.eclipse.ditto.base.model.signals.commands.ErrorResponse;
-import org.eclipse.ditto.base.model.signals.commands.exceptions.DittoInternalErrorException;
-import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayCommandTimeoutException;
+import org.eclipse.ditto.base.model.signals.commands.exceptions.CommandTimeoutException;
 import org.eclipse.ditto.internal.models.signal.CommandHeaderRestoration;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLogger;
@@ -205,6 +205,13 @@ public final class ThingCommandEnforcement
         return policiesShardRegion;
     }
 
+    /**
+     * @return the EnforcementConfig which this things specific enforcement received during construction.
+     */
+    public EnforcementConfig getEnforcementConfig() {
+        return enforcementConfig;
+    }
+
     @Override
     public CompletionStage<ThingCommand<?>> authorizeSignal(final ThingCommand<?> thingCommand,
             final PolicyEnforcer enforcer) {
@@ -257,6 +264,10 @@ public final class ThingCommandEnforcement
                 });
     }
 
+    @Override
+    public boolean shouldFilterCommandResponses() {
+        return true;
+    }
     @Override
     public CompletionStage<ThingCommandResponse<?>> filterResponse(final ThingCommandResponse<?> commandResponse,
             final PolicyEnforcer policyEnforcer) {
@@ -395,14 +406,14 @@ public final class ThingCommandEnforcement
             return CompletableFuture.completedStage(twinResponse);
         } else {
             final var timeout = LiveSignalEnforcement.getLiveSignalTimeout(command);
-            final GatewayCommandTimeoutException timeoutException = GatewayCommandTimeoutException.newBuilder(timeout)
+            final CommandTimeoutException timeoutException = CommandTimeoutException.newBuilder(timeout)
                     .dittoHeaders(twinResponse.getDittoHeaders()
                             .toBuilder()
                             .channel(Signal.CHANNEL_LIVE)
                             .putHeaders(getAdditionalLiveResponseHeaders(twinResponse.getDittoHeaders()))
                             .build())
                     .build();
-            final GatewayCommandTimeoutException timeoutExceptionWithConnectivityHeaders =
+            final CommandTimeoutException timeoutExceptionWithConnectivityHeaders =
                     CommandHeaderRestoration.restoreCommandConnectivityHeaders(timeoutException,
                             command.getDittoHeaders());
             return CompletableFuture.failedStage(timeoutExceptionWithConnectivityHeaders);

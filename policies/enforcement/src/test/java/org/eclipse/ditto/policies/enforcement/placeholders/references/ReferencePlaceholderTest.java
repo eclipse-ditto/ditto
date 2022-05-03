@@ -18,7 +18,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.Optional;
 
-import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayPlaceholderReferenceNotSupportedException;
+import org.eclipse.ditto.base.model.signals.commands.exceptions.PlaceholderReferenceNotSupportedException;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.assertions.DittoJsonAssertions;
 import org.eclipse.ditto.things.model.ThingId;
@@ -84,7 +84,7 @@ public class ReferencePlaceholderTest {
     @Test
     public void fromCharSequenceWithUnsupportedEntityTypeThrowsException() {
         assertThatThrownBy(() -> ReferencePlaceholder.fromCharSequence("{{ref:topologies/namespace:thingid/policyId}}"))
-                .isInstanceOf(GatewayPlaceholderReferenceNotSupportedException.class);
+                .isInstanceOf(PlaceholderReferenceNotSupportedException.class);
     }
 
 }

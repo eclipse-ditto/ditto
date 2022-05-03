@@ -19,11 +19,11 @@ import java.util.function.BiFunction;
 import java.util.function.Function;
 
 import org.eclipse.ditto.base.model.exceptions.AskException;
+import org.eclipse.ditto.base.model.exceptions.DittoInternalErrorException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
 import org.eclipse.ditto.base.model.signals.commands.ErrorResponse;
-import org.eclipse.ditto.base.model.signals.commands.exceptions.DittoInternalErrorException;
 import org.eclipse.ditto.internal.utils.cacheloaders.AskWithRetry;
 import org.eclipse.ditto.policies.model.enforcers.Enforcer;
 

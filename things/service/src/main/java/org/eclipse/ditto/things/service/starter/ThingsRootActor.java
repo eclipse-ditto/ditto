@@ -33,6 +33,7 @@ import org.eclipse.ditto.internal.utils.persistentactors.cleanup.PersistenceClea
 import org.eclipse.ditto.internal.utils.pubsub.DistributedAcks;
 import org.eclipse.ditto.internal.utils.pubsub.DistributedPub;
 import org.eclipse.ditto.internal.utils.pubsub.ThingEventPubSubFactory;
+import org.eclipse.ditto.policies.api.PoliciesMessagingConstants;
 import org.eclipse.ditto.policies.enforcement.PreEnforcer;
 import org.eclipse.ditto.things.api.ThingsMessagingConstants;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
@@ -82,8 +83,11 @@ public final class ThingsRootActor extends DittoRootActor {
 
         final ShardRegionProxyActorFactory shardRegionProxyActorFactory =
                 ShardRegionProxyActorFactory.newInstance(actorSystem, clusterConfig);
-        final ActorRef policiesShardRegion =
-                shardRegionProxyActorFactory.getShardRegionProxyActor("policies", "policy");// TODO TJ make good
+
+        final ActorRef policiesShardRegion = shardRegionProxyActorFactory.getShardRegionProxyActor(
+                PoliciesMessagingConstants.CLUSTER_ROLE,
+                PoliciesMessagingConstants.SHARD_REGION
+        );
 
         final ActorRef thingsShardRegion = ClusterSharding.get(actorSystem)
                 .start(ThingsMessagingConstants.SHARD_REGION,

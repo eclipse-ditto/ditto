@@ -15,19 +15,16 @@ package org.eclipse.ditto.base.model.signals.commands.exceptions;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
-import org.junit.Ignore;
 import org.junit.Test;
 
 /**
- * Unit test for {@link GatewayWebsocketSessionClosedException}.
+ * Unit test for {@link PlaceholderNotResolvableException}.
  */
-public final class GatewayWebsocketSessionClosedExceptionTest {
+public final class PlaceholderNotResolvableExceptionTest {
 
     @Test
     public void assertImmutability() {
-        assertInstancesOf(
-                GatewayWebsocketSessionClosedException.class,
-                areImmutable());
+        assertInstancesOf(PlaceholderNotResolvableException.class, areImmutable());
     }
 
 }

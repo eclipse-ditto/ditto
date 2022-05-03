@@ -25,14 +25,12 @@ import org.eclipse.ditto.base.model.acks.AcknowledgementRequest;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.common.ResponseType;
 import org.eclipse.ditto.base.model.correlationid.TestNameCorrelationId;
-import org.eclipse.ditto.base.model.entity.id.EntityId;
-import org.eclipse.ditto.base.model.entity.type.EntityType;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.translator.HeaderTranslator;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgements;
-import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayCommandTimeoutException;
+import org.eclipse.ditto.base.model.signals.commands.exceptions.CommandTimeoutException;
 import org.eclipse.ditto.internal.models.acks.config.DefaultAcknowledgementConfig;
 import org.eclipse.ditto.internal.models.signal.correlation.MatchingValidationResult;
 import org.eclipse.ditto.internal.utils.akka.ActorSystemResource;
@@ -134,7 +132,7 @@ public final class AcknowledgementAggregatorActorTest {
 
         // THEN
         final var thingErrorResponse = testKit.expectMsgClass(ThingErrorResponse.class);
-        assertThat(thingErrorResponse.getDittoRuntimeException()).isInstanceOf(GatewayCommandTimeoutException.class);
+        assertThat(thingErrorResponse.getDittoRuntimeException()).isInstanceOf(CommandTimeoutException.class);
     }
 
     @Test
@@ -154,7 +152,7 @@ public final class AcknowledgementAggregatorActorTest {
 
         // THEN
         final var thingErrorResponse = testKit.expectMsgClass(ThingErrorResponse.class);
-        assertThat(thingErrorResponse.getDittoRuntimeException()).isInstanceOf(GatewayCommandTimeoutException.class);
+        assertThat(thingErrorResponse.getDittoRuntimeException()).isInstanceOf(CommandTimeoutException.class);
     }
 
     @Test
@@ -368,7 +366,7 @@ public final class AcknowledgementAggregatorActorTest {
         final var thingErrorResponse = testKit.expectMsgClass(Duration.ofSeconds(5L), ThingErrorResponse.class);
         assertThat((CharSequence) thingErrorResponse.getEntityId()).isEqualTo(THING_ID);
         assertThat(thingErrorResponse.getDittoRuntimeException())
-                .isInstanceOfSatisfying(GatewayCommandTimeoutException.class,
+                .isInstanceOfSatisfying(CommandTimeoutException.class,
                         timeoutException -> assertThat(timeoutException.getDescription())
                                 .hasValueSatisfying(description -> assertThat(description)
                                         .contains(String.format(
@@ -383,7 +381,7 @@ public final class AcknowledgementAggregatorActorTest {
 
         // GIVEN
         final var testKit = actorSystemResource.newTestKit();
-        final var connectionId = EntityId.of(EntityType.of("connection"), UUID.randomUUID().toString());
+        final var connectionId = UUID.randomUUID().toString();
         final var command = DeleteThing.of(THING_ID, DittoHeaders.newBuilder()
                 .correlationId(testNameCorrelationId.getCorrelationId())
                 .acknowledgementRequest(AcknowledgementRequest.of(AcknowledgementLabel.of("live-response")))
@@ -403,7 +401,7 @@ public final class AcknowledgementAggregatorActorTest {
         final var thingErrorResponse = testKit.expectMsgClass(Duration.ofSeconds(5L), ThingErrorResponse.class);
         assertThat((CharSequence) thingErrorResponse.getEntityId()).isEqualTo(THING_ID);
         assertThat(thingErrorResponse.getDittoRuntimeException())
-                .isInstanceOfSatisfying(GatewayCommandTimeoutException.class,
+                .isInstanceOfSatisfying(CommandTimeoutException.class,
                         timeoutException -> assertThat(timeoutException.getDescription())
                                 .hasValueSatisfying(description -> assertThat(description)
                                         .contains(String.format(
