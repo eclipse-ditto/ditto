@@ -12,7 +12,10 @@
  */
 package org.eclipse.ditto.base.service.cluster;
 
+import java.util.Objects;
 import java.util.function.Predicate;
+
+import javax.annotation.Nullable;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.FieldType;
@@ -29,7 +32,7 @@ import org.eclipse.ditto.json.JsonPointer;
 @JsonParsableCommand(typePrefix = ModifySplitBrainResolver.PREFIX, name = ModifySplitBrainResolver.NAME)
 public final class ModifySplitBrainResolver extends AbstractCommand<ModifySplitBrainResolver> {
 
-    private static final JsonFieldDefinition<Boolean> ENABLED =
+    public static final JsonFieldDefinition<Boolean> ENABLED_FIELD_KEY =
             JsonFieldDefinition.ofBoolean("enabled", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
     static final String PREFIX = "ditto.sbr:";
@@ -49,7 +52,7 @@ public final class ModifySplitBrainResolver extends AbstractCommand<ModifySplitB
 
     public static ModifySplitBrainResolver fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandJsonDeserializer<ModifySplitBrainResolver>(TYPE, jsonObject).deserialize(() -> {
-            final boolean enabled = jsonObject.getValue(ENABLED).orElseThrow();
+            final boolean enabled = jsonObject.getValue(ENABLED_FIELD_KEY).orElseThrow();
 
             return new ModifySplitBrainResolver(dittoHeaders, enabled);
         });
@@ -62,7 +65,7 @@ public final class ModifySplitBrainResolver extends AbstractCommand<ModifySplitB
     @Override
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> predicate) {
-        jsonObjectBuilder.set(ENABLED, enabled, schemaVersion.and(predicate));
+        jsonObjectBuilder.set(ENABLED_FIELD_KEY, enabled, schemaVersion.and(predicate));
     }
 
     @Override
@@ -88,6 +91,36 @@ public final class ModifySplitBrainResolver extends AbstractCommand<ModifySplitB
     @Override
     public String getResourceType() {
         return "sbr";
+    }
+
+    @Override
+    protected boolean canEqual(@Nullable final Object other) {
+        return other instanceof ModifySplitBrainResolver;
+    }
+
+    @Override
+    public boolean equals(final Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        if (!super.equals(o)) return false;
+        final ModifySplitBrainResolver that = (ModifySplitBrainResolver) o;
+        return enabled == that.enabled;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(super.hashCode(), enabled);
+    }
+
+    @Override
+    public String toString() {
+        return getClass().getSimpleName() + " [" +
+                "enabled=" + enabled +
+                "]";
     }
 
 }

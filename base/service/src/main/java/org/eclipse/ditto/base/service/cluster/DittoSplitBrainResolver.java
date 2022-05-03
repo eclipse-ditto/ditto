@@ -42,6 +42,7 @@ final class DittoSplitBrainResolver extends AbstractActor {
     @Nullable
     private ActorRef splitBrainResolverActor;
 
+    @SuppressWarnings("unused")
     private DittoSplitBrainResolver(final Props splitBrainResolverProps) {
         this.splitBrainResolverProps = splitBrainResolverProps;
         final Duration autoEnableAfter = getAutoEnableAfter();
@@ -50,6 +51,10 @@ final class DittoSplitBrainResolver extends AbstractActor {
                 .scheduler()
                 .scheduleOnce(autoEnableAfter, getSelf(), ENABLE, context().dispatcher(), getSelf());
         LOGGER.info("SBR will be automatically enabled after <{}>", autoEnableAfter);
+    }
+
+    static Props props(@Nullable final Props splitBrainResolverProps) {
+        return Props.create(DittoSplitBrainResolver.class, splitBrainResolverProps);
     }
 
     private Duration getAutoEnableAfter() {
@@ -69,9 +74,6 @@ final class DittoSplitBrainResolver extends AbstractActor {
                 .build();
     }
 
-    static Props props(@Nullable final Props splitBrainResolverProps) {
-        return Props.create(DittoSplitBrainResolver.class, splitBrainResolverProps);
-    }
 
     private ActorRef startChildActor(final Props props) {
         return getContext().actorOf(props);
@@ -82,10 +84,10 @@ final class DittoSplitBrainResolver extends AbstractActor {
             autoEnabling.cancel();
         }
         if (modifySplitBrainResolver.isEnabled() && splitBrainResolverActor == null) {
-            LOGGER.info("Enabling akka split brain resolver");
+            LOGGER.info("Enabling Akka split rain resolver");
             splitBrainResolverActor = startChildActor(splitBrainResolverProps);
         } else if (!modifySplitBrainResolver.isEnabled() && splitBrainResolverActor != null) {
-            LOGGER.info("Stopping akka split brain resolver");
+            LOGGER.info("Stopping Akka split brain resolver");
             getContext().stop(splitBrainResolverActor);
             splitBrainResolverActor = null;
         }

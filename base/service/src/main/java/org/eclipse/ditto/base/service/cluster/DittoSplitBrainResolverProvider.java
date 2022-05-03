@@ -54,7 +54,7 @@ final class DittoSplitBrainResolverProvider extends DowningProvider {
             final Props splitBrainResolverProps = splitBrainResolverProvider.downingActorProps().get();
             return Option.apply(DittoSplitBrainResolver.props(splitBrainResolverProps));
         } catch (final Exception e) {
-            final String msg = "Could not create ditto split brain resolver props.";
+            final String msg = "Could not create Ditto split brain resolver props.";
             LOGGER.error(msg, e);
             throw new DittoConfigError(msg, e);
         }
