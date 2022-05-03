@@ -211,7 +211,9 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
     }
 
     private static HttpResponse createHttpResponse(final HttpStatus httpStatus) {
-        return HttpResponse.create().withStatus(httpStatus.getCode());
+        final var statusCode = StatusCodes.lookup(httpStatus.getCode())
+                .orElse(StatusCodes.custom(httpStatus.getCode(), "custom", "custom"));
+        return HttpResponse.create().withStatus(statusCode);
     }
 
     private void handleCommand(final Command<?> command) {
@@ -427,8 +429,6 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
         final Optional<?> optionalPayload = message.getPayload();
         final Optional<ByteBuffer> optionalRawPayload = message.getRawPayload();
         final var responseStatus = Optional.of(messageCommandResponse.getHttpStatus())
-                .filter(httpStatus -> StatusCodes.lookup(httpStatus.getCode()).isPresent())
-                // only allow HTTP status which are known to akka-http
                 .filter(httpStatus -> !HttpStatus.BAD_GATEWAY.equals(httpStatus));
         // filter "bad gateway" 502 from being used as this is used Ditto internally for graceful HTTP shutdown
 
