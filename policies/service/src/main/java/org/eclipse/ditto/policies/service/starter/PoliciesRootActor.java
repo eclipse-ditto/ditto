@@ -23,6 +23,9 @@ import org.eclipse.ditto.internal.utils.cluster.RetrieveStatisticsDetailsRespons
 import org.eclipse.ditto.internal.utils.cluster.ShardRegionExtractor;
 import org.eclipse.ditto.internal.utils.health.DefaultHealthCheckingActorFactory;
 import org.eclipse.ditto.internal.utils.health.HealthCheckingActorOptions;
+import org.eclipse.ditto.internal.utils.namespaces.BlockNamespaceBehavior;
+import org.eclipse.ditto.internal.utils.namespaces.BlockedNamespaces;
+import org.eclipse.ditto.internal.utils.namespaces.BlockedNamespacesUpdater;
 import org.eclipse.ditto.internal.utils.persistence.SnapshotAdapter;
 import org.eclipse.ditto.internal.utils.persistence.mongo.MongoHealthChecker;
 import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.MongoReadJournal;
@@ -31,6 +34,9 @@ import org.eclipse.ditto.internal.utils.persistentactors.cleanup.PersistenceClea
 import org.eclipse.ditto.internal.utils.pubsub.DistributedPub;
 import org.eclipse.ditto.internal.utils.pubsub.PolicyAnnouncementPubSubFactory;
 import org.eclipse.ditto.policies.api.PoliciesMessagingConstants;
+import org.eclipse.ditto.policies.enforcement.PreEnforcer;
+import org.eclipse.ditto.policies.enforcement.placeholders.PlaceholderSubstitution;
+import org.eclipse.ditto.policies.enforcement.validators.CommandWithOptionalEntityValidator;
 import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.signals.announcements.PolicyAnnouncement;
 import org.eclipse.ditto.policies.service.common.config.PoliciesConfig;
@@ -72,19 +78,34 @@ public final class PoliciesRootActor extends DittoRootActor {
         final DistributedPub<PolicyAnnouncement<?>> policyAnnouncementPub =
                 PolicyAnnouncementPubSubFactory.of(getContext(), actorSystem).startDistributedPub();
 
-        final var policySupervisorProps =
-                PolicySupervisorActor.props(pubSubMediator, snapshotAdapter, policyAnnouncementPub);
-
         final ActorRef persistenceStreamingActor = startChildActor(PoliciesPersistenceStreamingActorCreator.ACTOR_NAME,
                 PoliciesPersistenceStreamingActorCreator.props());
 
         pubSubMediator.tell(DistPubSubAccess.put(getSelf()), getSelf());
         pubSubMediator.tell(DistPubSubAccess.put(persistenceStreamingActor), getSelf());
 
+        final BlockedNamespaces blockedNamespaces = BlockedNamespaces.of(actorSystem);
+        // start cluster singleton that writes to the distributed cache of blocked namespaces
+        final Props blockedNamespacesUpdaterProps = BlockedNamespacesUpdater.props(blockedNamespaces, pubSubMediator);
+        ClusterUtil.startSingleton(actorSystem, getContext(), PoliciesMessagingConstants.CLUSTER_ROLE,
+                BlockedNamespacesUpdater.ACTOR_NAME, blockedNamespacesUpdaterProps);
+
+        final var policySupervisorProps = getPolicySupervisorActorProps(snapshotAdapter,
+                pubSubMediator,
+                policyAnnouncementPub,
+                blockedNamespaces
+        );
+
         final var clusterConfig = policiesConfig.getClusterConfig();
+        final ShardRegionExtractor shardRegionExtractor = ShardRegionExtractor.of(clusterConfig.getNumberOfShards(),
+                actorSystem);
+
         final ActorRef policiesShardRegion = ClusterSharding.get(actorSystem)
-                .start(PoliciesMessagingConstants.SHARD_REGION, policySupervisorProps, shardingSettings,
-                        ShardRegionExtractor.of(clusterConfig.getNumberOfShards(), actorSystem));
+                .start(PoliciesMessagingConstants.SHARD_REGION,
+                        policySupervisorProps,
+                        shardingSettings,
+                        shardRegionExtractor
+                );
 
         final var mongoReadJournal = MongoReadJournal.newInstance(actorSystem);
         startClusterSingletonActor(
@@ -115,6 +136,38 @@ public final class PoliciesRootActor extends DittoRootActor {
         final ActorRef healthCheckingActor =
                 startChildActor(DefaultHealthCheckingActorFactory.ACTOR_NAME, healthCheckingActorProps);
         bindHttpStatusRoute(policiesConfig.getHttpConfig(), healthCheckingActor);
+    }
+
+    private static Props getPolicySupervisorActorProps(final SnapshotAdapter<Policy> snapshotAdapter,
+            final ActorRef pubSubMediator,
+            final DistributedPub<PolicyAnnouncement<?>> policyAnnouncementPub,
+            final BlockedNamespaces blockedNamespaces) {
+
+        return PolicySupervisorActor.props(pubSubMediator, snapshotAdapter, policyAnnouncementPub, blockedNamespaces,
+                providePreEnforcer(blockedNamespaces));
+    }
+
+    private static PreEnforcer providePreEnforcer(final BlockedNamespaces blockedNamespaces) {
+        return newPreEnforcer(blockedNamespaces, PlaceholderSubstitution.newInstance());
+        // TODO TJ provide extension mechanism here
+    }
+
+    /**
+     * TODO TJ consolidate with ThingsRootActor.newPreEnforcer
+     * @param blockedNamespaces
+     * @param placeholderSubstitution
+     * @return
+     */
+    private static PreEnforcer newPreEnforcer(final BlockedNamespaces blockedNamespaces,
+            final PlaceholderSubstitution placeholderSubstitution) {
+
+        return dittoHeadersSettable ->
+                BlockNamespaceBehavior.of(blockedNamespaces)
+                        .block(dittoHeadersSettable)
+                        .thenApply(CommandWithOptionalEntityValidator.getInstance())
+//                        .thenApply(ThingsRootActor::prependDefaultNamespaceToCreateThing)
+//                        .thenApply(ThingsRootActor::setOriginatorHeader)
+                        .thenCompose(placeholderSubstitution);
     }
 
     /**

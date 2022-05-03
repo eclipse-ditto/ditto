@@ -24,12 +24,14 @@ import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.base.model.exceptions.DittoInternalErrorException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
+import org.eclipse.ditto.base.model.namespaces.NamespaceReader;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
 import org.eclipse.ditto.internal.utils.akka.actors.AbstractActorWithStashWithTimers;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
+import org.eclipse.ditto.internal.utils.namespaces.BlockedNamespaces;
 import org.eclipse.ditto.policies.api.PolicyTag;
 import org.eclipse.ditto.policies.enforcement.EnforcementReloaded;
 import org.eclipse.ditto.policies.enforcement.PolicyEnforcer;
@@ -38,6 +40,8 @@ import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.enforcers.PolicyEnforcers;
 
 import akka.actor.ActorRef;
+import akka.cluster.ddata.ORSet;
+import akka.cluster.ddata.Replicator;
 import akka.cluster.pubsub.DistributedPubSubMediator;
 import akka.japi.pf.ReceiveBuilder;
 
@@ -61,6 +65,8 @@ public abstract class AbstractEnforcerActor<I extends EntityId, C extends Comman
      */
     protected static final Duration DEFAULT_LOCAL_ASK_TIMEOUT = Duration.ofSeconds(5);
 
+    private static final Duration CACHED_NAMESPACES_INVALIDATION_DELAY = Duration.ofSeconds(5);
+
     protected final DittoDiagnosticLoggingAdapter log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
 
     protected final I entityId;
@@ -69,8 +75,8 @@ public abstract class AbstractEnforcerActor<I extends EntityId, C extends Comman
     @Nullable protected PolicyId policyIdForEnforcement;
     @Nullable protected PolicyEnforcer policyEnforcer;
 
-
-    protected AbstractEnforcerActor(final I entityId, final E enforcement, final ActorRef pubSubMediator) {
+    protected AbstractEnforcerActor(final I entityId, final E enforcement, final ActorRef pubSubMediator,
+            @Nullable final BlockedNamespaces blockedNamespaces) {
 
         this.entityId = entityId;
         this.enforcement = enforcement;
@@ -80,6 +86,10 @@ public abstract class AbstractEnforcerActor<I extends EntityId, C extends Comman
         // subscribe for PolicyTags in order to reload policyEnforcer when "backing policy" was modified
         pubSubMediator.tell(DistPubSubAccess.subscribe(PolicyTag.PUB_SUB_TOPIC_INVALIDATE_ENFORCERS, getSelf()),
                 getSelf());
+
+        if (null != blockedNamespaces) {
+            blockedNamespaces.subscribeForChanges(getSelf());
+        }
     }
 
     /**
@@ -146,6 +156,8 @@ public abstract class AbstractEnforcerActor<I extends EntityId, C extends Comman
                 )
                 .match(Command.class, c -> enforceCommand((C) c))
                 .match(CommandResponse.class, r -> filterResponse((R) r))
+                .match(Replicator.Changed.class, this::handleChanged)
+                .match(InvalidateCachedNamespaces.class, this::invalidateCachedNamespaces)
                 .matchAny(message ->
                         log.withCorrelationId(
                                         message instanceof WithDittoHeaders withDittoHeaders ? withDittoHeaders : null)
@@ -208,6 +220,47 @@ public abstract class AbstractEnforcerActor<I extends EntityId, C extends Comman
             self.tell(Control.INIT_DONE, self);
         });
         becomeAwaitingInitialization();
+    }
+
+    @SuppressWarnings("unchecked")
+    private void handleChanged(final Replicator.Changed<?> changed) {
+        if (changed.dataValue() instanceof ORSet) {
+            final ORSet<String> namespaces = (ORSet<String>) changed.dataValue();
+            logNamespaces("Received", namespaces);
+            invalidateNamespacesAfterDelay(namespaces);
+        } else {
+            log.warning("Unhandled: <{}>", changed);
+        }
+    }
+
+    private void logNamespaces(final String verb, final ORSet<String> namespaces) {
+        if (namespaces.size() > 25) {
+            log.info("{} <{}> namespaces", verb, namespaces.size());
+        } else {
+            log.info("{} namespaces: <{}>", verb, namespaces);
+        }
+    }
+
+    private void invalidateNamespacesAfterDelay(final ORSet<String> namespaces) {
+        getTimers().startSingleTimer(namespaces, new InvalidateCachedNamespaces(namespaces),
+                CACHED_NAMESPACES_INVALIDATION_DELAY);
+    }
+
+    private void invalidateCachedNamespaces(final InvalidateCachedNamespaces invalidate) {
+        final ORSet<String> namespaces = invalidate.namespaces;
+        logNamespaces("Invalidating", namespaces);
+        if (!namespaces.isEmpty() && null != policyIdForEnforcement &&
+                containsNamespaceOfEntityId(namespaces, policyIdForEnforcement)) {
+            log.info("Reloading policy enforcer because namespace was added to blocked namespaces.");
+            performPolicyEnforcerReload();
+        }
+    }
+
+    private static boolean containsNamespaceOfEntityId(final ORSet<String> namespaces,
+            final EntityId entityId) {
+        return NamespaceReader.fromEntityId(entityId)
+                .map(namespaces::contains)
+                .orElse(false);
     }
 
     /**
@@ -353,4 +406,12 @@ public abstract class AbstractEnforcerActor<I extends EntityId, C extends Comman
         INIT_DONE
     }
 
+    private static final class InvalidateCachedNamespaces {
+
+        final ORSet<String> namespaces;
+
+        private InvalidateCachedNamespaces(final ORSet<String> namespaces) {
+            this.namespaces = namespaces;
+        }
+    }
 }

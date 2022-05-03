@@ -40,7 +40,7 @@ public final class ConnectionEnforcerActor
             final ConnectivityCommandEnforcement connectivityCommandEnforcement,
             final ActorRef pubSubMediator) {
 
-        super(connectionId, connectivityCommandEnforcement, pubSubMediator);
+        super(connectionId, connectivityCommandEnforcement, pubSubMediator, null);
     }
 
     /**
@@ -50,6 +50,7 @@ public final class ConnectionEnforcerActor
      * @param connectivityCommandEnforcement the connectivity command enforcement logic to apply in the enforcer.
      * @param pubSubMediator the ActorRef of the distributed pub-sub-mediator used to subscribe for policy updates in
      * order to perform invalidations.
+     * @return the {@link Props} to create this actor.
      */
     public static Props props(final ConnectionId connectionId,
             final ConnectivityCommandEnforcement connectivityCommandEnforcement,

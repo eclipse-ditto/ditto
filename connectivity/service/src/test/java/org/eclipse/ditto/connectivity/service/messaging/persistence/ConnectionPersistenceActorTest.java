@@ -32,6 +32,7 @@ import org.awaitility.Awaitility;
 import org.eclipse.ditto.base.api.persistence.cleanup.CleanupPersistence;
 import org.eclipse.ditto.base.api.persistence.cleanup.CleanupPersistenceResponse;
 import org.eclipse.ditto.base.model.correlationid.TestNameCorrelationId;
+import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.connectivity.api.BaseClientState;
@@ -383,7 +384,9 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
         testProbe.expectMsgClass(OpenConnectionResponse.class);
 
         // forward signal once
-        underTest.tell(CreateSubscription.of(DittoHeaders.empty()), testProbe.ref());
+        underTest.tell(CreateSubscription.of(DittoHeaders.newBuilder()
+                .putHeader(DittoHeaderDefinition.DITTO_SUDO.getKey(), "true")
+                .build()), testProbe.ref());
         clientActorProbe.fishForMessage(scala.concurrent.duration.Duration.apply(30, TimeUnit.SECONDS),
                 "CreateSubscription",
                 PartialFunction.fromFunction(CreateSubscription.class::isInstance));
@@ -1312,9 +1315,10 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
         underTest.tell(deleteConnection, testProbe.ref());
         testProbe.expectMsg(deleteConnectionResponse);
 
-        final var publish =
-                pubSubTestProbe.expectMsgClass(DistributedPubSubMediator.Publish.class);
-        assertThat(publish.topic()).isEqualTo(ConnectionDeleted.TYPE);
+        pubSubTestProbe.fishForMessage(FiniteDuration.apply(5, TimeUnit.SECONDS),
+                "connection deleted via pubSub",
+                PartialFunction.fromFunction(msg -> msg instanceof DistributedPubSubMediator.Publish publish &&
+                        publish.topic().equals(ConnectionDeleted.TYPE)));
         testProbe.expectTerminated(underTest, FiniteDuration.apply(3, TimeUnit.SECONDS));
     }
 

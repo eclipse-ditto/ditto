@@ -49,7 +49,7 @@ public final class PolicyIdReferencePlaceholderResolver implements ReferencePlac
 
     private static final DittoLogger LOGGER = DittoLoggerFactory.getLogger(PolicyIdReferencePlaceholderResolver.class);
 
-    private final ActorRef conciergeForwarderActor;
+    private final ActorRef commandForwarderActor;
     private final AskWithRetryConfig askWithRetryConfig;
     private final Scheduler scheduler;
     private final Executor executor;
@@ -57,9 +57,9 @@ public final class PolicyIdReferencePlaceholderResolver implements ReferencePlac
             supportedEntityTypesToActionMap = new EnumMap<>(ReferencePlaceholder.ReferencedEntityType.class);
     private final Set<CharSequence> supportedEntityTypeNames;
 
-    private PolicyIdReferencePlaceholderResolver(final ActorRef conciergeForwarderActor,
+    private PolicyIdReferencePlaceholderResolver(final ActorRef commandForwarderActor,
             final AskWithRetryConfig askWithRetryConfig, final Scheduler scheduler, final Executor executor) {
-        this.conciergeForwarderActor = conciergeForwarderActor;
+        this.commandForwarderActor = commandForwarderActor;
         this.askWithRetryConfig = askWithRetryConfig;
         this.scheduler = scheduler;
         this.executor = executor;
@@ -108,7 +108,7 @@ public final class PolicyIdReferencePlaceholderResolver implements ReferencePlac
                 .withSelectedFields(referencePlaceholder.getReferencedField().toFieldSelector())
                 .build();
 
-        return AskWithRetry.askWithRetry(conciergeForwarderActor, retrieveThingCommand, askWithRetryConfig, scheduler,
+        return AskWithRetry.askWithRetry(commandForwarderActor, retrieveThingCommand, askWithRetryConfig, scheduler,
                 executor,
                 response -> handleRetrieveThingResponse(response, referencePlaceholder, dittoHeaders)
         );
@@ -172,17 +172,17 @@ public final class PolicyIdReferencePlaceholderResolver implements ReferencePlac
      * Creates a new {@link PolicyIdReferencePlaceholderResolver} responsible for resolving a policy id of a referenced
      * entity.
      *
-     * @param conciergeForwarderActor the ActorRef of the {@code ConciergeForwarderActor} which to ask for "retrieve"
+     * @param commandForwarderActor the ActorRef of the {@code ConciergeForwarderActor} which to ask for "retrieve"
      * commands.
      * @param askWithRetryConfig the configuration for the "ask with retry" pattern applied when asking for retrieves.
      * @param scheduler the scheduler to use for the "ask with retry" for retries.
      * @param executor the executor to use for the "ask with retry" for retries.
      * @return the created PolicyIdReferencePlaceholderResolver instance.
      */
-    public static PolicyIdReferencePlaceholderResolver of(final ActorRef conciergeForwarderActor,
+    public static PolicyIdReferencePlaceholderResolver of(final ActorRef commandForwarderActor,
             final AskWithRetryConfig askWithRetryConfig, final Scheduler scheduler, final Executor executor) {
 
-        return new PolicyIdReferencePlaceholderResolver(conciergeForwarderActor, askWithRetryConfig, scheduler,
+        return new PolicyIdReferencePlaceholderResolver(commandForwarderActor, askWithRetryConfig, scheduler,
                 executor);
     }
 

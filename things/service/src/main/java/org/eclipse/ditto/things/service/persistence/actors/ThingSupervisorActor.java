@@ -31,6 +31,7 @@ import org.eclipse.ditto.base.service.actors.ShutdownBehaviour;
 import org.eclipse.ditto.base.service.config.supervision.ExponentialBackOffConfig;
 import org.eclipse.ditto.internal.utils.cacheloaders.AskWithRetry;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
+import org.eclipse.ditto.internal.utils.namespaces.BlockedNamespaces;
 import org.eclipse.ditto.internal.utils.persistentactors.AbstractPersistenceSupervisor;
 import org.eclipse.ditto.internal.utils.pubsub.DistributedAcks;
 import org.eclipse.ditto.internal.utils.pubsub.DistributedPub;
@@ -71,7 +72,6 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
     private final ActorRef policiesShardRegion;
     private final DistributedPub<ThingEvent<?>> distributedPub;
     private final ThingPersistenceActorPropsFactory thingPersistenceActorPropsFactory;
-    private final PreEnforcer preEnforcer;
     private final DefaultEnforcementConfig enforcementConfig;
 
     @SuppressWarnings("unused")
@@ -79,13 +79,15 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
             final ActorRef policiesShardRegion,
             final DistributedPub<ThingEvent<?>> distributedPub,
             final ThingPersistenceActorPropsFactory thingPersistenceActorPropsFactory,
+            @Nullable final BlockedNamespaces blockedNamespaces,
             final PreEnforcer preEnforcer) {
+
+        super(blockedNamespaces, preEnforcer);
 
         this.pubSubMediator = pubSubMediator;
         this.policiesShardRegion = policiesShardRegion;
         this.distributedPub = distributedPub;
         this.thingPersistenceActorPropsFactory = thingPersistenceActorPropsFactory;
-        this.preEnforcer = preEnforcer;
         enforcementConfig = DefaultEnforcementConfig.of(
                 DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config())
         );
@@ -102,6 +104,7 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
      * @param policiesShardRegion the shard region of the "policies" shard in order to e.g. load policies.
      * @param distributedPub distributed-pub access for publishing thing events.
      * @param propsFactory factory for creating Props to be used for creating
+     * @param blockedNamespaces the blocked namespaces functionality to retrieve/subscribe for blocked namespaces.
      * @param preEnforcer the PreEnforcer to apply as extension mechanism of the enforcement.
      * @return the {@link Props} to create this actor.
      */
@@ -109,10 +112,11 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
             final ActorRef policiesShardRegion,
             final DistributedPub<ThingEvent<?>> distributedPub,
             final ThingPersistenceActorPropsFactory propsFactory,
+            @Nullable final BlockedNamespaces blockedNamespaces,
             final PreEnforcer preEnforcer) {
 
         return Props.create(ThingSupervisorActor.class, pubSubMediator, policiesShardRegion, distributedPub,
-                propsFactory, preEnforcer);
+                propsFactory, blockedNamespaces, preEnforcer);
     }
 
     @Override
@@ -238,7 +242,7 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
                 preEnforcer,
                 liveSignalPub
         );
-        return ThingEnforcerActor.props(entityId, thingCommandEnforcement, pubSubMediator);
+        return ThingEnforcerActor.props(entityId, thingCommandEnforcement, pubSubMediator, blockedNamespaces);
     }
 
     @Override

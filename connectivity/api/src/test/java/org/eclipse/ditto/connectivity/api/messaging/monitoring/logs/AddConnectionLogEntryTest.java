@@ -22,6 +22,8 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 import java.time.Instant;
 
 import org.eclipse.ditto.base.model.correlationid.TestNameCorrelationId;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.connectivity.model.ConnectionIdInvalidException;
 import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
@@ -29,6 +31,7 @@ import org.eclipse.ditto.connectivity.model.LogCategory;
 import org.eclipse.ditto.connectivity.model.LogEntry;
 import org.eclipse.ditto.connectivity.model.LogLevel;
 import org.eclipse.ditto.connectivity.model.LogType;
+import org.eclipse.ditto.connectivity.model.signals.commands.ConnectivityCommand;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonMissingFieldException;
 import org.eclipse.ditto.json.JsonObject;
@@ -36,7 +39,6 @@ import org.eclipse.ditto.json.JsonParseException;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.things.model.ThingId;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 
@@ -48,6 +50,8 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 public final class AddConnectionLogEntryTest {
 
     private static final ConnectionId CONNECTION_ID = ConnectionId.generateRandom();
+    
+    private static final DittoHeaders DITTO_HEADERS = DittoHeaders.empty();
 
     @Rule
     public final TestNameCorrelationId testNameCorrelationId = TestNameCorrelationId.newInstance();
@@ -81,7 +85,7 @@ public final class AddConnectionLogEntryTest {
     @Test
     public void getInstanceWithNullLogEntryThrowsException() {
         assertThatNullPointerException()
-                .isThrownBy(() -> AddConnectionLogEntry.newInstance(CONNECTION_ID, null))
+                .isThrownBy(() -> AddConnectionLogEntry.newInstance(CONNECTION_ID, null, DITTO_HEADERS))
                 .withMessage("The logEntry must not be null!")
                 .withNoCause();
     }
@@ -89,28 +93,28 @@ public final class AddConnectionLogEntryTest {
     @Test
     public void getInstanceWithNullConnectionIdThrowsException() {
         assertThatNullPointerException()
-                .isThrownBy(() -> AddConnectionLogEntry.newInstance(null, logEntry))
+                .isThrownBy(() -> AddConnectionLogEntry.newInstance(null, logEntry, DITTO_HEADERS))
                 .withMessage("The connectionId must not be null!")
                 .withNoCause();
     }
 
     @Test
     public void getInstanceReturnsNotNull() {
-        final var instance = AddConnectionLogEntry.newInstance(CONNECTION_ID, logEntry);
+        final var instance = AddConnectionLogEntry.newInstance(CONNECTION_ID, logEntry, DITTO_HEADERS);
 
         assertThat(instance).isNotNull();
     }
 
     @Test
     public void getConnectionIdReturnsExpected() {
-        final var underTest = AddConnectionLogEntry.newInstance(CONNECTION_ID, logEntry);
+        final var underTest = AddConnectionLogEntry.newInstance(CONNECTION_ID, logEntry, DITTO_HEADERS);
 
         assertThat((CharSequence) underTest.getEntityId()).isEqualTo(CONNECTION_ID);
     }
 
     @Test
     public void getLogEntryReturnsExpected() {
-        final var underTest = AddConnectionLogEntry.newInstance(CONNECTION_ID, logEntry);
+        final var underTest = AddConnectionLogEntry.newInstance(CONNECTION_ID, logEntry, DITTO_HEADERS);
 
         assertThat(underTest.getLogEntry()).isEqualTo(logEntry);
     }
@@ -118,11 +122,12 @@ public final class AddConnectionLogEntryTest {
     @Test
     public void toJsonReturnsExpected() {
         final var jsonObject = JsonObject.newBuilder()
-                .set(AddConnectionLogEntry.JsonFields.CONNECTION_ID, CONNECTION_ID.toString())
+                .set(Command.JsonFields.TYPE, AddConnectionLogEntry.TYPE)
+                .set(ConnectivityCommand.JsonFields.JSON_CONNECTION_ID, CONNECTION_ID.toString())
                 .set(AddConnectionLogEntry.JsonFields.LOG_ENTRY, logEntry.toJson())
                 .build();
 
-        final var underTest = AddConnectionLogEntry.newInstance(CONNECTION_ID, logEntry);
+        final var underTest = AddConnectionLogEntry.newInstance(CONNECTION_ID, logEntry, DITTO_HEADERS);
 
         assertThat(underTest.toJson()).isEqualTo(jsonObject);
     }
@@ -130,89 +135,81 @@ public final class AddConnectionLogEntryTest {
     @Test
     public void fromJsonWithNullJsonObjectThrowsException() {
         assertThatNullPointerException()
-                .isThrownBy(() -> AddConnectionLogEntry.fromJson(null))
-                .withMessage("The jsonObject must not be null!")
+                .isThrownBy(() -> AddConnectionLogEntry.fromJson(null, DITTO_HEADERS))
                 .withNoCause();
     }
 
     @Test
     public void fromJsonWithValidJsonObjectReturnsExpected() {
-        final var addConnectionLogEntry = AddConnectionLogEntry.newInstance(CONNECTION_ID, logEntry);
+        final var addConnectionLogEntry = AddConnectionLogEntry.newInstance(CONNECTION_ID, logEntry, DITTO_HEADERS);
 
-        assertThat(AddConnectionLogEntry.fromJson(addConnectionLogEntry.toJson())).isEqualTo(addConnectionLogEntry);
+        assertThat(AddConnectionLogEntry.fromJson(addConnectionLogEntry.toJson(), DITTO_HEADERS)).isEqualTo(addConnectionLogEntry);
     }
 
     @Test
     public void fromJsonWithMissingConnectionIdJsonFieldThrowsException() {
         final var invalidAddConnectionLogEntryJsonObject = JsonObject.newBuilder()
+                .set(Command.JsonFields.TYPE, AddConnectionLogEntry.TYPE)
                 .set(AddConnectionLogEntry.JsonFields.LOG_ENTRY, logEntry.toJson())
                 .build();
 
-        assertThatExceptionOfType(JsonParseException.class)
-                .isThrownBy(() -> AddConnectionLogEntry.fromJson(invalidAddConnectionLogEntryJsonObject))
-                .withMessageStartingWith("Failed to deserialize value of key <%s> as %s:",
-                        AddConnectionLogEntry.JsonFields.CONNECTION_ID.getPointer(),
-                        ConnectionId.class.getName())
-                .withCauseInstanceOf(JsonMissingFieldException.class);
+        assertThatExceptionOfType(JsonMissingFieldException.class)
+                .isThrownBy(() -> AddConnectionLogEntry.fromJson(invalidAddConnectionLogEntryJsonObject, DITTO_HEADERS))
+                .withMessageStartingWith("JSON did not include required <%s>",
+                        ConnectivityCommand.JsonFields.JSON_CONNECTION_ID.getPointer());
     }
 
     @Test
     public void fromJsonWithMissingLogEntryJsonFieldThrowsException() {
         final var invalidAddConnectionLogEntryJsonObject = JsonObject.newBuilder()
-                .set(AddConnectionLogEntry.JsonFields.CONNECTION_ID, CONNECTION_ID.toString())
+                .set(Command.JsonFields.TYPE, AddConnectionLogEntry.TYPE)
+                .set(ConnectivityCommand.JsonFields.JSON_CONNECTION_ID, CONNECTION_ID.toString())
                 .build();
 
         assertThatExceptionOfType(JsonParseException.class)
-                .isThrownBy(() -> AddConnectionLogEntry.fromJson(invalidAddConnectionLogEntryJsonObject))
-                .withMessageStartingWith("Failed to deserialize value of key <%s> as %s:",
-                        AddConnectionLogEntry.JsonFields.LOG_ENTRY.getPointer(),
-                        LogEntry.class.getName())
-                .withCauseInstanceOf(JsonMissingFieldException.class);
+                .isThrownBy(() -> AddConnectionLogEntry.fromJson(invalidAddConnectionLogEntryJsonObject, DITTO_HEADERS))
+                .withMessageStartingWith("Failed to deserialize value of key <%s>",
+                        AddConnectionLogEntry.JsonFields.LOG_ENTRY.getPointer());
     }
 
     @Test
     public void fromJsonWithInvalidConnectionIdValueTypeThrowsException() {
-        final var connectionIdFieldDefinition = AddConnectionLogEntry.JsonFields.CONNECTION_ID;
-        final var addConnectionLogEntry = AddConnectionLogEntry.newInstance(CONNECTION_ID, logEntry);
+        final var connectionIdFieldDefinition = ConnectivityCommand.JsonFields.JSON_CONNECTION_ID;
+        final var addConnectionLogEntry = AddConnectionLogEntry.newInstance(CONNECTION_ID, logEntry, DITTO_HEADERS);
         final var invalidAddConnectionLogEntryJsonObject =
                 JsonFactory.newObjectBuilder(addConnectionLogEntry.toJson())
                         .set(connectionIdFieldDefinition.getPointer(), JsonValue.of(42))
                         .build();
 
         assertThatExceptionOfType(JsonParseException.class)
-                .isThrownBy(() -> AddConnectionLogEntry.fromJson(invalidAddConnectionLogEntryJsonObject))
-                .withMessageStartingWith("Failed to deserialize value of key <%s> as %s:",
-                        connectionIdFieldDefinition.getPointer(),
-                        ConnectionId.class.getName())
-                .withCauseInstanceOf(JsonParseException.class);
+                .isThrownBy(() -> AddConnectionLogEntry.fromJson(invalidAddConnectionLogEntryJsonObject, DITTO_HEADERS));
     }
 
     @Test
     public void fromJsonWithCorruptedConnectionIdValueTypeThrowsException() {
-        final var connectionIdFieldDefinition = AddConnectionLogEntry.JsonFields.CONNECTION_ID;
-        final var addConnectionLogEntry = AddConnectionLogEntry.newInstance(CONNECTION_ID, logEntry);
+        final var connectionIdFieldDefinition = ConnectivityCommand.JsonFields.JSON_CONNECTION_ID;
+        final var addConnectionLogEntry = AddConnectionLogEntry.newInstance(CONNECTION_ID, logEntry, DITTO_HEADERS);
+        final String connectionId = "%myInvalidConnectionId%";
         final var invalidAddConnectionLogEntryJsonObject = JsonFactory.newObjectBuilder(addConnectionLogEntry.toJson())
-                .set(connectionIdFieldDefinition.getPointer(), "%myInvalidConnectionId%")
+                .set(connectionIdFieldDefinition.getPointer(), connectionId)
                 .build();
 
-        assertThatExceptionOfType(JsonParseException.class)
-                .isThrownBy(() -> AddConnectionLogEntry.fromJson(invalidAddConnectionLogEntryJsonObject))
-                .withMessageStartingWith("Failed to deserialize value of key <%s> as %s:",
-                        connectionIdFieldDefinition.getPointer(),
-                        ConnectionId.class.getName())
-                .withCauseInstanceOf(ConnectionIdInvalidException.class);
+        assertThatExceptionOfType(ConnectionIdInvalidException.class)
+                .isThrownBy(() -> AddConnectionLogEntry.fromJson(invalidAddConnectionLogEntryJsonObject, DITTO_HEADERS))
+                .withMessageStartingWith("The Connection ID '%s' is not valid",
+                        connectionId);
     }
 
     @Test
     public void fromJsonWithInvalidLogEntryValueTypeThrowsException() {
         final var logEntryFieldDefinition = AddConnectionLogEntry.JsonFields.LOG_ENTRY;
-        final var addConnectionLogEntry = AddConnectionLogEntry.newInstance(CONNECTION_ID, logEntry);
+        final var addConnectionLogEntry = AddConnectionLogEntry.newInstance(CONNECTION_ID, logEntry, DITTO_HEADERS);
         final var invalidAddConnectionLogEntryJsonObject = JsonFactory.newObjectBuilder(addConnectionLogEntry.toJson())
                 .set(logEntryFieldDefinition.getPointer(), "foo")
                 .build();
 
         assertThatExceptionOfType(JsonParseException.class)
-                .isThrownBy(() -> AddConnectionLogEntry.fromJson(invalidAddConnectionLogEntryJsonObject))
+                .isThrownBy(() -> AddConnectionLogEntry.fromJson(invalidAddConnectionLogEntryJsonObject, DITTO_HEADERS))
                 .withMessageStartingWith("Failed to deserialize value of key <%s> as %s:",
                         logEntryFieldDefinition.getPointer(),
                         LogEntry.class.getName())
@@ -226,16 +223,15 @@ public final class AddConnectionLogEntryTest {
                 .set(LogEntry.JsonFields.LEVEL, "foo")
                 .build();
         final var invalidAddConnectionLogEntryJsonObject = JsonObject.newBuilder()
-                .set(AddConnectionLogEntry.JsonFields.CONNECTION_ID, CONNECTION_ID.toString())
+                .set(Command.JsonFields.TYPE, AddConnectionLogEntry.TYPE)
+                .set(ConnectivityCommand.JsonFields.JSON_CONNECTION_ID, CONNECTION_ID.toString())
                 .set(logEntryFieldDefinition, invalidLogEntryJsonObject)
                 .build();
 
         assertThatExceptionOfType(JsonParseException.class)
-                .isThrownBy(() -> AddConnectionLogEntry.fromJson(invalidAddConnectionLogEntryJsonObject))
-                .withMessageStartingWith("Failed to deserialize value of key <%s> as %s:",
-                        logEntryFieldDefinition.getPointer(),
-                        LogEntry.class.getName())
-                .withCauseInstanceOf(JsonParseException.class);
+                .isThrownBy(() -> AddConnectionLogEntry.fromJson(invalidAddConnectionLogEntryJsonObject, DITTO_HEADERS))
+                .withMessageStartingWith("Failed to deserialize value of key <%s>",
+                        logEntryFieldDefinition.getPointer());
     }
 
 }

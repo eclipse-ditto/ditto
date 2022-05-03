@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.policies.enforcement.config;
+package org.eclipse.ditto.internal.utils.aggregator;
 
 import java.time.Duration;
 
@@ -19,7 +19,7 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.internal.utils.config.KnownConfigValue;
 
 /**
- * Provides the configuration settings of Concierge's things aggregation.
+ * Provides the configuration settings of things aggregation.
  */
 @Immutable
 public interface ThingsAggregatorConfig {

@@ -21,9 +21,11 @@ import org.eclipse.ditto.base.model.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.base.service.actors.ShutdownBehaviour;
 import org.eclipse.ditto.base.service.config.supervision.ExponentialBackOffConfig;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
+import org.eclipse.ditto.internal.utils.namespaces.BlockedNamespaces;
 import org.eclipse.ditto.internal.utils.persistence.SnapshotAdapter;
 import org.eclipse.ditto.internal.utils.persistentactors.AbstractPersistenceSupervisor;
 import org.eclipse.ditto.internal.utils.pubsub.DistributedPub;
+import org.eclipse.ditto.policies.enforcement.PreEnforcer;
 import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.signals.announcements.PolicyAnnouncement;
@@ -53,8 +55,13 @@ public final class PolicySupervisorActor extends AbstractPersistenceSupervisor<P
     private final PolicyConfig policyConfig;
 
     @SuppressWarnings("unused")
-    private PolicySupervisorActor(final ActorRef pubSubMediator, final SnapshotAdapter<Policy> snapshotAdapter,
-            DistributedPub<PolicyAnnouncement<?>> policyAnnouncementPub) {
+    private PolicySupervisorActor(final ActorRef pubSubMediator,
+            final SnapshotAdapter<Policy> snapshotAdapter,
+            final DistributedPub<PolicyAnnouncement<?>> policyAnnouncementPub,
+            @Nullable final BlockedNamespaces blockedNamespaces,
+            final PreEnforcer preEnforcer) {
+
+        super(blockedNamespaces, preEnforcer);
         this.pubSubMediator = pubSubMediator;
         this.snapshotAdapter = snapshotAdapter;
         final DittoPoliciesConfig policiesConfig = DittoPoliciesConfig.of(
@@ -81,12 +88,18 @@ public final class PolicySupervisorActor extends AbstractPersistenceSupervisor<P
      * @param pubSubMediator the PubSub mediator actor.
      * @param snapshotAdapter the adapter to serialize snapshots.
      * @param policyAnnouncementPub publisher interface of policy announcements.
+     * @param blockedNamespaces the blocked namespaces functionality to retrieve/subscribe for blocked namespaces.
+     * @param preEnforcer the PreEnforcer to apply as extension mechanism of the enforcement.
      * @return the {@link Props} to create this actor.
      */
-    public static Props props(final ActorRef pubSubMediator, final SnapshotAdapter<Policy> snapshotAdapter,
-            final DistributedPub<PolicyAnnouncement<?>> policyAnnouncementPub) {
+    public static Props props(final ActorRef pubSubMediator,
+            final SnapshotAdapter<Policy> snapshotAdapter,
+            final DistributedPub<PolicyAnnouncement<?>> policyAnnouncementPub,
+            @Nullable final BlockedNamespaces blockedNamespaces,
+            final PreEnforcer preEnforcer) {
 
-        return Props.create(PolicySupervisorActor.class, pubSubMediator, snapshotAdapter, policyAnnouncementPub);
+        return Props.create(PolicySupervisorActor.class, pubSubMediator, snapshotAdapter, policyAnnouncementPub,
+                blockedNamespaces, preEnforcer);
     }
 
     @Override
@@ -103,7 +116,7 @@ public final class PolicySupervisorActor extends AbstractPersistenceSupervisor<P
     @Override
     protected Props getPersistenceEnforcerProps(final PolicyId entityId) {
         return PolicyEnforcerActor.props(entityId, new PolicyCommandEnforcement(creationRestrictionEnforcer),
-                pubSubMediator);
+                pubSubMediator, blockedNamespaces);
     }
 
     @Override

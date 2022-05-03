@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.policies.enforcement.config;
+package org.eclipse.ditto.internal.utils.aggregator;
 
 import java.time.Duration;
 import java.util.Objects;
@@ -23,7 +23,7 @@ import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import com.typesafe.config.Config;
 
 /**
- * This class implements {@link ThingsAggregatorConfig} for Ditto's Concierge service.
+ * This class implements {@link ThingsAggregatorConfig}.
  */
 @Immutable
 public final class DefaultThingsAggregatorConfig implements ThingsAggregatorConfig {
@@ -71,7 +71,7 @@ public final class DefaultThingsAggregatorConfig implements ThingsAggregatorConf
         }
         final DefaultThingsAggregatorConfig that = (DefaultThingsAggregatorConfig) o;
         return maxParallelism == that.maxParallelism &&
-                singleRetrieveThingTimeout.equals(that.singleRetrieveThingTimeout);
+                Objects.equals(singleRetrieveThingTimeout, that.singleRetrieveThingTimeout);
     }
 
     @Override

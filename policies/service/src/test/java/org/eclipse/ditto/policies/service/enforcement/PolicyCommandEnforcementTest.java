@@ -919,7 +919,8 @@ public final class PolicyCommandEnforcementTest {
                     new PolicyCommandEnforcement(
                             DefaultCreationRestrictionEnforcer.of(DefaultEntityCreationConfig.of(ConfigFactory.empty()))
                     ),
-                    pubSubMediator
+                    pubSubMediator,
+                    null
             ), POLICY_ENFORCER_ACTOR_NAME);
         }
 

@@ -49,7 +49,7 @@ public final class Contextual<T extends WithDittoHeaders> implements WithSender<
     private final Scheduler scheduler;
     private final Executor executor;
     private final ActorRef pubSubMediator;
-    private final ActorRef conciergeForwarder;
+    private final ActorRef commandForwarder;
     private final AskWithRetryConfig askWithRetryConfig;
     private final ThreadSafeDittoLoggingAdapter log;
 
@@ -64,7 +64,7 @@ public final class Contextual<T extends WithDittoHeaders> implements WithSender<
             final Scheduler scheduler,
             final Executor executor,
             final ActorRef pubSubMediator,
-            final ActorRef conciergeForwarder,
+            final ActorRef commandForwarder,
             final AskWithRetryConfig askWithRetryConfig,
             final ThreadSafeDittoLoggingAdapter log,
             @Nullable final EnforcementCacheKey cacheKey,
@@ -78,7 +78,7 @@ public final class Contextual<T extends WithDittoHeaders> implements WithSender<
         this.scheduler = scheduler;
         this.executor = executor;
         this.pubSubMediator = pubSubMediator;
-        this.conciergeForwarder = conciergeForwarder;
+        this.commandForwarder = commandForwarder;
         this.askWithRetryConfig = askWithRetryConfig;
         this.log = log;
         this.cacheKey = cacheKey;
@@ -124,7 +124,7 @@ public final class Contextual<T extends WithDittoHeaders> implements WithSender<
                 scheduler,
                 executor,
                 pubSubMediator,
-                conciergeForwarder,
+                commandForwarder,
                 askWithRetryConfig,
                 log,
                 cacheKey,
@@ -203,8 +203,8 @@ public final class Contextual<T extends WithDittoHeaders> implements WithSender<
         return pubSubMediator;
     }
 
-    ActorRef getConciergeForwarder() {
-        return conciergeForwarder;
+    ActorRef getCommandForwarder() {
+        return commandForwarder;
     }
 
     AskWithRetryConfig getAskWithRetryConfig() {
@@ -243,7 +243,7 @@ public final class Contextual<T extends WithDittoHeaders> implements WithSender<
                 scheduler,
                 executor,
                 pubSubMediator,
-                conciergeForwarder,
+                commandForwarder,
                 askWithRetryConfig,
                 log,
                 cacheKeyFor(message),
@@ -259,7 +259,7 @@ public final class Contextual<T extends WithDittoHeaders> implements WithSender<
                 scheduler,
                 executor,
                 pubSubMediator,
-                conciergeForwarder,
+                commandForwarder,
                 askWithRetryConfig,
                 log,
                 cacheKey,
@@ -275,7 +275,7 @@ public final class Contextual<T extends WithDittoHeaders> implements WithSender<
                 scheduler,
                 executor,
                 pubSubMediator,
-                conciergeForwarder,
+                commandForwarder,
                 askWithRetryConfig,
                 log,
                 cacheKey,
@@ -291,7 +291,7 @@ public final class Contextual<T extends WithDittoHeaders> implements WithSender<
                 scheduler,
                 executor,
                 pubSubMediator,
-                conciergeForwarder,
+                commandForwarder,
                 askWithRetryConfig,
                 log,
                 cacheKey,

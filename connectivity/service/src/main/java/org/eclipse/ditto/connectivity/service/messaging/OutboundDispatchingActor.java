@@ -190,9 +190,9 @@ final class OutboundDispatchingActor extends AbstractActor {
         final Consumer<ActorRef> forwardAck =
                 acknowledgementForwarder -> acknowledgementForwarder.forward(responseOrAck, context);
 
-        final Runnable forwardToConcierge = () -> {
+        final Runnable forwardToProxyActor = () -> {
             final var forwarderActorClassName = AcknowledgementForwarderActor.class.getSimpleName();
-            final var template = "No {} found. Forwarding signal to concierge. <{}>";
+            final var template = "No {} found. Forwarding signal to proxy actor: <{}>";
             if (logger.isDebugEnabled()) {
                 logger.withCorrelationId(responseOrAck).debug(template, forwarderActorClassName, responseOrAck);
             } else {
@@ -203,7 +203,7 @@ final class OutboundDispatchingActor extends AbstractActor {
         };
 
         context.findChild(AcknowledgementForwarderActor.determineActorName(responseOrAck.getDittoHeaders()))
-                .ifPresentOrElse(forwardAck, forwardToConcierge);
+                .ifPresentOrElse(forwardAck, forwardToProxyActor);
     }
 
     private void denyNonSourceDeclaredAck(final Acknowledgement ack) {

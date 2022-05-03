@@ -20,6 +20,7 @@ import java.util.concurrent.CompletionStage;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.internal.utils.namespaces.BlockedNamespaces;
 import org.eclipse.ditto.internal.utils.persistentactors.AbstractEnforcerActor;
 import org.eclipse.ditto.policies.api.commands.sudo.SudoRetrievePolicy;
 import org.eclipse.ditto.policies.api.commands.sudo.SudoRetrievePolicyResponse;
@@ -46,9 +47,10 @@ public final class PolicyEnforcerActor
     @SuppressWarnings("unused")
     private PolicyEnforcerActor(final PolicyId policyId,
             final PolicyCommandEnforcement policyCommandEnforcement,
-            final ActorRef pubSubMediator) {
+            final ActorRef pubSubMediator,
+            @Nullable final BlockedNamespaces blockedNamespaces) {
 
-        super(policyId, policyCommandEnforcement, pubSubMediator);
+        super(policyId, policyCommandEnforcement, pubSubMediator, blockedNamespaces);
     }
 
     /**
@@ -58,12 +60,16 @@ public final class PolicyEnforcerActor
      * @param policyCommandEnforcement the policy command enforcement logic to apply in the enforcer.
      * @param pubSubMediator the ActorRef of the distributed pub-sub-mediator used to subscribe for policy updates in
      * order to perform invalidations.
+     * @param blockedNamespaces the blocked namespaces functionality to retrieve/subscribe for blocked namespaces.
+     * @return the {@link Props} to create this actor.
      */
     public static Props props(final PolicyId policyId,
             final PolicyCommandEnforcement policyCommandEnforcement,
-            final ActorRef pubSubMediator) {
+            final ActorRef pubSubMediator,
+            @Nullable final BlockedNamespaces blockedNamespaces) {
 
-        return Props.create(PolicyEnforcerActor.class, policyId, policyCommandEnforcement, pubSubMediator);
+        return Props.create(PolicyEnforcerActor.class, policyId, policyCommandEnforcement, pubSubMediator,
+                blockedNamespaces);
     }
 
     @Override

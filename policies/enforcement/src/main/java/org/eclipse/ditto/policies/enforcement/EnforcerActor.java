@@ -98,7 +98,7 @@ public final class EnforcerActor extends AbstractEnforcerActor {
      *
      * @param pubSubMediator Akka pub sub mediator.
      * @param enforcementProviders a set of {@link EnforcementProvider}s.
-     * @param conciergeForwarder an actorRef to concierge forwarder.
+     * @param commandForwarder an actorRef to command forwarder.
      * @param enforcementConfig TODO TJ
      * @param thingIdCache the cache for Thing IDs to Policy ID.
      * @param policyEnforcerCache the Policy cache.
@@ -106,12 +106,12 @@ public final class EnforcerActor extends AbstractEnforcerActor {
      */
     public static Props props(final ActorRef pubSubMediator,
             final Set<EnforcementProvider<?>> enforcementProviders,
-            final ActorRef conciergeForwarder,
+            final ActorRef commandForwarder,
             final EnforcementConfig enforcementConfig,
             @Nullable final Cache<EnforcementCacheKey, Entry<EnforcementCacheKey>> thingIdCache,
             @Nullable final Cache<EnforcementCacheKey, Entry<PolicyEnforcer>> policyEnforcerCache) {
 
-        return props(pubSubMediator, enforcementProviders, conciergeForwarder, enforcementConfig,
+        return props(pubSubMediator, enforcementProviders, commandForwarder, enforcementConfig,
                 null, thingIdCache, policyEnforcerCache);
     }
 

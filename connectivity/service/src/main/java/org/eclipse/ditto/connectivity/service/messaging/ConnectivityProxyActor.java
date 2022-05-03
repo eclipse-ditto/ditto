@@ -14,10 +14,10 @@ package org.eclipse.ditto.connectivity.service.messaging;
 
 import static org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory.getDiagnosticLoggingAdapter;
 
-import org.eclipse.ditto.internal.utils.aggregator.ThingsAggregatorProxyActor;
-import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.commands.Command;
+import org.eclipse.ditto.internal.utils.aggregator.ThingsAggregatorProxyActor;
+import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThings;
 
 import akka.actor.AbstractActor;
@@ -36,24 +36,24 @@ public final class ConnectivityProxyActor extends AbstractActor {
 
     private final DittoDiagnosticLoggingAdapter log = getDiagnosticLoggingAdapter(this);
 
-    private final ActorRef conciergeForwarder;
+    private final ActorRef commandForwarder;
     private final ActorRef aggregatorProxyActor;
 
     @SuppressWarnings("unused")
-    private ConnectivityProxyActor(final ActorRef conciergeForwarder) {
-        this.conciergeForwarder = conciergeForwarder;
-        this.aggregatorProxyActor = getContext().actorOf(ThingsAggregatorProxyActor.props(conciergeForwarder),
+    private ConnectivityProxyActor(final ActorRef commandForwarder) {
+        this.commandForwarder = commandForwarder;
+        this.aggregatorProxyActor = getContext().actorOf(ThingsAggregatorProxyActor.props(commandForwarder),
                 ThingsAggregatorProxyActor.ACTOR_NAME);
     }
 
     /**
      * Creates Akka configuration object Props for this Actor.
      *
-     * @param conciergeForwarder the concierge forwarder
+     * @param commandForwarder the command forwarder
      * @return the Props object
      */
-    public static Props props(final ActorRef conciergeForwarder) {
-        return Props.create(ConnectivityProxyActor.class, conciergeForwarder);
+    public static Props props(final ActorRef commandForwarder) {
+        return Props.create(ConnectivityProxyActor.class, commandForwarder);
     }
 
     @Override
@@ -64,12 +64,12 @@ public final class ConnectivityProxyActor extends AbstractActor {
                     log.withCorrelationId(rt).debug("Passing RetrieveThings to aggregator.");
                     aggregatorProxyActor.forward(rt, getContext());
                 })
-                // forward all other signals to concierge
+                // forward all other signals via command forwarder
                 .match(Signal.class, signal -> {
                     // This message is important to check if a command is accepted for a specific connection, as this happens
                     // quite a lot this is going to the debug level. Use best with a connection-id filter.
-                    log.withCorrelationId(signal).debug("Passing '{}' signal to conciergeForwarder.", signal.getType());
-                    conciergeForwarder.forward(signal, getContext());
+                    log.withCorrelationId(signal).debug("Passing '{}' signal to command forwarder.", signal.getType());
+                    commandForwarder.forward(signal, getContext());
                 })
                 // drop and log
                 .matchAny(m -> log.info("unexpected message of type {}", m.getClass().getName()))

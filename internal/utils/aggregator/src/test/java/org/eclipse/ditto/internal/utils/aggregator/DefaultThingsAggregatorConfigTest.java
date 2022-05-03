@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.policies.enforcement.config;
+package org.eclipse.ditto.internal.utils.aggregator;
 
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
@@ -28,7 +28,7 @@ import com.typesafe.config.ConfigFactory;
 import nl.jqno.equalsverifier.EqualsVerifier;
 
 /**
- * Unit test for {@link org.eclipse.ditto.policies.enforcement.config.DefaultThingsAggregatorConfig}.
+ * Unit test for {@link DefaultThingsAggregatorConfig}.
  */
 public final class DefaultThingsAggregatorConfigTest {
 

@@ -14,17 +14,26 @@ package org.eclipse.ditto.things.service.starter;
 
 import static org.eclipse.ditto.things.api.ThingsMessagingConstants.CLUSTER_ROLE;
 
-import java.util.concurrent.CompletableFuture;
+import java.util.Optional;
 
 import org.eclipse.ditto.base.api.devops.signals.commands.RetrieveStatisticsDetails;
+import org.eclipse.ditto.base.model.auth.AuthorizationContext;
+import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
+import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.headers.DittoHeadersSettable;
 import org.eclipse.ditto.base.service.actors.DittoRootActor;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
+import org.eclipse.ditto.internal.utils.cluster.ClusterUtil;
 import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.internal.utils.cluster.RetrieveStatisticsDetailsResponseSupplier;
 import org.eclipse.ditto.internal.utils.cluster.ShardRegionExtractor;
 import org.eclipse.ditto.internal.utils.cluster.ShardRegionProxyActorFactory;
 import org.eclipse.ditto.internal.utils.health.DefaultHealthCheckingActorFactory;
 import org.eclipse.ditto.internal.utils.health.HealthCheckingActorOptions;
+import org.eclipse.ditto.internal.utils.namespaces.BlockNamespaceBehavior;
+import org.eclipse.ditto.internal.utils.namespaces.BlockedNamespaces;
+import org.eclipse.ditto.internal.utils.namespaces.BlockedNamespacesUpdater;
 import org.eclipse.ditto.internal.utils.persistence.mongo.MongoClientWrapper;
 import org.eclipse.ditto.internal.utils.persistence.mongo.MongoHealthChecker;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.MongoDbConfig;
@@ -33,9 +42,15 @@ import org.eclipse.ditto.internal.utils.persistentactors.cleanup.PersistenceClea
 import org.eclipse.ditto.internal.utils.pubsub.DistributedAcks;
 import org.eclipse.ditto.internal.utils.pubsub.DistributedPub;
 import org.eclipse.ditto.internal.utils.pubsub.ThingEventPubSubFactory;
+import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.policies.api.PoliciesMessagingConstants;
 import org.eclipse.ditto.policies.enforcement.PreEnforcer;
+import org.eclipse.ditto.policies.enforcement.placeholders.PlaceholderSubstitution;
+import org.eclipse.ditto.policies.enforcement.validators.CommandWithOptionalEntityValidator;
 import org.eclipse.ditto.things.api.ThingsMessagingConstants;
+import org.eclipse.ditto.things.model.Thing;
+import org.eclipse.ditto.things.model.ThingId;
+import org.eclipse.ditto.things.model.signals.commands.modify.CreateThing;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 import org.eclipse.ditto.things.service.common.config.ThingsConfig;
 import org.eclipse.ditto.things.service.persistence.actors.ThingPersistenceActorPropsFactory;
@@ -61,6 +76,8 @@ public final class ThingsRootActor extends DittoRootActor {
      * The name of this Actor in the ActorSystem.
      */
     public static final String ACTOR_NAME = "thingsRoot";
+
+    private static final String DEFAULT_NAMESPACE = "org.eclipse.ditto"; // TODO TJ fix after merge from master
 
     private final DiagnosticLoggingAdapter log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
 
@@ -89,11 +106,24 @@ public final class ThingsRootActor extends DittoRootActor {
                 PoliciesMessagingConstants.SHARD_REGION
         );
 
+        final BlockedNamespaces blockedNamespaces = BlockedNamespaces.of(actorSystem);
+        // start cluster singleton that writes to the distributed cache of blocked namespaces
+        final Props blockedNamespacesUpdaterProps = BlockedNamespacesUpdater.props(blockedNamespaces, pubSubMediator);
+        ClusterUtil.startSingleton(actorSystem, getContext(), CLUSTER_ROLE,
+                BlockedNamespacesUpdater.ACTOR_NAME, blockedNamespacesUpdaterProps);
+
+        final Props thingSupervisorActorProps = getThingSupervisorActorProps(pubSubMediator,
+                policiesShardRegion,
+                distributedPub,
+                propsFactory,
+                blockedNamespaces
+        );
         final ActorRef thingsShardRegion = ClusterSharding.get(actorSystem)
                 .start(ThingsMessagingConstants.SHARD_REGION,
-                        getThingSupervisorActorProps(pubSubMediator, policiesShardRegion, distributedPub, propsFactory),
+                        thingSupervisorActorProps,
                         ClusterShardingSettings.create(actorSystem).withRole(CLUSTER_ROLE),
-                        shardRegionExtractor);
+                        shardRegionExtractor
+                );
 
         startChildActor(ThingPersistenceOperationsActor.ACTOR_NAME,
                 ThingPersistenceOperationsActor.props(pubSubMediator, thingsConfig.getMongoDbConfig(),
@@ -141,7 +171,6 @@ public final class ThingsRootActor extends DittoRootActor {
             final ActorRef pubSubMediator,
             final ThingPersistenceActorPropsFactory propsFactory) {
 
-        // Beware: ThingPersistenceActorPropsFactory is not serializable.
         return Props.create(ThingsRootActor.class, thingsConfig, pubSubMediator, propsFactory);
     }
 
@@ -158,19 +187,71 @@ public final class ThingsRootActor extends DittoRootActor {
                 .apply(command.getDittoHeaders()), getContext().dispatcher()).to(getSender());
     }
 
-    private static Props getThingSupervisorActorProps(
-            final ActorRef pubSubMediator,
+    private static Props getThingSupervisorActorProps(final ActorRef pubSubMediator,
             final ActorRef policiesShardRegion,
             final DistributedPub<ThingEvent<?>> distributedPub,
-            final ThingPersistenceActorPropsFactory propsFactory) {
+            final ThingPersistenceActorPropsFactory propsFactory,
+            final BlockedNamespaces blockedNamespaces) {
 
         return ThingSupervisorActor.props(pubSubMediator, policiesShardRegion, distributedPub, propsFactory,
-                providePreEnforcer());
+                blockedNamespaces, providePreEnforcer(blockedNamespaces));
     }
 
-    private static PreEnforcer providePreEnforcer() {
+    private static PreEnforcer providePreEnforcer(final BlockedNamespaces blockedNamespaces) {
+        return newPreEnforcer(blockedNamespaces, PlaceholderSubstitution.newInstance());
         // TODO TJ provide extension mechanism here
-        return CompletableFuture::completedStage;
+    }
+
+    /**
+     * TODO TJ consolidate with PoliciesRootActor.newPreEnforcer
+     * @param blockedNamespaces
+     * @param placeholderSubstitution
+     * @return
+     */
+    private static PreEnforcer newPreEnforcer(final BlockedNamespaces blockedNamespaces,
+            final PlaceholderSubstitution placeholderSubstitution) {
+
+        return dittoHeadersSettable ->
+                BlockNamespaceBehavior.of(blockedNamespaces)
+                        .block(dittoHeadersSettable)
+                        .thenApply(CommandWithOptionalEntityValidator.getInstance())
+                        .thenApply(ThingsRootActor::prependDefaultNamespaceToCreateThing)
+                        .thenApply(ThingsRootActor::setOriginatorHeader)
+                        .thenCompose(placeholderSubstitution);
+    }
+
+    private static DittoHeadersSettable<?> prependDefaultNamespaceToCreateThing(final DittoHeadersSettable<?> signal) {
+        if (signal instanceof CreateThing createThing) {
+            final Thing thing = createThing.getThing();
+            final Optional<String> namespace = thing.getNamespace();
+            if (namespace.isEmpty()) {
+                final Thing thingInDefaultNamespace = thing.toBuilder()
+                        .setId(ThingId.of(DEFAULT_NAMESPACE, createThing.getEntityId().toString()))
+                        .build();
+                final JsonObject initialPolicy = createThing.getInitialPolicy().orElse(null);
+                return CreateThing.of(thingInDefaultNamespace, initialPolicy, createThing.getDittoHeaders());
+            }
+        }
+        return signal;
+    }
+
+    /**
+     * Set the "ditto-originator" header to the primary authorization subject of a signal.
+     *
+     * @param originalSignal A signal with authorization context.
+     * @return A copy of the signal with the header "ditto-originator" set.
+     */
+    @SuppressWarnings("unchecked")
+    public static <T extends DittoHeadersSettable<?>> T setOriginatorHeader(final T originalSignal) {
+        final DittoHeaders dittoHeaders = originalSignal.getDittoHeaders();
+        final AuthorizationContext authorizationContext = dittoHeaders.getAuthorizationContext();
+        return authorizationContext.getFirstAuthorizationSubject()
+                .map(AuthorizationSubject::getId)
+                .map(originatorSubjectId -> DittoHeaders.newBuilder(dittoHeaders)
+                        .putHeader(DittoHeaderDefinition.ORIGINATOR.getKey(), originatorSubjectId)
+                        .build())
+                .map(originatorHeader -> (T) originalSignal.setDittoHeaders(originatorHeader))
+                .orElse(originalSignal);
     }
 
     private static MongoReadJournal newMongoReadJournal(final MongoDbConfig mongoDbConfig,

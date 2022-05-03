@@ -24,7 +24,6 @@ SCRIPTDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 # Array of the services to build Docker images for.
 # The pattern is MODULE_NAME:IMAGE_NAME as both can differ from each other.
 SERVICES=(
-  "concierge:concierge"
   "gateway:gateway"
   "policies:policies"
   "things:things"

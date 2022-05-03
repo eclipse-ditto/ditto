@@ -351,6 +351,7 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
      * Header definition to identify when a Policy changing command did pre-emptively invalidate the caches related to
      * the Policy enforcement in concierge.
      * When this is {@code true}, no further policy enforcer invalidation has to be done.
+     * TODO TJ candidate for removal
      *
      * @since 2.0.0
      */

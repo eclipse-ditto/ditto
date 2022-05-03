@@ -614,6 +614,8 @@ public final class ConnectionPersistenceActor
     @Override
     protected Receive matchAnyAfterInitialization() {
         return ReceiveBuilder.create()
+                // CreateSubscription is a ThingSearchCommand, but it is created in InboundDispatchingSink from an
+                // adaptable and directly sent to this actor:
                 .match(CreateSubscription.class, this::startThingSearchSession)
                 .matchEquals(Control.CHECK_LOGGING_ACTIVE, this::checkLoggingEnabled)
                 .matchEquals(Control.TRIGGER_UPDATE_PRIORITY, this::triggerUpdatePriority)

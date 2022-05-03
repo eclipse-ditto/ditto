@@ -324,8 +324,8 @@ public abstract class AbstractEnforcement<C extends Signal<?>> {
     /**
      * @return the {@code ConciergeForwarderActor} reference
      */
-    protected ActorRef conciergeForwarder() {
-        return context.getConciergeForwarder();
+    protected ActorRef commandForwarder() {
+        return context.getCommandForwarder();
     }
 
 }

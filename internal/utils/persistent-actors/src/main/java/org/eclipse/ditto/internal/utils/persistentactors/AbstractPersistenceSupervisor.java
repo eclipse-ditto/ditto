@@ -35,8 +35,10 @@ import org.eclipse.ditto.internal.utils.akka.actors.AbstractActorWithStashWithTi
 import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
+import org.eclipse.ditto.internal.utils.namespaces.BlockedNamespaces;
 import org.eclipse.ditto.policies.enforcement.CreationRestrictionEnforcer;
 import org.eclipse.ditto.policies.enforcement.DefaultCreationRestrictionEnforcer;
+import org.eclipse.ditto.policies.enforcement.PreEnforcer;
 import org.eclipse.ditto.policies.enforcement.config.DefaultEntityCreationConfig;
 
 import akka.actor.ActorRef;
@@ -68,6 +70,9 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId> extends 
     protected static final Duration DEFAULT_LOCAL_ASK_TIMEOUT = Duration.ofSeconds(5);
 
     protected final DittoDiagnosticLoggingAdapter log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
+
+    @Nullable protected final BlockedNamespaces blockedNamespaces;
+    protected final PreEnforcer preEnforcer;
     protected final CreationRestrictionEnforcer creationRestrictionEnforcer;
 
     @Nullable protected E entityId;
@@ -79,7 +84,11 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId> extends 
     private ExponentialBackOff backOff;
     private boolean waitingForStopBeforeRestart = false;
 
-    protected AbstractPersistenceSupervisor() {
+    protected AbstractPersistenceSupervisor(@Nullable final BlockedNamespaces blockedNamespaces,
+            final PreEnforcer preEnforcer) {
+
+        this.blockedNamespaces = blockedNamespaces;
+        this.preEnforcer = preEnforcer;
         exponentialBackOffConfig = getExponentialBackOffConfig();
         backOff = ExponentialBackOff.initial(exponentialBackOffConfig);
         creationRestrictionEnforcer = DefaultCreationRestrictionEnforcer.of(
@@ -143,6 +152,8 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId> extends 
                 .matchEquals(Control.START_CHILDS, this::startChilds)
                 .matchEquals(Control.PASSIVATE, this::passivate)
                 .match(SudoCommand.class, this::forwardSudoCommandToChildIfAvailable)
+                .match(WithDittoHeaders.class, w -> w.getDittoHeaders().isSudo(),
+                        this::forwardDittoSudoToChildIfAvailable)
                 .matchAny(this::enforceAndForwardToPersistenceActor)
                 .build();
     }
@@ -328,6 +339,21 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId> extends 
             }
         } else {
             replyUnavailableException(sudoCommand);
+        }
+    }
+
+    private void forwardDittoSudoToChildIfAvailable(final WithDittoHeaders withDittoHeaders) {
+        if (null != persistenceActorChild) {
+            if (persistenceActorChild.equals(getSender())) {
+                log.withCorrelationId(withDittoHeaders)
+                        .warning("Received unhandled WithDittoHeaders from persistenceActorChild '{}': {}", entityId,
+                                withDittoHeaders);
+                unhandled(withDittoHeaders);
+            } else {
+                persistenceActorChild.forward(withDittoHeaders, getContext());
+            }
+        } else {
+            replyUnavailableException(withDittoHeaders);
         }
     }
 

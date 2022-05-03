@@ -503,7 +503,7 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
                             () -> {
                                 // the Acknowledgement / LiveCommandResponse is meant for someone else:
                                 final var template =
-                                        "No AcknowledgementForwarderActor found, forwarding to concierge: <{}>";
+                                        "No AcknowledgementForwarderActor found, forwarding to command router: <{}>";
                                 if (logger.isDebugEnabled()) {
                                     logger.withCorrelationId(response).debug(template, response);
                                 } else {

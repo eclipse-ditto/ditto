@@ -34,6 +34,11 @@ import akka.japi.pf.ReceiveBuilder;
  */
 public final class BlockedNamespacesUpdater extends AbstractActor {
 
+    /**
+     * The name of this actor.
+     */
+    public static final String ACTOR_NAME = "blockedNamespacesUpdater";
+
     private final DiagnosticLoggingAdapter log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
 
     private final BlockedNamespaces blockedNamespaces;

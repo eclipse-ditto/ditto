@@ -181,7 +181,7 @@ public abstract class PersistenceActorTestBase {
     protected ActorRef createSupervisorActorFor(final ThingId thingId) {
         final Props props =
                 ThingSupervisorActor.props(pubSubMediator, policiesShardRegion, getDistributedPub(),
-                        this::getPropsOfThingPersistenceActor, CompletableFuture::completedFuture);
+                        this::getPropsOfThingPersistenceActor, null, CompletableFuture::completedFuture);
 
         return actorSystem.actorOf(props, thingId.toString());
     }

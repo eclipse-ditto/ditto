@@ -130,6 +130,7 @@ public final class ThingPersistenceOperationsActorIT extends MongoEventSourceITA
                         },
                         (thingId, distributedPub) -> ThingPersistenceActor.props(thingId, distributedPub,
                                 pubSubMediator),
+                        null,
                         CompletableFuture::completedFuture);
 
         return system.actorOf(props, id.toString());

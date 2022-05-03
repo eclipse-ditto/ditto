@@ -109,7 +109,7 @@ public final class CommandAndCommandResponseMatchingValidator
     /**
      * Checks whether the {@code command} and {@code commandResponse} correlation-ids are either completely equal or
      * if the response's correlation-id "starts with" the command's correlation-id.
-     * That could be the case for correlation-id collisions detected in concierge's {@code ResponseReceiverCache} in
+     * That could be the case for correlation-id collisions detected in {@code ResponseReceiverCache} in
      * which case a newly created UUID is appended to the collided previous correlation-id.
      *
      * @param command the command to extract the correlation-id to check.

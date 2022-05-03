@@ -31,19 +31,19 @@ import akka.japi.pf.ReceiveBuilder;
 public abstract class AbstractThingProxyActor extends AbstractProxyActor {
 
     private final ActorSelection devOpsCommandsActor;
-    private final ActorRef conciergeForwarder;
+    private final ActorRef commandForwarder;
     private final ActorRef aggregatorProxyActor;
 
     protected AbstractThingProxyActor(final ActorRef pubSubMediator,
             final ActorSelection devOpsCommandsActor,
-            final ActorRef conciergeForwarder) {
+            final ActorRef commandForwarder) {
 
         super(pubSubMediator);
 
         this.devOpsCommandsActor = devOpsCommandsActor;
-        this.conciergeForwarder = conciergeForwarder;
+        this.commandForwarder = commandForwarder;
 
-        aggregatorProxyActor = getContext().actorOf(ThingsAggregatorProxyActor.props(conciergeForwarder),
+        aggregatorProxyActor = getContext().actorOf(ThingsAggregatorProxyActor.props(commandForwarder),
                 ThingsAggregatorProxyActor.ACTOR_NAME);
     }
 
@@ -65,14 +65,14 @@ public abstract class AbstractThingProxyActor extends AbstractProxyActor {
                     final ActorRef responseActor = getContext().actorOf(
                             QueryThingsPerRequestActor.props(qt, aggregatorProxyActor, getSender(),
                                     pubSubMediator));
-                    conciergeForwarder.tell(qt, responseActor);
+                    commandForwarder.tell(qt, responseActor);
                 })
 
-                /* send all other Commands to Concierge forwarder */
-                .match(Command.class, this::forwardToConciergeForwarder)
+                /* send all other Commands to command forwarder */
+                .match(Command.class, this::forwardToCommandForwarder)
 
                 /* Live Signals */
-                .match(Signal.class, AbstractProxyActor::isLiveCommandOrEvent, this::forwardToConciergeForwarder);
+                .match(Signal.class, AbstractProxyActor::isLiveCommandOrEvent, this::forwardToCommandForwarder);
     }
 
     @Override
@@ -85,8 +85,8 @@ public abstract class AbstractThingProxyActor extends AbstractProxyActor {
         // do nothing
     }
 
-    private void forwardToConciergeForwarder(final Signal<?> signal) {
-        conciergeForwarder.forward(signal, getContext());
+    private void forwardToCommandForwarder(final Signal<?> signal) {
+        commandForwarder.forward(signal, getContext());
     }
 
 }

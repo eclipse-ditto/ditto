@@ -1443,7 +1443,7 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
                                 expectedRoundedExpiryInstant);
                 TimeUnit.MILLISECONDS.sleep(between.toMillis() + 200L);
 
-                // AND WHEN: the policy is retrieved via concierge (and restored as a consequence)
+                // AND WHEN: the policy is retrieved (and restored as a consequence)
                 final SudoRetrievePolicy sudoRetrievePolicy = SudoRetrievePolicy.of(policyId, dittoHeadersV2);
                 underTest.tell(sudoRetrievePolicy, getRef());
                 expectMsgClass(SudoRetrievePolicyResponse.class);

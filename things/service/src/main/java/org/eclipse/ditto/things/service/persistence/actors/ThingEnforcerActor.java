@@ -23,6 +23,7 @@ import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.internal.utils.cache.entry.Entry;
 import org.eclipse.ditto.internal.utils.cacheloaders.EnforcementCacheKey;
 import org.eclipse.ditto.internal.utils.cacheloaders.config.AskWithRetryConfig;
+import org.eclipse.ditto.internal.utils.namespaces.BlockedNamespaces;
 import org.eclipse.ditto.internal.utils.persistentactors.AbstractEnforcerActor;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.policies.enforcement.PolicyEnforcer;
@@ -56,9 +57,10 @@ public final class ThingEnforcerActor
     @SuppressWarnings("unused")
     private ThingEnforcerActor(final ThingId thingId,
             final ThingCommandEnforcement thingCommandEnforcement,
-            final ActorRef pubSubMediator) {
+            final ActorRef pubSubMediator,
+            @Nullable final BlockedNamespaces blockedNamespaces) {
 
-        super(thingId, thingCommandEnforcement, pubSubMediator);
+        super(thingId, thingCommandEnforcement, pubSubMediator, blockedNamespaces);
     }
 
     /**
@@ -68,12 +70,16 @@ public final class ThingEnforcerActor
      * @param thingCommandEnforcement the thing command enforcement logic to apply in the enforcer.
      * @param pubSubMediator the ActorRef of the distributed pub-sub-mediator used to subscribe for policy updates in
      * order to perform invalidations.
+     * @param blockedNamespaces the blocked namespaces functionality to retrieve/subscribe for blocked namespaces.
+     * @return the {@link Props} to create this actor.
      */
     public static Props props(final ThingId thingId,
             final ThingCommandEnforcement thingCommandEnforcement,
-            final ActorRef pubSubMediator) {
+            final ActorRef pubSubMediator,
+            @Nullable final BlockedNamespaces blockedNamespaces) {
 
-        return Props.create(ThingEnforcerActor.class, thingId, thingCommandEnforcement, pubSubMediator);
+        return Props.create(ThingEnforcerActor.class, thingId, thingCommandEnforcement, pubSubMediator,
+                blockedNamespaces);
     }
 
     @Override

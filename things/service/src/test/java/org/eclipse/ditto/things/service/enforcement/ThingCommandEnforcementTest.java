@@ -1030,7 +1030,8 @@ public final class ThingCommandEnforcementTest {
                             CompletableFuture::completedFuture,
                             liveSignalPub
                     ),
-                    pubSubMediator
+                    pubSubMediator,
+                    null
             ), THING_ENFORCER_ACTOR_NAME);
         }
 

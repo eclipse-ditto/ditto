@@ -492,7 +492,7 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
 
                     final var searchSourceBuilder = SearchSource.newBuilder()
                             .pubSubMediator(pubSubMediator)
-                            .conciergeForwarder(ActorSelection.apply(proxyActor, ""))
+                            .commandForwarder(ActorSelection.apply(proxyActor, ""))
                             .filter(parameters.get(PARAM_FILTER))
                             .options(parameters.get(PARAM_OPTION))
                             .fields(parameters.get(PARAM_FIELDS))

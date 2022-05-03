@@ -35,6 +35,7 @@ import org.eclipse.ditto.connectivity.service.enforcement.ConnectivityCommandEnf
 import org.eclipse.ditto.connectivity.service.messaging.ClientActorPropsFactory;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.internal.utils.persistentactors.AbstractPersistenceSupervisor;
+import org.eclipse.ditto.policies.enforcement.PreEnforcer;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
@@ -83,7 +84,10 @@ public final class ConnectionSupervisorActor extends AbstractPersistenceSupervis
             final ClientActorPropsFactory propsFactory,
             @Nullable final ConnectivityCommandInterceptor commandInterceptor,
             final ConnectionPriorityProviderFactory connectionPriorityProviderFactory,
-            final ActorRef pubSubMediator) {
+            final ActorRef pubSubMediator,
+            final PreEnforcer preEnforcer) {
+
+        super(null, preEnforcer);
         this.proxyActor = proxyActor;
         this.propsFactory = propsFactory;
         this.commandInterceptor = commandInterceptor;
@@ -103,16 +107,18 @@ public final class ConnectionSupervisorActor extends AbstractPersistenceSupervis
      * @param commandValidator a custom command validator for connectivity commands.
      * @param connectionPriorityProviderFactory used to determine the reconnect priority of a connection.
      * @param pubSubMediator pub-sub-mediator for the shutdown behavior.
+     * @param preEnforcer the PreEnforcer to apply as extension mechanism of the enforcement.
      * @return the {@link Props} to create this actor.
      */
     public static Props props(final ActorRef proxyActor,
             final ClientActorPropsFactory propsFactory,
             @Nullable final ConnectivityCommandInterceptor commandValidator,
             final ConnectionPriorityProviderFactory connectionPriorityProviderFactory,
-            final ActorRef pubSubMediator) {
+            final ActorRef pubSubMediator,
+            final PreEnforcer preEnforcer) {
 
         return Props.create(ConnectionSupervisorActor.class, proxyActor, propsFactory, commandValidator,
-                connectionPriorityProviderFactory, pubSubMediator);
+                connectionPriorityProviderFactory, pubSubMediator, preEnforcer);
     }
 
     @Override

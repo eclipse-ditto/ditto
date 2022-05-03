@@ -16,20 +16,26 @@ import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.text.MessageFormat;
 import java.util.Objects;
+import java.util.function.Predicate;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.FieldType;
+import org.eclipse.ditto.base.model.json.JsonParsableCommand;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
-import org.eclipse.ditto.base.model.json.Jsonifiable;
+import org.eclipse.ditto.base.model.signals.commands.AbstractCommand;
+import org.eclipse.ditto.base.model.signals.commands.CommandJsonDeserializer;
 import org.eclipse.ditto.connectivity.model.ConnectionId;
-import org.eclipse.ditto.connectivity.model.ConnectionIdInvalidException;
 import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
 import org.eclipse.ditto.connectivity.model.LogEntry;
 import org.eclipse.ditto.connectivity.model.WithConnectionId;
+import org.eclipse.ditto.connectivity.model.signals.commands.ConnectivityCommand;
+import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonParseException;
 import org.eclipse.ditto.json.JsonRuntimeException;
 
@@ -39,12 +45,26 @@ import org.eclipse.ditto.json.JsonRuntimeException;
  * @since 2.3.0
  */
 @Immutable
-public final class AddConnectionLogEntry implements Jsonifiable<JsonObject>, WithConnectionId {
+@JsonParsableCommand(typePrefix = ConnectivityCommand.TYPE_PREFIX, name = AddConnectionLogEntry.NAME)
+public final class AddConnectionLogEntry extends AbstractCommand<AddConnectionLogEntry>
+        implements ConnectivityCommand<AddConnectionLogEntry>, WithConnectionId {
+
+    /**
+     * Name of this command.
+     */
+    public static final String NAME = "addConnectionLogEntry";
+
+    /**
+     * Type of this command.
+     */
+    public static final String TYPE = TYPE_PREFIX + NAME;
 
     private final ConnectionId connectionId;
     private final LogEntry logEntry;
 
-    private AddConnectionLogEntry(final ConnectionId connectionId, final LogEntry logEntry) {
+    private AddConnectionLogEntry(final ConnectionId connectionId, final LogEntry logEntry,
+            final DittoHeaders dittoHeaders) {
+        super(TYPE, dittoHeaders);
         this.connectionId = checkNotNull(connectionId, "connectionId");
         this.logEntry = checkNotNull(logEntry, "logEntry");
     }
@@ -55,19 +75,21 @@ public final class AddConnectionLogEntry implements Jsonifiable<JsonObject>, Wit
      *
      * @param connectionId ID of the connection to add the log entry for.
      * @param connectionLogEntry the entry to be added to the connection log.
+     * @param dittoHeaders the headers of the request.
      * @return the instance.
      * @throws NullPointerException if any argument is {@code null}.
      */
     public static AddConnectionLogEntry newInstance(final ConnectionId connectionId,
-            final LogEntry connectionLogEntry) {
+            final LogEntry connectionLogEntry, final DittoHeaders dittoHeaders) {
 
-        return new AddConnectionLogEntry(connectionId, connectionLogEntry);
+        return new AddConnectionLogEntry(connectionId, connectionLogEntry, dittoHeaders);
     }
 
     /**
      * Deserializes an instance of {@code AddConnectionLogEntry} from the specified {@code JsonObject} argument.
      *
      * @param jsonObject the JSON object to be deserialized.
+     * @param dittoHeaders the headers of the command.
      * @return the deserialized {@code AddConnectionLogEntry}.
      * @throws NullPointerException if {@code jsonObject} is {@code null}.
      * @throws org.eclipse.ditto.json.JsonMissingFieldException if {@code jsonObject} does not contain all required
@@ -75,20 +97,14 @@ public final class AddConnectionLogEntry implements Jsonifiable<JsonObject>, Wit
      * @throws org.eclipse.ditto.json.JsonParseException if {@code jsonObject} cannot be deserialized because of
      * invalid data.
      */
-    public static AddConnectionLogEntry fromJson(final JsonObject jsonObject) {
-        checkNotNull(jsonObject, "jsonObject");
+    public static AddConnectionLogEntry fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
+        return new CommandJsonDeserializer<AddConnectionLogEntry>(TYPE, jsonObject).deserialize(() -> {
+            final String readConnectionId = jsonObject.getValueOrThrow(ConnectivityCommand.JsonFields.JSON_CONNECTION_ID);
+            final ConnectionId connectionId = ConnectionId.of(readConnectionId);
+            final LogEntry logEntry = deserializeLogEntryOrThrow(jsonObject);
 
-        return new AddConnectionLogEntry(deserializeConnectionIdOrThrow(jsonObject),
-                deserializeLogEntryOrThrow(jsonObject));
-    }
-
-    private static ConnectionId deserializeConnectionIdOrThrow(final JsonObject jsonObject) {
-        final var fieldDefinition = JsonFields.CONNECTION_ID;
-        try {
-            return ConnectionId.of(jsonObject.getValueOrThrow(fieldDefinition));
-        } catch (final JsonRuntimeException | ConnectionIdInvalidException e) {
-            throw newJsonParseException(fieldDefinition, ConnectionId.class, e);
-        }
+            return newInstance(connectionId, logEntry, dittoHeaders);
+        });
     }
 
     private static JsonParseException newJsonParseException(final JsonFieldDefinition<?> fieldDefinition,
@@ -128,11 +144,27 @@ public final class AddConnectionLogEntry implements Jsonifiable<JsonObject>, Wit
     }
 
     @Override
-    public JsonObject toJson() {
-        return JsonObject.newBuilder()
-                .set(JsonFields.CONNECTION_ID, connectionId.toString())
-                .set(JsonFields.LOG_ENTRY, logEntry.toJson())
-                .build();
+    public Category getCategory() {
+        return Category.ACTION;
+    }
+
+    @Override
+    public AddConnectionLogEntry setDittoHeaders(final DittoHeaders dittoHeaders) {
+        return newInstance(connectionId, logEntry, dittoHeaders);
+    }
+
+    @Override
+    protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
+            final Predicate<JsonField> thePredicate) {
+        final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
+        jsonObjectBuilder.set(ConnectivityCommand.JsonFields.JSON_CONNECTION_ID, String.valueOf(connectionId),
+                predicate);
+        jsonObjectBuilder.set(JsonFields.LOG_ENTRY, logEntry.toJson(), predicate);
+    }
+
+    @Override
+    protected boolean canEqual(@Nullable final Object other) {
+        return (other instanceof AddConnectionLogEntry);
     }
 
     @Override
@@ -141,22 +173,24 @@ public final class AddConnectionLogEntry implements Jsonifiable<JsonObject>, Wit
             return true;
         }
         if (o == null || getClass() != o.getClass()) {
-            return false;
+            return false;}
+        if (!super.equals(o)) {return false;
         }
-        final var that = (AddConnectionLogEntry) o;
+        final AddConnectionLogEntry that = (AddConnectionLogEntry) o;
         return Objects.equals(connectionId, that.connectionId) &&
                 Objects.equals(logEntry, that.logEntry);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(connectionId, logEntry);
+        return Objects.hash(super.hashCode(), connectionId, logEntry);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
-                "connectionId=" + connectionId +
+                super.toString() +
+                ", connectionId=" + connectionId +
                 ", logEntry=" + logEntry +
                 "]";
     }
@@ -166,12 +200,6 @@ public final class AddConnectionLogEntry implements Jsonifiable<JsonObject>, Wit
      */
     @Immutable
     public static final class JsonFields {
-
-        /**
-         * Definition of a field containing the String representation of the {@link ConnectionId}.
-         */
-        public static final JsonFieldDefinition<String> CONNECTION_ID =
-                JsonFieldDefinition.ofString("connectionId", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
         /**
          * Definition of a field containing the JSON object representation of the {@link LogEntry}.

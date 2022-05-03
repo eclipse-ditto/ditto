@@ -49,7 +49,7 @@ import akka.testkit.TestProbe;
 public class PolicyIdReferencePlaceholderResolverTest {
 
     private static final ActorSystem actorSystem = ActorSystem.create("test", ConfigFactory.load("test"));
-    private TestProbe conciergeForwarderActorProbe;
+    private TestProbe commandForwarderActorProbe;
     private PolicyIdReferencePlaceholderResolver sut;
     private static final ThingId THING_ID = ThingId.of("namespace:myThing");
 
@@ -62,8 +62,8 @@ public class PolicyIdReferencePlaceholderResolverTest {
 
     @Before
     public void setup() {
-        conciergeForwarderActorProbe = TestProbe.apply(actorSystem);
-        sut = PolicyIdReferencePlaceholderResolver.of(conciergeForwarderActorProbe.testActor(),
+        commandForwarderActorProbe = TestProbe.apply(actorSystem);
+        sut = PolicyIdReferencePlaceholderResolver.of(commandForwarderActorProbe.testActor(),
                 DefaultAskWithRetryConfig.of(ConfigFactory.empty(), "test"), actorSystem.scheduler(),
                 actorSystem.dispatcher());
     }
@@ -77,11 +77,11 @@ public class PolicyIdReferencePlaceholderResolverTest {
 
         final CompletionStage<String> policyIdCS = sut.resolve(referencePlaceholder, DittoHeaders.empty());
 
-        final RetrieveThing retrieveThing = conciergeForwarderActorProbe.expectMsgClass(RetrieveThing.class);
+        final RetrieveThing retrieveThing = commandForwarderActorProbe.expectMsgClass(RetrieveThing.class);
         assertThat((CharSequence) retrieveThing.getEntityId()).isEqualTo(THING_ID);
         assertThat(retrieveThing.getSelectedFields()).contains(JsonFieldSelector.newInstance("policyId"));
 
-        conciergeForwarderActorProbe.reply(RetrieveThingResponse.of(THING_ID,
+        commandForwarderActorProbe.reply(RetrieveThingResponse.of(THING_ID,
                 Thing.newBuilder().setPolicyId(PolicyId.of("namespace:myPolicy")).build(), null, null,
                 DittoHeaders.empty()));
 
@@ -101,11 +101,11 @@ public class PolicyIdReferencePlaceholderResolverTest {
 
         final CompletionStage<String> policyIdCS = sut.resolve(referencePlaceholder, DittoHeaders.empty());
 
-        final RetrieveThing retrieveThing = conciergeForwarderActorProbe.expectMsgClass(RetrieveThing.class);
+        final RetrieveThing retrieveThing = commandForwarderActorProbe.expectMsgClass(RetrieveThing.class);
         assertThat((CharSequence) retrieveThing.getEntityId()).isEqualTo(THING_ID);
         assertThat(retrieveThing.getSelectedFields()).contains(JsonFieldSelector.newInstance("/attributes/policyId"));
 
-        conciergeForwarderActorProbe.reply(RetrieveThingResponse.of(THING_ID,
+        commandForwarderActorProbe.reply(RetrieveThingResponse.of(THING_ID,
                 Thing.newBuilder().setAttribute(JsonPointer.of("policyId"), JsonValue.of("namespace:myPolicy")).build(),
                 null, null, DittoHeaders.empty()));
 
@@ -126,11 +126,11 @@ public class PolicyIdReferencePlaceholderResolverTest {
 
         final CompletionStage<String> policyIdCS = sut.resolve(referencePlaceholder, DittoHeaders.empty());
 
-        final RetrieveThing retrieveThing = conciergeForwarderActorProbe.expectMsgClass(RetrieveThing.class);
+        final RetrieveThing retrieveThing = commandForwarderActorProbe.expectMsgClass(RetrieveThing.class);
         assertThat((CharSequence) retrieveThing.getEntityId()).isEqualTo(THING_ID);
         assertThat(retrieveThing.getSelectedFields()).contains(JsonFieldSelector.newInstance("/attributes/policyId"));
 
-        conciergeForwarderActorProbe.reply(RetrieveThingResponse.of(THING_ID,
+        commandForwarderActorProbe.reply(RetrieveThingResponse.of(THING_ID,
                 Thing.newBuilder().build(),
                 null, null, DittoHeaders.empty()));
 
@@ -151,11 +151,11 @@ public class PolicyIdReferencePlaceholderResolverTest {
 
         final CompletionStage<String> policyIdCS = sut.resolve(referencePlaceholder, DittoHeaders.empty());
 
-        final RetrieveThing retrieveThing = conciergeForwarderActorProbe.expectMsgClass(RetrieveThing.class);
+        final RetrieveThing retrieveThing = commandForwarderActorProbe.expectMsgClass(RetrieveThing.class);
         assertThat((CharSequence) retrieveThing.getEntityId()).isEqualTo(THING_ID);
         assertThat(retrieveThing.getSelectedFields()).contains(JsonFieldSelector.newInstance("policyId"));
 
-        conciergeForwarderActorProbe.reply(
+        commandForwarderActorProbe.reply(
                 RetrieveThingResponse.of(THING_ID, Thing.newBuilder().build(), null, null, DittoHeaders.empty()));
 
         Awaitility.await()
@@ -175,12 +175,12 @@ public class PolicyIdReferencePlaceholderResolverTest {
 
         final CompletionStage<String> policyIdCS = sut.resolve(referencePlaceholder, DittoHeaders.empty());
 
-        final RetrieveThing retrieveThing = conciergeForwarderActorProbe.expectMsgClass(RetrieveThing.class);
+        final RetrieveThing retrieveThing = commandForwarderActorProbe.expectMsgClass(RetrieveThing.class);
         assertThat((CharSequence) retrieveThing.getEntityId()).isEqualTo(THING_ID);
         assertThat(retrieveThing.getSelectedFields()).contains(JsonFieldSelector.newInstance("policyId"));
 
         final DittoRuntimeException dre = ThingNotAccessibleException.newBuilder(THING_ID).build();
-        conciergeForwarderActorProbe.reply(ThingErrorResponse.of(dre));
+        commandForwarderActorProbe.reply(ThingErrorResponse.of(dre));
 
         Awaitility.await()
                 .atMost(Duration.ofSeconds(1))
@@ -199,11 +199,11 @@ public class PolicyIdReferencePlaceholderResolverTest {
 
         final CompletionStage<String> policyIdCS = sut.resolve(referencePlaceholder, DittoHeaders.empty());
 
-        final RetrieveThing retrieveThing = conciergeForwarderActorProbe.expectMsgClass(RetrieveThing.class);
+        final RetrieveThing retrieveThing = commandForwarderActorProbe.expectMsgClass(RetrieveThing.class);
         assertThat((CharSequence) retrieveThing.getEntityId()).isEqualTo(THING_ID);
         assertThat(retrieveThing.getSelectedFields()).contains(JsonFieldSelector.newInstance("policyId"));
 
-        conciergeForwarderActorProbe.reply("someThingUnexpected");
+        commandForwarderActorProbe.reply("someThingUnexpected");
 
         Awaitility.await()
                 .atMost(Duration.ofSeconds(1))

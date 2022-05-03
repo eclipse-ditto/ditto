@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Contributors to the Eclipse Foundation
+ * Copyright (c) 2022 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.concierge.service.starter.actors;
+package org.eclipse.ditto.internal.utils.aggregator;
 
 import java.util.Collection;
 import java.util.Objects;
@@ -23,13 +23,9 @@ import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.Jsonifiable;
 import org.eclipse.ditto.base.model.signals.SignalWithEntityId;
 import org.eclipse.ditto.base.model.signals.commands.Command;
-import org.eclipse.ditto.concierge.api.ConciergeWrapper;
-import org.eclipse.ditto.concierge.service.starter.DittoConciergeConfig;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
-import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.json.JsonFieldSelector;
-import org.eclipse.ditto.policies.enforcement.config.ThingsAggregatorConfig;
 import org.eclipse.ditto.things.api.commands.sudo.SudoRetrieveThing;
 import org.eclipse.ditto.things.api.commands.sudo.SudoRetrieveThings;
 import org.eclipse.ditto.things.model.ThingId;
@@ -64,11 +60,8 @@ public final class ThingsAggregatorActor extends AbstractActor {
     private final int maxParallelism;
 
     @SuppressWarnings("unused")
-    private ThingsAggregatorActor(final ActorRef targetActor) {
+    private ThingsAggregatorActor(final ActorRef targetActor, final ThingsAggregatorConfig aggregatorConfig) {
         this.targetActor = targetActor;
-        final ThingsAggregatorConfig aggregatorConfig = DittoConciergeConfig.of(
-                DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config())
-        ).getThingsAggregatorConfig();
         retrieveSingleThingTimeout = aggregatorConfig.getSingleRetrieveThingTimeout();
         maxParallelism = aggregatorConfig.getMaxParallelism();
     }
@@ -79,8 +72,8 @@ public final class ThingsAggregatorActor extends AbstractActor {
      * @param targetActor the Actor selection to delegate "asks" for the aggregation to.
      * @return the Akka configuration Props object
      */
-    public static Props props(final ActorRef targetActor) {
-        return Props.create(ThingsAggregatorActor.class, targetActor)
+    public static Props props(final ActorRef targetActor, final ThingsAggregatorConfig aggregatorConfig) {
+        return Props.create(ThingsAggregatorActor.class, targetActor, aggregatorConfig)
                 .withDispatcher(AGGREGATOR_INTERNAL_DISPATCHER);
     }
 
@@ -135,19 +128,19 @@ public final class ThingsAggregatorActor extends AbstractActor {
         final SourceRef<Jsonifiable> commandResponseSource = Source.from(thingIds)
                 .filter(Objects::nonNull)
                 .map(thingId -> {
-                    final SignalWithEntityId<?> toBeWrapped;
+                    final SignalWithEntityId<?> retrieveThing;
                     if (command instanceof RetrieveThings) {
-                        toBeWrapped = Optional.ofNullable(selectedFields)
+                        retrieveThing = Optional.ofNullable(selectedFields)
                                 .map(sf -> RetrieveThing.getBuilder(thingId, dittoHeaders)
                                         .withSelectedFields(sf)
                                         .build())
                                 .orElse(RetrieveThing.of(thingId, dittoHeaders));
                     } else {
-                        toBeWrapped = Optional.ofNullable(selectedFields)
+                        retrieveThing = Optional.ofNullable(selectedFields)
                                 .map(sf -> SudoRetrieveThing.of(thingId, sf, dittoHeaders))
                                 .orElse(SudoRetrieveThing.of(thingId, dittoHeaders));
                     }
-                    return ConciergeWrapper.wrapForEnforcerRouter(toBeWrapped);
+                    return retrieveThing;
                 })
                 .ask(calculateParallelism(thingIds), targetActor, Jsonifiable.class,
                         Timeout.apply(retrieveSingleThingTimeout.toMillis(), TimeUnit.MILLISECONDS))

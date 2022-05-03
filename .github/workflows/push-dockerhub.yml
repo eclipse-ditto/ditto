@@ -96,24 +96,6 @@ jobs:
             eclipse/ditto-things:${{ env.IMAGE_MAJOR_TAG }}
             eclipse/ditto-things:latest
       -
-        name: Build and push ditto-concierge
-        if: env.MILESTONE_OR_RC_SUFFIX == env.IMAGE_TAG
-        uses: docker/build-push-action@v2
-        with:
-          context: .
-          file: dockerfile-release
-          platforms: linux/amd64,linux/arm64
-          build-args: |
-            SERVICE_STARTER=ditto-concierge-service
-            SERVICE_VERSION=${{ env.IMAGE_TAG }}
-          pull: true
-          push: true
-          tags: |
-            eclipse/ditto-concierge:${{ env.IMAGE_TAG }}
-            eclipse/ditto-concierge:${{ env.IMAGE_MINOR_TAG }}
-            eclipse/ditto-concierge:${{ env.IMAGE_MAJOR_TAG }}
-            eclipse/ditto-concierge:latest
-      -
         name: Build and push ditto-gateway
         if: env.MILESTONE_OR_RC_SUFFIX == env.IMAGE_TAG
         uses: docker/build-push-action@v2
@@ -197,21 +179,6 @@ jobs:
           push: true
           tags: |
             eclipse/ditto-things:${{ env.IMAGE_TAG }}
-      -
-        name: Build and push ditto-concierge milestone/RC
-        if: env.MILESTONE_OR_RC_SUFFIX != env.IMAGE_TAG
-        uses: docker/build-push-action@v2
-        with:
-          context: .
-          file: dockerfile-release
-          platforms: linux/amd64,linux/arm64
-          build-args: |
-            SERVICE_STARTER=ditto-concierge-service
-            SERVICE_VERSION=${{ env.IMAGE_TAG }}
-          pull: true
-          push: true
-          tags: |
-            eclipse/ditto-concierge:${{ env.IMAGE_TAG }}
       -
         name: Build and push ditto-gateway milestone/RC
         if: env.MILESTONE_OR_RC_SUFFIX != env.IMAGE_TAG

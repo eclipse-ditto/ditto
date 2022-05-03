@@ -168,7 +168,7 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
                 failure.getCommandResponse(),
                 failure.getDetailMessage());
 
-        return AddConnectionLogEntry.newInstance(connectionId, logEntry);
+        return AddConnectionLogEntry.newInstance(connectionId, logEntry, failure.getCommand().getDittoHeaders());
     }
 
     private void setReceiveTimeout(final Duration receiveTimeout) {

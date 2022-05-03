@@ -26,9 +26,9 @@ public final class ProxyActor extends AbstractThingProxyActor {
     @SuppressWarnings("unused")
     private ProxyActor(final ActorRef pubSubMediator,
             final ActorSelection devOpsCommandsActor,
-            final ActorRef conciergeForwarder) {
+            final ActorRef commandForwarder) {
 
-        super(pubSubMediator, devOpsCommandsActor, conciergeForwarder);
+        super(pubSubMediator, devOpsCommandsActor, commandForwarder);
     }
 
     /**
@@ -40,9 +40,9 @@ public final class ProxyActor extends AbstractThingProxyActor {
      */
     public static Props props(final ActorRef pubSubMediator,
             final ActorSelection devOpsCommandsActor,
-            final ActorRef conciergeForwarder) {
+            final ActorRef commandForwarder) {
 
-        return Props.create(ProxyActor.class, pubSubMediator, devOpsCommandsActor, conciergeForwarder);
+        return Props.create(ProxyActor.class, pubSubMediator, devOpsCommandsActor, commandForwarder);
     }
 
 }

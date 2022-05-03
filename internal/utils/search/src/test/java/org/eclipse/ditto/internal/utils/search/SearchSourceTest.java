@@ -19,13 +19,13 @@ import java.util.Collections;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.json.JsonArray;
-import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.base.model.exceptions.InvalidRqlExpressionException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
+import org.eclipse.ditto.json.JsonArray;
+import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingId;
-import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingNotAccessibleException;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThing;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThingResponse;
@@ -213,7 +213,7 @@ public final class SearchSourceTest {
             @Nullable final JsonArray sortValues) {
         final SearchSource underTest = SearchSource.newBuilder()
                 .pubSubMediator(pubSubMediatorProbe.ref())
-                .conciergeForwarder(ActorSelection.apply(conciergeForwarderProbe.ref(), ""))
+                .commandForwarder(ActorSelection.apply(conciergeForwarderProbe.ref(), ""))
                 .thingsAskTimeout(Duration.ofSeconds(3L))
                 .searchAskTimeout(Duration.ofSeconds(3L))
                 .fields(fields)

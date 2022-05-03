@@ -23,7 +23,6 @@ import org.eclipse.ditto.base.model.signals.JsonParsable;
 import org.eclipse.ditto.base.model.signals.commands.GlobalCommandRegistry;
 import org.eclipse.ditto.base.model.signals.commands.GlobalCommandResponseRegistry;
 import org.eclipse.ditto.base.model.signals.events.GlobalEventRegistry;
-import org.eclipse.ditto.connectivity.api.messaging.monitoring.logs.AddConnectionLogEntry;
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
 import org.eclipse.ditto.connectivity.model.ConnectivityStatus;
@@ -95,7 +94,6 @@ public final class ConnectivityMappingStrategies extends MappingStrategies {
                 .add(OutboundSignal.class,
                         jsonObject -> OutboundSignalFactory.outboundSignalFromJson(jsonObject, strategies)) // do not replace with lambda!
                 .add(InboundSignal.class, jsonObject -> InboundSignal.fromJson(jsonObject, strategies))
-                .add(AddConnectionLogEntry.class, jsonObject -> AddConnectionLogEntry.fromJson(jsonObject))
                 .add("UnmappedOutboundSignal",
                         jsonObject -> OutboundSignalFactory.outboundSignalFromJson(jsonObject, strategies))
                 .build();// do not replace with lambda!

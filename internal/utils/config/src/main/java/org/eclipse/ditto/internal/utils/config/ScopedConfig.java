@@ -24,7 +24,6 @@ import com.typesafe.config.Config;
  * Based on the following example config
  * <pre>
  *    ditto {
- *      concierge {
  *        caches {
  *          ask-timeout = 10s
  *
@@ -40,9 +39,8 @@ import com.typesafe.config.Config;
  *        }
  *
  *        mongodb {
- *          uri = "mongodb://localhost:27017/concierge"
+ *          uri = "mongodb://localhost:27017/things"
  *        }
- *      }
  *    }
  * </pre>
  * a {@code ScopedConfig} with config path {@code caches} would comprise the following:
@@ -61,7 +59,7 @@ import com.typesafe.config.Config;
  *      }
  *    }
  * </pre>
- * A call to method {@link #getConfigPath()} would return {@code "ditto.concierge.caches"}.
+ * A call to method {@link #getConfigPath()} would return {@code "ditto.caches"}.
  * <p>
  *   All get methods will throw a {@link DittoConfigError} if the config at the particular path is missing the value or
  *   if the value has a wrong type.

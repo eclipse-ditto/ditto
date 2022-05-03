@@ -63,7 +63,7 @@ public final class SearchSource {
     private static final ThreadSafeDittoLogger LOGGER = DittoLoggerFactory.getThreadSafeLogger(SearchSource.class);
 
     private final ActorRef pubSubMediator;
-    private final ActorSelection conciergeForwarder;
+    private final ActorSelection commandForwarder;
     private final Duration thingsAskTimeout;
     private final Duration searchAskTimeout;
     @Nullable private final JsonFieldSelector fields;
@@ -73,7 +73,7 @@ public final class SearchSource {
     private final String lastThingId;
 
     SearchSource(final ActorRef pubSubMediator,
-            final ActorSelection conciergeForwarder,
+            final ActorSelection commandForwarder,
             final Duration thingsAskTimeout,
             final Duration searchAskTimeout,
             @Nullable final JsonFieldSelector fields,
@@ -81,7 +81,7 @@ public final class SearchSource {
             final StreamThings streamThings,
             final String lastThingId) {
         this.pubSubMediator = pubSubMediator;
-        this.conciergeForwarder = conciergeForwarder;
+        this.commandForwarder = commandForwarder;
         this.thingsAskTimeout = thingsAskTimeout;
         this.searchAskTimeout = searchAskTimeout;
         this.fields = fields;
@@ -154,7 +154,7 @@ public final class SearchSource {
 
     private Source<Pair<String, JsonObject>, NotUsed> resume(final String lastThingId) {
         return streamThingsFrom(lastThingId)
-                .mapAsync(1, streamThings -> Patterns.ask(conciergeForwarder, streamThings, searchAskTimeout))
+                .mapAsync(1, streamThings -> Patterns.ask(commandForwarder, streamThings, searchAskTimeout))
                 .via(expectMsgClass(SourceRef.class))
                 .flatMapConcat(SourceRef::source)
                 .flatMapConcat(thingId -> retrieveThingForElement((String) thingId));
@@ -215,7 +215,7 @@ public final class SearchSource {
                 .build();
 
         final CompletionStage<Object> responseFuture =
-                Patterns.ask(conciergeForwarder, retrieveThing, thingsAskTimeout);
+                Patterns.ask(commandForwarder, retrieveThing, thingsAskTimeout);
 
         return Source.completionStage(responseFuture)
                 .via(expectMsgClass(RetrieveThingResponse.class))

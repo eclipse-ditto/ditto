@@ -131,7 +131,7 @@ public final class TestSetup {
         private final ActorRef thingsShardRegion;
         private final ActorRef policiesShardRegion;
         private final ActorRef puSubMediatorRef;
-        @Nullable private ActorRef conciergeForwarder;
+        @Nullable private ActorRef commandForwarder;
         @Nullable private PreEnforcer preEnforcer;
         @Nullable private CreationRestrictionEnforcer creationRestrictionEnforcer;
 
@@ -158,8 +158,8 @@ public final class TestSetup {
             return this;
         }
 
-        public EnforcerActorBuilder setConciergeForwarder(final ActorRef conciergeForwarder) {
-            this.conciergeForwarder = conciergeForwarder;
+        public EnforcerActorBuilder setCommandForwarder(final ActorRef commandForwarder) {
+            this.commandForwarder = commandForwarder;
             return this;
         }
 
@@ -170,7 +170,7 @@ public final class TestSetup {
 
         public ActorRef build() {
 
-            var conciergeForwarder = Optional.ofNullable(this.conciergeForwarder)
+            var commandForwarder = Optional.ofNullable(this.commandForwarder)
                     .orElseGet(() -> new TestProbe(system, createUniqueName()).ref());
 
             final AskWithRetryConfig askWithRetryConfig = CACHES_CONFIG.getAskWithRetryConfig();
@@ -198,7 +198,7 @@ public final class TestSetup {
 //                    system,
 //                    liveSignalPub,
 //                    ENFORCEMENT_CONFIG));
-            final Props props = EnforcerActor.props(testActorRef, enforcementProviders, conciergeForwarder, ENFORCEMENT_CONFIG, preEnforcer,
+            final Props props = EnforcerActor.props(testActorRef, enforcementProviders, commandForwarder, ENFORCEMENT_CONFIG, preEnforcer,
                     null, null);
 
             return system.actorOf(props, EnforcerActor.ACTOR_NAME);
@@ -207,7 +207,7 @@ public final class TestSetup {
     }
 
     static String createUniqueName() {
-        return "conciergeForwarder-" + UUID.randomUUID();
+        return "commandForwarder-" + UUID.randomUUID();
     }
 
     public static ThingBuilder.FromScratch newThing() {

@@ -27,7 +27,7 @@
     <dependencies>
         <!-- ### Compile ### -->
         <!-- TODO TJ this should not depend on ditto-things-model and ditto-messages-model -->
-        <!-- TODO TJ fix AcknowledementAggregator stuff so that it does not pull in entity models -->
+        <!--  fix AcknowledementAggregator stuff so that it does not pull in entity models -->
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-things-model</artifactId>

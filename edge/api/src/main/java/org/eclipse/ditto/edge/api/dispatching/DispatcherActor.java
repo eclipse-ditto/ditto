@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Contributors to the Eclipse Foundation
+ * Copyright (c) 2022 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -10,10 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.concierge.service.starter.actors;
-
-import static org.eclipse.ditto.concierge.api.ConciergeMessagingConstants.DISPATCHER_ACTOR_PATH;
-import static org.eclipse.ditto.thingsearch.api.ThingsSearchConstants.SEARCH_ACTOR_PATH;
+package org.eclipse.ditto.edge.api.dispatching;
 
 import java.util.Arrays;
 import java.util.HashMap;
@@ -29,7 +26,9 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.model.headers.DittoHeadersSettable;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
-import org.eclipse.ditto.concierge.service.starter.DittoConciergeConfig;
+import org.eclipse.ditto.internal.utils.aggregator.DefaultThingsAggregatorConfig;
+import org.eclipse.ditto.internal.utils.aggregator.ThingsAggregatorActor;
+import org.eclipse.ditto.internal.utils.aggregator.ThingsAggregatorConfig;
 import org.eclipse.ditto.internal.utils.akka.controlflow.AbstractGraphActor;
 import org.eclipse.ditto.internal.utils.akka.controlflow.Filter;
 import org.eclipse.ditto.internal.utils.akka.controlflow.WithSender;
@@ -38,9 +37,11 @@ import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLogger;
 import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.policies.enforcement.PreEnforcer;
+import org.eclipse.ditto.policies.enforcement.config.DefaultEnforcementConfig;
 import org.eclipse.ditto.policies.enforcement.config.EnforcementConfig;
 import org.eclipse.ditto.things.api.commands.sudo.SudoRetrieveThings;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThings;
+import org.eclipse.ditto.thingsearch.api.ThingsSearchConstants;
 import org.eclipse.ditto.thingsearch.api.commands.sudo.ThingSearchSudoCommand;
 import org.eclipse.ditto.thingsearch.model.signals.commands.ThingSearchCommand;
 import org.eclipse.ditto.thingsearch.model.signals.commands.query.ThingSearchQueryCommand;
@@ -82,9 +83,9 @@ public final class DispatcherActor
 
         super(WithDittoHeaders.class, UnaryOperator.identity());
 
-        enforcementConfig = DittoConciergeConfig.of(
-                DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config())
-        ).getEnforcementConfig();
+        final DefaultScopedConfig dittoScopedConfig =
+                DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config());
+        enforcementConfig = DefaultEnforcementConfig.of(dittoScopedConfig);
 
         enforcementConfig.getSpecialLoggingInspectedNamespaces()
                 .forEach(loggedNamespace -> NAMESPACE_INSPECTION_LOGGERS.put(
@@ -92,8 +93,10 @@ public final class DispatcherActor
                         DittoLoggerFactory.getThreadSafeLogger(DispatcherActor.class.getName() +
                                 ".namespace." + loggedNamespace)));
 
+        final ThingsAggregatorConfig thingsAggregatorConfig = DefaultThingsAggregatorConfig.of(dittoScopedConfig);
+
         this.handler = handler;
-        final Props props = ThingsAggregatorActor.props(conciergeForwarder);
+        final Props props = ThingsAggregatorActor.props(conciergeForwarder, thingsAggregatorConfig);
         thingsAggregatorActor = getContext().actorOf(props, ThingsAggregatorActor.ACTOR_NAME);
 
         initActor(getSelf(), pubSubMediator);
@@ -191,17 +194,15 @@ public final class DispatcherActor
         return Sink.foreach(dispatchToPreEnforce ->
                 preEnforce(dispatchToPreEnforce, preEnforcer, dispatch -> {
                     final DittoHeadersSettable<?> command = dispatch.message;
-                    if (command instanceof ThingSearchCommand) {
-                        final ThingSearchCommand<?> searchCommand = (ThingSearchCommand<?>) command;
+                    if (command instanceof ThingSearchCommand<?> searchCommand) {
                         final Set<String> namespaces = searchCommand.getNamespaces().orElseGet(Set::of);
 
                         NAMESPACE_INSPECTION_LOGGERS.entrySet().stream()
                                 .filter(entry -> namespaces.contains(entry.getKey()))
                                 .map(Map.Entry::getValue)
                                 .forEach(l -> {
-                                    if (searchCommand instanceof ThingSearchQueryCommand) {
-                                        final String filter = ((ThingSearchQueryCommand<?>) searchCommand)
-                                                .getFilter().orElse(null);
+                                    if (searchCommand instanceof ThingSearchQueryCommand<?> thingSearchQueryCommand) {
+                                        final String filter = thingSearchQueryCommand.getFilter().orElse(null);
                                         l.withCorrelationId(command).info(
                                                 "Forwarding search query command type <{}> with filter <{}> and " +
                                                         "fields <{}>",
@@ -212,7 +213,7 @@ public final class DispatcherActor
                                 });
                     }
                     pubSubMediator.tell(
-                            DistPubSubAccess.send(SEARCH_ACTOR_PATH, dispatch.getMessage()),
+                            DistPubSubAccess.send(ThingsSearchConstants.SEARCH_ACTOR_PATH, dispatch.getMessage()),
                             dispatch.getSender());
                 })
         );
@@ -236,23 +237,7 @@ public final class DispatcherActor
     }
 
     private static void initActor(final ActorRef self, final ActorRef pubSubMediator) {
-        sanityCheck(self);
         putSelfToPubSubMediator(self, pubSubMediator);
-    }
-
-    /**
-     * Verify the actor path of self agrees with what is advertised in ditto-concierge-api.
-     *
-     * @param self ActorRef of this actor.
-     */
-    private static void sanityCheck(final ActorRef self) {
-        final String selfPath = self.path().toStringWithoutAddress();
-        if (!Objects.equals(DISPATCHER_ACTOR_PATH, selfPath)) {
-            final String message =
-                    String.format("Path of <%s> is <%s>, which does not agree with the advertised path <%s>",
-                            ACTOR_NAME, selfPath, DISPATCHER_ACTOR_PATH);
-            throw new IllegalStateException(message);
-        }
     }
 
     /**

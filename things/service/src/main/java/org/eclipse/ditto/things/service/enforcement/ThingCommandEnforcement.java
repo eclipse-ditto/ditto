@@ -160,7 +160,7 @@ public final class ThingCommandEnforcement
     /**
      * Creates a new instance of the thing command enforcer.
      *
-     * @param actorSystem
+     * @param actorSystem TODO TJ doc
      * @param ackReceiverActor
      * @param policiesShardRegion the policies shard region to load policies from and to use in order to create new
      * (inline) policies when creating new things.

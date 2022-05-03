@@ -47,9 +47,9 @@ public final class RawConfigSupplier implements Supplier<Config> {
     }
 
     /**
-     * 1. Service specific environment config (e. g. concierge-dev.conf)
-     * 2. Service specific base config (e. g. concierge.conf)
-     * 3. Common Ditto services config (ditto-service-base.conf)
+     * 1. Service specific environment config (e. g. things-dev.conf)
+     * 2. Service specific base config (e. g. things.conf)
+     * 3. Common Ditto services config (things-service-base.conf)
      */
     @Override
     public Config get() {
