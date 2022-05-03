@@ -12,18 +12,17 @@
  */
 package org.eclipse.ditto.base.service.devops;
 
-import java.time.Duration;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.function.Consumer;
-import java.util.function.Supplier;
-import java.util.stream.StreamSupport;
-
-import javax.annotation.Nullable;
-
+import akka.actor.AbstractActor;
+import akka.actor.ActorRef;
+import akka.actor.Props;
+import akka.actor.ReceiveTimeout;
+import akka.cluster.Cluster;
+import akka.cluster.pubsub.DistributedPubSub;
+import akka.cluster.pubsub.DistributedPubSubMediator;
+import akka.event.DiagnosticLoggingAdapter;
+import akka.japi.pf.ReceiveBuilder;
+import akka.pattern.Patterns;
+import com.typesafe.config.Config;
 import org.eclipse.ditto.base.api.devops.LoggerConfig;
 import org.eclipse.ditto.base.api.devops.LoggingFacade;
 import org.eclipse.ditto.base.api.devops.signals.commands.AggregatedDevOpsCommandResponse;
@@ -58,18 +57,16 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
 
-import com.typesafe.config.Config;
-
-import akka.actor.AbstractActor;
-import akka.actor.ActorRef;
-import akka.actor.Props;
-import akka.actor.ReceiveTimeout;
-import akka.cluster.Cluster;
-import akka.cluster.pubsub.DistributedPubSub;
-import akka.cluster.pubsub.DistributedPubSubMediator;
-import akka.event.DiagnosticLoggingAdapter;
-import akka.japi.pf.ReceiveBuilder;
-import akka.pattern.Patterns;
+import javax.annotation.Nullable;
+import java.time.Duration;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.function.Consumer;
+import java.util.function.Supplier;
+import java.util.stream.StreamSupport;
 
 /**
  * An actor to consume {@link org.eclipse.ditto.base.api.devops.signals.commands.DevOpsCommand}s and reply appropriately.
@@ -340,39 +337,35 @@ public final class DevOpsCommandsActor extends AbstractActor implements Retrieve
                     final Duration timeout = command.getDittoHeaders().getTimeout().orElse(DEFAULT_RECEIVE_TIMEOUT);
                     final var actorSelection = getContext().actorSelection(command.getTargetActorSelection());
                     Patterns.ask(actorSelection, jsonifiable, timeout).whenComplete((result, error) -> {
-                        final ExecutePiggybackCommandResponse executePiggybackCommandResponse;
+                        final DevOpsCommandResponse<?> devOpsCommandResponse;
                         if (result instanceof JsonValueSourceRef) {
                             // to be streamed to sender
                             sender.tell(result, getSelf());
                             return;
                         } else if (result instanceof CommandResponse<?> response) {
-                            executePiggybackCommandResponse =
+                            devOpsCommandResponse =
                                     ExecutePiggybackCommandResponse.of(serviceName, instance, response.getHttpStatus(),
                                             response.toJson(), response.getDittoHeaders());
                         } else if (result instanceof DittoRuntimeException exception) {
-                            executePiggybackCommandResponse =
+                            devOpsCommandResponse =
                                     ExecutePiggybackCommandResponse.of(serviceName, instance, exception.getHttpStatus(),
                                             exception.toJson(), exception.getDittoHeaders());
                         } else if (result instanceof Jsonifiable<?> response) {
-                            executePiggybackCommandResponse =
+                            devOpsCommandResponse =
                                     ExecutePiggybackCommandResponse.of(serviceName, instance, HttpStatus.CONFLICT,
                                             response.toJson(), DittoHeaders.empty());
                         } else if (result != null) {
-                            executePiggybackCommandResponse =
+                            devOpsCommandResponse =
                                     ExecutePiggybackCommandResponse.of(serviceName, instance, HttpStatus.CONFLICT,
                                             JsonValue.of(Objects.toString(result)), DittoHeaders.empty());
                         } else {
-                            executePiggybackCommandResponse = ExecutePiggybackCommandResponse.of(serviceName, instance, HttpStatus.CONFLICT,
-                                    AskException.fromMessage(error.getMessage(), DittoHeaders.empty()).toJson(),  DittoHeaders.empty());
+                            devOpsCommandResponse = getErrorResponse(command,
+                                    AskException.fromMessage(error.getMessage(), DittoHeaders.empty()).toJson());
                         }
-                        sender.tell(executePiggybackCommandResponse, getSelf());
+                        sender.tell(devOpsCommandResponse, getSelf());
                     });
                 },
-                dittoRuntimeException -> {
-                    final ExecutePiggybackCommandResponse devOpsErrorResponse = ExecutePiggybackCommandResponse.of(serviceName, instance,
-                            dittoRuntimeException.getHttpStatus(), dittoRuntimeException.toJson(), dittoRuntimeException.getDittoHeaders());
-                    sender.tell(devOpsErrorResponse, getSelf());
-                });
+                dittoRuntimeException -> sender.tell(getErrorResponse(command, dittoRuntimeException.toJson()), getSelf()));
     }
 
     private void deserializePiggybackCommand(final ExecutePiggybackCommand command,
@@ -575,11 +568,11 @@ public final class DevOpsCommandsActor extends AbstractActor implements Retrieve
         }
 
         private void sendCommandResponsesAndStop() {
-            devOpsCommandSender.tell(AggregatedDevOpsCommandResponse.of(commandResponses,
-                            DevOpsCommandResponse.TYPE_PREFIX + devOpsCommand.getName(),
-                            commandResponses.isEmpty() ? HttpStatus.REQUEST_TIMEOUT : HttpStatus.OK,
-                            devOpsCommand.getDittoHeaders()),
-                    getSelf());
+            final AggregatedDevOpsCommandResponse response = AggregatedDevOpsCommandResponse.of(commandResponses,
+                    DevOpsCommandResponse.TYPE_PREFIX + devOpsCommand.getName(),
+                    commandResponses.isEmpty() ? HttpStatus.REQUEST_TIMEOUT : HttpStatus.OK,
+                    devOpsCommand.getDittoHeaders(), aggregateResults);
+            devOpsCommandSender.tell(response, getSelf());
 
             stopSelf();
         }

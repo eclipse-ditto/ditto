@@ -221,14 +221,10 @@ The result should be:
 
 ```json
 {
-    "connectivity": {
-        "10.0.0.1": {
-            "type": "connectivity.responses:testConnection",
-            "status": 200,
-            "connectionId": "hono-sandbox-connection-1",
-            "testResult": "ditto-cluster=Success(successfully connected + initialized mapper)"
-        }
-    }
+    "type": "connectivity.responses:testConnection",
+    "status": 200,
+    "connectionId": "hono-sandbox-connection-1",
+    "testResult": "ditto-cluster=Success(successfully connected + initialized mapper)"
 }
 ```
 
@@ -393,337 +389,333 @@ The result looks like this:
 
 ```json
 {
-  "connectivity": {
-    "10.0.0.1": {
-      "type": "connectivity.responses:retrieveConnectionMetrics",
-      "status": 200,
-      "connectionId": "hono-sandbox-connection-1",
-      "containsFailures": false,
-      "connectionMetrics": {
-        "inbound": {
-          "consumed": {
-            "success": {
-              "PT1M": 2,
-              "PT1H": 2,
-              "PT24H": 2,
-              "lastMessageAt": "2019-02-06T09:37:28.416Z"
-            },
-            "failure": {
-              "PT1M": 0,
-              "PT1H": 0,
-              "PT24H": 0,
-              "lastMessageAt": null
-            }
+  "type": "connectivity.responses:retrieveConnectionMetrics",
+  "status": 200,
+  "connectionId": "hono-sandbox-connection-1",
+  "containsFailures": false,
+  "connectionMetrics": {
+    "inbound": {
+      "consumed": {
+        "success": {
+          "PT1M": 2,
+          "PT1H": 2,
+          "PT24H": 2,
+          "lastMessageAt": "2019-02-06T09:37:28.416Z"
+        },
+        "failure": {
+          "PT1M": 0,
+          "PT1H": 0,
+          "PT24H": 0,
+          "lastMessageAt": null
+        }
+      },
+      "mapped": {
+        "success": {
+          "PT1M": 2,
+          "PT1H": 2,
+          "PT24H": 2,
+          "lastMessageAt": "2019-02-06T09:37:28.422Z"
+        },
+        "failure": {
+          "PT1M": 0,
+          "PT1H": 0,
+          "PT24H": 0,
+          "lastMessageAt": null
+        }
+      },
+      "dropped": {
+        "success": {
+          "PT1M": 0,
+          "PT1H": 0,
+          "PT24H": 0,
+          "lastMessageAt": null
+        },
+        "failure": {
+          "PT1M": 0,
+          "PT1H": 0,
+          "PT24H": 0,
+          "lastMessageAt": null
+        }
+      },
+      "enforced": {
+        "success": {
+          "PT1M": 2,
+          "PT1H": 2,
+          "PT24H": 2,
+          "lastMessageAt": "2019-02-06T09:37:28.422Z"
+        },
+        "failure": {
+          "PT1M": 0,
+          "PT1H": 0,
+          "PT24H": 0,
+          "lastMessageAt": null
+        }
+      }
+    },
+    "outbound": {
+      "dispatched": {
+        "success": {
+          "PT1M": 0,
+          "PT1H": 0,
+          "PT24H": 0,
+          "lastMessageAt": null
+        },
+        "failure": {
+          "PT1M": 2,
+          "PT1H": 2,
+          "PT24H": 2,
+          "lastMessageAt": "2019-02-06T09:37:28.439Z"
+        }
+      },
+      "filtered": {
+        "success": {
+          "PT1M": 0,
+          "PT1H": 0,
+          "PT24H": 0,
+          "lastMessageAt": null
+        },
+        "failure": {
+          "PT1M": 0,
+          "PT1H": 0,
+          "PT24H": 0,
+          "lastMessageAt": null
+        }
+      },
+      "mapped": {
+        "success": {
+          "PT1M": 2,
+          "PT1H": 2,
+          "PT24H": 2,
+          "lastMessageAt": "2019-02-06T09:37:28.443Z"
+        },
+        "failure": {
+          "PT1M": 0,
+          "PT1H": 0,
+          "PT24H": 0,
+          "lastMessageAt": null
+        }
+      },
+      "dropped": {
+        "success": {
+          "PT1M": 0,
+          "PT1H": 0,
+          "PT24H": 0,
+          "lastMessageAt": null
+        },
+        "failure": {
+          "PT1M": 0,
+          "PT1H": 0,
+          "PT24H": 0,
+          "lastMessageAt": null
+        }
+      },
+      "published": {
+        "success": {
+          "PT1M": 0,
+          "PT1H": 0,
+          "PT24H": 0,
+          "lastMessageAt": null
+        },
+        "failure": {
+          "PT1M": 0,
+          "PT1H": 0,
+          "PT24H": 0,
+          "lastMessageAt": null
+        }
+      }
+    }
+  },
+  "sourceMetrics": {
+    "addressMetrics": {
+      "event/org.eclipse.ditto": {
+        "consumed": {
+          "success": {
+            "PT1M": 0,
+            "PT1H": 0,
+            "PT24H": 0,
+            "lastMessageAt": null
           },
-          "mapped": {
-            "success": {
-              "PT1M": 2,
-              "PT1H": 2,
-              "PT24H": 2,
-              "lastMessageAt": "2019-02-06T09:37:28.422Z"
-            },
-            "failure": {
-              "PT1M": 0,
-              "PT1H": 0,
-              "PT24H": 0,
-              "lastMessageAt": null
-            }
-          },
-          "dropped": {
-            "success": {
-              "PT1M": 0,
-              "PT1H": 0,
-              "PT24H": 0,
-              "lastMessageAt": null
-            },
-            "failure": {
-              "PT1M": 0,
-              "PT1H": 0,
-              "PT24H": 0,
-              "lastMessageAt": null
-            }
-          },
-          "enforced": {
-            "success": {
-              "PT1M": 2,
-              "PT1H": 2,
-              "PT24H": 2,
-              "lastMessageAt": "2019-02-06T09:37:28.422Z"
-            },
-            "failure": {
-              "PT1M": 0,
-              "PT1H": 0,
-              "PT24H": 0,
-              "lastMessageAt": null
-            }
+          "failure": {
+            "PT1M": 0,
+            "PT1H": 0,
+            "PT24H": 0,
+            "lastMessageAt": null
           }
         },
-        "outbound": {
-          "dispatched": {
-            "success": {
-              "PT1M": 0,
-              "PT1H": 0,
-              "PT24H": 0,
-              "lastMessageAt": null
-            },
-            "failure": {
-              "PT1M": 2,
-              "PT1H": 2,
-              "PT24H": 2,
-              "lastMessageAt": "2019-02-06T09:37:28.439Z"
-            }
+        "mapped": {
+          "success": {
+            "PT1M": 0,
+            "PT1H": 0,
+            "PT24H": 0,
+            "lastMessageAt": null
           },
-          "filtered": {
-            "success": {
-              "PT1M": 0,
-              "PT1H": 0,
-              "PT24H": 0,
-              "lastMessageAt": null
-            },
-            "failure": {
-              "PT1M": 0,
-              "PT1H": 0,
-              "PT24H": 0,
-              "lastMessageAt": null
-            }
+          "failure": {
+            "PT1M": 0,
+            "PT1H": 0,
+            "PT24H": 0,
+            "lastMessageAt": null
+          }
+        },
+        "dropped": {
+          "success": {
+            "PT1M": 0,
+            "PT1H": 0,
+            "PT24H": 0,
+            "lastMessageAt": null
           },
-          "mapped": {
-            "success": {
-              "PT1M": 2,
-              "PT1H": 2,
-              "PT24H": 2,
-              "lastMessageAt": "2019-02-06T09:37:28.443Z"
-            },
-            "failure": {
-              "PT1M": 0,
-              "PT1H": 0,
-              "PT24H": 0,
-              "lastMessageAt": null
-            }
+          "failure": {
+            "PT1M": 0,
+            "PT1H": 0,
+            "PT24H": 0,
+            "lastMessageAt": null
+          }
+        },
+        "enforced": {
+          "success": {
+            "PT1M": 0,
+            "PT1H": 0,
+            "PT24H": 0,
+            "lastMessageAt": null
           },
-          "dropped": {
-            "success": {
-              "PT1M": 0,
-              "PT1H": 0,
-              "PT24H": 0,
-              "lastMessageAt": null
-            },
-            "failure": {
-              "PT1M": 0,
-              "PT1H": 0,
-              "PT24H": 0,
-              "lastMessageAt": null
-            }
-          },
-          "published": {
-            "success": {
-              "PT1M": 0,
-              "PT1H": 0,
-              "PT24H": 0,
-              "lastMessageAt": null
-            },
-            "failure": {
-              "PT1M": 0,
-              "PT1H": 0,
-              "PT24H": 0,
-              "lastMessageAt": null
-            }
+          "failure": {
+            "PT1M": 0,
+            "PT1H": 0,
+            "PT24H": 0,
+            "lastMessageAt": null
           }
         }
       },
-      "sourceMetrics": {
-        "addressMetrics": {
-          "event/org.eclipse.ditto": {
-            "consumed": {
-              "success": {
-                "PT1M": 0,
-                "PT1H": 0,
-                "PT24H": 0,
-                "lastMessageAt": null
-              },
-              "failure": {
-                "PT1M": 0,
-                "PT1H": 0,
-                "PT24H": 0,
-                "lastMessageAt": null
-              }
-            },
-            "mapped": {
-              "success": {
-                "PT1M": 0,
-                "PT1H": 0,
-                "PT24H": 0,
-                "lastMessageAt": null
-              },
-              "failure": {
-                "PT1M": 0,
-                "PT1H": 0,
-                "PT24H": 0,
-                "lastMessageAt": null
-              }
-            },
-            "dropped": {
-              "success": {
-                "PT1M": 0,
-                "PT1H": 0,
-                "PT24H": 0,
-                "lastMessageAt": null
-              },
-              "failure": {
-                "PT1M": 0,
-                "PT1H": 0,
-                "PT24H": 0,
-                "lastMessageAt": null
-              }
-            },
-            "enforced": {
-              "success": {
-                "PT1M": 0,
-                "PT1H": 0,
-                "PT24H": 0,
-                "lastMessageAt": null
-              },
-              "failure": {
-                "PT1M": 0,
-                "PT1H": 0,
-                "PT24H": 0,
-                "lastMessageAt": null
-              }
-            }
+      "telemetry/org.eclipse.ditto": {
+        "consumed": {
+          "success": {
+            "PT1M": 2,
+            "PT1H": 2,
+            "PT24H": 2,
+            "lastMessageAt": "2019-02-06T09:37:28.416Z"
           },
-          "telemetry/org.eclipse.ditto": {
-            "consumed": {
-              "success": {
-                "PT1M": 2,
-                "PT1H": 2,
-                "PT24H": 2,
-                "lastMessageAt": "2019-02-06T09:37:28.416Z"
-              },
-              "failure": {
-                "PT1M": 0,
-                "PT1H": 0,
-                "PT24H": 0,
-                "lastMessageAt": null
-              }
-            },
-            "mapped": {
-              "success": {
-                "PT1M": 2,
-                "PT1H": 2,
-                "PT24H": 2,
-                "lastMessageAt": "2019-02-06T09:37:28.422Z"
-              },
-              "failure": {
-                "PT1M": 0,
-                "PT1H": 0,
-                "PT24H": 0,
-                "lastMessageAt": null
-              }
-            },
-            "dropped": {
-              "success": {
-                "PT1M": 0,
-                "PT1H": 0,
-                "PT24H": 0,
-                "lastMessageAt": null
-              },
-              "failure": {
-                "PT1M": 0,
-                "PT1H": 0,
-                "PT24H": 0,
-                "lastMessageAt": null
-              }
-            },
-            "enforced": {
-              "success": {
-                "PT1M": 2,
-                "PT1H": 2,
-                "PT24H": 2,
-                "lastMessageAt": "2019-02-06T09:37:28.422Z"
-              },
-              "failure": {
-                "PT1M": 0,
-                "PT1H": 0,
-                "PT24H": 0,
-                "lastMessageAt": null
-              }
-            }
+          "failure": {
+            "PT1M": 0,
+            "PT1H": 0,
+            "PT24H": 0,
+            "lastMessageAt": null
+          }
+        },
+        "mapped": {
+          "success": {
+            "PT1M": 2,
+            "PT1H": 2,
+            "PT24H": 2,
+            "lastMessageAt": "2019-02-06T09:37:28.422Z"
+          },
+          "failure": {
+            "PT1M": 0,
+            "PT1H": 0,
+            "PT24H": 0,
+            "lastMessageAt": null
+          }
+        },
+        "dropped": {
+          "success": {
+            "PT1M": 0,
+            "PT1H": 0,
+            "PT24H": 0,
+            "lastMessageAt": null
+          },
+          "failure": {
+            "PT1M": 0,
+            "PT1H": 0,
+            "PT24H": 0,
+            "lastMessageAt": null
+          }
+        },
+        "enforced": {
+          "success": {
+            "PT1M": 2,
+            "PT1H": 2,
+            "PT24H": 2,
+            "lastMessageAt": "2019-02-06T09:37:28.422Z"
+          },
+          "failure": {
+            "PT1M": 0,
+            "PT1H": 0,
+            "PT24H": 0,
+            "lastMessageAt": null
           }
         }
-      },
-      "targetMetrics": {
-        "addressMetrics": {
-          "_responses": {
-            "dispatched": {
-              "success": {
-                "PT1M": 0,
-                "PT1H": 0,
-                "PT24H": 0,
-                "lastMessageAt": null
-              },
-              "failure": {
-                "PT1M": 2,
-                "PT1H": 2,
-                "PT24H": 2,
-                "lastMessageAt": "2019-02-06T09:37:28.439Z"
-              }
-            },
-            "filtered": {
-              "success": {
-                "PT1M": 0,
-                "PT1H": 0,
-                "PT24H": 0,
-                "lastMessageAt": null
-              },
-              "failure": {
-                "PT1M": 0,
-                "PT1H": 0,
-                "PT24H": 0,
-                "lastMessageAt": null
-              }
-            },
-            "mapped": {
-              "success": {
-                "PT1M": 2,
-                "PT1H": 2,
-                "PT24H": 2,
-                "lastMessageAt": "2019-02-06T09:37:28.443Z"
-              },
-              "failure": {
-                "PT1M": 0,
-                "PT1H": 0,
-                "PT24H": 0,
-                "lastMessageAt": null
-              }
-            },
-            "dropped": {
-              "success": {
-                "PT1M": 0,
-                "PT1H": 0,
-                "PT24H": 0,
-                "lastMessageAt": null
-              },
-              "failure": {
-                "PT1M": 0,
-                "PT1H": 0,
-                "PT24H": 0,
-                "lastMessageAt": null
-              }
-            },
-            "published": {
-              "success": {
-                "PT1M": 0,
-                "PT1H": 0,
-                "PT24H": 0,
-                "lastMessageAt": null
-              },
-              "failure": {
-                "PT1M": 0,
-                "PT1H": 0,
-                "PT24H": 0,
-                "lastMessageAt": null
-              }
-            }
+      }
+    }
+  },
+  "targetMetrics": {
+    "addressMetrics": {
+      "_responses": {
+        "dispatched": {
+          "success": {
+            "PT1M": 0,
+            "PT1H": 0,
+            "PT24H": 0,
+            "lastMessageAt": null
+          },
+          "failure": {
+            "PT1M": 2,
+            "PT1H": 2,
+            "PT24H": 2,
+            "lastMessageAt": "2019-02-06T09:37:28.439Z"
+          }
+        },
+        "filtered": {
+          "success": {
+            "PT1M": 0,
+            "PT1H": 0,
+            "PT24H": 0,
+            "lastMessageAt": null
+          },
+          "failure": {
+            "PT1M": 0,
+            "PT1H": 0,
+            "PT24H": 0,
+            "lastMessageAt": null
+          }
+        },
+        "mapped": {
+          "success": {
+            "PT1M": 2,
+            "PT1H": 2,
+            "PT24H": 2,
+            "lastMessageAt": "2019-02-06T09:37:28.443Z"
+          },
+          "failure": {
+            "PT1M": 0,
+            "PT1H": 0,
+            "PT24H": 0,
+            "lastMessageAt": null
+          }
+        },
+        "dropped": {
+          "success": {
+            "PT1M": 0,
+            "PT1H": 0,
+            "PT24H": 0,
+            "lastMessageAt": null
+          },
+          "failure": {
+            "PT1M": 0,
+            "PT1H": 0,
+            "PT24H": 0,
+            "lastMessageAt": null
+          }
+        },
+        "published": {
+          "success": {
+            "PT1M": 0,
+            "PT1H": 0,
+            "PT24H": 0,
+            "lastMessageAt": null
+          },
+          "failure": {
+            "PT1M": 0,
+            "PT1H": 0,
+            "PT24H": 0,
+            "lastMessageAt": null
           }
         }
       }

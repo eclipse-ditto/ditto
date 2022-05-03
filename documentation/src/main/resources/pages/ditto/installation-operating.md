@@ -382,7 +382,7 @@ Response:
 ```json
 {
     "gateway": {
-        "<gateway_service_instance>": {
+        "10.0.0.1": {
             "type": "devops.responses:retrieveLoggerConfig",
             "status": 200,
             "serviceName": "gateway",
@@ -435,11 +435,11 @@ Response:
 
 ```json
 {
-    "10.0.0.1": {
+    "1": {
         "type": "devops.responses:retrieveLoggerConfig",
         "status": 200,
         "serviceName": "gateway",
-        "instance": "10.0.0.1",
+        "instance": 1,
         "loggerConfigs": [{
             "level": "info",
             "logger": "ROOT"
@@ -542,21 +542,17 @@ Response example:
 
 ```json
 {
-  "gateway": {
-    "10.0.0.1": {
-      "type": "common.responses:retrieveConfig",
-      "status": 200,
-      "config": {
-        "cluster": {
-          "number-of-shards": 20
-        },
-        "gateway": {
-          "authentication": {
-            "devops": {
-              "password": "foobar",
-              "secured": false
-            }
-          }
+  "type": "common.responses:retrieveConfig",
+  "status": 200,
+  "config": {
+    "cluster": {
+      "number-of-shards": 20
+    },
+    "gateway": {
+      "authentication": {
+        "devops": {
+          "password": "foobar",
+          "secured": false
         }
       }
     }
@@ -731,22 +727,18 @@ The response has the following details:
 
 ```json
 {
-  "things": {
-    "10.0.0.1": {
-      "type": "status.responses:retrieveHealth",
-      "status": 200,
-      "statusInfo": {
-        "status": "UP",
-        "details": [
-          {
-            "INFO": {
-              "state": "RUNNING",
-              "pid": "thing:org.eclipse.ditto:fancy-thing_53"
-            }
-          }
-        ]
+  "type": "status.responses:retrieveHealth",
+  "status": 200,
+  "statusInfo": {
+    "status": "UP",
+    "details": [
+      {
+        "INFO": {
+          "state": "RUNNING",
+          "pid": "thing:org.eclipse.ditto:fancy-thing_53"
+        }
       }
-    }
+    ]
   }
 }
 ```
@@ -769,21 +761,17 @@ Response example:
 
 ```json
 {
-  "things": {
-    "10.0.0.1": {
-      "type": "common.responses:retrieveConfig",
-      "status": 200,
-      "config": {
-        "enabled": true,
-        "interval": "3s",
-        "quiet-period": "5m",
-        "timer-threshold": "150ms",
-        "credits-per-batch": 3,
-        "reads-per-query": 100,
-        "writes-per-credit": 100,
-        "delete-final-deleted-snapshot": false
-      }
-    }
+  "type": "common.responses:retrieveConfig",
+  "status": 200,
+  "config": {
+    "enabled": true,
+    "interval": "3s",
+    "quiet-period": "5m",
+    "timer-threshold": "150ms",
+    "credits-per-batch": 3,
+    "reads-per-query": 100,
+    "writes-per-credit": 100,
+    "delete-final-deleted-snapshot": false
   }
 }
 ```
@@ -820,21 +808,17 @@ The field `last-pid` is not a part of the configuration.
 
 ```json
 {
-  "things": {
-    "10.0.0.1": {
-      "type": "common.responses:modifyConfig",
-      "status": 200,
-      "config": {
-        "enabled": true,
-        "interval": "3s",
-        "quiet-period": "240d",
-        "timer-threshold": "150ms",
-        "credits-per-batch": 3,
-        "reads-per-query": 100,
-        "writes-per-credit": 100,
-        "delete-final-deleted-snapshot": false
-      }
-    }
+  "type": "common.responses:modifyConfig",
+  "status": 200,
+  "config": {
+    "enabled": true,
+    "interval": "3s",
+    "quiet-period": "240d",
+    "timer-threshold": "150ms",
+    "credits-per-batch": 3,
+    "reads-per-query": 100,
+    "writes-per-credit": 100,
+    "delete-final-deleted-snapshot": false
   }
 }
 ```
@@ -863,13 +847,9 @@ Response example:
 
 ```json
 {
-  "concierge": {
-    "10.0.0.1": {
-      "type": "common.responses:shutdown",
-      "status": 200,
-      "message": "Restarting stream in <PT5760H30M5S>."
-    }
-  }
+  "type": "common.responses:shutdown",
+  "status": 200,
+  "message": "Restarting stream in <PT5760H30M5S>."
 }
 ```
 
@@ -899,13 +879,9 @@ Response example:
 
 ```json
 {
-  "things": {
-    "10.0.0.1": {
-      "type": "cleanup.responses:cleanupPersistence",
-      "status": 200,
-      "entityId": "thing:ditto:thing1"
-    }
-  }
+  "type": "cleanup.responses:cleanupPersistence",
+  "status": 200,
+  "entityId": "thing:ditto:thing1"
 }
 ```
 
@@ -1002,14 +978,10 @@ or until you proceed with [step 4](#unblock-messages-to-a-namespace), which unbl
 
 ```json
 {
-  "?": {
-    "?": {
-      "type": "namespaces.responses:blockNamespace",
-      "status": 200,
-      "namespace": "namespaceToBlock",
-      "resourceType": "namespaces"
-    }
-  }
+  "type": "namespaces.responses:blockNamespace",
+  "status": 200,
+  "namespace": "namespaceToBlock",
+  "resourceType": "namespaces"
 }
 ```
 
@@ -1121,13 +1093,9 @@ A response will come once the namespace's blockade is released on all members of
 
 ```json
 {
-  "?": {
-    "?": {
-      "type": "namespaces.responses:unblockNamespace",
-      "status": 200,
-      "namespace": "namespaceToUnblock",
-      "resourceType": "namespaces"
-    }
-  }
+  "type": "namespaces.responses:unblockNamespace",
+  "status": 200,
+  "namespace": "namespaceToUnblock",
+  "resourceType": "namespaces"
 }
 ```

@@ -19,13 +19,15 @@ import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstance
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.util.Arrays;
+import java.util.List;
 
+import org.eclipse.ditto.json.JsonKey;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
 import org.eclipse.ditto.base.model.signals.commands.GlobalCommandResponseRegistry;
-import org.junit.Ignore;
+import org.eclipse.ditto.json.JsonValue;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -61,14 +63,37 @@ public final class AggregatedDevOpsCommandResponseTest {
                 Arrays.asList(changeLogLevelResponseForThings1, changeLogLevelResponseForThings2,
                         changeLogLevelResponseForGateway1),
                 RESPONSES_TYPE,
-                HttpStatus.OK, DittoHeaders.empty());
+                HttpStatus.OK, DittoHeaders.empty(), true);
 
         final JsonObject responseToJson = aggregatedDevOpsCommandResponse.toJson();
 
-        final CommandResponse parsedCommandResponse = underTest.parse(responseToJson, DittoHeaders.empty());
+        final CommandResponse<?> parsedCommandResponse = underTest.parse(responseToJson, DittoHeaders.empty());
 
         assertThat(parsedCommandResponse).isEqualTo(aggregatedDevOpsCommandResponse);
         assertThat(parsedCommandResponse.toJson()).isEqualTo(responseToJson);
+    }
+
+    @Test
+    public void testSinglePiggybackCommandResponse() {
+        final String EXPECTED_JSON = "{\"field1\":\"value1\",\"field2\":\"value2\"}";
+        final ExecutePiggybackCommandResponse piggybackCommandResponse =
+                ExecutePiggybackCommandResponse.of("connectivity", "1", HttpStatus.OK, JsonObject.of(EXPECTED_JSON), DittoHeaders.empty());
+
+        final AggregatedDevOpsCommandResponse aggregatedDevOpsCommandResponse = AggregatedDevOpsCommandResponse.of(
+                List.of(piggybackCommandResponse),
+                RESPONSES_TYPE,
+                HttpStatus.OK, DittoHeaders.empty(), false);
+
+        final JsonObject responseJson = aggregatedDevOpsCommandResponse.toJson();
+
+        final CommandResponse<?> parsedCommandResponse = underTest.parse(responseJson, DittoHeaders.empty());
+        final var jsonResponse = parsedCommandResponse.toJson();
+
+        assertThat(jsonResponse.getKeys()).containsAll(List.of(JsonKey.of("status"), JsonKey.of("type"), JsonKey.of("responses")));
+        assertThat(jsonResponse.getValue(JsonKey.of("status")).orElse(null)).isEqualTo(JsonValue.of(HttpStatus.OK.getCode()));
+        assertThat(jsonResponse.getValue(JsonKey.of("responses")).get()).isEqualTo(JsonObject.of(EXPECTED_JSON));
+        assertThat(parsedCommandResponse).isEqualTo(aggregatedDevOpsCommandResponse);
+        assertThat(jsonResponse).isEqualTo(responseJson);
     }
 
 }

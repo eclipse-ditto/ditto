@@ -12,13 +12,6 @@
  */
 package org.eclipse.ditto.base.api.devops.signals.commands;
 
-import java.util.List;
-import java.util.Objects;
-import java.util.function.Predicate;
-
-import javax.annotation.Nullable;
-import javax.annotation.concurrent.Immutable;
-
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.FieldType;
@@ -33,6 +26,12 @@ import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonValue;
+
+import javax.annotation.Nullable;
+import javax.annotation.concurrent.Immutable;
+import java.util.List;
+import java.util.Objects;
+import java.util.function.Predicate;
 
 /**
  * A {@link DevOpsCommandResponse} aggregating multiple {@link org.eclipse.ditto.base.model.signals.commands.CommandResponse}s.
@@ -83,15 +82,17 @@ public final class AggregatedDevOpsCommandResponse
      * @param responsesType    the responses type of the responses to expect.
      * @param httpStatus       the HTTP status to send back as response status.
      * @param dittoHeaders     the headers of the request.
+     * @param aggregateResults true if a single response is required, false if aggregated multiple response are required
      * @return the new RetrieveLoggerConfigResponse response.
      * @since 2.0.0
      */
     public static AggregatedDevOpsCommandResponse of(final List<CommandResponse<?>> commandResponses,
                                                      final String responsesType,
                                                      final HttpStatus httpStatus,
-                                                     final DittoHeaders dittoHeaders) {
+                                                     final DittoHeaders dittoHeaders,
+                                                     final boolean aggregateResults) {
 
-        final var jsonRepresentation = buildJsonRepresentation(commandResponses, dittoHeaders);
+        final var jsonRepresentation = buildJsonRepresentation(commandResponses, dittoHeaders, aggregateResults);
         return new AggregatedDevOpsCommandResponse(jsonRepresentation, responsesType, httpStatus, dittoHeaders);
     }
 
@@ -179,7 +180,8 @@ public final class AggregatedDevOpsCommandResponse
     }
 
     private static JsonObject buildJsonRepresentation(final List<CommandResponse<?>> commandResponses,
-                                                      final DittoHeaders dittoHeaders) {
+                                                      final DittoHeaders dittoHeaders,
+                                                      final boolean aggregateResults) {
 
         final var schemaVersion = dittoHeaders.getSchemaVersion().orElse(JsonSchemaVersion.LATEST);
         final var builder = JsonObject.newBuilder();
@@ -188,11 +190,14 @@ public final class AggregatedDevOpsCommandResponse
         for (final var cmdR : commandResponses) {
             final var key = String.format("/%s/%s", calculateServiceName(cmdR), calculateInstance(cmdR, i++));
             // include both regular and special fields for devops command responses
-            final JsonValue responseJson;
+            final JsonObject responseJson;
             if (cmdR instanceof ExecutePiggybackCommandResponse response) {
-                responseJson = response.getResponse();
+                responseJson = response.getResponse().asObject();
             } else {
                 responseJson = cmdR.toJson(schemaVersion, FieldType.regularOrSpecial());
+            }
+            if (!aggregateResults && commandResponses.size() == 1) {
+                return responseJson;
             }
             builder.set(key, responseJson);
         }
