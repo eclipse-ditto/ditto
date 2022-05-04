@@ -25,11 +25,6 @@ import javax.annotation.Nullable;
 import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
 import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.signals.SignalWithEntityId;
-import org.eclipse.ditto.internal.utils.cache.Cache;
-import org.eclipse.ditto.internal.utils.cache.CaffeineCache;
-import org.eclipse.ditto.internal.utils.cache.entry.Entry;
-import org.eclipse.ditto.internal.utils.cacheloaders.EnforcementCacheKey;
-import org.eclipse.ditto.internal.utils.cacheloaders.ThingEnforcementIdCacheLoader;
 import org.eclipse.ditto.internal.utils.cacheloaders.config.AskWithRetryConfig;
 import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
@@ -41,7 +36,6 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.policies.enforcement.CreationRestrictionEnforcer;
 import org.eclipse.ditto.policies.enforcement.EnforcementProvider;
 import org.eclipse.ditto.policies.enforcement.EnforcerActor;
-import org.eclipse.ditto.policies.enforcement.PolicyEnforcer;
 import org.eclipse.ditto.policies.enforcement.PolicyEnforcerCacheLoader;
 import org.eclipse.ditto.policies.enforcement.PreEnforcer;
 import org.eclipse.ditto.policies.enforcement.config.CachesConfig;
@@ -49,7 +43,6 @@ import org.eclipse.ditto.policies.enforcement.config.DefaultCachesConfig;
 import org.eclipse.ditto.policies.enforcement.config.DefaultEnforcementConfig;
 import org.eclipse.ditto.policies.enforcement.config.EnforcementConfig;
 import org.eclipse.ditto.policies.model.PolicyId;
-import org.eclipse.ditto.policies.model.enforcers.Enforcer;
 import org.eclipse.ditto.things.model.Feature;
 import org.eclipse.ditto.things.model.FeatureProperties;
 import org.eclipse.ditto.things.model.Thing;
@@ -59,7 +52,6 @@ import org.eclipse.ditto.things.model.ThingsModelFactory;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommand;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 
-import com.github.benmanes.caffeine.cache.Caffeine;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
@@ -177,14 +169,6 @@ public final class TestSetup {
 
             final PolicyEnforcerCacheLoader policyEnforcerCacheLoader =
                     new PolicyEnforcerCacheLoader(askWithRetryConfig, system.getScheduler(), policiesShardRegion);
-            final Cache<EnforcementCacheKey, Entry<PolicyEnforcer>> policyEnforcerCache =
-                    CaffeineCache.of(Caffeine.newBuilder(), policyEnforcerCacheLoader);
-            final Cache<EnforcementCacheKey, Entry<Enforcer>> projectedEnforcerCache =
-                    policyEnforcerCache.projectValues(PolicyEnforcer::project, PolicyEnforcer::embed);
-            final ThingEnforcementIdCacheLoader thingEnforcementIdCacheLoader =
-                    new ThingEnforcementIdCacheLoader(askWithRetryConfig, system.getScheduler(), thingsShardRegion);
-            final Cache<EnforcementCacheKey, Entry<EnforcementCacheKey>> thingIdCache =
-                    CaffeineCache.of(Caffeine.newBuilder(), thingEnforcementIdCacheLoader);
 
             final Set<EnforcementProvider<?>> enforcementProviders = new HashSet<>();
             final LiveSignalPub liveSignalPub = new DummyLiveSignalPub(puSubMediatorRef);

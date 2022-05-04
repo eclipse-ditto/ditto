@@ -66,7 +66,7 @@ public class ConciergeForwarderActor extends AbstractActor {
      * Creates Akka configuration object Props for this actor.
      *
      * @param pubSubMediator the PubSub mediator Actor.
-     * @param shardRegions TODO TJ doc
+     * @param shardRegions shard regions to use in order to dispatch different entity Signals to.
      * @return the Akka configuration Props object.
      */
     public static Props props(final ActorRef pubSubMediator, final ShardRegions shardRegions) {
@@ -78,7 +78,7 @@ public class ConciergeForwarderActor extends AbstractActor {
      * Creates Akka configuration object Props for this actor.
      *
      * @param pubSubMediator the PubSub mediator Actor.
-     * @param shardRegions TODO TJ doc
+     * @param shardRegions shard regions to use in order to dispatch different entity Signals to.
      * @param signalTransformer a function which transforms signals before forwarding them to the responsible
      * {@code shardRegion}
      * @return the Akka configuration Props object.

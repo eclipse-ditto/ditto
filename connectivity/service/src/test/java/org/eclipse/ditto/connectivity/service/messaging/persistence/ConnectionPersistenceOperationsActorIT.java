@@ -18,6 +18,7 @@ import java.util.concurrent.CompletableFuture;
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
 import org.eclipse.ditto.base.model.auth.DittoAuthorizationContextType;
+import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.ConnectionId;
@@ -84,7 +85,9 @@ public final class ConnectionPersistenceOperationsActorIT extends MongoEventSour
                         "amqp://user:pass@8.8.8.8:5671")
                         .sources(Collections.singletonList(source))
                         .build();
-        return CreateConnection.of(connection, DittoHeaders.empty());
+        return CreateConnection.of(connection, DittoHeaders.newBuilder()
+                .putHeader(DittoHeaderDefinition.DITTO_SUDO.getKey(), "true")
+                .build());
     }
 
     @Override
@@ -94,7 +97,9 @@ public final class ConnectionPersistenceOperationsActorIT extends MongoEventSour
 
     @Override
     protected Object getRetrieveEntityCommand(final ConnectionId id) {
-        return RetrieveConnection.of(id, DittoHeaders.empty());
+        return RetrieveConnection.of(id, DittoHeaders.newBuilder()
+                .putHeader(DittoHeaderDefinition.DITTO_SUDO.getKey(), "true")
+                .build());
     }
 
     @Override

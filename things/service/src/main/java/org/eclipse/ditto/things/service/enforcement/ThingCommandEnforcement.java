@@ -66,7 +66,6 @@ import org.eclipse.ditto.policies.api.Permission;
 import org.eclipse.ditto.policies.api.PoliciesValidator;
 import org.eclipse.ditto.policies.enforcement.AbstractEnforcementReloaded;
 import org.eclipse.ditto.policies.enforcement.CreationRestrictionEnforcer;
-import org.eclipse.ditto.policies.enforcement.LiveResponseAndAcknowledgementForwarder;
 import org.eclipse.ditto.policies.enforcement.PolicyEnforcer;
 import org.eclipse.ditto.policies.enforcement.PreEnforcer;
 import org.eclipse.ditto.policies.enforcement.config.EnforcementConfig;

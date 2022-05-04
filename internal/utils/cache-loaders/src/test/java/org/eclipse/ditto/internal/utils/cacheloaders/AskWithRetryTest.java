@@ -28,11 +28,10 @@ import java.util.concurrent.ExecutionException;
 
 import org.eclipse.ditto.base.model.exceptions.AskException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.base.model.signals.commands.CommandHeaderInvalidException;
 import org.eclipse.ditto.internal.utils.cacheloaders.config.AskWithRetryConfig;
 import org.eclipse.ditto.internal.utils.cacheloaders.config.DefaultAskWithRetryConfig;
 import org.eclipse.ditto.internal.utils.cacheloaders.config.RetryStrategy;
-import org.eclipse.ditto.things.model.ThingId;
-import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingNotAccessibleException;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -365,13 +364,13 @@ public final class AskWithRetryTest {
             final CompletionStage<Object> retryStage = buildRetryStage(getRef(), configMap);
 
             expectMsg(ASK_MESSAGE);
-            reply(ThingNotAccessibleException.newBuilder(ThingId.generateRandom()).build());
+            reply(CommandHeaderInvalidException.newBuilder("just-for-testing").build());
             expectNoMessage(DEFAULT_NO_MESSAGE_EXPECTATION_DURATION);
 
             assertThat(retryStage)
                     .failsWithin(askTimeout.multipliedBy(3))
                     .withThrowableOfType(ExecutionException.class)
-                    .withCauseInstanceOf(ThingNotAccessibleException.class);
+                    .withCauseInstanceOf(CommandHeaderInvalidException.class);
         }};
     }
 

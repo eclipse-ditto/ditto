@@ -16,15 +16,6 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <parent>
-        <artifactId>ditto-policies</artifactId>
-        <groupId>org.eclipse.ditto</groupId>
-        <version>${revision}</version>
-    </parent>
-
-    <artifactId>ditto-policies-enforcement</artifactId>
-    <name>Eclipse Ditto :: Policies :: Enforcement</name>
-
     <dependencies>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
@@ -40,21 +31,22 @@
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-things-model</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-placeholders</artifactId>
         </dependency>
 
-
-        <!-- TODO TJ those should only be temporary: -->
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-internal-models-signal</artifactId>
+            <artifactId>ditto-policies-api</artifactId>
         </dependency>
+
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-internal-utils-cache-loaders</artifactId>
         </dependency>
-        <!-- end temporary -->
-
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-internal-utils-akka</artifactId>
@@ -66,6 +58,10 @@
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-internal-utils-metrics</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-internal-utils-tracing</artifactId>
         </dependency>
 
         <!-- ### Test ### -->
@@ -123,5 +119,14 @@
             <scope>test</scope>
         </dependency>
     </dependencies>
+
+    <parent>
+        <artifactId>ditto-policies</artifactId>
+        <groupId>org.eclipse.ditto</groupId>
+        <version>${revision}</version>
+    </parent>
+    <artifactId>ditto-policies-enforcement</artifactId>
+
+    <name>Eclipse Ditto :: Policies :: Enforcement</name>
 
 </project>

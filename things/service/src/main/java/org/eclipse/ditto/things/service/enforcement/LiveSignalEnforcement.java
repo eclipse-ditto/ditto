@@ -46,7 +46,6 @@ import org.eclipse.ditto.policies.enforcement.AbstractEnforcementWithAsk;
 import org.eclipse.ditto.policies.enforcement.Contextual;
 import org.eclipse.ditto.policies.enforcement.EnforcementReloaded;
 import org.eclipse.ditto.policies.enforcement.EnforcerRetriever;
-import org.eclipse.ditto.policies.enforcement.LiveResponseAndAcknowledgementForwarder;
 import org.eclipse.ditto.policies.enforcement.PolicyEnforcer;
 import org.eclipse.ditto.policies.enforcement.config.EnforcementConfig;
 import org.eclipse.ditto.policies.model.PoliciesResourceType;

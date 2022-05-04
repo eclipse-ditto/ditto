@@ -16,9 +16,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.concurrent.CompletableFuture;
 
-import org.eclipse.ditto.base.model.auth.AuthorizationContext;
-import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
-import org.eclipse.ditto.base.model.auth.DittoAuthorizationContextType;
+import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.internal.utils.persistence.mongo.ops.eventsource.MongoEventSourceITAssertions;
 import org.eclipse.ditto.internal.utils.pubsub.DistributedPub;
@@ -49,10 +47,6 @@ import akka.actor.Props;
  */
 @AllValuesAreNonnullByDefault
 public final class PolicyPersistenceOperationsActorIT extends MongoEventSourceITAssertions<PolicyId> {
-
-    private static final AuthorizationContext AUTHORIZATION_CONTEXT =
-            AuthorizationContext.newInstance(DittoAuthorizationContextType.UNSPECIFIED,
-                    AuthorizationSubject.newInstance("ditto:random-subject"));
 
     @Test
     public void purgeNamespaceWithoutSuffix() {
@@ -89,7 +83,7 @@ public final class PolicyPersistenceOperationsActorIT extends MongoEventSourceIT
                         EffectedPermissions.newInstance(Arrays.asList("READ", "WRITE"), Collections.emptyList())))
                 .build();
         return CreatePolicy.of(policy, DittoHeaders.newBuilder()
-                .authorizationContext(AUTHORIZATION_CONTEXT)
+                .putHeader(DittoHeaderDefinition.DITTO_SUDO.getKey(), "true")
                 .build());
     }
 
@@ -101,7 +95,7 @@ public final class PolicyPersistenceOperationsActorIT extends MongoEventSourceIT
     @Override
     protected Object getRetrieveEntityCommand(final PolicyId id) {
         return RetrievePolicy.of(id, DittoHeaders.newBuilder()
-                .authorizationContext(AUTHORIZATION_CONTEXT)
+                .putHeader(DittoHeaderDefinition.DITTO_SUDO.getKey(), "true")
                 .build());
     }
 

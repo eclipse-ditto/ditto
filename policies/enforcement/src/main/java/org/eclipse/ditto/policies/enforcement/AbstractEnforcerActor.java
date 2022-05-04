@@ -56,7 +56,7 @@ public abstract class AbstractEnforcerActor extends AbstractGraphActor<Contextua
      *
      * @param pubSubMediator Akka pub-sub-mediator.
      * @param conciergeForwarder the concierge forwarder.
-     * @param enforcementConfig TODO TJ
+     * @param enforcementConfig the enforcement configuration to apply for this enforcer actor.
      * @param thingIdCache the cache for Thing IDs to Policy ID.
      * @param policyEnforcerCache the Policy cache.
      */

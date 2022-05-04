@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.policies.enforcement;
+package org.eclipse.ditto.things.service.enforcement;
 
 import java.time.Duration;
 import java.util.HashSet;
@@ -42,7 +42,7 @@ import akka.japi.pf.ReceiveBuilder;
  * As a result, custom acknowledgements are also sent to Concierge, which must forward them to the acknowledgement
  * aggregator actor.
  */
-public final class LiveResponseAndAcknowledgementForwarder extends AbstractActor {
+final class LiveResponseAndAcknowledgementForwarder extends AbstractActor {
 
     private static final Duration DEFAULT_TIMEOUT = Duration.ofSeconds(60);
 

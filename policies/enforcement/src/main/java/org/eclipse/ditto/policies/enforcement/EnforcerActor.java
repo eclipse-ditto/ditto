@@ -74,7 +74,7 @@ public final class EnforcerActor extends AbstractEnforcerActor {
      * @param pubSubMediator Akka pub sub mediator.
      * @param enforcementProviders a set of {@link EnforcementProvider}s.
      * @param conciergeForwarder an actorRef to concierge forwarder.
-     * @param enforcementConfig TODO TJ doc
+     * @param enforcementConfig the enforcement config to apply.
      * @param preEnforcer a function executed before actual enforcement, may be {@code null}.
      * @param thingIdCache the cache for Thing IDs to Policy ID.
      * @param policyEnforcerCache the Policy cache.
@@ -99,7 +99,7 @@ public final class EnforcerActor extends AbstractEnforcerActor {
      * @param pubSubMediator Akka pub sub mediator.
      * @param enforcementProviders a set of {@link EnforcementProvider}s.
      * @param commandForwarder an actorRef to command forwarder.
-     * @param enforcementConfig TODO TJ
+     * @param enforcementConfig the enforcement config to apply.
      * @param thingIdCache the cache for Thing IDs to Policy ID.
      * @param policyEnforcerCache the Policy cache.
      * @return the Akka configuration Props object.
