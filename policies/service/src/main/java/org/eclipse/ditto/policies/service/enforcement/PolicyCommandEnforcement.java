@@ -77,33 +77,18 @@ public final class PolicyCommandEnforcement
     }
 
     @Override
-    public CompletionStage<PolicyCommand<?>> authorizeSignal(final PolicyCommand<?> command, final PolicyEnforcer policyEnforcer) {
+    public CompletionStage<PolicyCommand<?>> authorizeSignal(final PolicyCommand<?> command,
+            final PolicyEnforcer policyEnforcer) {
 
         final Enforcer enforcer = policyEnforcer.getEnforcer();
         final var policyResourceKey = PoliciesResourceType.policyResource(command.getResourcePath());
         final var authorizationContext = command.getDittoHeaders().getAuthorizationContext();
         final PolicyCommand<?> authorizedCommand;
-        if (command instanceof CreatePolicy) {
-            final var enforcerContext = new CreationRestrictionEnforcer.Context(command.getResourceType(),
-                    command.getEntityId().getNamespace(),
-                    command.getDittoHeaders()
-            );
-            if (creationRestrictionEnforcer.canCreate(enforcerContext)) {
-                if (command.getDittoHeaders().isAllowPolicyLockout()
-                        || hasUnrestrictedWritePermission(enforcer, policyResourceKey, authorizationContext)) {
-                    authorizedCommand = command;
-                } else {
-                    throw errorForPolicyCommand(command);
-                }
-            } else {
-                throw EntityNotCreatableException.newBuilder(command.getEntityId())
-                        .dittoHeaders(command.getDittoHeaders())
-                        .build();
-            }
+        if (command instanceof CreatePolicy createPolicy) {
+            authorizedCommand = authorizeCreatePolicy(enforcer, createPolicy, policyResourceKey, authorizationContext);
         } else if (command instanceof PolicyActionCommand) {
-            authorizedCommand =
-                    authorizeActionCommand(policyEnforcer, command, policyResourceKey, authorizationContext)
-                            .orElseThrow(() -> errorForPolicyCommand(command));
+            authorizedCommand = authorizeActionCommand(policyEnforcer, command, policyResourceKey, authorizationContext)
+                    .orElseThrow(() -> errorForPolicyCommand(command));
         } else if (command instanceof PolicyModifyCommand) {
             if (hasUnrestrictedWritePermission(enforcer, policyResourceKey, authorizationContext)) {
                 authorizedCommand = command;
@@ -120,6 +105,30 @@ public final class PolicyCommandEnforcement
         }
 
         return CompletableFuture.completedStage(authorizedCommand);
+    }
+
+    private PolicyCommand<?> authorizeCreatePolicy(final Enforcer enforcer,
+            final CreatePolicy createPolicy,
+            final ResourceKey policyResourceKey,
+            final AuthorizationContext authorizationContext) {
+        final PolicyCommand<?> authorizedCommand;
+        final var enforcerContext = new CreationRestrictionEnforcer.Context(createPolicy.getResourceType(),
+                createPolicy.getEntityId().getNamespace(),
+                createPolicy.getDittoHeaders()
+        );
+        if (creationRestrictionEnforcer.canCreate(enforcerContext)) {
+            if (createPolicy.getDittoHeaders().isAllowPolicyLockout()
+                    || hasUnrestrictedWritePermission(enforcer, policyResourceKey, authorizationContext)) {
+                authorizedCommand = createPolicy;
+            } else {
+                throw errorForPolicyCommand(createPolicy);
+            }
+        } else {
+            throw EntityNotCreatableException.newBuilder(createPolicy.getEntityId())
+                    .dittoHeaders(createPolicy.getDittoHeaders())
+                    .build();
+        }
+        return authorizedCommand;
     }
 
     @Override
@@ -191,7 +200,8 @@ public final class PolicyCommandEnforcement
         if (authorizedLabels.isEmpty()) {
             return Optional.empty();
         } else {
-            final var adjustedCommand = TopLevelPolicyActionCommand.of(command.getPolicyActionCommand(), authorizedLabels);
+            final var adjustedCommand =
+                    TopLevelPolicyActionCommand.of(command.getPolicyActionCommand(), authorizedLabels);
             return Optional.of(adjustedCommand);
         }
     }

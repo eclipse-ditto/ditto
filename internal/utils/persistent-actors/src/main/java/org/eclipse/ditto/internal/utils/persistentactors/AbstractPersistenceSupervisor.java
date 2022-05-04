@@ -92,7 +92,9 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId> extends 
         exponentialBackOffConfig = getExponentialBackOffConfig();
         backOff = ExponentialBackOff.initial(exponentialBackOffConfig);
         creationRestrictionEnforcer = DefaultCreationRestrictionEnforcer.of(
-                DefaultEntityCreationConfig.of(DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config()))
+                DefaultEntityCreationConfig.of(
+                        DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config())
+                )
         );
     }
 
@@ -377,7 +379,9 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId> extends 
                 unhandled(message);
             } else {
                 // all commands must be enforced by the enforcer child, so ask all commands to it:
-                enforceCommandAndForwardToPersistenceActorIfAuthorized(sender, command);
+                enforceCommandAndForwardToPersistenceActorIfAuthorized(sender, command)
+                        .toCompletableFuture()
+                        .join(); // block on the actor's dispatcher in order to guarantee in-order processing and blocking the inbox
             }
         } else if (null != persistenceActorChild) {
             if (persistenceActorChild.equals(sender)) {
@@ -392,23 +396,24 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId> extends 
         }
     }
 
-    private void enforceCommandAndForwardToPersistenceActorIfAuthorized(final ActorRef sender,
+    private CompletionStage<Object> enforceCommandAndForwardToPersistenceActorIfAuthorized(final ActorRef sender,
             final Command<?> command) {
 
         if (null != enforcerChild) {
-            Patterns.ask(enforcerChild, command, DEFAULT_LOCAL_ASK_TIMEOUT)
+            return Patterns.ask(enforcerChild, command, DEFAULT_LOCAL_ASK_TIMEOUT)
                     .thenCompose(this::modifyEnforcerActorEnforcedCommandResponse)
-                    .whenComplete((enforcerResponse, enforcerThrowable) ->
+                    .handle((enforcerResponse, enforcerThrowable) ->
                             handleEnforcerResponse(sender, enforcerResponse, enforcerThrowable,
                                     command.getDittoHeaders())
                     );
         } else {
             log.withCorrelationId(command)
                     .error("Could not enforce command because enforcerChild was not present");
+            return CompletableFuture.completedStage(null);
         }
     }
 
-    private void handleEnforcerResponse(final ActorRef sender,
+    private CompletionStage<Object> handleEnforcerResponse(final ActorRef sender,
             @Nullable final Object enforcerResponse,
             @Nullable final Throwable enforcerThrowable,
             final DittoHeaders dittoHeaders) {
@@ -435,7 +440,7 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId> extends 
             log.withCorrelationId(enforcedCommand)
                     .debug("Received enforcedCommand from enforcerChild, forwarding to persistenceActorChild: {}",
                             enforcedCommand);
-            Patterns.ask(persistenceActorChild, enforcedCommand, DEFAULT_LOCAL_ASK_TIMEOUT)
+            return Patterns.ask(persistenceActorChild, enforcedCommand, DEFAULT_LOCAL_ASK_TIMEOUT)
                     .thenCompose(response -> modifyPersistenceActorCommandResponse(enforcedCommand, response))
                     .whenComplete((persistenceActorResponse, paThrowable) ->
                             handlePersistenceActorResponse(sender,
@@ -452,6 +457,7 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId> extends 
             log.withCorrelationId(enforcerResponse instanceof WithDittoHeaders wdh ? wdh : null)
                     .warning("Unexpected response from enforcerChild: {}", enforcerResponse);
         }
+        return CompletableFuture.completedStage(null);
     }
 
     private void handlePersistenceActorResponse(final ActorRef sender,
