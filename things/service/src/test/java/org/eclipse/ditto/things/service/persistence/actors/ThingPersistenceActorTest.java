@@ -29,7 +29,6 @@ import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
 import org.eclipse.ditto.base.model.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.base.model.entity.Revision;
-import org.eclipse.ditto.base.model.entity.metadata.Metadata;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
@@ -111,7 +110,6 @@ import akka.actor.ActorSelection;
 import akka.actor.PoisonPill;
 import akka.actor.Props;
 import akka.cluster.pubsub.DistributedPubSubMediator;
-import akka.japi.JavaPartialFunction;
 import akka.testkit.TestActorRef;
 import akka.testkit.javadsl.TestKit;
 import scala.PartialFunction;
@@ -129,9 +127,6 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
             JsonFactory.newParseOptionsBuilder().withoutUrlDecoding().build();
 
     private static final Instant TIMESTAMP = Instant.EPOCH;
-    private static final Metadata METADATA = Metadata.newBuilder()
-            .set("creator", "The epic Ditto team")
-            .build();
 
 
     private static void assertThingInResponse(final Thing actualThing, final Thing expectedThing) {
@@ -1282,14 +1277,10 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
 
             final DistributedPubSubMediator.Subscribe subscribe =
                     DistPubSubAccess.subscribe(Shutdown.TYPE, underTest);
-            pubSubTestProbe.fishForMessage(Duration.apply(2, TimeUnit.SECONDS), "subscribe for shutdown",
-                    new JavaPartialFunction<>() {
-                        @Override
-                        public Boolean apply(final Object msg, final boolean isCheck) throws Exception, Exception {
-                            return msg instanceof DistributedPubSubMediator.Subscribe foundSubs && foundSubs.topic()
-                                    .equals(Shutdown.TYPE);
-                        }
-                    }
+            pubSubTestProbe.fishForMessage(Duration.apply(5, TimeUnit.SECONDS), "subscribe for shutdown",
+                    PartialFunction.fromFunction(msg ->
+                            msg instanceof DistributedPubSubMediator.Subscribe foundSubs && foundSubs.topic()
+                                    .equals(Shutdown.TYPE))
             );
             pubSubTestProbe.reply(new DistributedPubSubMediator.SubscribeAck(subscribe));
 

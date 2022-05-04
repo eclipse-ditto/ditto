@@ -288,12 +288,11 @@ public abstract class AbstractEnforcerActor<I extends EntityId, C extends Comman
     }
 
     private boolean shouldReloadAfterEnforcement(final C command, final boolean successfullyEnforced) {
-        return shouldInvalidatePolicyEnforcerAfterEnforcement(command) ||
-                (successfullyEnforced && null == policyEnforcer);
+        return successfullyEnforced &&
+                (shouldInvalidatePolicyEnforcerAfterEnforcement(command) || (null == policyEnforcer));
     }
 
-    private CompletionStage<Boolean> doEnforceCommand(final C command,
-            final ActorRef sender) {
+    private CompletionStage<Boolean> doEnforceCommand(final C command, final ActorRef sender) {
         final ActorRef self = getSelf();
         try {
             final CompletionStage<C> authorizedCommandStage;
