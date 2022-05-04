@@ -122,6 +122,7 @@ public final class ResponseCollectorActor extends AbstractActor {
         } else {
             log.error("ReceiveTimeout without Query");
         }
+        getContext().cancelReceiveTimeout();
         getContext().stop(getSelf());
     }
 

@@ -40,7 +40,8 @@ public final class ModifySplitBrainResolverResponse
             CommandResponseJsonDeserializer.newInstance(TYPE,
                     context -> {
                         final JsonObject jsonObject = context.getJsonObject();
-                        final boolean enabled = jsonObject.getValue(ModifySplitBrainResolver.ENABLED_FIELD_KEY).orElseThrow();
+                        final boolean enabled =
+                                jsonObject.getValue(ModifySplitBrainResolver.ENABLED_FIELD_KEY).orElseThrow();
                         return new ModifySplitBrainResolverResponse(context.getDittoHeaders(), enabled);
                     });
 

@@ -199,9 +199,12 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
                 .match(Whoami.class, this::handleWhoami)
                 .match(DittoRuntimeException.class, this::handleDittoRuntimeException)
                 .match(ReceiveTimeout.class,
-                        receiveTimeout -> handleDittoRuntimeException(GatewayServiceUnavailableException.newBuilder()
-                                .dittoHeaders(DittoHeaders.empty())
-                                .build()))
+                        receiveTimeout -> {
+                            getContext().cancelReceiveTimeout();
+                            handleDittoRuntimeException(GatewayServiceUnavailableException.newBuilder()
+                                    .dittoHeaders(DittoHeaders.empty())
+                                    .build());
+                        })
                 .match(Command.class, this::handleCommand)
                 .matchAny(m -> {
                     logger.warning("Got unknown message, expected a 'Command': {}", m);
@@ -477,6 +480,7 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
     private void handleReceiveTimeout() {
         final var actorContext = getContext();
         final var receiveTimeout = actorContext.getReceiveTimeout();
+        getContext().cancelReceiveTimeout();
 
         logger.setCorrelationId(SignalInformationPoint.getCorrelationId(receivedCommand).orElse(null));
         logger.info("Got <{}> after <{}> before an appropriate response arrived.",

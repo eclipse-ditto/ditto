@@ -74,7 +74,6 @@ final class DittoSplitBrainResolver extends AbstractActor {
                 .build();
     }
 
-
     private ActorRef startChildActor(final Props props) {
         return getContext().actorOf(props);
     }
@@ -84,7 +83,7 @@ final class DittoSplitBrainResolver extends AbstractActor {
             autoEnabling.cancel();
         }
         if (modifySplitBrainResolver.isEnabled() && splitBrainResolverActor == null) {
-            LOGGER.info("Enabling Akka split rain resolver");
+            LOGGER.info("Enabling Akka split brain resolver");
             splitBrainResolverActor = startChildActor(splitBrainResolverProps);
         } else if (!modifySplitBrainResolver.isEnabled() && splitBrainResolverActor != null) {
             LOGGER.info("Stopping Akka split brain resolver");
