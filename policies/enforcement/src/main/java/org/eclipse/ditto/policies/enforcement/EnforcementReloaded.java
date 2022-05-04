@@ -22,32 +22,45 @@ import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyId;
 
 /**
- * TODO TJ doc
+ * Interface providing enforcement/authorization of {@code Signal}s and filtering of {@code CommandResponse}s with the
+ * help of a concrete {@link PolicyEnforcer} instance.
  *
- * @param <S>
- * @param <R>
+ * @param <S> the type of the Signal to enforce/authorize.
+ * @param <R> the type of the CommandResponse to filter.
+ * @since 3.0.0
  */
 public interface EnforcementReloaded<S extends Signal<?>, R extends CommandResponse<?>> {
 
     /**
+     * Authorizes the passed in {@code signal} using the passed in {@code policyEnforcer}.
      *
-     * @param signal
-     * @param enforcer
-     * @return
+     * @param signal the signal to authorize/enforce.
+     * @param policyEnforcer the PolicyEnforcer to use for authorizing the signal.
+     * @return a CompletionStage with the authorized Signal or a failed stage with a DittoRuntimeException in case of
+     * an authorization error.
+     * @throws org.eclipse.ditto.base.model.exceptions.DittoRuntimeException for any authorization related errors, e.g.
+     * missing access rights. Those have to be caught an interpreted as a command being "unauthorized".
      */
-    CompletionStage<S> authorizeSignal(S signal, PolicyEnforcer enforcer);
+    CompletionStage<S> authorizeSignal(S signal, PolicyEnforcer policyEnforcer);
 
     /**
+     * Authorizes the passed in {@code signal} when no {@code policyEnforcer} is present, e.g. may be used for
+     * "creation" commands.
      *
-     * @param signal
-     * @return
+     * @param signal the signal to authorize/enforce.
+     * @return a CompletionStage with the authorized Signal or a failed stage with a DittoRuntimeException in case of
+     * an authorization error.
+     * @throws org.eclipse.ditto.base.model.exceptions.DittoRuntimeException for any authorization related errors, e.g.
+     * missing access rights. Those have to be caught an interpreted as a command being "unauthorized".
      */
     CompletionStage<S> authorizeSignalWithMissingEnforcer(S signal);
 
     /**
-     * TODO TJ doc
-     * @param commandResponse
-     * @return
+     * Checks if for the passed in {@code commandResponse} a filtering should be done at all before trying to filter.
+     * Some responses shall e.g. never be filtered - or other implementations may not apply response filtering at all.
+     *
+     * @param commandResponse the CommandResponse to check if it should be filtered at all.
+     * @return {@code true} if the passed in {@code commandResponse} should be filtered.
      */
     boolean shouldFilterCommandResponse(R commandResponse);
 
@@ -56,13 +69,16 @@ public interface EnforcementReloaded<S extends Signal<?>, R extends CommandRespo
      *
      * @param commandResponse the command response that needs  to be filtered.
      * @param enforcer the enforcer that should be used for filtering.
-     * @return the filtered command response.
+     * @return a CompletionStage with the filtered command response or a failed stage with a DittoRuntimeException.
      */
     CompletionStage<R> filterResponse(R commandResponse, PolicyEnforcer enforcer);
 
     /**
-     * TODO TJ doc
-     * @param policyEnforcerLoader
+     * Registers a "loader" of additional {@link PolicyEnforcer}s by providing a function which can load a
+     * PolicyEnforcer using the passed in {@link PolicyId}.
+     * There is only one "loader" registered, so the last registered loader wins.
+     *
+     * @param policyEnforcerLoader the PolicyEnforcer loader function to register.
      */
     void registerPolicyEnforcerLoader(Function<PolicyId, CompletionStage<PolicyEnforcer>> policyEnforcerLoader);
 

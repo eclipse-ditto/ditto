@@ -214,7 +214,7 @@ public final class ThingCommandEnforcement
 
     @Override
     public CompletionStage<ThingCommand<?>> authorizeSignal(final ThingCommand<?> thingCommand,
-            final PolicyEnforcer enforcer) {
+            final PolicyEnforcer policyEnforcer) {
 
         final ThingCommand<?> authorizedCommand;
         if (isWotTdRequestingThingQueryCommand(thingCommand)) {
@@ -224,7 +224,8 @@ public final class ThingCommandEnforcement
             // for retrieving the WoT TD, assume that full TD gets returned unfiltered:
             authorizedCommand = prepareThingCommandBeforeSendingToPersistence(thingCommand);
         } else {
-            final ThingCommand<?> commandWithReadSubjects = authorizeByPolicyOrThrow(enforcer.getEnforcer(), thingCommand);
+            final ThingCommand<?> commandWithReadSubjects = authorizeByPolicyOrThrow(policyEnforcer.getEnforcer(),
+                    thingCommand);
             if (commandWithReadSubjects instanceof ThingQueryCommand<?> thingQueryCommand) {
                 authorizedCommand = ensureTwinChannel(thingQueryCommand);
             } else if (commandWithReadSubjects.getDittoHeaders().getLiveChannelCondition().isPresent()) {

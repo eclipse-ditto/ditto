@@ -14,6 +14,7 @@ package org.eclipse.ditto.things.service.persistence.actors;
 
 import java.util.concurrent.CompletableFuture;
 
+import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.internal.utils.persistence.mongo.ops.eventsource.MongoEventSourceITAssertions;
 import org.eclipse.ditto.internal.utils.pubsub.DistributedPub;
@@ -70,7 +71,9 @@ public final class ThingPersistenceOperationsActorIT extends MongoEventSourceITA
         return CreateThing.of(Thing.newBuilder()
                 .setId(id)
                 .setPolicyId(PolicyId.of(id))
-                .build(), null, DittoHeaders.empty());
+                .build(), null, DittoHeaders.newBuilder()
+                    .putHeader(DittoHeaderDefinition.DITTO_SUDO.getKey(), "true") // required for a stable test - which does not try to load policies from the policiesShardRegion for enforcement
+                    .build());
     }
 
     @Override
@@ -80,7 +83,9 @@ public final class ThingPersistenceOperationsActorIT extends MongoEventSourceITA
 
     @Override
     protected Object getRetrieveEntityCommand(final ThingId id) {
-        return RetrieveThing.of(id, DittoHeaders.empty());
+        return RetrieveThing.of(id, DittoHeaders.newBuilder()
+                .putHeader(DittoHeaderDefinition.DITTO_SUDO.getKey(), "true") // required for a stable test - which does not try to load policies from the policiesShardRegion for enforcement
+                .build());
     }
 
     @Override

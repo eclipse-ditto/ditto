@@ -31,10 +31,12 @@ import org.eclipse.ditto.policies.model.PolicyId;
 import akka.pattern.AskTimeoutException;
 
 /**
- * TODO TJ doc
+ * Abstract implementation of {@link EnforcementReloaded} providing common functionality of all entity specific
+ * enforcement implementations.
  *
- * @param <S>
- * @param <R>
+ * @param <S> the type of the Signal to enforce/authorize.
+ * @param <R> the type of the CommandResponse to filter.
+ * @since 3.0.0
  */
 public abstract class AbstractEnforcementReloaded<S extends Signal<?>, R extends CommandResponse<?>>
         implements EnforcementReloaded<S, R> {
@@ -78,7 +80,15 @@ public abstract class AbstractEnforcementReloaded<S extends Signal<?>, R extends
     }
 
     /**
-     * Report unexpected error or unknown response. TODO TJ fix javadoc
+     * Reports an error or a response based on type of the error and whether a response was present or not.
+     * If the error is of type {@link org.eclipse.ditto.base.model.exceptions.DittoRuntimeException}, it is returned as
+     * is (without modification), otherwise it is wrapped inside a {@link DittoInternalErrorException}.
+     *
+     * @param hint hint about the nature of the error.
+     * @param response the (optional) response.
+     * @param error the (optional) error.
+     * @param dittoHeaders the DittoHeaders to use for the DittoRuntimeException.
+     * @return DittoRuntimeException suitable for transmission of the error.
      */
     protected DittoRuntimeException reportErrorOrResponse(final String hint, @Nullable final Object response,
             @Nullable final Throwable error, final DittoHeaders dittoHeaders) {
@@ -95,12 +105,12 @@ public abstract class AbstractEnforcementReloaded<S extends Signal<?>, R extends
     }
 
     /**
-     * Report unknown response.
+     * Reports an unknown response as a DittoInternalErrorException.
      *
-     * @param hint
-     * @param response
-     * @param dittoHeaders
-     * @return TODO TJ
+     * @param hint hint about the nature of the error.
+     * @param response the unknown response.
+     * @param dittoHeaders the DittoHeaders to use for the DittoRuntimeException.
+     * @return DittoInternalErrorException
      */
     protected DittoRuntimeException reportUnknownResponse(final String hint, final Object response,
             final DittoHeaders dittoHeaders) {
