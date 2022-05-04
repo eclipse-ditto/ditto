@@ -103,7 +103,9 @@ import org.junit.Test;
 import org.junit.rules.TestWatcher;
 import org.slf4j.LoggerFactory;
 
+import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
+import com.typesafe.config.ConfigValueFactory;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSelection;
@@ -150,7 +152,10 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
 
     @Before
     public void setUp() {
-        setup(ConfigFactory.empty());
+        final Config customConfig = ConfigFactory.empty()
+                .withValue("akka.actor.provider",
+                        ConfigValueFactory.fromAnyRef("akka.cluster.ClusterActorRefProvider"));
+        setup(customConfig);
     }
 
     @Test
