@@ -36,7 +36,6 @@ public final class GatewayCachingSignalEnrichmentProvider extends GatewaySignalE
      * Instantiate this provider. Called by reflection.
      *
      * @param actorSystem The actor system for which this provider is instantiated.
-     * @param signalEnrichmentConfig Configuration for this provider.
      */
     public GatewayCachingSignalEnrichmentProvider(final ActorSystem actorSystem) {
         super(actorSystem);

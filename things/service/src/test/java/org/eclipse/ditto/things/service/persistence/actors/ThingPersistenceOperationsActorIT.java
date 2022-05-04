@@ -111,7 +111,7 @@ public final class ThingPersistenceOperationsActorIT extends MongoEventSourceITA
     protected ActorRef startEntityActor(final ActorSystem system, final ActorRef pubSubMediator, final ThingId id) {
 
         final TestProbe policiesShardRegionTestProbe = TestProbe.apply("mock-policiesShardRegion", system);
-        final ActorRef policiesShardRegion = policiesShardRegionTestProbe.ref(); // TODO TJ is this sufficient here?
+        final ActorRef policiesShardRegion = policiesShardRegionTestProbe.ref();
 
         final Props props =
                 ThingSupervisorActor.props(pubSubMediator, policiesShardRegion,

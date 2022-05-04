@@ -29,6 +29,7 @@
             <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-policies-model</artifactId>
         </dependency>
+        <!-- TODO TJ this should not rely on things-model (it currently does because of placeholders package - which could be pulled out) -->
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-things-model</artifactId>
