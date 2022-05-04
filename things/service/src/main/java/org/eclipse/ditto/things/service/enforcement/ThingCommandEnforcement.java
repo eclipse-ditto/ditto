@@ -265,9 +265,10 @@ public final class ThingCommandEnforcement
     }
 
     @Override
-    public boolean shouldFilterCommandResponses() {
-        return true;
+    public boolean shouldFilterCommandResponse(final ThingCommandResponse<?> commandResponse) {
+        return commandResponse instanceof ThingQueryCommandResponse<?>;
     }
+
     @Override
     public CompletionStage<ThingCommandResponse<?>> filterResponse(final ThingCommandResponse<?> commandResponse,
             final PolicyEnforcer policyEnforcer) {

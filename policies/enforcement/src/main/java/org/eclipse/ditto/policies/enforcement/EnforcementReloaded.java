@@ -46,9 +46,10 @@ public interface EnforcementReloaded<S extends Signal<?>, R extends CommandRespo
 
     /**
      * TODO TJ doc
+     * @param commandResponse
      * @return
      */
-    boolean shouldFilterCommandResponses();
+    boolean shouldFilterCommandResponse(R commandResponse);
 
     /**
      * Filters the given {@code commandResponse} by using the given {@code enforcer}.

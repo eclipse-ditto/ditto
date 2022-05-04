@@ -351,7 +351,7 @@ public abstract class AbstractEnforcerActor<I extends EntityId, C extends Comman
         final ActorRef sender = getSender();
         final ActorRef parent = getContext().getParent();
 
-        if (enforcement.shouldFilterCommandResponses()) {
+        if (enforcement.shouldFilterCommandResponse(commandResponse)) {
             if (null != policyEnforcer) {
                 try {
                     final CompletionStage<R> filteredResponseStage =

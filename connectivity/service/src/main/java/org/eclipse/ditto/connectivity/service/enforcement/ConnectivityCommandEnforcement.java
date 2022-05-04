@@ -57,7 +57,7 @@ public final class ConnectivityCommandEnforcement
     }
 
     @Override
-    public boolean shouldFilterCommandResponses() {
+    public boolean shouldFilterCommandResponse(final ConnectivityCommandResponse<?> commandResponse) {
         return false;
     }
 

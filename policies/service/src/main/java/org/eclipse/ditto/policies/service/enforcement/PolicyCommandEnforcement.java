@@ -137,8 +137,8 @@ public final class PolicyCommandEnforcement
     }
 
     @Override
-    public boolean shouldFilterCommandResponses() {
-        return true;
+    public boolean shouldFilterCommandResponse(final PolicyCommandResponse<?> commandResponse) {
+        return commandResponse instanceof PolicyQueryCommandResponse<?>;
     }
 
     @Override
