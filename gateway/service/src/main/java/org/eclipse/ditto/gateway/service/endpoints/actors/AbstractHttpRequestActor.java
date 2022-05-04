@@ -199,9 +199,12 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
                 .match(Whoami.class, this::handleWhoami)
                 .match(DittoRuntimeException.class, this::handleDittoRuntimeException)
                 .match(ReceiveTimeout.class,
-                        receiveTimeout -> handleDittoRuntimeException(GatewayServiceUnavailableException.newBuilder()
-                                .dittoHeaders(DittoHeaders.empty())
-                                .build()))
+                        receiveTimeout -> {
+                            getContext().cancelReceiveTimeout();
+                            handleDittoRuntimeException(GatewayServiceUnavailableException.newBuilder()
+                                    .dittoHeaders(DittoHeaders.empty())
+                                    .build());
+                        })
                 .match(Command.class, this::handleCommand)
                 .matchAny(m -> {
                     logger.warning("Got unknown message, expected a 'Command': {}", m);
@@ -492,6 +495,7 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
             logger.error("Actor does not have a timeout exception supplier." +
                     " Thus, no DittoRuntimeException could be handled.");
         }
+        getContext().cancelReceiveTimeout();
     }
 
     private void handleDittoRuntimeException(final DittoRuntimeException exception) {

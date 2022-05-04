@@ -315,6 +315,7 @@ final class ThingUpdater extends AbstractActorWithStashWithTimers {
 
     private void stopThisActor(final Object reason) {
         log.debug("stopping ThingUpdater <{}> due to <{}>", thingId, reason);
+        getContext().cancelReceiveTimeout();
         getContext().getParent().tell(new ShardRegion.Passivate(PoisonPill.getInstance()), getSelf());
     }
 
