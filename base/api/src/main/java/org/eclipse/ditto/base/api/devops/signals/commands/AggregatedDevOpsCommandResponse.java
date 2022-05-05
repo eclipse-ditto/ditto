@@ -186,29 +186,41 @@ public final class AggregatedDevOpsCommandResponse
             final boolean aggregateResults) {
 
         final var schemaVersion = dittoHeaders.getSchemaVersion().orElse(JsonSchemaVersion.LATEST);
-        final var builder = JsonObject.newBuilder();
 
+        if (!aggregateResults && commandResponses.size() == 1) {
+            final CommandResponse<?> commandResponse = commandResponses.get(0);
+            return commandResponseToJson(commandResponse, schemaVersion);
+        } else {
+            return buildAggregatedJsonRepresentation(commandResponses, schemaVersion);
+        }
+    }
+
+    private static JsonObject buildAggregatedJsonRepresentation(final List<CommandResponse<?>> commandResponses,
+            final JsonSchemaVersion schemaVersion) {
+        final var builder = JsonObject.newBuilder();
         var i = 0;
         for (final var cmdR : commandResponses) {
             final var key = String.format("/%s/%s", calculateServiceName(cmdR), calculateInstance(cmdR, i++));
             // include both regular and special fields for devops command responses
-            final JsonObject responseJson;
-            if (cmdR instanceof ExecutePiggybackCommandResponse response) {
-                responseJson = response.getResponse().asObject();
-            } else {
-                responseJson = cmdR.toJson(schemaVersion, FieldType.regularOrSpecial());
-            }
-            if (!aggregateResults && commandResponses.size() == 1) {
-                return responseJson;
-            }
+            final JsonObject responseJson = commandResponseToJson(cmdR, schemaVersion);
             builder.set(key, responseJson);
         }
-
         if (builder.isEmpty()) {
             return JsonFactory.nullObject();
         } else {
             return builder.build();
         }
+    }
+
+    private static JsonObject commandResponseToJson(final CommandResponse<?> commandResponse,
+            final JsonSchemaVersion schemaVersion) {
+        final JsonObject responseJson;
+        if (commandResponse instanceof ExecutePiggybackCommandResponse response) {
+            responseJson = response.getResponse().asObject();
+        } else {
+            responseJson = commandResponse.toJson(schemaVersion, FieldType.regularOrSpecial());
+        }
+        return responseJson;
     }
 
     private static String calculateServiceName(final CommandResponse<?> commandResponse) {
