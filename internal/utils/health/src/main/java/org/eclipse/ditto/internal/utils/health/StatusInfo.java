@@ -27,11 +27,11 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.base.model.json.Jsonifiable;
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonArrayBuilder;
 import org.eclipse.ditto.json.JsonFactory;
@@ -40,7 +40,6 @@ import org.eclipse.ditto.json.JsonMissingFieldException;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.base.model.json.Jsonifiable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -288,13 +287,13 @@ public final class StatusInfo implements Jsonifiable<JsonObject> {
         final List<StatusDetailMessage> details = detailsArray.stream()
                 .map(JsonValue::asObject)
                 .map(StatusDetailMessage::fromJson)
-                .collect(Collectors.toList());
+                .toList();
 
         final JsonArray childrenArray = jsonObject.getValue(JSON_KEY_CHILDREN).orElse(JsonFactory.newArray());
         final List<StatusInfo> children = childrenArray.stream()
                 .map(JsonValue::asObject)
                 .map(StatusInfo::fromJson)
-                .collect(Collectors.toList());
+                .toList();
 
         return of(status, details, children, label);
     }
@@ -520,7 +519,7 @@ public final class StatusInfo implements Jsonifiable<JsonObject> {
     private static List<StatusInfo> labelStatuses(final Map<String, StatusInfo> statuses) {
         return statuses.entrySet().stream()
                 .map(entry -> entry.getValue().label(entry.getKey()))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private static StatusInfo createCompositeStatusInfo(final List<StatusInfo> children) {
@@ -559,7 +558,7 @@ public final class StatusInfo implements Jsonifiable<JsonObject> {
                         "See detailed messages for: " + String.join(", ", entry.getValue()) + ".")))
                 // order by level ascending, e.g. ("ERROR", "WARN", ...)
                 .sorted(Comparator.comparing(StatusDetailMessage::getLevel).reversed())
-                .collect(Collectors.toList());
+                .toList();
 
 
         return of(resultingStatus, details, children, null);

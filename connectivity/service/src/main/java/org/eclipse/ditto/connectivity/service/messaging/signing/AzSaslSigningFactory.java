@@ -16,11 +16,10 @@ import java.time.Duration;
 
 import org.eclipse.ditto.base.model.common.DittoDuration;
 import org.eclipse.ditto.connectivity.model.HmacCredentials;
-import org.eclipse.ditto.connectivity.service.messaging.httppush.HttpRequestSigning;
-import org.eclipse.ditto.connectivity.service.messaging.httppush.HttpRequestSigningFactory;
-import org.eclipse.ditto.connectivity.service.messaging.signing.AzSaslSigning;
 import org.eclipse.ditto.connectivity.service.messaging.amqp.AmqpConnectionSigning;
 import org.eclipse.ditto.connectivity.service.messaging.amqp.AmqpConnectionSigningFactory;
+import org.eclipse.ditto.connectivity.service.messaging.httppush.HttpRequestSigning;
+import org.eclipse.ditto.connectivity.service.messaging.httppush.HttpRequestSigningFactory;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 

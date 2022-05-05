@@ -26,7 +26,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.eclipse.ditto.base.model.acks.AcknowledgementLabel;
@@ -348,7 +347,7 @@ public final class OutboundMappingProcessorTest {
             // expect one message per mapper per target
             final List<Target> expectedTargets = Arrays.stream(targets)
                     .flatMap(t -> Stream.generate(() -> t).limit(t.getPayloadMapping().getMappings().size()))
-                    .collect(Collectors.toList());
+                    .toList();
 
             final OutboundSignal outboundSignal =
                     OutboundSignalFactory.newOutboundSignal(signal, Arrays.asList(targets));
@@ -370,7 +369,7 @@ public final class OutboundMappingProcessorTest {
                 assertThat(captor.getAllValues()
                         .stream()
                         .flatMap(mapped -> mapped.getTargets().stream())
-                        .collect(Collectors.toList()))
+                        .toList())
                         .containsExactlyInAnyOrderElementsOf(expectedTargets);
             }
         }};

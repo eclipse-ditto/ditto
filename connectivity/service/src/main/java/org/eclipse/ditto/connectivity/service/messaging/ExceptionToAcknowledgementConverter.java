@@ -17,15 +17,15 @@ import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 import java.text.MessageFormat;
 import java.util.function.Predicate;
 
-import org.eclipse.ditto.json.JsonField;
-import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.base.model.acks.AcknowledgementLabel;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
+import org.eclipse.ditto.json.JsonField;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonPointer;
 
 /**
  * Customizable converter from publisher exceptions to {@link Acknowledgement}s.
@@ -68,8 +68,8 @@ public abstract class ExceptionToAcknowledgementConverter {
         checkNotNull(dittoHeaders, "dittoHeaders");
 
         final Acknowledgement result;
-        if (exception instanceof DittoRuntimeException) {
-            result = convertDittoRuntimeException((DittoRuntimeException) exception, label, entityId, dittoHeaders);
+        if (exception instanceof DittoRuntimeException dittoRuntimeException) {
+            result = convertDittoRuntimeException(dittoRuntimeException, label, entityId, dittoHeaders);
         } else {
             result = convertGenericException(exception, label, entityId, dittoHeaders);
         }

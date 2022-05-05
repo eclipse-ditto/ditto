@@ -65,7 +65,7 @@ public abstract class AbstractConsumerActorWithAcknowledgementsTest<M> extends A
                                 .getAcknowledgementRequests()
                                 .stream()
                                 .map(AcknowledgementRequest::getLabel)
-                                .collect(Collectors.toList())
+                                .toList()
                         ).containsExactly(TWIN_PERSISTED)
         );
     }

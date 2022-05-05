@@ -14,7 +14,6 @@ package org.eclipse.ditto.connectivity.service.messaging.mqtt;
 
 import java.util.Arrays;
 import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * Defines well-known MQTT properties that should be extracted from consumed mqtt messages and made available for
@@ -47,7 +46,7 @@ public enum MqttHeader {
      * @return list of default header names used for mqtt sources
      */
     public static List<String> getHeaderNames() {
-        return Arrays.stream(values()).map(MqttHeader::getName).collect(Collectors.toList());
+        return Arrays.stream(values()).map(MqttHeader::getName).toList();
     }
 
 }

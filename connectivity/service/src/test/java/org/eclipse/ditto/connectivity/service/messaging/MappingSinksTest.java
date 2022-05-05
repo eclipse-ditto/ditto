@@ -17,7 +17,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import javax.annotation.Nullable;
@@ -78,7 +77,7 @@ public final class MappingSinksTest {
             final var connection = getConnection(getRacyInboundScript(), NOOP_OUTBOUND_SCRIPT, processorPoolSize);
             final var processors = IntStream.range(0, processorPoolSize)
                     .mapToObj(i -> getInboundMappingProcessor(connection))
-                    .collect(Collectors.toList());
+                    .toList();
             final var sink = Sink.foreach(o -> testActor().tell(o, ActorRef.noSender()));
             final var underTest = InboundMappingSink.createSink(processors, connection.getId(),
                     processorPoolSize, sink, getMappingConfig(),
@@ -98,7 +97,7 @@ public final class MappingSinksTest {
                                 .build();
                         return new InboundMappingSink.ExternalMessageWithSender(message, testActor());
                     })
-                    .collect(Collectors.toList());
+                    .toList();
 
             Source.from(messages).to(underTest).run(resource.getActorSystem());
 
@@ -147,7 +146,7 @@ public final class MappingSinksTest {
             final var connection = getConnection(NOOP_INBOUND_SCRIPT, getRacyOutboundScript(), processorPoolSize);
             final var processors = IntStream.range(0, processorPoolSize)
                     .mapToObj(i -> getOutboundMappingProcessor(connection))
-                    .collect(Collectors.toList());
+                    .toList();
             final Props props = OutboundMappingProcessorActor.props(testActor(), processors, connection,
                     TestConstants.CONNECTIVITY_CONFIG, 3);
             final ActorRef underTest = childActorOf(props);

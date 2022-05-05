@@ -299,7 +299,7 @@ public final class DittoCachingSignalEnrichmentFacade implements CachingSignalEn
         final long cachedRevision = cachedJsonObject.getValue(Thing.JsonFields.REVISION).orElse(0L);
         final List<ThingEvent<?>> relevantEvents = cachingParameters.concernedEvents.stream()
                 .filter(e -> e.getRevision() > cachedRevision)
-                .collect(Collectors.toList());
+                .toList();
 
         if (relevantEvents.isEmpty()) {
             // the cache entry was more up-to-date

@@ -184,8 +184,8 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
                         // wrap JsonRuntimeExceptions
                         cause = new DittoJsonException((RuntimeException) cause);
                     }
-                    if (cause instanceof DittoRuntimeException) {
-                        handleDittoRuntimeException((DittoRuntimeException) cause);
+                    if (cause instanceof DittoRuntimeException dittoRuntimeException) {
+                        handleDittoRuntimeException(dittoRuntimeException);
                     } else if (cause instanceof EntityStreamSizeException) {
                         logger.warning("Got EntityStreamSizeException when a 'Command' was expected which means that" +
                                 " the max. allowed http payload size configured in Akka was overstepped in this" +
@@ -666,12 +666,12 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
                                 ack.getEntityId(),
                                 ack.getHttpStatus(),
                                 DittoHeaders.empty()))
-                        .collect(Collectors.toList());
+                        .toList();
                 result = Acknowledgements.of(acknowledgementList, acks.getDittoHeaders());
             }
         } else {
             result = Acknowledgements.of(
-                    acks.stream().map(this::setResponseLocationForAcknowledgement).collect(Collectors.toList()),
+                    acks.stream().map(this::setResponseLocationForAcknowledgement).toList(),
                     acks.getDittoHeaders()
             );
         }

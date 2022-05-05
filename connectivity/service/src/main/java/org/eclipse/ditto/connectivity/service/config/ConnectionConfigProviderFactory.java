@@ -15,7 +15,6 @@ package org.eclipse.ditto.connectivity.service.config;
 import java.util.Collections;
 import java.util.List;
 import java.util.function.Predicate;
-import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
 import org.atteo.classindex.ClassIndex;
@@ -106,7 +105,7 @@ public final class ConnectionConfigProviderFactory implements Extension {
         final List<Class<? extends ConnectionConfigProvider>> candidates =
                 StreamSupport.stream(subclasses.spliterator(), false)
                         .filter(classPredicate)
-                        .collect(Collectors.toList());
+                        .toList();
 
         if (candidates.size() == 1) {
             return candidates.get(0);

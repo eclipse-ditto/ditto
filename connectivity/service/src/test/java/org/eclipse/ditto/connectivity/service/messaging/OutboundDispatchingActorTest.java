@@ -16,7 +16,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Collections;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 import org.eclipse.ditto.base.model.acks.AcknowledgementLabel;
 import org.eclipse.ditto.base.model.acks.AcknowledgementLabelNotDeclaredException;
@@ -82,7 +81,7 @@ public final class OutboundDispatchingActorTest {
                             .map(source -> ConnectivityModelFactory.newSourceBuilder(source)
                                     .declaredAcknowledgementLabels(Set.of(getTestAck(connectionId)))
                                     .build())
-                            .collect(Collectors.toList()))
+                            .toList())
                     .build();
             final TestProbe probe = TestProbe.apply("probe", actorSystem);
             final ActorRef underTest = getOutboundDispatchingActor(connectionWithTestAck, probe.ref());
@@ -123,7 +122,7 @@ public final class OutboundDispatchingActorTest {
                             .map(source -> ConnectivityModelFactory.newSourceBuilder(source)
                                     .declaredAcknowledgementLabels(Set.of(getPlaceholderAck()))
                                     .build())
-                            .collect(Collectors.toList()))
+                            .toList())
                     .build();
             final TestProbe probe = TestProbe.apply("probe", actorSystem);
             final ActorRef underTest = getOutboundDispatchingActor(connectionWithPlaceholderAck, probe.ref());
@@ -171,7 +170,7 @@ public final class OutboundDispatchingActorTest {
                                     return target;
                                 }
                             })
-                            .collect(Collectors.toList()))
+                            .toList())
                     .build();
             final TestProbe probe = TestProbe.apply("probe", actorSystem);
             final ActorRef underTest = getOutboundDispatchingActor(connectionWithTargetIssuedAck, probe.ref());
@@ -217,7 +216,7 @@ public final class OutboundDispatchingActorTest {
                             .map(source -> ConnectivityModelFactory.newSourceBuilder(source)
                                     .declaredAcknowledgementLabels(Set.of(getTestAck(connectionId)))
                                     .build())
-                            .collect(Collectors.toList()))
+                            .toList())
                     .build();
             final TestProbe probe = TestProbe.apply("probe", actorSystem);
             final ActorRef underTest = getOutboundDispatchingActor(connectionWithTestAck, probe.ref());
@@ -301,7 +300,7 @@ public final class OutboundDispatchingActorTest {
                             .map(source -> ConnectivityModelFactory.newSourceBuilder(source)
                                     .declaredAcknowledgementLabels(Set.of(getTestAck(connectionId)))
                                     .build())
-                            .collect(Collectors.toList()))
+                            .toList())
                     .build();
             final TestProbe probe = TestProbe.apply("probe", actorSystem);
             final ActorRef underTest = getOutboundDispatchingActor(connectionWithTestAck, probe.ref());

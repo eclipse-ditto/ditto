@@ -1384,7 +1384,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         final List<ActorRef> childrenToAsk = StreamSupport.stream(getContext().getChildren().spliterator(), false)
                 .filter(child -> noAddressReportingChildNamePatterns.stream()
                         .noneMatch(p -> p.matcher(child.path().name()).matches()))
-                .collect(Collectors.toList());
+                .toList();
         final ConnectivityStatus clientConnectionStatus = data.getConnectionStatus();
         if (childrenToAsk.size() != expectedNumberOfChildren) {
             if (clientConnectionStatus.isFailure() || clientConnectionStatus == ConnectivityStatus.UNKNOWN) {
@@ -1730,7 +1730,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
                     proxyActorSelection, protocolAdapter, logger);
             outboundMappingProcessors = IntStream.range(0, processorPoolSize)
                     .mapToObj(i -> OutboundMappingProcessor.of(settings))
-                    .collect(Collectors.toList());
+                    .toList();
         } catch (final DittoRuntimeException dre) {
             connectionLogger.failure("Failed to start message mapping processor due to: {0}", dre.getMessage());
             logger.info("Got DittoRuntimeException during initialization of MessageMappingProcessor: {} {} - desc: {}",

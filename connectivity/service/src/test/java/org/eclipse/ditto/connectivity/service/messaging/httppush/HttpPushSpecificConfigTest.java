@@ -21,7 +21,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.service.config.HttpPushConfig;
@@ -58,7 +57,7 @@ public final class HttpPushSpecificConfigTest {
         assertThat(specificConfig.idleTimeout()).isEqualTo(Duration.ofSeconds(3));
         assertThat(specificConfig.parallelism()).isEqualTo(2);
         assertThat(specificConfig.omitRequestBody())
-                .isEqualTo(Arrays.stream(omitBodyRequest.split(",")).collect(Collectors.toList()));
+                .isEqualTo(Arrays.stream(omitBodyRequest.split(",")).toList());
     }
 
     @Test

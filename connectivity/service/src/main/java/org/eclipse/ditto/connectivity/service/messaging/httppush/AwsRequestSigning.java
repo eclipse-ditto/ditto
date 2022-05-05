@@ -231,7 +231,7 @@ final class AwsRequestSigning implements HttpRequestSigning {
                 // encode path segment twice as required for all AWS services except S3
                 .map(UriEncoding::encodeAllButUnreserved)
                 .map(UriEncoding::encodeAllButUnreserved)
-                .collect(Collectors.toList());
+                .toList();
 
         if (segments.isEmpty()) {
             return "/";

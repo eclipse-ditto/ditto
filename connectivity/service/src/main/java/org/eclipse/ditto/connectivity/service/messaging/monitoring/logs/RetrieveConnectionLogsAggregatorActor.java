@@ -17,7 +17,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.connectivity.model.Connection;
@@ -140,7 +139,7 @@ public final class RetrieveConnectionLogsAggregatorActor extends AbstractActor {
         final ConnectionId connectionId = theResponse.getEntityId();
         final List<LogEntry> originalLogEntries = theResponse.getConnectionLogs().stream()
                 .sorted(Comparator.comparing(LogEntry::getTimestamp).reversed())
-                .collect(Collectors.toList());
+                .toList();
 
         final List<LogEntry> restrictedLogs = new ArrayList<>();
         long currentSize = 0;

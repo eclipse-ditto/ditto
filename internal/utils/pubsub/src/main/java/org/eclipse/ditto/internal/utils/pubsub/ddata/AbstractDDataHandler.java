@@ -17,7 +17,6 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Executor;
-import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import org.eclipse.ditto.internal.utils.ddata.DistributedData;
@@ -108,12 +107,12 @@ public abstract class AbstractDDataHandler<K, S, T extends DDataUpdate<S>>
     public CompletionStage<List<ORMultiMap<K, S>>> getAllShards(final Replicator.ReadConsistency consistency) {
         final var futures = IntStream.range(0, numberOfShards)
                 .mapToObj(i -> get(getKey(i), consistency).toCompletableFuture())
-                .collect(Collectors.toList());
+                .toList();
         return CompletableFuture.allOf(futures.toArray(CompletableFuture[]::new))
                 .thenApply(_void -> futures.stream()
                         .map(CompletableFuture::join)
                         .flatMap(Optional::stream)
-                        .collect(Collectors.toList())
+                        .toList()
                 );
     }
 }

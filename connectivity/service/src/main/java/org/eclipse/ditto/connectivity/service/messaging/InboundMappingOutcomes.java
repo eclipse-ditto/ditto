@@ -133,8 +133,7 @@ public final class InboundMappingOutcomes {
 
     @Override
     public boolean equals(final Object o) {
-        if (o instanceof InboundMappingOutcomes) {
-            final InboundMappingOutcomes that = (InboundMappingOutcomes) o;
+        if (o instanceof InboundMappingOutcomes that) {
             return Objects.equals(outcomes, that.outcomes) &&
                     Objects.equals(externalMessage, that.externalMessage) &&
                     Objects.equals(error, that.error) &&
