@@ -579,6 +579,7 @@ public final class DevOpsCommandsActor extends AbstractActor implements Retrieve
 
         private void stopSelf() {
             final var context = getContext();
+            context.cancelReceiveTimeout();
             context.stop(getSelf());
         }
 

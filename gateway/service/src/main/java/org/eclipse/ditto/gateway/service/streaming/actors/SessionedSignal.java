@@ -20,7 +20,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
-import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
@@ -124,7 +123,7 @@ final class SessionedSignal implements SessionedJsonifiable {
                 .map(expressionResolver::resolve)
                 .flatMap(PipelineElement::toStream)
                 .map(JsonPointer::of)
-                .collect(Collectors.toList());
+                .toList();
         if(jsonPointers.isEmpty()) {
             return Optional.empty();
         }

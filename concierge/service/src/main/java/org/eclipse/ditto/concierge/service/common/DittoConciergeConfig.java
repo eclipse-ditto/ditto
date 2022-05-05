@@ -14,7 +14,6 @@ package org.eclipse.ditto.concierge.service.common;
 
 import java.util.Objects;
 
-import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.service.config.DittoServiceConfig;
@@ -41,6 +40,7 @@ public final class DittoConciergeConfig implements ConciergeConfig, WithConfigPa
     private final DefaultEnforcementConfig enforcementConfig;
     private final DefaultCachesConfig cachesConfig;
     private final DefaultThingsAggregatorConfig thingsAggregatorConfig;
+    private final String defaultNamespace;
 
     private DittoConciergeConfig(final ScopedConfig dittoScopedConfig) {
         serviceSpecificConfig = DittoServiceConfig.of(dittoScopedConfig, CONFIG_PATH);
@@ -48,6 +48,7 @@ public final class DittoConciergeConfig implements ConciergeConfig, WithConfigPa
         enforcementConfig = DefaultEnforcementConfig.of(serviceSpecificConfig);
         cachesConfig = DefaultCachesConfig.of(serviceSpecificConfig);
         thingsAggregatorConfig = DefaultThingsAggregatorConfig.of(serviceSpecificConfig);
+        defaultNamespace = dittoScopedConfig.getString(ConciergeConfigValue.DEFAULT_NAMESPACE.getConfigPath());
     }
 
     /**
@@ -60,6 +61,11 @@ public final class DittoConciergeConfig implements ConciergeConfig, WithConfigPa
      */
     public static DittoConciergeConfig of(final ScopedConfig dittoScopedConfig) {
         return new DittoConciergeConfig(dittoScopedConfig);
+    }
+
+    @Override
+    public String getDefaultNamespace() {
+        return defaultNamespace;
     }
 
     @Override
@@ -113,7 +119,7 @@ public final class DittoConciergeConfig implements ConciergeConfig, WithConfigPa
     }
 
     @Override
-    public boolean equals(@Nullable final Object o) {
+    public boolean equals(final Object o) {
         if (this == o) {
             return true;
         }
@@ -122,16 +128,15 @@ public final class DittoConciergeConfig implements ConciergeConfig, WithConfigPa
         }
         final DittoConciergeConfig that = (DittoConciergeConfig) o;
         return serviceSpecificConfig.equals(that.serviceSpecificConfig) &&
-                healthCheckConfig.equals(that.healthCheckConfig) &&
-                enforcementConfig.equals(that.enforcementConfig) &&
-                cachesConfig.equals(that.cachesConfig) &&
-                thingsAggregatorConfig.equals(that.thingsAggregatorConfig);
+                healthCheckConfig.equals(that.healthCheckConfig) && enforcementConfig.equals(that.enforcementConfig) &&
+                cachesConfig.equals(that.cachesConfig) && thingsAggregatorConfig.equals(that.thingsAggregatorConfig) &&
+                defaultNamespace.equals(that.defaultNamespace);
     }
 
     @Override
     public int hashCode() {
         return Objects.hash(serviceSpecificConfig, healthCheckConfig, enforcementConfig, cachesConfig,
-                thingsAggregatorConfig);
+                thingsAggregatorConfig, defaultNamespace);
     }
 
     @Override
@@ -142,6 +147,8 @@ public final class DittoConciergeConfig implements ConciergeConfig, WithConfigPa
                 ", enforcementConfig=" + enforcementConfig +
                 ", cachesConfig=" + cachesConfig +
                 ", thingsAggregatorConfig=" + thingsAggregatorConfig +
+                ", defaultNamespace='" + defaultNamespace +
                 "]";
     }
+
 }

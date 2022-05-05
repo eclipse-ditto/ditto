@@ -107,6 +107,7 @@ public final class AcknowledgementForwarderActor extends AbstractActor {
     private void handleReceiveTimeout(final ReceiveTimeout receiveTimeout) {
         log.withCorrelationId(correlationId)
                 .debug("Timed out waiting for requested acknowledgements, stopping myself ...");
+        getContext().cancelReceiveTimeout();
         getContext().stop(getSelf());
     }
 

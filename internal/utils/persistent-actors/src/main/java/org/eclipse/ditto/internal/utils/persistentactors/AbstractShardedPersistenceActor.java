@@ -435,7 +435,7 @@ public abstract class AbstractShardedPersistenceActor<
 
     private void scheduleSnapshot() {
         final Duration snapshotInterval = getSnapshotConfig().getInterval();
-        timers().startPeriodicTimer("takeSnapshot", Control.TAKE_SNAPSHOT, snapshotInterval);
+        timers().startTimerAtFixedRate("takeSnapshot", Control.TAKE_SNAPSHOT, snapshotInterval);
     }
 
     private void cancelSnapshot() {
