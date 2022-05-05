@@ -474,14 +474,12 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
     }
 
     private Object publishResponseOrError(final Object responseOrError) {
-        if (responseOrError instanceof CommandResponse<?>) {
-            final CommandResponse<?> response = (CommandResponse<?>) responseOrError;
+        if (responseOrError instanceof CommandResponse<?> response) {
             logger.withCorrelationId(response)
                     .debug("Got 'CommandResponse' message in <{}> session, telling EventAndResponsePublisher" +
                             " about it: {}", type, response);
             eventAndResponsePublisher.offer(SessionedJsonifiable.response(response));
-        } else if (responseOrError instanceof DittoRuntimeException) {
-            final DittoRuntimeException error = (DittoRuntimeException) responseOrError;
+        } else if (responseOrError instanceof DittoRuntimeException error) {
             logger.withCorrelationId(error)
                     .debug("Got 'DittoRuntimeException' message in <{}> session, telling EventAndResponsePublisher" +
                             " about it: {}", type, error);
