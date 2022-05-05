@@ -123,7 +123,7 @@ public final class StatisticsActor extends AbstractActorWithStashWithTimers {
 
     private void scheduleInternalRetrieveHotEntities() {
         initGauges();
-        getTimers().startPeriodicTimer(InternalRetrieveStatistics.INSTANCE, InternalRetrieveStatistics.INSTANCE,
+        getTimers().startTimerAtFixedRate(InternalRetrieveStatistics.INSTANCE, InternalRetrieveStatistics.INSTANCE,
                 statisticsConfig.getUpdateInterval());
     }
 

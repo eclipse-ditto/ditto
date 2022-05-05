@@ -19,8 +19,6 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-import org.eclipse.ditto.thingsearch.service.common.config.DittoSearchConfig;
-import org.eclipse.ditto.thingsearch.service.common.config.UpdaterConfig;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.cluster.ShardRegionExtractor;
@@ -30,6 +28,8 @@ import org.eclipse.ditto.internal.utils.namespaces.BlockNamespaceBehavior;
 import org.eclipse.ditto.internal.utils.namespaces.BlockedNamespaces;
 import org.eclipse.ditto.internal.utils.pubsub.DistributedSub;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
+import org.eclipse.ditto.thingsearch.service.common.config.DittoSearchConfig;
+import org.eclipse.ditto.thingsearch.service.common.config.UpdaterConfig;
 
 import akka.actor.AbstractActorWithTimers;
 import akka.actor.ActorRef;
@@ -80,7 +80,7 @@ final class NewEventForwarder extends AbstractActorWithTimers {
 
         if (updaterConfig.isEventProcessingActive()) {
             // schedule regular updates of subscriptions
-            getTimers().startPeriodicTimer(Clock.REBALANCE_TICK, Clock.REBALANCE_TICK,
+            getTimers().startTimerAtFixedRate(Clock.REBALANCE_TICK, Clock.REBALANCE_TICK,
                     updaterConfig.getShardingStatePollInterval());
             // subscribe for thing events immediately
             getSelf().tell(Clock.REBALANCE_TICK, getSelf());
