@@ -47,6 +47,7 @@ import org.eclipse.ditto.connectivity.model.Source;
 import org.eclipse.ditto.connectivity.model.Target;
 import org.eclipse.ditto.connectivity.service.config.MqttConfig;
 import org.eclipse.ditto.connectivity.service.messaging.Resolvers;
+import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.common.InvalidMqttQosCodeException;
 import org.eclipse.ditto.connectivity.service.messaging.validation.AbstractProtocolValidator;
 import org.eclipse.ditto.placeholders.ExpressionResolver;
 import org.eclipse.ditto.placeholders.Placeholder;
@@ -55,7 +56,6 @@ import org.eclipse.ditto.placeholders.PlaceholderFilter;
 import org.eclipse.ditto.placeholders.UnresolvedPlaceholderException;
 import org.eclipse.ditto.things.model.ThingId;
 
-import com.hivemq.client.internal.util.UnsignedDataTypes;
 import com.hivemq.client.mqtt.datatypes.MqttQos;
 import com.hivemq.client.mqtt.datatypes.MqttTopic;
 import com.hivemq.client.mqtt.datatypes.MqttTopicFilter;
@@ -217,24 +217,35 @@ public abstract class AbstractMqttValidator extends AbstractProtocolValidator {
     }
 
     protected void validateSpecificConfig(final Connection connection, final DittoHeaders dittoHeaders) {
-        final MqttSpecificConfig mqttSpecificConfig = MqttSpecificConfig.fromConnection(connection, mqttConfig);
-        mqttSpecificConfig.getKeepAliveInterval().ifPresent(keepAlive -> {
-            final long seconds = keepAlive.toSeconds();
-            if (!UnsignedDataTypes.isUnsignedShort(seconds)) {
-                throw ConnectionConfigurationInvalidException
-                        .newBuilder("Keep alive interval '" + seconds +
-                                "' is not within the allowed range of [0, 65535] seconds.")
-                        .description("Please adjust the interval to be within the allowed range.")
-                        .dittoHeaders(dittoHeaders)
-                        .build();
-            }
-        });
+        final var mqttSpecificConfig = MqttSpecificConfig.fromConnection(connection, mqttConfig);
 
-        mqttSpecificConfig.getMqttWillTopic().ifPresent(lastWillTopic -> {
-            validateAddress(lastWillTopic, false, dittoHeaders);
-            validateTargetQoS(mqttSpecificConfig.getMqttWillQos(), dittoHeaders,
-                    () -> MqttSpecificConfig.LAST_WILL_QOS);
-        });
+        try {
+            mqttSpecificConfig.getKeepAliveIntervalOrDefault();
+        } catch (final IllegalKeepAliveIntervalSecondsException e) {
+            throw ConnectionConfigurationInvalidException.newBuilder(e.getMessage())
+                    .description("Please adjust the interval to be within the allowed range.")
+                    .dittoHeaders(dittoHeaders)
+                    .cause(e)
+                    .build();
+        }
+
+        try {
+            mqttSpecificConfig.getMqttLastWillTopic().ifPresent(unused -> mqttSpecificConfig.getLastWillQosOrThrow());
+        } catch (final IllegalArgumentException e) {
+            throw ConnectionConfigurationInvalidException.newBuilder(e.getMessage())
+                    .description(MessageFormat.format("Please provide a valid MQTT topic for config key <{0}>.",
+                            MqttSpecificConfig.LAST_WILL_TOPIC))
+                    .dittoHeaders(dittoHeaders)
+                    .cause(e)
+                    .build();
+        } catch (final InvalidMqttQosCodeException e) {
+            throw ConnectionConfigurationInvalidException.newBuilder(e.getMessage())
+                    .description(MessageFormat.format("Please provide a valid MQTT QoS code for config key <{0}>.",
+                            MqttSpecificConfig.LAST_WILL_QOS))
+                    .dittoHeaders(dittoHeaders)
+                    .cause(e)
+                    .build();
+        }
     }
 
     private static void validateAddress(final String address, final boolean wildcardAllowed,

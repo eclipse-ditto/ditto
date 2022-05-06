@@ -78,11 +78,10 @@ abstract class AbstractMqttPublisherActor<P, R> extends BasePublisherActor<MqttP
     AbstractMqttPublisherActor(final Connection connection,
             final Function<P, CompletableFuture<R>> client,
             final boolean dryRun,
-            final String clientId,
             final ConnectivityStatusResolver connectivityStatusResolver,
             final ConnectivityConfig connectivityConfig) {
 
-        super(connection, clientId, connectivityStatusResolver, connectivityConfig);
+        super(connection, connectivityStatusResolver, connectivityConfig);
         this.client = client;
         this.dryRun = dryRun;
         final Materializer materializer = Materializer.createMaterializer(this::getContext);

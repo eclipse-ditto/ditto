@@ -136,7 +136,7 @@ public final class MqttSubscriberTest {
         final var onCompleteMessage = "done";
         subscribeResultSource.to(Sink.actorRef(testKit.getRef(), onCompleteMessage)).run(actorSystem);
 
-        assertThat(testKit.expectMsgClass(SubscribeFailure.class))
+        assertThat(testKit.expectMsgClass(SourceSubscribeResult.class))
                 .satisfies(subscribeFailure -> assertThat(subscribeFailure.getErrorOrThrow())
                         .isInstanceOf(MqttSubscribeException.class)
                         .hasMessageStartingWith("Failed to instantiate GenericMqttSubscribe: ")

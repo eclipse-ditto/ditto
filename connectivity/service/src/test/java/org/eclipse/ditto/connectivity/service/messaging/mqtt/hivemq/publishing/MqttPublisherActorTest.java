@@ -114,7 +114,6 @@ public final class MqttPublisherActorTest extends AbstractPublisherActorTest {
     @Override
     protected Props getPublisherActorProps() {
         return MqttPublisherActor.propsProcessing(TestConstants.createConnection(),
-                "clientId",
                 Mockito.mock(ConnectivityStatusResolver.class),
                 ConnectivityConfig.of(actorSystem.settings().config()),
                 genericMqttPublishingClient);
@@ -409,7 +408,6 @@ public final class MqttPublisherActorTest extends AbstractPublisherActorTest {
                 )
         );
         final var underTest = testKit.childActorOf(MqttPublisherActor.propsDryRun(TestConstants.createConnection(),
-                "clientId",
                 Mockito.mock(ConnectivityStatusResolver.class),
                 ConnectivityConfig.of(actorSystem.settings().config()),
                 genericMqttPublishingClient));

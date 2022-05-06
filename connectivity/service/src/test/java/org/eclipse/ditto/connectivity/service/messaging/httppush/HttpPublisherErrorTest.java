@@ -113,7 +113,6 @@ public final class HttpPublisherErrorTest {
                     mock(ConnectionLogger.class), SshTunnelState::disabled);
             final Props props = HttpPublisherActor.props(connection,
                     factory,
-                    "clientId",
                     mock(ConnectivityStatusResolver.class),
                     ConnectivityConfig.of(actorSystem.settings().config()));
             final ActorRef underTest = watch(childActorOf(props));
@@ -147,7 +146,7 @@ public final class HttpPublisherErrorTest {
             // GIVEN: An HTTP-push connection is established against localhost.
             final HttpPushFactory factory = HttpPushFactory.of(connection, connectionConfig.getHttpPushConfig(),
                     mock(ConnectionLogger.class), SshTunnelState::disabled);
-            final Props props = HttpPublisherActor.props(connection, factory, "clientId",
+            final Props props = HttpPublisherActor.props(connection, factory,
                     mock(ConnectivityStatusResolver.class), ConnectivityConfig.of(actorSystem.settings().config()));
             final ActorRef underTest = watch(childActorOf(props));
 

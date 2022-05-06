@@ -336,7 +336,6 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
         if (null != jmsSession) {
             final Props props = AmqpPublisherActor.props(connection(),
                     jmsSession,
-                    getDefaultClientId(),
                     connectivityStatusResolver,
                     connectivityConfig());
             amqpPublisherActor = startChildActorConflictFree(AmqpPublisherActor.ACTOR_NAME_PREFIX, props);

@@ -37,7 +37,7 @@ public final class AllSubscriptionsFailedException extends MqttSubscribeExceptio
      * @throws NullPointerException if {@code failedSubscriptionStatuses} is {@code null}.
      * @throws IllegalArgumentException if {@code failedSubscriptionStatuses} is empty.
      */
-    AllSubscriptionsFailedException(final List<SubscriptionStatus> failedSubscriptionStatuses) {
+    public AllSubscriptionsFailedException(final List<SubscriptionStatus> failedSubscriptionStatuses) {
         super();
         ConditionChecker.argumentNotEmpty(failedSubscriptionStatuses, "failedSubscriptionStatuses");
         this.failedSubscriptionStatuses = List.copyOf(failedSubscriptionStatuses);

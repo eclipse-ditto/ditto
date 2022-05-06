@@ -12,11 +12,20 @@
  */
 package org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.publishing;
 
+import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
+
 import java.util.concurrent.CompletionStage;
 
 import javax.annotation.concurrent.ThreadSafe;
 
 import org.eclipse.ditto.base.model.common.ConditionChecker;
+import org.eclipse.ditto.connectivity.model.ConnectionType;
+import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.clients.GenericMqttClient;
+import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.clients.GenericMqttConnAckStatus;
+import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.clients.GenericMqttConnect;
+import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.clients.HiveMqttClientFactory;
+import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.clients.HiveMqttClientProperties;
+import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.clients.MqttClientConnectException;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.publish.GenericMqttPublish;
 
 import com.hivemq.client.mqtt.mqtt3.Mqtt3AsyncClient;
@@ -26,10 +35,42 @@ import com.hivemq.client.mqtt.mqtt5.Mqtt5AsyncClient;
  * A generic client for sending {@link GenericMqttPublish} messages to the broker.
  */
 @ThreadSafe
-public abstract class GenericMqttPublishingClient {
+public abstract class GenericMqttPublishingClient implements GenericMqttClient {
 
     private GenericMqttPublishingClient() {
         super();
+    }
+
+    /**
+     * Returns a new instance of {@code GenericMqttPublishingClient} for the specified {@code HiveMqttClientProperties}
+     * argument.
+     *
+     * @param hiveMqttClientProperties properties which are required for creating a publising client.
+     * @return the new instance.
+     * @throws NullPointerException if {@code hiveMqttClientProperties} is {@code null}.
+     */
+    public static GenericMqttPublishingClient newInstance(final HiveMqttClientProperties hiveMqttClientProperties) {
+        ConditionChecker.checkNotNull(hiveMqttClientProperties, "hiveMqttClientProperties");
+
+        final GenericMqttPublishingClient result;
+        final var mqttConnection = hiveMqttClientProperties.getMqttConnection();
+        final var clientIdentifierFactory = MqttPublishingClientIdentifierFactory.newInstance(
+                hiveMqttClientProperties.getMqttSpecificConfig(),
+                mqttConnection,
+                hiveMqttClientProperties.getActorUuid()
+        );
+        if (ConnectionType.MQTT == mqttConnection.getConnectionType()) {
+            final var mqtt3Client = HiveMqttClientFactory.getMqtt3Client(hiveMqttClientProperties,
+                    clientIdentifierFactory.getMqttClientIdentifier(),
+                    true);
+            result = ofMqtt3AsyncClient(mqtt3Client.toAsync());
+        } else {
+            final var mqtt5RxClient = HiveMqttClientFactory.getMqtt5Client(hiveMqttClientProperties,
+                    clientIdentifierFactory.getMqttClientIdentifier(),
+                    true);
+            result = ofMqtt5AsyncClient(mqtt5RxClient.toAsync());
+        }
+        return result;
     }
 
     /**
@@ -40,7 +81,7 @@ public abstract class GenericMqttPublishingClient {
      * @return the instance.
      * @throws NullPointerException if {@code mqtt3AsyncClient} is {@code null}.
      */
-    public static GenericMqttPublishingClient ofMqtt3AsyncClient(final Mqtt3AsyncClient mqtt3AsyncClient) {
+    static GenericMqttPublishingClient ofMqtt3AsyncClient(final Mqtt3AsyncClient mqtt3AsyncClient) {
         return new Mqtt3AsyncPublishingClient(mqtt3AsyncClient);
     }
 
@@ -52,7 +93,7 @@ public abstract class GenericMqttPublishingClient {
      * @return the instance.
      * @throws NullPointerException if {@code mqtt5AsyncClient} is {@code null}.
      */
-    public static GenericMqttPublishingClient ofMqtt5AsyncClient(final Mqtt5AsyncClient mqtt5AsyncClient) {
+    static GenericMqttPublishingClient ofMqtt5AsyncClient(final Mqtt5AsyncClient mqtt5AsyncClient) {
         return new Mqtt5AsyncPublishingClient(mqtt5AsyncClient);
     }
 
@@ -82,6 +123,24 @@ public abstract class GenericMqttPublishingClient {
         }
 
         @Override
+        public CompletionStage<GenericMqttConnAckStatus> connect(final GenericMqttConnect genericMqttConnect) {
+            checkNotNull(genericMqttConnect, "genericMqttConnect");
+            return mqtt3AsyncClient.connect(genericMqttConnect.getAsMqtt3Connect())
+                    .handle((mqtt3ConnAck, throwable) -> {
+                        if (null == throwable) {
+                            return GenericMqttConnAckStatus.ofMqtt3ConnAckReturnCode(mqtt3ConnAck.getReturnCode());
+                        } else {
+                            throw new MqttClientConnectException(throwable);
+                        }
+                    });
+        }
+
+        @Override
+        public CompletionStage<Void> disconnect() {
+            return mqtt3AsyncClient.disconnect();
+        }
+
+        @Override
         protected CompletionStage<GenericMqttPublishResult> sendPublish(final GenericMqttPublish genericMqttPublish) {
             return mqtt3AsyncClient.publish(genericMqttPublish.getAsMqtt3Publish())
                     .handle((mqtt3Publish, throwable) -> {
@@ -103,6 +162,24 @@ public abstract class GenericMqttPublishingClient {
 
         private Mqtt5AsyncPublishingClient(final Mqtt5AsyncClient mqtt5AsyncClient) {
             this.mqtt5AsyncClient = ConditionChecker.checkNotNull(mqtt5AsyncClient, "mqtt5AsyncClient");
+        }
+
+        @Override
+        public CompletionStage<GenericMqttConnAckStatus> connect(final GenericMqttConnect genericMqttConnect) {
+            checkNotNull(genericMqttConnect, "genericMqttConnect");
+            return mqtt5AsyncClient.connect(genericMqttConnect.getAsMqtt5Connect())
+                    .handle((mqtt5ConnAck, throwable) -> {
+                        if (null == throwable) {
+                            return GenericMqttConnAckStatus.ofMqtt5ConnAckReasonCode(mqtt5ConnAck.getReasonCode());
+                        } else {
+                            throw new MqttClientConnectException(throwable);
+                        }
+                    });
+        }
+
+        @Override
+        public CompletionStage<Void> disconnect() {
+            return mqtt5AsyncClient.disconnect();
         }
 
         @Override

@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.subscribing;
 
+import java.text.MessageFormat;
+
 import javax.annotation.concurrent.Immutable;
 
 import com.hivemq.client.mqtt.datatypes.MqttTopicFilter;
@@ -23,5 +25,14 @@ import com.hivemq.client.mqtt.datatypes.MqttTopicFilter;
  * an error.
  */
 @Immutable
-public record SubscriptionStatus(MqttTopicFilter mqttTopicFilter,
-                          GenericMqttSubAckStatus genericMqttSubAckStatus) {}
+public record SubscriptionStatus(MqttTopicFilter mqttTopicFilter, GenericMqttSubAckStatus genericMqttSubAckStatus) {
+
+    @Override
+    public String toString() {
+        return MessageFormat.format("{0}[Topic filter: {1} => {2}]",
+                getClass().getSimpleName(),
+                mqttTopicFilter,
+                genericMqttSubAckStatus);
+    }
+
+}

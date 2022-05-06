@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.publishing;
+package org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.common;
 
 import java.io.Serial;
 import java.text.MessageFormat;
@@ -20,7 +20,7 @@ import org.eclipse.ditto.base.model.common.ConditionChecker;
 /**
  * This exception is thrown to indicate that a user provided MQTT QoS code is invalid.
  */
-final class InvalidMqttQosCodeException extends RuntimeException {
+public final class InvalidMqttQosCodeException extends RuntimeException {
 
     @Serial private static final long serialVersionUID = -7534650891294569575L;
 
@@ -29,7 +29,7 @@ final class InvalidMqttQosCodeException extends RuntimeException {
      *
      * @param invalidMqttQosCode an integer that represents an invalid MQTT QoS code.
      */
-    InvalidMqttQosCodeException(final int invalidMqttQosCode) {
+    public InvalidMqttQosCodeException(final int invalidMqttQosCode) {
         super(createDetailMessage(invalidMqttQosCode));
     }
 
@@ -44,7 +44,7 @@ final class InvalidMqttQosCodeException extends RuntimeException {
      * @param cause the cause that makes {@code invalidMqttQosCode} invalid or {@code null}.
      * @throws NullPointerException if {@code invalidMqttQosCode} is {@code null}.
      */
-    InvalidMqttQosCodeException(final String invalidMqttQosCode, final Throwable cause) {
+    public InvalidMqttQosCodeException(final String invalidMqttQosCode, final Throwable cause) {
         super(createDetailMessage(ConditionChecker.checkNotNull(invalidMqttQosCode, "invalidMqttQosCode")), cause);
     }
 

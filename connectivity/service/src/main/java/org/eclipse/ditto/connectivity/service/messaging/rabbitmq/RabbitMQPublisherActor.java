@@ -106,11 +106,10 @@ public final class RabbitMQPublisherActor extends BasePublisherActor<RabbitMQTar
 
     @SuppressWarnings("unused")
     private RabbitMQPublisherActor(final Connection connection,
-            final String clientId,
             final ConnectivityStatusResolver connectivityStatusResolver,
             final ConnectivityConfig connectivityConfig) {
 
-        super(connection, clientId, connectivityStatusResolver, connectivityConfig);
+        super(connection, connectivityStatusResolver, connectivityConfig);
         pendingAckTTL = connectivityConfig.getConnectionConfig()
                 .getAmqp091Config()
                 .getPublisherPendingAckTTL();
@@ -120,20 +119,17 @@ public final class RabbitMQPublisherActor extends BasePublisherActor<RabbitMQTar
      * Creates Akka configuration object {@link Props} for this {@code RabbitMQPublisherActor}.
      *
      * @param connection the connection this publisher belongs to
-     * @param clientId identifier of the client actor.
      * @param connectivityStatusResolver connectivity status resolver to resolve occurred exceptions to a connectivity
      * status.
      * @param connectivityConfig the config of the connectivity service with potential overwrites.
      * @return the Akka configuration Props object.
      */
     static Props props(final Connection connection,
-            final String clientId,
             final ConnectivityStatusResolver connectivityStatusResolver,
             final ConnectivityConfig connectivityConfig) {
 
         return Props.create(RabbitMQPublisherActor.class,
                 connection,
-                clientId,
                 connectivityStatusResolver,
                 connectivityConfig);
     }

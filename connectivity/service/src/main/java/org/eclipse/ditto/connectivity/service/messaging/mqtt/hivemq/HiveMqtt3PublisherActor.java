@@ -39,11 +39,10 @@ public final class HiveMqtt3PublisherActor extends AbstractMqttPublisherActor<Mq
     private HiveMqtt3PublisherActor(final Connection connection,
             final Mqtt3Client client,
             final boolean dryRun,
-            final String clientId,
             final ConnectivityStatusResolver connectivityStatusResolver,
             final ConnectivityConfig connectivityConfig) {
 
-        super(connection, client.toAsync()::publish, dryRun, clientId, connectivityStatusResolver, connectivityConfig);
+        super(connection, client.toAsync()::publish, dryRun, connectivityStatusResolver, connectivityConfig);
     }
 
     /**
@@ -52,7 +51,6 @@ public final class HiveMqtt3PublisherActor extends AbstractMqttPublisherActor<Mq
      * @param connection the connection the publisher actor belongs to.
      * @param client the HiveMQ client.
      * @param dryRun whether this publisher is only created for a test or not.
-     * @param clientId identifier of the client actor.
      * @param connectivityStatusResolver connectivity status resolver to resolve occurred exceptions to a connectivity
      * status.
      * @param connectivityConfig the config of the connectivity service with potential overwrites.
@@ -61,7 +59,6 @@ public final class HiveMqtt3PublisherActor extends AbstractMqttPublisherActor<Mq
     public static Props props(final Connection connection,
             final Mqtt3Client client,
             final boolean dryRun,
-            final String clientId,
             final ConnectivityStatusResolver connectivityStatusResolver,
             final ConnectivityConfig connectivityConfig) {
 
@@ -69,7 +66,6 @@ public final class HiveMqtt3PublisherActor extends AbstractMqttPublisherActor<Mq
                 connection,
                 client,
                 dryRun,
-                clientId,
                 connectivityStatusResolver,
                 connectivityConfig);
     }

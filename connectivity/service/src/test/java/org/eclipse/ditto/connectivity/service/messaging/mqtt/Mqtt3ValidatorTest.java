@@ -13,6 +13,7 @@
 package org.eclipse.ditto.connectivity.service.messaging.mqtt;
 
 import static java.util.Collections.singletonList;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.eclipse.ditto.connectivity.model.ConnectivityModelFactory.newEnforcement;
 import static org.eclipse.ditto.connectivity.model.ConnectivityModelFactory.newSourceAddressEnforcement;
 import static org.eclipse.ditto.connectivity.service.messaging.TestConstants.Authorization.AUTHORIZATION_CONTEXT;
@@ -40,7 +41,6 @@ import org.eclipse.ditto.connectivity.model.TargetBuilder;
 import org.eclipse.ditto.connectivity.service.config.MqttConfig;
 import org.eclipse.ditto.connectivity.service.messaging.TestConstants;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.Mockito;
 
@@ -231,15 +231,19 @@ public final class Mqtt3ValidatorTest extends AbstractMqttValidatorTest {
 
     @Test
     public void testInvalidLastWillQos() {
+        final var invalidQosCode = 5;
         final Connection connection = connectionWithSource("ditto/#").toBuilder()
                 .specificConfig(Map.of(
                         MqttSpecificConfig.LAST_WILL_TOPIC, "topic",
-                        MqttSpecificConfig.LAST_WILL_QOS, "5"
+                        MqttSpecificConfig.LAST_WILL_QOS, String.valueOf(invalidQosCode)
                 ))
                 .build();
 
         verifyConnectionConfigurationInvalidExceptionIsThrown(connection)
-                .withMessageContaining(MqttSpecificConfig.LAST_WILL_QOS);
+                .withMessage("<%d> is not a valid MQTT QoS code.", invalidQosCode)
+                .satisfies(dittoRuntimeException -> assertThat(dittoRuntimeException.getDescription())
+                        .hasValue(String.format("Please provide a valid MQTT QoS code for config key <%s>.",
+                                MqttSpecificConfig.LAST_WILL_QOS)));
     }
 
     @Test

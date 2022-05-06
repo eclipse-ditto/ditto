@@ -19,7 +19,7 @@ import akka.NotUsed;
 /**
  * Represents the result of subscribing a client with a Subscribe message ({@link GenericMqttSubscribe}).
  */
-public sealed interface SubscribeResult permits SubscribeFailure, SubscribeSuccess {
+public interface SubscribeResult {
 
     /**
      * Indicates whether this subscribe result represents a success.

@@ -61,13 +61,12 @@ public final class MqttPublisherActor extends BasePublisherActor<MqttPublishTarg
 
     @SuppressWarnings("java:S1144")
     private MqttPublisherActor(final Connection connection,
-            final String clientActorId,
             final ConnectivityStatusResolver connectivityStatusResolver,
             final ConnectivityConfig connectivityConfig,
             final GenericMqttPublishingClient genericMqttPublishingClient,
             final OperationMode operationMode) {
 
-        super(connection, clientActorId, connectivityStatusResolver, connectivityConfig);
+        super(connection, connectivityStatusResolver, connectivityConfig);
         this.genericMqttPublishingClient = genericMqttPublishingClient;
         this.operationMode = operationMode;
 
@@ -82,14 +81,12 @@ public final class MqttPublisherActor extends BasePublisherActor<MqttPublishTarg
      * The dropped messages will be logged.
      *
      * @param connection the connection the consumer actor belongs to.
-     * @param clientActorId identifier of the client Actor.
      * @param connectivityStatusResolver resolves occurred exceptions to a connectivity status.
      * @param connectivityConfig the config of Connectivity service with potential overwrites.
      * @param genericMqttPublishingClient generic MQTT client for actual sending MQTT Publish messages to the broker.
      * @throws NullPointerException if any argument is {@code null}.
      */
     public static Props propsDryRun(final Connection connection,
-            final String clientActorId,
             final ConnectivityStatusResolver connectivityStatusResolver,
             final ConnectivityConfig connectivityConfig,
             final GenericMqttPublishingClient genericMqttPublishingClient) {
@@ -97,7 +94,6 @@ public final class MqttPublisherActor extends BasePublisherActor<MqttPublishTarg
         return Props.create(
                 MqttPublisherActor.class,
                 ConditionChecker.checkNotNull(connection, "connection"),
-                ConditionChecker.checkNotNull(clientActorId, "clientActorId"),
                 ConditionChecker.checkNotNull(connectivityStatusResolver, "connectivityStatusResolver"),
                 ConditionChecker.checkNotNull(connectivityConfig, "connectivityConfig"),
                 ConditionChecker.checkNotNull(genericMqttPublishingClient, "genericMqttPublishingClient"),
@@ -111,14 +107,12 @@ public final class MqttPublisherActor extends BasePublisherActor<MqttPublishTarg
      * receives as MQTT Publish to the broker.
      *
      * @param connection the connection the consumer actor belongs to.
-     * @param clientActorId identifier of the client Actor.
      * @param connectivityStatusResolver resolves occurred exceptions to a connectivity status.
      * @param connectivityConfig the config of Connectivity service with potential overwrites.
      * @param genericMqttPublishingClient generic MQTT client for actual sending MQTT Publish messages to the broker.
      * @throws NullPointerException if any argument is {@code null}.
      */
     public static Props propsProcessing(final Connection connection,
-            final String clientActorId,
             final ConnectivityStatusResolver connectivityStatusResolver,
             final ConnectivityConfig connectivityConfig,
             final GenericMqttPublishingClient genericMqttPublishingClient) {
@@ -126,7 +120,6 @@ public final class MqttPublisherActor extends BasePublisherActor<MqttPublishTarg
         return Props.create(
                 MqttPublisherActor.class,
                 ConditionChecker.checkNotNull(connection, "connection"),
-                ConditionChecker.checkNotNull(clientActorId, "clientActorId"),
                 ConditionChecker.checkNotNull(connectivityStatusResolver, "connectivityStatusResolver"),
                 ConditionChecker.checkNotNull(connectivityConfig, "connectivityConfig"),
                 ConditionChecker.checkNotNull(genericMqttPublishingClient, "genericMqttPublishingClient"),

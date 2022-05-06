@@ -41,7 +41,6 @@ public final class DefaultKafkaPublisherActorFactoryTest {
         assertThat(underTest.props(null,
                 null,
                 false,
-                "clientId",
                 mock(ConnectivityStatusResolver.class),
                 null)).isNotNull();
     }

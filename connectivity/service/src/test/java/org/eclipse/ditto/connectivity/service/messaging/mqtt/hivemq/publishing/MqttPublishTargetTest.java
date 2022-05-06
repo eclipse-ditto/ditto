@@ -19,6 +19,7 @@ import java.util.Optional;
 import org.assertj.core.api.Assertions;
 import org.assertj.core.api.AutoCloseableSoftAssertions;
 import org.eclipse.ditto.connectivity.model.GenericTarget;
+import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.common.InvalidMqttQosCodeException;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;

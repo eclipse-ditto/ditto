@@ -14,14 +14,29 @@ package org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.subscribing
 
 import java.io.Serial;
 
+import javax.annotation.Nullable;
+
 /**
- * This exception is thrown to indicate that subscribing a client via Subscribe message ({@link GenericMqttSubscribe})
- * failed for some reason.
+ * This exception is thrown to indicate that subscribing a client via one or multiple Subscribe messages
+ * ({@link GenericMqttSubscribe}) failed for some reason.
  */
 public sealed class MqttSubscribeException extends RuntimeException
         permits AllSubscriptionsFailedException, SomeSubscriptionsFailedException {
 
     @Serial private static final long serialVersionUID = 1936431587204652088L;
+
+    /**
+     * Constructs a {@code MqttSubscribeException} object for the specified String and Throwable argument.
+     *
+     * @param detailMessage the detail message of the exception.
+     * @param cause the Throwable that caused the constructed exception or {@code null} if the cause cannot be
+     * determined.
+     * @throws NullPointerException if {@code failedSubscriptionStatuses} is {@code null}.
+     * @throws IllegalArgumentException if {@code failedSubscriptionStatuses} is empty.
+     */
+    public MqttSubscribeException(final String detailMessage, @Nullable final Throwable cause) {
+        super(detailMessage, cause);
+    }
 
     /**
      * Constructs a {@code MqttSubscribeException} object.
@@ -40,18 +55,6 @@ public sealed class MqttSubscribeException extends RuntimeException
      */
     MqttSubscribeException(final Throwable cause) {
         super(cause.getMessage(), cause);
-    }
-
-    /**
-     * Constructs a {@code MqttSubscribeException} object for the specified String and Throwable argument.
-     *
-     * @param detailMessage the detail message of the exception.
-     * @param cause the Throwable that caused the constructed exception.
-     * @throws NullPointerException if {@code failedSubscriptionStatuses} is {@code null}.
-     * @throws IllegalArgumentException if {@code failedSubscriptionStatuses} is empty.
-     */
-    MqttSubscribeException(final String detailMessage, final Throwable cause) {
-        super(detailMessage, cause);
     }
 
 }

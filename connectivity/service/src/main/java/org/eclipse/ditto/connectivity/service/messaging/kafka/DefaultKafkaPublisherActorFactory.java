@@ -56,14 +56,12 @@ public final class DefaultKafkaPublisherActorFactory implements KafkaPublisherAc
     public Props props(final Connection connection,
             final SendProducerFactory sendProducerFactory,
             final boolean dryRun,
-            final String clientId,
             final ConnectivityStatusResolver connectivityStatusResolver,
             final ConnectivityConfig connectivityConfig) {
 
         return KafkaPublisherActor.props(connection,
                 sendProducerFactory,
                 dryRun,
-                clientId,
                 connectivityStatusResolver,
                 connectivityConfig);
     }

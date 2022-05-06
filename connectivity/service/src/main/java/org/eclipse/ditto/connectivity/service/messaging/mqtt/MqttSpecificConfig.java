@@ -23,7 +23,10 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.service.config.MqttConfig;
+import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.common.InvalidMqttQosCodeException;
 
+import com.hivemq.client.mqtt.datatypes.MqttQos;
+import com.hivemq.client.mqtt.datatypes.MqttTopic;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigException;
 import com.typesafe.config.ConfigFactory;
@@ -48,7 +51,7 @@ public final class MqttSpecificConfig {
     static final String LAST_WILL_MESSAGE = "lastWillMessage";
 
     private static final boolean DEFAULT_LAST_WILL_RETAIN = false;
-    private static final int DEFAULT_LAST_WILL_QOS = 0;
+    static final MqttQos DEFAULT_LAST_WILL_QOS = MqttQos.AT_MOST_ONCE;
 
     private final Config specificConfig;
 
@@ -127,16 +130,50 @@ public final class MqttSpecificConfig {
 
     /**
      * @return the optional topic which should be used on Last Will message.
+     * @deprecated please use {@link #getMqttLastWillTopic()} instead.
      */
+    // TODO jff delete as soon as unused.
+    @Deprecated
     public Optional<String> getMqttWillTopic() {
         return getStringOptional(LAST_WILL_TOPIC);
     }
 
     /**
-     * @return the Qos which should be used on Last Will message.
+     * Returns the optional MQTT topic where the Last Will message should be sent to.
+     *
+     * @return the optional MQTT topic of the Last Will message.
+     * @throws IllegalArgumentException if the configuration value at {@value #LAST_WILL_TOPIC} is not a valid
+     * MQTT topic.
      */
+    public Optional<MqttTopic> getMqttLastWillTopic() {
+        return getStringOptional(LAST_WILL_TOPIC).map(MqttTopic::of);
+    }
+
+    /**
+     * @return the Qos which should be used on Last Will message.
+     * @deprecated please use {@link #getLastWillQosOrThrow()} instead.
+     */
+    // TODO jff delete as soon as unused.
+    @Deprecated
     public int getMqttWillQos() {
-        return getSafely(() -> specificConfig.getInt(LAST_WILL_QOS), DEFAULT_LAST_WILL_QOS);
+        return getSafely(() -> specificConfig.getInt(LAST_WILL_QOS), DEFAULT_LAST_WILL_QOS.getCode());
+    }
+
+    /**
+     * Returns the QoS of the MQTT Last Will message.
+     *
+     * @return the configured QoS of the MQTT Last Will message or {@link #DEFAULT_LAST_WILL_QOS} if no Last Will QoS is
+     * configured at all.
+     * @throws InvalidMqttQosCodeException if the configured QoS is not a valid {@link MqttQos}.
+     */
+    public MqttQos getLastWillQosOrThrow() {
+        final int mqttQosCode = getSafely(() -> specificConfig.getInt(LAST_WILL_QOS), DEFAULT_LAST_WILL_QOS.getCode());
+        final var mqttQos = MqttQos.fromCode(mqttQosCode);
+        if (null != mqttQos) {
+            return mqttQos;
+        } else {
+            throw new InvalidMqttQosCodeException(mqttQosCode);
+        }
     }
 
     /**
@@ -155,9 +192,33 @@ public final class MqttSpecificConfig {
 
     /**
      * @return the interval between keep alive pings.
+     * @deprecated please use {@link #getKeepAliveIntervalOrDefault()} instead.
      */
+    // TODO jff delete as soon as unused.
+    @Deprecated
     public Optional<Duration> getKeepAliveInterval() {
         return getDurationOptional(KEEP_ALIVE_INTERVAL);
+    }
+
+    /**
+     * Returns the keep-alive interval, i.e. the number of seconds that the broker permits between when a client
+     * finishes sending one MQTT packet and starts to send the next.
+     *
+     * @return a keep-alive interval with the configured seconds or {@link KeepAliveInterval#defaultKeepAlive()} if
+     * configuration key {@value #KEEP_ALIVE_INTERVAL} has no value at all.
+     * @throws IllegalKeepAliveIntervalSecondsException if the configured number of seconds for
+     * {@value #KEEP_ALIVE_INTERVAL} exceeds the allowed range.
+     * @see KeepAliveInterval#defaultKeepAlive()
+     */
+    public KeepAliveInterval getKeepAliveIntervalOrDefault() throws IllegalKeepAliveIntervalSecondsException {
+        final KeepAliveInterval result;
+        final var keepAliveDurationOptional = getDurationOptional(KEEP_ALIVE_INTERVAL);
+        if (keepAliveDurationOptional.isPresent()) {
+            result = KeepAliveInterval.of(keepAliveDurationOptional.get());
+        } else {
+            result = KeepAliveInterval.defaultKeepAlive();
+        }
+        return result;
     }
 
     @Override

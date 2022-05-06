@@ -140,7 +140,7 @@ public final class BaseClientData {
     /**
      * @return the holder for the state of the ssh tunnel (enabled, established, failed, ...)
      */
-    SshTunnelState getSshTunnelState() {
+    public SshTunnelState getSshTunnelState() {
         return sshTunnelState;
     }
 

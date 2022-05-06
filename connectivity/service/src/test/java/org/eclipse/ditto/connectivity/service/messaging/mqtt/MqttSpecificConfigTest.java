@@ -26,6 +26,9 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 
+import com.hivemq.client.mqtt.datatypes.MqttQos;
+import com.hivemq.client.mqtt.datatypes.MqttTopic;
+
 /**
  * Tests {@link MqttSpecificConfig}.
  */
@@ -44,7 +47,8 @@ public final class MqttSpecificConfigTest {
     }
 
     @Test
-    public void parseMqttSpecificConfig() {
+    public void parseMqttSpecificConfig() throws IllegalKeepAliveIntervalSecondsException {
+
         // GIVEN
         final Map<String, String> configuredSpecificConfig = new HashMap<>();
         configuredSpecificConfig.put("reconnectForRedelivery", "false");
@@ -68,16 +72,17 @@ public final class MqttSpecificConfigTest {
         assertThat(specificConfig.getMqttClientId()).contains("consumer-client-id");
         assertThat(specificConfig.getMqttPublisherId()).contains("publisher-client-id");
         assertThat(specificConfig.getReconnectForDeliveryDelay()).isEqualTo(Duration.ofMinutes(4L));
-        assertThat(specificConfig.getKeepAliveInterval()).contains(Duration.ofSeconds(30L));
+        assertThat(specificConfig.getKeepAliveIntervalOrDefault())
+                .isEqualTo(KeepAliveInterval.of(Duration.ofSeconds(30L)));
 
-        assertThat(specificConfig.getMqttWillTopic()).contains("lastWillTopic");
-        assertThat(specificConfig.getMqttWillQos()).isEqualTo(1);
+        assertThat(specificConfig.getMqttLastWillTopic()).contains(MqttTopic.of("lastWillTopic"));
+        assertThat(specificConfig.getLastWillQosOrThrow()).isEqualTo(MqttQos.AT_LEAST_ONCE);
         assertThat(specificConfig.getMqttWillRetain()).isEqualTo(true);
         assertThat(specificConfig.getMqttWillMessage()).contains("last will message");
     }
 
     @Test
-    public void defaultConfig() {
+    public void defaultConfig() throws IllegalKeepAliveIntervalSecondsException {
         when(connection.getSpecificConfig()).thenReturn(Collections.emptyMap());
         final MqttSpecificConfig specificConfig = MqttSpecificConfig.fromConnection(connection, mqttConfig);
 
@@ -86,9 +91,9 @@ public final class MqttSpecificConfigTest {
         assertThat(specificConfig.getMqttClientId()).isEmpty();
         assertThat(specificConfig.getMqttPublisherId()).isEmpty();
         assertThat(specificConfig.getReconnectForDeliveryDelay()).isEqualTo(Duration.ofSeconds(2L));
-        assertThat(specificConfig.getKeepAliveInterval()).isEmpty();
-        assertThat(specificConfig.getMqttWillTopic()).isEmpty();
-        assertThat(specificConfig.getMqttWillQos()).isEqualTo(0);
+        assertThat(specificConfig.getKeepAliveIntervalOrDefault()).isEqualTo(KeepAliveInterval.defaultKeepAlive());
+        assertThat(specificConfig.getMqttLastWillTopic()).isEmpty();
+        assertThat(specificConfig.getLastWillQosOrThrow()).isEqualTo(MqttSpecificConfig.DEFAULT_LAST_WILL_QOS);
         assertThat(specificConfig.getMqttWillMessage()).isEmpty();
         assertThat(specificConfig.getMqttWillRetain()).isFalse();
     }
