@@ -379,9 +379,7 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId> extends 
                 unhandled(message);
             } else {
                 // all commands must be enforced by the enforcer child, so ask all commands to it:
-                enforceCommandAndForwardToPersistenceActorIfAuthorized(sender, command)
-                        .toCompletableFuture()
-                        .join(); // block on the actor's dispatcher in order to guarantee in-order processing and blocking the inbox
+                enforceCommandAndForwardToPersistenceActorIfAuthorized(sender, command);
             }
         } else if (null != persistenceActorChild) {
             if (persistenceActorChild.equals(sender)) {

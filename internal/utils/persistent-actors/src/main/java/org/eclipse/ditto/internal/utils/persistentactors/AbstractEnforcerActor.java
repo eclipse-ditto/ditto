@@ -276,15 +276,20 @@ public abstract class AbstractEnforcerActor<I extends EntityId, C extends Comman
             return;
         }
 
-        doEnforceCommand(command, getSender())
+        final CompletionStage<Void> enforcementCompletion = doEnforceCommand(command, getSender())
                 .thenAccept(successfullyEnforced -> {
                     if (shouldReloadAfterEnforcement(command, successfullyEnforced)) {
                         // trigger reloading the policy
                         performPolicyEnforcerReload();
                     }
-                })
-                .toCompletableFuture()
-                .join(); // block on the actor's dispatcher in order to guarantee in-order processing and blocking the inbox
+                });
+
+        if (null == policyEnforcer) {
+            // for initializing the enforcer actor, e.g. accepting "creation" commands,
+            // block on the actor's dispatcher in order to postpone processing of directly followed commands
+            // so that they can use the created policyEnforcer
+            enforcementCompletion.toCompletableFuture().join();
+        }
     }
 
     private boolean shouldReloadAfterEnforcement(final C command, final boolean successfullyEnforced) {
