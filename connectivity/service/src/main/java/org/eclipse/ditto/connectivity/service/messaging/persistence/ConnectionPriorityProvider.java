@@ -15,7 +15,7 @@ package org.eclipse.ditto.connectivity.service.messaging.persistence;
 import java.util.concurrent.CompletionStage;
 
 import org.eclipse.ditto.connectivity.model.ConnectionId;
-
+//todo dgs: Extension
 /**
  * Provides the priority of a given connection.
  */

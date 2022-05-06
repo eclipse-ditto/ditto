@@ -98,6 +98,7 @@ import org.eclipse.ditto.connectivity.service.messaging.persistence.strategies.e
 import org.eclipse.ditto.connectivity.service.messaging.rabbitmq.RabbitMQValidator;
 import org.eclipse.ditto.connectivity.service.messaging.validation.CompoundConnectivityCommandInterceptor;
 import org.eclipse.ditto.connectivity.service.messaging.validation.ConnectionValidator;
+import org.eclipse.ditto.connectivity.service.messaging.validation.CustomConnectivityCommandInterceptorProvider;
 import org.eclipse.ditto.connectivity.service.messaging.validation.DittoConnectivityCommandValidator;
 import org.eclipse.ditto.connectivity.service.util.ConnectivityMdcEntryKey;
 import org.eclipse.ditto.internal.utils.akka.PingCommand;
@@ -142,7 +143,7 @@ import akka.routing.Pool;
  */
 public final class ConnectionPersistenceActor
         extends AbstractPersistenceActor<ConnectivityCommand<?>, Connection, ConnectionId, ConnectionState,
-                ConnectivityEvent<?>> {
+        ConnectivityEvent<?>> {
 
     /**
      * Prefix to prepend to the connection ID to construct the persistence ID.
@@ -192,21 +193,19 @@ public final class ConnectionPersistenceActor
     ConnectionPersistenceActor(final ConnectionId connectionId,
             final ActorRef proxyActor,
             final ActorRef pubSubMediator,
-            final ClientActorPropsFactory propsFactory,
-            @Nullable final ConnectivityCommandInterceptor customCommandValidator,
             final ConnectionPriorityProviderFactory connectionPriorityProviderFactory,
             final Trilean allClientActorsOnOneNode,
             final Config connectivityConfigOverwrites) {
 
         super(connectionId, new ConnectionMongoSnapshotAdapter());
 
-        this.cluster = Cluster.get(getContext().getSystem());
+        cluster = Cluster.get(getContext().getSystem());
         this.proxyActor = proxyActor;
-        this.propsFactory = propsFactory;
+        this.propsFactory = ClientActorPropsFactory.get(getContext().getSystem());
         this.pubSubMediator = pubSubMediator;
         this.connectivityConfigOverwrites = connectivityConfigOverwrites;
         connectivityConfig = getConnectivityConfigWithOverwrites(connectivityConfigOverwrites);
-        this.commandValidator = getCommandValidator(customCommandValidator);
+        commandValidator = getCommandValidator();
         final ConnectionConfig connectionConfig = this.connectivityConfig.getConnectionConfig();
         this.allClientActorsOnOneNode = allClientActorsOnOneNode.orElse(connectionConfig.areAllClientActorsOnOneNode());
         connectionPriorityProvider = connectionPriorityProviderFactory.newProvider(self(), log);
@@ -255,8 +254,6 @@ public final class ConnectionPersistenceActor
      *
      * @param connectionId the connection ID.
      * @param proxyActor the actor used to send signals into the ditto cluster..
-     * @param propsFactory factory of props of client actors for various protocols.
-     * @param commandValidator validator for commands that should throw an exception if a command is invalid.
      * @param connectionPriorityProviderFactory Creates a new connection priority provider.
      * @param connectivityConfigOverwrites the overwrites for the connectivity config for the given connection.
      * @return the Akka configuration Props object.
@@ -264,13 +261,11 @@ public final class ConnectionPersistenceActor
     public static Props props(final ConnectionId connectionId,
             final ActorRef proxyActor,
             final ActorRef pubSubMediator,
-            final ClientActorPropsFactory propsFactory,
-            @Nullable final ConnectivityCommandInterceptor commandValidator,
             final ConnectionPriorityProviderFactory connectionPriorityProviderFactory,
             final Config connectivityConfigOverwrites
     ) {
-        return Props.create(ConnectionPersistenceActor.class, connectionId, proxyActor, pubSubMediator, propsFactory,
-                commandValidator, connectionPriorityProviderFactory, Trilean.UNKNOWN, connectivityConfigOverwrites);
+        return Props.create(ConnectionPersistenceActor.class, connectionId, proxyActor, pubSubMediator,
+                connectionPriorityProviderFactory, Trilean.UNKNOWN, connectivityConfigOverwrites);
     }
 
     /**
@@ -1124,8 +1119,8 @@ public final class ConnectionPersistenceActor
         openConnection(stagedCommand, false);
     }
 
-    private ConnectivityCommandInterceptor getCommandValidator(
-            @Nullable final ConnectivityCommandInterceptor customCommandValidator) {
+    private ConnectivityCommandInterceptor getCommandValidator() {
+
         final var actorSystem = getContext().getSystem();
         final MqttConfig mqttConfig = connectivityConfig.getConnectionConfig().getMqttConfig();
         final ConnectionValidator connectionValidator =
@@ -1142,11 +1137,9 @@ public final class ConnectionPersistenceActor
                 new DittoConnectivityCommandValidator(propsFactory, proxyActor, getSelf(), connectionValidator,
                         actorSystem);
 
-        if (customCommandValidator != null) {
-            return new CompoundConnectivityCommandInterceptor(dittoCommandValidator, customCommandValidator);
-        } else {
-            return dittoCommandValidator;
-        }
+        final var customCommandValidator =
+                CustomConnectivityCommandInterceptorProvider.get(actorSystem).getCommandInterceptor();
+        return new CompoundConnectivityCommandInterceptor(dittoCommandValidator, customCommandValidator);
     }
 
     private static DittoRuntimeException toDittoRuntimeException(final Throwable error, final ConnectionId id,

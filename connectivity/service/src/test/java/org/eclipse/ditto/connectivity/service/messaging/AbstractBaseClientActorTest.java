@@ -10,7 +10,6 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-
 package org.eclipse.ditto.connectivity.service.messaging;
 
 import static java.util.Collections.singletonList;
@@ -164,7 +163,7 @@ public abstract class AbstractBaseClientActorTest {
                     .failoverEnabled(false)
                     .build();
             final ActorRef underTest = watch(actorSystem.actorOf(
-                    DefaultClientActorPropsFactory.getInstance()
+                    ClientActorPropsFactory.get(actorSystem)
                             .getActorPropsForType(insecureConnection, getRef(), getRef(), actorSystem,
                                     DittoHeaders.empty(), ConfigFactory.empty())
             ));

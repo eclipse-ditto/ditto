@@ -14,10 +14,8 @@ package org.eclipse.ditto.connectivity.service.messaging.persistence;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.data.MapEntry.entry;
-import static org.eclipse.ditto.connectivity.service.messaging.MockClientActor.mockClientActorPropsFactory;
 import static org.eclipse.ditto.connectivity.service.messaging.TestConstants.INSTANT;
 
-import java.text.MessageFormat;
 import java.time.Instant;
 import java.util.Collections;
 import java.util.List;
@@ -28,13 +26,15 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 
+import javax.annotation.Nullable;
+
 import org.awaitility.Awaitility;
 import org.eclipse.ditto.base.api.persistence.cleanup.CleanupPersistence;
 import org.eclipse.ditto.base.api.persistence.cleanup.CleanupPersistenceResponse;
 import org.eclipse.ditto.base.model.correlationid.TestNameCorrelationId;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
+import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.connectivity.api.BaseClientState;
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.ConnectionConfigurationInvalidException;
@@ -74,32 +74,29 @@ import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConne
 import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConnectionStatus;
 import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConnectionStatusResponse;
 import org.eclipse.ditto.connectivity.model.signals.events.ConnectionDeleted;
-import org.eclipse.ditto.connectivity.service.messaging.ClientActorPropsFactory;
-import org.eclipse.ditto.connectivity.service.messaging.MockClientActor;
+import org.eclipse.ditto.connectivity.service.messaging.MockClientActorPropsFactory;
 import org.eclipse.ditto.connectivity.service.messaging.TestConstants;
 import org.eclipse.ditto.connectivity.service.messaging.WithMockServers;
 import org.eclipse.ditto.internal.utils.akka.ActorSystemResource;
 import org.eclipse.ditto.internal.utils.akka.controlflow.WithSender;
+import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.internal.utils.test.Retry;
 import org.eclipse.ditto.thingsearch.model.signals.commands.subscription.CreateSubscription;
-import org.hamcrest.CoreMatchers;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 
-import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 import com.typesafe.config.ConfigValueFactory;
 
-import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
-import akka.actor.ActorSystem;
 import akka.actor.Props;
 import akka.actor.Status;
 import akka.cluster.Cluster;
 import akka.cluster.pubsub.DistributedPubSub;
 import akka.cluster.pubsub.DistributedPubSubMediator;
-import akka.japi.pf.ReceiveBuilder;
+import akka.serialization.Serialization;
+import akka.testkit.TestProbe;
 import scala.PartialFunction;
 import scala.concurrent.duration.FiniteDuration;
 
@@ -109,18 +106,59 @@ import scala.concurrent.duration.FiniteDuration;
 public final class ConnectionPersistenceActorTest extends WithMockServers {
 
     @Rule
-    public final ActorSystemResource actorSystemResource1 = ActorSystemResource.newInstance(TestConstants.CONFIG);
+    public final ActorSystemResource actorSystemResource1 = ActorSystemResource.newInstance(
+            ConfigFactory.parseMap(Map.of("ditto.connectivity.connection.client-actor-props-factory",
+                            "org.eclipse.ditto.connectivity.service.messaging.MockClientActorPropsFactory"))
+                    .withFallback(TestConstants.CONFIG));
 
     @Rule
-    public final ActorSystemResource actorSystemResource2 = ActorSystemResource.newInstance(TestConstants.CONFIG);
+    public final ActorSystemResource actorSystemResource2 = ActorSystemResource.newInstance(
+            ConfigFactory.parseMap(Map.of("ditto.connectivity.connection.client-actor-props-factory",
+                            "org.eclipse.ditto.connectivity.service.messaging.MockClientActorPropsFactory"))
+                    .withFallback(TestConstants.CONFIG));
 
     @Rule
     public final ActorSystemResource actorSystemResourceWithBlocklist = ActorSystemResource.newInstance(
-            TestConstants.CONFIG.withValue(
-                    "ditto.connectivity.connection.blocked-hostnames",
-                    ConfigValueFactory.fromAnyRef("127.0.0.1")
-            )
+            ConfigFactory.parseMap(Map.of("ditto.connectivity.connection.client-actor-props-factory",
+                            "org.eclipse.ditto.connectivity.service.messaging.MockClientActorPropsFactory",
+                            "ditto.connectivity.connection.blocked-hostnames",
+                            ConfigValueFactory.fromAnyRef("127.0.0.1")))
+                    .withFallback(TestConstants.CONFIG)
     );
+
+    @Rule
+    public final ActorSystemResource exceptionalClientProviderSystemResource = ActorSystemResource.newInstance(
+            ConfigFactory.parseMap(Map.of("ditto.connectivity.connection.client-actor-props-factory",
+                            "org.eclipse.ditto.connectivity.service.messaging.ExceptionClientActorPropsFactory"))
+                    .withFallback(TestConstants.CONFIG));
+
+    @Rule
+    public final ActorSystemResource exceptionalCommandValidatorSystemResource = ActorSystemResource.newInstance(
+            ConfigFactory.parseMap(Map.of("ditto.connectivity.connection.client-actor-props-factory",
+                            "org.eclipse.ditto.connectivity.service.messaging.MockClientActorPropsFactory",
+                            "ditto.connectivity.connection.custom-command-interceptor-provider",
+                            "org.eclipse.ditto.connectivity.service.messaging.ExceptionalCommandValidator"))
+                    .withFallback(TestConstants.CONFIG));
+
+    @Rule
+    public final ActorSystemResource failingClientProviderSystemResource = ActorSystemResource.newInstance(
+            ConfigFactory.parseMap(Map.of("ditto.connectivity.connection.client-actor-props-factory",
+                            "org.eclipse.ditto.connectivity.service.messaging.FailingActorProvider", "failingRetries",
+                            TestConstants.CONNECTION_CONFIG.getClientActorRestartsBeforeEscalation()))
+                    .withFallback(TestConstants.CONFIG));
+
+    @Rule
+    public final ActorSystemResource tooManyFailingClientProviderSystemResource = ActorSystemResource.newInstance(
+            ConfigFactory.parseMap(Map.of("ditto.connectivity.connection.client-actor-props-factory",
+                            "org.eclipse.ditto.connectivity.service.messaging.FailingActorProvider", "failingRetries",
+                            1 + TestConstants.CONNECTION_CONFIG.getClientActorRestartsBeforeEscalation()))
+                    .withFallback(TestConstants.CONFIG));
+
+    @Rule
+    public final ActorSystemResource searchForwardingSystemResource = ActorSystemResource.newInstance(
+            ConfigFactory.parseMap(Map.of("ditto.connectivity.connection.client-actor-props-factory",
+                            "org.eclipse.ditto.connectivity.service.messaging.SearchForwardingClientActorPropsFactory"))
+                    .withFallback(TestConstants.CONFIG));
 
     @Rule
     public final TestNameCorrelationId testNameCorrelationId = TestNameCorrelationId.newInstance();
@@ -247,7 +285,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
                 proxyActor);
         final var testProbe = actorSystemResource1.newTestProbe();
 
-        underTest.tell(testConnection, testProbe.ref());
+        sendClientActorStartingCommand(underTest, testProbe, testConnection, actorSystemResource1, null, null);
 
         testProbe.expectMsg(TestConnectionResponse.success(connectionId, "mock", testConnection.getDittoHeaders()));
     }
@@ -260,7 +298,8 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
                 pubSubMediator,
                 proxyActor);
 
-        underTest.tell(testConnectionCausingFailure, testProbe.ref());
+        sendClientActorStartingCommand(underTest, testProbe, testConnectionCausingFailure, actorSystemResource1, null,
+                null);
 
         testProbe.expectMsg(ConnectionIdInvalidException.newBuilder("invalid")
                 .dittoHeaders(testConnectionCausingFailure.getDittoHeaders())
@@ -275,7 +314,8 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
                 proxyActor);
         final var testProbe = actorSystemResource1.newTestProbe();
 
-        underTest.tell(testConnectionCausingException, testProbe.ref());
+        sendClientActorStartingCommand(underTest, testProbe, testConnectionCausingException, actorSystemResource1, null,
+                null);
 
         testProbe.expectMsg(ConnectionIdInvalidException.newBuilder("invalid")
                 .dittoHeaders(testConnectionCausingException.getDittoHeaders())
@@ -303,13 +343,15 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
         final var underTest = TestConstants.createConnectionSupervisorActor(connectionId,
                 actorSystemResource1.getActorSystem(),
                 proxyActor,
-                mockClientActorPropsFactory(clientActorTestProbe.ref()),
                 pubSubMediator);
+
         final var testProbe = actorSystemResource1.newTestProbe();
         testProbe.watch(underTest);
 
         // create connection
-        underTest.tell(createConnection, testProbe.ref());
+        sendClientActorStartingCommand(underTest, testProbe, createConnection, actorSystemResource1,
+                clientActorTestProbe.ref(),
+                null);
         clientActorTestProbe.expectMsg(enableConnectionLogs);
         clientActorTestProbe.expectMsg(openConnection);
         testProbe.expectMsg(createConnectionResponse);
@@ -326,6 +368,42 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
         testProbe.expectTerminated(underTest, FiniteDuration.apply(3, TimeUnit.SECONDS));
     }
 
+    private void sendClientActorStartingCommand(final ActorRef underTest,
+            final TestProbe testProbe,
+            @Nullable final Command<?> command,
+            final ActorSystemResource actorSystemResource,
+            @Nullable final ActorRef delegate,
+            @Nullable final ActorRef gossip) {
+
+        final var pubSubMediator = DistributedPubSub.get(actorSystemResource.getActorSystem()).mediator();
+        final var testProbe2 = actorSystemResource.newTestProbe();
+        final var subscriptionMessage =
+                DistPubSubAccess.subscribe("mockClientActor:subscribed", testProbe2.ref());
+        pubSubMediator.tell(subscriptionMessage, testProbe2.ref());
+        testProbe2.expectMsgClass(DistributedPubSubMediator.SubscribeAck.class);
+        if (null != command) {
+            underTest.tell(command, testProbe.ref());
+        }
+        testProbe2.expectMsgClass(FiniteDuration.apply(5, TimeUnit.SECONDS),
+                MockClientActorPropsFactory.MockClientActor.Subscribed.class);
+        publishChange(new MockClientActorPropsFactory.MockClientActor.ChangeActorRef(
+                delegate != null ? Serialization.serializedActorPath(delegate) : null,
+                gossip != null ? Serialization.serializedActorPath(gossip) : null), testProbe2.ref(), pubSubMediator);
+        testProbe2.fishForMessage(scala.concurrent.duration.Duration.apply(3, TimeUnit.SECONDS),
+                "ActorRefChanged",
+                PartialFunction.fromFunction(
+                        MockClientActorPropsFactory.MockClientActor.ActorRefChanged.class::isInstance));
+    }
+
+
+    private void publishChange(final MockClientActorPropsFactory.MockClientActor.ChangeActorRef changeActorRef,
+            final ActorRef testProbe,
+            final ActorRef pubSubMediator) {
+
+        final var publish = DistPubSubAccess.publish("mockClientActor:change", changeActorRef);
+        pubSubMediator.tell(publish, testProbe);
+    }
+
     @Test
     public void deleteConnectionUpdatesSubscriptionsAndClosesConnection() {
         final var clientActorTestProbe = actorSystemResource1.newTestProbe();
@@ -333,13 +411,14 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
         final var underTest = TestConstants.createConnectionSupervisorActor(connectionId,
                 actorSystemResource1.getActorSystem(),
                 proxyActor,
-                mockClientActorPropsFactory(clientActorTestProbe.ref()),
                 pubSubTestProbe.ref());
         final var testProbe = actorSystemResource1.newTestProbe();
         testProbe.watch(underTest);
 
         // create connection
-        underTest.tell(createConnection, testProbe.ref());
+        sendClientActorStartingCommand(underTest, testProbe, createConnection, actorSystemResource1,
+                clientActorTestProbe.ref(),
+                null);
         clientActorTestProbe.expectMsg(enableConnectionLogs);
         clientActorTestProbe.expectMsg(openConnection);
         testProbe.expectMsg(createConnectionResponse);
@@ -360,9 +439,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
         final var underTest = TestConstants.createConnectionSupervisorActor(connectionId,
                 actorSystemResource1.getActorSystem(),
                 pubSubMediator,
-                proxyActor,
-                (a, b, c, d, dittoHeaders, overwrites) -> MockClientActor.props(clientActorProbe.ref(),
-                        gossipProbe.ref()));
+                proxyActor);
         final var testProbe = actorSystemResource1.newTestProbe();
         testProbe.watch(underTest);
 
@@ -371,11 +448,12 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
         testProbe.expectMsgClass(CreateConnectionResponse.class);
 
         // open connection: only local client actor is asked for a response.
-        underTest.tell(openConnection, testProbe.ref());
-
-        // perform gossip protocol on client actor startup
-        underTest.tell(gossipProbe.expectMsgClass(ActorRef.class), ActorRef.noSender());
-        underTest.tell(gossipProbe.expectMsgClass(ActorRef.class), ActorRef.noSender());
+        sendClientActorStartingCommand(underTest, testProbe, openConnection, actorSystemResource1,
+                clientActorProbe.ref(), gossipProbe.ref());
+        underTest.tell(gossipProbe.expectMsgClass(FiniteDuration.apply(5, TimeUnit.SECONDS), ActorRef.class),
+                ActorRef.noSender());
+        //sendClientActorStartingCommand(underTest, testProbe, null, actorSystemResource2, gossipProbe.ref(),
+        //        testProbe.ref());
 
         // one client actor receives the command
         clientActorProbe.expectMsg(enableConnectionLogs);
@@ -399,7 +477,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
         // delete connection
         underTest.tell(deleteConnection, testProbe.ref());
         testProbe.expectMsg(deleteConnectionResponse);
-        testProbe.expectTerminated(underTest, FiniteDuration.apply(3, TimeUnit.SECONDS));
+        testProbe.expectTerminated(underTest, FiniteDuration.apply(5, TimeUnit.SECONDS));
     }
 
     private void startSecondActorSystemAndJoinCluster() throws Exception {
@@ -419,13 +497,13 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
         final var underTest = TestConstants.createConnectionSupervisorActor(connectionId,
                 actorSystemResource1.getActorSystem(),
                 pubSubMediator,
-                proxyActor,
-                mockClientActorPropsFactory(clientActorMock.ref()));
+                proxyActor);
         final var testProbe = actorSystemResource1.newTestProbe();
         testProbe.watch(underTest);
 
         // create connection
-        underTest.tell(createConnection, testProbe.ref());
+        sendClientActorStartingCommand(underTest, testProbe, createConnection, actorSystemResource1,
+                clientActorMock.ref(), null);
         clientActorMock.expectMsg(enableConnectionLogs);
         clientActorMock.expectMsg(openConnection);
         testProbe.expectMsg(createConnectionResponse);
@@ -436,7 +514,8 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
         testProbe.expectMsg(deleteConnectionResponse);
 
         // create connection again (while ConnectionActor is in deleted state)
-        underTest.tell(createConnection, testProbe.ref());
+        sendClientActorStartingCommand(underTest, testProbe, createConnection, actorSystemResource1,
+                clientActorMock.ref(), null);
         testProbe.expectMsg(createConnectionResponse);
         clientActorMock.expectMsg(enableConnectionLogs);
         clientActorMock.expectMsg(openConnection);
@@ -448,13 +527,13 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
         final var underTest = TestConstants.createConnectionSupervisorActor(connectionId,
                 actorSystemResource1.getActorSystem(),
                 pubSubMediator,
-                proxyActor,
-                mockClientActorPropsFactory(clientActorMock.ref()));
+                proxyActor);
         final var testProbe = actorSystemResource1.newTestProbe();
         testProbe.watch(underTest);
 
         // create connection
-        underTest.tell(createConnection, testProbe.ref());
+        sendClientActorStartingCommand(underTest, testProbe, createConnection, actorSystemResource1,
+                clientActorMock.ref(), null);
         clientActorMock.expectMsg(enableConnectionLogs);
         clientActorMock.expectMsg(openConnection);
         testProbe.expectMsg(createConnectionResponse);
@@ -474,8 +553,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
         final var underTest = TestConstants.createConnectionSupervisorActor(connectionId,
                 actorSystemResource1.getActorSystem(),
                 pubSubMediator,
-                proxyActor,
-                mockClientActorPropsFactory(clientActorProbe.ref()));
+                proxyActor);
         final var testProbe = actorSystemResource1.newTestProbe();
         testProbe.watch(underTest);
 
@@ -495,6 +573,9 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
         );
 
         sendCommandWithEnabledBlocklist(
+
+                false,
+
                 entry(createClosedConnectionWithUnknownHost, ConnectionPersistenceActorTest::assertHostInvalid));
     }
 
@@ -506,6 +587,9 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
         );
 
         sendCommandWithEnabledBlocklist(
+
+                false,
+
                 entry(testConnectionWithUnknownHost, ConnectionPersistenceActorTest::assertHostInvalid));
     }
 
@@ -528,6 +612,8 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
 
         sendCommandWithEnabledBlocklist(
 
+                false,
+
                 // create is successful
                 entry(createClosedConnectionWithValidHost, ConnectionPersistenceActorTest::assertConnectionCreated),
 
@@ -543,7 +629,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
                 dittoHeadersWithCorrelationId
         );
 
-        sendCommandWithEnabledBlocklist(
+        sendCommandWithEnabledBlocklist(false,
                 entry(createClosedConnectionWithBlockedHost, ConnectionPersistenceActorTest::assertHostBlocked));
     }
 
@@ -553,7 +639,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
                 ConnectivityModelFactory.newConnectionBuilder(closedConnection).uri("amqp://localhost:1234").build(),
                 dittoHeadersWithCorrelationId);
 
-        sendCommandWithEnabledBlocklist(
+        sendCommandWithEnabledBlocklist(false,
                 entry(testConnectionWithUnknownHost, ConnectionPersistenceActorTest::assertHostBlocked));
     }
 
@@ -576,6 +662,8 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
 
         sendCommandWithEnabledBlocklist(
 
+                false,
+
                 // create is successful
                 entry(createClosedConnectionWithValidHost, ConnectionPersistenceActorTest::assertConnectionCreated),
 
@@ -585,20 +673,27 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
     }
 
     @SafeVarargs
-    private void sendCommandWithEnabledBlocklist(final Map.Entry<ConnectivityCommand<?>, Consumer<Object>>... commands) {
+    private void sendCommandWithEnabledBlocklist(
+            final boolean firstCommandStartsClientActor,
+            final Map.Entry<ConnectivityCommand<?>, Consumer<Object>>... commands) {
+
         final var pubSubMediator = DistributedPubSub.get(actorSystemResourceWithBlocklist.getActorSystem()).mediator();
 
         final var clientActorProbe = actorSystemResourceWithBlocklist.newTestProbe();
         final var underTest = TestConstants.createConnectionSupervisorActor(connectionId,
                 actorSystemResourceWithBlocklist.getActorSystem(),
                 pubSubMediator,
-                proxyActor,
-                mockClientActorPropsFactory(clientActorProbe.ref()));
+                proxyActor);
         final var testProbe = actorSystemResourceWithBlocklist.newTestProbe();
         testProbe.watch(underTest);
 
         for (final var command : commands) {
-            underTest.tell(command.getKey(), testProbe.ref());
+            if (firstCommandStartsClientActor && command.equals(commands[0])) {
+                sendClientActorStartingCommand(underTest, testProbe, command.getKey(), actorSystemResourceWithBlocklist,
+                        clientActorProbe.ref(), null);
+            } else {
+                underTest.tell(command.getKey(), testProbe.ref());
+            }
             final var commandValue = command.getValue();
 
             commandValue.accept(testProbe.expectMsgClass(FiniteDuration.apply(30, TimeUnit.SECONDS), Object.class));
@@ -629,13 +724,13 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
         final var underTest = TestConstants.createConnectionSupervisorActor(connectionId,
                 actorSystemResource1.getActorSystem(),
                 pubSubMediator,
-                proxyActor,
-                mockClientActorPropsFactory(clientActorProbe.ref()));
+                proxyActor);
         final var testProbe = actorSystemResource1.newTestProbe();
         testProbe.watch(underTest);
 
         // create connection
-        underTest.tell(createConnection, testProbe.ref());
+        sendClientActorStartingCommand(underTest, testProbe, createConnection, actorSystemResource1,
+                clientActorProbe.ref(), null);
         clientActorProbe.expectMsg(enableConnectionLogs);
         clientActorProbe.expectMsg(openConnection);
         testProbe.expectMsg(createConnectionResponse);
@@ -659,8 +754,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
         final var underTest = TestConstants.createConnectionSupervisorActor(connectionId,
                 actorSystemResource1.getActorSystem(),
                 pubSubMediator,
-                proxyActor,
-                mockClientActorPropsFactory(clientActorProbe.ref()));
+                proxyActor);
         final var testProbe = actorSystemResource1.newTestProbe();
 
         // create connection
@@ -689,23 +783,23 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
         final var underTest = TestConstants.createConnectionSupervisorActor(connectionId,
                 actorSystemResource1.getActorSystem(),
                 proxyActor,
-                (connection, proxyActor, connectionActor, actorSystem, dittoHeaders, overwrites) -> {
-                    latestConnection.set(connection);
-                    return MockClientActor.props(mockClientProbe.ref());
-                },
                 pubSubMediator);
         final var testProbe = actorSystemResource1.newTestProbe();
 
         // create connection
-        underTest.tell(createConnection, commandSender.ref());
+        sendClientActorStartingCommand(underTest, commandSender, createConnection, actorSystemResource1,
+                mockClientProbe.ref(),
+                null);
         mockClientProbe.expectMsg(FiniteDuration.create(5, TimeUnit.SECONDS), enableConnectionLogs);
         mockClientProbe.expectMsg(FiniteDuration.create(5, TimeUnit.SECONDS), openConnection);
         commandSender.expectMsg(createConnectionResponse);
 
         final var clientActor = testProbe.watch(mockClientProbe.sender());
 
-        // modify connection
-        underTest.tell(modifyConnection, commandSender.ref());
+        // modify connection | Implicitly validates the restart by waiting for pubsub subscribe from client actor.
+        sendClientActorStartingCommand(underTest, commandSender, modifyConnection, actorSystemResource1,
+                mockClientProbe.ref(),
+                null);
         // modify triggers a CloseConnection
         mockClientProbe.expectMsg(CloseConnection.of(connectionId, dittoHeadersWithCorrelationId));
 
@@ -719,24 +813,21 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
 
         // eventually the response is sent
         commandSender.expectMsg(modifyConnectionResponse);
-
-        // modified connection contains an additional target for messages
-        Awaitility.await().untilAtomic(latestConnection, CoreMatchers.is(modifyConnection.getConnection()));
     }
 
     @Test
-    public void recoverOpenConnection() {
+    public void recoverOpenConnection() throws InterruptedException {
         final var mockClientProbe = actorSystemResource1.newTestProbe();
         var underTest = TestConstants.createConnectionSupervisorActor(connectionId,
                 actorSystemResource1.getActorSystem(),
                 pubSubMediator,
-                proxyActor,
-                mockClientActorPropsFactory(mockClientProbe.ref()));
+                proxyActor);
         final var testProbe = actorSystemResource1.newTestProbe();
         testProbe.watch(underTest);
 
         // create connection
-        underTest.tell(createConnection, testProbe.ref());
+        sendClientActorStartingCommand(underTest, testProbe, createConnection, actorSystemResource1,
+                mockClientProbe.ref(), null);
         testProbe.expectMsg(createConnectionResponse);
 
         // wait for open connection of initial creation
@@ -752,13 +843,19 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
         underTest = Retry.untilSuccess(() -> TestConstants.createConnectionSupervisorActor(connectionId,
                 actorSystemResource1.getActorSystem(),
                 pubSubMediator,
-                proxyActor,
-                mockClientActorPropsFactory(recoveredMockClientProbe.ref())));
+                proxyActor));
 
-        // connection is opened after recovery -> recovered client actor receives OpenConnection command
-        recoveredMockClientProbe.expectMsg(openConnection.setDittoHeaders(DittoHeaders.empty()));
+        Awaitility.await().untilAsserted(() -> {
+                    publishChange(new MockClientActorPropsFactory.MockClientActor.ChangeActorRef(
+                            Serialization.serializedActorPath(recoveredMockClientProbe.ref()), null), testProbe.ref(), pubSubMediator);
+                    testProbe.fishForMessage(scala.concurrent.duration.Duration.apply(3, TimeUnit.SECONDS),
+                            "ActorRefChanged",
+                            PartialFunction.fromFunction(
+                                    MockClientActorPropsFactory.MockClientActor.ActorRefChanged.class::isInstance));
+                });
+        recoveredMockClientProbe.expectMsg(FiniteDuration.apply(5, TimeUnit.SECONDS),
+                openConnection.setDittoHeaders(DittoHeaders.empty()));
 
-        // poll connection status until status is OPEN
         final var recoveredActor = underTest;
         Awaitility.await().untilAsserted(() -> {
             recoveredActor.tell(retrieveConnectionStatus, testProbe.ref());
@@ -775,11 +872,11 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
         testProbe.watch(underTest);
 
         // create connection
-        underTest.tell(createConnection, testProbe.ref());
+        sendClientActorStartingCommand(underTest, testProbe, createConnection, actorSystemResource1, null, null);
         testProbe.expectMsg(createConnectionResponse);
 
         // modify connection
-        underTest.tell(modifyConnection, testProbe.ref());
+        sendClientActorStartingCommand(underTest, testProbe, modifyConnection, actorSystemResource1, null, null);
         testProbe.expectMsg(modifyConnectionResponse);
 
         // stop actor
@@ -807,7 +904,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
         testProbe.watch(underTest);
 
         // create connection
-        underTest.tell(createConnection, testProbe.ref());
+        sendClientActorStartingCommand(underTest, testProbe, createConnection, actorSystemResource1, null, null);
         testProbe.expectMsg(createConnectionResponse);
 
         // close connection
@@ -852,7 +949,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
         testProbe.watch(underTest);
 
         // create connection
-        underTest.tell(createConnection, testProbe.ref());
+        sendClientActorStartingCommand(underTest, testProbe, createConnection, actorSystemResource1, null, null);
         testProbe.expectMsg(createConnectionResponse);
 
         // delete connection
@@ -873,19 +970,16 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
 
     @Test
     public void exceptionDuringClientActorPropsCreation() {
+
         final var connectionActorProps = ConnectionPersistenceActor.props(TestConstants.createRandomConnectionId(),
                 proxyActor,
                 pubSubMediator,
-                (connection, proxyActor, connectionActor, actorSystem, dittoHeaders, overwrites) -> {
-                    throw ConnectionConfigurationInvalidException.newBuilder("validation failed...").build();
-                },
-                null,
                 UsageBasedPriorityProvider::getInstance,
                 ConfigFactory.empty());
 
         // create another actor because this it is stopped and we want to test if the child is terminated
-        final var parent = actorSystemResource1.newTestKit();
-        final var testProbe = actorSystemResource1.newTestProbe();
+        final var parent = exceptionalClientProviderSystemResource.newTestKit();
+        final var testProbe = exceptionalClientProviderSystemResource.newTestProbe();
         final var connectionActorRef = testProbe.watch(parent.childActorOf(connectionActorProps));
 
         // create connection
@@ -903,19 +997,12 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
         final var connectionActorProps = ConnectionPersistenceActor.props(TestConstants.createRandomConnectionId(),
                 proxyActor,
                 pubSubMediator,
-                mockClientActorPropsFactory,
-                (command, connection) -> {
-                    throw ConnectionUnavailableException.newBuilder(connectionId)
-                            .dittoHeaders(command.getDittoHeaders())
-                            .message("not valid")
-                            .build();
-                },
                 UsageBasedPriorityProvider::getInstance,
                 ConfigFactory.empty());
 
         // create another actor because we want to test if the child is terminated
-        final var parent = actorSystemResource1.newTestKit();
-        final var testProbe = actorSystemResource1.newTestProbe();
+        final var parent = exceptionalCommandValidatorSystemResource.newTestKit();
+        final var testProbe = exceptionalCommandValidatorSystemResource.newTestProbe();
         final var connectionActorRef = testProbe.watch(parent.childActorOf(connectionActorProps));
 
         // create connection
@@ -934,13 +1021,13 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
         final var underTest = TestConstants.createConnectionSupervisorActor(connectionId,
                 actorSystemResource1.getActorSystem(),
                 pubSubMediator,
-                proxyActor,
-                mockClientActorPropsFactory(clientActorProbe.ref()));
+                proxyActor);
         final var testProbe = actorSystemResource1.newTestProbe();
         testProbe.watch(underTest);
 
         // create connection
-        underTest.tell(createConnection, testProbe.ref());
+        sendClientActorStartingCommand(underTest, testProbe, createConnection, actorSystemResource1,
+                clientActorProbe.ref(), null);
         clientActorProbe.expectMsg(enableConnectionLogs);
         clientActorProbe.expectMsg(openConnection);
         testProbe.expectMsg(createConnectionResponse);
@@ -958,13 +1045,12 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
         final var underTest = TestConstants.createConnectionSupervisorActor(connectionId,
                 actorSystemResource1.getActorSystem(),
                 pubSubMediator,
-                proxyActor,
-                mockClientActorPropsFactory(probe.ref()));
+                proxyActor);
         final var testProbe = actorSystemResource1.newTestProbe();
         testProbe.watch(underTest);
 
         // create connection
-        underTest.tell(createConnection, testProbe.ref());
+        sendClientActorStartingCommand(underTest, testProbe, createConnection, actorSystemResource1, probe.ref(), null);
         probe.expectMsg(enableConnectionLogs);
         probe.expectMsg(openConnection);
         testProbe.expectMsg(createConnectionResponse);
@@ -980,13 +1066,13 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
         final var underTest = TestConstants.createConnectionSupervisorActor(connectionId,
                 actorSystemResource1.getActorSystem(),
                 pubSubMediator,
-                proxyActor,
-                mockClientActorPropsFactory(clientActorProbe.ref()));
+                proxyActor);
         final var testProbe = actorSystemResource1.newTestProbe();
         testProbe.watch(underTest);
 
         // create connection
-        underTest.tell(createConnection, testProbe.ref());
+        sendClientActorStartingCommand(underTest, testProbe, createConnection, actorSystemResource1,
+                clientActorProbe.ref(), null);
         clientActorProbe.expectMsg(enableConnectionLogs);
         clientActorProbe.expectMsg(openConnection);
         testProbe.expectMsg(createConnectionResponse);
@@ -1007,8 +1093,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
         final var underTest = TestConstants.createConnectionSupervisorActor(connectionId,
                 actorSystemResource1.getActorSystem(),
                 pubSubMediator,
-                proxyActor,
-                mockClientActorPropsFactory(clientActorProbe.ref()));
+                proxyActor);
         final var testProbe = actorSystemResource1.newTestProbe();
         testProbe.watch(underTest);
 
@@ -1042,13 +1127,13 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
         final var underTest = TestConstants.createConnectionSupervisorActor(connectionId,
                 actorSystemResource1.getActorSystem(),
                 pubSubMediator,
-                proxyActor,
-                mockClientActorPropsFactory(clientActorProbe.ref()));
+                proxyActor);
         final var testProbe = actorSystemResource1.newTestProbe();
         testProbe.watch(underTest);
 
         // create connection
-        underTest.tell(createConnection, testProbe.ref());
+        sendClientActorStartingCommand(underTest, testProbe, createConnection, actorSystemResource1,
+                clientActorProbe.ref(), null);
         clientActorProbe.expectMsg(enableConnectionLogs);
         clientActorProbe.expectMsg(openConnection);
         testProbe.expectMsg(createConnectionResponse);
@@ -1075,13 +1160,13 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
         final var underTest = TestConstants.createConnectionSupervisorActor(connectionId,
                 actorSystemResource1.getActorSystem(),
                 pubSubMediator,
-                proxyActor,
-                mockClientActorPropsFactory(clientActorProbe.ref()));
+                proxyActor);
         final var testProbe = actorSystemResource1.newTestProbe();
         testProbe.watch(underTest);
 
         // create connection
-        underTest.tell(createConnection, testProbe.ref());
+        sendClientActorStartingCommand(underTest, testProbe, createConnection, actorSystemResource1,
+                clientActorProbe.ref(), null);
         clientActorProbe.expectMsg(enableConnectionLogs);
         clientActorProbe.expectMsg(openConnection);
         testProbe.expectMsg(createConnectionResponse);
@@ -1098,13 +1183,13 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
         final var underTest = TestConstants.createConnectionSupervisorActor(connectionId,
                 actorSystemResource1.getActorSystem(),
                 proxyActor,
-                mockClientActorPropsFactory(clientActorProbe.ref()),
                 pubSubMediator);
         final var testProbe = actorSystemResource1.newTestProbe();
         testProbe.watch(underTest);
 
         // create connection
-        underTest.tell(createConnection, testProbe.ref());
+        sendClientActorStartingCommand(underTest, testProbe, createConnection, actorSystemResource1,
+                clientActorProbe.ref(), null);
         clientActorProbe.expectMsg(enableConnectionLogs);
         clientActorProbe.expectMsg(openConnection);
         testProbe.expectMsg(createConnectionResponse);
@@ -1116,7 +1201,8 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
         testProbe.expectMsg(enableConnectionLogsResponse);
 
         // modify connection
-        underTest.tell(modifyConnection, testProbe.ref());
+        sendClientActorStartingCommand(underTest, testProbe, modifyConnection, actorSystemResource1,
+                clientActorProbe.ref(), null);
         clientActorProbe.expectMsg(closeConnection);
         clientActorProbe.expectMsg(enableConnectionLogs);
         clientActorProbe.expectMsg(openConnection);
@@ -1132,13 +1218,13 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
         final var underTest = TestConstants.createConnectionSupervisorActor(connectionId,
                 actorSystemResource1.getActorSystem(),
                 pubSubMediator,
-                proxyActor,
-                mockClientActorPropsFactory(clientActorProbe.ref()));
+                proxyActor);
         final var testProbe = actorSystemResource1.newTestProbe();
         testProbe.watch(underTest);
 
         // create connection
-        underTest.tell(createConnection, testProbe.ref());
+        sendClientActorStartingCommand(underTest, testProbe, createConnection, actorSystemResource1,
+                clientActorProbe.ref(), null);
         clientActorProbe.expectMsg(enableConnectionLogs);
         clientActorProbe.expectMsg(openConnection);
         testProbe.expectMsg(createConnectionResponse);
@@ -1147,7 +1233,8 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
         underTest.tell(LoggingExpired.of(connectionId, DittoHeaders.empty()), testProbe.ref());
 
         // modify connection
-        underTest.tell(modifyConnection, testProbe.ref());
+        sendClientActorStartingCommand(underTest, testProbe, modifyConnection, actorSystemResource1,
+                clientActorProbe.ref(), null);
         clientActorProbe.expectMsg(closeConnection);
         clientActorProbe.expectMsg(openConnection);
         testProbe.expectMsg(modifyConnectionResponse);
@@ -1157,45 +1244,25 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
     @Test
     public void forwardSearchCommands() {
         final var myConnectionId = ConnectionId.of(UUID.randomUUID().toString());
-        final var gossipProbe = actorSystemResource1.newTestProbe("gossip");
-        final var clientActorsProbe = actorSystemResource1.newTestProbe("clientActors");
-        final var proxyActorProbe = actorSystemResource1.newTestProbe("proxyActor");
-        final var pubSubMediatorProbe = actorSystemResource1.newTestProbe("pubSubMediator");
-        final var testProbe = actorSystemResource1.newTestProbe();
-
-        // Mock the client actors so that they forward all signals to clientActorsProbe with their own reference
-        final ClientActorPropsFactory propsFactory = (a, b, connectionActor, aS, dittoHeaders, overwrites) ->
-                Props.create(AbstractActor.class, () -> new AbstractActor() {
-                    @Override
-                    public Receive createReceive() {
-                        return ReceiveBuilder.create()
-                                .match(WithDittoHeaders.class, message -> clientActorsProbe.ref()
-                                        .tell(WithSender.of(message, getSelf()), getSender()))
-                                .match(ActorRef.class, actorRef ->
-                                        gossipProbe.ref().forward(actorRef, getContext()))
-                                .build();
-                    }
-
-                    @Override
-                    public void preStart() {
-                        connectionActor.tell(getSelf(), getSelf());
-                    }
-                });
+        final var gossipProbe = searchForwardingSystemResource.newTestProbe("gossip");
+        final var clientActorsProbe = searchForwardingSystemResource.newTestProbe("clientActors");
+        final var proxyActorProbe = searchForwardingSystemResource.newTestProbe("proxyActor");
+        final var pubSubMediatorProbe = searchForwardingSystemResource.newTestProbe("pubSubMediator");
+        final var testProbe = searchForwardingSystemResource.newTestProbe();
         final var connectionActorProps = Props.create(ConnectionPersistenceActor.class,
                 () -> new ConnectionPersistenceActor(myConnectionId,
                         proxyActorProbe.ref(),
                         pubSubMediatorProbe.ref(),
-                        propsFactory,
-                        null,
                         UsageBasedPriorityProvider::getInstance,
                         Trilean.TRUE,
                         ConfigFactory.empty()));
 
         // GIVEN: connection persistence actor created with 2 client actors that are allowed to start on same node
-        final var underTest = actorSystemResource1.newActor(connectionActorProps, myConnectionId.toString());
+        final var underTest = searchForwardingSystemResource.newActor(connectionActorProps, myConnectionId.toString());
         underTest.tell(createClosedConnectionWith2Clients, testProbe.ref());
         testProbe.expectMsgClass(CreateConnectionResponse.class);
-        underTest.tell(OpenConnection.of(myConnectionId, DittoHeaders.empty()), testProbe.ref());
+        sendClientActorStartingCommand(underTest, testProbe, OpenConnection.of(myConnectionId, DittoHeaders.empty()),
+                searchForwardingSystemResource, clientActorsProbe.ref(), gossipProbe.ref());
 
         clientActorsProbe.fishForMessage(FiniteDuration.apply(5, TimeUnit.SECONDS),
                 "CreateConnection",
@@ -1238,60 +1305,49 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
 
     @Test
     public void retriesStartingClientActor() {
-        final var failingClientActors =
-                new FailingActorProvider(TestConstants.CONNECTION_CONFIG.getClientActorRestartsBeforeEscalation());
 
-        final var parent = actorSystemResource1.newTestKit();
+        final var parent = failingClientProviderSystemResource.newTestKit();
         final var underTest = parent.childActorOf(
                 Props.create(
                         ConnectionPersistenceActor.class,
                         () -> new ConnectionPersistenceActor(connectionId,
                                 proxyActor,
                                 pubSubMediator,
-                                failingClientActors,
-                                null,
                                 UsageBasedPriorityProvider::getInstance,
                                 Trilean.FALSE,
                                 ConfigFactory.empty())
                 )
         );
-        final var testProbe = actorSystemResource1.newTestProbe();
+        final var testProbe = failingClientProviderSystemResource.newTestProbe();
         testProbe.watch(underTest);
 
         underTest.tell(createConnection, testProbe.ref());
         testProbe.expectMsg(createConnectionResponse);
 
-        Awaitility.await().until(failingClientActors::isActorSuccessfullyInitialized);
         assertThat(underTest.isTerminated()).isFalse();
     }
 
     @Test
     public void escalatesWhenClientActorFailsTooOften() {
-        final var failingClientActors =
-                new FailingActorProvider(1 + TestConstants.CONNECTION_CONFIG.getClientActorRestartsBeforeEscalation());
-
-        final var parent = actorSystemResource1.newTestKit();
+        final var parent = tooManyFailingClientProviderSystemResource.newTestKit();
         final var underTest = parent.childActorOf(
                 Props.create(
                         ConnectionPersistenceActor.class,
                         () -> new ConnectionPersistenceActor(connectionId,
                                 proxyActor,
                                 pubSubMediator,
-                                failingClientActors,
-                                null,
                                 UsageBasedPriorityProvider::getInstance,
                                 Trilean.FALSE,
                                 ConfigFactory.empty())
                 )
         );
-        final var testProbe = actorSystemResource1.newTestProbe();
+        final var testProbe = tooManyFailingClientProviderSystemResource.newTestProbe();
         testProbe.watch(underTest);
 
         underTest.tell(createConnection, testProbe.ref());
         testProbe.expectMsg(createConnectionResponse);
 
         testProbe.expectTerminated(underTest, FiniteDuration.apply(3, TimeUnit.SECONDS));
-        assertThat(failingClientActors.isActorSuccessfullyInitialized()).isFalse();
     }
 
     @Test
@@ -1301,13 +1357,13 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
         final var underTest = TestConstants.createConnectionSupervisorActor(connectionId,
                 actorSystemResource1.getActorSystem(),
                 proxyActor,
-                mockClientActorPropsFactory(clientActorMock.ref()),
                 pubSubTestProbe.ref());
         final var testProbe = actorSystemResource1.newTestProbe();
         testProbe.watch(underTest);
 
         // create connection
-        underTest.tell(createConnection, testProbe.ref());
+        sendClientActorStartingCommand(underTest, testProbe, createConnection, actorSystemResource1,
+                clientActorMock.ref(), null);
         testProbe.expectMsg(createConnectionResponse);
         pubSubTestProbe.expectMsgClass(DistributedPubSubMediator.Subscribe.class);
 
@@ -1320,71 +1376,6 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
                 PartialFunction.fromFunction(msg -> msg instanceof DistributedPubSubMediator.Publish publish &&
                         publish.topic().equals(ConnectionDeleted.TYPE)));
         testProbe.expectTerminated(underTest, FiniteDuration.apply(3, TimeUnit.SECONDS));
-    }
-
-    /**
-     * A {@link ClientActorPropsFactory} which provides an actor which will throw an exception {@code
-     * retriesUntilSuccess} times in its constructor, before it starts up normally.
-     */
-    private static final class FailingActorProvider implements ClientActorPropsFactory {
-
-        private final int retriesUntilSuccess;
-        private int current = 0;
-        private boolean initialized = false;
-
-        public FailingActorProvider(final int retriesUntilSuccess) {
-            this.retriesUntilSuccess = retriesUntilSuccess;
-        }
-
-        @Override
-        public Props getActorPropsForType(final Connection connection,
-                final ActorRef proxyActor,
-                final ActorRef connectionActor,
-                final ActorSystem system,
-                final DittoHeaders dittoHeaders,
-                final Config overwrites) {
-
-            return Props.create(FailingActor.class, FailingActor::new);
-        }
-
-        private boolean isActorSuccessfullyInitialized() {
-            return initialized;
-        }
-
-        private final class FailingActor extends AbstractActor {
-
-            FailingActor() {
-                if (current++ < retriesUntilSuccess) {
-                    final var message =
-                            MessageFormat.format("''FailingActor'' intentionally failing for {0} of {1} times",
-                                    current, retriesUntilSuccess);
-                    throw new IllegalStateException(message);
-                }
-            }
-
-            @Override
-            public void preStart() {
-                initialized = true;
-                System.out.println("'FailingActor' finally started without exception.");
-            }
-
-            @Override
-            public void postStop() {
-                System.out.println("'FailingActor' stopped.");
-            }
-
-            @Override
-            public Receive createReceive() {
-                return ReceiveBuilder.create().build();
-            }
-
-        }
-
-    }
-
-    private static ClientActorPropsFactory mockClientActorPropsFactory(final ActorRef actorRef) {
-        return (connection, concierge, connectionActor, actorSystem, dittoHeaders, overwrites) ->
-                MockClientActor.props(actorRef);
     }
 
 }

@@ -14,7 +14,6 @@ package org.eclipse.ditto.connectivity.service.messaging;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
-import static org.eclipse.ditto.connectivity.service.messaging.MockClientActor.mockClientActorPropsFactory;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
@@ -909,35 +908,19 @@ public final class TestConstants {
     public static ActorRef createConnectionSupervisorActor(final ConnectionId connectionId,
             final ActorSystem actorSystem,
             final ActorRef proxyActor) {
-        return createConnectionSupervisorActor(connectionId, actorSystem, proxyActor,
-                mockClientActorPropsFactory, TestProbe.apply(actorSystem).ref());
-    }
-
-    public static ActorRef createConnectionSupervisorActor(final ConnectionId connectionId,
-            final ActorSystem actorSystem,
-            final ActorRef pubSubMediator,
-            final ActorRef proxyActor,
-            final ClientActorPropsFactory clientActorPropsFactory) {
-        return createConnectionSupervisorActor(connectionId, actorSystem, proxyActor,
-                clientActorPropsFactory, pubSubMediator);
-    }
-
-    public static ActorRef createConnectionSupervisorActor(final ConnectionId connectionId,
-            final ActorSystem actorSystem,
-            final ActorRef pubSubMediator,
-            final ActorRef proxyActor) {
 
         return createConnectionSupervisorActor(connectionId, actorSystem, proxyActor,
-                mockClientActorPropsFactory, pubSubMediator);
+                TestProbe.apply(actorSystem).ref());
     }
 
     public static ActorRef createConnectionSupervisorActor(final ConnectionId connectionId,
             final ActorSystem actorSystem,
             final ActorRef proxyActor,
-            final ClientActorPropsFactory clientActorPropsFactory,
             final ActorRef pubSubMediator) {
-        final Props props = ConnectionSupervisorActor.props(proxyActor, clientActorPropsFactory, null,
-                UsageBasedPriorityProvider::getInstance, pubSubMediator, CompletableFuture::completedStage);
+
+        final Props props =
+                ConnectionSupervisorActor.props(proxyActor, UsageBasedPriorityProvider::getInstance, pubSubMediator,
+                        CompletableFuture::completedStage);
 
         final Props shardRegionMockProps = Props.create(ShardRegionMockActor.class, props, connectionId.toString());
 

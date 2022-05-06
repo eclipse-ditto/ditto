@@ -18,6 +18,7 @@ import org.eclipse.ditto.base.service.config.ServiceSpecificConfig;
 import org.eclipse.ditto.connectivity.service.config.mapping.MappingConfig;
 import org.eclipse.ditto.internal.models.acks.config.AcknowledgementConfig;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
+import org.eclipse.ditto.internal.utils.config.KnownConfigValue;
 import org.eclipse.ditto.internal.utils.health.config.WithHealthCheckConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.WithMongoDbConfig;
 import org.eclipse.ditto.internal.utils.persistence.operations.WithPersistenceOperationsConfig;
@@ -90,6 +91,15 @@ public interface ConnectivityConfig extends ServiceSpecificConfig, WithHealthChe
     TunnelConfig getTunnelConfig();
 
     /**
+     * Returns the full qualified classname of the {@code org.eclipse.ditto.connectivity.service.CustomConnectivityRootExecutor}
+     * implementation to use for custom executions in {@code ConnectivityRootActor}.
+     *
+     * @return the full qualified classname of the {@code CustomConnectivityRootExecutor} implementation to use.
+     * @since 3.0.0
+     */
+    String getCustomRootExecutor();
+
+    /**
      * Read the static connectivity config from an actor system.
      *
      * @param config the config to parse.
@@ -97,6 +107,39 @@ public interface ConnectivityConfig extends ServiceSpecificConfig, WithHealthChe
      */
     static ConnectivityConfig of(final Config config) {
         return DittoConnectivityConfig.of(DefaultScopedConfig.dittoScoped(config));
+    }
+
+    /**
+     * An enumeration of the known config path expressions and their associated default values for
+     * {@code ConnectivityConfig}.
+     */
+    enum ConnectivityConfigValue implements KnownConfigValue {
+
+        /**
+         * The full qualified classname of the {@code CustomConnectivityRootExecutor} to instantiate.
+         * @since 3.0.0
+         */
+        CUSTOM_ROOT_EXECUTOR("connectivity.custom-root-executor",
+                "org.eclipse.ditto.gateway.service.starter.NoOpGatewayRootExecutor");
+
+        private final String path;
+        private final Object defaultValue;
+
+        ConnectivityConfigValue(final String thePath, final Object theDefaultValue) {
+            path = thePath;
+            defaultValue = theDefaultValue;
+        }
+
+        @Override
+        public Object getDefaultValue() {
+            return defaultValue;
+        }
+
+        @Override
+        public String getConfigPath() {
+            return path;
+        }
+
     }
 
 }

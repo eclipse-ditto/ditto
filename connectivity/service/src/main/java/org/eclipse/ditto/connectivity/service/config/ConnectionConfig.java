@@ -161,6 +161,25 @@ public interface ConnectionConfig extends WithSupervisorConfig, WithActivityChec
     boolean doubleDecodingEnabled();
 
     /**
+     * Returns the full qualified classname of the {@code org.eclipse.ditto.connectivity.service.messaging.validation.CustomConnectivityCommandInterceptorProvider}
+     * implementation to use for custom executions in {@code CustomConnectivityCommandInterceptorProvider}.
+     *
+     * @return the full qualified classname of the {@code CustomConnectivityCommandInterceptorProvider} implementation to use.
+     * @since 3.0.0
+     */
+    String getCustomCommandInterceptorProvider();
+
+    /**
+     * Returns the full qualified classname of the {@code org.eclipse.ditto.connectivity.service.messaging.ClientActorPropsFactory}
+     * implementation to use for custom executions in {@code ClientActorPropsFactory}.
+     *
+     * @return the full qualified classname of the {@code ClientActorPropsFactory} implementation to use.
+     * @since 3.0.0
+     */
+    String getClientActorPropsFactory();
+
+
+    /**
      * An enumeration of the known config path expressions and their associated default values for
      * {@code ConnectionConfig}.
      */
@@ -224,7 +243,21 @@ public interface ConnectionConfig extends WithSupervisorConfig, WithActivityChec
         /**
          * Whether double decoding of usernames and passwords in connection URIs is enabled.
          */
-        DOUBLE_DECODING_ENABLED("double-decoding-enabled", true);
+        DOUBLE_DECODING_ENABLED("double-decoding-enabled", true),
+
+        /**
+         * The full qualified classname of the {@code CustomConnectivityCommandInterceptorProvider} to instantiate.
+         * @since 3.0.0
+         */
+        CUSTOM_COMMAND_INTERCEPTOR_PROVIDER("custom-command-interceptor-provider",
+                "org.eclipse.ditto.connectivity.service.messaging.validation.NoOpConnectivityCommandInterceptorProvider"),
+
+        /**
+         * The full qualified classname of the {@code ClientActorPropsFactory} to instantiate.
+         * @since 3.0.0
+         */
+        CLIENT_ACTOR_PROPS_FACTORY("client-actor-props-factory",
+                "org.eclipse.ditto.connectivity.service.messaging.DefaultClientActorPropsFactory");
 
         private final String path;
         private final Object defaultValue;

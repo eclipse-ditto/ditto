@@ -27,14 +27,11 @@ import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
 import org.eclipse.ditto.connectivity.model.ConnectivityStatus;
 import org.eclipse.ditto.connectivity.model.Source;
 import org.eclipse.ditto.connectivity.model.signals.commands.ConnectivityCommand;
-import org.eclipse.ditto.connectivity.model.signals.commands.ConnectivityCommandInterceptor;
 import org.eclipse.ditto.connectivity.model.signals.commands.exceptions.ConnectionNotAccessibleException;
 import org.eclipse.ditto.connectivity.model.signals.commands.modify.CreateConnection;
 import org.eclipse.ditto.connectivity.model.signals.commands.modify.CreateConnectionResponse;
 import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConnection;
 import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConnectionResponse;
-import org.eclipse.ditto.connectivity.service.messaging.ClientActorPropsFactory;
-import org.eclipse.ditto.connectivity.service.messaging.DefaultClientActorPropsFactory;
 import org.eclipse.ditto.internal.utils.persistence.mongo.ops.eventsource.MongoEventSourceITAssertions;
 import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
 import org.junit.Test;
@@ -127,13 +124,10 @@ public final class ConnectionPersistenceOperationsActorIT extends MongoEventSour
 
         // essentially never restart
         final TestProbe proxyActorProbe = new TestProbe(system, "proxyActor");
-        final ConnectivityCommandInterceptor dummyInterceptor = (command, connectionSupplier) -> {};
         final ConnectionPriorityProviderFactory dummyPriorityProvider = (connectionPersistenceActor, log) ->
                 (connectionId, correlationId) -> CompletableFuture.completedFuture(4711);
-        final ClientActorPropsFactory entityActorFactory = DefaultClientActorPropsFactory.getInstance();
         final Props props =
-                ConnectionSupervisorActor.props(proxyActorProbe.ref(), entityActorFactory,
-                        dummyInterceptor, dummyPriorityProvider, pubSubMediator, CompletableFuture::completedStage);
+                ConnectionSupervisorActor.props(proxyActorProbe.ref(), dummyPriorityProvider, pubSubMediator, CompletableFuture::completedStage);
 
         return system.actorOf(props, String.valueOf(id));
     }

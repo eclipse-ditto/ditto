@@ -77,10 +77,10 @@ public final class DefaultMessageMapperFactory implements MessageMapperFactory {
      * The factory function that creates instances of {@link MessageMapper}.
      */
     private final List<MessageMapperExtension> messageMapperExtensions;
-    private static final List<Class<? extends MessageMapperExtension>> messageMapperExtensionClasses =
+    private static final List<Class<? extends MessageMapperExtension>> MESSAGE_MAPPER_EXTENSION_CLASSES =
             loadMessageMapperExtensionClasses();
 
-    private static final Map<String, Class<?>> registeredMappers = tryToLoadPayloadMappers();
+    private static final Map<String, Class<?>> REGISTERED_MAPPERS = tryToLoadPayloadMappers();
 
     private final LoggingAdapter log;
 
@@ -137,7 +137,7 @@ public final class DefaultMessageMapperFactory implements MessageMapperFactory {
         return mapper.map(WrappingMessageMapper::wrap).flatMap(m -> configureInstance(m, options));
     }
 
-    private MergedJsonObjectMap mergeMappingOptions(final JsonObject defaultOptions,
+    private static MergedJsonObjectMap mergeMappingOptions(final JsonObject defaultOptions,
             final JsonObject configuredOptions) {
         return MergedJsonObjectMap.of(configuredOptions, defaultOptions);
     }
@@ -153,15 +153,15 @@ public final class DefaultMessageMapperFactory implements MessageMapperFactory {
                 instantiateMappers(payloadMappingDefinition.getDefinitions().entrySet().stream());
 
         final Map<String, MessageMapper> fallbackMappers =
-                instantiateMappers(registeredMappers.entrySet().stream()
+                instantiateMappers(REGISTERED_MAPPERS.entrySet().stream()
                         .filter(requiresNoMandatoryConfiguration())
                         .map(Map.Entry::getKey)
-                        .map(this::getEmptyMappingContextForAlias));
+                        .map(DefaultMessageMapperFactory::getEmptyMappingContextForAlias));
 
         return DefaultMessageMapperRegistry.of(defaultMapper, mappersFromConnectionConfig, fallbackMappers);
     }
 
-    private Map.Entry<String, MappingContext> getEmptyMappingContextForAlias(final String alias) {
+    private static Map.Entry<String, MappingContext> getEmptyMappingContextForAlias(final String alias) {
         final MappingContext emptyMappingContext =
                 ConnectivityModelFactory.newMappingContextBuilder(alias, JsonObject.empty()).build();
         return new SimpleImmutableEntry<>(alias, emptyMappingContext);
@@ -235,7 +235,7 @@ public final class DefaultMessageMapperFactory implements MessageMapperFactory {
     }
 
     private static List<MessageMapperExtension> loadMessageMapperExtensions(final DynamicAccess dynamicAccess) {
-        return messageMapperExtensionClasses.stream().map(clazz -> {
+        return MESSAGE_MAPPER_EXTENSION_CLASSES.stream().map(clazz -> {
             final ClassTag<MessageMapperExtension> tag =
                     scala.reflect.ClassTag$.MODULE$.apply(MessageMapperExtension.class);
             return dynamicAccess.createInstanceFor(clazz, List$.MODULE$.empty(), tag).get();
@@ -254,8 +254,8 @@ public final class DefaultMessageMapperFactory implements MessageMapperFactory {
      */
     Optional<MessageMapper> createMessageMapperInstance(final String mappingEngine) {
         final var connectionId = connection.getId();
-        if (registeredMappers.containsKey(mappingEngine)) {
-            final Class<?> messageMapperClass = registeredMappers.get(mappingEngine);
+        if (REGISTERED_MAPPERS.containsKey(mappingEngine)) {
+            final Class<?> messageMapperClass = REGISTERED_MAPPERS.get(mappingEngine);
             MessageMapper result = createAnyMessageMapper(messageMapperClass,
                     actorSystem.dynamicAccess());
             for (final MessageMapperExtension extension : messageMapperExtensions) {
@@ -266,7 +266,7 @@ public final class DefaultMessageMapperFactory implements MessageMapperFactory {
             }
             return Optional.ofNullable(result);
         } else {
-            log.info("Mapper {} not found in {}.", mappingEngine, registeredMappers);
+            log.info("Mapper {} not found in {}.", mappingEngine, REGISTERED_MAPPERS);
             return Optional.empty();
         }
     }
@@ -295,7 +295,7 @@ public final class DefaultMessageMapperFactory implements MessageMapperFactory {
         return messageMapper;
     }
 
-    private Predicate<? super Map.Entry<String, Class<?>>> requiresNoMandatoryConfiguration() {
+    private static Predicate<? super Map.Entry<String, Class<?>>> requiresNoMandatoryConfiguration() {
         return e -> !getPayloadMapperAnnotation(e).requiresMandatoryConfiguration();
     }
 

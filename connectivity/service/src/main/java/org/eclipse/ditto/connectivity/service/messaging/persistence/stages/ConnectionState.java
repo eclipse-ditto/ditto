@@ -13,8 +13,8 @@
 package org.eclipse.ditto.connectivity.service.messaging.persistence.stages;
 
 import org.eclipse.ditto.connectivity.model.ConnectionId;
-import org.eclipse.ditto.connectivity.service.messaging.monitoring.logs.ConnectionLogger;
 import org.eclipse.ditto.connectivity.model.signals.commands.ConnectivityCommandInterceptor;
+import org.eclipse.ditto.connectivity.service.messaging.monitoring.logs.ConnectionLogger;
 
 /**
  * Everything needed by connection strategies from the state of a connection actor.

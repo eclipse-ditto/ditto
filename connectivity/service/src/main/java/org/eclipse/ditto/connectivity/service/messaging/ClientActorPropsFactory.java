@@ -12,19 +12,37 @@
  */
 package org.eclipse.ditto.connectivity.service.messaging;
 
+import java.util.List;
+
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.service.DittoExtensionPoint;
 import org.eclipse.ditto.connectivity.model.Connection;
+import org.eclipse.ditto.connectivity.service.config.DittoConnectivityConfig;
+import org.eclipse.ditto.internal.utils.akka.AkkaClassLoader;
+import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 
 import com.typesafe.config.Config;
 
+import akka.actor.AbstractExtensionId;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
+import akka.actor.ExtendedActorSystem;
 import akka.actor.Props;
-
 /**
  * Creates actor {@link Props} based on the given {@link Connection}.
  */
-public interface ClientActorPropsFactory {
+public abstract class ClientActorPropsFactory implements DittoExtensionPoint {
+
+    private static final ExtensionId EXTENSION_ID = new ExtensionId();
+
+    protected final ActorSystem actorSystem;
+
+    /**
+     * @param actorSystem the actor system in which to load the extension.
+     */
+    protected ClientActorPropsFactory(final ActorSystem actorSystem) {
+        this.actorSystem = actorSystem;
+    }
 
     /**
      * Create actor {@link Props} for a connection.
@@ -36,7 +54,34 @@ public interface ClientActorPropsFactory {
      * @param dittoHeaders Ditto headers of the command that caused the client actors to be created.
      * @return the actor props
      */
-    Props getActorPropsForType(Connection connection, ActorRef proxyActor, ActorRef connectionActor,
+    public abstract Props getActorPropsForType(Connection connection, ActorRef proxyActor, ActorRef connectionActor,
             ActorSystem actorSystem, DittoHeaders dittoHeaders, Config connectivityConfigOverwrites);
+
+    /**
+     * Loads the implementation of {@code ClientActorPropsFactory} which is configured for the
+     * {@code ActorSystem}.
+     *
+     * @param actorSystem the actorSystem in which the {@code ClientActorPropsFactory} should be loaded.
+     * @return the {@code ClientActorPropsFactory} implementation.
+     * @throws NullPointerException if {@code actorSystem} is {@code null}.
+     */
+    public static ClientActorPropsFactory get(final ActorSystem actorSystem) {
+        return EXTENSION_ID.get(actorSystem);
+    }
+
+    private static final class ExtensionId extends AbstractExtensionId<ClientActorPropsFactory> {
+
+        @Override
+        public ClientActorPropsFactory createExtension(final ExtendedActorSystem system) {
+            final var implementation =
+                    DittoConnectivityConfig.of(DefaultScopedConfig.dittoScoped(
+                            system.settings().config())).getConnectionConfig().getClientActorPropsFactory();
+
+            return AkkaClassLoader.instantiate(system, ClientActorPropsFactory.class,
+                    implementation,
+                    List.of(ActorSystem.class),
+                    List.of(system));
+        }
+    }
 
 }

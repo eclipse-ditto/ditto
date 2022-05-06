@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.connectivity.service.messaging;
 
-import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
@@ -36,22 +35,10 @@ import akka.actor.Props;
  * and otherwise returns the already created instance.
  */
 @Immutable
-public final class DefaultClientActorPropsFactory implements ClientActorPropsFactory {
+public final class DefaultClientActorPropsFactory extends ClientActorPropsFactory {
 
-    @Nullable private static DefaultClientActorPropsFactory instance;
-
-    private DefaultClientActorPropsFactory() {}
-
-    /**
-     * Returns an instance of {@code DefaultClientActorPropsFactory}. Creates a new one if not already done.
-     *
-     * @return the factory instance.
-     */
-    public static DefaultClientActorPropsFactory getInstance() {
-        if (null == instance) {
-            instance = new DefaultClientActorPropsFactory();
-        }
-        return instance;
+    private DefaultClientActorPropsFactory(final ActorSystem actorSystem) {
+        super(actorSystem);
     }
 
     @Override

@@ -15,17 +15,14 @@ package org.eclipse.ditto.connectivity.service;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.UnaryOperator;
 
-import javax.annotation.Nullable;
 import javax.jms.JMSRuntimeException;
 import javax.naming.NamingException;
 
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.service.actors.DittoRootActor;
 import org.eclipse.ditto.connectivity.api.ConnectivityMessagingConstants;
-import org.eclipse.ditto.connectivity.model.signals.commands.ConnectivityCommandInterceptor;
 import org.eclipse.ditto.connectivity.service.config.ConnectionIdsRetrievalConfig;
 import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
-import org.eclipse.ditto.connectivity.service.messaging.ClientActorPropsFactory;
 import org.eclipse.ditto.connectivity.service.messaging.ConnectionIdsRetrievalActor;
 import org.eclipse.ditto.connectivity.service.messaging.ConnectivityProxyActor;
 import org.eclipse.ditto.connectivity.service.messaging.persistence.ConnectionPersistenceOperationsActor;
@@ -79,9 +76,7 @@ public final class ConnectivityRootActor extends DittoRootActor {
     private ConnectivityRootActor(final ConnectivityConfig connectivityConfig,
             final ActorRef pubSubMediator,
             final UnaryOperator<Signal<?>> commandForwarderSignalTransformer,
-            @Nullable final ConnectivityCommandInterceptor commandValidator,
-            final ConnectionPriorityProviderFactory connectionPriorityProviderFactory,
-            final ClientActorPropsFactory clientActorPropsFactory) {
+            final ConnectionPriorityProviderFactory connectionPriorityProviderFactory) {
 
         final ClusterConfig clusterConfig = connectivityConfig.getClusterConfig();
         final ActorSystem actorSystem = getContext().system();
@@ -94,12 +89,9 @@ public final class ConnectivityRootActor extends DittoRootActor {
 
         final var connectionSupervisorProps = getConnectivitySupervisorActorProps(
                 pubSubMediator,
-                commandValidator,
                 connectionPriorityProviderFactory,
-                clientActorPropsFactory,
                 proxyActor
         );
-
         // Create persistence streaming actor (with no cache) and make it known to pubSubMediator.
         final ActorRef persistenceStreamingActor =
                 startChildActor(ConnectionPersistenceStreamingActorCreator.ACTOR_NAME,
@@ -128,6 +120,8 @@ public final class ConnectivityRootActor extends DittoRootActor {
                 ConnectionPersistenceOperationsActor.props(pubSubMediator, connectivityConfig.getMongoDbConfig(),
                         actorSystem.settings().config(), connectivityConfig.getPersistenceOperationsConfig()));
 
+        CustomConnectivityRootExecutor.get(actorSystem).execute(getContext());
+
         final var cleanupConfig = connectivityConfig.getConnectionConfig().getCleanupConfig();
         final var cleanupActorProps = PersistenceCleanupActor.props(cleanupConfig, mongoReadJournal, CLUSTER_ROLE);
         startChildActor(PersistenceCleanupActor.NAME, cleanupActorProps);
@@ -137,11 +131,9 @@ public final class ConnectivityRootActor extends DittoRootActor {
     }
 
     private static Props getConnectivitySupervisorActorProps(final ActorRef pubSubMediator,
-            @Nullable final ConnectivityCommandInterceptor commandValidator,
             final ConnectionPriorityProviderFactory connectionPriorityProviderFactory,
-            final ClientActorPropsFactory clientActorPropsFactory,
             final ActorRef proxyActor) {
-        return ConnectionSupervisorActor.props(proxyActor, clientActorPropsFactory, commandValidator,
+        return ConnectionSupervisorActor.props(proxyActor,
                 connectionPriorityProviderFactory, pubSubMediator, providePreEnforcer());
     }
 
@@ -156,21 +148,17 @@ public final class ConnectivityRootActor extends DittoRootActor {
      * @param connectivityConfig the configuration of the Connectivity service.
      * @param pubSubMediator the PubSub mediator Actor.
      * @param commandForwarderSignalTransformer a function which transforms signals before forwarding them.
-     * @param commandValidator custom command validator for connectivity commands
      * @param connectionPriorityProviderFactory used to determine the reconnect priority of a connection.
-     * @param clientActorPropsFactory props factory of the client actors
      * @return the Akka configuration Props object.
      */
     public static Props props(final ConnectivityConfig connectivityConfig,
             final ActorRef pubSubMediator,
             final UnaryOperator<Signal<?>> commandForwarderSignalTransformer,
-            final ConnectivityCommandInterceptor commandValidator,
-            final ConnectionPriorityProviderFactory connectionPriorityProviderFactory,
-            final ClientActorPropsFactory clientActorPropsFactory) {
+            final ConnectionPriorityProviderFactory connectionPriorityProviderFactory) {
+        //todo dgs: which ones of these props can be moved to extension?
 
         return Props.create(ConnectivityRootActor.class, connectivityConfig, pubSubMediator,
-                commandForwarderSignalTransformer, commandValidator, connectionPriorityProviderFactory,
-                clientActorPropsFactory);
+                commandForwarderSignalTransformer, connectionPriorityProviderFactory);
     }
 
     /**
@@ -179,16 +167,14 @@ public final class ConnectivityRootActor extends DittoRootActor {
      * @param connectivityConfig the configuration of the Connectivity service.
      * @param pubSubMediator the PubSub mediator Actor.
      * @param commandForwarderSignalTransformer a function which transforms signals before forwarding them.
-     * @param clientActorPropsFactory props factory of the client actors.
      * @return the Akka configuration Props object.
      */
     public static Props props(final ConnectivityConfig connectivityConfig, final ActorRef pubSubMediator,
-            final UnaryOperator<Signal<?>> commandForwarderSignalTransformer,
-            final ClientActorPropsFactory clientActorPropsFactory) {
+            final UnaryOperator<Signal<?>> commandForwarderSignalTransformer) {
 
         return Props.create(ConnectivityRootActor.class, connectivityConfig, pubSubMediator,
-                commandForwarderSignalTransformer, null,
-                (ConnectionPriorityProviderFactory) UsageBasedPriorityProvider::getInstance, clientActorPropsFactory);
+                commandForwarderSignalTransformer,
+                (ConnectionPriorityProviderFactory) UsageBasedPriorityProvider::getInstance);
     }
 
     @Override

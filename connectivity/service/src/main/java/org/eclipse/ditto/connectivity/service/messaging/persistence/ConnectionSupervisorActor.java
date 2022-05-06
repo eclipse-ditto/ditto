@@ -26,13 +26,11 @@ import org.eclipse.ditto.base.model.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.base.service.actors.ShutdownBehaviour;
 import org.eclipse.ditto.base.service.config.supervision.ExponentialBackOffConfig;
 import org.eclipse.ditto.connectivity.model.ConnectionId;
-import org.eclipse.ditto.connectivity.model.signals.commands.ConnectivityCommandInterceptor;
 import org.eclipse.ditto.connectivity.model.signals.commands.exceptions.ConnectionUnavailableException;
 import org.eclipse.ditto.connectivity.service.config.ConnectionConfig;
 import org.eclipse.ditto.connectivity.service.config.ConnectivityConfigModifiedBehavior;
 import org.eclipse.ditto.connectivity.service.config.DittoConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.enforcement.ConnectivityCommandEnforcement;
-import org.eclipse.ditto.connectivity.service.messaging.ClientActorPropsFactory;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.internal.utils.persistentactors.AbstractPersistenceSupervisor;
 import org.eclipse.ditto.policies.enforcement.PreEnforcer;
@@ -71,8 +69,6 @@ public final class ConnectionSupervisorActor extends AbstractPersistenceSupervis
     private static final Duration OVERWRITES_CHECK_BACKOFF_DURATION = Duration.ofSeconds(30);
 
     private final ActorRef proxyActor;
-    private final ClientActorPropsFactory propsFactory;
-    @Nullable private final ConnectivityCommandInterceptor commandInterceptor;
     private final ConnectionPriorityProviderFactory connectionPriorityProviderFactory;
     private final ActorRef pubSubMediator;
     private Config connectivityConfigOverwrites = ConfigFactory.empty();
@@ -81,16 +77,12 @@ public final class ConnectionSupervisorActor extends AbstractPersistenceSupervis
     @SuppressWarnings("unused")
     private ConnectionSupervisorActor(
             final ActorRef proxyActor,
-            final ClientActorPropsFactory propsFactory,
-            @Nullable final ConnectivityCommandInterceptor commandInterceptor,
             final ConnectionPriorityProviderFactory connectionPriorityProviderFactory,
             final ActorRef pubSubMediator,
             final PreEnforcer preEnforcer) {
 
         super(null, preEnforcer);
         this.proxyActor = proxyActor;
-        this.propsFactory = propsFactory;
-        this.commandInterceptor = commandInterceptor;
         this.connectionPriorityProviderFactory = connectionPriorityProviderFactory;
         this.pubSubMediator = pubSubMediator;
     }
@@ -103,21 +95,17 @@ public final class ConnectionSupervisorActor extends AbstractPersistenceSupervis
      * </p>
      *
      * @param proxyActor the actor used to send signals into the ditto cluster..
-     * @param propsFactory the {@link org.eclipse.ditto.connectivity.service.messaging.ClientActorPropsFactory}
-     * @param commandValidator a custom command validator for connectivity commands.
      * @param connectionPriorityProviderFactory used to determine the reconnect priority of a connection.
      * @param pubSubMediator pub-sub-mediator for the shutdown behavior.
      * @param preEnforcer the PreEnforcer to apply as extension mechanism of the enforcement.
      * @return the {@link Props} to create this actor.
      */
     public static Props props(final ActorRef proxyActor,
-            final ClientActorPropsFactory propsFactory,
-            @Nullable final ConnectivityCommandInterceptor commandValidator,
             final ConnectionPriorityProviderFactory connectionPriorityProviderFactory,
             final ActorRef pubSubMediator,
             final PreEnforcer preEnforcer) {
 
-        return Props.create(ConnectionSupervisorActor.class, proxyActor, propsFactory, commandValidator,
+        return Props.create(ConnectionSupervisorActor.class, proxyActor,
                 connectionPriorityProviderFactory, pubSubMediator, preEnforcer);
     }
 
@@ -166,7 +154,7 @@ public final class ConnectionSupervisorActor extends AbstractPersistenceSupervis
 
     @Override
     protected Props getPersistenceActorProps(final ConnectionId entityId) {
-        return ConnectionPersistenceActor.props(entityId, proxyActor, pubSubMediator, propsFactory, commandInterceptor,
+        return ConnectionPersistenceActor.props(entityId, proxyActor, pubSubMediator,
                 connectionPriorityProviderFactory, connectivityConfigOverwrites);
     }
 
