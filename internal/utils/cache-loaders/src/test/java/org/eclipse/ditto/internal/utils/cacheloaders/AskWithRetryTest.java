@@ -244,8 +244,8 @@ public final class AskWithRetryTest {
 
             expectMsg(ASK_MESSAGE);
             for (int i = 0; i < retryAttempts; i++) {
-                expectMsg(fixedDelay.plus(askTimeout.multipliedBy(3 + i)), ASK_MESSAGE);
-                expectNoMessage(fixedDelay.minus(askTimeout.multipliedBy(3)));
+                expectMsg(fixedDelay.plus(askTimeout.multipliedBy(5 + i)), ASK_MESSAGE);
+                expectNoMessage(fixedDelay.minus(askTimeout.multipliedBy(5)));
             }
             expectNoMessage(DEFAULT_NO_MESSAGE_EXPECTATION_DURATION);
 
