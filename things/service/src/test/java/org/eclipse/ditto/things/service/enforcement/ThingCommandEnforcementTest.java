@@ -20,11 +20,14 @@ import static org.eclipse.ditto.things.service.enforcement.TestSetup.THING_ID;
 import java.time.Instant;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
+
+import javax.annotation.Nullable;
 
 import org.assertj.core.api.Assertions;
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
@@ -32,6 +35,7 @@ import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
 import org.eclipse.ditto.base.model.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.base.model.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
@@ -39,12 +43,15 @@ import org.eclipse.ditto.base.model.headers.entitytag.EntityTagMatcher;
 import org.eclipse.ditto.base.model.headers.entitytag.EntityTagMatchers;
 import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
+import org.eclipse.ditto.base.service.actors.ShutdownBehaviour;
+import org.eclipse.ditto.base.service.config.supervision.ExponentialBackOffConfig;
+import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
+import org.eclipse.ditto.internal.utils.persistentactors.AbstractPersistenceSupervisor;
 import org.eclipse.ditto.internal.utils.pubsub.LiveSignalPub;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.policies.api.PolicyTag;
 import org.eclipse.ditto.policies.api.commands.sudo.SudoRetrievePolicy;
 import org.eclipse.ditto.policies.api.commands.sudo.SudoRetrievePolicyResponse;
 import org.eclipse.ditto.policies.enforcement.DefaultCreationRestrictionEnforcer;
@@ -66,13 +73,12 @@ import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicyRes
 import org.eclipse.ditto.things.api.Permission;
 import org.eclipse.ditto.things.api.commands.sudo.SudoRetrieveThing;
 import org.eclipse.ditto.things.api.commands.sudo.SudoRetrieveThingResponse;
-import org.eclipse.ditto.things.api.commands.sudo.ThingSudoCommand;
 import org.eclipse.ditto.things.model.Feature;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingBuilder;
+import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.ThingsModelFactory;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommand;
-import org.eclipse.ditto.things.model.signals.commands.ThingCommandResponse;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.FeatureNotModifiableException;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.LiveChannelConditionNotAllowedException;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.PolicyInvalidException;
@@ -81,6 +87,7 @@ import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingCondition
 import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingNotAccessibleException;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingNotCreatableException;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingNotModifiableException;
+import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingUnavailableException;
 import org.eclipse.ditto.things.model.signals.commands.modify.CreateThing;
 import org.eclipse.ditto.things.model.signals.commands.modify.CreateThingResponse;
 import org.eclipse.ditto.things.model.signals.commands.modify.ModifyAttribute;
@@ -93,6 +100,7 @@ import org.eclipse.ditto.things.model.signals.commands.query.RetrieveAttribute;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveAttributeResponse;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThing;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThingResponse;
+import org.eclipse.ditto.things.service.common.config.DittoThingsConfig;
 import org.eclipse.ditto.things.service.persistence.actors.ThingEnforcerActor;
 import org.junit.After;
 import org.junit.Before;
@@ -104,14 +112,12 @@ import org.slf4j.LoggerFactory;
 
 import com.typesafe.config.ConfigFactory;
 
-import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.event.Logging;
-import akka.japi.pf.ReceiveBuilder;
-import akka.pattern.Patterns;
+import akka.testkit.TestActorRef;
 import akka.testkit.TestProbe;
 import akka.testkit.javadsl.TestKit;
 import scala.concurrent.duration.Duration;
@@ -134,7 +140,9 @@ public final class ThingCommandEnforcementTest {
     private TestProbe thingPersistenceActorProbe;
     private TestProbe ackReceiverActorProbe;
     private TestProbe policiesShardRegionProbe;
-    private ActorRef enforcerParent;
+    private ActorRef supervisor;
+
+    private MockThingPersistenceSupervisor mockThingPersistenceSupervisor;
 
     @Before
     public void init() {
@@ -144,7 +152,10 @@ public final class ThingCommandEnforcementTest {
         thingPersistenceActorProbe = createThingPersistenceActorProbe();
         ackReceiverActorProbe = getTestProbe(createUniqueName("ackReceiverActorProbe-"));
         policiesShardRegionProbe = getTestProbe(createUniqueName("policiesShardRegionProbe-"));
-        enforcerParent = createEnforcerParent();
+        final TestActorRef<MockThingPersistenceSupervisor> thingPersistenceSupervisorTestActorRef =
+                createThingPersistenceSupervisor();
+        supervisor = thingPersistenceSupervisorTestActorRef;
+        mockThingPersistenceSupervisor = thingPersistenceSupervisorTestActorRef.underlyingActor();
     }
 
     @After
@@ -168,14 +179,14 @@ public final class ThingCommandEnforcementTest {
                 SudoRetrievePolicyResponse.of(policyId, emptyPolicy, DittoHeaders.empty());
 
         new TestKit(system) {{
-            enforcerParent.tell(getReadCommand(), getRef());
+            supervisor.tell(getReadCommand(), getRef());
 
             expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
             expectAndAnswerSudoRetrievePolicy(policyId, sudoRetrievePolicyResponse);
 
             TestSetup.fishForMsgClass(this, ThingNotAccessibleException.class);
 
-            enforcerParent.tell(getModifyCommand(), getRef());
+            supervisor.tell(getModifyCommand(), getRef());
             expectMsgClass(FeatureNotModifiableException.class);
         }};
     }
@@ -187,7 +198,7 @@ public final class ThingCommandEnforcementTest {
         new TestKit(system) {{
             expectAndAnswerSudoRetrieveThing(error);
 
-            enforcerParent.tell(getReadCommand(), getRef());
+            supervisor.tell(getReadCommand(), getRef());
             fishForMessage(Duration.create(500, TimeUnit.MILLISECONDS), "error", msg -> msg.equals(error));
         }};
     }
@@ -198,7 +209,7 @@ public final class ThingCommandEnforcementTest {
         new TestKit(system) {{
             expectAndAnswerSudoRetrieveThing(error);
 
-            enforcerParent.tell(getModifyCommand(), getRef());
+            supervisor.tell(getModifyCommand(), getRef());
             expectMsgClass(ThingNotModifiableException.class);
         }};
     }
@@ -213,7 +224,7 @@ public final class ThingCommandEnforcementTest {
             expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
             expectAndAnswerSudoRetrievePolicy(policyId, PolicyNotAccessibleException.newBuilder(policyId).build());
 
-            enforcerParent.tell(getReadCommand(), getRef());
+            supervisor.tell(getReadCommand(), getRef());
             final DittoRuntimeException error = TestSetup.fishForMsgClass(this, ThingNotAccessibleException.class);
             assertThat(error.getMessage()).contains(THING_ID);
         }};
@@ -229,7 +240,7 @@ public final class ThingCommandEnforcementTest {
             expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
             expectAndAnswerSudoRetrievePolicy(policyId, PolicyNotAccessibleException.newBuilder(policyId).build());
 
-            enforcerParent.tell(getModifyCommand(), getRef());
+            supervisor.tell(getModifyCommand(), getRef());
             final DittoRuntimeException error = TestSetup.fishForMsgClass(this, ThingNotModifiableException.class);
             assertThat(error.getMessage()).contains(THING_ID);
         }};
@@ -250,7 +261,7 @@ public final class ThingCommandEnforcementTest {
             expectAndAnswerSudoRetrieveThing(ThingNotAccessibleException.newBuilder(THING_ID).build());
 
             final CreateThing createThing = CreateThing.of(thing, policy.toJson(), headers());
-            enforcerParent.tell(createThing, getRef());
+            supervisor.tell(createThing, getRef());
             TestSetup.fishForMsgClass(this, ThingNotModifiableException.class);
         }};
 
@@ -275,7 +286,7 @@ public final class ThingCommandEnforcementTest {
 
         new TestKit(system) {{
             final ThingCommand<?> write = getModifyCommand();
-            enforcerParent.tell(write, getRef());
+            supervisor.tell(write, getRef());
 
             expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
             expectAndAnswerSudoRetrievePolicy(policyId, sudoRetrievePolicyResponse);
@@ -287,7 +298,7 @@ public final class ThingCommandEnforcementTest {
             final ThingCommand<?> read = getReadCommand();
             final RetrieveThingResponse retrieveThingResponse =
                     RetrieveThingResponse.of(THING_ID, JsonFactory.newObject(), DittoHeaders.empty());
-            enforcerParent.tell(read, getRef());
+            supervisor.tell(read, getRef());
 
             final ThingCommand<?> expectedReadCommand = addReadSubjectHeader(read,
                     SubjectId.newInstance(GOOGLE, TestSetup.SUBJECT_ID));
@@ -319,7 +330,7 @@ public final class ThingCommandEnforcementTest {
 
         new TestKit(system) {{
             final ThingCommand<?> modifyCommand = getModifyCommand();
-            enforcerParent.tell(modifyCommand, getRef());
+            supervisor.tell(modifyCommand, getRef());
 
             expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
             expectAndAnswerSudoRetrievePolicy(policyId, sudoRetrievePolicyResponse);
@@ -331,7 +342,7 @@ public final class ThingCommandEnforcementTest {
             final RetrieveThingResponse retrieveThingResponseWithAttr =
                     RetrieveThingResponse.of(THING_ID, thingWithPolicy, headers());
 
-            enforcerParent.tell(getReadCommand(), getRef());
+            supervisor.tell(getReadCommand(), getRef());
             thingPersistenceActorProbe.reply(retrieveThingResponseWithAttr);
 
             final JsonObject jsonObjectWithoutAttr = thingWithPolicy.remove(attributePointer);
@@ -371,7 +382,7 @@ public final class ThingCommandEnforcementTest {
             // WHEN: Condition is set on a readable feature
             final var conditionalRetrieveThing1 =
                     getRetrieveThing(builder -> builder.condition("exists(features/grantedFeature)"));
-            enforcerParent.tell(conditionalRetrieveThing1, getRef());
+            supervisor.tell(conditionalRetrieveThing1, getRef());
 
             expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
             expectAndAnswerSudoRetrievePolicy(policyId, sudoRetrievePolicyResponse);
@@ -390,7 +401,7 @@ public final class ThingCommandEnforcementTest {
             // WHEN: Condition is set on an unreadable feature
             final var conditionalRetrieveThing2 =
                     getRetrieveThing(builder -> builder.condition("exists(features/revokedFeature)"));
-            enforcerParent.tell(conditionalRetrieveThing2, getRef());
+            supervisor.tell(conditionalRetrieveThing2, getRef());
 
             // THEN: The command is rejected
             expectMsgClass(ThingConditionFailedException.class);
@@ -398,7 +409,7 @@ public final class ThingCommandEnforcementTest {
             // WHEN: Live channel condition is set on an unreadable feature
             final var conditionalRetrieveThing3 = getRetrieveThing(builder ->
                     builder.liveChannelCondition("exists(features/revokedFeature)").channel("live"));
-            enforcerParent.tell(conditionalRetrieveThing3, getRef());
+            supervisor.tell(conditionalRetrieveThing3, getRef());
 
             // THEN: The command is rejected
             expectMsgClass(ThingConditionFailedException.class);
@@ -430,7 +441,7 @@ public final class ThingCommandEnforcementTest {
                     .build();
 
             final ThingCommand<?> modifyCommand = getModifyCommand(dittoHeadersWithLiveChannelCondition);
-            enforcerParent.tell(modifyCommand, getRef());
+            supervisor.tell(modifyCommand, getRef());
 
             expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
             expectAndAnswerSudoRetrievePolicy(policyId, sudoRetrievePolicyResponse);
@@ -464,7 +475,7 @@ public final class ThingCommandEnforcementTest {
 
         new TestKit(system) {{
             final CreateThing createThing = CreateThing.of(thing, policy.toJson(), headers());
-            enforcerParent.tell(createThing, getRef());
+            supervisor.tell(createThing, getRef());
 
             expectAndAnswerSudoRetrieveThing(ThingNotAccessibleException.newBuilder(THING_ID).build());
 
@@ -494,7 +505,7 @@ public final class ThingCommandEnforcementTest {
         new TestKit(system) {{
             final CreateThing createThing = CreateThing.of(thing, null, headers());
             // first Thing command triggers cache load
-            enforcerParent.tell(createThing, getRef());
+            supervisor.tell(createThing, getRef());
 
             expectAndAnswerSudoRetrieveThing(ThingNotAccessibleException.newBuilder(THING_ID).build());
 
@@ -557,11 +568,11 @@ public final class ThingCommandEnforcementTest {
 
         new TestKit(system) {{
             // GIVEN: all commands are sent in one batch
-            enforcerParent.tell(createThing, getRef());
-            enforcerParent.tell(retrieveThing, getRef());
-            enforcerParent.tell(modifyPolicyId, getRef());
-            enforcerParent.tell(modifyAttribute, getRef());
-            enforcerParent.tell(retrieveAttribute, getRef());
+            supervisor.tell(createThing, getRef());
+            supervisor.tell(retrieveThing, getRef());
+            supervisor.tell(modifyPolicyId, getRef());
+            supervisor.tell(modifyAttribute, getRef());
+            supervisor.tell(retrieveAttribute, getRef());
 
             // THEN: expect enforcement start: CreateThing
             expectAndAnswerSudoRetrieveThing(thingNotAccessibleException);
@@ -631,7 +642,7 @@ public final class ThingCommandEnforcementTest {
 
         new TestKit(system) {{
             final CreateThing createThing = CreateThing.of(thing, policy.toJson(), headers());
-            enforcerParent.tell(createThing, getRef());
+            supervisor.tell(createThing, getRef());
 
             expectAndAnswerSudoRetrieveThing(ThingNotAccessibleException.newBuilder(THING_ID).build());
 
@@ -694,7 +705,7 @@ public final class ThingCommandEnforcementTest {
 
         new TestKit(system) {{
             final CreateThing createThing = CreateThing.of(thing, null, policyId.toString(), dittoHeaders);
-            enforcerParent.tell(createThing, getRef());
+            supervisor.tell(createThing, getRef());
 
             expectAndAnswerSudoRetrieveThing(ThingNotAccessibleException.newBuilder(THING_ID).build());
 
@@ -752,7 +763,7 @@ public final class ThingCommandEnforcementTest {
 
         new TestKit(system) {{
             final CreateThing createThing = CreateThing.of(thing, invalidPolicyJson, headers());
-            enforcerParent.tell(createThing, getRef());
+            supervisor.tell(createThing, getRef());
 
             expectAndAnswerSudoRetrieveThing(ThingNotAccessibleException.newBuilder(THING_ID).build());
 
@@ -781,7 +792,7 @@ public final class ThingCommandEnforcementTest {
 
         new TestKit(system) {{
             final CreateThing createThing = CreateThing.of(thing, invalidPolicyJson, headers());
-            enforcerParent.tell(createThing, getRef());
+            supervisor.tell(createThing, getRef());
 
             expectAndAnswerSudoRetrieveThing(ThingNotAccessibleException.newBuilder(THING_ID).build());
 
@@ -799,7 +810,7 @@ public final class ThingCommandEnforcementTest {
 
         new TestKit(system) {{
             final ModifyThing modifyThing = ModifyThing.of(THING_ID, thingInPayload, null, headers());
-            enforcerParent.tell(modifyThing, getRef());
+            supervisor.tell(modifyThing, getRef());
 
             expectAndAnswerSudoRetrieveThing(ThingNotAccessibleException.newBuilder(THING_ID).build());
 
@@ -835,7 +846,7 @@ public final class ThingCommandEnforcementTest {
                     .condition("eq(attributes/testAttr,\"testString\")")
                     .build();
             final ThingCommand<?> modifyCommand = getModifyCommand(dittoHeaders);
-            enforcerParent.tell(modifyCommand, getRef());
+            supervisor.tell(modifyCommand, getRef());
 
             expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
             expectAndAnswerSudoRetrievePolicy(policyId, sudoRetrievePolicyResponse);
@@ -872,7 +883,7 @@ public final class ThingCommandEnforcementTest {
                     .build();
 
             final ThingCommand<?> modifyCommand = getModifyCommand(dittoHeaders);
-            enforcerParent.tell(modifyCommand, getRef());
+            supervisor.tell(modifyCommand, getRef());
 
             thingPersistenceActorProbe.expectNoMessage();
 
@@ -948,14 +959,26 @@ public final class ThingCommandEnforcementTest {
     }
 
     private ActorRef createEnforcerParent() {
-        return system.actorOf(Props.create(MockThingEnforcerParentActor.class,
+        return system.actorOf(Props.create(MockThingPersistenceSupervisor.class,
                 pubSubMediatorProbe.ref(),
                 thingPersistenceActorProbe.ref(),
                 system,
                 ackReceiverActorProbe.ref(),
                 policiesShardRegionProbe.ref(),
                 new TestSetup.DummyLiveSignalPub(pubSubMediatorProbe.ref())
-        ), MockThingEnforcerParentActor.ACTOR_NAME);
+        ), MockThingPersistenceSupervisor.ACTOR_NAME);
+    }
+
+    private TestActorRef<MockThingPersistenceSupervisor> createThingPersistenceSupervisor() {
+        return new TestActorRef<>(system, Props.create(
+                MockThingPersistenceSupervisor.class,
+                pubSubMediatorProbe.ref(),
+                thingPersistenceActorProbe.ref(),
+                system,
+                ackReceiverActorProbe.ref(),
+                policiesShardRegionProbe.ref(),
+                new TestSetup.DummyLiveSignalPub(pubSubMediatorProbe.ref())
+        ), system.guardian(), MockThingPersistenceSupervisor.ACTOR_NAME);
     }
 
     private DittoHeaders headers() {
@@ -1002,72 +1025,72 @@ public final class ThingCommandEnforcementTest {
         return RetrieveThing.of(THING_ID, builder.build());
     }
 
-    private static class MockThingEnforcerParentActor extends AbstractActor {
+    private static class MockThingPersistenceSupervisor extends AbstractPersistenceSupervisor<ThingId> {
 
         private final DiagnosticLoggingAdapter log = Logging.apply(this);
 
-        static final String ACTOR_NAME = "mockThingEnforcerParentActor";
-        static final String THING_ENFORCER_ACTOR_NAME = "thingEnforcerActor";
+        static final String ACTOR_NAME = "mockThingPersistenceSupervisor";
 
-        private final ActorRef thingPersistenceActor;
-        private final ActorRef thingEnforcerActor;
+        private final ActorRef pubSubMediator;
+        private final ThingCommandEnforcement thingCommandEnforcement;
 
-        private MockThingEnforcerParentActor(final ActorRef pubSubMediator,
+        private MockThingPersistenceSupervisor(final ActorRef pubSubMediator,
                 final ActorRef thingPersistenceActor,
                 final ActorSystem actorSystem,
                 final ActorRef ackReceiverActor,
                 final ActorRef policiesShardRegion,
                 final LiveSignalPub liveSignalPub) {
-            this.thingPersistenceActor = thingPersistenceActor;
-            thingEnforcerActor = getContext().actorOf(ThingEnforcerActor.props(
-                    THING_ID,
-                    new ThingCommandEnforcement(actorSystem,
-                            ackReceiverActor,
-                            policiesShardRegion,
-                            DefaultCreationRestrictionEnforcer.of(
-                                    DefaultEntityCreationConfig.of(ConfigFactory.empty())),
-                            DefaultEnforcementConfig.of(ConfigFactory.empty()),
-                            CompletableFuture::completedFuture,
-                            liveSignalPub
-                    ),
-                    pubSubMediator,
-                    null
-            ), THING_ENFORCER_ACTOR_NAME);
+            super(thingPersistenceActor, null, null, CompletableFuture::completedStage);
+            this.pubSubMediator = pubSubMediator;
+            thingCommandEnforcement = new ThingCommandEnforcement(actorSystem,
+                    ackReceiverActor,
+                    policiesShardRegion,
+                    DefaultCreationRestrictionEnforcer.of(
+                            DefaultEntityCreationConfig.of(ConfigFactory.empty())),
+                    DefaultEnforcementConfig.of(ConfigFactory.empty()),
+                    CompletableFuture::completedStage,
+                    liveSignalPub
+            );
         }
 
         @Override
-        public AbstractActor.Receive createReceive() {
-            return ReceiveBuilder.create()
-                    .match(PolicyTag.class, policyTag -> thingEnforcerActor.forward(policyTag, getContext()))
-                    .match(ThingSudoCommand.class, sudoCommand ->
-                            thingPersistenceActor.forward(sudoCommand, getContext()))
-                    .match(ThingCommand.class, command -> {
-                        final ActorRef sender = getSender();
-                        Patterns.ask(thingEnforcerActor, command, java.time.Duration.ofSeconds(2))
-                                .whenComplete((enResponse, enThrowable) -> {
-                                    if (enResponse instanceof ThingCommand<?> enforcedCommand) {
-                                        Patterns.ask(thingPersistenceActor, enforcedCommand,
-                                                        java.time.Duration.ofSeconds(2))
-                                                .whenComplete((paResponse, paThrowable) -> {
-                                                    if (paResponse instanceof ThingCommandResponse<?> commandResponse) {
-                                                        thingEnforcerActor.tell(commandResponse, sender);
-                                                    } else if (paResponse instanceof DittoRuntimeException dre) {
-                                                        sender.tell(dre, thingPersistenceActor);
-                                                    } else if (null != paThrowable) {
-                                                        sender.tell(paThrowable, thingPersistenceActor);
-                                                    } else {
-                                                        LOGGER.error("Received non expected response: {}", paResponse);
-                                                    }
-                                                });
-                                    } else if (enResponse instanceof DittoRuntimeException dre) {
-                                        sender.tell(dre, thingPersistenceActor);
-                                    } else if (null != enThrowable) {
-                                        sender.tell(enThrowable, thingPersistenceActor);
-                                    }
-                                });
-                    })
-                    .matchAny(msg -> log.warning("Unhandled message: <{}>", msg))
-                    .build();
+        protected ThingId getEntityId() throws Exception {
+            return THING_ID;
         }
+
+        @Override
+        protected Props getPersistenceActorProps(final ThingId entityId) {
+            throw new IllegalStateException("This method should never be invoked for the Mock");
+        }
+
+        @Override
+        protected Props getPersistenceEnforcerProps(final ThingId entityId) {
+            return ThingEnforcerActor.props(
+                    entityId,
+                    thingCommandEnforcement,
+                    pubSubMediator,
+                    null
+            );
+        }
+
+        @Override
+        protected ExponentialBackOffConfig getExponentialBackOffConfig() {
+            final DittoThingsConfig thingsConfig = DittoThingsConfig.of(
+                    DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config())
+            );
+            return thingsConfig.getThingConfig().getSupervisorConfig().getExponentialBackOffConfig();
+        }
+
+        @Override
+        protected ShutdownBehaviour getShutdownBehaviour(final ThingId entityId) {
+            return ShutdownBehaviour.fromId(entityId, pubSubMediator, getSelf());
+        }
+
+        @Override
+        protected DittoRuntimeExceptionBuilder<?> getUnavailableExceptionBuilder(@Nullable final ThingId entityId) {
+            return ThingUnavailableException.newBuilder(
+                    Objects.requireNonNullElseGet(entityId, () -> ThingId.of("UNKNOWN:ID")));
+        }
+
     }
 }

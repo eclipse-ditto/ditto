@@ -86,7 +86,16 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId> extends 
 
     protected AbstractPersistenceSupervisor(@Nullable final BlockedNamespaces blockedNamespaces,
             final PreEnforcer preEnforcer) {
+        this(null, null, blockedNamespaces, preEnforcer);
+    }
 
+    protected AbstractPersistenceSupervisor(@Nullable final ActorRef persistenceActorChild,
+            @Nullable final ActorRef enforcerChild,
+            @Nullable final BlockedNamespaces blockedNamespaces,
+            final PreEnforcer preEnforcer) {
+
+        this.persistenceActorChild = persistenceActorChild;
+        this.enforcerChild = enforcerChild;
         this.blockedNamespaces = blockedNamespaces;
         this.preEnforcer = preEnforcer;
         exponentialBackOffConfig = getExponentialBackOffConfig();

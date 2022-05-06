@@ -240,8 +240,6 @@ public final class ThingCommandEnforcement
     public CompletionStage<ThingCommand<?>> authorizeSignalWithMissingEnforcer(final ThingCommand<?> signal) {
 
         // Without prior enforcer in cache, enforce CreateThing by self.
-        // DO NOT use Contextual.askFuture to handle the ask-steps of a CreateThing command! Otherwise
-        // the query- and modify-commands sent immediately after may be processed before the thing is created.
         return enforceCreateThingBySelf(signal)
                 .thenCompose(this::handleInitialCreateThing)
                 .exceptionally(throwable -> {
