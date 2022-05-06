@@ -14,6 +14,7 @@ package org.eclipse.ditto.thingsearch.model;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
+import java.time.Instant;
 import java.util.Iterator;
 import java.util.Objects;
 import java.util.Optional;
@@ -38,18 +39,16 @@ import org.eclipse.ditto.json.JsonValue;
 final class ImmutableSearchResult implements SearchResult {
 
     private final JsonArray items;
-
-    @Nullable
-    private final Long nextPageOffset;
-
-    @Nullable
-    private final String cursor;
+    @Nullable private final Long nextPageOffset;
+    @Nullable private final String cursor;
+    @Nullable private final Instant lastModified;
 
     private ImmutableSearchResult(final JsonArray items, @Nullable final Long nextPageOffset,
-            @Nullable final String cursor) {
+            @Nullable final String cursor, @Nullable final Instant lastModified) {
         this.items = checkNotNull(items, "items");
         this.nextPageOffset = nextPageOffset;
         this.cursor = cursor;
+        this.lastModified = lastModified;
     }
 
     /**
@@ -58,7 +57,7 @@ final class ImmutableSearchResult implements SearchResult {
      * @return instance.
      */
     public static SearchResult empty() {
-        return of(JsonFactory.newArray(), NO_NEXT_PAGE, null);
+        return of(JsonFactory.newArray(), NO_NEXT_PAGE, null, null);
     }
 
     /**
@@ -72,9 +71,10 @@ final class ImmutableSearchResult implements SearchResult {
      */
     public static ImmutableSearchResult of(final JsonArray items,
             @Nullable final Long nextPageOffset,
-            @Nullable final String cursor) {
+            @Nullable final String cursor,
+            @Nullable final Instant lastModified) {
 
-        return new ImmutableSearchResult(items, nextPageOffset, cursor);
+        return new ImmutableSearchResult(items, nextPageOffset, cursor, lastModified);
     }
 
     /**
@@ -90,8 +90,9 @@ final class ImmutableSearchResult implements SearchResult {
         final JsonArray extractedItems = jsonObject.getValueOrThrow(JsonFields.ITEMS);
         final Long extractedNextPageOffset = jsonObject.getValue(JsonFields.NEXT_PAGE_OFFSET).orElse(null);
         final String extractedCursor = jsonObject.getValue(JsonFields.CURSOR).orElse(null);
+        final Instant lastModified = jsonObject.getValue(JsonFields.LAST_MODIFIED).map(Instant::parse).orElse(null);
 
-        return of(extractedItems, extractedNextPageOffset, extractedCursor);
+        return of(extractedItems, extractedNextPageOffset, extractedCursor, lastModified);
     }
 
     @Override
@@ -107,6 +108,11 @@ final class ImmutableSearchResult implements SearchResult {
     @Override
     public Optional<String> getCursor() {
         return Optional.ofNullable(cursor);
+    }
+
+    @Override
+    public Optional<Instant> getLastModified() {
+        return Optional.ofNullable(lastModified);
     }
 
     @Override
@@ -142,6 +148,8 @@ final class ImmutableSearchResult implements SearchResult {
         builder.set(JsonFields.ITEMS, items, predicate);
         getNextPageOffset().ifPresent(offset -> builder.set(JsonFields.NEXT_PAGE_OFFSET, offset, predicate));
         getCursor().ifPresent(cur -> builder.set(JsonFields.CURSOR, cur, predicate));
+        getLastModified().ifPresent(lastModified ->
+                builder.set(JsonFields.LAST_MODIFIED, lastModified.toString(), predicate));
         return builder.build();
     }
 
@@ -156,19 +164,22 @@ final class ImmutableSearchResult implements SearchResult {
         final ImmutableSearchResult that = (ImmutableSearchResult) o;
         return Objects.equals(nextPageOffset, that.nextPageOffset) &&
                 Objects.equals(cursor, that.cursor) &&
-                Objects.equals(items, that.items);
+                Objects.equals(items, that.items) &&
+                Objects.equals(lastModified, that.lastModified);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(items, nextPageOffset, cursor);
+        return Objects.hash(items, nextPageOffset, cursor, lastModified);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [items=" + items +
                 ", nextPageOffset=" + nextPageOffset +
-                ", cursor=" + cursor + "]";
+                ", cursor=" + cursor +
+                ", lastModified=" + lastModified +
+                "]";
     }
 
 }

@@ -35,7 +35,7 @@ public final class MongoSortKeyMappingFunction implements Function<String[], Str
     @Override
     public String apply(final String[] values) {
         return Arrays.stream(values)
-                .map(KEY_NAME_REVISER::apply)
+                .map(KEY_NAME_REVISER)
                 .map(s -> s.replace('/', '.'))
                 .collect(Collectors.joining(PersistenceConstants.DOT));
     }
