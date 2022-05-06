@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.thingsearch.model;
 
+import java.time.Instant;
 import java.util.Optional;
 import java.util.stream.Stream;
 
@@ -80,6 +81,14 @@ public interface SearchResult extends Iterable<JsonValue>, Jsonifiable.WithField
      * @return the cursor to the next page.
      */
     Optional<String> getCursor();
+
+    /**
+     * Get the timestamp of the last modification of the search result.
+     *
+     * @return the timestamp.
+     * @since 2.5.0
+     */
+    Optional<Instant> getLastModified();
 
     /**
      * Returns {@code true} if there is a next page and thus {@link #getNextPageOffset()} does not equal
@@ -161,6 +170,9 @@ public interface SearchResult extends Iterable<JsonValue>, Jsonifiable.WithField
          */
         public static final JsonFieldDefinition<String> CURSOR =
                 JsonFactory.newStringFieldDefinition("cursor", FieldType.REGULAR, JsonSchemaVersion.V_2);
+
+        public static final JsonFieldDefinition<String> LAST_MODIFIED =
+                JsonFactory.newStringFieldDefinition("lastModified", FieldType.SPECIAL, JsonSchemaVersion.V_2);
 
         private JsonFields() {
             throw new AssertionError();

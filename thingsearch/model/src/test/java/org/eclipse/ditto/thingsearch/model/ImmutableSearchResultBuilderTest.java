@@ -40,7 +40,7 @@ public final class ImmutableSearchResultBuilderTest {
     public void copySearchResultWithBuilder() {
         final JsonArray items = JsonFactory.newArrayBuilder().add("foo", "bar", "baz").build();
         final long offset = 25;
-        final SearchResult searchResult = SearchModelFactory.newSearchResult(items, offset);
+        final SearchResult searchResult = SearchModelFactory.newSearchResult(items, offset, null);
 
         final SearchResultBuilder underTest = ImmutableSearchResultBuilder.of(searchResult);
 
@@ -51,7 +51,7 @@ public final class ImmutableSearchResultBuilderTest {
     public void copyAndModifyExistingSearchResultWithBuilder() {
         final JsonArray items = JsonFactory.newArrayBuilder().add("foo", "bar", "baz").build();
         final long offset = 25;
-        final SearchResult searchResult = SearchModelFactory.newSearchResult(items, offset);
+        final SearchResult searchResult = SearchModelFactory.newSearchResult(items, offset, null);
 
         final SearchResult newSearchResult = ImmutableSearchResultBuilder.of(searchResult)
                 .nextPageOffset(SearchResult.NO_NEXT_PAGE)
