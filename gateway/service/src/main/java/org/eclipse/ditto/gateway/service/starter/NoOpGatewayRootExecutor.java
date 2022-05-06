@@ -18,17 +18,18 @@ import akka.actor.ActorSystem;
 /**
  * Gateway root executor that does purposefully nothing.
  */
-public class NoOpGatewayRootExecutor extends CustomGatewayRootExecutor{
+public final class NoOpGatewayRootExecutor implements CustomGatewayRootExecutor {
 
     /**
      * @param actorSystem the actor system in which to load the extension.
      */
-    protected NoOpGatewayRootExecutor(final ActorSystem actorSystem) {
-        super(actorSystem);
+    public NoOpGatewayRootExecutor(final ActorSystem actorSystem) {
+        //No-Op because extensions need a constructor accepting an actorSystem
     }
 
     @Override
     public void execute(final ActorContext actorContext) {
         // Do nothing.
     }
+
 }

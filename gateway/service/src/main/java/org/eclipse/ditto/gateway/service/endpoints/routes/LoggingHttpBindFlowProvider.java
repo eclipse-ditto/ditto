@@ -23,15 +23,18 @@ import akka.stream.javadsl.Flow;
 
 /**
  * Default HTTP bind flow provider, which logs the requests.
+ *
  * @since 3.0.0
  */
-public class LoggingHttpBindFlowProvider extends HttpBindFlowProvider {
+public final class LoggingHttpBindFlowProvider implements HttpBindFlowProvider {
+
+    private final ActorSystem actorSystem;
 
     /**
      * @param actorSystem the actor system in which to load the extension.
      */
-    protected LoggingHttpBindFlowProvider(final ActorSystem actorSystem) {
-        super(actorSystem);
+    public LoggingHttpBindFlowProvider(final ActorSystem actorSystem) {
+        this.actorSystem = actorSystem;
     }
 
     @Override

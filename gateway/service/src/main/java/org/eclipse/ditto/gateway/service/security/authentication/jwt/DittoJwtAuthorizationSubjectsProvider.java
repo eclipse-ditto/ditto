@@ -22,6 +22,9 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
 import org.eclipse.ditto.gateway.api.GatewayJwtIssuerNotSupportedException;
+import org.eclipse.ditto.gateway.service.util.config.DittoGatewayConfig;
+import org.eclipse.ditto.gateway.service.util.config.security.OAuthConfig;
+import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.jwt.model.JsonWebToken;
 import org.eclipse.ditto.placeholders.ExpressionResolver;
 import org.eclipse.ditto.placeholders.PipelineElement;
@@ -34,20 +37,22 @@ import akka.actor.ActorSystem;
  * Implementation of {@link JwtAuthorizationSubjectsProvider} for Google JWTs.
  */
 @Immutable
-public final class DittoJwtAuthorizationSubjectsProvider extends JwtAuthorizationSubjectsProvider {
+public final class DittoJwtAuthorizationSubjectsProvider implements JwtAuthorizationSubjectsProvider {
 
     private final JwtSubjectIssuersConfig jwtSubjectIssuersConfig;
 
     @SuppressWarnings("unused") //Loaded via reflection by AkkaExtension.
     public DittoJwtAuthorizationSubjectsProvider(final ActorSystem actorSystem) {
-        super(actorSystem);
-        jwtSubjectIssuersConfig = JwtSubjectIssuersConfig.fromOAuthConfig(getOAuthConfig(actorSystem));
+        final OAuthConfig oAuthConfig =
+                DittoGatewayConfig.of(DefaultScopedConfig.dittoScoped(actorSystem.settings().config()))
+                        .getAuthenticationConfig()
+                        .getOAuthConfig();
+        jwtSubjectIssuersConfig = JwtSubjectIssuersConfig.fromOAuthConfig(oAuthConfig);
     }
 
     private DittoJwtAuthorizationSubjectsProvider(final ActorSystem actorSystem,
             final JwtSubjectIssuersConfig jwtSubjectIssuersConfig) {
 
-        super(actorSystem);
         this.jwtSubjectIssuersConfig = checkNotNull(jwtSubjectIssuersConfig);
     }
 

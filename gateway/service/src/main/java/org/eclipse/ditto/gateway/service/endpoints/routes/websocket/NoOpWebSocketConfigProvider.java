@@ -20,14 +20,14 @@ import akka.actor.ActorSystem;
 /**
  * Null implementation for {@link WebSocketConfigProvider} which does nothing.
  */
-public final class NoOpWebSocketConfigProvider extends WebSocketConfigProvider {
+public final class NoOpWebSocketConfigProvider implements WebSocketConfigProvider {
 
     /**
      * @param actorSystem the actor system in which to load the extension.
      */
     @SuppressWarnings("unused")
     public NoOpWebSocketConfigProvider(final ActorSystem actorSystem) {
-        super(actorSystem);
+        //No-Op because extensions need a constructor accepting an actorSystem
     }
 
     @Override

@@ -23,13 +23,13 @@ import akka.http.javadsl.server.RequestContext;
 /**
  * Null implementation for {@link SseAuthorizationEnforcer}.
  */
-public final class NoOpSseAuthorizationEnforcer extends SseAuthorizationEnforcer {
+public final class NoOpSseAuthorizationEnforcer implements SseAuthorizationEnforcer {
 
     /**
      * @param actorSystem the actor system in which to load the extension.
      */
     public NoOpSseAuthorizationEnforcer(final ActorSystem actorSystem) {
-        super(actorSystem);
+        //No-Op because extensions need a constructor accepting an actorSystem
     }
 
     @Override

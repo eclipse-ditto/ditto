@@ -17,24 +17,19 @@ import akka.actor.ActorSystem;
 import akka.http.javadsl.model.HttpRequest;
 import akka.http.javadsl.model.sse.ServerSentEvent;
 import akka.stream.javadsl.Flow;
-import akka.stream.javadsl.Sink;
 
 /**
  * Sniffer for Server Sent Events that does purposefully nothing.
  */
-public class NoOpSseEventSniffer extends SseEventSniffer {
+public final class NoOpSseEventSniffer implements SseEventSniffer {
 
     public NoOpSseEventSniffer(final ActorSystem actorSystem) {
-        super(actorSystem);
-    }
-
-    @Override
-    public Sink<ServerSentEvent, ?> createSink(final HttpRequest request) {
-        return Sink.ignore();
+        //No-Op because extensions need a constructor accepting an actorSystem
     }
 
     @Override
     public Flow<ServerSentEvent, ServerSentEvent, NotUsed> toAsyncFlow(final HttpRequest request) {
         return Flow.create();
     }
+
 }

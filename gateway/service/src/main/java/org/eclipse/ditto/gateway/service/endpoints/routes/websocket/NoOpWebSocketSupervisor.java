@@ -20,13 +20,13 @@ import akka.actor.ActorSystem;
 /**
  * Null implementation for {@link WebSocketSupervisor} which does nothing.
  */
-public final class NoOpWebSocketSupervisor extends WebSocketSupervisor {
+public final class NoOpWebSocketSupervisor implements WebSocketSupervisor {
 
     /**
      * @param actorSystem the actor system in which to load the extension.
      */
     public NoOpWebSocketSupervisor(final ActorSystem actorSystem) {
-        super(actorSystem);
+        //No-Op because extensions need a constructor accepting an actorSystem
     }
 
     @Override

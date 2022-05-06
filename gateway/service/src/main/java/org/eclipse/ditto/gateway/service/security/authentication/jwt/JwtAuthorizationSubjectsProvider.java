@@ -19,7 +19,6 @@ import java.util.List;
 import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
 import org.eclipse.ditto.base.service.DittoExtensionPoint;
 import org.eclipse.ditto.gateway.service.util.config.DittoGatewayConfig;
-import org.eclipse.ditto.gateway.service.util.config.security.OAuthConfig;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.jwt.model.JsonWebToken;
 
@@ -28,12 +27,8 @@ import akka.actor.ActorSystem;
 /**
  * A provider for {@link AuthorizationSubject}s contained in a {@link JsonWebToken}.
  */
-public abstract class JwtAuthorizationSubjectsProvider extends DittoExtensionPoint {
+public interface JwtAuthorizationSubjectsProvider extends DittoExtensionPoint {
 
-
-    protected JwtAuthorizationSubjectsProvider(final ActorSystem actorSystem) {
-        super(actorSystem);
-    }
 
     /**
      * Returns the {@code AuthorizationSubjects} of the given {@code JsonWebToken}.
@@ -42,7 +37,7 @@ public abstract class JwtAuthorizationSubjectsProvider extends DittoExtensionPoi
      * @return the authorization subjects.
      * @throws NullPointerException if {@code jsonWebToken} is {@code null}.
      */
-    public abstract List<AuthorizationSubject> getAuthorizationSubjects(JsonWebToken jsonWebToken);
+    List<AuthorizationSubject> getAuthorizationSubjects(JsonWebToken jsonWebToken);
 
     /**
      * Loads the implementation of {@code JwtAuthorizationSubjectsProvider} which is configured for the {@code ActorSystem}.
@@ -52,17 +47,14 @@ public abstract class JwtAuthorizationSubjectsProvider extends DittoExtensionPoi
      * @throws NullPointerException if {@code actorSystem} is {@code null}.
      * @since 3.0.0
      */
-    public static JwtAuthorizationSubjectsProvider get(final ActorSystem actorSystem) {
+    static JwtAuthorizationSubjectsProvider get(final ActorSystem actorSystem) {
         checkNotNull(actorSystem, "actorSystem");
         final var implementation =
-                getOAuthConfig(actorSystem).getJwtAuthorizationSubjectsProvider();
+                DittoGatewayConfig.of(DefaultScopedConfig.dittoScoped(actorSystem.settings().config()))
+                        .getAuthenticationConfig()
+                        .getOAuthConfig()
+                        .getJwtAuthorizationSubjectsProvider();
         return new ExtensionId<>(implementation, JwtAuthorizationSubjectsProvider.class).get(actorSystem);
-    }
-
-    protected static OAuthConfig getOAuthConfig(final ActorSystem actorSystem) {
-        return DittoGatewayConfig.of(DefaultScopedConfig.dittoScoped(
-                        actorSystem.settings().config())).getAuthenticationConfig()
-                .getOAuthConfig();
     }
 
 }

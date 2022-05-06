@@ -22,14 +22,14 @@ import akka.actor.ActorSystem;
 /**
  * Null implementation for {@link WebSocketAuthorizationEnforcer} which does nothing.
  */
-public final class NoOpWebSocketAuthorizationEnforcer extends WebSocketAuthorizationEnforcer {
+public final class NoOpWebSocketAuthorizationEnforcer implements WebSocketAuthorizationEnforcer {
 
     /**
      * @param actorSystem the actor system in which to load the extension.
      */
     @SuppressWarnings("unused")
     public NoOpWebSocketAuthorizationEnforcer(final ActorSystem actorSystem) {
-        super(actorSystem);
+        //No-Op because extensions need a constructor accepting an actorSystem
     }
 
     @Override

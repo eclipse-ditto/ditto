@@ -25,32 +25,21 @@ import akka.actor.ActorSystem;
 /**
  * Factory for authentication directives.
  */
-public abstract class GatewayAuthenticationDirectiveFactory extends DittoExtensionPoint {
-
-    protected static final String AUTHENTICATION_DISPATCHER_NAME = "authentication-dispatcher";
-
-    /**
-     * @param actorSystem the actor system in which to load the extension.
-     */
-    protected GatewayAuthenticationDirectiveFactory(final ActorSystem actorSystem) {
-        super(actorSystem);
-    }
+public interface GatewayAuthenticationDirectiveFactory extends DittoExtensionPoint {
 
     /**
      * Builds the {@link GatewayAuthenticationDirective authentication directive} that should be used for HTTP API.
      *
      * @return The built {@link GatewayAuthenticationDirective authentication directive}.
      */
-    public abstract GatewayAuthenticationDirective buildHttpAuthentication(
-            JwtAuthenticationFactory jwtAuthenticationFactory);
+    GatewayAuthenticationDirective buildHttpAuthentication(JwtAuthenticationFactory jwtAuthenticationFactory);
 
     /**
      * Builds the {@link GatewayAuthenticationDirective authentication directive} that should be used for WebSocket API.
      *
      * @return The built {@link GatewayAuthenticationDirective authentication directive}.
      */
-    public abstract GatewayAuthenticationDirective buildWsAuthentication(
-            JwtAuthenticationFactory jwtAuthenticationFactory);
+    GatewayAuthenticationDirective buildWsAuthentication(JwtAuthenticationFactory jwtAuthenticationFactory);
 
     /**
      * Loads the implementation of {@code GatewayAuthenticationDirectiveFactory} which is configured for the
@@ -61,15 +50,13 @@ public abstract class GatewayAuthenticationDirectiveFactory extends DittoExtensi
      * @throws NullPointerException if {@code actorSystem} is {@code null}.
      * @since 3.0.0
      */
-    public static GatewayAuthenticationDirectiveFactory get(final ActorSystem actorSystem) {
+    static GatewayAuthenticationDirectiveFactory get(final ActorSystem actorSystem) {
         checkNotNull(actorSystem, "actorSystem");
-        final var implementation = getAuthConfig(actorSystem).getGatewayAuthenticationDirectiveFactory();
-
+        final AuthenticationConfig authenticationConfig =
+                DittoGatewayConfig.of(DefaultScopedConfig.dittoScoped(actorSystem.settings().config()))
+                        .getAuthenticationConfig();
+        final var implementation = authenticationConfig.getGatewayAuthenticationDirectiveFactory();
         return new ExtensionId<>(implementation, GatewayAuthenticationDirectiveFactory.class).get(actorSystem);
     }
 
-    protected static AuthenticationConfig getAuthConfig(final ActorSystem actorSystem) {
-        return DittoGatewayConfig.of(DefaultScopedConfig.dittoScoped(
-                actorSystem.settings().config())).getAuthenticationConfig();
-    }
 }

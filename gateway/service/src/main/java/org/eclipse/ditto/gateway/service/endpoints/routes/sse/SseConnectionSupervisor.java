@@ -24,14 +24,7 @@ import akka.actor.ActorSystem;
 /**
  * Provides the means to supervise a particular SSE connection.
  */
-public abstract class SseConnectionSupervisor extends DittoExtensionPoint implements StreamSupervisor{
-
-    /**
-     * @param actorSystem the actor system in which to load the extension.
-     */
-    protected SseConnectionSupervisor(final ActorSystem actorSystem) {
-        super(actorSystem);
-    }
+public interface SseConnectionSupervisor extends DittoExtensionPoint, StreamSupervisor{
 
     /**
      * Loads the implementation of {@code SseConnectionSupervisor} which is configured for the
@@ -42,7 +35,7 @@ public abstract class SseConnectionSupervisor extends DittoExtensionPoint implem
      * @throws NullPointerException if {@code actorSystem} is {@code null}.
      * @since 3.0.0
      */
-    public static SseConnectionSupervisor get(final ActorSystem actorSystem) {
+    static SseConnectionSupervisor get(final ActorSystem actorSystem) {
         checkNotNull(actorSystem, "actorSystem");
         final var implementation = DittoGatewayConfig.of(DefaultScopedConfig.dittoScoped(
                 actorSystem.settings().config())).getStreamingConfig().getSseConfig().getConnectionSupervisor();

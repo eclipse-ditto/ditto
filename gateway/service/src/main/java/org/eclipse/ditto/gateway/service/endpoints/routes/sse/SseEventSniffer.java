@@ -30,22 +30,7 @@ import akka.stream.javadsl.Sink;
 /**
  * Functional interface to sniff events over or SSE.
  */
-public abstract class SseEventSniffer extends DittoExtensionPoint {
-
-    /**
-     * @param actorSystem the actor system in which to load the extension.
-     */
-    protected SseEventSniffer(final ActorSystem actorSystem) {
-        super(actorSystem);
-    }
-
-    /**
-     * Create a receiver for sniffed events.
-     *
-     * @param request the HTTP request that started the event stream.
-     * @return sink to send events into.
-     */
-    protected abstract Sink<ServerSentEvent, ?> createSink(HttpRequest request);
+public interface SseEventSniffer extends DittoExtensionPoint {
 
     /**
      * Create an async flow for event sniffing.
@@ -53,13 +38,7 @@ public abstract class SseEventSniffer extends DittoExtensionPoint {
      * @param request the HTTP request that started the event stream.
      * @return flow to pass events through with a wiretap attached over an async barrier to the sink for sniffed events.
      */
-    protected Flow<ServerSentEvent, ServerSentEvent, NotUsed> toAsyncFlow(final HttpRequest request) {
-        return Flow.<ServerSentEvent>create().wireTap(
-                Flow.<ServerSentEvent>create()
-                        .async()
-                        .to(Sink.lazyCompletionStageSink(() -> CompletableFuture.completedFuture(
-                                createSink(request)))));
-    }
+    Flow<ServerSentEvent, ServerSentEvent, NotUsed> toAsyncFlow(final HttpRequest request);
 
     /**
      * Loads the implementation of {@code SseEventSniffer} which is configured for the
@@ -70,7 +49,7 @@ public abstract class SseEventSniffer extends DittoExtensionPoint {
      * @throws NullPointerException if {@code actorSystem} is {@code null}.
      * @since 3.0.0
      */
-    public static SseEventSniffer get(final ActorSystem actorSystem) {
+    static SseEventSniffer get(final ActorSystem actorSystem) {
         checkNotNull(actorSystem, "actorSystem");
         final var implementation = DittoGatewayConfig.of(DefaultScopedConfig.dittoScoped(
                 actorSystem.settings().config())).getStreamingConfig().getSseConfig().getEventSniffer();

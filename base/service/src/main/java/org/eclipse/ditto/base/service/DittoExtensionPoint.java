@@ -27,21 +27,12 @@ import akka.actor.Extension;
  *
  * @since 3.0.0
  */
-public abstract class DittoExtensionPoint implements Extension {
-
-    protected final ActorSystem actorSystem;
-
-    /**
-     * @param actorSystem the actor system in which to load the extension.
-     */
-    protected DittoExtensionPoint(final ActorSystem actorSystem) {
-        this.actorSystem = actorSystem;
-    }
+public interface DittoExtensionPoint extends Extension {
 
     /**
      * @param <T> the class of the extension for which an implementation should be loaded.
      */
-    protected static final class ExtensionId<T extends Extension> extends AbstractExtensionId<T> {
+    final class ExtensionId<T extends Extension> extends AbstractExtensionId<T> {
 
         private final String implementation;
         private final Class<T> parentClass;

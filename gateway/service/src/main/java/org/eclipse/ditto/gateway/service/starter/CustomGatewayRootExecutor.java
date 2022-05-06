@@ -26,20 +26,14 @@ import akka.actor.ActorSystem;
  *
  * @since 3.0.0
  */
-public abstract class CustomGatewayRootExecutor extends DittoExtensionPoint {
-
-    /**
-     * @param actorSystem the actor system in which to load the extension.
-     */
-    protected CustomGatewayRootExecutor(final ActorSystem actorSystem) {
-        super(actorSystem);
-    }
+public interface CustomGatewayRootExecutor extends DittoExtensionPoint {
 
     /**
      * Execute custom custom code.
+     *
      * @param actorContext the context of the {@code GatewayRootActor}.
      */
-    public abstract void execute(ActorContext actorContext);
+    void execute(ActorContext actorContext);
 
     /**
      * Loads the implementation of {@code CustomGatewayRootExecutor} which is configured for the
@@ -49,10 +43,11 @@ public abstract class CustomGatewayRootExecutor extends DittoExtensionPoint {
      * @return the {@code CustomGatewayRootExecutor} implementation.
      * @throws NullPointerException if {@code actorSystem} is {@code null}.
      */
-    public static CustomGatewayRootExecutor get(final ActorSystem actorSystem) {
+    static CustomGatewayRootExecutor get(final ActorSystem actorSystem) {
         checkNotNull(actorSystem, "actorSystem");
-        final var implementation = DittoGatewayConfig.of(DefaultScopedConfig.dittoScoped(
-                actorSystem.settings().config())).getCustomRootExecutor();
+        final var implementation =
+                DittoGatewayConfig.of(DefaultScopedConfig.dittoScoped(actorSystem.settings().config()))
+                        .getCustomRootExecutor();
 
         return new ExtensionId<>(implementation, CustomGatewayRootExecutor.class).get(actorSystem);
     }

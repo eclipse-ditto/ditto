@@ -29,21 +29,14 @@ import akka.stream.javadsl.Flow;
  * Extension to add a custom bind flow for HTTP requests.
  * @since 3.0.0
  */
-public abstract class HttpBindFlowProvider extends DittoExtensionPoint {
-
-    /**
-     * @param actorSystem the actor system in which to load the extension.
-     */
-    protected HttpBindFlowProvider(final ActorSystem actorSystem) {
-        super(actorSystem);
-    }
+public interface HttpBindFlowProvider extends DittoExtensionPoint {
 
     /**
      * Create a bind flow for HTTP requests.
      *
      * @return flow which processes HTTP requests.
      */
-    public abstract Flow<HttpRequest, HttpResponse, NotUsed> getFlow(final Route innerRoute);
+    Flow<HttpRequest, HttpResponse, NotUsed> getFlow(final Route innerRoute);
 
     /**
      * Loads the implementation of {@code HttpBindFlowProvider} which is configured for the
@@ -53,7 +46,7 @@ public abstract class HttpBindFlowProvider extends DittoExtensionPoint {
      * @return the {@code HttpBindFlowProvider} implementation.
      * @throws NullPointerException if {@code actorSystem} is {@code null}.
      */
-    public static HttpBindFlowProvider get(final ActorSystem actorSystem) {
+    static HttpBindFlowProvider get(final ActorSystem actorSystem) {
         checkNotNull(actorSystem, "actorSystem");
         final var implementation = DittoGatewayConfig.of(DefaultScopedConfig.dittoScoped(
                 actorSystem.settings().config())).getHttpConfig().getBindFlowProvider();

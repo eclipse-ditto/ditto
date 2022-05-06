@@ -24,14 +24,7 @@ import akka.actor.ActorSystem;
 /**
  * Provides the means to supervise a particular WebSocket stream.
  */
-public abstract class WebSocketSupervisor extends DittoExtensionPoint implements StreamSupervisor {
-
-    /**
-     * @param actorSystem the actor system in which to load the extension.
-     */
-    protected WebSocketSupervisor(final ActorSystem actorSystem) {
-        super(actorSystem);
-    }
+public interface WebSocketSupervisor extends DittoExtensionPoint, StreamSupervisor {
 
     /**
      * Loads the implementation of {@code WebSocketSupervisor} which is configured for the
@@ -42,7 +35,7 @@ public abstract class WebSocketSupervisor extends DittoExtensionPoint implements
      * @throws NullPointerException if {@code actorSystem} is {@code null}.
      * @since 3.0.0
      */
-    public static WebSocketSupervisor get(final ActorSystem actorSystem) {
+    static WebSocketSupervisor get(final ActorSystem actorSystem) {
         checkNotNull(actorSystem, "actorSystem");
         final var implementation = DittoGatewayConfig.of(DefaultScopedConfig.dittoScoped(
                 actorSystem.settings().config())).getStreamingConfig().getWebsocketConfig().getConnectionSupervisor();

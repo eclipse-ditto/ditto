@@ -29,14 +29,7 @@ import akka.http.javadsl.server.RequestContext;
  * If the authorization check is successful nothing will happen, else a
  * {@link org.eclipse.ditto.base.model.exceptions.DittoRuntimeException DittoRuntimeException} is thrown.
  */
-public abstract class SseAuthorizationEnforcer extends DittoExtensionPoint {
-
-    /**
-     * @param actorSystem the actor system in which to load the extension.
-     */
-    protected SseAuthorizationEnforcer(final ActorSystem actorSystem) {
-        super(actorSystem);
-    }
+public interface SseAuthorizationEnforcer extends DittoExtensionPoint {
 
     /**
      * Ensures that the establishment of a SSE connection is authorized for the given arguments.
@@ -46,8 +39,7 @@ public abstract class SseAuthorizationEnforcer extends DittoExtensionPoint {
      * @return a successful future if validation succeeds or a failed future if validation fails.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    protected abstract CompletionStage<Void> checkAuthorization(RequestContext requestContext,
-            DittoHeaders dittoHeaders);
+    CompletionStage<Void> checkAuthorization(RequestContext requestContext, DittoHeaders dittoHeaders);
 
     /**
      * Loads the implementation of {@code SseAuthorizationEnforcer} which is configured for the
@@ -58,7 +50,7 @@ public abstract class SseAuthorizationEnforcer extends DittoExtensionPoint {
      * @throws NullPointerException if {@code actorSystem} is {@code null}.
      * @since 3.0.0
      */
-    public static SseAuthorizationEnforcer get(final ActorSystem actorSystem) {
+    static SseAuthorizationEnforcer get(final ActorSystem actorSystem) {
         checkNotNull(actorSystem, "actorSystem");
         final var implementation = DittoGatewayConfig.of(DefaultScopedConfig.dittoScoped(
                 actorSystem.settings().config())).getStreamingConfig().getSseConfig().getAuthorizationEnforcer();

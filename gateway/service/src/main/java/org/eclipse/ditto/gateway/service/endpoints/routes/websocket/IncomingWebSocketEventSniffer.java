@@ -29,22 +29,7 @@ import akka.stream.javadsl.Sink;
 /**
  * Extension to sniff incoming events over websocket.
  */
-public abstract class IncomingWebSocketEventSniffer extends DittoExtensionPoint {
-
-    /**
-     * @param actorSystem the actor system in which to load the extension.
-     */
-    protected IncomingWebSocketEventSniffer(final ActorSystem actorSystem) {
-        super(actorSystem);
-    }
-
-    /**
-     * Create a receiver for sniffed events.
-     *
-     * @param request the HTTP request that started the event stream.
-     * @return sink to send events into.
-     */
-    protected abstract Sink<String, ?> createSink(HttpRequest request);
+public interface IncomingWebSocketEventSniffer extends DittoExtensionPoint {
 
     /**
      * Create an async flow for event sniffing.
@@ -52,13 +37,7 @@ public abstract class IncomingWebSocketEventSniffer extends DittoExtensionPoint 
      * @param request the HTTP request that started the event stream.
      * @return flow to pass events through with a wiretap attached over an async barrier to the sink for sniffed events.
      */
-    protected Flow<String, String, NotUsed> toAsyncFlow(final HttpRequest request) {
-        return Flow.<String>create().wireTap(
-                Flow.<String>create()
-                        .async()
-                        .to(Sink.lazyCompletionStageSink(() -> CompletableFuture.completedFuture(
-                                createSink(request)))));
-    }
+    Flow<String, String, NotUsed> toAsyncFlow(final HttpRequest request);
 
     /**
      * Loads the implementation of {@code IncomingWebSocketEventSniffer} which is configured for the
@@ -69,7 +48,7 @@ public abstract class IncomingWebSocketEventSniffer extends DittoExtensionPoint 
      * @throws NullPointerException if {@code actorSystem} is {@code null}.
      * @since 3.0.0
      */
-    public static IncomingWebSocketEventSniffer get(final ActorSystem actorSystem) {
+    static IncomingWebSocketEventSniffer get(final ActorSystem actorSystem) {
         checkNotNull(actorSystem, "actorSystem");
         final var implementation = DittoGatewayConfig.of(DefaultScopedConfig.dittoScoped(
                 actorSystem.settings().config())).getStreamingConfig().getWebsocketConfig().getIncomingEventSniffer();

@@ -19,7 +19,6 @@ import java.util.concurrent.CompletionStage;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.service.DittoExtensionPoint;
 import org.eclipse.ditto.gateway.service.util.config.DittoGatewayConfig;
-import org.eclipse.ditto.gateway.service.util.config.security.OAuthConfig;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.jwt.model.JsonWebToken;
 
@@ -29,14 +28,7 @@ import akka.actor.ActorSystem;
  * Responsible for extraction of an {@link org.eclipse.ditto.gateway.service.security.authentication.AuthenticationResult} out of a
  * {@link JsonWebToken JSON web token}.
  */
-public abstract class JwtAuthenticationResultProvider extends DittoExtensionPoint {
-
-    /**
-     * @param actorSystem the actor system in which to load the extension.
-     */
-    protected JwtAuthenticationResultProvider(final ActorSystem actorSystem) {
-        super(actorSystem);
-    }
+public interface JwtAuthenticationResultProvider extends DittoExtensionPoint {
 
     /**
      * Extracts an {@code AuthenticationResult} out of a given JsonWebToken.
@@ -46,7 +38,7 @@ public abstract class JwtAuthenticationResultProvider extends DittoExtensionPoin
      * @return the authentication result based on the given JSON web token.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public abstract CompletionStage<JwtAuthenticationResult> getAuthenticationResult(JsonWebToken jwt,
+    CompletionStage<JwtAuthenticationResult> getAuthenticationResult(JsonWebToken jwt,
             DittoHeaders dittoHeaders);
 
     /**
@@ -57,16 +49,14 @@ public abstract class JwtAuthenticationResultProvider extends DittoExtensionPoin
      * @throws NullPointerException if {@code actorSystem} is {@code null}.
      * @since 3.0.0
      */
-    public static JwtAuthenticationResultProvider get(final ActorSystem actorSystem) {
+    static JwtAuthenticationResultProvider get(final ActorSystem actorSystem) {
         checkNotNull(actorSystem, "actorSystem");
-        final var implementation = getOAuthConfig(actorSystem).getJwtAuthenticationResultProvider();
+        final var implementation =
+                DittoGatewayConfig.of(DefaultScopedConfig.dittoScoped(actorSystem.settings().config()))
+                        .getAuthenticationConfig()
+                        .getOAuthConfig()
+                        .getJwtAuthenticationResultProvider();
         return new ExtensionId<>(implementation, JwtAuthenticationResultProvider.class).get(actorSystem);
-    }
-
-    protected static OAuthConfig getOAuthConfig(final ActorSystem actorSystem) {
-        return DittoGatewayConfig.of(DefaultScopedConfig.dittoScoped(
-                        actorSystem.settings().config())).getAuthenticationConfig()
-                .getOAuthConfig();
     }
 
 }

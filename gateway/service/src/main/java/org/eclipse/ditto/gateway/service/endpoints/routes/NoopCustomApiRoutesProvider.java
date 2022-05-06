@@ -22,12 +22,12 @@ import akka.http.javadsl.server.Directives;
 import akka.http.javadsl.server.Route;
 
 @Immutable
-public final class NoopCustomApiRoutesProvider extends CustomApiRoutesProvider {
+public final class NoopCustomApiRoutesProvider implements CustomApiRoutesProvider {
 
     private static final Route EMPTY_ROUTE = Directives.reject();
 
     public NoopCustomApiRoutesProvider(final ActorSystem actorSystem) {
-        super(actorSystem);
+        // No-Op because Extensions need to have constructor accepting the actorSystem.
     }
 
     @Override

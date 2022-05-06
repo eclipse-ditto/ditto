@@ -27,11 +27,7 @@ import akka.http.javadsl.server.Route;
  * Provider for custom routes.
  * You can distinguish between routes for unauthorized access and authorized access.
  */
-public abstract class CustomApiRoutesProvider extends DittoExtensionPoint {
-
-    protected CustomApiRoutesProvider(final ActorSystem actorSystem) {
-        super(actorSystem);
-    }
+public interface CustomApiRoutesProvider extends DittoExtensionPoint {
 
     /**
      * Provides a custom route for unauthorized access.
@@ -41,8 +37,7 @@ public abstract class CustomApiRoutesProvider extends DittoExtensionPoint {
      * @param correlationId the correlation ID.
      * @return custom route for unauthorized access.
      */
-    public abstract Route unauthorized(RouteBaseProperties routeBaseProperties, JsonSchemaVersion version,
-            CharSequence correlationId);
+    Route unauthorized(RouteBaseProperties routeBaseProperties, JsonSchemaVersion version, CharSequence correlationId);
 
     /**
      * Provides a custom route for authorized access.
@@ -51,7 +46,7 @@ public abstract class CustomApiRoutesProvider extends DittoExtensionPoint {
      * @param headers headers of the request.
      * @return custom route for authorized access.
      */
-    public abstract Route authorized(RouteBaseProperties routeBaseProperties, DittoHeaders headers);
+    Route authorized(RouteBaseProperties routeBaseProperties, DittoHeaders headers);
 
     /**
      * Loads the implementation of {@code CustomApiRoutesProvider} which is configured for the {@code ActorSystem}.
@@ -61,7 +56,7 @@ public abstract class CustomApiRoutesProvider extends DittoExtensionPoint {
      * @throws NullPointerException if {@code actorSystem} is {@code null}.
      * @since 3.0.0
      */
-    public static CustomApiRoutesProvider get(final ActorSystem actorSystem) {
+    static CustomApiRoutesProvider get(final ActorSystem actorSystem) {
         checkNotNull(actorSystem, "actorSystem");
         final var implementation = DittoGatewayConfig.of(DefaultScopedConfig.dittoScoped(
                 actorSystem.settings().config())).getHttpConfig().getCustomApiRoutesProvider();

@@ -28,16 +28,9 @@ import akka.actor.ActorSystem;
  * If the authorization check is successful the headers are given back, possibly with new information, else a
  * {@link org.eclipse.ditto.base.model.exceptions.DittoRuntimeException DittoRuntimeException} is thrown.
  */
-public abstract class WebSocketAuthorizationEnforcer extends DittoExtensionPoint {
+public interface WebSocketAuthorizationEnforcer extends DittoExtensionPoint {
 
-    /**
-     * @param actorSystem the actor system in which to load the extension.
-     */
-    protected WebSocketAuthorizationEnforcer(final ActorSystem actorSystem) {
-        super(actorSystem);
-    }
-
-    public abstract CompletionStage<DittoHeaders> checkAuthorization(DittoHeaders dittoHeaders);
+    CompletionStage<DittoHeaders> checkAuthorization(DittoHeaders dittoHeaders);
 
     /**
      * Loads the implementation of {@code WebSocketAuthorizationEnforcer} which is configured for the
@@ -48,7 +41,7 @@ public abstract class WebSocketAuthorizationEnforcer extends DittoExtensionPoint
      * @throws NullPointerException if {@code actorSystem} is {@code null}.
      * @since 3.0.0
      */
-    public static WebSocketAuthorizationEnforcer get(final ActorSystem actorSystem) {
+    static WebSocketAuthorizationEnforcer get(final ActorSystem actorSystem) {
         checkNotNull(actorSystem, "actorSystem");
         final var implementation = DittoGatewayConfig.of(DefaultScopedConfig.dittoScoped(
                 actorSystem.settings().config())).getStreamingConfig().getWebsocketConfig().getAuthorizationEnforcer();

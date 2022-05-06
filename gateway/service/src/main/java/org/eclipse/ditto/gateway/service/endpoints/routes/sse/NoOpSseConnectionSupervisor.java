@@ -20,13 +20,13 @@ import akka.actor.ActorSystem;
 /**
  * Null implementation for {@link SseConnectionSupervisor}.
  */
-public final class NoOpSseConnectionSupervisor extends SseConnectionSupervisor {
+public final class NoOpSseConnectionSupervisor implements SseConnectionSupervisor {
 
     /**
      * @param actorSystem the actor system in which to load the extension.
      */
     public NoOpSseConnectionSupervisor(final ActorSystem actorSystem) {
-        super(actorSystem);
+        //No-Op because extensions need a constructor accepting an actorSystem
     }
 
     @Override

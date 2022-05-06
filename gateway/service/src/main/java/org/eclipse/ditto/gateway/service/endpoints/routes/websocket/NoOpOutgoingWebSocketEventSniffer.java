@@ -21,15 +21,10 @@ import akka.stream.javadsl.Sink;
 /**
  * Event Sniffer for outgoing WebSocket messages that does purposefully nothing.
  */
-public class NoOpOutgoingWebSocketEventSniffer extends OutgoingWebSocketEventSniffer {
+public final class NoOpOutgoingWebSocketEventSniffer implements OutgoingWebSocketEventSniffer {
 
     public NoOpOutgoingWebSocketEventSniffer(final ActorSystem actorSystem) {
-        super(actorSystem);
-    }
-
-    @Override
-    public Sink<String, ?> createSink(final HttpRequest request) {
-        return Sink.ignore();
+        //No-Op because extensions need a constructor accepting an actorSystem
     }
 
     @Override

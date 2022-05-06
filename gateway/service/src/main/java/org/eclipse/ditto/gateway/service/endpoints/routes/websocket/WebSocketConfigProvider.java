@@ -27,15 +27,8 @@ import akka.actor.ActorSystem;
 /**
  * Provides a method to customize a given {@link org.eclipse.ditto.gateway.service.util.config.streaming.WebsocketConfig}.
  */
-public abstract class WebSocketConfigProvider extends DittoExtensionPoint
-        implements BiFunction<DittoHeaders, WebsocketConfig, WebsocketConfig> {
-
-    /**
-     * @param actorSystem the actor system in which to load the extension.
-     */
-    protected WebSocketConfigProvider(final ActorSystem actorSystem) {
-        super(actorSystem);
-    }
+public interface WebSocketConfigProvider
+        extends DittoExtensionPoint, BiFunction<DittoHeaders, WebsocketConfig, WebsocketConfig> {
 
     /**
      * Loads the implementation of {@code WebSocketConfigProvider} which is configured for the
@@ -46,11 +39,12 @@ public abstract class WebSocketConfigProvider extends DittoExtensionPoint
      * @throws NullPointerException if {@code actorSystem} is {@code null}.
      * @since 3.0.0
      */
-    public static WebSocketConfigProvider get(final ActorSystem actorSystem) {
+    static WebSocketConfigProvider get(final ActorSystem actorSystem) {
         checkNotNull(actorSystem, "actorSystem");
         final var implementation = DittoGatewayConfig.of(DefaultScopedConfig.dittoScoped(
-                        actorSystem.settings().config())).getStreamingConfig().getWebsocketConfig().getConfigProvider();
+                actorSystem.settings().config())).getStreamingConfig().getWebsocketConfig().getConfigProvider();
 
         return new ExtensionId<>(implementation, WebSocketConfigProvider.class).get(actorSystem);
     }
+
 }

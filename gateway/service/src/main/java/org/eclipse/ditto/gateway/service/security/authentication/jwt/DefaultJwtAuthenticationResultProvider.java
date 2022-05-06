@@ -30,10 +30,12 @@ import akka.actor.ActorSystem;
  * Default implementation of {@link JwtAuthenticationResultProvider}.
  */
 @Immutable
-public final class DefaultJwtAuthenticationResultProvider extends JwtAuthenticationResultProvider {
+public final class DefaultJwtAuthenticationResultProvider implements JwtAuthenticationResultProvider {
+
+    private final ActorSystem actorSystem;
 
     public DefaultJwtAuthenticationResultProvider(final ActorSystem actorSystem) {
-        super(actorSystem);
+        this.actorSystem = actorSystem;
     }
 
     @Override

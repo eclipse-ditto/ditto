@@ -24,7 +24,9 @@ import org.eclipse.ditto.gateway.service.security.authentication.AuthenticationR
 import org.eclipse.ditto.gateway.service.security.authentication.jwt.JwtAuthenticationFactory;
 import org.eclipse.ditto.gateway.service.security.authentication.jwt.JwtAuthenticationProvider;
 import org.eclipse.ditto.gateway.service.security.authentication.preauth.PreAuthenticatedAuthenticationProvider;
+import org.eclipse.ditto.gateway.service.util.config.DittoGatewayConfig;
 import org.eclipse.ditto.gateway.service.util.config.security.AuthenticationConfig;
+import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -35,7 +37,7 @@ import akka.actor.ActorSystem;
 /**
  * Ditto's default factory for building authentication directives.
  */
-public final class DittoGatewayAuthenticationDirectiveFactory extends GatewayAuthenticationDirectiveFactory {
+public final class DittoGatewayAuthenticationDirectiveFactory implements GatewayAuthenticationDirectiveFactory {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(DittoGatewayAuthenticationDirectiveFactory.class);
     private static final String AUTHENTICATION_DISPATCHER_NAME = "authentication-dispatcher";
@@ -46,8 +48,8 @@ public final class DittoGatewayAuthenticationDirectiveFactory extends GatewayAut
     @Nullable private GatewayAuthenticationDirective gatewayWsAuthenticationDirective;
 
     public DittoGatewayAuthenticationDirectiveFactory(final ActorSystem actorSystem) {
-        super(actorSystem);
-        authConfig = getAuthConfig(actorSystem);
+        authConfig = DittoGatewayConfig.of(DefaultScopedConfig.dittoScoped(actorSystem.settings().config()))
+                .getAuthenticationConfig();
         authenticationDispatcher = actorSystem.dispatchers().lookup(AUTHENTICATION_DISPATCHER_NAME);
     }
 
