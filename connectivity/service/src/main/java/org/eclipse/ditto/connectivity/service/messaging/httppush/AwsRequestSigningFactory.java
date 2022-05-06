@@ -14,7 +14,6 @@ package org.eclipse.ditto.connectivity.service.messaging.httppush;
 
 import java.time.Duration;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import org.eclipse.ditto.connectivity.model.HmacCredentials;
 import org.eclipse.ditto.json.JsonArray;
@@ -49,7 +48,7 @@ public final class AwsRequestSigningFactory implements HttpRequestSigningFactory
         final String secretKey = parameters.getValueOrThrow(JsonFields.SECRET_KEY);
         final boolean doubleEncode = parameters.getValue(JsonFields.DOUBLE_ENCODE).orElse(true);
         final List<String> canonicalHeaders = parameters.getValue(JsonFields.CANONICAL_HEADERS)
-                .map(array -> array.stream().map(JsonValue::asString).collect(Collectors.toList()))
+                .map(array -> array.stream().map(JsonValue::asString).toList())
                 .orElse(DEFAULT_CANONICAL_HEADERS);
         final var xAmzContentSha256 = parameters.getValue(JsonFields.X_AMZ_CONTENT_SHA256)
                 .map(AwsRequestSigning.XAmzContentSha256::forName)

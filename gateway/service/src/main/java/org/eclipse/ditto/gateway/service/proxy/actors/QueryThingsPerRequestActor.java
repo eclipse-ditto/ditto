@@ -115,7 +115,7 @@ final class QueryThingsPerRequestActor extends AbstractActor {
                             .stream()
                             .map(val -> val.asObject().getValue(Thing.JsonFields.ID).orElse(null))
                             .map(ThingId::of)
-                            .collect(Collectors.toList());
+                            .toList();
 
                     if (queryThingsResponseThingIds.isEmpty()) {
                         // shortcut - for no search results we don't have to look up the things
@@ -210,7 +210,7 @@ final class QueryThingsPerRequestActor extends AbstractActor {
 
         final Collection<ThingId> outOfSyncThingIds = queryThingsResponseThingIds.stream()
                 .filter(thingId -> !retrievedThingIds.contains(thingId))
-                .collect(Collectors.toList());
+                .toList();
 
         if (!outOfSyncThingIds.isEmpty()) {
             final ThingsOutOfSync thingsOutOfSync =

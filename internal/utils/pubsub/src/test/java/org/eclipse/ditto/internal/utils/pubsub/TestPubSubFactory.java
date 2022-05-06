@@ -19,13 +19,13 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
 import org.eclipse.ditto.internal.utils.ddata.DistributedData;
 import org.eclipse.ditto.internal.utils.pubsub.config.PubSubConfig;
 import org.eclipse.ditto.internal.utils.pubsub.ddata.DDataReader;
 import org.eclipse.ditto.internal.utils.pubsub.ddata.Hashes;
 import org.eclipse.ditto.internal.utils.pubsub.extractors.AckExtractor;
 import org.eclipse.ditto.internal.utils.pubsub.extractors.PubSubTopicExtractor;
-import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
 
 import akka.actor.ActorContext;
 import akka.actor.ActorRef;
@@ -88,6 +88,6 @@ public final class TestPubSubFactory extends AbstractPubSubFactory<Acknowledgeme
         final String string = acknowledgement.getLabel().toString();
         return IntStream.range(0, string.length())
                 .mapToObj(i -> string.substring(0, i + 1))
-                .collect(Collectors.toList());
+                .toList();
     }
 }

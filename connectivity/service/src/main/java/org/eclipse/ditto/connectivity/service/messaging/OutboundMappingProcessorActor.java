@@ -444,7 +444,7 @@ public final class OutboundMappingProcessorActor
                         .map(expressionResolver::resolve)
                         .flatMap(PipelineElement::toStream)
                         .map(JsonPointer::of)
-                        .collect(Collectors.toList()))
+                        .toList())
                 .filter(jsonPointers -> !jsonPointers.isEmpty())
                 .map(JsonFactory::newFieldSelector)
                 .map(ThingFieldSelector::fromJsonFieldSelector);

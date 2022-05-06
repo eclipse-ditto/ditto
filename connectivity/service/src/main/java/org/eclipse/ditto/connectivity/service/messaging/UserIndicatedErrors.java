@@ -14,7 +14,6 @@ package org.eclipse.ditto.connectivity.service.messaging;
 
 import java.util.List;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
@@ -66,7 +65,7 @@ final class UserIndicatedErrors {
                     .map(ConfigFactory::parseString)
                     .map(ErrorDefinition::of);
             return Stream.concat(errorDefinitionsFromMap, errorDefinitionsFromString)
-                    .collect(Collectors.toList());
+                    .toList();
         } catch (final ConfigException.Missing | ConfigException.WrongType e) {
             return List.of();
         }

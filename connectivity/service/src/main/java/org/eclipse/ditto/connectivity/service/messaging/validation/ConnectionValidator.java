@@ -355,7 +355,7 @@ public final class ConnectionValidator {
         // labels in order to give the AcknowledgementLabelInvalidException priority
         final List<String> targetAckLabels = getTargetIssuedAcknowledgementLabels(connection)
                 .map(Object::toString)
-                .collect(Collectors.toList());
+                .toList();
         final Set<String> distinctTargetAckLabels = new HashSet<>(targetAckLabels);
         if (targetAckLabels.size() > distinctTargetAckLabels.size()) {
             throw AcknowledgementLabelNotUniqueException.newBuilder()

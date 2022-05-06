@@ -150,11 +150,11 @@ public abstract class BaseConsumerActor extends AbstractActorWithTimers {
         final Duration askTimeout = acknowledgementConfig.getCollectorFallbackAskTimeout();
         // Ask response collector actor to get the collected responses in a future
         Patterns.ask(responseCollector, ResponseCollectorActor.query(), askTimeout).thenCompose(output -> {
-            if (output instanceof ResponseCollectorActor.Output) {
-                return CompletableFuture.completedFuture((ResponseCollectorActor.Output) output);
-            } else if (output instanceof Throwable) {
+            if (output instanceof ResponseCollectorActor.Output responseCollectorActorOutput) {
+                return CompletableFuture.completedFuture(responseCollectorActorOutput);
+            } else if (output instanceof Throwable throwable) {
                 log().debug("Patterns.ask failed. ResponseCollector=<{}>", responseCollector);
-                return CompletableFuture.failedFuture((Throwable) output);
+                return CompletableFuture.failedFuture(throwable);
             } else {
                 log().error("Expect ResponseCollectorActor.Output, got: <{}>. ResponseCollector=<{}>", output,
                         responseCollector);
@@ -288,8 +288,8 @@ public abstract class BaseConsumerActor extends AbstractActorWithTimers {
     }
 
     private static Stream<? extends CommandResponse<?>> extractAggregatedResponses(final CommandResponse<?> response) {
-        if (response instanceof Acknowledgements) {
-            return ((Acknowledgements) response).stream();
+        if (response instanceof Acknowledgements acknowledgements) {
+            return acknowledgements.stream();
         } else {
             return Stream.of(response);
         }

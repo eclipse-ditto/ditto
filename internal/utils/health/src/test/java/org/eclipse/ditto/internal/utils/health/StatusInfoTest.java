@@ -23,13 +23,11 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.mutabilitydetector.unittesting.MutabilityAssert;
 
@@ -380,7 +378,7 @@ public final class StatusInfoTest {
         return JsonArray.newBuilder()
                 .addAll(list.stream()
                         .map(objectMapper)
-                        .collect(Collectors.toList()))
+                        .toList())
                 .build();
     }
 }

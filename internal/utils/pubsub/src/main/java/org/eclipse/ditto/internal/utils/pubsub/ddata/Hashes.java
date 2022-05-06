@@ -19,7 +19,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.CompletionException;
-import java.util.stream.Collectors;
 
 import scala.util.hashing.MurmurHash3$;
 
@@ -48,7 +47,7 @@ public interface Hashes {
      * @return a list of hash codes.
      */
     default List<Integer> getHashes(final String string) {
-        return getSeeds().stream().map(seed -> murmurHash(string, seed)).collect(Collectors.toList());
+        return getSeeds().stream().map(seed -> murmurHash(string, seed)).toList();
     }
 
     /**

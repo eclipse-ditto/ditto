@@ -96,11 +96,11 @@ public interface ConnectionFailure extends WithOrigin {
                 responseStr = description + " - cause ";
             }
             responseStr += String.format("<%s>: %s", cause.getClass().getSimpleName(), cause.getMessage());
-            if (cause instanceof DittoRuntimeException) {
+            if (cause instanceof DittoRuntimeException dittoRuntimeException) {
                 if (!responseStr.endsWith(".")) {
                     responseStr += ".";
                 }
-                responseStr += ((DittoRuntimeException) cause).getDescription().map(d -> " " + d).orElse("");
+                responseStr += dittoRuntimeException.getDescription().map(d -> " " + d).orElse("");
             }
         } else {
             responseStr = Objects.requireNonNullElse(description, "unknown failure");

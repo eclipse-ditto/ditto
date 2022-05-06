@@ -17,13 +17,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingId;
-import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThingResponse;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThings;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThingsResponse;
@@ -69,7 +68,7 @@ public class ConnectivityProxyActorTest {
             final List<Thing> thingList = IntStream.range(0, 10)
                     .mapToObj(i -> ThingId.of(KNOWN_THING_ID.getNamespace(), KNOWN_THING_ID.getName() + "-" + i))
                     .map(id -> Thing.newBuilder().setId(id).build())
-                    .collect(Collectors.toList());
+                    .toList();
             final ThingId[] thingIdsArray =
                     thingList.stream().map(Thing::getEntityId).map(Optional::get).toArray(ThingId[]::new);
 

@@ -114,9 +114,8 @@ public final class KafkaValidator extends AbstractProtocolValidator {
         validateHeaderMapping(source.getHeaderMapping(), dittoHeaders);
 
         final String placeholderReplacement = UUID.randomUUID().toString();
-        source.getAddresses().forEach(address -> {
-            validateSourceAddress(address, dittoHeaders, placeholderReplacement);
-        });
+        source.getAddresses().forEach(
+                address -> validateSourceAddress(address, dittoHeaders, placeholderReplacement));
 
         validateSourceQos(source, dittoHeaders);
     }

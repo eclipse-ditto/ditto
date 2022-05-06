@@ -17,7 +17,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 import javax.annotation.concurrent.NotThreadSafe;
 
@@ -89,7 +88,7 @@ public final class ClientActorRefs implements AkkaJacksonCborSerializable {
     public List<ActorRef> getOtherActors(final ActorRef clientActor) {
         return sortedRefs.stream()
                 .filter(actorRef -> !actorRef.equals(clientActor))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     /**
@@ -130,7 +129,7 @@ public final class ClientActorRefs implements AkkaJacksonCborSerializable {
     }
 
     private static List<ActorRef> sort(final Map<ActorPath, ActorRef> refsByPath) {
-        return refsByPath.values().stream().sorted(ActorRef::compareTo).collect(Collectors.toList());
+        return refsByPath.values().stream().sorted(ActorRef::compareTo).toList();
     }
 
     @Override

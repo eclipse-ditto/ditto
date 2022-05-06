@@ -14,7 +14,6 @@ package org.eclipse.ditto.internal.utils.pubsub;
 
 import java.util.Collection;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import org.eclipse.ditto.internal.utils.pubsub.extractors.PubSubTopicExtractor;
 import org.eclipse.ditto.policies.model.SubjectId;
@@ -33,7 +32,7 @@ final class PolicyAnnouncementTopicExtractor implements PubSubTopicExtractor<Pol
             return announcement.getSubjectIds()
                     .stream()
                     .map(SubjectId::toString)
-                    .collect(Collectors.toList());
+                    .toList();
         }
         return List.of();
     }

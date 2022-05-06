@@ -21,7 +21,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 import org.assertj.core.api.AutoCloseableSoftAssertions;
 import org.eclipse.ditto.base.model.acks.AcknowledgementLabel;
@@ -30,11 +29,11 @@ import org.eclipse.ditto.base.model.acks.DittoAcknowledgementLabel;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.things.model.ThingId;
-import org.eclipse.ditto.protocol.HeaderTranslator;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
 import org.eclipse.ditto.base.model.signals.acks.AcknowledgementRequestTimeoutException;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgements;
+import org.eclipse.ditto.protocol.HeaderTranslator;
+import org.eclipse.ditto.things.model.ThingId;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -93,7 +92,7 @@ public final class AcknowledgementAggregatorTest {
         failedAcks.forEach(underTest::addReceivedAcknowledgment);
         final List<AcknowledgementLabel> expected = successfulAcks.stream()
                 .map(Acknowledgement::getLabel)
-                .collect(Collectors.toList());
+                .toList();
 
         final Acknowledgements acknowledgements = underTest.getAggregatedAcknowledgements(dittoHeaders);
 
