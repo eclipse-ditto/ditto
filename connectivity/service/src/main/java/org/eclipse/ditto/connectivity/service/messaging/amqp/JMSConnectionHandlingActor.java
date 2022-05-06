@@ -350,8 +350,7 @@ public final class JMSConnectionHandlingActor extends AbstractActor {
                                 .map(addressWithIndex -> createJmsConsumer(session, failedSources, source,
                                         sourceAddress, addressWithIndex))
                                 .filter(Objects::nonNull)
-                                .toList().stream()
-                ).toList().stream()
+                )
         ).toList();
 
         if (!failedSources.isEmpty()) {
