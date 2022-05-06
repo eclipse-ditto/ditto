@@ -33,6 +33,7 @@ import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLogger;
 import org.eclipse.ditto.internal.utils.cacheloaders.config.AskWithRetryConfig;
 
 import akka.actor.ActorRef;
+import akka.actor.ActorSystem;
 import akka.actor.Scheduler;
 import akka.pattern.AskTimeoutException;
 import akka.pattern.Patterns;
@@ -55,6 +56,42 @@ public final class AskWithRetry {
 
     private AskWithRetry() {
         throw new AssertionError();
+    }
+
+    /**
+     * Dispatcher name to use for AskWithRetry.
+     */
+    public static final String ASK_WITH_RETRY_DISPATCHER = "ask-with-retry-dispatcher";
+
+    /**
+     * Performs the "ask with retry" pattern by asking the passed in {@code actorToAsk} the passed in {@code message},
+     * mapping a successful response with the provided {@code responseMapper} and retrying the operation on Exceptions
+     * which are not {@link DittoRuntimeException}s based on the given {@code config}.
+     *
+     * @param actorToAsk the actor to ask the message.
+     * @param message the message to ask.
+     * @param config the "ask with retry" configuration to apply, e.g. whether to do retries at all,
+     * with which timeouts, with how many retries and delays, etc.
+     * @param actorSystem the actorSystem for looking up the scheduler and dispatcher to use.
+     * @param responseMapper a function converting the response of the asked message.
+     * @param <M> the type of the message to ask.
+     * @param <A> the type of the answer.
+     * @return a CompletionStage which is completed by applying the passed in {@code responseMapper} function on the
+     * response of the asked message or which is completed exceptionally with the Exception.
+     */
+    public static <M, A> CompletionStage<A> askWithRetry(final ActorRef actorToAsk,
+            final M message,
+            final AskWithRetryConfig config,
+            final ActorSystem actorSystem,
+            final Function<Object, A> responseMapper) {
+
+        return askWithRetry(actorToAsk,
+                message,
+                config,
+                actorSystem.getScheduler(),
+                actorSystem.dispatchers().lookup(ASK_WITH_RETRY_DISPATCHER),
+                responseMapper
+        );
     }
 
     /**
@@ -82,8 +119,8 @@ public final class AskWithRetry {
             final Function<Object, A> responseMapper) {
 
         final DittoHeaders dittoHeaders;
-        if (message instanceof WithDittoHeaders) {
-            dittoHeaders = ((WithDittoHeaders) message).getDittoHeaders();
+        if (message instanceof WithDittoHeaders withDittoHeaders) {
+            dittoHeaders = withDittoHeaders.getDittoHeaders();
         } else {
             dittoHeaders = null;
         }

@@ -107,8 +107,6 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.typesafe.config.ConfigFactory;
 
@@ -127,8 +125,6 @@ import scala.concurrent.duration.Duration;
  */
 @SuppressWarnings({"squid:S3599", "squid:S1171"})
 public final class ThingCommandEnforcementTest {
-
-    private static final Logger LOGGER = LoggerFactory.getLogger(ThingCommandEnforcementTest.class);
 
     @Rule
     public final TestName testName = new TestName();

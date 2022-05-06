@@ -52,7 +52,6 @@ import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonValue;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -107,7 +106,6 @@ public final class ImmutableDittoHeadersTest {
     private static final MetadataHeaders KNOWN_METADATA_HEADERS;
     private static final boolean KNOWN_ALLOW_POLICY_LOCKOUT = true;
     private static final boolean KNOWN_IS_WEAK_ACK = false;
-    private static final boolean KNOWN_POLICY_ENFORCER_INVALIDATED_PREEMPTIVELY = true;
     private static final List<String> KNOWN_JOURNAL_TAGS = Lists.list("tag-a", "tag-b");
     private static final boolean KNOWN_IS_SUDO = true;
     private static final String KNOWN_CONDITION = "eq(attributes/value)";
@@ -170,8 +168,6 @@ public final class ImmutableDittoHeadersTest {
                 .expectedResponseTypes(KNOWN_EXPECTED_RESPONSE_TYPES)
                 .allowPolicyLockout(KNOWN_ALLOW_POLICY_LOCKOUT)
                 .putHeader(DittoHeaderDefinition.WEAK_ACK.getKey(), String.valueOf(KNOWN_IS_WEAK_ACK))
-                .putHeader(DittoHeaderDefinition.POLICY_ENFORCER_INVALIDATED_PREEMPTIVELY.getKey(),
-                        String.valueOf(KNOWN_POLICY_ENFORCER_INVALIDATED_PREEMPTIVELY))
                 .putHeader(DittoHeaderDefinition.EVENT_JOURNAL_TAGS.getKey(),
                         charSequencesToJsonArray(KNOWN_JOURNAL_TAGS).toString())
                 .putHeader(DittoHeaderDefinition.DITTO_SUDO.getKey(), String.valueOf(KNOWN_IS_SUDO))
@@ -475,8 +471,6 @@ public final class ImmutableDittoHeadersTest {
                 .set(DittoHeaderDefinition.PUT_METADATA.getKey(), KNOWN_METADATA_HEADERS.toJson())
                 .set(DittoHeaderDefinition.ALLOW_POLICY_LOCKOUT.getKey(), KNOWN_ALLOW_POLICY_LOCKOUT)
                 .set(DittoHeaderDefinition.WEAK_ACK.getKey(), KNOWN_IS_WEAK_ACK)
-                .set(DittoHeaderDefinition.POLICY_ENFORCER_INVALIDATED_PREEMPTIVELY.getKey(),
-                        KNOWN_POLICY_ENFORCER_INVALIDATED_PREEMPTIVELY)
                 .set(DittoHeaderDefinition.EVENT_JOURNAL_TAGS.getKey(),
                         charSequencesToJsonArray(KNOWN_JOURNAL_TAGS))
                 .set(DittoHeaderDefinition.DITTO_SUDO.getKey(), KNOWN_IS_SUDO)
@@ -709,8 +703,6 @@ public final class ImmutableDittoHeadersTest {
         result.put(DittoHeaderDefinition.PUT_METADATA.getKey(), KNOWN_METADATA_HEADERS.toJsonString());
         result.put(DittoHeaderDefinition.ALLOW_POLICY_LOCKOUT.getKey(), String.valueOf(KNOWN_ALLOW_POLICY_LOCKOUT));
         result.put(DittoHeaderDefinition.WEAK_ACK.getKey(), String.valueOf(KNOWN_IS_WEAK_ACK));
-        result.put(DittoHeaderDefinition.POLICY_ENFORCER_INVALIDATED_PREEMPTIVELY.getKey(),
-                String.valueOf(KNOWN_POLICY_ENFORCER_INVALIDATED_PREEMPTIVELY));
         result.put(DittoHeaderDefinition.EVENT_JOURNAL_TAGS.getKey(),
                 charSequencesToJsonArray(KNOWN_JOURNAL_TAGS).toString());
         result.put(DittoHeaderDefinition.DITTO_SUDO.getKey(), String.valueOf(KNOWN_IS_SUDO));

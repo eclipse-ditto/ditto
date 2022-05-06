@@ -17,11 +17,6 @@ import java.util.HashSet;
 import java.util.Set;
 
 import org.eclipse.ditto.base.model.acks.AcknowledgementLabel;
-import org.eclipse.ditto.base.model.auth.AuthorizationContext;
-import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
-import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
-import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.base.model.headers.DittoHeadersSettable;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgements;
 import org.eclipse.ditto.base.model.signals.commands.Command;
@@ -29,6 +24,7 @@ import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
 import org.eclipse.ditto.internal.models.signal.correlation.CommandAndCommandResponseMatchingValidator;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
+import org.eclipse.ditto.policies.enforcement.PreEnforcer;
 
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
@@ -119,7 +115,7 @@ final class LiveResponseAndAcknowledgementForwarder extends AbstractActor {
     }
 
     private void onCommandResponse(final CommandResponse<?> incomingResponse) {
-        final CommandResponse<?> response = setOriginatorHeader(incomingResponse);
+        final CommandResponse<?> response = PreEnforcer.setOriginatorHeader(incomingResponse);
         final boolean validResponse = isValidResponse(response);
         logger.debug("Got <{}>, valid=<{}>", response, validResponse);
         if (validResponse) {
@@ -134,26 +130,6 @@ final class LiveResponseAndAcknowledgementForwarder extends AbstractActor {
         } else {
             acknowledgementReceiver.forward(response, getContext());
         }
-    }
-
-    /**
-     * Set the "ditto-originator" header to the primary authorization subject of a signal.
-     * TODO TJ copied over from DefaultEnforcerActorFactory - consolidate!
-     *
-     * @param originalSignal A signal with authorization context.
-     * @return A copy of the signal with the header "ditto-originator" set.
-     */
-    @SuppressWarnings("unchecked")
-    static <T extends DittoHeadersSettable<?>> T setOriginatorHeader(final T originalSignal) {
-        final DittoHeaders dittoHeaders = originalSignal.getDittoHeaders();
-        final AuthorizationContext authorizationContext = dittoHeaders.getAuthorizationContext();
-        return authorizationContext.getFirstAuthorizationSubject()
-                .map(AuthorizationSubject::getId)
-                .map(originatorSubjectId -> DittoHeaders.newBuilder(dittoHeaders)
-                        .putHeader(DittoHeaderDefinition.ORIGINATOR.getKey(), originatorSubjectId)
-                        .build())
-                .map(originatorHeader -> (T) originalSignal.setDittoHeaders(originatorHeader))
-                .orElse(originalSignal);
     }
 
     private void checkCompletion() {

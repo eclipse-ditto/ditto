@@ -41,6 +41,11 @@ import akka.actor.Scheduler;
 @Immutable
 public final class PolicyEnforcerCacheLoader implements AsyncCacheLoader<EnforcementCacheKey, Entry<PolicyEnforcer>> {
 
+    /**
+     * Dispatcher name for policy enforcer cache loader.
+     */
+    public static final String ENFORCEMENT_CACHE_DISPATCHER = "enforcement-cache-dispatcher";
+
     private final ActorAskCacheLoader<PolicyEnforcer, Command<?>, EnforcementContext> delegate;
 
     /**

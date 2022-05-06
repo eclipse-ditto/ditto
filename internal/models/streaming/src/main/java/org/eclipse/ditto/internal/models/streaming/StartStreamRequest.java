@@ -14,7 +14,6 @@ package org.eclipse.ditto.internal.models.streaming;
 
 /**
  * Supertype of commands to request the start of a stream.
- * // TODO TJ extend SudoCommand?
  */
 public interface StartStreamRequest extends StreamingMessage {
 

@@ -17,10 +17,6 @@ import static org.eclipse.ditto.things.api.ThingsMessagingConstants.CLUSTER_ROLE
 import java.util.Optional;
 
 import org.eclipse.ditto.base.api.devops.signals.commands.RetrieveStatisticsDetails;
-import org.eclipse.ditto.base.model.auth.AuthorizationContext;
-import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
-import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
-import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.DittoHeadersSettable;
 import org.eclipse.ditto.base.service.actors.DittoRootActor;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
@@ -216,7 +212,7 @@ public final class ThingsRootActor extends DittoRootActor {
                         .block(dittoHeadersSettable)
                         .thenApply(CommandWithOptionalEntityValidator.getInstance())
                         .thenApply(ThingsRootActor::prependDefaultNamespaceToCreateThing)
-                        .thenApply(ThingsRootActor::setOriginatorHeader)
+                        .thenApply(PreEnforcer::setOriginatorHeader)
                         .thenCompose(placeholderSubstitution);
     }
 
@@ -233,25 +229,6 @@ public final class ThingsRootActor extends DittoRootActor {
             }
         }
         return signal;
-    }
-
-    /**
-     * Set the "ditto-originator" header to the primary authorization subject of a signal.
-     *
-     * @param originalSignal A signal with authorization context.
-     * @return A copy of the signal with the header "ditto-originator" set.
-     */
-    @SuppressWarnings("unchecked")
-    public static <T extends DittoHeadersSettable<?>> T setOriginatorHeader(final T originalSignal) {
-        final DittoHeaders dittoHeaders = originalSignal.getDittoHeaders();
-        final AuthorizationContext authorizationContext = dittoHeaders.getAuthorizationContext();
-        return authorizationContext.getFirstAuthorizationSubject()
-                .map(AuthorizationSubject::getId)
-                .map(originatorSubjectId -> DittoHeaders.newBuilder(dittoHeaders)
-                        .putHeader(DittoHeaderDefinition.ORIGINATOR.getKey(), originatorSubjectId)
-                        .build())
-                .map(originatorHeader -> (T) originalSignal.setDittoHeaders(originatorHeader))
-                .orElse(originalSignal);
     }
 
     private static MongoReadJournal newMongoReadJournal(final MongoDbConfig mongoDbConfig,

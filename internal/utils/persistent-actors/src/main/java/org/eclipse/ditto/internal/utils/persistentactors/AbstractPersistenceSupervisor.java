@@ -407,12 +407,15 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId> extends 
             final Command<?> command) {
 
         if (null != enforcerChild) {
-            return Patterns.ask(enforcerChild, command, DEFAULT_LOCAL_ASK_TIMEOUT)
-                    .thenCompose(this::modifyEnforcerActorEnforcedCommandResponse)
-                    .handle((enforcerResponse, enforcerThrowable) ->
-                            handleEnforcerResponse(sender, enforcerResponse, enforcerThrowable,
-                                    command.getDittoHeaders())
-                    );
+            return preEnforcer.apply(command).thenCompose(preEnforcedCommand ->
+                    Patterns.ask(enforcerChild, preEnforcedCommand, DEFAULT_LOCAL_ASK_TIMEOUT)
+                            .thenCompose(this::modifyEnforcerActorEnforcedCommandResponse)
+                            .handle((enforcerResponse, enforcerThrowable) ->
+                                    handleEnforcerResponse(sender, enforcerResponse, enforcerThrowable,
+                                            preEnforcedCommand.getDittoHeaders())
+                            )
+            );
+
         } else {
             log.withCorrelationId(command)
                     .error("Could not enforce command because enforcerChild was not present");

@@ -159,12 +159,15 @@ public final class ThingCommandEnforcement
     /**
      * Creates a new instance of the thing command enforcer.
      *
-     * @param actorSystem TODO TJ doc
+     * @param actorSystem the actor system to load config, dispatchers from.
+     * @param ackReceiverActor the receiver of acknowledgements issued by live enforcement.
      * @param policiesShardRegion the policies shard region to load policies from and to use in order to create new
      * (inline) policies when creating new things.
      * @param creationRestrictionEnforcer the CreationRestrictionEnforcer to apply in order to enforce creation of new
      * things based on its config.
      * @param enforcementConfig the configuration to apply for this command enforcement implementation.
+     * @param preEnforcer the PreEnforcer to apply prior to any enforcements.
+     * @param liveSignalPub the helper for publishing/subscribing live signals.
      */
     public ThingCommandEnforcement(final ActorSystem actorSystem,
             final ActorRef ackReceiverActor,
@@ -187,10 +190,8 @@ public final class ThingCommandEnforcement
                                 ".namespace." + loggedNamespace)));
 
         this.preEnforcer = preEnforcer;
-        policyIdReferencePlaceholderResolver =
-                PolicyIdReferencePlaceholderResolver.of(policiesShardRegion, enforcementConfig.getAskWithRetryConfig(),
-                        actorSystem.getScheduler(),
-                        actorSystem.getDispatcher()); // TODO TJ need to configure different executor?
+        policyIdReferencePlaceholderResolver = PolicyIdReferencePlaceholderResolver.of(policiesShardRegion,
+                enforcementConfig.getAskWithRetryConfig(), actorSystem);
         this.liveSignalPub = liveSignalPub;
         responseReceiverCache = ResponseReceiverCache.lookup(actorSystem);
     }
@@ -655,9 +656,10 @@ public final class ThingCommandEnforcement
                 .responseRequired(true)
                 .build();
 
-        return AskWithRetry.askWithRetry(policiesShardRegion, RetrievePolicy.of(policyId, adjustedHeaders),
-                enforcementConfig.getAskWithRetryConfig(), actorSystem.getScheduler(), actorSystem.getDispatcher(),
-                // TODO TJ need to make scheduler and dispatcher configurable?
+        return AskWithRetry.askWithRetry(policiesShardRegion,
+                RetrievePolicy.of(policyId, adjustedHeaders),
+                enforcementConfig.getAskWithRetryConfig(),
+                actorSystem,
                 response -> {
                     if (response instanceof RetrievePolicyResponse rpr) {
                         return rpr.getPolicy();

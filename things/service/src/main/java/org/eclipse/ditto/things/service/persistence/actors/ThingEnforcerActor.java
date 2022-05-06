@@ -130,8 +130,10 @@ public final class ThingEnforcerActor
             }
 
             try {
-                // TODO TJ use explicit executor instead of taking up resources on the main dispatcher!
-                return policyEnforcerCacheLoader.asyncLoad(EnforcementCacheKey.of(policyId), actorSystem.dispatcher())
+                return policyEnforcerCacheLoader.asyncLoad(EnforcementCacheKey.of(policyId),
+                                actorSystem.dispatchers()
+                                        .lookup(PolicyEnforcerCacheLoader.ENFORCEMENT_CACHE_DISPATCHER)
+                        )
                         .thenApply(entry -> {
                             if (entry.exists()) {
                                 return entry.getValueOrThrow();

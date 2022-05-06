@@ -15,8 +15,11 @@ package org.eclipse.ditto.policies.enforcement;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
 
+import org.eclipse.ditto.base.model.auth.AuthorizationContext;
+import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
 import org.eclipse.ditto.base.model.exceptions.DittoInternalErrorException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.DittoHeadersSettable;
 import org.eclipse.ditto.internal.utils.akka.controlflow.WithSender;
@@ -84,6 +87,26 @@ public interface PreEnforcer {
                     sender.tell(dittoRuntimeException, ActorRef.noSender());
                     return onError;
                 });
+    }
+
+    /**
+     * Set the "ditto-originator" header to the primary authorization subject of a signal.
+     *
+     * @param originalSignal A signal with authorization context.
+     * @return A copy of the signal with the header "ditto-originator" set.
+     * @since 3.0.0
+     */
+    @SuppressWarnings("unchecked")
+    static <T extends DittoHeadersSettable<?>> T setOriginatorHeader(final T originalSignal) {
+        final DittoHeaders dittoHeaders = originalSignal.getDittoHeaders();
+        final AuthorizationContext authorizationContext = dittoHeaders.getAuthorizationContext();
+        return authorizationContext.getFirstAuthorizationSubject()
+                .map(AuthorizationSubject::getId)
+                .map(originatorSubjectId -> DittoHeaders.newBuilder(dittoHeaders)
+                        .putHeader(DittoHeaderDefinition.ORIGINATOR.getKey(), originatorSubjectId)
+                        .build())
+                .map(originatorHeader -> (T) originalSignal.setDittoHeaders(originatorHeader))
+                .orElse(originalSignal);
     }
 
 }

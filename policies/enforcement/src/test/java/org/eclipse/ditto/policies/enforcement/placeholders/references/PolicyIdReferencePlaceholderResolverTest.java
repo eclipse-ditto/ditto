@@ -64,8 +64,7 @@ public class PolicyIdReferencePlaceholderResolverTest {
     public void setup() {
         commandForwarderActorProbe = TestProbe.apply(actorSystem);
         sut = PolicyIdReferencePlaceholderResolver.of(commandForwarderActorProbe.testActor(),
-                DefaultAskWithRetryConfig.of(ConfigFactory.empty(), "test"), actorSystem.scheduler(),
-                actorSystem.dispatcher());
+                DefaultAskWithRetryConfig.of(ConfigFactory.empty(), "test"), actorSystem);
     }
 
     @Test

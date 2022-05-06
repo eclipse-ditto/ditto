@@ -348,20 +348,6 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
     WEAK_ACK("ditto-weak-ack", boolean.class, false, true, HeaderValueValidators.getBooleanValidator()),
 
     /**
-     * Header definition to identify when a Policy changing command did pre-emptively invalidate the caches related to
-     * the Policy enforcement in concierge.
-     * When this is {@code true}, no further policy enforcer invalidation has to be done.
-     * TODO TJ candidate for removal
-     *
-     * @since 2.0.0
-     */
-    POLICY_ENFORCER_INVALIDATED_PREEMPTIVELY("ditto-policy-enforcer-invalidated-preemptively",
-            boolean.class,
-            false,
-            false,
-            HeaderValueValidators.getBooleanValidator()),
-
-    /**
      * Internal header which may be set by PersistenceActors in order to declare tags to be stored by the event
      * journaling {@code EventAdapter} as {@code tag} fields in the journal persistence.
      *

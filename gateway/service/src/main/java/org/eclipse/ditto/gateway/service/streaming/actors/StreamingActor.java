@@ -105,12 +105,12 @@ public final class StreamingActor extends AbstractActorWithTimers implements Ret
      *
      * @param dittoProtocolSub the Ditto protocol sub access.
      * @param commandRouter the command router used to send signals into the cluster.
-     * @param jwtValidator
-     * @param jwtAuthenticationResultProvider
+     * @param jwtValidator the validator of JWTs to use.
+     * @param jwtAuthenticationResultProvider the JwtAuthenticationResultProvider.
      * @param streamingConfig the streaming config.
      * @param headerTranslator translates headers from external sources or to external sources.
-     * @param pubSubMediator
-     * @param commandForwarder TODO TJ doc
+     * @param pubSubMediator the ActorRef to the Akka pub/sub mediator.
+     * @param commandForwarder the ActorRef of the actor to forward commands to.
      * @return the Akka configuration Props object.
      */
     public static Props props(final DittoProtocolSub dittoProtocolSub,

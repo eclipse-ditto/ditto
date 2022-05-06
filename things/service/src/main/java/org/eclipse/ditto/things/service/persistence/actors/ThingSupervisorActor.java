@@ -195,7 +195,7 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
         return preEnforcer.apply(retrievePolicy)
                 .thenCompose(msg -> AskWithRetry.askWithRetry(policiesShardRegion, msg,
                         enforcementConfig.getAskWithRetryConfig(),
-                        getContext().getSystem().getScheduler(), getContext().getSystem().getDispatcher(), // TODO TJ check if own executor should be used
+                        getContext().getSystem(),
                         response -> {
                             if (response instanceof RetrievePolicyResponse retrievePolicyResponse) {
                                 return Optional.of(retrievePolicyResponse);

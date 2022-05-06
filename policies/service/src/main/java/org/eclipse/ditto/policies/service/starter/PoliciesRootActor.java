@@ -166,7 +166,7 @@ public final class PoliciesRootActor extends DittoRootActor {
                         .block(dittoHeadersSettable)
                         .thenApply(CommandWithOptionalEntityValidator.getInstance())
 //                        .thenApply(ThingsRootActor::prependDefaultNamespaceToCreateThing)
-//                        .thenApply(ThingsRootActor::setOriginatorHeader)
+                        .thenApply(PreEnforcer::setOriginatorHeader)
                         .thenCompose(placeholderSubstitution);
     }
 

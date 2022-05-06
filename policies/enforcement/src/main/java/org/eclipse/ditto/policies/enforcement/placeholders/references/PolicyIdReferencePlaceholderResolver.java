@@ -16,7 +16,6 @@ import java.util.EnumMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletionStage;
-import java.util.concurrent.Executor;
 import java.util.stream.Collectors;
 
 import javax.annotation.concurrent.Immutable;
@@ -39,7 +38,7 @@ import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThing;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThingResponse;
 
 import akka.actor.ActorRef;
-import akka.actor.Scheduler;
+import akka.actor.ActorSystem;
 
 /**
  * Responsible for resolving a policy id of a referenced entity.
@@ -51,18 +50,16 @@ public final class PolicyIdReferencePlaceholderResolver implements ReferencePlac
 
     private final ActorRef commandForwarderActor;
     private final AskWithRetryConfig askWithRetryConfig;
-    private final Scheduler scheduler;
-    private final Executor executor;
+    private final ActorSystem actorSystem;
     private final Map<ReferencePlaceholder.ReferencedEntityType, ResolveEntityReferenceStrategy>
             supportedEntityTypesToActionMap = new EnumMap<>(ReferencePlaceholder.ReferencedEntityType.class);
     private final Set<CharSequence> supportedEntityTypeNames;
 
     private PolicyIdReferencePlaceholderResolver(final ActorRef commandForwarderActor,
-            final AskWithRetryConfig askWithRetryConfig, final Scheduler scheduler, final Executor executor) {
+            final AskWithRetryConfig askWithRetryConfig, final ActorSystem actorSystem) {
         this.commandForwarderActor = commandForwarderActor;
         this.askWithRetryConfig = askWithRetryConfig;
-        this.scheduler = scheduler;
-        this.executor = executor;
+        this.actorSystem = actorSystem;
         initializeSupportedEntityTypeReferences();
         this.supportedEntityTypeNames =
                 this.supportedEntityTypesToActionMap.keySet().stream().map(Enum::name).collect(Collectors.toSet());
@@ -108,8 +105,7 @@ public final class PolicyIdReferencePlaceholderResolver implements ReferencePlac
                 .withSelectedFields(referencePlaceholder.getReferencedField().toFieldSelector())
                 .build();
 
-        return AskWithRetry.askWithRetry(commandForwarderActor, retrieveThingCommand, askWithRetryConfig, scheduler,
-                executor,
+        return AskWithRetry.askWithRetry(commandForwarderActor, retrieveThingCommand, askWithRetryConfig, actorSystem,
                 response -> handleRetrieveThingResponse(response, referencePlaceholder, dittoHeaders)
         );
     }
@@ -117,8 +113,8 @@ public final class PolicyIdReferencePlaceholderResolver implements ReferencePlac
     private static String handleRetrieveThingResponse(final Object response,
             final ReferencePlaceholder referencePlaceholder, final DittoHeaders dittoHeaders) {
 
-        if (response instanceof RetrieveThingResponse) {
-            final JsonValue entity = ((RetrieveThingResponse) response).getEntity();
+        if (response instanceof RetrieveThingResponse retrieveThingResponse) {
+            final JsonValue entity = retrieveThingResponse.getEntity();
             if (!entity.isObject()) {
                 LOGGER.withCorrelationId(dittoHeaders)
                         .error("Expected RetrieveThingResponse to contain a JsonObject as Entity but was: {}", entity);
@@ -128,19 +124,19 @@ public final class PolicyIdReferencePlaceholderResolver implements ReferencePlac
                     .getValue(JsonFieldDefinition.ofString(referencePlaceholder.getReferencedField()))
                     .orElseThrow(() -> unknownFieldException(referencePlaceholder, dittoHeaders));
 
-        } else if (response instanceof ThingErrorResponse) {
+        } else if (response instanceof ThingErrorResponse thingErrorResponse) {
             LOGGER.withCorrelationId(dittoHeaders)
                     .info("Got ThingErrorResponse when waiting on RetrieveThingResponse when resolving policy ID" +
-                                    " placeholder reference <{}>: {}", referencePlaceholder, response);
+                                    " placeholder reference <{}>: {}", referencePlaceholder, thingErrorResponse);
             throw ((ThingErrorResponse) response).getDittoRuntimeException();
-        } else if (response instanceof DittoRuntimeException) {
+        } else if (response instanceof DittoRuntimeException dre) {
             // ignore warning that second argument isn't used. Runtime exceptions will have their stacktrace printed
             // in the logs according to https://www.slf4j.org/faq.html#paramException
             LOGGER.withCorrelationId(dittoHeaders)
                     .info("Got Exception when waiting on RetrieveThingResponse when resolving policy ID placeholder reference <{}> - {}: {}",
-                            referencePlaceholder, response.getClass().getSimpleName(),
-                            ((Throwable) response).getMessage());
-            throw (DittoRuntimeException) response;
+                            referencePlaceholder, dre.getClass().getSimpleName(),
+                            dre.getMessage());
+            throw dre;
         } else {
             LOGGER.withCorrelationId(dittoHeaders)
                     .error("Did not retrieve expected RetrieveThingResponse when resolving policy ID placeholder reference <{}>: {}",
@@ -175,15 +171,13 @@ public final class PolicyIdReferencePlaceholderResolver implements ReferencePlac
      * @param commandForwarderActor the ActorRef of the {@code ConciergeForwarderActor} which to ask for "retrieve"
      * commands.
      * @param askWithRetryConfig the configuration for the "ask with retry" pattern applied when asking for retrieves.
-     * @param scheduler the scheduler to use for the "ask with retry" for retries.
-     * @param executor the executor to use for the "ask with retry" for retries.
+     * @param actorSystem the actorSystem to load scheduler and dispatcher to use for the "ask with retry" pattern from.
      * @return the created PolicyIdReferencePlaceholderResolver instance.
      */
     public static PolicyIdReferencePlaceholderResolver of(final ActorRef commandForwarderActor,
-            final AskWithRetryConfig askWithRetryConfig, final Scheduler scheduler, final Executor executor) {
+            final AskWithRetryConfig askWithRetryConfig, final ActorSystem actorSystem) {
 
-        return new PolicyIdReferencePlaceholderResolver(commandForwarderActor, askWithRetryConfig, scheduler,
-                executor);
+        return new PolicyIdReferencePlaceholderResolver(commandForwarderActor, askWithRetryConfig, actorSystem);
     }
 
     interface ResolveEntityReferenceStrategy {
