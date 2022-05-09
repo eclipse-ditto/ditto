@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.gateway.api;
+package org.eclipse.ditto.edge.api;
 
 import java.net.URI;
 
@@ -21,16 +21,17 @@ import javax.annotation.concurrent.NotThreadSafe;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeExceptionBuilder;
+import org.eclipse.ditto.base.model.exceptions.GeneralException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonParsableException;
 import org.eclipse.ditto.json.JsonObject;
 
 /**
- * This exception indicates that a service the API Gateway proxies did timeout.
+ * This exception indicates that a service an edge service proxied did timeout.
  */
 @Immutable
-@JsonParsableException(errorCode = GatewayServiceTimeoutException.ERROR_CODE)
-public final class GatewayServiceTimeoutException extends DittoRuntimeException implements GatewayException {
+@JsonParsableException(errorCode = EdgeServiceTimeoutException.ERROR_CODE)
+public final class EdgeServiceTimeoutException extends DittoRuntimeException implements GeneralException {
 
     /**
      * Error code of this exception.
@@ -42,7 +43,7 @@ public final class GatewayServiceTimeoutException extends DittoRuntimeException 
 
     private static final long serialVersionUID = -858422215851104480L;
 
-    private GatewayServiceTimeoutException(final DittoHeaders dittoHeaders,
+    private EdgeServiceTimeoutException(final DittoHeaders dittoHeaders,
             @Nullable final String message,
             @Nullable final String description,
             @Nullable final Throwable cause,
@@ -51,7 +52,7 @@ public final class GatewayServiceTimeoutException extends DittoRuntimeException 
     }
 
     /**
-     * A mutable builder for a {@code GatewayServiceTimeoutException}.
+     * A mutable builder for a {@code EdgeServiceTimeoutException}.
      *
      * @return the builder.
      */
@@ -60,31 +61,31 @@ public final class GatewayServiceTimeoutException extends DittoRuntimeException 
     }
 
     /**
-     * Constructs a new {@code GatewayServiceTimeoutException} object with given message.
+     * Constructs a new {@code EdgeServiceTimeoutException} object with given message.
      *
      * @param message detail message. This message can be later retrieved by the {@link #getMessage()} method.
      * @param dittoHeaders the headers of the command which resulted in this exception.
-     * @return the new GatewayServiceTimeoutException.
+     * @return the new EdgeServiceTimeoutException.
      * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
      */
-    public static GatewayServiceTimeoutException fromMessage(@Nullable final String message,
+    public static EdgeServiceTimeoutException fromMessage(@Nullable final String message,
             final DittoHeaders dittoHeaders) {
         return DittoRuntimeException.fromMessage(message, dittoHeaders, new Builder());
     }
 
     /**
-     * Constructs a new {@code GatewayServiceTimeoutException} object with the exception message extracted from the given
+     * Constructs a new {@code EdgeServiceTimeoutException} object with the exception message extracted from the given
      * JSON object.
      *
      * @param jsonObject the JSON to read the {@link org.eclipse.ditto.base.model.exceptions.DittoRuntimeException.JsonFields#MESSAGE} field from.
      * @param dittoHeaders the headers of the command which resulted in this exception.
-     * @return the new GatewayServiceTimeoutException.
+     * @return the new EdgeServiceTimeoutException.
      * @throws NullPointerException if any argument is {@code null}.
      * @throws org.eclipse.ditto.json.JsonMissingFieldException if this JsonObject did not contain an error message.
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
      * format.
      */
-    public static GatewayServiceTimeoutException fromJson(final JsonObject jsonObject,
+    public static EdgeServiceTimeoutException fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
         return DittoRuntimeException.fromJson(jsonObject, dittoHeaders, new Builder());
     }
@@ -101,10 +102,10 @@ public final class GatewayServiceTimeoutException extends DittoRuntimeException 
     }
 
     /**
-     * A mutable builder with a fluent API for a {@link GatewayServiceTimeoutException}.
+     * A mutable builder with a fluent API for a {@link EdgeServiceTimeoutException}.
      */
     @NotThreadSafe
-    public static final class Builder extends DittoRuntimeExceptionBuilder<GatewayServiceTimeoutException> {
+    public static final class Builder extends DittoRuntimeExceptionBuilder<EdgeServiceTimeoutException> {
 
         private Builder() {
             message(DEFAULT_MESSAGE);
@@ -112,12 +113,12 @@ public final class GatewayServiceTimeoutException extends DittoRuntimeException 
         }
 
         @Override
-        protected GatewayServiceTimeoutException doBuild(final DittoHeaders dittoHeaders,
+        protected EdgeServiceTimeoutException doBuild(final DittoHeaders dittoHeaders,
                 @Nullable final String message,
                 @Nullable final String description,
                 @Nullable final Throwable cause,
                 @Nullable final URI href) {
-            return new GatewayServiceTimeoutException(dittoHeaders, message, description, cause, href);
+            return new EdgeServiceTimeoutException(dittoHeaders, message, description, cause, href);
         }
     }
 }
