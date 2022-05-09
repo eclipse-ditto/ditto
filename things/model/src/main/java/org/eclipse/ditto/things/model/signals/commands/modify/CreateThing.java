@@ -241,13 +241,20 @@ public final class CreateThing extends AbstractCommand<CreateThing> implements T
         final Optional<String> namespace = thing.getNamespace();
         if (!namespace.isPresent() || namespace.get().equals("")) {
             final Thing thingInDefaultNamespace = thing.toBuilder()
-                    .setId(ThingId.of(DEFAULT_NAMESPACE, createThing.getEntityId().toString().substring(1)))
+                    .setId(calculateThingId(createThing))
                     .build();
             final JsonObject initialPolicy = createThing.getInitialPolicy().orElse(null);
             return new CreateThing(thingInDefaultNamespace, initialPolicy, createThing.getDittoHeaders());
         } else {
             return createThing;
         }
+    }
+
+    private static ThingId calculateThingId(final CreateThing createThing) {
+        final Optional<ThingId> providedThingId = createThing.getThing().getEntityId();
+        return providedThingId
+                .map(thingId -> ThingId.of(DEFAULT_NAMESPACE, thingId.toString().substring(1)))
+                .orElseGet(() -> ThingId.inNamespaceWithRandomName(DEFAULT_NAMESPACE));
     }
 
     /**

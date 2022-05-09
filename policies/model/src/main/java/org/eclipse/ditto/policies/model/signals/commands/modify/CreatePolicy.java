@@ -142,12 +142,19 @@ public final class CreatePolicy extends AbstractCommand<CreatePolicy> implements
         final Optional<String> namespace = policy.getNamespace();
         if (!namespace.isPresent() || namespace.get().equals("")) {
             final Policy policyInDefaultNamespace = policy.toBuilder()
-                    .setId(PolicyId.of(DEFAULT_NAMESPACE, createPolicy.getEntityId().toString().substring(1)))
+                    .setId(calculatePolicyId(createPolicy))
                     .build();
             return new CreatePolicy(policyInDefaultNamespace, createPolicy.getDittoHeaders());
         } else {
             return createPolicy;
         }
+    }
+
+    private static PolicyId calculatePolicyId(final CreatePolicy createPolicy) {
+        final Optional<PolicyId> providedPolicyId = createPolicy.getPolicy().getEntityId();
+        return providedPolicyId
+                .map(policyId -> PolicyId.of(DEFAULT_NAMESPACE, policyId.toString().substring(1)))
+                .orElseGet(() -> PolicyId.inNamespaceWithRandomName(DEFAULT_NAMESPACE));
     }
 
     /**
