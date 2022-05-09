@@ -65,6 +65,7 @@ import org.eclipse.ditto.policies.model.signals.commands.actions.DeactivateToken
 import org.eclipse.ditto.policies.model.signals.commands.actions.TopLevelPolicyActionCommand;
 import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyActionFailedException;
 import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyNotAccessibleException;
+import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyNotCreatableException;
 import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyNotModifiableException;
 import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyPreconditionNotModifiedException;
 import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyUnavailableException;
@@ -203,7 +204,7 @@ public final class PolicyCommandEnforcementTest {
             assertThat((CharSequence) sudoRetrievePolicy.getEntityId()).isEqualTo(SUDO_RETRIEVE_POLICY.getEntityId());
             policyPersistenceActorProbe.reply(createPolicyResponseWithoutWrite());
 
-            expectMsgClass(PolicyNotAccessibleException.class);
+            expectMsgClass(PolicyNotCreatableException.class);
         }};
     }
 
@@ -555,7 +556,7 @@ public final class PolicyCommandEnforcementTest {
             assertThat((CharSequence) sudoRetrievePolicy.getEntityId()).isEqualTo(SUDO_RETRIEVE_POLICY.getEntityId());
             policyPersistenceActorProbe.reply(createPolicyResponseWithoutWrite());
 
-            expectMsgClass(PolicyNotAccessibleException.class);
+            expectMsgClass(PolicyNotCreatableException.class);
         }};
     }
 
@@ -767,7 +768,7 @@ public final class PolicyCommandEnforcementTest {
             policyPersistenceActorProbe.reply(PolicyNotAccessibleException.newBuilder(POLICY_ID).build());
 
             if (shouldFail) {
-                expectMsgClass(PolicyNotAccessibleException.class);
+                expectMsgClass(PolicyNotCreatableException.class);
             } else {
                 policyPersistenceActorProbe.expectMsg(createPolicy);
                 final ActorRef commandSender = policyPersistenceActorProbe.lastSender();
