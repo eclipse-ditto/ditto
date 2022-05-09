@@ -73,11 +73,6 @@ import akka.actor.Props;
  */
 public final class DefaultEnforcerActorFactory implements EnforcerActorFactory<ConciergeConfig> {
 
-    /**
-     * Default namespace for {@code CreateThing} commands without any namespace.
-     */
-    private static final String DEFAULT_NAMESPACE = "org.eclipse.ditto";
-
     private static final String ENFORCER_CACHE_METRIC_NAME_PREFIX = "ditto_authorization_enforcer_cache_";
     private static final String ID_CACHE_METRIC_NAME_PREFIX = "ditto_authorization_id_cache_";
 
@@ -114,7 +109,8 @@ public final class DefaultEnforcerActorFactory implements EnforcerActorFactory<C
 
         // pre-enforcer
         final BlockedNamespaces blockedNamespaces = BlockedNamespaces.of(actorSystem);
-        final PreEnforcer preEnforcer = newPreEnforcer(blockedNamespaces, PlaceholderSubstitution.newInstance());
+        final PreEnforcer preEnforcer = newPreEnforcer(blockedNamespaces, PlaceholderSubstitution.newInstance(),
+                conciergeConfig.getDefaultNamespace());
 
         final DistributedAcks distributedAcks = DistributedAcks.lookup(actorSystem);
         final LiveSignalPub liveSignalPub = LiveSignalPub.of(context, distributedAcks);
@@ -187,25 +183,25 @@ public final class DefaultEnforcerActorFactory implements EnforcerActorFactory<C
     }
 
     private static PreEnforcer newPreEnforcer(final BlockedNamespaces blockedNamespaces,
-            final PlaceholderSubstitution placeholderSubstitution) {
+            final PlaceholderSubstitution placeholderSubstitution, final String defaultNamespace) {
 
         return dittoHeadersSettable ->
                 BlockNamespaceBehavior.of(blockedNamespaces)
                         .block(dittoHeadersSettable)
                         .thenApply(CommandWithOptionalEntityValidator.getInstance())
-                        .thenApply(DefaultEnforcerActorFactory::prependDefaultNamespaceToCreateThing)
+                        .thenApply(signal -> prependDefaultNamespaceToCreateThing(signal, defaultNamespace))
                         .thenApply(DefaultEnforcerActorFactory::setOriginatorHeader)
                         .thenCompose(placeholderSubstitution);
     }
 
-    private static DittoHeadersSettable<?> prependDefaultNamespaceToCreateThing(final DittoHeadersSettable<?> signal) {
-        if (signal instanceof CreateThing) {
-            final CreateThing createThing = (CreateThing) signal;
+    private static DittoHeadersSettable<?> prependDefaultNamespaceToCreateThing(final DittoHeadersSettable<?> signal,
+            final String defaultNamespace) {
+        if (signal instanceof CreateThing createThing) {
             final Thing thing = createThing.getThing();
             final Optional<String> namespace = thing.getNamespace();
-            if (namespace.isEmpty()) {
+            if (namespace.isEmpty() || namespace.get().equals("")) {
                 final Thing thingInDefaultNamespace = thing.toBuilder()
-                        .setId(ThingId.of(DEFAULT_NAMESPACE, createThing.getEntityId().toString()))
+                        .setId(ThingId.of(defaultNamespace, createThing.getEntityId().toString().substring(1)))
                         .build();
                 final JsonObject initialPolicy = createThing.getInitialPolicy().orElse(null);
                 return CreateThing.of(thingInDefaultNamespace, initialPolicy, createThing.getDittoHeaders());

@@ -12,17 +12,18 @@
  */
 package org.eclipse.ditto.base.service.devops;
 
-import akka.actor.AbstractActor;
-import akka.actor.ActorRef;
-import akka.actor.Props;
-import akka.actor.ReceiveTimeout;
-import akka.cluster.Cluster;
-import akka.cluster.pubsub.DistributedPubSub;
-import akka.cluster.pubsub.DistributedPubSubMediator;
-import akka.event.DiagnosticLoggingAdapter;
-import akka.japi.pf.ReceiveBuilder;
-import akka.pattern.Patterns;
-import com.typesafe.config.Config;
+import java.time.Duration;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.function.Consumer;
+import java.util.function.Supplier;
+import java.util.stream.StreamSupport;
+
+import javax.annotation.Nullable;
+
 import org.eclipse.ditto.base.api.devops.LoggerConfig;
 import org.eclipse.ditto.base.api.devops.LoggingFacade;
 import org.eclipse.ditto.base.api.devops.signals.commands.AggregatedDevOpsCommandResponse;
@@ -57,16 +58,18 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
 
-import javax.annotation.Nullable;
-import java.time.Duration;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.function.Consumer;
-import java.util.function.Supplier;
-import java.util.stream.StreamSupport;
+import com.typesafe.config.Config;
+
+import akka.actor.AbstractActor;
+import akka.actor.ActorRef;
+import akka.actor.Props;
+import akka.actor.ReceiveTimeout;
+import akka.cluster.Cluster;
+import akka.cluster.pubsub.DistributedPubSub;
+import akka.cluster.pubsub.DistributedPubSubMediator;
+import akka.event.DiagnosticLoggingAdapter;
+import akka.japi.pf.ReceiveBuilder;
+import akka.pattern.Patterns;
 
 /**
  * An actor to consume {@link org.eclipse.ditto.base.api.devops.signals.commands.DevOpsCommand}s and reply appropriately.
@@ -119,8 +122,8 @@ public final class DevOpsCommandsActor extends AbstractActor implements Retrieve
      * Creates Akka configuration object Props for this Actor.
      *
      * @param loggingFacade a facade providing logging functionality.
-     * @param serviceName   name of the microservice.
-     * @param instance      instance number of the microservice instance.
+     * @param serviceName name of the microservice.
+     * @param instance instance number of the microservice instance.
      * @return the Akka configuration Props object.
      */
     public static Props props(final LoggingFacade loggingFacade, final String serviceName, final String instance) {
@@ -213,7 +216,7 @@ public final class DevOpsCommandsActor extends AbstractActor implements Retrieve
     }
 
     private void executeAsPiggybackCommandToPubSubMediator(final DevOpsCommand<?> command,
-                                                           final Supplier<ActorRef> responseCorrelationActor) {
+            final Supplier<ActorRef> responseCorrelationActor) {
 
         tryInterpretAsDirectPublication(command, publish -> {
             logger.withCorrelationId(command)
@@ -230,7 +233,7 @@ public final class DevOpsCommandsActor extends AbstractActor implements Retrieve
     }
 
     private void executeAsIndirectPiggybackCommandToPubSubMediator(final DevOpsCommand<?> command,
-                                                                   final Supplier<ActorRef> responseCorrelationActor) {
+            final Supplier<ActorRef> responseCorrelationActor) {
 
         final String topic;
         final Optional<String> commandServiceNameOpt = command.getServiceName();
@@ -259,8 +262,8 @@ public final class DevOpsCommandsActor extends AbstractActor implements Retrieve
     }
 
     private void tryInterpretAsDirectPublication(final DevOpsCommand<?> command,
-                                                 final Consumer<DistributedPubSubMediator.Publish> onSuccess,
-                                                 final Consumer<DevOpsErrorResponse> onError) {
+            final Consumer<DistributedPubSubMediator.Publish> onSuccess,
+            final Consumer<DevOpsErrorResponse> onError) {
 
         if (command instanceof ExecutePiggybackCommand executePiggyback) {
             final DittoHeaders dittoHeaders = executePiggyback.getDittoHeaders();
@@ -366,11 +369,12 @@ public final class DevOpsCommandsActor extends AbstractActor implements Retrieve
                         sender.tell(devOpsCommandResponse, getSelf());
                     });
                 },
-                dittoRuntimeException -> sender.tell(getErrorResponse(command, dittoRuntimeException.toJson()), getSelf()));
+                dittoRuntimeException -> sender.tell(getErrorResponse(command, dittoRuntimeException.toJson()),
+                        getSelf()));
     }
 
     private void deserializePiggybackCommand(final ExecutePiggybackCommand command,
-                                             final Consumer<Jsonifiable<?>> onSuccess, final Consumer<DittoRuntimeException> onError) {
+            final Consumer<Jsonifiable<?>> onSuccess, final Consumer<DittoRuntimeException> onError) {
 
         final JsonObject piggybackCommandJson = command.getPiggybackCommand();
         @Nullable final String piggybackCommandType = piggybackCommandJson.getValue(Command.JsonFields.TYPE)
@@ -420,7 +424,7 @@ public final class DevOpsCommandsActor extends AbstractActor implements Retrieve
 
         @SuppressWarnings("unused")
         private PubSubSubscriberActor(final ActorRef pubSubMediator, final String serviceName, final String instance,
-                                      final String... pubSubTopicsToSubscribeTo) {
+                final String... pubSubTopicsToSubscribeTo) {
 
             Arrays.stream(pubSubTopicsToSubscribeTo).forEach(topic ->
                     subscribeToDevOpsTopic(pubSubMediator, topic, serviceName, instance));
@@ -430,18 +434,18 @@ public final class DevOpsCommandsActor extends AbstractActor implements Retrieve
          * @return the Akka configuration Props object.
          */
         static Props props(final ActorRef pubSubMediator,
-                           final String serviceName,
-                           final String instance,
-                           final String... pubSubTopicsToSubscribeTo) {
+                final String serviceName,
+                final String instance,
+                final String... pubSubTopicsToSubscribeTo) {
 
             return Props.create(PubSubSubscriberActor.class, pubSubMediator, serviceName, instance,
                     pubSubTopicsToSubscribeTo);
         }
 
         private void subscribeToDevOpsTopic(final ActorRef pubSubMediator,
-                                            final String topic,
-                                            final String serviceName,
-                                            final String instance) {
+                final String topic,
+                final String serviceName,
+                final String instance) {
 
             pubSubMediator.tell(DistPubSubAccess.subscribe(topic, getSelf()), getSelf());
             pubSubMediator.tell(DistPubSubAccess.subscribe(String.join(":", topic, serviceName), getSelf()), getSelf());
@@ -498,8 +502,8 @@ public final class DevOpsCommandsActor extends AbstractActor implements Retrieve
 
         @SuppressWarnings("unused")
         private DevOpsCommandResponseCorrelationActor(final ActorRef devOpsCommandSender,
-                                                      final DevOpsCommand<?> devOpsCommand,
-                                                      final int expectedResponses) {
+                final DevOpsCommand<?> devOpsCommand,
+                final int expectedResponses) {
 
             this.devOpsCommandSender = devOpsCommandSender;
             this.devOpsCommand = devOpsCommand;
@@ -524,7 +528,7 @@ public final class DevOpsCommandsActor extends AbstractActor implements Retrieve
          * @return the Akka configuration Props object.
          */
         static Props props(final ActorRef devOpsCommandSender, final DevOpsCommand<?> devOpsCommand,
-                           final int expectedResponses) {
+                final int expectedResponses) {
             return Props.create(DevOpsCommandResponseCorrelationActor.class, devOpsCommandSender, devOpsCommand,
                     expectedResponses);
         }
@@ -580,6 +584,7 @@ public final class DevOpsCommandsActor extends AbstractActor implements Retrieve
 
         private void stopSelf() {
             final var context = getContext();
+            context.cancelReceiveTimeout();
             context.stop(getSelf());
         }
 

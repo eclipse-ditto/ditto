@@ -12,27 +12,28 @@
  */
 package org.eclipse.ditto.connectivity.service;
 
+import org.eclipse.ditto.base.api.common.Shutdown;
+import org.eclipse.ditto.base.api.common.purge.PurgeEntities;
+import org.eclipse.ditto.base.api.devops.signals.commands.ExecutePiggybackCommand;
+import org.eclipse.ditto.base.api.persistence.cleanup.CleanupPersistence;
+import org.eclipse.ditto.base.model.namespaces.signals.commands.PurgeNamespace;
+import org.eclipse.ditto.base.service.cluster.ModifySplitBrainResolver;
+import org.eclipse.ditto.connectivity.model.signals.commands.modify.OpenConnection;
+import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConnection;
 import org.eclipse.ditto.connectivity.service.messaging.persistence.stages.StagedCommand;
-import org.eclipse.ditto.policies.api.commands.sudo.SudoRetrievePolicy;
 import org.eclipse.ditto.internal.models.streaming.SudoStreamPids;
-import org.eclipse.ditto.things.api.commands.sudo.SudoRetrieveThing;
-import org.eclipse.ditto.thingsearch.api.commands.sudo.SudoCountThings;
 import org.eclipse.ditto.internal.utils.health.RetrieveHealth;
 import org.eclipse.ditto.internal.utils.pubsub.api.PublishSignal;
 import org.eclipse.ditto.internal.utils.test.GlobalCommandRegistryTestCases;
-import org.eclipse.ditto.base.api.persistence.cleanup.CleanupPersistence;
-import org.eclipse.ditto.base.api.common.Shutdown;
-import org.eclipse.ditto.base.api.common.purge.PurgeEntities;
-import org.eclipse.ditto.connectivity.model.signals.commands.modify.OpenConnection;
-import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConnection;
-import org.eclipse.ditto.base.api.devops.signals.commands.ExecutePiggybackCommand;
 import org.eclipse.ditto.messages.model.signals.commands.SendClaimMessage;
-import org.eclipse.ditto.base.model.namespaces.signals.commands.PurgeNamespace;
+import org.eclipse.ditto.policies.api.commands.sudo.SudoRetrievePolicy;
 import org.eclipse.ditto.policies.model.signals.commands.actions.ActivateTokenIntegration;
 import org.eclipse.ditto.policies.model.signals.commands.modify.DeleteSubject;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrieveResource;
+import org.eclipse.ditto.things.api.commands.sudo.SudoRetrieveThing;
 import org.eclipse.ditto.things.model.signals.commands.modify.ModifyFeatureProperty;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveFeature;
+import org.eclipse.ditto.thingsearch.api.commands.sudo.SudoCountThings;
 import org.eclipse.ditto.thingsearch.model.signals.commands.query.QueryThings;
 import org.eclipse.ditto.thingsearch.model.signals.commands.subscription.CreateSubscription;
 
@@ -60,6 +61,7 @@ public class ConnectivityServiceGlobalCommandRegistryTest extends GlobalCommandR
                 CleanupPersistence.class,
                 RetrieveHealth.class,
                 PurgeEntities.class,
+                ModifySplitBrainResolver.class,
                 PublishSignal.class
         );
     }

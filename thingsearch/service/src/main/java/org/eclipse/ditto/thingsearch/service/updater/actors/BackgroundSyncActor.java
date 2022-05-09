@@ -85,7 +85,7 @@ public final class BackgroundSyncActor
         this.backgroundSyncStream = backgroundSyncStream;
         this.thingsUpdater = thingsUpdater;
 
-        getTimers().startPeriodicTimer(Control.BOOKMARK_THING_ID, Control.BOOKMARK_THING_ID, config.getQuietPeriod());
+        getTimers().startTimerAtFixedRate(Control.BOOKMARK_THING_ID, Control.BOOKMARK_THING_ID, config.getQuietPeriod());
     }
 
     /**

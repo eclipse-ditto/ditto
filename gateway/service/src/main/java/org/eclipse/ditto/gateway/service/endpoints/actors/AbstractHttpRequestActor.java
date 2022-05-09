@@ -199,9 +199,12 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
                 .match(Whoami.class, this::handleWhoami)
                 .match(DittoRuntimeException.class, this::handleDittoRuntimeException)
                 .match(ReceiveTimeout.class,
-                        receiveTimeout -> handleDittoRuntimeException(GatewayServiceUnavailableException.newBuilder()
-                                .dittoHeaders(DittoHeaders.empty())
-                                .build()))
+                        receiveTimeout -> {
+                            getContext().cancelReceiveTimeout();
+                            handleDittoRuntimeException(GatewayServiceUnavailableException.newBuilder()
+                                    .dittoHeaders(DittoHeaders.empty())
+                                    .build());
+                        })
                 .match(Command.class, this::handleCommand)
                 .matchAny(m -> {
                     logger.warning("Got unknown message, expected a 'Command': {}", m);
@@ -211,7 +214,9 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
     }
 
     private static HttpResponse createHttpResponse(final HttpStatus httpStatus) {
-        return HttpResponse.create().withStatus(httpStatus.getCode());
+        final var statusCode = StatusCodes.lookup(httpStatus.getCode())
+                .orElse(StatusCodes.custom(httpStatus.getCode(), "custom", "custom"));
+        return HttpResponse.create().withStatus(statusCode);
     }
 
     private void handleCommand(final Command<?> command) {
@@ -427,8 +432,6 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
         final Optional<?> optionalPayload = message.getPayload();
         final Optional<ByteBuffer> optionalRawPayload = message.getRawPayload();
         final var responseStatus = Optional.of(messageCommandResponse.getHttpStatus())
-                .filter(httpStatus -> StatusCodes.lookup(httpStatus.getCode()).isPresent())
-                // only allow HTTP status which are known to akka-http
                 .filter(httpStatus -> !HttpStatus.BAD_GATEWAY.equals(httpStatus));
         // filter "bad gateway" 502 from being used as this is used Ditto internally for graceful HTTP shutdown
 
@@ -492,6 +495,7 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
             logger.error("Actor does not have a timeout exception supplier." +
                     " Thus, no DittoRuntimeException could be handled.");
         }
+        getContext().cancelReceiveTimeout();
     }
 
     private void handleDittoRuntimeException(final DittoRuntimeException exception) {
