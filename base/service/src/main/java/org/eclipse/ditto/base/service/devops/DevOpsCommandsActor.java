@@ -399,13 +399,13 @@ public final class DevOpsCommandsActor extends AbstractActor implements Retrieve
         serviceMappingStrategy.getMappingStrategy(piggybackCommandType).ifPresentOrElse(action, emptyAction);
     }
 
-    private static DevOpsErrorResponse getErrorResponse(final DevOpsCommand<?> command, final JsonObject error) {
-        final String serviceName = command.getServiceName().orElse(null);
-        final String instance = command.getInstance().map(String::valueOf).orElse(null);
-        return DevOpsErrorResponse.of(serviceName, instance, error, command.getDittoHeaders());
+    private DevOpsErrorResponse getErrorResponse(final DevOpsCommand<?> command, final JsonObject error) {
+        final String responseServiceName = command.getServiceName().orElse(this.serviceName);
+        final String responseInstance = command.getInstance().map(String::valueOf).orElse(this.instance);
+        return DevOpsErrorResponse.of(responseServiceName, responseInstance, error, command.getDittoHeaders());
     }
 
-    private static DevOpsErrorResponse getErrorResponse(final DevOpsCommand<?> command) {
+    private DevOpsErrorResponse getErrorResponse(final DevOpsCommand<?> command) {
         final JsonObject error = JsonFactory.newObjectBuilder()
                 .set(DittoRuntimeException.JsonFields.STATUS, HttpStatus.BAD_REQUEST.getCode())
                 .set(DittoRuntimeException.JsonFields.MESSAGE,
