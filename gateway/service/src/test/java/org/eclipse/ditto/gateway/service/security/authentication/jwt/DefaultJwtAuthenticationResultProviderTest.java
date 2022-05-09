@@ -45,7 +45,7 @@ public final class DefaultJwtAuthenticationResultProviderTest {
     public void assertImmutability() {
         assertInstancesOf(DefaultJwtAuthenticationResultProvider.class,
                 areImmutable(),
-                provided(JwtAuthorizationSubjectsProvider.class).isAlsoImmutable());
+                provided(ActorSystem.class).isAlsoImmutable());
     }
 
     @Test
