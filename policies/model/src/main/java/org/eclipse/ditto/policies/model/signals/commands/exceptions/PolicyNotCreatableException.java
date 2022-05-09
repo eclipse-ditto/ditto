@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Contributors to the Eclipse Foundation
+ * Copyright (c) 2022 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -29,7 +29,7 @@ import org.eclipse.ditto.policies.model.PolicyException;
 import org.eclipse.ditto.policies.model.PolicyId;
 
 /**
- * Thrown if a {@link org.eclipse.ditto.policies.model.Policy} could not be modified because the requester had
+ * Thrown if a {@link org.eclipse.ditto.policies.model.Policy} could not be created because the requester had
  * insufficient permissions.
  */
 @Immutable
@@ -39,15 +39,15 @@ public final class PolicyNotCreatableException extends DittoRuntimeException imp
     /**
      * Error code of this exception.
      */
-    public static final String ERROR_CODE = ERROR_CODE_PREFIX + "policy.notmodifiable";
+    public static final String ERROR_CODE = ERROR_CODE_PREFIX + "policy.notcreatable";
 
     private static final String MESSAGE_TEMPLATE =
-            "The Policy with ID ''{0}'' could not be modified as the requester had insufficient permissions.";
+            "The Policy with ID ''{0}'' could not be created as the requester had insufficient permissions.";
 
     private static final String DEFAULT_DESCRIPTION =
-            "Check if the ID of your requested Policy was correct and you have sufficient permissions.";
+            "Check if you have sufficient permissions in the new policy to create.";
 
-    private static final long serialVersionUID = 6405617723219643100L;
+    private static final long serialVersionUID = 4288777662322213450L;
 
     private PolicyNotCreatableException(final DittoHeaders dittoHeaders,
             @Nullable final String message,
@@ -58,7 +58,7 @@ public final class PolicyNotCreatableException extends DittoRuntimeException imp
     }
 
     /**
-     * A mutable builder for a {@code PolicyNotModifiableException}.
+     * A mutable builder for a {@code PolicyNotCreatableException}.
      *
      * @param policyId the identifier of the Policy.
      * @return the builder.
@@ -68,11 +68,11 @@ public final class PolicyNotCreatableException extends DittoRuntimeException imp
     }
 
     /**
-     * Constructs a new {@code PolicyNotModifiableException} object with given message.
+     * Constructs a new {@code PolicyNotCreatableException} object with given message.
      *
      * @param message detail message. This message can be later retrieved by the {@link #getMessage()} method.
      * @param dittoHeaders the headers of the command which resulted in this exception.
-     * @return the new PolicyNotModifiableException.
+     * @return the new PolicyNotCreatableException.
      * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
      */
     public static PolicyNotCreatableException fromMessage(@Nullable final String message,
@@ -81,12 +81,12 @@ public final class PolicyNotCreatableException extends DittoRuntimeException imp
     }
 
     /**
-     * Constructs a new {@code PolicyNotModifiableException} object with the exception message extracted from the
+     * Constructs a new {@code PolicyNotCreatableException} object with the exception message extracted from the
      * given JSON object.
      *
      * @param jsonObject the JSON to read the {@link org.eclipse.ditto.base.model.exceptions.DittoRuntimeException.JsonFields#MESSAGE} field from.
      * @param dittoHeaders the headers of the command which resulted in this exception.
-     * @return the new PolicyNotModifiableException.
+     * @return the new PolicyNotCreatableException.
      * @throws NullPointerException if any argument is {@code null}.
      * @throws org.eclipse.ditto.json.JsonMissingFieldException if this JsonObject did not contain an error message.
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected

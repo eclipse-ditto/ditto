@@ -47,6 +47,7 @@ import org.eclipse.ditto.policies.model.signals.commands.actions.DeactivateToken
 import org.eclipse.ditto.policies.model.signals.commands.actions.TopLevelPolicyActionCommand;
 import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyActionFailedException;
 import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyIdNotExplicitlySettableException;
+import org.eclipse.ditto.policies.model.signals.commands.modify.CreatePolicy;
 import org.eclipse.ditto.policies.model.signals.commands.modify.DeletePolicy;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicy;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicy;
@@ -96,10 +97,34 @@ public final class PoliciesRoute extends AbstractRoute {
     public Route buildPoliciesRoute(final RequestContext ctx, final DittoHeaders dittoHeaders,
             final AuthenticationResult authenticationResult) {
         return rawPathPrefix(PathMatchers.slash().concat(PATH_POLICIES), () ->
-                rawPathPrefix(PathMatchers.slash().concat(PathMatchers.segment()), policyId ->
-                        // /policies/<policyId>
-                        policyRoute(ctx, dittoHeaders, PolicyId.of(policyId), authenticationResult)
+                concat(
+                        policies(ctx, dittoHeaders),
+                        rawPathPrefix(PathMatchers.slash().concat(PathMatchers.segment()), policyId ->
+                                // /policies/<policyId>
+                                policyRoute(ctx, dittoHeaders, PolicyId.of(policyId), authenticationResult)
+                        )
                 )
+        );
+    }
+
+    /*
+     * Describes {@code /policies} route.
+     *
+     * @return {@code /policies} route.
+     */
+    private Route policies(final RequestContext ctx, final DittoHeaders dittoHeaders) {
+        return pathEndOrSingleSlash(() ->
+                // POST /policies
+                post(() -> buildPostPoliciesRoute(ctx, dittoHeaders))
+        );
+    }
+
+    private Route buildPostPoliciesRoute(final RequestContext ctx, final DittoHeaders dittoHeaders) {
+        return ensureMediaTypeJsonWithFallbacksThenExtractDataBytes(ctx, dittoHeaders,
+                    payloadSource ->
+                            handlePerRequest(ctx, dittoHeaders, payloadSource, policyJson ->
+                                    CreatePolicy.of(createPolicyForPost(policyJson), dittoHeaders)
+                            )
         );
     }
 
@@ -141,6 +166,18 @@ public final class PoliciesRoute extends AbstractRoute {
                         )
                 )
         );
+    }
+
+    private static Policy createPolicyForPost(final String jsonString) {
+        final JsonObject policyJsonObject = wrapJsonRuntimeException(() -> JsonFactory.newObject(jsonString));
+        if (policyJsonObject.contains(Policy.JsonFields.ID.getPointer())) {
+            throw PolicyIdNotExplicitlySettableException.forPostMethod().build();
+        }
+
+        return PoliciesModelFactory.newPolicy(policyJsonObject)
+                .toBuilder()
+                .setId(PolicyId.generateRandom())
+                .build();
     }
 
     private static JsonObject createPolicyJsonObjectForPut(final String jsonString, final PolicyId policyId) {
@@ -246,8 +283,8 @@ public final class PoliciesRoute extends AbstractRoute {
             final String actionName,
             final Function<JsonWebToken, Route> inner) {
 
-        if (authResult instanceof JwtAuthenticationResult) {
-            final Optional<JsonWebToken> jwtOptional = ((JwtAuthenticationResult) authResult).getJwt();
+        if (authResult instanceof JwtAuthenticationResult jwtAuthenticationResult) {
+            final Optional<JsonWebToken> jwtOptional = jwtAuthenticationResult.getJwt();
             if (jwtOptional.isPresent()) {
                 return inner.apply(jwtOptional.get());
             }

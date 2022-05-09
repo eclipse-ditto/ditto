@@ -76,6 +76,12 @@
         </dependency>
 
         <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-utils-jsr305</artifactId>
+            <scope>provided</scope>
+        </dependency>
+
+        <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
             <scope>test</scope>

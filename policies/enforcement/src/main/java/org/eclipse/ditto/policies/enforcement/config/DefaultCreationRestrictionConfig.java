@@ -51,13 +51,13 @@ public class DefaultCreationRestrictionConfig implements CreationRestrictionConf
     }
 
     /**
-     * Returns an instance of {@code DefaultCreationRestrictionConfig} based on the settings of the specified Config.
+     * Returns an instance of {@code CreationRestrictionConfig} based on the settings of the specified Config.
      *
      * @param config is supposed to provide the settings of the restriction config.
      * @return the instance.
      * @throws org.eclipse.ditto.internal.utils.config.DittoConfigError if {@code config} is invalid.
      */
-    public static DefaultCreationRestrictionConfig of(final Config config) {
+    public static CreationRestrictionConfig of(final Config config) {
         return new DefaultCreationRestrictionConfig(ConfigWithFallback.newInstance(config,
                 CreationRestrictionConfig.CreationRestrictionConfigValues.values()));
     }

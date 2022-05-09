@@ -21,6 +21,7 @@ import java.util.function.Predicate;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.base.model.common.DittoSystemProperties;
 import org.eclipse.ditto.base.model.common.Placeholders;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.FieldType;
@@ -90,6 +91,12 @@ public final class CreateThing extends AbstractCommand<CreateThing> implements T
     public static final JsonFieldDefinition<JsonObject> JSON_INLINE_POLICY =
             JsonFactory.newJsonObjectFieldDefinition("_policy", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
+    private static final String DEFAULT_NAMESPACE;
+
+    static {
+        DEFAULT_NAMESPACE = System.getProperty(DittoSystemProperties.DITTO_ENTITY_CREATION_DEFAULT_NAMESPACE, "");
+    }
+
     private final Thing thing;
     @Nullable private final JsonObject initialPolicy;
 
@@ -139,7 +146,7 @@ public final class CreateThing extends AbstractCommand<CreateThing> implements T
     public static CreateThing of(final Thing newThing, @Nullable final JsonObject initialPolicy,
             final DittoHeaders dittoHeaders) {
         checkNotNull(newThing, "new Thing");
-        return new CreateThing(newThing, initialPolicy, dittoHeaders);
+        return prependDefaultNamespaceToCreateThing(new CreateThing(newThing, initialPolicy, dittoHeaders));
     }
 
     /**
@@ -159,7 +166,7 @@ public final class CreateThing extends AbstractCommand<CreateThing> implements T
             final DittoHeaders dittoHeaders) {
         checkNotNull(newThing, "new Thing");
         checkNotNull(newThing, "policyIdOrPlaceholder");
-        return new CreateThing(newThing, policyIdOrPlaceholder, dittoHeaders);
+        return prependDefaultNamespaceToCreateThing(new CreateThing(newThing, policyIdOrPlaceholder, dittoHeaders));
     }
 
     /**
@@ -184,11 +191,13 @@ public final class CreateThing extends AbstractCommand<CreateThing> implements T
             throw PoliciesConflictingException.newBuilder(thingId).dittoHeaders(dittoHeaders).build();
         }
 
+        final CreateThing createThing;
         if (policyIdOrPlaceholder == null) {
-            return of(newThing, initialPolicy, dittoHeaders);
+            createThing = of(newThing, initialPolicy, dittoHeaders);
         } else {
-            return withCopiedPolicy(newThing, policyIdOrPlaceholder, dittoHeaders);
+            createThing = withCopiedPolicy(newThing, policyIdOrPlaceholder, dittoHeaders);
         }
+        return prependDefaultNamespaceToCreateThing(createThing);
     }
 
     /**
@@ -225,6 +234,20 @@ public final class CreateThing extends AbstractCommand<CreateThing> implements T
 
             return of(thing, initialPolicyObject, policyIdOrPlaceholder, dittoHeaders);
         });
+    }
+
+    private static CreateThing prependDefaultNamespaceToCreateThing(final CreateThing createThing) {
+        final Thing thing = createThing.getThing();
+        final Optional<String> namespace = thing.getNamespace();
+        if (!namespace.isPresent() || namespace.get().equals("")) {
+            final Thing thingInDefaultNamespace = thing.toBuilder()
+                    .setId(ThingId.of(DEFAULT_NAMESPACE, createThing.getEntityId().toString().substring(1)))
+                    .build();
+            final JsonObject initialPolicy = createThing.getInitialPolicy().orElse(null);
+            return new CreateThing(thingInDefaultNamespace, initialPolicy, createThing.getDittoHeaders());
+        } else {
+            return createThing;
+        }
     }
 
     /**

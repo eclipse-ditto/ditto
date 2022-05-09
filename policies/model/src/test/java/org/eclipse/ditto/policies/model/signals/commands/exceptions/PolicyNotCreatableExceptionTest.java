@@ -27,26 +27,26 @@ import org.eclipse.ditto.policies.model.signals.commands.TestConstants;
 import org.junit.Test;
 
 /**
- * Unit test for {@link PolicyNotModifiableException}.
+ * Unit test for {@link PolicyNotCreatableException}.
  */
 public class PolicyNotCreatableExceptionTest {
 
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()
             .set(DittoRuntimeException.JsonFields.STATUS, HttpStatus.FORBIDDEN.getCode())
-            .set(DittoRuntimeException.JsonFields.ERROR_CODE, PolicyNotModifiableException.ERROR_CODE)
+            .set(DittoRuntimeException.JsonFields.ERROR_CODE, PolicyNotCreatableException.ERROR_CODE)
             .set(DittoRuntimeException.JsonFields.MESSAGE,
-                    TestConstants.Policy.POLICY_NOT_MODIFIABLE_EXCEPTION.getMessage())
+                    TestConstants.Policy.POLICY_NOT_CREATABLE_EXCEPTION.getMessage())
             .set(DittoRuntimeException.JsonFields.DESCRIPTION,
-                    TestConstants.Policy.POLICY_NOT_MODIFIABLE_EXCEPTION.getDescription().get())
+                    TestConstants.Policy.POLICY_NOT_CREATABLE_EXCEPTION.getDescription().get())
             .set(DittoRuntimeException.JsonFields.HREF,
-                    TestConstants.Policy.POLICY_NOT_MODIFIABLE_EXCEPTION.getHref()
+                    TestConstants.Policy.POLICY_NOT_CREATABLE_EXCEPTION.getHref()
                             .map(Objects::toString).orElse(null))
             .build();
 
 
     @Test
     public void assertImmutability() {
-        assertInstancesOf(PolicyNotModifiableException.class, areImmutable());
+        assertInstancesOf(PolicyNotCreatableException.class, areImmutable());
     }
 
 
@@ -55,7 +55,7 @@ public class PolicyNotCreatableExceptionTest {
         final DittoRuntimeException actual =
                 GlobalErrorRegistry.getInstance().parse(KNOWN_JSON, TestConstants.EMPTY_DITTO_HEADERS);
 
-        assertThat(actual).isEqualTo(TestConstants.Policy.POLICY_NOT_MODIFIABLE_EXCEPTION);
+        assertThat(actual).isEqualTo(TestConstants.Policy.POLICY_NOT_CREATABLE_EXCEPTION);
     }
 
 }

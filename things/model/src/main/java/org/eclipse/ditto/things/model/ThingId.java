@@ -17,6 +17,7 @@ import java.util.function.Supplier;
 
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.base.model.common.DittoSystemProperties;
 import org.eclipse.ditto.base.model.entity.id.AbstractNamespacedEntityId;
 import org.eclipse.ditto.base.model.entity.id.NamespacedEntityId;
 import org.eclipse.ditto.base.model.entity.id.NamespacedEntityIdInvalidException;
@@ -29,7 +30,11 @@ import org.eclipse.ditto.base.model.entity.id.TypedEntityId;
 @TypedEntityId(type = "thing")
 public final class ThingId extends AbstractNamespacedEntityId {
 
-    private static final String DEFAULT_NAMESPACE = "";
+    private static final String DEFAULT_NAMESPACE;
+
+    static {
+        DEFAULT_NAMESPACE = System.getProperty(DittoSystemProperties.DITTO_ENTITY_CREATION_DEFAULT_NAMESPACE, "");
+    }
 
     private ThingId(final CharSequence thingId) {
         super(ThingConstants.ENTITY_TYPE, thingId);
@@ -70,6 +75,18 @@ public final class ThingId extends AbstractNamespacedEntityId {
      */
     public static ThingId of(final String namespace, final String name) {
         return wrapInThingIdInvalidException(() -> new ThingId(namespace, name, true));
+    }
+
+    /**
+     * Generates a thing ID with a random unique name inside the given namespace.
+     *
+     * @param namespace the namespace of the thing.
+     * @return The generated unique thing ID.
+     * @throws ThingIdInvalidException if for the given {@code namespace} a ThingId cannot be derived.
+     * @since 3.0.0
+     */
+    public static ThingId inNamespaceWithRandomName(final String namespace) {
+        return of(namespace, UUID.randomUUID().toString());
     }
 
     /**

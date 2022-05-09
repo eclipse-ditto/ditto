@@ -14,10 +14,8 @@ package org.eclipse.ditto.things.service.starter;
 
 import static org.eclipse.ditto.things.api.ThingsMessagingConstants.CLUSTER_ROLE;
 
-import java.util.Optional;
-
 import org.eclipse.ditto.base.api.devops.signals.commands.RetrieveStatisticsDetails;
-import org.eclipse.ditto.base.model.headers.DittoHeadersSettable;
+import org.eclipse.ditto.base.model.common.DittoSystemProperties;
 import org.eclipse.ditto.base.service.actors.DittoRootActor;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.cluster.ClusterUtil;
@@ -25,6 +23,7 @@ import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.internal.utils.cluster.RetrieveStatisticsDetailsResponseSupplier;
 import org.eclipse.ditto.internal.utils.cluster.ShardRegionExtractor;
 import org.eclipse.ditto.internal.utils.cluster.ShardRegionProxyActorFactory;
+import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.internal.utils.health.DefaultHealthCheckingActorFactory;
 import org.eclipse.ditto.internal.utils.health.HealthCheckingActorOptions;
 import org.eclipse.ditto.internal.utils.namespaces.BlockNamespaceBehavior;
@@ -38,15 +37,13 @@ import org.eclipse.ditto.internal.utils.persistentactors.cleanup.PersistenceClea
 import org.eclipse.ditto.internal.utils.pubsub.DistributedAcks;
 import org.eclipse.ditto.internal.utils.pubsub.DistributedPub;
 import org.eclipse.ditto.internal.utils.pubsub.ThingEventPubSubFactory;
-import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.policies.api.PoliciesMessagingConstants;
 import org.eclipse.ditto.policies.enforcement.PreEnforcer;
+import org.eclipse.ditto.policies.enforcement.config.DefaultEntityCreationConfig;
+import org.eclipse.ditto.policies.enforcement.config.EntityCreationConfig;
 import org.eclipse.ditto.policies.enforcement.placeholders.PlaceholderSubstitution;
 import org.eclipse.ditto.policies.enforcement.validators.CommandWithOptionalEntityValidator;
 import org.eclipse.ditto.things.api.ThingsMessagingConstants;
-import org.eclipse.ditto.things.model.Thing;
-import org.eclipse.ditto.things.model.ThingId;
-import org.eclipse.ditto.things.model.signals.commands.modify.CreateThing;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 import org.eclipse.ditto.things.service.common.config.ThingsConfig;
 import org.eclipse.ditto.things.service.persistence.actors.ThingPersistenceActorPropsFactory;
@@ -72,8 +69,6 @@ public final class ThingsRootActor extends DittoRootActor {
      * The name of this Actor in the ActorSystem.
      */
     public static final String ACTOR_NAME = "thingsRoot";
-
-    private static final String DEFAULT_NAMESPACE = "org.eclipse.ditto"; // TODO TJ fix after merge from master
 
     private final DiagnosticLoggingAdapter log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
 
@@ -101,6 +96,12 @@ public final class ThingsRootActor extends DittoRootActor {
                 PoliciesMessagingConstants.CLUSTER_ROLE,
                 PoliciesMessagingConstants.SHARD_REGION
         );
+
+        final EntityCreationConfig entityCreationConfig = DefaultEntityCreationConfig.of(
+                DefaultScopedConfig.dittoScoped(actorSystem.settings().config())
+        );
+        // TODO TJ consolidate with PoliciesRootActor
+        injectSystemPropertiesForEntityCreation(entityCreationConfig);
 
         final BlockedNamespaces blockedNamespaces = BlockedNamespaces.of(actorSystem);
         // start cluster singleton that writes to the distributed cache of blocked namespaces
@@ -170,6 +171,11 @@ public final class ThingsRootActor extends DittoRootActor {
         return Props.create(ThingsRootActor.class, thingsConfig, pubSubMediator, propsFactory);
     }
 
+    private static void injectSystemPropertiesForEntityCreation(final EntityCreationConfig entityCreationConfig) {
+        System.setProperty(DittoSystemProperties.DITTO_ENTITY_CREATION_DEFAULT_NAMESPACE,
+                entityCreationConfig.getDefaultNamespace());
+    }
+
     @Override
     public Receive createReceive() {
         return ReceiveBuilder.create()
@@ -189,8 +195,8 @@ public final class ThingsRootActor extends DittoRootActor {
             final ThingPersistenceActorPropsFactory propsFactory,
             final BlockedNamespaces blockedNamespaces) {
 
-        return ThingSupervisorActor.props(pubSubMediator, policiesShardRegion, distributedPub, propsFactory,
-                blockedNamespaces, providePreEnforcer(blockedNamespaces));
+        return ThingSupervisorActor.props(pubSubMediator, policiesShardRegion, distributedPub,
+                propsFactory, blockedNamespaces, providePreEnforcer(blockedNamespaces));
     }
 
     private static PreEnforcer providePreEnforcer(final BlockedNamespaces blockedNamespaces) {
@@ -211,24 +217,8 @@ public final class ThingsRootActor extends DittoRootActor {
                 BlockNamespaceBehavior.of(blockedNamespaces)
                         .block(dittoHeadersSettable)
                         .thenApply(CommandWithOptionalEntityValidator.getInstance())
-                        .thenApply(ThingsRootActor::prependDefaultNamespaceToCreateThing)
                         .thenApply(PreEnforcer::setOriginatorHeader)
                         .thenCompose(placeholderSubstitution);
-    }
-
-    private static DittoHeadersSettable<?> prependDefaultNamespaceToCreateThing(final DittoHeadersSettable<?> signal) {
-        if (signal instanceof CreateThing createThing) {
-            final Thing thing = createThing.getThing();
-            final Optional<String> namespace = thing.getNamespace();
-            if (namespace.isEmpty()) {
-                final Thing thingInDefaultNamespace = thing.toBuilder()
-                        .setId(ThingId.of(DEFAULT_NAMESPACE, createThing.getEntityId().toString()))
-                        .build();
-                final JsonObject initialPolicy = createThing.getInitialPolicy().orElse(null);
-                return CreateThing.of(thingInDefaultNamespace, initialPolicy, createThing.getDittoHeaders());
-            }
-        }
-        return signal;
     }
 
     private static MongoReadJournal newMongoReadJournal(final MongoDbConfig mongoDbConfig,

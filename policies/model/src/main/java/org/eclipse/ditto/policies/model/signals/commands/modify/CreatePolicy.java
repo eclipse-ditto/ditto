@@ -21,6 +21,13 @@ import java.util.function.Predicate;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.base.model.common.DittoSystemProperties;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.json.FieldType;
+import org.eclipse.ditto.base.model.json.JsonParsableCommand;
+import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
+import org.eclipse.ditto.base.model.signals.commands.AbstractCommand;
+import org.eclipse.ditto.base.model.signals.commands.CommandJsonDeserializer;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
@@ -28,18 +35,12 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.base.model.json.FieldType;
-import org.eclipse.ditto.base.model.json.JsonParsableCommand;
-import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.policies.model.PoliciesModelFactory;
 import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.PolicyIdInvalidException;
 import org.eclipse.ditto.policies.model.signals.commands.PolicyCommand;
 import org.eclipse.ditto.policies.model.signals.commands.PolicyCommandSizeValidator;
-import org.eclipse.ditto.base.model.signals.commands.AbstractCommand;
-import org.eclipse.ditto.base.model.signals.commands.CommandJsonDeserializer;
 
 /**
  * This command creates a new Policy. It contains the full {@link org.eclipse.ditto.policies.model.Policy} including the Policy ID which should be used
@@ -62,6 +63,12 @@ public final class CreatePolicy extends AbstractCommand<CreatePolicy> implements
 
     static final JsonFieldDefinition<JsonObject> JSON_POLICY =
             JsonFactory.newJsonObjectFieldDefinition("policy", FieldType.REGULAR, JsonSchemaVersion.V_2);
+
+    private static final String DEFAULT_NAMESPACE;
+
+    static {
+        DEFAULT_NAMESPACE = System.getProperty(DittoSystemProperties.DITTO_ENTITY_CREATION_DEFAULT_NAMESPACE, "");
+    }
 
     private final Policy policy;
 
@@ -94,7 +101,7 @@ public final class CreatePolicy extends AbstractCommand<CreatePolicy> implements
      * @throws org.eclipse.ditto.policies.model.PolicyIdInvalidException if the {@link org.eclipse.ditto.policies.model.Policy}'s ID is not valid.
      */
     public static CreatePolicy of(final Policy policy, final DittoHeaders dittoHeaders) {
-        return new CreatePolicy(policy, dittoHeaders);
+        return prependDefaultNamespaceToCreatePolicy(new CreatePolicy(policy, dittoHeaders));
     }
 
     /**
@@ -128,6 +135,19 @@ public final class CreatePolicy extends AbstractCommand<CreatePolicy> implements
 
             return of(policy, dittoHeaders);
         });
+    }
+
+    private static CreatePolicy prependDefaultNamespaceToCreatePolicy(final CreatePolicy createPolicy) {
+        final Policy policy = createPolicy.getPolicy();
+        final Optional<String> namespace = policy.getNamespace();
+        if (!namespace.isPresent() || namespace.get().equals("")) {
+            final Policy policyInDefaultNamespace = policy.toBuilder()
+                    .setId(PolicyId.of(DEFAULT_NAMESPACE, createPolicy.getEntityId().toString().substring(1)))
+                    .build();
+            return new CreatePolicy(policyInDefaultNamespace, createPolicy.getDittoHeaders());
+        } else {
+            return createPolicy;
+        }
     }
 
     /**

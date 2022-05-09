@@ -14,7 +14,6 @@ package org.eclipse.ditto.policies.enforcement.config;
 
 import java.util.List;
 import java.util.Objects;
-import java.util.stream.Collectors;
 
 import javax.annotation.concurrent.Immutable;
 
@@ -31,16 +30,18 @@ public class DefaultEntityCreationConfig implements EntityCreationConfig {
 
     private static final String CONFIG_PATH = "entity-creation";
 
+    private final String defaultNamespace;
     private final List<CreationRestrictionConfig> grant;
     private final List<CreationRestrictionConfig> revoke;
 
     private DefaultEntityCreationConfig(final ScopedConfig config) {
+        defaultNamespace = config.getString(ConfigValue.DEFAULT_NAMESPACE.getConfigPath());
         grant = config.getConfigList(ConfigValue.GRANT.getConfigPath()).stream()
                 .map(DefaultCreationRestrictionConfig::of)
-                .collect(Collectors.toUnmodifiableList());
+                .toList();
         revoke = config.getConfigList(ConfigValue.REVOKE.getConfigPath()).stream()
                 .map(DefaultCreationRestrictionConfig::of)
-                .collect(Collectors.toUnmodifiableList());
+                .toList();
     }
 
     /**
@@ -56,6 +57,11 @@ public class DefaultEntityCreationConfig implements EntityCreationConfig {
     }
 
     @Override
+    public String getDefaultNamespace() {
+        return defaultNamespace;
+    }
+
+    @Override
     public List<CreationRestrictionConfig> getGrant() {
         return grant;
     }
@@ -66,27 +72,28 @@ public class DefaultEntityCreationConfig implements EntityCreationConfig {
     }
 
     @Override
-    public boolean equals(Object o) {
+    public boolean equals(final Object o) {
         if (this == o) {
             return true;
         }
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        DefaultEntityCreationConfig that = (DefaultEntityCreationConfig) o;
-        return grant.equals(that.grant) && revoke.equals(that.revoke);
+        final DefaultEntityCreationConfig that = (DefaultEntityCreationConfig) o;
+        return defaultNamespace.equals(that.defaultNamespace) && grant.equals(that.grant) && revoke.equals(that.revoke);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(grant, revoke);
+        return Objects.hash(defaultNamespace, grant, revoke);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
-                "grant=" + grant +
+                "defaultNamespace=" + defaultNamespace +
+                ", grant=" + grant +
                 ", revoke=" + revoke +
-                ']';
+                "]";
     }
 }

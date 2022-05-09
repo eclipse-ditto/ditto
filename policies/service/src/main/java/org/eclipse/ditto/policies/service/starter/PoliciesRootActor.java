@@ -15,12 +15,14 @@ package org.eclipse.ditto.policies.service.starter;
 import static org.eclipse.ditto.policies.api.PoliciesMessagingConstants.CLUSTER_ROLE;
 
 import org.eclipse.ditto.base.api.devops.signals.commands.RetrieveStatisticsDetails;
+import org.eclipse.ditto.base.model.common.DittoSystemProperties;
 import org.eclipse.ditto.base.service.actors.DittoRootActor;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.cluster.ClusterUtil;
 import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.internal.utils.cluster.RetrieveStatisticsDetailsResponseSupplier;
 import org.eclipse.ditto.internal.utils.cluster.ShardRegionExtractor;
+import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.internal.utils.health.DefaultHealthCheckingActorFactory;
 import org.eclipse.ditto.internal.utils.health.HealthCheckingActorOptions;
 import org.eclipse.ditto.internal.utils.namespaces.BlockNamespaceBehavior;
@@ -35,6 +37,8 @@ import org.eclipse.ditto.internal.utils.pubsub.DistributedPub;
 import org.eclipse.ditto.internal.utils.pubsub.PolicyAnnouncementPubSubFactory;
 import org.eclipse.ditto.policies.api.PoliciesMessagingConstants;
 import org.eclipse.ditto.policies.enforcement.PreEnforcer;
+import org.eclipse.ditto.policies.enforcement.config.DefaultEntityCreationConfig;
+import org.eclipse.ditto.policies.enforcement.config.EntityCreationConfig;
 import org.eclipse.ditto.policies.enforcement.placeholders.PlaceholderSubstitution;
 import org.eclipse.ditto.policies.enforcement.validators.CommandWithOptionalEntityValidator;
 import org.eclipse.ditto.policies.model.Policy;
@@ -100,6 +104,12 @@ public final class PoliciesRootActor extends DittoRootActor {
         final ShardRegionExtractor shardRegionExtractor = ShardRegionExtractor.of(clusterConfig.getNumberOfShards(),
                 actorSystem);
 
+        final EntityCreationConfig entityCreationConfig = DefaultEntityCreationConfig.of(
+                DefaultScopedConfig.dittoScoped(actorSystem.settings().config())
+        );
+        // TODO TJ consolidate with ThingsRootActor
+        injectSystemPropertiesForEntityCreation(entityCreationConfig);
+
         final ActorRef policiesShardRegion = ClusterSharding.get(actorSystem)
                 .start(PoliciesMessagingConstants.SHARD_REGION,
                         policySupervisorProps,
@@ -138,6 +148,11 @@ public final class PoliciesRootActor extends DittoRootActor {
         bindHttpStatusRoute(policiesConfig.getHttpConfig(), healthCheckingActor);
     }
 
+    private static void injectSystemPropertiesForEntityCreation(final EntityCreationConfig entityCreationConfig) {
+        System.setProperty(DittoSystemProperties.DITTO_ENTITY_CREATION_DEFAULT_NAMESPACE,
+                entityCreationConfig.getDefaultNamespace());
+    }
+
     private static Props getPolicySupervisorActorProps(final SnapshotAdapter<Policy> snapshotAdapter,
             final ActorRef pubSubMediator,
             final DistributedPub<PolicyAnnouncement<?>> policyAnnouncementPub,
@@ -165,7 +180,6 @@ public final class PoliciesRootActor extends DittoRootActor {
                 BlockNamespaceBehavior.of(blockedNamespaces)
                         .block(dittoHeadersSettable)
                         .thenApply(CommandWithOptionalEntityValidator.getInstance())
-//                        .thenApply(ThingsRootActor::prependDefaultNamespaceToCreateThing)
                         .thenApply(PreEnforcer::setOriginatorHeader)
                         .thenCompose(placeholderSubstitution);
     }
