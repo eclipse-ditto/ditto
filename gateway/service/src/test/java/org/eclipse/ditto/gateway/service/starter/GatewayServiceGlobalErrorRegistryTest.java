@@ -27,6 +27,7 @@ import org.eclipse.ditto.base.model.signals.commands.CommandNotSupportedExceptio
 import org.eclipse.ditto.base.model.signals.commands.exceptions.PathUnknownException;
 import org.eclipse.ditto.connectivity.model.ConnectionConfigurationInvalidException;
 import org.eclipse.ditto.connectivity.model.signals.commands.exceptions.ConnectionConflictException;
+import org.eclipse.ditto.edge.api.EdgeServiceTimeoutException;
 import org.eclipse.ditto.gateway.api.GatewayAuthenticationFailedException;
 import org.eclipse.ditto.gateway.service.security.authentication.jwt.PublicKeyProviderUnavailableException;
 import org.eclipse.ditto.internal.utils.test.GlobalErrorRegistryTestCases;
@@ -48,7 +49,8 @@ import org.eclipse.ditto.wot.model.WotThingModelInvalidException;
 public final class GatewayServiceGlobalErrorRegistryTest extends GlobalErrorRegistryTestCases {
 
     public GatewayServiceGlobalErrorRegistryTest() {
-        super(UnknownCommandException.class,
+        super(
+                UnknownCommandException.class,
                 DittoHeaderInvalidException.class,
                 PolicyEntryInvalidException.class,
                 AttributePointerInvalidException.class,
@@ -78,7 +80,8 @@ public final class GatewayServiceGlobalErrorRegistryTest extends GlobalErrorRegi
                 PathUnknownException.class,
                 UnknownTopicPathException.class,
                 IllegalAdaptableException.class,
-                WotThingModelInvalidException.class
+                WotThingModelInvalidException.class,
+                EdgeServiceTimeoutException.class
         );
     }
 
