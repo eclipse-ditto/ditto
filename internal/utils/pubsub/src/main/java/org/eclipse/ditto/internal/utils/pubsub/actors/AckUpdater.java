@@ -257,7 +257,7 @@ public final class AckUpdater extends AbstractActorWithTimers implements Cluster
                 .sorted(entryKeyAddressComparator())
                 .map(Map.Entry::getValue)
                 .flatMap(List::stream)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private boolean isNotOwnAddress(final Map.Entry<Address, ?> entry) {
@@ -363,7 +363,7 @@ public final class AckUpdater extends AbstractActorWithTimers implements Cluster
                         conflictWithOtherGroups(entry.getValue().getGroup().orElse(null),
                                 moreImportantAckLabels)))
                 .map(Map.Entry::getKey)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private void onReceiveDDataChanges(final ReceiveRemoteAcks request) {

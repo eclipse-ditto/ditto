@@ -17,7 +17,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.DittoHeadersBuilder;
@@ -77,7 +76,7 @@ public final class AddHeaderMessageMapper implements MessageMapper {
             final DittoHeadersBuilder<?, ?> modifiedHeaders = DittoHeaders.newBuilder(adaptable.getDittoHeaders());
             modifiedHeaders.putHeader(INBOUND_HEADER.getKey(), INBOUND_HEADER.getValue());
             return adaptable.setDittoHeaders(modifiedHeaders.build());
-        }).collect(Collectors.toList());
+        }).toList();
     }
 
     @Override
@@ -85,7 +84,7 @@ public final class AddHeaderMessageMapper implements MessageMapper {
         return delegate.map(adaptable)
                 .stream()
                 .map(em -> em.withHeader(OUTBOUND_HEADER.getKey(), OUTBOUND_HEADER.getValue()))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Override

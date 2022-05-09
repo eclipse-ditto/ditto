@@ -260,10 +260,10 @@ final class JMSPropertyMapper {
 
     @Nullable
     private static <T> T wrapFacadeFunction(final Message message, final Function<AmqpJmsMessageFacade, T> function) {
-        if (message instanceof JmsMessage) {
-            final JmsMessageFacade facade = ((JmsMessage) message).getFacade();
-            if (facade instanceof AmqpJmsMessageFacade) {
-                return function.apply((AmqpJmsMessageFacade) facade);
+        if (message instanceof JmsMessage jmsMessage) {
+            final JmsMessageFacade facade = jmsMessage.getFacade();
+            if (facade instanceof AmqpJmsMessageFacade amqpJmsMessageFacade) {
+                return function.apply(amqpJmsMessageFacade);
             }
         }
         throw amqpJmsMessageFacadeTypeError();

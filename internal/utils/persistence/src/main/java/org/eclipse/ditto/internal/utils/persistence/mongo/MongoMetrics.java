@@ -16,17 +16,16 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.base.model.json.Jsonifiable;
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.base.model.json.Jsonifiable;
 
 /**
  * Holds metrics for current MongoDB maximum roundtrip timers, in which resolution they were reported and from which
@@ -95,7 +94,7 @@ public final class MongoMetrics implements Jsonifiable<JsonObject> {
                 .stream()
                 .filter(JsonValue::isLong)
                 .map(JsonValue::asLong)
-                .collect(Collectors.toList());
+                .toList();
 
         return of(extractedReporter, extractedResolution, extractedMaxTimerNanos);
     }

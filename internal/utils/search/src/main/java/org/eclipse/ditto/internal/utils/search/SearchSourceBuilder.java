@@ -135,7 +135,7 @@ public final class SearchSourceBuilder {
         } else {
             List<String> pointers = Arrays.stream(fieldsString.split(COMMA))
                     .filter(pointer -> !pointer.isBlank())
-                    .collect(Collectors.toList());
+                    .toList();
             if (pointers.isEmpty()) {
                 fields = null;
             } else {
@@ -300,7 +300,7 @@ public final class SearchSourceBuilder {
         } else {
             return SortOption.of(
                     Stream.concat(parsedSortOption.stream(), DEFAULT_SORT_OPTION.stream())
-                            .collect(Collectors.toList())
+                            .toList()
             );
         }
     }
@@ -320,7 +320,7 @@ public final class SearchSourceBuilder {
                         ? Stream.of((SortOption) option)
                         : Stream.empty()
                 )
-                .collect(Collectors.toList());
+                .toList();
         if (sortOptions.isEmpty()) {
             return DEFAULT_SORT_OPTION;
         } else if (sortOptions.size() == 1) {

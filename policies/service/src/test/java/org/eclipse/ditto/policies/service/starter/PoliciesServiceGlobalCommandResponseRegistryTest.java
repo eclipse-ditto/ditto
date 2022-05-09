@@ -18,6 +18,7 @@ import org.eclipse.ditto.base.api.devops.signals.commands.RetrieveLoggerConfigRe
 import org.eclipse.ditto.base.api.persistence.cleanup.CleanupPersistenceResponse;
 import org.eclipse.ditto.base.model.namespaces.signals.commands.PurgeNamespaceResponse;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
+import org.eclipse.ditto.base.service.cluster.ModifySplitBrainResolverResponse;
 import org.eclipse.ditto.internal.utils.health.RetrieveHealthResponse;
 import org.eclipse.ditto.internal.utils.test.GlobalCommandResponseRegistryTestCases;
 import org.eclipse.ditto.messages.model.signals.commands.SendClaimMessageResponse;
@@ -49,7 +50,8 @@ public final class PoliciesServiceGlobalCommandResponseRegistryTest extends Glob
                 RetrieveConfigResponse.class,
                 RetrieveHealthResponse.class,
                 PurgeEntitiesResponse.class,
-                Acknowledgement.class
+                Acknowledgement.class,
+                ModifySplitBrainResolverResponse.class
         );
     }
 

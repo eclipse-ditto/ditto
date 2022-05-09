@@ -140,6 +140,7 @@ final class LiveResponseAndAcknowledgementForwarder extends AbstractActor {
 
     private void stopSelf(final Object trigger) {
         logger.debug("Stopping due to <{}>", trigger);
+        getContext().cancelReceiveTimeout();
         getContext().stop(getSelf());
     }
 

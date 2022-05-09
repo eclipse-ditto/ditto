@@ -16,7 +16,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
@@ -69,7 +68,7 @@ public final class Resolvers {
     private static final List<Placeholder<?>> PLACEHOLDERS = Collections.unmodifiableList(
             RESOLVER_CREATORS.stream()
                     .map(ResolverCreator::getPlaceholder)
-                    .collect(Collectors.toList())
+                    .toList()
     );
 
     /**

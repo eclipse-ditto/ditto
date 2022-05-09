@@ -114,8 +114,8 @@ final class AsyncJwtLoader implements AsyncCacheLoader<String, JsonWebToken> {
         } catch (final NullPointerException | IllegalArgumentException | JsonRuntimeException |
                 DittoRuntimeException e) {
             final JwtInvalidException jwtInvalid;
-            if (e instanceof JwtInvalidException) {
-                jwtInvalid = (JwtInvalidException) e;
+            if (e instanceof JwtInvalidException jwtInvalidException) {
+                jwtInvalid = jwtInvalidException;
             } else {
                 final var bodySummary = body.length() > 100 ? body.substring(0, 100) + "..." : body;
                 jwtInvalid = getJwtInvalidExceptionForResponse()
@@ -127,8 +127,8 @@ final class AsyncJwtLoader implements AsyncCacheLoader<String, JsonWebToken> {
     }
 
     private JwtInvalidException convertException(final Throwable error) {
-        if (error instanceof JwtInvalidException) {
-            return (JwtInvalidException) error;
+        if (error instanceof JwtInvalidException jwtInvalidException) {
+            return jwtInvalidException;
         } else {
             return JwtInvalidException.newBuilder()
                     .message(String.format("Request to token endpoint <%s> failed.", tokenRequest.getUri()))

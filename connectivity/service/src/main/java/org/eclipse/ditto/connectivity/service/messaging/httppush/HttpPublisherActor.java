@@ -29,7 +29,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
-import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
@@ -214,8 +213,8 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
         for (final var entry : messageHeaders.entrySet()) {
             if (!ReservedHeaders.contains(entry.getKey())) {
                 final var httpHeader = HttpHeader.parse(entry.getKey(), entry.getValue());
-                if (httpHeader instanceof ContentType) {
-                    contentType = (ContentType) httpHeader;
+                if (httpHeader instanceof ContentType contentTypeFromHttpHeader) {
+                    contentType = contentTypeFromHttpHeader;
                 } else {
                     headers.add(httpHeader);
                 }
@@ -699,7 +698,7 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
             final HttpPushConfig httpPushConfig) {
         final var specificConfig = HttpPushSpecificConfig.fromConnection(connection, httpPushConfig);
         return specificConfig.omitRequestBody().stream()
-                .map(s -> HttpMethods.lookup(s).orElse(null)).collect(Collectors.toList());
+                .map(s -> HttpMethods.lookup(s).orElse(null)).toList();
     }
 
     private enum ReservedHeaders {

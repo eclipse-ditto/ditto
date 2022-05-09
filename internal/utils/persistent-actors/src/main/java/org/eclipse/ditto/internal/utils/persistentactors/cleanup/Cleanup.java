@@ -18,7 +18,6 @@ import static org.eclipse.ditto.internal.utils.persistence.mongo.streaming.Mongo
 
 import java.util.List;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
 import java.util.stream.LongStream;
 
 import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.MongoReadJournal;
@@ -122,6 +121,6 @@ final class Cleanup {
         final long firstBatchSn = snapshotRevisionSn - 1 - ((batches - 1) * deleteBatchSize);
         return LongStream.range(0, batches)
                 .mapToObj(multiplier -> firstBatchSn + multiplier * deleteBatchSize)
-                .collect(Collectors.toList());
+                .toList();
     }
 }

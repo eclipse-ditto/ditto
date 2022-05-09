@@ -392,10 +392,10 @@ public final class ConnectionPersistenceActor
         final ConnectivityEvent<?> superEvent = super.modifyEventBeforePersist(event);
 
         final ConnectivityStatus targetConnectionStatus;
-        if (event instanceof ConnectionCreated) {
-            targetConnectionStatus = ((ConnectionCreated) event).getConnection().getConnectionStatus();
-        } else if (event instanceof ConnectionModified) {
-            targetConnectionStatus = ((ConnectionModified) event).getConnection().getConnectionStatus();
+        if (event instanceof ConnectionCreated connectionCreated) {
+            targetConnectionStatus = connectionCreated.getConnection().getConnectionStatus();
+        } else if (event instanceof ConnectionModified connectionModified) {
+            targetConnectionStatus = connectionModified.getConnection().getConnectionStatus();
         } else if (event instanceof ConnectionDeleted) {
             targetConnectionStatus = ConnectivityStatus.CLOSED;
         } else if (event instanceof ConnectionOpened) {
@@ -459,8 +459,7 @@ public final class ConnectionPersistenceActor
                 DittoHeaders.newBuilder().correlationId(correlationId).build());
         Patterns.ask(getSelf(), retrieveConnectionStatus, SELF_RETRIEVE_CONNECTION_STATUS_TIMEOUT)
                 .whenComplete((response, throwable) -> {
-                    if (response instanceof RetrieveConnectionStatusResponse) {
-                        final RetrieveConnectionStatusResponse rcsResp = (RetrieveConnectionStatusResponse) response;
+                    if (response instanceof RetrieveConnectionStatusResponse rcsResp) {
                         final ConnectivityStatus liveStatus = rcsResp.getLiveStatus();
                         final String connectionType = Optional.ofNullable(entity)
                                 .map(Connection::getConnectionType).map(Object::toString).orElse("?");
@@ -500,8 +499,8 @@ public final class ConnectionPersistenceActor
     @Override
     public void onMutation(final Command<?> command, final ConnectivityEvent<?> event,
             final WithDittoHeaders response, final boolean becomeCreated, final boolean becomeDeleted) {
-        if (command instanceof StagedCommand) {
-            interpretStagedCommand(((StagedCommand) command).withSenderUnlessDefined(getSender()));
+        if (command instanceof StagedCommand stagedCommand) {
+            interpretStagedCommand(stagedCommand.withSenderUnlessDefined(getSender()));
         } else {
             super.onMutation(command, event, response, becomeCreated, becomeDeleted);
         }
@@ -1163,10 +1162,10 @@ public final class ConnectionPersistenceActor
 
     private static CompletionStage<Object> processClientAskResult(final CompletionStage<Object> askResultFuture) {
         return askResultFuture.thenCompose(response -> {
-            if (response instanceof Status.Failure) {
-                return CompletableFuture.failedStage(((Status.Failure) response).cause());
-            } else if (response instanceof DittoRuntimeException) {
-                return CompletableFuture.failedStage((DittoRuntimeException) response);
+            if (response instanceof Status.Failure failure) {
+                return CompletableFuture.failedStage(failure.cause());
+            } else if (response instanceof DittoRuntimeException dittoRuntimeException) {
+                return CompletableFuture.failedStage(dittoRuntimeException);
             } else {
                 return CompletableFuture.completedFuture(response);
             }

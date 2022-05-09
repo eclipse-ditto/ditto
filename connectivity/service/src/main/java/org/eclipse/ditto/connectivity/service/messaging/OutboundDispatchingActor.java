@@ -18,7 +18,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
-import java.util.stream.Collectors;
 
 import org.eclipse.ditto.base.model.acks.AcknowledgementLabel;
 import org.eclipse.ditto.base.model.acks.AcknowledgementLabelNotDeclaredException;
@@ -164,7 +163,7 @@ final class OutboundDispatchingActor extends AbstractActor {
             return signal.setDittoHeaders(signal.getDittoHeaders().toBuilder()
                     .acknowledgementRequests(ackRequests.stream()
                             .filter(request -> targetIssuedAcks.contains(request.getLabel()))
-                            .collect(Collectors.toList()))
+                            .toList())
                     .build());
         }
     }

@@ -16,7 +16,6 @@ import static java.util.Objects.requireNonNull;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import javax.annotation.concurrent.Immutable;
 
@@ -119,7 +118,7 @@ public final class IndexOperations {
         return getIndices(collectionName)
                 .map(indices -> indices.stream()
                         .filter(indexInfo -> !DEFAULT_INDEX_NAME.equals(indexInfo.getName()))
-                        .collect(Collectors.toList()));
+                        .toList());
     }
 
 

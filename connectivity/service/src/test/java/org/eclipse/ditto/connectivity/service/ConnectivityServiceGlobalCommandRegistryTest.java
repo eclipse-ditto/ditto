@@ -20,6 +20,14 @@ import org.eclipse.ditto.base.model.namespaces.signals.commands.PurgeNamespace;
 import org.eclipse.ditto.connectivity.api.messaging.monitoring.logs.AddConnectionLogEntry;
 import org.eclipse.ditto.connectivity.model.signals.commands.modify.OpenConnection;
 import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConnection;
+import org.eclipse.ditto.base.api.common.Shutdown;
+import org.eclipse.ditto.base.api.common.purge.PurgeEntities;
+import org.eclipse.ditto.base.api.devops.signals.commands.ExecutePiggybackCommand;
+import org.eclipse.ditto.base.api.persistence.cleanup.CleanupPersistence;
+import org.eclipse.ditto.base.model.namespaces.signals.commands.PurgeNamespace;
+import org.eclipse.ditto.base.service.cluster.ModifySplitBrainResolver;
+import org.eclipse.ditto.connectivity.model.signals.commands.modify.OpenConnection;
+import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConnection;
 import org.eclipse.ditto.connectivity.service.messaging.persistence.stages.StagedCommand;
 import org.eclipse.ditto.internal.models.streaming.SudoStreamPids;
 import org.eclipse.ditto.internal.utils.health.RetrieveHealth;
@@ -61,6 +69,7 @@ public class ConnectivityServiceGlobalCommandRegistryTest extends GlobalCommandR
                 CleanupPersistence.class,
                 RetrieveHealth.class,
                 PurgeEntities.class,
+                ModifySplitBrainResolver.class,
                 PublishSignal.class,
                 AddConnectionLogEntry.class
         );

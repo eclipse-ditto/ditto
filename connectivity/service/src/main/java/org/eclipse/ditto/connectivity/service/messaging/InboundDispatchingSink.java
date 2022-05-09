@@ -230,8 +230,8 @@ public final class InboundDispatchingSink
     }
 
     private static boolean isInboundMappingOutcomesWithError(final Object streamingElement) {
-        return streamingElement instanceof InboundMappingOutcomes &&
-                ((InboundMappingOutcomes) streamingElement).hasError();
+        return streamingElement instanceof InboundMappingOutcomes inboundMappingOutcomes &&
+                inboundMappingOutcomes.hasError();
     }
 
     private Sink<Object, NotUsed> onDittoRuntimeException() {
@@ -339,8 +339,7 @@ public final class InboundDispatchingSink
         final Optional<Signal<?>> result;
         logger.debug("OnError mapperId=<{}> exception=<{}> topicPath=<{}> message=<{}>",
                 mapperId, e, topicPath, message);
-        if (e instanceof DittoRuntimeException) {
-            final var dittoRuntimeException = (DittoRuntimeException) e;
+        if (e instanceof DittoRuntimeException dittoRuntimeException) {
             if (isIllegalAdaptableException(dittoRuntimeException)) {
                 final var illegalAdaptableException = (IllegalAdaptableException) dittoRuntimeException;
                 if (isAboutInvalidLiveResponse(illegalAdaptableException)) {
@@ -872,7 +871,7 @@ public final class InboundDispatchingSink
     private Acknowledgements appendConnectionIdToAcknowledgements(final Acknowledgements acknowledgements) {
         final List<Acknowledgement> acksList = acknowledgements.stream()
                 .map(this::appendConnectionIdToAcknowledgementOrResponse)
-                .collect(Collectors.toList());
+                .toList();
 
         // Uses EntityId and StatusCode from input acknowledges expecting these were set when Acknowledgements was created
         return Acknowledgements.of(acknowledgements.getEntityId(), acksList, acknowledgements.getHttpStatus(),

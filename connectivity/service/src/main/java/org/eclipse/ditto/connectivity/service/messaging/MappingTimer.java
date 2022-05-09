@@ -14,7 +14,6 @@ package org.eclipse.ditto.connectivity.service.messaging;
 
 import java.util.List;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
 
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.connectivity.api.ExternalMessage;
@@ -111,7 +110,7 @@ final class MappingTimer {
         return timed(startedTimer, () -> {
             final List<ExternalMessage> externalMessages = supplier.get();
             return externalMessages.stream().map(em -> DittoTracing.propagateContext(context, em,
-                    (msg, entry) -> msg.withHeader(entry.getKey(), entry.getValue()))).collect(Collectors.toList());
+                    (msg, entry) -> msg.withHeader(entry.getKey(), entry.getValue()))).toList();
         });
     }
 
@@ -130,7 +129,7 @@ final class MappingTimer {
             final List<Adaptable> adaptables = supplier.get();
             return adaptables.stream()
                     .map(a -> DittoTracing.propagateContext(context, a))
-                    .collect(Collectors.toList());
+                    .toList();
         });
     }
 

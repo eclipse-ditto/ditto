@@ -18,7 +18,6 @@ import java.text.MessageFormat;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
@@ -67,7 +66,7 @@ public final class DefaultMessageMapperRegistry implements MessageMapperRegistry
         return payloadMapping.getMappings().stream()
                 .map(this::resolveMessageMapper)
                 .map(resolvedMapper -> null == resolvedMapper ? defaultMapper : resolvedMapper)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Nullable

@@ -23,7 +23,6 @@ import java.util.Objects;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
 import java.util.function.Predicate;
-import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
@@ -274,7 +273,7 @@ public final class ThingsAggregatorProxyActor extends AbstractActor {
         return plainJsonThings -> RetrieveThingsResponse.of(plainJsonThings.stream()
                 .map(PlainJson::getJson)
                 .filter(Predicate.not(String::isEmpty))
-                .collect(Collectors.toList()), namespace, dittoHeaders);
+                .toList(), namespace, dittoHeaders);
     }
 
     private Function<List<PlainJson>, CommandResponse<?>> supplySudoRetrieveThingsResponse(
@@ -282,7 +281,7 @@ public final class ThingsAggregatorProxyActor extends AbstractActor {
         return plainJsonThings -> SudoRetrieveThingsResponse.of(plainJsonThings.stream()
                 .map(PlainJson::getJson)
                 .filter(Predicate.not(String::isEmpty))
-                .collect(Collectors.toList()), dittoHeaders);
+                .toList(), dittoHeaders);
     }
 
     /**

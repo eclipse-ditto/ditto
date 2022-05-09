@@ -267,6 +267,7 @@ public final class RetrieveConnectionStatusAggregatorActor extends AbstractActor
     }
 
     private void stopSelf() {
+        getContext().cancelReceiveTimeout();
         getContext().stop(getSelf());
     }
 

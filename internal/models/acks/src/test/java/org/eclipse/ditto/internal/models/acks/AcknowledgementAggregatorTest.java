@@ -21,7 +21,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 import org.assertj.core.api.AutoCloseableSoftAssertions;
 import org.eclipse.ditto.base.model.acks.AcknowledgementLabel;
@@ -93,7 +92,7 @@ public final class AcknowledgementAggregatorTest {
         failedAcks.forEach(underTest::addReceivedAcknowledgment);
         final List<AcknowledgementLabel> expected = successfulAcks.stream()
                 .map(Acknowledgement::getLabel)
-                .collect(Collectors.toList());
+                .toList();
 
         final Acknowledgements acknowledgements = underTest.getAggregatedAcknowledgements(dittoHeaders);
 

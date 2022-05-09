@@ -15,7 +15,6 @@ package org.eclipse.ditto.connectivity.service.messaging.monitoring.logs;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.Objects;
-import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
@@ -40,7 +39,7 @@ final class CompoundConnectionLogger implements ConnectionLogger, MuteableConnec
         return connectionLoggers.stream()
                 .map(ConnectionLogger::getLogs)
                 .flatMap(Collection::stream)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Override

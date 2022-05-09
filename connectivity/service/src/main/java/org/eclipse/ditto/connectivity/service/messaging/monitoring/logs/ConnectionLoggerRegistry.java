@@ -158,7 +158,7 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
                 .map(ConnectionLogger::getLogs)
                 .flatMap(Collection::stream)
                 .sorted(Comparator.comparing(LogEntry::getTimestamp).reversed())
-                .collect(Collectors.toList());
+                .toList();
 
         return restrictMaxLogEntriesLength(allLogs, connectionId);
     }

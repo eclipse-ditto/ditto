@@ -22,7 +22,6 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 
 import java.time.Duration;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 import org.assertj.core.api.Assertions;
 import org.assertj.core.api.ThrowableAssertAlternative;
@@ -308,7 +307,7 @@ public final class Mqtt3ValidatorTest extends AbstractMqttValidatorTest {
                         .map(ConnectivityModelFactory::newSourceBuilder)
                         .map(sb -> sb.headerMapping(headerMapping))
                         .map(SourceBuilder::build)
-                        .collect(Collectors.toList())).build();
+                        .toList()).build();
     }
 
     private void testTargetMapping(final HeaderMapping headerMapping, final String containedInMessage) {
@@ -324,7 +323,7 @@ public final class Mqtt3ValidatorTest extends AbstractMqttValidatorTest {
                         .map(ConnectivityModelFactory::newTargetBuilder)
                         .map(sb -> sb.headerMapping(headerMapping))
                         .map(TargetBuilder::build)
-                        .collect(Collectors.toList())).build();
+                        .toList()).build();
     }
 
     @Override

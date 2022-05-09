@@ -130,6 +130,7 @@ public final class SubscriptionActor extends AbstractActorWithStashWithTimers {
     private void idleTimeout(final ReceiveTimeout receiveTimeout) {
         // usually a user error
         log.info("Stopping due to idle timeout");
+        getContext().cancelReceiveTimeout();
         final String subscriptionId = getSubscriptionId();
         final SubscriptionTimeoutException error = SubscriptionTimeoutException.of(subscriptionId, dittoHeaders);
         final SubscriptionFailed subscriptionFailed = SubscriptionFailed.of(subscriptionId, error, dittoHeaders);

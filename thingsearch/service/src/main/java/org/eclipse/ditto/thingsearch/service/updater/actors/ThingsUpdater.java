@@ -89,7 +89,7 @@ final class ThingsUpdater extends AbstractActorWithTimers {
 
         if (updaterConfig.isEventProcessingActive()) {
             // schedule regular updates of subscriptions
-            getTimers().startPeriodicTimer(Clock.REBALANCE_TICK, Clock.REBALANCE_TICK,
+            getTimers().startTimerAtFixedRate(Clock.REBALANCE_TICK, Clock.REBALANCE_TICK,
                     updaterConfig.getShardingStatePollInterval());
             // subscribe for thing events immediately
             getSelf().tell(Clock.REBALANCE_TICK, getSelf());

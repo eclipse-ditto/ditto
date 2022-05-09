@@ -119,11 +119,11 @@ abstract class AbstractMqttSubscriptionHandler<S, P, R> {
                                 ? CompletableFuture.<R>failedFuture(new IllegalStateException("no consumer"))
                                 : subscribe(source, theMqttSubscribe, consumerActorRef);
                     })
-                    .collect(Collectors.toList());
+                    .toList();
             return CompletableFuture.allOf(subAckFutures.toArray(CompletableFuture[]::new))
                     .thenApply(unused -> subAckFutures.stream()
                             .map(CompletableFuture::join)
-                            .collect(Collectors.toList())
+                            .toList()
                     );
         } else {
             final String message = "Consumers are not initialized, not subscribing.";

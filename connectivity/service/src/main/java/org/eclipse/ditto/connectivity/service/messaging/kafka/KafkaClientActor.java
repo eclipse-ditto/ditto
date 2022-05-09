@@ -305,8 +305,7 @@ public final class KafkaClientActor extends BaseClientActor {
     private State<BaseClientState, BaseClientData> handleStatusReportFromChildren(final Status.Status status) {
         if (pendingStatusReportsFromStreams.contains(getSender())) {
             pendingStatusReportsFromStreams.remove(getSender());
-            if (status instanceof Status.Failure) {
-                final Status.Failure failure = (Status.Failure) status;
+            if (status instanceof Status.Failure failure) {
                 final ConnectionFailure connectionFailure =
                         ConnectionFailure.of(null, failure.cause(), "child failed");
                 getSelf().tell(connectionFailure, ActorRef.noSender());

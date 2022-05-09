@@ -30,6 +30,7 @@ import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.internal.utils.metrics.instruments.gauge.Gauge;
 import org.eclipse.ditto.internal.utils.pubsub.DittoProtocolSub;
 import org.eclipse.ditto.internal.utils.search.SubscriptionManager;
+import org.eclipse.ditto.protocol.HeaderTranslator;
 
 import com.typesafe.config.Config;
 
@@ -177,7 +178,7 @@ public final class StreamingActor extends AbstractActorWithTimers implements Ret
     }
 
     private void scheduleScrapeStreamSessionsCounter() {
-        getTimers().startPeriodicTimer(Control.SCRAPE_STREAM_COUNTER, Control.SCRAPE_STREAM_COUNTER,
+        getTimers().startTimerAtFixedRate(Control.SCRAPE_STREAM_COUNTER, Control.SCRAPE_STREAM_COUNTER,
                 streamingConfig.getSessionCounterScrapeInterval());
     }
 
