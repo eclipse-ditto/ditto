@@ -360,7 +360,8 @@ public final class DevOpsCommandsActor extends AbstractActor implements Retrieve
                                             JsonValue.of(Objects.toString(result)), DittoHeaders.empty());
                         } else {
                             devOpsCommandResponse = getErrorResponse(command,
-                                    AskException.fromMessage(error.getMessage(), DittoHeaders.empty()).toJson());
+                                    AskException.fromMessage(error != null ? error.getMessage() : "Unknown error occurred.",
+                                            DittoHeaders.empty()).toJson());
                         }
                         sender.tell(devOpsCommandResponse, getSelf());
                     });
