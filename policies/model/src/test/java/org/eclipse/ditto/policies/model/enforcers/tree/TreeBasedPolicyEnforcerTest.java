@@ -17,18 +17,17 @@ import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
 import java.util.Set;
 
-import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
 import org.eclipse.ditto.base.model.auth.DittoAuthorizationContextType;
+import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.policies.model.Permissions;
 import org.eclipse.ditto.policies.model.PoliciesResourceType;
 import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.ResourceKey;
 import org.eclipse.ditto.policies.model.SubjectType;
-import org.eclipse.ditto.policies.model.enforcers.EffectedSubjects;
 import org.junit.Test;
 
 /**
@@ -42,7 +41,7 @@ public final class TreeBasedPolicyEnforcerTest {
     public void tryToCreateInstanceWithNullPolicy() {
         assertThatExceptionOfType(NullPointerException.class)
                 .isThrownBy(() -> TreeBasedPolicyEnforcer.createInstance(null))
-                .withMessage("The %s must not be null!", "policy")
+                .withMessage("The %s must not be null!", "policyEntries")
                 .withNoCause();
     }
 
