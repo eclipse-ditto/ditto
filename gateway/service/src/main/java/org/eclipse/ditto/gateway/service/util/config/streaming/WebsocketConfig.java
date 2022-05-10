@@ -155,7 +155,7 @@ public interface WebsocketConfig {
          * @since 3.0.0
          */
         AUTHORIZATION_ENFORCER("authorization-enforcer",
-                "org.eclipse.ditto.gateway.service.endpoints.routes.sse.NoOpWebSocketAuthorizationEnforcer"),
+                "org.eclipse.ditto.gateway.service.streaming.NoOpAuthorizationEnforcer"),
 
         /**
          * The full qualified classname of the {@code WebSocketConfigProvider} to instantiate.
@@ -169,7 +169,7 @@ public interface WebsocketConfig {
          * @since 3.0.0
          */
         CONNECTION_SUPERVISOR("connection-supervisor",
-                "org.eclipse.ditto.gateway.service.streaming.NoOpAuthorizationEnforcer"),
+                "org.eclipse.ditto.gateway.service.endpoints.routes.websocket.NoOpWebSocketSupervisor"),
 
         /**
          * The full qualified classname of the {@code IncomingWebSocketEventSniffer} to instantiate.
