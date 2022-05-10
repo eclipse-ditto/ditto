@@ -253,7 +253,13 @@ public final class CreateThing extends AbstractCommand<CreateThing> implements T
     private static ThingId calculateThingId(final CreateThing createThing) {
         final Optional<ThingId> providedThingId = createThing.getThing().getEntityId();
         return providedThingId
-                .map(thingId -> ThingId.of(DEFAULT_NAMESPACE, thingId.toString().substring(1)))
+                .map(thingId -> {
+                    if (thingId.getNamespace().isEmpty()) {
+                        return ThingId.of(DEFAULT_NAMESPACE, thingId.toString().substring(1));
+                    } else {
+                        return thingId;
+                    }
+                })
                 .orElseGet(() -> ThingId.inNamespaceWithRandomName(DEFAULT_NAMESPACE));
     }
 

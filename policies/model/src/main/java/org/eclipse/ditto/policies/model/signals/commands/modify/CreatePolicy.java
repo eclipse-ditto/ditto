@@ -153,7 +153,13 @@ public final class CreatePolicy extends AbstractCommand<CreatePolicy> implements
     private static PolicyId calculatePolicyId(final CreatePolicy createPolicy) {
         final Optional<PolicyId> providedPolicyId = createPolicy.getPolicy().getEntityId();
         return providedPolicyId
-                .map(policyId -> PolicyId.of(DEFAULT_NAMESPACE, policyId.toString().substring(1)))
+                .map(policyId -> {
+                    if (policyId.getNamespace().isEmpty()) {
+                        return PolicyId.of(DEFAULT_NAMESPACE, policyId.toString().substring(1));
+                    } else {
+                        return policyId;
+                    }
+                })
                 .orElseGet(() -> PolicyId.inNamespaceWithRandomName(DEFAULT_NAMESPACE));
     }
 
