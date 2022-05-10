@@ -67,6 +67,7 @@ import com.github.benmanes.caffeine.cache.AsyncCacheLoader;
 import akka.actor.ActorContext;
 import akka.actor.ActorRef;
 import akka.actor.Props;
+import akka.dispatch.MessageDispatcher;
 
 /**
  * Ditto default implementation of{@link EnforcerActorFactory}.
@@ -93,17 +94,17 @@ public final class DefaultEnforcerActorFactory implements EnforcerActorFactory<C
         final AsyncCacheLoader<EnforcementCacheKey, Entry<EnforcementCacheKey>> thingEnforcerIdCacheLoader =
                 new ThingEnforcementIdCacheLoader(askWithRetryConfig, actorSystem.getScheduler(),
                         thingsShardRegionProxy);
+        final MessageDispatcher enforcementCacheDispatcher =
+                actorSystem.dispatchers().lookup("enforcement-cache-dispatcher");
         final Cache<EnforcementCacheKey, Entry<EnforcementCacheKey>> thingIdCache =
                 CacheFactory.createCache(thingEnforcerIdCacheLoader, cachesConfig.getIdCacheConfig(),
-                        ID_CACHE_METRIC_NAME_PREFIX + ThingCommand.RESOURCE_TYPE,
-                        actorSystem.dispatchers().lookup("thing-id-cache-dispatcher"));
+                        ID_CACHE_METRIC_NAME_PREFIX + ThingCommand.RESOURCE_TYPE, enforcementCacheDispatcher);
 
         final AsyncCacheLoader<EnforcementCacheKey, Entry<PolicyEnforcer>> policyEnforcerCacheLoader =
                 new PolicyEnforcerCacheLoader(askWithRetryConfig, actorSystem.getScheduler(), policiesShardRegionProxy);
         final Cache<EnforcementCacheKey, Entry<PolicyEnforcer>> policyEnforcerCache =
                 CacheFactory.createCache(policyEnforcerCacheLoader, cachesConfig.getEnforcerCacheConfig(),
-                        ENFORCER_CACHE_METRIC_NAME_PREFIX + "policy",
-                        actorSystem.dispatchers().lookup("policy-enforcer-cache-dispatcher"));
+                        ENFORCER_CACHE_METRIC_NAME_PREFIX + "policy", enforcementCacheDispatcher);
         final Cache<EnforcementCacheKey, Entry<Enforcer>> projectedEnforcerCache =
                 policyEnforcerCache.projectValues(PolicyEnforcer::project, PolicyEnforcer::embed);
 
