@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.gateway.service.endpoints.routes.websocket;
+package org.eclipse.ditto.gateway.service.streaming;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
@@ -18,22 +18,24 @@ import java.util.concurrent.CompletionStage;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 
 import akka.actor.ActorSystem;
+import akka.http.javadsl.server.RequestContext;
 
 /**
- * Null implementation for {@link WebSocketAuthorizationEnforcer} which does nothing.
+ * Null implementation for {@link StreamingAuthorizationEnforcer}.
  */
-public final class NoOpWebSocketAuthorizationEnforcer implements WebSocketAuthorizationEnforcer {
+public final class NoOpAuthorizationEnforcer implements StreamingAuthorizationEnforcer {
 
     /**
      * @param actorSystem the actor system in which to load the extension.
      */
-    @SuppressWarnings("unused")
-    public NoOpWebSocketAuthorizationEnforcer(final ActorSystem actorSystem) {
+    public NoOpAuthorizationEnforcer(final ActorSystem actorSystem) {
         //No-Op because extensions need a constructor accepting an actorSystem
     }
 
     @Override
-    public CompletionStage<DittoHeaders> checkAuthorization(final DittoHeaders dittoHeaders) {
+    public CompletionStage<DittoHeaders> checkAuthorization(final RequestContext requestContext,
+            final DittoHeaders dittoHeaders) {
         return CompletableFuture.completedStage(dittoHeaders);
     }
+
 }

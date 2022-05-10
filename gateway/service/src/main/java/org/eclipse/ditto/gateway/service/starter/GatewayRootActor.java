@@ -54,6 +54,7 @@ import org.eclipse.ditto.gateway.service.util.config.GatewayConfig;
 import org.eclipse.ditto.gateway.service.util.config.endpoints.HttpConfig;
 import org.eclipse.ditto.gateway.service.util.config.health.HealthCheckConfig;
 import org.eclipse.ditto.gateway.service.util.config.security.AuthenticationConfig;
+import org.eclipse.ditto.gateway.service.util.config.security.DevOpsConfig;
 import org.eclipse.ditto.gateway.service.util.config.security.OAuthConfig;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.cache.config.CacheConfig;
@@ -121,16 +122,17 @@ public final class GatewayRootActor extends DittoRootActor {
 
         final DefaultHttpClientFacade httpClient =
                 DefaultHttpClientFacade.getInstance(actorSystem, authenticationConfig.getHttpProxyConfig());
+        final OAuthConfig oAuthConfig = authenticationConfig.getOAuthConfig();
 
         final JwtAuthenticationFactory jwtAuthenticationFactory =
-                getJwtAuthenticationFactory(httpClient, publicKeysConfig, authenticationConfig, actorSystem);
+                JwtAuthenticationFactory.newInstance(oAuthConfig, publicKeysConfig, httpClient, actorSystem);
 
         final JwtAuthenticationResultProvider jwtAuthenticationResultProvider =
                 JwtAuthenticationResultProvider.get(actorSystem);
 
+        final DevOpsConfig devOpsConfig = authenticationConfig.getDevOpsConfig();
         final DevopsAuthenticationDirectiveFactory devopsAuthenticationDirectiveFactory =
-                getDevopsAuthenticationDirectiveFactory(httpClient, publicKeysConfig, authenticationConfig,
-                        actorSystem);
+                getDevopsAuthenticationDirectiveFactory(httpClient, publicKeysConfig, devOpsConfig, actorSystem);
 
         final ProtocolAdapterProvider protocolAdapterProvider =
                 ProtocolAdapterProvider.load(gatewayConfig.getProtocolConfig(), actorSystem);
@@ -259,9 +261,10 @@ public final class GatewayRootActor extends DittoRootActor {
                 .devopsRoute(new DevOpsRoute(routeBaseProperties, devopsAuthenticationDirective))
                 .policiesRoute(new PoliciesRoute(routeBaseProperties,
                         OAuthTokenIntegrationSubjectIdFactory.of(authConfig.getOAuthConfig())))
-                .sseThingsRoute(ThingsSseRouteBuilder.getInstance(actorSystem, streamingActor, streamingConfig, pubSubMediator)
-                        .withProxyActor(proxyActor)
-                        .withSignalEnrichmentProvider(signalEnrichmentProvider))
+                .sseThingsRoute(
+                        ThingsSseRouteBuilder.getInstance(actorSystem, streamingActor, streamingConfig, pubSubMediator)
+                                .withProxyActor(proxyActor)
+                                .withSignalEnrichmentProvider(signalEnrichmentProvider))
                 .thingsRoute(new ThingsRoute(routeBaseProperties,
                         gatewayConfig.getMessageConfig(),
                         gatewayConfig.getClaimMessageConfig()))
@@ -311,29 +314,19 @@ public final class GatewayRootActor extends DittoRootActor {
 
     }
 
-    private static JwtAuthenticationFactory getJwtAuthenticationFactory(final HttpClientFacade httpClient,
-            final CacheConfig publicKeysConfig,
-            final AuthenticationConfig authenticationConfig,
-            final ActorSystem actorSystem) {
-
-        final OAuthConfig oAuthConfig = authenticationConfig.getOAuthConfig();
-        return JwtAuthenticationFactory.newInstance(oAuthConfig, publicKeysConfig, httpClient, actorSystem);
-    }
-
     private static DevopsAuthenticationDirectiveFactory getDevopsAuthenticationDirectiveFactory(
             final HttpClientFacade httpClient,
             final CacheConfig publicKeysConfig,
-            final AuthenticationConfig authenticationConfig,
+            final DevOpsConfig devOpsConfig,
             final ActorSystem actorSystem) {
 
-        final OAuthConfig devopsOauthConfig = authenticationConfig.getDevOpsConfig().getOAuthConfig();
+        final OAuthConfig devopsOauthConfig = devOpsConfig.getOAuthConfig();
         final JwtAuthenticationFactory devopsJwtAuthenticationFactory =
                 JwtAuthenticationFactory.newInstance(devopsOauthConfig, publicKeysConfig, httpClient, actorSystem);
-        return DevopsAuthenticationDirectiveFactory.newInstance(devopsJwtAuthenticationFactory,
-                authenticationConfig.getDevOpsConfig());
+        return DevopsAuthenticationDirectiveFactory.newInstance(devopsJwtAuthenticationFactory, devOpsConfig);
     }
 
-    private String getHostname(final org.eclipse.ditto.base.service.config.http.HttpConfig httpConfig) {
+    private String getHostname(final HttpConfig httpConfig) {
         String hostname = httpConfig.getHostname();
         if (hostname.isEmpty()) {
             hostname = LocalHostAddressSupplier.getInstance().get();

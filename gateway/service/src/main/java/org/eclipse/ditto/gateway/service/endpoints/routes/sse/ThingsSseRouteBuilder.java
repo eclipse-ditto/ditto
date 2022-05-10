@@ -47,8 +47,9 @@ import org.eclipse.ditto.base.service.UriEncoding;
 import org.eclipse.ditto.gateway.service.endpoints.routes.AbstractRoute;
 import org.eclipse.ditto.gateway.service.endpoints.routes.things.ThingsParameter;
 import org.eclipse.ditto.gateway.service.endpoints.utils.GatewaySignalEnrichmentProvider;
-import org.eclipse.ditto.gateway.service.streaming.Connect;
-import org.eclipse.ditto.gateway.service.streaming.StartStreaming;
+import org.eclipse.ditto.gateway.service.streaming.StreamingAuthorizationEnforcer;
+import org.eclipse.ditto.gateway.service.streaming.signals.Connect;
+import org.eclipse.ditto.gateway.service.streaming.signals.StartStreaming;
 import org.eclipse.ditto.gateway.service.streaming.actors.SessionedJsonifiable;
 import org.eclipse.ditto.gateway.service.streaming.actors.StreamingSession;
 import org.eclipse.ditto.gateway.service.streaming.actors.SupervisedStream;
@@ -135,7 +136,7 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
     private final ActorRef pubSubMediator;
     private SseConnectionSupervisor sseConnectionSupervisor;
     private SseEventSniffer eventSniffer;
-    private SseAuthorizationEnforcer sseAuthorizationEnforcer;
+    private StreamingAuthorizationEnforcer sseAuthorizationEnforcer;
     @Nullable private GatewaySignalEnrichmentProvider signalEnrichmentProvider;
     @Nullable private ActorRef proxyActor;
 
@@ -150,7 +151,7 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
         this.queryFilterCriteriaFactory = queryFilterCriteriaFactory;
         this.pubSubMediator = pubSubMediator;
         eventSniffer = SseEventSniffer.get(actorSystem);
-        sseAuthorizationEnforcer = SseAuthorizationEnforcer.get(actorSystem);
+        sseAuthorizationEnforcer = StreamingAuthorizationEnforcer.sse(actorSystem);
         sseConnectionSupervisor = SseConnectionSupervisor.get(actorSystem);
     }
 
@@ -179,7 +180,7 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
     }
 
     @Override
-    public SseRouteBuilder withAuthorizationEnforcer(final SseAuthorizationEnforcer enforcer) {
+    public SseRouteBuilder withAuthorizationEnforcer(final StreamingAuthorizationEnforcer enforcer) {
         sseAuthorizationEnforcer = checkNotNull(enforcer, "enforcer");
         return this;
     }

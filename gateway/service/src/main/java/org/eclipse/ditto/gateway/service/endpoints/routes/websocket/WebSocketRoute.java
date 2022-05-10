@@ -52,12 +52,13 @@ import org.eclipse.ditto.gateway.api.GatewayInternalErrorException;
 import org.eclipse.ditto.gateway.api.GatewayWebsocketSessionClosedException;
 import org.eclipse.ditto.gateway.api.GatewayWebsocketSessionExpiredException;
 import org.eclipse.ditto.gateway.service.endpoints.routes.AbstractRoute;
+import org.eclipse.ditto.gateway.service.streaming.StreamingAuthorizationEnforcer;
 import org.eclipse.ditto.gateway.service.endpoints.utils.GatewaySignalEnrichmentProvider;
 import org.eclipse.ditto.gateway.service.security.HttpHeader;
-import org.eclipse.ditto.gateway.service.streaming.Connect;
-import org.eclipse.ditto.gateway.service.streaming.IncomingSignal;
-import org.eclipse.ditto.gateway.service.streaming.StreamControlMessage;
-import org.eclipse.ditto.gateway.service.streaming.StreamingAck;
+import org.eclipse.ditto.gateway.service.streaming.signals.Connect;
+import org.eclipse.ditto.gateway.service.streaming.signals.IncomingSignal;
+import org.eclipse.ditto.gateway.service.streaming.signals.StreamControlMessage;
+import org.eclipse.ditto.gateway.service.streaming.signals.StreamingAck;
 import org.eclipse.ditto.gateway.service.streaming.actors.SessionedJsonifiable;
 import org.eclipse.ditto.gateway.service.streaming.actors.StreamingActor;
 import org.eclipse.ditto.gateway.service.streaming.actors.SupervisedStream;
@@ -104,6 +105,7 @@ import akka.http.javadsl.model.ws.Message;
 import akka.http.javadsl.model.ws.TextMessage;
 import akka.http.javadsl.model.ws.WebSocketUpgrade;
 import akka.http.javadsl.server.Directives;
+import akka.http.javadsl.server.RequestContext;
 import akka.http.javadsl.server.Route;
 import akka.japi.Pair;
 import akka.japi.function.Function;
@@ -169,7 +171,7 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
 
     private IncomingWebSocketEventSniffer incomingMessageSniffer;
     private OutgoingWebSocketEventSniffer outgoingMessageSniffer;
-    private WebSocketAuthorizationEnforcer authorizationEnforcer;
+    private StreamingAuthorizationEnforcer authorizationEnforcer;
     private WebSocketSupervisor webSocketSupervisor;
     @Nullable private GatewaySignalEnrichmentProvider signalEnrichmentProvider;
     private HeaderTranslator headerTranslator;
@@ -185,7 +187,7 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
 
         incomingMessageSniffer = IncomingWebSocketEventSniffer.get(actorSystem);
         outgoingMessageSniffer = OutgoingWebSocketEventSniffer.get(actorSystem);
-        authorizationEnforcer = WebSocketAuthorizationEnforcer.get(actorSystem);
+        authorizationEnforcer = StreamingAuthorizationEnforcer.ws(actorSystem);
         webSocketSupervisor = WebSocketSupervisor.get(actorSystem);
         webSocketConfigProvider = WebSocketConfigProvider.get(actorSystem);
         signalEnrichmentProvider = null;
@@ -224,7 +226,7 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
     }
 
     @Override
-    public WebSocketRouteBuilder withAuthorizationEnforcer(final WebSocketAuthorizationEnforcer enforcer) {
+    public WebSocketRouteBuilder withAuthorizationEnforcer(final StreamingAuthorizationEnforcer enforcer) {
         authorizationEnforcer = checkNotNull(enforcer, "enforcer");
         return this;
     }
@@ -264,11 +266,12 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
     public Route build(final JsonSchemaVersion version,
             final CharSequence correlationId,
             final DittoHeaders dittoHeaders,
-            final ProtocolAdapter chosenProtocolAdapter) {
+            final ProtocolAdapter chosenProtocolAdapter,
+            final RequestContext ctx) {
 
         return Directives.extractWebSocketUpgrade(websocketUpgrade -> Directives.extractRequest(request -> {
             final CompletionStage<DittoHeaders> checkAuthorization =
-                    authorizationEnforcer.checkAuthorization(dittoHeaders);
+                    authorizationEnforcer.checkAuthorization(ctx, dittoHeaders);
             return Directives.completeWithFuture(checkAuthorization.thenCompose(authorizedHeaders ->
                     createWebSocket(websocketUpgrade, version, correlationId.toString(),
                             authorizedHeaders, chosenProtocolAdapter, request)));

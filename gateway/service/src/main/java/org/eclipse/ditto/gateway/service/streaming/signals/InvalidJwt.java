@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.gateway.service.streaming;
+package org.eclipse.ditto.gateway.service.streaming.signals;
 
 /**
  * Simple event which signals that a sent JWT was invalid.

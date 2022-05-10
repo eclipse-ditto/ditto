@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Contributors to the Eclipse Foundation
+ * Copyright (c) 2022 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -10,10 +10,6 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.gateway.service.streaming;
+@org.eclipse.ditto.utils.jsr305.annotations.AllParametersAndReturnValuesAreNonnullByDefault
+package org.eclipse.ditto.gateway.service.streaming.signals;
 
-/**
- * Supertype of messages that control websocket streaming. They are not a part of the Ditto protocol.
- */
-public interface StreamControlMessage {
-}

@@ -22,7 +22,7 @@ import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.Jsonifiable;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
-import org.eclipse.ditto.gateway.service.streaming.StreamingAck;
+import org.eclipse.ditto.gateway.service.streaming.signals.StreamingAck;
 import org.eclipse.ditto.internal.models.signalenrichment.SignalEnrichmentFacade;
 import org.eclipse.ditto.internal.utils.pubsub.StreamingType;
 import org.eclipse.ditto.internal.utils.tracing.DittoTracing;

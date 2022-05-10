@@ -66,7 +66,7 @@ public interface SseConfig {
          * @since 3.0.0
          */
         AUTHORIZATION_ENFORCER("authorization-enforcer",
-                "org.eclipse.ditto.gateway.service.endpoints.routes.sse.NoOpSseAuthorizationEnforcer"),
+                "org.eclipse.ditto.gateway.service.streaming.NoOpAuthorizationEnforcer"),
         /**
          * The full qualified classname of the {@code SseConnectionSupervisor} to instantiate.
          * @since 3.0.0

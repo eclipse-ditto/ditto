@@ -23,7 +23,7 @@ import org.eclipse.ditto.connectivity.model.signals.commands.ConnectivityErrorRe
 import org.eclipse.ditto.connectivity.model.signals.commands.modify.OpenConnectionResponse;
 import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConnectionResponse;
 import org.eclipse.ditto.gateway.service.endpoints.routes.whoami.WhoamiResponse;
-import org.eclipse.ditto.gateway.service.streaming.StreamingAck;
+import org.eclipse.ditto.gateway.service.streaming.signals.StreamingAck;
 import org.eclipse.ditto.internal.utils.health.RetrieveHealthResponse;
 import org.eclipse.ditto.internal.utils.test.GlobalCommandResponseRegistryTestCases;
 import org.eclipse.ditto.messages.model.signals.commands.SendClaimMessageResponse;

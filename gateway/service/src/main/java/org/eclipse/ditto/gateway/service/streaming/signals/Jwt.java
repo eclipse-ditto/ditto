@@ -11,7 +11,7 @@
  * SPDX-License-Identifier: EPL-2.0
  */
 
-package org.eclipse.ditto.gateway.service.streaming;
+package org.eclipse.ditto.gateway.service.streaming.signals;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 

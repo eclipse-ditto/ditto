@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.gateway.service.endpoints.routes.sse;
+package org.eclipse.ditto.gateway.service.streaming;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
@@ -25,11 +25,11 @@ import akka.actor.ActorSystem;
 import akka.http.javadsl.server.RequestContext;
 
 /**
- * Enforces authorization in order to establish a SSE connection.
+ * Enforces authorization in order to establish a Streaming connection.
  * If the authorization check is successful nothing will happen, else a
  * {@link org.eclipse.ditto.base.model.exceptions.DittoRuntimeException DittoRuntimeException} is thrown.
  */
-public interface SseAuthorizationEnforcer extends DittoExtensionPoint {
+public interface StreamingAuthorizationEnforcer extends DittoExtensionPoint {
 
     /**
      * Ensures that the establishment of a SSE connection is authorized for the given arguments.
@@ -39,7 +39,7 @@ public interface SseAuthorizationEnforcer extends DittoExtensionPoint {
      * @return a successful future if validation succeeds or a failed future if validation fails.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    CompletionStage<Void> checkAuthorization(RequestContext requestContext, DittoHeaders dittoHeaders);
+    CompletionStage<DittoHeaders> checkAuthorization(RequestContext requestContext, DittoHeaders dittoHeaders);
 
     /**
      * Loads the implementation of {@code SseAuthorizationEnforcer} which is configured for the
@@ -50,12 +50,29 @@ public interface SseAuthorizationEnforcer extends DittoExtensionPoint {
      * @throws NullPointerException if {@code actorSystem} is {@code null}.
      * @since 3.0.0
      */
-    static SseAuthorizationEnforcer get(final ActorSystem actorSystem) {
+    static StreamingAuthorizationEnforcer sse(final ActorSystem actorSystem) {
         checkNotNull(actorSystem, "actorSystem");
         final var implementation = DittoGatewayConfig.of(DefaultScopedConfig.dittoScoped(
                 actorSystem.settings().config())).getStreamingConfig().getSseConfig().getAuthorizationEnforcer();
 
-        return new ExtensionId<>(implementation, SseAuthorizationEnforcer.class).get(actorSystem);
+        return new ExtensionId<>(implementation, StreamingAuthorizationEnforcer.class).get(actorSystem);
+    }
+
+    /**
+     * Loads the implementation of {@code WebSocketAuthorizationEnforcer} which is configured for the
+     * {@code ActorSystem}.
+     *
+     * @param actorSystem the actorSystem in which the {@code WebSocketAuthorizationEnforcer} should be loaded.
+     * @return the {@code WebSocketAuthorizationEnforcer} implementation.
+     * @throws NullPointerException if {@code actorSystem} is {@code null}.
+     * @since 3.0.0
+     */
+    static StreamingAuthorizationEnforcer ws(final ActorSystem actorSystem) {
+        checkNotNull(actorSystem, "actorSystem");
+        final var implementation = DittoGatewayConfig.of(DefaultScopedConfig.dittoScoped(
+                actorSystem.settings().config())).getStreamingConfig().getWebsocketConfig().getAuthorizationEnforcer();
+
+        return new ExtensionId<>(implementation, StreamingAuthorizationEnforcer.class).get(actorSystem);
     }
 
 }

@@ -329,7 +329,7 @@ public final class RootRoute extends AllDirectives {
                                         final ProtocolAdapter chosenProtocolAdapter =
                                                 protocolAdapterProvider.getProtocolAdapter(userAgent);
                                         return websocketRouteBuilder.build(wsVersion, correlationId, dittoHeaders,
-                                                chosenProtocolAdapter);
+                                                chosenProtocolAdapter, ctx);
                                     });
                                 }
                         )
