@@ -75,7 +75,7 @@ public final class MockClientActorPropsFactory extends ClientActorPropsFactory {
 
         private final ActorRef mediator = DistributedPubSub.get(getContext().getSystem()).mediator();
         @Nullable private ActorRef delegate;
-        @Nullable ActorRef gossip;
+        @Nullable private ActorRef gossip;
 
         private MockClientActor() {
         }
