@@ -156,6 +156,7 @@ public interface ConnectionConfig extends WithSupervisorConfig, WithActivityChec
 
     /**
      * Whether usernames and passwords in connection URIs should be double decoded, when creating the connection.
+     *
      * @return whether double decoding in enabled.
      */
     boolean doubleDecodingEnabled();
@@ -171,12 +172,23 @@ public interface ConnectionConfig extends WithSupervisorConfig, WithActivityChec
 
     /**
      * Returns the full qualified classname of the {@code org.eclipse.ditto.connectivity.service.messaging.ClientActorPropsFactory}
-     * implementation to use for custom executions in {@code ClientActorPropsFactory}.
+     * implementation to use for custom client actor props.
      *
      * @return the full qualified classname of the {@code ClientActorPropsFactory} implementation to use.
      * @since 3.0.0
      */
     String getClientActorPropsFactory();
+
+
+    /**
+     * Returns the full qualified classname of the
+     * {@code org.eclipse.ditto.connectivity.service.messaging.persistence.ConnectionPriorityProviderFactory}
+     * implementation to use for custom priority providers.
+     *
+     * @return the full qualified classname of the {@code ConnectionPriorityProviderFactory} implementation to use.
+     * @since 3.0.0
+     */
+    String getConnectionPriorityProviderFactory();
 
 
     /**
@@ -247,6 +259,7 @@ public interface ConnectionConfig extends WithSupervisorConfig, WithActivityChec
 
         /**
          * The full qualified classname of the {@code CustomConnectivityCommandInterceptorProvider} to instantiate.
+         *
          * @since 3.0.0
          */
         CUSTOM_COMMAND_INTERCEPTOR_PROVIDER("custom-command-interceptor-provider",
@@ -254,10 +267,19 @@ public interface ConnectionConfig extends WithSupervisorConfig, WithActivityChec
 
         /**
          * The full qualified classname of the {@code ClientActorPropsFactory} to instantiate.
+         *
          * @since 3.0.0
          */
         CLIENT_ACTOR_PROPS_FACTORY("client-actor-props-factory",
-                "org.eclipse.ditto.connectivity.service.messaging.DefaultClientActorPropsFactory");
+                "org.eclipse.ditto.connectivity.service.messaging.DefaultClientActorPropsFactory"),
+
+        /**
+         * The full qualified classname of the {@code ConnectionPriorityProviderFactory} to instantiate.
+         *
+         * @since 3.0.0
+         */
+        CONNECTION_PRIORITY_PROVIDER_FACTORY("connection-priority-provider-factory",
+                "org.eclipse.ditto.connectivity.service.messaging.persistence.UsageBasedPriorityProviderFactory");
 
         private final String path;
         private final Object defaultValue;

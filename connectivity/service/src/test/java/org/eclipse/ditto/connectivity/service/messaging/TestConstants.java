@@ -104,7 +104,6 @@ import org.eclipse.ditto.connectivity.service.messaging.monitoring.ConnectionMon
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.ConnectionMonitorRegistry;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.metrics.ConnectivityCounterRegistry;
 import org.eclipse.ditto.connectivity.service.messaging.persistence.ConnectionSupervisorActor;
-import org.eclipse.ditto.connectivity.service.messaging.persistence.UsageBasedPriorityProvider;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
@@ -919,7 +918,7 @@ public final class TestConstants {
             final ActorRef pubSubMediator) {
 
         final Props props =
-                ConnectionSupervisorActor.props(proxyActor, UsageBasedPriorityProvider::getInstance, pubSubMediator,
+                ConnectionSupervisorActor.props(proxyActor, pubSubMediator,
                         CompletableFuture::completedStage);
 
         final Props shardRegionMockProps = Props.create(ShardRegionMockActor.class, props, connectionId.toString());

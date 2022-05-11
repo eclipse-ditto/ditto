@@ -69,7 +69,6 @@ public final class ConnectionSupervisorActor extends AbstractPersistenceSupervis
     private static final Duration OVERWRITES_CHECK_BACKOFF_DURATION = Duration.ofSeconds(30);
 
     private final ActorRef proxyActor;
-    private final ConnectionPriorityProviderFactory connectionPriorityProviderFactory;
     private final ActorRef pubSubMediator;
     private Config connectivityConfigOverwrites = ConfigFactory.empty();
     private boolean isRegisteredForConnectivityConfigChanges = false;
@@ -77,13 +76,11 @@ public final class ConnectionSupervisorActor extends AbstractPersistenceSupervis
     @SuppressWarnings("unused")
     private ConnectionSupervisorActor(
             final ActorRef proxyActor,
-            final ConnectionPriorityProviderFactory connectionPriorityProviderFactory,
             final ActorRef pubSubMediator,
             final PreEnforcer preEnforcer) {
 
         super(null, preEnforcer);
         this.proxyActor = proxyActor;
-        this.connectionPriorityProviderFactory = connectionPriorityProviderFactory;
         this.pubSubMediator = pubSubMediator;
     }
 
@@ -95,18 +92,16 @@ public final class ConnectionSupervisorActor extends AbstractPersistenceSupervis
      * </p>
      *
      * @param proxyActor the actor used to send signals into the ditto cluster..
-     * @param connectionPriorityProviderFactory used to determine the reconnect priority of a connection.
      * @param pubSubMediator pub-sub-mediator for the shutdown behavior.
      * @param preEnforcer the PreEnforcer to apply as extension mechanism of the enforcement.
      * @return the {@link Props} to create this actor.
      */
     public static Props props(final ActorRef proxyActor,
-            final ConnectionPriorityProviderFactory connectionPriorityProviderFactory,
             final ActorRef pubSubMediator,
             final PreEnforcer preEnforcer) {
 
         return Props.create(ConnectionSupervisorActor.class, proxyActor,
-                connectionPriorityProviderFactory, pubSubMediator, preEnforcer);
+                 pubSubMediator, preEnforcer);
     }
 
     @Override
@@ -155,7 +150,7 @@ public final class ConnectionSupervisorActor extends AbstractPersistenceSupervis
     @Override
     protected Props getPersistenceActorProps(final ConnectionId entityId) {
         return ConnectionPersistenceActor.props(entityId, proxyActor, pubSubMediator,
-                connectionPriorityProviderFactory, connectivityConfigOverwrites);
+                connectivityConfigOverwrites);
     }
 
     @Override

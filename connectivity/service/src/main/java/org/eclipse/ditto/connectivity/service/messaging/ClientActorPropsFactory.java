@@ -54,8 +54,12 @@ public abstract class ClientActorPropsFactory implements DittoExtensionPoint {
      * @param dittoHeaders Ditto headers of the command that caused the client actors to be created.
      * @return the actor props
      */
-    public abstract Props getActorPropsForType(Connection connection, ActorRef proxyActor, ActorRef connectionActor,
-            ActorSystem actorSystem, DittoHeaders dittoHeaders, Config connectivityConfigOverwrites);
+    public abstract Props getActorPropsForType(Connection connection,
+            ActorRef proxyActor,
+            ActorRef connectionActor,
+            ActorSystem actorSystem,
+            DittoHeaders dittoHeaders,
+            Config connectivityConfigOverwrites);
 
     /**
      * Loads the implementation of {@code ClientActorPropsFactory} which is configured for the

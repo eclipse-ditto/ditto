@@ -55,11 +55,11 @@ public class ConciergeForwarderActor extends AbstractActor {
     private final Function<Signal<?>, Signal<?>> signalTransformer;
 
     @SuppressWarnings("unused")
-    private ConciergeForwarderActor(final ActorRef pubSubMediator, final ShardRegions shardRegions,
-            final Function<Signal<?>, Signal<?>> signalTransformer) {
+    private ConciergeForwarderActor(final ActorRef pubSubMediator, final ShardRegions shardRegions) {
+
         this.pubSubMediator = pubSubMediator;
         this.shardRegions = shardRegions;
-        this.signalTransformer = signalTransformer;
+        signalTransformer = SignalTransformer.get(getContext().getSystem());
     }
 
     /**
@@ -70,23 +70,7 @@ public class ConciergeForwarderActor extends AbstractActor {
      * @return the Akka configuration Props object.
      */
     public static Props props(final ActorRef pubSubMediator, final ShardRegions shardRegions) {
-
-        return props(pubSubMediator, shardRegions, Function.identity());
-    }
-
-    /**
-     * Creates Akka configuration object Props for this actor.
-     *
-     * @param pubSubMediator the PubSub mediator Actor.
-     * @param shardRegions shard regions to use in order to dispatch different entity Signals to.
-     * @param signalTransformer a function which transforms signals before forwarding them to the responsible
-     * {@code shardRegion}
-     * @return the Akka configuration Props object.
-     */
-    public static Props props(final ActorRef pubSubMediator, final ShardRegions shardRegions,
-            final Function<Signal<?>, Signal<?>> signalTransformer) {
-
-        return Props.create(ConciergeForwarderActor.class, pubSubMediator, shardRegions, signalTransformer);
+        return Props.create(ConciergeForwarderActor.class, pubSubMediator, shardRegions);
     }
 
     @Override

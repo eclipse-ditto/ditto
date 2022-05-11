@@ -193,22 +193,22 @@ public final class ConnectionPersistenceActor
     ConnectionPersistenceActor(final ConnectionId connectionId,
             final ActorRef proxyActor,
             final ActorRef pubSubMediator,
-            final ConnectionPriorityProviderFactory connectionPriorityProviderFactory,
             final Trilean allClientActorsOnOneNode,
             final Config connectivityConfigOverwrites) {
 
         super(connectionId, new ConnectionMongoSnapshotAdapter());
 
-        cluster = Cluster.get(getContext().getSystem());
+        final var actorSystem = getContext().getSystem();
+        cluster = Cluster.get(actorSystem);
         this.proxyActor = proxyActor;
-        this.propsFactory = ClientActorPropsFactory.get(getContext().getSystem());
+        propsFactory = ClientActorPropsFactory.get(actorSystem);
         this.pubSubMediator = pubSubMediator;
         this.connectivityConfigOverwrites = connectivityConfigOverwrites;
         connectivityConfig = getConnectivityConfigWithOverwrites(connectivityConfigOverwrites);
         commandValidator = getCommandValidator();
-        final ConnectionConfig connectionConfig = this.connectivityConfig.getConnectionConfig();
+        final ConnectionConfig connectionConfig = connectivityConfig.getConnectionConfig();
         this.allClientActorsOnOneNode = allClientActorsOnOneNode.orElse(connectionConfig.areAllClientActorsOnOneNode());
-        connectionPriorityProvider = connectionPriorityProviderFactory.newProvider(self(), log);
+        connectionPriorityProvider = ConnectionPriorityProviderFactory.get(actorSystem).newProvider(self(), log);
         clientActorAskTimeout = connectionConfig.getClientActorAskTimeout();
         final MonitoringConfig monitoringConfig = connectivityConfig.getMonitoringConfig();
         connectionLoggerRegistry = ConnectionLoggerRegistry.fromConfig(monitoringConfig.logger());
@@ -254,18 +254,16 @@ public final class ConnectionPersistenceActor
      *
      * @param connectionId the connection ID.
      * @param proxyActor the actor used to send signals into the ditto cluster..
-     * @param connectionPriorityProviderFactory Creates a new connection priority provider.
      * @param connectivityConfigOverwrites the overwrites for the connectivity config for the given connection.
      * @return the Akka configuration Props object.
      */
     public static Props props(final ConnectionId connectionId,
             final ActorRef proxyActor,
             final ActorRef pubSubMediator,
-            final ConnectionPriorityProviderFactory connectionPriorityProviderFactory,
             final Config connectivityConfigOverwrites
     ) {
         return Props.create(ConnectionPersistenceActor.class, connectionId, proxyActor, pubSubMediator,
-                connectionPriorityProviderFactory, Trilean.UNKNOWN, connectivityConfigOverwrites);
+                Trilean.UNKNOWN, connectivityConfigOverwrites);
     }
 
     /**
@@ -640,7 +638,7 @@ public final class ConnectionPersistenceActor
 
     @Override
     protected void becomeDeletedHandler() {
-        this.cancelPeriodicPriorityUpdate();
+        cancelPeriodicPriorityUpdate();
         super.becomeDeletedHandler();
     }
 
@@ -729,7 +727,7 @@ public final class ConnectionPersistenceActor
             log.withCorrelationId(updatePriority)
                     .info("Updating priority of connection <{}> from <{}> to <{}>", entityId, priority,
                             desiredPriority);
-            this.priority = desiredPriority;
+            priority = desiredPriority;
             final DittoHeaders headersWithJournalTags =
                     updatePriority.getDittoHeaders().toBuilder().journalTags(journalTags()).build();
             final EmptyEvent emptyEvent = new EmptyEvent(EmptyEvent.EFFECT_PRIORITY_UPDATE, getRevisionNumber() + 1,
@@ -819,7 +817,7 @@ public final class ConnectionPersistenceActor
     }
 
     private void retrieveConnectionLogs(final RetrieveConnectionLogs command, final ActorRef sender) {
-        this.updateLoggingIfEnabled();
+        updateLoggingIfEnabled();
         broadcastCommandWithDifferentSender(command,
                 (existingConnection, timeout) -> RetrieveConnectionLogsAggregatorActor.props(
                         existingConnection, sender, command.getDittoHeaders(), timeout,
@@ -834,7 +832,7 @@ public final class ConnectionPersistenceActor
     private void loggingEnabled() {
         // start check logging scheduler
         startEnabledLoggingChecker();
-        loggingEnabledUntil = Instant.now().plus(this.loggingEnabledDuration);
+        loggingEnabledUntil = Instant.now().plus(loggingEnabledDuration);
     }
 
     private void updateLoggingIfEnabled() {

@@ -974,7 +974,6 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
         final var connectionActorProps = ConnectionPersistenceActor.props(TestConstants.createRandomConnectionId(),
                 proxyActor,
                 pubSubMediator,
-                UsageBasedPriorityProvider::getInstance,
                 ConfigFactory.empty());
 
         // create another actor because this it is stopped and we want to test if the child is terminated
@@ -997,7 +996,6 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
         final var connectionActorProps = ConnectionPersistenceActor.props(TestConstants.createRandomConnectionId(),
                 proxyActor,
                 pubSubMediator,
-                UsageBasedPriorityProvider::getInstance,
                 ConfigFactory.empty());
 
         // create another actor because we want to test if the child is terminated
@@ -1253,7 +1251,6 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
                 () -> new ConnectionPersistenceActor(myConnectionId,
                         proxyActorProbe.ref(),
                         pubSubMediatorProbe.ref(),
-                        UsageBasedPriorityProvider::getInstance,
                         Trilean.TRUE,
                         ConfigFactory.empty()));
 
@@ -1313,7 +1310,6 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
                         () -> new ConnectionPersistenceActor(connectionId,
                                 proxyActor,
                                 pubSubMediator,
-                                UsageBasedPriorityProvider::getInstance,
                                 Trilean.FALSE,
                                 ConfigFactory.empty())
                 )
@@ -1336,7 +1332,6 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
                         () -> new ConnectionPersistenceActor(connectionId,
                                 proxyActor,
                                 pubSubMediator,
-                                UsageBasedPriorityProvider::getInstance,
                                 Trilean.FALSE,
                                 ConfigFactory.empty())
                 )
