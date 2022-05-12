@@ -56,4 +56,5 @@ final class MappedOutcome<T> implements MappingOutcome<T> {
                 ",externalMessage=" + externalMessage +
                 "]";
     }
+
 }

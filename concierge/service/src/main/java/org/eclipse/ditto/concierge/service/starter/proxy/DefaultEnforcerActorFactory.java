@@ -67,16 +67,12 @@ import com.github.benmanes.caffeine.cache.AsyncCacheLoader;
 import akka.actor.ActorContext;
 import akka.actor.ActorRef;
 import akka.actor.Props;
+import akka.dispatch.MessageDispatcher;
 
 /**
  * Ditto default implementation of{@link EnforcerActorFactory}.
  */
 public final class DefaultEnforcerActorFactory implements EnforcerActorFactory<ConciergeConfig> {
-
-    /**
-     * Default namespace for {@code CreateThing} commands without any namespace.
-     */
-    private static final String DEFAULT_NAMESPACE = "org.eclipse.ditto";
 
     private static final String ENFORCER_CACHE_METRIC_NAME_PREFIX = "ditto_authorization_enforcer_cache_";
     private static final String ID_CACHE_METRIC_NAME_PREFIX = "ditto_authorization_id_cache_";
@@ -98,23 +94,24 @@ public final class DefaultEnforcerActorFactory implements EnforcerActorFactory<C
         final AsyncCacheLoader<EnforcementCacheKey, Entry<EnforcementCacheKey>> thingEnforcerIdCacheLoader =
                 new ThingEnforcementIdCacheLoader(askWithRetryConfig, actorSystem.getScheduler(),
                         thingsShardRegionProxy);
+        final MessageDispatcher enforcementCacheDispatcher =
+                actorSystem.dispatchers().lookup("enforcement-cache-dispatcher");
         final Cache<EnforcementCacheKey, Entry<EnforcementCacheKey>> thingIdCache =
                 CacheFactory.createCache(thingEnforcerIdCacheLoader, cachesConfig.getIdCacheConfig(),
-                        ID_CACHE_METRIC_NAME_PREFIX + ThingCommand.RESOURCE_TYPE,
-                        actorSystem.dispatchers().lookup("thing-id-cache-dispatcher"));
+                        ID_CACHE_METRIC_NAME_PREFIX + ThingCommand.RESOURCE_TYPE, enforcementCacheDispatcher);
 
         final AsyncCacheLoader<EnforcementCacheKey, Entry<PolicyEnforcer>> policyEnforcerCacheLoader =
                 new PolicyEnforcerCacheLoader(askWithRetryConfig, actorSystem.getScheduler(), policiesShardRegionProxy);
         final Cache<EnforcementCacheKey, Entry<PolicyEnforcer>> policyEnforcerCache =
                 CacheFactory.createCache(policyEnforcerCacheLoader, cachesConfig.getEnforcerCacheConfig(),
-                        ENFORCER_CACHE_METRIC_NAME_PREFIX + "policy",
-                        actorSystem.dispatchers().lookup("policy-enforcer-cache-dispatcher"));
+                        ENFORCER_CACHE_METRIC_NAME_PREFIX + "policy", enforcementCacheDispatcher);
         final Cache<EnforcementCacheKey, Entry<Enforcer>> projectedEnforcerCache =
                 policyEnforcerCache.projectValues(PolicyEnforcer::project, PolicyEnforcer::embed);
 
         // pre-enforcer
         final BlockedNamespaces blockedNamespaces = BlockedNamespaces.of(actorSystem);
-        final PreEnforcer preEnforcer = newPreEnforcer(blockedNamespaces, PlaceholderSubstitution.newInstance());
+        final PreEnforcer preEnforcer = newPreEnforcer(blockedNamespaces, PlaceholderSubstitution.newInstance(),
+                conciergeConfig.getDefaultNamespace());
 
         final DistributedAcks distributedAcks = DistributedAcks.lookup(actorSystem);
         final LiveSignalPub liveSignalPub = LiveSignalPub.of(context, distributedAcks);
@@ -187,24 +184,25 @@ public final class DefaultEnforcerActorFactory implements EnforcerActorFactory<C
     }
 
     private static PreEnforcer newPreEnforcer(final BlockedNamespaces blockedNamespaces,
-            final PlaceholderSubstitution placeholderSubstitution) {
+            final PlaceholderSubstitution placeholderSubstitution, final String defaultNamespace) {
 
         return dittoHeadersSettable ->
                 BlockNamespaceBehavior.of(blockedNamespaces)
                         .block(dittoHeadersSettable)
                         .thenApply(CommandWithOptionalEntityValidator.getInstance())
-                        .thenApply(DefaultEnforcerActorFactory::prependDefaultNamespaceToCreateThing)
+                        .thenApply(signal -> prependDefaultNamespaceToCreateThing(signal, defaultNamespace))
                         .thenApply(DefaultEnforcerActorFactory::setOriginatorHeader)
                         .thenCompose(placeholderSubstitution);
     }
 
-    private static DittoHeadersSettable<?> prependDefaultNamespaceToCreateThing(final DittoHeadersSettable<?> signal) {
-        if (signal instanceof final CreateThing createThing) {
+    private static DittoHeadersSettable<?> prependDefaultNamespaceToCreateThing(final DittoHeadersSettable<?> signal,
+            final String defaultNamespace) {
+        if (signal instanceof CreateThing createThing) {
             final Thing thing = createThing.getThing();
             final Optional<String> namespace = thing.getNamespace();
-            if (namespace.isEmpty()) {
+            if (namespace.isEmpty() || namespace.get().equals("")) {
                 final Thing thingInDefaultNamespace = thing.toBuilder()
-                        .setId(ThingId.of(DEFAULT_NAMESPACE, createThing.getEntityId().toString()))
+                        .setId(ThingId.of(defaultNamespace, createThing.getEntityId().toString().substring(1)))
                         .build();
                 final JsonObject initialPolicy = createThing.getInitialPolicy().orElse(null);
                 return CreateThing.of(thingInDefaultNamespace, initialPolicy, createThing.getDittoHeaders());

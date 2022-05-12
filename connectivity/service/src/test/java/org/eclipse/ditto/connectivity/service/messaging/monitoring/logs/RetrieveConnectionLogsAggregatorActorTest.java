@@ -24,7 +24,6 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
@@ -245,7 +244,7 @@ public final class RetrieveConnectionLogsAggregatorActorTest {
                 .map(RetrieveConnectionLogsResponse::getConnectionLogs)
                 .flatMap(Collection::stream)
                 .sorted(Comparator.comparing(LogEntry::getTimestamp))
-                .collect(Collectors.toList());
+                .toList();
         final RetrieveConnectionLogsResponse firstResponse = clientResponses.stream().findFirst()
                 .orElseThrow(() -> new IllegalStateException("collection should contain at least one response"));
 

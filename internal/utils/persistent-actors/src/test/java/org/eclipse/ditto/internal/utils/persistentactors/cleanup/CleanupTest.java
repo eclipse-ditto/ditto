@@ -101,8 +101,8 @@ public final class CleanupTest {
                 .runWith(Sink.seq(), materializer).toCompletableFuture().join();
         final var seqNrs = result.stream()
                 .map(cleanupResult -> cleanupResult.result.getDeletedCount())
-                .collect(Collectors.toList());
-        final var types = result.stream().map(cleanupResult -> cleanupResult.type.name()).collect(Collectors.toList());
+                .toList();
+        final var types = result.stream().map(cleanupResult -> cleanupResult.type.name()).toList();
 
         assertThat(seqNrs).containsExactly(3033L, 3437L, 3841L, 4245L, 4649L, 39420L, 43460L, 47500L);
         assertThat(types).containsExactly("EVENTS", "EVENTS", "EVENTS", "EVENTS", "EVENTS", "SNAPSHOTS", "SNAPSHOTS",
@@ -134,8 +134,8 @@ public final class CleanupTest {
                 .runWith(Sink.seq(), materializer).toCompletableFuture().join();
         final var seqNrs = result.stream()
                 .map(cleanupResult -> cleanupResult.result.getDeletedCount())
-                .collect(Collectors.toList());
-        final var types = result.stream().map(cleanupResult -> cleanupResult.type.name()).collect(Collectors.toList());
+                .toList();
+        final var types = result.stream().map(cleanupResult -> cleanupResult.type.name()).toList();
 
         assertThat(seqNrs).containsExactly(3033L, 3437L, 3841L, 4245L, 4649L, 38410L, 42450L, 46490L);
         assertThat(types).containsExactly("EVENTS", "EVENTS", "EVENTS", "EVENTS", "EVENTS", "SNAPSHOTS", "SNAPSHOTS",
@@ -175,8 +175,8 @@ public final class CleanupTest {
                 .runWith(Sink.seq(), materializer).toCompletableFuture().join();
         final var seqNrs = result.stream()
                 .map(cleanupResult -> cleanupResult.result.getDeletedCount())
-                .collect(Collectors.toList());
-        final var types = result.stream().map(cleanupResult -> cleanupResult.type.name()).collect(Collectors.toList());
+                .toList();
+        final var types = result.stream().map(cleanupResult -> cleanupResult.type.name()).toList();
         final var pids =
                 result.stream().map(cleanupResult -> cleanupResult.snapshotRevision.pid).collect(Collectors.toSet());
 

@@ -24,13 +24,13 @@ import java.util.function.Predicate;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.json.JsonField;
-import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.connectivity.model.signals.commands.ConnectivityCommand;
 import org.eclipse.ditto.connectivity.model.signals.events.ConnectivityEvent;
+import org.eclipse.ditto.json.JsonField;
+import org.eclipse.ditto.json.JsonObject;
 
 import akka.actor.ActorRef;
 
@@ -164,8 +164,7 @@ public final class StagedCommand implements ConnectivityCommand<StagedCommand>, 
 
     @Override
     public boolean equals(final Object o) {
-        if (o instanceof StagedCommand) {
-            final StagedCommand that = (StagedCommand) o;
+        if (o instanceof StagedCommand that) {
             return Objects.equals(command, that.command) &&
                     Objects.equals(event, that.event) &&
                     Objects.equals(response, that.response) &&

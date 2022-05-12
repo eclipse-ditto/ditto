@@ -168,7 +168,10 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId> extends 
     protected void becomeCorrupted() {
         getContext().setReceiveTimeout(getCorruptedReceiveTimeout());
         getContext().become(ReceiveBuilder.create()
-                .match(ReceiveTimeout.class, timeout -> passivate(Control.PASSIVATE))
+                .match(ReceiveTimeout.class, timeout -> {
+                    getContext().cancelReceiveTimeout();
+                    passivate(Control.PASSIVATE);
+                })
                 .matchAny(this::replyUnavailableException)
                 .build());
     }
@@ -179,6 +182,7 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId> extends 
     }
 
     private void passivate(final Control passivationTrigger) {
+        getContext().cancelReceiveTimeout();
         getContext().getParent().tell(new ShardRegion.Passivate(PoisonPill.getInstance()), getSelf());
     }
 

@@ -14,7 +14,6 @@ package org.eclipse.ditto.internal.utils.persistentactors.cleanup;
 
 import java.util.List;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
 import akka.cluster.Cluster;
@@ -64,7 +63,7 @@ public final class ClusterResponsibilitySupplier implements Supplier<Pair<Intege
                         .filter(member -> member.getRoles().contains(myRole))
                         .map(Member::uniqueAddress)
                         .sorted()
-                        .collect(Collectors.toList());
+                        .toList();
         final int myIndex = membersOfMyRole.indexOf(cluster.selfUniqueAddress());
         return Pair.create(myIndex, membersOfMyRole.size());
     }

@@ -24,7 +24,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
@@ -258,7 +257,7 @@ public abstract class AbstractMqttClientActorTest<M> extends AbstractBaseClientA
                         .map(ConnectivityModelFactory::newSourceBuilder)
                         .map(sb -> sb.headerMapping(MQTT_HEADER_MAPPING))
                         .map(SourceBuilder::build)
-                        .collect(Collectors.toList())).build();
+                        .toList()).build();
 
         final ModifyThing modifyThing = testConsumeModifyThing(connectionWithHeaderMapping, SOURCE_ADDRESS)
                 .expectMsgClass(ModifyThing.class);
@@ -340,7 +339,7 @@ public abstract class AbstractMqttClientActorTest<M> extends AbstractBaseClientA
             final List<M> mockMessages =
                     Stream.concat(irrelevantTopics.stream(), Arrays.stream(subscriptions))
                             .map(topic -> mqttMessage(topic, TestConstants.modifyThing(UUID.randomUUID().toString())))
-                            .collect(Collectors.toList());
+                            .toList();
 
             final Connection multipleSources =
                     ConnectivityModelFactory.newConnectionBuilder(connectionId, connectionType,

@@ -22,22 +22,22 @@ import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.base.model.exceptions.InvalidRqlExpressionException;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.base.model.exceptions.InvalidRqlExpressionException;
-import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.rql.query.expression.ThingsFieldExpressionFactory;
-import org.eclipse.ditto.rql.query.things.ModelBasedThingsFieldExpressionFactory;
 import org.eclipse.ditto.rql.model.ParserException;
 import org.eclipse.ditto.rql.parser.RqlPredicateParser;
+import org.eclipse.ditto.rql.parser.thingsearch.RqlOptionParser;
+import org.eclipse.ditto.rql.query.expression.ThingsFieldExpressionFactory;
+import org.eclipse.ditto.rql.query.things.ModelBasedThingsFieldExpressionFactory;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.thingsearch.model.Option;
 import org.eclipse.ditto.thingsearch.model.SizeOption;
 import org.eclipse.ditto.thingsearch.model.SortOption;
 import org.eclipse.ditto.thingsearch.model.SortOptionEntry;
-import org.eclipse.ditto.rql.parser.thingsearch.RqlOptionParser;
 import org.eclipse.ditto.thingsearch.model.signals.commands.exceptions.InvalidOptionException;
 import org.eclipse.ditto.thingsearch.model.signals.commands.query.StreamThings;
 
@@ -135,7 +135,7 @@ public final class SearchSourceBuilder {
         } else {
             List<String> pointers = Arrays.stream(fieldsString.split(COMMA))
                     .filter(pointer -> !pointer.isBlank())
-                    .collect(Collectors.toList());
+                    .toList();
             if (pointers.isEmpty()) {
                 fields = null;
             } else {
@@ -300,7 +300,7 @@ public final class SearchSourceBuilder {
         } else {
             return SortOption.of(
                     Stream.concat(parsedSortOption.stream(), DEFAULT_SORT_OPTION.stream())
-                            .collect(Collectors.toList())
+                            .toList()
             );
         }
     }
@@ -320,7 +320,7 @@ public final class SearchSourceBuilder {
                         ? Stream.of((SortOption) option)
                         : Stream.empty()
                 )
-                .collect(Collectors.toList());
+                .toList();
         if (sortOptions.isEmpty()) {
             return DEFAULT_SORT_OPTION;
         } else if (sortOptions.size() == 1) {

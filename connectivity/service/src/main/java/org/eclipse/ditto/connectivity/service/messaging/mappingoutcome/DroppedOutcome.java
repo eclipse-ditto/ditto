@@ -48,4 +48,5 @@ final class DroppedOutcome<T> implements MappingOutcome<T> {
                 ",externalMessage=" + droppedMessage +
                 "]";
     }
+
 }

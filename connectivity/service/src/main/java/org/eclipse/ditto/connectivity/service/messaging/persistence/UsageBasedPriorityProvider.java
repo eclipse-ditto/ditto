@@ -18,9 +18,9 @@ import java.util.concurrent.CompletionStage;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.connectivity.model.ConnectionMetrics;
-import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConnectionMetrics;
 import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConnectionMetricsResponse;
+import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 
 import akka.actor.ActorRef;
 import akka.pattern.Patterns;
@@ -52,9 +52,8 @@ public final class UsageBasedPriorityProvider implements ConnectionPriorityProvi
         final RetrieveConnectionMetrics retrieveConnectionMetrics = RetrieveConnectionMetrics.of(connectionId, headers);
         return Patterns.ask(connectionPersistenceActor, retrieveConnectionMetrics, RETRIEVE_METRICS_TIMEOUT)
                 .handle((metrics, error) -> {
-                    if (metrics instanceof RetrieveConnectionMetricsResponse) {
-                        final ConnectionMetrics connectionMetrics =
-                                ((RetrieveConnectionMetricsResponse) metrics).getConnectionMetrics();
+                    if (metrics instanceof RetrieveConnectionMetricsResponse metricsResponse) {
+                        final ConnectionMetrics connectionMetrics = metricsResponse.getConnectionMetrics();
                         return ConnectionPriorityCalculator.calculatePriority(connectionMetrics);
                     } else if (error != null) {
                         log.withCorrelationId(correlationId)

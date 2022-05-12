@@ -24,6 +24,14 @@ import org.eclipse.ditto.internal.utils.health.config.WithHealthCheckConfig;
 @Immutable
 public interface ConciergeConfig extends ServiceSpecificConfig, WithHealthCheckConfig {
 
+
+    /**
+     * Returns the default namespace which is used when no namespace is provided.
+     *
+     * @return the default namespace.
+     */
+    String getDefaultNamespace();
+
     /**
      * Returns the config of Concierge's enforcement behaviour.
      *
@@ -58,7 +66,14 @@ public interface ConciergeConfig extends ServiceSpecificConfig, WithHealthCheckC
         /**
          * The path of the search actor where to dispatch search requests.
          */
-        SEARCH_ACTOR_PATH("search-actor-path", "/user/thingsWildcardSearchRoot/thingsSearch");
+        SEARCH_ACTOR_PATH("search-actor-path", "/user/thingsWildcardSearchRoot/thingsSearch"),
+
+        /**
+         * The default namespace to use for creating things without specified namespace.
+         *
+         * @since 2.5.0
+         */
+        DEFAULT_NAMESPACE("default-namespace", "org.eclipse.ditto");
 
         private final String path;
         private final Object defaultValue;

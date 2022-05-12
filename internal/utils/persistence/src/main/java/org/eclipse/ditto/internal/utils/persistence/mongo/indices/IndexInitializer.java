@@ -139,7 +139,7 @@ public final class IndexInitializer {
 
         return excludeIndices(allIndices, definedIndices).stream()
                 .map(Index::getName)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private Source<Done, NotUsed> dropIndices(final String collectionName, final List<String> indices) {
@@ -173,7 +173,7 @@ public final class IndexInitializer {
 
         return allIndices.stream()
                 .filter(indexModel -> !excludedIndexNames.contains(indexModel.getName()))
-                .collect(Collectors.toList());
+                .toList();
     }
 
 }

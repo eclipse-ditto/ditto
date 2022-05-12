@@ -468,10 +468,11 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
                             + "equal to the current sequence number <{}> of the update actor.", thingId,
                     thingEvent.getRevision(), data.metadata().getThingRevision());
             if (shouldAcknowledge) {
-                final String hint = String.format("Thing event with revision <%d> for thing <%s> dropped.", thingEvent.getRevision(),
+                final String hint = String.format("Thing event with revision <%d> for thing <%s> dropped.",
+                        thingEvent.getRevision(),
                         thingId);
-                exportMetadataWithSender(shouldAcknowledge, thingEvent, getAckRecipient(), null, data).sendWeakAck(
-                        JsonValue.of(hint));
+                exportMetadataWithSender(true, thingEvent, getAckRecipient(), null, data)
+                        .sendWeakAck(JsonValue.of(hint));
             }
             return Optional.empty();
         }
@@ -552,7 +553,7 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
     private Metadata exportMetadataWithSender(final boolean shouldAcknowledge,
             final ThingEvent<?> event,
             final ActorRef sender,
-            final StartedTimer consistencyLagTimer,
+            @Nullable final StartedTimer consistencyLagTimer,
             final Data data) {
         final long thingRevision = event.getRevision();
         if (shouldAcknowledge) {

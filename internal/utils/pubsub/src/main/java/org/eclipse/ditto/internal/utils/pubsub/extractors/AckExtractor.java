@@ -16,15 +16,14 @@ import java.util.Collection;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Predicate;
-import java.util.stream.Collectors;
 
-import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.base.model.acks.AcknowledgementLabel;
 import org.eclipse.ditto.base.model.acks.AcknowledgementRequest;
 import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgements;
+import org.eclipse.ditto.json.JsonValue;
 
 /**
  * Extract information relevant to acknowledgements from a message.
@@ -47,7 +46,7 @@ public interface AckExtractor<T> {
                 .map(AcknowledgementRequest::getLabel)
                 .filter(label -> !AckExtractorImpl.BUILT_IN_LABELS.contains(label) &&
                         isDeclaredAck.test(label.toString()))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     /**
@@ -100,7 +99,7 @@ public interface AckExtractor<T> {
         final DittoHeaders dittoHeaders = getDittoHeaders(message);
         return Acknowledgements.of(ackLabels.stream()
                         .map(ackLabel -> weakAck(ackLabel, entityId, dittoHeaders))
-                        .collect(Collectors.toList()),
+                        .toList(),
                 dittoHeaders
         );
     }

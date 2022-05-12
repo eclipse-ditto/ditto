@@ -18,6 +18,12 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.eclipse.ditto.gateway.service.util.config.endpoints.GatewayHttpConfig;
+import org.eclipse.ditto.gateway.service.util.config.endpoints.HttpConfig;
+import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
+import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
+import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
+import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.json.JsonFieldSelector;
@@ -25,16 +31,10 @@ import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingId;
-import org.eclipse.ditto.thingsearch.model.SearchModelFactory;
-import org.eclipse.ditto.thingsearch.model.SearchResult;
-import org.eclipse.ditto.gateway.service.util.config.endpoints.GatewayHttpConfig;
-import org.eclipse.ditto.gateway.service.util.config.endpoints.HttpConfig;
-import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
-import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
-import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
-import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThings;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThingsResponse;
+import org.eclipse.ditto.thingsearch.model.SearchModelFactory;
+import org.eclipse.ditto.thingsearch.model.SearchResult;
 import org.eclipse.ditto.thingsearch.model.signals.commands.query.QueryThings;
 import org.eclipse.ditto.thingsearch.model.signals.commands.query.QueryThingsResponse;
 import org.eclipse.ditto.thingsearch.model.signals.events.ThingsOutOfSync;
@@ -115,10 +115,10 @@ final class QueryThingsPerRequestActor extends AbstractActor {
                             .stream()
                             .flatMap(val -> val.asObject().getValue(Thing.JsonFields.ID).stream())
                             .map(ThingId::of)
-                            .collect(Collectors.toList());
+                            .toList();
 
                     if (queryThingsResponseThingIds.isEmpty()) {
-                        // shortcut - for no search results we don't have to lookup the things
+                        // shortcut - for no search results we don't have to look up the things
                         originatingSender.tell(qtr, getSelf());
                         stopMyself();
                     } else {
@@ -210,7 +210,7 @@ final class QueryThingsPerRequestActor extends AbstractActor {
 
         final Collection<ThingId> outOfSyncThingIds = queryThingsResponseThingIds.stream()
                 .filter(thingId -> !retrievedThingIds.contains(thingId))
-                .collect(Collectors.toList());
+                .toList();
 
         if (!outOfSyncThingIds.isEmpty()) {
             final ThingsOutOfSync thingsOutOfSync =
@@ -221,6 +221,7 @@ final class QueryThingsPerRequestActor extends AbstractActor {
     }
 
     private void stopMyself() {
+        getContext().cancelReceiveTimeout();
         getContext().stop(getSelf());
     }
 

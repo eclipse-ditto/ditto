@@ -180,7 +180,7 @@ public final class Grouped<T> {
         return CollectionConverters.asJava(bindingValues)
                 .stream()
                 .map(s -> Grouped.fromJson(JsonObject.of(s), valueDeserializer))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     // JSON field names are 1-character long to conserve space in the distributed data.

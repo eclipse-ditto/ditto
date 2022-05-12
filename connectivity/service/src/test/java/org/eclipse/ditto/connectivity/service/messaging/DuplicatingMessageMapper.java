@@ -15,9 +15,9 @@ package org.eclipse.ditto.connectivity.service.messaging;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.stream.Collectors;
 import java.util.stream.LongStream;
 
+import org.eclipse.ditto.connectivity.api.ExternalMessage;
 import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
 import org.eclipse.ditto.connectivity.model.MappingContext;
 import org.eclipse.ditto.connectivity.service.config.mapping.MappingConfig;
@@ -27,7 +27,6 @@ import org.eclipse.ditto.connectivity.service.mapping.MessageMapper;
 import org.eclipse.ditto.connectivity.service.mapping.MessageMapperConfiguration;
 import org.eclipse.ditto.connectivity.service.mapping.PayloadMapper;
 import org.eclipse.ditto.protocol.Adaptable;
-import org.eclipse.ditto.connectivity.api.ExternalMessage;
 
 /**
  * Implementation of {@link org.eclipse.ditto.connectivity.service.mapping.MessageMapper} that always duplicates the incoming message.
@@ -55,7 +54,7 @@ public final class DuplicatingMessageMapper extends AbstractMessageMapper {
         return LongStream.range(0, n)
                 .mapToObj(i -> delegate.map(message))
                 .flatMap(Collection::stream)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Override
@@ -63,7 +62,7 @@ public final class DuplicatingMessageMapper extends AbstractMessageMapper {
         return LongStream.range(0, n)
                 .mapToObj(i -> delegate.map(adaptable))
                 .flatMap(Collection::stream)
-                .collect(Collectors.toList());
+                .toList();
     }
 
 }

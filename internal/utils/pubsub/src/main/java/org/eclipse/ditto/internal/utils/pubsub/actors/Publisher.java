@@ -153,7 +153,7 @@ public final class Publisher extends AbstractActor {
 
         final List<AcknowledgementLabel> labelsWithoutAuthorizedSubscribers = requestedCustomAcks.stream()
                 .filter(label -> !subscriberDeclaredAcks.contains(label.toString()))
-                .collect(Collectors.toList());
+                .toList();
 
         if (!labelsWithoutAuthorizedSubscribers.isEmpty()) {
             getSender().tell(publishWithAck.toWeakAcks(labelsWithoutAuthorizedSubscribers), ActorRef.noSender());
@@ -164,7 +164,7 @@ public final class Publisher extends AbstractActor {
             final SignalWithEntityId<?> signal) {
         messageCounter.increment();
         topicCounter.increment(topics.size());
-        final List<Long> hashes = topics.stream().map(ddataReader::approximate).collect(Collectors.toList());
+        final List<Long> hashes = topics.stream().map(ddataReader::approximate).toList();
         final ActorRef sender = getSender();
 
         final List<Pair<ActorRef, PublishSignal>> subscribers =
@@ -173,7 +173,7 @@ public final class Publisher extends AbstractActor {
         if (l.isDebugEnabled()) {
             l.debug("Calculated hashes for signal <{}>: <{}>", signal, hashes);
             l.debug("Publishing PublishSignal to subscribers: <{}>",
-                    subscribers.stream().map(Pair::first).collect(Collectors.toList()));
+                    subscribers.stream().map(Pair::first).toList());
         }
         sentMessagesCounter.increment(subscribers.size());
         subscribers.forEach(pair -> pair.first().tell(pair.second(), sender));
@@ -203,7 +203,7 @@ public final class Publisher extends AbstractActor {
     private static List<Grouped<Long>> deserializeGroupedHashes(final scala.collection.immutable.Set<String> strings) {
         return CollectionConverters.asJava(strings).stream()
                 .map(string -> Grouped.fromJson(JsonObject.of(string), JsonValue::asLong))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     /**

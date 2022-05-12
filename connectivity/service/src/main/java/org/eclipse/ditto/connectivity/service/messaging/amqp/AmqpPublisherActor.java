@@ -28,7 +28,6 @@ import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Executor;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
@@ -40,6 +39,7 @@ import javax.jms.Message;
 import javax.jms.MessageProducer;
 import javax.jms.Session;
 
+import org.apache.qpid.jms.JmsOperationTimedOutException;
 import org.apache.qpid.jms.message.JmsMessage;
 import org.eclipse.ditto.base.model.acks.AcknowledgementLabel;
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
@@ -220,7 +220,7 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
             connectionLogger.failure("Targets were closed due to an error in the target. {0}", genericLogInfo);
 
             final List<Destination> destinations =
-                    findByValue(staticTargets, producer).map(Map.Entry::getKey).collect(Collectors.toList());
+                    findByValue(staticTargets, producer).map(Map.Entry::getKey).toList();
             destinations.forEach(destination -> {
                 staticTargets.remove(destination);
                 // trigger backoff to recreate closed static targets
@@ -262,20 +262,28 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
         try {
             isInBackOffMode = false;
             createStaticTargetProducers();
+        } catch (final JmsOperationTimedOutException jmsOperationTimedOutException) {
+            final String message = "Failed to create target because of JmsOperationTimedOutException";
+            logger.warning(message + ": {}", jmsOperationTimedOutException.getMessage());
+            notifyParentAndStopSelf(message, jmsOperationTimedOutException);
         } catch (final JMSException jmsException) {
             // target producer not creatable; stop self and request restart by parent
             final String errorMessage = "Failed to create target";
             logger.error(jmsException, errorMessage);
-            final ConnectionFailure failure = ConnectionFailure.of(getSelf(), jmsException, errorMessage);
-            final ActorContext context = getContext();
-            context.getParent().tell(failure, getSelf());
-            context.stop(getSelf());
+            notifyParentAndStopSelf(errorMessage, jmsException);
         } catch (final Exception e) {
             logger.warning("Failed to create static target producers: {}", e.getMessage());
             getContext().getParent()
                     .tell(ConnectionFailure.of(null, e, "failed to initialize static producers"), getSelf());
             throw e;
         }
+    }
+
+    private void notifyParentAndStopSelf(final String message, final Exception exception) {
+        final ConnectionFailure failure = ConnectionFailure.of(getSelf(), exception, message);
+        final ActorContext context = getContext();
+        context.getParent().tell(failure, getSelf());
+        context.stop(getSelf());
     }
 
     private void createStaticTargetProducers() throws JMSException {

@@ -269,18 +269,18 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
         final Connection connectionToBeTested = testConnectionCommand.getConnection();
         final ClientConfig clientConfig = connectivityConfig().getClientConfig();
         return Patterns.ask(getTestConnectionHandler(connectionToBeTested),
-                jmsConnect(getSender(), connectionToBeTested), clientConfig.getTestingTimeout())
+                        jmsConnect(getSender(), connectionToBeTested), clientConfig.getTestingTimeout())
                 // compose the disconnect because otherwise the actor hierarchy might be stopped too fast
                 .thenCompose(response -> {
                     logger.withCorrelationId(testConnectionCommand)
                             .withMdcEntry(ConnectivityMdcEntryKey.CONNECTION_ID, connectionToBeTested.getId())
                             .debug("Closing AMQP 1.0 connection after testing connection.");
-                    if (response instanceof JmsConnected) {
-                        final JmsConnection connectedJmsConnection = ((JmsConnected) response).connection;
+                    if (response instanceof JmsConnected jmsConnected) {
+                        final JmsConnection connectedJmsConnection = jmsConnected.connection;
                         final JmsDisconnect jmsDisconnect = new JmsDisconnect(ActorRef.noSender(),
                                 connectedJmsConnection, true);
                         return Patterns.ask(getDisconnectConnectionHandler(connectionToBeTested), jmsDisconnect,
-                                clientConfig.getTestingTimeout())
+                                        clientConfig.getTestingTimeout())
                                 // replace jmsDisconnected message with original response
                                 .thenApply(jmsDisconnected -> response);
                     } else {
@@ -298,8 +298,8 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
                                                 ex.getClass().getSimpleName() + ": " + ex.getMessage() + "'")
                                         .cause(ex).build();
                         return new Status.Failure(failedException);
-                    } else if (response instanceof ConnectionFailure) {
-                        return ((ConnectionFailure) response).getFailure();
+                    } else if (response instanceof ConnectionFailure connectionFailure) {
+                        return connectionFailure.getFailure();
                     } else {
                         return new Status.Success(response);
                     }
@@ -322,13 +322,12 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
 
     @Override
     protected void allocateResourcesOnConnection(final ClientConnected clientConnected) {
-        if (clientConnected instanceof JmsConnected) {
-            final JmsConnected c = (JmsConnected) clientConnected;
+        if (clientConnected instanceof JmsConnected client) {
             logger.info("Received JmsConnected");
             ensureJmsConnectionClosed();
-            jmsConnection = c.connection;
+            jmsConnection = client.connection;
             jmsConnection.addConnectionListener(connectionListener);
-            jmsSession = c.session;
+            jmsSession = client.session;
         } else {
             logger.info(
                     "ClientConnected was not JmsConnected as expected, ignoring as this probably was a reconnection");
@@ -350,8 +349,8 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
                     .whenComplete((result, error) -> {
                         if (error != null) {
                             future.completeExceptionally(error);
-                        } else if (result instanceof Throwable) {
-                            future.completeExceptionally((Throwable) result);
+                        } else if (result instanceof Throwable throwable) {
+                            future.completeExceptionally(throwable);
                         } else {
                             future.complete(DONE);
                         }
@@ -367,10 +366,9 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
 
     @Override
     protected CompletionStage<Status.Status> startConsumerActors(@Nullable final ClientConnected clientConnected) {
-        if (clientConnected instanceof JmsConnected) {
-            final JmsConnected c = (JmsConnected) clientConnected;
+        if (clientConnected instanceof JmsConnected jmsConnected) {
             final ActorRef jmsActor = getConnectConnectionHandler(connection());
-            return startCommandConsumers(c.consumerList, jmsActor)
+            return startCommandConsumers(jmsConnected.consumerList, jmsActor)
                     .thenApply(ignored -> new Status.Success(Done.getInstance()));
         }
         return CompletableFuture.completedFuture(new Status.Success(Done.getInstance()));

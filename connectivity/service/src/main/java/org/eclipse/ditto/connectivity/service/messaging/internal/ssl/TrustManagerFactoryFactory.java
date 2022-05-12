@@ -35,9 +35,9 @@ import javax.annotation.Nullable;
 import javax.net.ssl.CertPathTrustManagerParameters;
 import javax.net.ssl.TrustManagerFactory;
 
-import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.connectivity.model.Connection;
+import org.eclipse.ditto.json.JsonPointer;
 
 import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
 
@@ -64,7 +64,6 @@ public final class TrustManagerFactoryFactory {
 
     TrustManagerFactoryFactory(final ExceptionMapper exceptionMapper) {
         this.exceptionMapper = checkNotNull(exceptionMapper, "exceptionMapper");
-        ;
         keyStoreFactory = new KeyStoreFactory(exceptionMapper);
     }
 

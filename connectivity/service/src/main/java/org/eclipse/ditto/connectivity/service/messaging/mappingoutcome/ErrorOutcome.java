@@ -52,4 +52,5 @@ final class ErrorOutcome<T> implements MappingOutcome<T> {
                 ",externalMessage=" + externalMessage +
                 "]";
     }
+
 }

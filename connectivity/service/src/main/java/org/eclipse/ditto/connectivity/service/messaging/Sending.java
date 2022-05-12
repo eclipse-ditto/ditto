@@ -135,8 +135,8 @@ final class Sending implements SendingOrDropped {
     @Nullable
     private Supplier<DittoRuntimeException> getAckFailure(final WithHttpStatus response) {
         final HttpStatus status = response.getHttpStatus();
-        if (response instanceof Acknowledgement && (status.isClientError() || status.isServerError())) {
-            return () -> getExceptionForAcknowledgement((Acknowledgement) response);
+        if (response instanceof Acknowledgement acknowledgement && (status.isClientError() || status.isServerError())) {
+            return () -> getExceptionForAcknowledgement(acknowledgement);
         } else if (response instanceof CommandResponse<?>
                 && isTargetIssuesLiveResponse(sendingContext)
                 && HttpStatus.REQUEST_TIMEOUT.equals(status)) {
@@ -191,8 +191,8 @@ final class Sending implements SendingOrDropped {
         final Throwable cause = throwable.getCause();
         if (throwable instanceof CompletionException && null != cause) {
             return getRootCause(cause);
-        } else if (throwable instanceof Exception) {
-            return (Exception) throwable;
+        } else if (throwable instanceof Exception exception) {
+            return exception;
         } else {
             return new RuntimeException(throwable);
         }
@@ -210,8 +210,7 @@ final class Sending implements SendingOrDropped {
         if (exception == null) {
             publishedMonitor.success(message);
         } else {
-            if (exception instanceof DittoRuntimeException) {
-                final DittoRuntimeException dittoRuntimeException = (DittoRuntimeException) exception;
+            if (exception instanceof DittoRuntimeException dittoRuntimeException) {
                 publishedMonitor.failure(message, dittoRuntimeException);
                 logger.withCorrelationId(dittoRuntimeException)
                         .info("Ran into a failure when publishing signal - {}: {}",

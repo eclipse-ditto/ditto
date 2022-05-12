@@ -17,19 +17,18 @@ import static org.eclipse.ditto.base.model.json.JsonSchemaVersion.V_2;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 
 import javax.annotation.Nonnull;
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.base.model.headers.WithManifest;
+import org.eclipse.ditto.base.model.json.Jsonifiable;
+import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.base.model.headers.WithManifest;
-import org.eclipse.ditto.base.model.json.Jsonifiable;
-import org.eclipse.ditto.base.model.signals.commands.Command;
 
 /**
  * A list of {@code EntityIdWithRevision} batched together.
@@ -89,7 +88,7 @@ public final class BatchedEntityIdWithRevisions<E extends EntityIdWithRevision<?
             final JsonArray jsonArray = jsonObject.getValueOrThrow(JSON_ELEMENTS);
             final List<T> elements = jsonArray.stream()
                     .map(jsonValue -> elementDeserializer.apply(jsonValue.asObject()))
-                    .collect(Collectors.toList());
+                    .toList();
             return new BatchedEntityIdWithRevisions<>(type, elements);
         };
     }

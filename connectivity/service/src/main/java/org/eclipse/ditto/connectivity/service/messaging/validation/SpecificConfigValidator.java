@@ -32,4 +32,5 @@ public interface SpecificConfigValidator {
     void validate(final String specificConfigValue,
             final DittoHeaders dittoHeaders,
             final Supplier<String> errorSiteDescription);
+
 }

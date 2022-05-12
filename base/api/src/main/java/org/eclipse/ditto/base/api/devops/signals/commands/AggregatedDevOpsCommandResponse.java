@@ -57,7 +57,8 @@ public final class AggregatedDevOpsCommandResponse
             CommandResponseJsonDeserializer.newInstance(TYPE,
                     context -> {
                         final var jsonObject = context.getJsonObject();
-                        return new AggregatedDevOpsCommandResponse(jsonObject.getValueOrThrow(JSON_AGGREGATED_RESPONSES),
+                        return new AggregatedDevOpsCommandResponse(
+                                jsonObject.getValueOrThrow(JSON_AGGREGATED_RESPONSES),
                                 jsonObject.getValueOrThrow(JSON_RESPONSES_TYPE),
                                 context.getDeserializedHttpStatus(),
                                 context.getDittoHeaders());
@@ -83,15 +84,17 @@ public final class AggregatedDevOpsCommandResponse
      * @param responsesType the responses type of the responses to expect.
      * @param httpStatus the HTTP status to send back as response status.
      * @param dittoHeaders the headers of the request.
+     * @param aggregateResults true if a single response is required, false if aggregated multiple response are required
      * @return the new RetrieveLoggerConfigResponse response.
      * @since 2.0.0
      */
     public static AggregatedDevOpsCommandResponse of(final List<CommandResponse<?>> commandResponses,
             final String responsesType,
             final HttpStatus httpStatus,
-            final DittoHeaders dittoHeaders) {
+            final DittoHeaders dittoHeaders,
+            final boolean aggregateResults) {
 
-        final var jsonRepresentation = buildJsonRepresentation(commandResponses, dittoHeaders);
+        final var jsonRepresentation = buildJsonRepresentation(commandResponses, dittoHeaders, aggregateResults);
         return new AggregatedDevOpsCommandResponse(jsonRepresentation, responsesType, httpStatus, dittoHeaders);
     }
 
@@ -179,29 +182,45 @@ public final class AggregatedDevOpsCommandResponse
     }
 
     private static JsonObject buildJsonRepresentation(final List<CommandResponse<?>> commandResponses,
-            final DittoHeaders dittoHeaders) {
+            final DittoHeaders dittoHeaders,
+            final boolean aggregateResults) {
 
         final var schemaVersion = dittoHeaders.getSchemaVersion().orElse(JsonSchemaVersion.LATEST);
-        final var builder = JsonObject.newBuilder();
 
+        if (!aggregateResults && commandResponses.size() == 1) {
+            final CommandResponse<?> commandResponse = commandResponses.get(0);
+            return commandResponseToJson(commandResponse, schemaVersion);
+        } else {
+            return buildAggregatedJsonRepresentation(commandResponses, schemaVersion);
+        }
+    }
+
+    private static JsonObject buildAggregatedJsonRepresentation(final List<CommandResponse<?>> commandResponses,
+            final JsonSchemaVersion schemaVersion) {
+        final var builder = JsonObject.newBuilder();
         var i = 0;
         for (final var cmdR : commandResponses) {
             final var key = String.format("/%s/%s", calculateServiceName(cmdR), calculateInstance(cmdR, i++));
             // include both regular and special fields for devops command responses
-            final JsonValue responseJson;
-            if (cmdR instanceof ExecutePiggybackCommandResponse) {
-                responseJson = ((ExecutePiggybackCommandResponse) cmdR).getResponse();
-            } else {
-                responseJson = cmdR.toJson(schemaVersion, FieldType.regularOrSpecial());
-            }
+            final JsonObject responseJson = commandResponseToJson(cmdR, schemaVersion);
             builder.set(key, responseJson);
         }
-
         if (builder.isEmpty()) {
             return JsonFactory.nullObject();
         } else {
             return builder.build();
         }
+    }
+
+    private static JsonObject commandResponseToJson(final CommandResponse<?> commandResponse,
+            final JsonSchemaVersion schemaVersion) {
+        final JsonObject responseJson;
+        if (commandResponse instanceof ExecutePiggybackCommandResponse response) {
+            responseJson = response.getResponse().asObject();
+        } else {
+            responseJson = commandResponse.toJson(schemaVersion, FieldType.regularOrSpecial());
+        }
+        return responseJson;
     }
 
     private static String calculateServiceName(final CommandResponse<?> commandResponse) {
