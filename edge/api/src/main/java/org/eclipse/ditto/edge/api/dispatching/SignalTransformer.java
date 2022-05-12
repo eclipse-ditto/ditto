@@ -18,6 +18,7 @@ import java.util.function.UnaryOperator;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.service.DittoExtensionPoint;
 import org.eclipse.ditto.internal.utils.akka.AkkaClassLoader;
+import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 
 import akka.actor.AbstractExtensionId;
 import akka.actor.ActorSystem;
@@ -54,7 +55,8 @@ public abstract class SignalTransformer implements DittoExtensionPoint, UnaryOpe
 
         @Override
         public SignalTransformer createExtension(final ExtendedActorSystem system) {
-            final var implementation = system.settings().config().getString(CONFIG_PATH);
+            final DefaultScopedConfig dittoScoped = DefaultScopedConfig.dittoScoped(system.settings().config());
+            final var implementation = dittoScoped.getString(CONFIG_PATH);
 
             return AkkaClassLoader.instantiate(system, SignalTransformer.class,
                     implementation,
