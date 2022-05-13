@@ -26,6 +26,7 @@ import org.eclipse.ditto.base.model.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.base.service.actors.ShutdownBehaviour;
 import org.eclipse.ditto.base.service.config.supervision.ExponentialBackOffConfig;
 import org.eclipse.ditto.connectivity.model.ConnectionId;
+import org.eclipse.ditto.connectivity.model.signals.commands.ConnectivityCommand;
 import org.eclipse.ditto.connectivity.model.signals.commands.exceptions.ConnectionUnavailableException;
 import org.eclipse.ditto.connectivity.service.config.ConnectionConfig;
 import org.eclipse.ditto.connectivity.service.config.ConnectivityConfigModifiedBehavior;
@@ -55,8 +56,9 @@ import akka.pattern.Patterns;
  * {@link ConnectionUnavailableException} as fail fast strategy.
  * </p>
  */
-public final class ConnectionSupervisorActor extends AbstractPersistenceSupervisor<ConnectionId> implements
-        ConnectivityConfigModifiedBehavior {
+public final class ConnectionSupervisorActor
+        extends AbstractPersistenceSupervisor<ConnectionId, ConnectivityCommand<?>>
+        implements ConnectivityConfigModifiedBehavior {
 
     private static final Duration MAX_CONFIG_RETRIEVAL_DURATION = Duration.ofSeconds(5);
 
@@ -77,7 +79,7 @@ public final class ConnectionSupervisorActor extends AbstractPersistenceSupervis
     private ConnectionSupervisorActor(
             final ActorRef proxyActor,
             final ActorRef pubSubMediator,
-            final PreEnforcer preEnforcer) {
+            final PreEnforcer<ConnectivityCommand<?>> preEnforcer) {
 
         super(null, preEnforcer);
         this.proxyActor = proxyActor;
@@ -98,7 +100,7 @@ public final class ConnectionSupervisorActor extends AbstractPersistenceSupervis
      */
     public static Props props(final ActorRef proxyActor,
             final ActorRef pubSubMediator,
-            final PreEnforcer preEnforcer) {
+            final PreEnforcer<ConnectivityCommand<?>> preEnforcer) {
 
         return Props.create(ConnectionSupervisorActor.class, proxyActor,
                  pubSubMediator, preEnforcer);

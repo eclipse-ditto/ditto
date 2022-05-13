@@ -20,6 +20,7 @@ import java.util.concurrent.CompletionStage;
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.exceptions.EntityNotCreatableException;
+import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.base.model.signals.commands.CommandToExceptionRegistry;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldSelector;
@@ -79,6 +80,11 @@ public final class PolicyCommandEnforcement
     @Override
     public CompletionStage<PolicyCommand<?>> authorizeSignal(final PolicyCommand<?> command,
             final PolicyEnforcer policyEnforcer) {
+
+        if (command.getCategory() == Command.Category.QUERY && !command.getDittoHeaders().isResponseRequired()) {
+            // ignore query command with response-required=false
+            return CompletableFuture.completedStage(null);
+        }
 
         final Enforcer enforcer = policyEnforcer.getEnforcer();
         final var policyResourceKey = PoliciesResourceType.policyResource(command.getResourcePath());

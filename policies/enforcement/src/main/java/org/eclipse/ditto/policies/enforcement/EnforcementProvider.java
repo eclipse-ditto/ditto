@@ -109,7 +109,7 @@ public interface EnforcementProvider<T extends Signal<?>> {
             return Optional.of(EnforcementTask.of(entityId, changesAuthorization,
                     () -> preEnforcer.withErrorHandlingAsync(contextual.setMessage(messageWithTraceContext),
                                     contextual.setMessage(null).withReceiver(null),
-                                    converted -> createEnforcement(converted).enforceSafely())
+                                    converted -> createEnforcement((Contextual<T>) converted).enforceSafely())
                             .whenComplete((result, error) -> {
                                 timer.tag("outcome", error != null ? "fail" : "success");
                                 timer.stop();

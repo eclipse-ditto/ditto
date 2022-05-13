@@ -31,9 +31,11 @@ import akka.actor.ActorRef;
 /**
  * Create processing units of Akka stream graph before enforcement from an asynchronous function that may abort
  * enforcement by throwing exceptions.
+ *
+ * @param <T> the type of the signals to pre-enforce.
  */
 @FunctionalInterface
-public interface PreEnforcer {
+public interface PreEnforcer<T extends DittoHeadersSettable<?>> {
 
     /**
      * Logger of pre-enforcers.
@@ -48,7 +50,7 @@ public interface PreEnforcer {
      * @param signal the signal.
      * @return future result of the pre-enforcement.
      */
-    CompletionStage<DittoHeadersSettable<?>> apply(DittoHeadersSettable<?> signal);
+    CompletionStage<T> apply(T signal);
 
     /**
      * Perform pre-enforcement with error handling.
@@ -57,15 +59,16 @@ public interface PreEnforcer {
      * @param onError result after pre-enforcement failure.
      * @param andThen what happens after pre-enforcement success.
      * @param <S> argument type of {@code andThen}.
-     * @param <T> future value type returned by {@code andThen}.
+     * @param <F> future value type returned by {@code andThen}.
      * @return result of the pre-enforcement.
      */
     @SuppressWarnings({"unchecked", "rawtypes", "java:S3740"})
-    default <S extends WithSender<? extends DittoHeadersSettable<?>>, T> CompletionStage<T> withErrorHandlingAsync(
+    default <S extends WithSender<? extends DittoHeadersSettable<?>>, F> CompletionStage<F> withErrorHandlingAsync(
             final S withSender,
-            final T onError, final Function<S, CompletionStage<T>> andThen) {
+            final F onError,
+            final Function<S, CompletionStage<F>> andThen) {
 
-        final DittoHeadersSettable<?> message = withSender.getMessage();
+        final T message = (T) withSender.getMessage();
         return apply(message)
                 // the cast to (S) is safe if the post-condition of this.apply(DittoHeadersSettable<?>) holds.
                 .thenCompose(msg -> andThen.apply((S) ((WithSender) withSender).withMessage(msg)))
@@ -93,6 +96,7 @@ public interface PreEnforcer {
      * Set the "ditto-originator" header to the primary authorization subject of a signal.
      *
      * @param originalSignal A signal with authorization context.
+     * @param <T> TODO TJ doc
      * @return A copy of the signal with the header "ditto-originator" set.
      * @since 3.0.0
      */

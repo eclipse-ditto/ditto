@@ -32,10 +32,12 @@ import org.eclipse.ditto.policies.enforcement.placeholders.strategies.Substituti
 /**
  * A function which applies substitution of placeholders on a command (subtype of {@link DittoHeadersSettable}) based on
  * its {@link DittoHeaders}.
+ *
+ * @param <T> the subtype of {@link DittoHeadersSettable} handled by the PlaceholderSubstitution.
  */
 @Immutable
-public final class PlaceholderSubstitution
-        implements Function<DittoHeadersSettable<?>, CompletionStage<DittoHeadersSettable<?>>> {
+public final class PlaceholderSubstitution<T extends DittoHeadersSettable<?>>
+        implements Function<T, CompletionStage<T>> {
 
     private final HeaderBasedPlaceholderSubstitutionAlgorithm substitutionAlgorithm;
     private final SubstitutionStrategyRegistry substitutionStrategyRegistry;
@@ -53,7 +55,7 @@ public final class PlaceholderSubstitution
      * @return the created instance.
      * @see #newExtendedInstance(java.util.Map)
      */
-    public static PlaceholderSubstitution newInstance() {
+    public static <T extends DittoHeadersSettable<?>> PlaceholderSubstitution<T> newInstance() {
         final Map<String, Function<DittoHeaders, String>> defaultReplacementDefinitions =
                 createDefaultReplacementDefinitions();
 
@@ -68,7 +70,7 @@ public final class PlaceholderSubstitution
      * @return the created instance.
      * @see #newInstance()
      */
-    public static PlaceholderSubstitution newExtendedInstance(
+    public static <T extends DittoHeadersSettable<?>> PlaceholderSubstitution<T> newExtendedInstance(
             final Map<String, Function<DittoHeaders, String>> additionalReplacementDefinitions) {
         requireNonNull(additionalReplacementDefinitions);
 
@@ -85,16 +87,16 @@ public final class PlaceholderSubstitution
 
     @Override
     @SuppressWarnings({"unchecked", "rawtypes", "java:S3740"})
-    public CompletionStage<DittoHeadersSettable<?>> apply(final DittoHeadersSettable<?> dittoHeadersSettable) {
+    public CompletionStage<T> apply(final T dittoHeadersSettable) {
         requireNonNull(dittoHeadersSettable);
 
         final Optional<SubstitutionStrategy> firstMatchingStrategyOpt =
                 substitutionStrategyRegistry.getMatchingStrategy(dittoHeadersSettable);
         if (firstMatchingStrategyOpt.isPresent()) {
-            final SubstitutionStrategy firstMatchingStrategy = firstMatchingStrategyOpt.get();
+            final SubstitutionStrategy<T> firstMatchingStrategy = firstMatchingStrategyOpt.get();
             return CompletableFuture.supplyAsync(() ->
                     firstMatchingStrategy.apply(dittoHeadersSettable, substitutionAlgorithm)
-            );
+            ).thenApply(Function.identity());
         } else {
             return CompletableFuture.completedFuture(dittoHeadersSettable);
         }
@@ -109,13 +111,13 @@ public final class PlaceholderSubstitution
         return Collections.unmodifiableMap(defaultReplacementDefinitions);
     }
 
-    private static PlaceholderSubstitution createInstance(
+    private static <T extends DittoHeadersSettable<?>> PlaceholderSubstitution<T> createInstance(
             final Map<String, Function<DittoHeaders, String>> replacementDefinitions) {
         final HeaderBasedPlaceholderSubstitutionAlgorithm algorithm =
                 HeaderBasedPlaceholderSubstitutionAlgorithm.newInstance(replacementDefinitions);
         final SubstitutionStrategyRegistry substitutionStrategyRegistry =
                 SubstitutionStrategyRegistry.newInstance();
 
-        return new PlaceholderSubstitution(algorithm, substitutionStrategyRegistry);
+        return new PlaceholderSubstitution<>(algorithm, substitutionStrategyRegistry);
     }
 }

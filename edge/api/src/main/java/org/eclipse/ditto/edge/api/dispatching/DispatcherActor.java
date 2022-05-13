@@ -219,7 +219,7 @@ public final class DispatcherActor
         );
     }
 
-    private static Sink<ImmutableDispatch, ?> thingsAggregatorSink(final PreEnforcer preEnforcer) {
+    private static Sink<ImmutableDispatch, ?> thingsAggregatorSink(final PreEnforcer<?> preEnforcer) {
         return Sink.foreach(dispatchToPreEnforce ->
                 preEnforce(dispatchToPreEnforce, preEnforcer, dispatch ->
                         dispatch.thingsAggregatorActor.tell(dispatch.getMessage(), dispatch.getSender())
@@ -228,7 +228,7 @@ public final class DispatcherActor
     }
 
     private static void preEnforce(final ImmutableDispatch dispatch,
-            final PreEnforcer preEnforcer,
+            final PreEnforcer<?> preEnforcer,
             final Consumer<ImmutableDispatch> andThen) {
         preEnforcer.withErrorHandlingAsync(dispatch, Done.done(), newDispatch -> {
             andThen.accept(newDispatch);

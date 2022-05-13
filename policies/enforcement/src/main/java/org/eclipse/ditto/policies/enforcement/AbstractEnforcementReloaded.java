@@ -23,8 +23,8 @@ import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
-import org.eclipse.ditto.internal.utils.akka.logging.DittoLogger;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
+import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLogger;
 import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyId;
 
@@ -41,7 +41,8 @@ import akka.pattern.AskTimeoutException;
 public abstract class AbstractEnforcementReloaded<S extends Signal<?>, R extends CommandResponse<?>>
         implements EnforcementReloaded<S, R> {
 
-    protected static final DittoLogger LOGGER = DittoLoggerFactory.getLogger(AbstractEnforcementReloaded.class);
+    protected static final ThreadSafeDittoLogger LOGGER =
+            DittoLoggerFactory.getThreadSafeLogger(AbstractEnforcementReloaded.class);
 
     @Nullable protected Function<PolicyId, CompletionStage<PolicyEnforcer>> policyEnforcerLoader;
     @Nullable protected Consumer<Policy> policyInjectionConsumer;

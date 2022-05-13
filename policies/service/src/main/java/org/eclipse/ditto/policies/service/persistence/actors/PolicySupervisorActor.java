@@ -29,6 +29,7 @@ import org.eclipse.ditto.policies.enforcement.PreEnforcer;
 import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.signals.announcements.PolicyAnnouncement;
+import org.eclipse.ditto.policies.model.signals.commands.PolicyCommand;
 import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyUnavailableException;
 import org.eclipse.ditto.policies.service.common.config.DittoPoliciesConfig;
 import org.eclipse.ditto.policies.service.common.config.PolicyAnnouncementConfig;
@@ -47,7 +48,7 @@ import akka.actor.Props;
  * Between the termination of the child and the restart, this actor answers to all requests with a {@link
  * PolicyUnavailableException} as fail fast strategy.
  */
-public final class PolicySupervisorActor extends AbstractPersistenceSupervisor<PolicyId> {
+public final class PolicySupervisorActor extends AbstractPersistenceSupervisor<PolicyId, PolicyCommand<?>> {
 
     private final ActorRef pubSubMediator;
     private final SnapshotAdapter<Policy> snapshotAdapter;
@@ -59,7 +60,7 @@ public final class PolicySupervisorActor extends AbstractPersistenceSupervisor<P
             final SnapshotAdapter<Policy> snapshotAdapter,
             final DistributedPub<PolicyAnnouncement<?>> policyAnnouncementPub,
             @Nullable final BlockedNamespaces blockedNamespaces,
-            final PreEnforcer preEnforcer) {
+            final PreEnforcer<PolicyCommand<?>> preEnforcer) {
 
         super(blockedNamespaces, preEnforcer);
         this.pubSubMediator = pubSubMediator;
@@ -96,7 +97,7 @@ public final class PolicySupervisorActor extends AbstractPersistenceSupervisor<P
             final SnapshotAdapter<Policy> snapshotAdapter,
             final DistributedPub<PolicyAnnouncement<?>> policyAnnouncementPub,
             @Nullable final BlockedNamespaces blockedNamespaces,
-            final PreEnforcer preEnforcer) {
+            final PreEnforcer<PolicyCommand<?>> preEnforcer) {
 
         return Props.create(PolicySupervisorActor.class, pubSubMediator, snapshotAdapter, policyAnnouncementPub,
                 blockedNamespaces, preEnforcer);

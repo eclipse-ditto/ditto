@@ -14,8 +14,12 @@ package org.eclipse.ditto.things.service.enforcement;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.eclipse.ditto.policies.model.SubjectIssuer.GOOGLE;
+import static org.eclipse.ditto.things.service.enforcement.TestSetup.THING_ID;
 
+import java.net.URLEncoder;
+import java.nio.charset.Charset;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
@@ -26,6 +30,7 @@ import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.signals.events.Event;
+import org.eclipse.ditto.internal.utils.pubsub.DistributedPub;
 import org.eclipse.ditto.internal.utils.pubsub.StreamingType;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
@@ -38,14 +43,17 @@ import org.eclipse.ditto.messages.model.MessageSendNotAllowedException;
 import org.eclipse.ditto.messages.model.signals.commands.MessageCommand;
 import org.eclipse.ditto.messages.model.signals.commands.SendFeatureMessage;
 import org.eclipse.ditto.messages.model.signals.commands.SendThingMessage;
+import org.eclipse.ditto.policies.api.commands.sudo.SudoRetrievePolicy;
 import org.eclipse.ditto.policies.api.commands.sudo.SudoRetrievePolicyResponse;
 import org.eclipse.ditto.policies.model.Permissions;
 import org.eclipse.ditto.policies.model.PoliciesModelFactory;
 import org.eclipse.ditto.policies.model.PoliciesResourceType;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.things.api.Permission;
+import org.eclipse.ditto.things.api.commands.sudo.SudoRetrieveThing;
 import org.eclipse.ditto.things.api.commands.sudo.SudoRetrieveThingResponse;
 import org.eclipse.ditto.things.model.Thing;
+import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommand;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommandResponse;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.EventSendNotAllowedException;
@@ -56,6 +64,8 @@ import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThing;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThingResponse;
 import org.eclipse.ditto.things.model.signals.events.AttributeModified;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
+import org.eclipse.ditto.things.service.persistence.actors.ThingPersistenceActor;
+import org.eclipse.ditto.things.service.persistence.actors.ThingSupervisorActor;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Ignore;
@@ -65,10 +75,13 @@ import com.typesafe.config.ConfigFactory;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
+import akka.actor.Props;
 import akka.cluster.pubsub.DistributedPubSubMediator;
 import akka.testkit.TestActorRef;
 import akka.testkit.TestProbe;
 import akka.testkit.javadsl.TestKit;
+import scala.PartialFunction;
+import scala.concurrent.duration.FiniteDuration;
 
 /**
  * Tests {@link LiveSignalEnforcement} in context of an {@code EnforcerActor}.
@@ -78,18 +91,24 @@ import akka.testkit.javadsl.TestKit;
 public final class LiveSignalEnforcementTest {
 
     private ActorSystem system;
-    private MockEntitiesActor mockEntitiesActorInstance;
-    private ActorRef mockEntitiesActor;
     private TestProbe pubSubMediatorProbe;
+    private TestProbe thingPersistenceActorProbe;
+    private TestProbe ackReceiverActorProbe;
+    private TestProbe policiesShardRegionProbe;
+    private ActorRef supervisor;
+    private ThingSupervisorActor mockThingPersistenceSupervisor;
 
     @Before
     public void init() {
         system = ActorSystem.create("test", ConfigFactory.load("test"));
-        final TestActorRef<MockEntitiesActor> testActorRef =
-                new TestActorRef<>(system, MockEntitiesActor.props(), system.guardian(), UUID.randomUUID().toString());
-        mockEntitiesActorInstance = testActorRef.underlyingActor();
-        mockEntitiesActor = testActorRef;
-        pubSubMediatorProbe = TestProbe.apply("pubSubMediator", system);
+        pubSubMediatorProbe = createPubSubMediatorProbe();
+        thingPersistenceActorProbe = createThingPersistenceActorProbe();
+        ackReceiverActorProbe = getTestProbe(createUniqueName("ackReceiverActorProbe-"));
+        policiesShardRegionProbe = getTestProbe(createUniqueName("policiesShardRegionProbe-"));
+        final TestActorRef<ThingSupervisorActor> thingPersistenceSupervisorTestActorRef =
+                createThingPersistenceSupervisor();
+        supervisor = thingPersistenceSupervisorTestActorRef;
+        mockThingPersistenceSupervisor = thingPersistenceSupervisorTestActorRef.underlyingActor();
     }
 
     @After
@@ -113,11 +132,10 @@ public final class LiveSignalEnforcementTest {
                 SudoRetrievePolicyResponse.of(policyId, emptyPolicy, DittoHeaders.empty());
 
         new TestKit(system) {{
-            mockEntitiesActorInstance.setReply(TestSetup.THING_SUDO, sudoRetrieveThingResponse);
-            mockEntitiesActorInstance.setReply(TestSetup.POLICY_SUDO, sudoRetrievePolicyResponse);
+            expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
+            expectAndAnswerSudoRetrievePolicy(policyId, sudoRetrievePolicyResponse);
 
-            final ActorRef underTest = newEnforcerActor(getRef());
-            underTest.tell(thingMessageCommand("abc"), getRef());
+            supervisor.tell(thingMessageCommand("abc"), getRef());
             TestSetup.fishForMsgClass(this, MessageSendNotAllowedException.class);
         }};
     }
@@ -136,14 +154,13 @@ public final class LiveSignalEnforcementTest {
                 SudoRetrievePolicyResponse.of(policyId, emptyPolicy, DittoHeaders.empty());
 
         new TestKit(system) {{
-            mockEntitiesActorInstance.setReply(TestSetup.THING_SUDO, sudoRetrieveThingResponse);
-            mockEntitiesActorInstance.setReply(TestSetup.POLICY_SUDO, sudoRetrievePolicyResponse);
+            expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
+            expectAndAnswerSudoRetrievePolicy(policyId, sudoRetrievePolicyResponse);
 
-            final ActorRef underTest = newEnforcerActor(getRef());
-            underTest.tell(getRetrieveThingCommand(headers()), getRef());
+            supervisor.tell(getRetrieveThingCommand(liveHeaders()), getRef());
             TestSetup.fishForMsgClass(this, ThingNotAccessibleException.class);
 
-            underTest.tell(getModifyFeatureCommand(headers()), getRef());
+            supervisor.tell(getModifyFeatureCommand(liveHeaders()), getRef());
             expectMsgClass(FeatureNotModifiableException.class);
         }};
     }
@@ -166,25 +183,33 @@ public final class LiveSignalEnforcementTest {
                 SudoRetrievePolicyResponse.of(policyId, policy, DittoHeaders.empty());
 
         new TestKit(system) {{
-            mockEntitiesActorInstance.setReply(TestSetup.THING_SUDO, sudoRetrieveThingResponse);
-            mockEntitiesActorInstance.setReply(TestSetup.POLICY_SUDO, sudoRetrievePolicyResponse);
+            expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
+            expectAndAnswerSudoRetrievePolicy(policyId, sudoRetrievePolicyResponse);
 
-            final ActorRef underTest = newEnforcerActor(getRef());
+            final ThingCommand<?> write = getModifyFeatureCommand(liveHeaders());
+            supervisor.tell(write, getRef());
 
-            final ThingCommand<?> write = getModifyFeatureCommand(headers());
-            mockEntitiesActorInstance.setReply(write);
-            underTest.tell(write, getRef());
+            final DistributedPubSubMediator.Publish publishLiveCommand =
+                    (DistributedPubSubMediator.Publish) pubSubMediatorProbe.fishForMessage(
+                            FiniteDuration.apply(5, "s"),
+                            "publish live command",
+                            PartialFunction.fromFunction(msg ->
+                                    msg instanceof DistributedPubSubMediator.Publish publish &&
+                                            publish.topic().equals(
+                                                    StreamingType.LIVE_COMMANDS.getDistributedPubSubTopic())
+                            )
+                    );
             final DistributedPubSubMediator.Publish publish =
-                    pubSubMediatorProbe.expectMsgClass(DistributedPubSubMediator.Publish.class);
+                    (DistributedPubSubMediator.Publish) publishLiveCommand.msg();
+
             assertThat(publish.topic()).isEqualTo(StreamingType.LIVE_COMMANDS.getDistributedPubSubTopic());
             assertThat(publish.msg()).isInstanceOf(ThingCommand.class);
             assertThat((CharSequence) ((ThingCommand<?>) publish.msg()).getEntityId()).isEqualTo(write.getEntityId());
 
-            final ThingCommand<?> read = getRetrieveThingCommand(headers());
+            final ThingCommand<?> read = getRetrieveThingCommand(liveHeaders());
             final RetrieveThingResponse retrieveThingResponse =
                     RetrieveThingResponse.of(TestSetup.THING_ID, JsonFactory.newObject(), DittoHeaders.empty());
-            mockEntitiesActorInstance.setReply(retrieveThingResponse);
-            underTest.tell(read, getRef());
+            supervisor.tell(read, getRef());
             final DistributedPubSubMediator.Publish publishRead =
                     pubSubMediatorProbe.expectMsgClass(DistributedPubSubMediator.Publish.class);
 
@@ -215,15 +240,13 @@ public final class LiveSignalEnforcementTest {
                 SudoRetrievePolicyResponse.of(policyId, policy, DittoHeaders.empty());
 
         new TestKit(system) {{
-            mockEntitiesActorInstance.setReply(TestSetup.THING_SUDO, sudoRetrieveThingResponse);
-            mockEntitiesActorInstance.setReply(TestSetup.POLICY_SUDO, sudoRetrievePolicyResponse);
+            expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
+            expectAndAnswerSudoRetrievePolicy(policyId, sudoRetrievePolicyResponse);
 
-            final ActorRef underTest = newEnforcerActor(getRef());
-
-            final DittoHeaders headers = headers();
+            final DittoHeaders headers = liveHeaders();
             final ThingCommand<?> read = getRetrieveThingCommand(headers);
 
-            underTest.tell(read, getRef());
+            supervisor.tell(read, getRef());
             final DistributedPubSubMediator.Publish publishRead =
                     pubSubMediatorProbe.expectMsgClass(DistributedPubSubMediator.Publish.class);
             assertThat(publishRead.topic()).isEqualTo(StreamingType.LIVE_COMMANDS.getDistributedPubSubTopic());
@@ -244,7 +267,7 @@ public final class LiveSignalEnforcementTest {
                     .removeFeatureProperty(TestSetup.FEATURE_ID, JsonPointer.of(TestSetup.FEATURE_PROPERTY_2))
                     .build();
 
-            underTest.tell(readResponse, getRef());
+            supervisor.tell(readResponse, getRef());
             final RetrieveThingResponse retrieveThingResponse =
                     TestSetup.fishForMsgClass(this, RetrieveThingResponse.class);
             assertThat(retrieveThingResponse.getThing()).isEqualTo(expectedThing);
@@ -271,15 +294,13 @@ public final class LiveSignalEnforcementTest {
                 SudoRetrievePolicyResponse.of(policyId, policy, DittoHeaders.empty());
 
         new TestKit(system) {{
-            mockEntitiesActorInstance.setReply(TestSetup.THING_SUDO, sudoRetrieveThingResponse);
-            mockEntitiesActorInstance.setReply(TestSetup.POLICY_SUDO, sudoRetrievePolicyResponse);
+            expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
+            expectAndAnswerSudoRetrievePolicy(policyId, sudoRetrievePolicyResponse);
 
-            final ActorRef underTest = newEnforcerActor(getRef());
-
-            final DittoHeaders headers = headers();
+            final DittoHeaders headers = liveHeaders();
             final ThingCommand<?> read = getRetrieveThingCommand(headers);
 
-            underTest.tell(read, getRef());
+            supervisor.tell(read, getRef());
 
             final var responseHeaders = headers.toBuilder()
                     .authorizationContext(AuthorizationContext.newInstance(
@@ -290,15 +311,15 @@ public final class LiveSignalEnforcementTest {
             final ThingCommandResponse<?> readResponse = getRetrieveThingResponse(responseHeaders);
 
             // Second message right after the response for the first was sent, should have the same correlation-id (Not suffixed).
-            underTest.tell(readResponse, getRef());
+            supervisor.tell(readResponse, getRef());
             final RetrieveThingResponse retrieveThingResponse =
                     TestSetup.fishForMsgClass(this, RetrieveThingResponse.class);
             assertThat(retrieveThingResponse.getDittoHeaders().getCorrelationId()).isEqualTo(
                     read.getDittoHeaders().getCorrelationId());
 
-            underTest.tell(read, getRef());
+            supervisor.tell(read, getRef());
 
-            underTest.tell(readResponse, getRef());
+            supervisor.tell(readResponse, getRef());
             final RetrieveThingResponse retrieveThingResponse2 =
                     TestSetup.fishForMsgClass(this, RetrieveThingResponse.class);
             assertThat(retrieveThingResponse2.getDittoHeaders().getCorrelationId()).isEqualTo(
@@ -324,14 +345,12 @@ public final class LiveSignalEnforcementTest {
                 SudoRetrievePolicyResponse.of(policyId, policy, DittoHeaders.empty());
 
         new TestKit(system) {{
-            mockEntitiesActorInstance.setReply(TestSetup.THING_SUDO, sudoRetrieveThingResponse);
-            mockEntitiesActorInstance.setReply(TestSetup.POLICY_SUDO, sudoRetrievePolicyResponse);
-
-            final ActorRef underTest = newEnforcerActor(getRef());
+            expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
+            expectAndAnswerSudoRetrievePolicy(policyId, sudoRetrievePolicyResponse);
 
             final MessageCommand<?, ?> message = thingMessageCommand("abc");
 
-            underTest.tell(message, getRef());
+            supervisor.tell(message, getRef());
             final DistributedPubSubMediator.Publish firstPublishRead =
                     pubSubMediatorProbe.expectMsgClass(DistributedPubSubMediator.Publish.class);
             assertThat(firstPublishRead.topic()).isEqualTo(StreamingType.MESSAGES.getDistributedPubSubTopic());
@@ -343,7 +362,7 @@ public final class LiveSignalEnforcementTest {
                     .orElseThrow()).isEqualTo(
                     message.getDittoHeaders().getCorrelationId().orElseThrow());
 
-            underTest.tell(message, getRef());
+            supervisor.tell(message, getRef());
             final DistributedPubSubMediator.Publish secondPublishRead =
                     pubSubMediatorProbe.expectMsgClass(DistributedPubSubMediator.Publish.class);
             assertThat(secondPublishRead.topic()).isEqualTo(StreamingType.MESSAGES.getDistributedPubSubTopic());
@@ -381,14 +400,11 @@ public final class LiveSignalEnforcementTest {
                 SudoRetrievePolicyResponse.of(policyId, policy, DittoHeaders.empty());
 
         new TestKit(system) {{
-            mockEntitiesActorInstance.setReply(TestSetup.THING_SUDO, sudoRetrieveThingResponse);
-            mockEntitiesActorInstance.setReply(TestSetup.POLICY_SUDO, sudoRetrievePolicyResponse);
-
-            final ActorRef underTest = newEnforcerActor(getRef());
+            expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
+            expectAndAnswerSudoRetrievePolicy(policyId, sudoRetrievePolicyResponse);
 
             final MessageCommand<?, ?> msgCommand = thingMessageCommand("abc");
-            mockEntitiesActorInstance.setReply(msgCommand);
-            underTest.tell(msgCommand, getRef());
+            supervisor.tell(msgCommand, getRef());
             final DistributedPubSubMediator.Publish publish =
                     pubSubMediatorProbe.expectMsgClass(DistributedPubSubMediator.Publish.class);
             assertThat(publish.topic()).isEqualTo(StreamingType.MESSAGES.getDistributedPubSubTopic());
@@ -417,14 +433,11 @@ public final class LiveSignalEnforcementTest {
                 SudoRetrievePolicyResponse.of(policyId, policy, DittoHeaders.empty());
 
         new TestKit(system) {{
-            mockEntitiesActorInstance.setReply(TestSetup.THING_SUDO, sudoRetrieveThingResponse);
-            mockEntitiesActorInstance.setReply(TestSetup.POLICY_SUDO, sudoRetrievePolicyResponse);
-
-            final ActorRef underTest = newEnforcerActor(getRef());
+            expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
+            expectAndAnswerSudoRetrievePolicy(policyId, sudoRetrievePolicyResponse);
 
             final MessageCommand<?, ?> msgCommand = featureMessageCommand();
-            mockEntitiesActorInstance.setReply(msgCommand);
-            underTest.tell(msgCommand, getRef());
+            supervisor.tell(msgCommand, getRef());
             final DistributedPubSubMediator.Publish publish =
                     pubSubMediatorProbe.expectMsgClass(DistributedPubSubMediator.Publish.class);
             assertThat(publish.topic()).isEqualTo(StreamingType.MESSAGES.getDistributedPubSubTopic());
@@ -448,11 +461,10 @@ public final class LiveSignalEnforcementTest {
                 SudoRetrievePolicyResponse.of(policyId, emptyPolicy, DittoHeaders.empty());
 
         new TestKit(system) {{
-            mockEntitiesActorInstance.setReply(TestSetup.THING_SUDO, sudoRetrieveThingResponse);
-            mockEntitiesActorInstance.setReply(TestSetup.POLICY_SUDO, sudoRetrievePolicyResponse);
+            expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
+            expectAndAnswerSudoRetrievePolicy(policyId, sudoRetrievePolicyResponse);
 
-            final ActorRef underTest = newEnforcerActor(getRef());
-            underTest.tell(liveEventGranted(), getRef());
+            supervisor.tell(liveEventGranted(), getRef());
             TestSetup.fishForMsgClass(this, EventSendNotAllowedException.class);
         }};
     }
@@ -477,15 +489,11 @@ public final class LiveSignalEnforcementTest {
                 SudoRetrievePolicyResponse.of(policyId, policy, DittoHeaders.empty());
 
         new TestKit(system) {{
-            mockEntitiesActorInstance.setReply(TestSetup.THING_SUDO, sudoRetrieveThingResponse);
-            mockEntitiesActorInstance.setReply(TestSetup.POLICY_SUDO, sudoRetrievePolicyResponse);
-
-            final ActorRef underTest = newEnforcerActor(getRef());
+            expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
+            expectAndAnswerSudoRetrievePolicy(policyId, sudoRetrievePolicyResponse);
 
             final ThingEvent<?> liveEventGranted = liveEventGranted();
-
-            mockEntitiesActorInstance.setReply(liveEventGranted);
-            underTest.tell(liveEventGranted, getRef());
+            supervisor.tell(liveEventGranted, getRef());
 
             final DistributedPubSubMediator.Publish publish =
                     pubSubMediatorProbe.expectMsgClass(DistributedPubSubMediator.Publish.class);
@@ -496,17 +504,28 @@ public final class LiveSignalEnforcementTest {
 
             final ThingEvent<?> liveEventRevoked = liveEventRevoked();
 
-            underTest.tell(liveEventRevoked, getRef());
+            supervisor.tell(liveEventRevoked, getRef());
             TestSetup.fishForMsgClass(this, EventSendNotAllowedException.class);
         }};
     }
 
-    private ActorRef newEnforcerActor(final ActorRef testActorRef) {
-        return TestSetup.newEnforcerActor(system, testActorRef, mockEntitiesActor, mockEntitiesActor,
-                pubSubMediatorProbe.ref(), null, null);
+    private TestActorRef<ThingSupervisorActor> createThingPersistenceSupervisor() {
+        return new TestActorRef<>(system, ThingSupervisorActor.props(
+                pubSubMediatorProbe.ref(),
+                policiesShardRegionProbe.ref(),
+                new TestSetup.DummyLiveSignalPub(pubSubMediatorProbe.ref()),
+                this::getPropsOfThingPersistenceActor, //  TODO TJ instead of the propsFactory insert the thingPersistenceActorProbe for the test here - otherwise we can't use it for expecting messages/sending back messages
+                null,
+                CompletableFuture::completedStage
+        ), system.guardian(), URLEncoder.encode(THING_ID.toString(), Charset.defaultCharset()));
     }
 
-    private static DittoHeaders headers() {
+    private Props getPropsOfThingPersistenceActor(final ThingId thingId, final DistributedPub<ThingEvent<?>> pub) {
+
+        return ThingPersistenceActor.props(thingId, pub, pubSubMediatorProbe.ref());
+    }
+
+    private static DittoHeaders liveHeaders() {
         return DittoHeaders.newBuilder()
                 .authorizationContext(
                         AuthorizationContext.newInstance(DittoAuthorizationContextType.UNSPECIFIED, TestSetup.SUBJECT,
@@ -537,17 +556,17 @@ public final class LiveSignalEnforcementTest {
                         .build())
                 .payload("Hello you!")
                 .build();
-        return SendThingMessage.of(TestSetup.THING_ID, message, headers());
+        return SendThingMessage.of(TestSetup.THING_ID, message, liveHeaders());
     }
 
     private static ThingEvent<?> liveEventGranted() {
         return AttributeModified.of(TestSetup.THING_ID, JsonPointer.of("foo"), JsonValue.of("bar"), 1L,
-                null, headers(), null);
+                null, liveHeaders(), null);
     }
 
     private static ThingEvent<?> liveEventRevoked() {
         return AttributeModified.of(TestSetup.THING_ID, JsonPointer.of("xyz"), JsonValue.of("abc"), 1L,
-                null, headers(), null);
+                null, liveHeaders(), null);
     }
 
     private static MessageCommand<?, ?> featureMessageCommand() {
@@ -558,7 +577,36 @@ public final class LiveSignalEnforcementTest {
                         .build())
                 .payload("Hello you!")
                 .build();
-        return SendFeatureMessage.of(TestSetup.THING_ID, "foo", message, headers());
+        return SendFeatureMessage.of(TestSetup.THING_ID, "foo", message, liveHeaders());
     }
 
+    private TestProbe createPubSubMediatorProbe() {
+        return getTestProbe(createUniqueName("pubSubMediatorProbe-"));
+    }
+
+    private TestProbe createThingPersistenceActorProbe() {
+        return getTestProbe(createUniqueName("thingPersistenceActorProbe-"));
+    }
+
+    private TestProbe getTestProbe(final String uniqueName) {
+        return new TestProbe(system, uniqueName);
+    }
+
+    private static String createUniqueName(final String prefix) {
+        return prefix + UUID.randomUUID();
+    }
+
+    private void expectAndAnswerSudoRetrieveThing(final Object sudoRetrieveThingResponse) {
+        final SudoRetrieveThing sudoRetrieveThing =
+                thingPersistenceActorProbe.expectMsgClass(SudoRetrieveThing.class);
+        assertThat((CharSequence) sudoRetrieveThing.getEntityId()).isEqualTo(THING_ID);
+        thingPersistenceActorProbe.reply(sudoRetrieveThingResponse);
+    }
+
+    private void expectAndAnswerSudoRetrievePolicy(final PolicyId policyId, final Object sudoRetrievePolicyResponse) {
+        final SudoRetrievePolicy sudoRetrievePolicy =
+                policiesShardRegionProbe.expectMsgClass(SudoRetrievePolicy.class);
+        assertThat((CharSequence) sudoRetrievePolicy.getEntityId()).isEqualTo(policyId);
+        policiesShardRegionProbe.reply(sudoRetrievePolicyResponse);
+    }
 }

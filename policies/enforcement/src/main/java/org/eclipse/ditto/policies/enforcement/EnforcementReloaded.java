@@ -65,13 +65,13 @@ public interface EnforcementReloaded<S extends Signal<?>, R extends CommandRespo
     boolean shouldFilterCommandResponse(R commandResponse);
 
     /**
-     * Filters the given {@code commandResponse} by using the given {@code enforcer}.
+     * Filters the given {@code commandResponse} by using the given {@code policyEnforcer}.
      *
      * @param commandResponse the command response that needs  to be filtered.
-     * @param enforcer the enforcer that should be used for filtering.
+     * @param policyEnforcer thePolicyEnforcer that should be used for filtering.
      * @return a CompletionStage with the filtered command response or a failed stage with a DittoRuntimeException.
      */
-    CompletionStage<R> filterResponse(R commandResponse, PolicyEnforcer enforcer);
+    CompletionStage<R> filterResponse(R commandResponse, PolicyEnforcer policyEnforcer);
 
     /**
      * Registers a "loader" of additional {@link PolicyEnforcer}s by providing a function which can load a

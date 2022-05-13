@@ -17,8 +17,7 @@ import java.util.concurrent.CompletableFuture;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.internal.utils.persistence.mongo.ops.eventsource.MongoEventSourceITAssertions;
-import org.eclipse.ditto.internal.utils.pubsub.DistributedPub;
-import org.eclipse.ditto.internal.utils.pubsub.extractors.AckExtractor;
+import org.eclipse.ditto.internal.utils.pubsub.LiveSignalPub;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingId;
@@ -28,7 +27,7 @@ import org.eclipse.ditto.things.model.signals.commands.modify.CreateThing;
 import org.eclipse.ditto.things.model.signals.commands.modify.CreateThingResponse;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThing;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThingResponse;
-import org.eclipse.ditto.things.model.signals.events.ThingEvent;
+import org.eclipse.ditto.things.service.enforcement.TestSetup;
 import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
 import org.junit.Test;
 
@@ -112,27 +111,11 @@ public final class ThingPersistenceOperationsActorIT extends MongoEventSourceITA
 
         final TestProbe policiesShardRegionTestProbe = TestProbe.apply("mock-policiesShardRegion", system);
         final ActorRef policiesShardRegion = policiesShardRegionTestProbe.ref();
+        final LiveSignalPub liveSignalPub = new TestSetup.DummyLiveSignalPub(pubSubMediator);
 
         final Props props =
                 ThingSupervisorActor.props(pubSubMediator, policiesShardRegion,
-                        new DistributedPub<>() {
-
-                            @Override
-                            public ActorRef getPublisher() {
-                                return pubSubMediator;
-                            }
-
-                            @Override
-                            public Object wrapForPublication(final ThingEvent<?> message) {
-                                return message;
-                            }
-
-                            @Override
-                            public <S extends ThingEvent<?>> Object wrapForPublicationWithAcks(final S message,
-                                    final AckExtractor<S> ackExtractor) {
-                                return wrapForPublication(message);
-                            }
-                        },
+                        liveSignalPub,
                         (thingId, distributedPub) -> ThingPersistenceActor.props(thingId, distributedPub,
                                 pubSubMediator),
                         null,

@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.edge.api.dispatching;
 
-import java.util.Optional;
 import java.util.function.Function;
 
 import org.eclipse.ditto.base.model.entity.id.WithEntityId;
@@ -21,6 +20,7 @@ import org.eclipse.ditto.connectivity.model.signals.commands.ConnectivityCommand
 import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
+import org.eclipse.ditto.messages.model.signals.commands.MessageCommand;
 import org.eclipse.ditto.policies.model.signals.commands.PolicyCommand;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommand;
 
@@ -76,7 +76,11 @@ public class ConciergeForwarderActor extends AbstractActor {
     @Override
     public Receive createReceive() {
         return ReceiveBuilder.create()
-                .match(Signal.class, signal -> forward(signal, getContext()))
+                .match(MessageCommand.class, this::forwardToThings)
+                .match(ThingCommand.class, this::forwardToThings)
+                .match(PolicyCommand.class, this::forwardToPolicies)
+                .match(ConnectivityCommand.class, this::forwardToConnectivity)
+                .match(Signal.class, this::forwardSignalToPubSub)
                 .match(DistributedPubSubMediator.SubscribeAck.class, subscribeAck ->
                         log.debug("Successfully subscribed to distributed pub/sub on topic '{}'",
                                 subscribeAck.subscribe().topic())
@@ -85,63 +89,62 @@ public class ConciergeForwarderActor extends AbstractActor {
                 .build();
     }
 
-    private void forwardToThings(final Signal<?> signal) {
-        shardRegions.things().forward(signal, getContext());
+    private void forwardToThings(final MessageCommand<?, ?> messageCommand) {
+        final MessageCommand<?, ?> transformedMessageCommand =
+                (MessageCommand<?, ?>) signalTransformer.apply(messageCommand);
+        log.withCorrelationId(transformedMessageCommand)
+                .info("Forwarding message command with ID <{}> and type <{}> to 'things' shard region",
+                        transformedMessageCommand.getEntityId(), transformedMessageCommand.getType());
+        shardRegions.things()
+                .forward(transformedMessageCommand, getContext());
+    }
+
+    private void forwardToThings(final ThingCommand<?> thingCommand) {
+        final ThingCommand<?> transformedThingCommand = (ThingCommand<?>) signalTransformer.apply(thingCommand);
+        log.withCorrelationId(transformedThingCommand)
+                .info("Forwarding thing command with ID <{}> and type <{}> to 'things' shard region",
+                        transformedThingCommand.getEntityId(), transformedThingCommand.getType());
+        shardRegions.things()
+                .forward(transformedThingCommand, getContext());
     }
 
     private void forwardToPolicies(final PolicyCommand<?> policyCommand) {
-        shardRegions.policies().forward(policyCommand, getContext());
+        final PolicyCommand<?> transformedPolicyCommand = (PolicyCommand<?>) signalTransformer.apply(policyCommand);
+        log.withCorrelationId(transformedPolicyCommand)
+                .info("Forwarding policy command with ID <{}> and type <{}> to 'policies' shard region",
+                        transformedPolicyCommand.getEntityId(), transformedPolicyCommand.getType());
+        shardRegions.policies()
+                .forward(transformedPolicyCommand, getContext());
     }
 
     private void forwardToConnectivity(final ConnectivityCommand<?> connectivityCommand) {
-        shardRegions.connections().forward(connectivityCommand, getContext());
+        if (connectivityCommand instanceof WithEntityId withEntityId) {
+            final ConnectivityCommand<?> transformedConnectivityCommand =
+                    (ConnectivityCommand<?>) signalTransformer.apply(connectivityCommand);
+            log.withCorrelationId(transformedConnectivityCommand)
+                    .info("Forwarding connectivity command with ID <{}> and type <{}> to 'connections' " +
+                            "shard region", withEntityId.getEntityId(), transformedConnectivityCommand.getType());
+            shardRegions.connections()
+                    .forward(transformedConnectivityCommand, getContext());
+        } else {
+            log.withCorrelationId(connectivityCommand)
+                    .error("Could not forward ConnectivityCommand not implementing WithEntityId to 'connections' " +
+                            "shard region");
+        }
     }
 
-    /**
-     * Forwards the passed {@code signal} based on whether it has an entity ID or not to the {@code pubSubMediator} or
-     * the {@code conciergeShardRegion}.
-     *
-     * @param signal the Signal to forward
-     * @param ctx the ActorRef to use as sender
-     */
-    private void forward(final Signal<?> signal, final ActorContext ctx) {
+    private void forwardSignalToPubSub(final Signal<?> signal) {
 
         final Signal<?> transformedSignal = signalTransformer.apply(signal);
-
         final String signalType = transformedSignal.getType();
-        final DittoDiagnosticLoggingAdapter l = log.withCorrelationId(signal);
-        toSignalWithEntityId(transformedSignal).ifPresentOrElse(
-                transformedSignalWithEntityId -> {
-                    l.info("Forwarding signal with ID <{}> and type <{}> to responsible service",
-                            transformedSignalWithEntityId.getEntityId(), signalType);
-                    l.debug("Forwarding message to responsible service: <{}>", transformedSignalWithEntityId);
-
-                    ReceiveBuilder.create()
-                            .match(ThingCommand.class, this::forwardToThings)
-                            .match(PolicyCommand.class, this::forwardToPolicies)
-                            .match(ConnectivityCommand.class, this::forwardToConnectivity)
-                            .build()
-                            .onMessage()
-                            .apply(transformedSignalWithEntityId);
-                },
-                () -> {
-                    l.info("Sending signal without ID and type <{}> via pubSub to concierge-dispatcherActor",
-                            signalType);
-                    l.debug("Sending signal without ID and type <{}> via pubSub to concierge-dispatcherActor: <{}>",
-                            signalType, transformedSignal);
-                    final DistributedPubSubMediator.Send msg = wrapForPubSub(transformedSignal);
-                    l.debug("Forwarding message to dispatcherActor: <{}>.", msg);
-                    pubSubMediator.forward(msg, ctx);
-                }
-        );
-    }
-
-    private static <C extends Signal<?> & WithEntityId> Optional<C> toSignalWithEntityId(Signal<?> signal) {
-        if (signal instanceof WithEntityId) {
-            return Optional.of((C) signal);
-        } else {
-            return Optional.empty();
-        }
+        final DittoDiagnosticLoggingAdapter l = log.withCorrelationId(transformedSignal);
+        l.info("Sending signal without ID and type <{}> via pubSub to concierge-dispatcherActor",
+                signalType);
+        l.debug("Sending signal without ID and type <{}> via pubSub to concierge-dispatcherActor: <{}>",
+                signalType, transformedSignal);
+        final DistributedPubSubMediator.Send msg = wrapForPubSub(transformedSignal);
+        l.debug("Forwarding message to dispatcherActor: <{}>.", msg);
+        pubSubMediator.forward(msg, getContext());
     }
 
     private static DistributedPubSubMediator.Send wrapForPubSub(final Signal<?> signal) {

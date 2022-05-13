@@ -28,6 +28,7 @@ import org.eclipse.ditto.base.model.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.internal.utils.pubsub.DistributedPub;
+import org.eclipse.ditto.internal.utils.pubsub.LiveSignalPub;
 import org.eclipse.ditto.internal.utils.pubsub.extractors.AckExtractor;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
@@ -45,6 +46,7 @@ import org.eclipse.ditto.things.model.ThingsModelFactory;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 import org.eclipse.ditto.things.service.common.config.DefaultThingConfig;
 import org.eclipse.ditto.things.service.common.config.ThingConfig;
+import org.eclipse.ditto.things.service.enforcement.TestSetup;
 import org.eclipse.ditto.utils.jsr305.annotations.AllParametersAndReturnValuesAreNonnullByDefault;
 import org.junit.After;
 import org.junit.BeforeClass;
@@ -179,8 +181,9 @@ public abstract class PersistenceActorTestBase {
     }
 
     protected ActorRef createSupervisorActorFor(final ThingId thingId) {
+        final LiveSignalPub liveSignalPub = new TestSetup.DummyLiveSignalPub(pubSubMediator);
         final Props props =
-                ThingSupervisorActor.props(pubSubMediator, policiesShardRegion, getDistributedPub(),
+                ThingSupervisorActor.props(pubSubMediator, policiesShardRegion, liveSignalPub,
                         this::getPropsOfThingPersistenceActor, null, CompletableFuture::completedFuture);
 
         return actorSystem.actorOf(props, thingId.toString());

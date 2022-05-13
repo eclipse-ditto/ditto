@@ -38,6 +38,5 @@ public interface SubstitutionStrategy<T extends DittoHeadersSettable<?>> {
      * @return a copy of {@code withDittoHeaders} with substitutions applied, if substitutions were necessary; the
      * same {@code withDittoHeaders}, if no substitutions were necessary.
      */
-    DittoHeadersSettable<?> apply(final T withDittoHeaders,
-            final HeaderBasedPlaceholderSubstitutionAlgorithm substitutionAlgorithm);
+    T apply(T withDittoHeaders, HeaderBasedPlaceholderSubstitutionAlgorithm substitutionAlgorithm);
 }

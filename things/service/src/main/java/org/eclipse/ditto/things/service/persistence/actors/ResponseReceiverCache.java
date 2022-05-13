@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.things.service.enforcement;
+package org.eclipse.ditto.things.service.persistence.actors;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
@@ -56,6 +56,8 @@ import akka.actor.Extension;
  * Optionally they provide the timeout of the command.
  * If the command headers provide a timeout, it is used as expiry for the cache entry, otherwise a fall-back expiry
  * is used.
+ *
+ * TODO TJ make package private - should only be used by ThingSupervisorActor
  */
 @NotThreadSafe
 public final class ResponseReceiverCache implements Extension {
@@ -78,7 +80,7 @@ public final class ResponseReceiverCache implements Extension {
      * @param actorSystem the actor system.
      * @return the instance.
      */
-    static ResponseReceiverCache lookup(final ActorSystem actorSystem) {
+    public static ResponseReceiverCache lookup(final ActorSystem actorSystem) {
         return EXTENSION_ID.get(actorSystem);
     }
 

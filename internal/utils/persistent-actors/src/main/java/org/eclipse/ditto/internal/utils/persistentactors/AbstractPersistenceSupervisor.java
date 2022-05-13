@@ -26,7 +26,7 @@ import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
-import org.eclipse.ditto.base.model.signals.commands.Command;
+import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
 import org.eclipse.ditto.base.service.actors.ShutdownBehaviour;
 import org.eclipse.ditto.base.service.config.supervision.ExponentialBackOff;
@@ -36,6 +36,7 @@ import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapt
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.internal.utils.namespaces.BlockedNamespaces;
+import org.eclipse.ditto.internal.utils.pubsub.DistributedPub;
 import org.eclipse.ditto.policies.enforcement.CreationRestrictionEnforcer;
 import org.eclipse.ditto.policies.enforcement.DefaultCreationRestrictionEnforcer;
 import org.eclipse.ditto.policies.enforcement.PreEnforcer;
@@ -50,6 +51,7 @@ import akka.actor.Terminated;
 import akka.cluster.sharding.ShardRegion;
 import akka.japi.Pair;
 import akka.japi.pf.ReceiveBuilder;
+import akka.pattern.AskTimeoutException;
 import akka.pattern.Patterns;
 
 /**
@@ -61,8 +63,10 @@ import akka.pattern.Patterns;
  * </ol>
  *
  * @param <E> the type of the EntityId
+ * @param <S> TODO TJ
  */
-public abstract class AbstractPersistenceSupervisor<E extends EntityId> extends AbstractActorWithStashWithTimers {
+public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extends Signal<?>>
+        extends AbstractActorWithStashWithTimers {
 
     /**
      * Timeout for local actor invocations - a small timeout should be more than sufficient as those are just method
@@ -73,7 +77,7 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId> extends 
     protected final DittoDiagnosticLoggingAdapter log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
 
     @Nullable protected final BlockedNamespaces blockedNamespaces;
-    protected final PreEnforcer preEnforcer;
+    protected final PreEnforcer<S> preEnforcer;
     protected final CreationRestrictionEnforcer creationRestrictionEnforcer;
 
     @Nullable protected E entityId;
@@ -86,14 +90,14 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId> extends 
     private boolean waitingForStopBeforeRestart = false;
 
     protected AbstractPersistenceSupervisor(@Nullable final BlockedNamespaces blockedNamespaces,
-            final PreEnforcer preEnforcer) {
+            final PreEnforcer<S> preEnforcer) {
         this(null, null, blockedNamespaces, preEnforcer);
     }
 
     protected AbstractPersistenceSupervisor(@Nullable final ActorRef persistenceActorChild,
             @Nullable final ActorRef enforcerChild,
             @Nullable final BlockedNamespaces blockedNamespaces,
-            final PreEnforcer preEnforcer) {
+            final PreEnforcer<S> preEnforcer) {
 
         this.persistenceActorChild = persistenceActorChild;
         this.enforcerChild = enforcerChild;
@@ -166,7 +170,7 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId> extends 
                 .match(SudoCommand.class, this::forwardSudoCommandToChildIfAvailable)
                 .match(WithDittoHeaders.class, w -> w.getDittoHeaders().isSudo(),
                         this::forwardDittoSudoToChildIfAvailable)
-                .matchAny(this::enforceAndForwardToPersistenceActor)
+                .matchAny(this::enforceAndForwardToTargetActor)
                 .build();
     }
 
@@ -184,7 +188,7 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId> extends 
      * @param enforcedCommand the already enforced command to potentially modify.
      * @return the potentially modified command.
      */
-    protected CompletionStage<Object> modifyEnforcerActorEnforcedCommandResponse(final Object enforcedCommand) {
+    protected CompletionStage<Object> modifyEnforcerActorEnforcedSignalResponse(final Object enforcedCommand) {
         return CompletableFuture.completedStage(enforcedCommand);
     }
 
@@ -192,11 +196,11 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId> extends 
      * Hook for modifying a PersistenceActor command response before it gets sent to the EnforcerActor again for
      * filtering.
      *
-     * @param enforcedCommand the already enforced command which was sent to the PersistenceActor.
+     * @param enforcedSignal the already enforced signal which was sent to the PersistenceActor.
      * @param persistenceCommandResponse the command response sent by the PersistenceActor to potentially modify.
      * @return the potentially modified command response.
      */
-    protected CompletionStage<Object> modifyPersistenceActorCommandResponse(final Command<?> enforcedCommand,
+    protected CompletionStage<Object> modifyTargetActorCommandResponse(final Signal<?> enforcedSignal,
             final Object persistenceCommandResponse) {
         return CompletableFuture.completedStage(persistenceCommandResponse);
     }
@@ -254,6 +258,64 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId> extends 
                 })
                 .matchAny(this::replyUnavailableException)
                 .build());
+    }
+
+    /**
+     * TODO TJ doc
+     */
+    protected CompletionStage<Object> askEnforcerChild(final Signal<?> signal) {
+        return Patterns.ask(enforcerChild, signal, DEFAULT_LOCAL_ASK_TIMEOUT);
+    }
+
+    /**
+     * TODO TJ doc
+     */
+    protected CompletionStage<Object> askTargetActor(final Object message) {
+        return getTargetActorForSendingEnforcedSignalTo(message)
+                .thenCompose(targetWithMessage -> Patterns.ask(
+                        targetWithMessage.targetActor(),
+                        targetWithMessage.message(),
+                        targetWithMessage.messageTimeout()
+                ).exceptionally(throwable -> {
+                    if (throwable instanceof AskTimeoutException askTimeoutException && targetWithMessage.internalErrorOnMessageTimeout()) {
+                        throw DittoRuntimeException.asDittoRuntimeException(askTimeoutException, cause ->
+                                DittoInternalErrorException.newBuilder()
+                                        .cause(cause)
+                                        .dittoHeaders(message instanceof WithDittoHeaders wdh ?
+                                                wdh.getDittoHeaders() : DittoHeaders.empty())
+                                        .build()
+                        );
+                    } else {
+                        return CompletableFuture.completedStage(null);
+                    }
+                }))
+                .thenApply(targetActor -> {
+                    if (null == targetActor) {
+                        throw getUnavailableExceptionBuilder(entityId)
+                                .dittoHeaders(message instanceof WithDittoHeaders wdh ? wdh.getDittoHeaders() :
+                                        DittoHeaders.empty())
+                                .build();
+                    } else {
+                        return targetActor;
+                    }
+                });
+    }
+
+    /**
+     * TODO TJ doc
+     */
+    protected CompletionStage<TargetActorWithMessage> getTargetActorForSendingEnforcedSignalTo(final Object message) {
+        if (null != persistenceActorChild) {
+            return CompletableFuture.completedStage(
+                    new TargetActorWithMessage(
+                            persistenceActorChild,
+                            message,
+                            DEFAULT_LOCAL_ASK_TIMEOUT,
+                            true
+                    ));
+        } else {
+            return CompletableFuture.completedStage(null);
+        }
     }
 
     private void becomeActive(final ShutdownBehaviour shutdownBehaviour) {
@@ -380,46 +442,46 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId> extends 
      * Forward all messages to the persistenceActorChild (after applied enforcement) if it is active or by reply
      * immediately with an exception if the child has terminated (fail fast).
      */
-    private void enforceAndForwardToPersistenceActor(final Object message) {
+    private void enforceAndForwardToTargetActor(final Object message) {
 
         final ActorRef sender = getSender();
-        if (message instanceof Command<?> command) {
+        if (message instanceof Signal<?> signal) {
             if (sender.equals(persistenceActorChild)) {
-                log.withCorrelationId(command)
+                log.withCorrelationId(signal)
                         .warning("Received unhandled message from persistenceActorChild '{}': {}",
                                 entityId, message);
                 unhandled(message);
             } else if (sender.equals(enforcerChild)) {
-                log.withCorrelationId(command)
+                log.withCorrelationId(signal)
                         .warning("Received unhandled message from enforcerChild '{}': {}",
                                 entityId, message);
                 unhandled(message);
             } else {
-                enforceCommandAndForwardToPersistenceActor(command)
+                enforceSignalAndForwardToTargetActor((S) signal)
                         .whenComplete((response, throwable) -> {
                             if (null != throwable) {
                                 if (!(throwable instanceof DittoRuntimeException)) {
-                                    log.withCorrelationId(command)
+                                    log.withCorrelationId(signal)
                                             .warning("Encountered Throwable when interacting with enforcer or " +
-                                                    "persistence child, telling sender: {}", throwable);
+                                                    "target actor, telling sender: {}", throwable);
                                 }
 
                                 final DittoRuntimeException dre =
                                         DittoRuntimeException.asDittoRuntimeException(throwable, t ->
                                                 DittoInternalErrorException.newBuilder()
-                                                        .dittoHeaders(command.getDittoHeaders())
+                                                        .dittoHeaders(signal.getDittoHeaders())
                                                         .cause(t)
                                                         .build());
                                 log.withCorrelationId(dre)
-                                        .info("Received DittoRuntimeException during enforcement or persistence, " +
-                                                "telling sender: {}", dre);
+                                        .info("Received DittoRuntimeException during enforcement or " +
+                                                "forwarding to target actor, telling sender: {}", dre);
                                 sender.tell(dre, getSelf());
                             } else if (null != response) {
                                 sender.tell(response, getSelf());
                             } else {
-                                log.withCorrelationId(command)
-                                        .error("Received nothing when enforcing command and forwarding to " +
-                                                "persistence actor - this should not happen.");
+                                log.withCorrelationId(signal)
+                                        .error("Received nothing when enforcing signal and forwarding to " +
+                                                "target actor - this should not happen.");
                             }
                         });
             }
@@ -437,43 +499,43 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId> extends 
     }
 
     /**
-     * All commands must are treated in the following way:
+     * All signals are treated in the following way:
      * <ul>
-     * <li>they are sent to the enforcer child which enforces/applies authorization of the command</li>
-     * <li>after successful enforcement, they are optionally modified in {@link #modifyEnforcerActorEnforcedCommandResponse(Object)}</li>
-     * <li>afterwards, the enforced command is sent to the persistence actor child in {@link #enforcedCommandToPersistenceActor(org.eclipse.ditto.base.model.headers.DittoHeaders, Object)}</li>
-     * <li>the persistence actor's response is handled in {@link #filterPersistenceActorResponseViaEnforcer(org.eclipse.ditto.base.model.signals.commands.Command, Object)}
+     * <li>they are sent to the enforcer child which enforces/applies authorization of the signal</li>
+     * <li>after successful enforcement, they are optionally modified in {@link #modifyEnforcerActorEnforcedSignalResponse(Object)}</li>
+     * <li>afterwards, the enforced signal is sent to the persistence actor child in {@link #enforcedSignalToTargetActor(org.eclipse.ditto.base.model.headers.DittoHeaders, Object)}</li>
+     * <li>the persistence actor's response is handled in {@link #filterTargetActorResponseViaEnforcer(org.eclipse.ditto.base.model.signals.Signal, Object)}
      * where the enforcer applies optionally filtering of the response</li>
      * <li>the result is returned in the CompletionStage</li>
      * </ul>
      *
-     * @param command the command to enforce and forward to the persistence actor
-     * @return a successful CompletionStage with the command response or a failed stage with a DittoRuntimeException as
+     * @param signal the signal to enforce and forward to the persistence actor
+     * @return a successful CompletionStage with the signal response or a failed stage with a DittoRuntimeException as
      * cause
      */
-    private CompletionStage<Object> enforceCommandAndForwardToPersistenceActor(final Command<?> command) {
+    protected CompletionStage<Object> enforceSignalAndForwardToTargetActor(final S signal) {
 
         if (null != enforcerChild) {
-            return preEnforcer.apply(command).thenCompose(preEnforcedCommand ->
-                    Patterns.ask(enforcerChild, preEnforcedCommand, DEFAULT_LOCAL_ASK_TIMEOUT)
-                            .thenCompose(this::modifyEnforcerActorEnforcedCommandResponse)
-                            .thenCompose(enforcedCommand -> enforcedCommandToPersistenceActor(
+            return preEnforcer.apply(signal).thenCompose(preEnforcedCommand ->
+                    askEnforcerChild(preEnforcedCommand)
+                            .thenCompose(this::modifyEnforcerActorEnforcedSignalResponse)
+                            .thenCompose(enforcedCommand -> enforcedSignalToTargetActor(
                                     preEnforcedCommand.getDittoHeaders(),
                                     enforcedCommand
                             ))
-                            .thenCompose(persistenceActorResponse -> filterPersistenceActorResponseViaEnforcer(
-                                    null != persistenceActorResponse ? persistenceActorResponse.first() : null,
-                                    null != persistenceActorResponse ? persistenceActorResponse.second() : null
+                            .thenCompose(targetActorResponse -> filterTargetActorResponseViaEnforcer(
+                                    null != targetActorResponse ? targetActorResponse.first() : null,
+                                    null != targetActorResponse ? targetActorResponse.second() : null
                             ))
-                    );
+            );
         } else {
-            log.withCorrelationId(command)
-                    .error("Could not enforce command because enforcerChild was not present");
+            log.withCorrelationId(signal)
+                    .error("Could not enforce signal because enforcerChild was not present");
             return CompletableFuture.completedStage(null);
         }
     }
 
-    private CompletionStage<Pair<Command<?>, Object>> enforcedCommandToPersistenceActor(
+    private CompletionStage<Pair<Signal<?>, Object>> enforcedSignalToTargetActor(
             final DittoHeaders dittoHeaders,
             @Nullable final Object enforcerResponse
     ) {
@@ -481,39 +543,48 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId> extends 
             throw getUnavailableExceptionBuilder(entityId)
                     .dittoHeaders(dittoHeaders)
                     .build();
-        } else if (enforcerResponse instanceof Command<?> enforcedCommand) {
-            log.withCorrelationId(enforcedCommand)
-                    .debug("Received enforcedCommand from enforcerChild, forwarding to persistenceActorChild: {}",
-                            enforcedCommand);
-            return Patterns.ask(persistenceActorChild, enforcedCommand, DEFAULT_LOCAL_ASK_TIMEOUT)
-                    .thenCompose(response -> modifyPersistenceActorCommandResponse(enforcedCommand, response))
-                    .thenApply(response -> Pair.create(enforcedCommand, response));
+        } else if (enforcerResponse instanceof Signal<?> enforcedSignal) {
+            log.withCorrelationId(enforcedSignal)
+                    .debug("Received enforcedSignal from enforcerChild, forwarding to target actor: {}",
+                            enforcedSignal);
+            return askTargetActor(enforcedSignal)
+                    .thenCompose(response -> modifyTargetActorCommandResponse(enforcedSignal, response))
+                    .thenApply(response -> Pair.create(enforcedSignal, response));
         } else if (enforcerResponse instanceof DittoRuntimeException dre) {
             log.withCorrelationId(dittoHeaders)
                     .debug("Received DittoRuntimeException as response from enforcerChild: {}", dre);
             throw dre;
+        } else if (enforcerResponse instanceof DistributedPubWithMessage distributedPubWithMessage) {
+            return askTargetActor(distributedPubWithMessage)
+                    .thenCompose(response -> modifyTargetActorCommandResponse(distributedPubWithMessage.signal(),
+                            response))
+                    .thenApply(response -> Pair.create(distributedPubWithMessage.signal(), response));
         } else {
-            return CompletableFuture.completedStage(null);
+            return CompletableFuture.completedStage(null); // TODO TJ or directly throw exception
         }
     }
 
-    private CompletionStage<Object> filterPersistenceActorResponseViaEnforcer(
-            @Nullable final Command<?> enforcedCommand,
-            @Nullable final Object persistenceActorResponse
+    protected CompletionStage<Object> filterTargetActorResponseViaEnforcer(
+            @Nullable final Signal<?> enforcedSignal,
+            @Nullable final Object targetActorResponse
     ) {
         assert enforcerChild != null;
-        if (persistenceActorResponse instanceof CommandResponse<?> commandResponse) {
+        if (targetActorResponse instanceof CommandResponse<?> commandResponse) {
             log.withCorrelationId(commandResponse)
-                    .debug("Received CommandResponse from persistenceActorChild, " +
+                    .debug("Received CommandResponse from target actor, " +
                             "telling enforcerChild to apply response filtering: {}", commandResponse);
-            return Patterns.ask(enforcerChild, commandResponse, DEFAULT_LOCAL_ASK_TIMEOUT);
-        } else if (persistenceActorResponse instanceof DittoRuntimeException dre) {
-            log.withCorrelationId(enforcedCommand)
-                    .debug("Received DittoRuntimeException as response from persistenceActorChild: {}", dre);
+            return askEnforcerChild(commandResponse);
+        } else if (targetActorResponse instanceof DittoRuntimeException dre) {
+            log.withCorrelationId(enforcedSignal)
+                    .debug("Received DittoRuntimeException as response from target actor: {}", dre);
             throw dre;
+        } else if (targetActorResponse instanceof DistributedPubWithMessage distributedPubWithMessage) {
+            log.withCorrelationId(enforcedSignal)
+                    .info("DistributedPubWithMessage from target actor: {}", distributedPubWithMessage);
+            return CompletableFuture.completedStage(null);
         } else {
-            log.withCorrelationId(enforcedCommand)
-                    .warning("Unexpected response from persistenceActorChild: {}", persistenceActorResponse);
+            log.withCorrelationId(enforcedSignal)
+                    .warning("Unexpected response from target actor: {}", targetActorResponse);
             return CompletableFuture.completedStage(null);
         }
     }
@@ -555,5 +626,14 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId> extends 
          */
         INIT_DONE
     }
+
+    public record DistributedPubWithMessage(DistributedPub<?> pub,
+                                               Object wrappedSignalForPublication,
+                                               Signal<?> signal) {}
+
+    public record TargetActorWithMessage(ActorRef targetActor,
+                                            Object message,
+                                         Duration messageTimeout,
+                                         boolean internalErrorOnMessageTimeout) {}
 
 }

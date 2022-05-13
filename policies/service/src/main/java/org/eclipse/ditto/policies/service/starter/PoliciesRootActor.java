@@ -16,6 +16,7 @@ import static org.eclipse.ditto.policies.api.PoliciesMessagingConstants.CLUSTER_
 
 import org.eclipse.ditto.base.api.devops.signals.commands.RetrieveStatisticsDetails;
 import org.eclipse.ditto.base.model.common.DittoSystemProperties;
+import org.eclipse.ditto.base.model.headers.DittoHeadersSettable;
 import org.eclipse.ditto.base.service.actors.DittoRootActor;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.cluster.ClusterUtil;
@@ -159,29 +160,22 @@ public final class PoliciesRootActor extends DittoRootActor {
             final BlockedNamespaces blockedNamespaces) {
 
         return PolicySupervisorActor.props(pubSubMediator, snapshotAdapter, policyAnnouncementPub, blockedNamespaces,
-                providePreEnforcer(blockedNamespaces));
-    }
-
-    private static PreEnforcer providePreEnforcer(final BlockedNamespaces blockedNamespaces) {
-        return newPreEnforcer(blockedNamespaces, PlaceholderSubstitution.newInstance());
-        // TODO TJ provide extension mechanism here
+                newPreEnforcer(blockedNamespaces));
     }
 
     /**
+     * TODO TJ provide extension mechanism here
      * TODO TJ consolidate with ThingsRootActor.newPreEnforcer
-     * @param blockedNamespaces
-     * @param placeholderSubstitution
-     * @return
      */
-    private static PreEnforcer newPreEnforcer(final BlockedNamespaces blockedNamespaces,
-            final PlaceholderSubstitution placeholderSubstitution) {
+    private static <T extends DittoHeadersSettable<?>> PreEnforcer<T> newPreEnforcer(
+            final BlockedNamespaces blockedNamespaces) {
 
         return dittoHeadersSettable ->
                 BlockNamespaceBehavior.of(blockedNamespaces)
                         .block(dittoHeadersSettable)
-                        .thenApply(CommandWithOptionalEntityValidator.getInstance())
+                        .thenApply(CommandWithOptionalEntityValidator.createInstance())
                         .thenApply(PreEnforcer::setOriginatorHeader)
-                        .thenCompose(placeholderSubstitution);
+                        .thenCompose(PlaceholderSubstitution.newInstance());
     }
 
     /**

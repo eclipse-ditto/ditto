@@ -16,6 +16,7 @@ import static org.eclipse.ditto.things.api.ThingsMessagingConstants.CLUSTER_ROLE
 
 import org.eclipse.ditto.base.api.devops.signals.commands.RetrieveStatisticsDetails;
 import org.eclipse.ditto.base.model.common.DittoSystemProperties;
+import org.eclipse.ditto.base.model.headers.DittoHeadersSettable;
 import org.eclipse.ditto.base.service.actors.DittoRootActor;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.cluster.ClusterUtil;
@@ -35,7 +36,7 @@ import org.eclipse.ditto.internal.utils.persistence.mongo.config.MongoDbConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.MongoReadJournal;
 import org.eclipse.ditto.internal.utils.persistentactors.cleanup.PersistenceCleanupActor;
 import org.eclipse.ditto.internal.utils.pubsub.DistributedAcks;
-import org.eclipse.ditto.internal.utils.pubsub.DistributedPub;
+import org.eclipse.ditto.internal.utils.pubsub.LiveSignalPub;
 import org.eclipse.ditto.internal.utils.pubsub.ThingEventPubSubFactory;
 import org.eclipse.ditto.policies.api.PoliciesMessagingConstants;
 import org.eclipse.ditto.policies.enforcement.PreEnforcer;
@@ -44,7 +45,6 @@ import org.eclipse.ditto.policies.enforcement.config.EntityCreationConfig;
 import org.eclipse.ditto.policies.enforcement.placeholders.PlaceholderSubstitution;
 import org.eclipse.ditto.policies.enforcement.validators.CommandWithOptionalEntityValidator;
 import org.eclipse.ditto.things.api.ThingsMessagingConstants;
-import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 import org.eclipse.ditto.things.service.common.config.ThingsConfig;
 import org.eclipse.ditto.things.service.persistence.actors.ThingPersistenceActorPropsFactory;
 import org.eclipse.ditto.things.service.persistence.actors.ThingPersistenceOperationsActor;
@@ -87,7 +87,8 @@ public final class ThingsRootActor extends DittoRootActor {
         final var distributedAcks = DistributedAcks.lookup(actorSystem);
         final var pubSubFactory =
                 ThingEventPubSubFactory.of(getContext(), shardRegionExtractor, distributedAcks);
-        final DistributedPub<ThingEvent<?>> distributedPub = pubSubFactory.startDistributedPub();
+//        final DistributedPub<ThingEvent<?>> distributedPub = pubSubFactory.startDistributedPub();
+        final LiveSignalPub liveSignalPub = LiveSignalPub.of(getContext(), distributedAcks);
 
         final ShardRegionProxyActorFactory shardRegionProxyActorFactory =
                 ShardRegionProxyActorFactory.newInstance(actorSystem, clusterConfig);
@@ -111,7 +112,7 @@ public final class ThingsRootActor extends DittoRootActor {
 
         final Props thingSupervisorActorProps = getThingSupervisorActorProps(pubSubMediator,
                 policiesShardRegion,
-                distributedPub,
+                liveSignalPub,
                 propsFactory,
                 blockedNamespaces
         );
@@ -191,34 +192,27 @@ public final class ThingsRootActor extends DittoRootActor {
 
     private static Props getThingSupervisorActorProps(final ActorRef pubSubMediator,
             final ActorRef policiesShardRegion,
-            final DistributedPub<ThingEvent<?>> distributedPub,
+            final LiveSignalPub liveSignalPub,
             final ThingPersistenceActorPropsFactory propsFactory,
             final BlockedNamespaces blockedNamespaces) {
 
-        return ThingSupervisorActor.props(pubSubMediator, policiesShardRegion, distributedPub,
-                propsFactory, blockedNamespaces, providePreEnforcer(blockedNamespaces));
-    }
-
-    private static PreEnforcer providePreEnforcer(final BlockedNamespaces blockedNamespaces) {
-        return newPreEnforcer(blockedNamespaces, PlaceholderSubstitution.newInstance());
-        // TODO TJ provide extension mechanism here
+        return ThingSupervisorActor.props(pubSubMediator, policiesShardRegion, liveSignalPub,
+                propsFactory, blockedNamespaces, newPreEnforcer(blockedNamespaces));
     }
 
     /**
+     * TODO TJ provide extension mechanism here
      * TODO TJ consolidate with PoliciesRootActor.newPreEnforcer
-     * @param blockedNamespaces
-     * @param placeholderSubstitution
-     * @return
      */
-    private static PreEnforcer newPreEnforcer(final BlockedNamespaces blockedNamespaces,
-            final PlaceholderSubstitution placeholderSubstitution) {
+    private static <T extends DittoHeadersSettable<?>> PreEnforcer<T> newPreEnforcer(
+            final BlockedNamespaces blockedNamespaces) {
 
         return dittoHeadersSettable ->
                 BlockNamespaceBehavior.of(blockedNamespaces)
                         .block(dittoHeadersSettable)
-                        .thenApply(CommandWithOptionalEntityValidator.getInstance())
+                        .thenApply(CommandWithOptionalEntityValidator.createInstance())
                         .thenApply(PreEnforcer::setOriginatorHeader)
-                        .thenCompose(placeholderSubstitution);
+                        .thenCompose(PlaceholderSubstitution.newInstance());
     }
 
     private static MongoReadJournal newMongoReadJournal(final MongoDbConfig mongoDbConfig,

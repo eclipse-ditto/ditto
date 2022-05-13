@@ -221,11 +221,11 @@ public final class TestSetup {
                 testKit.fishForMessage(FiniteDuration.apply(5, TimeUnit.SECONDS), clazz.getName(), clazz::isInstance));
     }
 
-    static final class DummyLiveSignalPub implements LiveSignalPub {
+    public static final class DummyLiveSignalPub implements LiveSignalPub {
 
         private final ActorRef pubSubMediator;
 
-        DummyLiveSignalPub(final ActorRef pubSubMediator) {
+        public DummyLiveSignalPub(final ActorRef pubSubMediator) {
             this.pubSubMediator = pubSubMediator;
         }
 

@@ -73,7 +73,7 @@ public final class ConnectionEnforcerActor
     }
 
     @Override
-    protected boolean shouldInvalidatePolicyEnforcerAfterEnforcement(final ConnectivityCommand<?> command) {
+    protected boolean shouldInvalidatePolicyEnforcerAfterEnforcement(final ConnectivityCommand<?> signal) {
         // TODO TJ implement
         return false;
     }

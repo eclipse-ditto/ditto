@@ -60,6 +60,7 @@ import org.eclipse.ditto.policies.model.ResourceKey;
 import org.eclipse.ditto.policies.model.Subject;
 import org.eclipse.ditto.policies.model.SubjectId;
 import org.eclipse.ditto.policies.model.SubjectIssuer;
+import org.eclipse.ditto.policies.model.signals.commands.PolicyCommand;
 import org.eclipse.ditto.policies.model.signals.commands.actions.ActivateTokenIntegration;
 import org.eclipse.ditto.policies.model.signals.commands.actions.DeactivateTokenIntegration;
 import org.eclipse.ditto.policies.model.signals.commands.actions.TopLevelPolicyActionCommand;
@@ -907,7 +908,7 @@ public final class PolicyCommandEnforcementTest {
         return prefix + UUID.randomUUID();
     }
 
-    private static class MockPolicyPersistenceSupervisor extends AbstractPersistenceSupervisor<PolicyId> {
+    private static class MockPolicyPersistenceSupervisor extends AbstractPersistenceSupervisor<PolicyId, PolicyCommand<?>> {
 
         static final String ACTOR_NAME = "mockPolicyPersistenceSupervisor";
 

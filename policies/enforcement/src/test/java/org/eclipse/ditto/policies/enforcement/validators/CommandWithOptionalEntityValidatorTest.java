@@ -37,7 +37,7 @@ public final class CommandWithOptionalEntityValidatorTest {
         final JsonValue jsonValue = JsonValue.of(NULL_CHARACTER);
 
         assertThatExceptionOfType(DittoRuntimeException.class)
-                .isThrownBy(() -> CommandWithOptionalEntityValidator.getInstance().apply(createTestCommand(jsonValue)));
+                .isThrownBy(() -> CommandWithOptionalEntityValidator.createInstance().apply(createTestCommand(jsonValue)));
     }
 
     @Test
@@ -45,7 +45,7 @@ public final class CommandWithOptionalEntityValidatorTest {
         final JsonArray jsonArray = JsonArray.newBuilder().add(JsonValue.of(NULL_CHARACTER)).build();
 
         assertThatExceptionOfType(DittoRuntimeException.class)
-                .isThrownBy(() -> CommandWithOptionalEntityValidator.getInstance().apply(createTestCommand(jsonArray)));
+                .isThrownBy(() -> CommandWithOptionalEntityValidator.createInstance().apply(createTestCommand(jsonArray)));
     }
 
     @Test
@@ -54,7 +54,7 @@ public final class CommandWithOptionalEntityValidatorTest {
 
         assertThatExceptionOfType(DittoRuntimeException.class)
                 .isThrownBy(
-                        () -> CommandWithOptionalEntityValidator.getInstance().apply(createTestCommand(jsonObject)));
+                        () -> CommandWithOptionalEntityValidator.createInstance().apply(createTestCommand(jsonObject)));
     }
 
     private DittoHeadersSettable<?> createTestCommand(final JsonValue jsonValue) {

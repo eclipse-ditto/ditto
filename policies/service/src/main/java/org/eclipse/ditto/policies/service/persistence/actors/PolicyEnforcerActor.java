@@ -92,9 +92,9 @@ public final class PolicyEnforcerActor
     }
 
     @Override
-    protected boolean shouldInvalidatePolicyEnforcerAfterEnforcement(final PolicyCommand<?> command) {
+    protected boolean shouldInvalidatePolicyEnforcerAfterEnforcement(final PolicyCommand<?> signal) {
         // this should always be done for modifying commands:
-        return command instanceof PolicyModifyCommand<?>;
+        return signal instanceof PolicyModifyCommand<?>;
         // TODO TJ optimization: only if the resources/subjects of the policy were changed
     }
 

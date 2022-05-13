@@ -13,7 +13,7 @@
 package org.eclipse.ditto.policies.enforcement.validators;
 
 import java.util.Optional;
-import java.util.function.Function;
+import java.util.function.UnaryOperator;
 
 import org.eclipse.ditto.base.model.exceptions.DittoJsonException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
@@ -27,21 +27,18 @@ import org.eclipse.ditto.json.JsonValue;
 /**
  * Checks that commands that modify entities cause no harm downstream.
  */
-public final class CommandWithOptionalEntityValidator implements
-        Function<DittoHeadersSettable<?>, DittoHeadersSettable<?>> {
+public final class CommandWithOptionalEntityValidator<T extends DittoHeadersSettable<?>> implements UnaryOperator<T> {
 
-    private static final CommandWithOptionalEntityValidator INSTANCE = new CommandWithOptionalEntityValidator();
-
-    public static CommandWithOptionalEntityValidator getInstance() {
-        return INSTANCE;
+    public static <T extends DittoHeadersSettable<?>> CommandWithOptionalEntityValidator<T> createInstance() {
+        return new CommandWithOptionalEntityValidator<>();
     }
 
     @Override
-    public DittoHeadersSettable<?> apply(final DittoHeadersSettable<?> withDittoHeaders) {
+    public T apply(final T withDittoHeaders) {
         return checkForHarmfulEntity(withDittoHeaders);
     }
 
-    private static DittoHeadersSettable<?> checkForHarmfulEntity(final DittoHeadersSettable<?> withDittoHeaders) {
+    private static <T extends DittoHeadersSettable<?>> T checkForHarmfulEntity(final T withDittoHeaders) {
         if (withDittoHeaders instanceof Command && withDittoHeaders instanceof WithOptionalEntity) {
             final Optional<JsonValue> optionalEntity = ((WithOptionalEntity) withDittoHeaders).getEntity();
             if (optionalEntity.isPresent() && isJsonValueIllegal(optionalEntity.get())) {

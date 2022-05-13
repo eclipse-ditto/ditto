@@ -10,11 +10,13 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.things.service.enforcement;
+package org.eclipse.ditto.things.service.persistence.actors;
 
 import java.time.Duration;
 import java.util.HashSet;
 import java.util.Set;
+
+import javax.annotation.Nullable;
 
 import org.eclipse.ditto.base.model.acks.AcknowledgementLabel;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
@@ -49,7 +51,9 @@ final class LiveResponseAndAcknowledgementForwarder extends AbstractActor {
     private final Command<?> command;
     private final CommandAndCommandResponseMatchingValidator responseValidator;
     private boolean responseReceived = false;
-    private ActorRef messageSender;
+
+    @Nullable
+    private ActorRef messageSender = null;
 
     @SuppressWarnings("unused")
     private LiveResponseAndAcknowledgementForwarder(final Command<?> command,

@@ -43,6 +43,7 @@ import org.eclipse.ditto.base.model.headers.entitytag.EntityTagMatcher;
 import org.eclipse.ditto.base.model.headers.entitytag.EntityTagMatchers;
 import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
+import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.service.actors.ShutdownBehaviour;
 import org.eclipse.ditto.base.service.config.supervision.ExponentialBackOffConfig;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
@@ -101,6 +102,7 @@ import org.eclipse.ditto.things.model.signals.commands.query.RetrieveAttributeRe
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThing;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThingResponse;
 import org.eclipse.ditto.things.service.common.config.DittoThingsConfig;
+import org.eclipse.ditto.things.service.persistence.actors.ResponseReceiverCache;
 import org.eclipse.ditto.things.service.persistence.actors.ThingEnforcerActor;
 import org.junit.After;
 import org.junit.Before;
@@ -113,8 +115,6 @@ import com.typesafe.config.ConfigFactory;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
-import akka.event.DiagnosticLoggingAdapter;
-import akka.event.Logging;
 import akka.testkit.TestActorRef;
 import akka.testkit.TestProbe;
 import akka.testkit.javadsl.TestKit;
@@ -954,17 +954,6 @@ public final class ThingCommandEnforcementTest {
         return prefix + UUID.randomUUID();
     }
 
-    private ActorRef createEnforcerParent() {
-        return system.actorOf(Props.create(MockThingPersistenceSupervisor.class,
-                pubSubMediatorProbe.ref(),
-                thingPersistenceActorProbe.ref(),
-                system,
-                ackReceiverActorProbe.ref(),
-                policiesShardRegionProbe.ref(),
-                new TestSetup.DummyLiveSignalPub(pubSubMediatorProbe.ref())
-        ), MockThingPersistenceSupervisor.ACTOR_NAME);
-    }
-
     private TestActorRef<MockThingPersistenceSupervisor> createThingPersistenceSupervisor() {
         return new TestActorRef<>(system, Props.create(
                 MockThingPersistenceSupervisor.class,
@@ -1021,16 +1010,14 @@ public final class ThingCommandEnforcementTest {
         return RetrieveThing.of(THING_ID, builder.build());
     }
 
-    private static class MockThingPersistenceSupervisor extends AbstractPersistenceSupervisor<ThingId> {
-
-        private final DiagnosticLoggingAdapter log = Logging.apply(this);
+    static class MockThingPersistenceSupervisor extends AbstractPersistenceSupervisor<ThingId, Signal<?>> {
 
         static final String ACTOR_NAME = "mockThingPersistenceSupervisor";
 
         private final ActorRef pubSubMediator;
-        private final ThingCommandEnforcement thingCommandEnforcement;
+        private final ThingEnforcement thingEnforcement;
 
-        private MockThingPersistenceSupervisor(final ActorRef pubSubMediator,
+        MockThingPersistenceSupervisor(final ActorRef pubSubMediator,
                 final ActorRef thingPersistenceActor,
                 final ActorSystem actorSystem,
                 final ActorRef ackReceiverActor,
@@ -1038,14 +1025,15 @@ public final class ThingCommandEnforcementTest {
                 final LiveSignalPub liveSignalPub) {
             super(thingPersistenceActor, null, null, CompletableFuture::completedStage);
             this.pubSubMediator = pubSubMediator;
-            thingCommandEnforcement = new ThingCommandEnforcement(actorSystem,
+            final ResponseReceiverCache responseReceiverCache = ResponseReceiverCache.lookup(getContext().getSystem());
+            thingEnforcement = new ThingEnforcement(actorSystem,
                     ackReceiverActor,
                     policiesShardRegion,
                     DefaultCreationRestrictionEnforcer.of(
                             DefaultEntityCreationConfig.of(ConfigFactory.empty())),
                     DefaultEnforcementConfig.of(ConfigFactory.empty()),
-                    CompletableFuture::completedStage,
-                    liveSignalPub
+                    liveSignalPub,
+                    responseReceiverCache
             );
         }
 
@@ -1063,7 +1051,7 @@ public final class ThingCommandEnforcementTest {
         protected Props getPersistenceEnforcerProps(final ThingId entityId) {
             return ThingEnforcerActor.props(
                     entityId,
-                    thingCommandEnforcement,
+                    thingEnforcement,
                     pubSubMediator,
                     null
             );

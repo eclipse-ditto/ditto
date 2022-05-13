@@ -46,6 +46,8 @@ import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.namespaces.NamespaceBlockedException;
 import org.eclipse.ditto.base.model.signals.FeatureToggle;
 import org.eclipse.ditto.base.model.signals.Signal;
+import org.eclipse.ditto.base.model.signals.commands.Command;
+import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
 import org.eclipse.ditto.base.model.signals.commands.CommandToExceptionRegistry;
 import org.eclipse.ditto.base.model.signals.commands.ErrorResponse;
 import org.eclipse.ditto.base.model.signals.commands.exceptions.CommandTimeoutException;
@@ -66,8 +68,8 @@ import org.eclipse.ditto.policies.api.Permission;
 import org.eclipse.ditto.policies.api.PoliciesValidator;
 import org.eclipse.ditto.policies.enforcement.AbstractEnforcementReloaded;
 import org.eclipse.ditto.policies.enforcement.CreationRestrictionEnforcer;
+import org.eclipse.ditto.policies.enforcement.EnforcementReloaded;
 import org.eclipse.ditto.policies.enforcement.PolicyEnforcer;
-import org.eclipse.ditto.policies.enforcement.PreEnforcer;
 import org.eclipse.ditto.policies.enforcement.config.EnforcementConfig;
 import org.eclipse.ditto.policies.enforcement.placeholders.references.PolicyIdReferencePlaceholderResolver;
 import org.eclipse.ditto.policies.enforcement.placeholders.references.ReferencePlaceholder;
@@ -117,6 +119,7 @@ import org.eclipse.ditto.things.model.signals.commands.query.RetrieveFeature;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThing;
 import org.eclipse.ditto.things.model.signals.commands.query.ThingQueryCommand;
 import org.eclipse.ditto.things.model.signals.commands.query.ThingQueryCommandResponse;
+import org.eclipse.ditto.things.service.persistence.actors.ResponseReceiverCache;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
@@ -126,12 +129,9 @@ import akka.pattern.Patterns;
 /**
  * Authorizes {@link ThingCommand}s and filters {@link ThingCommandResponse}s.
  */
-public final class ThingCommandEnforcement
-        extends AbstractEnforcementReloaded<ThingCommand<?>, ThingCommandResponse<?>> {
-
-    private static final ThreadSafeDittoLogger LOGGER =
-            DittoLoggerFactory.getThreadSafeLogger(ThingCommandEnforcement.class);
-
+final class ThingCommandEnforcement
+        extends AbstractEnforcementReloaded<ThingCommand<?>, ThingCommandResponse<?>>
+        implements ThingEnforcementStrategy {
 
     private static final Map<String, ThreadSafeDittoLogger> NAMESPACE_INSPECTION_LOGGERS = new HashMap<>();
 
@@ -148,7 +148,6 @@ public final class ThingCommandEnforcement
 
     private final ActorRef ackReceiverActor;
     private final ActorRef policiesShardRegion;
-    private final PreEnforcer preEnforcer;
     private final PolicyIdReferencePlaceholderResolver policyIdReferencePlaceholderResolver;
     private final CreationRestrictionEnforcer creationRestrictionEnforcer;
     private final LiveSignalPub liveSignalPub;
@@ -166,16 +165,16 @@ public final class ThingCommandEnforcement
      * @param creationRestrictionEnforcer the CreationRestrictionEnforcer to apply in order to enforce creation of new
      * things based on its config.
      * @param enforcementConfig the configuration to apply for this command enforcement implementation.
-     * @param preEnforcer the PreEnforcer to apply prior to any enforcements.
      * @param liveSignalPub the helper for publishing/subscribing live signals.
+     * @param responseReceiverCache TODO TJ
      */
     public ThingCommandEnforcement(final ActorSystem actorSystem,
             final ActorRef ackReceiverActor,
             final ActorRef policiesShardRegion,
             final CreationRestrictionEnforcer creationRestrictionEnforcer,
             final EnforcementConfig enforcementConfig,
-            final PreEnforcer preEnforcer,
-            final LiveSignalPub liveSignalPub) {
+            final LiveSignalPub liveSignalPub,
+            final ResponseReceiverCache responseReceiverCache) {
 
         this.actorSystem = actorSystem;
         this.ackReceiverActor = requireNonNull(ackReceiverActor);
@@ -189,41 +188,47 @@ public final class ThingCommandEnforcement
                         DittoLoggerFactory.getThreadSafeLogger(ThingCommandEnforcement.class.getName() +
                                 ".namespace." + loggedNamespace)));
 
-        this.preEnforcer = preEnforcer;
         policyIdReferencePlaceholderResolver = PolicyIdReferencePlaceholderResolver.of(policiesShardRegion,
                 enforcementConfig.getAskWithRetryConfig(), actorSystem);
         this.liveSignalPub = liveSignalPub;
-        responseReceiverCache = ResponseReceiverCache.lookup(actorSystem);
-    }
-
-    /**
-     * @return the policies shard region which this things specific enforcement received during construction.
-     */
-    public ActorRef getPoliciesShardRegion() {
-        return policiesShardRegion;
-    }
-
-    /**
-     * @return the EnforcementConfig which this things specific enforcement received during construction.
-     */
-    public EnforcementConfig getEnforcementConfig() {
-        return enforcementConfig;
+        this.responseReceiverCache = responseReceiverCache;
     }
 
     @Override
-    public CompletionStage<ThingCommand<?>> authorizeSignal(final ThingCommand<?> thingCommand,
+    public boolean isApplicable(final Signal<?> signal) {
+        return signal instanceof ThingCommand<?> && !Command.isLiveCommand(signal);
+    }
+
+    @Override
+    public boolean responseIsApplicable(final CommandResponse<?> signal) {
+        return signal instanceof ThingCommandResponse<?> && !CommandResponse.isLiveCommandResponse(signal);
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    public EnforcementReloaded<ThingCommand<?>, ThingCommandResponse<?>> getEnforcement() {
+        return this;
+    }
+
+    @Override
+    public CompletionStage<ThingCommand<?>> authorizeSignal(final ThingCommand<?> command,
             final PolicyEnforcer policyEnforcer) {
 
+        if (command.getCategory() == Command.Category.QUERY && !command.getDittoHeaders().isResponseRequired()) {
+            // ignore query command with response-required=false
+            return CompletableFuture.completedStage(null);
+        }
+
         final ThingCommand<?> authorizedCommand;
-        if (isWotTdRequestingThingQueryCommand(thingCommand)) {
+        if (isWotTdRequestingThingQueryCommand(command)) {
             // authorization is not necessary for WoT TD requesting thing query command, this is treated as public
             // information:
-            FeatureToggle.checkWotIntegrationFeatureEnabled(thingCommand.getType(), thingCommand.getDittoHeaders());
+            FeatureToggle.checkWotIntegrationFeatureEnabled(command.getType(), command.getDittoHeaders());
             // for retrieving the WoT TD, assume that full TD gets returned unfiltered:
-            authorizedCommand = prepareThingCommandBeforeSendingToPersistence(thingCommand);
+            authorizedCommand = prepareThingCommandBeforeSendingToPersistence(command);
         } else {
             final ThingCommand<?> commandWithReadSubjects = authorizeByPolicyOrThrow(policyEnforcer.getEnforcer(),
-                    thingCommand);
+                    command);
             if (commandWithReadSubjects instanceof ThingQueryCommand<?> thingQueryCommand) {
                 authorizedCommand = ensureTwinChannel(thingQueryCommand);
             } else if (commandWithReadSubjects.getDittoHeaders().getLiveChannelCondition().isPresent()) {
@@ -296,6 +301,7 @@ public final class ThingCommandEnforcement
 
     /**
      * TODO TJ move where? and call from where and when?
+     * Probably move to ThingSupervisorActor!
      */
     private CompletionStage<ThingQueryCommandResponse<?>> doSmartChannelSelection(final ThingQueryCommand<?> command,
             final ThingQueryCommandResponse<?> response, final Instant startTime, final PolicyEnforcer policyEnforcer) {
@@ -338,9 +344,9 @@ public final class ThingCommandEnforcement
 
     private ActorRef startLiveResponseForwarder(final ThingQueryCommand<?> signal) {
         final var pub = liveSignalPub.command();
-        final var props = LiveResponseAndAcknowledgementForwarder.props(signal, pub.getPublisher(),
-                ackReceiverActor);
-        return actorSystem.actorOf(props); // TODO TJ check if we should really create a root level actor here
+//        final var props = LiveResponseAndAcknowledgementForwarder.props(signal, pub.getPublisher(),
+//                ackReceiverActor);
+        return actorSystem.actorOf(null); // TODO TJ check if we should really create a root level actor here
     }
 
     private Function<Object, CompletionStage<ThingQueryCommandResponse<?>>> getFallbackResponseCaster(
@@ -465,10 +471,10 @@ public final class ThingCommandEnforcement
         final JsonValue entity = response.getEntity();
         if (entity.isObject()) {
             final JsonObject filteredView =
-                    getJsonViewForThingQueryCommandResponse(entity.asObject(), response, enforcer);
+                    getJsonViewForCommandResponse(entity.asObject(), response, enforcer);
             return response.setEntity(filteredView);
         } else {
-            return response.setEntity(entity);
+            return (T) response;
         }
     }
 
@@ -505,12 +511,12 @@ public final class ThingCommandEnforcement
      * Restrict view on a JSON object by enforcer.
      *
      * @param responseEntity the JSON object to restrict view on.
-     * @param response the response containing the object.
+     * @param response the command response containing the object.
      * @param enforcer the enforcer.
      * @return JSON object with view restricted by enforcer.
      */
-    private static JsonObject getJsonViewForThingQueryCommandResponse(final JsonObject responseEntity,
-            final ThingQueryCommandResponse<?> response, final Enforcer enforcer) {
+    static JsonObject getJsonViewForCommandResponse(final JsonObject responseEntity,
+            final CommandResponse<?> response, final Enforcer enforcer) {
 
 
         final var resourceKey = ResourceKey.newInstance(ThingConstants.ENTITY_TYPE, response.getResourcePath());
@@ -976,16 +982,13 @@ public final class ThingCommandEnforcement
                 null,
                 createThingWithoutPolicyId.getDittoHeaders());
 
-        return preEnforcer.apply(createPolicy)
-                .thenCompose(msg -> Patterns.ask(policiesShardRegion, msg,
-                                enforcementConfig.getAskWithRetryConfig().getAskTimeout()
-                                        .multipliedBy(
-                                                5L)) // don't retry creating policy (not idempotent!) - but increase default timeout for doing so
-                        .thenApply(policyResponse -> {
-                            handlePolicyResponseForCreateThing(createPolicy, createThing, policyResponse);
-                            return createThing;
-                        })
-                )
+        return Patterns.ask(policiesShardRegion, createPolicy,
+                        enforcementConfig.getAskWithRetryConfig().getAskTimeout()
+                                .multipliedBy(5L)) // don't retry creating policy (not idempotent!) - but increase default timeout for doing so
+                .thenApply(policyResponse -> {
+                    handlePolicyResponseForCreateThing(createPolicy, createThing, policyResponse);
+                    return createThing;
+                })
                 .exceptionally(throwable -> {
                     if (throwable instanceof AskTimeoutException) {
                         throw PolicyUnavailableException.newBuilder(createPolicy.getEntityId())
