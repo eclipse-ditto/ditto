@@ -37,7 +37,7 @@ import akka.actor.Props;
 @Immutable
 public final class DefaultClientActorPropsFactory extends ClientActorPropsFactory {
 
-    private DefaultClientActorPropsFactory(final ActorSystem actorSystem) {
+    public DefaultClientActorPropsFactory(final ActorSystem actorSystem) {
         super(actorSystem);
     }
 

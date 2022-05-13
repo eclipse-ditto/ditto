@@ -17,11 +17,11 @@ import java.nio.charset.StandardCharsets;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
@@ -44,7 +44,10 @@ import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicy;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicyResponse;
 import org.eclipse.ditto.things.api.commands.sudo.SudoRetrieveThing;
+import org.eclipse.ditto.things.api.commands.sudo.SudoRetrieveThingResponse;
+import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingId;
+import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingNotAccessibleException;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingUnavailableException;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThing;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThingResponse;
@@ -52,11 +55,16 @@ import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 import org.eclipse.ditto.things.service.common.config.DittoThingsConfig;
 import org.eclipse.ditto.things.service.enforcement.ThingCommandEnforcement;
 
+import akka.NotUsed;
 import akka.actor.ActorKilledException;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
 import akka.pattern.Patterns;
+import akka.stream.Materializer;
+import akka.stream.javadsl.Keep;
+import akka.stream.javadsl.Sink;
+import akka.stream.javadsl.Source;
 
 /**
  * Supervisor for {@link ThingPersistenceActor} which means it will create, start and watch it as child actor.
@@ -122,48 +130,83 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
     @Override
     protected CompletionStage<Object> modifyPersistenceActorCommandResponse(final Command<?> enforcedCommand,
             final Object persistenceCommandResponse) {
+        return Source.single(new CommandResponsePair<Command<?>, Object>(enforcedCommand, persistenceCommandResponse))
+                .flatMapConcat(pair -> {
+                    if (pair.command instanceof RetrieveThing retrieveThing &&
+                            shouldRetrievePolicyWithThing(retrieveThing) &&
+                            pair.response instanceof RetrieveThingResponse retrieveThingResponse) {
+                        return enrichPolicy(retrieveThing, retrieveThingResponse)
+                                .map(Object.class::cast);
+                    } else {
+                        return Source.single(pair.response);
+                    }
+                })
+                .toMat(Sink.head(), Keep.right())
+                .run(Materializer.createMaterializer(getContext()));
+    }
 
-        if (enforcedCommand instanceof RetrieveThing retrieveThing &&
-                shouldRetrievePolicyWithThing(retrieveThing) &&
-                persistenceCommandResponse instanceof RetrieveThingResponse retrieveThingResponse) {
+    private Source<RetrieveThingResponse, NotUsed> enrichPolicy(final RetrieveThing retrieveThing,
+            final RetrieveThingResponse retrieveThingResponse) {
+        return sudoRetrieveThing()
+                .map(SudoRetrieveThingResponse::getThing)
+                .map(Thing::getPolicyId)
+                .map(optionalPolicyId -> optionalPolicyId.orElseThrow(() -> {
+                    log.withCorrelationId(retrieveThing)
+                            .warning("Found thing without policy ID. This should never be possible. " +
+                                    "This is most likely a bug and should be fixed.");
+                    return ThingNotAccessibleException.newBuilder(entityId)
+                            .dittoHeaders(retrieveThing.getDittoHeaders())
+                            .build();
+                }))
+                .map(policyId -> {
+                    final var dittoHeadersWithoutPreconditionHeaders = retrieveThing.getDittoHeaders()
+                            .toBuilder()
+                            .removePreconditionHeaders()
+                            .build();
+                    return RetrievePolicy.of(policyId, dittoHeadersWithoutPreconditionHeaders);
+                })
+                .map(this::retrieveInlinedPolicyForThing)
+                .flatMapConcat(Source::fromCompletionStage)
+                .map(policyResponse -> {
+                    if (policyResponse.isPresent()) {
+                        final JsonObject inlinedPolicy = policyResponse.get()
+                                .getPolicy()
+                                .toInlinedJson(retrieveThing.getImplementedSchemaVersion(),
+                                        FieldType.notHidden());
 
-            assert entityId != null;
-            return Patterns.ask(persistenceActorChild, SudoRetrieveThing.of(entityId,
-                            JsonFieldSelector.newInstance("policyId"),
-                            DittoHeaders.newBuilder()
-                                    .correlationId("sudoRetrieveThingFromThingSupervisorActor-" + UUID.randomUUID())
-                                    .build()
-                    ), DEFAULT_LOCAL_ASK_TIMEOUT
-            ).thenApply(response ->
-                    ThingEnforcerActor.extractPolicyIdFromSudoRetrieveThingResponse(response).orElse(null)
-            ).thenCompose(policyId -> {
-                final var dittoHeadersWithoutPreconditionHeaders = retrieveThing.getDittoHeaders()
-                        .toBuilder()
-                        .removePreconditionHeaders()
-                        .build();
-                final var retrievePolicy = RetrievePolicy.of(policyId, dittoHeadersWithoutPreconditionHeaders);
+                        final JsonObject thingWithInlinedPolicy = retrieveThingResponse.getEntity()
+                                .asObject()
+                                .toBuilder()
+                                .setAll(inlinedPolicy)
+                                .build();
+                        return retrieveThingResponse.setEntity(thingWithInlinedPolicy);
+                    } else {
+                        return retrieveThingResponse;
+                    }
+                });
+    }
 
-                return retrieveInlinedPolicyForThing(retrieveThing, retrievePolicy)
-                        .thenApply(policyResponse -> {
-                            if (policyResponse.isPresent()) {
-                                final JsonObject inlinedPolicy = policyResponse.get()
-                                        .getPolicy()
-                                        .toInlinedJson(retrieveThing.getImplementedSchemaVersion(), FieldType.notHidden());
-
-                                final JsonObject thingWithInlinedPolicy = retrieveThingResponse.getEntity()
-                                        .asObject()
-                                        .toBuilder()
-                                        .setAll(inlinedPolicy)
-                                        .build();
-                                return retrieveThingResponse.setEntity(thingWithInlinedPolicy);
-                            } else {
-                                return retrieveThingResponse;
-                            }
-                        });
-            });
-        } else {
-            return CompletableFuture.completedFuture(persistenceCommandResponse);
-        }
+    private Source<SudoRetrieveThingResponse, NotUsed> sudoRetrieveThing() {
+        final CompletionStage<Object> askForThing =
+                Patterns.ask(persistenceActorChild, SudoRetrieveThing.of(entityId,
+                                JsonFieldSelector.newInstance("policyId"),
+                                DittoHeaders.newBuilder()
+                                        .correlationId("sudoRetrieveThingFromThingSupervisorActor-" + UUID.randomUUID())
+                                        .build()
+                        ), DEFAULT_LOCAL_ASK_TIMEOUT
+                );
+        return Source.fromCompletionStage(askForThing)
+                .map(response -> {
+                    if (response instanceof DittoRuntimeException dre) {
+                        throw dre;
+                    }
+                    return response;
+                })
+                .divertTo(Sink.foreach(unexpectedResponseType ->
+                                log.warning("Unexpected response type. Expected <{}>, but got <{}>.",
+                                        SudoRetrieveThingResponse.class, unexpectedResponseType.getClass())),
+                        response -> !(response instanceof SudoRetrieveThingResponse))
+                .map(SudoRetrieveThingResponse.class::cast);
     }
 
     /**
@@ -185,12 +228,11 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
     /**
      * Retrieve inlined policy after retrieving a thing. Do not report errors.
      *
-     * @param retrieveThing the original command.
      * @param retrievePolicy the command to retrieve the thing's policy.
      * @return future response from policies-shard-region.
      */
     private CompletionStage<Optional<RetrievePolicyResponse>> retrieveInlinedPolicyForThing(
-            final RetrieveThing retrieveThing, final RetrievePolicy retrievePolicy) {
+            final RetrievePolicy retrievePolicy) {
 
         return preEnforcer.apply(retrievePolicy)
                 .thenCompose(msg -> AskWithRetry.askWithRetry(policiesShardRegion, msg,
@@ -200,14 +242,14 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
                             if (response instanceof RetrievePolicyResponse retrievePolicyResponse) {
                                 return Optional.of(retrievePolicyResponse);
                             } else {
-                                log.withCorrelationId(getCorrelationIdOrNull(response, retrieveThing))
+                                log.withCorrelationId(getCorrelationIdOrNull(response, retrievePolicy))
                                         .info("No authorized response when retrieving inlined policy <{}> for thing <{}>: {}",
-                                                retrievePolicy.getEntityId(), retrieveThing.getEntityId(), response);
+                                                retrievePolicy.getEntityId(), entityId, response);
                                 return Optional.<RetrievePolicyResponse>empty();
                             }
                         }
                 ).exceptionally(error -> {
-                    log.withCorrelationId(getCorrelationIdOrNull(error, retrieveThing))
+                    log.withCorrelationId(getCorrelationIdOrNull(error, retrievePolicy))
                             .error("Retrieving inlined policy after RetrieveThing", error);
                     return Optional.empty();
                 }));
@@ -278,5 +320,8 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
 
     private static boolean isWithDittoHeaders(final Object o) {
         return o instanceof WithDittoHeaders;
+    }
+
+    private record CommandResponsePair<C, R>(C command, R response) {
     }
 }
