@@ -82,6 +82,8 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
     private final ThingPersistenceActorPropsFactory thingPersistenceActorPropsFactory;
     private final DefaultEnforcementConfig enforcementConfig;
 
+    private final Materializer materializer;
+
     @SuppressWarnings("unused")
     private ThingSupervisorActor(final ActorRef pubSubMediator,
             final ActorRef policiesShardRegion,
@@ -99,6 +101,7 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
         enforcementConfig = DefaultEnforcementConfig.of(
                 DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config())
         );
+        materializer = Materializer.createMaterializer(getContext());
     }
 
     /**
@@ -142,7 +145,7 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
                     }
                 })
                 .toMat(Sink.head(), Keep.right())
-                .run(Materializer.createMaterializer(getContext()));
+                .run(materializer);
     }
 
     private Source<RetrieveThingResponse, NotUsed> enrichPolicy(final RetrieveThing retrieveThing,
