@@ -161,7 +161,7 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId> extends 
     protected Receive activeBehaviour() {
         return ReceiveBuilder.create()
                 .match(Terminated.class, this::childTerminated)
-                .matchEquals(Control.START_CHILDS, this::startChilds)
+                .matchEquals(Control.START_CHILDREN, this::startChildren)
                 .matchEquals(Control.PASSIVATE, this::passivate)
                 .match(SudoCommand.class, this::forwardSudoCommandToChildIfAvailable)
                 .match(WithDittoHeaders.class, w -> w.getDittoHeaders().isSudo(),
@@ -234,7 +234,7 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId> extends 
         return ReceiveBuilder.create()
                 .matchEquals(Control.INIT_DONE, initDone -> {
                     entityId = getEntityId();
-                    startChilds(Control.START_CHILDS);
+                    startChildren(Control.START_CHILDREN);
                     unstashAll();
                     becomeActive(getShutdownBehaviour(entityId));
                 })
@@ -266,7 +266,12 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId> extends 
         getContext().getParent().tell(new ShardRegion.Passivate(PoisonPill.getInstance()), getSelf());
     }
 
-    private void startChilds(final Control startChild) {
+    private void startChildren(final Control startChild) {
+        ensurePersistenceActorBeeingStarted();
+        ensureEnforcerActorBeeingStarted();
+    }
+
+    private void ensurePersistenceActorBeeingStarted() {
         if (null == persistenceActorChild) {
             log.debug("Starting persistence actor for entity with ID <{}>.", entityId);
             assert entityId != null;
@@ -275,11 +280,9 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId> extends 
         } else {
             log.debug("Not starting persistence child actor because it is started already.");
         }
-
-        startEnforcerActor();
     }
 
-    private void startEnforcerActor() {
+    private void ensureEnforcerActorBeeingStarted() {
         if (null == enforcerChild) {
             log.debug("Starting enforcer actor for entity with ID <{}>.", entityId);
             assert entityId != null;
@@ -299,11 +302,11 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId> extends 
 
     private void childTerminated(final Terminated message) {
         if (message.getActor().equals(persistenceActorChild)) {
+            persistenceActorChild = null;
             if (waitingForStopBeforeRestart) {
                 log.info("Persistence actor for entity with ID <{}> was stopped and will now be started again.",
                         entityId);
-                persistenceActorChild = null;
-                self().tell(Control.START_CHILDS, ActorRef.noSender());
+                self().tell(Control.START_CHILDREN, ActorRef.noSender());
             } else {
                 if (message.getAddressTerminated()) {
                     log.error("Persistence actor for entity with ID <{}> terminated abnormally " +
@@ -311,14 +314,14 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId> extends 
                 } else {
                     log.warning("Persistence actor for entity with ID <{}> terminated abnormally.", entityId);
                 }
-                persistenceActorChild = null;
                 backOff = backOff.calculateNextBackOff();
                 final Duration restartDelay = backOff.getRestartDelay();
-                getTimers().startSingleTimer(Control.START_CHILDS, Control.START_CHILDS, restartDelay);
+                getTimers().startSingleTimer(Control.START_CHILDREN, Control.START_CHILDREN, restartDelay);
             }
         } else if (message.getActor().equals(enforcerChild)) {
+            enforcerChild = null;
             // simply restart the enforcer actor
-            startEnforcerActor();
+            ensureEnforcerActorBeeingStarted();
         }
     }
 
@@ -543,9 +546,9 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId> extends 
         PASSIVATE,
 
         /**
-         * Request to start child actor.
+         * Request to start child actors.
          */
-        START_CHILDS,
+        START_CHILDREN,
 
         /**
          * Signals initialization is done, child actors can be started.
