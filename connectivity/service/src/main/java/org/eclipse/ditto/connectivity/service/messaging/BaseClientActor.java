@@ -1183,7 +1183,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
 
         return publisherReady
                 .thenCompose(unused -> consumersReady)
-                .thenCompose(unused -> subscribeAndDeclareAcknowledgementLabels(dryRun))
+                .thenCompose(unused -> subscribeAndDeclareAcknowledgementLabels(dryRun, false))
                 .thenApply(unused -> InitializationResult.success())
                 .exceptionally(InitializationResult::failed);
     }
@@ -1953,27 +1953,29 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
      * Subscribe for signals. NOT thread-safe due to querying actor state.
      *
      * @param isDryRun whether this is a dry run
+     * @param resubscribe whether this is a resubscription
      * @return a future that completes when subscription and ack label declaration succeed and fails when either fails.
      */
-    private CompletionStage<Void> subscribeAndDeclareAcknowledgementLabels(final boolean isDryRun) {
+    private CompletionStage<Void> subscribeAndDeclareAcknowledgementLabels(final boolean isDryRun,
+            final boolean resubscribe) {
         if (isDryRun) {
             // no point writing to the distributed data in a dry run - this actor will stop right away
             return CompletableFuture.completedFuture(null);
         } else {
             final String group = getPubsubGroup();
-            final CompletionStage<Void> subscribe = subscribeToStreamingTypes(group);
+            final CompletionStage<Void> subscribe = subscribeToStreamingTypes(group, resubscribe);
             final CompletionStage<Void> declare =
-                    dittoProtocolSub.declareAcknowledgementLabels(getDeclaredAcks(), getSelf(), group);
+                    dittoProtocolSub.declareAcknowledgementLabels(getDeclaredAcks(), getSelf(), group, resubscribe);
             return declare.thenCompose(unused -> subscribe);
         }
     }
 
-    private CompletionStage<Void> subscribeToStreamingTypes(final String pubSubGroup) {
+    private CompletionStage<Void> subscribeToStreamingTypes(final String pubSubGroup, final boolean resubscribe) {
         final Set<StreamingType> streamingTypes = getUniqueStreamingTypes();
         if (streamingTypes.isEmpty()) {
             return CompletableFuture.completedFuture(null);
         }
-        return dittoProtocolSub.subscribe(streamingTypes, getTargetAuthSubjects(), getSelf(), pubSubGroup);
+        return dittoProtocolSub.subscribe(streamingTypes, getTargetAuthSubjects(), getSelf(), pubSubGroup, resubscribe);
     }
 
     private Set<AcknowledgementLabel> getDeclaredAcks() {

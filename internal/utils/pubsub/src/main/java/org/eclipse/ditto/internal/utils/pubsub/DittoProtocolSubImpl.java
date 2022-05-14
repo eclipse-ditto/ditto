@@ -65,17 +65,20 @@ final class DittoProtocolSubImpl implements DittoProtocolSub {
     public CompletionStage<Void> subscribe(final Collection<StreamingType> types,
             final Collection<String> topics,
             final ActorRef subscriber,
-            @Nullable final String group) {
+            @Nullable final String group,
+            final boolean resubscribe) {
         final CompletionStage<?> nop = CompletableFuture.completedFuture(null);
         return partitionByStreamingTypes(types,
                 liveTypes -> !liveTypes.isEmpty()
-                        ? liveSignalSub.subscribeWithFilterAndGroup(topics, subscriber, toFilter(liveTypes), group)
+                        ? liveSignalSub.subscribeWithFilterAndGroup(topics, subscriber, toFilter(liveTypes), group,
+                        resubscribe)
                         : nop,
                 hasTwinEvents -> hasTwinEvents
-                        ? twinEventSub.subscribeWithFilterAndGroup(topics, subscriber, null, group)
+                        ? twinEventSub.subscribeWithFilterAndGroup(topics, subscriber, null, group, resubscribe)
                         : nop,
                 hasPolicyAnnouncements -> hasPolicyAnnouncements
-                        ? policyAnnouncementSub.subscribeWithFilterAndGroup(topics, subscriber, null, group)
+                        ? policyAnnouncementSub.subscribeWithFilterAndGroup(topics, subscriber, null, group,
+                        resubscribe)
                         : nop
         );
     }
@@ -95,7 +98,8 @@ final class DittoProtocolSubImpl implements DittoProtocolSub {
 
         return partitionByStreamingTypes(types,
                 liveTypes -> !liveTypes.isEmpty()
-                        ? liveSignalSub.subscribeWithFilterAndGroup(topics, subscriber, toFilter(liveTypes), null)
+                        ? liveSignalSub.subscribeWithFilterAndGroup(topics, subscriber, toFilter(liveTypes), null,
+                        false)
                         : liveSignalSub.unsubscribeWithAck(topics, subscriber),
                 hasTwinEvents -> CompletableFuture.completedStage(null),
                 hasPolicyAnnouncements -> CompletableFuture.completedStage(null)
@@ -117,7 +121,8 @@ final class DittoProtocolSubImpl implements DittoProtocolSub {
     public CompletionStage<Void> declareAcknowledgementLabels(
             final Collection<AcknowledgementLabel> acknowledgementLabels,
             final ActorRef subscriber,
-            @Nullable final String group) {
+            @Nullable final String group,
+            final boolean resubscribe) {
         if (acknowledgementLabels.isEmpty()) {
             return CompletableFuture.completedFuture(null);
         }
@@ -126,7 +131,7 @@ final class DittoProtocolSubImpl implements DittoProtocolSub {
         // via the actor supervision strategy
         ensureAcknowledgementLabelsAreFullyResolved(acknowledgementLabels);
 
-        return distributedAcks.declareAcknowledgementLabels(acknowledgementLabels, subscriber, group)
+        return distributedAcks.declareAcknowledgementLabels(acknowledgementLabels, subscriber, group, resubscribe)
                 .thenApply(ack -> null);
     }
 

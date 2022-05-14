@@ -38,7 +38,7 @@ public interface DittoProtocolSub extends Extension {
      */
     default CompletionStage<Void> subscribe(Collection<StreamingType> types, Collection<String> topics,
             ActorRef subscriber) {
-        return subscribe(types, topics, subscriber, null);
+        return subscribe(types, topics, subscriber, null, false);
     }
 
     /**
@@ -51,7 +51,7 @@ public interface DittoProtocolSub extends Extension {
      * @return future that completes or fails according to the acknowledgement.
      */
     CompletionStage<Void> subscribe(Collection<StreamingType> types, Collection<String> topics, ActorRef subscriber,
-            @Nullable String group);
+            @Nullable String group, final boolean resubscribe);
 
     /**
      * Remove a subscriber.
@@ -104,7 +104,7 @@ public interface DittoProtocolSub extends Extension {
      * {@code AcknowledgementLabelNotUniqueException} later.
      */
     CompletionStage<Void> declareAcknowledgementLabels(Collection<AcknowledgementLabel> acknowledgementLabels,
-            ActorRef subscriber, @Nullable String group);
+            ActorRef subscriber, @Nullable String group, final boolean resubscribe);
 
     /**
      * Relinquish any acknowledgement labels declared by a subscriber.

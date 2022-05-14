@@ -255,7 +255,8 @@ public final class TestConstants {
         return new DittoProtocolSub() {
             @Override
             public CompletionStage<Void> subscribe(final Collection<StreamingType> types,
-                    final Collection<String> topics, final ActorRef subscriber, @Nullable final String group) {
+                    final Collection<String> topics, final ActorRef subscriber, @Nullable final String group,
+                    final boolean resubscribe) {
                 doDelegate(d -> d.subscribe(types, topics, subscriber));
                 return CompletableFuture.allOf(types.stream()
                         .map(type -> {
@@ -293,9 +294,9 @@ public final class TestConstants {
             @Override
             public CompletionStage<Void> declareAcknowledgementLabels(
                     final Collection<AcknowledgementLabel> acknowledgementLabels, final ActorRef subscriber,
-                    @Nullable final String group) {
+                    @Nullable final String group, final boolean resubscribe) {
                 if (delegate != null) {
-                    return delegate.declareAcknowledgementLabels(acknowledgementLabels, subscriber, group);
+                    return delegate.declareAcknowledgementLabels(acknowledgementLabels, subscriber, group, resubscribe);
                 } else {
                     return CompletableFuture.completedStage(null);
                 }

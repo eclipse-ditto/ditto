@@ -14,6 +14,7 @@ package org.eclipse.ditto.gateway.service.streaming.actors;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.Mockito.when;
 
 import java.time.Duration;
@@ -139,7 +140,7 @@ public final class StreamingSessionActorHeaderInteractionTest {
 
     @Before
     public void setup() {
-        when(dittoProtocolSub.declareAcknowledgementLabels(any(), any(), any()))
+        when(dittoProtocolSub.declareAcknowledgementLabels(any(), any(), any(), anyBoolean()))
                 .thenReturn(CompletableFuture.completedFuture(null));
     }
 

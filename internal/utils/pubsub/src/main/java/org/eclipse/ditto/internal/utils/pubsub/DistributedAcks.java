@@ -66,7 +66,8 @@ public interface DistributedAcks extends Extension {
      * @return a future SubAck if the declaration succeeded, or a failed future if it failed.
      */
     CompletionStage<AcksDeclared> declareAcknowledgementLabels(
-            Collection<AcknowledgementLabel> acknowledgementLabels, ActorRef subscriber, @Nullable String group);
+            Collection<AcknowledgementLabel> acknowledgementLabels, ActorRef subscriber, @Nullable String group,
+            final boolean resubscribe);
 
     /**
      * Declare labels of acknowledgements that a subscriber may send.
@@ -81,7 +82,7 @@ public interface DistributedAcks extends Extension {
             Collection<AcknowledgementLabel> acknowledgementLabels,
             ActorRef subscriber) {
 
-        return declareAcknowledgementLabels(acknowledgementLabels, subscriber, null);
+        return declareAcknowledgementLabels(acknowledgementLabels, subscriber, null, false);
     }
 
     /**
