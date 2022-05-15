@@ -13,7 +13,6 @@
 package org.eclipse.ditto.gateway.service.streaming.actors;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.anyBoolean;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -124,7 +123,7 @@ public final class StreamingSessionActorTest {
     public void before() {
         commandRouterProbe = actorSystemResource.newTestProbe("commandRouter");
 
-        Mockito.when(mockSub.declareAcknowledgementLabels(Mockito.any(), Mockito.any(), Mockito.any(), anyBoolean()))
+        Mockito.when(mockSub.declareAcknowledgementLabels(Mockito.any(), Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(null));
 
         final Sink<SessionedJsonifiable, TestSubscriber.Probe<SessionedJsonifiable>> sink =
@@ -382,7 +381,7 @@ public final class StreamingSessionActorTest {
     }
 
     private void onDeclareAckLabels(final CompletionStage<Void> answer) {
-        Mockito.when(mockSub.declareAcknowledgementLabels(Mockito.any(), Mockito.any(), Mockito.any(), anyBoolean()))
+        Mockito.when(mockSub.declareAcknowledgementLabels(Mockito.any(), Mockito.any(), Mockito.any()))
                 .thenReturn(answer);
     }
 

@@ -610,8 +610,8 @@ public final class PubSubFactoryTest {
 
             // GIVEN: some subscribers subscribe to the topic as a group, others without a group
             final String topic = "topic";
-            await(distributedAcks1.declareAcknowledgementLabels(acks("ack"), subscriber1.ref(), "group", false));
-            await(distributedAcks2.declareAcknowledgementLabels(acks("ack"), subscriber2.ref(), "group", false));
+            await(distributedAcks1.declareAcknowledgementLabels(acks("ack"), subscriber1.ref(), "group"));
+            await(distributedAcks2.declareAcknowledgementLabels(acks("ack"), subscriber2.ref(), "group"));
             await(sub1.subscribeWithFilterAndGroup(List.of(topic), subscriber1.ref(), null, "group", false));
             await(sub2.subscribeWithFilterAndGroup(List.of(topic), subscriber2.ref(), null, "group", false));
             await(sub1.subscribeWithFilterAndGroup(List.of(topic), subscriber3.ref(), null, null, false));
@@ -650,7 +650,7 @@ public final class PubSubFactoryTest {
             final DistributedSubImpl sub = (DistributedSubImpl) factory1.startDistributedSub();
 
             // GIVEN: subscriber declares ack labels and subscribe for a topic
-            await(distributedAcks1.declareAcknowledgementLabels(acks("ack"), subscriber.ref(), "group", false));
+            await(distributedAcks1.declareAcknowledgementLabels(acks("ack"), subscriber.ref(), "group"));
             await(sub.subscribeWithFilterAndGroup(List.of("topic"), subscriber.ref(), null, "group", false));
 
             // WHEN: children of SubSupervisor terminate
@@ -661,7 +661,7 @@ public final class PubSubFactoryTest {
 
             // THEN: distributed pubsub recovers after restart
             TimeUnit.MILLISECONDS.sleep(PubSubConfig.of(system1).getRestartDelay().multipliedBy(3L).toMillis());
-            await(distributedAcks1.declareAcknowledgementLabels(acks("ack"), subscriber.ref(), "group", false));
+            await(distributedAcks1.declareAcknowledgementLabels(acks("ack"), subscriber.ref(), "group"));
             await(sub.subscribeWithFilterAndGroup(List.of("topic"), subscriber.ref(), null, "group", false));
         }};
     }
@@ -673,7 +673,7 @@ public final class PubSubFactoryTest {
             final DistributedSub sub = factory1.startDistributedSub();
 
             // GIVEN: subscriber declares ack labels and subscribe for a topic
-            await(distributedAcks1.declareAcknowledgementLabels(acks("ack"), subscriber.ref(), "group", false));
+            await(distributedAcks1.declareAcknowledgementLabels(acks("ack"), subscriber.ref(), "group"));
             await(sub.subscribeWithFilterAndGroup(List.of("topic"), subscriber.ref(), null, "group", false));
 
             // WHEN: ackUpdater terminates
@@ -687,7 +687,7 @@ public final class PubSubFactoryTest {
 
             // THEN: distributed pubsub recovers after restart
             TimeUnit.MILLISECONDS.sleep(PubSubConfig.of(system1).getRestartDelay().multipliedBy(3L).toMillis());
-            await(distributedAcks1.declareAcknowledgementLabels(acks("ack"), subscriber.ref(), "group", false));
+            await(distributedAcks1.declareAcknowledgementLabels(acks("ack"), subscriber.ref(), "group"));
             await(sub.subscribeWithFilterAndGroup(List.of("topic"), subscriber.ref(), null, "group", false));
         }};
     }

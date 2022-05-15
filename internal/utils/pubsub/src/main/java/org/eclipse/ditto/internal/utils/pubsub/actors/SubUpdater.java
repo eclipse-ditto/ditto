@@ -174,6 +174,7 @@ public final class SubUpdater extends akka.actor.AbstractActorWithTimers
         final boolean changed =
                 subscriptions.subscribe(subscribe.getSubscriber(), subscribe.getTopics(), subscribe.getFilter(),
                         subscribe.getGroup().orElse(null));
+        checkForLostSubscriber(subscribe, changed);
         enqueueRequest(subscribe, changed, getSender(), awaitUpdate, awaitUpdateMetric);
         if (changed) {
             getContext().watch(subscribe.getSubscriber());
@@ -185,6 +186,12 @@ public final class SubUpdater extends akka.actor.AbstractActorWithTimers
         enqueueRequest(unsubscribe, changed, getSender(), awaitUpdate, awaitUpdateMetric);
         if (changed && !subscriptions.contains(unsubscribe.getSubscriber())) {
             getContext().unwatch(unsubscribe.getSubscriber());
+        }
+    }
+
+    private void checkForLostSubscriber(final Subscribe subscribe, final boolean changed) {
+        if (subscribe.isResubscribe() && changed) {
+            log().error("Subscriber was missing from Ditto Pubsub: <{}>", subscribe.getSubscriber());
         }
     }
 

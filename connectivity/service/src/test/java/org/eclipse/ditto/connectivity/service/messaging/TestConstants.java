@@ -294,9 +294,9 @@ public final class TestConstants {
             @Override
             public CompletionStage<Void> declareAcknowledgementLabels(
                     final Collection<AcknowledgementLabel> acknowledgementLabels, final ActorRef subscriber,
-                    @Nullable final String group, final boolean resubscribe) {
+                    @Nullable final String group) {
                 if (delegate != null) {
-                    return delegate.declareAcknowledgementLabels(acknowledgementLabels, subscriber, group, resubscribe);
+                    return delegate.declareAcknowledgementLabels(acknowledgementLabels, subscriber, group);
                 } else {
                     return CompletableFuture.completedStage(null);
                 }

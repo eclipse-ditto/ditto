@@ -630,7 +630,7 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
     private void declareAcknowledgementLabels(final Collection<AcknowledgementLabel> acknowledgementLabels) {
         final ActorRef self = getSelf();
         logger.info("Declaring acknowledgement labels <{}>", acknowledgementLabels);
-        dittoProtocolSub.declareAcknowledgementLabels(acknowledgementLabels, self, null, false)
+        dittoProtocolSub.declareAcknowledgementLabels(acknowledgementLabels, self, null)
                 .thenAccept(unused -> logger.info("Acknowledgement label declaration successful for labels: <{}>",
                         acknowledgementLabels))
                 .exceptionally(error -> {

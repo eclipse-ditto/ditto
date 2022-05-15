@@ -100,7 +100,7 @@ public final class Subscribe extends AbstractRequest {
     /**
      * @return Whether this is a resubscribe request.
      */
-    boolean isResubscribe() {
+    public boolean isResubscribe() {
         return resubscribe;
     }
 

@@ -104,21 +104,21 @@ final class DistributedAcksImpl implements DistributedAcks {
                 .map(AcknowledgementLabel::toString)
                 .collect(Collectors.toSet());
         final AckRequest request =
-                DeclareAcks.of(subscriber, null, ackLabelStrings, false);
+                DeclareAcks.of(subscriber, null, ackLabelStrings);
         return askSupervisor(request);
     }
 
     @Override
     public CompletionStage<AcksDeclared> declareAcknowledgementLabels(
             final Collection<AcknowledgementLabel> acknowledgementLabels, final ActorRef subscriber,
-            @Nullable final String group, final boolean resubscribe) {
+            @Nullable final String group) {
         if (group != null) {
             ConditionChecker.checkNotEmpty(group, "group");
         }
         final Set<String> ackLabelStrings = acknowledgementLabels.stream()
                 .map(AcknowledgementLabel::toString)
                 .collect(Collectors.toSet());
-        return askSupervisor(DeclareAcks.of(subscriber, group, ackLabelStrings, resubscribe));
+        return askSupervisor(DeclareAcks.of(subscriber, group, ackLabelStrings));
     }
 
     @Override

@@ -46,7 +46,7 @@ final class DistributedAcksEmptyImpl implements DistributedAcks {
     @Override
     public CompletionStage<AcksDeclared> declareAcknowledgementLabels(
             final Collection<AcknowledgementLabel> acknowledgementLabels, final ActorRef subscriber,
-            @Nullable final String group, final boolean resubscribe) {
+            @Nullable final String group) {
         throw new UnsupportedOperationException();
     }
 

@@ -27,14 +27,11 @@ public final class DeclareAcks implements AckRequest {
     private final ActorRef subscriber;
     @Nullable private final String group;
     private final Set<String> ackLabels;
-    private final boolean resubscribe;
 
-    private DeclareAcks(final ActorRef subscriber, @Nullable final String group, final Set<String> ackLabels,
-            final boolean resubscribe) {
+    private DeclareAcks(final ActorRef subscriber, @Nullable final String group, final Set<String> ackLabels) {
         this.subscriber = subscriber;
         this.group = group;
         this.ackLabels = ackLabels;
-        this.resubscribe = resubscribe;
     }
 
     /**
@@ -45,9 +42,8 @@ public final class DeclareAcks implements AckRequest {
      * @param ackLabels the set of acknowledgement labels being declared - may be empty.
      * @return the request.
      */
-    public static AckRequest of(final ActorRef subscriber, @Nullable final String group, final Set<String> ackLabels,
-            final boolean resubscribe) {
-        return new DeclareAcks(subscriber, group, ackLabels, resubscribe);
+    public static AckRequest of(final ActorRef subscriber, @Nullable final String group, final Set<String> ackLabels) {
+        return new DeclareAcks(subscriber, group, ackLabels);
     }
 
     /**
@@ -77,20 +73,12 @@ public final class DeclareAcks implements AckRequest {
         return ackLabels;
     }
 
-    /**
-     * @return Whether this is a resubscribe request.
-     */
-    public boolean isResubscribe() {
-        return resubscribe;
-    }
-
     @Override
     public String toString() {
         return getClass().getSimpleName() +
                 "[subscriber=" + subscriber +
                 ",group=" + group +
                 ",ackLabels=" + ackLabels +
-                ",resubscribe=" + resubscribe +
                 "]";
     }
 }

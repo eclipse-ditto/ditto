@@ -69,7 +69,7 @@ public final class AckUpdater extends AbstractActorWithTimers implements Cluster
      */
     public static final String ACTOR_NAME_PREFIX = "ackUpdater";
 
-    protected final ThreadSafeDittoLoggingAdapter log = DittoLoggerFactory.getThreadSafeDittoLoggingAdapter(this);
+    private final ThreadSafeDittoLoggingAdapter log = DittoLoggerFactory.getThreadSafeDittoLoggingAdapter(this);
 
     private final GroupedRelation<ActorRef, String> localAckLabels;
     private final Address ownAddress;

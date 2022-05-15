@@ -121,8 +121,7 @@ final class DittoProtocolSubImpl implements DittoProtocolSub {
     public CompletionStage<Void> declareAcknowledgementLabels(
             final Collection<AcknowledgementLabel> acknowledgementLabels,
             final ActorRef subscriber,
-            @Nullable final String group,
-            final boolean resubscribe) {
+            @Nullable final String group) {
         if (acknowledgementLabels.isEmpty()) {
             return CompletableFuture.completedFuture(null);
         }
@@ -131,7 +130,7 @@ final class DittoProtocolSubImpl implements DittoProtocolSub {
         // via the actor supervision strategy
         ensureAcknowledgementLabelsAreFullyResolved(acknowledgementLabels);
 
-        return distributedAcks.declareAcknowledgementLabels(acknowledgementLabels, subscriber, group, resubscribe)
+        return distributedAcks.declareAcknowledgementLabels(acknowledgementLabels, subscriber, group)
                 .thenApply(ack -> null);
     }
 

@@ -1045,10 +1045,11 @@ public final class ConnectionPersistenceActor
                     new ClusterRouterPool(pool, clusterRouterPoolSettings).props(props);
 
             // start client actor without name so it does not conflict with its previous incarnation
-            clientActorRouter = getContext().actorOf(clusterRouterPoolProps);
+            final var routerPool = getContext().actorOf(clusterRouterPoolProps);
+            clientActorRouter = routerPool;
             if (clientCount > 1) {
                 clientActorRefsAggregationActor = getContext().actorOf(
-                        ClientActorRefsAggregationActor.props(clientCount, getSelf(), clientActorRouter,
+                        ClientActorRefsAggregationActor.props(clientCount, getSelf(), routerPool,
                                 connectivityConfig.getClientConfig().getClientActorRefsNotificationDelay(),
                                 clientActorAskTimeout));
             }

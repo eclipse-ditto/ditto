@@ -104,7 +104,7 @@ public interface DittoProtocolSub extends Extension {
      * {@code AcknowledgementLabelNotUniqueException} later.
      */
     CompletionStage<Void> declareAcknowledgementLabels(Collection<AcknowledgementLabel> acknowledgementLabels,
-            ActorRef subscriber, @Nullable String group, final boolean resubscribe);
+            ActorRef subscriber, @Nullable String group);
 
     /**
      * Relinquish any acknowledgement labels declared by a subscriber.
