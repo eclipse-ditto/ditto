@@ -109,7 +109,7 @@ final class ImmutableSearchResultBuilder implements SearchResultBuilder {
     @Override
     public SearchResult build() {
         final JsonArray searchResultsJsonArray = jsonArrayBuilder.build();
-        return ImmutableSearchResult.of(searchResultsJsonArray, offset, cursor, null);
+        return ImmutableSearchResult.of(searchResultsJsonArray, offset, cursor, lastModified);
     }
 
 }
