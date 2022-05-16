@@ -326,7 +326,7 @@ public final class MongoThingsSearchPersistence implements ThingsSearchPersisten
 
     private static Optional<Instant> getModifiedTimestampOptional(final Document doc) {
         try {
-            final var path = List.of(PersistenceConstants.FIELD_THING, PersistenceConstants.FIELD_MODIFIED);
+            final var path = List.of(PersistenceConstants.FIELD_SORTING, PersistenceConstants.FIELD_MODIFIED);
             final var timestampString = doc.getEmbedded(path, String.class);
             if (timestampString != null) {
                 return Optional.of(Instant.parse(timestampString));
