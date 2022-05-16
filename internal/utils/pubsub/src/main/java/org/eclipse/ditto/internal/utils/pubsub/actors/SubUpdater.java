@@ -191,7 +191,10 @@ public final class SubUpdater extends akka.actor.AbstractActorWithTimers
 
     private void checkForLostSubscriber(final Subscribe subscribe, final boolean changed) {
         if (subscribe.isResubscribe() && changed) {
-            log().error("Subscriber was missing from Ditto Pubsub: <{}>", subscribe.getSubscriber());
+            log().error("[RESUB] Subscriber was missing: <{}>", subscribe.getSubscriber());
+            errorCounter++;
+        } else if (subscribe.isResubscribe()) {
+            log().debug("[RESUB] Refreshed subscriber <{}>", subscribe.getSubscriber());
         }
     }
 

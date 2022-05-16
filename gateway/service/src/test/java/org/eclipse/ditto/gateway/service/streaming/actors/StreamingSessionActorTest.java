@@ -48,7 +48,7 @@ import org.eclipse.ditto.gateway.service.streaming.IncomingSignal;
 import org.eclipse.ditto.gateway.service.streaming.Jwt;
 import org.eclipse.ditto.gateway.service.streaming.StartStreaming;
 import org.eclipse.ditto.gateway.service.streaming.StreamingAck;
-import org.eclipse.ditto.internal.models.acks.config.DefaultAcknowledgementConfig;
+import org.eclipse.ditto.gateway.service.util.config.streaming.DefaultStreamingConfig;
 import org.eclipse.ditto.internal.utils.akka.ActorSystemResource;
 import org.eclipse.ditto.internal.utils.pubsub.DittoProtocolSub;
 import org.eclipse.ditto.internal.utils.pubsub.StreamingType;
@@ -373,7 +373,7 @@ public final class StreamingSessionActorTest {
         return StreamingSessionActor.props(getConnect(getAcknowledgementLabels(declaredAcks)),
                 mockSub,
                 commandRouterProbe.ref(),
-                DefaultAcknowledgementConfig.of(ConfigFactory.empty()),
+                DefaultStreamingConfig.of(ConfigFactory.empty()),
                 HeaderTranslator.empty(),
                 Props.create(Actor.class, () -> new TestActor(new LinkedBlockingDeque<>())),
                 mockValidator,
