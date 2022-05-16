@@ -29,13 +29,12 @@ import akka.japi.pf.ReceiveBuilder;
  * A {@link ClientActorPropsFactory} which provides an actor which will throw an exception {@code
  * retriesUntilSuccess} times in its constructor, before it starts up normally.
  */
-public final class FailingActorProvider extends ClientActorPropsFactory {
+public final class FailingActorProvider implements ClientActorPropsFactory {
 
     private final int retriesUntilSuccess;
     private int current = 0;
 
     public FailingActorProvider(final ActorSystem actorSystem) {
-        super(actorSystem);
         retriesUntilSuccess = actorSystem.settings().config().getInt("failingRetries");
     }
 

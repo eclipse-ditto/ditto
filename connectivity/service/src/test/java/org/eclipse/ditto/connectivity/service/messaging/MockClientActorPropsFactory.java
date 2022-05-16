@@ -48,13 +48,12 @@ import akka.cluster.pubsub.DistributedPubSub;
 import akka.cluster.pubsub.DistributedPubSubMediator;
 import akka.event.DiagnosticLoggingAdapter;
 
-public final class MockClientActorPropsFactory extends ClientActorPropsFactory {
+public final class MockClientActorPropsFactory implements ClientActorPropsFactory {
 
     /**
      * @param actorSystem the actor system in which to load the extension.
      */
     public MockClientActorPropsFactory(final ActorSystem actorSystem) {
-        super(actorSystem);
     }
 
     @Override

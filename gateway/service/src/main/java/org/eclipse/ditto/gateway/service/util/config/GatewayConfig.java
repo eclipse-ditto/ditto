@@ -22,7 +22,6 @@ import org.eclipse.ditto.gateway.service.util.config.health.HealthCheckConfig;
 import org.eclipse.ditto.gateway.service.util.config.security.AuthenticationConfig;
 import org.eclipse.ditto.gateway.service.util.config.security.CachesConfig;
 import org.eclipse.ditto.gateway.service.util.config.streaming.StreamingConfig;
-import org.eclipse.ditto.internal.utils.config.KnownConfigValue;
 import org.eclipse.ditto.internal.utils.protocol.config.WithProtocolConfig;
 
 /**
@@ -97,45 +96,4 @@ public interface GatewayConfig extends ServiceSpecificConfig, WithProtocolConfig
      */
     CloudEventsConfig getCloudEventsConfig();
 
-    /**
-     * Returns the full qualified classname of the {@code org.eclipse.ditto.gateway.service.starter.CustomGatewayRootExecutor}
-     * implementation to use for custom executions in {@code GatewayRootActor}.
-     *
-     * @return the full qualified classname of the {@code CustomGatewayRootExecutor} implementation to use.
-     * @since 3.0.0
-     */
-    String getCustomRootExecutor();
-
-    /**
-     * An enumeration of the known config path expressions and their associated default values for
-     * {@code GatewayConfig}.
-     */
-    enum GatewayConfigValue implements KnownConfigValue {
-
-        /**
-         * The full qualified classname of the {@code CustomGatewayRootExecutor} to instantiate.
-         * @since 3.0.0
-         */
-        CUSTOM_ROOT_EXECUTOR("gateway.custom-root-executor",
-                "org.eclipse.ditto.gateway.service.starter.NoOpGatewayRootExecutor");
-
-        private final String path;
-        private final Object defaultValue;
-
-        GatewayConfigValue(final String thePath, final Object theDefaultValue) {
-            path = thePath;
-            defaultValue = theDefaultValue;
-        }
-
-        @Override
-        public Object getDefaultValue() {
-            return defaultValue;
-        }
-
-        @Override
-        public String getConfigPath() {
-            return path;
-        }
-
-    }
 }

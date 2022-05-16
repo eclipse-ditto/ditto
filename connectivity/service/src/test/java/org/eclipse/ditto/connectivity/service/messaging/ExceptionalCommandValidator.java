@@ -22,13 +22,12 @@ import org.eclipse.ditto.connectivity.service.messaging.validation.CustomConnect
 
 import akka.actor.ActorSystem;
 
-public class ExceptionalCommandValidator extends CustomConnectivityCommandInterceptorProvider {
+public class ExceptionalCommandValidator implements CustomConnectivityCommandInterceptorProvider {
 
     /**
      * @param actorSystem the actor system in which to load the extension.
      */
     protected ExceptionalCommandValidator(final ActorSystem actorSystem) {
-        super(actorSystem);
     }
 
     @Override

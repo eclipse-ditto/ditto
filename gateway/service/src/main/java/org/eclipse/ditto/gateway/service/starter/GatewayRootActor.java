@@ -17,6 +17,7 @@ import java.util.function.Supplier;
 
 import org.eclipse.ditto.base.model.headers.DittoHeadersSizeChecker;
 import org.eclipse.ditto.base.model.headers.translator.HeaderTranslator;
+import org.eclipse.ditto.base.service.RootActorStarter;
 import org.eclipse.ditto.base.service.actors.DittoRootActor;
 import org.eclipse.ditto.base.service.config.limits.LimitsConfig;
 import org.eclipse.ditto.connectivity.api.ConnectivityMessagingConstants;
@@ -148,7 +149,7 @@ public final class GatewayRootActor extends DittoRootActor {
                         pubSubMediator,
                         conciergeForwarder));
 
-        CustomGatewayRootExecutor.get(actorSystem).execute(getContext());
+        RootActorStarter.get(actorSystem).execute(getContext());
 
         final ActorRef healthCheckActor = createHealthCheckActor(healthCheckConfig);
         final var hostname = getHostname(httpConfig);

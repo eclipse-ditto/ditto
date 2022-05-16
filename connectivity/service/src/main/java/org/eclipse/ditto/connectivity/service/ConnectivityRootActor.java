@@ -13,12 +13,11 @@
 package org.eclipse.ditto.connectivity.service;
 
 import java.util.concurrent.CompletableFuture;
-import java.util.function.UnaryOperator;
 
 import javax.jms.JMSRuntimeException;
 import javax.naming.NamingException;
 
-import org.eclipse.ditto.base.model.signals.Signal;
+import org.eclipse.ditto.base.service.RootActorStarter;
 import org.eclipse.ditto.base.service.actors.DittoRootActor;
 import org.eclipse.ditto.connectivity.api.ConnectivityMessagingConstants;
 import org.eclipse.ditto.connectivity.service.config.ConnectionIdsRetrievalConfig;
@@ -27,9 +26,7 @@ import org.eclipse.ditto.connectivity.service.messaging.ConnectionIdsRetrievalAc
 import org.eclipse.ditto.connectivity.service.messaging.ConnectivityProxyActor;
 import org.eclipse.ditto.connectivity.service.messaging.persistence.ConnectionPersistenceOperationsActor;
 import org.eclipse.ditto.connectivity.service.messaging.persistence.ConnectionPersistenceStreamingActorCreator;
-import org.eclipse.ditto.connectivity.service.messaging.persistence.ConnectionPriorityProviderFactory;
 import org.eclipse.ditto.connectivity.service.messaging.persistence.ConnectionSupervisorActor;
-import org.eclipse.ditto.connectivity.service.messaging.persistence.UsageBasedPriorityProvider;
 import org.eclipse.ditto.edge.api.dispatching.ConciergeForwarderActor;
 import org.eclipse.ditto.edge.api.dispatching.ShardRegions;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
@@ -115,7 +112,7 @@ public final class ConnectivityRootActor extends DittoRootActor {
                 ConnectionPersistenceOperationsActor.props(pubSubMediator, connectivityConfig.getMongoDbConfig(),
                         actorSystem.settings().config(), connectivityConfig.getPersistenceOperationsConfig()));
 
-        CustomConnectivityRootExecutor.get(actorSystem).execute(getContext());
+        RootActorStarter.get(actorSystem).execute(getContext());
 
         final var cleanupConfig = connectivityConfig.getConnectionConfig().getCleanupConfig();
         final var cleanupActorProps = PersistenceCleanupActor.props(cleanupConfig, mongoReadJournal, CLUSTER_ROLE);
@@ -127,6 +124,7 @@ public final class ConnectivityRootActor extends DittoRootActor {
 
     private static Props getConnectivitySupervisorActorProps(final ActorRef pubSubMediator,
             final ActorRef proxyActor) {
+
         return ConnectionSupervisorActor.props(proxyActor, pubSubMediator, providePreEnforcer());
     }
 

@@ -35,10 +35,9 @@ import akka.actor.Props;
  * and otherwise returns the already created instance.
  */
 @Immutable
-public final class DefaultClientActorPropsFactory extends ClientActorPropsFactory {
+public final class DefaultClientActorPropsFactory implements ClientActorPropsFactory {
 
     public DefaultClientActorPropsFactory(final ActorSystem actorSystem) {
-        super(actorSystem);
     }
 
     @Override

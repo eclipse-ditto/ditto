@@ -32,13 +32,12 @@ import akka.cluster.pubsub.DistributedPubSubMediator;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.pf.ReceiveBuilder;
 
-public final class SearchForwardingClientActorPropsFactory extends ClientActorPropsFactory {
+public final class SearchForwardingClientActorPropsFactory implements ClientActorPropsFactory {
 
     /**
      * @param actorSystem the actor system in which to load the extension.
      */
     public SearchForwardingClientActorPropsFactory(final ActorSystem actorSystem) {
-        super(actorSystem);
     }
 
     @Override

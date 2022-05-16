@@ -12,8 +12,6 @@
  */
 package org.eclipse.ditto.gateway.service.util.config;
 
-import java.util.Objects;
-
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.service.config.DittoServiceConfig;
@@ -38,7 +36,6 @@ import org.eclipse.ditto.gateway.service.util.config.security.DefaultCachesConfi
 import org.eclipse.ditto.gateway.service.util.config.streaming.DefaultStreamingConfig;
 import org.eclipse.ditto.gateway.service.util.config.streaming.StreamingConfig;
 import org.eclipse.ditto.internal.utils.cluster.config.ClusterConfig;
-import org.eclipse.ditto.internal.utils.config.ConfigWithFallback;
 import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import org.eclipse.ditto.internal.utils.config.WithConfigPath;
 import org.eclipse.ditto.internal.utils.metrics.config.MetricsConfig;
@@ -66,7 +63,6 @@ public final class DittoGatewayConfig implements GatewayConfig, WithConfigPath {
     private final StreamingConfig streamingConfig;
     private final PublicHealthConfig publicHealthConfig;
     private final DefaultCloudEventsConfig cloudEventsConfig;
-    private final String customRootExecutor;
 
     private DittoGatewayConfig(final ScopedConfig dittoScopedConfig) {
 
@@ -82,7 +78,6 @@ public final class DittoGatewayConfig implements GatewayConfig, WithConfigPath {
         streamingConfig = DefaultStreamingConfig.of(dittoServiceConfig);
         publicHealthConfig = DefaultPublicHealthConfig.of(dittoServiceConfig);
         cloudEventsConfig = DefaultCloudEventsConfig.of(dittoServiceConfig);
-        customRootExecutor = dittoScopedConfig.getString(GatewayConfigValue.CUSTOM_ROOT_EXECUTOR.getConfigPath());
     }
 
     /**
@@ -94,7 +89,7 @@ public final class DittoGatewayConfig implements GatewayConfig, WithConfigPath {
      * @throws org.eclipse.ditto.internal.utils.config.DittoConfigError if {@code config} is invalid.
      */
     public static DittoGatewayConfig of(final ScopedConfig dittoScopedConfig) {
-        return new DittoGatewayConfig(ConfigWithFallback.newInstance(dittoScopedConfig, GatewayConfigValue.values()));
+        return new DittoGatewayConfig(dittoScopedConfig);
     }
 
     @Override
@@ -172,11 +167,6 @@ public final class DittoGatewayConfig implements GatewayConfig, WithConfigPath {
         return cloudEventsConfig;
     }
 
-    @Override
-    public String getCustomRootExecutor() {
-        return customRootExecutor;
-    }
-
     /**
      * @return always {@value #CONFIG_PATH}.
      */
@@ -185,55 +175,4 @@ public final class DittoGatewayConfig implements GatewayConfig, WithConfigPath {
         return CONFIG_PATH;
     }
 
-    @Override
-    public boolean equals(final Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
-        final DittoGatewayConfig that = (DittoGatewayConfig) o;
-        return Objects.equals(dittoServiceConfig, that.dittoServiceConfig) &&
-                Objects.equals(protocolConfig, that.protocolConfig) &&
-                Objects.equals(httpConfig, that.httpConfig) &&
-                Objects.equals(cachesConfig, that.cachesConfig) &&
-                Objects.equals(healthCheckConfig, that.healthCheckConfig) &&
-                Objects.equals(commandConfig, that.commandConfig) &&
-                Objects.equals(messageConfig, that.messageConfig) &&
-                Objects.equals(claimMessageConfig, that.claimMessageConfig) &&
-                Objects.equals(authenticationConfig, that.authenticationConfig) &&
-                Objects.equals(streamingConfig, that.streamingConfig) &&
-                Objects.equals(publicHealthConfig, that.publicHealthConfig) &&
-                Objects.equals(cloudEventsConfig, that.cloudEventsConfig) &&
-                Objects.equals(customRootExecutor, that.customRootExecutor);
-
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(dittoServiceConfig, protocolConfig, httpConfig, cachesConfig, healthCheckConfig,
-                commandConfig,
-                messageConfig, claimMessageConfig, authenticationConfig, streamingConfig,
-                publicHealthConfig, cloudEventsConfig, customRootExecutor);
-    }
-
-    @Override
-    public String toString() {
-        return getClass().getSimpleName() + " [" +
-                "dittoServiceConfig=" + dittoServiceConfig +
-                ", protocolConfig=" + protocolConfig +
-                ", httpConfig=" + httpConfig +
-                ", cachesConfig=" + cachesConfig +
-                ", healthCheckConfig=" + healthCheckConfig +
-                ", commandConfig=" + commandConfig +
-                ", messageConfig=" + messageConfig +
-                ", claimMessageConfig=" + claimMessageConfig +
-                ", authenticationConfig=" + authenticationConfig +
-                ", streamingConfig=" + streamingConfig +
-                ", publicHealthConfig=" + publicHealthConfig +
-                ", cloudEventsConfig=" + cloudEventsConfig +
-                ", customRootExecutor=" + customRootExecutor +
-                "]";
-    }
 }

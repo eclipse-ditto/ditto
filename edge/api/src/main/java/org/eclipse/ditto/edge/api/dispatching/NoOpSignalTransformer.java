@@ -18,13 +18,12 @@ import org.eclipse.ditto.base.model.signals.Signal;
 
 import akka.actor.ActorSystem;
 
-public class NoOpSignalTransformer extends SignalTransformer{
+public class NoOpSignalTransformer implements SignalTransformer{
 
     /**
      * @param actorSystem the actor system in which to load the extension.
      */
     protected NoOpSignalTransformer(final ActorSystem actorSystem) {
-        super(actorSystem);
     }
 
     @Override

@@ -17,13 +17,12 @@ import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapt
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 
-public class UsageBasedPriorityProviderFactory extends ConnectionPriorityProviderFactory {
+public class UsageBasedPriorityProviderFactory implements ConnectionPriorityProviderFactory {
 
     /**
      * @param actorSystem the actor system in which to load the extension.
      */
     protected UsageBasedPriorityProviderFactory(final ActorSystem actorSystem) {
-        super(actorSystem);
     }
 
     @Override

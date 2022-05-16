@@ -22,13 +22,13 @@ import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
 
-public class ExceptionClientActorPropsFactory extends ClientActorPropsFactory{
+public class ExceptionClientActorPropsFactory implements ClientActorPropsFactory{
 
     /**
      * @param actorSystem the actor system in which to load the extension.
      */
     protected ExceptionClientActorPropsFactory(final ActorSystem actorSystem) {
-        super(actorSystem);
+
     }
 
     @Override

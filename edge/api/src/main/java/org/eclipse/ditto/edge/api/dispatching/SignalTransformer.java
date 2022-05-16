@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.edge.api.dispatching;
 
+import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
+
 import java.util.List;
 import java.util.function.UnaryOperator;
 
@@ -20,24 +22,11 @@ import org.eclipse.ditto.base.service.DittoExtensionPoint;
 import org.eclipse.ditto.internal.utils.akka.AkkaClassLoader;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 
-import akka.actor.AbstractExtensionId;
 import akka.actor.ActorSystem;
-import akka.actor.ExtendedActorSystem;
 
-public abstract class SignalTransformer implements DittoExtensionPoint, UnaryOperator<Signal<?>> {
+public interface SignalTransformer extends DittoExtensionPoint, UnaryOperator<Signal<?>> {
 
-    private static final ExtensionId EXTENSION_ID = new ExtensionId();
-
-    private static final String CONFIG_PATH = "signal-transformer";
-
-    protected final ActorSystem actorSystem;
-
-    /**
-     * @param actorSystem the actor system in which to load the extension.
-     */
-    protected SignalTransformer(final ActorSystem actorSystem) {
-        this.actorSystem = actorSystem;
-    }
+    static final String CONFIG_PATH = "signal-transformer";
 
     /**
      * Loads the implementation of {@code SignalTransformer} which is configured for the
@@ -47,21 +36,14 @@ public abstract class SignalTransformer implements DittoExtensionPoint, UnaryOpe
      * @return the {@code SignalTransformer} implementation.
      * @throws NullPointerException if {@code actorSystem} is {@code null}.
      */
-    public static SignalTransformer get(final ActorSystem actorSystem) {
-        return EXTENSION_ID.get(actorSystem);
-    }
+    static SignalTransformer get(final ActorSystem actorSystem) {
+        checkNotNull(actorSystem, "actorSystem");
+        final DefaultScopedConfig dittoScoped = DefaultScopedConfig.dittoScoped(actorSystem.settings().config());
+        final var implementation = dittoScoped.getString(CONFIG_PATH);
 
-    private static final class ExtensionId extends AbstractExtensionId<SignalTransformer> {
-
-        @Override
-        public SignalTransformer createExtension(final ExtendedActorSystem system) {
-            final DefaultScopedConfig dittoScoped = DefaultScopedConfig.dittoScoped(system.settings().config());
-            final var implementation = dittoScoped.getString(CONFIG_PATH);
-
-            return AkkaClassLoader.instantiate(system, SignalTransformer.class,
-                    implementation,
-                    List.of(ActorSystem.class),
-                    List.of(system));
-        }
+        return AkkaClassLoader.instantiate(actorSystem, SignalTransformer.class,
+                implementation,
+                List.of(ActorSystem.class),
+                List.of(actorSystem));
     }
 }

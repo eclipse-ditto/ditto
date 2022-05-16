@@ -10,20 +10,20 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.gateway.service.starter;
+package org.eclipse.ditto.base.service;
 
 import akka.actor.ActorContext;
 import akka.actor.ActorSystem;
 
 /**
- * Gateway root executor that does purposefully nothing.
+ * Root actor starter that does purposefully nothing.
  */
-public final class NoOpGatewayRootExecutor implements CustomGatewayRootExecutor {
+public final class NoOpRootActorStarter implements RootActorStarter {
 
     /**
      * @param actorSystem the actor system in which to load the extension.
      */
-    public NoOpGatewayRootExecutor(final ActorSystem actorSystem) {
+    public NoOpRootActorStarter(final ActorSystem actorSystem) {
         //No-Op because extensions need a constructor accepting an actorSystem
     }
 

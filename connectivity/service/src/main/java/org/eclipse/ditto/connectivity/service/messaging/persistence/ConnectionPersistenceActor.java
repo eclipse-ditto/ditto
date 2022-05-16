@@ -547,7 +547,16 @@ public final class ConnectionPersistenceActor
                 interpretStagedCommand(command.next());
                 break;
             case PASSIVATE:
-                // This actor will stop. Subsequent actions are ignored.
+                //TODO: Should be done correctly with connection enforcement. Right now the passivation is
+                // faster then the command response enforcement. Thus leading to undelivered messages to a dead
+                // enforcer Actor.
+                try {
+                    Thread.sleep(1000);
+                } catch(Exception e) {
+                    throw new IllegalStateException(e);
+                }
+                //This actor will stop. Subsequent actions are ignored.
+                log.debug("Passivating");
                 passivate();
                 break;
             case OPEN_CONNECTION:

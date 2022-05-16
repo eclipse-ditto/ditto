@@ -10,23 +10,26 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.gateway.service.starter;
+package org.eclipse.ditto.base.service;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
-import org.eclipse.ditto.base.service.DittoExtensionPoint;
-import org.eclipse.ditto.gateway.service.util.config.DittoGatewayConfig;
+import java.util.List;
+
+import org.eclipse.ditto.internal.utils.akka.AkkaClassLoader;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 
 import akka.actor.ActorContext;
 import akka.actor.ActorSystem;
 
 /**
- * Executor for custom code in gateway root. Can be used i.e. to start custom actors.
+ * Extension to start custom child actors in root actor.
  *
  * @since 3.0.0
  */
-public interface CustomGatewayRootExecutor extends DittoExtensionPoint {
+public interface RootActorStarter extends DittoExtensionPoint {
+
+    static final String CONFIG_PATH = "root-actor-starter";
 
     /**
      * Execute custom custom code.
@@ -36,19 +39,21 @@ public interface CustomGatewayRootExecutor extends DittoExtensionPoint {
     void execute(ActorContext actorContext);
 
     /**
-     * Loads the implementation of {@code CustomGatewayRootExecutor} which is configured for the
+     * Loads the implementation of {@code RootActorStarter} which is configured for the
      * {@code ActorSystem}.
      *
-     * @param actorSystem the actorSystem in which the {@code CustomGatewayRootExecutor} should be loaded.
-     * @return the {@code CustomGatewayRootExecutor} implementation.
+     * @param actorSystem the actorSystem in which the {@code RootActorStarter} should be loaded.
+     * @return the {@code RootActorStarter} implementation.
      * @throws NullPointerException if {@code actorSystem} is {@code null}.
      */
-    static CustomGatewayRootExecutor get(final ActorSystem actorSystem) {
+    static RootActorStarter get(final ActorSystem actorSystem) {
         checkNotNull(actorSystem, "actorSystem");
-        final var implementation =
-                DittoGatewayConfig.of(DefaultScopedConfig.dittoScoped(actorSystem.settings().config()))
-                        .getCustomRootExecutor();
+        final DefaultScopedConfig dittoScoped = DefaultScopedConfig.dittoScoped(actorSystem.settings().config());
+        final var implementation = dittoScoped.getString(CONFIG_PATH);
 
-        return new ExtensionId<>(implementation, CustomGatewayRootExecutor.class).get(actorSystem);
+        return AkkaClassLoader.instantiate(actorSystem, RootActorStarter.class,
+                implementation,
+                List.of(ActorSystem.class),
+                List.of(actorSystem));
     }
 }

@@ -20,13 +20,12 @@ import org.eclipse.ditto.connectivity.model.signals.commands.ConnectivityCommand
 
 import akka.actor.ActorSystem;
 
-public class NoOpConnectivityCommandInterceptorProvider extends CustomConnectivityCommandInterceptorProvider{
+public class NoOpConnectivityCommandInterceptorProvider implements CustomConnectivityCommandInterceptorProvider{
 
     /**
      * @param actorSystem the actor system in which to load the extension.
      */
     protected NoOpConnectivityCommandInterceptorProvider(final ActorSystem actorSystem) {
-        super(actorSystem);
     }
 
     @Override

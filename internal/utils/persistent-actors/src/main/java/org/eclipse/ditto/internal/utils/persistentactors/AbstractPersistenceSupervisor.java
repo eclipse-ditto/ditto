@@ -350,6 +350,7 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
             assert entityId != null;
             final ActorRef enRef = getContext().actorOf(getPersistenceEnforcerProps(entityId), "en");
             enforcerChild = getContext().watch(enRef);
+            log.debug("Now watching enforcer child: <{}>", enRef);
         } else {
             log.debug("Not starting persistence enforcer child actor because it is started already.");
         }
