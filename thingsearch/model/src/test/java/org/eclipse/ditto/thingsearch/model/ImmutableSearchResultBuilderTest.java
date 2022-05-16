@@ -14,6 +14,8 @@ package org.eclipse.ditto.thingsearch.model;
 
 import static org.eclipse.ditto.thingsearch.model.assertions.DittoSearchAssertions.assertThat;
 
+import java.time.Instant;
+
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonFactory;
 import org.junit.Before;
@@ -110,6 +112,14 @@ public final class ImmutableSearchResultBuilderTest {
         assertThat(searchResult)
                 .hasNextPageOffset(expectedNextPageOffset)
                 .isEmpty();
+    }
+
+    @Test
+    public void setLastModified() {
+        final Instant expectedLastModified = Instant.now();
+        final SearchResult searchResult = underTest.lastModified(expectedLastModified).build();
+
+        assertThat(searchResult.getLastModified()).contains(expectedLastModified);
     }
 
     @Test(expected = NullPointerException.class)
