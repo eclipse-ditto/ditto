@@ -18,6 +18,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.stream.Collectors;
 
+import org.eclipse.ditto.base.service.DittoExtensionPoint;
 import org.eclipse.ditto.internal.utils.akka.AkkaClassLoader;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.internal.utils.metrics.instruments.timer.StartedTimer;
@@ -31,7 +32,6 @@ import akka.NotUsed;
 import akka.actor.AbstractExtensionId;
 import akka.actor.ActorSystem;
 import akka.actor.ExtendedActorSystem;
-import akka.actor.Extension;
 import akka.stream.javadsl.Source;
 
 /**
@@ -41,7 +41,7 @@ import akka.stream.javadsl.Source;
  *
  * @since 2.1.0
  */
-public abstract class SearchUpdateMapper implements Extension {
+public abstract class SearchUpdateMapper implements DittoExtensionPoint {
 
     private static final ExtensionId EXTENSION_ID = new ExtensionId();
 

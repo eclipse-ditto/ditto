@@ -12,24 +12,24 @@
  */
 package org.eclipse.ditto.base.service;
 
+import akka.actor.ActorContext;
 import akka.actor.ActorSystem;
 
 /**
- * Root actor starter that does purposefully nothing.
+ * Root actor child starter that does purposefully nothing.
  */
-public final class NoOpRootActorStarter implements RootActorStarter {
+public final class NoOpRootChildActorStarter implements RootChildActorStarter {
 
     /**
      * @param actorSystem the actor system in which to load the extension.
      */
-    public NoOpRootActorStarter(final ActorSystem actorSystem) {
+    public NoOpRootChildActorStarter(final ActorSystem actorSystem) {
         //No-Op because extensions need a constructor accepting an actorSystem
     }
 
     @Override
-    public void execute() {
+    public void execute(final ActorContext actorContext) {
         // Do nothing.
     }
 
 }
-

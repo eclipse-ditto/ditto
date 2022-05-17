@@ -23,13 +23,12 @@ import akka.actor.ActorSystem;
  * Default {@link QueryCriteriaValidator},
  * who parses QueryCriteria without additional validation.
  */
-public final class DefaultQueryCriteriaValidator extends QueryCriteriaValidator {
+public final class DefaultQueryCriteriaValidator implements QueryCriteriaValidator {
 
     /**
      * Instantiate this provider. Called by reflection.
      */
     public DefaultQueryCriteriaValidator(final ActorSystem actorSystem) {
-        super(actorSystem);
         // Nothing to initialize.
     }
 

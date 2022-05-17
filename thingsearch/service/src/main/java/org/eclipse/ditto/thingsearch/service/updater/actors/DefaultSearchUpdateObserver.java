@@ -22,7 +22,7 @@ import akka.actor.ActorSystem;
 /**
  * Default SearchUpdateObserver implementation.
  */
-public class DefaultSearchUpdateObserver extends SearchUpdateObserver {
+public class DefaultSearchUpdateObserver implements SearchUpdateObserver {
 
     public DefaultSearchUpdateObserver(final ActorSystem system) {
         // nothing to do

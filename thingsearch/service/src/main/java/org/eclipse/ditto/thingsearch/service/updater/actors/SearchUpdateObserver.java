@@ -12,21 +12,20 @@
  */
 package org.eclipse.ditto.thingsearch.service.updater.actors;
 
+import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
+
 import java.util.List;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.base.service.DittoExtensionPoint;
 import org.eclipse.ditto.internal.utils.akka.AkkaClassLoader;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.thingsearch.service.common.config.DittoSearchConfig;
-import org.eclipse.ditto.thingsearch.service.common.config.SearchConfig;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.Metadata;
 
-import akka.actor.AbstractExtensionId;
 import akka.actor.ActorSystem;
-import akka.actor.ExtendedActorSystem;
-import akka.actor.Extension;
 
 /**
  * Search update observer to be loaded by reflection.
@@ -35,19 +34,7 @@ import akka.actor.Extension;
  *
  * @since 2.3.0
  */
-public abstract class SearchUpdateObserver implements Extension {
-
-    private static final SearchUpdateObserver.ExtensionId EXTENSION_ID = new SearchUpdateObserver.ExtensionId();
-
-    /**
-     * Load a {@code SearchUpdateObserver} dynamically according to the search configuration.
-     *
-     * @param actorSystem the actor system in which to load the observer.
-     * @return the thing event observer.
-     */
-    public static SearchUpdateObserver get(final ActorSystem actorSystem) {
-        return EXTENSION_ID.get(actorSystem);
-    }
+public interface SearchUpdateObserver extends DittoExtensionPoint {
 
     /**
      * Process the given {@code Metadata} and thing as {@code JsonObject}.
@@ -55,22 +42,25 @@ public abstract class SearchUpdateObserver implements Extension {
      * @param metadata the metadata for the update.
      * @param thingJson the thing used for the update as jsonObject.
      */
-    public abstract void process(final Metadata metadata, @Nullable final JsonObject thingJson);
-
+    public void process(final Metadata metadata, @Nullable final JsonObject thingJson);
 
     /**
-     * ID of the actor system extension to validate the {@code SearchUpdateObserver}.
+     * Loads the implementation of {@code SearchUpdateObserver} which is configured for the
+     * {@code ActorSystem}.
+     *
+     * @param actorSystem the actorSystem in which the {@code SearchUpdateObserver} should be loaded.
+     * @return the {@code SearchUpdateObserver} implementation.
+     * @throws NullPointerException if {@code actorSystem} is {@code null}.
      */
-    private static final class ExtensionId extends AbstractExtensionId<SearchUpdateObserver> {
+    static SearchUpdateObserver get(final ActorSystem actorSystem) {
+        checkNotNull(actorSystem, "actorSystem");
+        final var implementation = DittoSearchConfig.of(DefaultScopedConfig.dittoScoped(
+                actorSystem.settings().config())).getSearchUpdateObserverImplementation();
 
-        @Override
-        public SearchUpdateObserver createExtension(final ExtendedActorSystem system) {
-            final SearchConfig searchConfig =
-                    DittoSearchConfig.of(DefaultScopedConfig.dittoScoped(system.settings().config()));
-
-            return AkkaClassLoader.instantiate(system, SearchUpdateObserver.class,
-                    searchConfig.getSearchUpdateObserverImplementation(), List.of(ActorSystem.class), List.of(system));
-        }
+        return AkkaClassLoader.instantiate(actorSystem, SearchUpdateObserver.class,
+                implementation,
+                List.of(ActorSystem.class),
+                List.of(actorSystem));
     }
 
 }

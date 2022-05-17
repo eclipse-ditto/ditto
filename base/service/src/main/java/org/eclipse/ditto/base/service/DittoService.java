@@ -18,13 +18,10 @@ import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 import java.lang.management.ManagementFactory;
 import java.text.MessageFormat;
 import java.time.Duration;
-import java.util.Collection;
-import java.util.Collections;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
 import javax.annotation.Nullable;
-import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.base.model.common.DittoSystemProperties;
@@ -80,8 +77,6 @@ import kamon.prometheus.PrometheusReporter;
  * <ol>
  * <li>{@link #getMainRootActorProps(org.eclipse.ditto.base.service.config.ServiceSpecificConfig, akka.actor.ActorRef)},</li>
  * <li>{@link #startMainRootActor(akka.actor.ActorSystem, akka.actor.Props)},</li>
- * <li>{@link #getAdditionalRootActorsInformation(org.eclipse.ditto.base.service.config.ServiceSpecificConfig, akka.actor.ActorSystem)} and</li>
- * <li>{@link #startAdditionalRootActors(akka.actor.ActorSystem, Iterable)}.</li>
  * </ol>
  * </li>
  * </ol>
@@ -391,8 +386,6 @@ public abstract class DittoService<C extends ServiceSpecificConfig> {
      * <ul>
      * <li>{@link #getMainRootActorProps(org.eclipse.ditto.base.service.config.ServiceSpecificConfig, akka.actor.ActorRef)},</li>
      * <li>{@link #startMainRootActor(akka.actor.ActorSystem, akka.actor.Props)},</li>
-     * <li>{@link #getAdditionalRootActorsInformation(org.eclipse.ditto.base.service.config.ServiceSpecificConfig, akka.actor.ActorSystem)} and</li>
-     * <li>{@link #startAdditionalRootActors(akka.actor.ActorSystem, Iterable)}.</li>
      * </ul>
      *
      * @param actorSystem Akka actor system for starting actors.
@@ -409,8 +402,7 @@ public abstract class DittoService<C extends ServiceSpecificConfig> {
             injectSystemPropertiesLimits(serviceSpecificConfig);
 
             startMainRootActor(actorSystem, getMainRootActorProps(serviceSpecificConfig, pubSubMediator));
-            startAdditionalRootActors(actorSystem, getAdditionalRootActorsInformation(serviceSpecificConfig,
-                    actorSystem));
+            RootActorStarter.get(actorSystem).execute();
         });
     }
 
@@ -459,34 +451,6 @@ public abstract class DittoService<C extends ServiceSpecificConfig> {
         return startActor(actorSystem, mainRootActorProps, rootActorName);
     }
 
-    /**
-     * May be overridden to return information of additional root actors of this service.
-     * <em>The base implementation returns an empty collection.</em>
-     *
-     * @param serviceSpecificConfig the specific configuration of this service.
-     * @param actorSystem the actor system.
-     * @return the additional root actors information.
-     */
-    protected Collection<RootActorInformation> getAdditionalRootActorsInformation(final C serviceSpecificConfig,
-            final ActorSystem actorSystem) {
-        return Collections.emptyList();
-    }
-
-    /**
-     * Starts additional root actors of this service. May be overridden to change the way how additional root actors
-     * will be started.
-     *
-     * @param actorSystem Akka actor system for starting actors.
-     * @param additionalRootActorsInformation information of additional root actors to be started.
-     */
-    protected void startAdditionalRootActors(final ActorSystem actorSystem,
-            final Iterable<RootActorInformation> additionalRootActorsInformation) {
-
-        for (final RootActorInformation rootActorInformation : additionalRootActorsInformation) {
-            startActor(actorSystem, rootActorInformation.props, rootActorInformation.name);
-        }
-    }
-
     private void setUpCoordinatedShutdown(final ActorSystem actorSystem) {
         final var coordinatedShutdown = CoordinatedShutdown.get(actorSystem);
 
@@ -510,38 +474,6 @@ public abstract class DittoService<C extends ServiceSpecificConfig> {
                     loggerContext.stop();
                     return CompletableFuture.completedFuture(Done.getInstance());
                 });
-    }
-
-    /**
-     * This class bundles meta information of this service's root actor.
-     */
-    @Immutable
-    public static final class RootActorInformation {
-
-        private final Props props;
-        private final String name;
-
-        private RootActorInformation(final Props theProps, final String theName) {
-            props = theProps;
-            name = theName;
-        }
-
-        /**
-         * Returns an instance of {@code RootActorInformation}.
-         *
-         * @param props the Props of the root actor.
-         * @param name the name of the root actor.
-         * @return the instance.
-         * @throws NullPointerException if any argument is {@code null}.
-         * @throws IllegalArgumentException if {@code name} is empty.
-         */
-        public static RootActorInformation getInstance(final Props props, final String name) {
-            checkNotNull(props, "root actor props");
-            argumentNotEmpty(name, "root actor name");
-
-            return new RootActorInformation(props, name);
-        }
-
     }
 
 }
