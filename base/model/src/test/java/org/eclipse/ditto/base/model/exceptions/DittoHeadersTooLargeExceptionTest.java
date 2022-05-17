@@ -38,7 +38,7 @@ public final class DittoHeadersTooLargeExceptionTest {
 
         assertThat(json).isEqualTo(JsonFactory.newObject("{" +
                 "\"status\":431," +
-                "\"error\":\"general:headers.too.large\"," +
+                "\"error\":\"headers.too.large\"," +
                 "\"message\":\"The headers are too large.\"," +
                 "\"description\":\"The number of bytes exceeded the maximum allowed value <5>!\"" +
                 "}"));
@@ -57,7 +57,7 @@ public final class DittoHeadersTooLargeExceptionTest {
 
         assertThat(json).isEqualTo(JsonFactory.newObject("{" +
                 "\"status\":431," +
-                "\"error\":\"general:headers.too.large\"," +
+                "\"error\":\"headers.too.large\"," +
                 "\"message\":\"The headers are too large.\"," +
                 "\"description\":\"The number of authorization subjects <1> exceeded the maximum allowed value <2>.\"" +
                 "}"));

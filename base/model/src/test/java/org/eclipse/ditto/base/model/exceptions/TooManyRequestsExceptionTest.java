@@ -34,7 +34,7 @@ public class TooManyRequestsExceptionTest {
 
     final JsonObject KNOWN_JSON = JsonFactory.newObject("{\n" +
             "  \"status\": 429,\n" +
-            "  \"error\": \"general:too.many.requests\",\n" +
+            "  \"error\": \"too.many.requests\",\n" +
             "  \"message\": \"You made too many requests.\",\n" +
             "  \"description\": \"Try again soon.\"\n" +
             "}");
