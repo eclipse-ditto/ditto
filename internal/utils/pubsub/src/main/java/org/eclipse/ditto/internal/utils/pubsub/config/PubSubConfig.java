@@ -47,6 +47,11 @@ public interface PubSubConfig {
     Duration getSyncInterval();
 
     /**
+     * @return Probability to reset the distributed data of a subscriber.
+     */
+    double getResetProbability();
+
+    /**
      * Create a {@code PubSubConfig} object from a {@code Config} object at the key {@code pubsub}.
      *
      * @param config config with path {@code pubsub}.
@@ -96,7 +101,12 @@ public interface PubSubConfig {
          * How often to sync distributed data against cluster state.
          * There is an additional random delay between 0 and 100% of the configured value.
          */
-        SYNC_INTERVAL("sync-interval", Duration.ofMinutes(5L));
+        SYNC_INTERVAL("sync-interval", Duration.ofMinutes(5L)),
+
+        /**
+         * Probability to reset the distributed data of a subscriber.
+         */
+        RESET_PROBABILITY("reset-probability", 0.01);
 
         private final String path;
         private final Object defaultValue;

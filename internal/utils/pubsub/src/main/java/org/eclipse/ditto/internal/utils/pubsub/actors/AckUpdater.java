@@ -79,12 +79,13 @@ public final class AckUpdater extends AbstractActorWithTimers implements Cluster
     private final Gauge ackSizeMetric;
     private final Map<Key<?>, Map<Address, List<Grouped<String>>>> cachedRemoteAcks;
     private final Cluster cluster;
+    private final double resetProbability;
 
     private Map<String, Set<String>> remoteAckLabels = Map.of();
     private Map<String, Set<String>> remoteGroups = Map.of();
     private LiteralUpdate previousUpdate = LiteralUpdate.empty();
 
-    protected AckUpdater(final PubSubConfig config,
+    private AckUpdater(final PubSubConfig config,
             final Address ownAddress,
             final DData<Address, String, LiteralUpdate> ackDData) {
         this.ownAddress = ownAddress;
@@ -95,6 +96,7 @@ public final class AckUpdater extends AbstractActorWithTimers implements Cluster
         ackSizeMetric = DittoMetrics.gauge("pubsub-ack-size-bytes");
         cachedRemoteAcks = new HashMap<>();
         cluster = Cluster.get(getContext().getSystem());
+        resetProbability = config.getResetProbability();
         subscribeForClusterMemberRemovedAware();
         ackDData.getReader().receiveChanges(getSelf());
         getTimers().startTimerAtFixedRate(Clock.TICK, Clock.TICK, config.getUpdateInterval());
@@ -319,28 +321,42 @@ public final class AckUpdater extends AbstractActorWithTimers implements Cluster
 
     // NOT thread-safe
     private void writeLocalDData() {
-        final LiteralUpdate diff = createAndSetDDataUpdate();
-        if (!diff.isEmpty()) {
-            ackDData.getWriter()
-                    .put(ownAddress, diff, (Replicator.WriteConsistency) Replicator.writeLocal())
-                    .whenComplete((unused, error) -> {
-                        if (error != null) {
-                            log.error(error, "Failed to update local DData");
-                        }
-                    });
+        final var writeConsistency = (Replicator.WriteConsistency) Replicator.writeLocal();
+        if (resetProbability > 0 && Math.random() < resetProbability) {
+            ackDData.getWriter().reset(ownAddress, exportNextUpdate(), writeConsistency).whenComplete(this::logError);
+        } else {
+            final LiteralUpdate diff = createAndSetDDataUpdate();
+            if (!diff.isEmpty()) {
+                ackDData.getWriter().put(ownAddress, diff, writeConsistency).whenComplete(this::logError);
+            }
         }
     }
 
-    // NOT thread-safe
+    private void logError(@Nullable final Object unused, @Nullable final Throwable error) {
+        if (error != null) {
+            log.error(error, "Failed to update local DData");
+        }
+    }
+
     private LiteralUpdate createAndSetDDataUpdate() {
+        final var nextUpdate = exportNextUpdate();
+        final LiteralUpdate diff = nextUpdate.diff(previousUpdate);
+        previousUpdate = nextUpdate;
+        return diff;
+    }
+
+    private LiteralUpdate createAndResetDDataUpdate() {
+        final var nextUpdate = exportNextUpdate();
+        previousUpdate = nextUpdate;
+        return nextUpdate;
+    }
+
+    private LiteralUpdate exportNextUpdate() {
         final Set<String> groupedAckLabels = localAckLabels.exportValuesByGroup()
                 .stream()
                 .map(Grouped::toJsonString)
                 .collect(Collectors.toSet());
-        final var nextUpdate = LiteralUpdate.withInserts(groupedAckLabels);
-        final LiteralUpdate diff = nextUpdate.diff(previousUpdate);
-        previousUpdate = nextUpdate;
-        return diff;
+        return LiteralUpdate.withInserts(groupedAckLabels);
     }
 
     private void failSubscribe(final ActorRef sender) {

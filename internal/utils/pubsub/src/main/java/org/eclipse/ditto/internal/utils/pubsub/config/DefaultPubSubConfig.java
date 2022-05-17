@@ -40,12 +40,14 @@ final class DefaultPubSubConfig implements PubSubConfig {
     private final Duration restartDelay;
     private final Duration updateInterval;
     private final Duration syncInterval;
+    private final double resetProbability;
 
     private DefaultPubSubConfig(final ConfigWithFallback config) {
         seed = config.getString(ConfigValue.SEED.getConfigPath());
         restartDelay = config.getDuration(ConfigValue.RESTART_DELAY.getConfigPath());
         updateInterval = config.getDuration(ConfigValue.UPDATE_INTERVAL.getConfigPath());
         syncInterval = config.getDuration(ConfigValue.SYNC_INTERVAL.getConfigPath());
+        resetProbability = config.getDouble(ConfigValue.RESET_PROBABILITY.getConfigPath());
     }
 
     static PubSubConfig of(final Config config) {
@@ -72,18 +74,22 @@ final class DefaultPubSubConfig implements PubSubConfig {
         return syncInterval;
     }
 
+    @Override
+    public double getResetProbability() {
+        return resetProbability;
+    }
+
     private String[] getFieldNames() {
-        return new String[]{"seed", "restartDelay", "updateInterval", "syncInterval"};
+        return new String[]{"seed", "restartDelay", "updateInterval", "syncInterval", "resetProbability"};
     }
 
     private Object[] getFieldValues() {
-        return new Object[]{seed, restartDelay, updateInterval, syncInterval};
+        return new Object[]{seed, restartDelay, updateInterval, syncInterval, resetProbability};
     }
 
     @Override
     public boolean equals(@Nullable final Object other) {
-        if (other instanceof DefaultPubSubConfig) {
-            final DefaultPubSubConfig that = (DefaultPubSubConfig) other;
+        if (other instanceof final DefaultPubSubConfig that) {
             return Arrays.asList(getFieldValues()).equals(Arrays.asList(that.getFieldValues()));
         } else {
             return false;

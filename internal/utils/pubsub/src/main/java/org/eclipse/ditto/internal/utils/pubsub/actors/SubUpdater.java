@@ -77,6 +77,7 @@ public final class SubUpdater extends akka.actor.AbstractActorWithTimers
     private final Gauge awaitSubAckMetric;
     private final DData<ActorRef, ?, LiteralUpdate> ddata;
     private final Cluster cluster;
+    private final double resetProbability;
 
     /**
      * Queue of actors demanding SubAck whose subscriptions are not sent to the distributed data replicator.
@@ -110,6 +111,7 @@ public final class SubUpdater extends akka.actor.AbstractActorWithTimers
         this.subscriptions = subscriptions;
         this.ddata = ddata;
         cluster = Cluster.get(getContext().getSystem());
+        resetProbability = config.getResetProbability();
 
         // tag metrics by parent name + this name prefix
         // so that the tag is finite and distinct between twin and live topics and declared ack labels.
@@ -226,13 +228,13 @@ public final class SubUpdater extends akka.actor.AbstractActorWithTimers
 
     private CompletionStage<SubscriptionsReader> performDDataOp(final boolean localSubscriptionsChanged,
             final Replicator.WriteConsistency writeConsistency) {
-        final SubscriptionsReader snapshot;
+        final SubscriptionsReader snapshot = subscriptions.snapshot();
         final CompletionStage<Void> ddataOp;
-        if (!localSubscriptionsChanged) {
-            snapshot = subscriptions.snapshot();
+        if (resetProbability > 0 && Math.random() < resetProbability) {
+            ddataOp = ddata.getWriter().reset(subscriber, subscriptions.export(), writeConsistency);
+        } else if (!localSubscriptionsChanged) {
             ddataOp = CompletableFuture.completedStage(null);
         } else if (subscriptions.isEmpty()) {
-            snapshot = subscriptions.snapshot();
             ddataOp = ddata.getWriter().removeSubscriber(subscriber, writeConsistency);
             previousUpdate = LiteralUpdate.empty();
             topicSizeMetric.set(0L);
@@ -240,7 +242,6 @@ public final class SubUpdater extends akka.actor.AbstractActorWithTimers
             // export before taking snapshot so that implementations may output incremental update.
             final LiteralUpdate nextUpdate = subscriptions.export();
             // take snapshot to give to the subscriber; clear accumulated incremental changes.
-            snapshot = subscriptions.snapshot();
             final var diff = nextUpdate.diff(previousUpdate);
             if (!diff.isEmpty()) {
                 ddataOp = ddata.getWriter().put(subscriber, nextUpdate.diff(previousUpdate), writeConsistency);
