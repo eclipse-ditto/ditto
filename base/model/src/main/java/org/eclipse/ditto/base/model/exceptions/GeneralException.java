@@ -22,6 +22,6 @@ public interface GeneralException {
     /**
      * Error code prefix of errors emitted by any Ditto service.
      */
-    String ERROR_CODE_PREFIX = "general" + ":";
+    String ERROR_CODE_PREFIX = "";
 
 }
