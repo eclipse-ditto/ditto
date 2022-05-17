@@ -13,8 +13,13 @@
 package org.eclipse.ditto.things.service.enforcement;
 
 import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;
+import static org.eclipse.ditto.things.service.enforcement.TestSetup.THING_ID;
 
+import java.net.URLEncoder;
+import java.nio.charset.Charset;
+import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 
 import javax.annotation.Nullable;
 
@@ -28,7 +33,7 @@ import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonKey;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.policies.api.Permission;
-import org.eclipse.ditto.policies.api.commands.sudo.PolicySudoCommand;
+import org.eclipse.ditto.policies.api.commands.sudo.SudoRetrievePolicy;
 import org.eclipse.ditto.policies.api.commands.sudo.SudoRetrievePolicyResponse;
 import org.eclipse.ditto.policies.model.Permissions;
 import org.eclipse.ditto.policies.model.PoliciesModelFactory;
@@ -42,9 +47,10 @@ import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyConfli
 import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyNotAccessibleException;
 import org.eclipse.ditto.policies.model.signals.commands.modify.CreatePolicy;
 import org.eclipse.ditto.policies.model.signals.commands.modify.CreatePolicyResponse;
+import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicy;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicyResponse;
+import org.eclipse.ditto.things.api.commands.sudo.SudoRetrieveThing;
 import org.eclipse.ditto.things.api.commands.sudo.SudoRetrieveThingResponse;
-import org.eclipse.ditto.things.api.commands.sudo.ThingSudoCommand;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.ThingsModelFactory;
@@ -59,9 +65,9 @@ import org.eclipse.ditto.things.model.signals.commands.modify.ModifyThing;
 import org.eclipse.ditto.things.model.signals.commands.modify.ModifyThingResponse;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThing;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThingResponse;
+import org.eclipse.ditto.things.service.persistence.actors.ThingSupervisorActor;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import com.typesafe.config.ConfigFactory;
@@ -70,12 +76,12 @@ import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.pattern.AskTimeoutException;
 import akka.testkit.TestActorRef;
+import akka.testkit.TestProbe;
 import akka.testkit.javadsl.TestKit;
 
 /**
  * Tests commands that triggers different or multiple commands internally.
  */
-@Ignore("TODO TJ reactivate and fix")
 public final class MultiStageCommandTest {
 
     private static final Subject DEFAULT_SUBJECT =
@@ -84,28 +90,34 @@ public final class MultiStageCommandTest {
     private static final Subject NOT_DEFAULT_SUBJECT =
             Subject.newInstance(SubjectIssuer.GOOGLE, "notDefaultSubject");
 
+    public static final AuthorizationSubject AUTHORIZATION_SUBJECT =
+            AuthorizationSubject.newInstance(DEFAULT_SUBJECT.getId());
     private static final DittoHeaders DEFAULT_HEADERS = DittoHeaders.newBuilder()
-            .authorizationContext(AuthorizationContext.newInstance(DittoAuthorizationContextType.UNSPECIFIED,
-                    AuthorizationSubject.newInstance(DEFAULT_SUBJECT.getId())))
+            .authorizationContext(AuthorizationContext.newInstance(
+                    DittoAuthorizationContextType.UNSPECIFIED,
+                    AUTHORIZATION_SUBJECT))
             .build();
 
     private static final String THING = ThingCommand.RESOURCE_TYPE;
     private static final String POLICY = PolicyCommand.RESOURCE_TYPE;
 
-    private static final String THING_SUDO =
-            ThingSudoCommand.RESOURCE_TYPE;
-    private static final String POLICY_SUDO =
-            PolicySudoCommand.RESOURCE_TYPE;
-
     private ActorSystem system;
-    private TestActorRef<MockEntitiesActor> mockThingsActor;
-    private TestActorRef<MockEntitiesActor> mockPoliciesActor;
+    private TestProbe pubSubMediatorProbe;
+    private TestProbe thingPersistenceActorProbe;
+    private TestProbe policiesShardRegionProbe;
+    private ActorRef supervisor;
+    private ThingSupervisorActor mockThingPersistenceSupervisor;
 
     @Before
     public void init() {
         system = ActorSystem.create("test", ConfigFactory.load("test"));
-        mockThingsActor = newMockEntitiesActor(system);
-        mockPoliciesActor = newMockEntitiesActor(system);
+        pubSubMediatorProbe = createPubSubMediatorProbe();
+        thingPersistenceActorProbe = createThingPersistenceActorProbe();
+        policiesShardRegionProbe = getTestProbe(createUniqueName("policiesShardRegionProbe-"));
+        final TestActorRef<ThingSupervisorActor> thingPersistenceSupervisorTestActorRef =
+                createThingPersistenceSupervisor();
+        supervisor = thingPersistenceSupervisorTestActorRef;
+        mockThingPersistenceSupervisor = thingPersistenceSupervisorTestActorRef.underlyingActor();
     }
 
     @After
@@ -118,8 +130,6 @@ public final class MultiStageCommandTest {
     @Test
     public void retrieveThingAndPolicy() {
         new TestKit(system) {{
-            final ActorRef underTest = newEnforcerActor(getRef());
-
             // GIVEN: Thing and its Policy exist
             final ThingId thingId = ThingId.of("thing", UUID.randomUUID().toString());
             final PolicyId policyId = PolicyId.of("policy", UUID.randomUUID().toString());
@@ -129,12 +139,6 @@ public final class MultiStageCommandTest {
             final Policy policy = defaultPolicy(policyId);
             final SudoRetrievePolicyResponse sudoRetrievePolicyResponse =
                     SudoRetrievePolicyResponse.of(policyId, policy, DittoHeaders.empty());
-            mockThingsActor.underlyingActor()
-                    .setReply(THING_SUDO, sudoRetrieveThingResponse)
-                    .setReply(THING, RetrieveThingResponse.of(thingId, thing, null, null, DEFAULT_HEADERS));
-            mockPoliciesActor.underlyingActor()
-                    .setReply(POLICY_SUDO, sudoRetrievePolicyResponse)
-                    .setReply(POLICY, RetrievePolicyResponse.of(policyId, policy, DEFAULT_HEADERS));
 
             // WHEN: received RetrieveThing
             final JsonFieldSelector selectedFields = JsonFieldSelector.newInstance("_policy", "thingId");
@@ -142,7 +146,20 @@ public final class MultiStageCommandTest {
                     .withSelectedFields(selectedFields)
                     .build();
 
-            underTest.tell(retrieveThing, getRef());
+            supervisor.tell(retrieveThing, getRef());
+            expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
+            expectAndAnswerSudoRetrievePolicy(policyId, sudoRetrievePolicyResponse);
+
+            final RetrieveThing expectedRetrieveThing = retrieveThing.setDittoHeaders(DEFAULT_HEADERS.toBuilder()
+                    .readGrantedSubjects(List.of(AUTHORIZATION_SUBJECT)).build());
+            thingPersistenceActorProbe.expectMsg(expectedRetrieveThing);
+            thingPersistenceActorProbe.reply(
+                    RetrieveThingResponse.of(thingId, thing, null, null, DEFAULT_HEADERS));
+
+            expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
+
+            policiesShardRegionProbe.expectMsgClass(RetrievePolicy.class);
+            policiesShardRegionProbe.reply(RetrievePolicyResponse.of(policyId, policy, DEFAULT_HEADERS));
 
             // THEN: initial requester receives Thing with inline policy
             final RetrieveThingResponse response = TestSetup.fishForMsgClass(this, RetrieveThingResponse.class);
@@ -156,8 +173,6 @@ public final class MultiStageCommandTest {
     @Test
     public void retrieveThingWithoutPolicyWhenPermissionIsMissing() {
         new TestKit(system) {{
-            final ActorRef underTest = newEnforcerActor(getRef());
-
             // GIVEN: Thing and its Policy exist but default subject has no permission on the policy
             final ThingId thingId = ThingId.of("thing", UUID.randomUUID().toString());
             final PolicyId policyId = PolicyId.of("policy", UUID.randomUUID().toString());
@@ -167,11 +182,6 @@ public final class MultiStageCommandTest {
             final Policy policy = thingOnlyPolicy(policyId);
             final SudoRetrievePolicyResponse sudoRetrievePolicyResponse =
                     SudoRetrievePolicyResponse.of(policyId, policy, DittoHeaders.empty());
-            mockThingsActor.underlyingActor()
-                    .setReply(THING_SUDO, sudoRetrieveThingResponse)
-                    .setReply(THING, RetrieveThingResponse.of(thingId, thing, null, null, DEFAULT_HEADERS));
-            mockPoliciesActor.underlyingActor()
-                    .setReply(POLICY_SUDO, sudoRetrievePolicyResponse);
 
             // WHEN: received RetrieveThing
             final JsonFieldSelector selectedFields = JsonFieldSelector.newInstance("_policy", "thingId");
@@ -179,10 +189,24 @@ public final class MultiStageCommandTest {
                     .withSelectedFields(selectedFields)
                     .build();
 
-            underTest.tell(retrieveThing, getRef());
+            supervisor.tell(retrieveThing, getRef());
+            expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
+            expectAndAnswerSudoRetrievePolicy(policyId, sudoRetrievePolicyResponse);
+
+            final DittoHeaders expectedHeaders = DEFAULT_HEADERS.toBuilder()
+                    .readGrantedSubjects(List.of(AUTHORIZATION_SUBJECT)).build();
+            final RetrieveThing expectedRetrieveThing = retrieveThing.setDittoHeaders(expectedHeaders);
+            thingPersistenceActorProbe.expectMsg(expectedRetrieveThing);
+            thingPersistenceActorProbe.reply(
+                    RetrieveThingResponse.of(thingId, thing, null, null, expectedHeaders));
+
+            expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
+
+            policiesShardRegionProbe.expectMsgClass(RetrievePolicy.class);
+            policiesShardRegionProbe.reply(PolicyNotAccessibleException.newBuilder(policyId).build());
 
             // THEN: initial requester receives Thing with inline policy
-            final RetrieveThingResponse response = TestSetup.fishForMsgClass(this, RetrieveThingResponse.class);
+            final RetrieveThingResponse response = expectMsgClass(RetrieveThingResponse.class);
             assertThat((CharSequence) response.getEntityId()).isEqualTo(thingId);
             assertThat(response.getEntity()).isObject();
             assertThat(response.getEntity().asObject()).doesNotContain(JsonKey.of("_policy"));
@@ -192,8 +216,6 @@ public final class MultiStageCommandTest {
     @Test
     public void retrieveThingErrorIfCacheIsOutOfDate() {
         new TestKit(system) {{
-            final ActorRef underTest = newEnforcerActor(getRef());
-
             // GIVEN: Thing and its Policy exist in cache but not actually
             final ThingId thingId = ThingId.of("thing", UUID.randomUUID().toString());
             final PolicyId policyId = PolicyId.of("policy", UUID.randomUUID().toString());
@@ -203,12 +225,6 @@ public final class MultiStageCommandTest {
             final Policy policy = thingOnlyPolicy(policyId);
             final SudoRetrievePolicyResponse sudoRetrievePolicyResponse =
                     SudoRetrievePolicyResponse.of(policyId, policy, DittoHeaders.empty());
-            mockThingsActor.underlyingActor()
-                    .setReply(THING_SUDO, sudoRetrieveThingResponse)
-                    .setReply(THING, ThingNotAccessibleException.newBuilder(thingId).build());
-            mockPoliciesActor.underlyingActor()
-                    .setReply(POLICY_SUDO, sudoRetrievePolicyResponse)
-                    .setReply(POLICY, PolicyNotAccessibleException.newBuilder(policyId).build());
 
             // WHEN: received RetrieveThing
             final JsonFieldSelector selectedFields = JsonFieldSelector.newInstance("_policy", "thingId");
@@ -216,15 +232,28 @@ public final class MultiStageCommandTest {
                     .withSelectedFields(selectedFields)
                     .build();
 
-            underTest.tell(retrieveThing, getRef());
+            supervisor.tell(retrieveThing, getRef());
+            expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
+            expectAndAnswerSudoRetrievePolicy(policyId, sudoRetrievePolicyResponse);
+
+            final RetrieveThing expectedRetrieveThing = retrieveThing.setDittoHeaders(DEFAULT_HEADERS.toBuilder()
+                    .readGrantedSubjects(List.of(AUTHORIZATION_SUBJECT)).build());
+            thingPersistenceActorProbe.expectMsg(expectedRetrieveThing);
+            thingPersistenceActorProbe.reply(ThingNotAccessibleException.newBuilder(thingId).build());
 
             // THEN: initial requester receives error
             TestSetup.fishForMsgClass(this, ThingNotAccessibleException.class);
 
             // WHEN: Thing exists but Policy exists only in cache
-            mockThingsActor.underlyingActor()
-                    .setReply(THING, RetrieveThingResponse.of(thingId, thing, null, null, DEFAULT_HEADERS));
-            underTest.tell(retrieveThing, getRef());
+            supervisor.tell(retrieveThing, getRef());
+
+            thingPersistenceActorProbe.expectMsg(expectedRetrieveThing);
+            thingPersistenceActorProbe.reply(RetrieveThingResponse.of(thingId, thing, null, null, DEFAULT_HEADERS));
+
+            expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
+
+            policiesShardRegionProbe.expectMsgClass(RetrievePolicy.class);
+            policiesShardRegionProbe.reply(PolicyNotAccessibleException.newBuilder(policyId).build());
 
             // THEN: initial requester receives Thing without Policy
             final RetrieveThingResponse response = expectMsgClass(RetrieveThingResponse.class);
@@ -237,8 +266,6 @@ public final class MultiStageCommandTest {
     @Test
     public void retrieveThingErrorOnTimeout() {
         new TestKit(system) {{
-            final ActorRef underTest = newEnforcerActor(getRef());
-
             // GIVEN: Thing and its Policy exist in cache
             final ThingId thingId = ThingId.of("thing", UUID.randomUUID().toString());
             final PolicyId policyId = PolicyId.of("policy", UUID.randomUUID().toString());
@@ -248,12 +275,6 @@ public final class MultiStageCommandTest {
             final Policy policy = defaultPolicy(policyId);
             final SudoRetrievePolicyResponse sudoRetrievePolicyResponse =
                     SudoRetrievePolicyResponse.of(policyId, policy, DittoHeaders.empty());
-            mockThingsActor.underlyingActor()
-                    .setReply(THING_SUDO, sudoRetrieveThingResponse)
-                    .setReply(THING, new AskTimeoutException("thing timeout"));
-            mockPoliciesActor.underlyingActor()
-                    .setReply(POLICY_SUDO, sudoRetrievePolicyResponse)
-                    .setReply(POLICY, new AskTimeoutException("policy timeout"));
 
             // WHEN: received RetrieveThing but both shard regions time out
             final JsonFieldSelector selectedFields = JsonFieldSelector.newInstance("_policy", "thingId");
@@ -261,15 +282,28 @@ public final class MultiStageCommandTest {
                     .withSelectedFields(selectedFields)
                     .build();
 
-            underTest.tell(retrieveThing, getRef());
+            supervisor.tell(retrieveThing, getRef());
+            expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
+            expectAndAnswerSudoRetrievePolicy(policyId, sudoRetrievePolicyResponse);
+
+            final RetrieveThing expectedRetrieveThing = retrieveThing.setDittoHeaders(DEFAULT_HEADERS.toBuilder()
+                    .readGrantedSubjects(List.of(AUTHORIZATION_SUBJECT)).build());
+            thingPersistenceActorProbe.expectMsg(expectedRetrieveThing);
+            thingPersistenceActorProbe.reply(new AskTimeoutException("thing timeout"));
 
             // THEN: initial requester receives error
             TestSetup.fishForMsgClass(this, ThingUnavailableException.class);
 
             // WHEN: Thing is responsive but Policy times out
-            mockThingsActor.underlyingActor()
-                    .setReply(THING, RetrieveThingResponse.of(thingId, thing, null, null, DEFAULT_HEADERS));
-            underTest.tell(retrieveThing, getRef());
+            supervisor.tell(retrieveThing, getRef());
+
+            thingPersistenceActorProbe.expectMsg(expectedRetrieveThing);
+            thingPersistenceActorProbe.reply(RetrieveThingResponse.of(thingId, thing, null, null, DEFAULT_HEADERS));
+
+            expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
+
+            policiesShardRegionProbe.expectMsgClass(RetrievePolicy.class);
+            policiesShardRegionProbe.reply(new AskTimeoutException("policy timeout"));
 
             // THEN: initial requester receives Thing without Policy
             final RetrieveThingResponse response = expectMsgClass(RetrieveThingResponse.class);
@@ -282,8 +316,6 @@ public final class MultiStageCommandTest {
     @Test
     public void modifyExistingThing() {
         new TestKit(system) {{
-            final ActorRef underTest = newEnforcerActor(getRef());
-
             // GIVEN: Thing and its Policy exist
             final ThingId thingId = ThingId.of("thing", UUID.randomUUID().toString());
             final PolicyId policyId = PolicyId.of("policy", UUID.randomUUID().toString());
@@ -293,27 +325,30 @@ public final class MultiStageCommandTest {
             final Policy policy = defaultPolicy(policyId);
             final SudoRetrievePolicyResponse sudoRetrievePolicyResponse =
                     SudoRetrievePolicyResponse.of(policyId, policy, DittoHeaders.empty());
-            mockThingsActor.underlyingActor()
-                    .setReply(THING_SUDO, sudoRetrieveThingResponse)
-                    .setReply(ModifyThing.TYPE, ModifyThingResponse.modified(thingId, DEFAULT_HEADERS));
-            mockPoliciesActor.underlyingActor()
-                    .setReply(POLICY_SUDO, sudoRetrievePolicyResponse);
 
             // WHEN: received ModifyThing
             final ModifyThing modifyThing = ModifyThing.of(thingId, thing, null, DEFAULT_HEADERS);
 
-            underTest.tell(modifyThing, getRef());
+            supervisor.tell(modifyThing, getRef());
+            expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
+            expectAndAnswerSudoRetrievePolicy(policyId, sudoRetrievePolicyResponse);
+
+            final DittoHeaders expectedHeaders = DEFAULT_HEADERS.toBuilder()
+                    .readGrantedSubjects(List.of(AUTHORIZATION_SUBJECT)).build();
+            final ModifyThing expectedModifyThing = modifyThing.setDittoHeaders(expectedHeaders);
+            thingPersistenceActorProbe.expectMsg(expectedModifyThing);
+            thingPersistenceActorProbe.reply(ModifyThingResponse.modified(thingId, expectedHeaders));
+
+            expectAndAnswerSudoRetrievePolicy(policyId, sudoRetrievePolicyResponse);
 
             // THEN: initial requester receives success
-            TestSetup.fishForMsgClass(this, ModifyThingResponse.class);
+            expectMsgClass(ModifyThingResponse.class);
         }};
     }
 
     @Test
     public void createThingWithExistingPolicy() {
         new TestKit(system) {{
-            final ActorRef underTest = newEnforcerActor(getRef());
-
             // GIVEN: Thing is nonexistent but its Policy exists
             final ThingId thingId = ThingId.of("thing", UUID.randomUUID().toString());
             final PolicyId policyId = PolicyId.of("policy", UUID.randomUUID().toString());
@@ -321,16 +356,18 @@ public final class MultiStageCommandTest {
             final Policy policy = defaultPolicy(policyId);
             final SudoRetrievePolicyResponse sudoRetrievePolicyResponse =
                     SudoRetrievePolicyResponse.of(policyId, policy, DittoHeaders.empty());
-            mockThingsActor.underlyingActor()
-                    .setReply(THING_SUDO, ThingNotAccessibleException.newBuilder(thingId).build())
-                    .setReply(CreateThing.TYPE, CreateThingResponse.of(thing, DEFAULT_HEADERS));
-            mockPoliciesActor.underlyingActor()
-                    .setReply(POLICY_SUDO, sudoRetrievePolicyResponse);
+            final SudoRetrieveThingResponse sudoRetrieveThingResponse =
+                    SudoRetrieveThingResponse.of(thing.toJson(FieldType.all()), DittoHeaders.empty());
 
             // WHEN: received ModifyThing
             final ModifyThing modifyThing = ModifyThing.of(thingId, thing, null, DEFAULT_HEADERS);
 
-            underTest.tell(modifyThing, getRef());
+            supervisor.tell(modifyThing, getRef());
+            expectAndAnswerSudoRetrieveThing(ThingNotAccessibleException.newBuilder(thingId).build());
+            expectAndAnswerSudoRetrievePolicy(policyId, sudoRetrievePolicyResponse);
+
+            thingPersistenceActorProbe.expectMsgClass(CreateThing.class);
+            thingPersistenceActorProbe.reply(CreateThingResponse.of(thing, DEFAULT_HEADERS));
 
             // THEN: initial requester receives success
             TestSetup.fishForMsgClass(this, CreateThingResponse.class);
@@ -340,24 +377,23 @@ public final class MultiStageCommandTest {
     @Test
     public void createThingAndPolicy() {
         new TestKit(system) {{
-            final ActorRef underTest = newEnforcerActor(getRef());
-
             // GIVEN: Thing and Policy are nonexistent
             final ThingId thingId = ThingId.of("thing", UUID.randomUUID().toString());
             final PolicyId policyId = PolicyId.of(thingId);
             final Thing thing = emptyThing(thingId, null);
             final Policy policy = defaultPolicy(policyId);
-            mockThingsActor.underlyingActor()
-                    .setReply(THING_SUDO, ThingNotAccessibleException.newBuilder(thingId).build())
-                    .setReply(CreateThing.TYPE, CreateThingResponse.of(thing, DEFAULT_HEADERS));
-            mockPoliciesActor.underlyingActor()
-                    .setReply(POLICY_SUDO, PolicyNotAccessibleException.newBuilder(policyId).build())
-                    .setReply(CreatePolicy.TYPE, CreatePolicyResponse.of(policyId, policy, DEFAULT_HEADERS));
 
             // WHEN: received ModifyThing
             final ModifyThing modifyThing = ModifyThing.of(thingId, thing, null, DEFAULT_HEADERS);
 
-            underTest.tell(modifyThing, getRef());
+            supervisor.tell(modifyThing, getRef());
+            expectAndAnswerSudoRetrieveThing(ThingNotAccessibleException.newBuilder(thingId).build());
+
+            policiesShardRegionProbe.expectMsgClass(CreatePolicy.class);
+            policiesShardRegionProbe.reply(CreatePolicyResponse.of(policyId, policy, DEFAULT_HEADERS));
+
+            thingPersistenceActorProbe.expectMsgClass(CreateThing.class);
+            thingPersistenceActorProbe.reply(CreateThingResponse.of(thing, DEFAULT_HEADERS));
 
             // THEN: initial requester receives success
             TestSetup.fishForMsgClass(this, CreateThingResponse.class);
@@ -367,23 +403,20 @@ public final class MultiStageCommandTest {
     @Test
     public void createThingWithPolicyConflict() {
         new TestKit(system) {{
-            final ActorRef underTest = newEnforcerActor(getRef());
-
             // GIVEN: Thing is nonexistent but Policy exists
             final ThingId thingId = ThingId.of("thing", UUID.randomUUID().toString());
             final PolicyId policyId = PolicyId.of(thingId);
             final Thing thing = emptyThing(thingId, null);
             final Policy policy = defaultPolicy(policyId);
-            mockThingsActor.underlyingActor()
-                    .setReply(THING_SUDO, ThingNotAccessibleException.newBuilder(thingId).build());
-            mockPoliciesActor.underlyingActor()
-                    .setReply(POLICY_SUDO, SudoRetrievePolicyResponse.of(policyId, policy, DittoHeaders.empty()))
-                    .setReply(CreatePolicy.TYPE, PolicyConflictException.newBuilder(policyId).build());
 
             // WHEN: received ModifyThing
             final ModifyThing modifyThing = ModifyThing.of(thingId, thing, null, DEFAULT_HEADERS);
 
-            underTest.tell(modifyThing, getRef());
+            supervisor.tell(modifyThing, getRef());
+            expectAndAnswerSudoRetrieveThing(ThingNotAccessibleException.newBuilder(thingId).build());
+
+            policiesShardRegionProbe.expectMsgClass(CreatePolicy.class);
+            policiesShardRegionProbe.reply(PolicyConflictException.newBuilder(policyId).build());
 
             // THEN: initial requester receives failure
             final ThingNotCreatableException error = TestSetup.fishForMsgClass(this, ThingNotCreatableException.class);
@@ -394,69 +427,104 @@ public final class MultiStageCommandTest {
     @Test
     public void createThingWithExplicitPolicy() {
         new TestKit(system) {{
-            final ActorRef underTest = newEnforcerActor(getRef());
-
             // GIVEN: Thing and Policy do not exist
             final ThingId thingId = ThingId.of("thing", UUID.randomUUID().toString());
             final PolicyId policyId = PolicyId.of("policy", UUID.randomUUID().toString());
             final Thing thing = emptyThing(thingId, policyId);
             final Policy policy = defaultPolicy(policyId);
-            mockThingsActor.underlyingActor()
-                    .setReply(THING_SUDO, ThingNotAccessibleException.newBuilder(thingId).build())
-                    .setReply(CreateThing.TYPE, CreateThingResponse.of(thing, DEFAULT_HEADERS));
-            mockPoliciesActor.underlyingActor()
-                    .setReply(POLICY_SUDO, PolicyNotAccessibleException.newBuilder(policyId).build())
-                    .setReply(CreatePolicy.TYPE, CreatePolicyResponse.of(policyId, policy, DEFAULT_HEADERS));
+            final SudoRetrieveThingResponse sudoRetrieveThingResponse =
+                    SudoRetrieveThingResponse.of(thing.toJson(FieldType.all()), DittoHeaders.empty());
+            final SudoRetrievePolicyResponse sudoRetrievePolicyResponse =
+                    SudoRetrievePolicyResponse.of(policyId, policy, DittoHeaders.empty());
 
             // WHEN: received ModifyThing
             final ModifyThing modifyThing =
                     ModifyThing.of(thingId, thing, policy.toJson(), DEFAULT_HEADERS);
 
-            underTest.tell(modifyThing, getRef());
+            supervisor.tell(modifyThing, getRef());
+            expectAndAnswerSudoRetrieveThing(ThingNotAccessibleException.newBuilder(thingId).build());
+
+            policiesShardRegionProbe.expectMsgClass(CreatePolicy.class);
+            policiesShardRegionProbe.reply(CreatePolicyResponse.of(policyId, policy, DEFAULT_HEADERS));
+
+            thingPersistenceActorProbe.expectMsgClass(CreateThing.class);
+            thingPersistenceActorProbe.reply(CreateThingResponse.of(thing, DEFAULT_HEADERS));
 
             // THEN: initial requester receives success
-            TestSetup.fishForMsgClass(this, CreateThingResponse.class);
+            expectMsgClass(CreateThingResponse.class);
         }};
     }
 
     @Test
-    @Ignore("TODO TJ move this test to e.g. ThingCommandEnforcementTest")
     public void createThingWithExplicitPolicyNotAuthorizedBySelf() {
         new TestKit(system) {{
-            final ActorRef underTest = newEnforcerActor(getRef());
-
             // GIVEN: Thing and Policy do not exist
             final ThingId thingId = ThingId.of("thing", UUID.randomUUID().toString());
             final PolicyId policyId = PolicyId.of("policy", UUID.randomUUID().toString());
             final Thing thing = emptyThing(thingId, policyId);
             final Policy policy = thingOnlyPolicy(policyId);
-            mockThingsActor.underlyingActor()
-                    .setReply(THING_SUDO, ThingNotAccessibleException.newBuilder(thingId).build())
-                    .setReply(CreateThing.TYPE, CreateThingResponse.of(thing, DEFAULT_HEADERS));
-            mockPoliciesActor.underlyingActor()
-                    .setReply(POLICY_SUDO, PolicyNotAccessibleException.newBuilder(policyId).build())
-                    .setReply(CreatePolicy.TYPE, CreatePolicyResponse.of(policyId, policy, DEFAULT_HEADERS));
+            final SudoRetrieveThingResponse sudoRetrieveThingResponse =
+                    SudoRetrieveThingResponse.of(thing.toJson(FieldType.all()), DittoHeaders.empty());
 
             // WHEN: received ModifyThing whose inline policy does not permit creation of itself
             final ModifyThing modifyThing =
                     ModifyThing.of(thingId, thing, policy.toJson(), DEFAULT_HEADERS);
 
-            underTest.tell(modifyThing, getRef());
+            supervisor.tell(modifyThing, getRef());
+            expectAndAnswerSudoRetrieveThing(ThingNotAccessibleException.newBuilder(thingId).build());
+
+            policiesShardRegionProbe.expectMsgClass(CreatePolicy.class);
+            policiesShardRegionProbe.reply(CreatePolicyResponse.of(policyId, policy, DEFAULT_HEADERS));
+
+            thingPersistenceActorProbe.expectMsgClass(CreateThing.class);
+            thingPersistenceActorProbe.reply(ThingNotModifiableException.newBuilder(thingId).build());
 
             // THEN: initial requester receives error
-            TestSetup.fishForMsgClass(this, ThingNotModifiableException.class);
+            expectMsgClass(ThingNotModifiableException.class);
         }};
     }
 
-    private ActorRef newEnforcerActor(final ActorRef testActorRef) {
-        return TestSetup.newEnforcerActor(system, testActorRef, mockThingsActor, mockPoliciesActor,
-                testActorRef, null, null);
+    private TestActorRef<ThingSupervisorActor> createThingPersistenceSupervisor() {
+        return new TestActorRef<>(system, ThingSupervisorActor.props(
+                pubSubMediatorProbe.ref(),
+                policiesShardRegionProbe.ref(),
+                new TestSetup.DummyLiveSignalPub(pubSubMediatorProbe.ref()),
+                thingPersistenceActorProbe.ref(),
+                null,
+                CompletableFuture::completedStage
+        ), system.guardian(), URLEncoder.encode(THING_ID.toString(), Charset.defaultCharset()));
     }
 
-    private static TestActorRef<MockEntitiesActor> newMockEntitiesActor(final ActorSystem system) {
-        return new TestActorRef<>(system, MockEntitiesActor.props(), system.guardian(), UUID.randomUUID().toString());
+    private TestProbe createPubSubMediatorProbe() {
+        return getTestProbe(createUniqueName("pubSubMediatorProbe-"));
     }
 
+    private TestProbe createThingPersistenceActorProbe() {
+        return getTestProbe(createUniqueName("thingPersistenceActorProbe-"));
+    }
+
+    private TestProbe getTestProbe(final String uniqueName) {
+        return new TestProbe(system, uniqueName);
+    }
+
+    private static String createUniqueName(final String prefix) {
+        return prefix + UUID.randomUUID();
+    }
+
+    private void expectAndAnswerSudoRetrieveThing(final Object sudoRetrieveThingResponse) {
+        final SudoRetrieveThing sudoRetrieveThing =
+                thingPersistenceActorProbe.expectMsgClass(SudoRetrieveThing.class);
+        assertThat((CharSequence) sudoRetrieveThing.getEntityId()).isEqualTo(THING_ID);
+        thingPersistenceActorProbe.reply(sudoRetrieveThingResponse);
+    }
+
+    private void expectAndAnswerSudoRetrievePolicy(final PolicyId policyId, final Object sudoRetrievePolicyResponse) {
+        final SudoRetrievePolicy sudoRetrievePolicy =
+                policiesShardRegionProbe.expectMsgClass(SudoRetrievePolicy.class);
+        assertThat((CharSequence) sudoRetrievePolicy.getEntityId()).isEqualTo(policyId);
+        policiesShardRegionProbe.reply(sudoRetrievePolicyResponse);
+    }
+    
     private static Thing emptyThing(final ThingId thingId, @Nullable final PolicyId policyId) {
         return ThingsModelFactory.newThingBuilder()
                 .setId(thingId)

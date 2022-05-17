@@ -28,6 +28,7 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
 
+import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.common.ConditionChecker;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
@@ -66,9 +67,10 @@ public final class ResponseReceiverCache implements Extension {
     private static final Duration DEFAULT_ENTRY_EXPIRY = Duration.ofMinutes(2L);
 
     private final Duration fallBackEntryExpiry;
-    private final Cache<CorrelationIdKey, ActorRef> cache;
+    private final Cache<CorrelationIdKey, ResponseReceiverCacheEntry> cache;
 
-    private ResponseReceiverCache(final Duration fallBackEntryExpiry, final Cache<CorrelationIdKey, ActorRef> cache) {
+    private ResponseReceiverCache(final Duration fallBackEntryExpiry,
+            final Cache<CorrelationIdKey, ResponseReceiverCacheEntry> cache) {
         this.fallBackEntryExpiry = fallBackEntryExpiry;
         this.cache = cache;
     }
@@ -109,7 +111,7 @@ public final class ResponseReceiverCache implements Extension {
         return new ResponseReceiverCache(fallBackEntryExpiry, createCache(fallBackEntryExpiry));
     }
 
-    private static Cache<CorrelationIdKey, ActorRef> createCache(final Duration fallBackEntryExpiry) {
+    private static Cache<CorrelationIdKey, ResponseReceiverCacheEntry> createCache(final Duration fallBackEntryExpiry) {
         return CaffeineCache.of(Caffeine.newBuilder().expireAfter(new CorrelationIdKeyExpiry(fallBackEntryExpiry)));
     }
 
@@ -123,7 +125,10 @@ public final class ResponseReceiverCache implements Extension {
      */
     public void cacheSignalResponseReceiver(final Signal<?> signal, final ActorRef responseReceiver) {
         cache.put(getCorrelationIdKeyForInsertion(checkNotNull(signal, "signal")),
-                checkNotNull(responseReceiver, "responseReceiver"));
+                new ResponseReceiverCacheEntry(
+                        checkNotNull(responseReceiver, "responseReceiver"),
+                        signal.getDittoHeaders().getAuthorizationContext()
+                ));
     }
 
     private CorrelationIdKey getCorrelationIdKeyForInsertion(final WithDittoHeaders command) {
@@ -150,7 +155,7 @@ public final class ResponseReceiverCache implements Extension {
      * @throws NullPointerException if {@code correlationId} is {@code null}.
      * @throws IllegalArgumentException if {@code correlationId} is empty or blank.
      */
-    public CompletableFuture<Optional<ActorRef>> get(final CharSequence correlationId) {
+    public CompletableFuture<Optional<ResponseReceiverCacheEntry>> get(final CharSequence correlationId) {
         final var correlationIdString = checkNotNull(correlationId, "correlationId").toString();
         ConditionChecker.checkArgument(correlationIdString,
                 Predicate.not(String::isBlank),
@@ -304,7 +309,7 @@ public final class ResponseReceiverCache implements Extension {
     }
 
     @Immutable
-    private static final class CorrelationIdKeyExpiry implements Expiry<CorrelationIdKey, ActorRef> {
+    private static final class CorrelationIdKeyExpiry implements Expiry<CorrelationIdKey, ResponseReceiverCacheEntry> {
 
         private final Duration fallBackEntryExpiry;
 
@@ -313,14 +318,14 @@ public final class ResponseReceiverCache implements Extension {
         }
 
         @Override
-        public long expireAfterCreate(final CorrelationIdKey key, final ActorRef value, final long currentTime) {
+        public long expireAfterCreate(final CorrelationIdKey key, final ResponseReceiverCacheEntry value, final long currentTime) {
             final var entryExpiry = Objects.requireNonNullElse(key.expiry, fallBackEntryExpiry);
             return entryExpiry.toNanos(); // it is crucial to return nanoseconds here
         }
 
         @Override
         public long expireAfterUpdate(final CorrelationIdKey key,
-                final ActorRef value,
+                final ResponseReceiverCacheEntry value,
                 final long currentTime,
                 final long currentDuration) {
 
@@ -329,13 +334,16 @@ public final class ResponseReceiverCache implements Extension {
 
         @Override
         public long expireAfterRead(final CorrelationIdKey key,
-                final ActorRef value,
+                final ResponseReceiverCacheEntry value,
                 final long currentTime,
                 final long currentDuration) {
 
             return currentDuration;
         }
 
+    }
+
+    record ResponseReceiverCacheEntry(ActorRef sender, AuthorizationContext authorizationContext) {
     }
 
 }

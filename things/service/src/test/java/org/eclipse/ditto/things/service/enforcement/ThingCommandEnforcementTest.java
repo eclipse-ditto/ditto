@@ -134,7 +134,6 @@ public final class ThingCommandEnforcementTest {
     private TestProbe pubSubMediatorProbe;
 
     private TestProbe thingPersistenceActorProbe;
-    private TestProbe ackReceiverActorProbe;
     private TestProbe policiesShardRegionProbe;
     private ActorRef supervisor;
 
@@ -146,7 +145,6 @@ public final class ThingCommandEnforcementTest {
 
         pubSubMediatorProbe = createPubSubMediatorProbe();
         thingPersistenceActorProbe = createThingPersistenceActorProbe();
-        ackReceiverActorProbe = getTestProbe(createUniqueName("ackReceiverActorProbe-"));
         policiesShardRegionProbe = getTestProbe(createUniqueName("policiesShardRegionProbe-"));
         final TestActorRef<MockThingPersistenceSupervisor> thingPersistenceSupervisorTestActorRef =
                 createThingPersistenceSupervisor();
@@ -960,7 +958,6 @@ public final class ThingCommandEnforcementTest {
                 pubSubMediatorProbe.ref(),
                 thingPersistenceActorProbe.ref(),
                 system,
-                ackReceiverActorProbe.ref(),
                 policiesShardRegionProbe.ref(),
                 new TestSetup.DummyLiveSignalPub(pubSubMediatorProbe.ref())
         ), system.guardian(), MockThingPersistenceSupervisor.ACTOR_NAME);
@@ -1020,14 +1017,12 @@ public final class ThingCommandEnforcementTest {
         MockThingPersistenceSupervisor(final ActorRef pubSubMediator,
                 final ActorRef thingPersistenceActor,
                 final ActorSystem actorSystem,
-                final ActorRef ackReceiverActor,
                 final ActorRef policiesShardRegion,
                 final LiveSignalPub liveSignalPub) {
             super(thingPersistenceActor, null, null, CompletableFuture::completedStage);
             this.pubSubMediator = pubSubMediator;
             final ResponseReceiverCache responseReceiverCache = ResponseReceiverCache.lookup(getContext().getSystem());
             thingEnforcement = new ThingEnforcement(actorSystem,
-                    ackReceiverActor,
                     policiesShardRegion,
                     DefaultCreationRestrictionEnforcer.of(
                             DefaultEntityCreationConfig.of(ConfigFactory.empty())),

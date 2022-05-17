@@ -24,6 +24,7 @@ import java.util.concurrent.CompletionStage;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
@@ -34,6 +35,7 @@ import org.eclipse.ditto.base.model.signals.SignalWithEntityId;
 import org.eclipse.ditto.base.model.signals.UnsupportedSignalException;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
+import org.eclipse.ditto.base.model.signals.events.Event;
 import org.eclipse.ditto.base.service.actors.ShutdownBehaviour;
 import org.eclipse.ditto.base.service.config.supervision.ExponentialBackOffConfig;
 import org.eclipse.ditto.internal.utils.cacheloaders.AskWithRetry;
@@ -72,7 +74,6 @@ import akka.actor.ActorKilledException;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
-import akka.japi.pf.ReceiveBuilder;
 import akka.pattern.Patterns;
 import akka.stream.Materializer;
 import akka.stream.javadsl.Keep;
@@ -102,7 +103,7 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
     private final ActorRef pubSubMediator;
     private final ActorRef policiesShardRegion;
     private final LiveSignalPub liveSignalPub;
-    private final ThingPersistenceActorPropsFactory thingPersistenceActorPropsFactory;
+    @Nullable private final ThingPersistenceActorPropsFactory thingPersistenceActorPropsFactory;
     private final DefaultEnforcementConfig enforcementConfig;
     private final Materializer materializer;
     private final ResponseReceiverCache responseReceiverCache;
@@ -111,7 +112,8 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
     private ThingSupervisorActor(final ActorRef pubSubMediator,
             final ActorRef policiesShardRegion,
             final LiveSignalPub liveSignalPub,
-            final ThingPersistenceActorPropsFactory thingPersistenceActorPropsFactory,
+            @Nullable final ThingPersistenceActorPropsFactory thingPersistenceActorPropsFactory,
+            @Nullable final ActorRef thingPersistenceActorRef,
             @Nullable final BlockedNamespaces blockedNamespaces,
             final PreEnforcer<Signal<?>> preEnforcer) {
 
@@ -121,6 +123,7 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
         this.policiesShardRegion = policiesShardRegion;
         this.liveSignalPub = liveSignalPub;
         this.thingPersistenceActorPropsFactory = thingPersistenceActorPropsFactory;
+        this.persistenceActorChild = thingPersistenceActorRef;
         enforcementConfig = DefaultEnforcementConfig.of(
                 DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config())
         );
@@ -151,22 +154,65 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
             final PreEnforcer<Signal<?>> preEnforcer) {
 
         return Props.create(ThingSupervisorActor.class, pubSubMediator, policiesShardRegion, liveSignalPub,
-                propsFactory, blockedNamespaces, preEnforcer);
+                propsFactory, null, blockedNamespaces, preEnforcer);
+    }
+
+    /**
+     * Props for creating a {@code ThingSupervisorActor} inside of unit tests.
+     */
+    public static Props props(final ActorRef pubSubMediator,
+            final ActorRef policiesShardRegion,
+            final LiveSignalPub liveSignalPub,
+            final ActorRef thingsPersistenceActor,
+            @Nullable final BlockedNamespaces blockedNamespaces,
+            final PreEnforcer<Signal<?>> preEnforcer) {
+
+        return Props.create(ThingSupervisorActor.class, pubSubMediator, policiesShardRegion, liveSignalPub,
+                null, thingsPersistenceActor, blockedNamespaces, preEnforcer);
     }
 
     @Override
-    protected Receive activeBehaviour() {
-        return ReceiveBuilder.create()
-                .match(CommandResponse.class, cr -> enforcementConfig.isDispatchLiveResponsesGlobally() &&
-                                CommandResponse.isLiveCommandResponse(cr),
-                        this::dispatchGlobalLiveCommandResponse)
-                .build()
-                .orElse(super.activeBehaviour());
+    protected CompletionStage<Object> askEnforcerChild(final Signal<?> signal) {
+        if (signal instanceof ThingCommandResponse<?> thingCommandResponse &&
+                CommandResponse.isLiveCommandResponse(thingCommandResponse)) {
+            return signal.getDittoHeaders().getCorrelationId()
+                    .map(responseReceiverCache::get)
+                    .map(future -> future
+                            .thenApply(responseReceiverEntry -> responseReceiverEntry
+                                    .map(ResponseReceiverCache.ResponseReceiverCacheEntry::authorizationContext)
+                                    .orElse(null)
+                            )
+                            .thenApply(authorizationContext ->
+                                    replaceAuthContext(thingCommandResponse, authorizationContext)
+                            )
+                            .thenCompose(super::askEnforcerChild)
+                    )
+                    .orElseGet(() -> super.askEnforcerChild(thingCommandResponse).toCompletableFuture());
+        } else {
+            return super.askEnforcerChild(signal);
+        }
+    }
+
+    /**
+     * Replaces the {@link AuthorizationContext} in the headers of the passed {@code response}.
+     *
+     * @param response the ThingCommandResponse to replace the authorization context in.
+     * @param authorizationContext the new authorization context to inject in the headers of the passed {@code response}
+     * @return the modified thing command response.
+     */
+    @SuppressWarnings("unchecked")
+    static <T extends ThingCommandResponse<?>> T replaceAuthContext(final T response,
+            final AuthorizationContext authorizationContext) {
+        return (T) response.setDittoHeaders(response.getDittoHeaders()
+                .toBuilder()
+                .authorizationContext(authorizationContext)
+                .build());
     }
 
     @Override
     protected CompletionStage<Object> modifyEnforcerActorEnforcedSignalResponse(final Object enforcedCommand) {
-        if (enforcedCommand instanceof Signal<?> signal && Command.isLiveCommand(signal)) {
+        if (enforcedCommand instanceof Signal<?> signal &&
+                (Command.isLiveCommand(signal) || Event.isLiveEvent(signal))) {
             final DistributedPubWithMessage distributedPubWithMessage = selectLiveSignalPublisher(signal);
             return CompletableFuture.completedStage(distributedPubWithMessage);
         } else {
@@ -175,17 +221,18 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
     }
 
     @Override
-    protected CompletionStage<TargetActorWithMessage> getTargetActorForSendingEnforcedSignalTo(final Object message) {
-        final ActorRef sender = getSender(); // TODO TJ check if this is the right sender, context wise! - probably it is not!
+    protected CompletionStage<TargetActorWithMessage> getTargetActorForSendingEnforcedMessageTo(final Object message,
+            final ActorRef sender) {
 
-        if (message instanceof Signal<?> enforcedSignal && !Command.isLiveCommand(enforcedSignal)) {
-            return super.getTargetActorForSendingEnforcedSignalTo(message);
+        if (message instanceof Signal<?> enforcedSignal && CommandResponse.isLiveCommandResponse(enforcedSignal)) {
+            return dispatchGlobalLiveCommandResponse((CommandResponse<?>) enforcedSignal);
+        } else if (message instanceof Signal<?> enforcedSignal && !Command.isLiveCommand(enforcedSignal)) {
+            return super.getTargetActorForSendingEnforcedMessageTo(message, sender);
         } else if (message instanceof ThingQueryCommand<?> thingQueryCommand &&
                 Command.isLiveCommand(thingQueryCommand) && thingQueryCommand.getDittoHeaders().isResponseRequired()) {
             if (enforcementConfig.shouldDispatchGlobally(thingQueryCommand)) {
-                // TODO TJ this is probably not yet correct!
                 return responseReceiverCache.insertResponseReceiverConflictFree(thingQueryCommand,
-                        signal ->  createReceiverActor(signal, sender),
+                        signal -> createReceiverActor(signal, sender),
                         (command, receiver) -> new TargetActorWithMessage(
                                 receiver,
                                 command,
@@ -199,7 +246,8 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
                 final var receiver = createReceiverActor(thingQueryCommand, sender);
                 final var timeout = getAdjustedTimeout(thingQueryCommand, startTime);
                 final var signalWithAdjustedTimeout = adjustTimeout(thingQueryCommand, timeout);
-                final var publish = pub.wrapForPublicationWithAcks(signalWithAdjustedTimeout, THING_COMMAND_ACK_EXTRACTOR);
+                final var publish =
+                        pub.wrapForPublicationWithAcks(signalWithAdjustedTimeout, THING_COMMAND_ACK_EXTRACTOR);
                 return CompletableFuture.completedStage(new TargetActorWithMessage(
                         receiver,
                         publish,
@@ -209,14 +257,13 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
             }
         } else if (message instanceof DistributedPubWithMessage distributedPubWithMessage) {
             if (enforcementConfig.shouldDispatchGlobally(distributedPubWithMessage.signal())) {
-                // TODO TJ this is probably not yet correct!
                 return responseReceiverCache.insertResponseReceiverConflictFree(distributedPubWithMessage.signal(),
-                        newSignal -> sender,
-                        (newSignal, receiver) -> {
-                            log.withCorrelationId(newSignal)
-                                    .debug("Publish message to pub-sub: <{}>", newSignal);
-                            return selectLiveSignalPublisher(newSignal);
-                        })
+                                newSignal -> sender,
+                                (newSignal, receiver) -> {
+                                    log.withCorrelationId(newSignal)
+                                            .info("Publish message to pub-sub: <{}>", newSignal);
+                                    return selectLiveSignalPublisher(newSignal);
+                                })
                         .thenApply(distributedPub -> new TargetActorWithMessage(
                                 distributedPub.pub().getPublisher(),
                                 distributedPub.wrappedSignalForPublication(),
@@ -238,22 +285,11 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
         }
     }
 
-    private void dispatchGlobalLiveCommandResponse(final CommandResponse<?> commandResponse) {
-        final ActorRef self = getSelf();
-        WithDittoHeaders.getCorrelationId(commandResponse).ifPresent(correlationId ->
+    private CompletionStage<TargetActorWithMessage> dispatchGlobalLiveCommandResponse(
+            final CommandResponse<?> commandResponse) {
+        return WithDittoHeaders.getCorrelationId(commandResponse).map(correlationId ->
                 dispatchLiveCommandResponse(commandResponse, correlationId)
-                        .whenComplete((targetActorWithMessage, throwable) -> {
-                            if (null != targetActorWithMessage) {
-                                targetActorWithMessage.targetActor().tell(targetActorWithMessage.message(), self);
-                            } else if (null != throwable) {
-                                log.withCorrelationId(commandResponse)
-                                        .error(throwable, "Received error during live command response dispatching");
-                            } else {
-                                log.withCorrelationId(commandResponse)
-                                        .warning("Got 'null' element during global live command response dispatching");
-                            }
-                        })
-        );
+        ).orElseGet(() -> CompletableFuture.completedStage(null));
     }
 
     private ActorRef createReceiverActor(final ThingQueryCommand<?> signal, final ActorRef sender) {
@@ -280,20 +316,6 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
                         .timeout(adjustedTimeout)
                         .build()
         );
-    }
-
-    /**
-     * TODO TJ this has to be done for live command responses
-     * @param response
-     * @param command
-     * @return
-     */
-    static ThingCommandResponse<?> replaceAuthContext(final ThingCommandResponse<?> response,
-            final WithDittoHeaders command) {
-        return response.setDittoHeaders(response.getDittoHeaders()
-                .toBuilder()
-                .authorizationContext(command.getDittoHeaders().getAuthorizationContext())
-                .build());
     }
 
     private CompletionStage<TargetActorWithMessage> dispatchLiveCommandResponse(
@@ -323,9 +345,9 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
                         log.withCorrelationId(liveResponse)
                                 .info("Scheduling CommandResponse <{}> to original sender <{}>", liveResponse,
                                         receiver);
-                        targetActorWithMessage = new TargetActorWithMessage(receiver,
+                        targetActorWithMessage = new TargetActorWithMessage(receiver.sender(),
                                 liveResponse,
-                                DEFAULT_LOCAL_ASK_TIMEOUT, // TODO TJ which timeout?
+                                getLiveSignalTimeout(liveResponse),
                                 false
                         );
                         responseReceiverCache.invalidate(correlationId);
@@ -402,7 +424,7 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
 
     private Source<RetrieveThingResponse, NotUsed> enrichPolicy(final RetrieveThing retrieveThing,
             final RetrieveThingResponse retrieveThingResponse) {
-        return sudoRetrieveThing()
+        return retrievePolicyIdViaSudoRetrieveThing()
                 .map(SudoRetrieveThingResponse::getThing)
                 .map(Thing::getPolicyId)
                 .map(optionalPolicyId -> optionalPolicyId.orElseThrow(() -> {
@@ -421,7 +443,7 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
                     return RetrievePolicy.of(policyId, dittoHeadersWithoutPreconditionHeaders);
                 })
                 .map(this::retrieveInlinedPolicyForThing)
-                .flatMapConcat(Source::fromCompletionStage)
+                .flatMapConcat(Source::completionStage)
                 .map(policyResponse -> {
                     if (policyResponse.isPresent()) {
                         final JsonObject inlinedPolicy = policyResponse.get()
@@ -441,12 +463,12 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
                 });
     }
 
-    private Source<SudoRetrieveThingResponse, NotUsed> sudoRetrieveThing() {
+    private Source<SudoRetrieveThingResponse, NotUsed> retrievePolicyIdViaSudoRetrieveThing() {
         final CompletionStage<Object> askForThing =
                 Patterns.ask(persistenceActorChild, SudoRetrieveThing.of(entityId,
                                 JsonFieldSelector.newInstance("policyId"),
                                 DittoHeaders.newBuilder()
-                                        .correlationId("sudoRetrieveThingFromThingSupervisorActor-" + UUID.randomUUID())
+                                        .correlationId("retrievePolicyIdViaSudoRetrieveThing-" + UUID.randomUUID())
                                         .build()
                         ), DEFAULT_LOCAL_ASK_TIMEOUT
                 );
@@ -489,8 +511,7 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
     private CompletionStage<Optional<RetrievePolicyResponse>> retrieveInlinedPolicyForThing(
             final RetrievePolicy retrievePolicy) {
 
-        return preEnforcer.apply(retrievePolicy)
-                .thenCompose(msg -> AskWithRetry.askWithRetry(policiesShardRegion, msg,
+        return AskWithRetry.askWithRetry(policiesShardRegion, retrievePolicy,
                         enforcementConfig.getAskWithRetryConfig(),
                         getContext().getSystem(),
                         response -> {
@@ -507,7 +528,7 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
                     log.withCorrelationId(getCorrelationIdOrNull(error, retrievePolicy))
                             .error("Retrieving inlined policy after RetrieveThing", error);
                     return Optional.empty();
-                }));
+                });
     }
 
     @Override
@@ -525,11 +546,7 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
         final ActorContext actorContext = getContext();
         final ActorSystem actorSystem = actorContext.getSystem();
 
-        // TODO TJ acks should be received by the sender - which is not available here - the supervisor must handle it somehow?!
-        final ActorRef ackReceiverActor = actorContext.getSelf();
-
         final ThingEnforcement thingEnforcement = new ThingEnforcement(actorSystem,
-                ackReceiverActor,
                 policiesShardRegion,
                 creationRestrictionEnforcer,
                 enforcementConfig,

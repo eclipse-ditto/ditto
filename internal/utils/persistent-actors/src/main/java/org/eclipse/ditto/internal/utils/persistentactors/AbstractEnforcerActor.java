@@ -120,6 +120,7 @@ public abstract class AbstractEnforcerActor<I extends EntityId, S extends Signal
      */
     protected void injectPolicy(final Policy injectedPolicy) {
         this.policyEnforcer = PolicyEnforcer.of(injectedPolicy, PolicyEnforcers.defaultEvaluator(injectedPolicy));
+        getSelf().tell(Control.INIT_DONE, getSelf());
     }
 
     /**
@@ -129,7 +130,7 @@ public abstract class AbstractEnforcerActor<I extends EntityId, S extends Signal
      * @param signal the signal to check.
      * @return {@code true} if the Policy Enforcer should be invalidated after the enforcement.
      */
-    protected abstract boolean shouldInvalidatePolicyEnforcerAfterEnforcement(S signal);
+    protected abstract boolean shouldInvalidatePolicyEnforcerAfterEnforcement(Signal<?> signal);
 
     @Override
     public void preStart() throws Exception {
@@ -155,9 +156,10 @@ public abstract class AbstractEnforcerActor<I extends EntityId, S extends Signal
                         .error("Received SudoCommand in enforcer which should never happen: <{}>", sudoCommand)
                 )
                 .match(CommandResponse.class, r -> filterResponse((R) r))
-                .match(Signal.class, c -> enforceSignal((S) c))
+                .match(Signal.class, s -> enforceSignal((S) s))
                 .match(Replicator.Changed.class, this::handleChanged)
                 .match(InvalidateCachedNamespaces.class, this::invalidateCachedNamespaces)
+                .matchEquals(Control.INIT_DONE, initDone -> log.debug("Ignoring obsolete INIT_DONE message"))
                 .matchAny(message ->
                         log.withCorrelationId(
                                         message instanceof WithDittoHeaders withDittoHeaders ? withDittoHeaders : null)
@@ -170,8 +172,8 @@ public abstract class AbstractEnforcerActor<I extends EntityId, S extends Signal
         return ReceiveBuilder.create()
                 .match(DistributedPubSubMediator.SubscribeAck.class, s -> log.debug("Got subscribeAck <{}>.", s))
                 .matchEquals(Control.INIT_DONE, initDone -> {
-                    unstashAll();
                     becomeActive();
+                    unstashAll();
                 })
                 .matchAny(this::handleMessagesDuringStartup)
                 .build();
@@ -272,8 +274,8 @@ public abstract class AbstractEnforcerActor<I extends EntityId, S extends Signal
      */
     private void enforceSignal(final S signal) {
         final CompletionStage<Void> enforcementCompletion = doEnforceSignal(signal, getSender())
-                .thenAccept(successfullyEnforced -> {
-                    if (shouldReloadAfterEnforcement(signal, successfullyEnforced)) {
+                .thenAccept(authorizedSignal -> {
+                    if (shouldReloadAfterEnforcement(authorizedSignal)) {
                         // trigger reloading the policy
                         performPolicyEnforcerReload();
                     }
@@ -287,12 +289,12 @@ public abstract class AbstractEnforcerActor<I extends EntityId, S extends Signal
         }
     }
 
-    private boolean shouldReloadAfterEnforcement(final S signal, final boolean successfullyEnforced) {
-        return successfullyEnforced &&
-                (shouldInvalidatePolicyEnforcerAfterEnforcement(signal) || (null == policyEnforcer));
+    private boolean shouldReloadAfterEnforcement(@Nullable final Signal<?> authorizedSignal) {
+        return null != authorizedSignal &&
+                (shouldInvalidatePolicyEnforcerAfterEnforcement(authorizedSignal) || (null == policyEnforcer));
     }
 
-    private CompletionStage<Boolean> doEnforceSignal(final S signal, final ActorRef sender) {
+    private CompletionStage<Signal<?>> doEnforceSignal(final S signal, final ActorRef sender) {
         final ActorRef self = getSelf();
         try {
             final CompletionStage<S> authorizedSignalStage;
@@ -303,13 +305,12 @@ public abstract class AbstractEnforcerActor<I extends EntityId, S extends Signal
             }
 
             return authorizedSignalStage.handle((authorizedSignal, throwable) -> {
-                final boolean successfullyEnforced;
                 if (null != authorizedSignal) {
                     log.withCorrelationId(authorizedSignal)
                             .info("Completed enforcement of message type <{}> with outcome 'success'",
                                     authorizedSignal.getType());
                     sender.tell(authorizedSignal, self);
-                    successfullyEnforced = true;
+                    return authorizedSignal;
                 } else if (null != throwable) {
                     final DittoRuntimeException dittoRuntimeException =
                             DittoRuntimeException.asDittoRuntimeException(throwable, t ->
@@ -322,21 +323,20 @@ public abstract class AbstractEnforcerActor<I extends EntityId, S extends Signal
                             .info("Completed enforcement of message type <{}> with outcome 'failed' and headers: <{}>",
                                     signal.getType(), signal.getDittoHeaders());
                     sender.tell(dittoRuntimeException, self);
-                    successfullyEnforced = false;
+                    return null;
                 } else {
                     log.withCorrelationId(signal)
                             .warning("Neither authorizedSignal nor throwable were present during enforcement of signal: " +
                                     "<{}>", signal);
-                    successfullyEnforced = false;
+                    return null;
                 }
-                return successfullyEnforced;
             });
         } catch (final DittoRuntimeException dittoRuntimeException) {
             log.withCorrelationId(dittoRuntimeException)
                     .info("Completed enforcement of message type <{}> with outcome 'failed' and headers: <{}>",
                             signal.getType(), signal.getDittoHeaders());
             sender.tell(dittoRuntimeException, self);
-            return CompletableFuture.completedStage(false);
+            return CompletableFuture.completedStage(null);
         }
     }
 

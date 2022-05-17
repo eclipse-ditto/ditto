@@ -96,7 +96,7 @@ public interface PreEnforcer<T extends DittoHeadersSettable<?>> {
      * Set the "ditto-originator" header to the primary authorization subject of a signal.
      *
      * @param originalSignal A signal with authorization context.
-     * @param <T> TODO TJ doc
+     * @param <T> the type of the {@code originalSignal} to preserve in the response.
      * @return A copy of the signal with the header "ditto-originator" set.
      * @since 3.0.0
      */

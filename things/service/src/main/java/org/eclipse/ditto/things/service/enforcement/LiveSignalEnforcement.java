@@ -29,6 +29,7 @@ import org.eclipse.ditto.base.model.signals.UnsupportedSignalException;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
 import org.eclipse.ditto.base.model.signals.commands.WithEntity;
+import org.eclipse.ditto.base.model.signals.events.Event;
 import org.eclipse.ditto.internal.utils.pubsub.DistributedPub;
 import org.eclipse.ditto.internal.utils.pubsub.StreamingType;
 import org.eclipse.ditto.json.JsonFactory;
@@ -58,8 +59,6 @@ import akka.actor.ActorRef;
 
 /**
  * Enforces live commands (including message commands) and live events.
- *
- * TODO TJ update javadoc
  */
 final class LiveSignalEnforcement
         extends AbstractEnforcementReloaded<Signal<?>, CommandResponse<?>>
@@ -70,12 +69,12 @@ final class LiveSignalEnforcement
 
     @Override
     public boolean isApplicable(final Signal<?> signal) {
-        return Command.isLiveCommand(signal);
+        return Command.isLiveCommand(signal) || Event.isLiveEvent(signal) || CommandResponse.isLiveCommandResponse(signal);
     }
 
     @Override
-    public boolean responseIsApplicable(final CommandResponse<?> signal) {
-        return CommandResponse.isLiveCommandResponse(signal);
+    public boolean responseIsApplicable(final CommandResponse<?> commandResponse) {
+        return CommandResponse.isLiveCommandResponse(commandResponse);
     }
 
     @Override
@@ -138,7 +137,7 @@ final class LiveSignalEnforcement
 
     @Override
     public boolean shouldFilterCommandResponse(final CommandResponse<?> commandResponse) {
-        return true; // TODO TJ always filter live signal responses?
+        return true;
     }
 
     @Override
@@ -272,6 +271,9 @@ final class LiveSignalEnforcement
         return error;
     }
 
+    /**
+     * TODO TJ remove this method from here - should only be done in supervisor!
+     */
     static CompletionStage<ThingQueryCommandResponse<?>> adjustTimeoutAndFilterLiveQueryResponse(
             final EnforcementReloaded<? super ThingCommand<?>, ThingCommandResponse<?>> enforcement,
             final ThingCommand<?> command,
@@ -287,17 +289,6 @@ final class LiveSignalEnforcement
 //                LiveSignalEnforcement.THING_COMMAND_ACK_EXTRACTOR);
 
         return CompletableFuture.completedStage(null);
-        // TODO TJ fix the following:
-//        return Patterns.ask(liveResponseForwarder, publish, timeout)
-//                .exceptionally(e -> e)
-//                .thenCompose(responseCaster)
-//                .thenApply(response -> {
-//                    if (null != response) {
-//                        return enforcement.filterResponse(replaceAuthContext(response, command), policyEnforcer);
-//                    } else {
-//                        return null;
-//                    }
-//                });
     }
 
     private static boolean isAuthorized(final MessageCommand<?, ?> command, final Enforcer enforcer) {

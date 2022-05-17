@@ -20,6 +20,7 @@ import java.util.concurrent.CompletionStage;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.internal.utils.namespaces.BlockedNamespaces;
 import org.eclipse.ditto.internal.utils.persistentactors.AbstractEnforcerActor;
 import org.eclipse.ditto.policies.api.commands.sudo.SudoRetrievePolicy;
@@ -92,7 +93,7 @@ public final class PolicyEnforcerActor
     }
 
     @Override
-    protected boolean shouldInvalidatePolicyEnforcerAfterEnforcement(final PolicyCommand<?> signal) {
+    protected boolean shouldInvalidatePolicyEnforcerAfterEnforcement(final Signal<?> signal) {
         // this should always be done for modifying commands:
         return signal instanceof PolicyModifyCommand<?>;
         // TODO TJ optimization: only if the resources/subjects of the policy were changed

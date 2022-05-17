@@ -32,7 +32,8 @@ import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 
 /**
- * TODO TJ add javadoc
+ * Authorizes {@link Signal}s and filters {@link CommandResponse}s related to things by applying different included
+ * {@link ThingEnforcementStrategy}s.
  */
 public final class ThingEnforcement extends AbstractEnforcementReloaded<Signal<?>, CommandResponse<?>> {
 
@@ -41,7 +42,6 @@ public final class ThingEnforcement extends AbstractEnforcementReloaded<Signal<?
     private final EnforcementConfig enforcementConfig;
 
     public ThingEnforcement(final ActorSystem actorSystem,
-            final ActorRef ackReceiverActor,
             final ActorRef policiesShardRegion,
             final CreationRestrictionEnforcer creationRestrictionEnforcer,
             final EnforcementConfig enforcementConfig,
@@ -55,7 +55,6 @@ public final class ThingEnforcement extends AbstractEnforcementReloaded<Signal<?
                 new LiveSignalEnforcement(),
                 new ThingCommandEnforcement(
                         actorSystem,
-                        ackReceiverActor,
                         policiesShardRegion,
                         creationRestrictionEnforcer,
                         enforcementConfig,

@@ -17,6 +17,7 @@ import java.util.concurrent.CompletionStage;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.connectivity.model.signals.commands.ConnectivityCommand;
 import org.eclipse.ditto.connectivity.model.signals.commands.ConnectivityCommandResponse;
@@ -73,7 +74,7 @@ public final class ConnectionEnforcerActor
     }
 
     @Override
-    protected boolean shouldInvalidatePolicyEnforcerAfterEnforcement(final ConnectivityCommand<?> signal) {
+    protected boolean shouldInvalidatePolicyEnforcerAfterEnforcement(final Signal<?> signal) {
         // TODO TJ implement
         return false;
     }

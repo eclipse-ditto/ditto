@@ -146,7 +146,6 @@ final class ThingCommandEnforcement
     private static final JsonFieldSelector THING_QUERY_COMMAND_RESPONSE_ALLOWLIST =
             JsonFactory.newFieldSelector(Thing.JsonFields.ID);
 
-    private final ActorRef ackReceiverActor;
     private final ActorRef policiesShardRegion;
     private final PolicyIdReferencePlaceholderResolver policyIdReferencePlaceholderResolver;
     private final CreationRestrictionEnforcer creationRestrictionEnforcer;
@@ -159,17 +158,15 @@ final class ThingCommandEnforcement
      * Creates a new instance of the thing command enforcer.
      *
      * @param actorSystem the actor system to load config, dispatchers from.
-     * @param ackReceiverActor the receiver of acknowledgements issued by live enforcement.
      * @param policiesShardRegion the policies shard region to load policies from and to use in order to create new
      * (inline) policies when creating new things.
      * @param creationRestrictionEnforcer the CreationRestrictionEnforcer to apply in order to enforce creation of new
      * things based on its config.
      * @param enforcementConfig the configuration to apply for this command enforcement implementation.
      * @param liveSignalPub the helper for publishing/subscribing live signals.
-     * @param responseReceiverCache TODO TJ
+     * @param responseReceiverCache TODO TJ remove this param from here once the code using it also is removed
      */
     public ThingCommandEnforcement(final ActorSystem actorSystem,
-            final ActorRef ackReceiverActor,
             final ActorRef policiesShardRegion,
             final CreationRestrictionEnforcer creationRestrictionEnforcer,
             final EnforcementConfig enforcementConfig,
@@ -177,7 +174,6 @@ final class ThingCommandEnforcement
             final ResponseReceiverCache responseReceiverCache) {
 
         this.actorSystem = actorSystem;
-        this.ackReceiverActor = requireNonNull(ackReceiverActor);
         this.policiesShardRegion = requireNonNull(policiesShardRegion);
         this.creationRestrictionEnforcer = creationRestrictionEnforcer;
         this.enforcementConfig = enforcementConfig;
@@ -200,8 +196,9 @@ final class ThingCommandEnforcement
     }
 
     @Override
-    public boolean responseIsApplicable(final CommandResponse<?> signal) {
-        return signal instanceof ThingCommandResponse<?> && !CommandResponse.isLiveCommandResponse(signal);
+    public boolean responseIsApplicable(final CommandResponse<?> commandResponse) {
+        return commandResponse instanceof ThingCommandResponse<?> && !CommandResponse.isLiveCommandResponse(
+                commandResponse);
     }
 
     @Override
@@ -300,8 +297,7 @@ final class ThingCommandEnforcement
     }
 
     /**
-     * TODO TJ move where? and call from where and when?
-     * Probably move to ThingSupervisorActor!
+     * TODO TJ move to ThingSupervisorActor!
      */
     private CompletionStage<ThingQueryCommandResponse<?>> doSmartChannelSelection(final ThingQueryCommand<?> command,
             final ThingQueryCommandResponse<?> response, final Instant startTime, final PolicyEnforcer policyEnforcer) {
@@ -446,6 +442,7 @@ final class ThingCommandEnforcement
             return policyEnforcerLoader.apply(policyId)
                     .thenCompose(policyEnforcer -> {
                         if (null != policyEnforcer) {
+                            policyEnforcer.getPolicy().ifPresent(this::injectCreatedPolicy);
                             return authorizeSignal(command, policyEnforcer);
                         } else {
                             throw errorForExistingThingWithDeletedPolicy(command, command.getEntityId(), policyId);

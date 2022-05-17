@@ -17,13 +17,37 @@ import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
 import org.eclipse.ditto.policies.enforcement.EnforcementReloaded;
 
 /**
- * TODO TJ add javadoc
+ * Package internal strategy of different {@link EnforcementReloaded} implementations, e.g. enforcing
+ * <ul>
+ * <li>Thing commands on "twin" channel</li>
+ * <li>Live messages / live commands</li>
+ * <li>Smart channel selection</li>
+ * </ul>
  */
 interface ThingEnforcementStrategy {
 
+    /**
+     * Checks whether the passed {@code signal} can be handled by this strategy.
+     *
+     * @param signal the Signal to check whether it is applicable via this strategy.
+     * @return {@code true} when this strategy can handle the passed signal.
+     */
     boolean isApplicable(Signal<?> signal);
 
-    boolean responseIsApplicable(CommandResponse<?> signal);
+    /**
+     * Checks whether the passed {@code commandResponse} can be handled by this strategy.
+     *
+     * @param commandResponse the CommandResponse to check whether it is applicable via this strategy.
+     * @return {@code true} when this strategy can handle the passed command response.
+     */
+    boolean responseIsApplicable(CommandResponse<?> commandResponse);
 
+    /**
+     * Returns the {@link EnforcementReloaded} to use for this strategy.
+     *
+     * @return the enforcement to use for this strategy.
+     * @param <S> the type of the signal of the EnforcementReloaded
+     * @param <R> the type of the command response of the EnforcementReloaded
+     */
     <S extends Signal<?>, R extends CommandResponse<?>> EnforcementReloaded<S, R> getEnforcement();
 }
