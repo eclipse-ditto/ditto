@@ -60,7 +60,7 @@ public final class GetSortBsonVisitor implements SortFieldExpressionVisitor<Stri
      * @return projection of the sort keys.
      */
     public static Document projections(final List<SortOption> sortOptions) {
-        final Document document = new Document();
+        final Document document = new Document().append(PersistenceConstants.FIELD_PATH_MODIFIED, true);
         sortOptions.stream()
                 .map(SortOption::getSortExpression)
                 .map(GetSortBsonVisitor::path)
