@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.base.model.signals.commands.exceptions;
+package org.eclipse.ditto.placeholders;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
@@ -34,7 +34,7 @@ import org.eclipse.ditto.json.JsonObject;
  */
 @Immutable
 @JsonParsableException(errorCode = PlaceholderReferenceUnknownFieldException.ERROR_CODE)
-public final class PlaceholderReferenceUnknownFieldException extends DittoRuntimeException implements GeneralException {
+public final class PlaceholderReferenceUnknownFieldException extends DittoRuntimeException implements PlaceholderException {
 
     /**
      * Error code of this exception.

@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.base.model.signals.commands.exceptions;
+package org.eclipse.ditto.placeholders;
 
 import static java.util.Objects.requireNonNull;
 
@@ -36,7 +36,7 @@ import org.eclipse.ditto.json.JsonObject;
  */
 @Immutable
 @JsonParsableException(errorCode = PlaceholderNotResolvableException.ERROR_CODE)
-public final class PlaceholderNotResolvableException extends DittoRuntimeException implements GeneralException {
+public final class PlaceholderNotResolvableException extends DittoRuntimeException implements PlaceholderException {
 
     /**
      * Error code of this exception.

@@ -25,7 +25,7 @@ import java.util.function.Function;
 import org.assertj.core.api.ThrowableAssert;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
-import org.eclipse.ditto.base.model.signals.commands.exceptions.PlaceholderNotResolvableException;
+import org.eclipse.ditto.placeholders.PlaceholderNotResolvableException;
 import org.junit.Before;
 import org.junit.Test;
 

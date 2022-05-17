@@ -25,7 +25,7 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.model.entity.id.EntityId;
-import org.eclipse.ditto.base.model.signals.commands.exceptions.PlaceholderReferenceNotSupportedException;
+import org.eclipse.ditto.placeholders.PlaceholderReferenceNotSupportedException;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.things.model.ThingId;
 
