@@ -277,7 +277,8 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
                         targetWithMessage.message(),
                         targetWithMessage.messageTimeout()
                 ).exceptionally(throwable -> {
-                    if (throwable instanceof AskTimeoutException askTimeoutException && targetWithMessage.internalErrorOnMessageTimeout()) {
+                    if (throwable instanceof AskTimeoutException askTimeoutException &&
+                            targetWithMessage.internalErrorOnMessageTimeout()) {
                         throw DittoRuntimeException.asDittoRuntimeException(askTimeoutException, cause ->
                                 DittoInternalErrorException.newBuilder()
                                         .cause(cause)
@@ -461,18 +462,16 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
                 enforceSignalAndForwardToTargetActor((S) signal)
                         .whenComplete((response, throwable) -> {
                             if (null != throwable) {
-                                if (!(throwable instanceof DittoRuntimeException)) {
-                                    log.withCorrelationId(signal)
-                                            .warning("Encountered Throwable when interacting with enforcer or " +
-                                                    "target actor, telling sender: {}", throwable);
-                                }
-
                                 final DittoRuntimeException dre =
-                                        DittoRuntimeException.asDittoRuntimeException(throwable, t ->
-                                                DittoInternalErrorException.newBuilder()
-                                                        .dittoHeaders(signal.getDittoHeaders())
-                                                        .cause(t)
-                                                        .build());
+                                        DittoRuntimeException.asDittoRuntimeException(throwable, t -> {
+                                            log.withCorrelationId(signal)
+                                                    .warning("Encountered Throwable when interacting with enforcer " +
+                                                            "or target actor, telling sender: {}", throwable);
+                                            return DittoInternalErrorException.newBuilder()
+                                                    .dittoHeaders(signal.getDittoHeaders())
+                                                    .cause(t)
+                                                    .build();
+                                        });
                                 log.withCorrelationId(dre)
                                         .info("Received DittoRuntimeException during enforcement or " +
                                                 "forwarding to target actor, telling sender: {}", dre);
@@ -629,11 +628,11 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
     }
 
     public record DistributedPubWithMessage(DistributedPub<?> pub,
-                                               Object wrappedSignalForPublication,
-                                               Signal<?> signal) {}
+                                            Object wrappedSignalForPublication,
+                                            Signal<?> signal) {}
 
     public record TargetActorWithMessage(ActorRef targetActor,
-                                            Object message,
+                                         Object message,
                                          Duration messageTimeout,
                                          boolean internalErrorOnMessageTimeout) {}
 
