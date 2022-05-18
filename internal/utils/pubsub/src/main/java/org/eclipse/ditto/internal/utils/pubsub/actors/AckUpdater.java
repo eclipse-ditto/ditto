@@ -323,6 +323,7 @@ public final class AckUpdater extends AbstractActorWithTimers implements Cluster
     private void writeLocalDData() {
         final var writeConsistency = (Replicator.WriteConsistency) Replicator.writeLocal();
         if (resetProbability > 0 && Math.random() < resetProbability) {
+            log().debug("Resetting ddata ack-labels: <{}>", getSelf());
             ackDData.getWriter().reset(ownAddress, exportNextUpdate(), writeConsistency).whenComplete(this::logError);
         } else {
             final LiteralUpdate diff = createAndSetDDataUpdate();

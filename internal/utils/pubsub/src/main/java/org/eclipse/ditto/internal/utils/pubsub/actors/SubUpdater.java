@@ -233,6 +233,7 @@ public final class SubUpdater extends akka.actor.AbstractActorWithTimers
         final SubscriptionsReader snapshot = subscriptions.snapshot();
         final CompletionStage<Void> ddataOp;
         if (resetProbability > 0 && Math.random() < resetProbability) {
+            log().debug("Resetting ddata topics: <{}>", getSelf());
             ddataOp = ddata.getWriter().reset(subscriber, subscriptions.export(), writeConsistency);
         } else if (!localSubscriptionsChanged) {
             ddataOp = CompletableFuture.completedStage(null);
