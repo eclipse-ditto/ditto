@@ -29,7 +29,7 @@ import akka.actor.ActorSystem;
  */
 public interface RootChildActorStarter extends DittoExtensionPoint {
 
-    static final String CONFIG_PATH = "root-child-actor-starter";
+    static final String CONFIG_PATH = "ditto.root-child-actor-starter";
 
     /**
      * Execute custom custom code.
@@ -48,8 +48,7 @@ public interface RootChildActorStarter extends DittoExtensionPoint {
      */
     static RootChildActorStarter get(final ActorSystem actorSystem) {
         checkNotNull(actorSystem, "actorSystem");
-        final DefaultScopedConfig dittoScoped = DefaultScopedConfig.dittoScoped(actorSystem.settings().config());
-        final var implementation = dittoScoped.getString(CONFIG_PATH);
+        final var implementation = actorSystem.settings().config().getString(CONFIG_PATH);
 
         return AkkaClassLoader.instantiate(actorSystem, RootChildActorStarter.class,
                 implementation,

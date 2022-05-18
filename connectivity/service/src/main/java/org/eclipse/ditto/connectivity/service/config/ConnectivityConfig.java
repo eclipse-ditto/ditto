@@ -91,15 +91,6 @@ public interface ConnectivityConfig extends ServiceSpecificConfig, WithHealthChe
     TunnelConfig getTunnelConfig();
 
     /**
-     * Returns the full qualified classname of the {@code org.eclipse.ditto.connectivity.service.CustomConnectivityRootExecutor}
-     * implementation to use for custom executions in {@code ConnectivityRootActor}.
-     *
-     * @return the full qualified classname of the {@code CustomConnectivityRootExecutor} implementation to use.
-     * @since 3.0.0
-     */
-    String getCustomRootExecutor();
-
-    /**
      * Read the static connectivity config from an actor system.
      *
      * @param config the config to parse.
@@ -114,14 +105,7 @@ public interface ConnectivityConfig extends ServiceSpecificConfig, WithHealthChe
      * {@code ConnectivityConfig}.
      */
     enum ConnectivityConfigValue implements KnownConfigValue {
-
-        /**
-         * The full qualified classname of the {@code CustomConnectivityRootExecutor} to instantiate.
-         * @since 3.0.0
-         */
-        CUSTOM_ROOT_EXECUTOR("connectivity.custom-root-executor",
-                "org.eclipse.ditto.gateway.service.starter.NoOpGatewayRootExecutor");
-
+        ;
         private final String path;
         private final Object defaultValue;
 

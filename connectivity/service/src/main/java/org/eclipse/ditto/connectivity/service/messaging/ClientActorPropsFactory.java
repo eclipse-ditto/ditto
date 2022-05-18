@@ -19,19 +19,20 @@ import java.util.List;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.service.DittoExtensionPoint;
 import org.eclipse.ditto.connectivity.model.Connection;
-import org.eclipse.ditto.connectivity.service.config.DittoConnectivityConfig;
 import org.eclipse.ditto.internal.utils.akka.AkkaClassLoader;
-import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 
 import com.typesafe.config.Config;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
+
 /**
  * Creates actor {@link Props} based on the given {@link Connection}.
  */
 public interface ClientActorPropsFactory extends DittoExtensionPoint {
+
+    String CONFIG_PATH = "ditto.connectivity.connection.client-actor-props-factory";
 
     /**
      * Create actor {@link Props} for a connection.
@@ -43,7 +44,7 @@ public interface ClientActorPropsFactory extends DittoExtensionPoint {
      * @param dittoHeaders Ditto headers of the command that caused the client actors to be created.
      * @return the actor props
      */
-    public Props getActorPropsForType(Connection connection,
+    Props getActorPropsForType(Connection connection,
             ActorRef proxyActor,
             ActorRef connectionActor,
             ActorSystem actorSystem,
@@ -60,9 +61,7 @@ public interface ClientActorPropsFactory extends DittoExtensionPoint {
      */
     static ClientActorPropsFactory get(final ActorSystem actorSystem) {
         checkNotNull(actorSystem, "actorSystem");
-        final var implementation =
-                DittoConnectivityConfig.of(DefaultScopedConfig.dittoScoped(
-                        actorSystem.settings().config())).getConnectionConfig().getClientActorPropsFactory();
+        final var implementation = actorSystem.settings().config().getString(CONFIG_PATH);
 
         return AkkaClassLoader.instantiate(actorSystem, ClientActorPropsFactory.class,
                 implementation,

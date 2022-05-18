@@ -170,15 +170,6 @@ public interface ConnectionConfig extends WithSupervisorConfig, WithActivityChec
      */
     String getCustomCommandInterceptorProvider();
 
-    /**
-     * Returns the full qualified classname of the {@code org.eclipse.ditto.connectivity.service.messaging.ClientActorPropsFactory}
-     * implementation to use for custom client actor props.
-     *
-     * @return the full qualified classname of the {@code ClientActorPropsFactory} implementation to use.
-     * @since 3.0.0
-     */
-    String getClientActorPropsFactory();
-
 
     /**
      * Returns the full qualified classname of the
@@ -264,14 +255,6 @@ public interface ConnectionConfig extends WithSupervisorConfig, WithActivityChec
          */
         CUSTOM_COMMAND_INTERCEPTOR_PROVIDER("custom-command-interceptor-provider",
                 "org.eclipse.ditto.connectivity.service.messaging.validation.NoOpConnectivityCommandInterceptorProvider"),
-
-        /**
-         * The full qualified classname of the {@code ClientActorPropsFactory} to instantiate.
-         *
-         * @since 3.0.0
-         */
-        CLIENT_ACTOR_PROPS_FACTORY("client-actor-props-factory",
-                "org.eclipse.ditto.connectivity.service.messaging.DefaultClientActorPropsFactory"),
 
         /**
          * The full qualified classname of the {@code ConnectionPriorityProviderFactory} to instantiate.

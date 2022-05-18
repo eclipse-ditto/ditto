@@ -61,7 +61,6 @@ public final class DittoConnectivityConfig implements ConnectivityConfig {
     private final MappingConfig mappingConfig;
     private final AcknowledgementConfig acknowledgementConfig;
     private final TunnelConfig tunnelConfig;
-    private final String customRootExecutor;
 
     private DittoConnectivityConfig(final ScopedConfig dittoScopedConfig) {
         serviceSpecificConfig = DittoServiceConfig.of(dittoScopedConfig, CONFIG_PATH);
@@ -77,7 +76,6 @@ public final class DittoConnectivityConfig implements ConnectivityConfig {
         mappingConfig = DefaultMappingConfig.of(serviceSpecificConfig);
         acknowledgementConfig = DefaultAcknowledgementConfig.of(serviceSpecificConfig);
         tunnelConfig = DefaultTunnelConfig.of(serviceSpecificConfig);
-        customRootExecutor = dittoScopedConfig.getString(ConnectivityConfigValue.CUSTOM_ROOT_EXECUTOR.getConfigPath());
     }
 
     /**
@@ -178,11 +176,6 @@ public final class DittoConnectivityConfig implements ConnectivityConfig {
         return tunnelConfig;
     }
 
-    @Override
-    public String getCustomRootExecutor() {
-        return customRootExecutor;
-    }
-
     @SuppressWarnings("OverlyComplexMethod")
     @Override
     public boolean equals(@Nullable final Object o) {
@@ -205,15 +198,14 @@ public final class DittoConnectivityConfig implements ConnectivityConfig {
                 Objects.equals(monitoringConfig, that.monitoringConfig) &&
                 Objects.equals(mappingConfig, that.mappingConfig) &&
                 Objects.equals(acknowledgementConfig, that.acknowledgementConfig) &&
-                Objects.equals(tunnelConfig, that.tunnelConfig) &&
-                Objects.equals(customRootExecutor, that.customRootExecutor);
+                Objects.equals(tunnelConfig, that.tunnelConfig);
     }
 
     @Override
     public int hashCode() {
         return Objects.hash(serviceSpecificConfig, persistenceOperationsConfig, mongoDbConfig, healthCheckConfig,
                 connectionConfig, pingConfig, connectionIdsRetrievalConfig, clientConfig, protocolConfig,
-                monitoringConfig, mappingConfig, acknowledgementConfig, tunnelConfig, customRootExecutor);
+                monitoringConfig, mappingConfig, acknowledgementConfig, tunnelConfig);
     }
 
     @Override
@@ -232,7 +224,6 @@ public final class DittoConnectivityConfig implements ConnectivityConfig {
                 ", mappingConfig=" + mappingConfig +
                 ", acknowledgementConfig" + acknowledgementConfig +
                 ", tunnelConfig" + tunnelConfig +
-                ", customRootExecutor" + customRootExecutor +
                 "]";
     }
 
