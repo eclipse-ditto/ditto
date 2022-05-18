@@ -41,7 +41,6 @@ import org.eclipse.ditto.gateway.service.endpoints.actors.AbstractHttpRequestAct
 import org.eclipse.ditto.gateway.service.endpoints.actors.HttpRequestActorPropsFactory;
 import org.eclipse.ditto.gateway.service.endpoints.directives.ContentTypeValidationDirective;
 import org.eclipse.ditto.gateway.service.util.config.endpoints.CommandConfig;
-import org.eclipse.ditto.internal.utils.akka.AkkaClassLoader;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLogger;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.json.JsonFactory;
@@ -113,9 +112,7 @@ public abstract class AbstractRoute extends AllDirectives {
 
         LOGGER.debug("Using headerTranslator <{}>.", routeBaseProperties.getHeaderTranslator());
 
-        httpRequestActorPropsFactory = AkkaClassLoader.instantiate(routeBaseProperties.getActorSystem(),
-                HttpRequestActorPropsFactory.class,
-                httpConfig.getActorPropsFactoryFullQualifiedClassname());
+        httpRequestActorPropsFactory = HttpRequestActorPropsFactory.get(routeBaseProperties.getActorSystem());
 
         supervisionStrategy = createSupervisionStrategy();
     }

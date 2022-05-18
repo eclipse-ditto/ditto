@@ -28,8 +28,6 @@ import akka.actor.ActorSystem;
  */
 public interface QueryCriteriaValidator extends DittoExtensionPoint {
 
-    String CONFIG_PATH = "ditto.things-search.query-criteria-validator.implementation";
-
     /**
      * Gets the criteria of a {@link org.eclipse.ditto.thingsearch.model.signals.commands.query.ThingSearchQueryCommand} and
      * validates it.
@@ -51,8 +49,23 @@ public interface QueryCriteriaValidator extends DittoExtensionPoint {
      */
     static QueryCriteriaValidator get(final ActorSystem actorSystem) {
         checkNotNull(actorSystem, "actorSystem");
-        final var implementation = actorSystem.settings().config().getString(CONFIG_PATH);
-        return new ExtensionId<>(implementation, QueryCriteriaValidator.class).get(actorSystem);
+        return ExtensionId.INSTANCE.get(actorSystem);
+    }
+
+    final class ExtensionId extends DittoExtensionPoint.ExtensionId<QueryCriteriaValidator> {
+
+        private static final String CONFIG_PATH = "ditto.things-search.query-criteria-validator.implementation";
+        private static final ExtensionId INSTANCE = new ExtensionId(QueryCriteriaValidator.class);
+
+        private ExtensionId(final Class<QueryCriteriaValidator> parentClass) {
+            super(parentClass);
+        }
+
+        @Override
+        protected String getConfigPath() {
+            return CONFIG_PATH;
+        }
+
     }
 
 }

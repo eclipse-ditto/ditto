@@ -27,8 +27,6 @@ import akka.stream.javadsl.Flow;
  */
 public interface SseEventSniffer extends DittoExtensionPoint {
 
-    String CONFIG_PATH = "ditto.gateway.streaming.sse.event-sniffer";
-
     /**
      * Create an async flow for event sniffing.
      *
@@ -48,9 +46,23 @@ public interface SseEventSniffer extends DittoExtensionPoint {
      */
     static SseEventSniffer get(final ActorSystem actorSystem) {
         checkNotNull(actorSystem, "actorSystem");
-        final var implementation = actorSystem.settings().config().getString(CONFIG_PATH);
+        return ExtensionId.INSTANCE.get(actorSystem);
+    }
 
-        return new ExtensionId<>(implementation, SseEventSniffer.class).get(actorSystem);
+    final class ExtensionId extends DittoExtensionPoint.ExtensionId<SseEventSniffer> {
+
+        private static final String CONFIG_PATH = "ditto.gateway.streaming.sse.event-sniffer";
+        private static final ExtensionId INSTANCE = new ExtensionId(SseEventSniffer.class);
+
+        private ExtensionId(final Class<SseEventSniffer> parentClass) {
+            super(parentClass);
+        }
+
+        @Override
+        protected String getConfigPath() {
+            return CONFIG_PATH;
+        }
+
     }
 
 }

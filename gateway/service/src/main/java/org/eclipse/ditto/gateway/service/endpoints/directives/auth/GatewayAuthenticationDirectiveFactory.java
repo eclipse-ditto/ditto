@@ -16,9 +16,6 @@ import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import org.eclipse.ditto.base.service.DittoExtensionPoint;
 import org.eclipse.ditto.gateway.service.security.authentication.jwt.JwtAuthenticationFactory;
-import org.eclipse.ditto.gateway.service.util.config.DittoGatewayConfig;
-import org.eclipse.ditto.gateway.service.util.config.security.AuthenticationConfig;
-import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 
 import akka.actor.ActorSystem;
 
@@ -26,8 +23,6 @@ import akka.actor.ActorSystem;
  * Factory for authentication directives.
  */
 public interface GatewayAuthenticationDirectiveFactory extends DittoExtensionPoint {
-
-    String CONFIG_PATH = "ditto.gateway.authentication.gateway-authentication-directive-factory";
 
     /**
      * Builds the {@link GatewayAuthenticationDirective authentication directive} that should be used for HTTP API.
@@ -54,8 +49,24 @@ public interface GatewayAuthenticationDirectiveFactory extends DittoExtensionPoi
      */
     static GatewayAuthenticationDirectiveFactory get(final ActorSystem actorSystem) {
         checkNotNull(actorSystem, "actorSystem");
-        final var implementation = actorSystem.settings().config().getString(CONFIG_PATH);
-        return new ExtensionId<>(implementation, GatewayAuthenticationDirectiveFactory.class).get(actorSystem);
+        return ExtensionId.INSTANCE.get(actorSystem);
+    }
+
+    final class ExtensionId extends DittoExtensionPoint.ExtensionId<GatewayAuthenticationDirectiveFactory> {
+
+        private static final String CONFIG_PATH =
+                "ditto.gateway.authentication.gateway-authentication-directive-factory";
+        private static final ExtensionId INSTANCE = new ExtensionId(GatewayAuthenticationDirectiveFactory.class);
+
+        private ExtensionId(final Class<GatewayAuthenticationDirectiveFactory> parentClass) {
+            super(parentClass);
+        }
+
+        @Override
+        protected String getConfigPath() {
+            return CONFIG_PATH;
+        }
+
     }
 
 }

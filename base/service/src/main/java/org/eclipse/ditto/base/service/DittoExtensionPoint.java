@@ -32,28 +32,33 @@ public interface DittoExtensionPoint extends Extension {
     /**
      * @param <T> the class of the extension for which an implementation should be loaded.
      */
-    final class ExtensionId<T extends Extension> extends AbstractExtensionId<T> {
+    abstract class ExtensionId<T extends Extension> extends AbstractExtensionId<T> {
 
-        private final String implementation;
         private final Class<T> parentClass;
 
         /**
          * Returns the {@code ExtensionId} for the implementation that should be loaded.
          *
-         * @param implementation the implementation, optimally configurable via typesafe config and environment variables.
          * @param parentClass the class of the extensions for which an implementation should be loaded.
          */
-        public ExtensionId(final String implementation, final Class<T> parentClass) {
-            this.implementation = implementation;
+        public ExtensionId(final Class<T> parentClass) {
             this.parentClass = parentClass;
         }
 
         @Override
         public T createExtension(final ExtendedActorSystem system) {
             return AkkaClassLoader.instantiate(system, parentClass,
-                    implementation,
+                    getImplementation(system),
                     List.of(ActorSystem.class),
                     List.of(system));
         }
+
+        private String getImplementation(final ExtendedActorSystem actorSystem) {
+            return actorSystem.settings().config().getString(getConfigPath());
+        }
+
+        protected abstract String getConfigPath();
+
     }
+
 }

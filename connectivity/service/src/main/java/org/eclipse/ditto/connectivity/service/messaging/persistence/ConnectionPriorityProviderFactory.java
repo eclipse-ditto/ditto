@@ -25,8 +25,6 @@ import akka.actor.ActorSystem;
  */
 public interface ConnectionPriorityProviderFactory extends DittoExtensionPoint {
 
-    String CONFIG_PATH = "ditto.connectivity.connection.connection-priority-provider-factory";
-
     /**
      * Creates a connection priority provider based on the connection persistence actor and its logger.
      *
@@ -34,8 +32,7 @@ public interface ConnectionPriorityProviderFactory extends DittoExtensionPoint {
      * @param log the logger of the connection persistence actor.
      * @return the new provider.
      */
-    ConnectionPriorityProvider newProvider(ActorRef connectionPersistenceActor,
-            DittoDiagnosticLoggingAdapter log);
+    ConnectionPriorityProvider newProvider(ActorRef connectionPersistenceActor, DittoDiagnosticLoggingAdapter log);
 
 
     /**
@@ -48,8 +45,23 @@ public interface ConnectionPriorityProviderFactory extends DittoExtensionPoint {
      */
     static ConnectionPriorityProviderFactory get(final ActorSystem actorSystem) {
         checkNotNull(actorSystem, "actorSystem");
-        final var implementation = actorSystem.settings().config().getString(CONFIG_PATH);
-        return new ExtensionId<>(implementation, ConnectionPriorityProviderFactory.class).get(actorSystem);
+        return ExtensionId.INSTANCE.get(actorSystem);
+    }
+
+    final class ExtensionId extends DittoExtensionPoint.ExtensionId<ConnectionPriorityProviderFactory> {
+
+        private static final String CONFIG_PATH = "ditto.connectivity.connection.connection-priority-provider-factory";
+        private static final ExtensionId INSTANCE = new ExtensionId(ConnectionPriorityProviderFactory.class);
+
+        private ExtensionId(final Class<ConnectionPriorityProviderFactory> parentClass) {
+            super(parentClass);
+        }
+
+        @Override
+        protected String getConfigPath() {
+            return CONFIG_PATH;
+        }
+
     }
 
 }

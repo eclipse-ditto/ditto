@@ -24,8 +24,6 @@ import akka.actor.ActorSystem;
  */
 public interface WebSocketSupervisor extends DittoExtensionPoint, StreamSupervisor {
 
-    String CONFIG_PATH = "ditto.gateway.streaming.websocket.connection-supervisor";
-
     /**
      * Loads the implementation of {@code WebSocketSupervisor} which is configured for the
      * {@code ActorSystem}.
@@ -37,9 +35,23 @@ public interface WebSocketSupervisor extends DittoExtensionPoint, StreamSupervis
      */
     static WebSocketSupervisor get(final ActorSystem actorSystem) {
         checkNotNull(actorSystem, "actorSystem");
-        final var implementation = actorSystem.settings().config().getString(CONFIG_PATH);
+        return ExtensionId.INSTANCE.get(actorSystem);
+    }
 
-        return new ExtensionId<>(implementation, WebSocketSupervisor.class).get(actorSystem);
+    final class ExtensionId extends DittoExtensionPoint.ExtensionId<WebSocketSupervisor> {
+
+        private static final String CONFIG_PATH = "ditto.gateway.streaming.websocket.connection-supervisor";
+        private static final ExtensionId INSTANCE = new ExtensionId(WebSocketSupervisor.class);
+
+        private ExtensionId(final Class<WebSocketSupervisor> parentClass) {
+            super(parentClass);
+        }
+
+        @Override
+        protected String getConfigPath() {
+            return CONFIG_PATH;
+        }
+
     }
 
 }

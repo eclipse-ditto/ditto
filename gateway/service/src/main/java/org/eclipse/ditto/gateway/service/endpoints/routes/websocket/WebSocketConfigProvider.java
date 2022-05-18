@@ -28,8 +28,6 @@ import akka.actor.ActorSystem;
 public interface WebSocketConfigProvider
         extends DittoExtensionPoint, BiFunction<DittoHeaders, WebsocketConfig, WebsocketConfig> {
 
-    String CONFIG_PATH = "ditto.gateway.streaming.websocket.config-provider";
-
     /**
      * Loads the implementation of {@code WebSocketConfigProvider} which is configured for the
      * {@code ActorSystem}.
@@ -41,9 +39,23 @@ public interface WebSocketConfigProvider
      */
     static WebSocketConfigProvider get(final ActorSystem actorSystem) {
         checkNotNull(actorSystem, "actorSystem");
-        final var implementation = actorSystem.settings().config().getString(CONFIG_PATH);
+        return ExtensionId.INSTANCE.get(actorSystem);
+    }
 
-        return new ExtensionId<>(implementation, WebSocketConfigProvider.class).get(actorSystem);
+    final class ExtensionId extends DittoExtensionPoint.ExtensionId<WebSocketConfigProvider> {
+
+        private static final String CONFIG_PATH = "ditto.gateway.streaming.websocket.config-provider";
+        private static final ExtensionId INSTANCE = new ExtensionId(WebSocketConfigProvider.class);
+
+        private ExtensionId(final Class<WebSocketConfigProvider> parentClass) {
+            super(parentClass);
+        }
+
+        @Override
+        protected String getConfigPath() {
+            return CONFIG_PATH;
+        }
+
     }
 
 }

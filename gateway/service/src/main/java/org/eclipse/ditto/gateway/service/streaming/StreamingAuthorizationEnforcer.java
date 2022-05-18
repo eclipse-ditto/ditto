@@ -18,8 +18,6 @@ import java.util.concurrent.CompletionStage;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.service.DittoExtensionPoint;
-import org.eclipse.ditto.gateway.service.util.config.DittoGatewayConfig;
-import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 
 import akka.actor.ActorSystem;
 import akka.http.javadsl.server.RequestContext;
@@ -30,9 +28,6 @@ import akka.http.javadsl.server.RequestContext;
  * {@link org.eclipse.ditto.base.model.exceptions.DittoRuntimeException DittoRuntimeException} is thrown.
  */
 public interface StreamingAuthorizationEnforcer extends DittoExtensionPoint {
-
-    String CONFIG_PATH_WS = "ditto.gateway.streaming.websocket.authorization-enforcer";
-    String CONFIG_PATH_SSE = "ditto.gateway.streaming.sse.authorization-enforcer";
 
     /**
      * Ensures that the establishment of a SSE connection is authorized for the given arguments.
@@ -55,8 +50,7 @@ public interface StreamingAuthorizationEnforcer extends DittoExtensionPoint {
      */
     static StreamingAuthorizationEnforcer sse(final ActorSystem actorSystem) {
         checkNotNull(actorSystem, "actorSystem");
-        final var implementation = actorSystem.settings().config().getString(CONFIG_PATH_SSE);
-        return new ExtensionId<>(implementation, StreamingAuthorizationEnforcer.class).get(actorSystem);
+        return SseExtensionId.INSTANCE.get(actorSystem);
     }
 
     /**
@@ -70,8 +64,39 @@ public interface StreamingAuthorizationEnforcer extends DittoExtensionPoint {
      */
     static StreamingAuthorizationEnforcer ws(final ActorSystem actorSystem) {
         checkNotNull(actorSystem, "actorSystem");
-        final var implementation = actorSystem.settings().config().getString(CONFIG_PATH_WS);
-        return new ExtensionId<>(implementation, StreamingAuthorizationEnforcer.class).get(actorSystem);
+        return WsExtensionId.INSTANCE.get(actorSystem);
+    }
+
+    final class WsExtensionId extends DittoExtensionPoint.ExtensionId<StreamingAuthorizationEnforcer> {
+
+        private static final String CONFIG_PATH = "ditto.gateway.streaming.websocket.authorization-enforcer";
+        private static final WsExtensionId INSTANCE = new WsExtensionId(StreamingAuthorizationEnforcer.class);
+
+        private WsExtensionId(final Class<StreamingAuthorizationEnforcer> parentClass) {
+            super(parentClass);
+        }
+
+        @Override
+        protected String getConfigPath() {
+            return CONFIG_PATH;
+        }
+
+    }
+
+    final class SseExtensionId extends DittoExtensionPoint.ExtensionId<StreamingAuthorizationEnforcer> {
+
+        private static final String CONFIG_PATH = "ditto.gateway.streaming.sse.authorization-enforcer";
+        private static final SseExtensionId INSTANCE = new SseExtensionId(StreamingAuthorizationEnforcer.class);
+
+        private SseExtensionId(final Class<StreamingAuthorizationEnforcer> parentClass) {
+            super(parentClass);
+        }
+
+        @Override
+        protected String getConfigPath() {
+            return CONFIG_PATH;
+        }
+
     }
 
 }

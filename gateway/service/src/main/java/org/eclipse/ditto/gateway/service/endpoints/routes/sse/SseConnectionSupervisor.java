@@ -24,8 +24,6 @@ import akka.actor.ActorSystem;
  */
 public interface SseConnectionSupervisor extends DittoExtensionPoint, StreamSupervisor {
 
-    String CONFIG_PATH = "ditto.gateway.streaming.sse.connection-supervisor";
-
     /**
      * Loads the implementation of {@code SseConnectionSupervisor} which is configured for the
      * {@code ActorSystem}.
@@ -37,9 +35,23 @@ public interface SseConnectionSupervisor extends DittoExtensionPoint, StreamSupe
      */
     static SseConnectionSupervisor get(final ActorSystem actorSystem) {
         checkNotNull(actorSystem, "actorSystem");
-        final var implementation = actorSystem.settings().config().getString(CONFIG_PATH);
+        return ExtensionId.INSTANCE.get(actorSystem);
+    }
 
-        return new ExtensionId<>(implementation, SseConnectionSupervisor.class).get(actorSystem);
+    final class ExtensionId extends DittoExtensionPoint.ExtensionId<SseConnectionSupervisor> {
+
+        private static final String CONFIG_PATH = "ditto.gateway.streaming.sse.connection-supervisor";
+        private static final ExtensionId INSTANCE = new ExtensionId(SseConnectionSupervisor.class);
+
+        private ExtensionId(final Class<SseConnectionSupervisor> parentClass) {
+            super(parentClass);
+        }
+
+        @Override
+        protected String getConfigPath() {
+            return CONFIG_PATH;
+        }
+
     }
 
 }

@@ -18,12 +18,11 @@ import java.util.function.UnaryOperator;
 
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.service.DittoExtensionPoint;
+import org.eclipse.ditto.base.service.RootActorStarter;
 
 import akka.actor.ActorSystem;
 
 public interface SignalTransformer extends DittoExtensionPoint, UnaryOperator<Signal<?>> {
-
-    static final String CONFIG_PATH = "ditto.signal-transformer";
 
     /**
      * Loads the implementation of {@code SignalTransformer} which is configured for the
@@ -35,7 +34,22 @@ public interface SignalTransformer extends DittoExtensionPoint, UnaryOperator<Si
      */
     static SignalTransformer get(final ActorSystem actorSystem) {
         checkNotNull(actorSystem, "actorSystem");
-        final var implementation = actorSystem.settings().config().getString(CONFIG_PATH);
-        return new ExtensionId<>(implementation, SignalTransformer.class).get(actorSystem);
+        return ExtensionId.INSTANCE.get(actorSystem);
+    }
+
+    final class ExtensionId extends DittoExtensionPoint.ExtensionId<SignalTransformer> {
+
+        private static final String CONFIG_PATH = "ditto.signal-transformer";
+        private static final ExtensionId INSTANCE = new ExtensionId(SignalTransformer.class);
+
+        private ExtensionId(final Class<SignalTransformer> parentClass) {
+            super(parentClass);
+        }
+
+        @Override
+        protected String getConfigPath() {
+            return CONFIG_PATH;
+        }
+
     }
 }

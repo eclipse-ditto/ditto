@@ -35,8 +35,6 @@ import akka.http.javadsl.model.HttpRequest;
  */
 public interface GatewaySignalEnrichmentProvider extends DittoExtensionPoint {
 
-    String CONFIG_PATH = "ditto.gateway.streaming.signal-enrichment.signal-enrichment-provider";
-
     /**
      * Create a {@link SignalEnrichmentFacade} from the HTTP request that
      * created the websocket or SSE stream that requires it.
@@ -62,9 +60,24 @@ public interface GatewaySignalEnrichmentProvider extends DittoExtensionPoint {
      */
     static GatewaySignalEnrichmentProvider get(final ActorSystem actorSystem) {
         checkNotNull(actorSystem, "actorSystem");
-        final var implementation = actorSystem.settings().config().getString(CONFIG_PATH);
+        return ExtensionId.INSTANCE.get(actorSystem);
+    }
 
-        return new ExtensionId<>(implementation, GatewaySignalEnrichmentProvider.class).get(actorSystem);
+    final class ExtensionId extends DittoExtensionPoint.ExtensionId<GatewaySignalEnrichmentProvider> {
+
+        private static final String CONFIG_PATH =
+                "ditto.gateway.streaming.signal-enrichment.signal-enrichment-provider";
+        private static final ExtensionId INSTANCE = new ExtensionId(GatewaySignalEnrichmentProvider.class);
+
+        private ExtensionId(final Class<GatewaySignalEnrichmentProvider> parentClass) {
+            super(parentClass);
+        }
+
+        @Override
+        protected String getConfigPath() {
+            return CONFIG_PATH;
+        }
+
     }
 
 }

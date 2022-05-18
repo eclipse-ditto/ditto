@@ -30,8 +30,6 @@ import akka.stream.javadsl.Flow;
  */
 public interface HttpBindFlowProvider extends DittoExtensionPoint {
 
-    String CONFIG_PATH = "ditto.gateway.http.bind-flow-provider";
-
     /**
      * Create a bind flow for HTTP requests.
      *
@@ -49,8 +47,23 @@ public interface HttpBindFlowProvider extends DittoExtensionPoint {
      */
     static HttpBindFlowProvider get(final ActorSystem actorSystem) {
         checkNotNull(actorSystem, "actorSystem");
-        final var implementation = actorSystem.settings().config().getString(CONFIG_PATH);
-
-        return new ExtensionId<>(implementation, HttpBindFlowProvider.class).get(actorSystem);
+        return ExtensionId.INSTANCE.get(actorSystem);
     }
+
+    final class ExtensionId extends DittoExtensionPoint.ExtensionId<HttpBindFlowProvider> {
+
+        private static final String CONFIG_PATH = "ditto.gateway.http.bind-flow-provider";
+        private static final ExtensionId INSTANCE = new ExtensionId(HttpBindFlowProvider.class);
+
+        private ExtensionId(final Class<HttpBindFlowProvider> parentClass) {
+            super(parentClass);
+        }
+
+        @Override
+        protected String getConfigPath() {
+            return CONFIG_PATH;
+        }
+
+    }
+
 }

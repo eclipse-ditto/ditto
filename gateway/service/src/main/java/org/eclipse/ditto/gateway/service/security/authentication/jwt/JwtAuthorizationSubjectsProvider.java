@@ -27,8 +27,6 @@ import akka.actor.ActorSystem;
  */
 public interface JwtAuthorizationSubjectsProvider extends DittoExtensionPoint {
 
-    String CONFIG_PATH = "ditto.gateway.authentication.oauth.jwt-authorization-subjects-provider";
-
     /**
      * Returns the {@code AuthorizationSubjects} of the given {@code JsonWebToken}.
      *
@@ -48,8 +46,24 @@ public interface JwtAuthorizationSubjectsProvider extends DittoExtensionPoint {
      */
     static JwtAuthorizationSubjectsProvider get(final ActorSystem actorSystem) {
         checkNotNull(actorSystem, "actorSystem");
-        final var implementation = actorSystem.settings().config().getString(CONFIG_PATH);
-        return new ExtensionId<>(implementation, JwtAuthorizationSubjectsProvider.class).get(actorSystem);
+        return ExtensionId.INSTANCE.get(actorSystem);
+    }
+
+    final class ExtensionId extends DittoExtensionPoint.ExtensionId<JwtAuthorizationSubjectsProvider> {
+
+        private static final String CONFIG_PATH =
+                "ditto.gateway.authentication.oauth.jwt-authorization-subjects-provider";
+        private static final ExtensionId INSTANCE = new ExtensionId(JwtAuthorizationSubjectsProvider.class);
+
+        private ExtensionId(final Class<JwtAuthorizationSubjectsProvider> parentClass) {
+            super(parentClass);
+        }
+
+        @Override
+        protected String getConfigPath() {
+            return CONFIG_PATH;
+        }
+
     }
 
 }

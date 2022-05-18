@@ -24,8 +24,6 @@ import akka.actor.ActorSystem;
  */
 public interface RootChildActorStarter extends DittoExtensionPoint {
 
-    static final String CONFIG_PATH = "ditto.root-child-actor-starter";
-
     /**
      * Execute custom custom code.
      *
@@ -43,7 +41,23 @@ public interface RootChildActorStarter extends DittoExtensionPoint {
      */
     static RootChildActorStarter get(final ActorSystem actorSystem) {
         checkNotNull(actorSystem, "actorSystem");
-        final var implementation = actorSystem.settings().config().getString(CONFIG_PATH);
-        return new ExtensionId<>(implementation, RootChildActorStarter.class).get(actorSystem);
+        return ExtensionId.INSTANCE.get(actorSystem);
     }
+
+    final class ExtensionId extends DittoExtensionPoint.ExtensionId<RootChildActorStarter> {
+
+        private static final String CONFIG_PATH = "ditto.root-child-actor-starter";
+        private static final ExtensionId INSTANCE = new ExtensionId(RootChildActorStarter.class);
+
+        private ExtensionId(final Class<RootChildActorStarter> parentClass) {
+            super(parentClass);
+        }
+
+        @Override
+        protected String getConfigPath() {
+            return CONFIG_PATH;
+        }
+
+    }
+
 }

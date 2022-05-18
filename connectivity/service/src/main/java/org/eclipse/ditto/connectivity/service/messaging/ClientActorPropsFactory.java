@@ -29,8 +29,6 @@ import akka.actor.Props;
  */
 public interface ClientActorPropsFactory extends DittoExtensionPoint {
 
-    String CONFIG_PATH = "ditto.connectivity.connection.client-actor-props-factory";
-
     /**
      * Create actor {@link Props} for a connection.
      *
@@ -58,8 +56,23 @@ public interface ClientActorPropsFactory extends DittoExtensionPoint {
      */
     static ClientActorPropsFactory get(final ActorSystem actorSystem) {
         checkNotNull(actorSystem, "actorSystem");
-        final var implementation = actorSystem.settings().config().getString(CONFIG_PATH);
-        return new ExtensionId<>(implementation, ClientActorPropsFactory.class).get(actorSystem);
+        return ExtensionId.INSTANCE.get(actorSystem);
+    }
+
+    final class ExtensionId extends DittoExtensionPoint.ExtensionId<ClientActorPropsFactory> {
+
+        private static final String CONFIG_PATH = "ditto.connectivity.connection.client-actor-props-factory";
+        private static final ExtensionId INSTANCE = new ExtensionId(ClientActorPropsFactory.class);
+
+        private ExtensionId(final Class<ClientActorPropsFactory> parentClass) {
+            super(parentClass);
+        }
+
+        @Override
+        protected String getConfigPath() {
+            return CONFIG_PATH;
+        }
+
     }
 
 }

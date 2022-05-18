@@ -21,8 +21,6 @@ import akka.actor.ActorSystem;
 
 public interface CustomConnectivityCommandInterceptorProvider extends DittoExtensionPoint {
 
-    String CONFIG_PATH = "ditto.connectivity.connection.custom-command-interceptor-provider";
-
     ConnectivityCommandInterceptor getCommandInterceptor();
 
     /**
@@ -35,8 +33,23 @@ public interface CustomConnectivityCommandInterceptorProvider extends DittoExten
      */
     static CustomConnectivityCommandInterceptorProvider get(final ActorSystem actorSystem) {
         checkNotNull(actorSystem, "actorSystem");
-        final var implementation = actorSystem.settings().config().getString(CONFIG_PATH);
-        return new ExtensionId<>(implementation, CustomConnectivityCommandInterceptorProvider.class).get(actorSystem);
+        return ExtensionId.INSTANCE.get(actorSystem);
+    }
+
+    final class ExtensionId extends DittoExtensionPoint.ExtensionId<CustomConnectivityCommandInterceptorProvider> {
+
+        private static final String CONFIG_PATH = "ditto.connectivity.connection.custom-command-interceptor-provider";
+        private static final ExtensionId INSTANCE = new ExtensionId(CustomConnectivityCommandInterceptorProvider.class);
+
+        private ExtensionId(final Class<CustomConnectivityCommandInterceptorProvider> parentClass) {
+            super(parentClass);
+        }
+
+        @Override
+        protected String getConfigPath() {
+            return CONFIG_PATH;
+        }
+
     }
 
 }

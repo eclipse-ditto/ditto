@@ -18,8 +18,6 @@ import java.util.concurrent.CompletionStage;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.service.DittoExtensionPoint;
-import org.eclipse.ditto.gateway.service.util.config.DittoGatewayConfig;
-import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.jwt.model.JsonWebToken;
 
 import akka.actor.ActorSystem;
@@ -29,8 +27,6 @@ import akka.actor.ActorSystem;
  * {@link JsonWebToken JSON web token}.
  */
 public interface JwtAuthenticationResultProvider extends DittoExtensionPoint {
-
-    String CONFIG_PATH = "ditto.gateway.authentication.oauth.jwt-authentication-result-provider";
 
     /**
      * Extracts an {@code AuthenticationResult} out of a given JsonWebToken.
@@ -53,8 +49,24 @@ public interface JwtAuthenticationResultProvider extends DittoExtensionPoint {
      */
     static JwtAuthenticationResultProvider get(final ActorSystem actorSystem) {
         checkNotNull(actorSystem, "actorSystem");
-        final var implementation = actorSystem.settings().config().getString(CONFIG_PATH);
-        return new ExtensionId<>(implementation, JwtAuthenticationResultProvider.class).get(actorSystem);
+        return ExtensionId.INSTANCE.get(actorSystem);
+    }
+
+    final class ExtensionId extends DittoExtensionPoint.ExtensionId<JwtAuthenticationResultProvider> {
+
+        private static final String CONFIG_PATH =
+                "ditto.gateway.authentication.oauth.jwt-authentication-result-provider";
+        private static final ExtensionId INSTANCE = new ExtensionId(JwtAuthenticationResultProvider.class);
+
+        private ExtensionId(final Class<JwtAuthenticationResultProvider> parentClass) {
+            super(parentClass);
+        }
+
+        @Override
+        protected String getConfigPath() {
+            return CONFIG_PATH;
+        }
+
     }
 
 }

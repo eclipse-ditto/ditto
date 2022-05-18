@@ -31,8 +31,6 @@ import akka.actor.ActorSystem;
  */
 public interface SearchUpdateObserver extends DittoExtensionPoint {
 
-    String CONFIG_PATH = "ditto.things-search.search-update-observer.implementation";
-
     /**
      * Process the given {@code Metadata} and thing as {@code JsonObject}.
      *
@@ -51,8 +49,23 @@ public interface SearchUpdateObserver extends DittoExtensionPoint {
      */
     static SearchUpdateObserver get(final ActorSystem actorSystem) {
         checkNotNull(actorSystem, "actorSystem");
-        final var implementation = actorSystem.settings().config().getString(CONFIG_PATH);
-        return new ExtensionId<>(implementation, SearchUpdateObserver.class).get(actorSystem);
+        return ExtensionId.INSTANCE.get(actorSystem);
+    }
+
+    final class ExtensionId extends DittoExtensionPoint.ExtensionId<SearchUpdateObserver> {
+
+        private static final String CONFIG_PATH = "ditto.things-search.search-update-observer.implementation";
+        private static final ExtensionId INSTANCE = new ExtensionId(SearchUpdateObserver.class);
+
+        private ExtensionId(final Class<SearchUpdateObserver> parentClass) {
+            super(parentClass);
+        }
+
+        @Override
+        protected String getConfigPath() {
+            return CONFIG_PATH;
+        }
+
     }
 
 }
