@@ -1969,14 +1969,14 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
             return CompletableFuture.completedFuture(null);
         } else {
             final String group = getPubsubGroup();
-            final CompletionStage<Void> subscribe = subscribeToStreamingTypes(group, resubscribe);
+            final CompletionStage<Boolean> subscribe = subscribeToStreamingTypes(group, resubscribe);
             final CompletionStage<Void> declare =
                     dittoProtocolSub.declareAcknowledgementLabels(getDeclaredAcks(), getSelf(), group);
-            return declare.thenCompose(unused -> subscribe);
+            return subscribe.thenCompose(unused -> declare);
         }
     }
 
-    private CompletionStage<Void> subscribeToStreamingTypes(final String pubSubGroup, final boolean resubscribe) {
+    private CompletionStage<Boolean> subscribeToStreamingTypes(final String pubSubGroup, final boolean resubscribe) {
         final Set<StreamingType> streamingTypes = getUniqueStreamingTypes();
         if (streamingTypes.isEmpty()) {
             return CompletableFuture.completedFuture(null);

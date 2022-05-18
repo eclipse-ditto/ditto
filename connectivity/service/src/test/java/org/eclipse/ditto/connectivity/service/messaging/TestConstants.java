@@ -254,16 +254,17 @@ public final class TestConstants {
             @Nullable final DittoProtocolSub delegate) {
         return new DittoProtocolSub() {
             @Override
-            public CompletionStage<Void> subscribe(final Collection<StreamingType> types,
+            public CompletionStage<Boolean> subscribe(final Collection<StreamingType> types,
                     final Collection<String> topics, final ActorRef subscriber, @Nullable final String group,
                     final boolean resubscribe) {
                 doDelegate(d -> d.subscribe(types, topics, subscriber));
                 return CompletableFuture.allOf(types.stream()
-                        .map(type -> {
-                            final Object sub = DistPubSubAccess.subscribe(type.getDistributedPubSubTopic(), subscriber);
-                            return Patterns.ask(pubSubMediator, sub, Duration.ofSeconds(10L)).toCompletableFuture();
-                        })
-                        .toArray(CompletableFuture[]::new));
+                                .map(type -> {
+                                    final Object sub = DistPubSubAccess.subscribe(type.getDistributedPubSubTopic(), subscriber);
+                                    return Patterns.ask(pubSubMediator, sub, Duration.ofSeconds(10L)).toCompletableFuture();
+                                })
+                                .toArray(CompletableFuture[]::new))
+                        .thenApply(_void -> true);
             }
 
             @Override

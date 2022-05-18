@@ -38,7 +38,7 @@ public interface DittoProtocolSub extends Extension {
      */
     default CompletionStage<Void> subscribe(Collection<StreamingType> types, Collection<String> topics,
             ActorRef subscriber) {
-        return subscribe(types, topics, subscriber, null, false);
+        return subscribe(types, topics, subscriber, null, false).thenApply(consistent -> null);
     }
 
     /**
@@ -48,9 +48,10 @@ public interface DittoProtocolSub extends Extension {
      * @param topics the topics.
      * @param subscriber who is subscribing.
      * @param group the group the subscriber belongs to, or null.
-     * @return future that completes or fails according to the acknowledgement.
+     * @return future that completes or fails according to the acknowledgement, containing the result of consistency
+     * check for resubscriptions.
      */
-    CompletionStage<Void> subscribe(Collection<StreamingType> types, Collection<String> topics, ActorRef subscriber,
+    CompletionStage<Boolean> subscribe(Collection<StreamingType> types, Collection<String> topics, ActorRef subscriber,
             @Nullable String group, final boolean resubscribe);
 
     /**
