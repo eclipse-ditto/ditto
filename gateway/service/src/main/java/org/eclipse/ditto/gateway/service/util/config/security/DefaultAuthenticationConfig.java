@@ -37,7 +37,6 @@ public final class DefaultAuthenticationConfig implements AuthenticationConfig, 
     private final HttpProxyConfig httpProxyConfig;
     private final DevOpsConfig devOpsConfig;
     private final OAuthConfig oAuthConfig;
-    private final String gatewayAuthenticationDirectiveFactory;
 
     private DefaultAuthenticationConfig(final ScopedConfig scopedConfig) {
         preAuthenticationEnabled =
@@ -45,8 +44,6 @@ public final class DefaultAuthenticationConfig implements AuthenticationConfig, 
         httpProxyConfig = DefaultHttpProxyConfig.ofHttpProxy(scopedConfig);
         devOpsConfig = DefaultDevOpsConfig.of(scopedConfig);
         oAuthConfig = DefaultOAuthConfig.of(scopedConfig);
-        gatewayAuthenticationDirectiveFactory = scopedConfig.getString(
-                AuthenticationConfigValue.GATEWAY_AUTHENTICATION_DIRECTIVE_FACTORY.getConfigPath());
     }
 
     /**
@@ -69,11 +66,6 @@ public final class DefaultAuthenticationConfig implements AuthenticationConfig, 
     @Override
     public DevOpsConfig getDevOpsConfig() {
         return devOpsConfig;
-    }
-
-    @Override
-    public String getGatewayAuthenticationDirectiveFactory() {
-        return gatewayAuthenticationDirectiveFactory;
     }
 
     @Override
@@ -100,7 +92,6 @@ public final class DefaultAuthenticationConfig implements AuthenticationConfig, 
         if (o == null || getClass() != o.getClass()) return false;
         final DefaultAuthenticationConfig that = (DefaultAuthenticationConfig) o;
         return preAuthenticationEnabled == that.preAuthenticationEnabled &&
-                Objects.equals(gatewayAuthenticationDirectiveFactory, that.gatewayAuthenticationDirectiveFactory) &&
                 Objects.equals(httpProxyConfig, that.httpProxyConfig) &&
                 Objects.equals(devOpsConfig, that.devOpsConfig) &&
                 Objects.equals(oAuthConfig, that.oAuthConfig);
@@ -108,7 +99,7 @@ public final class DefaultAuthenticationConfig implements AuthenticationConfig, 
 
     @Override
     public int hashCode() {
-        return Objects.hash(preAuthenticationEnabled, gatewayAuthenticationDirectiveFactory, httpProxyConfig,
+        return Objects.hash(preAuthenticationEnabled, httpProxyConfig,
                 devOpsConfig, oAuthConfig);
     }
 
@@ -119,7 +110,6 @@ public final class DefaultAuthenticationConfig implements AuthenticationConfig, 
                 ", httpProxyConfig=" + httpProxyConfig +
                 ", devOpsConfig=" + devOpsConfig +
                 ", oAuthConfig=" + oAuthConfig +
-                ", gatewayAuthenticationDirectiveFactory=" + gatewayAuthenticationDirectiveFactory +
                 "]";
     }
 

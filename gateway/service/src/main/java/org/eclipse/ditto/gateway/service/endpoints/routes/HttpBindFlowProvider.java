@@ -15,8 +15,6 @@ package org.eclipse.ditto.gateway.service.endpoints.routes;
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import org.eclipse.ditto.base.service.DittoExtensionPoint;
-import org.eclipse.ditto.gateway.service.util.config.DittoGatewayConfig;
-import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 
 import akka.NotUsed;
 import akka.actor.ActorSystem;
@@ -27,9 +25,12 @@ import akka.stream.javadsl.Flow;
 
 /**
  * Extension to add a custom bind flow for HTTP requests.
+ *
  * @since 3.0.0
  */
 public interface HttpBindFlowProvider extends DittoExtensionPoint {
+
+    String CONFIG_PATH = "ditto.gateway.http.bind-flow-provider";
 
     /**
      * Create a bind flow for HTTP requests.
@@ -48,8 +49,7 @@ public interface HttpBindFlowProvider extends DittoExtensionPoint {
      */
     static HttpBindFlowProvider get(final ActorSystem actorSystem) {
         checkNotNull(actorSystem, "actorSystem");
-        final var implementation = DittoGatewayConfig.of(DefaultScopedConfig.dittoScoped(
-                actorSystem.settings().config())).getHttpConfig().getBindFlowProvider();
+        final var implementation = actorSystem.settings().config().getString(CONFIG_PATH);
 
         return new ExtensionId<>(implementation, HttpBindFlowProvider.class).get(actorSystem);
     }

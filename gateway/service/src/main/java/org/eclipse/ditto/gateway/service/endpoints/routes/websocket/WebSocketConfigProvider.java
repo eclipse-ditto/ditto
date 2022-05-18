@@ -18,9 +18,7 @@ import java.util.function.BiFunction;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.service.DittoExtensionPoint;
-import org.eclipse.ditto.gateway.service.util.config.DittoGatewayConfig;
 import org.eclipse.ditto.gateway.service.util.config.streaming.WebsocketConfig;
-import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 
 import akka.actor.ActorSystem;
 
@@ -29,6 +27,8 @@ import akka.actor.ActorSystem;
  */
 public interface WebSocketConfigProvider
         extends DittoExtensionPoint, BiFunction<DittoHeaders, WebsocketConfig, WebsocketConfig> {
+
+    String CONFIG_PATH = "ditto.gateway.streaming.websocket.config-provider";
 
     /**
      * Loads the implementation of {@code WebSocketConfigProvider} which is configured for the
@@ -41,8 +41,7 @@ public interface WebSocketConfigProvider
      */
     static WebSocketConfigProvider get(final ActorSystem actorSystem) {
         checkNotNull(actorSystem, "actorSystem");
-        final var implementation = DittoGatewayConfig.of(DefaultScopedConfig.dittoScoped(
-                actorSystem.settings().config())).getStreamingConfig().getWebsocketConfig().getConfigProvider();
+        final var implementation = actorSystem.settings().config().getString(CONFIG_PATH);
 
         return new ExtensionId<>(implementation, WebSocketConfigProvider.class).get(actorSystem);
     }

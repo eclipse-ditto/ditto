@@ -17,8 +17,6 @@ import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.service.DittoExtensionPoint;
-import org.eclipse.ditto.gateway.service.util.config.DittoGatewayConfig;
-import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 
 import akka.actor.ActorSystem;
 import akka.http.javadsl.server.Route;
@@ -28,6 +26,8 @@ import akka.http.javadsl.server.Route;
  * You can distinguish between routes for unauthorized access and authorized access.
  */
 public interface CustomApiRoutesProvider extends DittoExtensionPoint {
+
+    String CONFIG_PATH = "ditto.gateway.http.custom-api-routes-provider";
 
     /**
      * Provides a custom route for unauthorized access.
@@ -58,8 +58,7 @@ public interface CustomApiRoutesProvider extends DittoExtensionPoint {
      */
     static CustomApiRoutesProvider get(final ActorSystem actorSystem) {
         checkNotNull(actorSystem, "actorSystem");
-        final var implementation = DittoGatewayConfig.of(DefaultScopedConfig.dittoScoped(
-                actorSystem.settings().config())).getHttpConfig().getCustomApiRoutesProvider();
+        final var implementation = actorSystem.settings().config().getString(CONFIG_PATH);
 
         return new ExtensionId<>(implementation, CustomApiRoutesProvider.class).get(actorSystem);
     }

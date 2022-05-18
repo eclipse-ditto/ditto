@@ -18,7 +18,6 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 
 import org.assertj.core.api.JUnitSoftAssertions;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 
@@ -71,10 +70,6 @@ public final class DefaultSignalEnrichmentConfigTest {
                 .as(SignalEnrichmentConfig.SignalEnrichmentConfigValue.PROVIDER_CONFIG.getConfigPath())
                 .containsOnlyKeys("key")
                 .containsValue(ConfigValueFactory.fromAnyRef("value"));
-
-        softly.assertThat(underTest.getCachingSignalEnrichmentFacadeImplementation())
-                .as(SignalEnrichmentConfig.SignalEnrichmentConfigValue.CACHING_SIGNAL_ENRICHMENT_FACADE.getConfigPath())
-                .isEqualTo(DittoCachingSignalEnrichmentFacadeProvider.class);
     }
 
     @Test

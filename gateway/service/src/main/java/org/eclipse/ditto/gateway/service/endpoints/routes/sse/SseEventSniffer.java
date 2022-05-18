@@ -14,23 +14,20 @@ package org.eclipse.ditto.gateway.service.endpoints.routes.sse;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
-import java.util.concurrent.CompletableFuture;
-
 import org.eclipse.ditto.base.service.DittoExtensionPoint;
-import org.eclipse.ditto.gateway.service.util.config.DittoGatewayConfig;
-import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 
 import akka.NotUsed;
 import akka.actor.ActorSystem;
 import akka.http.javadsl.model.HttpRequest;
 import akka.http.javadsl.model.sse.ServerSentEvent;
 import akka.stream.javadsl.Flow;
-import akka.stream.javadsl.Sink;
 
 /**
  * Functional interface to sniff events over or SSE.
  */
 public interface SseEventSniffer extends DittoExtensionPoint {
+
+    String CONFIG_PATH = "ditto.gateway.streaming.sse.event-sniffer";
 
     /**
      * Create an async flow for event sniffing.
@@ -51,8 +48,7 @@ public interface SseEventSniffer extends DittoExtensionPoint {
      */
     static SseEventSniffer get(final ActorSystem actorSystem) {
         checkNotNull(actorSystem, "actorSystem");
-        final var implementation = DittoGatewayConfig.of(DefaultScopedConfig.dittoScoped(
-                actorSystem.settings().config())).getStreamingConfig().getSseConfig().getEventSniffer();
+        final var implementation = actorSystem.settings().config().getString(CONFIG_PATH);
 
         return new ExtensionId<>(implementation, SseEventSniffer.class).get(actorSystem);
     }

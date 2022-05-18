@@ -14,6 +14,7 @@ package org.eclipse.ditto.connectivity.service.mapping;
 
 import java.util.Arrays;
 
+import org.eclipse.ditto.base.service.DittoExtensionPoint;
 import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.internal.models.signalenrichment.DefaultSignalEnrichmentConfig;
 import org.eclipse.ditto.internal.models.signalenrichment.SignalEnrichmentConfig;
@@ -23,7 +24,6 @@ import org.eclipse.ditto.internal.utils.akka.AkkaClassLoader;
 import akka.actor.AbstractExtensionId;
 import akka.actor.ActorSystem;
 import akka.actor.ExtendedActorSystem;
-import akka.actor.Extension;
 
 /**
  * Provider of {@link SignalEnrichmentFacade} to be loaded by reflection.
@@ -34,7 +34,7 @@ import akka.actor.Extension;
  * <li>Config config: configuration for the facade provider.</li>
  * </ul>
  */
-public abstract class ConnectivitySignalEnrichmentProvider implements Extension {
+public abstract class ConnectivitySignalEnrichmentProvider implements DittoExtensionPoint {
 
     /**
      * Create a signal-enriching facade from the ID of a connection.

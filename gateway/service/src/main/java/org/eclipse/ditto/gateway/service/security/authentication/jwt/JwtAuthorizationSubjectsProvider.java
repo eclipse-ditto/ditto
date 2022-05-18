@@ -18,8 +18,6 @@ import java.util.List;
 
 import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
 import org.eclipse.ditto.base.service.DittoExtensionPoint;
-import org.eclipse.ditto.gateway.service.util.config.DittoGatewayConfig;
-import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.jwt.model.JsonWebToken;
 
 import akka.actor.ActorSystem;
@@ -29,6 +27,7 @@ import akka.actor.ActorSystem;
  */
 public interface JwtAuthorizationSubjectsProvider extends DittoExtensionPoint {
 
+    String CONFIG_PATH = "ditto.gateway.authentication.oauth.jwt-authorization-subjects-provider";
 
     /**
      * Returns the {@code AuthorizationSubjects} of the given {@code JsonWebToken}.
@@ -49,11 +48,7 @@ public interface JwtAuthorizationSubjectsProvider extends DittoExtensionPoint {
      */
     static JwtAuthorizationSubjectsProvider get(final ActorSystem actorSystem) {
         checkNotNull(actorSystem, "actorSystem");
-        final var implementation =
-                DittoGatewayConfig.of(DefaultScopedConfig.dittoScoped(actorSystem.settings().config()))
-                        .getAuthenticationConfig()
-                        .getOAuthConfig()
-                        .getJwtAuthorizationSubjectsProvider();
+        final var implementation = actorSystem.settings().config().getString(CONFIG_PATH);
         return new ExtensionId<>(implementation, JwtAuthorizationSubjectsProvider.class).get(actorSystem);
     }
 

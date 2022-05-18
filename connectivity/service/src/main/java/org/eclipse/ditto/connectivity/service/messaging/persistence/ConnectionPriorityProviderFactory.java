@@ -14,13 +14,8 @@ package org.eclipse.ditto.connectivity.service.messaging.persistence;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
-import java.util.List;
-
 import org.eclipse.ditto.base.service.DittoExtensionPoint;
-import org.eclipse.ditto.connectivity.service.config.DittoConnectivityConfig;
-import org.eclipse.ditto.internal.utils.akka.AkkaClassLoader;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
-import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
@@ -29,6 +24,8 @@ import akka.actor.ActorSystem;
  * Creates a connection priority provider based on the connection persistence actor and its logger.
  */
 public interface ConnectionPriorityProviderFactory extends DittoExtensionPoint {
+
+    String CONFIG_PATH = "ditto.connectivity.connection.connection-priority-provider-factory";
 
     /**
      * Creates a connection priority provider based on the connection persistence actor and its logger.
@@ -51,14 +48,8 @@ public interface ConnectionPriorityProviderFactory extends DittoExtensionPoint {
      */
     static ConnectionPriorityProviderFactory get(final ActorSystem actorSystem) {
         checkNotNull(actorSystem, "actorSystem");
-        final var implementation =
-                DittoConnectivityConfig.of(DefaultScopedConfig.dittoScoped(
-                        actorSystem.settings().config())).getConnectionConfig().getConnectionPriorityProviderFactory();
-
-        return AkkaClassLoader.instantiate(actorSystem, ConnectionPriorityProviderFactory.class,
-                implementation,
-                List.of(ActorSystem.class),
-                List.of(actorSystem));
+        final var implementation = actorSystem.settings().config().getString(CONFIG_PATH);
+        return new ExtensionId<>(implementation, ConnectionPriorityProviderFactory.class).get(actorSystem);
     }
 
 }

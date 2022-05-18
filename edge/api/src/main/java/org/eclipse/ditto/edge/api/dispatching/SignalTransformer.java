@@ -14,19 +14,16 @@ package org.eclipse.ditto.edge.api.dispatching;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
-import java.util.List;
 import java.util.function.UnaryOperator;
 
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.service.DittoExtensionPoint;
-import org.eclipse.ditto.internal.utils.akka.AkkaClassLoader;
-import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 
 import akka.actor.ActorSystem;
 
 public interface SignalTransformer extends DittoExtensionPoint, UnaryOperator<Signal<?>> {
 
-    static final String CONFIG_PATH = "signal-transformer";
+    static final String CONFIG_PATH = "ditto.signal-transformer";
 
     /**
      * Loads the implementation of {@code SignalTransformer} which is configured for the
@@ -38,12 +35,7 @@ public interface SignalTransformer extends DittoExtensionPoint, UnaryOperator<Si
      */
     static SignalTransformer get(final ActorSystem actorSystem) {
         checkNotNull(actorSystem, "actorSystem");
-        final DefaultScopedConfig dittoScoped = DefaultScopedConfig.dittoScoped(actorSystem.settings().config());
-        final var implementation = dittoScoped.getString(CONFIG_PATH);
-
-        return AkkaClassLoader.instantiate(actorSystem, SignalTransformer.class,
-                implementation,
-                List.of(ActorSystem.class),
-                List.of(actorSystem));
+        final var implementation = actorSystem.settings().config().getString(CONFIG_PATH);
+        return new ExtensionId<>(implementation, SignalTransformer.class).get(actorSystem);
     }
 }

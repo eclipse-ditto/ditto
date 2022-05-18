@@ -14,22 +14,19 @@ package org.eclipse.ditto.gateway.service.endpoints.routes.websocket;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
-import java.util.concurrent.CompletableFuture;
-
 import org.eclipse.ditto.base.service.DittoExtensionPoint;
-import org.eclipse.ditto.gateway.service.util.config.DittoGatewayConfig;
-import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 
 import akka.NotUsed;
 import akka.actor.ActorSystem;
 import akka.http.javadsl.model.HttpRequest;
 import akka.stream.javadsl.Flow;
-import akka.stream.javadsl.Sink;
 
 /**
  * Extension to sniff incoming events over websocket.
  */
 public interface IncomingWebSocketEventSniffer extends DittoExtensionPoint {
+
+    String CONFIG_PATH = "ditto.gateway.streaming.websocket.incoming-event-sniffer";
 
     /**
      * Create an async flow for event sniffing.
@@ -50,8 +47,7 @@ public interface IncomingWebSocketEventSniffer extends DittoExtensionPoint {
      */
     static IncomingWebSocketEventSniffer get(final ActorSystem actorSystem) {
         checkNotNull(actorSystem, "actorSystem");
-        final var implementation = DittoGatewayConfig.of(DefaultScopedConfig.dittoScoped(
-                actorSystem.settings().config())).getStreamingConfig().getWebsocketConfig().getIncomingEventSniffer();
+        final var implementation = actorSystem.settings().config().getString(CONFIG_PATH);
 
         return new ExtensionId<>(implementation, IncomingWebSocketEventSniffer.class).get(actorSystem);
     }

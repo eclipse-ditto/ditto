@@ -32,6 +32,8 @@ import akka.stream.javadsl.Sink;
  */
 public interface OutgoingWebSocketEventSniffer extends DittoExtensionPoint {
 
+    String CONFIG_PATH = "ditto.gateway.streaming.websocket.outgoing-event-sniffer";
+
     /**
      * Create an async flow for event sniffing.
      *
@@ -51,8 +53,7 @@ public interface OutgoingWebSocketEventSniffer extends DittoExtensionPoint {
      */
     static OutgoingWebSocketEventSniffer get(final ActorSystem actorSystem) {
         checkNotNull(actorSystem, "actorSystem");
-        final var implementation = DittoGatewayConfig.of(DefaultScopedConfig.dittoScoped(
-                actorSystem.settings().config())).getStreamingConfig().getWebsocketConfig().getOutgoingEventSniffer();
+        final var implementation = actorSystem.settings().config().getString(CONFIG_PATH);
 
         return new ExtensionId<>(implementation, OutgoingWebSocketEventSniffer.class).get(actorSystem);
     }

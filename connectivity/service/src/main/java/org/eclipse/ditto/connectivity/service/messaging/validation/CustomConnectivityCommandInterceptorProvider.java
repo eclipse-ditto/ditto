@@ -14,17 +14,14 @@ package org.eclipse.ditto.connectivity.service.messaging.validation;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
-import java.util.List;
-
 import org.eclipse.ditto.base.service.DittoExtensionPoint;
 import org.eclipse.ditto.connectivity.model.signals.commands.ConnectivityCommandInterceptor;
-import org.eclipse.ditto.connectivity.service.config.DittoConnectivityConfig;
-import org.eclipse.ditto.internal.utils.akka.AkkaClassLoader;
-import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 
 import akka.actor.ActorSystem;
 
 public interface CustomConnectivityCommandInterceptorProvider extends DittoExtensionPoint {
+
+    String CONFIG_PATH = "ditto.connectivity.connection.custom-command-interceptor-provider";
 
     ConnectivityCommandInterceptor getCommandInterceptor();
 
@@ -38,13 +35,8 @@ public interface CustomConnectivityCommandInterceptorProvider extends DittoExten
      */
     static CustomConnectivityCommandInterceptorProvider get(final ActorSystem actorSystem) {
         checkNotNull(actorSystem, "actorSystem");
-        final var implementation = DittoConnectivityConfig.of(DefaultScopedConfig.dittoScoped(
-                actorSystem.settings().config())).getConnectionConfig().getCustomCommandInterceptorProvider();
-
-        return AkkaClassLoader.instantiate(actorSystem, CustomConnectivityCommandInterceptorProvider.class,
-                implementation,
-                List.of(ActorSystem.class),
-                List.of(actorSystem));
+        final var implementation = actorSystem.settings().config().getString(CONFIG_PATH);
+        return new ExtensionId<>(implementation, CustomConnectivityCommandInterceptorProvider.class).get(actorSystem);
     }
-    
+
 }

@@ -15,6 +15,7 @@ package org.eclipse.ditto.gateway.service.endpoints.actors;
 import java.util.concurrent.CompletableFuture;
 
 import org.eclipse.ditto.base.model.headers.translator.HeaderTranslator;
+import org.eclipse.ditto.base.service.DittoExtensionPoint;
 import org.eclipse.ditto.gateway.service.util.config.endpoints.CommandConfig;
 import org.eclipse.ditto.gateway.service.util.config.endpoints.HttpConfig;
 
@@ -27,7 +28,8 @@ import akka.http.javadsl.model.HttpResponse;
  * Factory of props of actors that handle HTTP requests.
  */
 @FunctionalInterface
-public interface HttpRequestActorPropsFactory {
+//TODO: Yannic fix this extension
+public interface HttpRequestActorPropsFactory extends DittoExtensionPoint {
 
     /**
      * Create Props object of an actor to handle 1 HTTP request.

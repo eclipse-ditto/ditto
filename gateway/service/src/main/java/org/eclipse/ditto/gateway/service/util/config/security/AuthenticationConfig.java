@@ -52,15 +52,6 @@ public interface AuthenticationConfig {
     DevOpsConfig getDevOpsConfig();
 
     /**
-     * Returns the full qualified classname of the {@code org.eclipse.ditto.gateway.service.endpoints.directives.auth.GatewayAuthenticationDirectiveFactory}
-     * implementation to use for custom authentication.
-     *
-     * @return the full qualified classname of the {@code GatewayAuthenticationDirectiveFactory} implementation to use.
-     * @since 3.0.0
-     */
-    String getGatewayAuthenticationDirectiveFactory();
-
-    /**
      * An enumeration of the known config path expressions and their associated default values for
      * {@code AuthenticationConfig}.
      */
@@ -69,11 +60,7 @@ public interface AuthenticationConfig {
         /**
          * Determines whether pre-authenticated authentication should be enabled.
          */
-        PRE_AUTHENTICATION_ENABLED("pre-authentication.enabled", false),
-
-        GATEWAY_AUTHENTICATION_DIRECTIVE_FACTORY("gateway-authentication-directive-factory",
-                "org.eclipse.ditto.gateway.service.endpoints.directives.auth.DittoGatewayAuthenticationDirectiveFactory");
-
+        PRE_AUTHENTICATION_ENABLED("pre-authentication.enabled", false);
 
         private final String path;
         private final Object defaultValue;

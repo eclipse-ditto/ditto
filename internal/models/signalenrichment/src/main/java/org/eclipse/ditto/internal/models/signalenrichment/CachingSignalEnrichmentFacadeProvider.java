@@ -17,7 +17,6 @@ import java.util.concurrent.Executor;
 
 import org.eclipse.ditto.internal.utils.akka.AkkaClassLoader;
 import org.eclipse.ditto.internal.utils.cache.config.CacheConfig;
-import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 
 import akka.actor.AbstractExtensionId;
 import akka.actor.ActorSystem;
@@ -29,7 +28,7 @@ import akka.actor.Extension;
  * Can be used as an extension point to use custom signal enrichment.
  * Implementations MUST have a public constructor taking an actorSystem as argument.
  */
-public abstract class CachingSignalEnrichmentFacadeProvider implements Extension{
+public abstract class CachingSignalEnrichmentFacadeProvider implements Extension {
 
     private static final ExtensionId EXTENSION_ID = new ExtensionId();
 
@@ -47,7 +46,6 @@ public abstract class CachingSignalEnrichmentFacadeProvider implements Extension
      * @param cacheConfig the cache configuration to use for the cache.
      * @param cacheLoaderExecutor the executor to use in order to asynchronously load cache entries.
      * @param cacheNamePrefix the prefix to use as cacheName of the cache.
-     *
      * @throws NullPointerException if any argument is null.
      */
     public abstract CachingSignalEnrichmentFacade getSignalEnrichmentFacade(
@@ -74,15 +72,13 @@ public abstract class CachingSignalEnrichmentFacadeProvider implements Extension
      */
     private static final class ExtensionId extends AbstractExtensionId<CachingSignalEnrichmentFacadeProvider> {
 
+        private static final String CONFIG_PATH = "ditto.signal-enrichment.caching-signal-enrichment-facade.provider";
+
         @Override
         public CachingSignalEnrichmentFacadeProvider createExtension(final ExtendedActorSystem system) {
-
-            final SignalEnrichmentConfig signalEnrichmentConfig =
-                    DefaultSignalEnrichmentConfig.of(DefaultScopedConfig.dittoScoped(
-                            system.settings().config()));
-
+            final String implementation = system.settings().config().getString(CONFIG_PATH);
             return AkkaClassLoader.instantiate(system, CachingSignalEnrichmentFacadeProvider.class,
-                    signalEnrichmentConfig.getCachingSignalEnrichmentFacadeImplementation().getName(),
+                    implementation,
                     List.of(ActorSystem.class),
                     List.of(system));
         }

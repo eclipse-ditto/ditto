@@ -46,16 +46,6 @@ public interface GatewaySignalEnrichmentConfig {
     CacheConfig getCacheConfig();
 
     /**
-     * Returns the full qualified classname of the {@code org.eclipse.ditto.gateway.service.endpoints.utils.GatewaySignalEnrichmentProvider}
-     * implementation to use for signal enrichment.
-     *
-     * @return the full qualified classname of the {@code GatewaySignalEnrichmentProvider} implementation to use.
-     * @since 3.0.0
-     */
-    String getSignalEnrichmentProvider();
-
-
-    /**
      * Render this object as a {@code Config}.
      *
      * @return the rendered {@code Config} object.
@@ -71,10 +61,7 @@ public interface GatewaySignalEnrichmentConfig {
         /**
          * The ask timeout duration: the duration to wait for cache retrievals.
          */
-        ASK_TIMEOUT("ask-timeout", Duration.ofSeconds(10)),
-
-        SIGNAL_ENRICHMENT_PROVIDER("signal-enrichment-provider",
-                "org.eclipse.ditto.gateway.service.endpoints.utils.GatewayCachingSignalEnrichmentProvider");
+        ASK_TIMEOUT("ask-timeout", Duration.ofSeconds(10));
 
         private final String path;
         private final Object defaultValue;

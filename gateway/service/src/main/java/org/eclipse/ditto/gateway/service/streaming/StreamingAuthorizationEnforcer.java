@@ -31,6 +31,9 @@ import akka.http.javadsl.server.RequestContext;
  */
 public interface StreamingAuthorizationEnforcer extends DittoExtensionPoint {
 
+    String CONFIG_PATH_WS = "ditto.gateway.streaming.websocket.authorization-enforcer";
+    String CONFIG_PATH_SSE = "ditto.gateway.streaming.sse.authorization-enforcer";
+
     /**
      * Ensures that the establishment of a SSE connection is authorized for the given arguments.
      *
@@ -52,9 +55,7 @@ public interface StreamingAuthorizationEnforcer extends DittoExtensionPoint {
      */
     static StreamingAuthorizationEnforcer sse(final ActorSystem actorSystem) {
         checkNotNull(actorSystem, "actorSystem");
-        final var implementation = DittoGatewayConfig.of(DefaultScopedConfig.dittoScoped(
-                actorSystem.settings().config())).getStreamingConfig().getSseConfig().getAuthorizationEnforcer();
-
+        final var implementation = actorSystem.settings().config().getString(CONFIG_PATH_SSE);
         return new ExtensionId<>(implementation, StreamingAuthorizationEnforcer.class).get(actorSystem);
     }
 
@@ -69,9 +70,7 @@ public interface StreamingAuthorizationEnforcer extends DittoExtensionPoint {
      */
     static StreamingAuthorizationEnforcer ws(final ActorSystem actorSystem) {
         checkNotNull(actorSystem, "actorSystem");
-        final var implementation = DittoGatewayConfig.of(DefaultScopedConfig.dittoScoped(
-                actorSystem.settings().config())).getStreamingConfig().getWebsocketConfig().getAuthorizationEnforcer();
-
+        final var implementation = actorSystem.settings().config().getString(CONFIG_PATH_WS);
         return new ExtensionId<>(implementation, StreamingAuthorizationEnforcer.class).get(actorSystem);
     }
 

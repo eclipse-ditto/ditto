@@ -14,14 +14,10 @@ package org.eclipse.ditto.thingsearch.service.persistence.query.validation;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
-import java.util.List;
 import java.util.concurrent.CompletionStage;
 
 import org.eclipse.ditto.base.service.DittoExtensionPoint;
-import org.eclipse.ditto.internal.utils.akka.AkkaClassLoader;
-import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.thingsearch.model.signals.commands.query.ThingSearchQueryCommand;
-import org.eclipse.ditto.thingsearch.service.common.config.DittoSearchConfig;
 
 import akka.actor.ActorSystem;
 
@@ -32,6 +28,8 @@ import akka.actor.ActorSystem;
  */
 public interface QueryCriteriaValidator extends DittoExtensionPoint {
 
+    String CONFIG_PATH = "ditto.things-search.query-criteria-validator.implementation";
+
     /**
      * Gets the criteria of a {@link org.eclipse.ditto.thingsearch.model.signals.commands.query.ThingSearchQueryCommand} and
      * validates it.
@@ -41,8 +39,7 @@ public interface QueryCriteriaValidator extends DittoExtensionPoint {
      * @param command the command to validate.
      * @return the validated command in a future if it is valid, or a failed future if it is not.
      */
-    public CompletionStage<ThingSearchQueryCommand<?>> validateCommand(
-            final ThingSearchQueryCommand<?> command);
+    CompletionStage<ThingSearchQueryCommand<?>> validateCommand(final ThingSearchQueryCommand<?> command);
 
     /**
      * Loads the implementation of {@code QueryCriteriaValidator} which is configured for the
@@ -54,13 +51,8 @@ public interface QueryCriteriaValidator extends DittoExtensionPoint {
      */
     static QueryCriteriaValidator get(final ActorSystem actorSystem) {
         checkNotNull(actorSystem, "actorSystem");
-        final var implementation = DittoSearchConfig.of(DefaultScopedConfig.dittoScoped(
-                actorSystem.settings().config())).getQueryValidatorImplementation();
-
-        return AkkaClassLoader.instantiate(actorSystem, QueryCriteriaValidator.class,
-                implementation,
-                List.of(ActorSystem.class),
-                List.of(actorSystem));
+        final var implementation = actorSystem.settings().config().getString(CONFIG_PATH);
+        return new ExtensionId<>(implementation, QueryCriteriaValidator.class).get(actorSystem);
     }
 
 }

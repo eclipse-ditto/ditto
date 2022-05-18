@@ -16,8 +16,6 @@ import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import org.eclipse.ditto.base.service.DittoExtensionPoint;
 import org.eclipse.ditto.gateway.service.streaming.actors.StreamSupervisor;
-import org.eclipse.ditto.gateway.service.util.config.DittoGatewayConfig;
-import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 
 import akka.actor.ActorSystem;
 
@@ -25,6 +23,8 @@ import akka.actor.ActorSystem;
  * Provides the means to supervise a particular WebSocket stream.
  */
 public interface WebSocketSupervisor extends DittoExtensionPoint, StreamSupervisor {
+
+    String CONFIG_PATH = "ditto.gateway.streaming.websocket.connection-supervisor";
 
     /**
      * Loads the implementation of {@code WebSocketSupervisor} which is configured for the
@@ -37,8 +37,7 @@ public interface WebSocketSupervisor extends DittoExtensionPoint, StreamSupervis
      */
     static WebSocketSupervisor get(final ActorSystem actorSystem) {
         checkNotNull(actorSystem, "actorSystem");
-        final var implementation = DittoGatewayConfig.of(DefaultScopedConfig.dittoScoped(
-                actorSystem.settings().config())).getStreamingConfig().getWebsocketConfig().getConnectionSupervisor();
+        final var implementation = actorSystem.settings().config().getString(CONFIG_PATH);
 
         return new ExtensionId<>(implementation, WebSocketSupervisor.class).get(actorSystem);
     }

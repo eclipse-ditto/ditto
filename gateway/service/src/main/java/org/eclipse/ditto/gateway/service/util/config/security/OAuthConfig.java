@@ -66,39 +66,12 @@ public interface OAuthConfig {
      */
     String getTokenIntegrationSubject();
 
-    /**
-     * Returns the full qualified classname of the {@code org.eclipse.ditto.gateway.service.security.authentication.jwt.JwtAuthorizationSubjectsProvider}
-     * implementation to use for custom authorization subjects.
-     *
-     * @return the full qualified classname of the {@code JwtAuthorizationSubjectsProvider} implementation to use.
-     * @since 3.0.0
-     */
-    String getJwtAuthorizationSubjectsProvider();
-
-    /**
-     * Returns the full qualified classname of the {@code org.eclipse.ditto.gateway.service.security.authentication.jwt.JwtAuthenticationResultProvider}
-     * implementation to use for custom authorizations.
-     *
-     * @return the full qualified classname of the {@code JwtAuthenticationResultProvider} implementation to use.
-     * @since 3.0.0
-     */
-    String getJwtAuthenticationResultProvider();
-
     enum OAuthConfigValue implements KnownConfigValue {
         PROTOCOL("protocol", "https"),
         ALLOWED_CLOCK_SKEW("allowed-clock-skew", Duration.ofSeconds(10)),
         OPENID_CONNECT_ISSUERS("openid-connect-issuers", Collections.emptyMap()),
         OPENID_CONNECT_ISSUERS_EXTENSION("openid-connect-issuers-extension", Collections.emptyMap()),
-        TOKEN_INTEGRATION_SUBJECT("token-integration-subject", "integration:{{policy-entry:label}}:{{jwt:aud}}"),
-        /**
-         * The full qualified classname of the {@code JwtAuthorizationSubjectsProvider} to instantiate.
-         * @since 3.0.0
-         */
-        JWT_AUTHORIZATION_SUBJECTS_PROVIDER("jwt-authorization-subjects-provider",
-                "org.eclipse.ditto.gateway.service.security.authentication.jwt.DittoJwtAuthorizationSubjectsProvider"),
-
-        JWT_AUTHENTICATION_RESULT_PROVIDER("jwt-authentication-result-provider",
-                "org.eclipse.ditto.gateway.service.security.authentication.jwt.DefaultJwtAuthenticationResultProvider");
+        TOKEN_INTEGRATION_SUBJECT("token-integration-subject", "integration:{{policy-entry:label}}:{{jwt:aud}}");
 
         private final String path;
         private final Object defaultValue;

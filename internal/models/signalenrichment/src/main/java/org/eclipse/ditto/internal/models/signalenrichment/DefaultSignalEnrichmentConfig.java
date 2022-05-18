@@ -31,13 +31,10 @@ public final class DefaultSignalEnrichmentConfig implements SignalEnrichmentConf
 
     private final String provider;
     private final Config config;
-    private final Class<?> cachingSignalEnrichmentFacadeImplementation;
 
     private DefaultSignalEnrichmentConfig(final ConfigWithFallback configWithFallback) {
         provider = configWithFallback.getString(SignalEnrichmentConfigValue.PROVIDER.getConfigPath());
         config = configWithFallback.getConfig(SignalEnrichmentConfigValue.PROVIDER_CONFIG.getConfigPath());
-        cachingSignalEnrichmentFacadeImplementation = getClassFromConfigString(configWithFallback.getString(
-                SignalEnrichmentConfigValue.CACHING_SIGNAL_ENRICHMENT_FACADE.getConfigPath()));
     }
 
     /**
@@ -71,18 +68,11 @@ public final class DefaultSignalEnrichmentConfig implements SignalEnrichmentConf
     }
 
     @Override
-    public Class<?> getCachingSignalEnrichmentFacadeImplementation() {
-        return cachingSignalEnrichmentFacadeImplementation;
-    }
-
-    @Override
     public Config render() {
         return ConfigFactory.empty()
                 .withValue(SignalEnrichmentConfigValue.PROVIDER.getConfigPath(),
                         ConfigValueFactory.fromAnyRef(provider))
                 .withValue(SignalEnrichmentConfigValue.PROVIDER_CONFIG.getConfigPath(), config.root())
-                .withValue(SignalEnrichmentConfigValue.CACHING_SIGNAL_ENRICHMENT_FACADE.getConfigPath(),
-                        ConfigValueFactory.fromAnyRef(cachingSignalEnrichmentFacadeImplementation.getName()))
                 .atKey(CONFIG_PATH);
     }
 
@@ -96,14 +86,12 @@ public final class DefaultSignalEnrichmentConfig implements SignalEnrichmentConf
         }
         final DefaultSignalEnrichmentConfig that = (DefaultSignalEnrichmentConfig) o;
         return Objects.equals(provider, that.provider)
-                && Objects.equals(config, that.config)
-                && Objects.equals(cachingSignalEnrichmentFacadeImplementation,
-                that.cachingSignalEnrichmentFacadeImplementation);
+                && Objects.equals(config, that.config);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(provider, config, cachingSignalEnrichmentFacadeImplementation);
+        return Objects.hash(provider, config);
     }
 
     @Override
@@ -111,7 +99,6 @@ public final class DefaultSignalEnrichmentConfig implements SignalEnrichmentConf
         return getClass().getSimpleName() + " [" +
                 "provider=" + provider +
                 ", config=" + config +
-                ", cachingSignalEnrichmentFacadeImplementation=" + cachingSignalEnrichmentFacadeImplementation +
                 "]";
     }
 

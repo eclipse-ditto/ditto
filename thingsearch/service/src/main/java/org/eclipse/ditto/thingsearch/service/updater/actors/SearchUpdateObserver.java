@@ -14,15 +14,10 @@ package org.eclipse.ditto.thingsearch.service.updater.actors;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
-import java.util.List;
-
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.base.service.DittoExtensionPoint;
-import org.eclipse.ditto.internal.utils.akka.AkkaClassLoader;
-import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.thingsearch.service.common.config.DittoSearchConfig;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.Metadata;
 
 import akka.actor.ActorSystem;
@@ -36,13 +31,15 @@ import akka.actor.ActorSystem;
  */
 public interface SearchUpdateObserver extends DittoExtensionPoint {
 
+    String CONFIG_PATH = "ditto.things-search.search-update-observer.implementation";
+
     /**
      * Process the given {@code Metadata} and thing as {@code JsonObject}.
      *
      * @param metadata the metadata for the update.
      * @param thingJson the thing used for the update as jsonObject.
      */
-    public void process(final Metadata metadata, @Nullable final JsonObject thingJson);
+    void process(final Metadata metadata, @Nullable final JsonObject thingJson);
 
     /**
      * Loads the implementation of {@code SearchUpdateObserver} which is configured for the
@@ -54,13 +51,8 @@ public interface SearchUpdateObserver extends DittoExtensionPoint {
      */
     static SearchUpdateObserver get(final ActorSystem actorSystem) {
         checkNotNull(actorSystem, "actorSystem");
-        final var implementation = DittoSearchConfig.of(DefaultScopedConfig.dittoScoped(
-                actorSystem.settings().config())).getSearchUpdateObserverImplementation();
-
-        return AkkaClassLoader.instantiate(actorSystem, SearchUpdateObserver.class,
-                implementation,
-                List.of(ActorSystem.class),
-                List.of(actorSystem));
+        final var implementation = actorSystem.settings().config().getString(CONFIG_PATH);
+        return new ExtensionId<>(implementation, SearchUpdateObserver.class).get(actorSystem);
     }
 
 }

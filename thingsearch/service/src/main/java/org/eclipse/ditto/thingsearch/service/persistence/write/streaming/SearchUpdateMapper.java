@@ -20,10 +20,7 @@ import java.util.stream.Collectors;
 
 import org.eclipse.ditto.base.service.DittoExtensionPoint;
 import org.eclipse.ditto.internal.utils.akka.AkkaClassLoader;
-import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.internal.utils.metrics.instruments.timer.StartedTimer;
-import org.eclipse.ditto.thingsearch.service.common.config.DittoSearchConfig;
-import org.eclipse.ditto.thingsearch.service.common.config.SearchConfig;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.AbstractWriteModel;
 import org.eclipse.ditto.thingsearch.service.updater.actors.MongoWriteModel;
 import org.slf4j.Logger;
@@ -44,7 +41,6 @@ import akka.stream.javadsl.Source;
 public abstract class SearchUpdateMapper implements DittoExtensionPoint {
 
     private static final ExtensionId EXTENSION_ID = new ExtensionId();
-
     protected final ActorSystem actorSystem;
 
     protected SearchUpdateMapper(final ActorSystem actorSystem) {
@@ -134,15 +130,12 @@ public abstract class SearchUpdateMapper implements DittoExtensionPoint {
      * ID of the actor system extension to validate the {@code SearchUpdateListener}.
      */
     private static final class ExtensionId extends AbstractExtensionId<SearchUpdateMapper> {
-
+        private static final String CONFIG_PATH = "ditto.things-search.search-update-mapper.implementation";
         @Override
         public SearchUpdateMapper createExtension(final ExtendedActorSystem system) {
-            final SearchConfig searchConfig =
-                    DittoSearchConfig.of(DefaultScopedConfig.dittoScoped(
-                            system.settings().config()));
-
+            final String implementation = system.settings().config().getString(CONFIG_PATH);
             return AkkaClassLoader.instantiate(system, SearchUpdateMapper.class,
-                    searchConfig.getSearchUpdateMapperImplementation(),
+                    implementation,
                     List.of(ActorSystem.class),
                     List.of(system));
         }

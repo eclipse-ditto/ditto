@@ -14,11 +14,6 @@ package org.eclipse.ditto.base.service;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
-import java.util.List;
-
-import org.eclipse.ditto.internal.utils.akka.AkkaClassLoader;
-import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
-
 import akka.actor.ActorContext;
 import akka.actor.ActorSystem;
 
@@ -49,10 +44,6 @@ public interface RootChildActorStarter extends DittoExtensionPoint {
     static RootChildActorStarter get(final ActorSystem actorSystem) {
         checkNotNull(actorSystem, "actorSystem");
         final var implementation = actorSystem.settings().config().getString(CONFIG_PATH);
-
-        return AkkaClassLoader.instantiate(actorSystem, RootChildActorStarter.class,
-                implementation,
-                List.of(ActorSystem.class),
-                List.of(actorSystem));
+        return new ExtensionId<>(implementation, RootChildActorStarter.class).get(actorSystem);
     }
 }

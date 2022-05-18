@@ -30,6 +30,8 @@ import akka.actor.ActorSystem;
  */
 public interface JwtAuthenticationResultProvider extends DittoExtensionPoint {
 
+    String CONFIG_PATH = "ditto.gateway.authentication.oauth.jwt-authentication-result-provider";
+
     /**
      * Extracts an {@code AuthenticationResult} out of a given JsonWebToken.
      *
@@ -51,11 +53,7 @@ public interface JwtAuthenticationResultProvider extends DittoExtensionPoint {
      */
     static JwtAuthenticationResultProvider get(final ActorSystem actorSystem) {
         checkNotNull(actorSystem, "actorSystem");
-        final var implementation =
-                DittoGatewayConfig.of(DefaultScopedConfig.dittoScoped(actorSystem.settings().config()))
-                        .getAuthenticationConfig()
-                        .getOAuthConfig()
-                        .getJwtAuthenticationResultProvider();
+        final var implementation = actorSystem.settings().config().getString(CONFIG_PATH);
         return new ExtensionId<>(implementation, JwtAuthenticationResultProvider.class).get(actorSystem);
     }
 

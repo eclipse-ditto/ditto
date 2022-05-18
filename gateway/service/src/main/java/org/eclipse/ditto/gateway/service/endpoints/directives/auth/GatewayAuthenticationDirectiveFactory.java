@@ -27,6 +27,8 @@ import akka.actor.ActorSystem;
  */
 public interface GatewayAuthenticationDirectiveFactory extends DittoExtensionPoint {
 
+    String CONFIG_PATH = "ditto.gateway.authentication.gateway-authentication-directive-factory";
+
     /**
      * Builds the {@link GatewayAuthenticationDirective authentication directive} that should be used for HTTP API.
      *
@@ -52,10 +54,7 @@ public interface GatewayAuthenticationDirectiveFactory extends DittoExtensionPoi
      */
     static GatewayAuthenticationDirectiveFactory get(final ActorSystem actorSystem) {
         checkNotNull(actorSystem, "actorSystem");
-        final AuthenticationConfig authenticationConfig =
-                DittoGatewayConfig.of(DefaultScopedConfig.dittoScoped(actorSystem.settings().config()))
-                        .getAuthenticationConfig();
-        final var implementation = authenticationConfig.getGatewayAuthenticationDirectiveFactory();
+        final var implementation = actorSystem.settings().config().getString(CONFIG_PATH);
         return new ExtensionId<>(implementation, GatewayAuthenticationDirectiveFactory.class).get(actorSystem);
     }
 

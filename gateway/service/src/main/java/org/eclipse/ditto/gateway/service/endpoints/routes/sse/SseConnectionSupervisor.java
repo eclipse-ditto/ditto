@@ -16,15 +16,15 @@ import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import org.eclipse.ditto.base.service.DittoExtensionPoint;
 import org.eclipse.ditto.gateway.service.streaming.actors.StreamSupervisor;
-import org.eclipse.ditto.gateway.service.util.config.DittoGatewayConfig;
-import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 
 import akka.actor.ActorSystem;
 
 /**
  * Provides the means to supervise a particular SSE connection.
  */
-public interface SseConnectionSupervisor extends DittoExtensionPoint, StreamSupervisor{
+public interface SseConnectionSupervisor extends DittoExtensionPoint, StreamSupervisor {
+
+    String CONFIG_PATH = "ditto.gateway.streaming.sse.connection-supervisor";
 
     /**
      * Loads the implementation of {@code SseConnectionSupervisor} which is configured for the
@@ -37,8 +37,7 @@ public interface SseConnectionSupervisor extends DittoExtensionPoint, StreamSupe
      */
     static SseConnectionSupervisor get(final ActorSystem actorSystem) {
         checkNotNull(actorSystem, "actorSystem");
-        final var implementation = DittoGatewayConfig.of(DefaultScopedConfig.dittoScoped(
-                actorSystem.settings().config())).getStreamingConfig().getSseConfig().getConnectionSupervisor();
+        final var implementation = actorSystem.settings().config().getString(CONFIG_PATH);
 
         return new ExtensionId<>(implementation, SseConnectionSupervisor.class).get(actorSystem);
     }
