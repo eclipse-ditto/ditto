@@ -266,7 +266,7 @@ public final class EnforcementFlowTest {
             assertThat(document.getValue("policyId")).contains(JsonValue.of(policyId));
             assertThat(document.getValue("_revision")).contains(JsonValue.of(6));
             assertThat(document.getValue("__policyRev")).contains(JsonValue.of(1));
-            assertThat(document.getValue("s/attributes")).contains(JsonObject.of("{\"x\":5,\"y\":6,\"z\":7}"));
+            assertThat(document.getValue("t/attributes")).contains(JsonObject.of("{\"x\":5,\"y\":6,\"z\":7}"));
 
             // THEN: thing is computed in the cache
             thingsProbe.expectNoMessage(FiniteDuration.Zero());
@@ -520,7 +520,7 @@ public final class EnforcementFlowTest {
             assertThat(document.getValue("policyId")).contains(JsonValue.of(policyId));
             assertThat(document.getValue("_revision")).contains(JsonValue.of(6));
             assertThat(document.getValue("__policyRev")).contains(JsonValue.of(1));
-            assertThat(document.getValue("s/attributes")).contains(JsonObject.of("{\"x\":5,\"y\":6,\"z\":7}"));
+            assertThat(document.getValue("t/attributes")).contains(JsonObject.of("{\"x\":5,\"y\":6,\"z\":7}"));
 
             // THEN: thing is computed in the cache
             thingsProbe.expectNoMessage(FiniteDuration.Zero());
@@ -587,90 +587,12 @@ public final class EnforcementFlowTest {
             assertThat(document.getValue("policyId")).contains(JsonValue.of(policyId));
             assertThat(document.getValue("_revision")).contains(JsonValue.of(6));
             assertThat(document.getValue("__policyRev")).contains(JsonValue.of(1));
-            assertThat(document.getValue("s/attributes")).contains(JsonObject.of("{\"x\":5,\"y\":6,\"z\":7}"));
+            assertThat(document.getValue("t/attributes")).contains(JsonObject.of("{\"x\":5,\"y\":6,\"z\":7}"));
 
             // THEN: thing is computed in the cache
             thingsProbe.expectNoMessage(FiniteDuration.Zero());
         }};
     }
-
-    @Test
-    public void updatesDoNotGetReordered() {
-        Assume.assumeThat(System.getProperty("build.environment"), Matchers.not(Matchers.equalTo("Github")));
-        new TestKit(system) {{
-            final DittoHeaders headers = DittoHeaders.empty();
-            final PolicyId policyId = PolicyId.of("policy:id");
-            final Thing thing = Thing.newBuilder().setPolicyId(policyId).build();
-            final var policy = Policy.newBuilder(policyId).setRevision(1).build();
-
-            final List<List<Metadata>> changeMaps = IntStream.range(1, 5).mapToObj(i -> {
-                final ThingId thingId = ThingId.of("thing:" + i);
-                final Thing ithThing = thing.toBuilder().setId(thingId).setRevision(i).build();
-                final List<ThingEvent<?>> events = List.of(ThingModified.of(ithThing, i, null, headers, null));
-                final Metadata metadata = Metadata.of(thingId, i, policyId, 1L, events, null, null);
-                return List.of(metadata);
-            }).toList();
-
-            final TestProbe thingsProbe = TestProbe.apply(system);
-            final TestProbe policiesProbe = TestProbe.apply(system);
-
-            final StreamConfig streamConfig = DefaultStreamConfig.of(ConfigFactory.parseString(
-                    "stream.ask-with-retry.ask-timeout=30s"));
-            final EnforcementFlow underTest = EnforcementFlow.of(system, streamConfig, thingsProbe.ref(),
-                    policiesProbe.ref(), system.getScheduler());
-
-            materializeTestProbes(underTest);
-
-            sinkProbe.ensureSubscription();
-            sourceProbe.ensureSubscription();
-            sinkProbe.request(4);
-            assertThat(sourceProbe.expectRequest()).isEqualTo(16);
-            changeMaps.forEach(sourceProbe::sendNext);
-            sourceProbe.sendComplete();
-
-            final var sudoRetrievePolicyResponse =
-                    SudoRetrievePolicyResponse.of(policyId, policy, DittoHeaders.empty());
-            policiesProbe.setAutoPilot(new TestActor.AutoPilot() {
-                @Override
-                public TestActor.AutoPilot run(final ActorRef sender, final Object msg) {
-                    sender.tell(sudoRetrievePolicyResponse, policiesProbe.ref());
-                    return keepRunning();
-                }
-            });
-
-            thingsProbe.setAutoPilot(new TestActor.AutoPilot() {
-                @Override
-                public TestActor.AutoPilot run(final ActorRef sender, final Object msg) {
-                    if (msg instanceof final SudoRetrieveThing command) {
-                        final var thingId = (ThingId) command.getEntityId();
-                        final int i = Integer.parseInt(thingId.getName());
-                        final var response = SudoRetrieveThingResponse.of(
-                                thing.toBuilder()
-                                        .setId(thingId)
-                                        .setRevision(i)
-                                        .setAttribute(JsonPointer.of("x"), JsonValue.of(i))
-                                        .build()
-                                        .toJson(FieldType.all()),
-                                command.getDittoHeaders()
-                        );
-                        final var future = new CompletableFuture<Integer>();
-                        future.completeOnTimeout(i, 4 - i, TimeUnit.SECONDS);
-                        future.whenComplete((j, error) -> sender.tell(response, getRef()));
-                    }
-                    return keepRunning();
-                }
-            });
-
-            for (final var changeMap : changeMaps) {
-                final var expectedMetadata = changeMap.iterator().next();
-                final var list = sinkProbe.expectNext(FiniteDuration.apply(60, "s"));
-                final AbstractWriteModel writeModel = list.get(0);
-                assertThat(writeModel.getMetadata()).isEqualTo(expectedMetadata);
-            }
-            sinkProbe.expectComplete();
-        }};
-    }
-
 
     @Test
     public void thereCanBeMultipleUpdatesPerBulk() {
@@ -696,7 +618,7 @@ public final class EnforcementFlowTest {
             final EnforcementFlow underTest = EnforcementFlow.of(system, streamConfig, thingsProbe.ref(),
                     policiesProbe.ref(), system.getScheduler());
 
-            materializeTestProbes(underTest, 16, 1, 16);
+            materializeTestProbes(underTest, 16, 16);
 
             sinkProbe.ensureSubscription();
             sourceProbe.ensureSubscription();
@@ -743,16 +665,15 @@ public final class EnforcementFlowTest {
     }
 
     private void materializeTestProbes(final EnforcementFlow enforcementFlow) {
-        materializeTestProbes(enforcementFlow, 16, 1, 1);
+        materializeTestProbes(enforcementFlow, 16, 1);
     }
 
 
     private void materializeTestProbes(final EnforcementFlow enforcementFlow, final int parallelism,
-            final int bulkShardCount, final int bulkSize) {
+            final int bulkSize) {
         final var source = TestSource.<Collection<Metadata>>probe(system);
         final var sink = TestSink.<List<AbstractWriteModel>>probe(system);
-        final var runnableGraph = enforcementFlow.create(source, parallelism, bulkShardCount, bulkSize)
-                .mergeSubstreams()
+        final var runnableGraph = enforcementFlow.create(source, parallelism, bulkSize)
                 .viaMat(KillSwitches.single(), Keep.both())
                 .toMat(sink, Keep.both());
         final var materializedValue = runnableGraph.run(() -> system);

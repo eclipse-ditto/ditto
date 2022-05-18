@@ -96,7 +96,7 @@ public final class SearchActor extends AbstractActor {
 
     private static final String SEARCH_DISPATCHER_ID = "search-dispatcher";
 
-    private static final String TRACING_THINGS_SEARCH = "things_search_query";
+    private static final String TRACING_THINGS_SEARCH = "things_wildcard_search_query";
     private static final String QUERY_PARSING_SEGMENT_NAME = "query_parsing";
     private static final String DATABASE_ACCESS_SEGMENT_NAME = "database_access";
     private static final String QUERY_TYPE_TAG = "query_type";

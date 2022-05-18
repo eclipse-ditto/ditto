@@ -21,6 +21,7 @@ import java.util.Optional;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.base.model.namespaces.NamespaceBlockedException;
 import org.eclipse.ditto.thingsearch.service.updater.actors.MongoWriteModel;
 
 import com.mongodb.MongoBulkWriteException;
@@ -63,7 +64,8 @@ public final class WriteResultAndErrors {
     public static WriteResultAndErrors success(final Collection<MongoWriteModel> writeModels,
             final BulkWriteResult bulkWriteResult,
             final String bulkWriteCorrelationId) {
-        return new WriteResultAndErrors(writeModels, bulkWriteResult, Collections.emptyList(), null, bulkWriteCorrelationId);
+        return new WriteResultAndErrors(writeModels, bulkWriteResult, Collections.emptyList(), null,
+                bulkWriteCorrelationId);
     }
 
     /**
@@ -79,6 +81,10 @@ public final class WriteResultAndErrors {
             final String bulkWriteCorrelationId) {
         return new WriteResultAndErrors(writeModels, mongoBulkWriteException.getWriteResult(),
                 mongoBulkWriteException.getWriteErrors(), null, bulkWriteCorrelationId);
+    }
+
+    public static WriteResultAndErrors failure(final Throwable error) {
+        return new WriteResultAndErrors(List.of(), BulkWriteResult.unacknowledged(), List.of(), error, "");
     }
 
     /**
@@ -140,6 +146,15 @@ public final class WriteResultAndErrors {
      */
     public String getBulkWriteCorrelationId() {
         return bulkWriteCorrelationId;
+    }
+
+    /**
+     * Check if the error is a namespace-blocked exception.
+     *
+     * @return whether the error is a namespace-blocked exception.
+     */
+    public boolean isNamespaceBlockedException() {
+        return unexpectedError instanceof NamespaceBlockedException;
     }
 
     @Override

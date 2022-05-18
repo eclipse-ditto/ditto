@@ -51,6 +51,17 @@ final class JsonValueToDbEntityMapper {
     }
 
     /**
+     * Returns a mapper for mapping a {@link JsonValue} to a {@link BsonValue}.
+     *
+     * @param jsonKeyNameReviser is used to revise the json key names of JSON objects.
+     * @return the mapper.
+     * @throws NullPointerException if {@code jsonKeyNameReviser} is {@code null}.
+     */
+    public static JsonValueToDbEntityMapper of(final Function<String, String> jsonKeyNameReviser) {
+        return new JsonValueToDbEntityMapper(jsonKeyNameReviser);
+    }
+
+    /**
      * Returns a Function for mapping a {@link JsonObject} to a {@link BsonDocument}.
      *
      * @param jsonKeyNameReviser is used to revise the json key names of JSON objects.
@@ -85,7 +96,7 @@ final class JsonValueToDbEntityMapper {
      * @return {@code jsonObject} as BsonDocument.
      * @throws NullPointerException if {@code jsonObject} is {@code null}.
      */
-    private BsonDocument mapJsonObjectToBsonDocument(final JsonObject jsonObject) {
+    BsonDocument mapJsonObjectToBsonDocument(final JsonObject jsonObject) {
         checkNotNull(jsonObject, "JSON object to be mapped");
 
         final BsonDocument result = new BsonDocument();
@@ -101,7 +112,7 @@ final class JsonValueToDbEntityMapper {
      * @return {@code jsonArray} as BsonArray.
      * @throws NullPointerException if {@code jsonArray} is {@code null}.
      */
-    private BsonArray mapJsonArrayToBsonArray(final JsonArray jsonArray) {
+    BsonArray mapJsonArrayToBsonArray(final JsonArray jsonArray) {
         checkNotNull(jsonArray, "JSON array to be mapped");
 
         final BsonArray result = new BsonArray();
@@ -148,7 +159,7 @@ final class JsonValueToDbEntityMapper {
      * @throws NullPointerException if {@code jsonValue} is {@code null}.
      */
     @Nullable
-    private BsonValue mapJsonValueToBsonValue(final JsonValue jsonValue) {
+    BsonValue mapJsonValueToBsonValue(final JsonValue jsonValue) {
         checkNotNull(jsonValue, "JSON value to be mapped");
 
         final BsonValue result;

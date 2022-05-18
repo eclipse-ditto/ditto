@@ -98,7 +98,12 @@ public class CreateBsonPredicateVisitor implements PredicateVisitor<Function<Str
 
     @Override
     public Function<String, Bson> visitEq(@Nullable final Object value) {
-        return fieldName -> Filters.eq(fieldName, resolveValue(value));
+        if (value == null) {
+            // add "exists" clause for eq(null) only to disable conflation of eq(null) and nonexistence by MongoDB
+            return fieldName -> Filters.and(Filters.eq(fieldName, null), Filters.exists(fieldName));
+        } else {
+            return fieldName -> Filters.eq(fieldName, resolveValue(value));
+        }
     }
 
     @Override

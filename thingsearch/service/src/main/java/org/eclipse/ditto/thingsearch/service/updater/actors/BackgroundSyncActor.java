@@ -65,8 +65,8 @@ public final class BackgroundSyncActor
     private final BackgroundSyncStream backgroundSyncStream;
     private final ActorRef thingsUpdater;
 
-    private final Counter streamedSnapshots = DittoMetrics.counter("search_streamed_snapshots");
-    private final Counter scannedIndexDocs = DittoMetrics.counter("search_scanned_index_docs");
+    private final Counter streamedSnapshots = DittoMetrics.counter("wildcard_search_streamed_snapshots");
+    private final Counter scannedIndexDocs = DittoMetrics.counter("wildcard_search_scanned_index_docs");
 
     private ThingId progressPersisted = EMPTY_THING_ID;
     private ThingId progressIndexed = EMPTY_THING_ID;

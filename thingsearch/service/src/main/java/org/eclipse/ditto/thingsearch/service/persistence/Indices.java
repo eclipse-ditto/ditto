@@ -13,19 +13,20 @@
 package org.eclipse.ditto.thingsearch.service.persistence;
 
 import static org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants.FIELD_DELETE_AT;
+import static org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants.FIELD_FEATURE_POLICY;
 import static org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants.FIELD_GLOBAL_READ;
-import static org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants.FIELD_GRANTED_PATH;
 import static org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants.FIELD_ID;
 import static org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants.FIELD_NAMESPACE;
-import static org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants.FIELD_PATH_KEY;
-import static org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants.FIELD_PATH_VALUE;
+import static org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants.FIELD_POLICY;
 import static org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants.FIELD_POLICY_ID;
 import static org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants.FIELD_POLICY_REVISION;
+import static org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants.FIELD_REVISION;
 
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
+import java.util.stream.Stream;
 
+import org.bson.BsonDocument;
+import org.bson.BsonInt32;
 import org.eclipse.ditto.internal.utils.persistence.mongo.indices.Index;
 import org.eclipse.ditto.internal.utils.persistence.mongo.indices.IndexFactory;
 
@@ -40,29 +41,46 @@ public final class Indices {
 
     /**
      * Index for queries with effective filters.
+     * <p>
+     * All fields not included in the wildcard index are enumerated.
+     * Policy objects are excluded on thing and feature levels to prevent MongoDB from choosing an inefficient query
+     * plan according to the nested clauses for authorization.
+     * It is not possible to list the included fields because the feature array 'f' is the parent of the excluded
+     * feature policy field 'f.p'.
      */
-    private static final Index KEY_VALUE = IndexFactory.newInstance("key-value",
-            Arrays.asList(FIELD_GRANTED_PATH, FIELD_PATH_KEY, FIELD_PATH_VALUE, FIELD_ID), false);
+    private static final Index WILDCARD = IndexFactory.newInstance("v_wildcard", List.of("$**"), false)
+            .withWildcardProjection(Stream.of(FIELD_ID, FIELD_NAMESPACE, FIELD_GLOBAL_READ, FIELD_REVISION,
+                    FIELD_POLICY_ID, FIELD_POLICY_REVISION, FIELD_POLICY, FIELD_FEATURE_POLICY)
+                    .reduce(new BsonDocument(),
+                            (doc, field) -> doc.append(field, new BsonInt32(0)),
+                            (doc1, doc2) -> {
+                                doc2.forEach(doc1::append);
+                                return doc1;
+                            })
+            );
 
     /**
      * Index for queries without effective filters to be executed as scans over all visible things.
      */
-    private static final Index GLOBAL_READ = IndexFactory.newInstance("global-read",
-            Collections.singletonList(FIELD_GLOBAL_READ), false);
+    private static final Index GLOBAL_READ =
+            IndexFactory.newInstance("global_read", List.of(FIELD_GLOBAL_READ, FIELD_ID), false);
 
     /**
      * Index for dispatching policy events.
      */
-    private static final Index POLICY = IndexFactory.newInstance("policyId",
-            Arrays.asList(FIELD_POLICY_ID, FIELD_POLICY_REVISION), false);
-
-    private static final Index DELETE_AT = IndexFactory.newExpirationIndex(FIELD_DELETE_AT, FIELD_DELETE_AT, 0L);
+    private static final Index POLICY =
+            IndexFactory.newInstance("policyId", List.of(FIELD_POLICY_ID, FIELD_POLICY_REVISION), false);
 
     /**
      * Index for namespace.
      */
-    private static final Index NAMESPACE = IndexFactory.newInstance("namespace",
-            Arrays.asList(FIELD_NAMESPACE, FIELD_ID), false);
+    private static final Index NAMESPACE =
+            IndexFactory.newInstance("_namespace", List.of(FIELD_NAMESPACE, FIELD_ID), false);
+
+    /**
+     * Index for namespace purging.
+     */
+    private static final Index DELETE_AT = IndexFactory.newExpirationIndex(FIELD_DELETE_AT, FIELD_DELETE_AT, 0L);
 
     /**
      * Gets all defined indices.
@@ -70,8 +88,7 @@ public final class Indices {
      * @return the indices
      */
     public static List<Index> all() {
-        return Collections.unmodifiableList(
-                Arrays.asList(KEY_VALUE, GLOBAL_READ, POLICY, NAMESPACE, DELETE_AT));
+        return List.of(NAMESPACE, GLOBAL_READ, WILDCARD, POLICY, DELETE_AT);
     }
 
 }

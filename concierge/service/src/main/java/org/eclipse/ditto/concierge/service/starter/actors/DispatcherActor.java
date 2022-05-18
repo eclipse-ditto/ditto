@@ -13,7 +13,6 @@
 package org.eclipse.ditto.concierge.service.starter.actors;
 
 import static org.eclipse.ditto.concierge.api.ConciergeMessagingConstants.DISPATCHER_ACTOR_PATH;
-import static org.eclipse.ditto.thingsearch.api.ThingsSearchConstants.SEARCH_ACTOR_PATH;
 
 import java.util.Arrays;
 import java.util.HashMap;
@@ -123,8 +122,9 @@ public final class DispatcherActor
      * @param enforcerActor address of the enforcer actor.
      * @return the Props object.
      */
-    public static Props props(final ActorRef pubSubMediator, final ActorRef enforcerActor) {
-        return props(pubSubMediator, enforcerActor, CompletableFuture::completedFuture);
+    public static Props props(final String searchActorPath, final ActorRef pubSubMediator,
+            final ActorRef enforcerActor) {
+        return props(searchActorPath, pubSubMediator, enforcerActor, CompletableFuture::completedFuture);
     }
 
     /**
@@ -135,12 +135,11 @@ public final class DispatcherActor
      * @param preEnforcer the pre-enforcer as graph.
      * @return the Props object.
      */
-    public static Props props(final ActorRef pubSubMediator,
-            final ActorRef enforcerActor,
-            final PreEnforcer preEnforcer) {
+    public static Props props(final String searchActorPath, final ActorRef pubSubMediator,
+            final ActorRef enforcerActor, final PreEnforcer preEnforcer) {
 
         final Flow<ImmutableDispatch, ImmutableDispatch, NotUsed> dispatchFlow =
-                Flow.fromGraph(createDispatchFlow(pubSubMediator, preEnforcer));
+                Flow.fromGraph(createDispatchFlow(searchActorPath, pubSubMediator, preEnforcer));
 
         return Props.create(DispatcherActor.class, enforcerActor, pubSubMediator, dispatchFlow);
     }
@@ -152,7 +151,7 @@ public final class DispatcherActor
      * @return stream to dispatch search and thing commands.
      */
     private static Graph<FlowShape<ImmutableDispatch, ImmutableDispatch>, NotUsed> createDispatchFlow(
-            final ActorRef pubSubMediator,
+            final String searchActorPath, final ActorRef pubSubMediator,
             final PreEnforcer preEnforcer) {
 
         return GraphDSL.create(builder -> {
@@ -163,7 +162,7 @@ public final class DispatcherActor
                     builder.add(multiplexBy(RetrieveThings.class, SudoRetrieveThings.class));
 
             final SinkShape<ImmutableDispatch> forwardToSearchActor =
-                    builder.add(searchActorSink(pubSubMediator, preEnforcer));
+                    builder.add(searchActorSink(searchActorPath, pubSubMediator, preEnforcer));
 
             final SinkShape<ImmutableDispatch> forwardToThingsAggregator =
                     builder.add(thingsAggregatorSink(preEnforcer));
@@ -185,8 +184,8 @@ public final class DispatcherActor
                         : Optional.empty());
     }
 
-    private static Sink<ImmutableDispatch, ?> searchActorSink(final ActorRef pubSubMediator,
-            final PreEnforcer preEnforcer) {
+    private static Sink<ImmutableDispatch, ?> searchActorSink(final String searchActorPath,
+            final ActorRef pubSubMediator, final PreEnforcer preEnforcer) {
         return Sink.foreach(dispatchToPreEnforce ->
                 preEnforce(dispatchToPreEnforce, preEnforcer, dispatch -> {
                     final DittoHeadersSettable<?> command = dispatch.message;
@@ -201,17 +200,14 @@ public final class DispatcherActor
                                     if (searchCommand instanceof ThingSearchQueryCommand) {
                                         final String filter = ((ThingSearchQueryCommand<?>) searchCommand)
                                                 .getFilter().orElse(null);
-                                        l.withCorrelationId(command).info(
-                                                "Forwarding search query command type <{}> with filter <{}> and " +
-                                                        "fields <{}>",
-                                                searchCommand.getType(),
-                                                filter,
-                                                searchCommand.getSelectedFields().orElse(null));
+                                        l.withCorrelationId(command)
+                                                .info("Forwarding search query command type <{}> with filter <{}> and fields <{}>",
+                                                        searchCommand.getType(), filter,
+                                                        searchCommand.getSelectedFields().orElse(null));
                                     }
                                 });
                     }
-                    pubSubMediator.tell(
-                            DistPubSubAccess.send(SEARCH_ACTOR_PATH, dispatch.getMessage()),
+                    pubSubMediator.tell(DistPubSubAccess.send(searchActorPath, dispatch.getMessage()),
                             dispatch.getSender());
                 })
         );
