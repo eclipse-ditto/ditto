@@ -12,8 +12,6 @@
  */
 package org.eclipse.ditto.things.service.persistence.actors;
 
-import java.util.concurrent.CompletableFuture;
-
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.internal.utils.persistence.mongo.ops.eventsource.MongoEventSourceITAssertions;
@@ -118,8 +116,7 @@ public final class ThingPersistenceOperationsActorIT extends MongoEventSourceITA
                         liveSignalPub,
                         (thingId, distributedPub) -> ThingPersistenceActor.props(thingId, distributedPub,
                                 pubSubMediator),
-                        null,
-                        CompletableFuture::completedFuture);
+                        null);
 
         return system.actorOf(props, id.toString());
     }

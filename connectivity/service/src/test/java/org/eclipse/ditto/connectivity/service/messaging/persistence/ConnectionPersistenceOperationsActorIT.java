@@ -13,7 +13,6 @@
 package org.eclipse.ditto.connectivity.service.messaging.persistence;
 
 import java.util.Collections;
-import java.util.concurrent.CompletableFuture;
 
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
@@ -125,7 +124,7 @@ public final class ConnectionPersistenceOperationsActorIT extends MongoEventSour
         // essentially never restart
         final TestProbe proxyActorProbe = new TestProbe(system, "proxyActor");
         final Props props =
-                ConnectionSupervisorActor.props(proxyActorProbe.ref(), pubSubMediator, CompletableFuture::completedStage);
+                ConnectionSupervisorActor.props(proxyActorProbe.ref(), pubSubMediator);
 
         return system.actorOf(props, String.valueOf(id));
     }

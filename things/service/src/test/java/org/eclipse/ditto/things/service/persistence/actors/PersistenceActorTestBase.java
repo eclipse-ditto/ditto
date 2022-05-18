@@ -17,7 +17,6 @@ import static java.util.Objects.requireNonNull;
 import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
@@ -184,7 +183,7 @@ public abstract class PersistenceActorTestBase {
         final LiveSignalPub liveSignalPub = new TestSetup.DummyLiveSignalPub(pubSubMediator);
         final Props props =
                 ThingSupervisorActor.props(pubSubMediator, policiesShardRegion, liveSignalPub,
-                        this::getPropsOfThingPersistenceActor, null, CompletableFuture::completedFuture);
+                        this::getPropsOfThingPersistenceActor, null);
 
         return actorSystem.actorOf(props, thingId.toString());
     }

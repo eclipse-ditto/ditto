@@ -34,7 +34,6 @@ import org.eclipse.ditto.connectivity.service.config.DittoConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.enforcement.ConnectivityCommandEnforcement;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.internal.utils.persistentactors.AbstractPersistenceSupervisor;
-import org.eclipse.ditto.policies.enforcement.PreEnforcer;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
@@ -76,12 +75,8 @@ public final class ConnectionSupervisorActor
     private boolean isRegisteredForConnectivityConfigChanges = false;
 
     @SuppressWarnings("unused")
-    private ConnectionSupervisorActor(
-            final ActorRef proxyActor,
-            final ActorRef pubSubMediator,
-            final PreEnforcer<ConnectivityCommand<?>> preEnforcer) {
-
-        super(null, preEnforcer);
+    private ConnectionSupervisorActor(final ActorRef proxyActor, final ActorRef pubSubMediator) {
+        super(null);
         this.proxyActor = proxyActor;
         this.pubSubMediator = pubSubMediator;
     }
@@ -95,15 +90,13 @@ public final class ConnectionSupervisorActor
      *
      * @param proxyActor the actor used to send signals into the ditto cluster..
      * @param pubSubMediator pub-sub-mediator for the shutdown behavior.
-     * @param preEnforcer the PreEnforcer to apply as extension mechanism of the enforcement.
      * @return the {@link Props} to create this actor.
      */
     public static Props props(final ActorRef proxyActor,
-            final ActorRef pubSubMediator,
-            final PreEnforcer<ConnectivityCommand<?>> preEnforcer) {
+            final ActorRef pubSubMediator) {
 
         return Props.create(ConnectionSupervisorActor.class, proxyActor,
-                 pubSubMediator, preEnforcer);
+                 pubSubMediator);
     }
 
     @Override

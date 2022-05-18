@@ -25,7 +25,6 @@ import org.eclipse.ditto.internal.utils.namespaces.BlockedNamespaces;
 import org.eclipse.ditto.internal.utils.persistence.SnapshotAdapter;
 import org.eclipse.ditto.internal.utils.persistentactors.AbstractPersistenceSupervisor;
 import org.eclipse.ditto.internal.utils.pubsub.DistributedPub;
-import org.eclipse.ditto.policies.enforcement.PreEnforcer;
 import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.signals.announcements.PolicyAnnouncement;
@@ -59,10 +58,9 @@ public final class PolicySupervisorActor extends AbstractPersistenceSupervisor<P
     private PolicySupervisorActor(final ActorRef pubSubMediator,
             final SnapshotAdapter<Policy> snapshotAdapter,
             final DistributedPub<PolicyAnnouncement<?>> policyAnnouncementPub,
-            @Nullable final BlockedNamespaces blockedNamespaces,
-            final PreEnforcer<PolicyCommand<?>> preEnforcer) {
+            @Nullable final BlockedNamespaces blockedNamespaces) {
 
-        super(blockedNamespaces, preEnforcer);
+        super(blockedNamespaces);
         this.pubSubMediator = pubSubMediator;
         this.snapshotAdapter = snapshotAdapter;
         final DittoPoliciesConfig policiesConfig = DittoPoliciesConfig.of(
@@ -90,17 +88,15 @@ public final class PolicySupervisorActor extends AbstractPersistenceSupervisor<P
      * @param snapshotAdapter the adapter to serialize snapshots.
      * @param policyAnnouncementPub publisher interface of policy announcements.
      * @param blockedNamespaces the blocked namespaces functionality to retrieve/subscribe for blocked namespaces.
-     * @param preEnforcer the PreEnforcer to apply as extension mechanism of the enforcement.
      * @return the {@link Props} to create this actor.
      */
     public static Props props(final ActorRef pubSubMediator,
             final SnapshotAdapter<Policy> snapshotAdapter,
             final DistributedPub<PolicyAnnouncement<?>> policyAnnouncementPub,
-            @Nullable final BlockedNamespaces blockedNamespaces,
-            final PreEnforcer<PolicyCommand<?>> preEnforcer) {
+            @Nullable final BlockedNamespaces blockedNamespaces) {
 
         return Props.create(PolicySupervisorActor.class, pubSubMediator, snapshotAdapter, policyAnnouncementPub,
-                blockedNamespaces, preEnforcer);
+                blockedNamespaces);
     }
 
     @Override

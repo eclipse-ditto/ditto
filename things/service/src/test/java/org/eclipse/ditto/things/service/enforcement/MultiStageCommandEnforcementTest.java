@@ -15,6 +15,7 @@ package org.eclipse.ditto.things.service.enforcement;
 import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import javax.annotation.Nullable;
@@ -22,6 +23,7 @@ import javax.annotation.Nullable;
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
 import org.eclipse.ditto.base.model.auth.DittoAuthorizationContextType;
+import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.json.JsonFactory;
@@ -81,6 +83,7 @@ public final class MultiStageCommandEnforcementTest extends AbstractThingEnforce
             .authorizationContext(AuthorizationContext.newInstance(
                     DittoAuthorizationContextType.UNSPECIFIED,
                     AUTHORIZATION_SUBJECT))
+            .putHeader(DittoHeaderDefinition.ORIGINATOR.getKey(), DEFAULT_SUBJECT.getId())
             .build();
 
     private static final String THING = ThingCommand.RESOURCE_TYPE;

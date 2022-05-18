@@ -42,6 +42,7 @@ import org.eclipse.ditto.internal.utils.namespaces.BlockedNamespaces;
 import org.eclipse.ditto.policies.enforcement.CreationRestrictionEnforcer;
 import org.eclipse.ditto.policies.enforcement.DefaultCreationRestrictionEnforcer;
 import org.eclipse.ditto.policies.enforcement.PreEnforcer;
+import org.eclipse.ditto.policies.enforcement.PreEnforcerProvider;
 import org.eclipse.ditto.policies.enforcement.config.DefaultEntityCreationConfig;
 
 import akka.actor.ActorRef;
@@ -92,20 +93,18 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
     private ExponentialBackOff backOff;
     private boolean waitingForStopBeforeRestart = false;
 
-    protected AbstractPersistenceSupervisor(@Nullable final BlockedNamespaces blockedNamespaces,
-            final PreEnforcer<S> preEnforcer) {
-        this(null, null, blockedNamespaces, preEnforcer);
+    protected AbstractPersistenceSupervisor(@Nullable final BlockedNamespaces blockedNamespaces) {
+        this(null, null, blockedNamespaces);
     }
 
     protected AbstractPersistenceSupervisor(@Nullable final ActorRef persistenceActorChild,
             @Nullable final ActorRef enforcerChild,
-            @Nullable final BlockedNamespaces blockedNamespaces,
-            final PreEnforcer<S> preEnforcer) {
+            @Nullable final BlockedNamespaces blockedNamespaces) {
 
         this.persistenceActorChild = persistenceActorChild;
         this.enforcerChild = enforcerChild;
         this.blockedNamespaces = blockedNamespaces;
-        this.preEnforcer = preEnforcer;
+        preEnforcer = PreEnforcerProvider.get(getContext().getSystem()).getPreEnforcer();
         exponentialBackOffConfig = getExponentialBackOffConfig();
         backOff = ExponentialBackOff.initial(exponentialBackOffConfig);
         creationRestrictionEnforcer = DefaultCreationRestrictionEnforcer.of(

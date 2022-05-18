@@ -27,6 +27,10 @@
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-base-service</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-policies-model</artifactId>
         </dependency>
         <!-- TODO CR-11383 this should not rely on things-model (it currently does because of placeholders package - which could be pulled out) -->
@@ -118,6 +122,10 @@
             <groupId>ch.qos.logback</groupId>
             <artifactId>logback-classic</artifactId>
             <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-internal-utils-namespaces</artifactId>
         </dependency>
     </dependencies>
 

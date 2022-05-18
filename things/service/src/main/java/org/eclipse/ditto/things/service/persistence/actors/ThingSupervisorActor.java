@@ -32,7 +32,6 @@ import org.eclipse.ditto.internal.utils.namespaces.BlockedNamespaces;
 import org.eclipse.ditto.internal.utils.persistentactors.AbstractPersistenceSupervisor;
 import org.eclipse.ditto.internal.utils.persistentactors.TargetActorWithMessage;
 import org.eclipse.ditto.internal.utils.pubsub.LiveSignalPub;
-import org.eclipse.ditto.policies.enforcement.PreEnforcer;
 import org.eclipse.ditto.policies.enforcement.config.DefaultEnforcementConfig;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommand;
@@ -82,16 +81,15 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
             final LiveSignalPub liveSignalPub,
             @Nullable final ThingPersistenceActorPropsFactory thingPersistenceActorPropsFactory,
             @Nullable final ActorRef thingPersistenceActorRef,
-            @Nullable final BlockedNamespaces blockedNamespaces,
-            final PreEnforcer<Signal<?>> preEnforcer) {
+            @Nullable final BlockedNamespaces blockedNamespaces) {
 
-        super(blockedNamespaces, preEnforcer);
+        super(blockedNamespaces);
 
         this.pubSubMediator = pubSubMediator;
         this.policiesShardRegion = policiesShardRegion;
         this.liveSignalPub = liveSignalPub;
         this.thingPersistenceActorPropsFactory = thingPersistenceActorPropsFactory;
-        this.persistenceActorChild = thingPersistenceActorRef;
+        persistenceActorChild = thingPersistenceActorRef;
         enforcementConfig = DefaultEnforcementConfig.of(
                 DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config())
         );
@@ -132,18 +130,16 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
      * @param liveSignalPub distributed-pub access.
      * @param propsFactory factory for creating Props to be used for creating
      * @param blockedNamespaces the blocked namespaces functionality to retrieve/subscribe for blocked namespaces.
-     * @param preEnforcer the PreEnforcer to apply as extension mechanism of the enforcement.
      * @return the {@link Props} to create this actor.
      */
     public static Props props(final ActorRef pubSubMediator,
             final ActorRef policiesShardRegion,
             final LiveSignalPub liveSignalPub,
             final ThingPersistenceActorPropsFactory propsFactory,
-            @Nullable final BlockedNamespaces blockedNamespaces,
-            final PreEnforcer<Signal<?>> preEnforcer) {
+            @Nullable final BlockedNamespaces blockedNamespaces) {
 
         return Props.create(ThingSupervisorActor.class, pubSubMediator, policiesShardRegion, liveSignalPub,
-                propsFactory, null, blockedNamespaces, preEnforcer);
+                propsFactory, null, blockedNamespaces);
     }
 
     /**
@@ -153,11 +149,10 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
             final ActorRef policiesShardRegion,
             final LiveSignalPub liveSignalPub,
             final ActorRef thingsPersistenceActor,
-            @Nullable final BlockedNamespaces blockedNamespaces,
-            final PreEnforcer<Signal<?>> preEnforcer) {
+            @Nullable final BlockedNamespaces blockedNamespaces) {
 
         return Props.create(ThingSupervisorActor.class, pubSubMediator, policiesShardRegion, liveSignalPub,
-                null, thingsPersistenceActor, blockedNamespaces, preEnforcer);
+                null, thingsPersistenceActor, blockedNamespaces);
     }
 
     @Override

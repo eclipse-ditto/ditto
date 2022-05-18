@@ -18,11 +18,14 @@ import static org.eclipse.ditto.things.service.enforcement.TestSetup.THING_ID;
 import java.net.URLEncoder;
 import java.nio.charset.Charset;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
 import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
+import org.eclipse.ditto.base.service.config.ThrottlingConfig;
 import org.eclipse.ditto.policies.api.commands.sudo.SudoRetrievePolicy;
+import org.eclipse.ditto.policies.enforcement.DefaultPreEnforcerProvider;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.things.api.commands.sudo.SudoRetrieveThing;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommand;
@@ -31,6 +34,7 @@ import org.junit.After;
 import org.junit.Before;
 
 import com.typesafe.config.ConfigFactory;
+import com.typesafe.config.ConfigValueFactory;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
@@ -52,7 +56,11 @@ abstract class AbstractThingEnforcementTest {
 
     @Before
     public void init() {
-        system = ActorSystem.create("test", ConfigFactory.load("test"));
+        system = ActorSystem.create("test",
+                ConfigFactory.parseMap(Map.of("pre-enforcer-provider",
+                        DefaultPreEnforcerProvider.class.getCanonicalName(), "akka.actor.provider",
+                        "akka.cluster.ClusterActorRefProvider")).withFallback(ConfigFactory.load(
+                        "test")));
         pubSubMediatorProbe = createPubSubMediatorProbe();
         thingPersistenceActorProbe = createThingPersistenceActorProbe();
         policiesShardRegionProbe = getTestProbe(createUniqueName("policiesShardRegionProbe-"));
@@ -91,8 +99,7 @@ abstract class AbstractThingEnforcementTest {
                 policiesShardRegionProbe.ref(),
                 new TestSetup.DummyLiveSignalPub(pubSubMediatorProbe.ref()),
                 thingPersistenceActorProbe.ref(),
-                null,
-                CompletableFuture::completedStage
+                null
         ), system.guardian(), URLEncoder.encode(THING_ID.toString(), Charset.defaultCharset()));
     }
 

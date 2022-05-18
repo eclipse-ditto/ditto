@@ -159,8 +159,7 @@ public final class PoliciesRootActor extends DittoRootActor {
             final DistributedPub<PolicyAnnouncement<?>> policyAnnouncementPub,
             final BlockedNamespaces blockedNamespaces) {
 
-        return PolicySupervisorActor.props(pubSubMediator, snapshotAdapter, policyAnnouncementPub, blockedNamespaces,
-                newPreEnforcer(blockedNamespaces));
+        return PolicySupervisorActor.props(pubSubMediator, snapshotAdapter, policyAnnouncementPub, blockedNamespaces);
     }
 
     /**

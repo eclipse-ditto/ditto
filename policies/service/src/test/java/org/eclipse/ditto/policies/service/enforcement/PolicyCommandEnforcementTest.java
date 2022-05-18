@@ -22,7 +22,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Nullable;
@@ -32,6 +31,7 @@ import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
 import org.eclipse.ditto.base.model.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeExceptionBuilder;
+import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.entitytag.EntityTagMatchers;
 import org.eclipse.ditto.base.model.json.FieldType;
@@ -113,6 +113,7 @@ public final class PolicyCommandEnforcementTest {
     private static final DittoHeaders DITTO_HEADERS = DittoHeaders.newBuilder()
             .authorizationContext(AuthorizationContext.newInstance(DittoAuthorizationContextType.UNSPECIFIED,
                     AuthorizationSubject.newInstance(AUTH_SUBJECT_ID)))
+            .putHeader(DittoHeaderDefinition.ORIGINATOR.getKey(), AUTH_SUBJECT_ID)
             .correlationId(CORRELATION_ID)
             .build();
 
@@ -915,7 +916,7 @@ public final class PolicyCommandEnforcementTest {
         private final ActorRef pubSubMediator;
 
         private MockPolicyPersistenceSupervisor(final ActorRef pubSubMediator, final ActorRef policyPersistenceActor) {
-            super(policyPersistenceActor, null, null, CompletableFuture::completedStage);
+            super(policyPersistenceActor, null, null);
             this.pubSubMediator = pubSubMediator;
         }
 

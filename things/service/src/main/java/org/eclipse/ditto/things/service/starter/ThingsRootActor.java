@@ -16,7 +16,6 @@ import static org.eclipse.ditto.things.api.ThingsMessagingConstants.CLUSTER_ROLE
 
 import org.eclipse.ditto.base.api.devops.signals.commands.RetrieveStatisticsDetails;
 import org.eclipse.ditto.base.model.common.DittoSystemProperties;
-import org.eclipse.ditto.base.model.headers.DittoHeadersSettable;
 import org.eclipse.ditto.base.service.actors.DittoRootActor;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.cluster.ClusterUtil;
@@ -27,7 +26,6 @@ import org.eclipse.ditto.internal.utils.cluster.ShardRegionProxyActorFactory;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.internal.utils.health.DefaultHealthCheckingActorFactory;
 import org.eclipse.ditto.internal.utils.health.HealthCheckingActorOptions;
-import org.eclipse.ditto.internal.utils.namespaces.BlockNamespaceBehavior;
 import org.eclipse.ditto.internal.utils.namespaces.BlockedNamespaces;
 import org.eclipse.ditto.internal.utils.namespaces.BlockedNamespacesUpdater;
 import org.eclipse.ditto.internal.utils.persistence.mongo.MongoClientWrapper;
@@ -39,11 +37,8 @@ import org.eclipse.ditto.internal.utils.pubsub.DistributedAcks;
 import org.eclipse.ditto.internal.utils.pubsub.LiveSignalPub;
 import org.eclipse.ditto.internal.utils.pubsub.ThingEventPubSubFactory;
 import org.eclipse.ditto.policies.api.PoliciesMessagingConstants;
-import org.eclipse.ditto.policies.enforcement.PreEnforcer;
 import org.eclipse.ditto.policies.enforcement.config.DefaultEntityCreationConfig;
 import org.eclipse.ditto.policies.enforcement.config.EntityCreationConfig;
-import org.eclipse.ditto.policies.enforcement.placeholders.PlaceholderSubstitution;
-import org.eclipse.ditto.policies.enforcement.validators.CommandWithOptionalEntityValidator;
 import org.eclipse.ditto.things.api.ThingsMessagingConstants;
 import org.eclipse.ditto.things.service.common.config.ThingsConfig;
 import org.eclipse.ditto.things.service.persistence.actors.ThingPersistenceActorPropsFactory;
@@ -197,22 +192,7 @@ public final class ThingsRootActor extends DittoRootActor {
             final BlockedNamespaces blockedNamespaces) {
 
         return ThingSupervisorActor.props(pubSubMediator, policiesShardRegion, liveSignalPub,
-                propsFactory, blockedNamespaces, newPreEnforcer(blockedNamespaces));
-    }
-
-    /**
-     * TODO CR-11297 provide extension mechanism here
-     * TODO CR-11297 consolidate with PoliciesRootActor.newPreEnforcer
-     */
-    private static <T extends DittoHeadersSettable<?>> PreEnforcer<T> newPreEnforcer(
-            final BlockedNamespaces blockedNamespaces) {
-
-        return dittoHeadersSettable ->
-                BlockNamespaceBehavior.of(blockedNamespaces)
-                        .block(dittoHeadersSettable)
-                        .thenApply(CommandWithOptionalEntityValidator.createInstance())
-                        .thenApply(PreEnforcer::setOriginatorHeader)
-                        .thenCompose(PlaceholderSubstitution.newInstance());
+                propsFactory, blockedNamespaces);
     }
 
     private static MongoReadJournal newMongoReadJournal(final MongoDbConfig mongoDbConfig,

@@ -14,7 +14,6 @@ package org.eclipse.ditto.policies.service.persistence.actors;
 
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.concurrent.CompletableFuture;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
@@ -121,7 +120,7 @@ public final class PolicyPersistenceOperationsActorIT extends MongoEventSourceIT
     @Override
     protected ActorRef startEntityActor(final ActorSystem system, final ActorRef pubSubMediator, final PolicyId id) {
         final Props props = PolicySupervisorActor.props(pubSubMediator, new PolicyMongoSnapshotAdapter(),
-                Mockito.mock(DistributedPub.class), null, CompletableFuture::completedStage);
+                Mockito.mock(DistributedPub.class), null);
 
         return system.actorOf(props, id.toString());
     }

@@ -12,8 +12,6 @@
  */
 package org.eclipse.ditto.connectivity.service;
 
-import java.util.concurrent.CompletableFuture;
-
 import javax.jms.JMSRuntimeException;
 import javax.naming.NamingException;
 
@@ -43,7 +41,6 @@ import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.MongoReadJou
 import org.eclipse.ditto.internal.utils.persistentactors.PersistencePingActor;
 import org.eclipse.ditto.internal.utils.persistentactors.cleanup.PersistenceCleanupActor;
 import org.eclipse.ditto.internal.utils.pubsub.DittoProtocolSub;
-import org.eclipse.ditto.policies.enforcement.PreEnforcer;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
@@ -125,12 +122,7 @@ public final class ConnectivityRootActor extends DittoRootActor {
     private static Props getConnectivitySupervisorActorProps(final ActorRef pubSubMediator,
             final ActorRef proxyActor) {
 
-        return ConnectionSupervisorActor.props(proxyActor, pubSubMediator, providePreEnforcer());
-    }
-
-    private static PreEnforcer providePreEnforcer() {
-        return CompletableFuture::completedStage;
-        // TODO CR-11297 provide extension mechanism here
+        return ConnectionSupervisorActor.props(proxyActor, pubSubMediator);
     }
 
     /**

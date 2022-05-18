@@ -918,8 +918,7 @@ public final class TestConstants {
             final ActorRef pubSubMediator) {
 
         final Props props =
-                ConnectionSupervisorActor.props(proxyActor, pubSubMediator,
-                        CompletableFuture::completedStage);
+                ConnectionSupervisorActor.props(proxyActor, pubSubMediator);
 
         final Props shardRegionMockProps = Props.create(ShardRegionMockActor.class, props, connectionId.toString());
 

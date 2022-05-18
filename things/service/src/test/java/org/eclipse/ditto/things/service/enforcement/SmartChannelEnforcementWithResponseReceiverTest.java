@@ -171,7 +171,8 @@ public final class SmartChannelEnforcementWithResponseReceiverTest extends Abstr
     }
 
     private RetrieveThing getRetrieveThing(final Consumer<DittoHeadersBuilder<?, ?>> headerModifier) {
-        final DittoHeadersBuilder<?, ?> builder = headers().toBuilder();
+        final DittoHeadersBuilder<?, ?> builder =
+                headers().toBuilder().putHeader(DittoHeaderDefinition.ORIGINATOR.getKey(), TestSetup.SUBJECT.getId());
         headerModifier.accept(builder);
         return RetrieveThing.of(TestSetup.THING_ID, builder.build());
     }
@@ -180,6 +181,7 @@ public final class SmartChannelEnforcementWithResponseReceiverTest extends Abstr
             final Consumer<DittoHeadersBuilder<?, ?>> headerModifier) {
         final var builder = retrieveThing.getDittoHeaders()
                 .toBuilder()
+                .putHeader(DittoHeaderDefinition.ORIGINATOR.getKey(), TestSetup.SUBJECT.getId())
                 .putHeader(DittoHeaderDefinition.LIVE_CHANNEL_CONDITION_MATCHED.getKey(), "true");
         headerModifier.accept(builder);
         return RetrieveThingResponse.of(retrieveThing.getEntityId(), thing, builder.build());
