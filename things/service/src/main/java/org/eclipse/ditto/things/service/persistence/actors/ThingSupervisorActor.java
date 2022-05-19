@@ -116,7 +116,7 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
         }
         liveChannelDispatching = new SupervisorLiveChannelDispatching(log, enforcementConfig, responseReceiverCache,
                 liveSignalPub, getContext());
-        smartChannelDispatching = new SupervisorSmartChannelDispatching(thingPersistenceActorSelection,
+        smartChannelDispatching = new SupervisorSmartChannelDispatching(log, thingPersistenceActorSelection,
                 liveChannelDispatching);
     }
 
