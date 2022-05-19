@@ -243,16 +243,16 @@ public final class LiveSignalEnforcementTest extends AbstractThingEnforcementTes
 
             // Second message right after the response for the first was sent, should have the same correlation-id (Not suffixed).
             supervisor.tell(readResponse, getRef());
-            final RetrieveThingResponse retrieveThingResponse =
-                    TestSetup.fishForMsgClass(this, RetrieveThingResponse.class);
+            final RetrieveThingResponse retrieveThingResponse = expectMsgClass(RetrieveThingResponse.class);
             assertThat(retrieveThingResponse.getDittoHeaders().getCorrelationId()).isEqualTo(
                     read.getDittoHeaders().getCorrelationId());
 
             supervisor.tell(read, getRef());
 
+            expectPubsubLiveCommandPublish("publish live read command", read.getEntityId());
+
             supervisor.tell(readResponse, getRef());
-            final RetrieveThingResponse retrieveThingResponse2 =
-                    TestSetup.fishForMsgClass(this, RetrieveThingResponse.class);
+            final RetrieveThingResponse retrieveThingResponse2 = expectMsgClass(RetrieveThingResponse.class);
             assertThat(retrieveThingResponse2.getDittoHeaders().getCorrelationId()).isEqualTo(
                     read.getDittoHeaders().getCorrelationId());
         }};
