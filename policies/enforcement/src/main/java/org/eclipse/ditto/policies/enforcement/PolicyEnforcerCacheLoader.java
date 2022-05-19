@@ -15,20 +15,13 @@ package org.eclipse.ditto.policies.enforcement;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 
-import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.internal.utils.cache.entry.Entry;
-import org.eclipse.ditto.internal.utils.cacheloaders.ActorAskCacheLoader;
 import org.eclipse.ditto.internal.utils.cacheloaders.EnforcementCacheKey;
-import org.eclipse.ditto.internal.utils.cacheloaders.EnforcementContext;
 import org.eclipse.ditto.internal.utils.cacheloaders.config.AskWithRetryConfig;
-import org.eclipse.ditto.policies.api.commands.sudo.SudoRetrievePolicyResponse;
-import org.eclipse.ditto.policies.model.PolicyConstants;
-import org.eclipse.ditto.policies.model.PolicyRevision;
+import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.enforcers.PolicyEnforcers;
-import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyNotAccessibleException;
 
 import com.github.benmanes.caffeine.cache.AsyncCacheLoader;
 
@@ -41,12 +34,9 @@ import akka.actor.Scheduler;
 @Immutable
 public final class PolicyEnforcerCacheLoader implements AsyncCacheLoader<EnforcementCacheKey, Entry<PolicyEnforcer>> {
 
-    /**
-     * Dispatcher name for policy enforcer cache loader.
-     */
     public static final String ENFORCEMENT_CACHE_DISPATCHER = "enforcement-cache-dispatcher";
 
-    private final ActorAskCacheLoader<PolicyEnforcer, Command<?>, EnforcementContext> delegate;
+    private final PolicyCacheLoader delegate;
 
     /**
      * Constructor.
@@ -59,31 +49,23 @@ public final class PolicyEnforcerCacheLoader implements AsyncCacheLoader<Enforce
             final Scheduler scheduler,
             final ActorRef policiesShardRegionProxy) {
 
-        delegate = ActorAskCacheLoader.forShard(askWithRetryConfig,
-                scheduler,
-                PolicyConstants.ENTITY_TYPE,
-                policiesShardRegionProxy,
-                (entityId, enforcementContext) -> PolicyCommandFactory.sudoRetrievePolicy(entityId),
-                PolicyEnforcerCacheLoader::handleSudoRetrievePolicyResponse);
+        delegate = new PolicyCacheLoader(askWithRetryConfig, scheduler, policiesShardRegionProxy);
     }
 
     @Override
     public CompletableFuture<Entry<PolicyEnforcer>> asyncLoad(final EnforcementCacheKey key,
             final Executor executor) {
-        return delegate.asyncLoad(key, executor);
+        return delegate.asyncLoad(key, executor).thenApply(PolicyEnforcerCacheLoader::evaluatePolicy);
     }
 
-    private static Entry<PolicyEnforcer> handleSudoRetrievePolicyResponse(final Object response,
-            @Nullable final EnforcementContext cacheLookupContext) {
-        if (response instanceof SudoRetrievePolicyResponse sudoRetrievePolicyResponse) {
-            final var policy = sudoRetrievePolicyResponse.getPolicy();
-            final long revision = policy.getRevision().map(PolicyRevision::toLong)
-                    .orElseThrow(() -> new IllegalStateException("Bad SudoRetrievePolicyResponse: no revision"));
-            return Entry.of(revision, PolicyEnforcer.of(policy, PolicyEnforcers.defaultEvaluator(policy)));
-        } else if (response instanceof PolicyNotAccessibleException) {
-            return Entry.nonexistent();
+    private static Entry<PolicyEnforcer> evaluatePolicy(final Entry<Policy> entry) {
+        if (entry.exists()) {
+            final var revision = entry.getRevision();
+            final var policy = entry.getValueOrThrow();
+            final var enforcer = PolicyEnforcers.defaultEvaluator(policy);
+            return Entry.of(revision, PolicyEnforcer.of(policy, enforcer));
         } else {
-            throw new IllegalStateException("expect SudoRetrievePolicyResponse, got: " + response);
+            return Entry.nonexistent();
         }
     }
 

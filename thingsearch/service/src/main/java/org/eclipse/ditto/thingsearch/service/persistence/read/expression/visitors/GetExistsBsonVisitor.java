@@ -12,28 +12,35 @@
  */
 package org.eclipse.ditto.thingsearch.service.persistence.read.expression.visitors;
 
+import static org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants.DESIRED_PROPERTIES;
+import static org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants.FIELD_ATTRIBUTES_PATH;
+import static org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants.FIELD_DESIRED_PROPERTIES;
+import static org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants.FIELD_FEATURES_PATH;
+import static org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants.FIELD_FEATURE_ID;
+import static org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants.FIELD_F_ARRAY;
+import static org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants.FIELD_PROPERTIES;
+import static org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants.FIELD_THING;
+import static org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants.PROPERTIES;
+import static org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants.SLASH;
+
 import java.util.List;
-import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
 import org.bson.conversions.Bson;
+import org.eclipse.ditto.json.JsonKey;
+import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.rql.query.expression.ExistsFieldExpression;
-import org.eclipse.ditto.rql.query.expression.FieldExpressionUtil;
 import org.eclipse.ditto.rql.query.expression.visitors.ExistsFieldExpressionVisitor;
-import org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants;
 
 import com.mongodb.client.model.Filters;
 
 /**
  * Creates a Mongo Bson object for field-based exists criteria.
  */
-public class GetExistsBsonVisitor extends AbstractFieldBsonCreator implements ExistsFieldExpressionVisitor<Bson> {
+public final class GetExistsBsonVisitor extends AbstractFieldBsonCreator implements ExistsFieldExpressionVisitor<Bson> {
 
-    private static final List<Integer> JAVASCRIPT_REGEX_SPECIAL_CHARACTERS =
-            "\\^$*+?.()|{}[]".chars().boxed().collect(Collectors.toList());
-
-    private GetExistsBsonVisitor(@Nullable final List<String> authorizationSubjectIds) {
+    GetExistsBsonVisitor(@Nullable final List<String> authorizationSubjectIds) {
         super(authorizationSubjectIds);
     }
 
@@ -59,44 +66,59 @@ public class GetExistsBsonVisitor extends AbstractFieldBsonCreator implements Ex
 
     @Override
     public Bson visitAttribute(final String key) {
-        return matchKey(escapeAndWrapExistsRegex(PersistenceConstants.FIELD_ATTRIBUTES_PATH + key));
+        return matchKey(FIELD_ATTRIBUTES_PATH + key);
     }
 
     @Override
     public Bson visitFeature(final String featureId) {
-        return matchKey(escapeAndWrapExistsRegex(PersistenceConstants.FIELD_FEATURES_PATH + featureId));
+        if (FEATURE_ID_WILDCARD.equals(featureId)) {
+            // any feature exists
+            return Filters.exists(toDottedPath(FIELD_F_ARRAY, List.of(JsonKey.of(FIELD_FEATURE_ID))));
+        } else {
+            return matchKey(FIELD_FEATURES_PATH + featureId);
+        }
     }
 
     @Override
     public Bson visitFeatureProperties(final CharSequence featureId) {
-        return matchKey(escapeAndWrapExistsRegex(
-                PersistenceConstants.FIELD_FEATURES_PATH + featureId + PersistenceConstants.SLASH + PersistenceConstants.FIELD_PROPERTIES));
+        if (FEATURE_ID_WILDCARD.equals(featureId)) {
+            return matchWildcardFeatureKey(SLASH + FIELD_PROPERTIES);
+        } else {
+            return matchKey(FIELD_FEATURES_PATH + featureId + SLASH +
+                    FIELD_PROPERTIES);
+        }
     }
 
     @Override
     public Bson visitFeatureDesiredProperties(final CharSequence featureId) {
-        return matchKey(escapeAndWrapExistsRegex(
-                PersistenceConstants.FIELD_FEATURES_PATH + featureId + PersistenceConstants.SLASH + PersistenceConstants.FIELD_DESIRED_PROPERTIES));
+        if (FEATURE_ID_WILDCARD.equals(featureId)) {
+            return matchWildcardFeatureKey(SLASH + FIELD_DESIRED_PROPERTIES);
+        } else {
+            return matchKey(FIELD_FEATURES_PATH + featureId + SLASH + FIELD_DESIRED_PROPERTIES);
+        }
     }
 
     @Override
     public Bson visitFeatureIdProperty(final String featureId, final String property) {
-        return matchKey(escapeAndWrapExistsRegex(
-                PersistenceConstants.FIELD_FEATURES_PATH + featureId + PersistenceConstants.PROPERTIES + property));
+        if (FEATURE_ID_WILDCARD.equals(featureId)) {
+            return matchWildcardFeatureKey(PROPERTIES + property);
+        } else {
+            return matchKey(FIELD_FEATURES_PATH + featureId + PROPERTIES + property);
+        }
     }
 
     @Override
     public Bson visitFeatureIdDesiredProperty(final CharSequence featureId, final CharSequence property) {
-        return matchKey(escapeAndWrapExistsRegex(
-                PersistenceConstants.FIELD_FEATURES_PATH + featureId + PersistenceConstants.DESIRED_PROPERTIES + property));
+        if (FEATURE_ID_WILDCARD.equals(featureId)) {
+            return matchWildcardFeatureKey(DESIRED_PROPERTIES + property);
+        } else {
+            return matchKey(FIELD_FEATURES_PATH + featureId + DESIRED_PROPERTIES + property);
+        }
     }
 
     @Override
-    Bson visitPointer(final String pointer) {
-        return getAuthorizationBson().map(authBson ->
-                        Filters.elemMatch(PersistenceConstants.FIELD_INTERNAL, Filters.and(authBson, Filters.eq(
-                                PersistenceConstants.FIELD_INTERNAL_KEY, pointer))))
-                .orElseGet(() -> Filters.eq(PersistenceConstants.FIELD_PATH_KEY, pointer));
+    Bson visitPointer(final String key) {
+        return matchKey(key);
     }
 
     @Override
@@ -104,11 +126,19 @@ public class GetExistsBsonVisitor extends AbstractFieldBsonCreator implements Ex
         return Filters.exists(fieldName);
     }
 
-    private Bson matchKey(final String keyRegex) {
-        return getAuthorizationBson().map(authBson ->
-                        Filters.elemMatch(PersistenceConstants.FIELD_INTERNAL, Filters.and(authBson,
-                                Filters.regex(PersistenceConstants.FIELD_INTERNAL_KEY, keyRegex))))
-                .orElseGet(() -> Filters.regex(PersistenceConstants.FIELD_PATH_KEY, keyRegex));
+    private Bson matchKey(final CharSequence key) {
+        final JsonPointer pointer = JsonPointer.of(key);
+        return getAuthorizationBson(pointer)
+                .map(authBson -> Filters.and(Filters.exists(toDottedPath(FIELD_THING, pointer)), authBson))
+                .orElseGet(() -> Filters.exists(toDottedPath(FIELD_THING, pointer)));
+    }
+
+    private Bson matchWildcardFeatureKey(final CharSequence featureRelativeKey) {
+        final JsonPointer pointer = JsonPointer.of(featureRelativeKey);
+        return getFeatureWildcardAuthorizationBson(pointer)
+                .map(authBson -> Filters.elemMatch(FIELD_F_ARRAY,
+                        Filters.and(Filters.exists(toDottedPath(pointer)), authBson)))
+                .orElseGet(() -> Filters.elemMatch(FIELD_F_ARRAY, Filters.exists(toDottedPath(pointer))));
     }
 
     @Override
@@ -116,21 +146,4 @@ public class GetExistsBsonVisitor extends AbstractFieldBsonCreator implements Ex
         // search on _metadata is not supported, return filter that don't match
         return Filters.eq("nomatch");
     }
-
-    private static String escapeAndWrapExistsRegex(final String string) {
-        return FieldExpressionUtil.wrapExistsRegex(escapeJavascriptRegex(string));
-    }
-
-    private static String escapeJavascriptRegex(final CharSequence otherString) {
-        return otherString.chars()
-                .mapToObj(codePoint -> {
-                    final StringBuilder stringBuilder = new StringBuilder();
-                    if (JAVASCRIPT_REGEX_SPECIAL_CHARACTERS.contains(codePoint)) {
-                        stringBuilder.append('\\');
-                    }
-                    return stringBuilder.appendCodePoint(codePoint).toString();
-                })
-                .collect(Collectors.joining());
-    }
-
 }

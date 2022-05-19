@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.thingsearch.service.starter.actors;
 
+import java.time.Instant;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -49,6 +51,7 @@ import org.eclipse.ditto.thingsearch.model.signals.commands.query.QueryThings;
 import org.eclipse.ditto.thingsearch.model.signals.commands.query.QueryThingsResponse;
 import org.eclipse.ditto.thingsearch.model.signals.commands.query.StreamThings;
 import org.eclipse.ditto.thingsearch.service.common.model.ResultList;
+import org.eclipse.ditto.thingsearch.service.common.model.TimestampedThingId;
 import org.eclipse.ditto.thingsearch.service.persistence.query.QueryParser;
 import org.eclipse.ditto.thingsearch.service.persistence.read.ThingsSearchPersistence;
 
@@ -93,7 +96,7 @@ public final class SearchActor extends AbstractActor {
 
     private static final String SEARCH_DISPATCHER_ID = "search-dispatcher";
 
-    private static final String TRACING_THINGS_SEARCH = "things_search_query";
+    private static final String TRACING_THINGS_SEARCH = "things_wildcard_search_query";
     private static final String QUERY_PARSING_SEGMENT_NAME = "query_parsing";
     private static final String DATABASE_ACCESS_SEGMENT_NAME = "database_access";
     private static final String QUERY_TYPE_TAG = "query_type";
@@ -146,7 +149,7 @@ public final class SearchActor extends AbstractActor {
                 .info("Processing SudoRetrieveNamespaceReport command: {}", namespaceReport);
 
         Patterns.pipe(searchPersistence.generateNamespaceCountReport()
-                .runWith(Sink.head(), SystemMaterializer.get(getSystem()).materializer()), getContext().dispatcher())
+                        .runWith(Sink.head(), SystemMaterializer.get(getSystem()).materializer()), getContext().dispatcher())
                 .to(getSender());
     }
 
@@ -230,8 +233,8 @@ public final class SearchActor extends AbstractActor {
                 sourceRefSource.via(stopTimerAndHandleError(searchTimer, streamThings));
 
         Patterns.pipe(
-                replySourceWithErrorHandling.runWith(Sink.head(), SystemMaterializer.get(getSystem()).materializer()),
-                getContext().dispatcher())
+                        replySourceWithErrorHandling.runWith(Sink.head(), SystemMaterializer.get(getSystem()).materializer()),
+                        getContext().dispatcher())
                 .to(sender);
     }
 
@@ -265,9 +268,9 @@ public final class SearchActor extends AbstractActor {
                         final StartedTimer databaseAccessTimer =
                                 searchTimer.startNewSegment(DATABASE_ACCESS_SEGMENT_NAME);
 
-                        final List<String> subjectIds = command.getDittoHeaders().getAuthorizationContext()
-                                .getAuthorizationSubjectIds();
-                        final Source<ResultList<ThingId>, NotUsed> findAllResult =
+                        final List<String> subjectIds =
+                                command.getDittoHeaders().getAuthorizationContext().getAuthorizationSubjectIds();
+                        final Source<ResultList<TimestampedThingId>, NotUsed> findAllResult =
                                 searchPersistence.findAll(query, subjectIds, namespaces);
                         return processSearchPersistenceResult(findAllResult, dittoHeaders)
                                 .via(Flow.fromFunction(result -> {
@@ -282,8 +285,8 @@ public final class SearchActor extends AbstractActor {
                 replySource.via(stopTimerAndHandleError(searchTimer, queryThings));
 
         Patterns.pipe(
-                replySourceWithErrorHandling.runWith(Sink.head(), SystemMaterializer.get(getSystem()).materializer()),
-                getContext().dispatcher())
+                        replySourceWithErrorHandling.runWith(Sink.head(), SystemMaterializer.get(getSystem()).materializer()),
+                        getContext().dispatcher())
                 .to(sender);
     }
 
@@ -294,10 +297,10 @@ public final class SearchActor extends AbstractActor {
     private <T> Flow<T, Object, NotUsed> stopTimerAndHandleError(final StartedTimer searchTimer,
             final WithDittoHeaders command) {
         return Flow.<T, Object>fromFunction(
-                element -> {
-                    stopTimer(searchTimer);
-                    return element;
-                })
+                        element -> {
+                            stopTimer(searchTimer);
+                            return element;
+                        })
                 .recoverWithRetries(1, new PFBuilder<Throwable, Graph<SourceShape<Object>, NotUsed>>()
                         .matchAny(error -> {
                             stopTimer(searchTimer);
@@ -334,26 +337,41 @@ public final class SearchActor extends AbstractActor {
 
     private QueryThingsResponse toQueryThingsResponse(final QueryThings queryThings,
             @Nullable ThingsSearchCursor cursor,
-            final ResultList<ThingId> thingIds) {
+            final ResultList<TimestampedThingId> thingIds) {
 
         final var dittoHeaders = queryThings.getDittoHeaders();
         if (thingIds.isEmpty()) {
             return QueryThingsResponse.of(SearchModelFactory.emptySearchResult(), dittoHeaders);
         } else {
             // only respond with the determined "thingIds", the lookup of the things is done in gateway:
-            final JsonArray items = thingIds.stream()
-                    .map(JsonValue::of)
-                    .map(jsonStr -> JsonObject.newBuilder()
-                            .set(Thing.JsonFields.ID.getPointer(), jsonStr)
-                            .build()
-                    )
-                    .collect(JsonCollectors.valuesToArray());
-            final var searchResults = SearchModelFactory.newSearchResult(items, thingIds.nextPageOffset());
+            final JsonArray items = getItems(thingIds);
+            final Instant lastModified = getLastModified(thingIds);
+            final var searchResults =
+                    SearchModelFactory.newSearchResult(items, thingIds.nextPageOffset(), lastModified);
             final var processedResults =
                     ThingsSearchCursor.processSearchResult(queryThings, cursor, searchResults, thingIds);
 
             return QueryThingsResponse.of(processedResults, dittoHeaders);
         }
+    }
+
+    private static Instant getLastModified(final ResultList<TimestampedThingId> thingIds) {
+        final var now = Instant.now();
+        return thingIds.stream()
+                .map(timestampedThingId -> timestampedThingId.lastModified().orElse(now))
+                .max(Comparator.naturalOrder())
+                .orElse(now);
+    }
+
+    private static JsonArray getItems(final ResultList<TimestampedThingId> thingIds) {
+        return thingIds.stream()
+                .map(TimestampedThingId::thingId)
+                .map(JsonValue::of)
+                .map(jsonStr -> JsonObject.newBuilder()
+                        .set(Thing.JsonFields.ID.getPointer(), jsonStr)
+                        .build()
+                )
+                .collect(JsonCollectors.valuesToArray());
     }
 
     private static StartedTimer startNewTimer(final JsonSchemaVersion version, final String queryType,

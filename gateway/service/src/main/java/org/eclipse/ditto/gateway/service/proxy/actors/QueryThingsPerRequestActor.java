@@ -113,7 +113,7 @@ final class QueryThingsPerRequestActor extends AbstractActor {
 
                     queryThingsResponseThingIds = qtr.getSearchResult()
                             .stream()
-                            .map(val -> val.asObject().getValue(Thing.JsonFields.ID).orElse(null))
+                            .flatMap(val -> val.asObject().getValue(Thing.JsonFields.ID).stream())
                             .map(ThingId::of)
                             .toList();
 

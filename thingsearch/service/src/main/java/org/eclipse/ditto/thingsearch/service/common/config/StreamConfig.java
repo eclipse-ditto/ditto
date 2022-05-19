@@ -40,6 +40,16 @@ public interface StreamConfig {
     Duration getWriteInterval();
 
     /**
+     * @return the duration before the update actor is stopped after receiving a ThingDeleted event
+     */
+    Duration getThingDeletionTimeout();
+
+    /**
+     * @return whether sending acks is enabled
+     */
+    boolean isSendingAcksEnabled();
+
+    /**
      * Returns the configuration for the used "ask with retry" pattern in the search updater for retrieval of things and
      * policies.
      *
@@ -88,7 +98,17 @@ public interface StreamConfig {
         /**
          * The minimal delay between event dumps.
          */
-        WRITE_INTERVAL("write-interval", Duration.ofSeconds(1L));
+        WRITE_INTERVAL("write-interval", Duration.ofSeconds(1L)),
+
+        /**
+         * The delay before the updater actor is stopped after receiving a ThingDeleted event.
+         */
+        THING_DELETION_TIMEOUT("thing-deletion-timeout", Duration.ofMinutes(5)),
+
+        /**
+         * Whether sending acks from ThingUpdaterActor is enabled.
+         */
+        SENDING_ACKS_ENABLED("sending-acks-enabled", true);
 
         private final String configPath;
         private final Object defaultValue;

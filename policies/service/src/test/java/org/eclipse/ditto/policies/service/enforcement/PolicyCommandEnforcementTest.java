@@ -869,10 +869,10 @@ public final class PolicyCommandEnforcementTest {
         final PolicyEntry executeEntry = PolicyEntry.newInstance("execute",
                 List.of(AUTH_SUBJECT),
                 Set.of(Resource.newInstance(
-                        PoliciesResourceType.policyResource("/entries/allowed/actions/activateTokenIntegration"),
-                        EffectedPermissions.newInstance(Set.of(Permission.EXECUTE), Set.of())),
+                                PoliciesResourceType.policyResource("/entries/allowed/actions/activateTokenIntegration"),
+                                EffectedPermissions.newInstance(Set.of(Permission.EXECUTE), Set.of())),
                         Resource.newInstance(PoliciesResourceType.policyResource(
-                                "/entries/allowed/actions/deactivateTokenIntegration"),
+                                        "/entries/allowed/actions/deactivateTokenIntegration"),
                                 EffectedPermissions.newInstance(Set.of(Permission.EXECUTE), Set.of()))
                 ));
         final PolicyEntry allowedEntry = PolicyEntry.newInstance("allowed", List.of(), Set.of());

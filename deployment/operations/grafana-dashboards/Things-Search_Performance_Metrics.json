@@ -90,7 +90,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "sum(irate(things_search_query_seconds_count{instance=~\"$Instance\", segment=\"overall\"}[5m])) by (instance, query_type)",
+          "expr": "sum(irate(things_wildcard_search_query_seconds_count{instance=~\"$Instance\", segment=\"overall\"}[5m])) by (instance, query_type)",
           "format": "time_series",
           "hide": false,
           "instant": false,
@@ -98,7 +98,6 @@
           "intervalFactor": 1,
           "legendFormat": "things search {{query_type}} ({{instance}})",
           "refId": "A",
-          "target": "aliasByNode(sumSeriesWithWildcards(stats.timers.ThingsSearch.$Host.trace.things_search_query_{1,2}.segments.Things_Search_Query_Parsing.elapsed-time.count, 3), 4)",
           "textEditor": false
         }
       ],
@@ -198,13 +197,12 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "idelta(things_search_query_seconds_sum{instance=~\"$Instance\", api_version=\"2\"}[5m]) / idelta(things_search_query_seconds_count{instance=~\"$Instance\", api_version=\"2\"}[5m])",
+          "expr": "idelta(things_wildcard_search_query_seconds_sum{instance=~\"$Instance\", api_version=\"2\"}[5m]) / idelta(things_wildcard_search_query_seconds_count{instance=~\"$Instance\", api_version=\"2\"}[5m])",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 1,
           "legendFormat": "{{query_type}} - {{segment}} ({{instance}})",
           "refId": "C",
-          "target": "aliasByNode(stats.timers.ThingsSearch.$Host.trace.things_search_{query,count}_1.segments.*.*.mean, 3, 5, 7)",
           "textEditor": false
         }
       ],
@@ -300,17 +298,16 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "sum(irate(things_search_updater_consistency_lag_seconds_count{instance=~\"$Instance\", segment=\"overall\", success!=\"true\", success!=\"false\"}[5m]) > 0) by (instance, should_ack)",
+          "expr": "sum(irate(things_wildcard_search_updater_consistency_lag_seconds_count{instance=~\"$Instance\", segment=\"overall\", success!=\"true\", success!=\"false\"}[5m]) > 0) by (instance, should_ack)",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 1,
           "legendFormat": "timeouts (> 5min) ACK: {{should_ack}} ({{instance}})",
           "refId": "B",
-          "target": "aliasByNode(sumSeriesWithWildcards(stats.timers.ThingsSearch.$Host.trace.things_search_query_{1,2}.segments.Things_Search_Query_Parsing.elapsed-time.count, 3), 4)",
           "textEditor": false
         },
         {
-          "expr": "sum(irate(things_search_updater_consistency_lag_seconds_count{instance=~\"$Instance\", segment=\"overall\", success=~\"true|false\"}[5m]) > 0) by (instance, should_ack)",
+          "expr": "sum(irate(things_wildcard_search_updater_consistency_lag_seconds_count{instance=~\"$Instance\", segment=\"overall\", success=~\"true|false\"}[5m]) > 0) by (instance, should_ack)",
           "interval": "",
           "legendFormat": "successes ACK: {{should_ack}} ({{instance}})",
           "refId": "A"
@@ -415,30 +412,29 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "avg((idelta(things_search_updater_consistency_lag_seconds_sum{instance=~\"$Instance\"}[5m]) / idelta(things_search_updater_consistency_lag_seconds_count{instance=~\"$Instance\", segment=\"overall\", success=\"true\"}[5m])) > 0) by (instance, should_ack)",
+          "expr": "avg((idelta(things_wildcard_search_updater_consistency_lag_seconds_sum{instance=~\"$Instance\"}[5m]) / idelta(things_wildcard_search_updater_consistency_lag_seconds_count{instance=~\"$Instance\", segment=\"overall\", success=\"true\"}[5m])) > 0) by (instance, should_ack)",
           "format": "time_series",
           "hide": false,
           "interval": "",
           "intervalFactor": 1,
           "legendFormat": "average ACK: {{should_ack}} ({{instance}})",
           "refId": "B",
-          "target": "aliasByNode(sumSeriesWithWildcards(stats.timers.ThingsSearch.$Host.trace.things_search_query_{1,2}.segments.Things_Search_Query_Parsing.elapsed-time.count, 3), 4)",
           "textEditor": false
         },
         {
-          "expr": "histogram_quantile(0.9, sum(irate(things_search_updater_consistency_lag_seconds_bucket{instance=~\"$Instance\", segment=\"overall\", success=\"true\"}[5m])) by (le, instance, should_ack))",
+          "expr": "histogram_quantile(0.9, sum(irate(things_wildcard_search_updater_consistency_lag_seconds_bucket{instance=~\"$Instance\", segment=\"overall\", success=\"true\"}[5m])) by (le, instance, should_ack))",
           "interval": "",
           "legendFormat": "90th percentile ACK: {{should_ack}} ({{instance}})",
           "refId": "A"
         },
         {
-          "expr": "histogram_quantile(0.5, sum(irate(things_search_updater_consistency_lag_seconds_bucket{instance=~\"$Instance\", segment=\"overall\", success=\"true\"}[5m])) by (le, instance, should_ack))",
+          "expr": "histogram_quantile(0.5, sum(irate(things_wildcard_search_updater_consistency_lag_seconds_bucket{instance=~\"$Instance\", segment=\"overall\", success=\"true\"}[5m])) by (le, instance, should_ack))",
           "interval": "",
           "legendFormat": "median ACK: {{should_ack}} ({{instance}})",
           "refId": "C"
         },
         {
-          "expr": "histogram_quantile(0.9, sum(irate(things_search_updater_consistency_lag_seconds_bucket{instance=~\"$Instance\", segment!=\"overall\"}[5m])) by (le, segment, instance, should_ack))",
+          "expr": "histogram_quantile(0.9, sum(irate(things_wildcard_search_updater_consistency_lag_seconds_bucket{instance=~\"$Instance\", segment!=\"overall\"}[5m])) by (le, segment, instance, should_ack))",
           "format": "time_series",
           "hide": true,
           "instant": false,
@@ -447,7 +443,7 @@
           "refId": "E"
         },
         {
-          "expr": "histogram_quantile(0.5, sum(irate(things_search_updater_consistency_lag_seconds_bucket{instance=~\"$Instance\", segment!=\"overall\"}[5m])) by (le, segment, instance, should_ack))",
+          "expr": "histogram_quantile(0.5, sum(irate(things_wildcard_search_updater_consistency_lag_seconds_bucket{instance=~\"$Instance\", segment!=\"overall\"}[5m])) by (le, segment, instance, should_ack))",
           "format": "time_series",
           "hide": true,
           "instant": false,
@@ -544,13 +540,12 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "irate(things_search_thing_bulkUpdate_seconds_count{instance=~\"$Instance\"}[5m])",
+          "expr": "irate(things_wildcard_search_thing_bulkUpdate_seconds_count{instance=~\"$Instance\"}[5m])",
           "format": "time_series",
           "hide": false,
           "intervalFactor": 1,
           "legendFormat": "{{instance}}",
           "refId": "A",
-          "target": "stats.timers.ThingsSearch.$Host.histogram.thing_bulkUpdate_count.sum",
           "textEditor": false
         }
       ],
@@ -650,23 +645,22 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "idelta(things_search_thing_bulkUpdate_seconds_sum{instance=~\"$Instance\"}[5m]) / idelta(things_search_thing_bulkUpdate_seconds_count{instance=~\"$Instance\"}[5m])",
+          "expr": "idelta(things_wildcard_search_thing_bulkUpdate_seconds_sum{instance=~\"$Instance\"}[5m]) / idelta(things_wildcard_search_thing_bulkUpdate_seconds_count{instance=~\"$Instance\"}[5m])",
           "format": "time_series",
           "hide": false,
           "interval": "",
           "intervalFactor": 1,
           "legendFormat": "average ({{instance}})",
-          "refId": "A",
-          "target": "stats.timers.ThingsSearch.$Host.trace.thing_bulkUpdate.elapsed-time.upper_90"
+          "refId": "A"
         },
         {
-          "expr": "histogram_quantile(0.9, sum(irate(things_search_thing_bulkUpdate_seconds_bucket{instance=~\"$Instance\", segment=\"overall\"}[5m])) by (le, instance))",
+          "expr": "histogram_quantile(0.9, sum(irate(things_wildcard_search_thing_bulkUpdate_seconds_bucket{instance=~\"$Instance\", segment=\"overall\"}[5m])) by (le, instance))",
           "interval": "",
           "legendFormat": "90th percentile ({{instance}})",
           "refId": "B"
         },
         {
-          "expr": "histogram_quantile(0.5, sum(irate(things_search_thing_bulkUpdate_seconds_bucket{instance=~\"$Instance\", segment=\"overall\"}[5m])) by (le, instance))",
+          "expr": "histogram_quantile(0.5, sum(irate(things_wildcard_search_thing_bulkUpdate_seconds_bucket{instance=~\"$Instance\", segment=\"overall\"}[5m])) by (le, instance))",
           "interval": "",
           "legendFormat": "median ({{instance}})",
           "refId": "C"
@@ -755,14 +749,14 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "histogram_quantile(0.5, sum(irate(things_search_updater_consistency_lag_seconds_bucket{segment!=\"overall\", should_ack=\"false\"}[5m])) by (le, segment, should_ack))",
+          "expr": "histogram_quantile(0.5, sum(irate(things_wildcard_search_updater_consistency_lag_seconds_bucket{segment!=\"overall\", should_ack=\"false\"}[5m])) by (le, segment, should_ack))",
           "hide": false,
           "interval": "",
           "legendFormat": "{{segment}}",
           "refId": "A"
         },
         {
-          "expr": "histogram_quantile(0.5, sum(irate(things_search_updater_consistency_lag_seconds_bucket{segment!=\"overall\", should_ack=\"true\"}[5m])) by (le, segment, should_ack))",
+          "expr": "histogram_quantile(0.5, sum(irate(things_wildcard_search_updater_consistency_lag_seconds_bucket{segment!=\"overall\", should_ack=\"true\"}[5m])) by (le, segment, should_ack))",
           "hide": true,
           "interval": "",
           "legendFormat": "{{segment}} w/ ACKs",
@@ -859,13 +853,12 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "idelta(things_search_thing_bulkUpdate_updates_per_bulk_sum{instance=~\"$Instance\"}[5m]) / idelta(things_search_thing_bulkUpdate_updates_per_bulk_count{instance=~\"$Instance\"}[5m])",
+          "expr": "idelta(things_wildcard_search_thing_bulkUpdate_updates_per_bulk_sum{instance=~\"$Instance\"}[5m]) / idelta(things_wildcard_search_thing_bulkUpdate_updates_per_bulk_count{instance=~\"$Instance\"}[5m])",
           "format": "time_series",
           "hide": false,
           "intervalFactor": 1,
           "legendFormat": "{{instance}}",
           "refId": "A",
-          "target": "stats.timers.ThingsSearch.$Host.histogram.thing_bulkUpdate_count.sum",
           "textEditor": false
         }
       ],
@@ -962,19 +955,18 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "sum(irate(search_index_update_errors_total[5m]))",
+          "expr": "sum(irate(wildcard_search_index_update_errors_total[5m]))",
           "format": "time_series",
           "hide": false,
           "interval": "",
           "intervalFactor": 1,
           "legendFormat": "DB Errors",
           "refId": "A",
-          "target": "stats.timers.ThingsSearch.$Host.histogram.thing_bulkUpdate_count.sum",
           "textEditor": false
         },
         {
           "exemplar": true,
-          "expr": "sum(irate(search_full_updates_total[5m]))",
+          "expr": "sum(irate(wildcard_search_full_updates_total[5m]))",
           "hide": false,
           "interval": "",
           "legendFormat": "Full updates",
@@ -1130,7 +1122,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "sum(increase(search_streamed_snapshots_total[1m]))",
+          "expr": "sum(increase(wildcard_search_streamed_snapshots_total[1m]))",
           "interval": "",
           "legendFormat": "streamed snapshots",
           "queryType": "randomWalk",
@@ -1138,7 +1130,7 @@
         },
         {
           "exemplar": true,
-          "expr": "sum(increase(search_scanned_index_docs_total[1m]))",
+          "expr": "sum(increase(wildcard_search_scanned_index_docs_total[1m]))",
           "hide": false,
           "interval": "",
           "legendFormat": "scanned index docs",
@@ -1197,13 +1189,12 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "{__name__=~\"(search|updater)_pool_.*\"}",
+          "expr": "{__name__=~\"(wildcard_search|wildcard_updater)_pool_.*\"}",
           "format": "time_series",
           "hide": false,
           "intervalFactor": 1,
           "legendFormat": "{{__name__}}",
           "refId": "A",
-          "target": "stats.timers.ThingsSearch.$Host.histogram.thing_bulkUpdate_count.sum",
           "textEditor": false
         }
       ],
@@ -1299,13 +1290,12 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "idelta({__name__=~\"search_mongodb_seconds_sum\", instance=~\"$Instance\"}[5m]) / idelta({__name__=~\"search_mongodb_seconds_count\", instance=~\"$Instance\"}[5m])",
+          "expr": "idelta({__name__=~\"wildcard_search_mongodb_seconds_sum\", instance=~\"$Instance\"}[5m]) / idelta({__name__=~\"search_mongodb_seconds_count\", instance=~\"$Instance\"}[5m])",
           "format": "time_series",
           "hide": false,
           "intervalFactor": 1,
           "legendFormat": "{{command_name}} ({{instance}})",
           "refId": "A",
-          "target": "stats.timers.ThingsSearch.$Host.histogram.thing_bulkUpdate_count.sum",
           "textEditor": false
         }
       ],
@@ -1407,11 +1397,10 @@
           "intervalFactor": 1,
           "legendFormat": "Mongo Client",
           "refId": "A",
-          "target": "stats.timers.ThingsSearch.$Host.histogram.thing_bulkUpdate_count.sum",
           "textEditor": false
         },
         {
-          "expr": "avg(\nidelta(things_search_query_seconds_sum{segment=\"overall\", instance=~\"$Instance\", query_type=\"query\"}[5m])\n/ \nidelta(things_search_query_seconds_count{segment=\"overall\", instance=~\"$Instance\", query_type=\"query\"}[5m])\n)",
+          "expr": "avg(\nidelta(things_wildcard_search_query_seconds_sum{segment=\"overall\", instance=~\"$Instance\", query_type=\"query\"}[5m])\n/ \nidelta(things_wildcard_search_query_seconds_count{segment=\"overall\", instance=~\"$Instance\", query_type=\"query\"}[5m])\n)",
           "format": "time_series",
           "intervalFactor": 1,
           "legendFormat": "Search Persistence",

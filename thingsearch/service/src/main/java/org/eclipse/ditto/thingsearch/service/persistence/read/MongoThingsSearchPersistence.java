@@ -45,6 +45,7 @@ import org.eclipse.ditto.thingsearch.api.SearchNamespaceReportResult;
 import org.eclipse.ditto.thingsearch.api.SearchNamespaceResultEntry;
 import org.eclipse.ditto.thingsearch.service.common.model.ResultList;
 import org.eclipse.ditto.thingsearch.service.common.model.ResultListImpl;
+import org.eclipse.ditto.thingsearch.service.common.model.TimestampedThingId;
 import org.eclipse.ditto.thingsearch.service.persistence.Indices;
 import org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants;
 import org.eclipse.ditto.thingsearch.service.persistence.read.criteria.visitors.CreateBsonVisitor;
@@ -188,7 +189,7 @@ public final class MongoThingsSearchPersistence implements ThingsSearchPersisten
     }
 
     @Override
-    public Source<ResultList<ThingId>, NotUsed> findAll(final Query query,
+    public Source<ResultList<TimestampedThingId>, NotUsed> findAll(final Query query,
             @Nullable final List<String> authorizationSubjectIds,
             @Nullable final Set<String> namespaces) {
 
@@ -210,7 +211,7 @@ public final class MongoThingsSearchPersistence implements ThingsSearchPersisten
 
         final Integer limit = query.getLimit() == Integer.MAX_VALUE ? null : query.getLimit();
         return findAllInternal(query, authorizationSubjectIds, namespaces, limit, null)
-                .map(MongoThingsSearchPersistence::toId)
+                .map(MongoThingsSearchPersistence::toThingId)
                 .idleTimeout(maxQueryTime);
     }
 
@@ -222,7 +223,7 @@ public final class MongoThingsSearchPersistence implements ThingsSearchPersisten
      * does not exist.
      */
     public Source<AbstractWriteModel, NotUsed> recoverLastWriteModel(final ThingId thingId) {
-        final var metadata = Metadata.of(thingId, -1, null, null, null);
+        final var metadata = Metadata.ofDeleted(thingId);
         final var publisher = collection.find(Filters.eq(PersistenceConstants.FIELD_ID, thingId.toString())).limit(1);
         final var emptySource =
                 Source.<AbstractWriteModel>single(ThingDeleteModel.of(metadata));
@@ -286,36 +287,54 @@ public final class MongoThingsSearchPersistence implements ThingsSearchPersisten
         return Source.fromPublisher(publisher).map(MongoThingsSearchPersistence::readAsMetadata);
     }
 
-    private ResultList<ThingId> toResultList(final List<Document> resultsPlus0ne, final int skip, final int limit,
+    private ResultList<TimestampedThingId> toResultList(final List<Document> resultsPlus0ne, final int skip,
+            final int limit,
             final List<SortOption> sortOptions) {
 
         log.debug("Creating paged ResultList from parameters: resultsPlusOne=<{}>,skip={},limit={}",
                 resultsPlus0ne, skip, limit);
 
-        final ResultList<ThingId> pagedResultList;
+        final ResultList<TimestampedThingId> pagedResultList;
         if (resultsPlus0ne.size() <= limit || limit <= 0) {
-            pagedResultList = new ResultListImpl<>(toIds(resultsPlus0ne), ResultList.NO_NEXT_PAGE);
+            pagedResultList = new ResultListImpl<>(toTimestampedThingIds(resultsPlus0ne), ResultList.NO_NEXT_PAGE);
         } else {
             // MongoDB returned limit + 1 items. However only <limit> items are of interest per page.
             final List<Document> results = resultsPlus0ne.subList(0, limit);
             final Document lastResult = results.get(limit - 1);
             final long nextPageOffset = (long) skip + limit;
             final JsonArray sortValues = GetSortBsonVisitor.sortValuesAsArray(lastResult, sortOptions);
-            pagedResultList = new ResultListImpl<>(toIds(results), nextPageOffset, sortValues);
+            pagedResultList = new ResultListImpl<>(toTimestampedThingIds(results), nextPageOffset, sortValues);
         }
 
         log.debug("Returning paged ResultList: {}", pagedResultList);
         return pagedResultList;
     }
 
-    private static List<ThingId> toIds(final List<Document> docs) {
+    private static List<TimestampedThingId> toTimestampedThingIds(final List<Document> docs) {
         return docs.stream()
-                .map(MongoThingsSearchPersistence::toId)
+                .map(MongoThingsSearchPersistence::toTimestampedThingId)
                 .collect(Collectors.toList());
     }
 
-    private static ThingId toId(final Document doc) {
+    private static TimestampedThingId toTimestampedThingId(final Document doc) {
+        return new TimestampedThingId(toThingId(doc), getModifiedTimestampOptional(doc));
+    }
+
+    private static ThingId toThingId(final Document doc) {
         return ThingId.of(doc.getString(PersistenceConstants.FIELD_ID));
+    }
+
+    private static Optional<Instant> getModifiedTimestampOptional(final Document doc) {
+        try {
+            final var path = List.of(PersistenceConstants.FIELD_THING, PersistenceConstants.FIELD_MODIFIED);
+            final var timestampString = doc.getEmbedded(path, String.class);
+            if (timestampString != null) {
+                return Optional.of(Instant.parse(timestampString));
+            }
+        } catch (final Exception e) {
+            // ignore invalid or nonexistent timestamp
+        }
+        return Optional.empty();
     }
 
     private static BsonDocument getMongoFilter(final Query query,
@@ -352,7 +371,7 @@ public final class MongoThingsSearchPersistence implements ThingsSearchPersisten
         final long policyRevision =
                 Optional.ofNullable(document.getLong(PersistenceConstants.FIELD_POLICY_REVISION)).orElse(0L);
         final String nullableTimestamp =
-                document.getEmbedded(List.of(PersistenceConstants.FIELD_SORTING, PersistenceConstants.FIELD_MODIFIED),
+                document.getEmbedded(List.of(PersistenceConstants.FIELD_THING, PersistenceConstants.FIELD_MODIFIED),
                         String.class);
         final Instant modified = Optional.ofNullable(nullableTimestamp).map(Instant::parse).orElse(null);
         return Metadata.of(thingId, thingRevision, policyId, policyRevision, modified, null);

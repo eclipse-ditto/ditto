@@ -34,7 +34,6 @@ import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 import org.eclipse.ditto.thingsearch.api.UpdateReason;
 import org.eclipse.ditto.thingsearch.api.commands.sudo.UpdateThingResponse;
-import org.eclipse.ditto.thingsearch.service.persistence.BulkWriteComplete;
 
 import akka.actor.ActorRef;
 
@@ -53,7 +52,6 @@ public final class Metadata {
     private final List<ActorRef> senders;
     private final boolean invalidateThing;
     private final boolean invalidatePolicy;
-    @Nullable private final ActorRef origin;
     private final List<UpdateReason> updateReasons;
 
     private Metadata(final ThingId thingId,
@@ -66,7 +64,6 @@ public final class Metadata {
             final Collection<ActorRef> senders,
             final boolean invalidateThing,
             final boolean invalidatePolicy,
-            @Nullable final ActorRef origin,
             final Collection<UpdateReason> updateReasons) {
 
         this.thingId = thingId;
@@ -79,7 +76,6 @@ public final class Metadata {
         this.senders = List.copyOf(senders);
         this.invalidateThing = invalidateThing;
         this.invalidatePolicy = invalidatePolicy;
-        this.origin = origin;
         this.updateReasons = List.copyOf(updateReasons);
     }
 
@@ -100,7 +96,7 @@ public final class Metadata {
             @Nullable final StartedTimer timer) {
 
         return new Metadata(thingId, thingRevision, policyId, policyRevision, null,
-                List.of(), null != timer ? List.of(timer) : List.of(), List.of(), false, false, null,
+                List.of(), null != timer ? List.of(timer) : List.of(), List.of(), false, false,
                 List.of(UpdateReason.UNKNOWN));
     }
 
@@ -125,7 +121,7 @@ public final class Metadata {
 
         return new Metadata(thingId, thingRevision, policyId, policyRevision, null, events,
                 null != timer ? List.of(timer) : List.of(),
-                null != sender ? List.of(sender) : List.of(), false, false, null, List.of(UpdateReason.UNKNOWN));
+                null != sender ? List.of(sender) : List.of(), false, false, List.of(UpdateReason.UNKNOWN));
     }
 
     /**
@@ -139,7 +135,6 @@ public final class Metadata {
      * @param events the events included in the metadata causing the search update.
      * @param timers the timers measuring the search updater's consistency lag.
      * @param senders the senders.
-     * @param origin the origin.
      * @param updateReasons the update reasons.
      * @return the new Metadata object.
      */
@@ -151,11 +146,10 @@ public final class Metadata {
             final List<ThingEvent<?>> events,
             final Collection<StartedTimer> timers,
             final Collection<ActorRef> senders,
-            @Nullable final ActorRef origin,
             final Collection<UpdateReason> updateReasons) {
 
         return new Metadata(thingId, thingRevision, policyId, policyRevision, modified, events, timers, senders,
-                false, false, origin, updateReasons);
+                false, false, updateReasons);
     }
 
     /**
@@ -177,8 +171,18 @@ public final class Metadata {
             @Nullable final StartedTimer timer) {
 
         return new Metadata(thingId, thingRevision, policyId, policyRevision, modified,
-                List.of(), null != timer ? List.of(timer) : List.of(), List.of(), false, false, null,
+                List.of(), null != timer ? List.of(timer) : List.of(), List.of(), false, false,
                 List.of(UpdateReason.UNKNOWN));
+    }
+
+    /**
+     * Return a Metadata object for a deleted Thing.
+     *
+     * @param thingId the ID of the deleted thing.
+     * @return the Metadata object.
+     */
+    public static Metadata ofDeleted(final ThingId thingId) {
+        return Metadata.of(thingId, -1, null, null, null);
     }
 
     /**
@@ -195,6 +199,15 @@ public final class Metadata {
     }
 
     /**
+     * Create a copy of this object containing only the IDs and revisions of the thing and policy.
+     *
+     * @return the exported metadata.
+     */
+    public Metadata export() {
+        return Metadata.of(thingId, thingRevision, policyId, policyRevision, null);
+    }
+
+    /**
      * Create a copy of this metadata requesting cache invalidation.
      *
      * @param invalidateThing whether to invalidate the cached thing.
@@ -203,17 +216,7 @@ public final class Metadata {
      */
     public Metadata invalidateCaches(final boolean invalidateThing, final boolean invalidatePolicy) {
         return new Metadata(thingId, thingRevision, policyId, policyRevision, modified, events, timers, senders,
-                invalidateThing, invalidatePolicy, origin, updateReasons);
-    }
-
-    /**
-     * Create a copy of this metadata with origin.
-     *
-     * @return the copy.
-     */
-    public Metadata withOrigin(@Nullable final ActorRef origin) {
-        return new Metadata(thingId, thingRevision, policyId, policyRevision, modified, events, timers, senders,
-                invalidateThing, invalidatePolicy, origin, updateReasons);
+                invalidateThing, invalidatePolicy, updateReasons);
     }
 
     /**
@@ -223,7 +226,7 @@ public final class Metadata {
      */
     public Metadata withSender(final ActorRef sender) {
         return new Metadata(thingId, thingRevision, policyId, policyRevision, modified, events, timers, List.of(sender),
-                invalidateThing, invalidatePolicy, origin, updateReasons);
+                invalidateThing, invalidatePolicy, updateReasons);
     }
 
     /**
@@ -233,16 +236,7 @@ public final class Metadata {
      */
     public Metadata withUpdateReason(final UpdateReason reason) {
         return new Metadata(thingId, thingRevision, policyId, policyRevision, modified, events, timers, senders,
-                invalidateThing, invalidatePolicy, origin, List.of(reason));
-    }
-
-    /**
-     * Return the ThingUpdater that created this object, if any.
-     *
-     * @return The ThingUpdater.
-     */
-    public Optional<ActorRef> getOrigin() {
-        return Optional.ofNullable(origin);
+                invalidateThing, invalidatePolicy, List.of(reason));
     }
 
     /**
@@ -392,7 +386,7 @@ public final class Metadata {
                 newMetadata.policyRevision, newMetadata.modified, newEvents, newTimers, newSenders,
                 invalidateThing || newMetadata.invalidateThing,
                 invalidatePolicy || newMetadata.invalidatePolicy,
-                newMetadata.origin, newReasons);
+                newReasons);
     }
 
     /**
@@ -418,17 +412,6 @@ public final class Metadata {
      */
     public void sendWeakAck(@Nullable final JsonValue payload) {
         send(Acknowledgement.weak(DittoAcknowledgementLabel.SEARCH_PERSISTED, thingId, DittoHeaders.empty(), payload));
-    }
-
-    /**
-     * Send {@link BulkWriteComplete} message to ThingUpdater {@code origin}.
-     *
-     * @param bulkWriteCorrelationId the correlation-id of the bulk write.
-     */
-    public void sendBulkWriteCompleteToOrigin(@Nullable final String bulkWriteCorrelationId) {
-        if (null != origin) {
-            origin.tell(BulkWriteComplete.of(bulkWriteCorrelationId), ActorRef.noSender());
-        }
     }
 
     private void send(final Acknowledgement ack) {
@@ -459,14 +442,13 @@ public final class Metadata {
                 Objects.equals(senders, that.senders) &&
                 invalidateThing == that.invalidateThing &&
                 invalidatePolicy == that.invalidatePolicy &&
-                Objects.equals(origin, that.origin) &&
                 Objects.equals(updateReasons, that.updateReasons);
     }
 
     @Override
     public int hashCode() {
         return Objects.hash(thingId, thingRevision, policyId, policyRevision, modified, events, timers, senders,
-                invalidateThing, invalidatePolicy, origin, updateReasons);
+                invalidateThing, invalidatePolicy, updateReasons);
     }
 
     @Override
@@ -482,7 +464,6 @@ public final class Metadata {
                 ", senders=" + senders +
                 ", invalidateThing=" + invalidateThing +
                 ", invalidatePolicy=" + invalidatePolicy +
-                ", origin=" + origin +
                 ", updateReasons=" + updateReasons +
                 "]";
     }

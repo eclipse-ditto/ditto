@@ -37,6 +37,7 @@ import org.eclipse.ditto.base.api.devops.signals.commands.ExecutePiggybackComman
 import org.eclipse.ditto.base.api.devops.signals.commands.RetrieveLoggerConfig;
 import org.eclipse.ditto.base.api.devops.signals.commands.RetrieveLoggerConfigResponse;
 import org.eclipse.ditto.base.model.common.HttpStatus;
+import org.eclipse.ditto.base.model.exceptions.AskException;
 import org.eclipse.ditto.base.model.exceptions.DittoInternalErrorException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
@@ -163,8 +164,7 @@ public final class DevOpsCommandsActor extends AbstractActor implements Retrieve
      * @param command the initial DevOpsCommand to handle
      */
     private void handleInitialDevOpsCommand(final DevOpsCommand<?> command) {
-        final var responseCorrelationActorSupplier =
-                getResponseCorrelationActorSupplier(command);
+        final var responseCorrelationActorSupplier = getResponseCorrelationActorSupplier(command);
         if (isExecutePiggybackCommandToPubSubMediator(command)) {
             executeAsPiggybackCommandToPubSubMediator(command, responseCorrelationActorSupplier);
         } else {
@@ -265,8 +265,7 @@ public final class DevOpsCommandsActor extends AbstractActor implements Retrieve
             final Consumer<DistributedPubSubMediator.Publish> onSuccess,
             final Consumer<DevOpsErrorResponse> onError) {
 
-        if (command instanceof ExecutePiggybackCommand) {
-            final ExecutePiggybackCommand executePiggyback = (ExecutePiggybackCommand) command;
+        if (command instanceof ExecutePiggybackCommand executePiggyback) {
             final DittoHeaders dittoHeaders = executePiggyback.getDittoHeaders();
             deserializePiggybackCommand(executePiggyback,
                     jsonifiable -> {
@@ -301,12 +300,12 @@ public final class DevOpsCommandsActor extends AbstractActor implements Retrieve
 
     private void handleDevOpsCommandViaPubSub(final DevOpsCommandViaPubSub devOpsCommandViaPubSub) {
         final DevOpsCommand<?> wrappedCommand = devOpsCommandViaPubSub.wrappedCommand;
-        if (wrappedCommand instanceof ChangeLogLevel) {
-            handleChangeLogLevel((ChangeLogLevel) wrappedCommand);
-        } else if (wrappedCommand instanceof RetrieveLoggerConfig) {
-            handleRetrieveLoggerConfig((RetrieveLoggerConfig) wrappedCommand);
-        } else if (wrappedCommand instanceof ExecutePiggybackCommand) {
-            handleExecutePiggyBack((ExecutePiggybackCommand) wrappedCommand);
+        if (wrappedCommand instanceof ChangeLogLevel changeLogLevel) {
+            handleChangeLogLevel(changeLogLevel);
+        } else if (wrappedCommand instanceof RetrieveLoggerConfig retrieveLoggerConfig) {
+            handleRetrieveLoggerConfig(retrieveLoggerConfig);
+        } else if (wrappedCommand instanceof ExecutePiggybackCommand executePiggybackCommand) {
+            handleExecutePiggyBack(executePiggybackCommand);
         }
     }
 
@@ -341,36 +340,37 @@ public final class DevOpsCommandsActor extends AbstractActor implements Retrieve
                     final Duration timeout = command.getDittoHeaders().getTimeout().orElse(DEFAULT_RECEIVE_TIMEOUT);
                     final var actorSelection = getContext().actorSelection(command.getTargetActorSelection());
                     Patterns.ask(actorSelection, jsonifiable, timeout).whenComplete((result, error) -> {
-                        final ExecutePiggybackCommandResponse executePiggybackCommandResponse;
+                        final DevOpsCommandResponse<?> devOpsCommandResponse;
                         if (result instanceof JsonValueSourceRef) {
                             // to be streamed to sender
                             sender.tell(result, getSelf());
                             return;
-                        } else if (result instanceof CommandResponse<?>) {
-                            final CommandResponse<?> response = (CommandResponse<?>) result;
-                            executePiggybackCommandResponse =
+                        } else if (result instanceof CommandResponse<?> response) {
+                            devOpsCommandResponse =
                                     ExecutePiggybackCommandResponse.of(serviceName, instance, response.getHttpStatus(),
                                             response.toJson(), response.getDittoHeaders());
-                        } else if (result instanceof DittoRuntimeException) {
-                            final var exception = (DittoRuntimeException) result;
-                            executePiggybackCommandResponse =
+                        } else if (result instanceof DittoRuntimeException exception) {
+                            devOpsCommandResponse =
                                     ExecutePiggybackCommandResponse.of(serviceName, instance, exception.getHttpStatus(),
                                             exception.toJson(), exception.getDittoHeaders());
-                        } else if (result instanceof Jsonifiable<?>) {
-                            final Jsonifiable<?> response = (Jsonifiable<?>) result;
-                            executePiggybackCommandResponse =
+                        } else if (result instanceof Jsonifiable<?> response) {
+                            devOpsCommandResponse =
                                     ExecutePiggybackCommandResponse.of(serviceName, instance, HttpStatus.CONFLICT,
                                             response.toJson(), DittoHeaders.empty());
-                        } else {
-                            final Object toReport = result != null ? result : error;
-                            executePiggybackCommandResponse =
+                        } else if (result != null) {
+                            devOpsCommandResponse =
                                     ExecutePiggybackCommandResponse.of(serviceName, instance, HttpStatus.CONFLICT,
-                                            JsonValue.of(Objects.toString(toReport)), DittoHeaders.empty());
+                                            JsonValue.of(Objects.toString(result)), DittoHeaders.empty());
+                        } else {
+                            devOpsCommandResponse = getErrorResponse(command,
+                                    AskException.fromMessage(error != null ? error.getMessage() : "Unknown error occurred.",
+                                            DittoHeaders.empty()).toJson());
                         }
-                        sender.tell(executePiggybackCommandResponse, getSelf());
+                        sender.tell(devOpsCommandResponse, getSelf());
                     });
                 },
-                dittoRuntimeException -> sender.tell(dittoRuntimeException, getSelf()));
+                dittoRuntimeException -> sender.tell(getErrorResponse(command, dittoRuntimeException.toJson()),
+                        getSelf()));
     }
 
     private void deserializePiggybackCommand(final ExecutePiggybackCommand command,
@@ -399,13 +399,13 @@ public final class DevOpsCommandsActor extends AbstractActor implements Retrieve
         serviceMappingStrategy.getMappingStrategy(piggybackCommandType).ifPresentOrElse(action, emptyAction);
     }
 
-    private static DevOpsErrorResponse getErrorResponse(final DevOpsCommand<?> command, final JsonObject error) {
-        final String serviceName = command.getServiceName().orElse(null);
-        final String instance = command.getInstance().map(String::valueOf).orElse(null);
-        return DevOpsErrorResponse.of(serviceName, instance, error, command.getDittoHeaders());
+    private DevOpsErrorResponse getErrorResponse(final DevOpsCommand<?> command, final JsonObject error) {
+        final String responseServiceName = command.getServiceName().orElse(this.serviceName);
+        final String responseInstance = command.getInstance().map(String::valueOf).orElse(this.instance);
+        return DevOpsErrorResponse.of(responseServiceName, responseInstance, error, command.getDittoHeaders());
     }
 
-    private static DevOpsErrorResponse getErrorResponse(final DevOpsCommand<?> command) {
+    private DevOpsErrorResponse getErrorResponse(final DevOpsCommand<?> command) {
         final JsonObject error = JsonFactory.newObjectBuilder()
                 .set(DittoRuntimeException.JsonFields.STATUS, HttpStatus.BAD_REQUEST.getCode())
                 .set(DittoRuntimeException.JsonFields.MESSAGE,
@@ -573,11 +573,11 @@ public final class DevOpsCommandsActor extends AbstractActor implements Retrieve
         }
 
         private void sendCommandResponsesAndStop() {
-            devOpsCommandSender.tell(AggregatedDevOpsCommandResponse.of(commandResponses,
-                            DevOpsCommandResponse.TYPE_PREFIX + devOpsCommand.getName(),
-                            commandResponses.isEmpty() ? HttpStatus.REQUEST_TIMEOUT : HttpStatus.OK,
-                            devOpsCommand.getDittoHeaders()),
-                    getSelf());
+            final AggregatedDevOpsCommandResponse response = AggregatedDevOpsCommandResponse.of(commandResponses,
+                    DevOpsCommandResponse.TYPE_PREFIX + devOpsCommand.getName(),
+                    commandResponses.isEmpty() ? HttpStatus.REQUEST_TIMEOUT : HttpStatus.OK,
+                    devOpsCommand.getDittoHeaders(), aggregateResults);
+            devOpsCommandSender.tell(response, getSelf());
 
             stopSelf();
         }

@@ -12,11 +12,7 @@
  */
 package org.eclipse.ditto.thingsearch.service.persistence.write.streaming;
 
-import java.util.Collection;
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionStage;
-import java.util.stream.Collectors;
 
 import org.eclipse.ditto.base.service.DittoExtensionPoint;
 import org.eclipse.ditto.internal.utils.akka.AkkaClassLoader;
@@ -48,12 +44,14 @@ public abstract class SearchUpdateMapper implements DittoExtensionPoint {
     }
 
     /**
-     * Gets the write models of the search updates and processes them.
+     * Gets a write model of the search update and processes it.
      *
-     * @param writeModels the write models.
-     * @return Ditto write models together with their processed MongoDB write models.
+     * @param writeModel the write model.
+     * @param lastWriteModel the last write model to compute incremental update from.
+     * @return Ditto write model together with its processed MongoDB write model.
      */
-    public abstract Source<List<MongoWriteModel>, NotUsed> processWriteModels(List<AbstractWriteModel> writeModels);
+    public abstract Source<MongoWriteModel, NotUsed> processWriteModel(AbstractWriteModel writeModel,
+            final AbstractWriteModel lastWriteModel);
 
     /**
      * Load a {@code SearchUpdateListener} dynamically according to the search configuration.
@@ -73,57 +71,30 @@ public abstract class SearchUpdateMapper implements DittoExtensionPoint {
      * @return a singleton list of write model together with its update document, or an empty list if there is no
      * change.
      */
-    protected static CompletionStage<List<MongoWriteModel>>
-    toIncrementalMongo(final AbstractWriteModel model, final Logger logger) {
-
-        return model.toIncrementalMongo()
-                .thenApply(mongoWriteModelOpt -> {
-                    if (mongoWriteModelOpt.isEmpty()) {
-                        logger.debug("Write model is unchanged, skipping update: <{}>", model);
-                        model.getMetadata().sendWeakAck(null);
-                        model.getMetadata().sendBulkWriteCompleteToOrigin(null);
-                        return List.<MongoWriteModel>of();
-                    } else {
-                        ConsistencyLag.startS5MongoBulkWrite(model.getMetadata());
-                        final var result = mongoWriteModelOpt.orElseThrow();
-                        logger.debug("MongoWriteModel={}", result);
-                        return List.of(result);
-                    }
-                })
-                .handle((result, error) -> {
-                    if (result != null) {
-                        return result;
-                    } else {
-                        logger.error("Failed to compute write model " + model, error);
-                        try {
-                            model.getMetadata().getTimers().forEach(StartedTimer::stop);
-                        } catch (final Exception e) {
-                            // tolerate stopping stopped timers
-                        }
-                        return List.of();
-                    }
-                });
-    }
-
-    /**
-     * Convert a list of write models to incremental update models.
-     *
-     * @param models the list of write models.
-     * @param logger the logger.
-     * @return a list of write models together with their update documents.
-     */
-    protected static CompletionStage<List<MongoWriteModel>> toIncrementalMongo(
-            final Collection<AbstractWriteModel> models, final Logger logger) {
-
-        final var writeModelFutures = models.stream()
-                .map(model -> toIncrementalMongo(model, logger))
-                .map(CompletionStage::toCompletableFuture)
-                .toList();
-
-        final var allFutures = CompletableFuture.allOf(writeModelFutures.toArray(CompletableFuture[]::new));
-        return allFutures.thenApply(aVoid ->
-                writeModelFutures.stream().flatMap(future -> future.join().stream()).collect(Collectors.toList())
-        );
+    protected static Source<MongoWriteModel, NotUsed>
+    toIncrementalMongo(final AbstractWriteModel model, final AbstractWriteModel lastWriteModel, final Logger logger) {
+        try {
+            final var mongoWriteModelOpt = model.toIncrementalMongo(lastWriteModel);
+            if (mongoWriteModelOpt.isEmpty()) {
+                logger.debug("Write model is unchanged, skipping update: <{}>", model);
+                model.getMetadata().sendWeakAck(null);
+                return Source.empty();
+            } else {
+                ConsistencyLag.startS5MongoBulkWrite(model.getMetadata());
+                final var result = mongoWriteModelOpt.orElseThrow();
+                logger.debug("MongoWriteModel={}", result);
+                return Source.single(result);
+            }
+        }
+        catch (final Exception error) {
+            logger.error("Failed to compute write model " + model, error);
+            try {
+                model.getMetadata().getTimers().forEach(StartedTimer::stop);
+            } catch (final Exception e) {
+                // tolerate stopping stopped timers
+            }
+            return Source.empty();
+        }
     }
 
     /**

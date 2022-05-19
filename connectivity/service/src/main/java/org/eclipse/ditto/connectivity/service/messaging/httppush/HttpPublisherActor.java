@@ -320,13 +320,22 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
 
     @Override
     public void postStop() throws Exception {
-        killSwitch.shutdown();
         super.postStop();
     }
 
     @Override
     protected void preEnhancement(final ReceiveBuilder receiveBuilder) {
-        // noop
+        receiveBuilder
+                .matchEquals(GracefulStop.INSTANCE, unused -> this.stopGracefully());
+    }
+
+    private void stopGracefully() {
+        logger.debug("Stopping source queue.");
+        sourceQueue.watchCompletion().whenComplete((done, throwable) -> {
+            logger.debug("Stopping myself.");
+            getContext().stop(getSelf());
+        });
+        killSwitch.shutdown();
     }
 
     @Override
@@ -409,10 +418,9 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
 
         return (queueOfferResult, error) -> {
             if (error != null) {
-                final String errorDescription = "Source queue failure";
-                logger.error(error, errorDescription);
+                logger.warning("Source queue failure: {}", error);
                 resultFuture.completeExceptionally(error);
-                escalate(error, errorDescription);
+                escalate(error, "Source queue failure");
             } else if (Objects.equals(queueOfferResult, QueueOfferResult.dropped())) {
                 resultFuture.completeExceptionally(MessageSendingFailedException.newBuilder()
                         .message("Outgoing HTTP request aborted: There are too many in-flight requests.")
@@ -720,6 +728,19 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
         private boolean matches(final String headerName) {
             return name.equalsIgnoreCase(headerName);
         }
+    }
+
+    /**
+     * Message that allows gracefully stopping the publisher actor.
+     */
+    static final class GracefulStop {
+
+        static final GracefulStop INSTANCE = new GracefulStop();
+
+        private GracefulStop() {
+            // intentionally empty
+        }
+
     }
 
 }

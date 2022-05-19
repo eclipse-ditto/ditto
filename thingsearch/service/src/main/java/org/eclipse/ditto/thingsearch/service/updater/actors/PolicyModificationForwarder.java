@@ -54,7 +54,7 @@ final class PolicyModificationForwarder extends AbstractActor {
 
     private static final Duration ASK_SELF_TIMEOUT = Duration.ofSeconds(10L);
 
-    static final String ACTOR_NAME = "thingsSearchPolicyModificationForwarder";
+    static final String ACTOR_NAME = "policyModificationForwarder";
 
     private final DiagnosticLoggingAdapter log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
 
@@ -148,6 +148,9 @@ final class PolicyModificationForwarder extends AbstractActor {
      * @param policyReferenceTag the policy reference tag.
      */
     private void forwardToThingsUpdater(final PolicyReferenceTag policyReferenceTag) {
+        log.info("Forwarding <{}> at <{}> to <{}>", policyReferenceTag.getPolicyTag().getEntityId(),
+                policyReferenceTag.getPolicyTag().getRevision(),
+                policyReferenceTag.getThingId());
         thingsUpdater.tell(policyReferenceTag, ActorRef.noSender());
     }
 
@@ -183,8 +186,7 @@ final class PolicyModificationForwarder extends AbstractActor {
         } else {
             repeat = Source.repeat(Control.DUMP_POLICY_REVISIONS);
         }
-        killSwitch = repeat
-                .viaMat(KillSwitches.single(), Keep.right())
+        killSwitch = repeat.viaMat(KillSwitches.single(), Keep.right())
                 .mapAsync(1, message ->
                         Patterns.ask(self, message, ASK_SELF_TIMEOUT).exceptionally(Function.identity()))
                 .flatMapConcat(this::mapDumpResult)

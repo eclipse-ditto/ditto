@@ -22,7 +22,7 @@ import org.eclipse.ditto.policies.model.PolicyId;
 /**
  * Creates commands to access the Policies service.
  */
-final class PolicyCommandFactory {
+public final class PolicyCommandFactory {
 
     private PolicyCommandFactory() {
         throw new AssertionError();
@@ -35,7 +35,7 @@ final class PolicyCommandFactory {
      * @param policyId the policyId.
      * @return the created command.
      */
-    static SudoRetrievePolicy sudoRetrievePolicy(final EntityId policyId) {
+    public static SudoRetrievePolicy sudoRetrievePolicy(final EntityId policyId) {
         return sudoRetrievePolicy(PolicyId.of(policyId));
     }
 
@@ -45,7 +45,7 @@ final class PolicyCommandFactory {
      * @param policyId the policyId.
      * @return the created command.
      */
-    static SudoRetrievePolicy sudoRetrievePolicy(final PolicyId policyId) {
+    public static SudoRetrievePolicy sudoRetrievePolicy(final PolicyId policyId) {
         return SudoRetrievePolicy.of(policyId,
                 DittoHeaders.newBuilder().correlationId("sudoRetrievePolicy-" + UUID.randomUUID()).build());
     }

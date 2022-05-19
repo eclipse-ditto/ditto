@@ -60,7 +60,7 @@ public final class GetSortBsonVisitor implements SortFieldExpressionVisitor<Stri
      * @return projection of the sort keys.
      */
     public static Document projections(final List<SortOption> sortOptions) {
-        final Document document = new Document();
+        final Document document = new Document().append(PersistenceConstants.FIELD_PATH_MODIFIED, true);
         sortOptions.stream()
                 .map(SortOption::getSortExpression)
                 .map(GetSortBsonVisitor::path)
@@ -98,20 +98,20 @@ public final class GetSortBsonVisitor implements SortFieldExpressionVisitor<Stri
     @Override
     public String visitAttribute(final String key) {
         return MongoSortKeyMappingFunction.mapSortKey(
-                PersistenceConstants.FIELD_SORTING, PersistenceConstants.FIELD_ATTRIBUTES, key);
+                PersistenceConstants.FIELD_THING, PersistenceConstants.FIELD_ATTRIBUTES, key);
     }
 
     @Override
     public String visitFeatureIdProperty(final String featureId, final String property) {
         return MongoSortKeyMappingFunction.mapSortKey(
-                PersistenceConstants.FIELD_SORTING, PersistenceConstants.FIELD_FEATURES, featureId,
+                PersistenceConstants.FIELD_THING, PersistenceConstants.FIELD_FEATURES, featureId,
                 PersistenceConstants.FIELD_PROPERTIES, property);
     }
 
     @Override
     public String visitFeatureIdDesiredProperty(final CharSequence featureId, final CharSequence desiredProperty) {
         return MongoSortKeyMappingFunction.mapSortKey(
-                PersistenceConstants.FIELD_SORTING, PersistenceConstants.FIELD_FEATURES, featureId.toString(),
+                PersistenceConstants.FIELD_THING, PersistenceConstants.FIELD_FEATURES, featureId.toString(),
                 PersistenceConstants.FIELD_DESIRED_PROPERTIES,
                 desiredProperty.toString());
     }
@@ -119,7 +119,7 @@ public final class GetSortBsonVisitor implements SortFieldExpressionVisitor<Stri
     @Override
     public String visitSimple(final String fieldName) {
         return fieldName.startsWith(PersistenceConstants.SLASH)
-                ? MongoSortKeyMappingFunction.mapSortKey(PersistenceConstants.FIELD_SORTING + fieldName)
+                ? MongoSortKeyMappingFunction.mapSortKey(PersistenceConstants.FIELD_THING + fieldName)
                 : fieldName;
     }
 
