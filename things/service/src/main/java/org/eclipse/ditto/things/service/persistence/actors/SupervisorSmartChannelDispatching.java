@@ -14,7 +14,9 @@
 package org.eclipse.ditto.things.service.persistence.actors;
 
 import java.time.Duration;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
+import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
 
 import org.eclipse.ditto.base.model.exceptions.AskException;
@@ -27,27 +29,91 @@ import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.commands.ErrorResponse;
 import org.eclipse.ditto.base.model.signals.commands.exceptions.CommandTimeoutException;
 import org.eclipse.ditto.internal.models.signal.CommandHeaderRestoration;
+import org.eclipse.ditto.internal.utils.persistentactors.TargetActorWithMessage;
 import org.eclipse.ditto.policies.enforcement.AbstractEnforcementReloaded;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommand;
 import org.eclipse.ditto.things.model.signals.commands.query.ThingQueryCommand;
 import org.eclipse.ditto.things.model.signals.commands.query.ThingQueryCommandResponse;
 
+import akka.actor.ActorRef;
+import akka.actor.ActorSelection;
 import akka.pattern.AskTimeoutException;
+import akka.pattern.Patterns;
 
 /**
- * TODO TJ doc
- * TODO TJ make the smart channel selection "nicer" and also create an abstraction for live messages, etc. in similar way
+ * Functionality used in {@link ThingSupervisorActor} for the "smart channel selection"
+ * (a.k.a. "live-channel-condition" parameter handling).
  */
-final class SmartChannelSelection {
+final class SupervisorSmartChannelDispatching {
 
     private static final Duration DEFAULT_LIVE_TIMEOUT = Duration.ofSeconds(60L);
+    private static final Duration DEFAULT_LOCAL_ASK_TIMEOUT = Duration.ofSeconds(5);
 
-    private SmartChannelSelection() {
-        throw new AssertionError();
+    private final ActorSelection thingsPersistenceActor;
+    private final SupervisorLiveChannelDispatching liveChannelDispatching;
+
+    SupervisorSmartChannelDispatching(final ActorSelection thingsPersistenceActor,
+            final SupervisorLiveChannelDispatching liveChannelDispatching) {
+        this.thingsPersistenceActor = thingsPersistenceActor;
+        this.liveChannelDispatching = liveChannelDispatching;
     }
 
-    static ThingQueryCommandResponse<?> handleSmartChannelTwinResponse(
-            final ThingQueryCommand<?> enforcedThingQueryCommand, final Object response) {
+    /**
+     * Initiate the "smart channel selection" for the passed in {@code thingQueryCommand}, meaning the following steps
+     * are performed until the returned CompletionStage is completed:
+     * <ul>
+     * <li>The thing persistence actor is asked for the {@code thingQueryCommand} in order to determine the persisted
+     * state and perform potentially other conditions</li>
+     * <li>Determines whether based on the {@code live-channel-condition} contained in the headers and the returned
+     * response from the twin, the query command should be converted to a "live" command as well</li>
+     * <li>Dispatches the live command via the {@link SupervisorLiveChannelDispatching}</li>
+     * <li>Applies a fallback (if configured for the command) if no "live" response arrives in time</li>
+     * </ul>
+     *
+     * @param thingQueryCommand the command to handle as "smart channel selection" query command
+     * @param sender the original sender of the command required for responding the live response to
+     * @return a CompletionStage which will be completed with a target actor and a message to send to this target actor
+     */
+    CompletionStage<TargetActorWithMessage> dispatchSmartChannelThingQueryCommand(
+            final ThingQueryCommand<?> thingQueryCommand,
+            final ActorRef sender) {
+
+        return initSmartChannelSelection(thingQueryCommand)
+                .thenCompose(twinQueryCommandResponse -> {
+                    if (shouldAttemptLiveChannel(thingQueryCommand, twinQueryCommandResponse)) {
+                        // perform conversion + publishing of live command
+                        final ThingQueryCommand<?> liveCommand = toLiveCommand(thingQueryCommand);
+                        return liveChannelDispatching.dispatchLiveChannelThingQueryCommand(liveCommand, sender,
+                                (command, receiver) ->
+                                        liveChannelDispatching.prepareForPubSubPublishing(command, receiver,
+                                                response ->
+                                                        getFallbackResponseCaster(liveCommand, twinQueryCommandResponse)
+                                                                .apply(response)
+                                        )
+                        );
+                    } else {
+                        // directly respond with twin response to sender
+                        return CompletableFuture.completedStage(new TargetActorWithMessage(
+                                sender,
+                                twinQueryCommandResponse,
+                                Duration.ZERO,
+                                Function.identity()
+                        ));
+                    }
+                });
+    }
+
+    private CompletionStage<ThingQueryCommandResponse<?>> initSmartChannelSelection(
+            final ThingQueryCommand<?> thingQueryCommand) {
+
+        final ThingQueryCommand<?> twinQueryCommand = ensureTwinChannel(thingQueryCommand);
+        return Patterns.ask(thingsPersistenceActor, twinQueryCommand, DEFAULT_LOCAL_ASK_TIMEOUT)
+                .thenApply(response -> handleSmartChannelTwinResponse(thingQueryCommand, response));
+    }
+
+    private static ThingQueryCommandResponse<?> handleSmartChannelTwinResponse(
+            final ThingQueryCommand<?> enforcedThingQueryCommand,
+            final Object response) {
 
         if (response instanceof ThingQueryCommandResponse<?> thingQueryCommandResponse) {
             final ThingQueryCommandResponse<?> twinResponseWithTwinChannel = setTwinChannel(thingQueryCommandResponse);
@@ -59,8 +125,9 @@ final class SmartChannelSelection {
         }
     }
 
-    static Function<Object, ThingQueryCommandResponse<?>> getFallbackResponseCaster(
-            final ThingQueryCommand<?> liveCommand, final ThingQueryCommandResponse<?> twinResponse) {
+    private static Function<Object, ThingQueryCommandResponse<?>> getFallbackResponseCaster(
+            final ThingQueryCommand<?> liveCommand,
+            final ThingQueryCommandResponse<?> twinResponse) {
 
         return response -> {
             if (response instanceof ThingQueryCommandResponse) {
@@ -79,18 +146,19 @@ final class SmartChannelSelection {
                 }
             }
 
+            // TODO TJ really dependency to Enforcement??
             throw AbstractEnforcementReloaded.reportErrorOrResponse(
                     "before building JsonView for live response via smart channel selection",
                     response, null, liveCommand.getDittoHeaders());
         };
     }
 
-    static boolean shouldAttemptLiveChannel(final ThingQueryCommand<?> command,
+    private static boolean shouldAttemptLiveChannel(final ThingQueryCommand<?> command,
             final ThingQueryCommandResponse<?> twinResponse) {
         return isLiveChannelConditionMatched(command, twinResponse) || isLiveQueryCommandWithTimeoutStrategy(command);
     }
 
-    static ThingQueryCommand<?> toLiveCommand(final ThingQueryCommand<?> command) {
+    private static ThingQueryCommand<?> toLiveCommand(final ThingQueryCommand<?> command) {
 
         return command.setDittoHeaders(command.getDittoHeaders().toBuilder()
                 .liveChannelCondition(null)
@@ -98,7 +166,7 @@ final class SmartChannelSelection {
                 .build());
     }
 
-    static ThingQueryCommand<?> ensureTwinChannel(final ThingQueryCommand<?> command) {
+    private static ThingQueryCommand<?> ensureTwinChannel(final ThingQueryCommand<?> command) {
 
         if (Signal.isChannelLive(command)) {
             return command.setDittoHeaders(command.getDittoHeaders()

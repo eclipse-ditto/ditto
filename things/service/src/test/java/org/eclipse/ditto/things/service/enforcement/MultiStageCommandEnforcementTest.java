@@ -67,7 +67,7 @@ import akka.testkit.javadsl.TestKit;
 /**
  * Tests commands that triggers different or multiple commands internally.
  */
-public final class MultiStageCommandTest extends AbstractThingEnforcementTest {
+public final class MultiStageCommandEnforcementTest extends AbstractThingEnforcementTest {
 
     private static final Subject DEFAULT_SUBJECT =
             Subject.newInstance(SubjectIssuer.GOOGLE, "defaultSubject");

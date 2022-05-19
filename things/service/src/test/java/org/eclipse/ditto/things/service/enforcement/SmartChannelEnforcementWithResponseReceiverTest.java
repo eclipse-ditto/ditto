@@ -60,7 +60,7 @@ import scala.concurrent.duration.FiniteDuration;
  * {@link org.eclipse.ditto.things.service.enforcement.ThingEnforcement} for commands requiring smart channel
  * selection where live responses come from a different channel than where the command is published.
  */
-public final class SmartChannelSelectionWithResponseReceiverTest extends AbstractThingEnforcementTest {
+public final class SmartChannelEnforcementWithResponseReceiverTest extends AbstractThingEnforcementTest {
 
     public static final PolicyId POLICY_ID = PolicyId.of("policy:id");
 

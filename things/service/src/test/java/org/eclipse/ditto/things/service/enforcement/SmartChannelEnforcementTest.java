@@ -61,7 +61,7 @@ import scala.concurrent.duration.FiniteDuration;
  * Tests {@link org.eclipse.ditto.things.service.persistence.actors.ThingSupervisorActor} and its
  * {@link org.eclipse.ditto.things.service.enforcement.ThingEnforcement} for commands requiring smart channel selection.
  */
-public final class SmartChannelSelectionTest extends AbstractThingEnforcementTest {
+public final class SmartChannelEnforcementTest extends AbstractThingEnforcementTest {
 
     public static final PolicyId POLICY_ID = PolicyId.of("policy:id");
 

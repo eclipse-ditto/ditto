@@ -17,6 +17,7 @@ import java.time.Duration;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.function.BiConsumer;
 import java.util.function.Function;
 
 import javax.annotation.Nullable;
@@ -38,7 +39,6 @@ import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapt
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.internal.utils.namespaces.BlockedNamespaces;
-import org.eclipse.ditto.internal.utils.pubsub.DistributedPub;
 import org.eclipse.ditto.policies.enforcement.CreationRestrictionEnforcer;
 import org.eclipse.ditto.policies.enforcement.DefaultCreationRestrictionEnforcer;
 import org.eclipse.ditto.policies.enforcement.PreEnforcer;
@@ -74,6 +74,8 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
      * calls.
      */
     protected static final Duration DEFAULT_LOCAL_ASK_TIMEOUT = Duration.ofSeconds(5);
+
+    protected static final String PERSISTENCE_ACTOR_NAME = "pa";
 
     protected final DittoDiagnosticLoggingAdapter log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
 
@@ -361,15 +363,15 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
     }
 
     private void startChildren(final Control startChild) {
-        ensurePersistenceActorBeeingStarted();
+        ensurePersistenceActorBeingStarted();
         ensureEnforcerActorBeeingStarted();
     }
 
-    private void ensurePersistenceActorBeeingStarted() {
+    private void ensurePersistenceActorBeingStarted() {
         if (null == persistenceActorChild) {
             log.debug("Starting persistence actor for entity with ID <{}>.", entityId);
             assert entityId != null;
-            final ActorRef paRef = getContext().actorOf(getPersistenceActorProps(entityId), "pa");
+            final ActorRef paRef = getContext().actorOf(getPersistenceActorProps(entityId), PERSISTENCE_ACTOR_NAME);
             persistenceActorChild = getContext().watch(paRef);
         } else {
             log.debug("Not starting persistence child actor because it is started already.");
@@ -474,8 +476,6 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
     /**
      * Forward all messages to the persistenceActorChild (after applied enforcement) if it is active or by reply
      * immediately with an exception if the child has terminated (fail fast).
-     *
-     * TODO TJ simplify
      */
     private void enforceAndForwardToTargetActor(final Object message) {
 
@@ -493,31 +493,7 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
                 unhandled(message);
             } else {
                 enforceSignalAndForwardToTargetActor((S) signal, sender)
-                        .whenComplete((response, throwable) -> {
-                            if (null != throwable) {
-                                final DittoRuntimeException dre =
-                                        DittoRuntimeException.asDittoRuntimeException(throwable, t -> {
-                                            log.withCorrelationId(signal)
-                                                    .warning("Encountered Throwable when interacting with enforcer " +
-                                                            "or target actor, telling sender: {}", throwable);
-                                            return DittoInternalErrorException.newBuilder()
-                                                    .dittoHeaders(signal.getDittoHeaders())
-                                                    .cause(t)
-                                                    .build();
-                                        });
-                                log.withCorrelationId(dre)
-                                        .info("Received DittoRuntimeException during enforcement or " +
-                                                "forwarding to target actor, telling sender: {}", dre);
-                                sender.tell(dre, getSelf());
-                            } else if (null != response) {
-                                sender.tell(response, getSelf());
-                            } else {
-                                log.withCorrelationId(signal)
-                                        .error("Received nothing when enforcing signal and forwarding to " +
-                                                "target actor - this should not happen.");
-                                replyUnavailableException(signal, sender);
-                            }
-                        });
+                        .whenComplete(handleSignalEnforcementResponse(signal, sender));
             }
         } else if (null != persistenceActorChild) {
             if (persistenceActorChild.equals(sender)) {
@@ -530,6 +506,36 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
         } else {
             replyUnavailableException(message, sender);
         }
+    }
+
+    private BiConsumer<Object, Throwable> handleSignalEnforcementResponse(final WithDittoHeaders signal,
+            final ActorRef sender) {
+
+        return (response, throwable) -> {
+            if (null != throwable) {
+                final DittoRuntimeException dre =
+                        DittoRuntimeException.asDittoRuntimeException(throwable, t -> {
+                            log.withCorrelationId(signal)
+                                    .warning("Encountered Throwable when interacting with enforcer " +
+                                            "or target actor, telling sender: {}", throwable);
+                            return DittoInternalErrorException.newBuilder()
+                                    .dittoHeaders(signal.getDittoHeaders())
+                                    .cause(t)
+                                    .build();
+                        });
+                log.withCorrelationId(dre)
+                        .info("Received DittoRuntimeException during enforcement or " +
+                                "forwarding to target actor, telling sender: {}", dre);
+                sender.tell(dre, getSelf());
+            } else if (null != response) {
+                sender.tell(response, getSelf());
+            } else {
+                log.withCorrelationId(signal)
+                        .error("Received nothing when enforcing signal and forwarding to " +
+                                "target actor - this should not happen.");
+                replyUnavailableException(signal, sender);
+            }
+        };
     }
 
     /**
@@ -665,36 +671,6 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
          */
         INIT_DONE
     }
-
-    /**
-     * A supervisor internal message which contains the {@link DistributedPub} to publish the
-     * {@code wrappedSignalForPublication} to - which is the also passed in {@code signal} wrapped using
-     * {@link DistributedPub#wrapForPublicationWithAcks(Object, org.eclipse.ditto.internal.utils.pubsub.extractors.AckExtractor)}
-     * with the specific ack extractor for that signal type.
-     *
-     * @param pub the DistributedPub to use for publishing the message
-     * @param wrappedSignalForPublication the wrapped signal to publish
-     * @param signal the original, not yet wrapped signal
-     */
-    public record DistributedPubWithMessage(DistributedPub<?> pub,
-                                            Object wrappedSignalForPublication,
-                                            Signal<?> signal) {}
-
-    /**
-     * A supervisor internal message combining a {@code targetActor} as target for a contained {@code message} and
-     * when configured with a non-zero {@code messageTimeout} applying a {@code Patterns.ask()} style.
-     *
-     * @param targetActor the target actor to ask/send the passed {@code message} to
-     * @param message the message to pass/ask the {@code targetActor}
-     * @param messageTimeout the duration to apply as message timeout - a {@link Duration#ZERO} will not use
-     * "Patterns.ask", but will {@code tell} the passed {@code targetActor} the {@code message} instead.
-     * @param responseOrErrorConverter a converter function which can convert the response or an occurred
-     * {@link Throwable} to the actual response.
-     */
-    public record TargetActorWithMessage(ActorRef targetActor,
-                                         Object message,
-                                         Duration messageTimeout,
-                                         Function<Object, Object> responseOrErrorConverter) {}
 
     private record EnforcedSignalAndTargetActorResponse(@Nullable Signal<?> enforcedSignal,
                                                         @Nullable Object response) {}
