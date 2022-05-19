@@ -27,7 +27,7 @@ import org.eclipse.ditto.connectivity.service.messaging.ConnectivityProxyActor;
 import org.eclipse.ditto.connectivity.service.messaging.persistence.ConnectionPersistenceOperationsActor;
 import org.eclipse.ditto.connectivity.service.messaging.persistence.ConnectionPersistenceStreamingActorCreator;
 import org.eclipse.ditto.connectivity.service.messaging.persistence.ConnectionSupervisorActor;
-import org.eclipse.ditto.edge.api.dispatching.ConciergeForwarderActor;
+import org.eclipse.ditto.edge.api.dispatching.EdgeCommandForwarderActor;
 import org.eclipse.ditto.edge.api.dispatching.ShardRegions;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.cluster.ClusterUtil;
@@ -178,8 +178,8 @@ public final class ConnectivityRootActor extends DittoRootActor {
 
     private ActorRef getCommandForwarder(final ClusterConfig clusterConfig, final ActorRef pubSubMediator) {
 
-        return startChildActor(ConciergeForwarderActor.ACTOR_NAME,
-                ConciergeForwarderActor.props(pubSubMediator,
+        return startChildActor(EdgeCommandForwarderActor.ACTOR_NAME,
+                EdgeCommandForwarderActor.props(pubSubMediator,
                         ShardRegions.of(getContext().getSystem(), clusterConfig)));
     }
 

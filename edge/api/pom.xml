@@ -56,14 +56,14 @@
             <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-connectivity-model</artifactId>
         </dependency>
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-thingsearch-model</artifactId>
+        </dependency>
 
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-things-api</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-thingsearch-api</artifactId> <!-- required for DispatcherActor - TODO CR-11297 check if this is wanted here -->
+            <artifactId>ditto-thingsearch-api</artifactId>
         </dependency>
 
         <dependency>

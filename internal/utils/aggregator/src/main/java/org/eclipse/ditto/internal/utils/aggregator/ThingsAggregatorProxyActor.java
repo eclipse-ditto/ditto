@@ -23,6 +23,7 @@ import java.util.Objects;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.function.UnaryOperator;
 
 import javax.annotation.Nullable;
 
@@ -112,10 +113,10 @@ public final class ThingsAggregatorProxyActor extends AbstractActor {
                 .match(SudoRetrieveThings.class, srt -> handleSudoRetrieveThings(srt, srt))
                 .match(DistributedPubSubMediator.Send.class, send -> {
                     final Object msg = send.msg();
-                    if (msg instanceof RetrieveThings) {
-                        handleRetrieveThings((RetrieveThings) msg, send);
-                    } else if (msg instanceof SudoRetrieveThings) {
-                        handleSudoRetrieveThings((SudoRetrieveThings) msg, send);
+                    if (msg instanceof RetrieveThings retrieveThings) {
+                        handleRetrieveThings(retrieveThings, send);
+                    } else if (msg instanceof SudoRetrieveThings sudoRetrieveThings) {
+                        handleSudoRetrieveThings(sudoRetrieveThings, send);
                     } else {
                         log.warning("Got unknown message: {}", send);
                         unhandled(send);
@@ -173,7 +174,7 @@ public final class ThingsAggregatorProxyActor extends AbstractActor {
             final Command<?> originatingCommand, final ActorRef originatingSender) {
         final Function<Jsonifiable<?>, PlainJson> thingPlainJsonSupplier;
         final Function<List<PlainJson>, CommandResponse<?>> overallResponseSupplier;
-        final Function<List<PlainJson>, List<PlainJson>> plainJsonSorter = supplyPlainJsonSorter(thingIds);
+        final UnaryOperator<List<PlainJson>> plainJsonSorter = supplyPlainJsonSorter(thingIds);
 
         if (originatingCommand instanceof SudoRetrieveThings) {
             thingPlainJsonSupplier = supplyPlainJsonFromSudoRetrieveThingResponse();
@@ -219,8 +220,7 @@ public final class ThingsAggregatorProxyActor extends AbstractActor {
 
     private Function<Jsonifiable<?>, PlainJson> supplyPlainJsonFromRetrieveThingResponse() {
         return jsonifiable -> {
-            if (jsonifiable instanceof RetrieveThingResponse) {
-                final RetrieveThingResponse response = (RetrieveThingResponse) jsonifiable;
+            if (jsonifiable instanceof RetrieveThingResponse response) {
                 final String json = response.getEntityPlainString().orElseGet(() ->
                         response.getEntity(response.getImplementedSchemaVersion()).toString());
                 return PlainJson.of(response.getEntityId(), json);
@@ -236,8 +236,7 @@ public final class ThingsAggregatorProxyActor extends AbstractActor {
 
     private Function<Jsonifiable<?>, PlainJson> supplyPlainJsonFromSudoRetrieveThingResponse() {
         return jsonifiable -> {
-            if (jsonifiable instanceof SudoRetrieveThingResponse) {
-                final SudoRetrieveThingResponse response = (SudoRetrieveThingResponse) jsonifiable;
+            if (jsonifiable instanceof SudoRetrieveThingResponse response) {
                 final String json = response.getEntityPlainString().orElseGet(() ->
                         response.getEntity(response.getImplementedSchemaVersion()).toString());
                 return response.getThing().getEntityId()
@@ -249,7 +248,7 @@ public final class ThingsAggregatorProxyActor extends AbstractActor {
         };
     }
 
-    private Function<List<PlainJson>, List<PlainJson>> supplyPlainJsonSorter(final List<ThingId> thingIds) {
+    private UnaryOperator<List<PlainJson>> supplyPlainJsonSorter(final List<ThingId> thingIds) {
         return plainJsonThings -> {
             final Comparator<PlainJson> comparator = (pj1, pj2) -> {
                 if (!pj1.isEmpty() && !pj2.isEmpty()) {

@@ -21,7 +21,7 @@ import org.eclipse.ditto.base.service.RootChildActorStarter;
 import org.eclipse.ditto.base.service.actors.DittoRootActor;
 import org.eclipse.ditto.base.service.config.limits.LimitsConfig;
 import org.eclipse.ditto.connectivity.api.ConnectivityMessagingConstants;
-import org.eclipse.ditto.edge.api.dispatching.ConciergeForwarderActor;
+import org.eclipse.ditto.edge.api.dispatching.EdgeCommandForwarderActor;
 import org.eclipse.ditto.edge.api.dispatching.ShardRegions;
 import org.eclipse.ditto.gateway.service.endpoints.directives.auth.DevopsAuthenticationDirective;
 import org.eclipse.ditto.gateway.service.endpoints.directives.auth.DevopsAuthenticationDirectiveFactory;
@@ -113,9 +113,9 @@ public final class GatewayRootActor extends DittoRootActor {
         final HttpConfig httpConfig = gatewayConfig.getHttpConfig();
 
         final ShardRegions shardRegions = ShardRegions.of(actorSystem, clusterConfig);
-        final var conciergeForwarder = startChildActor(ConciergeForwarderActor.ACTOR_NAME,
-                ConciergeForwarderActor.props(pubSubMediator, shardRegions));
-        final var proxyActor = startProxyActor(actorSystem, pubSubMediator, conciergeForwarder);
+        final var edgeCommandForwarder = startChildActor(EdgeCommandForwarderActor.ACTOR_NAME,
+                EdgeCommandForwarderActor.props(pubSubMediator, shardRegions));
+        final var proxyActor = startProxyActor(actorSystem, pubSubMediator, edgeCommandForwarder);
 
         pubSubMediator.tell(DistPubSubAccess.put(getSelf()), getSelf());
 
@@ -147,7 +147,7 @@ public final class GatewayRootActor extends DittoRootActor {
                         gatewayConfig.getStreamingConfig(),
                         headerTranslator,
                         pubSubMediator,
-                        conciergeForwarder));
+                        edgeCommandForwarder));
 
         RootChildActorStarter.get(actorSystem).execute(getContext());
 
@@ -305,13 +305,13 @@ public final class GatewayRootActor extends DittoRootActor {
     }
 
     private ActorRef startProxyActor(final ActorRefFactory actorSystem, final ActorRef pubSubMediator,
-            final ActorRef conciergeForwarder) {
+            final ActorRef edgeCommandForwarder) {
 
         final ActorSelection devOpsCommandsActor =
                 actorSystem.actorSelection(DevOpsRoute.DEVOPS_COMMANDS_ACTOR_SELECTION);
 
         return startChildActor(AbstractProxyActor.ACTOR_NAME,
-                ProxyActor.props(pubSubMediator, devOpsCommandsActor, conciergeForwarder));
+                ProxyActor.props(pubSubMediator, devOpsCommandsActor, edgeCommandForwarder));
 
     }
 

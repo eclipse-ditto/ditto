@@ -12,17 +12,31 @@
  */
 package org.eclipse.ditto.edge.api.dispatching;
 
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
 import java.util.function.Function;
 
 import org.eclipse.ditto.base.model.entity.id.WithEntityId;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.connectivity.model.signals.commands.ConnectivityCommand;
+import org.eclipse.ditto.internal.utils.aggregator.DefaultThingsAggregatorConfig;
+import org.eclipse.ditto.internal.utils.aggregator.ThingsAggregatorActor;
+import org.eclipse.ditto.internal.utils.aggregator.ThingsAggregatorConfig;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
+import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLogger;
 import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
+import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.messages.model.signals.commands.MessageCommand;
+import org.eclipse.ditto.policies.enforcement.config.DefaultEnforcementConfig;
 import org.eclipse.ditto.policies.model.signals.commands.PolicyCommand;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommand;
+import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThings;
+import org.eclipse.ditto.thingsearch.api.ThingsSearchConstants;
+import org.eclipse.ditto.thingsearch.api.commands.sudo.ThingSearchSudoCommand;
+import org.eclipse.ditto.thingsearch.model.signals.commands.ThingSearchCommand;
+import org.eclipse.ditto.thingsearch.model.signals.commands.query.ThingSearchQueryCommand;
 
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
@@ -31,35 +45,60 @@ import akka.cluster.pubsub.DistributedPubSubMediator;
 import akka.japi.pf.ReceiveBuilder;
 
 /**
- * Actor which acts as a client to the concierge service. It forwards messages either to the concierge's appropriate
- * enforcer (in case of a command referring to a single entity) or to the concierge's dispatcher actor (in
- * case of commands not referring to a single entity such as search commands).
- * TODO CR-11297 candidate for removal or for renaming
+ * Actor which acts as a client used at the Ditto edges (gateway and connectivity) in order to forward messages
+ * directly to the shard regions of the services the commands are targeted to.
+ * For "thing search" commands, it utilizes the
  */
-public class ConciergeForwarderActor extends AbstractActor {
+public class EdgeCommandForwarderActor extends AbstractActor {
 
     /**
      * Name of this actor.
      */
-    public static final String ACTOR_NAME = "conciergeForwarder";
+    public static final String ACTOR_NAME = "edgeCommandForwarder";
 
-    /**
-     * TODO CR-11297 where to? still needed?
-     */
-    private static final String DISPATCHER_ACTOR_PATH = "/user/conciergeRoot/dispatcherActor";
+    private static final Map<String, ThreadSafeDittoLogger> NAMESPACE_INSPECTION_LOGGERS = new HashMap<>();
 
     private final DittoDiagnosticLoggingAdapter log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
 
     private final ActorRef pubSubMediator;
     private final ShardRegions shardRegions;
     private final Function<Signal<?>, Signal<?>> signalTransformer;
+    private final DefaultEnforcementConfig enforcementConfig;
+    private final ActorRef thingsAggregatorActor;
 
     @SuppressWarnings("unused")
-    private ConciergeForwarderActor(final ActorRef pubSubMediator, final ShardRegions shardRegions) {
+    private EdgeCommandForwarderActor(final ActorRef pubSubMediator, final ShardRegions shardRegions) {
 
         this.pubSubMediator = pubSubMediator;
         this.shardRegions = shardRegions;
         signalTransformer = SignalTransformer.get(getContext().getSystem());
+
+        final DefaultScopedConfig dittoScopedConfig =
+                DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config());
+
+        enforcementConfig = DefaultEnforcementConfig.of(dittoScopedConfig);
+
+        enforcementConfig.getSpecialLoggingInspectedNamespaces()
+                .forEach(loggedNamespace -> NAMESPACE_INSPECTION_LOGGERS.put(
+                        loggedNamespace,
+                        DittoLoggerFactory.getThreadSafeLogger(EdgeCommandForwarderActor.class.getName() +
+                                ".namespace." + loggedNamespace)));
+
+        final ThingsAggregatorConfig thingsAggregatorConfig = DefaultThingsAggregatorConfig.of(dittoScopedConfig);
+
+        // TODO TJ move starting the ThingsAggregatorActor to search
+        //  goal:
+        //  * edge receives QueryThingsCommand
+        //  * edge command forwarder forwards the search command to search service
+        //  * search service performs the search, calculates a list of matching thingIds
+        //  * search service contains the ThingsAggregatorActor - which splits up the "RetrieveThings" with the current page size to many single RetrieveThing commands
+        //  * ThingsAggregatorActor in search sends e.g. 50 RetrieveThing commands directly to things shard region - the "sender" is preserved as this command forwarder or more precisely the ThingAggregatorProxy actor
+        //  * the ThingsAggregatorProxy actor at the edge gets a SourceRef of RetrieveThingResponse commands and creates a single result for the search response from that after aggregation and sorting
+
+        // some optimizations to apply:
+        // * if only the "thingId" is wanted in the "fields", directly answer from search back to here
+        final Props props = ThingsAggregatorActor.props(getSelf(), thingsAggregatorConfig);
+        thingsAggregatorActor = getContext().actorOf(props, ThingsAggregatorActor.ACTOR_NAME);
     }
 
     /**
@@ -70,7 +109,7 @@ public class ConciergeForwarderActor extends AbstractActor {
      * @return the Akka configuration Props object.
      */
     public static Props props(final ActorRef pubSubMediator, final ShardRegions shardRegions) {
-        return Props.create(ConciergeForwarderActor.class, pubSubMediator, shardRegions);
+        return Props.create(EdgeCommandForwarderActor.class, pubSubMediator, shardRegions);
     }
 
     @Override
@@ -78,9 +117,12 @@ public class ConciergeForwarderActor extends AbstractActor {
         return ReceiveBuilder.create()
                 .match(MessageCommand.class, this::forwardToThings)
                 .match(ThingCommand.class, this::forwardToThings)
+                .match(RetrieveThings.class, this::forwardToThingsAggregator)
                 .match(PolicyCommand.class, this::forwardToPolicies)
                 .match(ConnectivityCommand.class, this::forwardToConnectivity)
-                .match(Signal.class, this::forwardSignalToPubSub)
+                .match(ThingSearchCommand.class, this::forwardToThingSearch)
+                .match(ThingSearchSudoCommand.class, this::forwardToThingSearch)
+                .match(Signal.class, this::handleUnknownSignal)
                 .match(DistributedPubSubMediator.SubscribeAck.class, subscribeAck ->
                         log.debug("Successfully subscribed to distributed pub/sub on topic '{}'",
                                 subscribeAck.subscribe().topic())
@@ -108,6 +150,10 @@ public class ConciergeForwarderActor extends AbstractActor {
                 .forward(transformedThingCommand, getContext());
     }
 
+    private void forwardToThingsAggregator(final RetrieveThings retrieveThings) {
+        thingsAggregatorActor.forward(retrieveThings, getContext());
+    }
+
     private void forwardToPolicies(final PolicyCommand<?> policyCommand) {
         final PolicyCommand<?> transformedPolicyCommand = (PolicyCommand<?>) signalTransformer.apply(policyCommand);
         log.withCorrelationId(transformedPolicyCommand)
@@ -133,22 +179,42 @@ public class ConciergeForwarderActor extends AbstractActor {
         }
     }
 
-    private void forwardSignalToPubSub(final Signal<?> signal) {
+    private void forwardToThingSearch(final ThingSearchCommand<?> thingSearchCommand) {
+        final Set<String> namespaces = thingSearchCommand.getNamespaces().orElseGet(Set::of);
+        NAMESPACE_INSPECTION_LOGGERS.entrySet().stream()
+                .filter(entry -> namespaces.contains(entry.getKey()))
+                .map(Map.Entry::getValue)
+                .forEach(l -> {
+                    if (thingSearchCommand instanceof ThingSearchQueryCommand<?> thingSearchQueryCommand) {
+                        final String filter = thingSearchQueryCommand.getFilter().orElse(null);
+                        l.withCorrelationId(thingSearchCommand).info(
+                                "Forwarding search query command type <{}> with filter <{}> and " +
+                                        "fields <{}>",
+                                thingSearchCommand.getType(),
+                                filter,
+                                thingSearchCommand.getSelectedFields().orElse(null));
+                    }
+                });
+
+        // TODO TJ what about preEnforcement? was done in DispatcherActor somehow .. e.g. for solution auth
+        pubSubMediator.tell(
+                DistPubSubAccess.send(ThingsSearchConstants.SEARCH_ACTOR_PATH, thingSearchCommand),
+                getSender());
+    }
+
+    private void forwardToThingSearch(final ThingSearchSudoCommand<?> thingSearchSudoCommand) {
+        pubSubMediator.tell(
+                DistPubSubAccess.send(ThingsSearchConstants.SEARCH_ACTOR_PATH, thingSearchSudoCommand),
+                getSender());
+    }
+
+    private void handleUnknownSignal(final Signal<?> signal) {
 
         final Signal<?> transformedSignal = signalTransformer.apply(signal);
         final String signalType = transformedSignal.getType();
         final DittoDiagnosticLoggingAdapter l = log.withCorrelationId(transformedSignal);
-        l.info("Sending signal without ID and type <{}> via pubSub to concierge-dispatcherActor",
-                signalType);
-        l.debug("Sending signal without ID and type <{}> via pubSub to concierge-dispatcherActor: <{}>",
+        l.error("Received signal <{}> which is not known how to be handled: {}",
                 signalType, transformedSignal);
-        final DistributedPubSubMediator.Send msg = wrapForPubSub(transformedSignal);
-        l.debug("Forwarding message to dispatcherActor: <{}>.", msg);
-        pubSubMediator.forward(msg, getContext());
-    }
-
-    private static DistributedPubSubMediator.Send wrapForPubSub(final Signal<?> signal) {
-        return DistPubSubAccess.send(DISPATCHER_ACTOR_PATH, signal);
     }
 
 }

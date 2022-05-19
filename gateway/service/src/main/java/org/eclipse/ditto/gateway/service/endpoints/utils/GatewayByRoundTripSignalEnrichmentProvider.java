@@ -16,7 +16,7 @@ import java.time.Duration;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
-import org.eclipse.ditto.edge.api.dispatching.ConciergeForwarderActor;
+import org.eclipse.ditto.edge.api.dispatching.EdgeCommandForwarderActor;
 import org.eclipse.ditto.gateway.service.util.config.streaming.GatewaySignalEnrichmentConfig;
 import org.eclipse.ditto.internal.models.signalenrichment.ByRoundTripSignalEnrichmentFacade;
 import org.eclipse.ditto.internal.models.signalenrichment.SignalEnrichmentFacade;
@@ -30,7 +30,7 @@ import akka.http.javadsl.model.HttpRequest;
  */
 public final class GatewayByRoundTripSignalEnrichmentProvider implements GatewaySignalEnrichmentProvider {
 
-    private static final String CONCIERGE_FORWARDER = "/user/gatewayRoot/" + ConciergeForwarderActor.ACTOR_NAME;
+    private static final String CONCIERGE_FORWARDER = "/user/gatewayRoot/" + EdgeCommandForwarderActor.ACTOR_NAME;
 
     private final ByRoundTripSignalEnrichmentFacade byRoundTripSignalEnrichmentFacade;
 
