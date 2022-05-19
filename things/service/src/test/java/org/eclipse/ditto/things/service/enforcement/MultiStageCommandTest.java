@@ -13,13 +13,9 @@
 package org.eclipse.ditto.things.service.enforcement;
 
 import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;
-import static org.eclipse.ditto.things.service.enforcement.TestSetup.THING_ID;
 
-import java.net.URLEncoder;
-import java.nio.charset.Charset;
 import java.util.List;
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
 
 import javax.annotation.Nullable;
 
@@ -33,7 +29,6 @@ import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonKey;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.policies.api.Permission;
-import org.eclipse.ditto.policies.api.commands.sudo.SudoRetrievePolicy;
 import org.eclipse.ditto.policies.api.commands.sudo.SudoRetrievePolicyResponse;
 import org.eclipse.ditto.policies.model.Permissions;
 import org.eclipse.ditto.policies.model.PoliciesModelFactory;
@@ -49,7 +44,6 @@ import org.eclipse.ditto.policies.model.signals.commands.modify.CreatePolicy;
 import org.eclipse.ditto.policies.model.signals.commands.modify.CreatePolicyResponse;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicy;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicyResponse;
-import org.eclipse.ditto.things.api.commands.sudo.SudoRetrieveThing;
 import org.eclipse.ditto.things.api.commands.sudo.SudoRetrieveThingResponse;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingId;
@@ -65,24 +59,15 @@ import org.eclipse.ditto.things.model.signals.commands.modify.ModifyThing;
 import org.eclipse.ditto.things.model.signals.commands.modify.ModifyThingResponse;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThing;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThingResponse;
-import org.eclipse.ditto.things.service.persistence.actors.ThingSupervisorActor;
-import org.junit.After;
-import org.junit.Before;
 import org.junit.Test;
 
-import com.typesafe.config.ConfigFactory;
-
-import akka.actor.ActorRef;
-import akka.actor.ActorSystem;
 import akka.pattern.AskTimeoutException;
-import akka.testkit.TestActorRef;
-import akka.testkit.TestProbe;
 import akka.testkit.javadsl.TestKit;
 
 /**
  * Tests commands that triggers different or multiple commands internally.
  */
-public final class MultiStageCommandTest {
+public final class MultiStageCommandTest extends AbstractThingEnforcementTest {
 
     private static final Subject DEFAULT_SUBJECT =
             Subject.newInstance(SubjectIssuer.GOOGLE, "defaultSubject");
@@ -100,32 +85,6 @@ public final class MultiStageCommandTest {
 
     private static final String THING = ThingCommand.RESOURCE_TYPE;
     private static final String POLICY = PolicyCommand.RESOURCE_TYPE;
-
-    private ActorSystem system;
-    private TestProbe pubSubMediatorProbe;
-    private TestProbe thingPersistenceActorProbe;
-    private TestProbe policiesShardRegionProbe;
-    private ActorRef supervisor;
-    private ThingSupervisorActor mockThingPersistenceSupervisor;
-
-    @Before
-    public void init() {
-        system = ActorSystem.create("test", ConfigFactory.load("test"));
-        pubSubMediatorProbe = createPubSubMediatorProbe();
-        thingPersistenceActorProbe = createThingPersistenceActorProbe();
-        policiesShardRegionProbe = getTestProbe(createUniqueName("policiesShardRegionProbe-"));
-        final TestActorRef<ThingSupervisorActor> thingPersistenceSupervisorTestActorRef =
-                createThingPersistenceSupervisor();
-        supervisor = thingPersistenceSupervisorTestActorRef;
-        mockThingPersistenceSupervisor = thingPersistenceSupervisorTestActorRef.underlyingActor();
-    }
-
-    @After
-    public void shutdown() {
-        if (system != null) {
-            TestKit.shutdownActorSystem(system);
-        }
-    }
 
     @Test
     public void retrieveThingAndPolicy() {
@@ -484,47 +443,6 @@ public final class MultiStageCommandTest {
         }};
     }
 
-    private TestActorRef<ThingSupervisorActor> createThingPersistenceSupervisor() {
-        return new TestActorRef<>(system, ThingSupervisorActor.props(
-                pubSubMediatorProbe.ref(),
-                policiesShardRegionProbe.ref(),
-                new TestSetup.DummyLiveSignalPub(pubSubMediatorProbe.ref()),
-                thingPersistenceActorProbe.ref(),
-                null,
-                CompletableFuture::completedStage
-        ), system.guardian(), URLEncoder.encode(THING_ID.toString(), Charset.defaultCharset()));
-    }
-
-    private TestProbe createPubSubMediatorProbe() {
-        return getTestProbe(createUniqueName("pubSubMediatorProbe-"));
-    }
-
-    private TestProbe createThingPersistenceActorProbe() {
-        return getTestProbe(createUniqueName("thingPersistenceActorProbe-"));
-    }
-
-    private TestProbe getTestProbe(final String uniqueName) {
-        return new TestProbe(system, uniqueName);
-    }
-
-    private static String createUniqueName(final String prefix) {
-        return prefix + UUID.randomUUID();
-    }
-
-    private void expectAndAnswerSudoRetrieveThing(final Object sudoRetrieveThingResponse) {
-        final SudoRetrieveThing sudoRetrieveThing =
-                thingPersistenceActorProbe.expectMsgClass(SudoRetrieveThing.class);
-        assertThat((CharSequence) sudoRetrieveThing.getEntityId()).isEqualTo(THING_ID);
-        thingPersistenceActorProbe.reply(sudoRetrieveThingResponse);
-    }
-
-    private void expectAndAnswerSudoRetrievePolicy(final PolicyId policyId, final Object sudoRetrievePolicyResponse) {
-        final SudoRetrievePolicy sudoRetrievePolicy =
-                policiesShardRegionProbe.expectMsgClass(SudoRetrievePolicy.class);
-        assertThat((CharSequence) sudoRetrievePolicy.getEntityId()).isEqualTo(policyId);
-        policiesShardRegionProbe.reply(sudoRetrievePolicyResponse);
-    }
-    
     private static Thing emptyThing(final ThingId thingId, @Nullable final PolicyId policyId) {
         return ThingsModelFactory.newThingBuilder()
                 .setId(thingId)

@@ -57,11 +57,9 @@ import akka.actor.Extension;
  * Optionally they provide the timeout of the command.
  * If the command headers provide a timeout, it is used as expiry for the cache entry, otherwise a fall-back expiry
  * is used.
- *
- * TODO TJ make package private - should only be used by ThingSupervisorActor
  */
 @NotThreadSafe
-public final class ResponseReceiverCache implements Extension {
+final class ResponseReceiverCache implements Extension {
 
     private static final ExtensionId EXTENSION_ID = new ExtensionId();
     private static final Duration DEFAULT_ENTRY_EXPIRY = Duration.ofMinutes(2L);

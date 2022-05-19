@@ -20,7 +20,10 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.CompletionStage;
+import java.util.function.BiFunction;
+import java.util.function.Function;
 
 import javax.annotation.Nullable;
 
@@ -35,6 +38,7 @@ import org.eclipse.ditto.base.model.signals.SignalWithEntityId;
 import org.eclipse.ditto.base.model.signals.UnsupportedSignalException;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
+import org.eclipse.ditto.base.model.signals.commands.exceptions.CommandTimeoutException;
 import org.eclipse.ditto.base.model.signals.events.Event;
 import org.eclipse.ditto.base.service.actors.ShutdownBehaviour;
 import org.eclipse.ditto.base.service.config.supervision.ExponentialBackOffConfig;
@@ -65,6 +69,7 @@ import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingUnavailab
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThing;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThingResponse;
 import org.eclipse.ditto.things.model.signals.commands.query.ThingQueryCommand;
+import org.eclipse.ditto.things.model.signals.commands.query.ThingQueryCommandResponse;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 import org.eclipse.ditto.things.service.common.config.DittoThingsConfig;
 import org.eclipse.ditto.things.service.enforcement.ThingEnforcement;
@@ -74,6 +79,7 @@ import akka.actor.ActorKilledException;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
+import akka.pattern.AskTimeoutException;
 import akka.pattern.Patterns;
 import akka.stream.Materializer;
 import akka.stream.javadsl.Keep;
@@ -173,8 +179,10 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
 
     @Override
     protected CompletionStage<Object> askEnforcerChild(final Signal<?> signal) {
+
         if (signal instanceof ThingCommandResponse<?> thingCommandResponse &&
                 CommandResponse.isLiveCommandResponse(thingCommandResponse)) {
+
             return signal.getDittoHeaders().getCorrelationId()
                     .map(responseReceiverCache::get)
                     .map(future -> future
@@ -202,21 +210,15 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
      */
     @SuppressWarnings("unchecked")
     static <T extends ThingCommandResponse<?>> T replaceAuthContext(final T response,
-            final AuthorizationContext authorizationContext) {
-        return (T) response.setDittoHeaders(response.getDittoHeaders()
-                .toBuilder()
-                .authorizationContext(authorizationContext)
-                .build());
-    }
+            @Nullable final AuthorizationContext authorizationContext) {
 
-    @Override
-    protected CompletionStage<Object> modifyEnforcerActorEnforcedSignalResponse(final Object enforcedCommand) {
-        if (enforcedCommand instanceof Signal<?> signal &&
-                (Command.isLiveCommand(signal) || Event.isLiveEvent(signal))) {
-            final DistributedPubWithMessage distributedPubWithMessage = selectLiveSignalPublisher(signal);
-            return CompletableFuture.completedStage(distributedPubWithMessage);
+        if (null != authorizationContext) {
+            return (T) response.setDittoHeaders(response.getDittoHeaders()
+                    .toBuilder()
+                    .authorizationContext(authorizationContext)
+                    .build());
         } else {
-            return CompletableFuture.completedStage(enforcedCommand);
+            return response;
         }
     }
 
@@ -226,80 +228,198 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
 
         if (message instanceof Signal<?> enforcedSignal && CommandResponse.isLiveCommandResponse(enforcedSignal)) {
             return dispatchGlobalLiveCommandResponse((CommandResponse<?>) enforcedSignal);
+        } else if (message instanceof ThingQueryCommand<?> thingQueryCommand &&
+                ThingCommand.isChannelSmart(thingQueryCommand)) {
+            return dispatchSmartChannelThingQueryCommand(sender, thingQueryCommand);
+        } else if (message instanceof ThingQueryCommand<?> thingQueryCommand &&
+                Command.isLiveCommand(thingQueryCommand)) {
+            return dispatchLiveChannelThingQueryCommand(sender, thingQueryCommand, this::createLiveQueryCommandTarget);
+        } else if (message instanceof Signal<?> signal &&
+                (Command.isLiveCommand(signal) || Event.isLiveEvent(signal))) {
+            return dispatchLiveSignal(sender, signal);
         } else if (message instanceof Signal<?> enforcedSignal && !Command.isLiveCommand(enforcedSignal)) {
             return super.getTargetActorForSendingEnforcedMessageTo(message, sender);
-        } else if (message instanceof ThingQueryCommand<?> thingQueryCommand &&
-                Command.isLiveCommand(thingQueryCommand) && thingQueryCommand.getDittoHeaders().isResponseRequired()) {
-            if (enforcementConfig.shouldDispatchGlobally(thingQueryCommand)) {
-                return responseReceiverCache.insertResponseReceiverConflictFree(thingQueryCommand,
-                        signal -> createReceiverActor(signal, sender),
-                        (command, receiver) -> new TargetActorWithMessage(
-                                receiver,
-                                command,
-                                command.getDittoHeaders().getTimeout().orElse(DEFAULT_LIVE_TIMEOUT),
-                                false
-                        )
-                );
-            } else {
-                final var startTime = Instant.now();
-                final var pub = liveSignalPub.command();
-                final var receiver = createReceiverActor(thingQueryCommand, sender);
-                final var timeout = getAdjustedTimeout(thingQueryCommand, startTime);
-                final var signalWithAdjustedTimeout = adjustTimeout(thingQueryCommand, timeout);
-                final var publish =
-                        pub.wrapForPublicationWithAcks(signalWithAdjustedTimeout, THING_COMMAND_ACK_EXTRACTOR);
-                return CompletableFuture.completedStage(new TargetActorWithMessage(
-                        receiver,
-                        publish,
-                        timeout,
-                        false
-                ));
-            }
-        } else if (message instanceof DistributedPubWithMessage distributedPubWithMessage) {
-            if (enforcementConfig.shouldDispatchGlobally(distributedPubWithMessage.signal())) {
-                return responseReceiverCache.insertResponseReceiverConflictFree(distributedPubWithMessage.signal(),
-                                newSignal -> sender,
-                                (newSignal, receiver) -> {
-                                    log.withCorrelationId(newSignal)
-                                            .info("Publish message to pub-sub: <{}>", newSignal);
-                                    return selectLiveSignalPublisher(newSignal);
-                                })
-                        .thenApply(distributedPub -> new TargetActorWithMessage(
-                                distributedPub.pub().getPublisher(),
-                                distributedPub.wrappedSignalForPublication(),
-                                distributedPub.signal().getDittoHeaders().getTimeout().orElse(DEFAULT_LIVE_TIMEOUT),
-                                false
-                        ));
-            } else {
-                log.withCorrelationId(distributedPubWithMessage.signal())
-                        .debug("Publish message to pub-sub: <{}>", distributedPubWithMessage.signal());
-                return CompletableFuture.completedStage(new TargetActorWithMessage(
-                        distributedPubWithMessage.pub().getPublisher(),
-                        distributedPubWithMessage.wrappedSignalForPublication(),
-                        distributedPubWithMessage.signal().getDittoHeaders().getTimeout().orElse(DEFAULT_LIVE_TIMEOUT),
-                        false
-                ));
-            }
-        } else {
-            return CompletableFuture.completedStage(null);
         }
+
+        log.withCorrelationId(message instanceof WithDittoHeaders wdh ? wdh.getDittoHeaders() : null)
+                .error("Could not determine target actor for message: {}", message);
+        return CompletableFuture.completedStage(null);
     }
 
     private CompletionStage<TargetActorWithMessage> dispatchGlobalLiveCommandResponse(
             final CommandResponse<?> commandResponse) {
+
         return WithDittoHeaders.getCorrelationId(commandResponse).map(correlationId ->
                 dispatchLiveCommandResponse(commandResponse, correlationId)
         ).orElseGet(() -> CompletableFuture.completedStage(null));
     }
 
-    private ActorRef createReceiverActor(final ThingQueryCommand<?> signal, final ActorRef sender) {
+    private CompletionStage<TargetActorWithMessage> dispatchLiveCommandResponse(
+            final CommandResponse<?> liveResponse,
+            final CharSequence correlationId) {
+
+        final CompletionStage<TargetActorWithMessage> result;
+        if (enforcementConfig.isDispatchLiveResponsesGlobally()) {
+            result = returnCommandResponseContext(liveResponse, correlationId);
+        } else {
+            log.withCorrelationId(liveResponse)
+                    .info("Got live response when global dispatching is inactive: <{}>", liveResponse.getType());
+            result = CompletableFuture.completedFuture(null);
+        }
+        return result;
+    }
+
+    private CompletionStage<TargetActorWithMessage> dispatchSmartChannelThingQueryCommand(final ActorRef sender,
+            final ThingQueryCommand<?> thingQueryCommand) {
+
+        return initSmartChannelSelection(thingQueryCommand)
+                .thenCompose(twinQueryCommandResponse -> {
+                    if (SmartChannelSelection.shouldAttemptLiveChannel(thingQueryCommand, twinQueryCommandResponse)) {
+                        // perform conversion + publishing of live command
+                        final ThingQueryCommand<?> liveCommand = SmartChannelSelection.toLiveCommand(thingQueryCommand);
+                        return dispatchLiveChannelThingQueryCommand(sender, liveCommand,
+                                (command, receiver) ->
+                                        createLiveQueryCommandTarget(command, receiver, response ->
+                                                SmartChannelSelection.getFallbackResponseCaster(liveCommand,
+                                                                twinQueryCommandResponse
+                                                        ).apply(response)
+                                        )
+                        );
+                    } else {
+                        // directly respond with twin response to sender
+                        return CompletableFuture.completedStage(new TargetActorWithMessage(
+                                sender,
+                                twinQueryCommandResponse,
+                                Duration.ZERO,
+                                Function.identity()
+                        ));
+                    }
+                });
+    }
+
+    private CompletionStage<ThingQueryCommandResponse<?>> initSmartChannelSelection(
+            final ThingQueryCommand<?> thingQueryCommand) {
+
+        final ThingQueryCommand<?> twinQueryCommand = SmartChannelSelection.ensureTwinChannel(thingQueryCommand);
+        return Patterns.ask(persistenceActorChild, twinQueryCommand, DEFAULT_LOCAL_ASK_TIMEOUT)
+                .thenCompose(response -> modifyTargetActorCommandResponse(thingQueryCommand, response))
+                .thenApply(response ->
+                        SmartChannelSelection.handleSmartChannelTwinResponse(thingQueryCommand, response));
+    }
+
+    private CompletionStage<TargetActorWithMessage> dispatchLiveChannelThingQueryCommand(final ActorRef sender,
+            final ThingQueryCommand<?> thingQueryCommand,
+            final BiFunction<ThingQueryCommand<?>, ActorRef, TargetActorWithMessage> responseHandler) {
+
+        if (enforcementConfig.shouldDispatchGlobally(thingQueryCommand)) {
+            return responseReceiverCache.insertResponseReceiverConflictFree(thingQueryCommand,
+                    conflictFreeCommand -> createLiveResponseReceiverActor(conflictFreeCommand, sender),
+                    responseHandler
+            );
+        } else {
+            final var receiver = createLiveResponseReceiverActor(thingQueryCommand, sender);
+            return CompletableFuture.completedStage(responseHandler.apply(thingQueryCommand, receiver));
+        }
+    }
+
+    private CompletionStage<TargetActorWithMessage> dispatchLiveSignal(final ActorRef sender, final Signal<?> signal) {
+
+        final DistributedPubWithMessage distributedPubWithMessage = selectLiveSignalPublisher(signal);
+        if (enforcementConfig.shouldDispatchGlobally(signal)) {
+            return responseReceiverCache.insertResponseReceiverConflictFree(signal,
+                            newSignal -> sender,
+                            (newSignal, receiver) -> {
+                                log.withCorrelationId(newSignal)
+                                        .info("Publishing message to pub-sub: <{}>", newSignal.getType());
+                                if (newSignal.equals(signal)) {
+                                    return distributedPubWithMessage;
+                                } else {
+                                    return selectLiveSignalPublisher(newSignal);
+                                }
+                            })
+                    .thenApply(distributedPub -> new TargetActorWithMessage(
+                            distributedPub.pub().getPublisher(),
+                            distributedPub.wrappedSignalForPublication(),
+                            distributedPub.signal().getDittoHeaders().getTimeout().orElse(DEFAULT_LIVE_TIMEOUT),
+                            response -> handleEncounteredAskTimeoutsAsCommandTimeoutException(
+                                    signal, distributedPub, response)
+                    ));
+        } else {
+            log.withCorrelationId(signal)
+                    .debug("Publish message to pub-sub: <{}>", signal);
+            return CompletableFuture.completedStage(new TargetActorWithMessage(
+                    distributedPubWithMessage.pub().getPublisher(),
+                    distributedPubWithMessage.wrappedSignalForPublication(),
+                    signal.getDittoHeaders().getTimeout().orElse(DEFAULT_LIVE_TIMEOUT),
+                    Function.identity()
+            ));
+        }
+    }
+
+    private Object handleEncounteredAskTimeoutsAsCommandTimeoutException(final Signal<?> signal,
+            final DistributedPubWithMessage distributedPub,
+            final Object response) {
+
+        if (response instanceof Throwable t) {
+            Throwable throwable = t;
+            if (t instanceof CompletionException completionException) {
+                throwable = completionException.getCause();
+            }
+
+            if (throwable instanceof AskTimeoutException askTimeoutException) {
+                return CommandTimeoutException.newBuilder(
+                                distributedPub.signal().getDittoHeaders().getTimeout().orElse(DEFAULT_LIVE_TIMEOUT)
+                        )
+                        .cause(askTimeoutException)
+                        .dittoHeaders(signal.getDittoHeaders())
+                        .build();
+            } else {
+                return response;
+            }
+        } else {
+            return response;
+        }
+    }
+
+    private TargetActorWithMessage createLiveQueryCommandTarget(
+            final ThingQueryCommand<?> thingQueryCommand,
+            final ActorRef receiver) {
+
+        return createLiveQueryCommandTarget(thingQueryCommand, receiver, Function.identity());
+    }
+
+    private TargetActorWithMessage createLiveQueryCommandTarget(
+            final ThingQueryCommand<?> thingQueryCommand,
+            final ActorRef receiver,
+            final Function<Object, Object> responseOrErrorConverter) {
+
+        final var startTime = Instant.now();
+        final var timeout = getAdjustedTimeout(thingQueryCommand, startTime);
+        final var signalWithAdjustedTimeout = adjustTimeout(thingQueryCommand, timeout);
         final var pub = liveSignalPub.command();
-        final var props = LiveResponseAndAcknowledgementForwarder.props(signal, pub.getPublisher(), sender);
+        final var publish =
+                pub.wrapForPublicationWithAcks(signalWithAdjustedTimeout, THING_COMMAND_ACK_EXTRACTOR);
+
+        return new TargetActorWithMessage(
+                receiver,
+                publish,
+                timeout,
+                responseOrErrorConverter
+        );
+    }
+
+    private ActorRef createLiveResponseReceiverActor(final ThingQueryCommand<?> thingQueryCommand,
+            final ActorRef sender) {
+
+        final var pub = liveSignalPub.command();
+        final var props = LiveResponseAndAcknowledgementForwarder.props(thingQueryCommand, pub.getPublisher(),
+                sender);
         // and start the actor as child of this supervisor!
         return getContext().actorOf(props);
     }
 
     private static Duration getAdjustedTimeout(final Signal<?> signal, final Instant startTime) {
+
         final var baseTimeout = getLiveSignalTimeout(signal);
         final var adjustedTimeout = baseTimeout.minus(Duration.between(startTime, Instant.now()));
         return adjustedTimeout.minus(MIN_LIVE_TIMEOUT).isNegative() ? MIN_LIVE_TIMEOUT : adjustedTimeout;
@@ -310,27 +430,13 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
     }
 
     private static ThingCommand<?> adjustTimeout(final ThingCommand<?> signal, final Duration adjustedTimeout) {
+
         return signal.setDittoHeaders(
                 signal.getDittoHeaders()
                         .toBuilder()
                         .timeout(adjustedTimeout)
                         .build()
         );
-    }
-
-    private CompletionStage<TargetActorWithMessage> dispatchLiveCommandResponse(
-            final CommandResponse<?> liveResponse,
-            final CharSequence correlationId
-    ) {
-        final CompletionStage<TargetActorWithMessage> result;
-        if (enforcementConfig.isDispatchLiveResponsesGlobally()) {
-            result = returnCommandResponseContext(liveResponse, correlationId);
-        } else {
-            log.withCorrelationId(liveResponse)
-                    .info("Got live response when global dispatching is inactive: <{}>", liveResponse.getType());
-            result = CompletableFuture.completedFuture(null);
-        }
-        return result;
     }
 
     private CompletionStage<TargetActorWithMessage> returnCommandResponseContext(
@@ -343,17 +449,17 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
                     if (responseReceiverEntry.isPresent()) {
                         final var receiver = responseReceiverEntry.get();
                         log.withCorrelationId(liveResponse)
-                                .info("Scheduling CommandResponse <{}> to original sender <{}>", liveResponse,
-                                        receiver);
+                                .info("Responding with command response type <{}> to original sender <{}>",
+                                        liveResponse.getType(), receiver);
                         targetActorWithMessage = new TargetActorWithMessage(receiver.sender(),
                                 liveResponse,
                                 getLiveSignalTimeout(liveResponse),
-                                false
+                                Function.identity()
                         );
                         responseReceiverCache.invalidate(correlationId);
                     } else {
                         log.withCorrelationId(liveResponse)
-                                .info("Got <{}> with unknown correlation ID: <{}>", liveResponse.getType(),
+                                .warning("Got <{}> with unknown correlation ID: <{}>", liveResponse.getType(),
                                         correlationId);
                         targetActorWithMessage = null;
                     }
@@ -362,6 +468,7 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
     }
 
     private DistributedPubWithMessage selectLiveSignalPublisher(final Signal<?> enforcedSignal) {
+
         final var streamingType = StreamingType.fromSignal(enforcedSignal);
         if (streamingType.isPresent()) {
             switch (streamingType.get()) {
@@ -401,21 +508,23 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
 
     private <T extends Signal<?>, S extends T> Object wrapLiveSignal(final S signal,
             final AckExtractor<S> ackExtractor, final DistributedPub<T> pub) {
+
         return pub.wrapForPublicationWithAcks(signal, ackExtractor);
     }
 
     @Override
     protected CompletionStage<Object> modifyTargetActorCommandResponse(final Signal<?> enforcedSignal,
             final Object persistenceCommandResponse) {
+
         return Source.single(new CommandResponsePair<Signal<?>, Object>(enforcedSignal, persistenceCommandResponse))
                 .flatMapConcat(pair -> {
-                    if (pair.command instanceof RetrieveThing retrieveThing &&
+                    if (pair.command() instanceof RetrieveThing retrieveThing &&
                             shouldRetrievePolicyWithThing(retrieveThing) &&
-                            pair.response instanceof RetrieveThingResponse retrieveThingResponse) {
+                            pair.response() instanceof RetrieveThingResponse retrieveThingResponse) {
                         return enrichPolicy(retrieveThing, retrieveThingResponse)
                                 .map(Object.class::cast);
                     } else {
-                        return Source.single(pair.response);
+                        return Source.single(pair.response());
                     }
                 })
                 .toMat(Sink.head(), Keep.right())
@@ -424,6 +533,7 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
 
     private Source<RetrieveThingResponse, NotUsed> enrichPolicy(final RetrieveThing retrieveThing,
             final RetrieveThingResponse retrieveThingResponse) {
+
         return retrievePolicyIdViaSudoRetrieveThing()
                 .map(SudoRetrieveThingResponse::getThing)
                 .map(Thing::getPolicyId)
@@ -464,6 +574,7 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
     }
 
     private Source<SudoRetrieveThingResponse, NotUsed> retrievePolicyIdViaSudoRetrieveThing() {
+
         final CompletionStage<Object> askForThing =
                 Patterns.ask(persistenceActorChild, SudoRetrieveThing.of(entityId,
                                 JsonFieldSelector.newInstance("policyId"),
@@ -493,6 +604,7 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
      * @return whether it is necessary to retrieve the thing's policy.
      */
     private static boolean shouldRetrievePolicyWithThing(final RetrieveThing retrieveThing) {
+
         return retrieveThing.getSelectedFields()
                 .filter(selector -> selector.getPointers()
                         .stream()
@@ -546,12 +658,11 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
         final ActorContext actorContext = getContext();
         final ActorSystem actorSystem = actorContext.getSystem();
 
-        final ThingEnforcement thingEnforcement = new ThingEnforcement(actorSystem,
+        final ThingEnforcement thingEnforcement = new ThingEnforcement(
+                actorSystem,
                 policiesShardRegion,
                 creationRestrictionEnforcer,
-                enforcementConfig,
-                liveSignalPub,
-                responseReceiverCache
+                enforcementConfig
         );
 
         return ThingEnforcerActor.props(entityId, thingEnforcement, pubSubMediator, blockedNamespaces);
@@ -570,6 +681,7 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
 
     @Override
     protected ExponentialBackOffConfig getExponentialBackOffConfig() {
+
         return DittoThingsConfig.of(DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config()))
                 .getThingConfig()
                 .getSupervisorConfig()
@@ -578,6 +690,7 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
 
     @Nullable
     private static CharSequence getCorrelationIdOrNull(final Object signal, final WithDittoHeaders fallBackSignal) {
+
         final WithDittoHeaders withDittoHeaders;
         if (isWithDittoHeaders(signal)) {
             withDittoHeaders = (WithDittoHeaders) signal;
@@ -592,6 +705,5 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
         return o instanceof WithDittoHeaders;
     }
 
-    private record CommandResponsePair<C, R>(C command, R response) {
-    }
+    private record CommandResponsePair<C, R>(C command, R response) {}
 }

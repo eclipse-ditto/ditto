@@ -68,7 +68,7 @@ public abstract class AbstractEnforcementReloaded<S extends Signal<?>, R extends
      * @param dittoHeaders the DittoHeaders to use for the DittoRuntimeException.
      * @return DittoRuntimeException suitable for transmission of the error.
      */
-    protected DittoRuntimeException reportError(final String hint, @Nullable final Throwable throwable,
+    protected static DittoRuntimeException reportError(final String hint, @Nullable final Throwable throwable,
             final DittoHeaders dittoHeaders) {
         final Throwable error = throwable == null
                 ? new NullPointerException("Result and error are both null")
@@ -91,7 +91,7 @@ public abstract class AbstractEnforcementReloaded<S extends Signal<?>, R extends
      * @param dittoHeaders the DittoHeaders to use for the DittoRuntimeException.
      * @return DittoRuntimeException suitable for transmission of the error.
      */
-    protected DittoRuntimeException reportErrorOrResponse(final String hint, @Nullable final Object response,
+    public static DittoRuntimeException reportErrorOrResponse(final String hint, @Nullable final Object response,
             @Nullable final Throwable error, final DittoHeaders dittoHeaders) {
 
         if (error != null) {
@@ -113,7 +113,7 @@ public abstract class AbstractEnforcementReloaded<S extends Signal<?>, R extends
      * @param dittoHeaders the DittoHeaders to use for the DittoRuntimeException.
      * @return DittoInternalErrorException
      */
-    protected DittoRuntimeException reportUnknownResponse(final String hint, final Object response,
+    protected static DittoRuntimeException reportUnknownResponse(final String hint, final Object response,
             final DittoHeaders dittoHeaders) {
         LOGGER.withCorrelationId(dittoHeaders)
                 .error("Unexpected response {}: <{}>", hint, response);
@@ -132,7 +132,7 @@ public abstract class AbstractEnforcementReloaded<S extends Signal<?>, R extends
         return error instanceof AskTimeoutException || response instanceof AskTimeoutException;
     }
 
-    private DittoRuntimeException reportUnexpectedError(final String hint, final Throwable error,
+    private static DittoRuntimeException reportUnexpectedError(final String hint, final Throwable error,
             final DittoHeaders dittoHeaders) {
         LOGGER.withCorrelationId(dittoHeaders)
                 .error("Unexpected error {} - {}: {}", hint, error.getClass().getSimpleName(),

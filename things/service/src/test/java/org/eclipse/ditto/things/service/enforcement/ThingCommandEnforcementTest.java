@@ -19,15 +19,9 @@ import static org.eclipse.ditto.things.service.enforcement.TestSetup.THING_ID;
 
 import java.time.Instant;
 import java.util.Collections;
-import java.util.List;
-import java.util.Objects;
-import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
-
-import javax.annotation.Nullable;
 
 import org.assertj.core.api.Assertions;
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
@@ -35,7 +29,6 @@ import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
 import org.eclipse.ditto.base.model.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
-import org.eclipse.ditto.base.model.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
@@ -43,21 +36,11 @@ import org.eclipse.ditto.base.model.headers.entitytag.EntityTagMatcher;
 import org.eclipse.ditto.base.model.headers.entitytag.EntityTagMatchers;
 import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
-import org.eclipse.ditto.base.model.signals.Signal;
-import org.eclipse.ditto.base.service.actors.ShutdownBehaviour;
-import org.eclipse.ditto.base.service.config.supervision.ExponentialBackOffConfig;
-import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
-import org.eclipse.ditto.internal.utils.persistentactors.AbstractPersistenceSupervisor;
-import org.eclipse.ditto.internal.utils.pubsub.LiveSignalPub;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.policies.api.commands.sudo.SudoRetrievePolicy;
 import org.eclipse.ditto.policies.api.commands.sudo.SudoRetrievePolicyResponse;
-import org.eclipse.ditto.policies.enforcement.DefaultCreationRestrictionEnforcer;
-import org.eclipse.ditto.policies.enforcement.config.DefaultEnforcementConfig;
-import org.eclipse.ditto.policies.enforcement.config.DefaultEntityCreationConfig;
 import org.eclipse.ditto.policies.model.Permissions;
 import org.eclipse.ditto.policies.model.PoliciesModelFactory;
 import org.eclipse.ditto.policies.model.PoliciesResourceType;
@@ -77,7 +60,6 @@ import org.eclipse.ditto.things.api.commands.sudo.SudoRetrieveThingResponse;
 import org.eclipse.ditto.things.model.Feature;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingBuilder;
-import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.ThingsModelFactory;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommand;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.FeatureNotModifiableException;
@@ -88,7 +70,6 @@ import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingCondition
 import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingNotAccessibleException;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingNotCreatableException;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingNotModifiableException;
-import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingUnavailableException;
 import org.eclipse.ditto.things.model.signals.commands.modify.CreateThing;
 import org.eclipse.ditto.things.model.signals.commands.modify.CreateThingResponse;
 import org.eclipse.ditto.things.model.signals.commands.modify.ModifyAttribute;
@@ -101,63 +82,24 @@ import org.eclipse.ditto.things.model.signals.commands.query.RetrieveAttribute;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveAttributeResponse;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThing;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThingResponse;
-import org.eclipse.ditto.things.service.common.config.DittoThingsConfig;
-import org.eclipse.ditto.things.service.persistence.actors.ResponseReceiverCache;
-import org.eclipse.ditto.things.service.persistence.actors.ThingEnforcerActor;
-import org.junit.After;
-import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
 
-import com.typesafe.config.ConfigFactory;
-
 import akka.actor.ActorRef;
-import akka.actor.ActorSystem;
-import akka.actor.Props;
-import akka.testkit.TestActorRef;
-import akka.testkit.TestProbe;
 import akka.testkit.javadsl.TestKit;
 import scala.concurrent.duration.Duration;
 
 /**
- * Tests {@link ThingCommandEnforcement} in context of a {@link ThingEnforcerActor}.
+ * Tests {@link org.eclipse.ditto.things.service.persistence.actors.ThingSupervisorActor} and its
+ * {@link org.eclipse.ditto.things.service.enforcement.ThingEnforcement} for "twin" related commands enforced by
+ * {@link org.eclipse.ditto.things.service.enforcement.ThingCommandEnforcement}.
  */
 @SuppressWarnings({"squid:S3599", "squid:S1171"})
-public final class ThingCommandEnforcementTest {
+public final class ThingCommandEnforcementTest extends AbstractThingEnforcementTest {
 
     @Rule
     public final TestName testName = new TestName();
-
-    private ActorSystem system;
-
-    private TestProbe pubSubMediatorProbe;
-
-    private TestProbe thingPersistenceActorProbe;
-    private TestProbe policiesShardRegionProbe;
-    private ActorRef supervisor;
-
-    private MockThingPersistenceSupervisor mockThingPersistenceSupervisor;
-
-    @Before
-    public void init() {
-        system = ActorSystem.create("test", ConfigFactory.load("test"));
-
-        pubSubMediatorProbe = createPubSubMediatorProbe();
-        thingPersistenceActorProbe = createThingPersistenceActorProbe();
-        policiesShardRegionProbe = getTestProbe(createUniqueName("policiesShardRegionProbe-"));
-        final TestActorRef<MockThingPersistenceSupervisor> thingPersistenceSupervisorTestActorRef =
-                createThingPersistenceSupervisor();
-        supervisor = thingPersistenceSupervisorTestActorRef;
-        mockThingPersistenceSupervisor = thingPersistenceSupervisorTestActorRef.underlyingActor();
-    }
-
-    @After
-    public void shutdown() {
-        if (system != null) {
-            TestKit.shutdownActorSystem(system);
-        }
-    }
 
     @Test
     public void rejectByPolicy() {
@@ -889,20 +831,6 @@ public final class ThingCommandEnforcementTest {
         }};
     }
 
-    private void expectAndAnswerSudoRetrieveThing(final Object sudoRetrieveThingResponse) {
-        final SudoRetrieveThing sudoRetrieveThing =
-                thingPersistenceActorProbe.expectMsgClass(SudoRetrieveThing.class);
-        assertThat((CharSequence) sudoRetrieveThing.getEntityId()).isEqualTo(THING_ID);
-        thingPersistenceActorProbe.reply(sudoRetrieveThingResponse);
-    }
-
-    private void expectAndAnswerSudoRetrievePolicy(final PolicyId policyId, final Object sudoRetrievePolicyResponse) {
-        final SudoRetrievePolicy sudoRetrievePolicy =
-                policiesShardRegionProbe.expectMsgClass(SudoRetrievePolicy.class);
-        assertThat((CharSequence) sudoRetrievePolicy.getEntityId()).isEqualTo(policyId);
-        policiesShardRegionProbe.reply(sudoRetrievePolicyResponse);
-    }
-
     @SuppressWarnings("unchecked")
     private <C extends ThingCommand<?>> C addReadSubjectHeader(final C command, final SubjectId... subjectIds) {
         return (C) command.setDittoHeaders(command.getDittoHeaders().toBuilder()
@@ -910,14 +838,6 @@ public final class ThingCommandEnforcementTest {
                         .map(AuthorizationSubject::newInstance)
                         .toList()
                 )
-                .build()
-        );
-    }
-
-    @SuppressWarnings("unchecked")
-    private <C extends ThingCommand<?>> C addReadSubjectHeader(final C command, final AuthorizationSubject subject) {
-        return (C) command.setDittoHeaders(command.getDittoHeaders().toBuilder()
-                .readGrantedSubjects(List.of(subject))
                 .build()
         );
     }
@@ -934,33 +854,6 @@ public final class ThingCommandEnforcementTest {
                         Permissions.newInstance(Permission.WRITE, Permission.READ))
                 .setRevision(1)
                 .build();
-    }
-
-    private TestProbe createPubSubMediatorProbe() {
-        return getTestProbe(createUniqueName("pubSubMediatorProbe-"));
-    }
-
-    private TestProbe createThingPersistenceActorProbe() {
-        return getTestProbe(createUniqueName("thingPersistenceActorProbe-"));
-    }
-
-    private TestProbe getTestProbe(final String uniqueName) {
-        return new TestProbe(system, uniqueName);
-    }
-
-    private static String createUniqueName(final String prefix) {
-        return prefix + UUID.randomUUID();
-    }
-
-    private TestActorRef<MockThingPersistenceSupervisor> createThingPersistenceSupervisor() {
-        return new TestActorRef<>(system, Props.create(
-                MockThingPersistenceSupervisor.class,
-                pubSubMediatorProbe.ref(),
-                thingPersistenceActorProbe.ref(),
-                system,
-                policiesShardRegionProbe.ref(),
-                new TestSetup.DummyLiveSignalPub(pubSubMediatorProbe.ref())
-        ), system.guardian(), MockThingPersistenceSupervisor.ACTOR_NAME);
     }
 
     private DittoHeaders headers() {
@@ -1007,69 +900,4 @@ public final class ThingCommandEnforcementTest {
         return RetrieveThing.of(THING_ID, builder.build());
     }
 
-    static class MockThingPersistenceSupervisor extends AbstractPersistenceSupervisor<ThingId, Signal<?>> {
-
-        static final String ACTOR_NAME = "mockThingPersistenceSupervisor";
-
-        private final ActorRef pubSubMediator;
-        private final ThingEnforcement thingEnforcement;
-
-        MockThingPersistenceSupervisor(final ActorRef pubSubMediator,
-                final ActorRef thingPersistenceActor,
-                final ActorSystem actorSystem,
-                final ActorRef policiesShardRegion,
-                final LiveSignalPub liveSignalPub) {
-            super(thingPersistenceActor, null, null, CompletableFuture::completedStage);
-            this.pubSubMediator = pubSubMediator;
-            final ResponseReceiverCache responseReceiverCache = ResponseReceiverCache.lookup(getContext().getSystem());
-            thingEnforcement = new ThingEnforcement(actorSystem,
-                    policiesShardRegion,
-                    DefaultCreationRestrictionEnforcer.of(
-                            DefaultEntityCreationConfig.of(ConfigFactory.empty())),
-                    DefaultEnforcementConfig.of(ConfigFactory.empty()),
-                    liveSignalPub,
-                    responseReceiverCache
-            );
-        }
-
-        @Override
-        protected ThingId getEntityId() throws Exception {
-            return THING_ID;
-        }
-
-        @Override
-        protected Props getPersistenceActorProps(final ThingId entityId) {
-            throw new IllegalStateException("This method should never be invoked for the Mock");
-        }
-
-        @Override
-        protected Props getPersistenceEnforcerProps(final ThingId entityId) {
-            return ThingEnforcerActor.props(
-                    entityId,
-                    thingEnforcement,
-                    pubSubMediator,
-                    null
-            );
-        }
-
-        @Override
-        protected ExponentialBackOffConfig getExponentialBackOffConfig() {
-            final DittoThingsConfig thingsConfig = DittoThingsConfig.of(
-                    DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config())
-            );
-            return thingsConfig.getThingConfig().getSupervisorConfig().getExponentialBackOffConfig();
-        }
-
-        @Override
-        protected ShutdownBehaviour getShutdownBehaviour(final ThingId entityId) {
-            return ShutdownBehaviour.fromId(entityId, pubSubMediator, getSelf());
-        }
-
-        @Override
-        protected DittoRuntimeExceptionBuilder<?> getUnavailableExceptionBuilder(@Nullable final ThingId entityId) {
-            return ThingUnavailableException.newBuilder(
-                    Objects.requireNonNullElseGet(entityId, () -> ThingId.of("UNKNOWN:ID")));
-        }
-
-    }
 }

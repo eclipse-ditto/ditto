@@ -21,12 +21,12 @@ import javax.annotation.Nullable;
 import org.eclipse.ditto.base.model.acks.AcknowledgementLabel;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgements;
-import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
 import org.eclipse.ditto.internal.models.signal.correlation.CommandAndCommandResponseMatchingValidator;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.policies.enforcement.PreEnforcer;
+import org.eclipse.ditto.things.model.signals.commands.query.ThingQueryCommand;
 
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
@@ -44,11 +44,12 @@ final class LiveResponseAndAcknowledgementForwarder extends AbstractActor {
 
     private static final Duration DEFAULT_TIMEOUT = Duration.ofSeconds(60);
 
-    private final DittoDiagnosticLoggingAdapter logger;
+    private final DittoDiagnosticLoggingAdapter log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
+
     private final ActorRef messageReceiver;
     private final ActorRef acknowledgementReceiver;
     private final Set<AcknowledgementLabel> pendingAcknowledgements;
-    private final Command<?> command;
+    private final ThingQueryCommand<?> thingQueryCommand;
     private final CommandAndCommandResponseMatchingValidator responseValidator;
     private boolean responseReceived = false;
 
@@ -56,18 +57,17 @@ final class LiveResponseAndAcknowledgementForwarder extends AbstractActor {
     private ActorRef messageSender = null;
 
     @SuppressWarnings("unused")
-    private LiveResponseAndAcknowledgementForwarder(final Command<?> command,
+    private LiveResponseAndAcknowledgementForwarder(final ThingQueryCommand<?> thingQueryCommand,
             final ActorRef messageReceiver,
             final ActorRef acknowledgementReceiver) {
 
-        logger = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
         pendingAcknowledgements = new HashSet<>();
         this.messageReceiver = messageReceiver;
         this.acknowledgementReceiver = acknowledgementReceiver;
-        this.command = command;
+        this.thingQueryCommand = thingQueryCommand;
         responseValidator = CommandAndCommandResponseMatchingValidator.getInstance();
-        getContext().setReceiveTimeout(command.getDittoHeaders().getTimeout().orElse(DEFAULT_TIMEOUT));
-        for (final var ackRequest : command.getDittoHeaders().getAcknowledgementRequests()) {
+        getContext().setReceiveTimeout(this.thingQueryCommand.getDittoHeaders().getTimeout().orElse(DEFAULT_TIMEOUT));
+        for (final var ackRequest : this.thingQueryCommand.getDittoHeaders().getAcknowledgementRequests()) {
             pendingAcknowledgements.add(ackRequest.getLabel());
         }
     }
@@ -75,15 +75,15 @@ final class LiveResponseAndAcknowledgementForwarder extends AbstractActor {
     /**
      * Create Props object for this actor.
      *
-     * @param command The live command whose acknowledgements and responses this actor listens for.
+     * @param thingQueryCommand The live command whose acknowledgements and responses this actor listens for.
      * @param messageReceiver Receiver of the message to publish.
      * @param acknowledgementReceiver Receiver of acknowledgements.
      * @return The Props object.
      */
-    public static Props props(final Command<?> command,
+    public static Props props(final ThingQueryCommand<?> thingQueryCommand,
             final ActorRef messageReceiver,
             final ActorRef acknowledgementReceiver) {
-        return Props.create(LiveResponseAndAcknowledgementForwarder.class, command, messageReceiver,
+        return Props.create(LiveResponseAndAcknowledgementForwarder.class, thingQueryCommand, messageReceiver,
                 acknowledgementReceiver);
     }
 
@@ -99,19 +99,19 @@ final class LiveResponseAndAcknowledgementForwarder extends AbstractActor {
     }
 
     private void sendMessage(final Object message) {
-        logger.debug("Got message to send <{}>", message);
+        log.debug("Got message to send <{}>", message);
         messageSender = getSender();
         messageReceiver.tell(message, getSelf());
     }
 
     private void onAcknowledgement(final Acknowledgement ack) {
-        logger.debug("Got <{}>", ack);
+        log.debug("Got <{}>", ack);
         pendingAcknowledgements.remove(ack.getLabel());
         acknowledgementReceiver.forward(ack, getContext());
     }
 
     private void onAcknowledgements(final Acknowledgements acks) {
-        logger.debug("Got <{}>", acks);
+        log.debug("Got <{}>", acks);
         for (final var ack : acks) {
             pendingAcknowledgements.remove(ack.getLabel());
         }
@@ -121,14 +121,14 @@ final class LiveResponseAndAcknowledgementForwarder extends AbstractActor {
     private void onCommandResponse(final CommandResponse<?> incomingResponse) {
         final CommandResponse<?> response = PreEnforcer.setOriginatorHeader(incomingResponse);
         final boolean validResponse = isValidResponse(response);
-        logger.debug("Got <{}>, valid=<{}>", response, validResponse);
+        log.debug("Got <{}>, valid=<{}>", response, validResponse);
         if (validResponse) {
             responseReceived = true;
             if (messageSender != null) {
                 messageSender.forward(response, getContext());
                 checkCompletion();
             } else {
-                logger.error("Got response without receiving command");
+                log.error("Got response without receiving command");
                 stopSelf("Message sender not found");
             }
         } else {
@@ -143,12 +143,12 @@ final class LiveResponseAndAcknowledgementForwarder extends AbstractActor {
     }
 
     private void stopSelf(final Object trigger) {
-        logger.debug("Stopping due to <{}>", trigger);
+        log.debug("Stopping due to <{}>", trigger);
         getContext().cancelReceiveTimeout();
         getContext().stop(getSelf());
     }
 
     private boolean isValidResponse(final CommandResponse<?> response) {
-        return responseValidator.apply(command, response).isSuccess();
+        return responseValidator.apply(thingQueryCommand, response).isSuccess();
     }
 }

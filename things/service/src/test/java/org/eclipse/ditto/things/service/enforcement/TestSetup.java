@@ -88,6 +88,8 @@ public final class TestSetup {
     public static final String SUBJECT_ID = "subject";
     public static final AuthorizationSubject SUBJECT = AuthorizationSubject.newInstance("dummy:" + SUBJECT_ID);
 
+    public static final AuthorizationSubject GOOGLE_SUBJECT = AuthorizationSubject.newInstance("google:" + SUBJECT_ID);
+
     private static final Config RAW_CONFIG = ConfigFactory.load("test");
     private static final CachesConfig CACHES_CONFIG;
     private static final EnforcementConfig ENFORCEMENT_CONFIG;

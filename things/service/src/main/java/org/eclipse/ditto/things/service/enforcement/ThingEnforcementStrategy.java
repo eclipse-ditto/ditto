@@ -21,7 +21,6 @@ import org.eclipse.ditto.policies.enforcement.EnforcementReloaded;
  * <ul>
  * <li>Thing commands on "twin" channel</li>
  * <li>Live messages / live commands</li>
- * <li>Smart channel selection</li>
  * </ul>
  */
 interface ThingEnforcementStrategy {

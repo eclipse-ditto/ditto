@@ -14,11 +14,8 @@ package org.eclipse.ditto.things.service.enforcement;
 
 import static org.eclipse.ditto.policies.api.Permission.WRITE;
 
-import java.time.Duration;
-import java.time.Instant;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
-import java.util.function.Function;
 
 import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.base.model.entity.id.WithEntityId;
@@ -30,7 +27,6 @@ import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
 import org.eclipse.ditto.base.model.signals.commands.WithEntity;
 import org.eclipse.ditto.base.model.signals.events.Event;
-import org.eclipse.ditto.internal.utils.pubsub.DistributedPub;
 import org.eclipse.ditto.internal.utils.pubsub.StreamingType;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
@@ -49,13 +45,9 @@ import org.eclipse.ditto.policies.model.enforcers.Enforcer;
 import org.eclipse.ditto.things.model.ThingConstants;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommand;
-import org.eclipse.ditto.things.model.signals.commands.ThingCommandResponse;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.EventSendNotAllowedException;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingNotAccessibleException;
-import org.eclipse.ditto.things.model.signals.commands.query.ThingQueryCommandResponse;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
-
-import akka.actor.ActorRef;
 
 /**
  * Enforces live commands (including message commands) and live events.
@@ -63,9 +55,6 @@ import akka.actor.ActorRef;
 final class LiveSignalEnforcement
         extends AbstractEnforcementReloaded<Signal<?>, CommandResponse<?>>
         implements ThingEnforcementStrategy {
-
-    private static final Duration MIN_LIVE_TIMEOUT = Duration.ofSeconds(1L);
-    private static final Duration DEFAULT_LIVE_TIMEOUT = Duration.ofSeconds(60L);
 
     @Override
     public boolean isApplicable(final Signal<?> signal) {
@@ -175,7 +164,7 @@ final class LiveSignalEnforcement
                 final ThingCommand<?> withReadSubjects =
                         addEffectedReadSubjectsToThingLiveSignal((ThingCommand<?>) liveSignal, enforcer.getEnforcer());
                 LOGGER.withCorrelationId(withReadSubjects)
-                        .info("Live Command was authorized: <{}>", withReadSubjects);
+                        .info("Live Command was authorized: <{}>", withReadSubjects.getType());
                 return CompletableFuture.completedStage(withReadSubjects);
             default:
                 LOGGER.withCorrelationId(liveSignal)
@@ -271,25 +260,7 @@ final class LiveSignalEnforcement
         return error;
     }
 
-    /**
-     * TODO TJ remove this method from here - should only be done in supervisor!
-     */
-    static CompletionStage<ThingQueryCommandResponse<?>> adjustTimeoutAndFilterLiveQueryResponse(
-            final EnforcementReloaded<? super ThingCommand<?>, ThingCommandResponse<?>> enforcement,
-            final ThingCommand<?> command,
-            final Instant startTime,
-            final DistributedPub<ThingCommand<?>> pub,
-            final ActorRef liveResponseForwarder,
-            final PolicyEnforcer policyEnforcer,
-            final Function<Object, CompletionStage<ThingQueryCommandResponse<?>>> responseCaster) {
 
-        final var timeout = getAdjustedTimeout(command, startTime);
-        final var signalWithAdjustedTimeout = adjustTimeout(command, timeout);
-//        final var publish = pub.wrapForPublicationWithAcks(signalWithAdjustedTimeout,
-//                LiveSignalEnforcement.THING_COMMAND_ACK_EXTRACTOR);
-
-        return CompletableFuture.completedStage(null);
-    }
 
     private static boolean isAuthorized(final MessageCommand<?, ?> command, final Enforcer enforcer) {
         return enforcer.hasUnrestrictedPermissions(extractMessageResourceKey(command),
@@ -306,25 +277,6 @@ final class LiveSignalEnforcement
                     .dittoHeaders(command.getDittoHeaders())
                     .build();
         }
-    }
-
-    static Duration getLiveSignalTimeout(final Signal<?> signal) {
-        return signal.getDittoHeaders().getTimeout().orElse(DEFAULT_LIVE_TIMEOUT);
-    }
-
-    private static Duration getAdjustedTimeout(final Signal<?> signal, final Instant startTime) {
-        final var baseTimeout = getLiveSignalTimeout(signal);
-        final var adjustedTimeout = baseTimeout.minus(Duration.between(startTime, Instant.now()));
-        return adjustedTimeout.minus(MIN_LIVE_TIMEOUT).isNegative() ? MIN_LIVE_TIMEOUT : adjustedTimeout;
-    }
-
-    private static ThingCommand<?> adjustTimeout(final ThingCommand<?> signal, final Duration adjustedTimeout) {
-        return signal.setDittoHeaders(
-                signal.getDittoHeaders()
-                        .toBuilder()
-                        .timeout(adjustedTimeout)
-                        .build()
-        );
     }
 
 }

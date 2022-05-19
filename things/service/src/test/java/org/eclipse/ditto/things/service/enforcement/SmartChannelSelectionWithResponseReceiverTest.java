@@ -13,10 +13,9 @@
 package org.eclipse.ditto.things.service.enforcement;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.eclipse.ditto.policies.model.PoliciesResourceType.THING;
 import static org.eclipse.ditto.policies.model.SubjectIssuer.GOOGLE;
 
-import java.util.UUID;
+import java.util.List;
 import java.util.function.Consumer;
 
 import org.assertj.core.api.Assertions;
@@ -30,6 +29,7 @@ import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.signals.Signal;
+import org.eclipse.ditto.internal.utils.pubsub.StreamingType;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.policies.api.commands.sudo.SudoRetrievePolicyResponse;
@@ -40,49 +40,41 @@ import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.things.api.Permission;
 import org.eclipse.ditto.things.api.commands.sudo.SudoRetrieveThingResponse;
 import org.eclipse.ditto.things.model.ThingIdInvalidException;
+import org.eclipse.ditto.things.model.signals.commands.ThingCommand;
 import org.eclipse.ditto.things.model.signals.commands.ThingErrorResponse;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThing;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThingResponse;
-import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
 
-import com.typesafe.config.ConfigFactory;
-
 import akka.actor.ActorRef;
-import akka.actor.ActorSystem;
 import akka.cluster.pubsub.DistributedPubSubMediator;
-import akka.testkit.TestActorRef;
 import akka.testkit.javadsl.TestKit;
+import scala.PartialFunction;
+import scala.concurrent.duration.FiniteDuration;
 
 /**
- * Tests {@link ThingCommandEnforcement} in context of an {@code EnforcerActor} for commands requiring smart channel
+ * Tests {@link org.eclipse.ditto.things.service.persistence.actors.ThingSupervisorActor} and its
+ * {@link org.eclipse.ditto.things.service.enforcement.ThingEnforcement} for commands requiring smart channel
  * selection where live responses come from a different channel than where the command is published.
  */
-@Ignore("TODO CR-11311 reactivate and fix test")
-public final class SmartChannelSelectionWithResponseReceiverTest {
+public final class SmartChannelSelectionWithResponseReceiverTest extends AbstractThingEnforcementTest {
 
-    private static final String LIVE_COMMANDS_PUB_SUB_TOPIC = "things-live-commands";
+    public static final PolicyId POLICY_ID = PolicyId.of("policy:id");
 
     @Rule
     public final TestName testName = new TestName();
 
-    private ActorSystem system;
-    private MockEntitiesActor mockEntitiesActorInstance;
-    private ActorRef mockEntitiesActor;
     private JsonObject thing;
+    private SudoRetrieveThingResponse sudoRetrieveThingResponse;
+    private SudoRetrievePolicyResponse sudoRetrievePolicyResponse;
 
     @Before
     public void init() {
-        system = ActorSystem.create("test", ConfigFactory.load("test"));
-        final TestActorRef<MockEntitiesActor> testActorRef =
-                new TestActorRef<>(system, MockEntitiesActor.props(), system.guardian(), UUID.randomUUID().toString());
-        mockEntitiesActorInstance = testActorRef.underlyingActor();
-        mockEntitiesActor = testActorRef;
-        final PolicyId policyId = PolicyId.of("policy:id");
+        super.init();
+        final PolicyId policyId = POLICY_ID;
         thing = TestSetup.newThingWithPolicyId(policyId);
         final JsonObject policy = PoliciesModelFactory.newPolicyBuilder(policyId)
                 .setRevision(1L)
@@ -92,34 +84,23 @@ public final class SmartChannelSelectionWithResponseReceiverTest {
                         Permissions.newInstance(Permission.READ, Permission.WRITE))
                 .build()
                 .toJson(FieldType.all());
-        final SudoRetrieveThingResponse sudoRetrieveThingResponse =
-                SudoRetrieveThingResponse.of(thing, DittoHeaders.empty());
-        final SudoRetrievePolicyResponse sudoRetrievePolicyResponse =
-                SudoRetrievePolicyResponse.of(policyId, policy, DittoHeaders.empty());
-
-        mockEntitiesActorInstance.setReply(TestSetup.THING_SUDO, sudoRetrieveThingResponse);
-        mockEntitiesActorInstance.setReply(TestSetup.POLICY_SUDO, sudoRetrievePolicyResponse);
-    }
-
-    @After
-    public void shutdown() {
-        if (system != null) {
-            TestKit.shutdownActorSystem(system);
-        }
+        sudoRetrieveThingResponse = SudoRetrieveThingResponse.of(thing, DittoHeaders.empty());
+        sudoRetrievePolicyResponse = SudoRetrievePolicyResponse.of(policyId, policy, DittoHeaders.empty());
     }
 
     @Test
     public void matchLiveChannelCondition() {
         new TestKit(system) {{
-            final ActorRef underTest = newEnforcerActor(getRef());
             final var retrieveThing = getRetrieveThing(headers -> headers.liveChannelCondition("exists(thingId)"));
-            mockEntitiesActorInstance.setReply(THING, getRetrieveThingResponse(retrieveThing, b -> {}));
-            underTest.tell(retrieveThing, getRef());
-            final var publish = TestSetup.fishForMsgClass(this, DistributedPubSubMediator.Publish.class);
-            Assertions.assertThat(publish.topic()).isEqualTo(LIVE_COMMANDS_PUB_SUB_TOPIC);
-            Assertions.assertThat(publish.message()).isInstanceOf(RetrieveThing.class);
-            assertLiveChannel(RetrieveThing.class, publish.message());
-            underTest.tell(getRetrieveThingResponse(retrieveThing, b -> b.channel("live")), ActorRef.noSender());
+            supervisor.tell(retrieveThing, getRef());
+            expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
+            expectAndAnswerSudoRetrievePolicy(POLICY_ID, sudoRetrievePolicyResponse);
+
+            thingPersistenceActorProbe.expectMsg(addReadSubjectHeader(retrieveThing, TestSetup.GOOGLE_SUBJECT));
+            thingPersistenceActorProbe.reply(getRetrieveThingResponse(retrieveThing, b -> {}));
+
+            expectLiveQueryCommandOnPubSub(retrieveThing);
+            supervisor.tell(getRetrieveThingResponse(retrieveThing, b -> b.channel("live")), ActorRef.noSender());
             assertLiveChannel(expectMsgClass(RetrieveThingResponse.class));
         }};
     }
@@ -127,14 +108,20 @@ public final class SmartChannelSelectionWithResponseReceiverTest {
     @Test
     public void liveChannelErrorWithTwinFallback() {
         new TestKit(system) {{
-            final ActorRef underTest = newEnforcerActor(getRef());
             final var retrieveThing = getRetrieveThing(headers -> headers.liveChannelCondition("exists(thingId)")
                     .putHeader(DittoHeaderDefinition.LIVE_CHANNEL_TIMEOUT_STRATEGY.getKey(), "use-twin"));
+            supervisor.tell(retrieveThing, getRef());
+
+            expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
+            expectAndAnswerSudoRetrievePolicy(POLICY_ID, sudoRetrievePolicyResponse);
+
+            thingPersistenceActorProbe.expectMsg(addReadSubjectHeader(retrieveThing, TestSetup.GOOGLE_SUBJECT));
             final var twinResponse = getRetrieveThingResponse(retrieveThing, b -> {});
-            mockEntitiesActorInstance.setReply(THING, twinResponse);
-            underTest.tell(retrieveThing, getRef());
-            TestSetup.fishForMsgClass(this, DistributedPubSubMediator.Publish.class);
-            underTest.tell(ThingErrorResponse.of(retrieveThing.getEntityId(),
+            thingPersistenceActorProbe.reply(twinResponse);
+
+            expectLiveQueryCommandOnPubSub(retrieveThing);
+
+            supervisor.tell(ThingErrorResponse.of(retrieveThing.getEntityId(),
                     ThingIdInvalidException.newBuilder(retrieveThing.getEntityId())
                             .dittoHeaders(retrieveThing.getDittoHeaders().toBuilder().channel("live").build())
                             .build()), ActorRef.noSender());
@@ -146,24 +133,31 @@ public final class SmartChannelSelectionWithResponseReceiverTest {
     @Test
     public void liveCommandErrorWithTwinFallback() {
         new TestKit(system) {{
-            final ActorRef underTest = newEnforcerActor(getRef());
             final var retrieveThing = getRetrieveThing(headers -> headers.channel("live")
                     .putHeader(DittoHeaderDefinition.LIVE_CHANNEL_TIMEOUT_STRATEGY.getKey(), "use-twin"));
+            supervisor.tell(retrieveThing, getRef());
+
+            expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
+            expectAndAnswerSudoRetrievePolicy(POLICY_ID, sudoRetrievePolicyResponse);
+
+            RetrieveThing expectedRetrieveThing = addReadSubjectHeader(retrieveThing, TestSetup.GOOGLE_SUBJECT);
+            expectedRetrieveThing = expectedRetrieveThing.setDittoHeaders(expectedRetrieveThing.getDittoHeaders()
+                    .toBuilder()
+                    .channel(Signal.CHANNEL_TWIN)
+                    .readRevokedSubjects(List.of())
+                    .build());
+            thingPersistenceActorProbe.expectMsg(expectedRetrieveThing);
             final var twinResponse = getRetrieveThingResponse(retrieveThing, b -> {});
-            mockEntitiesActorInstance.setReply(THING, twinResponse);
-            underTest.tell(retrieveThing, getRef());
-            TestSetup.fishForMsgClass(this, DistributedPubSubMediator.Publish.class);
-            underTest.tell(ThingErrorResponse.of(retrieveThing.getEntityId(),
+            thingPersistenceActorProbe.reply(twinResponse);
+
+            expectLiveQueryCommandOnPubSub(retrieveThing);
+            supervisor.tell(ThingErrorResponse.of(retrieveThing.getEntityId(),
                     ThingIdInvalidException.newBuilder(retrieveThing.getEntityId())
                             .dittoHeaders(retrieveThing.getDittoHeaders().toBuilder().channel("live").build())
                             .build()), ActorRef.noSender());
             final var receivedError = expectMsgClass(ThingIdInvalidException.class);
             assertLiveChannel(receivedError);
         }};
-    }
-
-    private ActorRef newEnforcerActor(final ActorRef testActorRef) {
-        return TestSetup.newEnforcerActor(system, testActorRef, mockEntitiesActor);
     }
 
     private DittoHeaders headers() {
@@ -189,6 +183,25 @@ public final class SmartChannelSelectionWithResponseReceiverTest {
                 .putHeader(DittoHeaderDefinition.LIVE_CHANNEL_CONDITION_MATCHED.getKey(), "true");
         headerModifier.accept(builder);
         return RetrieveThingResponse.of(retrieveThing.getEntityId(), thing, builder.build());
+    }
+
+    private void expectLiveQueryCommandOnPubSub(final RetrieveThing retrieveThing) {
+        final DistributedPubSubMediator.Publish publishLiveQueryCommand =
+                (DistributedPubSubMediator.Publish) pubSubMediatorProbe.fishForMessage(
+                        FiniteDuration.apply(5, "s"),
+                        "publish live query command",
+                        PartialFunction.fromFunction(msg ->
+                                msg instanceof DistributedPubSubMediator.Publish publish &&
+                                        publish.topic().equals(
+                                                StreamingType.LIVE_COMMANDS.getDistributedPubSubTopic())
+                        )
+                );
+
+        assertThat(publishLiveQueryCommand.topic()).isEqualTo(StreamingType.LIVE_COMMANDS.getDistributedPubSubTopic());
+        assertThat(publishLiveQueryCommand.msg()).isInstanceOf(ThingCommand.class);
+        assertThat((CharSequence) ((ThingCommand<?>) publishLiveQueryCommand.msg()).getEntityId())
+                .isEqualTo(retrieveThing.getEntityId());
+        assertLiveChannel((ThingCommand<?>) publishLiveQueryCommand.msg());
     }
 
     private void assertLiveChannel(final Class<? extends WithDittoHeaders> clazz, final Object message) {

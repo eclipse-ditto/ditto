@@ -12,10 +12,12 @@
  */
 package org.eclipse.ditto.internal.utils.persistentactors;
 
+import java.text.MessageFormat;
 import java.time.Duration;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.function.Function;
 
 import javax.annotation.Nullable;
 
@@ -46,11 +48,11 @@ import akka.actor.ActorRef;
 import akka.actor.PoisonPill;
 import akka.actor.Props;
 import akka.actor.ReceiveTimeout;
+import akka.actor.Status;
 import akka.actor.SupervisorStrategy;
 import akka.actor.Terminated;
 import akka.cluster.sharding.ShardRegion;
 import akka.japi.pf.ReceiveBuilder;
-import akka.pattern.AskTimeoutException;
 import akka.pattern.Patterns;
 
 /**
@@ -280,37 +282,43 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
      *
      * @param message the message to ask the target actor.
      * @param sender the sender which originally sent the message.
+     * @param <T> the type of the message.
      * @return the completion stage with the response for the message or a failed stage.
      */
-    protected CompletionStage<Object> askTargetActor(final Object message, final ActorRef sender) {
+    protected <T> CompletionStage<Object> askTargetActor(final T message, final ActorRef sender) {
         return getTargetActorForSendingEnforcedMessageTo(message, sender)
-                .thenCompose(targetWithMessage -> null != targetWithMessage ? Patterns.ask(
-                        targetWithMessage.targetActor(),
-                        targetWithMessage.message(),
-                        targetWithMessage.messageTimeout()
-                ).exceptionally(throwable -> {
-                    if (throwable instanceof AskTimeoutException askTimeoutException &&
-                            targetWithMessage.internalErrorOnMessageTimeout()) {
-                        throw DittoRuntimeException.asDittoRuntimeException(askTimeoutException, cause ->
-                                DittoInternalErrorException.newBuilder()
-                                        .cause(cause)
-                                        .dittoHeaders(getDittoHeaders(message))
-                                        .build()
-                        );
-                    } else {
-                        return CompletableFuture.completedStage(null);
-                    }
-                }) : CompletableFuture.completedFuture(null)
-                )
-                .thenApply(targetActor -> {
-                    if (null == targetActor) {
+                .thenCompose(this::askOrForwardToTargetActor)
+                .thenApply(response -> {
+                    if (null == response) {
                         throw getUnavailableExceptionBuilder(entityId)
                                 .dittoHeaders(getDittoHeaders(message))
                                 .build();
                     } else {
-                        return targetActor;
+                        return response;
                     }
                 });
+    }
+
+    private CompletionStage<Object> askOrForwardToTargetActor(
+            @Nullable final TargetActorWithMessage targetActorWithMessage) {
+        if (null != targetActorWithMessage) {
+            if (!targetActorWithMessage.messageTimeout().isZero()) {
+                return Patterns.ask(
+                                targetActorWithMessage.targetActor(),
+                                targetActorWithMessage.message(),
+                                targetActorWithMessage.messageTimeout()
+                        )
+                        .thenApply(targetActorWithMessage.responseOrErrorConverter())
+                        .exceptionally(throwable -> targetActorWithMessage.responseOrErrorConverter().apply(throwable));
+            } else {
+                targetActorWithMessage.targetActor().tell(targetActorWithMessage.message(), getSelf());
+                return CompletableFuture.completedStage(new Status.Success(MessageFormat.format(
+                        "message <{0}> sent via tell", targetActorWithMessage.message().getClass().getSimpleName()))
+                );
+            }
+        } else {
+            return CompletableFuture.completedStage(null);
+        }
     }
 
     /**
@@ -319,10 +327,11 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
      *
      * @param message the message to determine the target actor for.
      * @param sender the sender which originally sent the message.
+     * @param <T> the type of the message.
      * @return the completion stage with the determined {@link TargetActorWithMessage} which includes the target actor
      * and the message to send it to
      */
-    protected CompletionStage<TargetActorWithMessage> getTargetActorForSendingEnforcedMessageTo(final Object message,
+    protected <T> CompletionStage<TargetActorWithMessage> getTargetActorForSendingEnforcedMessageTo(final T message,
             final ActorRef sender) {
         if (null != persistenceActorChild) {
             return CompletableFuture.completedStage(
@@ -330,7 +339,7 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
                             persistenceActorChild,
                             message,
                             DEFAULT_LOCAL_ASK_TIMEOUT,
-                            true
+                            Function.identity()
                     ));
         } else {
             return CompletableFuture.completedStage(null);
@@ -465,6 +474,8 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
     /**
      * Forward all messages to the persistenceActorChild (after applied enforcement) if it is active or by reply
      * immediately with an exception if the child has terminated (fail fast).
+     *
+     * TODO TJ simplify
      */
     private void enforceAndForwardToTargetActor(final Object message) {
 
@@ -606,10 +617,10 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
             log.withCorrelationId(targetActorResponse.enforcedSignal())
                     .debug("Received DittoRuntimeException as response from target actor: {}", dre);
             throw dre;
-        } else if (targetActorResponse.response() instanceof DistributedPubWithMessage distributedPubWithMessage) {
+        } else if (targetActorResponse.response() instanceof Status.Success success) {
             log.withCorrelationId(targetActorResponse.enforcedSignal())
-                    .info("DistributedPubWithMessage from target actor: {}", distributedPubWithMessage);
-            return CompletableFuture.completedStage(null);
+                    .info("Got success message from target actor: {}", success);
+            return CompletableFuture.completedStage(success);
         } else {
             log.withCorrelationId(targetActorResponse.enforcedSignal())
                     .warning("Unexpected response from target actor: {}", targetActorResponse);
@@ -655,14 +666,35 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
         INIT_DONE
     }
 
+    /**
+     * A supervisor internal message which contains the {@link DistributedPub} to publish the
+     * {@code wrappedSignalForPublication} to - which is the also passed in {@code signal} wrapped using
+     * {@link DistributedPub#wrapForPublicationWithAcks(Object, org.eclipse.ditto.internal.utils.pubsub.extractors.AckExtractor)}
+     * with the specific ack extractor for that signal type.
+     *
+     * @param pub the DistributedPub to use for publishing the message
+     * @param wrappedSignalForPublication the wrapped signal to publish
+     * @param signal the original, not yet wrapped signal
+     */
     public record DistributedPubWithMessage(DistributedPub<?> pub,
                                             Object wrappedSignalForPublication,
                                             Signal<?> signal) {}
 
+    /**
+     * A supervisor internal message combining a {@code targetActor} as target for a contained {@code message} and
+     * when configured with a non-zero {@code messageTimeout} applying a {@code Patterns.ask()} style.
+     *
+     * @param targetActor the target actor to ask/send the passed {@code message} to
+     * @param message the message to pass/ask the {@code targetActor}
+     * @param messageTimeout the duration to apply as message timeout - a {@link Duration#ZERO} will not use
+     * "Patterns.ask", but will {@code tell} the passed {@code targetActor} the {@code message} instead.
+     * @param responseOrErrorConverter a converter function which can convert the response or an occurred
+     * {@link Throwable} to the actual response.
+     */
     public record TargetActorWithMessage(ActorRef targetActor,
                                          Object message,
                                          Duration messageTimeout,
-                                         boolean internalErrorOnMessageTimeout) {}
+                                         Function<Object, Object> responseOrErrorConverter) {}
 
     private record EnforcedSignalAndTargetActorResponse(@Nullable Signal<?> enforcedSignal,
                                                         @Nullable Object response) {}

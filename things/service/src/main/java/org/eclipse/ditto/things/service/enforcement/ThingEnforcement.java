@@ -19,14 +19,12 @@ import java.util.function.Function;
 
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
-import org.eclipse.ditto.internal.utils.pubsub.LiveSignalPub;
 import org.eclipse.ditto.policies.enforcement.AbstractEnforcementReloaded;
 import org.eclipse.ditto.policies.enforcement.CreationRestrictionEnforcer;
 import org.eclipse.ditto.policies.enforcement.PolicyEnforcer;
 import org.eclipse.ditto.policies.enforcement.config.EnforcementConfig;
 import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyId;
-import org.eclipse.ditto.things.service.persistence.actors.ResponseReceiverCache;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
@@ -44,9 +42,7 @@ public final class ThingEnforcement extends AbstractEnforcementReloaded<Signal<?
     public ThingEnforcement(final ActorSystem actorSystem,
             final ActorRef policiesShardRegion,
             final CreationRestrictionEnforcer creationRestrictionEnforcer,
-            final EnforcementConfig enforcementConfig,
-            final LiveSignalPub liveSignalPub,
-            final ResponseReceiverCache responseReceiverCache) {
+            final EnforcementConfig enforcementConfig) {
 
         this.policiesShardRegion = policiesShardRegion;
         this.enforcementConfig = enforcementConfig;
@@ -57,9 +53,7 @@ public final class ThingEnforcement extends AbstractEnforcementReloaded<Signal<?
                         actorSystem,
                         policiesShardRegion,
                         creationRestrictionEnforcer,
-                        enforcementConfig,
-                        liveSignalPub,
-                        responseReceiverCache
+                        enforcementConfig
                 )
         );
     }

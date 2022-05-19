@@ -14,9 +14,7 @@ package org.eclipse.ditto.things.service.enforcement;
 
 import static java.util.Objects.requireNonNull;
 import static org.eclipse.ditto.policies.api.Permission.MIN_REQUIRED_POLICY_PERMISSIONS;
-import static org.eclipse.ditto.things.service.enforcement.LiveSignalEnforcement.addEffectedReadSubjectsToThingLiveSignal;
 
-import java.time.Instant;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -25,22 +23,16 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
-import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
-import org.eclipse.ditto.base.model.exceptions.AskException;
 import org.eclipse.ditto.base.model.exceptions.DittoInternalErrorException;
 import org.eclipse.ditto.base.model.exceptions.DittoJsonException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.exceptions.EntityNotCreatableException;
-import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.base.model.headers.DittoHeadersBuilder;
-import org.eclipse.ditto.base.model.headers.DittoHeadersSettable;
-import org.eclipse.ditto.base.model.headers.LiveChannelTimeoutStrategy;
 import org.eclipse.ditto.base.model.headers.contenttype.ContentType;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.namespaces.NamespaceBlockedException;
@@ -49,13 +41,9 @@ import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
 import org.eclipse.ditto.base.model.signals.commands.CommandToExceptionRegistry;
-import org.eclipse.ditto.base.model.signals.commands.ErrorResponse;
-import org.eclipse.ditto.base.model.signals.commands.exceptions.CommandTimeoutException;
-import org.eclipse.ditto.internal.models.signal.CommandHeaderRestoration;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLogger;
 import org.eclipse.ditto.internal.utils.cacheloaders.AskWithRetry;
-import org.eclipse.ditto.internal.utils.pubsub.LiveSignalPub;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
@@ -119,7 +107,6 @@ import org.eclipse.ditto.things.model.signals.commands.query.RetrieveFeature;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThing;
 import org.eclipse.ditto.things.model.signals.commands.query.ThingQueryCommand;
 import org.eclipse.ditto.things.model.signals.commands.query.ThingQueryCommandResponse;
-import org.eclipse.ditto.things.service.persistence.actors.ResponseReceiverCache;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
@@ -149,10 +136,8 @@ final class ThingCommandEnforcement
     private final ActorRef policiesShardRegion;
     private final PolicyIdReferencePlaceholderResolver policyIdReferencePlaceholderResolver;
     private final CreationRestrictionEnforcer creationRestrictionEnforcer;
-    private final LiveSignalPub liveSignalPub;
     private final ActorSystem actorSystem;
     private final EnforcementConfig enforcementConfig;
-    private final ResponseReceiverCache responseReceiverCache;
 
     /**
      * Creates a new instance of the thing command enforcer.
@@ -163,15 +148,11 @@ final class ThingCommandEnforcement
      * @param creationRestrictionEnforcer the CreationRestrictionEnforcer to apply in order to enforce creation of new
      * things based on its config.
      * @param enforcementConfig the configuration to apply for this command enforcement implementation.
-     * @param liveSignalPub the helper for publishing/subscribing live signals.
-     * @param responseReceiverCache TODO TJ remove this param from here once the code using it also is removed
      */
     public ThingCommandEnforcement(final ActorSystem actorSystem,
             final ActorRef policiesShardRegion,
             final CreationRestrictionEnforcer creationRestrictionEnforcer,
-            final EnforcementConfig enforcementConfig,
-            final LiveSignalPub liveSignalPub,
-            final ResponseReceiverCache responseReceiverCache) {
+            final EnforcementConfig enforcementConfig) {
 
         this.actorSystem = actorSystem;
         this.policiesShardRegion = requireNonNull(policiesShardRegion);
@@ -186,8 +167,6 @@ final class ThingCommandEnforcement
 
         policyIdReferencePlaceholderResolver = PolicyIdReferencePlaceholderResolver.of(policiesShardRegion,
                 enforcementConfig.getAskWithRetryConfig(), actorSystem);
-        this.liveSignalPub = liveSignalPub;
-        this.responseReceiverCache = responseReceiverCache;
     }
 
     @Override
@@ -227,7 +206,9 @@ final class ThingCommandEnforcement
             final ThingCommand<?> commandWithReadSubjects = authorizeByPolicyOrThrow(policyEnforcer.getEnforcer(),
                     command);
             if (commandWithReadSubjects instanceof ThingQueryCommand<?> thingQueryCommand) {
-                authorizedCommand = ensureTwinChannel(thingQueryCommand);
+                authorizedCommand = prepareThingCommandBeforeSendingToPersistence(
+                        ensureTwinChannel(thingQueryCommand)
+                );
             } else if (commandWithReadSubjects.getDittoHeaders().getLiveChannelCondition().isPresent()) {
                 throw LiveChannelConditionNotAllowedException.newBuilder()
                         .dittoHeaders(commandWithReadSubjects.getDittoHeaders())
@@ -237,6 +218,18 @@ final class ThingCommandEnforcement
             }
         }
         return CompletableFuture.completedStage(authorizedCommand);
+    }
+
+    private static ThingQueryCommand<?> ensureTwinChannel(final ThingQueryCommand<?> command) {
+
+        if (Signal.isChannelLive(command)) {
+            return command.setDittoHeaders(command.getDittoHeaders()
+                    .toBuilder()
+                    .channel(Signal.CHANNEL_TWIN)
+                    .build());
+        } else {
+            return command;
+        }
     }
 
     @Override
@@ -288,144 +281,13 @@ final class ThingCommandEnforcement
     }
 
     private boolean isWotTdRequestingThingQueryCommand(final ThingCommand<?> thingCommand) {
+
         // all listed thingCommand types here must handle "Accept: application/td+json", otherwise access control
         // will be bypassed when using the header "Accept: application/td+json"!
         return (thingCommand instanceof RetrieveThing || thingCommand instanceof RetrieveFeature) &&
                 thingCommand.getDittoHeaders().getAccept()
                         .filter(ContentType.APPLICATION_TD_JSON.getValue()::equals)
                         .isPresent();
-    }
-
-    /**
-     * TODO TJ move to ThingSupervisorActor!
-     */
-    private CompletionStage<ThingQueryCommandResponse<?>> doSmartChannelSelection(final ThingQueryCommand<?> command,
-            final ThingQueryCommandResponse<?> response, final Instant startTime, final PolicyEnforcer policyEnforcer) {
-
-        final ThingQueryCommandResponse<?> twinResponseWithTwinChannel = setTwinChannel(response);
-        final ThingQueryCommandResponse<?> twinResponse = CommandHeaderRestoration.restoreCommandConnectivityHeaders(
-                twinResponseWithTwinChannel, command.getDittoHeaders());
-        if (!shouldAttemptLiveChannel(command, twinResponse)) {
-            return CompletableFuture.completedStage(twinResponse);
-        }
-
-        final ThingQueryCommand<?> liveCommand = toLiveCommand(command, policyEnforcer.getEnforcer());
-        final var pub = liveSignalPub.command();
-        final var liveResponseForwarder = startLiveResponseForwarder(liveCommand);
-        if (enforcementConfig.shouldDispatchGlobally(liveCommand)) {
-            return responseReceiverCache.insertResponseReceiverConflictFreeWithFuture(
-                    liveCommand,
-                    newCommand -> liveResponseForwarder,
-                    (newCommand, forwarder) ->
-                            LiveSignalEnforcement.adjustTimeoutAndFilterLiveQueryResponse(this,
-                                    newCommand,
-                                    startTime,
-                                    pub,
-                                    forwarder,
-                                    policyEnforcer,
-                                    getFallbackResponseCaster(liveCommand, twinResponse)
-                            )
-            );
-        } else {
-            return LiveSignalEnforcement.adjustTimeoutAndFilterLiveQueryResponse(this,
-                    liveCommand,
-                    startTime,
-                    pub,
-                    liveResponseForwarder,
-                    policyEnforcer,
-                    getFallbackResponseCaster(liveCommand, twinResponse)
-            );
-        }
-    }
-
-    private ActorRef startLiveResponseForwarder(final ThingQueryCommand<?> signal) {
-        final var pub = liveSignalPub.command();
-//        final var props = LiveResponseAndAcknowledgementForwarder.props(signal, pub.getPublisher(),
-//                ackReceiverActor);
-        return actorSystem.actorOf(null); // TODO TJ check if we should really create a root level actor here
-    }
-
-    private Function<Object, CompletionStage<ThingQueryCommandResponse<?>>> getFallbackResponseCaster(
-            final ThingQueryCommand<?> liveCommand, final ThingQueryCommandResponse<?> twinResponse) {
-
-        return response -> {
-            if (response instanceof ThingQueryCommandResponse) {
-                return CompletableFuture.completedStage(
-                        setAdditionalHeaders((ThingQueryCommandResponse<?>) response, liveCommand.getDittoHeaders()));
-            } else if (response instanceof ErrorResponse) {
-                throw setAdditionalHeaders(((ErrorResponse<?>) response),
-                        liveCommand.getDittoHeaders()).getDittoRuntimeException();
-            } else if (response instanceof AskException || response instanceof AskTimeoutException) {
-                return applyTimeoutStrategy(liveCommand, twinResponse);
-            } else {
-                throw reportErrorOrResponse("before building JsonView for live response via smart channel selection",
-                        response, null, liveCommand.getDittoHeaders());
-            }
-        };
-    }
-
-    private static boolean shouldAttemptLiveChannel(final ThingQueryCommand<?> command,
-            final ThingQueryCommandResponse<?> twinResponse) {
-        return isLiveChannelConditionMatched(command, twinResponse) || isLiveQueryCommandWithTimeoutStrategy(command);
-    }
-
-    private static boolean isLiveChannelConditionMatched(final ThingQueryCommand<?> command,
-            final ThingQueryCommandResponse<?> twinResponse) {
-        return command.getDittoHeaders().getLiveChannelCondition().isPresent() &&
-                twinResponse.getDittoHeaders().didLiveChannelConditionMatch();
-    }
-
-    static boolean isLiveQueryCommandWithTimeoutStrategy(final Signal<?> command) {
-        return command instanceof ThingQueryCommand &&
-                command.getDittoHeaders().getLiveChannelTimeoutStrategy().isPresent() &&
-                Signal.isChannelLive(command);
-    }
-
-    @SuppressWarnings("unchecked")
-    private static <T extends DittoHeadersSettable<?>> T setAdditionalHeaders(final T settable,
-            final DittoHeaders commandHeaders) {
-        final DittoHeaders dittoHeaders = settable.getDittoHeaders();
-        final DittoHeadersSettable<?> theSettable = settable.setDittoHeaders(dittoHeaders
-                .toBuilder()
-                .putHeaders(getAdditionalLiveResponseHeaders(dittoHeaders))
-                .build());
-        return (T) CommandHeaderRestoration.restoreCommandConnectivityHeaders(theSettable, commandHeaders);
-    }
-
-    private static CompletionStage<ThingQueryCommandResponse<?>> applyTimeoutStrategy(
-            final ThingCommand<?> command,
-            final ThingQueryCommandResponse<?> twinResponse) {
-
-        if (isTwinFallbackEnabled(twinResponse)) {
-            return CompletableFuture.completedStage(twinResponse);
-        } else {
-            final var timeout = LiveSignalEnforcement.getLiveSignalTimeout(command);
-            final CommandTimeoutException timeoutException = CommandTimeoutException.newBuilder(timeout)
-                    .dittoHeaders(twinResponse.getDittoHeaders()
-                            .toBuilder()
-                            .channel(Signal.CHANNEL_LIVE)
-                            .putHeaders(getAdditionalLiveResponseHeaders(twinResponse.getDittoHeaders()))
-                            .build())
-                    .build();
-            final CommandTimeoutException timeoutExceptionWithConnectivityHeaders =
-                    CommandHeaderRestoration.restoreCommandConnectivityHeaders(timeoutException,
-                            command.getDittoHeaders());
-            return CompletableFuture.failedStage(timeoutExceptionWithConnectivityHeaders);
-        }
-    }
-
-    private static boolean isTwinFallbackEnabled(final Signal<?> signal) {
-        final var liveChannelFallbackStrategy =
-                signal.getDittoHeaders().getLiveChannelTimeoutStrategy().orElse(LiveChannelTimeoutStrategy.FAIL);
-        return LiveChannelTimeoutStrategy.USE_TWIN == liveChannelFallbackStrategy;
-    }
-
-    private static ThingQueryCommand<?> toLiveCommand(final ThingQueryCommand<?> command, final Enforcer enforcer) {
-        final ThingQueryCommand<?> withReadSubjects = addEffectedReadSubjectsToThingLiveSignal(command, enforcer);
-        return withReadSubjects.setDittoHeaders(withReadSubjects.getDittoHeaders().toBuilder()
-                .liveChannelCondition(null)
-                .channel(Signal.CHANNEL_LIVE)
-                .build());
     }
 
     /**
@@ -462,6 +324,7 @@ final class ThingCommandEnforcement
      * @param enforcer the enforcer.
      * @return response with view on entity restricted by enforcer.
      */
+    @SuppressWarnings("unchecked")
     static <T extends ThingQueryCommandResponse<T>> T buildJsonViewForThingQueryCommandResponse(
             final ThingQueryCommandResponse<T> response, final Enforcer enforcer) {
 
@@ -515,7 +378,6 @@ final class ThingCommandEnforcement
     static JsonObject getJsonViewForCommandResponse(final JsonObject responseEntity,
             final CommandResponse<?> response, final Enforcer enforcer) {
 
-
         final var resourceKey = ResourceKey.newInstance(ThingConstants.ENTITY_TYPE, response.getResourcePath());
         final var authorizationContext = response.getDittoHeaders().getAuthorizationContext();
 
@@ -563,6 +425,7 @@ final class ThingCommandEnforcement
      * @return the error.
      */
     static DittoRuntimeException errorForThingCommand(final ThingCommand<?> thingCommand) {
+
         final CommandToExceptionRegistry<ThingCommand<?>, DittoRuntimeException> registry =
                 thingCommand instanceof ThingModifyCommand
                         ? ThingCommandToModifyExceptionRegistry.getInstance()
@@ -580,6 +443,7 @@ final class ThingCommandEnforcement
      * CompletionStage with a DittoRuntimeException as cause.
      */
     private CompletionStage<CreateThing> enforceCreateThingBySelf(final ThingCommand<?> command) {
+
         final ThingCommand<?> thingCommand = transformModifyThingToCreateThing(command);
         if (thingCommand instanceof CreateThing createThingCommand) {
             final var enforcerContext = new CreationRestrictionEnforcer.Context(command.getResourceType(),
@@ -1084,32 +948,6 @@ final class ThingCommandEnforcement
                         .build());
     }
 
-    private static ThingQueryCommandResponse<?> setTwinChannel(final ThingQueryCommandResponse<?> response) {
-        return response.setDittoHeaders(response.getDittoHeaders()
-                .toBuilder()
-                .channel(Signal.CHANNEL_TWIN)
-                .putHeaders(getAdditionalLiveResponseHeaders(response.getDittoHeaders()))
-                .build());
-    }
 
-    private static ThingQueryCommand<?> ensureTwinChannel(final ThingQueryCommand<?> command) {
-        if (Signal.isChannelLive(command)) {
-            return command.setDittoHeaders(command.getDittoHeaders()
-                    .toBuilder()
-                    .channel(Signal.CHANNEL_TWIN)
-                    .build());
-        } else {
-            return command;
-        }
-    }
-
-    private static DittoHeaders getAdditionalLiveResponseHeaders(final DittoHeaders responseHeaders) {
-        final var liveChannelConditionMatched = responseHeaders.getOrDefault(
-                DittoHeaderDefinition.LIVE_CHANNEL_CONDITION_MATCHED.getKey(), Boolean.TRUE.toString());
-        final DittoHeadersBuilder<?, ?> dittoHeadersBuilder = DittoHeaders.newBuilder()
-                .putHeader(DittoHeaderDefinition.LIVE_CHANNEL_CONDITION_MATCHED.getKey(), liveChannelConditionMatched)
-                .responseRequired(false);
-        return dittoHeadersBuilder.build();
-    }
 
 }
