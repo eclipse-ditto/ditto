@@ -63,19 +63,19 @@ public final class ConnectionEnforcerActor
 
     @Override
     protected CompletionStage<PolicyId> providePolicyIdForEnforcement() {
-        // TODO TJ implement
+        // TODO CR-11344 implement
         return CompletableFuture.completedStage(null);
     }
 
     @Override
     protected CompletionStage<PolicyEnforcer> providePolicyEnforcer(@Nullable final PolicyId policyId) {
-        // TODO TJ implement
+        // TODO CR-11344 implement
         return CompletableFuture.completedStage(null);
     }
 
     @Override
     protected boolean shouldInvalidatePolicyEnforcerAfterEnforcement(final Signal<?> signal) {
-        // TODO TJ implement
+        // TODO CR-11344 implement
         return false;
     }
 

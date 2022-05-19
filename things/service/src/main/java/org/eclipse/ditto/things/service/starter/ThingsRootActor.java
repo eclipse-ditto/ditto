@@ -101,7 +101,7 @@ public final class ThingsRootActor extends DittoRootActor {
         final EntityCreationConfig entityCreationConfig = DefaultEntityCreationConfig.of(
                 DefaultScopedConfig.dittoScoped(actorSystem.settings().config())
         );
-        // TODO TJ consolidate with PoliciesRootActor
+        // TODO CR-11297 consolidate with PoliciesRootActor
         injectSystemPropertiesForEntityCreation(entityCreationConfig);
 
         final BlockedNamespaces blockedNamespaces = BlockedNamespaces.of(actorSystem);
@@ -201,8 +201,8 @@ public final class ThingsRootActor extends DittoRootActor {
     }
 
     /**
-     * TODO TJ provide extension mechanism here
-     * TODO TJ consolidate with PoliciesRootActor.newPreEnforcer
+     * TODO CR-11297 provide extension mechanism here
+     * TODO CR-11297 consolidate with PoliciesRootActor.newPreEnforcer
      */
     private static <T extends DittoHeadersSettable<?>> PreEnforcer<T> newPreEnforcer(
             final BlockedNamespaces blockedNamespaces) {

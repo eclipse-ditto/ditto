@@ -20,6 +20,8 @@ import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
 
 import org.eclipse.ditto.base.model.exceptions.AskException;
+import org.eclipse.ditto.base.model.exceptions.DittoInternalErrorException;
+import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.DittoHeadersBuilder;
@@ -29,8 +31,8 @@ import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.commands.ErrorResponse;
 import org.eclipse.ditto.base.model.signals.commands.exceptions.CommandTimeoutException;
 import org.eclipse.ditto.internal.models.signal.CommandHeaderRestoration;
+import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.internal.utils.persistentactors.TargetActorWithMessage;
-import org.eclipse.ditto.policies.enforcement.AbstractEnforcementReloaded;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommand;
 import org.eclipse.ditto.things.model.signals.commands.query.ThingQueryCommand;
 import org.eclipse.ditto.things.model.signals.commands.query.ThingQueryCommandResponse;
@@ -49,11 +51,14 @@ final class SupervisorSmartChannelDispatching {
     private static final Duration DEFAULT_LIVE_TIMEOUT = Duration.ofSeconds(60L);
     private static final Duration DEFAULT_LOCAL_ASK_TIMEOUT = Duration.ofSeconds(5);
 
+    private final DittoDiagnosticLoggingAdapter log;
     private final ActorSelection thingsPersistenceActor;
     private final SupervisorLiveChannelDispatching liveChannelDispatching;
 
-    SupervisorSmartChannelDispatching(final ActorSelection thingsPersistenceActor,
+    SupervisorSmartChannelDispatching(final DittoDiagnosticLoggingAdapter log,
+            final ActorSelection thingsPersistenceActor,
             final SupervisorLiveChannelDispatching liveChannelDispatching) {
+        this.log = log;
         this.thingsPersistenceActor = thingsPersistenceActor;
         this.liveChannelDispatching = liveChannelDispatching;
     }
@@ -125,7 +130,7 @@ final class SupervisorSmartChannelDispatching {
         }
     }
 
-    private static Function<Object, ThingQueryCommandResponse<?>> getFallbackResponseCaster(
+    private Function<Object, ThingQueryCommandResponse<?>> getFallbackResponseCaster(
             final ThingQueryCommand<?> liveCommand,
             final ThingQueryCommandResponse<?> twinResponse) {
 
@@ -143,13 +148,24 @@ final class SupervisorSmartChannelDispatching {
 
                 if (throwable instanceof AskException || throwable instanceof AskTimeoutException) {
                     return applyTimeoutStrategy(liveCommand, twinResponse);
+                } else {
+                    log.withCorrelationId(liveCommand)
+                            .error("Unknown throwable during smart channel response casting: <{}: {}>",
+                                    throwable.getClass().getSimpleName(), throwable.getMessage());
+                    throw DittoRuntimeException.asDittoRuntimeException(throwable, cause ->
+                            DittoInternalErrorException.newBuilder()
+                                    .cause(cause)
+                                    .dittoHeaders(liveCommand.getDittoHeaders())
+                                    .build()
+                    );
                 }
             }
 
-            // TODO TJ really dependency to Enforcement??
-            throw AbstractEnforcementReloaded.reportErrorOrResponse(
-                    "before building JsonView for live response via smart channel selection",
-                    response, null, liveCommand.getDittoHeaders());
+            log.withCorrelationId(liveCommand)
+                    .error("Unknown response during smart channel response casting: {}", response);
+            throw DittoInternalErrorException.newBuilder()
+                    .dittoHeaders(liveCommand.getDittoHeaders())
+                    .build();
         };
     }
 

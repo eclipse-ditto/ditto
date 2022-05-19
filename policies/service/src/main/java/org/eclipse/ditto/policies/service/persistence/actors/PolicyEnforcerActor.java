@@ -96,7 +96,7 @@ public final class PolicyEnforcerActor
     protected boolean shouldInvalidatePolicyEnforcerAfterEnforcement(final Signal<?> signal) {
         // this should always be done for modifying commands:
         return signal instanceof PolicyModifyCommand<?>;
-        // TODO TJ optimization: only if the resources/subjects of the policy were changed
+        // TODO CR-11297 optimization: only if the resources/subjects of the policy were changed
     }
 
     private static Optional<PolicyEnforcer> handleSudoRetrievePolicyResponse(final Object response) {

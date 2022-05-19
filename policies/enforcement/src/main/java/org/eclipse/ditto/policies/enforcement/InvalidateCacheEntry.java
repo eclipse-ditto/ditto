@@ -27,7 +27,7 @@ import org.eclipse.ditto.json.JsonObject;
 /**
  * Concierge-service internal command signaling that the cache for a specific {@link org.eclipse.ditto.internal.utils.cache.CacheKey} should be invalidated.
  * Is emitted via Pub/Sub when for example a Policy is modified.
- * TODO TJ candidate for removal
+ * TODO CR-11297 candidate for removal
  */
 @Immutable
 public final class InvalidateCacheEntry implements Jsonifiable<JsonObject> {

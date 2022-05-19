@@ -130,7 +130,7 @@ public final class ConnectivityRootActor extends DittoRootActor {
 
     private static PreEnforcer providePreEnforcer() {
         return CompletableFuture::completedStage;
-        // TODO TJ provide extension mechanism here
+        // TODO CR-11297 provide extension mechanism here
     }
 
     /**

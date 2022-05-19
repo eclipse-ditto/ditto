@@ -60,7 +60,7 @@ import akka.stream.javadsl.Sink;
 
 /**
  * Actor that dispatches signals not authorized by any entity meaning signals without entityId.
- * TODO TJ candidate for removal - but needs to be replaced by other means
+ * TODO CR-11297 candidate for removal - but needs to be replaced by other means
  */
 public final class DispatcherActor
         extends AbstractGraphActor<DispatcherActor.ImmutableDispatch, DittoHeadersSettable<?>> {
@@ -117,7 +117,7 @@ public final class DispatcherActor
 
     @Override
     protected int getBufferSize() {
-        return 42; // TODO TJ remove
+        return 42; // TODO CR-11297 remove
     }
 
     /**

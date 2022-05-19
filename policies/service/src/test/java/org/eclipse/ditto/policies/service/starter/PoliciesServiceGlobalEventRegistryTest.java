@@ -24,7 +24,7 @@ public final class PoliciesServiceGlobalEventRegistryTest extends GlobalEventReg
                 ResourceDeleted.class,
 
                 // added due to ditto-model-placeholders
-                ThingDeleted.class,         // TODO TJ strictly speaking, the policies service should not must to "know" things-model
+                ThingDeleted.class,         // TODO CR-11383 strictly speaking, the policies service should not must to "know" things-model
                 EmptyEvent.class
         );
     }

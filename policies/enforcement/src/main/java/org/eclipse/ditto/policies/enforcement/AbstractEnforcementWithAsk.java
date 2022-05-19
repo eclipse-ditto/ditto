@@ -34,7 +34,7 @@ import akka.pattern.AskTimeoutException;
 /**
  * Adds a common handling to ask an actor for a response and automatically filter the responses JSON view by an
  * enforcer.
- * TODO TJ candidate for removal
+ * TODO CR-11297 candidate for removal
  *
  * @param <C> The command type.
  * @param <R> The response type.

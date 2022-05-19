@@ -36,8 +36,8 @@ public final class PoliciesServiceGlobalCommandRegistryTest extends GlobalComman
         super(
                 SudoStreamPids.class,
                 SudoRetrievePolicy.class,
-                RetrieveFeature.class,          // TODO TJ strictly speaking, the policies service should not must to "know" things-model
-                ModifyFeatureProperty.class,    // TODO TJ strictly speaking, the policies service should not must to "know" things-model
+                RetrieveFeature.class,          // TODO CR-11383 strictly speaking, the policies service should not must to "know" things-model
+                ModifyFeatureProperty.class,    // TODO CR-11383 strictly speaking, the policies service should not must to "know" things-model
                 ExecutePiggybackCommand.class,
                 SendClaimMessage.class,
                 Shutdown.class,

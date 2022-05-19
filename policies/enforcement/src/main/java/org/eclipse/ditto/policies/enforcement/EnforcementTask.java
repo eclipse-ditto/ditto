@@ -20,7 +20,7 @@ import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 
 /**
  * An enforcement task to be scheduled.
- * TODO TJ candidate for removal
+ * TODO CR-11297 candidate for removal
  */
 final class EnforcementTask {
 

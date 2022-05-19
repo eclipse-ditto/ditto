@@ -14,34 +14,17 @@ package org.eclipse.ditto.things.service.enforcement;
 
 import static org.eclipse.ditto.base.model.json.JsonSchemaVersion.V_2;
 
-import java.util.HashSet;
-import java.util.Optional;
-import java.util.Set;
-import java.util.UUID;
 import java.util.concurrent.TimeUnit;
-
-import javax.annotation.Nullable;
 
 import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
 import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.signals.SignalWithEntityId;
-import org.eclipse.ditto.internal.utils.cacheloaders.config.AskWithRetryConfig;
 import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
-import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.internal.utils.pubsub.DistributedPub;
 import org.eclipse.ditto.internal.utils.pubsub.LiveSignalPub;
 import org.eclipse.ditto.internal.utils.pubsub.StreamingType;
 import org.eclipse.ditto.internal.utils.pubsub.extractors.AckExtractor;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.policies.enforcement.CreationRestrictionEnforcer;
-import org.eclipse.ditto.policies.enforcement.EnforcementProvider;
-import org.eclipse.ditto.policies.enforcement.EnforcerActor;
-import org.eclipse.ditto.policies.enforcement.PolicyEnforcerCacheLoader;
-import org.eclipse.ditto.policies.enforcement.PreEnforcer;
-import org.eclipse.ditto.policies.enforcement.config.CachesConfig;
-import org.eclipse.ditto.policies.enforcement.config.DefaultCachesConfig;
-import org.eclipse.ditto.policies.enforcement.config.DefaultEnforcementConfig;
-import org.eclipse.ditto.policies.enforcement.config.EnforcementConfig;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.things.model.Feature;
 import org.eclipse.ditto.things.model.FeatureProperties;
@@ -52,20 +35,12 @@ import org.eclipse.ditto.things.model.ThingsModelFactory;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommand;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 
-import com.typesafe.config.Config;
-import com.typesafe.config.ConfigFactory;
-
 import akka.actor.ActorRef;
-import akka.actor.ActorSystem;
-import akka.actor.Props;
-import akka.testkit.TestProbe;
 import akka.testkit.javadsl.TestKit;
 import scala.concurrent.duration.FiniteDuration;
 
 public final class TestSetup {
 
-    public static final String THING_SUDO = "thing-sudo";
-    public static final String POLICY_SUDO = "policy-sudo";
     public static final String FEATURE_ID = "x";
     public static final String FEATURE_PROPERTY_1 = "key1";
     public static final String FEATURE_PROPERTY_2 = "key2";
@@ -89,112 +64,6 @@ public final class TestSetup {
     public static final AuthorizationSubject SUBJECT = AuthorizationSubject.newInstance("dummy:" + SUBJECT_ID);
 
     public static final AuthorizationSubject GOOGLE_SUBJECT = AuthorizationSubject.newInstance("google:" + SUBJECT_ID);
-
-    private static final Config RAW_CONFIG = ConfigFactory.load("test");
-    private static final CachesConfig CACHES_CONFIG;
-    private static final EnforcementConfig ENFORCEMENT_CONFIG;
-
-    static {
-        final var dittoScopedConfig = DefaultScopedConfig.dittoScoped(RAW_CONFIG);
-
-        CACHES_CONFIG = DefaultCachesConfig.of(dittoScopedConfig);
-        ENFORCEMENT_CONFIG = DefaultEnforcementConfig.of(dittoScopedConfig);
-    }
-
-    public static ActorRef newEnforcerActor(final ActorSystem system, final ActorRef testActorRef,
-            final ActorRef mockEntitiesActor) {
-
-        return new EnforcerActorBuilder(system, testActorRef, mockEntitiesActor, mockEntitiesActor).build();
-    }
-
-    public static ActorRef newEnforcerActor(final ActorSystem system,
-            final ActorRef testActorRef,
-            final ActorRef thingsShardRegion,
-            final ActorRef policiesShardRegion,
-            final ActorRef pubSubMediatorRef,
-            @Nullable final PreEnforcer preEnforcer,
-            @Nullable final CreationRestrictionEnforcer creationRestrictionEnforcer) {
-        return new EnforcerActorBuilder(system, testActorRef, thingsShardRegion, policiesShardRegion, pubSubMediatorRef)
-                .setPreEnforcer(preEnforcer).setCreationRestrictionEnforcer(creationRestrictionEnforcer).build();
-    }
-
-    static class EnforcerActorBuilder {
-
-        private final ActorSystem system;
-        private final ActorRef testActorRef;
-        private final ActorRef thingsShardRegion;
-        private final ActorRef policiesShardRegion;
-        private final ActorRef puSubMediatorRef;
-        @Nullable private ActorRef commandForwarder;
-        @Nullable private PreEnforcer preEnforcer;
-        @Nullable private CreationRestrictionEnforcer creationRestrictionEnforcer;
-
-        EnforcerActorBuilder(final ActorSystem system, final ActorRef testActorRef, final ActorRef thingsShardRegion,
-                final ActorRef policiesShardRegion) {
-            this.system = system;
-            this.testActorRef = testActorRef;
-            this.thingsShardRegion = thingsShardRegion;
-            this.policiesShardRegion = policiesShardRegion;
-            this.puSubMediatorRef = testActorRef;
-        }
-
-        EnforcerActorBuilder(final ActorSystem system, final ActorRef testActorRef, final ActorRef thingsShardRegion,
-                final ActorRef policiesShardRegion, final ActorRef puSubMediatorRef) {
-            this.system = system;
-            this.testActorRef = testActorRef;
-            this.thingsShardRegion = thingsShardRegion;
-            this.policiesShardRegion = policiesShardRegion;
-            this.puSubMediatorRef = puSubMediatorRef;
-        }
-
-        public EnforcerActorBuilder setPreEnforcer(@Nullable final PreEnforcer preEnforcer) {
-            this.preEnforcer = preEnforcer;
-            return this;
-        }
-
-        public EnforcerActorBuilder setCommandForwarder(final ActorRef commandForwarder) {
-            this.commandForwarder = commandForwarder;
-            return this;
-        }
-
-        public EnforcerActorBuilder setCreationRestrictionEnforcer(@Nullable final CreationRestrictionEnforcer creationRestrictionEnforcer) {
-            this.creationRestrictionEnforcer = creationRestrictionEnforcer;
-            return this;
-        }
-
-        public ActorRef build() {
-
-            var commandForwarder = Optional.ofNullable(this.commandForwarder)
-                    .orElseGet(() -> new TestProbe(system, createUniqueName()).ref());
-
-            final AskWithRetryConfig askWithRetryConfig = CACHES_CONFIG.getAskWithRetryConfig();
-
-            final PolicyEnforcerCacheLoader policyEnforcerCacheLoader =
-                    new PolicyEnforcerCacheLoader(askWithRetryConfig, system.getScheduler(), policiesShardRegion);
-
-            final Set<EnforcementProvider<?>> enforcementProviders = new HashSet<>();
-            final LiveSignalPub liveSignalPub = new DummyLiveSignalPub(puSubMediatorRef);
-//            enforcementProviders.add(new ThingCommandEnforcement.Provider(system, thingsShardRegion,
-//                    policiesShardRegion, thingIdCache, projectedEnforcerCache, preEnforcer,
-//                    creationRestrictionEnforcer, liveSignalPub, ENFORCEMENT_CONFIG));
-//            enforcementProviders.add(new PolicyCommandEnforcement.Provider(policiesShardRegion, policyEnforcerCache,
-//                    creationRestrictionEnforcer));
-//            enforcementProviders.add(new LiveSignalEnforcement.Provider(thingIdCache,
-//                    projectedEnforcerCache,
-//                    system,
-//                    liveSignalPub,
-//                    ENFORCEMENT_CONFIG));
-            final Props props = EnforcerActor.props(testActorRef, enforcementProviders, commandForwarder, ENFORCEMENT_CONFIG, preEnforcer,
-                    null, null);
-
-            return system.actorOf(props, EnforcerActor.ACTOR_NAME);
-        }
-
-    }
-
-    static String createUniqueName() {
-        return "commandForwarder-" + UUID.randomUUID();
-    }
 
     public static ThingBuilder.FromScratch newThing() {
         return ThingsModelFactory.newThingBuilder()

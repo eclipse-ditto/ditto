@@ -22,7 +22,7 @@ import org.eclipse.ditto.internal.utils.cacheloaders.EnforcementCacheKey;
 
 /**
  * Cache that returns the key as result.
- * TODO TJ candidate for removal
+ * TODO CR-11297 candidate for removal
  */
 public final class IdentityCache implements Cache<EnforcementCacheKey, Entry<EnforcementCacheKey>> {
 

@@ -63,7 +63,7 @@
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-thingsearch-api</artifactId> <!-- required for DispatcherActor - TODO TJ check if this is wanted here -->
+            <artifactId>ditto-thingsearch-api</artifactId> <!-- required for DispatcherActor - TODO CR-11297 check if this is wanted here -->
         </dependency>
 
         <dependency>

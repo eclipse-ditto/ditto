@@ -44,7 +44,7 @@ public final class ConnectivityCommandEnforcement
     public CompletionStage<ConnectivityCommand<?>> authorizeSignal(final ConnectivityCommand<?> command,
             final PolicyEnforcer policyEnforcer) {
 
-        // TODO TJ implement
+        // TODO CR-11344 implement
         return CompletableFuture.completedStage(command);
     }
 
@@ -52,7 +52,7 @@ public final class ConnectivityCommandEnforcement
     public CompletionStage<ConnectivityCommand<?>> authorizeSignalWithMissingEnforcer(
             final ConnectivityCommand<?> command) {
 
-        // TODO TJ implement
+        // TODO CR-11344 implement
         return CompletableFuture.completedStage(command);
     }
 
@@ -66,7 +66,7 @@ public final class ConnectivityCommandEnforcement
             final ConnectivityCommandResponse<?> commandResponse,
             final PolicyEnforcer policyEnforcer) {
 
-        // TODO TJ implement
+        // TODO CR-11344 implement
         return CompletableFuture.completedStage(commandResponse);
     }
 

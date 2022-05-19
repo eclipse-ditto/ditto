@@ -36,9 +36,9 @@ public final class PoliciesServiceGlobalCommandResponseRegistryTest extends Glob
     public PoliciesServiceGlobalCommandResponseRegistryTest() {
         super(
                 SudoRetrievePolicyResponse.class,
-                RetrieveFeatureResponse.class,          // TODO TJ strictly speaking, the policies service should not need to "know" things-model
-                ModifyFeaturePropertyResponse.class,    // TODO TJ strictly speaking, the policies service should not need to "know" things-model
-                ThingErrorResponse.class,               // TODO TJ strictly speaking, the policies service should not need to "know" things-model
+                RetrieveFeatureResponse.class,          // TODO CR-11383 strictly speaking, the policies service should not need to "know" things-model
+                ModifyFeaturePropertyResponse.class,    // TODO CR-11383 strictly speaking, the policies service should not need to "know" things-model
+                ThingErrorResponse.class,               // TODO CR-11383 strictly speaking, the policies service should not need to "know" things-model
                 SendClaimMessageResponse.class,
                 PurgeNamespaceResponse.class,
                 RetrieveResourceResponse.class,

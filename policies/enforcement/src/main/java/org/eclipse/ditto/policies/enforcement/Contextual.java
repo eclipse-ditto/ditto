@@ -37,7 +37,7 @@ import akka.actor.Scheduler;
 
 /**
  * A message together with contextual information about the actor processing it.
- * TODO TJ candidate for removal
+ * TODO CR-11297 candidate for removal
  */
 public final class Contextual<T extends WithDittoHeaders> implements WithSender<T>, WithDittoHeaders {
 

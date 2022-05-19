@@ -35,7 +35,7 @@ import org.eclipse.ditto.base.model.headers.HeaderDefinition;
  * Does so by applying blocking based on {@link HeaderDefinition}s.
  * </p>
  * @since 3.0.0
- * TODO TJ can we make HeaderTranslator internal??
+ * TODO CR-11418 make HeaderTranslator internal by moving it away from public modelÏ
  */
 @Immutable
 public final class HeaderTranslator {

@@ -37,7 +37,7 @@ import akka.pattern.Patterns;
 
 /**
  * Actor that schedules enforcement tasks. Relying on the inherent timeout of enforcement tasks to not leak memory.
- * TODO TJ candidate for removal
+ * TODO CR-11297 candidate for removal
  */
 final class EnforcementScheduler extends AbstractActor {
 

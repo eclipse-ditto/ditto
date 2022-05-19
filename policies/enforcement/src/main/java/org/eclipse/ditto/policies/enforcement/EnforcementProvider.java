@@ -29,7 +29,7 @@ import kamon.context.Context;
 
 /**
  * Provider interface for {@link AbstractEnforcement}.
- * TODO TJ candidate for removal
+ * TODO CR-11297 candidate for removal
  *
  * @param <T> the type of commands which are enforced.
  */

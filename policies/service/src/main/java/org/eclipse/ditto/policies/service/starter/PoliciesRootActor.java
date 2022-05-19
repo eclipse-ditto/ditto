@@ -108,7 +108,7 @@ public final class PoliciesRootActor extends DittoRootActor {
         final EntityCreationConfig entityCreationConfig = DefaultEntityCreationConfig.of(
                 DefaultScopedConfig.dittoScoped(actorSystem.settings().config())
         );
-        // TODO TJ consolidate with ThingsRootActor
+        // TODO CR-11297 consolidate with ThingsRootActor
         injectSystemPropertiesForEntityCreation(entityCreationConfig);
 
         final ActorRef policiesShardRegion = ClusterSharding.get(actorSystem)
@@ -164,8 +164,8 @@ public final class PoliciesRootActor extends DittoRootActor {
     }
 
     /**
-     * TODO TJ provide extension mechanism here
-     * TODO TJ consolidate with ThingsRootActor.newPreEnforcer
+     * TODO CR-11297 provide extension mechanism here
+     * TODO CR-11297 consolidate with ThingsRootActor.newPreEnforcer
      */
     private static <T extends DittoHeadersSettable<?>> PreEnforcer<T> newPreEnforcer(
             final BlockedNamespaces blockedNamespaces) {

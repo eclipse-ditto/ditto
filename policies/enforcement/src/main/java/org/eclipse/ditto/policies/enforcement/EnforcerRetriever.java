@@ -30,7 +30,7 @@ import org.slf4j.LoggerFactory;
 
 /**
  * Retrieves an enforcer by using an ID Cache and Enforcer Cache.
- * TODO TJ candidate for removal
+ * TODO CR-11297 candidate for removal
  *
  * @param <E> the type of the enforcer cache {@link Entry}'s value
  */
