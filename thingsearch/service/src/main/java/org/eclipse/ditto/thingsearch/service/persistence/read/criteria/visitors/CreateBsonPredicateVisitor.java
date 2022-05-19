@@ -159,11 +159,10 @@ public class CreateBsonPredicateVisitor implements PredicateVisitor<Function<Str
 
     @Override
     public Function<String, Bson> visitNe(final Object value) {
-        return fieldName -> Filters.ne(fieldName, resolveValue(value));
+        return fieldName -> Filters.and(Filters.ne(fieldName, resolveValue(value)), Filters.exists(fieldName));
     }
 
-    @Nullable
-    private Object resolveValue(@Nullable final Object value) {
+    private Object resolveValue(final Object value) {
         if (value instanceof ParsedPlaceholder) {
             final String prefix = ((ParsedPlaceholder) value).getPrefix();
             final String name = ((ParsedPlaceholder) value).getName();
