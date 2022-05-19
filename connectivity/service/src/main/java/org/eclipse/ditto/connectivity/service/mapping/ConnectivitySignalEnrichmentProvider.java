@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.connectivity.service.mapping;
 
-import java.util.Arrays;
+import java.util.List;
 
 import org.eclipse.ditto.base.service.DittoExtensionPoint;
 import org.eclipse.ditto.connectivity.model.ConnectionId;
@@ -21,7 +21,6 @@ import org.eclipse.ditto.internal.models.signalenrichment.SignalEnrichmentConfig
 import org.eclipse.ditto.internal.models.signalenrichment.SignalEnrichmentFacade;
 import org.eclipse.ditto.internal.utils.akka.AkkaClassLoader;
 
-import akka.actor.AbstractExtensionId;
 import akka.actor.ActorSystem;
 import akka.actor.ExtendedActorSystem;
 
@@ -34,7 +33,7 @@ import akka.actor.ExtendedActorSystem;
  * <li>Config config: configuration for the facade provider.</li>
  * </ul>
  */
-public abstract class ConnectivitySignalEnrichmentProvider implements DittoExtensionPoint {
+public interface ConnectivitySignalEnrichmentProvider extends DittoExtensionPoint {
 
     /**
      * Create a signal-enriching facade from the ID of a connection.
@@ -42,7 +41,7 @@ public abstract class ConnectivitySignalEnrichmentProvider implements DittoExten
      * @param connectionId the connection ID.
      * @return the facade.
      */
-    public abstract SignalEnrichmentFacade getFacade(ConnectionId connectionId);
+    SignalEnrichmentFacade getFacade(ConnectionId connectionId);
 
     /**
      * Load a {@code ConnectivitySignalEnrichmentProvider} dynamically according to the streaming configuration.
@@ -50,29 +49,50 @@ public abstract class ConnectivitySignalEnrichmentProvider implements DittoExten
      * @param actorSystem The actor system in which to load the facade provider class.
      * @return The configured facade provider.
      */
-    public static ConnectivitySignalEnrichmentProvider get(final ActorSystem actorSystem) {
+    static ConnectivitySignalEnrichmentProvider get(final ActorSystem actorSystem) {
         return ExtensionId.INSTANCE.get(actorSystem);
     }
 
     /**
      * ID of the actor system extension to provide signal enrichment for connectivity.
      */
-    private static final class ExtensionId extends AbstractExtensionId<ConnectivitySignalEnrichmentProvider> {
+    final class ExtensionId extends DittoExtensionPoint.ExtensionId<ConnectivitySignalEnrichmentProvider> {
 
         private static final String SIGNAL_ENRICHMENT_CONFIG_PATH = "ditto.connectivity";
+        private static final String CONFIG_PATH = "ditto.connectivity.signal-enrichment.provider";
 
-        private static final ExtensionId INSTANCE = new ExtensionId();
+        private static final ExtensionId INSTANCE = new ExtensionId(ConnectivitySignalEnrichmentProvider.class);
+
+        /**
+         * Returns the {@code ExtensionId} for the implementation that should be loaded.
+         *
+         * @param parentClass the class of the extensions for which an implementation should be loaded.
+         */
+        public ExtensionId(final Class<ConnectivitySignalEnrichmentProvider> parentClass) {
+            super(parentClass);
+        }
 
         @Override
         public ConnectivitySignalEnrichmentProvider createExtension(final ExtendedActorSystem system) {
             final SignalEnrichmentConfig signalEnrichmentConfig =
                     DefaultSignalEnrichmentConfig.of(
                             system.settings().config().getConfig(SIGNAL_ENRICHMENT_CONFIG_PATH));
+
             return AkkaClassLoader.instantiate(system, ConnectivitySignalEnrichmentProvider.class,
-                    signalEnrichmentConfig.getProvider(),
-                    Arrays.asList(ActorSystem.class, SignalEnrichmentConfig.class),
-                    Arrays.asList(system, signalEnrichmentConfig)
-            );
+                    getImplementation(system),
+                    List.of(ActorSystem.class, SignalEnrichmentConfig.class),
+                    List.of(system, signalEnrichmentConfig));
         }
+
+        protected String getImplementation(final ExtendedActorSystem actorSystem) {
+            return actorSystem.settings().config().getString(getConfigPath());
+        }
+
+        @Override
+        protected String getConfigPath() {
+            return CONFIG_PATH;
+        }
+
     }
+
 }

@@ -17,11 +17,9 @@ import java.util.Objects;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.internal.utils.config.ConfigWithFallback;
-import org.eclipse.ditto.internal.utils.config.DittoConfigError;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
-import com.typesafe.config.ConfigValueFactory;
 
 /**
  * Default implementation of {@link SignalEnrichmentConfig}.
@@ -29,11 +27,9 @@ import com.typesafe.config.ConfigValueFactory;
 @Immutable
 public final class DefaultSignalEnrichmentConfig implements SignalEnrichmentConfig {
 
-    private final String provider;
     private final Config config;
 
     private DefaultSignalEnrichmentConfig(final ConfigWithFallback configWithFallback) {
-        provider = configWithFallback.getString(SignalEnrichmentConfigValue.PROVIDER.getConfigPath());
         config = configWithFallback.getConfig(SignalEnrichmentConfigValue.PROVIDER_CONFIG.getConfigPath());
     }
 
@@ -49,19 +45,6 @@ public final class DefaultSignalEnrichmentConfig implements SignalEnrichmentConf
                 SignalEnrichmentConfigValue.values()));
     }
 
-    private static Class<?> getClassFromConfigString(final String configString) {
-        try {
-            return Class.forName(configString);
-        } catch (final ClassNotFoundException e) {
-            throw new DittoConfigError(e);
-        }
-    }
-
-    @Override
-    public String getProvider() {
-        return provider;
-    }
-
     @Override
     public Config getProviderConfig() {
         return config;
@@ -70,8 +53,6 @@ public final class DefaultSignalEnrichmentConfig implements SignalEnrichmentConf
     @Override
     public Config render() {
         return ConfigFactory.empty()
-                .withValue(SignalEnrichmentConfigValue.PROVIDER.getConfigPath(),
-                        ConfigValueFactory.fromAnyRef(provider))
                 .withValue(SignalEnrichmentConfigValue.PROVIDER_CONFIG.getConfigPath(), config.root())
                 .atKey(CONFIG_PATH);
     }
@@ -85,20 +66,18 @@ public final class DefaultSignalEnrichmentConfig implements SignalEnrichmentConf
             return false;
         }
         final DefaultSignalEnrichmentConfig that = (DefaultSignalEnrichmentConfig) o;
-        return Objects.equals(provider, that.provider)
-                && Objects.equals(config, that.config);
+        return Objects.equals(config, that.config);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(provider, config);
+        return Objects.hash(config);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
-                "provider=" + provider +
-                ", config=" + config +
+                "config=" + config +
                 "]";
     }
 

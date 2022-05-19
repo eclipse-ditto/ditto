@@ -17,6 +17,7 @@ import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
 import java.time.Duration;
 
+import org.eclipse.ditto.internal.models.signalenrichment.DittoCachingSignalEnrichmentFacadeProvider;
 import org.junit.After;
 import org.junit.Test;
 
@@ -46,6 +47,8 @@ public final class ConnectivityCachingSignalEnrichmentProviderTest {
 
 
     private static final Config CONFIG = ConfigFactory.empty()
+            .withValue("ditto.signal-enrichment.caching-signal-enrichment-facade.provider",
+                    ConfigValueFactory.fromAnyRef(DittoCachingSignalEnrichmentFacadeProvider.class.getCanonicalName()))
             .withValue("ditto.connectivity.signal-enrichment.provider",
                     ConfigValueFactory.fromAnyRef(ConnectivityCachingSignalEnrichmentProvider.class.getCanonicalName()))
             .withValue("ditto.connectivity.signal-enrichment.provider-config.ask-timeout",

@@ -53,7 +53,7 @@ public interface DittoExtensionPoint extends Extension {
                     List.of(system));
         }
 
-        private String getImplementation(final ExtendedActorSystem actorSystem) {
+        protected String getImplementation(final ExtendedActorSystem actorSystem) {
             return actorSystem.settings().config().getString(getConfigPath());
         }
 

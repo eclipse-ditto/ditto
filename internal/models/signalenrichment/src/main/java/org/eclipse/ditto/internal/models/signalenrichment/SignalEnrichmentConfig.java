@@ -31,13 +31,6 @@ public interface SignalEnrichmentConfig {
     String CONFIG_PATH = "signal-enrichment";
 
     /**
-     * Returns the provider of signal-enrichment facades.
-     *
-     * @return the class name of the facade provider.
-     */
-    String getProvider();
-
-    /**
      * Returns the configuration for the signal-enrichment facade provider.
      *
      * @return the configuration.
@@ -56,11 +49,6 @@ public interface SignalEnrichmentConfig {
      * {@code SignalEnrichmentConfig}.
      */
     enum SignalEnrichmentConfigValue implements KnownConfigValue {
-
-        /**
-         * Canonical name of the signal-enriching facade provider for connections.
-         */
-        PROVIDER("provider", ""),
 
         /**
          * Configuration for the provider.

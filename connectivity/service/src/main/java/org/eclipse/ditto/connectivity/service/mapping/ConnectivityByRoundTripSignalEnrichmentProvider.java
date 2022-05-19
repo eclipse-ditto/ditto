@@ -25,7 +25,7 @@ import akka.actor.ActorSystem;
 /**
  * Provider for Connectivity-service of signal-enriching facades that make a round-trip for each query.
  */
-public final class ConnectivityByRoundTripSignalEnrichmentProvider extends ConnectivitySignalEnrichmentProvider {
+public final class ConnectivityByRoundTripSignalEnrichmentProvider implements ConnectivitySignalEnrichmentProvider {
 
     private static final String PROXY_ACTOR_PATH = "/user/connectivityRoot/connectivityProxyActor";
 

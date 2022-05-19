@@ -62,10 +62,6 @@ public final class DefaultSignalEnrichmentConfigTest {
         final SignalEnrichmentConfig underTest =
                 DefaultSignalEnrichmentConfig.of(signalEnrichmentTestConf);
 
-        softly.assertThat(underTest.getProvider())
-                .as(SignalEnrichmentConfig.SignalEnrichmentConfigValue.PROVIDER.getConfigPath())
-                .isEqualTo("MySignalEnrichmentProvider");
-
         softly.assertThat(underTest.getProviderConfig().root())
                 .as(SignalEnrichmentConfig.SignalEnrichmentConfigValue.PROVIDER_CONFIG.getConfigPath())
                 .containsOnlyKeys("key")

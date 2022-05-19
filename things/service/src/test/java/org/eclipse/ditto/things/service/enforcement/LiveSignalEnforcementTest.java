@@ -89,7 +89,6 @@ public final class LiveSignalEnforcementTest {
     private TestProbe thingPersistenceActorProbe;
     private TestProbe policiesShardRegionProbe;
     private ActorRef supervisor;
-    private ThingSupervisorActor mockThingPersistenceSupervisor;
 
     @Before
     public void init() {
@@ -100,7 +99,6 @@ public final class LiveSignalEnforcementTest {
         final TestActorRef<ThingSupervisorActor> thingPersistenceSupervisorTestActorRef =
                 createThingPersistenceSupervisor();
         supervisor = thingPersistenceSupervisorTestActorRef;
-        mockThingPersistenceSupervisor = thingPersistenceSupervisorTestActorRef.underlyingActor();
     }
 
     @After
@@ -194,10 +192,11 @@ public final class LiveSignalEnforcementTest {
 
             assertThat(publishLiveCommand.topic()).isEqualTo(StreamingType.LIVE_COMMANDS.getDistributedPubSubTopic());
             assertThat(publishLiveCommand.msg()).isInstanceOf(ThingCommand.class);
-            assertThat((CharSequence) ((ThingCommand<?>) publishLiveCommand.msg()).getEntityId()).isEqualTo(write.getEntityId());
+            assertThat((CharSequence) ((ThingCommand<?>) publishLiveCommand.msg()).getEntityId()).isEqualTo(
+                    write.getEntityId());
 
             final ThingCommand<?> read = getRetrieveThingCommand(liveHeaders());
-                    RetrieveThingResponse.of(TestSetup.THING_ID, JsonFactory.newObject(), DittoHeaders.empty());
+            RetrieveThingResponse.of(TestSetup.THING_ID, JsonFactory.newObject(), DittoHeaders.empty());
             supervisor.tell(read, getRef());
             final DistributedPubSubMediator.Publish publishRead =
                     pubSubMediatorProbe.expectMsgClass(DistributedPubSubMediator.Publish.class);
@@ -599,10 +598,10 @@ public final class LiveSignalEnforcementTest {
 
     private static MessageCommand<?, ?> thingMessageCommand(final String correlationId) {
         final Message<Object> message = Message.newBuilder(
-                MessageBuilder.newHeadersBuilder(MessageDirection.TO, TestSetup.THING_ID, "my-subject")
-                        .contentType("text/plain")
-                        .correlationId(correlationId)
-                        .build())
+                        MessageBuilder.newHeadersBuilder(MessageDirection.TO, TestSetup.THING_ID, "my-subject")
+                                .contentType("text/plain")
+                                .correlationId(correlationId)
+                                .build())
                 .payload("Hello you!")
                 .build();
         return SendThingMessage.of(TestSetup.THING_ID, message, liveHeaders());
@@ -620,10 +619,10 @@ public final class LiveSignalEnforcementTest {
 
     private static MessageCommand<?, ?> featureMessageCommand() {
         final Message<?> message = Message.newBuilder(
-                MessageBuilder.newHeadersBuilder(MessageDirection.TO, TestSetup.THING_ID, "my-subject")
-                        .contentType("text/plain")
-                        .featureId("foo")
-                        .build())
+                        MessageBuilder.newHeadersBuilder(MessageDirection.TO, TestSetup.THING_ID, "my-subject")
+                                .contentType("text/plain")
+                                .featureId("foo")
+                                .build())
                 .payload("Hello you!")
                 .build();
         return SendFeatureMessage.of(TestSetup.THING_ID, "foo", message, liveHeaders());
