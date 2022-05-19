@@ -19,6 +19,7 @@ import org.eclipse.ditto.gateway.service.util.config.endpoints.CommandConfig;
 import org.eclipse.ditto.gateway.service.util.config.endpoints.HttpConfig;
 
 import akka.actor.ActorRef;
+import akka.actor.ActorSystem;
 import akka.actor.Props;
 import akka.http.javadsl.model.HttpRequest;
 import akka.http.javadsl.model.HttpResponse;
@@ -27,6 +28,10 @@ import akka.http.javadsl.model.HttpResponse;
  * Default creator of Props of HTTP request actors.
  */
 public final class DefaultHttpRequestActorPropsFactory implements HttpRequestActorPropsFactory {
+
+    private DefaultHttpRequestActorPropsFactory(final ActorSystem actorSystem) {
+        //NoOp Constructor to match extension instantiation
+    }
 
     @Override
     public Props props(final ActorRef proxyActor, final HeaderTranslator headerTranslator,
