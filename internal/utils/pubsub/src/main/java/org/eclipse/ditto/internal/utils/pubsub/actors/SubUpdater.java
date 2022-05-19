@@ -194,7 +194,6 @@ public final class SubUpdater extends akka.actor.AbstractActorWithTimers
     private boolean checkForLostSubscriber(final Subscribe subscribe, final boolean changed) {
         if (subscribe.isResubscribe() && changed) {
             log().error("[RESUB] Subscriber was missing: <{}>", subscribe.getSubscriber());
-            errorCounter++;
             return false;
         } else if (subscribe.isResubscribe()) {
             log().debug("[RESUB] Refreshed subscriber <{}>", subscribe.getSubscriber());
