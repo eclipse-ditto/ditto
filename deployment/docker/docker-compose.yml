@@ -105,7 +105,7 @@ services:
       # the log file(s) can be found in /var/log/ditto directory on the host machine
       # - DITTO_LOGGING_FILE_APPENDER=true
     # Set additional configuration options here
-    # -Dditto.things-search...
+    # -Dditto.search...
     #command: java -jar starter.jar
     # only needed if DITTO_LOGGING_FILE_APPENDER is set
     # volumes:

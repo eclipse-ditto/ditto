@@ -54,7 +54,7 @@ public interface QueryCriteriaValidator extends DittoExtensionPoint {
 
     final class ExtensionId extends DittoExtensionPoint.ExtensionId<QueryCriteriaValidator> {
 
-        private static final String CONFIG_PATH = "ditto.things-search.query-criteria-validator.implementation";
+        private static final String CONFIG_PATH = "ditto.search.query-criteria-validator.implementation";
         private static final ExtensionId INSTANCE = new ExtensionId(QueryCriteriaValidator.class);
 
         private ExtensionId(final Class<QueryCriteriaValidator> parentClass) {
