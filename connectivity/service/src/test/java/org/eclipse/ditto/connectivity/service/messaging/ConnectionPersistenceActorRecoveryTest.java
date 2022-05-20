@@ -127,7 +127,9 @@ public final class ConnectionPersistenceActorRecoveryTest extends WithMockServer
     public void testRecoveryOfConnectionWithBlockedHost() {
         final ActorSystem akkaTestSystem =
                 ActorSystem.create("AkkaTestSystem", TestConstants.CONFIG.withValue("ditto.connectivity.connection" +
-                        ".blocked-hostnames", ConfigValueFactory.fromAnyRef("127.0.0.1")));
+                        ".blocked-hostnames", ConfigValueFactory.fromAnyRef("127.0.0.1"))
+                        .withValue("pre-enforcer-provider",ConfigValueFactory.fromAnyRef(
+                                "org.eclipse.ditto.policies.enforcement.DefaultPreEnforcerProvider")));
         final ActorRef mediator = DistributedPubSub.get(akkaTestSystem).mediator();
         final ActorRef proxyActor = actorSystem.actorOf(TestConstants.ProxyActorMock.props());
 
