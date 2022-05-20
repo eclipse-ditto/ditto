@@ -21,6 +21,8 @@ import java.util.stream.IntStream;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.signals.Signal;
+import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
+import org.eclipse.ditto.things.api.ThingsMessagingConstants;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThingResponse;
@@ -81,8 +83,8 @@ public class ConnectivityProxyActorTest {
             // WHEN: RetrieveThings is sent to proxy actor
             proxy.tell(retrieveThings, getRef());
 
-            // THEN: command is forwarded to concierge
-            expectMsg(retrieveThings);
+            // THEN: command is forwarded to things aggregator actor
+            expectMsg(DistPubSubAccess.send(ThingsMessagingConstants.THINGS_AGGREGATOR_ACTOR_PATH, retrieveThings));
 
             // WHEN: concierge responds with SourceRef of things
             final SourceRef<RetrieveThingResponse> retrieveThingResponseSourceRef =
