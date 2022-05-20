@@ -64,7 +64,7 @@ final class QueryThingsPerRequestActor extends AbstractActor {
     private final ActorRef originatingSender;
     private final ActorRef pubSubMediator;
 
-    private QueryThingsResponse queryThingsResponse;
+    @Nullable private QueryThingsResponse queryThingsResponse;
     @Nullable private List<ThingId> queryThingsResponseThingIds;
 
     @SuppressWarnings("unused")
