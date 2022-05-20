@@ -31,12 +31,12 @@ import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.connectivity.api.ExternalMessage;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.MqttHeader;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.common.InvalidMqttQosCodeException;
-import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.publish.GenericMqttPublish;
-import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.publish.MqttPublishTransformationException;
-import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.publish.TransformationFailure;
-import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.publish.TransformationResult;
-import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.publish.TransformationSuccess;
-import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.publish.UserProperty;
+import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.message.publish.GenericMqttPublish;
+import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.message.publish.MqttPublishTransformationException;
+import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.message.publish.TransformationFailure;
+import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.message.publish.TransformationResult;
+import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.message.publish.TransformationSuccess;
+import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.message.publish.UserProperty;
 
 import com.hivemq.client.mqtt.datatypes.MqttQos;
 import com.hivemq.client.mqtt.datatypes.MqttTopic;

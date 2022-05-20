@@ -18,7 +18,9 @@ import java.text.MessageFormat;
 import java.util.List;
 import java.util.Optional;
 
-import javax.annotation.concurrent.Immutable;
+import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.client.GenericMqttSubscribingClient;
+import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.client.MqttSubscribeException;
+import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.message.subscribe.GenericMqttSubscribe;
 
 import akka.NotUsed;
 import akka.japi.Pair;
@@ -31,11 +33,24 @@ import scala.util.Try;
  * This utility class facilitates subscribing for topics derived from the addresses of connection
  * {@link org.eclipse.ditto.connectivity.model.Source}s at the MQTT broker.
  */
-@Immutable
 public final class MqttSubscriber {
 
-    private MqttSubscriber() {
-        throw new AssertionError();
+    private final GenericMqttSubscribingClient subscribingClient;
+
+    private MqttSubscriber(final GenericMqttSubscribingClient subscribingClient) {
+        this.subscribingClient = subscribingClient;
+    }
+
+    /**
+     * Returns a new instance of {@code MqttSubscriber} for the specified {@code GenericMqttSubscribingClient}.
+     *
+     * @param genericMqttSubscribingClient the client to be used for subscribing to topics at the broker and for
+     * consuming incoming Publish message for the subscribed topics.
+     * @return the instance.
+     * @throws NullPointerException if {@code genericMqttSubscribingClient} is {@code null}.
+     */
+    public static MqttSubscriber newInstance(final GenericMqttSubscribingClient genericMqttSubscribingClient) {
+        return new MqttSubscriber(checkNotNull(genericMqttSubscribingClient, "genericMqttSubscribingClient"));
     }
 
     /**
@@ -49,31 +64,29 @@ public final class MqttSubscriber {
      * thus, there is no {@code SubscribeResult} in the returned Akka stream for that connection source.
      * A connection source address might not be a valid MQTT filter topic.
      * In this case the SubscribeResult for the associated connection source is a failure.
+     * <p>
+     * A {@code SubscribeResult} is only then successful if all subscriptions to its connection source addresses
+     * succeeded.
      *
      * @param connectionSources the connection sources to subscribe for.
-     * @param genericMqttSubscribingClient the client to send the MQTT Subscribe message to the broker.
      * @return an Akka stream containing the client subscribing results with their associated connection sources.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static Source<SourceSubscribeResult, NotUsed> subscribeForConnectionSources(
-            final List<org.eclipse.ditto.connectivity.model.Source> connectionSources,
-            final GenericMqttSubscribingClient genericMqttSubscribingClient
+    public Source<SubscribeResult, NotUsed> subscribeForConnectionSources(
+            final List<org.eclipse.ditto.connectivity.model.Source> connectionSources
     ) {
         checkNotNull(connectionSources, "connectionSources");
-        checkNotNull(genericMqttSubscribingClient, "genericMqttSubscribingClient");
 
         // Use Pairs to carry along associated connection Source.
-        return Source.from(connectionSources)
+        return Source.fromIterator(connectionSources::iterator)
                 .map(MqttSubscriber::tryToGetGenericMqttSubscribe)
                 .map(optionalTryPair -> Pair.create(
                         optionalTryPair.first(),
                         optionalTryPair.second()
-                                .map(subscribeOptional -> Source.fromJavaStream(subscribeOptional::stream)
-                                        .flatMapConcat(genericMqttSubscribingClient::subscribe) // <- there
-                                        .map(subscribeResult -> SourceSubscribeResult.newInstance(
-                                                optionalTryPair.first(),
-                                                subscribeResult
-                                        )))
+                                .map(optionalSubscribeMsg -> Source.fromJavaStream(optionalSubscribeMsg::stream))
+                                .map(subscribeMsgSource -> subscribeMsgSource.flatMapConcat(
+                                        subscribeMsg -> subscribe(subscribeMsg, optionalTryPair.first()))
+                                )
                 ))
                 .flatMapConcat(pair -> pair.second()
                         .fold(
@@ -95,20 +108,47 @@ public final class MqttSubscriber {
         }
     }
 
-    private static Source<SourceSubscribeResult, NotUsed> getSubscribeFailureSource(
+    private Source<SubscribeResult, NotUsed> subscribe(final GenericMqttSubscribe genericMqttSubscribe,
+            final org.eclipse.ditto.connectivity.model.Source connectionSource) {
+
+        return Source.fromPublisher(subscribingClient.subscribe(genericMqttSubscribe) // <- there
+                .map(unused -> consumeIncomingPublishesForSubscribedTopics(connectionSource))
+                .onErrorReturn(error -> getSubscribeFailureResult(connectionSource, error))
+                .toFlowable());
+    }
+
+    private SubscribeResult consumeIncomingPublishesForSubscribedTopics(
+            final org.eclipse.ditto.connectivity.model.Source connectionSource
+    ) {
+        return SubscribeSuccess.newInstance(connectionSource,
+                Source.fromPublisher(subscribingClient.consumeSubscribedPublishesWithManualAcknowledgement()));
+    }
+
+
+    private static SubscribeResult getSubscribeFailureResult(
+            final org.eclipse.ditto.connectivity.model.Source connectionSource,
+            final Throwable failure
+    ) {
+        final SubscribeFailure result;
+        if (failure instanceof MqttSubscribeException mqttSubscribeException) {
+            result = SubscribeFailure.newInstance(connectionSource, mqttSubscribeException);
+        } else {
+            result = SubscribeFailure.newInstance(connectionSource, new MqttSubscribeException(failure));
+        }
+        return result;
+    }
+
+    private static Source<SubscribeResult, NotUsed> getSubscribeFailureSource(
             final org.eclipse.ditto.connectivity.model.Source connectionSource,
             final Throwable error
     ) {
         return Source.single(
-                SourceSubscribeResult.newInstance(
-                        connectionSource,
-                        SubscribeFailure.newInstance(new MqttSubscribeException(
-                                MessageFormat.format("Failed to instantiate {0}: {1}",
-                                        GenericMqttSubscribe.class.getSimpleName(),
-                                        error.getMessage()),
-                                error
-                        ))
-                ));
+                SubscribeFailure.newInstance(connectionSource, new MqttSubscribeException(
+                        MessageFormat.format("Failed to instantiate {0}: {1}",
+                                GenericMqttSubscribe.class.getSimpleName(),
+                                error.getMessage()),
+                        error
+                )));
     }
 
 }

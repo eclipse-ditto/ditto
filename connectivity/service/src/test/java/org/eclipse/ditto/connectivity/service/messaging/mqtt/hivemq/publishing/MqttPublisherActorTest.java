@@ -41,8 +41,10 @@ import org.eclipse.ditto.connectivity.service.messaging.ConnectivityStatusResolv
 import org.eclipse.ditto.connectivity.service.messaging.TestConstants;
 import org.eclipse.ditto.connectivity.service.messaging.internal.ConnectionFailure;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.MqttHeader;
-import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.publish.GenericMqttPublish;
-import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.publish.UserProperty;
+import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.client.GenericMqttPublishResult;
+import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.client.GenericMqttPublishingClient;
+import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.message.publish.GenericMqttPublish;
+import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.message.publish.UserProperty;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.things.model.ThingId;

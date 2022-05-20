@@ -17,7 +17,6 @@ import static org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.Abstr
 
 import java.time.Duration;
 import java.util.List;
-import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.CompletionStage;
@@ -37,7 +36,6 @@ import org.eclipse.ditto.connectivity.service.config.MqttConfig;
 import org.eclipse.ditto.connectivity.service.messaging.BaseClientActor;
 import org.eclipse.ditto.connectivity.service.messaging.BaseClientData;
 import org.eclipse.ditto.connectivity.service.messaging.backoff.RetryTimeoutStrategy;
-import org.eclipse.ditto.connectivity.service.messaging.internal.AbstractWithOrigin;
 import org.eclipse.ditto.connectivity.service.messaging.internal.ClientConnected;
 import org.eclipse.ditto.connectivity.service.messaging.internal.ClientDisconnected;
 import org.eclipse.ditto.connectivity.service.messaging.internal.ConnectionFailure;
@@ -412,7 +410,7 @@ abstract class AbstractMqttClientActor<S, P, Q extends MqttClient, R> extends Ba
             }
         }
         final CompletionStage<Object> startActorsResult = startPublisherAndConsumerActors(null)
-                .thenApply(result -> result.isSuccess() ? new MqttClientConnected(origin) : result.getFailure());
+                .thenApply(result -> result.isSuccess() ? MqttClientConnected.of(origin) : result.getFailure());
         Patterns.pipe(startActorsResult, getContext().dispatcher()).to(getSelf());
     }
 
@@ -613,23 +611,6 @@ abstract class AbstractMqttClientActor<S, P, Q extends MqttClient, R> extends Ba
         return connection.getSources().stream()
                 .map(Source::getAddresses)
                 .map(sourceAddresses -> String.join(";", sourceAddresses));
-    }
-
-    static class MqttClientConnected extends AbstractWithOrigin implements ClientConnected {
-
-        MqttClientConnected(@Nullable final ActorRef origin) {
-            super(origin);
-        }
-
-        @Override
-        public Optional<ActorRef> getOrigin() {
-            return Optional.empty();
-        }
-
-        @Override
-        public String toString() {
-            return getClass().getSimpleName() + "[" + super.toString() + "]";
-        }
     }
 
     enum Control {

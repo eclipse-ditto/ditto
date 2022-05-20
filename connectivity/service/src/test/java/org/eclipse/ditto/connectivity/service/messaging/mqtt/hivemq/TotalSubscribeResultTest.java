@@ -19,7 +19,6 @@ import java.util.List;
 import org.assertj.core.api.Assertions;
 import org.assertj.core.api.AutoCloseableSoftAssertions;
 import org.eclipse.ditto.connectivity.model.Source;
-import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.subscribing.SourceSubscribeResult;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.subscribing.SubscribeResult;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -27,13 +26,13 @@ import org.mockito.Mockito;
 import nl.jqno.equalsverifier.EqualsVerifier;
 
 /**
- * Unit test for {@link TotalSubscribeResult}.
+ * Unit test for {@link ConnectionTester.TotalSubscribeResult}.
  */
 public final class TotalSubscribeResultTest {
 
     @Test
     public void testHashCodeAndEquals() {
-        EqualsVerifier.forClass(TotalSubscribeResult.class)
+        EqualsVerifier.forClass(ConnectionTester.TotalSubscribeResult.class)
                 .usingGetClass()
                 .verify();
     }
@@ -41,45 +40,48 @@ public final class TotalSubscribeResultTest {
     @Test
     public void ofWithNullSourceSubscribeResultsThrowsException() {
         Assertions.assertThatNullPointerException()
-                .isThrownBy(() -> TotalSubscribeResult.of(null))
+                .isThrownBy(() -> ConnectionTester.TotalSubscribeResult.of(null))
                 .withMessage("The sourceSubscribeResults must not be null!")
                 .withNoCause();
     }
 
     @Test
     public void totalSubscribeResultsWithSuccessResultsOnlyHasNoFailures() {
-        final var underTest = TotalSubscribeResult.of(List.of(
-                SourceSubscribeResult.newInstance(Mockito.mock(Source.class), getSuccessfulSubscribeResult()),
-                SourceSubscribeResult.newInstance(Mockito.mock(Source.class), getSuccessfulSubscribeResult()),
-                SourceSubscribeResult.newInstance(Mockito.mock(Source.class), getSuccessfulSubscribeResult())
+        final var source = Mockito.mock(Source.class);
+        final var underTest = ConnectionTester.TotalSubscribeResult.of(List.of(
+                getSuccessfulSubscribeResult(source),
+                getSuccessfulSubscribeResult(source),
+                getSuccessfulSubscribeResult(source)
         ));
 
         assertThat(underTest.hasFailures()).isFalse();
     }
 
-    private static SubscribeResult getSuccessfulSubscribeResult() {
+    private static SubscribeResult getSuccessfulSubscribeResult(final Source connectionSource) {
         final var result = Mockito.mock(SubscribeResult.class);
         Mockito.when(result.isSuccess()).thenReturn(true);
+        Mockito.when(result.getConnectionSource()).thenReturn(connectionSource);
         return result;
     }
 
     @Test
     public void gettersOfMixedTotalSubscribeResultReturnExpected() {
+        final var source = Mockito.mock(Source.class);
         final var sourceSubscribeResults = List.of(
-                SourceSubscribeResult.newInstance(Mockito.mock(Source.class), getSuccessfulSubscribeResult()),
-                SourceSubscribeResult.newInstance(Mockito.mock(Source.class), getFailedSubscribeResult()),
-                SourceSubscribeResult.newInstance(Mockito.mock(Source.class), getSuccessfulSubscribeResult()),
-                SourceSubscribeResult.newInstance(Mockito.mock(Source.class), getFailedSubscribeResult()),
-                SourceSubscribeResult.newInstance(Mockito.mock(Source.class), getSuccessfulSubscribeResult())
+                getSuccessfulSubscribeResult(source),
+                getFailedSubscribeResult(source),
+                getSuccessfulSubscribeResult(source),
+                getFailedSubscribeResult(source),
+                getSuccessfulSubscribeResult(source)
         );
-        final var underTest = TotalSubscribeResult.of(sourceSubscribeResults);
+        final var underTest = ConnectionTester.TotalSubscribeResult.of(sourceSubscribeResults);
 
         try (final var softly = new AutoCloseableSoftAssertions()) {
             softly.assertThat(underTest.hasFailures()).as("has failures").isTrue();
-            softly.assertThat(underTest.failedSourceSubscribeResults())
+            softly.assertThat(underTest.failedSubscribeResults())
                     .as("failed results")
                     .containsExactly(sourceSubscribeResults.get(1), sourceSubscribeResults.get(3));
-            softly.assertThat(underTest.successfulSourceSubscribeResults())
+            softly.assertThat(underTest.successfulSubscribeResults())
                     .as("successful results")
                     .containsExactly(sourceSubscribeResults.get(0),
                             sourceSubscribeResults.get(2),
@@ -87,9 +89,10 @@ public final class TotalSubscribeResultTest {
         }
     }
 
-    private static SubscribeResult getFailedSubscribeResult() {
+    private static SubscribeResult getFailedSubscribeResult(final Source connectionSource) {
         final var result = Mockito.mock(SubscribeResult.class);
         Mockito.when(result.isSuccess()).thenReturn(false);
+        Mockito.when(result.getConnectionSource()).thenReturn(connectionSource);
         return result;
     }
 

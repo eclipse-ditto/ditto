@@ -23,18 +23,19 @@ import org.eclipse.ditto.connectivity.service.messaging.BaseConsumerActor;
 import org.eclipse.ditto.connectivity.service.messaging.ConnectivityStatusResolver;
 import org.eclipse.ditto.connectivity.service.messaging.internal.RetrieveAddressStatus;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.MqttSpecificConfig;
-import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.publish.AcknowledgementUnsupportedException;
-import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.publish.GenericMqttPublish;
-import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.publish.ManualAcknowledgementDisabledException;
-import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.publish.MessageAlreadyAcknowledgedException;
-import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.publish.MqttPublishTransformationException;
-import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.publish.TransformationResult;
+import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.message.publish.AcknowledgementUnsupportedException;
+import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.message.publish.GenericMqttPublish;
+import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.message.publish.ManualAcknowledgementDisabledException;
+import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.message.publish.MessageAlreadyAcknowledgedException;
+import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.message.publish.MqttPublishTransformationException;
+import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.message.publish.TransformationResult;
 import org.eclipse.ditto.connectivity.service.util.ConnectivityMdcEntryKey;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 
 import akka.NotUsed;
 import akka.actor.Props;
+import akka.japi.function.Predicate;
 import akka.stream.KillSwitch;
 import akka.stream.KillSwitches;
 import akka.stream.javadsl.Flow;
@@ -186,10 +187,15 @@ public final class MqttConsumerActor extends BaseConsumerActor {
     }
 
     private <T extends TransformationResult<GenericMqttPublish, ExternalMessage>> Sink<T, ?> getTransformationFailureSink() {
+        final Predicate<MqttPublishTransformationException> isCausedByDittoRuntimeException = exception -> {
+            final var cause = exception.getCause();
+            return cause instanceof DittoRuntimeException;
+        };
+
         return Flow.<T, MqttPublishTransformationException>fromFunction(TransformationResult::getErrorOrThrow)
                 .divertTo(Flow.fromFunction(MqttConsumerActor::appendMqttPublishHeadersToDittoRuntimeException)
                                 .to(getDittoRuntimeExceptionSink()),
-                        MqttPublishTransformationException::isCausedByDittoRuntimeException)
+                        isCausedByDittoRuntimeException)
                 .to(Sink.foreach(this::recordTransformationException));
     }
 

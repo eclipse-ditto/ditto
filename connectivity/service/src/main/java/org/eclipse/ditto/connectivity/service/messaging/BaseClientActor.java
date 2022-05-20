@@ -1729,8 +1729,8 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
                 OutboundMappingProcessorActor.props(getSelf(), outboundMappingProcessors, connection,
                         connectivityConfig, processorPoolSize);
 
-        final ActorRef processorActor =
-                getContext().actorOf(outboundMappingProcessorActorProps, OutboundMappingProcessorActor.ACTOR_NAME);
+        final ActorRef processorActor = childActorNanny.startChildActor(OutboundMappingProcessorActor.ACTOR_NAME,
+                outboundMappingProcessorActorProps);
 
         final Props outboundDispatchingProcessorActorProps = OutboundDispatchingActor.props(settings, processorActor);
         final ActorRef dispatchingActor =
@@ -1867,23 +1867,22 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
      * @return status with meaningful message.
      */
     private Status.Status getStatusToReport(final Status.Status status, final DittoHeaders dittoHeaders) {
-        final Status.Status answerToPublish;
-        if (status instanceof Status.Failure) {
-            final var failure = (Status.Failure) status;
-            if (!(failure.cause() instanceof DittoRuntimeException)) {
-                final DittoRuntimeException error = ConnectionFailedException.newBuilder(connectionId())
-                        .description(describeEventualCause(failure.cause()))
-                        .dittoHeaders(dittoHeaders)
-                        .cause(failure.cause())
-                        .build();
-                answerToPublish = new Status.Failure(error);
+        final Status.Status result;
+        if (status instanceof Status.Failure failure) {
+            final var failureCause = failure.cause();
+            if (failureCause instanceof DittoRuntimeException) {
+                result = status;
             } else {
-                answerToPublish = status;
+                result = new Status.Failure(ConnectionFailedException.newBuilder(connectionId())
+                        .description(describeEventualCause(failureCause))
+                        .dittoHeaders(dittoHeaders)
+                        .cause(failureCause)
+                        .build());
             }
         } else {
-            answerToPublish = status;
+            result = status;
         }
-        return answerToPublish;
+        return result;
     }
 
     private ActorSelection getLocalActorOfSamePath(@Nullable final ActorRef exampleActor) {

@@ -16,14 +16,22 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalStateException;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 
+import org.eclipse.ditto.connectivity.model.Source;
+import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.client.MqttSubscribeException;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnitRunner;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
 
 /**
  * Unit test for {@link SubscribeFailure}.
  */
+@RunWith(MockitoJUnitRunner.class)
 public final class SubscribeFailureTest {
+
+    @Mock private Source connectionSource;
 
     @Test
     public void testHashCodeAndEquals() {
@@ -33,30 +41,45 @@ public final class SubscribeFailureTest {
     }
 
     @Test
+    public void newInstanceWithNullConnectionSourceThrowsException() {
+        assertThatNullPointerException()
+                .isThrownBy(() -> SubscribeFailure.newInstance(null, new MqttSubscribeException()))
+                .withMessage("The connectionSource must not be null!")
+                .withNoCause();
+    }
+
+    @Test
     public void newInstanceWithNullMqttSubscribeExceptionThrowsException() {
         assertThatNullPointerException()
-                .isThrownBy(() -> SubscribeFailure.newInstance(null))
+                .isThrownBy(() -> SubscribeFailure.newInstance(connectionSource, null))
                 .withMessage("The mqttSubscribeException must not be null!")
                 .withNoCause();
     }
 
     @Test
     public void isSuccessReturnsFalse() {
-        final var underTest = SubscribeFailure.newInstance(new MqttSubscribeException());
+        final var underTest = SubscribeFailure.newInstance(connectionSource, new MqttSubscribeException());
 
         assertThat(underTest.isSuccess()).isFalse();
     }
 
     @Test
     public void isFailureReturnsTrue() {
-        final var underTest = SubscribeFailure.newInstance(new MqttSubscribeException());
+        final var underTest = SubscribeFailure.newInstance(connectionSource, new MqttSubscribeException());
 
         assertThat(underTest.isFailure()).isTrue();
     }
 
     @Test
+    public void getConnectionSourceReturnsExpected() {
+        final var underTest = SubscribeFailure.newInstance(connectionSource, new MqttSubscribeException());
+
+        assertThat(underTest.getConnectionSource()).isEqualTo(connectionSource);
+    }
+
+    @Test
     public void getMqttPublishSourceThrowsException() {
-        final var underTest = SubscribeFailure.newInstance(new MqttSubscribeException());
+        final var underTest = SubscribeFailure.newInstance(connectionSource, new MqttSubscribeException());
 
         assertThatIllegalStateException()
                 .isThrownBy(underTest::getMqttPublishSourceOrThrow)
@@ -67,7 +90,7 @@ public final class SubscribeFailureTest {
     @Test
     public void getErrorReturnsExpectedError() {
         final var mqttSubscribeException = new MqttSubscribeException();
-        final var underTest = SubscribeFailure.newInstance(mqttSubscribeException);
+        final var underTest = SubscribeFailure.newInstance(connectionSource, mqttSubscribeException);
 
         assertThat(underTest.getErrorOrThrow()).isEqualTo(mqttSubscribeException);
     }

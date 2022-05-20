@@ -47,9 +47,9 @@ import org.eclipse.ditto.connectivity.service.messaging.ExternalMessageWithSende
 import org.eclipse.ditto.connectivity.service.messaging.ResponseCollectorActor;
 import org.eclipse.ditto.connectivity.service.messaging.TestConstants;
 import org.eclipse.ditto.connectivity.service.messaging.internal.RetrieveAddressStatus;
-import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.publish.GenericMqttPublish;
-import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.publish.ManualAcknowledgementDisabledException;
-import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.publish.MessageAlreadyAcknowledgedException;
+import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.message.publish.GenericMqttPublish;
+import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.message.publish.ManualAcknowledgementDisabledException;
+import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.message.publish.MessageAlreadyAcknowledgedException;
 import org.eclipse.ditto.internal.utils.akka.ActorSystemResource;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingNotAccessibleException;

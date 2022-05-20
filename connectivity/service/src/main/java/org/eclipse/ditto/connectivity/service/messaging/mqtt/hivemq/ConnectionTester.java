@@ -15,6 +15,8 @@ package org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq;
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.text.MessageFormat;
+import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.CompletionStage;
@@ -29,20 +31,18 @@ import javax.annotation.concurrent.NotThreadSafe;
 import org.eclipse.ditto.connectivity.service.messaging.ChildActorNanny;
 import org.eclipse.ditto.connectivity.service.messaging.ConnectivityStatusResolver;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.KeepAliveInterval;
-import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.clients.GenericMqttClient;
-import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.clients.GenericMqttConnAckStatus;
-import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.clients.GenericMqttConnect;
-import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.clients.HiveMqttClientProperties;
+import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.client.GenericMqttClient;
+import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.client.GenericMqttClientFactory;
+import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.client.HiveMqttClientProperties;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.consuming.MqttConsumerActor;
-import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.publishing.GenericMqttPublishingClient;
+import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.message.connect.GenericMqttConnect;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.publishing.MqttPublisherActor;
-import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.subscribing.AllSubscriptionsFailedException;
-import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.subscribing.GenericMqttSubscribingClient;
-import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.subscribing.MqttSubscribeException;
+import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.client.AllSubscriptionsFailedException;
+import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.client.MqttSubscribeException;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.subscribing.MqttSubscriber;
-import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.subscribing.SomeSubscriptionsFailedException;
-import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.subscribing.SourceSubscribeResult;
-import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.subscribing.SubscriptionStatus;
+import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.client.SomeSubscriptionsFailedException;
+import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.subscribing.SubscribeResult;
+import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.client.SubscriptionStatus;
 import org.eclipse.ditto.connectivity.service.util.ConnectivityMdcEntryKey;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLogger;
@@ -61,8 +61,7 @@ import akka.stream.javadsl.Sink;
 @NotThreadSafe
 final class ConnectionTester {
 
-    private final Function<HiveMqttClientProperties, GenericMqttSubscribingClient> subscribingClientFactory;
-    private final Function<HiveMqttClientProperties, GenericMqttPublishingClient> publishingClientFactory;
+    private final GenericMqttClientFactory genericMqttClientFactory;
     private final HiveMqttClientProperties hiveMqttClientProperties;
     private final Sink<Object, NotUsed> inboundMappingSink;
     private final ConnectivityStatusResolver connectivityStatusResolver;
@@ -71,8 +70,7 @@ final class ConnectionTester {
     private final ThreadSafeDittoLogger logger;
 
     private ConnectionTester(final Builder builder) {
-        subscribingClientFactory = checkNotNull(builder.subscribingClientFactory, "subscribingClientFactory");
-        publishingClientFactory = checkNotNull(builder.publishingClientFactory, "publishingClientFactory");
+        genericMqttClientFactory = checkNotNull(builder.genericMqttClientFactory, "genericMqttClientFactory");
         hiveMqttClientProperties = checkNotNull(builder.hiveMqttClientProperties, "hiveMqttClientProperties");
         inboundMappingSink = checkNotNull(builder.inboundMappingSink, "inboundMappingSink");
         connectivityStatusResolver = checkNotNull(builder.connectivityStatusResolver, "connectivityStatusResolver");
@@ -98,57 +96,53 @@ final class ConnectionTester {
      * Performs the MQTT connection test.
      */
     CompletionStage<Status.Status> testConnection() {
-        return tryToGetSubscribingClient()
-                .thenCombine(tryToGetPublishingClient(), (subscribingClient, publishingClient) ->
-                        CompletableFuture.allOf(connectClient(subscribingClient), connectClient(publishingClient))
+        return tryToGetGenericMqttClient()
+                .thenCompose(genericMqttClient ->
+                        connectClient(genericMqttClient)
                                 .thenApply(logMqttConnectionEstablished())
-                                .thenApply(startPublisherActor(publishingClient))
-                                .thenCombine(subscribe(subscribingClient), handleTotalSubscribeResult())
-                                .handle(getAppropriateStatus(publishingClient, subscribingClient))
+                                .thenApply(startPublisherActor())
+                                .thenCombine(subscribe(genericMqttClient), handleTotalSubscribeResult())
+                                .handle(getAppropriateStatus(genericMqttClient))
                 )
-                .thenCompose(Function.identity())
                 .exceptionally(this::logFailureAndGetStatus);
     }
 
-    private CompletionStage<GenericMqttSubscribingClient> tryToGetSubscribingClient() {
+    private CompletionStage<GenericMqttClient> tryToGetGenericMqttClient() {
         try {
-            return CompletableFuture.completedFuture(subscribingClientFactory.apply(hiveMqttClientProperties));
+            return CompletableFuture.completedFuture(
+                    genericMqttClientFactory.getGenericMqttClientForConnectionTesting(hiveMqttClientProperties)
+            );
         } catch (final Exception e) {
             return CompletableFuture.failedFuture(e);
         }
     }
 
-    private CompletionStage<GenericMqttPublishingClient> tryToGetPublishingClient() {
-        try {
-            return CompletableFuture.completedFuture(publishingClientFactory.apply(hiveMqttClientProperties));
-        } catch (final Exception e) {
-            return CompletableFuture.failedFuture(e);
-        }
+    private static CompletableFuture<GenericMqttClient> connectClient(final GenericMqttClient client) {
+        return client.connect(GenericMqttConnect.newInstance(true, KeepAliveInterval.zero()))
+                .thenApply(unusedVoid -> client)
+                .toCompletableFuture();
     }
 
-    private static CompletableFuture<GenericMqttConnAckStatus> connectClient(final GenericMqttClient client) {
-        return client.connect(GenericMqttConnect.newInstance(true, KeepAliveInterval.zero())).toCompletableFuture();
-    }
-
-    private Function<Void, Void> logMqttConnectionEstablished() {
+    private Function<GenericMqttClient, GenericMqttClient> logMqttConnectionEstablished() {
         final var mqttConnection = hiveMqttClientProperties.getMqttConnection();
         logger.info("Established MQTT connection to <{}>.", mqttConnection.getUri());
         return Function.identity();
     }
 
-    private Function<Void, ActorRef> startPublisherActor(final GenericMqttPublishingClient publishingClient) {
-        return aVoid -> childActorNanny.startChildActorConflictFree(
+    private Function<GenericMqttClient, ActorRef> startPublisherActor() {
+        return genericMqttClient -> childActorNanny.startChildActorConflictFree(
                 MqttPublisherActor.class.getSimpleName(),
                 MqttPublisherActor.propsDryRun(hiveMqttClientProperties.getMqttConnection(),
                         connectivityStatusResolver,
                         hiveMqttClientProperties.getConnectivityConfig(),
-                        publishingClient)
+                        genericMqttClient)
         );
     }
 
-    private CompletionStage<TotalSubscribeResult> subscribe(final GenericMqttSubscribingClient subscribingClient) {
+    private CompletionStage<TotalSubscribeResult> subscribe(final GenericMqttClient genericMqttClient) {
         final var mqttConnection = hiveMqttClientProperties.getMqttConnection();
-        return MqttSubscriber.subscribeForConnectionSources(mqttConnection.getSources(), subscribingClient)
+        final var mqttSubscriber = MqttSubscriber.newInstance(genericMqttClient);
+        return mqttSubscriber.subscribeForConnectionSources(mqttConnection.getSources())
                 .toMat(Sink.seq(), Keep.right())
                 .run(systemProvider)
                 .thenApply(TotalSubscribeResult::of);
@@ -161,7 +155,7 @@ final class ConnectionTester {
                 throw newMqttSubscribeExceptionForFailedSourceSubscribeResults(totalSubscribeResult);
             } else {
                 return Stream.concat(
-                        totalSubscribeResult.successfulSourceSubscribeResults().map(this::startConsumerActor),
+                        totalSubscribeResult.successfulSubscribeResults().map(this::startConsumerActor),
                         Stream.of(producerActorRef)
                 );
             }
@@ -172,7 +166,7 @@ final class ConnectionTester {
             final TotalSubscribeResult totalSubscribeResult
     ) {
         throw new MqttSubscribeException(
-                totalSubscribeResult.failedSourceSubscribeResults()
+                totalSubscribeResult.failedSubscribeResults()
                         .flatMap(sourceSubscribeResult -> {
                             final Stream<String> result;
                             final var mqttSubscribeException = sourceSubscribeResult.getErrorOrThrow();
@@ -195,7 +189,7 @@ final class ConnectionTester {
         );
     }
 
-    private ActorRef startConsumerActor(final SourceSubscribeResult subscribeSuccess) {
+    private ActorRef startConsumerActor(final SubscribeResult subscribeSuccess) {
         return childActorNanny.startChildActorConflictFree(
                 MqttConsumerActor.class.getSimpleName(),
                 MqttConsumerActor.propsDryRun(hiveMqttClientProperties.getMqttConnection(),
@@ -208,8 +202,7 @@ final class ConnectionTester {
     }
 
     private BiFunction<Stream<ActorRef>, Throwable, Status.Status> getAppropriateStatus(
-            final GenericMqttClient publishingClient,
-            final GenericMqttClient subscribingClient
+            final GenericMqttClient genericMqttClient
     ) {
         return (childActorRefs, error) -> {
             final Status.Status result;
@@ -218,8 +211,7 @@ final class ConnectionTester {
             } else {
                 result = logFailureAndGetStatus(error);
             }
-            publishingClient.disconnect();
-            subscribingClient.disconnect();
+            genericMqttClient.disconnect();
             return result;
         };
     }
@@ -271,8 +263,7 @@ final class ConnectionTester {
     @NotThreadSafe
     static final class Builder {
 
-        private Function<HiveMqttClientProperties, GenericMqttSubscribingClient> subscribingClientFactory;
-        private Function<HiveMqttClientProperties, GenericMqttPublishingClient> publishingClientFactory;
+        private GenericMqttClientFactory genericMqttClientFactory;
         private HiveMqttClientProperties hiveMqttClientProperties;
         private Sink<Object, NotUsed> inboundMappingSink;
         private ConnectivityStatusResolver connectivityStatusResolver;
@@ -289,17 +280,10 @@ final class ConnectionTester {
             correlationId = null;
         }
 
-        Builder withSubscribingClientFactory(
-                final Function<HiveMqttClientProperties, GenericMqttSubscribingClient> subscribingClientFactory
+        Builder withGenericMqttClientFactory(
+                final GenericMqttClientFactory genericMqttClientFactory
         ) {
-            this.subscribingClientFactory = checkNotNull(subscribingClientFactory, "subscribingClientFactory");
-            return this;
-        }
-
-        Builder withPublishingClientFactory(
-                final Function<HiveMqttClientProperties, GenericMqttPublishingClient> publishingClientFactory
-        ) {
-            this.publishingClientFactory = checkNotNull(publishingClientFactory, "publishingClientFactory");
+            this.genericMqttClientFactory = checkNotNull(genericMqttClientFactory, "genericMqttClientFactory");
             return this;
         }
 
@@ -335,6 +319,69 @@ final class ConnectionTester {
 
         ConnectionTester build() {
             return new ConnectionTester(this);
+        }
+
+    }
+
+    /**
+     * Bundles a finite amount of {@link SubscribeResult}s for determining failures.
+     */
+    static final class TotalSubscribeResult {
+
+        private final List<SubscribeResult> successfulSubscribeResults;
+        private final List<SubscribeResult> failedSubscribeResults;
+
+        private TotalSubscribeResult(final List<SubscribeResult> successfulSubscribeResults,
+                final List<SubscribeResult> failedSubscribeResults) {
+
+            this.successfulSubscribeResults = List.copyOf(successfulSubscribeResults);
+            this.failedSubscribeResults = List.copyOf(failedSubscribeResults);
+        }
+
+        /**
+         * Returns an instance of {@code TotalSubscribeResult} for the specified list argument.
+         *
+         * @param sourceSubscribeResults a list of {@code SubscribeResult}s which are regarded as a whole to represent
+         * a total subscribe result.
+         * @return the instance.
+         * @throws NullPointerException if {@code sourceSubscribeResults} is {@code null}.
+         */
+         static TotalSubscribeResult of(final List<SubscribeResult> sourceSubscribeResults) {
+            checkNotNull(sourceSubscribeResults, "sourceSubscribeResults");
+            final var subscribeResultsByIsSuccess =
+                    sourceSubscribeResults.stream().collect(Collectors.partitioningBy(SubscribeResult::isSuccess));
+            return new TotalSubscribeResult(subscribeResultsByIsSuccess.get(true),
+                    subscribeResultsByIsSuccess.get(false));
+        }
+
+        boolean hasFailures() {
+            return !failedSubscribeResults.isEmpty();
+        }
+
+        Stream<SubscribeResult> successfulSubscribeResults() {
+            return successfulSubscribeResults.stream();
+        }
+
+        Stream<SubscribeResult> failedSubscribeResults() {
+            return failedSubscribeResults.stream();
+        }
+
+        @Override
+        public boolean equals(@Nullable final Object o) {
+            if (this == o) {
+                return true;
+            }
+            if (o == null || getClass() != o.getClass()) {
+                return false;
+            }
+            final var that = (TotalSubscribeResult) o;
+            return Objects.equals(successfulSubscribeResults, that.successfulSubscribeResults) &&
+                    Objects.equals(failedSubscribeResults, that.failedSubscribeResults);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(successfulSubscribeResults, failedSubscribeResults);
         }
 
     }

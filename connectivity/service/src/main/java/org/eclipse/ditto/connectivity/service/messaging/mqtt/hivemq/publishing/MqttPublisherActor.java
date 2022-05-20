@@ -33,6 +33,7 @@ import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.messaging.BasePublisherActor;
 import org.eclipse.ditto.connectivity.service.messaging.ConnectivityStatusResolver;
 import org.eclipse.ditto.connectivity.service.messaging.SendResult;
+import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.client.GenericMqttPublishingClient;
 
 import akka.actor.Props;
 import akka.japi.Pair;

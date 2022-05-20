@@ -36,11 +36,11 @@ import org.eclipse.ditto.connectivity.model.EnforcementFilter;
 import org.eclipse.ditto.connectivity.model.EnforcementFilterFactory;
 import org.eclipse.ditto.connectivity.model.Source;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.MqttHeader;
-import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.publish.GenericMqttPublish;
-import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.publish.MqttPublishTransformationException;
-import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.publish.TransformationFailure;
-import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.publish.TransformationResult;
-import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.publish.TransformationSuccess;
+import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.message.publish.GenericMqttPublish;
+import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.message.publish.MqttPublishTransformationException;
+import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.message.publish.TransformationFailure;
+import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.message.publish.TransformationResult;
+import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.message.publish.TransformationSuccess;
 import org.eclipse.ditto.placeholders.PlaceholderFactory;
 
 import com.hivemq.client.mqtt.MqttVersion;

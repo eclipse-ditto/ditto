@@ -27,6 +27,8 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.eclipse.ditto.connectivity.model.Source;
+import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.message.subscribe.GenericMqttSubscribe;
+import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.message.subscribe.GenericMqttSubscription;
 import org.junit.Test;
 import org.mockito.Mockito;
 

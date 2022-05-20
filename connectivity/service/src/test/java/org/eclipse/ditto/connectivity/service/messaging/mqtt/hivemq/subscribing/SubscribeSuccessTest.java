@@ -13,21 +13,19 @@
 package org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.subscribing;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.assertj.core.api.Assertions.assertThatIllegalStateException;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 
-import java.util.Collections;
-import java.util.List;
 import java.util.stream.Stream;
 
-import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.publish.GenericMqttPublish;
-import org.junit.Before;
+import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.message.publish.GenericMqttPublish;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnitRunner;
 
 import com.hivemq.client.mqtt.datatypes.MqttQos;
 import com.hivemq.client.mqtt.datatypes.MqttTopic;
-import com.hivemq.client.mqtt.datatypes.MqttTopicFilter;
 
 import akka.stream.javadsl.Source;
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -35,20 +33,13 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 /**
  * Unit test for {@link SubscribeSuccess}.
  */
+@RunWith(MockitoJUnitRunner.class)
 public final class SubscribeSuccessTest {
 
     private static final MqttTopic MQTT_TOPIC_SOURCE_STATUS = MqttTopic.of("source/status");
     private static final MqttTopic MQTT_TOPIC_SOURCE_TEMPERATURE = MqttTopic.of("source/thermostat/temperature");
 
-    private List<MqttTopicFilter> mqttTopicFilters;
-
-    @Before
-    public void before() {
-        mqttTopicFilters = Stream.of(MQTT_TOPIC_SOURCE_STATUS, MQTT_TOPIC_SOURCE_TEMPERATURE)
-                .map(MqttTopic::toString)
-                .map(MqttTopicFilter::of)
-                .toList();
-    }
+    @Mock private org.eclipse.ditto.connectivity.model.Source connectionSource;
 
     @Test
     public void testHashCodeAndEquals() {
@@ -71,48 +62,40 @@ public final class SubscribeSuccessTest {
     }
 
     @Test
-    public void newInstanceWithNullMqttTopicFiltersThrowsException() {
+    public void newInstanceWithNullConnectionSourceThrowsException() {
         assertThatNullPointerException()
                 .isThrownBy(() -> SubscribeSuccess.newInstance(null, Source.empty()))
-                .withMessage("The mqttTopicFilters must not be null!")
-                .withNoCause();
-    }
-
-    @Test
-    public void newInstanceWithEmptyMqttTopicFiltersThrowsException() {
-        assertThatIllegalArgumentException()
-                .isThrownBy(() -> SubscribeSuccess.newInstance(Collections.emptyList(), Source.empty()))
-                .withMessage("The argument 'mqttTopicFilters' must not be empty!")
+                .withMessage("The connectionSource must not be null!")
                 .withNoCause();
     }
 
     @Test
     public void newInstanceWithNullMqttPublishSourceThrowsException() {
         assertThatNullPointerException()
-                .isThrownBy(() -> SubscribeSuccess.newInstance(mqttTopicFilters, null))
+                .isThrownBy(() -> SubscribeSuccess.newInstance(connectionSource, null))
                 .withMessage("The mqttPublishSource must not be null!")
                 .withNoCause();
     }
 
     @Test
-    public void getMqttTopicFiltersReturnsExpected() {
-        final var underTest = SubscribeSuccess.newInstance(mqttTopicFilters, Source.empty());
-
-        assertThat(underTest.getMqttTopicFilters()).hasSameElementsAs(mqttTopicFilters);
-    }
-
-    @Test
     public void isSuccessReturnsTrue() {
-        final var underTest = SubscribeSuccess.newInstance(mqttTopicFilters, Source.empty());
+        final var underTest = SubscribeSuccess.newInstance(connectionSource, Source.empty());
 
         assertThat(underTest.isSuccess()).isTrue();
     }
 
     @Test
     public void isFailureReturnsFalse() {
-        final var underTest = SubscribeSuccess.newInstance(mqttTopicFilters, Source.empty());
+        final var underTest = SubscribeSuccess.newInstance(connectionSource, Source.empty());
 
         assertThat(underTest.isFailure()).isFalse();
+    }
+
+    @Test
+    public void getConnectionSourceReturnsExpected() {
+        final var underTest = SubscribeSuccess.newInstance(connectionSource, Source.empty());
+
+        assertThat(underTest.getConnectionSource()).isEqualTo(connectionSource);
     }
 
     @Test
@@ -123,14 +106,14 @@ public final class SubscribeSuccessTest {
                         GenericMqttPublish.builder(MQTT_TOPIC_SOURCE_TEMPERATURE, MqttQos.AT_MOST_ONCE).build()
                 )
         );
-        final var underTest = SubscribeSuccess.newInstance(mqttTopicFilters, mqttPublishSource);
+        final var underTest = SubscribeSuccess.newInstance(connectionSource, mqttPublishSource);
 
         assertThat(underTest.getMqttPublishSourceOrThrow()).isEqualTo(mqttPublishSource);
     }
 
     @Test
     public void getErrorOrThrowThrowsException() {
-        final var underTest = SubscribeSuccess.newInstance(mqttTopicFilters, Source.empty());
+        final var underTest = SubscribeSuccess.newInstance(connectionSource, Source.empty());
 
         assertThatIllegalStateException()
                 .isThrownBy(underTest::getErrorOrThrow)

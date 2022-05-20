@@ -12,16 +12,14 @@
  */
 package org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.subscribing;
 
-import java.util.Collection;
 import java.util.Objects;
-import java.util.Set;
 
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.base.model.common.ConditionChecker;
-import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.publish.GenericMqttPublish;
-
-import com.hivemq.client.mqtt.datatypes.MqttTopicFilter;
+import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.client.MqttSubscribeException;
+import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.message.publish.GenericMqttPublish;
+import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.message.subscribe.GenericMqttSubscribe;
 
 import akka.NotUsed;
 import akka.stream.javadsl.Source;
@@ -30,47 +28,35 @@ import akka.stream.javadsl.Source;
  * Represents the successful subscription of an MQTT client to one or more
  * MQTT topics via one particular Subscribe message ({@link GenericMqttSubscribe}).
  */
-final class SubscribeSuccess implements SubscribeResult {
+final class SubscribeSuccess extends SubscribeResult {
 
-    private final Set<MqttTopicFilter> mqttTopicFilters;
     private final akka.stream.javadsl.Source<GenericMqttPublish, NotUsed> mqttPublishSource;
 
-    private SubscribeSuccess(final Collection<MqttTopicFilter> mqttTopicFilters,
+    private SubscribeSuccess(final org.eclipse.ditto.connectivity.model.Source connectionSource,
             final Source<GenericMqttPublish, NotUsed> mqttPublishSource) {
 
-        this.mqttTopicFilters = Set.copyOf(mqttTopicFilters);
+        super(connectionSource);
         this.mqttPublishSource = mqttPublishSource;
     }
 
     /**
      * Returns a new instance of {@code SubscribeSuccess} for the specified arguments.
      *
-     * @param mqttTopicFilters the string representations of MQTT topic filters for which subscribing was
-     * successful.
+     * @param connectionSource the connection source which is associated with the returned subscribe success.
      * @param mqttPublishSource stream of received MQTT Publish messages for the subscribed topics.
      * @return the instance.
      * @throws NullPointerException if any argument is {@code null}.
-     * @throws IllegalArgumentException if {@code mqttTopicFilters} is empty.
      */
-    static SubscribeSuccess newInstance(final Collection<MqttTopicFilter> mqttTopicFilters,
+    static SubscribeSuccess newInstance(final org.eclipse.ditto.connectivity.model.Source connectionSource,
             final Source<GenericMqttPublish, NotUsed> mqttPublishSource) {
 
-        return new SubscribeSuccess(ConditionChecker.argumentNotEmpty(mqttTopicFilters, "mqttTopicFilters"),
+        return new SubscribeSuccess(connectionSource,
                 ConditionChecker.checkNotNull(mqttPublishSource, "mqttPublishSource"));
     }
 
     @Override
     public boolean isSuccess() {
         return true;
-    }
-
-    /**
-     * Returns the MQTT topic filters for which subscribing was successful.
-     *
-     * @return an unmodifiable Set containing the MQTT topic filters for which subscribing was successful.
-     */
-    public Set<MqttTopicFilter> getMqttTopicFilters() {
-        return mqttTopicFilters;
     }
 
     @Override
@@ -94,14 +80,16 @@ final class SubscribeSuccess implements SubscribeResult {
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
+        if (!super.equals(o)) {
+            return false;
+        }
         final var that = (SubscribeSuccess) o;
-        return Objects.equals(mqttTopicFilters, that.mqttTopicFilters) &&
-                Objects.equals(mqttPublishSource, that.mqttPublishSource);
+        return Objects.equals(mqttPublishSource, that.mqttPublishSource);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(mqttTopicFilters, mqttPublishSource);
+        return Objects.hash(super.hashCode(), mqttPublishSource);
     }
 
 }

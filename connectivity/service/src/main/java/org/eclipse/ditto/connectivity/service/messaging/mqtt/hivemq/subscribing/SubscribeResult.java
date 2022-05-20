@@ -12,14 +12,34 @@
  */
 package org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.subscribing;
 
-import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.publish.GenericMqttPublish;
+import java.util.Objects;
+
+import javax.annotation.Nullable;
+
+import org.eclipse.ditto.base.model.common.ConditionChecker;
+import org.eclipse.ditto.connectivity.model.Source;
+import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.client.MqttSubscribeException;
+import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.message.subscribe.GenericMqttSubscribe;
+import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.message.publish.GenericMqttPublish;
 
 import akka.NotUsed;
 
 /**
  * Represents the result of subscribing a client with a Subscribe message ({@link GenericMqttSubscribe}).
  */
-public interface SubscribeResult {
+public abstract class SubscribeResult {
+
+    private final Source connectionSource;
+
+    /**
+     * Constructs a {@code SubscribeResult}.
+     *
+     * @param connectionSource the source which is associated with this subscribe result.
+     * @throws NullPointerException if {@code connectionSource} is {@code null}.
+     */
+    protected SubscribeResult(final Source connectionSource) {
+        this.connectionSource = ConditionChecker.checkNotNull(connectionSource, "connectionSource");
+    }
 
     /**
      * Indicates whether this subscribe result represents a success.
@@ -27,7 +47,7 @@ public interface SubscribeResult {
      * @return {@code true} if this subscribe result is a success, {@code false} else.
      * @see #isFailure()
      */
-    boolean isSuccess();
+    public abstract boolean isSuccess();
 
     /**
      * Indicates whether this subscribe result represents a failure.
@@ -35,8 +55,17 @@ public interface SubscribeResult {
      * @return {@code true} if this subscribe result is a failure, {@code false} else.
      * @see #isSuccess()
      */
-    default boolean isFailure() {
+    public boolean isFailure() {
         return !isSuccess();
+    }
+
+    /**
+     * Returns the connection source which is associated with this subscribe result.
+     *
+     * @return the associated connection source.
+     */
+    public Source getConnectionSource() {
+        return connectionSource;
     }
 
     /**
@@ -46,7 +75,7 @@ public interface SubscribeResult {
      * @throws IllegalStateException if this result is a failure.
      * @see #isSuccess()
      */
-    akka.stream.javadsl.Source<GenericMqttPublish, NotUsed> getMqttPublishSourceOrThrow();
+    public abstract akka.stream.javadsl.Source<GenericMqttPublish, NotUsed> getMqttPublishSourceOrThrow();
 
     /**
      * Returns the error that caused subscribing to fail if this result is a failure.
@@ -55,7 +84,24 @@ public interface SubscribeResult {
      * @throws IllegalStateException if this result is a success.
      * @see #isFailure()
      */
-    MqttSubscribeException getErrorOrThrow();
+    public abstract MqttSubscribeException getErrorOrThrow();
+
+    @Override
+    public boolean equals(@Nullable final Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        final var that = (SubscribeResult) o;
+        return Objects.equals(connectionSource, that.connectionSource);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(connectionSource);
+    }
 
 }
 

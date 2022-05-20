@@ -34,23 +34,21 @@ import org.eclipse.ditto.connectivity.service.config.MqttConfig;
 import org.eclipse.ditto.connectivity.service.messaging.ChildActorNanny;
 import org.eclipse.ditto.connectivity.service.messaging.ConnectivityStatusResolver;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.logs.ConnectionLogger;
-import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.clients.GenericMqttConnAckStatus;
-import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.clients.GenericMqttConnect;
-import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.clients.HiveMqttClientProperties;
-import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.clients.MqttClientConnectException;
-import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.clients.NoMqttConnectionException;
+import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.client.GenericMqttClient;
+import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.client.GenericMqttClientFactory;
+import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.client.HiveMqttClientProperties;
+import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.client.NoMqttConnectionException;
+import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.message.connect.GenericMqttConnect;
+import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.client.MqttClientConnectException;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.consuming.MqttConsumerActor;
-import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.publishing.GenericMqttPublishingClient;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.publishing.MqttPublisherActor;
-import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.subscribing.AllSubscriptionsFailedException;
-import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.subscribing.GenericMqttSubAckStatus;
-import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.subscribing.GenericMqttSubscribingClient;
-import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.subscribing.MqttSubscribeException;
+import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.client.AllSubscriptionsFailedException;
+import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.message.subscribe.GenericMqttSubAckStatus;
+import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.client.MqttSubscribeException;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.subscribing.MqttSubscriber;
-import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.subscribing.SomeSubscriptionsFailedException;
-import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.subscribing.SourceSubscribeResult;
+import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.client.SomeSubscriptionsFailedException;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.subscribing.SubscribeResult;
-import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.subscribing.SubscriptionStatus;
+import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.client.SubscriptionStatus;
 import org.eclipse.ditto.connectivity.service.messaging.tunnel.SshTunnelState;
 import org.eclipse.ditto.internal.utils.akka.ActorSystemResource;
 import org.junit.Before;
@@ -62,7 +60,6 @@ import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 
 import com.hivemq.client.mqtt.datatypes.MqttTopicFilter;
-import com.hivemq.client.mqtt.mqtt3.message.connect.connack.Mqtt3ConnAckReturnCode;
 import com.hivemq.client.mqtt.mqtt3.message.subscribe.suback.Mqtt3SubAckReturnCode;
 import com.hivemq.client.mqtt.mqtt5.message.subscribe.suback.Mqtt5SubAckReasonCode;
 
@@ -88,8 +85,8 @@ public final class ConnectionTesterTest {
     @Rule
     public final TestNameCorrelationId testNameCorrelationId = TestNameCorrelationId.newInstance();
 
-    @Mock private GenericMqttSubscribingClient genericMqttSubscribingClient;
-    @Mock private GenericMqttPublishingClient genericMqttPublishingClient;
+    @Mock private GenericMqttClient genericMqttClient;
+    @Mock private GenericMqttClientFactory genericMqttClientFactory;
     @Mock private Connection connection;
     @Mock private ConnectivityConfig connectivityConfig;
     @Mock private ConnectionLogger connectionLogger;
@@ -118,45 +115,26 @@ public final class ConnectionTesterTest {
                 .withActorUuid(UUID.randomUUID())
                 .build();
 
-        Mockito.when(genericMqttSubscribingClient.connect(Mockito.any(GenericMqttConnect.class)))
-                .thenReturn(CompletableFuture.completedFuture(
-                        GenericMqttConnAckStatus.ofMqtt3ConnAckReturnCode(Mqtt3ConnAckReturnCode.SUCCESS)
-                ));
-        Mockito.when(genericMqttPublishingClient.connect(Mockito.any(GenericMqttConnect.class)))
-                .thenReturn(CompletableFuture.completedFuture(
-                        GenericMqttConnAckStatus.ofMqtt3ConnAckReturnCode(Mqtt3ConnAckReturnCode.SUCCESS)
-                ));
+        Mockito.when(genericMqttClient.connect(Mockito.any(GenericMqttConnect.class)))
+                .thenReturn(CompletableFuture.completedFuture(null));
+
+        Mockito.when(genericMqttClientFactory.getGenericMqttClientForConnectionTesting(Mockito.any()))
+                .thenReturn(genericMqttClient);
 
         childActorNanny = ChildActorNanny.newInstance(actorRefFactory, Mockito.mock(LoggingAdapter.class));
     }
 
     @Test
-    public void buildInstanceWithNullSubscribingClientFactoryThrowsException() {
+    public void buildInstanceWithNullGenericMqttClientFactoryThrowsException() {
         assertThatNullPointerException()
                 .isThrownBy(() -> ConnectionTester.builder()
-                        .withPublishingClientFactory(unused -> genericMqttPublishingClient)
                         .withHiveMqttClientProperties(hiveMqttClientProperties)
                         .withInboundMappingSink(inboundMappingSink)
                         .withConnectivityStatusResolver(connectivityStatusResolver)
                         .withChildActorNanny(childActorNanny)
                         .withActorSystemProvider(actorSystemResource.getActorSystem())
                         .build())
-                .withMessage("The subscribingClientFactory must not be null!")
-                .withNoCause();
-    }
-
-    @Test
-    public void buildInstanceWithNullPublishingClientFactoryThrowsException() {
-        assertThatNullPointerException()
-                .isThrownBy(() -> ConnectionTester.builder()
-                        .withSubscribingClientFactory(unused -> genericMqttSubscribingClient)
-                        .withHiveMqttClientProperties(hiveMqttClientProperties)
-                        .withInboundMappingSink(inboundMappingSink)
-                        .withConnectivityStatusResolver(connectivityStatusResolver)
-                        .withChildActorNanny(childActorNanny)
-                        .withActorSystemProvider(actorSystemResource.getActorSystem())
-                        .build())
-                .withMessage("The publishingClientFactory must not be null!")
+                .withMessage("The genericMqttClientFactory must not be null!")
                 .withNoCause();
     }
 
@@ -164,8 +142,7 @@ public final class ConnectionTesterTest {
     public void buildInstanceWithNullHiveMqttClientPropertiesThrowsException() {
         assertThatNullPointerException()
                 .isThrownBy(() -> ConnectionTester.builder()
-                        .withSubscribingClientFactory(unused -> genericMqttSubscribingClient)
-                        .withPublishingClientFactory(unused -> genericMqttPublishingClient)
+                        .withGenericMqttClientFactory(genericMqttClientFactory)
                         .withInboundMappingSink(inboundMappingSink)
                         .withConnectivityStatusResolver(connectivityStatusResolver)
                         .withChildActorNanny(childActorNanny)
@@ -179,8 +156,7 @@ public final class ConnectionTesterTest {
     public void buildInstanceWithNullInboundMappingSinkThrowsException() {
         assertThatNullPointerException()
                 .isThrownBy(() -> ConnectionTester.builder()
-                        .withSubscribingClientFactory(unused -> genericMqttSubscribingClient)
-                        .withPublishingClientFactory(unused -> genericMqttPublishingClient)
+                        .withGenericMqttClientFactory(genericMqttClientFactory)
                         .withHiveMqttClientProperties(hiveMqttClientProperties)
                         .withConnectivityStatusResolver(connectivityStatusResolver)
                         .withChildActorNanny(childActorNanny)
@@ -194,8 +170,7 @@ public final class ConnectionTesterTest {
     public void buildInstanceWithNullConnectivityStatusResolverThrowsException() {
         assertThatNullPointerException()
                 .isThrownBy(() -> ConnectionTester.builder()
-                        .withSubscribingClientFactory(unused -> genericMqttSubscribingClient)
-                        .withPublishingClientFactory(unused -> genericMqttPublishingClient)
+                        .withGenericMqttClientFactory(genericMqttClientFactory)
                         .withHiveMqttClientProperties(hiveMqttClientProperties)
                         .withInboundMappingSink(inboundMappingSink)
                         .withChildActorNanny(childActorNanny)
@@ -209,8 +184,7 @@ public final class ConnectionTesterTest {
     public void buildInstanceWithNullChildActorNannyThrowsException() {
         assertThatNullPointerException()
                 .isThrownBy(() -> ConnectionTester.builder()
-                        .withSubscribingClientFactory(unused -> genericMqttSubscribingClient)
-                        .withPublishingClientFactory(unused -> genericMqttPublishingClient)
+                        .withGenericMqttClientFactory(genericMqttClientFactory)
                         .withHiveMqttClientProperties(hiveMqttClientProperties)
                         .withInboundMappingSink(inboundMappingSink)
                         .withConnectivityStatusResolver(connectivityStatusResolver)
@@ -224,8 +198,7 @@ public final class ConnectionTesterTest {
     public void buildInstanceWithNullSystemProviderThrowsException() {
         assertThatNullPointerException()
                 .isThrownBy(() -> ConnectionTester.builder()
-                        .withSubscribingClientFactory(unused -> genericMqttSubscribingClient)
-                        .withPublishingClientFactory(unused -> genericMqttPublishingClient)
+                        .withGenericMqttClientFactory(genericMqttClientFactory)
                         .withHiveMqttClientProperties(hiveMqttClientProperties)
                         .withInboundMappingSink(inboundMappingSink)
                         .withConnectivityStatusResolver(connectivityStatusResolver)
@@ -236,14 +209,12 @@ public final class ConnectionTesterTest {
     }
 
     @Test
-    public void testConnectionWhenGettingSubscribingClientFailsReturnsFailureStatus() {
+    public void testConnectionWhenGettingGenericMqttClientFailsReturnsFailureStatus() {
         final var error = new IllegalArgumentException("Some argument is invalid.");
+        Mockito.when(genericMqttClientFactory.getGenericMqttClientForConnectionTesting(Mockito.any())).thenThrow(error);
 
         final var underTest = ConnectionTester.builder()
-                .withSubscribingClientFactory(unused -> {
-                    throw error;
-                })
-                .withPublishingClientFactory(unused -> genericMqttPublishingClient)
+                .withGenericMqttClientFactory(genericMqttClientFactory)
                 .withHiveMqttClientProperties(hiveMqttClientProperties)
                 .withInboundMappingSink(inboundMappingSink)
                 .withConnectivityStatusResolver(connectivityStatusResolver)
@@ -255,40 +226,15 @@ public final class ConnectionTesterTest {
         final var statusCompletionStage = underTest.testConnection();
 
         assertThat(statusCompletionStage).isCompletedWithValue(new Status.Failure(error));
-        Mockito.verifyNoInteractions(actorRefFactory, genericMqttSubscribingClient, genericMqttPublishingClient);
+        Mockito.verifyNoInteractions(actorRefFactory);
         Mockito.verify(connectionLogger)
                 .failure(Mockito.eq("Connection test failed: {0}"), Mockito.eq(error.getMessage()));
     }
 
     @Test
-    public void testConnectionWhenGettingPublishingClientFailsReturnsFailureStatus() {
-        final var error = new IllegalArgumentException("Some argument is invalid.");
-
-        final var underTest = ConnectionTester.builder()
-                .withSubscribingClientFactory(unused -> genericMqttSubscribingClient)
-                .withPublishingClientFactory(unused -> {
-                    throw error;
-                })
-                .withHiveMqttClientProperties(hiveMqttClientProperties)
-                .withInboundMappingSink(inboundMappingSink)
-                .withConnectivityStatusResolver(connectivityStatusResolver)
-                .withChildActorNanny(childActorNanny)
-                .withActorSystemProvider(actorSystemResource.getActorSystem())
-                .withCorrelationId(testNameCorrelationId.getCorrelationId())
-                .build();
-
-        final var statusCompletionStage = underTest.testConnection();
-
-        assertThat(statusCompletionStage).isCompletedWithValue(new Status.Failure(error));
-        Mockito.verifyNoInteractions(actorRefFactory, genericMqttPublishingClient, genericMqttPublishingClient);
-        Mockito.verify(connectionLogger)
-                .failure(Mockito.eq("Connection test failed: {0}"), Mockito.eq(error.getMessage()));
-    }
-
-    @Test
-    public void testConnectionWhenConnectingSubscribingClientFailsReturnsFailureStatus() {
+    public void testConnectionWhenConnectingGenericMqttClientFailsReturnsFailureStatus() {
         final var error = new MqttClientConnectException("The broker is temporarily not available", null);
-        Mockito.when(genericMqttSubscribingClient.connect(Mockito.any(GenericMqttConnect.class)))
+        Mockito.when(genericMqttClient.connect(Mockito.any(GenericMqttConnect.class)))
                 .thenReturn(CompletableFuture.failedFuture(error));
         final var underTest = getDefaultConnectionTester();
 
@@ -300,14 +246,12 @@ public final class ConnectionTesterTest {
         Mockito.verifyNoInteractions(actorRefFactory);
         Mockito.verify(connectionLogger)
                 .failure(Mockito.eq("Connection test failed: {0}"), Mockito.eq(error.getMessage()));
-        Mockito.verify(genericMqttSubscribingClient).disconnect();
-        Mockito.verify(genericMqttPublishingClient).disconnect();
+        Mockito.verify(genericMqttClient).disconnect();
     }
 
     private ConnectionTester getDefaultConnectionTester() {
         return ConnectionTester.builder()
-                .withSubscribingClientFactory(unused -> genericMqttSubscribingClient)
-                .withPublishingClientFactory(unused -> genericMqttPublishingClient)
+                .withGenericMqttClientFactory(genericMqttClientFactory)
                 .withHiveMqttClientProperties(hiveMqttClientProperties)
                 .withInboundMappingSink(inboundMappingSink)
                 .withConnectivityStatusResolver(connectivityStatusResolver)
@@ -315,25 +259,6 @@ public final class ConnectionTesterTest {
                 .withActorSystemProvider(actorSystemResource.getActorSystem())
                 .withCorrelationId(testNameCorrelationId.getCorrelationId())
                 .build();
-    }
-
-    @Test
-    public void testConnectionWhenConnectingPublishingClientFailsReturnsFailureStatus() {
-        final var error = new MqttClientConnectException("The broker is temporarily not available", null);
-        Mockito.when(genericMqttPublishingClient.connect(Mockito.any(GenericMqttConnect.class)))
-                .thenReturn(CompletableFuture.failedFuture(error));
-        final var underTest = getDefaultConnectionTester();
-
-        final var statusCompletionStage = underTest.testConnection();
-
-        assertThat(statusCompletionStage)
-                .succeedsWithin(Duration.ofMillis(500L))
-                .isEqualTo(new Status.Failure(error));
-        Mockito.verifyNoInteractions(actorRefFactory);
-        Mockito.verify(connectionLogger)
-                .failure(Mockito.eq("Connection test failed: {0}"), Mockito.eq(error.getMessage()));
-        Mockito.verify(genericMqttPublishingClient).disconnect();
-        Mockito.verify(genericMqttPublishingClient).disconnect();
     }
 
     @Test
@@ -342,12 +267,14 @@ public final class ConnectionTesterTest {
         final var connectionSource2 = Mockito.mock(Source.class);
         Mockito.when(connection.getSources()).thenReturn(List.of(connectionSource1, connectionSource2));
 
+        final var mqttSubscriber = Mockito.mock(MqttSubscriber.class);
+        Mockito.when(mqttSubscriber.subscribeForConnectionSources(Mockito.any()))
+                .thenReturn(akka.stream.javadsl.Source.fromJavaStream(() -> Stream.of(
+                        getSourceSubscribeSuccess(connectionSource1),
+                        getSourceSubscribeSuccess(connectionSource2)
+                )));
         try (final var mqttSubscriberMock = Mockito.mockStatic(MqttSubscriber.class)) {
-            mqttSubscriberMock.when(() -> MqttSubscriber.subscribeForConnectionSources(Mockito.any(), Mockito.any()))
-                    .thenReturn(akka.stream.javadsl.Source.fromJavaStream(() -> Stream.of(
-                            getSourceSubscribeSuccess(connectionSource1),
-                            getSourceSubscribeSuccess(connectionSource2)
-                    )));
+            mqttSubscriberMock.when(() -> MqttSubscriber.newInstance(Mockito.any())).thenReturn(mqttSubscriber);
 
             final var mqttConsumerActorSimpleName = MqttConsumerActor.class.getSimpleName();
             final var consumerActor1Ref = Mockito.mock(ActorRef.class);
@@ -379,11 +306,12 @@ public final class ConnectionTesterTest {
         }
     }
 
-    private static SourceSubscribeResult getSourceSubscribeSuccess(final Source connectionSource) {
-        final var subscribeSuccess = Mockito.mock(SubscribeResult.class);
-        Mockito.when(subscribeSuccess.isSuccess()).thenReturn(true);
-        Mockito.when(subscribeSuccess.getMqttPublishSourceOrThrow()).thenReturn(akka.stream.javadsl.Source.empty());
-        return SourceSubscribeResult.newInstance(connectionSource, subscribeSuccess);
+    private static SubscribeResult getSourceSubscribeSuccess(final Source connectionSource) {
+        final var result = Mockito.mock(SubscribeResult.class);
+        Mockito.when(result.isSuccess()).thenReturn(true);
+        Mockito.when(result.getMqttPublishSourceOrThrow()).thenReturn(akka.stream.javadsl.Source.empty());
+        Mockito.when(result.getConnectionSource()).thenReturn(connectionSource);
+        return result;
     }
 
     @Test
@@ -396,13 +324,15 @@ public final class ConnectionTesterTest {
         final var connectionSource2 = Mockito.mock(Source.class);
         Mockito.when(connection.getSources()).thenReturn(List.of(connectionSource1, connectionSource2));
 
+        final var mqttSubscriber = Mockito.mock(MqttSubscriber.class);
+        final var mqttSubscribeException = new MqttSubscribeException("Subscribing failed", null);
+        Mockito.when(mqttSubscriber.subscribeForConnectionSources(Mockito.any()))
+                .thenReturn(akka.stream.javadsl.Source.fromJavaStream(() -> Stream.of(
+                        getSourceSubscribeFailure(connectionSource1, mqttSubscribeException),
+                        getSourceSubscribeSuccess(connectionSource2)
+                )));
         try (final var mqttSubscriberMock = Mockito.mockStatic(MqttSubscriber.class)) {
-            final var mqttSubscribeException = new MqttSubscribeException("Subscribing failed", null);
-            mqttSubscriberMock.when(() -> MqttSubscriber.subscribeForConnectionSources(Mockito.any(), Mockito.any()))
-                    .thenReturn(akka.stream.javadsl.Source.fromJavaStream(() -> Stream.of(
-                            getSourceSubscribeFailure(connectionSource1, mqttSubscribeException),
-                            getSourceSubscribeSuccess(connectionSource2)
-                    )));
+            mqttSubscriberMock.when(() -> MqttSubscriber.newInstance(Mockito.any())).thenReturn(mqttSubscriber);
 
             final var publisherActor1Ref = Mockito.mock(ActorRef.class);
             final var publisherActorName = MqttPublisherActor.class.getSimpleName() + "1";
@@ -426,14 +356,15 @@ public final class ConnectionTesterTest {
         }
     }
 
-    private static SourceSubscribeResult getSourceSubscribeFailure(final Source connectionSource,
+    private static SubscribeResult getSourceSubscribeFailure(final Source connectionSource,
             final MqttSubscribeException mqttSubscribeException) {
 
-        final var subscribeSuccess = Mockito.mock(SubscribeResult.class);
-        Mockito.when(subscribeSuccess.isSuccess()).thenReturn(false);
-        Mockito.when(subscribeSuccess.getMqttPublishSourceOrThrow()).thenThrow(new IllegalStateException("yo"));
-        Mockito.when(subscribeSuccess.getErrorOrThrow()).thenReturn(mqttSubscribeException);
-        return SourceSubscribeResult.newInstance(connectionSource, subscribeSuccess);
+        final var result = Mockito.mock(SubscribeResult.class);
+        Mockito.when(result.isSuccess()).thenReturn(false);
+        Mockito.when(result.getMqttPublishSourceOrThrow()).thenThrow(new IllegalStateException("yo"));
+        Mockito.when(result.getErrorOrThrow()).thenReturn(mqttSubscribeException);
+        Mockito.when(result.getConnectionSource()).thenReturn(connectionSource);
+        return result;
     }
 
     @Test
@@ -442,18 +373,23 @@ public final class ConnectionTesterTest {
         final var connectionSource2 = Mockito.mock(Source.class);
         Mockito.when(connection.getSources()).thenReturn(List.of(connectionSource1, connectionSource2));
 
+        final var mqttSubscriber = Mockito.mock(MqttSubscriber.class);
+        final var allSubscriptionsFailedException = new AllSubscriptionsFailedException(
+                List.of(
+                        SubscriptionStatus.newInstance(MqttTopicFilter.of("source/foo"),
+                                GenericMqttSubAckStatus.ofMqtt3SubAckReturnCode(Mqtt3SubAckReturnCode.FAILURE)),
+                        SubscriptionStatus.newInstance(MqttTopicFilter.of("source/bar"),
+                                GenericMqttSubAckStatus.ofMqtt5SubAckReasonCode(Mqtt5SubAckReasonCode.QUOTA_EXCEEDED))
+                ),
+                null
+        );
+        Mockito.when(mqttSubscriber.subscribeForConnectionSources(Mockito.any()))
+                .thenReturn(akka.stream.javadsl.Source.fromJavaStream(() -> Stream.of(
+                        getSourceSubscribeFailure(connectionSource1, allSubscriptionsFailedException),
+                        getSourceSubscribeSuccess(connectionSource2)
+                )));
         try (final var mqttSubscriberMock = Mockito.mockStatic(MqttSubscriber.class)) {
-            final var allSubscriptionsFailedException = new AllSubscriptionsFailedException(List.of(
-                    new SubscriptionStatus(MqttTopicFilter.of("source/foo"),
-                            GenericMqttSubAckStatus.ofMqtt3SubAckReturnCode(Mqtt3SubAckReturnCode.FAILURE)),
-                    new SubscriptionStatus(MqttTopicFilter.of("source/bar"),
-                            GenericMqttSubAckStatus.ofMqtt5SubAckReasonCode(Mqtt5SubAckReasonCode.QUOTA_EXCEEDED))
-            ));
-            mqttSubscriberMock.when(() -> MqttSubscriber.subscribeForConnectionSources(Mockito.any(), Mockito.any()))
-                    .thenReturn(akka.stream.javadsl.Source.fromJavaStream(() -> Stream.of(
-                            getSourceSubscribeFailure(connectionSource1, allSubscriptionsFailedException),
-                            getSourceSubscribeSuccess(connectionSource2)
-                    )));
+            mqttSubscriberMock.when(() -> MqttSubscriber.newInstance(Mockito.any())).thenReturn(mqttSubscriber);
 
             final var publisherActor1Ref = Mockito.mock(ActorRef.class);
             final var publisherActorName = MqttPublisherActor.class.getSimpleName() + "1";
@@ -483,18 +419,21 @@ public final class ConnectionTesterTest {
         final var connectionSource2 = Mockito.mock(Source.class);
         Mockito.when(connection.getSources()).thenReturn(List.of(connectionSource1, connectionSource2));
 
+        final var mqttSubscriber = Mockito.mock(MqttSubscriber.class);
+        final var someSubscriptionsFailedException = new SomeSubscriptionsFailedException(List.of(
+                SubscriptionStatus.newInstance(MqttTopicFilter.of("source/foo"),
+                        GenericMqttSubAckStatus.ofMqtt3SubAckReturnCode(Mqtt3SubAckReturnCode.FAILURE)),
+                SubscriptionStatus.newInstance(MqttTopicFilter.of("source/bar"),
+                        GenericMqttSubAckStatus.ofMqtt5SubAckReasonCode(Mqtt5SubAckReasonCode.QUOTA_EXCEEDED))
+        ));
+        Mockito.when(mqttSubscriber.subscribeForConnectionSources(Mockito.any()))
+                .thenReturn(akka.stream.javadsl.Source.fromJavaStream(() -> Stream.of(
+                        getSourceSubscribeSuccess(connectionSource1),
+                        getSourceSubscribeFailure(connectionSource2, someSubscriptionsFailedException)
+                )));
+
         try (final var mqttSubscriberMock = Mockito.mockStatic(MqttSubscriber.class)) {
-            final var someSubscriptionsFailedException = new SomeSubscriptionsFailedException(List.of(
-                    new SubscriptionStatus(MqttTopicFilter.of("source/foo"),
-                            GenericMqttSubAckStatus.ofMqtt3SubAckReturnCode(Mqtt3SubAckReturnCode.FAILURE)),
-                    new SubscriptionStatus(MqttTopicFilter.of("source/bar"),
-                            GenericMqttSubAckStatus.ofMqtt5SubAckReasonCode(Mqtt5SubAckReasonCode.QUOTA_EXCEEDED))
-            ));
-            mqttSubscriberMock.when(() -> MqttSubscriber.subscribeForConnectionSources(Mockito.any(), Mockito.any()))
-                    .thenReturn(akka.stream.javadsl.Source.fromJavaStream(() -> Stream.of(
-                            getSourceSubscribeSuccess(connectionSource1),
-                            getSourceSubscribeFailure(connectionSource2, someSubscriptionsFailedException)
-                    )));
+            mqttSubscriberMock.when(() -> MqttSubscriber.newInstance(Mockito.any())).thenReturn(mqttSubscriber);
 
             final var publisherActor1Ref = Mockito.mock(ActorRef.class);
             final var publisherActorName = MqttPublisherActor.class.getSimpleName() + "1";

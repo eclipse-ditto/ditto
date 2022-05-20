@@ -17,7 +17,10 @@ import java.util.Objects;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.base.model.common.ConditionChecker;
-import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.publish.GenericMqttPublish;
+import org.eclipse.ditto.connectivity.model.Source;
+import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.client.MqttSubscribeException;
+import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.message.publish.GenericMqttPublish;
+import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.message.subscribe.GenericMqttSubscribe;
 
 import akka.NotUsed;
 
@@ -25,27 +28,28 @@ import akka.NotUsed;
  * Represents failed subscribing for at least one MQTT topic via one particular
  * Subscribe message ({@link GenericMqttSubscribe}).
  */
-final class SubscribeFailure implements SubscribeResult {
+final class SubscribeFailure extends SubscribeResult {
 
     private final MqttSubscribeException mqttSubscribeException;
 
-    private SubscribeFailure(final MqttSubscribeException mqttSubscribeException) {
+    private SubscribeFailure(final Source connectionSource, final MqttSubscribeException mqttSubscribeException) {
+        super(connectionSource);
         this.mqttSubscribeException = mqttSubscribeException;
     }
 
     /**
      * Returns a new instance of {@code SubscribeFailure} for the specified arguments.
      *
+     * @param connectionSource the connection source which is associated with the returned subscribe failure.
      * @param mqttSubscribeException the error that caused subscribing to fail.
      * @return the instance.
      * @throws NullPointerException if any argument is {@code null}.
-     * @throws IllegalArgumentException if {@code mqttTopicFilters} is empty.
      */
-    static SubscribeFailure newInstance(final MqttSubscribeException mqttSubscribeException) {
+    static SubscribeFailure newInstance(final Source connectionSource,
+            final MqttSubscribeException mqttSubscribeException) {
 
-        return new SubscribeFailure(
-                ConditionChecker.checkNotNull(mqttSubscribeException, "mqttSubscribeException")
-        );
+        return new SubscribeFailure(connectionSource,
+                ConditionChecker.checkNotNull(mqttSubscribeException, "mqttSubscribeException"));
     }
 
     @Override
@@ -74,13 +78,16 @@ final class SubscribeFailure implements SubscribeResult {
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
+        if (!super.equals(o)) {
+            return false;
+        }
         final var that = (SubscribeFailure) o;
         return Objects.equals(mqttSubscribeException, that.mqttSubscribeException);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(mqttSubscribeException);
+        return Objects.hash(super.hashCode(), mqttSubscribeException);
     }
 
 }
