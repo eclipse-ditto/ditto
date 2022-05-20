@@ -30,8 +30,6 @@ import akka.actor.ActorSystem;
  */
 public interface PreEnforcerProvider extends DittoExtensionPoint {
 
-    static final String CONFIG_PATH = "pre-enforcer-provider";
-
     /**
      * Gets the pre-enforcer.
      */
@@ -47,12 +45,22 @@ public interface PreEnforcerProvider extends DittoExtensionPoint {
      */
     static PreEnforcerProvider get(final ActorSystem actorSystem) {
         checkNotNull(actorSystem, "actorSystem");
-        final DefaultScopedConfig dittoScoped = DefaultScopedConfig.dittoScoped(actorSystem.settings().config());
-        final var implementation = dittoScoped.getString(CONFIG_PATH);
+        return ExtensionId.INSTANCE.get(actorSystem);
+    }
 
-        return AkkaClassLoader.instantiate(actorSystem, PreEnforcerProvider.class,
-                implementation,
-                List.of(ActorSystem.class),
-                List.of(actorSystem));
+    final class ExtensionId extends DittoExtensionPoint.ExtensionId<PreEnforcerProvider> {
+
+        private static final String CONFIG_PATH = "pre-enforcer-provider";
+        private static final ExtensionId INSTANCE = new ExtensionId(PreEnforcerProvider.class);
+
+        private ExtensionId(final Class<PreEnforcerProvider> parentClass) {
+            super(parentClass);
+        }
+
+        @Override
+        protected String getConfigPath() {
+            return CONFIG_PATH;
+        }
+
     }
 }
