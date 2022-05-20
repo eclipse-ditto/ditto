@@ -101,7 +101,7 @@ public abstract class SearchUpdateMapper implements DittoExtensionPoint {
      * ID of the actor system extension to validate the {@code SearchUpdateListener}.
      */
     private static final class ExtensionId extends AbstractExtensionId<SearchUpdateMapper> {
-        private static final String CONFIG_PATH = "ditto.things-search.search-update-mapper.implementation";
+        private static final String CONFIG_PATH = "ditto.search.search-update-mapper.implementation";
         @Override
         public SearchUpdateMapper createExtension(final ExtendedActorSystem system) {
             final String implementation = system.settings().config().getString(CONFIG_PATH);

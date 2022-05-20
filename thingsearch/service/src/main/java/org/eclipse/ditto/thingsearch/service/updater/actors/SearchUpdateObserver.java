@@ -54,7 +54,7 @@ public interface SearchUpdateObserver extends DittoExtensionPoint {
 
     final class ExtensionId extends DittoExtensionPoint.ExtensionId<SearchUpdateObserver> {
 
-        private static final String CONFIG_PATH = "ditto.things-search.search-update-observer.implementation";
+        private static final String CONFIG_PATH = "ditto.search.search-update-observer.implementation";
         private static final ExtensionId INSTANCE = new ExtensionId(SearchUpdateObserver.class);
 
         private ExtensionId(final Class<SearchUpdateObserver> parentClass) {
