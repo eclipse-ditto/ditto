@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
@@ -150,7 +151,9 @@ public final class PolicyCommandEnforcementTest {
 
     @Before
     public void init() {
-        system = ActorSystem.create("test", ConfigFactory.load("test"));
+        system = ActorSystem.create("test", ConfigFactory.parseMap(
+                Map.of("pre-enforcer-provider","org.eclipse.ditto.policies.enforcement." +
+                        "DefaultPreEnforcerProvider")).withFallback(ConfigFactory.load("test")));
 
         pubSubMediatorProbe = createPubSubMediatorProbe();
         policyPersistenceActorProbe = createPolicyPersistenceActorProbe();

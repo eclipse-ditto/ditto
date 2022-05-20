@@ -108,13 +108,15 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
     @Rule
     public final ActorSystemResource actorSystemResource1 = ActorSystemResource.newInstance(
             ConfigFactory.parseMap(Map.of("ditto.connectivity.connection.client-actor-props-factory",
-                            "org.eclipse.ditto.connectivity.service.messaging.MockClientActorPropsFactory"))
+                            "org.eclipse.ditto.connectivity.service.messaging.MockClientActorPropsFactory", "pre" +
+                                    "-enforcer-provider","org.eclipse.ditto.policies.enforcement.DefaultPreEnforcerProvider"))
                     .withFallback(TestConstants.CONFIG));
 
     @Rule
     public final ActorSystemResource actorSystemResource2 = ActorSystemResource.newInstance(
             ConfigFactory.parseMap(Map.of("ditto.connectivity.connection.client-actor-props-factory",
-                            "org.eclipse.ditto.connectivity.service.messaging.MockClientActorPropsFactory"))
+                            "org.eclipse.ditto.connectivity.service.messaging.MockClientActorPropsFactory", "pre" +
+                                    "-enforcer-provider","org.eclipse.ditto.policies.enforcement.DefaultPreEnforcerProvider"))
                     .withFallback(TestConstants.CONFIG));
 
     @Rule
@@ -122,14 +124,16 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
             ConfigFactory.parseMap(Map.of("ditto.connectivity.connection.client-actor-props-factory",
                             "org.eclipse.ditto.connectivity.service.messaging.MockClientActorPropsFactory",
                             "ditto.connectivity.connection.blocked-hostnames",
-                            ConfigValueFactory.fromAnyRef("127.0.0.1")))
+                            ConfigValueFactory.fromAnyRef("127.0.0.1"), "pre" +
+                                    "-enforcer-provider","org.eclipse.ditto.policies.enforcement.DefaultPreEnforcerProvider"))
                     .withFallback(TestConstants.CONFIG)
     );
 
     @Rule
     public final ActorSystemResource exceptionalClientProviderSystemResource = ActorSystemResource.newInstance(
             ConfigFactory.parseMap(Map.of("ditto.connectivity.connection.client-actor-props-factory",
-                            "org.eclipse.ditto.connectivity.service.messaging.ExceptionClientActorPropsFactory"))
+                            "org.eclipse.ditto.connectivity.service.messaging.ExceptionClientActorPropsFactory", "pre" +
+                                    "-enforcer-provider","org.eclipse.ditto.policies.enforcement.DefaultPreEnforcerProvider"))
                     .withFallback(TestConstants.CONFIG));
 
     @Rule
@@ -137,27 +141,31 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
             ConfigFactory.parseMap(Map.of("ditto.connectivity.connection.client-actor-props-factory",
                             "org.eclipse.ditto.connectivity.service.messaging.MockClientActorPropsFactory",
                             "ditto.connectivity.connection.custom-command-interceptor-provider",
-                            "org.eclipse.ditto.connectivity.service.messaging.ExceptionalCommandValidator"))
+                            "org.eclipse.ditto.connectivity.service.messaging.ExceptionalCommandValidator", "pre" +
+                                    "-enforcer-provider","org.eclipse.ditto.policies.enforcement.DefaultPreEnforcerProvider"))
                     .withFallback(TestConstants.CONFIG));
 
     @Rule
     public final ActorSystemResource failingClientProviderSystemResource = ActorSystemResource.newInstance(
             ConfigFactory.parseMap(Map.of("ditto.connectivity.connection.client-actor-props-factory",
                             "org.eclipse.ditto.connectivity.service.messaging.FailingActorProvider", "failingRetries",
-                            TestConstants.CONNECTION_CONFIG.getClientActorRestartsBeforeEscalation()))
+                            TestConstants.CONNECTION_CONFIG.getClientActorRestartsBeforeEscalation(), "pre" +
+                                    "-enforcer-provider","org.eclipse.ditto.policies.enforcement.DefaultPreEnforcerProvider"))
                     .withFallback(TestConstants.CONFIG));
 
     @Rule
     public final ActorSystemResource tooManyFailingClientProviderSystemResource = ActorSystemResource.newInstance(
             ConfigFactory.parseMap(Map.of("ditto.connectivity.connection.client-actor-props-factory",
                             "org.eclipse.ditto.connectivity.service.messaging.FailingActorProvider", "failingRetries",
-                            1 + TestConstants.CONNECTION_CONFIG.getClientActorRestartsBeforeEscalation()))
+                            1 + TestConstants.CONNECTION_CONFIG.getClientActorRestartsBeforeEscalation(), "pre" +
+                                    "-enforcer-provider","org.eclipse.ditto.policies.enforcement.DefaultPreEnforcerProvider"))
                     .withFallback(TestConstants.CONFIG));
 
     @Rule
     public final ActorSystemResource searchForwardingSystemResource = ActorSystemResource.newInstance(
             ConfigFactory.parseMap(Map.of("ditto.connectivity.connection.client-actor-props-factory",
-                            "org.eclipse.ditto.connectivity.service.messaging.SearchForwardingClientActorPropsFactory"))
+                            "org.eclipse.ditto.connectivity.service.messaging.SearchForwardingClientActorPropsFactory", "pre" +
+                                    "-enforcer-provider","org.eclipse.ditto.policies.enforcement.DefaultPreEnforcerProvider"))
                     .withFallback(TestConstants.CONFIG));
 
     @Rule

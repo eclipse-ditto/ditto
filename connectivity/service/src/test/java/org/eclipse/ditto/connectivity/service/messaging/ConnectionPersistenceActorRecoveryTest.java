@@ -17,6 +17,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Queue;
 import java.util.concurrent.TimeUnit;
@@ -38,6 +39,7 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import com.typesafe.config.ConfigFactory;
 import com.typesafe.config.ConfigValueFactory;
 
 import akka.actor.ActorRef;
@@ -72,7 +74,9 @@ public final class ConnectionPersistenceActorRecoveryTest extends WithMockServer
 
     @BeforeClass
     public static void setUp() {
-        actorSystem = ActorSystem.create("AkkaTestSystem", TestConstants.CONFIG);
+        actorSystem = ActorSystem.create("AkkaTestSystem",
+                ConfigFactory.parseMap(Map.of("pre-enforcer-provider","org.eclipse.ditto.policies.enforcement." +
+                        "DefaultPreEnforcerProvider")).withFallback(TestConstants.CONFIG));
         pubSubMediator = DistributedPubSub.get(actorSystem).mediator();
         proxyActor = actorSystem.actorOf(TestConstants.ProxyActorMock.props());
     }
