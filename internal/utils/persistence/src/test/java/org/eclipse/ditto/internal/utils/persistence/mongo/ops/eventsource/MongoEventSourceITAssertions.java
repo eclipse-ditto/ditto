@@ -189,6 +189,7 @@ public abstract class MongoEventSourceITAssertions<I extends EntityId> {
                 "akka.cluster.seed-nodes=[]\n" +
                 "akka.coordinated-shutdown.exit-jvm=off\n" +
                 "ditto.things.log-incoming-messages=true\n" +
+                "pre-enforcer-provider=org.eclipse.ditto.policies.enforcement.DefaultPreEnforcerProvider\n" +
                 "akka.contrib.persistence.mongodb.mongo.mongouri=\"" + mongoDbUri + "\"\n";
 
         // load the service config for info about event journal, snapshot store and metadata
