@@ -54,7 +54,8 @@ public class ErrorHandlingActorTest extends WithMockServers {
                         Map.of("ditto.connectivity.connection.client-actor-props-factory",
                                 "org.eclipse.ditto.connectivity.service.messaging.FaultyClientActorPropsFactory",
                                 "allowFirstCreateCommand", allowFirstCreateCommand, "allowCloseCommands",
-                                allowCloseCommands, "pre-enforcer-provider","org.eclipse.ditto.policies.enforcement." +
+                                allowCloseCommands, "ditto.pre-enforcer-provider","org.eclipse.ditto.policies" +
+                                        ".enforcement." +
                                         "DefaultPreEnforcerProvider"))
                 .withFallback(TestConstants.CONFIG));
         final DittoConnectivityConfig connectivityConfig =

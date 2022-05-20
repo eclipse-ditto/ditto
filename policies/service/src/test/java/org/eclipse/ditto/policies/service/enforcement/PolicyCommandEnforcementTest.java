@@ -152,7 +152,7 @@ public final class PolicyCommandEnforcementTest {
     @Before
     public void init() {
         system = ActorSystem.create("test", ConfigFactory.parseMap(
-                Map.of("pre-enforcer-provider","org.eclipse.ditto.policies.enforcement." +
+                Map.of("ditto.pre-enforcer-provider","org.eclipse.ditto.policies.enforcement." +
                         "DefaultPreEnforcerProvider")).withFallback(ConfigFactory.load("test")));
 
         pubSubMediatorProbe = createPubSubMediatorProbe();

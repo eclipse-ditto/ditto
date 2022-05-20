@@ -75,7 +75,7 @@ public final class ConnectionPersistenceActorRecoveryTest extends WithMockServer
     @BeforeClass
     public static void setUp() {
         actorSystem = ActorSystem.create("AkkaTestSystem",
-                ConfigFactory.parseMap(Map.of("pre-enforcer-provider","org.eclipse.ditto.policies.enforcement." +
+                ConfigFactory.parseMap(Map.of("ditto.pre-enforcer-provider","org.eclipse.ditto.policies.enforcement." +
                         "DefaultPreEnforcerProvider")).withFallback(TestConstants.CONFIG));
         pubSubMediator = DistributedPubSub.get(actorSystem).mediator();
         proxyActor = actorSystem.actorOf(TestConstants.ProxyActorMock.props());
@@ -128,7 +128,7 @@ public final class ConnectionPersistenceActorRecoveryTest extends WithMockServer
         final ActorSystem akkaTestSystem =
                 ActorSystem.create("AkkaTestSystem", TestConstants.CONFIG.withValue("ditto.connectivity.connection" +
                         ".blocked-hostnames", ConfigValueFactory.fromAnyRef("127.0.0.1"))
-                        .withValue("pre-enforcer-provider",ConfigValueFactory.fromAnyRef(
+                        .withValue("ditto.pre-enforcer-provider",ConfigValueFactory.fromAnyRef(
                                 "org.eclipse.ditto.policies.enforcement.DefaultPreEnforcerProvider")));
         final ActorRef mediator = DistributedPubSub.get(akkaTestSystem).mediator();
         final ActorRef proxyActor = actorSystem.actorOf(TestConstants.ProxyActorMock.props());

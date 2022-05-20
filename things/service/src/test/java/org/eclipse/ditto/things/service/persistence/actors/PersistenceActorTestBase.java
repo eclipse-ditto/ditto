@@ -150,7 +150,7 @@ public abstract class PersistenceActorTestBase {
     protected void setup(final Config customConfig) {
         requireNonNull(customConfig, "Consider to use ConfigFactory.empty()");
         final Config config = customConfig.withFallback(ConfigFactory.parseMap(
-                Map.of("pre-enforcer-provider","org.eclipse.ditto.policies.enforcement." +
+                Map.of("ditto.pre-enforcer-provider","org.eclipse.ditto.policies.enforcement." +
                         "DefaultPreEnforcerProvider"))).withFallback(ConfigFactory.load("test"));
 
         actorSystem = ActorSystem.create("AkkaTestSystem", config);

@@ -57,7 +57,7 @@ abstract class AbstractThingEnforcementTest {
     @Before
     public void init() {
         system = ActorSystem.create("test",
-                ConfigFactory.parseMap(Map.of("pre-enforcer-provider",
+                ConfigFactory.parseMap(Map.of("ditto.pre-enforcer-provider",
                         DefaultPreEnforcerProvider.class.getCanonicalName(), "akka.actor.provider",
                         "akka.cluster.ClusterActorRefProvider")).withFallback(ConfigFactory.load(
                         "test")));
