@@ -37,9 +37,11 @@ import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
 import org.eclipse.ditto.base.model.signals.commands.WithEntity;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
+import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.internal.utils.metrics.instruments.timer.StartedTimer;
 import org.eclipse.ditto.internal.utils.tracing.DittoTracing;
+import org.eclipse.ditto.things.api.ThingsMessagingConstants;
 import org.eclipse.ditto.things.api.commands.sudo.SudoRetrieveThingResponse;
 import org.eclipse.ditto.things.api.commands.sudo.SudoRetrieveThings;
 import org.eclipse.ditto.things.api.commands.sudo.SudoRetrieveThingsResponse;
@@ -82,24 +84,24 @@ public final class ThingsAggregatorProxyActor extends AbstractActor {
 
     private final DittoDiagnosticLoggingAdapter log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
 
-    private final ActorRef targetActor;
+    private final ActorRef pubSubMediator;
     private final Materializer materializer;
 
     @SuppressWarnings("unused")
-    private ThingsAggregatorProxyActor(final ActorRef targetActor) {
-        this.targetActor = targetActor;
+    private ThingsAggregatorProxyActor(final ActorRef pubSubMediator) {
+        this.pubSubMediator = pubSubMediator;
         materializer = Materializer.createMaterializer(this::getContext);
     }
 
     /**
      * Creates Akka configuration object Props for this ThingsAggregatorProxyActor.
      *
-     * @param targetActor the Actor to delegate "asks" for the aggregation to.
+     * @param pubSubMediator the pub/sub mediator Actor ref to delegate "asks" for the aggregation to.
      * @return the Akka configuration Props object
      */
-    public static Props props(final ActorRef targetActor) {
+    public static Props props(final ActorRef pubSubMediator) {
 
-        return Props.create(ThingsAggregatorProxyActor.class, targetActor);
+        return Props.create(ThingsAggregatorProxyActor.class, pubSubMediator);
     }
 
     private static void stopTimer(final StartedTimer timer) {
@@ -151,7 +153,10 @@ public final class ThingsAggregatorProxyActor extends AbstractActor {
 
     private void askTargetActor(final Command<?> command, final List<ThingId> thingIds,
             final Object msgToAsk, final ActorRef sender) {
-        Patterns.ask(targetActor, msgToAsk, Duration.ofSeconds(ASK_TIMEOUT))
+
+        final DistributedPubSubMediator.Send pubSubMsg =
+                DistPubSubAccess.send(ThingsMessagingConstants.THINGS_AGGREGATOR_ACTOR_PATH, msgToAsk);
+        Patterns.ask(pubSubMediator, pubSubMsg, Duration.ofSeconds(ASK_TIMEOUT))
                 .thenAccept(response -> {
                     if (response instanceof SourceRef) {
                         handleSourceRef((SourceRef<?>) response, thingIds, command, sender);

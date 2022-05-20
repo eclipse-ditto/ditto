@@ -26,9 +26,9 @@ public final class ProxyActor extends AbstractThingProxyActor {
     @SuppressWarnings("unused")
     private ProxyActor(final ActorRef pubSubMediator,
             final ActorSelection devOpsCommandsActor,
-            final ActorRef commandForwarder) {
+            final ActorRef edgeCommandForwarder) {
 
-        super(pubSubMediator, devOpsCommandsActor, commandForwarder);
+        super(pubSubMediator, devOpsCommandsActor, edgeCommandForwarder);
     }
 
     /**
@@ -36,13 +36,14 @@ public final class ProxyActor extends AbstractThingProxyActor {
      *
      * @param pubSubMediator the Pub/Sub mediator to use for subscribing for events.
      * @param devOpsCommandsActor the Actor ref to the local DevOpsCommandsActor.
+     * @param edgeCommandForwarder the Actor ref to the {@code EdgeCommandForwarderActor}.
      * @return the Akka configuration Props object.
      */
     public static Props props(final ActorRef pubSubMediator,
             final ActorSelection devOpsCommandsActor,
-            final ActorRef commandForwarder) {
+            final ActorRef edgeCommandForwarder) {
 
-        return Props.create(ProxyActor.class, pubSubMediator, devOpsCommandsActor, commandForwarder);
+        return Props.create(ProxyActor.class, pubSubMediator, devOpsCommandsActor, edgeCommandForwarder);
     }
 
 }

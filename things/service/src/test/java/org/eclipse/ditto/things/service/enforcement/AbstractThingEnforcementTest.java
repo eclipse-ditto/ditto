@@ -20,21 +20,21 @@ import java.nio.charset.Charset;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
 
 import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
-import org.eclipse.ditto.base.service.config.ThrottlingConfig;
+import org.eclipse.ditto.internal.utils.pubsub.DistributedPub;
+import org.eclipse.ditto.internal.utils.pubsub.extractors.AckExtractor;
 import org.eclipse.ditto.policies.api.commands.sudo.SudoRetrievePolicy;
 import org.eclipse.ditto.policies.enforcement.DefaultPreEnforcerProvider;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.things.api.commands.sudo.SudoRetrieveThing;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommand;
+import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 import org.eclipse.ditto.things.service.persistence.actors.ThingSupervisorActor;
 import org.junit.After;
 import org.junit.Before;
 
 import com.typesafe.config.ConfigFactory;
-import com.typesafe.config.ConfigValueFactory;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
@@ -97,6 +97,24 @@ abstract class AbstractThingEnforcementTest {
         return new TestActorRef<>(system, ThingSupervisorActor.props(
                 pubSubMediatorProbe.ref(),
                 policiesShardRegionProbe.ref(),
+                new DistributedPub<>() {
+
+                    @Override
+                    public ActorRef getPublisher() {
+                        return pubSubMediatorProbe.ref();
+                    }
+
+                    @Override
+                    public Object wrapForPublication(final ThingEvent<?> message) {
+                        return message;
+                    }
+
+                    @Override
+                    public <S extends ThingEvent<?>> Object wrapForPublicationWithAcks(final S message,
+                            final AckExtractor<S> ackExtractor) {
+                        return wrapForPublication(message);
+                    }
+                },
                 new TestSetup.DummyLiveSignalPub(pubSubMediatorProbe.ref()),
                 thingPersistenceActorProbe.ref(),
                 null

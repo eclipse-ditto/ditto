@@ -31,6 +31,7 @@ import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.internal.utils.namespaces.BlockedNamespaces;
 import org.eclipse.ditto.internal.utils.persistentactors.AbstractPersistenceSupervisor;
 import org.eclipse.ditto.internal.utils.persistentactors.TargetActorWithMessage;
+import org.eclipse.ditto.internal.utils.pubsub.DistributedPub;
 import org.eclipse.ditto.internal.utils.pubsub.LiveSignalPub;
 import org.eclipse.ditto.policies.enforcement.config.DefaultEnforcementConfig;
 import org.eclipse.ditto.things.model.ThingId;
@@ -40,6 +41,7 @@ import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingUnavailab
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThing;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThingResponse;
 import org.eclipse.ditto.things.model.signals.commands.query.ThingQueryCommand;
+import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 import org.eclipse.ditto.things.service.common.config.DittoThingsConfig;
 import org.eclipse.ditto.things.service.enforcement.ThingEnforcement;
 
@@ -65,7 +67,7 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
 
     private final ActorRef pubSubMediator;
     private final ActorRef policiesShardRegion;
-    private final LiveSignalPub liveSignalPub;
+    private final DistributedPub<ThingEvent<?>> distributedPubThingEventsForTwin;
     @Nullable private final ThingPersistenceActorPropsFactory thingPersistenceActorPropsFactory;
     private final DefaultEnforcementConfig enforcementConfig;
     private final Materializer materializer;
@@ -78,6 +80,7 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
     @SuppressWarnings("unused")
     private ThingSupervisorActor(final ActorRef pubSubMediator,
             final ActorRef policiesShardRegion,
+            final DistributedPub<ThingEvent<?>> distributedPubThingEventsForTwin,
             final LiveSignalPub liveSignalPub,
             @Nullable final ThingPersistenceActorPropsFactory thingPersistenceActorPropsFactory,
             @Nullable final ActorRef thingPersistenceActorRef,
@@ -87,7 +90,7 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
 
         this.pubSubMediator = pubSubMediator;
         this.policiesShardRegion = policiesShardRegion;
-        this.liveSignalPub = liveSignalPub;
+        this.distributedPubThingEventsForTwin = distributedPubThingEventsForTwin;
         this.thingPersistenceActorPropsFactory = thingPersistenceActorPropsFactory;
         persistenceActorChild = thingPersistenceActorRef;
         enforcementConfig = DefaultEnforcementConfig.of(
@@ -127,19 +130,21 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
      *
      * @param pubSubMediator the pub/sub mediator ActorRef to required for the creation of the ThingEnforcerActor.
      * @param policiesShardRegion the shard region of the "policies" shard in order to e.g. load policies.
-     * @param liveSignalPub distributed-pub access.
+     * @param distributedPubThingEventsForTwin distributed-pub access for publishing thing events on "twin" channel.
+     * @param liveSignalPub distributed-pub access for "live" channel.
      * @param propsFactory factory for creating Props to be used for creating
      * @param blockedNamespaces the blocked namespaces functionality to retrieve/subscribe for blocked namespaces.
      * @return the {@link Props} to create this actor.
      */
     public static Props props(final ActorRef pubSubMediator,
             final ActorRef policiesShardRegion,
+            final DistributedPub<ThingEvent<?>> distributedPubThingEventsForTwin,
             final LiveSignalPub liveSignalPub,
             final ThingPersistenceActorPropsFactory propsFactory,
             @Nullable final BlockedNamespaces blockedNamespaces) {
 
-        return Props.create(ThingSupervisorActor.class, pubSubMediator, policiesShardRegion, liveSignalPub,
-                propsFactory, null, blockedNamespaces);
+        return Props.create(ThingSupervisorActor.class, pubSubMediator, policiesShardRegion,
+                distributedPubThingEventsForTwin, liveSignalPub, propsFactory, null, blockedNamespaces);
     }
 
     /**
@@ -147,12 +152,13 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
      */
     public static Props props(final ActorRef pubSubMediator,
             final ActorRef policiesShardRegion,
+            final DistributedPub<ThingEvent<?>> distributedPubThingEventsForTwin,
             final LiveSignalPub liveSignalPub,
             final ActorRef thingsPersistenceActor,
             @Nullable final BlockedNamespaces blockedNamespaces) {
 
-        return Props.create(ThingSupervisorActor.class, pubSubMediator, policiesShardRegion, liveSignalPub,
-                null, thingsPersistenceActor, blockedNamespaces);
+        return Props.create(ThingSupervisorActor.class, pubSubMediator, policiesShardRegion,
+                distributedPubThingEventsForTwin, liveSignalPub, null, thingsPersistenceActor, blockedNamespaces);
     }
 
     @Override
@@ -254,7 +260,7 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
     @Override
     protected Props getPersistenceActorProps(final ThingId entityId) {
         assert thingPersistenceActorPropsFactory != null;
-        return thingPersistenceActorPropsFactory.props(entityId, liveSignalPub.event());
+        return thingPersistenceActorPropsFactory.props(entityId, distributedPubThingEventsForTwin);
     }
 
     @Override

@@ -18,6 +18,8 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import javax.annotation.Nullable;
+
 import org.eclipse.ditto.gateway.service.util.config.endpoints.GatewayHttpConfig;
 import org.eclipse.ditto.gateway.service.util.config.endpoints.HttpConfig;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
@@ -63,7 +65,7 @@ final class QueryThingsPerRequestActor extends AbstractActor {
     private final ActorRef pubSubMediator;
 
     private QueryThingsResponse queryThingsResponse;
-    private List<ThingId> queryThingsResponseThingIds;
+    @Nullable private List<ThingId> queryThingsResponseThingIds;
 
     @SuppressWarnings("unused")
     private QueryThingsPerRequestActor(final QueryThings queryThings,
@@ -117,8 +119,10 @@ final class QueryThingsPerRequestActor extends AbstractActor {
                             .map(ThingId::of)
                             .toList();
 
-                    if (queryThingsResponseThingIds.isEmpty()) {
-                        // shortcut - for no search results we don't have to look up the things
+                    if (queryThingsResponseThingIds.isEmpty() || queryThingsOnlyContainsThingIdSelector()) {
+                        // shortcuts: we don't have to look up the things
+                        // - for no search results
+                        // - if only the "thingId" was selected in the QueryThings commands
                         originatingSender.tell(qtr, getSelf());
                         stopMyself();
                     } else {
@@ -160,6 +164,12 @@ final class QueryThingsPerRequestActor extends AbstractActor {
                     stopMyself();
                 })
                 .build();
+    }
+
+    private boolean queryThingsOnlyContainsThingIdSelector() {
+        final Optional<JsonFieldSelector> fields = queryThings.getFields();
+        return fields.isPresent() && fields.get().getPointers()
+                .equals(Set.of(JsonPointer.of(Thing.JsonFields.ID.getPointer())));
     }
 
     /**
