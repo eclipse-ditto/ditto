@@ -50,7 +50,7 @@ public interface PreEnforcerProvider extends DittoExtensionPoint {
 
     final class ExtensionId extends DittoExtensionPoint.ExtensionId<PreEnforcerProvider> {
 
-        private static final String CONFIG_PATH = "pre-enforcer-provider";
+        private static final String CONFIG_PATH = "ditto.pre-enforcer-provider";
         private static final ExtensionId INSTANCE = new ExtensionId(PreEnforcerProvider.class);
 
         private ExtensionId(final Class<PreEnforcerProvider> parentClass) {
