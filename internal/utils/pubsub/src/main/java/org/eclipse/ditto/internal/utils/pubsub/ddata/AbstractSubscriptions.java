@@ -83,9 +83,8 @@ public abstract class AbstractSubscriptions<R, T extends DDataUpdate<R>> impleme
 
             // add topics and filter.
             final var subscriberData = SubscriberData.of(topics, filter, group);
-            subscriberDataMap.merge(subscriber, subscriberData, (oldData, newData) -> {
-                return newData.withTopics(unionSet(oldData.getTopics(), newData.getTopics()));
-            });
+            subscriberDataMap.merge(subscriber, subscriberData, (oldData, newData) ->
+                    newData.withTopics(unionSet(oldData.getTopics(), newData.getTopics())));
 
             // add subscriber for each new topic; detect whether there is any change.
             for (final String topic : topics) {
@@ -186,8 +185,7 @@ public abstract class AbstractSubscriptions<R, T extends DDataUpdate<R>> impleme
 
     @Override
     public boolean equals(final Object other) {
-        if (other instanceof AbstractSubscriptions) {
-            final AbstractSubscriptions<?, ?> that = (AbstractSubscriptions<?, ?>) other;
+        if (other instanceof final AbstractSubscriptions<?, ?> that) {
             return subscriberDataMap.equals(that.subscriberDataMap) &&
                     topicDataMap.equals(that.topicDataMap);
         } else {

@@ -35,7 +35,6 @@ public final class DefaultPersistenceStreamConfig implements PersistenceStreamCo
 
     static final String CONFIG_PATH = "persistence";
 
-    private final int maxBulkSize;
     private final Duration ackDelay;
     private final WriteConcern withAcknowledgementsWriteConcern;
     private final DefaultStreamStageConfig defaultStreamStageConfig;
@@ -43,7 +42,6 @@ public final class DefaultPersistenceStreamConfig implements PersistenceStreamCo
     private DefaultPersistenceStreamConfig(final ConfigWithFallback persistenceStreamScopedConfig,
             final DefaultStreamStageConfig defaultStreamStageConfig) {
 
-        maxBulkSize = persistenceStreamScopedConfig.getPositiveIntOrThrow(PersistenceStreamConfigValue.MAX_BULK_SIZE);
         ackDelay = persistenceStreamScopedConfig.getNonNegativeDurationOrThrow(PersistenceStreamConfigValue.ACK_DELAY);
         final var writeConcernString = persistenceStreamScopedConfig.getString(
                 PersistenceStreamConfigValue.WITH_ACKS_WRITE_CONCERN.getConfigPath());
@@ -68,11 +66,6 @@ public final class DefaultPersistenceStreamConfig implements PersistenceStreamCo
         return new DefaultPersistenceStreamConfig(
                 ConfigWithFallback.newInstance(config, CONFIG_PATH, PersistenceStreamConfigValue.values()),
                 DefaultStreamStageConfig.getInstance(config, CONFIG_PATH));
-    }
-
-    @Override
-    public int getMaxBulkSize() {
-        return maxBulkSize;
     }
 
     @Override
@@ -104,23 +97,20 @@ public final class DefaultPersistenceStreamConfig implements PersistenceStreamCo
             return false;
         }
         final DefaultPersistenceStreamConfig that = (DefaultPersistenceStreamConfig) o;
-        return maxBulkSize == that.maxBulkSize &&
-                Objects.equals(ackDelay, that.ackDelay) &&
+        return Objects.equals(ackDelay, that.ackDelay) &&
                 Objects.equals(withAcknowledgementsWriteConcern, that.withAcknowledgementsWriteConcern) &&
                 Objects.equals(defaultStreamStageConfig, that.defaultStreamStageConfig);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(maxBulkSize, ackDelay, withAcknowledgementsWriteConcern,
-                defaultStreamStageConfig);
+        return Objects.hash(ackDelay, withAcknowledgementsWriteConcern, defaultStreamStageConfig);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
-                "maxBulkSize=" + maxBulkSize +
-                ", ackDelay=" + ackDelay +
+                "ackDelay=" + ackDelay +
                 ", withAcknowledgementsWriteConcern=" + withAcknowledgementsWriteConcern +
                 ", defaultStreamStageConfig=" + defaultStreamStageConfig +
                 "]";

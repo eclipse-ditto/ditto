@@ -41,16 +41,11 @@ enum HostingEnvironment {
         if (hostingEnvironmentName == null) {
             return DEVELOPMENT;
         }
-        switch (hostingEnvironmentName.toLowerCase()) {
-            case "docker":  // deprecated but support for backward compatibility reasons
-            case "cloud":   // deprecated but support for backward compatibility reasons
-            case "production":
-                return HostingEnvironment.PRODUCTION;
-            case "filebased":
-                return HostingEnvironment.FILE_BASED;
-            default:
-                return HostingEnvironment.DEVELOPMENT;
-        }
+        return switch (hostingEnvironmentName.toLowerCase()) {  // deprecated but support for backward compatibility reasons
+            case "docker", "cloud", "production" -> HostingEnvironment.PRODUCTION;
+            case "filebased" -> HostingEnvironment.FILE_BASED;
+            default -> HostingEnvironment.DEVELOPMENT;
+        };
     }
 
     @Override

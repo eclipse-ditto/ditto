@@ -28,10 +28,9 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.policies.api.Permission;
 import org.eclipse.ditto.policies.model.PoliciesModelFactory;
+import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.SubjectType;
-import org.eclipse.ditto.policies.model.enforcers.Enforcer;
-import org.eclipse.ditto.policies.model.enforcers.PolicyEnforcers;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.Metadata;
 import org.junit.After;
@@ -50,7 +49,7 @@ import akka.testkit.javadsl.TestKit;
 /**
  * Tests incremental update.
  */
-public class BsonDiffVisitorIT {
+public final class BsonDiffVisitorIT {
 
     @ClassRule
     public static final MongoDbResource MONGO_RESOURCE = new MongoDbResource();
@@ -58,8 +57,8 @@ public class BsonDiffVisitorIT {
     private DittoMongoClient client;
     private MongoCollection<Document> collection;
     private ActorSystem system;
-    private Enforcer enforcer;
-    private Enforcer enforcer2;
+    private Policy policy;
+    private Policy policy2;
 
     @Before
     public void init() {
@@ -73,7 +72,7 @@ public class BsonDiffVisitorIT {
         system = ActorSystem.create();
 
         final int n = 20;
-        final var policy = PoliciesModelFactory.newPolicyBuilder(PolicyId.of("policy", "id"))
+        policy = PoliciesModelFactory.newPolicyBuilder(PolicyId.of("policy", "id"))
                 .forLabel("grant-root")
                 .setSubject("grant:" + "root".repeat(n), SubjectType.GENERATED)
                 .setGrantedPermissions(THING, "/", Permission.READ)
@@ -85,14 +84,12 @@ public class BsonDiffVisitorIT {
                 .setRevokedPermissions(THING, "/d/e", Permission.READ)
                 .build();
 
-        enforcer = PolicyEnforcers.defaultEvaluator(policy);
-
-        enforcer2 = PolicyEnforcers.defaultEvaluator(policy.toBuilder()
+        policy2 = policy.toBuilder()
                 .forLabel("additional")
                 .setSubject("revoke:" + "dx.e".repeat(n), SubjectType.GENERATED)
                 .setGrantedPermissions(THING, "/d/e/f", Permission.READ)
                 .setGrantedPermissions(THING, "/d/e/h", Permission.READ)
-                .build());
+                .build();
     }
 
     @After
@@ -106,7 +103,6 @@ public class BsonDiffVisitorIT {
     public void testAggregationUpdate() {
         final var collection = client.getCollection("test");
 
-        final int maxArraySize = 99;
         final Metadata metadata =
                 Metadata.of(ThingId.of("solar.system:pluto"), 23L, PolicyId.of("solar.system:pluto"), 45L, null, null);
 
@@ -114,10 +110,10 @@ public class BsonDiffVisitorIT {
         final JsonObject nextThing = getThing2(); // Thing1 with some fields updated
 
         final BsonDocument prevThingDoc =
-                EnforcedThingMapper.toBsonDocument(prevThing, enforcer, maxArraySize, metadata);
+                EnforcedThingMapper.toBsonDocument(prevThing, policy, metadata);
 
         final BsonDocument nextThingDoc =
-                EnforcedThingMapper.toBsonDocument(nextThing, enforcer, maxArraySize, metadata);
+                EnforcedThingMapper.toBsonDocument(nextThing, policy, metadata);
 
         final BsonDiff diff = BsonDiff.minusThingDocs(nextThingDoc, prevThingDoc);
 
@@ -141,7 +137,6 @@ public class BsonDiffVisitorIT {
     public void testEnforcerChange() {
         final var collection = client.getCollection("test");
 
-        final int maxArraySize = 99;
         final Metadata metadata =
                 Metadata.of(ThingId.of("solar.system:pluto"), 23L, PolicyId.of("solar.system:pluto"), 45L, null, null);
 
@@ -149,10 +144,10 @@ public class BsonDiffVisitorIT {
         final JsonObject nextThing = getThing1();
 
         final BsonDocument prevThingDoc =
-                EnforcedThingMapper.toBsonDocument(prevThing, enforcer, maxArraySize, metadata);
+                EnforcedThingMapper.toBsonDocument(prevThing, policy, metadata);
 
         final BsonDocument nextThingDoc =
-                EnforcedThingMapper.toBsonDocument(nextThing, enforcer2, maxArraySize, metadata);
+                EnforcedThingMapper.toBsonDocument(nextThing, policy2, metadata);
 
         final BsonDiff diff = BsonDiff.minusThingDocs(nextThingDoc, prevThingDoc);
 
@@ -176,7 +171,6 @@ public class BsonDiffVisitorIT {
     public void testEnforcerAndThingChange() {
         final var collection = client.getCollection("test");
 
-        final int maxArraySize = 99;
         final Metadata metadata =
                 Metadata.of(ThingId.of("solar.system:pluto"), 23L, PolicyId.of("solar.system:pluto"), 45L, null, null);
 
@@ -184,10 +178,10 @@ public class BsonDiffVisitorIT {
         final JsonObject nextThing = getThing2();
 
         final BsonDocument prevThingDoc =
-                EnforcedThingMapper.toBsonDocument(prevThing, enforcer, maxArraySize, metadata);
+                EnforcedThingMapper.toBsonDocument(prevThing, policy, metadata);
 
         final BsonDocument nextThingDoc =
-                EnforcedThingMapper.toBsonDocument(nextThing, enforcer2, maxArraySize, metadata);
+                EnforcedThingMapper.toBsonDocument(nextThing, policy2, metadata);
 
         final BsonDiff diff = BsonDiff.minusThingDocs(nextThingDoc, prevThingDoc);
 
@@ -208,10 +202,9 @@ public class BsonDiffVisitorIT {
     }
 
     @Test
-    public void testArrayConcat() {
+    public void testArrayDiff() {
         final var collection = client.getCollection("test");
 
-        final int maxArraySize = 99;
         final Metadata metadata =
                 Metadata.of(ThingId.of("solar.system:pluto"), 23L, PolicyId.of("solar.system:pluto"), 45L, null, null);
 
@@ -219,10 +212,10 @@ public class BsonDiffVisitorIT {
         final JsonObject nextThing = getThing3(); // identical to Thing1 with fields rearranged and slightly edited
 
         final BsonDocument prevThingDoc =
-                EnforcedThingMapper.toBsonDocument(prevThing, enforcer, maxArraySize, metadata);
+                EnforcedThingMapper.toBsonDocument(prevThing, policy, metadata);
 
         final BsonDocument nextThingDoc =
-                EnforcedThingMapper.toBsonDocument(nextThing, enforcer, maxArraySize, metadata);
+                EnforcedThingMapper.toBsonDocument(nextThing, policy, metadata);
 
         assertThat(prevThingDoc).isNotEqualTo(nextThingDoc);
 
@@ -231,8 +224,8 @@ public class BsonDiffVisitorIT {
         final List<BsonDocument> updateDoc = diff.consumeAndExport();
 
         assertThat(updateDoc.toString().length())
-                .describedAs("Incremental update should be less than 1/10 as large as replacement")
-                .isLessThan(nextThingDoc.toString().length() / 10);
+                .describedAs("Incremental update should be less than 1/5 as large as replacement")
+                .isLessThan(nextThingDoc.toString().length() / 5);
 
         run(collection.insertOne(toDocument(prevThingDoc)));
         run(collection.updateOne(new Document(), updateDoc));
@@ -248,7 +241,6 @@ public class BsonDiffVisitorIT {
     public void testSetEmptyObject() {
         final var collection = client.getCollection("test");
 
-        final int maxArraySize = 99;
         final Metadata metadata =
                 Metadata.of(ThingId.of("solar.system:pluto"), 23L, PolicyId.of("solar.system:pluto"), 45L, null, null);
 
@@ -256,10 +248,10 @@ public class BsonDiffVisitorIT {
         final JsonObject nextThing = getThing4(); // identical to Thing1 with an extra fields with emtpy object as value
 
         final BsonDocument prevThingDoc =
-                EnforcedThingMapper.toBsonDocument(prevThing, enforcer, maxArraySize, metadata);
+                EnforcedThingMapper.toBsonDocument(prevThing, policy, metadata);
 
         final BsonDocument nextThingDoc =
-                EnforcedThingMapper.toBsonDocument(nextThing, enforcer, maxArraySize, metadata);
+                EnforcedThingMapper.toBsonDocument(nextThing, policy, metadata);
 
         assertThat(prevThingDoc).isNotEqualTo(nextThingDoc);
 
@@ -285,7 +277,6 @@ public class BsonDiffVisitorIT {
     public void testStringExpressionInUpdate() {
         final var collection = client.getCollection("test");
 
-        final int maxArraySize = 99;
         final Metadata metadata =
                 Metadata.of(ThingId.of("solar.system:pluto"), 23L, PolicyId.of("solar.system:pluto"), 45L, null, null);
 
@@ -293,10 +284,10 @@ public class BsonDiffVisitorIT {
         final JsonObject nextThing = getThing5(); // Thing1 with string field updated to begin with '$' and end with '.'
 
         final BsonDocument prevThingDoc =
-                EnforcedThingMapper.toBsonDocument(prevThing, enforcer, maxArraySize, metadata);
+                EnforcedThingMapper.toBsonDocument(prevThing, policy, metadata);
 
         final BsonDocument nextThingDoc =
-                EnforcedThingMapper.toBsonDocument(nextThing, enforcer, maxArraySize, metadata);
+                EnforcedThingMapper.toBsonDocument(nextThing, policy, metadata);
 
         final BsonDiff diff = BsonDiff.minusThingDocs(nextThingDoc, prevThingDoc);
 
@@ -339,89 +330,95 @@ public class BsonDiffVisitorIT {
     }
 
     private static JsonObject getThing1() {
-        return JsonFactory.newObject("{\n" +
-                "  \"thingId\":\"solar.system:pluto\"," +
-                "  \"_namespace\":\"solar.system\"," +
-                "  \"a\": [ {\"b\": \"ABCDEFGHIJKLMNOPQRSTUVWXYZ\"}, true ],\n" +
-                "  \"d\": {\n" +
-                "    \"e\": {\n" +
-                "      \"f\": \"g\",\n" +
-                "      \"h\": \"lorem ipsum dolor sit amet\"\n" +
-                "    },\n" +
-                "    \"j\": true,\n" +
-                "    \"k\": 6.0,\n" +
-                "    \"l\": 123456789012\n" +
-                "  }\n" +
-                "}");
+        return JsonFactory.newObject("""
+                {
+                  "thingId":"solar.system:pluto",
+                  "_namespace":"solar.system",
+                  "a": [ {"b": "ABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZ", "x": 5}, true ],
+                  "d": {
+                    "e": {
+                      "f": "g",
+                      "h": "lorem ipsum dolor sit amet"
+                    },
+                    "j": true,
+                    "k": 6.0,
+                    "l": 123456789012
+                  }
+                }""");
     }
 
     private static JsonObject getThing2() {
-        return JsonFactory.newObject("{\n" +
-                "  \"thingId\":\"solar.system:pluto\"," +
-                "  \"_namespace\":\"solar.system\"," +
-                "  \"a\": [ false, {\"b\": \"ABCDEFGHIJKLMNOPQRSTUVWXYZ\"} ],\n" +
-                "  \"d\": {\n" +
-                "    \"e\": {\n" +
-                "      \"h\": \"lorem ipsum dolor sit amet\"\n" +
-                "    },\n" +
-                "    \"j\": true,\n" +
-                "    \"k\": 6.0,\n" +
-                "    \"l\": 5,\n" +
-                "    \"m\": \"MESSAGE\"\n" +
-                "  }\n" +
-                "}");
+        return JsonFactory.newObject("""
+                {
+                  "thingId":"solar.system:pluto",
+                  "_namespace":"solar.system",
+                  "a": [ false, {"b": "ABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZ", "x": 5} ],
+                  "d": {
+                    "e": {
+                      "h": "lorem ipsum dolor sit amet"
+                    },
+                    "j": true,
+                    "k": 6.0,
+                    "l": 5,
+                    "m": "MESSAGE"
+                  }
+                }""");
     }
 
     private static JsonObject getThing3() {
-        return JsonFactory.newObject("{\n" +
-                "  \"thingId\":\"solar.system:pluto\"," +
-                "  \"_namespace\":\"solar.system\"," +
-                "  \"a\": [ {\"b\": \"ABCDEFGHIJKLMNOPQRSTUVWXYZ\"}, true ],\n" +
-                "  \"d\": {\n" +
-                "    \"j\": true,\n" +
-                "    \"k\": 6.0,\n" +
-                "    \"l\": 123456789012,\n" +
-                "    \"e\": {\n" +
-                "      \"f\": \"h\",\n" +
-                "      \"h\": \"lorem ipsum dolor sit amet\"\n" +
-                "    }\n" +
-                "  }\n" +
-                "}");
+        return JsonFactory.newObject("""
+                {
+                  "thingId":"solar.system:pluto",
+                  "_namespace":"solar.system",
+                  "a": [ {"b": "ABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZ", "y": 6}, true ],
+                  "d": {
+                    "j": true,
+                    "k": 6.0,
+                    "l": 123456789012,
+                    "e": {
+                      "f": "g",
+                      "h": "lorem ipsum dolor sit amet"
+                    }
+                  }
+                }""");
     }
 
     private static JsonObject getThing4() {
-        return JsonFactory.newObject("{\n" +
-                "  \"thingId\":\"solar.system:pluto\"," +
-                "  \"_namespace\":\"solar.system\"," +
-                "  \"a\": [ {\"b\": \"ABCDEFGHIJKLMNOPQRSTUVWXYZ\"}, true ],\n" +
-                "  \"d\": {\n" +
-                "    \"e\": {\n" +
-                "      \"f\": \"g\",\n" +
-                "      \"h\": \"lorem ipsum dolor sit amet\"\n" +
-                "    },\n" +
-                "    \"j\": true,\n" +
-                "    \"k\": 6.0,\n" +
-                "    \"l\": 123456789012,\n" +
-                "    \"m\": {},\n" +
-                "    \"n\": {\"o\":{}}\n" +
-                "  }\n" +
-                "}");
+        return JsonFactory.newObject("""
+                {
+                  "thingId":"solar.system:pluto",
+                  "_namespace":"solar.system",
+                  "a": [ {"b": "ABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZ", "x": 5}, true ],
+                  "d": {
+                    "e": {
+                      "f": "g",
+                      "h": "lorem ipsum dolor sit amet"
+                    },
+                    "j": true,
+                    "k": 6.0,
+                    "l": 123456789012,
+                    "m": {},
+                    "n": {"o":{}}
+                  }
+                }""");
     }
 
     private static JsonObject getThing5() {
-        return JsonFactory.newObject("{\n" +
-                "  \"thingId\":\"solar.system:pluto\"," +
-                "  \"_namespace\":\"solar.system\"," +
-                "  \"a\": [ {\"b\": \"ABCDEFGHIJKLMNOPQRSTUVWXYZ\"}, true ],\n" +
-                "  \"d\": {\n" +
-                "    \"e\": {\n" +
-                "      \"f\": \"g\",\n" +
-                "      \"h\": \"$lorem ipsum dolor sit amet.\"\n" +
-                "    },\n" +
-                "    \"j\": true,\n" +
-                "    \"k\": 6.0,\n" +
-                "    \"l\": 123456789012\n" +
-                "  }\n" +
-                "}");
+        return JsonFactory.newObject("""
+                {
+                  "thingId":"solar.system:pluto",
+                  "_namespace":"solar.system",
+                  "a": [ {"b": "ABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZ", "x": 5}, true ],
+                  "d": {
+                    "e": {
+                      "f": "g",
+                      "h": "$lorem ipsum dolor sit amet."
+                    },
+                    "j": true,
+                    "k": 6.0,
+                    "l": 123456789012
+                  }
+                }""");
     }
+
 }

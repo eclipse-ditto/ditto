@@ -17,6 +17,8 @@ import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.util.function.Function;
 
+import javax.annotation.Nullable;
+
 import org.bson.BsonArray;
 import org.bson.BsonDocument;
 import org.bson.BsonValue;
@@ -33,21 +35,18 @@ public final class DittoBsonJson {
 
     private static final DittoBsonJson INSTANCE = DittoBsonJson.newInstance();
 
-    private final Function<JsonObject, BsonDocument> jsonObjectToBsonDocumentMapper;
-    private final Function<JsonArray, BsonArray> jsonArrayToBsonArrayMapper;
+    private final JsonValueToDbEntityMapper jsonValueToDbEntityMapper;
     private final Function<BsonDocument, JsonObject> bsonDocumentToJsonObjectMapper;
     private final Function<BsonArray, JsonArray> bsonArrayToJsonObjectMapper;
 
     /*
      * Inhibit instantiation of this utility class.
      */
-    private DittoBsonJson(final Function<JsonObject, BsonDocument> jsonObjectToBsonDocumentMapper,
-            final Function<JsonArray, BsonArray> jsonArrayToBsonArrayMapper,
+    private DittoBsonJson(final JsonValueToDbEntityMapper jsonValueToDbEntityMapper,
             final Function<BsonDocument, JsonObject> bsonDocumentToJsonObjectMapper,
             final Function<BsonArray, JsonArray> bsonArrayToJsonObjectMapper) {
 
-        this.jsonObjectToBsonDocumentMapper = jsonObjectToBsonDocumentMapper;
-        this.jsonArrayToBsonArrayMapper = jsonArrayToBsonArrayMapper;
+        this.jsonValueToDbEntityMapper = jsonValueToDbEntityMapper;
         this.bsonDocumentToJsonObjectMapper = bsonDocumentToJsonObjectMapper;
         this.bsonArrayToJsonObjectMapper = bsonArrayToJsonObjectMapper;
     }
@@ -65,9 +64,7 @@ public final class DittoBsonJson {
         final KeyNameReviser jsonToMongoDbKeyNameReviser = KeyNameReviser.escapeProblematicPlainChars();
         final KeyNameReviser jsonKeyNameReviser = KeyNameReviser.decodeKnownUnicodeChars();
 
-        return new DittoBsonJson(
-                JsonValueToDbEntityMapper.forJsonObject(jsonToMongoDbKeyNameReviser),
-                JsonValueToDbEntityMapper.forJsonArray(jsonToMongoDbKeyNameReviser),
+        return new DittoBsonJson(JsonValueToDbEntityMapper.of(jsonToMongoDbKeyNameReviser),
                 BsonDocumentToJsonObjectMapper.getInstance(jsonKeyNameReviser),
                 BsonArrayToJsonObjectMapper.getInstance(jsonKeyNameReviser));
     }
@@ -125,7 +122,7 @@ public final class DittoBsonJson {
      * @throws NullPointerException if {@code jsonObject} is {@code null}.
      */
     public BsonDocument parse(final JsonObject jsonObject) {
-        return jsonObjectToBsonDocumentMapper.apply(jsonObject);
+        return jsonValueToDbEntityMapper.mapJsonObjectToBsonDocument(jsonObject);
     }
 
     /**
@@ -136,8 +133,18 @@ public final class DittoBsonJson {
      * @throws NullPointerException if {@code jsonArray} is {@code null}.
      */
     public BsonArray parse(final JsonArray jsonArray) {
-        return jsonArrayToBsonArrayMapper.apply(jsonArray);
+        return jsonValueToDbEntityMapper.mapJsonArrayToBsonArray(jsonArray);
     }
 
+    /**
+     * Parses the passed in {@link JsonValue} into an {@link BsonValue}.
+     *
+     * @param jsonValue the JSON value to be parsed.
+     * @return the parsed JSON value as BsonValue.
+     */
+    @Nullable
+    public BsonValue parseValue(final JsonValue jsonValue) {
+        return jsonValueToDbEntityMapper.mapJsonValueToBsonValue(jsonValue);
+    }
 }
 

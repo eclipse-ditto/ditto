@@ -53,7 +53,7 @@ public final class SearchRootActor extends DittoRootActor {
     /**
      * The name of this Actor in the ActorSystem.
      */
-    public static final String ACTOR_NAME = "thingsSearchRoot";
+    public static final String ACTOR_NAME = "thingsWildcardSearchRoot";
 
     private final LoggingAdapter log;
 
@@ -98,7 +98,7 @@ public final class SearchRootActor extends DittoRootActor {
         fieldMappings.put(key, value);
     }
 
-    private ThingsSearchPersistence getThingsSearchPersistence(final SearchConfig searchConfig,
+    private MongoThingsSearchPersistence getThingsSearchPersistence(final SearchConfig searchConfig,
             final DittoMongoClient mongoDbClient) {
 
         final ActorContext context = getContext();
