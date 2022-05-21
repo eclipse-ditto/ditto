@@ -95,17 +95,7 @@ public final class BsonDiff {
      * @return the difference.
      */
     public static BsonDiff minusThingDocs(final BsonDocument minuend, final BsonDocument subtrahend) {
-        // compute the internal array diff especially to find similar elements by internal key
-        final var minuendFeatures = minuend.getArray(FIELD_F_ARRAY);
-        final var subtrahendFeatures = subtrahend.getArray(FIELD_F_ARRAY);
-        final var diffFeatures = BsonArrayDiff.diffFeaturesArray(minuendFeatures, subtrahendFeatures);
-        // compute the rest of the diff without the internal array
-        final var minuendWithoutInternal = minuend.clone();
-        final var subtrahendWithoutInternal = subtrahend.clone();
-        minuendWithoutInternal.remove(FIELD_F_ARRAY);
-        subtrahendWithoutInternal.remove(FIELD_F_ARRAY);
-        final var diffWithoutInternal = minus(minuendWithoutInternal, subtrahendWithoutInternal, true);
-        return diffWithoutInternal.concat(diffFeatures);
+        return minus(minuend, subtrahend, true);
     }
 
     /**
