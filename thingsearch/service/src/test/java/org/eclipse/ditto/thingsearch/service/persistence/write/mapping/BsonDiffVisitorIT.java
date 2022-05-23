@@ -238,6 +238,42 @@ public final class BsonDiffVisitorIT {
     }
 
     @Test
+    public void testArrayDiffPropertyDeleted() {
+        final var collection = client.getCollection("test");
+
+        final Metadata metadata =
+                Metadata.of(ThingId.of("solar.system:pluto"), 23L, PolicyId.of("solar.system:pluto"), 45L, null, null);
+
+        final JsonObject prevThing = getThing1();
+        final JsonObject nextThing = getThing6(); // identical to Thing1 with property deleted
+
+        final BsonDocument prevThingDoc =
+                EnforcedThingMapper.toBsonDocument(prevThing, policy, metadata);
+
+        final BsonDocument nextThingDoc =
+                EnforcedThingMapper.toBsonDocument(nextThing, policy, metadata);
+
+        assertThat(prevThingDoc).isNotEqualTo(nextThingDoc);
+
+        final BsonDiff diff = BsonDiff.minusThingDocs(nextThingDoc, prevThingDoc);
+
+        final List<BsonDocument> updateDoc = diff.consumeAndExport();
+
+        assertThat(updateDoc.toString().length())
+                .describedAs("Incremental update should be less than 1/5 as large as replacement")
+                .isLessThan(nextThingDoc.toString().length() / 5);
+
+        run(collection.insertOne(toDocument(prevThingDoc)));
+        run(collection.updateOne(new Document(), updateDoc));
+
+        final BsonDocument incrementalUpdateResult = toBsonDocument(run(collection.find()).get(0));
+
+        assertThat(incrementalUpdateResult)
+                .describedAs("Incremental update result")
+                .isEqualTo(nextThingDoc);
+    }
+
+    @Test
     public void testSetEmptyObject() {
         final var collection = client.getCollection("test");
 
@@ -413,6 +449,24 @@ public final class BsonDiffVisitorIT {
                     "e": {
                       "f": "g",
                       "h": "$lorem ipsum dolor sit amet."
+                    },
+                    "j": true,
+                    "k": 6.0,
+                    "l": 123456789012
+                  }
+                }""");
+    }
+
+    private static JsonObject getThing6() {
+        return JsonFactory.newObject("""
+                {
+                  "thingId":"solar.system:pluto",
+                  "_namespace":"solar.system",
+                  "a": [ {"b": "ABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZ"}, true ],
+                  "d": {
+                    "e": {
+                      "f": "g",
+                      "h": "lorem ipsum dolor sit amet"
                     },
                     "j": true,
                     "k": 6.0,
