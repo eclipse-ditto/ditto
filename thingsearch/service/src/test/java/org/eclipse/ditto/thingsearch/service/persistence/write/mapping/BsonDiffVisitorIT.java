@@ -15,6 +15,7 @@ package org.eclipse.ditto.thingsearch.service.persistence.write.mapping;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.eclipse.ditto.policies.model.PoliciesResourceType.THING;
 
+import java.io.IOException;
 import java.util.List;
 
 import org.bson.BsonDocument;
@@ -34,6 +35,7 @@ import org.eclipse.ditto.policies.model.SubjectType;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.Metadata;
 import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
@@ -52,13 +54,18 @@ import akka.testkit.javadsl.TestKit;
 public final class BsonDiffVisitorIT {
 
     @ClassRule
-    public static final MongoDbResource MONGO_RESOURCE = new MongoDbResource();
+    public static final MongoDbResource MONGO_RESOURCE = new MongoDbResource("5.0");
 
     private DittoMongoClient client;
     private MongoCollection<Document> collection;
     private ActorSystem system;
     private Policy policy;
     private Policy policy2;
+
+    @AfterClass
+    public static void closeMongoResource() throws IOException {
+        MONGO_RESOURCE.close();
+    }
 
     @Before
     public void init() {
@@ -190,42 +197,6 @@ public final class BsonDiffVisitorIT {
         assertThat(updateDoc.toString().length())
                 .describedAs("Incremental update should be less than half as large as replacement")
                 .isLessThan((int) (nextThingDoc.toString().length() * 0.75));
-
-        run(collection.insertOne(toDocument(prevThingDoc)));
-        run(collection.updateOne(new Document(), updateDoc));
-
-        final BsonDocument incrementalUpdateResult = toBsonDocument(run(collection.find()).get(0));
-
-        assertThat(incrementalUpdateResult)
-                .describedAs("Incremental update result")
-                .isEqualTo(nextThingDoc);
-    }
-
-    @Test
-    public void testArrayDiff() {
-        final var collection = client.getCollection("test");
-
-        final Metadata metadata =
-                Metadata.of(ThingId.of("solar.system:pluto"), 23L, PolicyId.of("solar.system:pluto"), 45L, null, null);
-
-        final JsonObject prevThing = getThing1();
-        final JsonObject nextThing = getThing3(); // identical to Thing1 with fields rearranged and slightly edited
-
-        final BsonDocument prevThingDoc =
-                EnforcedThingMapper.toBsonDocument(prevThing, policy, metadata);
-
-        final BsonDocument nextThingDoc =
-                EnforcedThingMapper.toBsonDocument(nextThing, policy, metadata);
-
-        assertThat(prevThingDoc).isNotEqualTo(nextThingDoc);
-
-        final BsonDiff diff = BsonDiff.minusThingDocs(nextThingDoc, prevThingDoc);
-
-        final List<BsonDocument> updateDoc = diff.consumeAndExport();
-
-        assertThat(updateDoc.toString().length())
-                .describedAs("Incremental update should be less than 1/5 as large as replacement")
-                .isLessThan(nextThingDoc.toString().length() / 5);
 
         run(collection.insertOne(toDocument(prevThingDoc)));
         run(collection.updateOne(new Document(), updateDoc));
