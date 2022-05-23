@@ -40,14 +40,6 @@ import akka.cluster.ddata.Replicator;
  */
 final class DittoProtocolSubImpl implements DittoProtocolSub {
 
-    private static final SubAck NOP_ACK = SubAck.of(
-            Subscribe.of(List.of(), ActorRef.noSender(), (Replicator.WriteConsistency) Replicator.writeLocal(), true,
-                    null),
-            ActorRef.noSender(),
-            0,
-            true
-    );
-
     private final DistributedSub liveSignalSub;
     private final DistributedSub twinEventSub;
     private final DistributedSub policyAnnouncementSub;
@@ -79,7 +71,7 @@ final class DittoProtocolSubImpl implements DittoProtocolSub {
             final ActorRef subscriber,
             @Nullable final String group,
             final boolean resubscribe) {
-        final CompletionStage<SubAck> nop = CompletableFuture.completedFuture(NOP_ACK);
+        final CompletionStage<SubAck> nop = CompletableFuture.completedFuture(null);
         return partitionByStreamingTypes(types,
                 liveTypes -> !liveTypes.isEmpty()
                         ? liveSignalSub.subscribeWithFilterAndGroup(topics, subscriber, toFilter(liveTypes), group,
@@ -178,14 +170,18 @@ final class DittoProtocolSubImpl implements DittoProtocolSub {
             hasTwinEvents = liveTypes.remove(StreamingType.EVENTS);
             hasPolicyAnnouncements = liveTypes.remove(StreamingType.POLICY_ANNOUNCEMENTS);
         }
-        final var liveStage = onLiveSignals.apply(liveTypes).thenApply(SubAck::isConsistent);
-        final var twinStage = onTwinEvents.apply(hasTwinEvents).thenApply(SubAck::isConsistent);
-        final var policyAnnouncementStage = onPolicyAnnouncement.apply(hasPolicyAnnouncements)
-                .thenApply(SubAck::isConsistent);
+        final var liveStage = onLiveSignals.apply(liveTypes).thenApply(this::isConsistent);
+        final var twinStage = onTwinEvents.apply(hasTwinEvents).thenApply(this::isConsistent);
+        final var policyAnnouncementStage =
+                onPolicyAnnouncement.apply(hasPolicyAnnouncements).thenApply(this::isConsistent);
         return liveStage.thenCompose(liveConsistent ->
                 twinStage.thenCompose(twinConsistent ->
                         policyAnnouncementStage.thenApply(policyConsistent ->
                                 liveConsistent && twinConsistent && policyConsistent)));
+    }
+
+    private boolean isConsistent(@Nullable final SubAck ack) {
+        return ack == null || ack.isConsistent();
     }
 
     private static Predicate<Collection<String>> toFilter(final Collection<StreamingType> streamingTypes) {
