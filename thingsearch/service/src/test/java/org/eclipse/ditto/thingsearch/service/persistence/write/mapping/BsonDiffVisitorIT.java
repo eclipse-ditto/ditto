@@ -62,11 +62,6 @@ public final class BsonDiffVisitorIT {
     private Policy policy;
     private Policy policy2;
 
-    @AfterClass
-    public static void closeMongoResource() throws IOException {
-        MONGO_RESOURCE.close();
-    }
-
     @Before
     public void init() {
         client = MongoClientWrapper.getBuilder()

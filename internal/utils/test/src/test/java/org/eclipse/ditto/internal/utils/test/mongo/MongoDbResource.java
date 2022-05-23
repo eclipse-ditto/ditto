@@ -26,7 +26,7 @@ import org.junit.rules.ExternalResource;
  * the MongoDB container address instead of starting its own container.
  */
 @NotThreadSafe
-public final class MongoDbResource extends ExternalResource implements Closeable {
+public final class MongoDbResource extends ExternalResource {
 
     private static final int MONGO_INTERNAL_PORT = 27017;
     private static final String MONGO_CONTAINER_ALREADY_STARTED = "Mongo container has already been started.";
@@ -62,11 +62,11 @@ public final class MongoDbResource extends ExternalResource implements Closeable
             mongoContainer.remove();
             mongoContainer = null;
         }
-    }
-
-    @Override
-    public void close() throws IOException {
-        mongoContainerFactory.close();
+        try {
+            mongoContainerFactory.close();
+        } catch (final IOException e) {
+            throw new AssertionError(e);
+        }
     }
 
     /**
