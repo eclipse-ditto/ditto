@@ -34,23 +34,12 @@ import akka.actor.ActorRef;
  *
  * @param <T> the type of the signals to pre-enforce.
  */
-@FunctionalInterface
-public interface PreEnforcer<T extends DittoHeadersSettable<?>> {
+public interface PreEnforcer<T extends DittoHeadersSettable<?>> extends Function<T, CompletionStage<T>>{
 
     /**
      * Logger of pre-enforcers.
      */
     DittoLogger LOGGER = DittoLoggerFactory.getLogger(PreEnforcer.class);
-
-    /**
-     * Apply pre-enforcement.
-     * Post-condition: the type of signal in the future of the return value is identical to the type of
-     * signal in the argument.
-     *
-     * @param signal the signal.
-     * @return future result of the pre-enforcement.
-     */
-    CompletionStage<T> apply(T signal);
 
     /**
      * Perform pre-enforcement with error handling.
@@ -90,27 +79,6 @@ public interface PreEnforcer<T extends DittoHeadersSettable<?>> {
                     sender.tell(dittoRuntimeException, ActorRef.noSender());
                     return onError;
                 });
-    }
-
-    /**
-     * Set the "ditto-originator" header to the primary authorization subject of a signal.
-     *
-     * @param originalSignal A signal with authorization context.
-     * @param <T> the type of the {@code originalSignal} to preserve in the response.
-     * @return A copy of the signal with the header "ditto-originator" set.
-     * @since 3.0.0
-     */
-    @SuppressWarnings("unchecked")
-    static <T extends DittoHeadersSettable<?>> T setOriginatorHeader(final T originalSignal) {
-        final DittoHeaders dittoHeaders = originalSignal.getDittoHeaders();
-        final AuthorizationContext authorizationContext = dittoHeaders.getAuthorizationContext();
-        return authorizationContext.getFirstAuthorizationSubject()
-                .map(AuthorizationSubject::getId)
-                .map(originatorSubjectId -> DittoHeaders.newBuilder(dittoHeaders)
-                        .putHeader(DittoHeaderDefinition.ORIGINATOR.getKey(), originatorSubjectId)
-                        .build())
-                .map(originatorHeader -> (T) originalSignal.setDittoHeaders(originatorHeader))
-                .orElse(originalSignal);
     }
 
 }

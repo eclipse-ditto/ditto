@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.policies.enforcement;
 
+import java.util.concurrent.CompletionStage;
+
 import org.eclipse.ditto.base.model.headers.DittoHeadersSettable;
 import org.eclipse.ditto.internal.utils.namespaces.BlockNamespaceBehavior;
 import org.eclipse.ditto.internal.utils.namespaces.BlockedNamespaces;
@@ -29,12 +31,12 @@ public class DefaultPreEnforcerProvider implements PreEnforcerProvider{
     }
 
     @Override
-    public <T extends DittoHeadersSettable<?>> PreEnforcer<T> getPreEnforcer() {
-        return dittoHeadersSettable ->
-                BlockNamespaceBehavior.of(BlockedNamespaces.of(actorSystem))
-                        .block(dittoHeadersSettable)
-                        .thenApply(CommandWithOptionalEntityValidator.createInstance())
-                        .thenApply(PreEnforcer::setOriginatorHeader)
+    public <T extends DittoHeadersSettable<?>> CompletionStage<T> apply(T signal) {
+        return BlockNamespaceBehavior.of(BlockedNamespaces.of(actorSystem))
+                        .block(signal)
+                        .thenCompose(CommandWithOptionalEntityValidator.createInstance())
+                        .thenCompose(new HeaderSetter<>())
                         .thenCompose(PlaceholderSubstitution.newInstance());
     }
+
 }

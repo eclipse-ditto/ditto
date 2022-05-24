@@ -163,21 +163,6 @@ public final class PoliciesRootActor extends DittoRootActor {
     }
 
     /**
-     * TODO CR-11297 provide extension mechanism here
-     * TODO CR-11297 consolidate with ThingsRootActor.newPreEnforcer
-     */
-    private static <T extends DittoHeadersSettable<?>> PreEnforcer<T> newPreEnforcer(
-            final BlockedNamespaces blockedNamespaces) {
-
-        return dittoHeadersSettable ->
-                BlockNamespaceBehavior.of(blockedNamespaces)
-                        .block(dittoHeadersSettable)
-                        .thenApply(CommandWithOptionalEntityValidator.createInstance())
-                        .thenApply(PreEnforcer::setOriginatorHeader)
-                        .thenCompose(PlaceholderSubstitution.newInstance());
-    }
-
-    /**
      * Creates Akka configuration object Props for this PoliciesRootActor.
      *
      * @param policiesConfig the configuration reader of this service.

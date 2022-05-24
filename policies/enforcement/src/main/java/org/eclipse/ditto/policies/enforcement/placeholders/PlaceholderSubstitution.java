@@ -26,6 +26,7 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.DittoHeadersSettable;
+import org.eclipse.ditto.policies.enforcement.PreEnforcer;
 import org.eclipse.ditto.policies.enforcement.placeholders.strategies.SubstitutionStrategy;
 import org.eclipse.ditto.policies.enforcement.placeholders.strategies.SubstitutionStrategyRegistry;
 
@@ -36,8 +37,7 @@ import org.eclipse.ditto.policies.enforcement.placeholders.strategies.Substituti
  * @param <T> the subtype of {@link DittoHeadersSettable} handled by the PlaceholderSubstitution.
  */
 @Immutable
-public final class PlaceholderSubstitution<T extends DittoHeadersSettable<?>>
-        implements Function<T, CompletionStage<T>> {
+public final class PlaceholderSubstitution<T extends DittoHeadersSettable<?>> implements PreEnforcer<T> {
 
     private final HeaderBasedPlaceholderSubstitutionAlgorithm substitutionAlgorithm;
     private final SubstitutionStrategyRegistry substitutionStrategyRegistry;

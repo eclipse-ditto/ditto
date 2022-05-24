@@ -82,7 +82,8 @@ public interface EnforcementProvider<T extends Signal<?>> {
      * @return the stream.
      */
     default Flow<Contextual<WithDittoHeaders>, EnforcementTask, NotUsed> createEnforcementTask(
-            final PreEnforcer preEnforcer) {
+            final PreEnforcer<T> preEnforcer) {
+
         return Flow.<Contextual<WithDittoHeaders>, Optional<Contextual<T>>>fromFunction(
                         contextual -> contextual.tryToMapMessage(this::mapToHandledClass))
                 .filter(Optional::isPresent)
@@ -93,7 +94,8 @@ public interface EnforcementProvider<T extends Signal<?>> {
     }
 
     private Optional<EnforcementTask> buildEnforcementTask(final Contextual<T> contextual,
-            final PreEnforcer preEnforcer) {
+            final PreEnforcer<T> preEnforcer) {
+
         final T message = contextual.getMessage();
         final boolean changesAuthorization = changesAuthorization(message);
 
@@ -109,7 +111,7 @@ public interface EnforcementProvider<T extends Signal<?>> {
             return Optional.of(EnforcementTask.of(entityId, changesAuthorization,
                     () -> preEnforcer.withErrorHandlingAsync(contextual.setMessage(messageWithTraceContext),
                                     contextual.setMessage(null).withReceiver(null),
-                                    converted -> createEnforcement((Contextual<T>) converted).enforceSafely())
+                                    converted -> createEnforcement(converted).enforceSafely())
                             .whenComplete((result, error) -> {
                                 timer.tag("outcome", error != null ? "fail" : "success");
                                 timer.stop();

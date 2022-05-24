@@ -14,12 +14,12 @@ package org.eclipse.ditto.policies.enforcement;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
-import java.util.List;
+import java.util.concurrent.CompletionStage;
+import java.util.function.BinaryOperator;
 
 import org.eclipse.ditto.base.model.headers.DittoHeadersSettable;
+import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.service.DittoExtensionPoint;
-import org.eclipse.ditto.internal.utils.akka.AkkaClassLoader;
-import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 
 import akka.actor.ActorSystem;
 
@@ -28,12 +28,13 @@ import akka.actor.ActorSystem;
  *
  * @since 3.0.0
  */
-public interface PreEnforcerProvider extends DittoExtensionPoint {
+public interface PreEnforcerProvider extends DittoExtensionPoint{
 
     /**
-     * Gets the pre-enforcer.
+     * Applies the pre-enforcement to the signal.
+     * @param signal the signal the pre-enforcement is executed for.
      */
-    <T extends DittoHeadersSettable<?>> PreEnforcer<T> getPreEnforcer();
+    <T extends DittoHeadersSettable<?>> CompletionStage<T> apply(T signal);
 
     /**
      * Loads the implementation of {@code PreEnforcerProvider} which is configured for the

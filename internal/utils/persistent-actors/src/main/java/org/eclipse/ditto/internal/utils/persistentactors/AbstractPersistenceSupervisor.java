@@ -81,7 +81,6 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
     protected final DittoDiagnosticLoggingAdapter log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
 
     @Nullable protected final BlockedNamespaces blockedNamespaces;
-    protected final PreEnforcer<S> preEnforcer;
     protected final CreationRestrictionEnforcer creationRestrictionEnforcer;
 
     @Nullable protected E entityId;
@@ -104,7 +103,6 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
         this.persistenceActorChild = persistenceActorChild;
         this.enforcerChild = enforcerChild;
         this.blockedNamespaces = blockedNamespaces;
-        preEnforcer = PreEnforcerProvider.get(getContext().getSystem()).getPreEnforcer();
         exponentialBackOffConfig = getExponentialBackOffConfig();
         backOff = ExponentialBackOff.initial(exponentialBackOffConfig);
         creationRestrictionEnforcer = DefaultCreationRestrictionEnforcer.of(
@@ -558,7 +556,7 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
     protected CompletionStage<Object> enforceSignalAndForwardToTargetActor(final S signal, final ActorRef sender) {
 
         if (null != enforcerChild) {
-            return preEnforcer.apply(signal).thenCompose(preEnforcedCommand ->
+            return PreEnforcerProvider.get(getContext().getSystem()).apply(signal).thenCompose(preEnforcedCommand ->
                     askEnforcerChild(preEnforcedCommand)
                             .thenCompose(this::modifyEnforcerActorEnforcedSignalResponse)
                             .thenCompose(enforcedCommand -> enforcerResponseToTargetActor(

@@ -13,7 +13,8 @@
 package org.eclipse.ditto.policies.enforcement.validators;
 
 import java.util.Optional;
-import java.util.function.UnaryOperator;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 
 import org.eclipse.ditto.base.model.exceptions.DittoJsonException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
@@ -23,29 +24,31 @@ import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonParseException;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.policies.enforcement.PreEnforcer;
 
 /**
  * Checks that commands that modify entities cause no harm downstream.
  */
-public final class CommandWithOptionalEntityValidator<T extends DittoHeadersSettable<?>> implements UnaryOperator<T> {
+public final class CommandWithOptionalEntityValidator<T extends DittoHeadersSettable<?>> implements PreEnforcer<T> {
 
     public static <T extends DittoHeadersSettable<?>> CommandWithOptionalEntityValidator<T> createInstance() {
         return new CommandWithOptionalEntityValidator<>();
     }
 
     @Override
-    public T apply(final T withDittoHeaders) {
+    public CompletionStage<T> apply(final T withDittoHeaders) {
         return checkForHarmfulEntity(withDittoHeaders);
     }
 
-    private static <T extends DittoHeadersSettable<?>> T checkForHarmfulEntity(final T withDittoHeaders) {
+    private static <T extends DittoHeadersSettable<?>> CompletionStage<T> checkForHarmfulEntity(
+            final T withDittoHeaders) {
         if (withDittoHeaders instanceof Command && withDittoHeaders instanceof WithOptionalEntity) {
             final Optional<JsonValue> optionalEntity = ((WithOptionalEntity) withDittoHeaders).getEntity();
             if (optionalEntity.isPresent() && isJsonValueIllegal(optionalEntity.get())) {
                 throw buildError(withDittoHeaders);
             }
         }
-        return withDittoHeaders;
+        return CompletableFuture.completedFuture(withDittoHeaders);
     }
 
     private static boolean isJsonValueIllegal(final JsonValue entity) {

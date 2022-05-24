@@ -25,6 +25,7 @@ import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
 import org.eclipse.ditto.internal.models.signal.correlation.CommandAndCommandResponseMatchingValidator;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
+import org.eclipse.ditto.policies.enforcement.HeaderSetter;
 import org.eclipse.ditto.policies.enforcement.PreEnforcer;
 import org.eclipse.ditto.things.model.signals.commands.query.ThingQueryCommand;
 
@@ -119,7 +120,7 @@ final class LiveResponseAndAcknowledgementForwarder extends AbstractActor {
     }
 
     private void onCommandResponse(final CommandResponse<?> incomingResponse) {
-        final CommandResponse<?> response = PreEnforcer.setOriginatorHeader(incomingResponse);
+        final CommandResponse<?> response = HeaderSetter.setOriginatorHeader(incomingResponse);
         final boolean validResponse = isValidResponse(response);
         log.debug("Got <{}>, valid=<{}>", response, validResponse);
         if (validResponse) {
