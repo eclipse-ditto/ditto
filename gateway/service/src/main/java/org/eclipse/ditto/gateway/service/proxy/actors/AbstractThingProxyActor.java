@@ -31,19 +31,19 @@ import akka.japi.pf.ReceiveBuilder;
 public abstract class AbstractThingProxyActor extends AbstractProxyActor {
 
     private final ActorSelection devOpsCommandsActor;
-    private final ActorRef commandForwarder;
+    private final ActorRef edgeCommandForwarder;
     private final ActorRef aggregatorProxyActor;
 
     protected AbstractThingProxyActor(final ActorRef pubSubMediator,
             final ActorSelection devOpsCommandsActor,
-            final ActorRef commandForwarder) {
+            final ActorRef edgeCommandForwarder) {
 
         super(pubSubMediator);
 
         this.devOpsCommandsActor = devOpsCommandsActor;
-        this.commandForwarder = commandForwarder;
+        this.edgeCommandForwarder = edgeCommandForwarder;
 
-        aggregatorProxyActor = getContext().actorOf(ThingsAggregatorProxyActor.props(commandForwarder),
+        aggregatorProxyActor = getContext().actorOf(ThingsAggregatorProxyActor.props(pubSubMediator),
                 ThingsAggregatorProxyActor.ACTOR_NAME);
     }
 
@@ -65,7 +65,7 @@ public abstract class AbstractThingProxyActor extends AbstractProxyActor {
                     final ActorRef responseActor = getContext().actorOf(
                             QueryThingsPerRequestActor.props(qt, aggregatorProxyActor, getSender(),
                                     pubSubMediator));
-                    commandForwarder.tell(qt, responseActor);
+                    edgeCommandForwarder.tell(qt, responseActor);
                 })
 
                 /* send all other Commands to command forwarder */
@@ -86,7 +86,7 @@ public abstract class AbstractThingProxyActor extends AbstractProxyActor {
     }
 
     private void forwardToCommandForwarder(final Signal<?> signal) {
-        commandForwarder.forward(signal, getContext());
+        edgeCommandForwarder.forward(signal, getContext());
     }
 
 }

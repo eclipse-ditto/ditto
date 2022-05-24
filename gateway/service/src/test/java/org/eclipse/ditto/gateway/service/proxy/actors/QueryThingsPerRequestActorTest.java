@@ -15,17 +15,17 @@ package org.eclipse.ditto.gateway.service.proxy.actors;
 import java.util.Arrays;
 import java.util.List;
 
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingId;
-import org.eclipse.ditto.thingsearch.model.SearchResult;
-import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThings;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThingsResponse;
+import org.eclipse.ditto.thingsearch.model.SearchResult;
 import org.eclipse.ditto.thingsearch.model.signals.commands.query.QueryThings;
 import org.eclipse.ditto.thingsearch.model.signals.commands.query.QueryThingsResponse;
 import org.eclipse.ditto.thingsearch.model.signals.events.ThingsOutOfSync;
@@ -114,15 +114,11 @@ public final class QueryThingsPerRequestActorTest {
         // WHEN: QueryThingsResponse has items
         underTest.tell(queryThingsResponse, ActorRef.noSender());
 
-        // THEN: aggregator is asked to retrieve things with selected fields including thingId
-        aggregatorProbe.expectMsg(RetrieveThings.getBuilder(thingId1, thingId2)
-                .selectedFields(fields)
-                .dittoHeaders(dittoHeaders)
-                .build());
+        // THEN: aggregator is NOT asked to retrieve things - as asking for only the thingId (which is already known) is
+        // a waste of resources
+        aggregatorProbe.expectNoMessage();
 
-        aggregatorProbe.reply(RetrieveThingsResponse.of(asArray(thingId1, thingId2), "thing", responseHeaders));
-
-        // THEN: final response does not include thingId
+        // THEN: final response does include the found thingIds
         originalSenderProbe.expectMsg(queryThingsResponse);
     }
 

@@ -185,7 +185,27 @@ public abstract class PersistenceActorTestBase {
     protected ActorRef createSupervisorActorFor(final ThingId thingId) {
         final LiveSignalPub liveSignalPub = new TestSetup.DummyLiveSignalPub(pubSubMediator);
         final Props props =
-                ThingSupervisorActor.props(pubSubMediator, policiesShardRegion, liveSignalPub,
+                ThingSupervisorActor.props(pubSubMediator,
+                        policiesShardRegion,
+                        new DistributedPub<>() {
+
+                            @Override
+                            public ActorRef getPublisher() {
+                                return pubSubMediator;
+                            }
+
+                            @Override
+                            public Object wrapForPublication(final ThingEvent<?> message) {
+                                return message;
+                            }
+
+                            @Override
+                            public <S extends ThingEvent<?>> Object wrapForPublicationWithAcks(final S message,
+                                    final AckExtractor<S> ackExtractor) {
+                                return wrapForPublication(message);
+                            }
+                        },
+                        liveSignalPub,
                         this::getPropsOfThingPersistenceActor, null);
 
         return actorSystem.actorOf(props, thingId.toString());

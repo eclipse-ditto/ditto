@@ -34,7 +34,6 @@ public final class DefaultQueryCriteriaValidator implements QueryCriteriaValidat
 
     @Override
     public CompletionStage<ThingSearchQueryCommand<?>> validateCommand(final ThingSearchQueryCommand<?> command) {
-        System.out.println("test");
         return CompletableFuture.completedStage(command);
     }
 }
