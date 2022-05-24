@@ -12,16 +12,21 @@
  */
 package org.eclipse.ditto.policies.enforcement;
 
+import java.text.MessageFormat;
+import java.util.Optional;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
 
-import org.eclipse.ditto.base.model.auth.AuthorizationContext;
-import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
+import javax.annotation.Nullable;
+
+import org.eclipse.ditto.base.model.entity.id.EntityId;
+import org.eclipse.ditto.base.model.entity.id.WithEntityId;
 import org.eclipse.ditto.base.model.exceptions.DittoInternalErrorException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
-import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.DittoHeadersSettable;
+import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
+import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.internal.utils.akka.controlflow.WithSender;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLogger;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
@@ -34,12 +39,41 @@ import akka.actor.ActorRef;
  *
  * @param <T> the type of the signals to pre-enforce.
  */
-public interface PreEnforcer<T extends DittoHeadersSettable<?>> extends Function<T, CompletionStage<T>>{
+public interface PreEnforcer<T extends DittoHeadersSettable<?>> extends Function<T, CompletionStage<T>> {
 
     /**
      * Logger of pre-enforcers.
      */
     DittoLogger LOGGER = DittoLoggerFactory.getLogger(PreEnforcer.class);
+
+    /**
+     * Safe cast the message to a signal
+     *
+     * @param message the message to be cast.
+     * @return the signal.
+     */
+    default Signal<?> getMessageAsSignal(@Nullable final WithDittoHeaders message) {
+        if (message instanceof Signal) {
+            return (Signal<?>) message;
+        }
+        if (null == message) {
+            // just in case
+            LOGGER.error("Given message is null!");
+            throw DittoInternalErrorException.newBuilder().build();
+        }
+        final String msgPattern = "Message of type <{0}> is not a signal!";
+        throw new IllegalArgumentException(MessageFormat.format(msgPattern, message.getClass()));
+    }
+
+    /**
+     * Extracts the {@code EntityId} of a signal.
+     *
+     * @param signal the signal to retrieve the {@code EntityId} from.
+     * @return the {@code EntityId}.
+     */
+    default Optional<EntityId> extractEntityRelatedSignalId(Signal<?> signal) {
+        return WithEntityId.getEntityIdOfType(EntityId.class, signal);
+    }
 
     /**
      * Perform pre-enforcement with error handling.
