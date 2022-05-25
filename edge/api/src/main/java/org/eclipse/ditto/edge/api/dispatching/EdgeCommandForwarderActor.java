@@ -76,7 +76,10 @@ public class EdgeCommandForwarderActor extends AbstractActor {
 
     @Override
     public Receive createReceive() {
-        return ReceiveBuilder.create()
+        final Receive receiveExtension = EdgeCommandForwarderExtension.get(context().system())
+                .getReceiveExtension(getContext());
+
+        final Receive forwardingReceive = ReceiveBuilder.create()
                 .match(MessageCommand.class, this::forwardToThings)
                 .match(ThingCommand.class, this::forwardToThings)
                 .match(RetrieveThings.class, this::forwardToThingsAggregator)
@@ -92,6 +95,8 @@ public class EdgeCommandForwarderActor extends AbstractActor {
                 )
                 .matchAny(m -> log.warning("Got unknown message: {}", m))
                 .build();
+
+        return receiveExtension.orElse(forwardingReceive);
     }
 
     private void forwardToThings(final MessageCommand<?, ?> messageCommand) {
