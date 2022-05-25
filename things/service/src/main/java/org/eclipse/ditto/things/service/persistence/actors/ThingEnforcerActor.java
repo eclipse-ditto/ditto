@@ -26,7 +26,7 @@ import org.eclipse.ditto.internal.utils.cache.entry.Entry;
 import org.eclipse.ditto.internal.utils.cacheloaders.EnforcementCacheKey;
 import org.eclipse.ditto.internal.utils.cacheloaders.config.AskWithRetryConfig;
 import org.eclipse.ditto.internal.utils.namespaces.BlockedNamespaces;
-import org.eclipse.ditto.internal.utils.persistentactors.AbstractEnforcerActor;
+import org.eclipse.ditto.policies.enforcement.AbstractEnforcerActor;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.policies.enforcement.PolicyEnforcer;
 import org.eclipse.ditto.policies.enforcement.PolicyEnforcerCacheLoader;

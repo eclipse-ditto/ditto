@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.internal.utils.persistentactors;
+package org.eclipse.ditto.policies.enforcement;
 
 import java.time.Duration;
 import java.util.concurrent.CompletableFuture;
@@ -33,8 +33,6 @@ import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.internal.utils.namespaces.BlockedNamespaces;
 import org.eclipse.ditto.policies.api.PolicyTag;
-import org.eclipse.ditto.policies.enforcement.EnforcementReloaded;
-import org.eclipse.ditto.policies.enforcement.PolicyEnforcer;
 import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.enforcers.PolicyEnforcers;
@@ -46,9 +44,7 @@ import akka.cluster.pubsub.DistributedPubSubMediator;
 import akka.japi.pf.ReceiveBuilder;
 
 /**
- * Abstract enforcer of commands performing authorization / enforcement of incoming signals
- * targeting to be handled by either the {@link AbstractPersistenceActor} of incoming live signals to be published to
- * pub/sub.
+ * Abstract enforcer of commands performing authorization / enforcement of incoming signals.
  *
  * @param <I> the type of the EntityId this enforcer actor enforces commands for.
  * @param <S> the type of the Signals this enforcer actor enforces.
@@ -147,7 +143,7 @@ public abstract class AbstractEnforcerActor<I extends EntityId, S extends Signal
         return ReceiveBuilder.create()
                 .match(DistributedPubSubMediator.SubscribeAck.class, s -> log.debug("Got subscribeAck <{}>.", s))
                 .match(PolicyTag.class, pt -> pt.getEntityId().equals(policyIdForEnforcement),
-                    pt -> performPolicyEnforcerReload()
+                        pt -> performPolicyEnforcerReload()
                 )
                 .match(PolicyTag.class, pt -> {
                     // ignore policy tags not intended for this actor - not necessary to log on debug!
@@ -182,7 +178,8 @@ public abstract class AbstractEnforcerActor<I extends EntityId, S extends Signal
     private void reloadPolicyEnforcer(final Consumer<PolicyEnforcer> successConsumer) {
         providePolicyIdForEnforcement()
                 .thenCompose(policyId -> {
-                    this.policyIdForEnforcement = policyId; // policyId could be null, e.g. if entity is not yet existing
+                    this.policyIdForEnforcement =
+                            policyId; // policyId could be null, e.g. if entity is not yet existing
                     return providePolicyEnforcer(policyId);
                 })
                 .whenComplete((pEnf, throwable) -> {
@@ -268,7 +265,7 @@ public abstract class AbstractEnforcerActor<I extends EntityId, S extends Signal
     /**
      * Enforces the passed {@code signal} using the {@code enforcement} of this actor.
      * Successfully enforced signals are sent back to the {@code getSender()} - which is our dear parent, the Supervisor.
-     * Our parent is responsible for then forwarding the signal to the persistence actor.
+     * Our parent is responsible for then forwarding the signal to the actual responsible target.
      *
      * @param signal the {@code Signal} to enforce based in the {@code policyEnforcer}.
      */
@@ -326,8 +323,9 @@ public abstract class AbstractEnforcerActor<I extends EntityId, S extends Signal
                     return null;
                 } else {
                     log.withCorrelationId(signal)
-                            .warning("Neither authorizedSignal nor throwable were present during enforcement of signal: " +
-                                    "<{}>", signal);
+                            .warning(
+                                    "Neither authorizedSignal nor throwable were present during enforcement of signal: " +
+                                            "<{}>", signal);
                     return null;
                 }
             });
@@ -359,7 +357,8 @@ public abstract class AbstractEnforcerActor<I extends EntityId, S extends Signal
                     filteredResponseStage.whenComplete((filteredResponse, throwable) -> {
                         if (null != filteredResponse) {
                             log.withCorrelationId(filteredResponse)
-                                    .info("Completed filtering of command response type <{}>", filteredResponse.getType());
+                                    .info("Completed filtering of command response type <{}>",
+                                            filteredResponse.getType());
                             sender.tell(filteredResponse, parent);
                         } else if (null != throwable) {
                             final DittoRuntimeException dittoRuntimeException =

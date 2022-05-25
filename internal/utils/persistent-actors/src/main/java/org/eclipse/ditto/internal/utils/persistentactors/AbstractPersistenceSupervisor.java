@@ -260,8 +260,8 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
     }
 
     /**
-     * Asks the {@link AbstractEnforcerActor} child the passed {@code signal}, responding with a CompletionStage which
-     * is completed with the response.
+     * Asks the {@link org.eclipse.ditto.policies.enforcement.AbstractEnforcerActor} child the passed {@code signal},
+     * responding with a CompletionStage which is completed with the response.
      * As the enforcer child is always located on the same node, this is a local method call, so the applied ask timeout
      * is very low.
      *

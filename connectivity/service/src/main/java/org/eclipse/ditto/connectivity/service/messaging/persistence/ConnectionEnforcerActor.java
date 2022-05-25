@@ -22,7 +22,7 @@ import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.connectivity.model.signals.commands.ConnectivityCommand;
 import org.eclipse.ditto.connectivity.model.signals.commands.ConnectivityCommandResponse;
 import org.eclipse.ditto.connectivity.service.enforcement.ConnectivityCommandEnforcement;
-import org.eclipse.ditto.internal.utils.persistentactors.AbstractEnforcerActor;
+import org.eclipse.ditto.policies.enforcement.AbstractEnforcerActor;
 import org.eclipse.ditto.policies.enforcement.PolicyEnforcer;
 import org.eclipse.ditto.policies.model.PolicyId;
 
