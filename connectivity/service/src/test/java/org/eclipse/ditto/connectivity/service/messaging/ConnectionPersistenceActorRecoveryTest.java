@@ -17,7 +17,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Queue;
 import java.util.concurrent.TimeUnit;
@@ -39,7 +38,6 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import com.typesafe.config.ConfigFactory;
 import com.typesafe.config.ConfigValueFactory;
 
 import akka.actor.ActorRef;
@@ -74,9 +72,7 @@ public final class ConnectionPersistenceActorRecoveryTest extends WithMockServer
 
     @BeforeClass
     public static void setUp() {
-        actorSystem = ActorSystem.create("AkkaTestSystem",
-                ConfigFactory.parseMap(Map.of("ditto.pre-enforcer-provider","org.eclipse.ditto.policies.enforcement." +
-                        "DefaultPreEnforcerProvider")).withFallback(TestConstants.CONFIG));
+        actorSystem = ActorSystem.create("AkkaTestSystem", TestConstants.CONFIG);
         pubSubMediator = DistributedPubSub.get(actorSystem).mediator();
         proxyActor = actorSystem.actorOf(TestConstants.ProxyActorMock.props());
     }
@@ -127,9 +123,7 @@ public final class ConnectionPersistenceActorRecoveryTest extends WithMockServer
     public void testRecoveryOfConnectionWithBlockedHost() {
         final ActorSystem akkaTestSystem =
                 ActorSystem.create("AkkaTestSystem", TestConstants.CONFIG.withValue("ditto.connectivity.connection" +
-                        ".blocked-hostnames", ConfigValueFactory.fromAnyRef("127.0.0.1"))
-                        .withValue("ditto.pre-enforcer-provider",ConfigValueFactory.fromAnyRef(
-                                "org.eclipse.ditto.policies.enforcement.DefaultPreEnforcerProvider")));
+                        ".blocked-hostnames", ConfigValueFactory.fromAnyRef("127.0.0.1")));
         final ActorRef mediator = DistributedPubSub.get(akkaTestSystem).mediator();
         final ActorRef proxyActor = actorSystem.actorOf(TestConstants.ProxyActorMock.props());
 

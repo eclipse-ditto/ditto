@@ -21,14 +21,19 @@ import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.DittoHeadersSettable;
 
+import akka.actor.ActorSystem;
+
 /**
  * Sets additional headers to a signal.
- * @param <T> the signal.
  */
-public class HeaderSetter<T extends DittoHeadersSettable<?>> implements PreEnforcer<T> {
+public class HeaderSetter implements PreEnforcer {
+
+    public HeaderSetter(final ActorSystem actorSystem) {
+
+    }
 
     @Override
-    public CompletionStage<T> apply(final T originalSignal) {
+    public CompletionStage<DittoHeadersSettable<?>> apply(final DittoHeadersSettable<?> originalSignal) {
         return CompletableFuture.completedFuture(setOriginatorHeader(originalSignal));
     }
 

@@ -30,14 +30,15 @@ import org.eclipse.ditto.policies.enforcement.PreEnforcer;
 import org.eclipse.ditto.policies.enforcement.placeholders.strategies.SubstitutionStrategy;
 import org.eclipse.ditto.policies.enforcement.placeholders.strategies.SubstitutionStrategyRegistry;
 
+import akka.actor.ActorSystem;
+
 /**
  * A function which applies substitution of placeholders on a command (subtype of {@link DittoHeadersSettable}) based on
  * its {@link DittoHeaders}.
  *
- * @param <T> the subtype of {@link DittoHeadersSettable} handled by the PlaceholderSubstitution.
  */
 @Immutable
-public final class PlaceholderSubstitution<T extends DittoHeadersSettable<?>> implements PreEnforcer<T> {
+public final class PlaceholderSubstitution implements PreEnforcer {
 
     private final HeaderBasedPlaceholderSubstitutionAlgorithm substitutionAlgorithm;
     private final SubstitutionStrategyRegistry substitutionStrategyRegistry;
@@ -49,13 +50,19 @@ public final class PlaceholderSubstitution<T extends DittoHeadersSettable<?>> im
         this.substitutionStrategyRegistry = substitutionStrategyRegistry;
     }
 
+    public PlaceholderSubstitution(final ActorSystem actorSystem) {
+        this.substitutionAlgorithm =
+                HeaderBasedPlaceholderSubstitutionAlgorithm.newInstance(createDefaultReplacementDefinitions());
+        this.substitutionStrategyRegistry = SubstitutionStrategyRegistry.newInstance();
+    }
+
     /**
      * Creates a new instance with default replacement definitions.
      *
      * @return the created instance.
      * @see #newExtendedInstance(java.util.Map)
      */
-    public static <T extends DittoHeadersSettable<?>> PlaceholderSubstitution<T> newInstance() {
+    public static PlaceholderSubstitution newInstance() {
         final Map<String, Function<DittoHeaders, String>> defaultReplacementDefinitions =
                 createDefaultReplacementDefinitions();
 
@@ -70,7 +77,7 @@ public final class PlaceholderSubstitution<T extends DittoHeadersSettable<?>> im
      * @return the created instance.
      * @see #newInstance()
      */
-    public static <T extends DittoHeadersSettable<?>> PlaceholderSubstitution<T> newExtendedInstance(
+    public static PlaceholderSubstitution newExtendedInstance(
             final Map<String, Function<DittoHeaders, String>> additionalReplacementDefinitions) {
         requireNonNull(additionalReplacementDefinitions);
 
@@ -87,13 +94,13 @@ public final class PlaceholderSubstitution<T extends DittoHeadersSettable<?>> im
 
     @Override
     @SuppressWarnings({"unchecked", "rawtypes", "java:S3740"})
-    public CompletionStage<T> apply(final T dittoHeadersSettable) {
+    public CompletionStage<DittoHeadersSettable<?>> apply(final DittoHeadersSettable<?> dittoHeadersSettable) {
         requireNonNull(dittoHeadersSettable);
 
         final Optional<SubstitutionStrategy> firstMatchingStrategyOpt =
                 substitutionStrategyRegistry.getMatchingStrategy(dittoHeadersSettable);
         if (firstMatchingStrategyOpt.isPresent()) {
-            final SubstitutionStrategy<T> firstMatchingStrategy = firstMatchingStrategyOpt.get();
+            final SubstitutionStrategy<DittoHeadersSettable<?>> firstMatchingStrategy = firstMatchingStrategyOpt.get();
             return CompletableFuture.supplyAsync(() ->
                     firstMatchingStrategy.apply(dittoHeadersSettable, substitutionAlgorithm)
             ).thenApply(Function.identity());
@@ -111,13 +118,13 @@ public final class PlaceholderSubstitution<T extends DittoHeadersSettable<?>> im
         return Collections.unmodifiableMap(defaultReplacementDefinitions);
     }
 
-    private static <T extends DittoHeadersSettable<?>> PlaceholderSubstitution<T> createInstance(
+    private static PlaceholderSubstitution createInstance(
             final Map<String, Function<DittoHeaders, String>> replacementDefinitions) {
         final HeaderBasedPlaceholderSubstitutionAlgorithm algorithm =
                 HeaderBasedPlaceholderSubstitutionAlgorithm.newInstance(replacementDefinitions);
         final SubstitutionStrategyRegistry substitutionStrategyRegistry =
                 SubstitutionStrategyRegistry.newInstance();
 
-        return new PlaceholderSubstitution<>(algorithm, substitutionStrategyRegistry);
+        return new PlaceholderSubstitution(algorithm, substitutionStrategyRegistry);
     }
 }

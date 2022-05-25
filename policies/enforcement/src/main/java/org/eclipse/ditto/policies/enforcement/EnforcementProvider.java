@@ -82,7 +82,7 @@ public interface EnforcementProvider<T extends Signal<?>> {
      * @return the stream.
      */
     default Flow<Contextual<WithDittoHeaders>, EnforcementTask, NotUsed> createEnforcementTask(
-            final PreEnforcer<T> preEnforcer) {
+            final PreEnforcer preEnforcer) {
 
         return Flow.<Contextual<WithDittoHeaders>, Optional<Contextual<T>>>fromFunction(
                         contextual -> contextual.tryToMapMessage(this::mapToHandledClass))
@@ -94,7 +94,7 @@ public interface EnforcementProvider<T extends Signal<?>> {
     }
 
     private Optional<EnforcementTask> buildEnforcementTask(final Contextual<T> contextual,
-            final PreEnforcer<T> preEnforcer) {
+            final PreEnforcer preEnforcer) {
 
         final T message = contextual.getMessage();
         final boolean changesAuthorization = changesAuthorization(message);

@@ -13,6 +13,7 @@
 package org.eclipse.ditto.policies.enforcement;
 
 import java.text.MessageFormat;
+import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
@@ -27,19 +28,23 @@ import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.DittoHeadersSettable;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.signals.Signal;
+import org.eclipse.ditto.base.service.DittoExtensionPoint;
+import org.eclipse.ditto.internal.utils.akka.AkkaClassLoader;
 import org.eclipse.ditto.internal.utils.akka.controlflow.WithSender;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLogger;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 
+import akka.actor.AbstractExtensionId;
 import akka.actor.ActorRef;
+import akka.actor.ActorSystem;
+import akka.actor.ExtendedActorSystem;
 
 /**
  * Create processing units of Akka stream graph before enforcement from an asynchronous function that may abort
  * enforcement by throwing exceptions.
- *
- * @param <T> the type of the signals to pre-enforce.
  */
-public interface PreEnforcer<T extends DittoHeadersSettable<?>> extends Function<T, CompletionStage<T>> {
+public interface PreEnforcer extends Function<DittoHeadersSettable<?>, CompletionStage<DittoHeadersSettable<?>>>,
+        DittoExtensionPoint {
 
     /**
      * Logger of pre-enforcers.
@@ -91,7 +96,7 @@ public interface PreEnforcer<T extends DittoHeadersSettable<?>> extends Function
             final F onError,
             final Function<S, CompletionStage<F>> andThen) {
 
-        final T message = (T) withSender.getMessage();
+        final DittoHeadersSettable message = withSender.getMessage();
         return apply(message)
                 // the cast to (S) is safe if the post-condition of this.apply(DittoHeadersSettable<?>) holds.
                 .thenCompose(msg -> andThen.apply((S) ((WithSender) withSender).withMessage(msg)))
@@ -115,4 +120,25 @@ public interface PreEnforcer<T extends DittoHeadersSettable<?>> extends Function
                 });
     }
 
+    final class ExtensionId extends AbstractExtensionId<PreEnforcer> {
+
+        private final String implementation;
+
+        ExtensionId(final String implementation) {
+            this.implementation = implementation;
+        }
+
+        static ExtensionId get(final String implementation, final ActorSystem actorSystem) {
+            return PreEnforcerExtensionIds.INSTANCE.get(actorSystem).get(implementation);
+        }
+
+        @Override
+        public PreEnforcer createExtension(final ExtendedActorSystem system) {
+
+            return AkkaClassLoader.instantiate(system, PreEnforcer.class,
+                    implementation,
+                    List.of(ActorSystem.class),
+                    List.of(system));
+        }
+    }
 }

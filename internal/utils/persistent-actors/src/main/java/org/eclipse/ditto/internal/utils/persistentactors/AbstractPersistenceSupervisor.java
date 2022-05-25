@@ -41,7 +41,6 @@ import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.internal.utils.namespaces.BlockedNamespaces;
 import org.eclipse.ditto.policies.enforcement.CreationRestrictionEnforcer;
 import org.eclipse.ditto.policies.enforcement.DefaultCreationRestrictionEnforcer;
-import org.eclipse.ditto.policies.enforcement.PreEnforcer;
 import org.eclipse.ditto.policies.enforcement.PreEnforcerProvider;
 import org.eclipse.ditto.policies.enforcement.config.DefaultEntityCreationConfig;
 
@@ -557,7 +556,7 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
 
         if (null != enforcerChild) {
             return PreEnforcerProvider.get(getContext().getSystem()).apply(signal).thenCompose(preEnforcedCommand ->
-                    askEnforcerChild(preEnforcedCommand)
+                    askEnforcerChild((Signal<?>) preEnforcedCommand)
                             .thenCompose(this::modifyEnforcerActorEnforcedSignalResponse)
                             .thenCompose(enforcedCommand -> enforcerResponseToTargetActor(
                                     preEnforcedCommand.getDittoHeaders(),

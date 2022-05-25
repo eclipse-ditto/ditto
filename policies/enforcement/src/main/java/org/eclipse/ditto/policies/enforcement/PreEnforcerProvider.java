@@ -14,27 +14,51 @@ package org.eclipse.ditto.policies.enforcement;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
+import java.util.List;
 import java.util.concurrent.CompletionStage;
-import java.util.function.BinaryOperator;
 
 import org.eclipse.ditto.base.model.headers.DittoHeadersSettable;
-import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.service.DittoExtensionPoint;
+import org.eclipse.ditto.internal.utils.akka.AkkaClassLoader;
 
+import akka.actor.AbstractExtensionId;
 import akka.actor.ActorSystem;
+import akka.actor.ExtendedActorSystem;
 
 /**
  * Extension to provide the pre-enforcer for a service.
  *
  * @since 3.0.0
  */
-public interface PreEnforcerProvider extends DittoExtensionPoint{
+public final class PreEnforcerProvider implements DittoExtensionPoint {
+
+    private static final String CONFIG_PATH = "ditto.pre-enforcers";
+    private final List<PreEnforcer> preEnforcers;
+
+    private PreEnforcerProvider(final ActorSystem actorSystem) {
+        preEnforcers = actorSystem.settings().config().getStringList(CONFIG_PATH)
+                .stream()
+                .map(path -> PreEnforcer.ExtensionId.get(path, actorSystem))
+                .map(extensionId -> extensionId.get(actorSystem))
+                .toList();
+    }
 
     /**
      * Applies the pre-enforcement to the signal.
+     *
      * @param signal the signal the pre-enforcement is executed for.
      */
-    <T extends DittoHeadersSettable<?>> CompletionStage<T> apply(T signal);
+    public CompletionStage<DittoHeadersSettable<?>> apply(final DittoHeadersSettable<?> signal) {
+        CompletionStage<DittoHeadersSettable<?>> prior = null;
+        for (final PreEnforcer preEnforcer : preEnforcers) {
+            if (preEnforcer.equals(preEnforcers.get(0))) {
+                prior = preEnforcer.apply(signal);
+            } else {
+                prior = prior.thenCompose(preEnforcer);
+            }
+        }
+        return prior;
+    }
 
     /**
      * Loads the implementation of {@code PreEnforcerProvider} which is configured for the
@@ -44,23 +68,22 @@ public interface PreEnforcerProvider extends DittoExtensionPoint{
      * @return the {@code PreEnforcerProvider} implementation.
      * @throws NullPointerException if {@code actorSystem} is {@code null}.
      */
-    static PreEnforcerProvider get(final ActorSystem actorSystem) {
+    public static PreEnforcerProvider get(final ActorSystem actorSystem) {
         checkNotNull(actorSystem, "actorSystem");
         return ExtensionId.INSTANCE.get(actorSystem);
     }
 
-    final class ExtensionId extends DittoExtensionPoint.ExtensionId<PreEnforcerProvider> {
+    private static final class ExtensionId extends AbstractExtensionId<PreEnforcerProvider> {
 
-        private static final String CONFIG_PATH = "ditto.pre-enforcer-provider";
-        private static final ExtensionId INSTANCE = new ExtensionId(PreEnforcerProvider.class);
-
-        private ExtensionId(final Class<PreEnforcerProvider> parentClass) {
-            super(parentClass);
-        }
+        private static final ExtensionId INSTANCE = new ExtensionId();
 
         @Override
-        protected String getConfigPath() {
-            return CONFIG_PATH;
+        public PreEnforcerProvider createExtension(final ExtendedActorSystem system) {
+
+            return AkkaClassLoader.instantiate(system, PreEnforcerProvider.class,
+                    PreEnforcerProvider.class.getCanonicalName(),
+                    List.of(ActorSystem.class),
+                    List.of(system));
         }
 
     }

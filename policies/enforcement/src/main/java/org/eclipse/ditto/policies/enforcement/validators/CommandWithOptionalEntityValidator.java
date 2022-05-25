@@ -26,17 +26,22 @@ import org.eclipse.ditto.json.JsonParseException;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.policies.enforcement.PreEnforcer;
 
+import akka.actor.ActorSystem;
+
 /**
  * Checks that commands that modify entities cause no harm downstream.
  */
-public final class CommandWithOptionalEntityValidator<T extends DittoHeadersSettable<?>> implements PreEnforcer<T> {
+public final class CommandWithOptionalEntityValidator implements PreEnforcer {
 
-    public static <T extends DittoHeadersSettable<?>> CommandWithOptionalEntityValidator<T> createInstance() {
-        return new CommandWithOptionalEntityValidator<>();
+    public CommandWithOptionalEntityValidator(final ActorSystem actorSystem) {
+    }
+
+    public static CommandWithOptionalEntityValidator createInstance() {
+        return new CommandWithOptionalEntityValidator(null);
     }
 
     @Override
-    public CompletionStage<T> apply(final T withDittoHeaders) {
+    public CompletionStage<DittoHeadersSettable<?>> apply(final DittoHeadersSettable<?> withDittoHeaders) {
         return checkForHarmfulEntity(withDittoHeaders);
     }
 

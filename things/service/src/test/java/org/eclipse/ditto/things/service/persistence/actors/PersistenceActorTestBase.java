@@ -16,7 +16,6 @@ import static java.util.Objects.requireNonNull;
 
 import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -149,9 +148,7 @@ public abstract class PersistenceActorTestBase {
 
     protected void setup(final Config customConfig) {
         requireNonNull(customConfig, "Consider to use ConfigFactory.empty()");
-        final Config config = customConfig.withFallback(ConfigFactory.parseMap(
-                Map.of("ditto.pre-enforcer-provider","org.eclipse.ditto.policies.enforcement." +
-                        "DefaultPreEnforcerProvider"))).withFallback(ConfigFactory.load("test"));
+        final Config config = customConfig.withFallback(ConfigFactory.load("test"));
 
         actorSystem = ActorSystem.create("AkkaTestSystem", config);
         pubSubTestProbe = TestProbe.apply("mock-pubSub-mediator", actorSystem);

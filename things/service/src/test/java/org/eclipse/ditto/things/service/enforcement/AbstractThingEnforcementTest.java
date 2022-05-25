@@ -25,7 +25,6 @@ import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
 import org.eclipse.ditto.internal.utils.pubsub.DistributedPub;
 import org.eclipse.ditto.internal.utils.pubsub.extractors.AckExtractor;
 import org.eclipse.ditto.policies.api.commands.sudo.SudoRetrievePolicy;
-import org.eclipse.ditto.policies.enforcement.DefaultPreEnforcerProvider;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.things.api.commands.sudo.SudoRetrieveThing;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommand;
@@ -56,11 +55,9 @@ abstract class AbstractThingEnforcementTest {
 
     @Before
     public void init() {
-        system = ActorSystem.create("test",
-                ConfigFactory.parseMap(Map.of("ditto.pre-enforcer-provider",
-                        DefaultPreEnforcerProvider.class.getCanonicalName(), "akka.actor.provider",
-                        "akka.cluster.ClusterActorRefProvider")).withFallback(ConfigFactory.load(
-                        "test")));
+        system = ActorSystem.create("test", ConfigFactory.parseMap(Map.of("akka.actor.provider",
+                "akka.cluster.ClusterActorRefProvider")).withFallback(ConfigFactory.load(
+                "test")));
         pubSubMediatorProbe = createPubSubMediatorProbe();
         thingPersistenceActorProbe = createThingPersistenceActorProbe();
         policiesShardRegionProbe = getTestProbe(createUniqueName("policiesShardRegionProbe-"));
