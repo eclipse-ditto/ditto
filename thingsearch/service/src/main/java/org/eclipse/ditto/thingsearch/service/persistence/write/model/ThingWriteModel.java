@@ -116,11 +116,6 @@ public final class ThingWriteModel extends AbstractWriteModel {
         }
     }
 
-    @Override
-    public boolean isPatchUpdate() {
-        return isPatchUpdate;
-    }
-
     private ReplaceOptions upsertOption() {
         return new ReplaceOptions().upsert(!isPatchUpdate);
     }
