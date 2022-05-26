@@ -349,7 +349,7 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
         killSwitch = null;
         final var nextMetadata = data.metadata().export();
         log.debug("Update skipped: <{}>", nextMetadata);
-        return goTo(State.READY).using(new Data(nextMetadata, data.lastWriteModel()));
+        return goTo(State.READY).using(new Data(nextMetadata, data.lastWriteModel().setMetadata(nextMetadata)));
     }
 
     private FSM.State<State, Data> tick(final Control tick, final Data data) {
