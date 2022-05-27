@@ -97,6 +97,11 @@ public final class ThingWriteModel extends AbstractWriteModel {
         return new ReplaceOneModel<>(getFilter(), thingDocument, upsertOption());
     }
 
+    @Override
+    public ThingWriteModel setMetadata(final Metadata metadata) {
+        return new ThingWriteModel(metadata, thingDocument, isPatchUpdate, previousRevision);
+    }
+
     /**
      * @return the Thing document to be written in the persistence.
      */
@@ -114,11 +119,6 @@ public final class ThingWriteModel extends AbstractWriteModel {
         } else {
             return super.getFilter();
         }
-    }
-
-    @Override
-    public boolean isPatchUpdate() {
-        return isPatchUpdate;
     }
 
     private ReplaceOptions upsertOption() {

@@ -55,6 +55,14 @@ public abstract class AbstractWriteModel {
     public abstract WriteModel<BsonDocument> toMongo();
 
     /**
+     * Create a copy of this write model with a new metadata.
+     *
+     * @param metadata The new metadata.
+     * @return The copy.
+     */
+    public abstract AbstractWriteModel setMetadata(final Metadata metadata);
+
+    /**
      * Convert this into a MongoDB write model taking the previous update into consideration.
      *
      * @param previousWriteModel The previous write model.
@@ -79,15 +87,6 @@ public abstract class AbstractWriteModel {
      */
     public Bson getFilter() {
         return Filters.eq(PersistenceConstants.FIELD_ID, new BsonString(metadata.getThingId().toString()));
-    }
-
-    /**
-     * Check whether this update is a patch update based on a specific sequence number.
-     *
-     * @return Whether this is a patch update.
-     */
-    public boolean isPatchUpdate() {
-        return false;
     }
 
     @Override
