@@ -34,11 +34,6 @@ public final class DittoSystemProperties {
      */
     public static final String DITTO_LIMITS_MESSAGES_MAX_SIZE_BYTES = "ditto.limits.messages.max-size";
 
-    /**
-     * System property name of the property defining the default namespace to use when creating new entities.
-     */
-    public static final String DITTO_ENTITY_CREATION_DEFAULT_NAMESPACE = "ditto.entity-creation.default-namespace";
-
     private DittoSystemProperties() {
         throw new AssertionError();
     }

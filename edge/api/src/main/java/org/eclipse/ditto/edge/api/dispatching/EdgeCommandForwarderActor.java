@@ -12,18 +12,30 @@
  */
 package org.eclipse.ditto.edge.api.dispatching;
 
+import java.util.Optional;
+
+import javax.annotation.Nullable;
+
 import org.eclipse.ditto.base.model.entity.id.WithEntityId;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.connectivity.model.signals.commands.ConnectivityCommand;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
+import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.messages.model.signals.commands.MessageCommand;
+import org.eclipse.ditto.policies.model.Policy;
+import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.signals.commands.PolicyCommand;
+import org.eclipse.ditto.policies.model.signals.commands.modify.CreatePolicy;
 import org.eclipse.ditto.things.api.ThingsMessagingConstants;
 import org.eclipse.ditto.things.api.commands.sudo.SudoRetrieveThings;
+import org.eclipse.ditto.things.model.Thing;
+import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommand;
+import org.eclipse.ditto.things.model.signals.commands.modify.CreateThing;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThings;
 import org.eclipse.ditto.thingsearch.api.ThingsSearchConstants;
 import org.eclipse.ditto.thingsearch.api.commands.sudo.ThingSearchSudoCommand;
@@ -52,11 +64,15 @@ public class EdgeCommandForwarderActor extends AbstractActor {
     private final ActorRef pubSubMediator;
     private final ShardRegions shardRegions;
 
+    private final DefaultNamespaceProvider defaultNamespaceProvider;
+
     @SuppressWarnings("unused")
-    private EdgeCommandForwarderActor(final ActorRef pubSubMediator, final ShardRegions shardRegions) {
+    private EdgeCommandForwarderActor(final ActorRef pubSubMediator, final ShardRegions shardRegions,
+            final DefaultNamespaceProvider defaultNamespaceProvider) {
 
         this.pubSubMediator = pubSubMediator;
         this.shardRegions = shardRegions;
+        this.defaultNamespaceProvider = defaultNamespaceProvider;
     }
 
     /**
@@ -66,8 +82,9 @@ public class EdgeCommandForwarderActor extends AbstractActor {
      * @param shardRegions shard regions to use in order to dispatch different entity Signals to.
      * @return the Akka configuration Props object.
      */
-    public static Props props(final ActorRef pubSubMediator, final ShardRegions shardRegions) {
-        return Props.create(EdgeCommandForwarderActor.class, pubSubMediator, shardRegions);
+    public static Props props(final ActorRef pubSubMediator, final ShardRegions shardRegions,
+            final DefaultNamespaceProvider defaultNamespaceProvider) {
+        return Props.create(EdgeCommandForwarderActor.class, pubSubMediator, shardRegions, defaultNamespaceProvider);
     }
 
     @Override
@@ -77,9 +94,11 @@ public class EdgeCommandForwarderActor extends AbstractActor {
 
         final Receive forwardingReceive = ReceiveBuilder.create()
                 .match(MessageCommand.class, this::forwardToThings)
+                .match(CreateThing.class, this::handleCreateThing)
                 .match(ThingCommand.class, this::forwardToThings)
                 .match(RetrieveThings.class, this::forwardToThingsAggregator)
                 .match(SudoRetrieveThings.class, this::forwardToThingsAggregator)
+                .match(CreatePolicy.class, this::handleCreatePolicy)
                 .match(PolicyCommand.class, this::forwardToPolicies)
                 .match(ConnectivityCommand.class, this::forwardToConnectivity)
                 .match(ThingSearchCommand.class, this::forwardToThingSearch)
@@ -93,6 +112,30 @@ public class EdgeCommandForwarderActor extends AbstractActor {
                 .build();
 
         return receiveExtension.orElse(forwardingReceive);
+    }
+
+    private void handleCreateThing(final CreateThing createThing) {
+        final Optional<ThingId> providedThingId = createThing.getThing().getEntityId();
+        final ThingId namespacedThingId = providedThingId
+                .map(thingId -> {
+                    if (thingId.getNamespace().isEmpty()) {
+                        final String defaultNamespace = defaultNamespaceProvider.getDefaultNamespace(createThing);
+                        return ThingId.of(defaultNamespace, thingId.getName());
+                    } else {
+                        return thingId;
+                    }
+                })
+                .orElseGet(() -> {
+                    final String defaultNamespace = defaultNamespaceProvider.getDefaultNamespace(createThing);
+                    return ThingId.inNamespaceWithRandomName(defaultNamespace);
+                });
+        final Thing thingWithNamespacedId = createThing.getThing().toBuilder().setId(namespacedThingId).build();
+        @Nullable final JsonObject initialPolicy = createThing.getInitialPolicy().orElse(null);
+        @Nullable final String policyIdOrPlaceholder = createThing.getPolicyIdOrPlaceholder().orElse(null);
+        final CreateThing createThingWithNamespace =
+                CreateThing.of(thingWithNamespacedId, initialPolicy, policyIdOrPlaceholder,
+                        createThing.getDittoHeaders());
+        forwardToThings(createThingWithNamespace);
     }
 
     private void forwardToThings(final MessageCommand<?, ?> messageCommand) {
@@ -115,6 +158,27 @@ public class EdgeCommandForwarderActor extends AbstractActor {
         final DistributedPubSubMediator.Send pubSubMsg =
                 DistPubSubAccess.send(ThingsMessagingConstants.THINGS_AGGREGATOR_ACTOR_PATH, command);
         pubSubMediator.forward(pubSubMsg, getContext());
+    }
+
+    private void handleCreatePolicy(final CreatePolicy createPolicy) {
+        final Optional<PolicyId> providedPolicyId = createPolicy.getPolicy().getEntityId();
+        final PolicyId namespacedPolicyId = providedPolicyId
+                .map(policyId -> {
+                    if (policyId.getNamespace().isEmpty()) {
+                        final String defaultNamespace = defaultNamespaceProvider.getDefaultNamespace(createPolicy);
+                        return PolicyId.of(defaultNamespace, policyId.getName());
+                    } else {
+                        return policyId;
+                    }
+                })
+                .orElseGet(() -> {
+                    final String defaultNamespace = defaultNamespaceProvider.getDefaultNamespace(createPolicy);
+                    return PolicyId.inNamespaceWithRandomName(defaultNamespace);
+                });
+        final Policy policyWithNamespacedId = createPolicy.getPolicy().toBuilder().setId(namespacedPolicyId).build();
+        final DittoHeaders dittoHeaders = createPolicy.getDittoHeaders();
+        final CreatePolicy createPolicyWithNamespace = CreatePolicy.of(policyWithNamespacedId, dittoHeaders);
+        forwardToPolicies(createPolicyWithNamespace);
     }
 
     private void forwardToPolicies(final PolicyCommand<?> policyCommand) {

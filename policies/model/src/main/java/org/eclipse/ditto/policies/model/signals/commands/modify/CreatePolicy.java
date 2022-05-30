@@ -21,7 +21,6 @@ import java.util.function.Predicate;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.base.model.common.DittoSystemProperties;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.json.JsonParsableCommand;
@@ -64,12 +63,6 @@ public final class CreatePolicy extends AbstractCommand<CreatePolicy> implements
     static final JsonFieldDefinition<JsonObject> JSON_POLICY =
             JsonFactory.newJsonObjectFieldDefinition("policy", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
-    private static final String DEFAULT_NAMESPACE;
-
-    static {
-        DEFAULT_NAMESPACE = System.getProperty(DittoSystemProperties.DITTO_ENTITY_CREATION_DEFAULT_NAMESPACE, "");
-    }
-
     private final Policy policy;
 
     private CreatePolicy(final Policy policy, final DittoHeaders dittoHeaders) {
@@ -101,7 +94,7 @@ public final class CreatePolicy extends AbstractCommand<CreatePolicy> implements
      * @throws org.eclipse.ditto.policies.model.PolicyIdInvalidException if the {@link org.eclipse.ditto.policies.model.Policy}'s ID is not valid.
      */
     public static CreatePolicy of(final Policy policy, final DittoHeaders dittoHeaders) {
-        return prependDefaultNamespaceToCreatePolicy(new CreatePolicy(policy, dittoHeaders));
+        return new CreatePolicy(policy, dittoHeaders);
     }
 
     /**
@@ -135,32 +128,6 @@ public final class CreatePolicy extends AbstractCommand<CreatePolicy> implements
 
             return of(policy, dittoHeaders);
         });
-    }
-
-    private static CreatePolicy prependDefaultNamespaceToCreatePolicy(final CreatePolicy createPolicy) {
-        final Policy policy = createPolicy.getPolicy();
-        final Optional<String> namespace = policy.getNamespace();
-        if (!namespace.isPresent() || namespace.get().equals("")) {
-            final Policy policyInDefaultNamespace = policy.toBuilder()
-                    .setId(calculatePolicyId(createPolicy))
-                    .build();
-            return new CreatePolicy(policyInDefaultNamespace, createPolicy.getDittoHeaders());
-        } else {
-            return createPolicy;
-        }
-    }
-
-    private static PolicyId calculatePolicyId(final CreatePolicy createPolicy) {
-        final Optional<PolicyId> providedPolicyId = createPolicy.getPolicy().getEntityId();
-        return providedPolicyId
-                .map(policyId -> {
-                    if (policyId.getNamespace().isEmpty()) {
-                        return PolicyId.of(DEFAULT_NAMESPACE, policyId.toString().substring(1));
-                    } else {
-                        return policyId;
-                    }
-                })
-                .orElseGet(() -> PolicyId.inNamespaceWithRandomName(DEFAULT_NAMESPACE));
     }
 
     /**

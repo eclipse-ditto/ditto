@@ -21,7 +21,6 @@ import java.util.function.Predicate;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.base.model.common.DittoSystemProperties;
 import org.eclipse.ditto.base.model.common.Placeholders;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.FieldType;
@@ -91,12 +90,6 @@ public final class CreateThing extends AbstractCommand<CreateThing> implements T
     public static final JsonFieldDefinition<JsonObject> JSON_INLINE_POLICY =
             JsonFactory.newJsonObjectFieldDefinition("_policy", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
-    private static final String DEFAULT_NAMESPACE;
-
-    static {
-        DEFAULT_NAMESPACE = System.getProperty(DittoSystemProperties.DITTO_ENTITY_CREATION_DEFAULT_NAMESPACE, "");
-    }
-
     private final Thing thing;
     @Nullable private final JsonObject initialPolicy;
 
@@ -146,7 +139,7 @@ public final class CreateThing extends AbstractCommand<CreateThing> implements T
     public static CreateThing of(final Thing newThing, @Nullable final JsonObject initialPolicy,
             final DittoHeaders dittoHeaders) {
         checkNotNull(newThing, "new Thing");
-        return prependDefaultNamespaceToCreateThing(new CreateThing(newThing, initialPolicy, dittoHeaders));
+        return new CreateThing(newThing, initialPolicy, dittoHeaders);
     }
 
     /**
@@ -166,7 +159,7 @@ public final class CreateThing extends AbstractCommand<CreateThing> implements T
             final DittoHeaders dittoHeaders) {
         checkNotNull(newThing, "new Thing");
         checkNotNull(newThing, "policyIdOrPlaceholder");
-        return prependDefaultNamespaceToCreateThing(new CreateThing(newThing, policyIdOrPlaceholder, dittoHeaders));
+        return new CreateThing(newThing, policyIdOrPlaceholder, dittoHeaders);
     }
 
     /**
@@ -197,7 +190,7 @@ public final class CreateThing extends AbstractCommand<CreateThing> implements T
         } else {
             createThing = withCopiedPolicy(newThing, policyIdOrPlaceholder, dittoHeaders);
         }
-        return prependDefaultNamespaceToCreateThing(createThing);
+        return createThing;
     }
 
     /**
@@ -236,33 +229,6 @@ public final class CreateThing extends AbstractCommand<CreateThing> implements T
         });
     }
 
-    private static CreateThing prependDefaultNamespaceToCreateThing(final CreateThing createThing) {
-        final Thing thing = createThing.getThing();
-        final Optional<String> namespace = thing.getNamespace();
-        if (!namespace.isPresent() || namespace.get().equals("")) {
-            final Thing thingInDefaultNamespace = thing.toBuilder()
-                    .setId(calculateThingId(createThing))
-                    .build();
-            final JsonObject initialPolicy = createThing.getInitialPolicy().orElse(null);
-            return new CreateThing(thingInDefaultNamespace, initialPolicy, createThing.getDittoHeaders());
-        } else {
-            return createThing;
-        }
-    }
-
-    private static ThingId calculateThingId(final CreateThing createThing) {
-        final Optional<ThingId> providedThingId = createThing.getThing().getEntityId();
-        return providedThingId
-                .map(thingId -> {
-                    if (thingId.getNamespace().isEmpty()) {
-                        return ThingId.of(DEFAULT_NAMESPACE, thingId.toString().substring(1));
-                    } else {
-                        return thingId;
-                    }
-                })
-                .orElseGet(() -> ThingId.inNamespaceWithRandomName(DEFAULT_NAMESPACE));
-    }
-
     /**
      * Returns the {@code Thing} to create.
      *
@@ -282,7 +248,7 @@ public final class CreateThing extends AbstractCommand<CreateThing> implements T
     /**
      * @return the policyIdOrPlaceholder that should be used to copy an existing policy when creating the Thing.
      */
-    public Optional<String> getPolicyIdOrPlaceholder() { return Optional.ofNullable(policyIdOrPlaceholder);}
+    public Optional<String> getPolicyIdOrPlaceholder() {return Optional.ofNullable(policyIdOrPlaceholder);}
 
     @Override
     public ThingId getEntityId() {

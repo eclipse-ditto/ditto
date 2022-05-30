@@ -17,7 +17,6 @@ import java.util.function.Supplier;
 
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.base.model.common.DittoSystemProperties;
 import org.eclipse.ditto.base.model.entity.id.AbstractNamespacedEntityId;
 import org.eclipse.ditto.base.model.entity.id.NamespacedEntityId;
 import org.eclipse.ditto.base.model.entity.id.NamespacedEntityIdInvalidException;
@@ -30,11 +29,10 @@ import org.eclipse.ditto.base.model.entity.id.TypedEntityId;
 @TypedEntityId(type = "policy")
 public final class PolicyId extends AbstractNamespacedEntityId {
 
-    private static final String DEFAULT_NAMESPACE;
-
-    static {
-        DEFAULT_NAMESPACE = System.getProperty(DittoSystemProperties.DITTO_ENTITY_CREATION_DEFAULT_NAMESPACE, "");
-    }
+    /**
+     * Will be resolved to the actual default namespace inside ditto.
+     */
+    private static final String DEFAULT_NAMESPACE = "";
 
     private PolicyId(final String namespace, final String policyName, final boolean shouldValidate) {
         super(PolicyConstants.ENTITY_TYPE, namespace, policyName, shouldValidate);
@@ -106,7 +104,8 @@ public final class PolicyId extends AbstractNamespacedEntityId {
      * @since 3.0.0
      */
     public static PolicyId generateRandom() {
-        return wrapInPolicyIdInvalidException(() -> new PolicyId(DEFAULT_NAMESPACE, UUID.randomUUID().toString(), true));
+        return wrapInPolicyIdInvalidException(
+                () -> new PolicyId(DEFAULT_NAMESPACE, UUID.randomUUID().toString(), true));
     }
 
     private static <T> T wrapInPolicyIdInvalidException(final Supplier<T> supplier) {

@@ -15,7 +15,6 @@ package org.eclipse.ditto.things.service.starter;
 import static org.eclipse.ditto.things.api.ThingsMessagingConstants.CLUSTER_ROLE;
 
 import org.eclipse.ditto.base.api.devops.signals.commands.RetrieveStatisticsDetails;
-import org.eclipse.ditto.base.model.common.DittoSystemProperties;
 import org.eclipse.ditto.base.service.actors.DittoRootActor;
 import org.eclipse.ditto.internal.utils.aggregator.DefaultThingsAggregatorConfig;
 import org.eclipse.ditto.internal.utils.aggregator.ThingsAggregatorActor;
@@ -41,8 +40,6 @@ import org.eclipse.ditto.internal.utils.pubsub.DistributedPub;
 import org.eclipse.ditto.internal.utils.pubsub.LiveSignalPub;
 import org.eclipse.ditto.internal.utils.pubsub.ThingEventPubSubFactory;
 import org.eclipse.ditto.policies.api.PoliciesMessagingConstants;
-import org.eclipse.ditto.policies.enforcement.config.DefaultEntityCreationConfig;
-import org.eclipse.ditto.policies.enforcement.config.EntityCreationConfig;
 import org.eclipse.ditto.things.api.ThingsMessagingConstants;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 import org.eclipse.ditto.things.service.common.config.ThingsConfig;
@@ -97,12 +94,6 @@ public final class ThingsRootActor extends DittoRootActor {
                 PoliciesMessagingConstants.CLUSTER_ROLE,
                 PoliciesMessagingConstants.SHARD_REGION
         );
-
-        final EntityCreationConfig entityCreationConfig = DefaultEntityCreationConfig.of(
-                DefaultScopedConfig.dittoScoped(actorSystem.settings().config())
-        );
-        // TODO CR-11297 consolidate with PoliciesRootActor
-        injectSystemPropertiesForEntityCreation(entityCreationConfig);
 
         final BlockedNamespaces blockedNamespaces = BlockedNamespaces.of(actorSystem);
         // start cluster singleton that writes to the distributed cache of blocked namespaces
@@ -179,11 +170,6 @@ public final class ThingsRootActor extends DittoRootActor {
             final ThingPersistenceActorPropsFactory propsFactory) {
 
         return Props.create(ThingsRootActor.class, thingsConfig, pubSubMediator, propsFactory);
-    }
-
-    private static void injectSystemPropertiesForEntityCreation(final EntityCreationConfig entityCreationConfig) {
-        System.setProperty(DittoSystemProperties.DITTO_ENTITY_CREATION_DEFAULT_NAMESPACE,
-                entityCreationConfig.getDefaultNamespace());
     }
 
     @Override

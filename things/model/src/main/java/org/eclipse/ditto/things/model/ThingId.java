@@ -17,7 +17,6 @@ import java.util.function.Supplier;
 
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.base.model.common.DittoSystemProperties;
 import org.eclipse.ditto.base.model.entity.id.AbstractNamespacedEntityId;
 import org.eclipse.ditto.base.model.entity.id.NamespacedEntityId;
 import org.eclipse.ditto.base.model.entity.id.NamespacedEntityIdInvalidException;
@@ -30,11 +29,10 @@ import org.eclipse.ditto.base.model.entity.id.TypedEntityId;
 @TypedEntityId(type = "thing")
 public final class ThingId extends AbstractNamespacedEntityId {
 
-    private static final String DEFAULT_NAMESPACE;
-
-    static {
-        DEFAULT_NAMESPACE = System.getProperty(DittoSystemProperties.DITTO_ENTITY_CREATION_DEFAULT_NAMESPACE, "");
-    }
+    /**
+     * Will be resolved to the actual default namespace inside ditto.
+     */
+    private static final String DEFAULT_NAMESPACE = "";
 
     private ThingId(final CharSequence thingId) {
         super(ThingConstants.ENTITY_TYPE, thingId);
