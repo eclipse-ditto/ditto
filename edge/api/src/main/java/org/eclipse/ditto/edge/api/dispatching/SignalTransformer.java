@@ -18,7 +18,6 @@ import java.util.function.UnaryOperator;
 
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.service.DittoExtensionPoint;
-import org.eclipse.ditto.base.service.RootActorStarter;
 
 import akka.actor.ActorSystem;
 
