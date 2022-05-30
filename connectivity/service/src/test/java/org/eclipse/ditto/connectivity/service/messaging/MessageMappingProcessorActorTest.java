@@ -43,7 +43,7 @@ import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgements;
 import org.eclipse.ditto.base.model.signals.commands.ErrorResponse;
 import org.eclipse.ditto.base.model.signals.events.AbstractEventsourcedEvent;
-import org.eclipse.ditto.connectivity.api.EnforcementFactoryFactory;
+import org.eclipse.ditto.connectivity.service.EnforcementFactoryFactory;
 import org.eclipse.ditto.connectivity.api.ExternalMessage;
 import org.eclipse.ditto.connectivity.api.ExternalMessageFactory;
 import org.eclipse.ditto.connectivity.api.InboundSignal;

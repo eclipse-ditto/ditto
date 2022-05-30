@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq;
 
-import static org.eclipse.ditto.connectivity.api.placeholders.ConnectivityPlaceholders.newSourceAddressPlaceholder;
+import static org.eclipse.ditto.connectivity.service.placeholders.ConnectivityPlaceholders.newSourceAddressPlaceholder;
 import static org.eclipse.ditto.connectivity.service.messaging.mqtt.MqttHeader.MQTT_QOS;
 import static org.eclipse.ditto.connectivity.service.messaging.mqtt.MqttHeader.MQTT_RETAIN;
 import static org.eclipse.ditto.connectivity.service.messaging.mqtt.MqttHeader.MQTT_TOPIC;
@@ -28,7 +28,7 @@ import org.eclipse.ditto.base.model.common.ByteBufferUtils;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.signals.Signal;
-import org.eclipse.ditto.connectivity.api.EnforcementFactoryFactory;
+import org.eclipse.ditto.connectivity.service.EnforcementFactoryFactory;
 import org.eclipse.ditto.connectivity.api.ExternalMessage;
 import org.eclipse.ditto.connectivity.api.ExternalMessageFactory;
 import org.eclipse.ditto.connectivity.model.Connection;

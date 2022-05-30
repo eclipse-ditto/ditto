@@ -21,8 +21,8 @@
         <version>${revision}</version>
     </parent>
 
-    <artifactId>ditto-edge-api</artifactId>
-    <name>Eclipse Ditto :: Edge :: API</name>
+    <artifactId>ditto-edge-service</artifactId>
+    <name>Eclipse Ditto :: Edge :: Service</name>
     <dependencies>
         <dependency>
             <groupId>org.slf4j</groupId>

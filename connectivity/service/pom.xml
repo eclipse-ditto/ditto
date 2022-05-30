@@ -58,7 +58,7 @@
 
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-edge-api</artifactId>
+            <artifactId>ditto-edge-service</artifactId>
         </dependency>
 
         <dependency>

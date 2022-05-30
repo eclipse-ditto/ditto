@@ -10,7 +10,7 @@
   *
   * SPDX-License-Identifier: EPL-2.0
   */
- package org.eclipse.ditto.connectivity.api.placeholders;
+ package org.eclipse.ditto.connectivity.service.placeholders;
 
  import static org.assertj.core.api.Assertions.assertThat;
 
