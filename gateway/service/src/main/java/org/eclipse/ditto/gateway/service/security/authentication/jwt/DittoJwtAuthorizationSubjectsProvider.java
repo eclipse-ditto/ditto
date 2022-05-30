@@ -43,10 +43,11 @@ public final class DittoJwtAuthorizationSubjectsProvider implements JwtAuthoriza
 
     @SuppressWarnings("unused") //Loaded via reflection by AkkaExtension.
     public DittoJwtAuthorizationSubjectsProvider(final ActorSystem actorSystem) {
-        final OAuthConfig oAuthConfig =
-                DittoGatewayConfig.of(DefaultScopedConfig.dittoScoped(actorSystem.settings().config()))
-                        .getAuthenticationConfig()
-                        .getOAuthConfig();
+        final DefaultScopedConfig dittoScoped =
+                DefaultScopedConfig.dittoScoped(actorSystem.settings().config());
+        final OAuthConfig oAuthConfig = DittoGatewayConfig.of(dittoScoped)
+                .getAuthenticationConfig()
+                .getOAuthConfig();
         jwtSubjectIssuersConfig = JwtSubjectIssuersConfig.fromOAuthConfig(oAuthConfig);
     }
 
