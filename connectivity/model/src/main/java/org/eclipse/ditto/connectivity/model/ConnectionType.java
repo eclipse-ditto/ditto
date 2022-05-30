@@ -50,7 +50,12 @@ public enum ConnectionType implements CharSequence {
     /**
      * Indicates a MQTT 5 connection.
      */
-    MQTT_5("mqtt-5");
+    MQTT_5("mqtt-5"),
+
+    /**
+     * Indicates a connection to Eclipse Hono.
+     */
+    HONO("hono");
 
     private final String name;
 

@@ -80,7 +80,7 @@ public final class DefaultClientActorPropsFactory implements ClientActorPropsFac
                 result = HiveMqtt5ClientActor.props(connection, proxyActor, connectionActor, dittoHeaders,
                         connectivityConfigOverwrites);
                 break;
-            case KAFKA:
+            case KAFKA, HONO:
                 result = KafkaClientActor.props(connection, proxyActor, connectionActor, dittoHeaders,
                         connectivityConfigOverwrites);
                 break;
