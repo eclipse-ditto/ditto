@@ -12,8 +12,6 @@
  */
 package org.eclipse.ditto.edge.api.dispatching;
 
-import java.util.function.Function;
-
 import org.eclipse.ditto.base.model.entity.id.WithEntityId;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.commands.Command;
@@ -53,14 +51,12 @@ public class EdgeCommandForwarderActor extends AbstractActor {
 
     private final ActorRef pubSubMediator;
     private final ShardRegions shardRegions;
-    private final Function<Signal<?>, Signal<?>> signalTransformer;
 
     @SuppressWarnings("unused")
     private EdgeCommandForwarderActor(final ActorRef pubSubMediator, final ShardRegions shardRegions) {
 
         this.pubSubMediator = pubSubMediator;
         this.shardRegions = shardRegions;
-        signalTransformer = SignalTransformer.get(getContext().getSystem());
     }
 
     /**
@@ -100,22 +96,19 @@ public class EdgeCommandForwarderActor extends AbstractActor {
     }
 
     private void forwardToThings(final MessageCommand<?, ?> messageCommand) {
-        final MessageCommand<?, ?> transformedMessageCommand =
-                (MessageCommand<?, ?>) signalTransformer.apply(messageCommand);
-        log.withCorrelationId(transformedMessageCommand)
+        log.withCorrelationId(messageCommand)
                 .info("Forwarding message command with ID <{}> and type <{}> to 'things' shard region",
-                        transformedMessageCommand.getEntityId(), transformedMessageCommand.getType());
+                        messageCommand.getEntityId(), messageCommand.getType());
         shardRegions.things()
-                .forward(transformedMessageCommand, getContext());
+                .forward(messageCommand, getContext());
     }
 
     private void forwardToThings(final ThingCommand<?> thingCommand) {
-        final ThingCommand<?> transformedThingCommand = (ThingCommand<?>) signalTransformer.apply(thingCommand);
-        log.withCorrelationId(transformedThingCommand)
+        log.withCorrelationId(thingCommand)
                 .info("Forwarding thing command with ID <{}> and type <{}> to 'things' shard region",
-                        transformedThingCommand.getEntityId(), transformedThingCommand.getType());
+                        thingCommand.getEntityId(), thingCommand.getType());
         shardRegions.things()
-                .forward(transformedThingCommand, getContext());
+                .forward(thingCommand, getContext());
     }
 
     private void forwardToThingsAggregator(final Command<?> command) {
@@ -125,23 +118,20 @@ public class EdgeCommandForwarderActor extends AbstractActor {
     }
 
     private void forwardToPolicies(final PolicyCommand<?> policyCommand) {
-        final PolicyCommand<?> transformedPolicyCommand = (PolicyCommand<?>) signalTransformer.apply(policyCommand);
-        log.withCorrelationId(transformedPolicyCommand)
+        log.withCorrelationId(policyCommand)
                 .info("Forwarding policy command with ID <{}> and type <{}> to 'policies' shard region",
-                        transformedPolicyCommand.getEntityId(), transformedPolicyCommand.getType());
+                        policyCommand.getEntityId(), policyCommand.getType());
         shardRegions.policies()
-                .forward(transformedPolicyCommand, getContext());
+                .forward(policyCommand, getContext());
     }
 
     private void forwardToConnectivity(final ConnectivityCommand<?> connectivityCommand) {
         if (connectivityCommand instanceof WithEntityId withEntityId) {
-            final ConnectivityCommand<?> transformedConnectivityCommand =
-                    (ConnectivityCommand<?>) signalTransformer.apply(connectivityCommand);
-            log.withCorrelationId(transformedConnectivityCommand)
+            log.withCorrelationId(connectivityCommand)
                     .info("Forwarding connectivity command with ID <{}> and type <{}> to 'connections' " +
-                            "shard region", withEntityId.getEntityId(), transformedConnectivityCommand.getType());
+                            "shard region", withEntityId.getEntityId(), connectivityCommand.getType());
             shardRegions.connections()
-                    .forward(transformedConnectivityCommand, getContext());
+                    .forward(connectivityCommand, getContext());
         } else {
             log.withCorrelationId(connectivityCommand)
                     .error("Could not forward ConnectivityCommand not implementing WithEntityId to 'connections' " +
@@ -157,11 +147,10 @@ public class EdgeCommandForwarderActor extends AbstractActor {
 
     private void handleUnknownSignal(final Signal<?> signal) {
 
-        final Signal<?> transformedSignal = signalTransformer.apply(signal);
-        final String signalType = transformedSignal.getType();
-        final DittoDiagnosticLoggingAdapter l = log.withCorrelationId(transformedSignal);
+        final String signalType = signal.getType();
+        final DittoDiagnosticLoggingAdapter l = log.withCorrelationId(signal);
         l.error("Received signal <{}> which is not known how to be handled: {}",
-                signalType, transformedSignal);
+                signalType, signal);
     }
 
 }
