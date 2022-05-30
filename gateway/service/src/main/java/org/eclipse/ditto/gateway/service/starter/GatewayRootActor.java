@@ -21,9 +21,9 @@ import org.eclipse.ditto.base.service.RootChildActorStarter;
 import org.eclipse.ditto.base.service.actors.DittoRootActor;
 import org.eclipse.ditto.base.service.config.limits.LimitsConfig;
 import org.eclipse.ditto.connectivity.api.ConnectivityMessagingConstants;
-import org.eclipse.ditto.edge.service.dispatching.DefaultNamespaceProvider;
 import org.eclipse.ditto.edge.service.dispatching.EdgeCommandForwarderActor;
 import org.eclipse.ditto.edge.service.dispatching.ShardRegions;
+import org.eclipse.ditto.edge.service.dispatching.SignalTransformer;
 import org.eclipse.ditto.gateway.service.endpoints.directives.auth.DevopsAuthenticationDirective;
 import org.eclipse.ditto.gateway.service.endpoints.directives.auth.DevopsAuthenticationDirectiveFactory;
 import org.eclipse.ditto.gateway.service.endpoints.directives.auth.GatewayAuthenticationDirectiveFactory;
@@ -114,9 +114,9 @@ public final class GatewayRootActor extends DittoRootActor {
         final HttpConfig httpConfig = gatewayConfig.getHttpConfig();
 
         final ShardRegions shardRegions = ShardRegions.of(actorSystem, clusterConfig);
-        final DefaultNamespaceProvider defaultNamespaceProvider = DefaultNamespaceProvider.get(getContext().system());
+        final SignalTransformer signalTransformer = SignalTransformer.get(context().system());
         final var edgeCommandForwarder = startChildActor(EdgeCommandForwarderActor.ACTOR_NAME,
-                EdgeCommandForwarderActor.props(pubSubMediator, shardRegions, defaultNamespaceProvider));
+                EdgeCommandForwarderActor.props(pubSubMediator, shardRegions, signalTransformer));
         final var proxyActor = startProxyActor(actorSystem, pubSubMediator, edgeCommandForwarder);
 
         pubSubMediator.tell(DistPubSubAccess.put(getSelf()), getSelf());

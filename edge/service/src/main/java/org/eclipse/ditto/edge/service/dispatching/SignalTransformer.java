@@ -14,14 +14,16 @@ package org.eclipse.ditto.edge.service.dispatching;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
-import java.util.function.UnaryOperator;
+import java.util.concurrent.CompletionStage;
+import java.util.function.Function;
 
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.service.DittoExtensionPoint;
 
 import akka.actor.ActorSystem;
 
-public interface SignalTransformer extends DittoExtensionPoint, UnaryOperator<Signal<?>> {
+@FunctionalInterface
+public interface SignalTransformer extends DittoExtensionPoint, Function<Signal<?>, CompletionStage<Signal<?>>> {
 
     /**
      * Loads the implementation of {@code SignalTransformer} which is configured for the

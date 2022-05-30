@@ -25,9 +25,9 @@ import org.eclipse.ditto.connectivity.service.messaging.ConnectivityProxyActor;
 import org.eclipse.ditto.connectivity.service.messaging.persistence.ConnectionPersistenceOperationsActor;
 import org.eclipse.ditto.connectivity.service.messaging.persistence.ConnectionPersistenceStreamingActorCreator;
 import org.eclipse.ditto.connectivity.service.messaging.persistence.ConnectionSupervisorActor;
-import org.eclipse.ditto.edge.service.dispatching.DefaultNamespaceProvider;
 import org.eclipse.ditto.edge.service.dispatching.EdgeCommandForwarderActor;
 import org.eclipse.ditto.edge.service.dispatching.ShardRegions;
+import org.eclipse.ditto.edge.service.dispatching.SignalTransformer;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.cluster.ClusterUtil;
 import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
@@ -170,10 +170,10 @@ public final class ConnectivityRootActor extends DittoRootActor {
     }
 
     private ActorRef getCommandForwarder(final ClusterConfig clusterConfig, final ActorRef pubSubMediator) {
-        final DefaultNamespaceProvider defaultNamespaceProvider = DefaultNamespaceProvider.get(getContext().system());
+        final SignalTransformer signalTransformer = SignalTransformer.get(getContext().system());
         return startChildActor(EdgeCommandForwarderActor.ACTOR_NAME,
                 EdgeCommandForwarderActor.props(pubSubMediator,
-                        ShardRegions.of(getContext().getSystem(), clusterConfig), defaultNamespaceProvider));
+                        ShardRegions.of(getContext().getSystem(), clusterConfig), signalTransformer));
     }
 
     private static ActorRef startConnectionShardRegion(final ActorSystem actorSystem,

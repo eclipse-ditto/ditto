@@ -15,7 +15,7 @@ package org.eclipse.ditto.edge.service.dispatching;
 import akka.actor.AbstractActor;
 import akka.japi.pf.ReceiveBuilder;
 
-final class NoOpEdgeCommandForwarderExtension implements EdgeCommandForwarderExtension{
+public final class NoOpEdgeCommandForwarderExtension implements EdgeCommandForwarderExtension{
 
     @Override
     public AbstractActor.Receive getReceiveExtension(final AbstractActor.ActorContext actorContext) {
