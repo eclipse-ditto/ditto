@@ -101,6 +101,7 @@ public class EdgeCommandForwarderActor extends AbstractActor {
     }
 
     private void forwardToThings(final MessageCommand<?, ?> messageCommand) {
+        final ActorRef sender = getSender();
         signalTransformer.apply(messageCommand)
                 .thenAccept(transformed -> {
                     final MessageCommand<?, ?> transformedMessageCommand = (MessageCommand<?, ?>) transformed;
@@ -108,11 +109,12 @@ public class EdgeCommandForwarderActor extends AbstractActor {
                             .info("Forwarding message command with ID <{}> and type <{}> to 'things' shard region",
                                     transformedMessageCommand.getEntityId(), transformedMessageCommand.getType());
                     shardRegions.things()
-                            .forward(transformedMessageCommand, getContext());
+                            .tell(transformedMessageCommand, sender);
                 });
     }
 
     private void forwardToThings(final ThingCommand<?> thingCommand) {
+        final ActorRef sender = getSender();
         signalTransformer.apply(thingCommand)
                 .thenAccept(transformed -> {
                     final ThingCommand<?> transformedThingCommand = (ThingCommand<?>) transformed;
@@ -120,7 +122,7 @@ public class EdgeCommandForwarderActor extends AbstractActor {
                             .info("Forwarding thing command with ID <{}> and type <{}> to 'things' shard region",
                                     transformedThingCommand.getEntityId(), transformedThingCommand.getType());
                     shardRegions.things()
-                            .forward(transformedThingCommand, getContext());
+                            .tell(transformedThingCommand, sender);
                 });
     }
 
@@ -131,6 +133,7 @@ public class EdgeCommandForwarderActor extends AbstractActor {
     }
 
     private void forwardToPolicies(final PolicyCommand<?> policyCommand) {
+        final ActorRef sender = getSender();
         signalTransformer.apply(policyCommand)
                 .thenAccept(transformed -> {
                     final PolicyCommand<?> transformedPolicyCommand = (PolicyCommand<?>) transformed;
@@ -138,13 +141,14 @@ public class EdgeCommandForwarderActor extends AbstractActor {
                             .info("Forwarding policy command with ID <{}> and type <{}> to 'policies' shard region",
                                     transformedPolicyCommand.getEntityId(), transformedPolicyCommand.getType());
                     shardRegions.policies()
-                            .forward(transformedPolicyCommand, getContext());
+                            .tell(transformedPolicyCommand, sender);
                 });
 
     }
 
     private void forwardToConnectivity(final ConnectivityCommand<?> connectivityCommand) {
         if (connectivityCommand instanceof WithEntityId withEntityId) {
+            final ActorRef sender = getSender();
             signalTransformer.apply(connectivityCommand)
                     .thenAccept(transformed -> {
                         final ConnectivityCommand<?> transformedConnectivityCommand =
@@ -154,7 +158,7 @@ public class EdgeCommandForwarderActor extends AbstractActor {
                                                 "shard region", withEntityId.getEntityId(),
                                         transformedConnectivityCommand.getType());
                         shardRegions.connections()
-                                .forward(transformedConnectivityCommand, getContext());
+                                .tell(transformedConnectivityCommand, sender);
                     });
         } else {
             log.withCorrelationId(connectivityCommand)
