@@ -47,9 +47,9 @@ public final class EnforcementFactoryFactory {
      * Creates new instance of {@link EnforcementFilterFactory} that is preconfigured with the following placeholders
      * for the filters:
      * <ul>
-     * <li>{@link org.eclipse.ditto.edge.api.placeholders.ThingPlaceholder}</li>
-     * <li>{@link org.eclipse.ditto.edge.api.placeholders.PolicyPlaceholder}</li>
-     * <li>{@link org.eclipse.ditto.edge.api.placeholders.EntityIdPlaceholder}</li>
+     * <li>{@link org.eclipse.ditto.edge.service.placeholders.ThingPlaceholder}</li>
+     * <li>{@link org.eclipse.ditto.edge.service.placeholders.PolicyPlaceholder}</li>
+     * <li>{@link org.eclipse.ditto.edge.service.placeholders.EntityIdPlaceholder}</li>
      * </ul>
      *
      * @param <I> the type from which the input values are resolved

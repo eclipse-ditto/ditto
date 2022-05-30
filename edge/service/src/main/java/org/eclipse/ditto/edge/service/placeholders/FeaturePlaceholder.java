@@ -10,23 +10,22 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.edge.api.placeholders;
+package org.eclipse.ditto.edge.service.placeholders;
 
-import org.eclipse.ditto.base.model.entity.id.EntityId;
+import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.placeholders.Placeholder;
 
 /**
  * A {@link org.eclipse.ditto.placeholders.Placeholder} that requires a {@code String}
- * (a valid Entity ID) to resolve its placeholders.
+ * (a valid Feature ID) to resolve its placeholders.
+ * A {@link org.eclipse.ditto.placeholders.Placeholder} that requires a {@code String} (a valid Feature ID) to resolve its placeholders.
+ *
+ * @since 1.5.0
  */
-public interface EntityIdPlaceholder extends Placeholder<EntityId> {
+public interface FeaturePlaceholder extends Placeholder<Signal<?>> {
 
-    /**
-     * Returns the singleton instance of the {@link EntityIdPlaceholder}.
-     *
-     * @return the singleton instance.
-     */
-    static EntityIdPlaceholder getInstance() {
-        return ImmutableEntityIdPlaceholder.INSTANCE;
+    static FeaturePlaceholder getInstance() {
+        return ImmutableFeaturePlaceholder.INSTANCE;
     }
+
 }

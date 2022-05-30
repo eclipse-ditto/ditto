@@ -10,6 +10,16 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-@org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault
-package org.eclipse.ditto.edge.api;
+package org.eclipse.ditto.edge.service.dispatching;
 
+import akka.actor.AbstractActor;
+import akka.japi.pf.ReceiveBuilder;
+
+final class NoOpEdgeCommandForwarderExtension implements EdgeCommandForwarderExtension{
+
+    @Override
+    public AbstractActor.Receive getReceiveExtension(final AbstractActor.ActorContext actorContext) {
+        return ReceiveBuilder.create().build();
+    }
+
+}

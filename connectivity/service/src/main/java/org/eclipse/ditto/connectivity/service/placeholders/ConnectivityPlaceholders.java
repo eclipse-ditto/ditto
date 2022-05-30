@@ -12,11 +12,11 @@
  */
 package org.eclipse.ditto.connectivity.service.placeholders;
 
-import org.eclipse.ditto.edge.api.placeholders.EntityIdPlaceholder;
-import org.eclipse.ditto.edge.api.placeholders.FeaturePlaceholder;
-import org.eclipse.ditto.edge.api.placeholders.PolicyPlaceholder;
-import org.eclipse.ditto.edge.api.placeholders.RequestPlaceholder;
-import org.eclipse.ditto.edge.api.placeholders.ThingPlaceholder;
+import org.eclipse.ditto.edge.service.placeholders.EntityIdPlaceholder;
+import org.eclipse.ditto.edge.service.placeholders.FeaturePlaceholder;
+import org.eclipse.ditto.edge.service.placeholders.PolicyPlaceholder;
+import org.eclipse.ditto.edge.service.placeholders.RequestPlaceholder;
+import org.eclipse.ditto.edge.service.placeholders.ThingPlaceholder;
 import org.eclipse.ditto.placeholders.TimePlaceholder;
 import org.eclipse.ditto.protocol.placeholders.ResourcePlaceholder;
 import org.eclipse.ditto.protocol.placeholders.TopicPathPlaceholder;

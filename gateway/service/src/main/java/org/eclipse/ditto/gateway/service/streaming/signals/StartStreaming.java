@@ -26,10 +26,10 @@ import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.common.Placeholders;
-import org.eclipse.ditto.edge.api.placeholders.EntityIdPlaceholder;
-import org.eclipse.ditto.edge.api.placeholders.FeaturePlaceholder;
-import org.eclipse.ditto.edge.api.placeholders.RequestPlaceholder;
-import org.eclipse.ditto.edge.api.placeholders.ThingPlaceholder;
+import org.eclipse.ditto.edge.service.placeholders.EntityIdPlaceholder;
+import org.eclipse.ditto.edge.service.placeholders.FeaturePlaceholder;
+import org.eclipse.ditto.edge.service.placeholders.RequestPlaceholder;
+import org.eclipse.ditto.edge.service.placeholders.ThingPlaceholder;
 import org.eclipse.ditto.internal.utils.pubsub.StreamingType;
 import org.eclipse.ditto.placeholders.PlaceholderFilter;
 import org.eclipse.ditto.placeholders.TimePlaceholder;
