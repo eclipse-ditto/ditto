@@ -17,6 +17,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.net.URLEncoder;
 import java.nio.charset.Charset;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.List;
 
 import org.bson.BsonArray;
@@ -65,6 +66,7 @@ import akka.cluster.pubsub.DistributedPubSubMediator;
 import akka.stream.javadsl.Flow;
 import akka.stream.javadsl.Keep;
 import akka.stream.javadsl.MergeHub;
+import akka.stream.javadsl.Sink;
 import akka.stream.javadsl.Source;
 import akka.stream.scaladsl.BroadcastHub;
 import akka.stream.testkit.TestPublisher;
@@ -277,7 +279,7 @@ public final class ThingUpdaterTest {
             assertThat(data2.metadata().export()).isEqualTo(Metadata.of(THING_ID, REVISION + 2, null, null, null));
             assertThat(data2.metadata().getTimers().size()).isEqualTo(1);
             assertThat(data2.metadata().getSenders()).isEmpty();
-            assertThat(data2.lastWriteModel()).isEqualTo(getThingWriteModel());
+            assertThat(data2.lastWriteModel()).isEqualTo(getThingWriteModel().setMetadata(data.metadata().export()));
         }};
     }
 
@@ -573,6 +575,31 @@ public final class ThingUpdaterTest {
             outletProbe.sendNext(getOKResult(REVISION + 2));
             actor5.tell(shutdown, getTestActor());
             expectTerminated(Duration.ofSeconds(10), actor5);
+        }};
+    }
+
+    @Test
+    public void updateSkipped() {
+        new TestKit(system) {{
+            // GIVEN: search mapper decides to skip updates
+            final TestProbe inputProbe = TestProbe.apply(system);
+            final Flow<ThingUpdater.Data, ThingUpdater.Result, NotUsed> flow = Flow.fromSinkAndSource(
+                    Sink.foreach(data -> inputProbe.ref().tell(data, ActorRef.noSender())),
+                    Source.empty()
+            );
+
+            final Props props =
+                    ThingUpdater.props(flow, id -> Source.single(getThingWriteModel()), SEARCH_CONFIG,
+                            TestProbe.apply(system).ref());
+            final ActorRef underTest = watch(childActorOf(props, ACTOR_NAME));
+
+            // WHEN: An event of the next revision arrives
+            underTest.tell(AttributeModified.of(THING_ID, JsonPointer.of("x"), JsonValue.of(5), REVISION + 1, null,
+                    DittoHeaders.empty(), null), ActorRef.noSender());
+
+            // THEN: Update is triggered only once
+            inputProbe.expectMsgClass(ThingUpdater.Data.class);
+            inputProbe.expectNoMessage(FiniteDuration.apply(5, "s"));
         }};
     }
 

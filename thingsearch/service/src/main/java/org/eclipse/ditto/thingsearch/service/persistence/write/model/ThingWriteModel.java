@@ -97,6 +97,11 @@ public final class ThingWriteModel extends AbstractWriteModel {
         return new ReplaceOneModel<>(getFilter(), thingDocument, upsertOption());
     }
 
+    @Override
+    public ThingWriteModel setMetadata(final Metadata metadata) {
+        return new ThingWriteModel(metadata, thingDocument, isPatchUpdate, previousRevision);
+    }
+
     /**
      * @return the Thing document to be written in the persistence.
      */

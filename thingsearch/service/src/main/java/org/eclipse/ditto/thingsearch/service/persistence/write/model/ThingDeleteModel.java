@@ -47,6 +47,11 @@ public final class ThingDeleteModel extends AbstractWriteModel {
     }
 
     @Override
+    public ThingDeleteModel setMetadata(final Metadata metadata) {
+        return new ThingDeleteModel(metadata);
+    }
+
+    @Override
     public String toString() {
         return super.toString() + "]";
     }
