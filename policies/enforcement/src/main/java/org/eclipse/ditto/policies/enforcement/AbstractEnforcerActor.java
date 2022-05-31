@@ -278,6 +278,11 @@ public abstract class AbstractEnforcerActor<I extends EntityId, S extends Signal
     private void enforceSignal(final S signal) {
         final CompletionStage<Void> enforcementCompletion = doEnforceSignal(signal, getSender())
                 .thenAccept(authorizedSignal -> {
+                    /*
+                     * TODO: CR-11446 This is potential race condition. It's not guaranteed that the policy is already
+                     *  updated when this actor tries to reload the enforcer. That way it could happen that
+                     *  an old version of the enforcer is loaded and kept in cache.
+                     */
                     if (shouldReloadAfterEnforcement(authorizedSignal)) {
                         // trigger reloading the policy
                         performPolicyEnforcerReload();
