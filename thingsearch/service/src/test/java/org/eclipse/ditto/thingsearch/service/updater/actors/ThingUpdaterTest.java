@@ -17,7 +17,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.net.URLEncoder;
 import java.nio.charset.Charset;
 import java.time.Duration;
-import java.time.Instant;
 import java.util.List;
 
 import org.bson.BsonArray;
@@ -596,6 +595,32 @@ public final class ThingUpdaterTest {
             // WHEN: An event of the next revision arrives
             underTest.tell(AttributeModified.of(THING_ID, JsonPointer.of("x"), JsonValue.of(5), REVISION + 1, null,
                     DittoHeaders.empty(), null), ActorRef.noSender());
+
+            // THEN: Update is triggered only once
+            inputProbe.expectMsgClass(ThingUpdater.Data.class);
+            inputProbe.expectNoMessage(FiniteDuration.apply(5, "s"));
+        }};
+    }
+
+    @Test
+    public void initialUpdateSkipped() {
+        new TestKit(system) {{
+            // GIVEN: search mapper decides to skip updates
+            final TestProbe inputProbe = TestProbe.apply(system);
+            final Flow<ThingUpdater.Data, ThingUpdater.Result, NotUsed> flow = Flow.fromSinkAndSource(
+                    Sink.foreach(data -> inputProbe.ref().tell(data, ActorRef.noSender())),
+                    Source.empty()
+            );
+
+            final Props props =
+                    ThingUpdater.props(flow, id -> Source.single(ThingDeleteModel.of(Metadata.of(THING_ID, -1, null,
+                                    null, null))), SEARCH_CONFIG,
+                            TestProbe.apply(system).ref());
+            final ActorRef underTest = watch(childActorOf(props, ACTOR_NAME));
+
+            // WHEN: An event of the next revision arrives
+            underTest.tell(UpdateThing.of(THING_ID, UpdateReason.BACKGROUND_SYNC, DittoHeaders.empty()),
+                    ActorRef.noSender());
 
             // THEN: Update is triggered only once
             inputProbe.expectMsgClass(ThingUpdater.Data.class);

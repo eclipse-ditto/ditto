@@ -349,7 +349,14 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
         killSwitch = null;
         final var nextMetadata = data.metadata().export();
         log.debug("Update skipped: <{}>", nextMetadata);
-        return goTo(State.READY).using(new Data(nextMetadata, data.lastWriteModel().setMetadata(nextMetadata)));
+
+        // initial update was skipped, stop updater to avoid endless skipped updates
+        if (data.metadata().getThingRevision() <= 0 && data.lastWriteModel().getMetadata().getThingRevision() <= 0) {
+            log.info("Initial update was skipped - stopping thing updater for <{}>.", thingId);
+            return stop();
+        } else {
+            return goTo(State.READY).using(new Data(nextMetadata, data.lastWriteModel().setMetadata(nextMetadata)));
+        }
     }
 
     private FSM.State<State, Data> tick(final Control tick, final Data data) {
