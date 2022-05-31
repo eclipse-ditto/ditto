@@ -22,11 +22,6 @@ import java.util.function.Supplier;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.json.JsonField;
-import org.eclipse.ditto.json.JsonKey;
-import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.base.model.entity.metadata.Metadata;
 import org.eclipse.ditto.base.model.entity.metadata.MetadataBuilder;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
@@ -35,9 +30,14 @@ import org.eclipse.ditto.base.model.headers.metadata.MetadataHeaderKey;
 import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.WithOptionalEntity;
+import org.eclipse.ditto.json.JsonField;
+import org.eclipse.ditto.json.JsonKey;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.json.JsonValue;
 
 /**
- * Creates or extends/modifies Metadata of an entity based on {@link MetadataHeader}s of an Signal's DittoHeaders.
+ * Creates or extends/modifies Metadata of an entity based on {@link MetadataHeader}s of a Signal's DittoHeaders.
  *
  * @since 1.3.0
  */
@@ -76,7 +76,7 @@ public final class MetadataFromSignal implements Supplier<Metadata> {
      * Builds Metadata based on the Command and the existing metadata of this instance.
      * If the existing metadata is {@code null} and the command does not contain an entity for its implemented schema
      * version, the result of this method is {@code null}.
-     * Otherwise either a new Metadata is created or the existing metadata gets modified and/or extended.
+     * Otherwise, either a new Metadata is created or the existing metadata gets modified and/or extended.
      * The values of the returned metadata are obtained from the metadata headers within the DittoHeaders of this
      * instance's command.
      *

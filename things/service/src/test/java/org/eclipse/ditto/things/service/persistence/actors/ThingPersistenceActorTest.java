@@ -16,6 +16,7 @@ import static org.assertj.core.api.Assertions.fail;
 import static org.eclipse.ditto.things.model.assertions.DittoThingsAssertions.assertThat;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
@@ -32,6 +33,9 @@ import org.eclipse.ditto.base.model.entity.metadata.Metadata;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.headers.metadata.MetadataHeader;
+import org.eclipse.ditto.base.model.headers.metadata.MetadataHeaderKey;
+import org.eclipse.ditto.base.model.headers.metadata.MetadataHeaders;
 import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.signals.events.Event;
@@ -419,7 +423,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
                 underTest.tell(modifyThingCommand, getRef());
 
                 expectMsgEquals(ETagTestUtils.modifyThingResponse(thingWithFirstLevelFields, minimalThing, dittoHeaders,
-                                false));
+                        false));
 
                 assertPublishEvent(ThingModified.of(expectedThing, 2L, TIMESTAMP, dittoHeaders, null));
 
@@ -893,7 +897,8 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
 
                 // retrieve the thing's sequence number
                 final JsonFieldSelector versionFieldSelector =
-                        JsonFactory.newFieldSelector(Thing.JsonFields.REVISION.getPointer().toString(), JSON_PARSE_OPTIONS);
+                        JsonFactory.newFieldSelector(Thing.JsonFields.REVISION.getPointer().toString(),
+                                JSON_PARSE_OPTIONS);
                 final long versionExpected = 2;
                 final Thing thingExpected = ThingsModelFactory.newThingBuilder(thingToModify)
                         .setRevision(versionExpected)
@@ -902,7 +907,8 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
                         .withSelectedFields(versionFieldSelector)
                         .build();
                 underTest.tell(retrieveThing, getRef());
-                expectMsgEquals(ETagTestUtils.retrieveThingResponse(thingExpected, versionFieldSelector, dittoHeadersV2));
+                expectMsgEquals(
+                        ETagTestUtils.retrieveThingResponse(thingExpected, versionFieldSelector, dittoHeadersV2));
             }
         };
     }
@@ -930,7 +936,8 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
 
                 // retrieve the thing's sequence number from recovered actor
                 final JsonFieldSelector versionFieldSelector =
-                        JsonFactory.newFieldSelector(Thing.JsonFields.REVISION.getPointer().toString(), JSON_PARSE_OPTIONS);
+                        JsonFactory.newFieldSelector(Thing.JsonFields.REVISION.getPointer().toString(),
+                                JSON_PARSE_OPTIONS);
                 final long versionExpected = 2;
                 final Thing thingExpected = ThingsModelFactory.newThingBuilder(thingToModify)
                         .setRevision(versionExpected)
@@ -1281,6 +1288,230 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
             expectMsgEquals(expectedMessage.apply(modifyThing));
         }};
         return modifyThing.getDittoHeaders();
+    }
+
+    @Test
+    public void retrieveThingWithGetMetadataHeader() {
+        final Thing thing = createThingV2WithRandomId();
+        final DittoHeaders dittoHeaders = dittoHeadersV2.toBuilder()
+                .putHeader(DittoHeaderDefinition.GET_METADATA.getKey(), "/features")
+                .build();
+        final ThingCommand<?> retrieveThingCommand = RetrieveThing.of(getIdOrThrow(thing), dittoHeaders);
+
+        new TestKit(actorSystem) {{
+            final ActorRef underTest = createPersistenceActorFor(thing);
+
+            // create thing
+            final CreateThing createThing = CreateThing.of(thing, null, dittoHeadersV2);
+            underTest.tell(createThing, getRef());
+            expectMsgClass(CreateThingResponse.class);
+
+            // modify thing
+            final MetadataHeaders metadataHeaders = MetadataHeaders.newInstance();
+            metadataHeaders.add(
+                    MetadataHeader.of(MetadataHeaderKey.parse("/features"), JsonObject.newBuilder()
+                            .set("featureId", JsonObject.newBuilder()
+                                    .set("issuedBy", "the epic Ditto team")
+                                    .build())
+                            .build())
+            );
+            metadataHeaders.add(
+                    MetadataHeader.of(MetadataHeaderKey.parse("/attributes"), JsonObject.newBuilder()
+                            .set("createdAt", Instant.now().toString())
+                            .build())
+            );
+
+            final DittoHeaders modifyHeaders = dittoHeaders.toBuilder()
+                    .putHeader(DittoHeaderDefinition.PUT_METADATA.getKey(), metadataHeaders.toJsonString())
+                    .build();
+            final ModifyThing modifyThing = ModifyThing.of(getIdOrThrow(thing), thing, null, modifyHeaders);
+            underTest.tell(modifyThing, getRef());
+            expectMsgClass(ModifyThingResponse.class);
+
+            // retrieve thing with metadata
+            final Thing thingExpected = ThingsModelFactory.newThingBuilder(thing)
+                    .setRevision(2L)
+                    .build();
+            final Metadata expectedMetadata = Metadata.newBuilder()
+                    .set("features", JsonObject.newBuilder()
+                            .set("featureId", JsonObject.newBuilder()
+                                    .set("issuedBy", "the epic Ditto team")
+                                    .build())
+                            .build())
+                    .build();
+            final DittoHeaders expectedHeaders = dittoHeaders.toBuilder()
+                    .putHeader(DittoHeaderDefinition.DITTO_METADATA.getKey(), expectedMetadata.toJsonString())
+                    .build();
+
+            underTest.tell(retrieveThingCommand, getRef());
+            expectMsgEquals(ETagTestUtils.retrieveThingResponse(thingExpected, null, expectedHeaders));
+        }};
+    }
+
+    @Test
+    public void retrieveThingWithGetMetadataHeaderAndWildcard() {
+        final Thing thing = createThingV2WithRandomId()
+                .setFeatureProperty("featureId2", "featureKey2", "someValue");
+        final DittoHeaders dittoHeaders = dittoHeadersV2.toBuilder()
+                .putHeader(DittoHeaderDefinition.GET_METADATA.getKey(), "/features/featureId")
+                .build();
+        final ThingCommand<?> retrieveThingCommand = RetrieveThing.of(getIdOrThrow(thing), dittoHeaders);
+
+        new TestKit(actorSystem) {{
+            final ActorRef underTest = createPersistenceActorFor(thing);
+
+            // create thing
+            final CreateThing createThing = CreateThing.of(thing, null, dittoHeadersV2);
+            underTest.tell(createThing, getRef());
+            expectMsgClass(CreateThingResponse.class);
+
+            // modify thing
+            final MetadataHeaders metadataHeaders = MetadataHeaders.newInstance();
+            metadataHeaders.add(
+                    MetadataHeader.of(MetadataHeaderKey.parse("*/issuedBy"), JsonValue.of("the epic Ditto team"))
+            );
+
+            final DittoHeaders modifyHeaders = dittoHeaders.toBuilder()
+                    .putHeader(DittoHeaderDefinition.PUT_METADATA.getKey(), metadataHeaders.toJsonString())
+                    .build();
+            final ModifyThing modifyThing = ModifyThing.of(getIdOrThrow(thing), thing, null, modifyHeaders);
+            underTest.tell(modifyThing, getRef());
+            expectMsgClass(ModifyThingResponse.class);
+
+            // retrieve thing with metadata
+            final Thing thingExpected = ThingsModelFactory.newThingBuilder(thing)
+                    .setRevision(2L)
+                    .build();
+            final Metadata expectedMetadata = Metadata.newBuilder()
+                    .set("features", JsonObject.newBuilder()
+                            .set("featureId", JsonObject.newBuilder()
+                                    .set("definition", JsonObject.newBuilder()
+                                            .set("issuedBy", "the epic Ditto team")
+                                            .build())
+                                    .set("properties", JsonObject.newBuilder()
+                                            .set("featureKey", JsonObject.newBuilder()
+                                                    .set("issuedBy", "the epic Ditto team")
+                                                    .build())
+                                            .build())
+                                    .build())
+                            .build())
+                    .build();
+            final DittoHeaders expectedHeaders = dittoHeaders.toBuilder()
+                    .putHeader(DittoHeaderDefinition.DITTO_METADATA.getKey(), expectedMetadata.toJsonString())
+                    .build();
+
+            underTest.tell(retrieveThingCommand, getRef());
+            expectMsgEquals(ETagTestUtils.retrieveThingResponse(thingExpected, null, expectedHeaders));
+        }};
+    }
+
+    @Test
+    public void retrieveAttributeWithGetMetadataHeader() {
+        final Thing thing = createThingV2WithRandomId();
+        final DittoHeaders dittoHeaders = dittoHeadersV2.toBuilder()
+                .putHeader(DittoHeaderDefinition.GET_METADATA.getKey(), "attrKey")
+                .build();
+        final ThingCommand<?> retrieveAttributesCommand = RetrieveAttributes.of(getIdOrThrow(thing), dittoHeaders);
+
+        new TestKit(actorSystem) {{
+            final ActorRef underTest = createPersistenceActorFor(thing);
+
+            // create thing
+            final CreateThing createThing = CreateThing.of(thing, null, dittoHeadersV2);
+            underTest.tell(createThing, getRef());
+            expectMsgClass(CreateThingResponse.class);
+
+            // modify thing
+            final MetadataHeaders metadataHeaders = MetadataHeaders.newInstance();
+            metadataHeaders.add(
+                    MetadataHeader.of(MetadataHeaderKey.parse("attributes/attrKey/issuedBy"),
+                            JsonValue.of("the epic Ditto team"))
+            );
+
+            final DittoHeaders modifyHeaders = dittoHeaders.toBuilder()
+                    .putHeader(DittoHeaderDefinition.PUT_METADATA.getKey(), metadataHeaders.toJsonString())
+                    .build();
+            final ModifyThing modifyThing = ModifyThing.of(getIdOrThrow(thing), thing, null, modifyHeaders);
+            underTest.tell(modifyThing, getRef());
+            expectMsgClass(ModifyThingResponse.class);
+
+            // retrieve attributes with metadata
+            final Metadata expectedMetadata = Metadata.newBuilder()
+                    .set("attrKey", JsonObject.newBuilder()
+                            .set("issuedBy", "the epic Ditto team")
+                            .build())
+                    .build();
+            final DittoHeaders expectedHeaders = dittoHeaders.toBuilder()
+                    .putHeader(DittoHeaderDefinition.DITTO_METADATA.getKey(), expectedMetadata.toJsonString())
+                    .build();
+
+            underTest.tell(retrieveAttributesCommand, getRef());
+            expectMsgEquals(ETagTestUtils.retrieveAttributesResponse(getIdOrThrow(thing), THING_ATTRIBUTES,
+                    THING_ATTRIBUTES.toJson(retrieveAttributesCommand.getImplementedSchemaVersion()), expectedHeaders));
+        }};
+    }
+
+    @Test
+    public void retrieveThingWithGetMetadataWildcardHeader() {
+        final Thing thing = createThingV2WithRandomId();
+        final DittoHeaders dittoHeaders = dittoHeadersV2.toBuilder()
+                .putHeader(DittoHeaderDefinition.GET_METADATA.getKey(), "features/*/properties/*/unit,attributes/*/edited")
+                .build();
+        final ThingCommand<?> retrieveThingCommand = RetrieveThing.of(getIdOrThrow(thing), dittoHeaders);
+
+        new TestKit(actorSystem) {{
+            final ActorRef underTest = createPersistenceActorFor(thing);
+
+            // create thing
+            final CreateThing createThing = CreateThing.of(thing, null, dittoHeadersV2);
+            underTest.tell(createThing, getRef());
+            expectMsgClass(CreateThingResponse.class);
+
+            // modify thing
+            final MetadataHeaders metadataHeaders = MetadataHeaders.newInstance();
+            metadataHeaders.addAll(
+                    List.of(MetadataHeader.of(
+                                    MetadataHeaderKey.parse("features/featureId/properties/featureKey/unit"),
+                                    JsonValue.of("Quarks")),
+                            MetadataHeader.of(
+                                    MetadataHeaderKey.parse("attributes/attrKey/edited"),
+                                    JsonValue.of("2022-05-31 15:55:55")))
+            );
+
+            final DittoHeaders modifyHeaders = dittoHeaders.toBuilder()
+                    .putHeader(DittoHeaderDefinition.PUT_METADATA.getKey(), metadataHeaders.toJsonString())
+                    .build();
+            final ModifyThing modifyThing = ModifyThing.of(getIdOrThrow(thing), thing, null, modifyHeaders);
+            underTest.tell(modifyThing, getRef());
+            expectMsgClass(ModifyThingResponse.class);
+
+            // retrieve thing with metadata
+            final Thing thingExpected = ThingsModelFactory.newThingBuilder(thing)
+                    .setRevision(2L)
+                    .build();
+            final Metadata expectedMetadata = Metadata.newBuilder()
+                    .set("attributes", JsonObject.newBuilder()
+                            .set("attrKey", JsonObject.newBuilder()
+                                    .set("edited", "2022-05-31 15:55:55")
+                                    .build())
+                            .build())
+                    .set("features", JsonObject.newBuilder()
+                            .set("featureId", JsonObject.newBuilder()
+                                    .set("properties", JsonObject.newBuilder()
+                                            .set("featureKey", JsonObject.newBuilder()
+                                                    .set("unit", "Quarks")
+                                                    .build())
+                                            .build())
+                                    .build())
+                            .build())
+                    .build();
+            final DittoHeaders expectedHeaders = dittoHeaders.toBuilder()
+                    .putHeader(DittoHeaderDefinition.DITTO_METADATA.getKey(), expectedMetadata.toJsonString())
+                    .build();
+
+            underTest.tell(retrieveThingCommand, getRef());
+            expectMsgEquals(ETagTestUtils.retrieveThingResponse(thingExpected, null, expectedHeaders));
+        }};
     }
 
     private void assertPublishEvent(final ThingEvent<?> event) {

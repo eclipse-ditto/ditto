@@ -49,6 +49,8 @@ import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
+import org.eclipse.ditto.json.JsonParseOptions;
+import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 
 /**
@@ -359,6 +361,13 @@ public abstract class AbstractDittoHeaders implements DittoHeaders {
     public MetadataHeaders getMetadataHeadersToPut() {
         final String metadataHeaderValue = getOrDefault(DittoHeaderDefinition.PUT_METADATA.getKey(), "");
         return MetadataHeaders.parseMetadataHeaders(metadataHeaderValue);
+    }
+
+    @Override
+    public Set<JsonPointer> getMetadataFieldsToGet() {
+        final String metadataFieldSelector = getOrDefault(DittoHeaderDefinition.GET_METADATA.getKey(), "");
+        return JsonFactory.newFieldSelector(metadataFieldSelector,
+                JsonParseOptions.newBuilder().withoutUrlDecoding().build()).getPointers();
     }
 
     @Override
