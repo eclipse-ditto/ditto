@@ -13,6 +13,7 @@
 package org.eclipse.ditto.policies.enforcement;
 
 import java.time.Duration;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Consumer;
@@ -24,7 +25,6 @@ import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.base.model.exceptions.DittoInternalErrorException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
-import org.eclipse.ditto.base.model.namespaces.NamespaceReader;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
 import org.eclipse.ditto.internal.utils.akka.actors.AbstractActorWithStashWithTimers;
@@ -68,7 +68,6 @@ public abstract class AbstractEnforcerActor<I extends EntityId, S extends Signal
     protected final I entityId;
     protected final E enforcement;
 
-    @Nullable protected PolicyId policyIdForEnforcement;
     @Nullable protected PolicyEnforcer policyEnforcer;
 
     protected AbstractEnforcerActor(final I entityId, final E enforcement, final ActorRef pubSubMediator,
@@ -142,7 +141,7 @@ public abstract class AbstractEnforcerActor<I extends EntityId, S extends Signal
     protected Receive activeBehaviour() {
         return ReceiveBuilder.create()
                 .match(DistributedPubSubMediator.SubscribeAck.class, s -> log.debug("Got subscribeAck <{}>.", s))
-                .match(PolicyTag.class, pt -> pt.getEntityId().equals(policyIdForEnforcement),
+                .match(PolicyTag.class, this::matchesPolicy,
                         pt -> performPolicyEnforcerReload()
                 )
                 .match(PolicyTag.class, pt -> {
@@ -177,11 +176,7 @@ public abstract class AbstractEnforcerActor<I extends EntityId, S extends Signal
 
     private void reloadPolicyEnforcer(final Consumer<PolicyEnforcer> successConsumer) {
         providePolicyIdForEnforcement()
-                .thenCompose(policyId -> {
-                    this.policyIdForEnforcement =
-                            policyId; // policyId could be null, e.g. if entity is not yet existing
-                    return providePolicyEnforcer(policyId);
-                })
+                .thenCompose(this::providePolicyEnforcer)
                 .whenComplete((pEnf, throwable) -> {
                     if (null != throwable) {
                         policyEnforcer = null;
@@ -248,18 +243,29 @@ public abstract class AbstractEnforcerActor<I extends EntityId, S extends Signal
     private void invalidateCachedNamespaces(final InvalidateCachedNamespaces invalidate) {
         final ORSet<String> namespaces = invalidate.namespaces;
         logNamespaces("Invalidating", namespaces);
-        if (!namespaces.isEmpty() && null != policyIdForEnforcement &&
-                containsNamespaceOfEntityId(namespaces, policyIdForEnforcement)) {
+        if (containsRelevantNamespace(namespaces)) {
             log.info("Reloading policy enforcer because namespace was added to blocked namespaces.");
             performPolicyEnforcerReload();
         }
     }
 
-    private static boolean containsNamespaceOfEntityId(final ORSet<String> namespaces,
-            final EntityId entityId) {
-        return NamespaceReader.fromEntityId(entityId)
+    private boolean containsRelevantNamespace(final ORSet<String> namespaces) {
+        return getPolicyIdOfCachedEnforcer()
+                .map(PolicyId::getNamespace)
                 .map(namespaces::contains)
                 .orElse(false);
+    }
+
+    private boolean matchesPolicy(final PolicyTag policyTag) {
+        return getPolicyIdOfCachedEnforcer()
+                .map(policyTag.getEntityId()::equals)
+                .orElse(false);
+    }
+
+    protected Optional<PolicyId> getPolicyIdOfCachedEnforcer() {
+        return Optional.ofNullable(policyEnforcer)
+                .flatMap(PolicyEnforcer::getPolicy)
+                .flatMap(Policy::getEntityId);
     }
 
     /**
@@ -295,10 +301,10 @@ public abstract class AbstractEnforcerActor<I extends EntityId, S extends Signal
         final ActorRef self = getSelf();
         try {
             final CompletionStage<S> authorizedSignalStage;
-            if (null != policyEnforcer) {
-                authorizedSignalStage = enforcement.authorizeSignal(signal, policyEnforcer);
-            } else {
+            if (null == policyEnforcer) {
                 authorizedSignalStage = enforcement.authorizeSignalWithMissingEnforcer(signal);
+            } else {
+                authorizedSignalStage = enforcement.authorizeSignal(signal, policyEnforcer);
             }
 
             return authorizedSignalStage.handle((authorizedSignal, throwable) -> {
