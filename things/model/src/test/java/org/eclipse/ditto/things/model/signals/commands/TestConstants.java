@@ -56,6 +56,7 @@ import org.eclipse.ditto.things.model.signals.commands.exceptions.FeaturePropert
 import org.eclipse.ditto.things.model.signals.commands.exceptions.FeaturePropertyNotModifiableException;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.FeaturesNotAccessibleException;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.FeaturesNotModifiableException;
+import org.eclipse.ditto.things.model.signals.commands.exceptions.MetadataNotModifiableException;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.MissingThingIdsException;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.PolicyIdNotAccessibleException;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.PolicyIdNotAllowedException;
@@ -275,6 +276,12 @@ public final class TestConstants {
          */
         public static final ThingNotModifiableException THING_NOT_MODIFIABLE_EXCEPTION =
                 ThingNotModifiableException.newBuilder(THING_ID).build();
+
+        /**
+         * A known {@code MetadataNotModifiableException}.
+         */
+        public static final MetadataNotModifiableException METADATA_NOT_MODIFIABLE_EXCEPTION =
+                MetadataNotModifiableException.newBuilder().build();
 
         /**
          * A known {@code PolicyIdNotModifiableException}.
