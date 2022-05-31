@@ -34,21 +34,22 @@ import org.eclipse.ditto.connectivity.service.config.MqttConfig;
 import org.eclipse.ditto.connectivity.service.messaging.ChildActorNanny;
 import org.eclipse.ditto.connectivity.service.messaging.ConnectivityStatusResolver;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.logs.ConnectionLogger;
+import org.eclipse.ditto.connectivity.service.messaging.mqtt.MqttSpecificConfig;
+import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.client.AllSubscriptionsFailedException;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.client.GenericMqttClient;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.client.GenericMqttClientFactory;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.client.HiveMqttClientProperties;
-import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.client.NoMqttConnectionException;
-import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.message.connect.GenericMqttConnect;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.client.MqttClientConnectException;
-import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.consuming.MqttConsumerActor;
-import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.publishing.MqttPublisherActor;
-import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.client.AllSubscriptionsFailedException;
-import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.message.subscribe.GenericMqttSubAckStatus;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.client.MqttSubscribeException;
-import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.subscribing.MqttSubscriber;
+import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.client.NoMqttConnectionException;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.client.SomeSubscriptionsFailedException;
-import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.subscribing.SubscribeResult;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.client.SubscriptionStatus;
+import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.consuming.MqttConsumerActor;
+import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.message.connect.GenericMqttConnect;
+import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.message.subscribe.GenericMqttSubAckStatus;
+import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.publishing.MqttPublisherActor;
+import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.subscribing.MqttSubscriber;
+import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.subscribing.SubscribeResult;
 import org.eclipse.ditto.connectivity.service.messaging.tunnel.SshTunnelState;
 import org.eclipse.ditto.internal.utils.akka.ActorSystemResource;
 import org.junit.Before;
@@ -56,6 +57,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
+import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 
@@ -85,8 +87,9 @@ public final class ConnectionTesterTest {
     @Rule
     public final TestNameCorrelationId testNameCorrelationId = TestNameCorrelationId.newInstance();
 
+    @Mock private static MockedStatic<GenericMqttClientFactory> genericMqttClientFactory;
+
     @Mock private GenericMqttClient genericMqttClient;
-    @Mock private GenericMqttClientFactory genericMqttClientFactory;
     @Mock private Connection connection;
     @Mock private ConnectivityConfig connectivityConfig;
     @Mock private ConnectionLogger connectionLogger;
@@ -110,6 +113,7 @@ public final class ConnectionTesterTest {
         hiveMqttClientProperties = HiveMqttClientProperties.builder()
                 .withMqttConnection(connection)
                 .withConnectivityConfig(connectivityConfig)
+                .withMqttSpecificConfig(MqttSpecificConfig.fromConnection(connection, mqttConfig))
                 .withSshTunnelStateSupplier(SshTunnelState::disabled)
                 .withConnectionLogger(connectionLogger)
                 .withActorUuid(UUID.randomUUID())
@@ -118,31 +122,16 @@ public final class ConnectionTesterTest {
         Mockito.when(genericMqttClient.connect(Mockito.any(GenericMqttConnect.class)))
                 .thenReturn(CompletableFuture.completedFuture(null));
 
-        Mockito.when(genericMqttClientFactory.getGenericMqttClientForConnectionTesting(Mockito.any()))
+        genericMqttClientFactory.when(() -> GenericMqttClientFactory.getGenericMqttClientForConnectionTesting(Mockito.any()))
                 .thenReturn(genericMqttClient);
 
         childActorNanny = ChildActorNanny.newInstance(actorRefFactory, Mockito.mock(LoggingAdapter.class));
     }
 
     @Test
-    public void buildInstanceWithNullGenericMqttClientFactoryThrowsException() {
-        assertThatNullPointerException()
-                .isThrownBy(() -> ConnectionTester.builder()
-                        .withHiveMqttClientProperties(hiveMqttClientProperties)
-                        .withInboundMappingSink(inboundMappingSink)
-                        .withConnectivityStatusResolver(connectivityStatusResolver)
-                        .withChildActorNanny(childActorNanny)
-                        .withActorSystemProvider(actorSystemResource.getActorSystem())
-                        .build())
-                .withMessage("The genericMqttClientFactory must not be null!")
-                .withNoCause();
-    }
-
-    @Test
     public void buildInstanceWithNullHiveMqttClientPropertiesThrowsException() {
         assertThatNullPointerException()
                 .isThrownBy(() -> ConnectionTester.builder()
-                        .withGenericMqttClientFactory(genericMqttClientFactory)
                         .withInboundMappingSink(inboundMappingSink)
                         .withConnectivityStatusResolver(connectivityStatusResolver)
                         .withChildActorNanny(childActorNanny)
@@ -156,7 +145,6 @@ public final class ConnectionTesterTest {
     public void buildInstanceWithNullInboundMappingSinkThrowsException() {
         assertThatNullPointerException()
                 .isThrownBy(() -> ConnectionTester.builder()
-                        .withGenericMqttClientFactory(genericMqttClientFactory)
                         .withHiveMqttClientProperties(hiveMqttClientProperties)
                         .withConnectivityStatusResolver(connectivityStatusResolver)
                         .withChildActorNanny(childActorNanny)
@@ -170,7 +158,6 @@ public final class ConnectionTesterTest {
     public void buildInstanceWithNullConnectivityStatusResolverThrowsException() {
         assertThatNullPointerException()
                 .isThrownBy(() -> ConnectionTester.builder()
-                        .withGenericMqttClientFactory(genericMqttClientFactory)
                         .withHiveMqttClientProperties(hiveMqttClientProperties)
                         .withInboundMappingSink(inboundMappingSink)
                         .withChildActorNanny(childActorNanny)
@@ -184,7 +171,6 @@ public final class ConnectionTesterTest {
     public void buildInstanceWithNullChildActorNannyThrowsException() {
         assertThatNullPointerException()
                 .isThrownBy(() -> ConnectionTester.builder()
-                        .withGenericMqttClientFactory(genericMqttClientFactory)
                         .withHiveMqttClientProperties(hiveMqttClientProperties)
                         .withInboundMappingSink(inboundMappingSink)
                         .withConnectivityStatusResolver(connectivityStatusResolver)
@@ -198,7 +184,6 @@ public final class ConnectionTesterTest {
     public void buildInstanceWithNullSystemProviderThrowsException() {
         assertThatNullPointerException()
                 .isThrownBy(() -> ConnectionTester.builder()
-                        .withGenericMqttClientFactory(genericMqttClientFactory)
                         .withHiveMqttClientProperties(hiveMqttClientProperties)
                         .withInboundMappingSink(inboundMappingSink)
                         .withConnectivityStatusResolver(connectivityStatusResolver)
@@ -211,10 +196,9 @@ public final class ConnectionTesterTest {
     @Test
     public void testConnectionWhenGettingGenericMqttClientFailsReturnsFailureStatus() {
         final var error = new IllegalArgumentException("Some argument is invalid.");
-        Mockito.when(genericMqttClientFactory.getGenericMqttClientForConnectionTesting(Mockito.any())).thenThrow(error);
+        Mockito.when(GenericMqttClientFactory.getGenericMqttClientForConnectionTesting(Mockito.any())).thenThrow(error);
 
         final var underTest = ConnectionTester.builder()
-                .withGenericMqttClientFactory(genericMqttClientFactory)
                 .withHiveMqttClientProperties(hiveMqttClientProperties)
                 .withInboundMappingSink(inboundMappingSink)
                 .withConnectivityStatusResolver(connectivityStatusResolver)
@@ -251,7 +235,6 @@ public final class ConnectionTesterTest {
 
     private ConnectionTester getDefaultConnectionTester() {
         return ConnectionTester.builder()
-                .withGenericMqttClientFactory(genericMqttClientFactory)
                 .withHiveMqttClientProperties(hiveMqttClientProperties)
                 .withInboundMappingSink(inboundMappingSink)
                 .withConnectivityStatusResolver(connectivityStatusResolver)

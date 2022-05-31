@@ -26,6 +26,7 @@ import org.eclipse.ditto.connectivity.service.config.ConnectionConfig;
 import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.config.MqttConfig;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.logs.ConnectionLogger;
+import org.eclipse.ditto.connectivity.service.messaging.mqtt.MqttSpecificConfig;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -84,6 +85,7 @@ public final class MqttSubscribingClientIdentifierFactoryTest {
         return HiveMqttClientProperties.builder()
                 .withMqttConnection(connection)
                 .withConnectivityConfig(connectivityConfig)
+                .withMqttSpecificConfig(MqttSpecificConfig.fromConnection(connection, mqttConfig))
                 .withSshTunnelStateSupplier(() -> null)
                 .withConnectionLogger(connectionLogger)
                 .withActorUuid(ACTOR_UUID)

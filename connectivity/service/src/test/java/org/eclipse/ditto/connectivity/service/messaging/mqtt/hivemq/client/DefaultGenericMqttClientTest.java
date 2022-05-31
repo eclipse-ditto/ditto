@@ -271,6 +271,60 @@ public final class DefaultGenericMqttClientTest {
     }
 
     @Test
+    public void disconnectClientRoleWithNullThrowsException() {
+        final var underTest =
+                DefaultGenericMqttClient.newInstance(subscribingClient, publishingClient, hiveMqttClientProperties);
+
+        Assertions.assertThatNullPointerException()
+                .isThrownBy(() -> underTest.disconnectClientRole(null))
+                .withMessage("The clientRole must not be null!")
+                .withNoCause();
+    }
+
+    @Test
+    public void disconnectClientRoleWithConsumerRoleDisconnectsOnlySubscribingClient() {
+        Mockito.when(subscribingClient.disconnect()).thenReturn(CompletableFuture.completedFuture(null));
+        final var underTest =
+                DefaultGenericMqttClient.newInstance(subscribingClient, publishingClient, hiveMqttClientProperties);
+
+        final var disconnectFuture = underTest.disconnectClientRole(ClientRole.CONSUMER);
+
+        assertThat(disconnectFuture).succeedsWithin(Duration.ofSeconds(1L));
+
+        Mockito.verify(subscribingClient).disconnect();
+        Mockito.verify(publishingClient, Mockito.never()).disconnect();
+    }
+
+    @Test
+    public void disconnectClientRoleWithPublisherRoleDisconnectsOnlyPublishingClient() {
+        Mockito.when(publishingClient.disconnect()).thenReturn(CompletableFuture.completedFuture(null));
+        final var underTest =
+                DefaultGenericMqttClient.newInstance(subscribingClient, publishingClient, hiveMqttClientProperties);
+
+        final var disconnectFuture = underTest.disconnectClientRole(ClientRole.PUBLISHER);
+
+        assertThat(disconnectFuture).succeedsWithin(Duration.ofSeconds(1L));
+
+        Mockito.verify(subscribingClient, Mockito.never()).disconnect();
+        Mockito.verify(publishingClient).disconnect();
+    }
+
+    @Test
+    public void disconnectClientRoleWithConsumerPublisherRoleDisconnectsPublishingClientAndSubscribingClient() {
+        Mockito.when(subscribingClient.disconnect()).thenReturn(CompletableFuture.completedFuture(null));
+        Mockito.when(publishingClient.disconnect()).thenReturn(CompletableFuture.completedFuture(null));
+        final var underTest =
+                DefaultGenericMqttClient.newInstance(subscribingClient, publishingClient, hiveMqttClientProperties);
+
+        final var disconnectFuture = underTest.disconnectClientRole(ClientRole.CONSUMER_PUBLISHER);
+
+        assertThat(disconnectFuture).succeedsWithin(Duration.ofSeconds(1L));
+
+        Mockito.verify(subscribingClient).disconnect();
+        Mockito.verify(publishingClient).disconnect();
+    }
+
+    @Test
     public void subscribeCallsSubscribeOnSubscribingClient() {
         final var genericMqttSubscribe = GenericMqttSubscribe.of(
                 Set.of(GenericMqttSubscription.newInstance(MqttTopicFilter.of("source/status"), MqttQos.AT_LEAST_ONCE))

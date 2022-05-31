@@ -456,7 +456,7 @@ public final class MqttConsumerActorTest {
                 ActorRef.noSender()
         );
 
-        fakeMqttClientActor.expectMsg(MqttClientActorControl.RECONNECT_CONSUMER_CLIENT);
+        fakeMqttClientActor.expectMsgClass(ReconnectConsumerClient.class);
 
         underTest.tell(GracefulStop.INSTANCE, ActorRef.noSender());
 

@@ -71,7 +71,8 @@ public final class MqttSpecificConfigTest {
         assertThat(specificConfig.separatePublisherClient()).isFalse();
         assertThat(specificConfig.getMqttClientId()).contains("consumer-client-id");
         assertThat(specificConfig.getMqttPublisherId()).contains("publisher-client-id");
-        assertThat(specificConfig.getReconnectForDeliveryDelay()).isEqualTo(Duration.ofMinutes(4L));
+        assertThat(specificConfig.getReconnectForDeliveryDelayNg())
+                .isEqualTo(ReconnectDelay.ofOrLowerBoundary(Duration.ofMinutes(4L)));
         assertThat(specificConfig.getKeepAliveIntervalOrDefault())
                 .isEqualTo(KeepAliveInterval.of(Duration.ofSeconds(30L)));
 
@@ -90,7 +91,8 @@ public final class MqttSpecificConfigTest {
         assertThat(specificConfig.separatePublisherClient()).isFalse();
         assertThat(specificConfig.getMqttClientId()).isEmpty();
         assertThat(specificConfig.getMqttPublisherId()).isEmpty();
-        assertThat(specificConfig.getReconnectForDeliveryDelay()).isEqualTo(Duration.ofSeconds(2L));
+        assertThat(specificConfig.getReconnectForDeliveryDelayNg())
+                .isEqualTo(ReconnectDelay.ofOrLowerBoundary(Duration.ofSeconds(2L)));
         assertThat(specificConfig.getKeepAliveIntervalOrDefault()).isEqualTo(KeepAliveInterval.defaultKeepAlive());
         assertThat(specificConfig.getMqttLastWillTopic()).isEmpty();
         assertThat(specificConfig.getLastWillQosOrThrow()).isEqualTo(MqttSpecificConfig.DEFAULT_LAST_WILL_QOS);

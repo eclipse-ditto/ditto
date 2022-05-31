@@ -109,8 +109,18 @@ public final class MqttSpecificConfig {
     /**
      * @return how long to wait before reconnect a consumer client for redelivery.
      */
+    // TODO jff delete as soon as unused.
     public Duration getReconnectForDeliveryDelay() {
         return specificConfig.getDuration(RECONNECT_FOR_REDELIVERY_DELAY);
+    }
+
+    /**
+     * Returns the delay how long to wait before reconnecting a consumer client for redelivery.
+     *
+     * @return the reconnect delay.
+     */
+    public ReconnectDelay getReconnectForDeliveryDelayNg() {
+        return ReconnectDelay.ofOrLowerBoundary(specificConfig.getDuration(RECONNECT_FOR_REDELIVERY_DELAY));
     }
 
     /**

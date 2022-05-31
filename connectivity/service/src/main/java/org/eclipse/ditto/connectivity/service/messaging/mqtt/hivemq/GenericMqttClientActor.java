@@ -18,19 +18,23 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.base.model.common.ConditionChecker;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.connectivity.api.BaseClientState;
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.signals.commands.modify.TestConnection;
 import org.eclipse.ditto.connectivity.service.config.MqttConfig;
 import org.eclipse.ditto.connectivity.service.messaging.BaseClientActor;
+import org.eclipse.ditto.connectivity.service.messaging.BaseClientData;
 import org.eclipse.ditto.connectivity.service.messaging.backoff.RetryTimeoutStrategy;
 import org.eclipse.ditto.connectivity.service.messaging.internal.ClientConnected;
 import org.eclipse.ditto.connectivity.service.messaging.internal.ClientDisconnected;
+import org.eclipse.ditto.connectivity.service.messaging.mqtt.MqttSpecificConfig;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.client.ClientRole;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.client.GenericMqttClient;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.client.GenericMqttClientDisconnectedListener;
@@ -38,6 +42,7 @@ import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.client.Gener
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.client.HiveMqttClientProperties;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.client.NoMqttConnectionException;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.consuming.MqttConsumerActor;
+import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.consuming.ReconnectConsumerClient;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.publishing.MqttPublisherActor;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.subscribing.MqttSubscriber;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.subscribing.SubscribeResult;
@@ -54,6 +59,7 @@ import akka.NotUsed;
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.Status;
+import akka.japi.pf.FSMStateFunctionBuilder;
 import akka.pattern.Patterns;
 import akka.stream.javadsl.Keep;
 import akka.stream.javadsl.Sink;
@@ -65,12 +71,13 @@ import scala.util.Try;
 /**
  * Actor for handling connection to an MQTT broker for protocol versions 3 or 5.
  */
-final class GenericMqttClientActor extends BaseClientActor {
+public final class GenericMqttClientActor extends BaseClientActor {
 
     private final MqttConfig mqttConfig;
+    private final MqttSpecificConfig mqttSpecificConfig;
 
-    private final GenericMqttClientFactory genericMqttClientFactory;
     @Nullable private GenericMqttClient genericMqttClient;
+    private final AtomicBoolean automaticReconnect;
     @Nullable private ActorRef publishingActorRef;
     private final List<ActorRef> mqttConsumerActorRefs;
 
@@ -79,8 +86,7 @@ final class GenericMqttClientActor extends BaseClientActor {
             final ActorRef proxyActor,
             final ActorRef connectionActor,
             final DittoHeaders dittoHeaders,
-            final Config connectivityConfigOverwrites,
-            final GenericMqttClientFactory genericMqttClientFactory) {
+            final Config connectivityConfigOverwrites) {
 
         super(connection, proxyActor, connectionActor, dittoHeaders, connectivityConfigOverwrites);
 
@@ -88,8 +94,10 @@ final class GenericMqttClientActor extends BaseClientActor {
         final var connectionConfig = connectivityConfig.getConnectionConfig();
         mqttConfig = connectionConfig.getMqttConfig();
 
-        this.genericMqttClientFactory = genericMqttClientFactory;
+        mqttSpecificConfig = MqttSpecificConfig.fromConnection(connection, mqttConfig);
+
         genericMqttClient = null;
+        automaticReconnect = new AtomicBoolean(true);
         publishingActorRef = null;
         mqttConsumerActorRefs = new ArrayList<>();
     }
@@ -109,16 +117,70 @@ final class GenericMqttClientActor extends BaseClientActor {
             final ActorRef proxyActor,
             final ActorRef connectionActor,
             final DittoHeaders dittoHeaders,
-            final Config connectivityConfigOverwrites,
-            final GenericMqttClientFactory genericMqttClientFactory) {
+            final Config connectivityConfigOverwrites) {
 
         return Props.create(GenericMqttClientActor.class,
                 ConditionChecker.checkNotNull(mqttConnection, "mqttConnection"),
                 ConditionChecker.checkNotNull(proxyActor, "proxyActor"),
                 ConditionChecker.checkNotNull(connectionActor, "connectionActor"),
                 ConditionChecker.checkNotNull(dittoHeaders, "dittoHeaders"),
-                ConditionChecker.checkNotNull(connectivityConfigOverwrites, "connectivityConfigOverwrites"),
-                ConditionChecker.checkNotNull(genericMqttClientFactory, "genericMqttClientFactory"));
+                ConditionChecker.checkNotNull(connectivityConfigOverwrites, "connectivityConfigOverwrites"));
+    }
+
+    @Override
+    protected FSMStateFunctionBuilder<BaseClientState, BaseClientData> inConnectingState() {
+        final FSMStateFunctionBuilder<BaseClientState, BaseClientData> result;
+        if (isReconnectForRedelivery()) {
+            result = super.inConnectingState()
+                    .event(ReconnectConsumerClient.class, this::scheduleConsumerClientReconnect)
+                    .eventEquals(Control.RECONNECT_CONSUMER_CLIENT, this::reconnectConsumerClient);
+        } else {
+            result = super.inConnectingState();
+        }
+        return result;
+    }
+
+    private boolean isReconnectForRedelivery() {
+        return mqttSpecificConfig.reconnectForRedelivery();
+    }
+
+    private State<BaseClientState, BaseClientData> scheduleConsumerClientReconnect(
+            final ReconnectConsumerClient reconnectConsumerClient,
+            final BaseClientData baseClientData
+    ) {
+        final var trigger = Control.RECONNECT_CONSUMER_CLIENT;
+        if (isTimerActive(trigger.name())) {
+            logger.debug("Timer <{}> is active, thus not scheduling reconnecting consumer client again.",
+                    trigger.name());
+        } else {
+            final var reconnectForRedeliveryDelay = reconnectConsumerClient.getReconnectDelay();
+            logger.info("Scheduling reconnecting of consumer client in <{}>.", reconnectForRedeliveryDelay);
+            startSingleTimer(trigger.name(), trigger, reconnectForRedeliveryDelay.getDuration());
+        }
+        return stay();
+    }
+
+    private State<BaseClientState, BaseClientData> reconnectConsumerClient(
+            final Control control,
+            final BaseClientData baseClientData) {
+        if (null != genericMqttClient) {
+            enableAutomaticReconnect();
+            genericMqttClient.disconnectClientRole(ClientRole.CONSUMER);
+        }
+        return stay();
+    }
+
+    @Override
+    protected FSMStateFunctionBuilder<BaseClientState, BaseClientData> inConnectedState() {
+        final FSMStateFunctionBuilder<BaseClientState, BaseClientData> result;
+        if (isReconnectForRedelivery()) {
+            result = super.inConnectedState()
+                    .event(ReconnectConsumerClient.class, this::scheduleConsumerClientReconnect)
+                    .eventEquals(Control.RECONNECT_CONSUMER_CLIENT, this::reconnectConsumerClient);
+        } else {
+            result = super.inConnectedState();
+        }
+        return result;
     }
 
     @Override
@@ -146,6 +208,7 @@ final class GenericMqttClientActor extends BaseClientActor {
             return new Success<>(HiveMqttClientProperties.builder()
                     .withMqttConnection(connection)
                     .withConnectivityConfig(connectivityConfig())
+                    .withMqttSpecificConfig(mqttSpecificConfig)
                     .withSshTunnelStateSupplier(this::getSshTunnelState)
                     .withConnectionLogger(connectionLogger)
                     .withActorUuid(actorUuid)
@@ -159,7 +222,6 @@ final class GenericMqttClientActor extends BaseClientActor {
             final TestConnection testConnectionCmd) {
 
         return ConnectionTester.builder()
-                .withGenericMqttClientFactory(genericMqttClientFactory)
                 .withHiveMqttClientProperties(hiveMqttClientProperties)
                 .withInboundMappingSink(getInboundMappingSink())
                 .withConnectivityStatusResolver(connectivityStatusResolver)
@@ -174,6 +236,7 @@ final class GenericMqttClientActor extends BaseClientActor {
         mqttConsumerActorRefs.forEach(this::stopChildActor);
         stopChildActor(publishingActorRef);
         if (null != genericMqttClient) {
+            disableAutomaticReconnect();
             genericMqttClient.disconnect();
         }
 
@@ -182,12 +245,17 @@ final class GenericMqttClientActor extends BaseClientActor {
         mqttConsumerActorRefs.clear();
     }
 
+    private void disableAutomaticReconnect() {
+        automaticReconnect.set(false);
+    }
+
     @Override
     protected void doConnectClient(final Connection connection, @Nullable final ActorRef origin) {
         if (null == genericMqttClient) {
-            genericMqttClient = genericMqttClientFactory.getProductiveGenericMqttClient(
+            genericMqttClient = GenericMqttClientFactory.getProductiveGenericMqttClient(
                     getHiveMqttClientPropertiesOrThrow(connection)
             );
+            enableAutomaticReconnect();
         }
         Patterns.pipe(
                 genericMqttClient.connect().thenApply(aVoid -> MqttClientConnected.of(origin)),
@@ -200,6 +268,7 @@ final class GenericMqttClientActor extends BaseClientActor {
             return HiveMqttClientProperties.builder()
                     .withMqttConnection(connection)
                     .withConnectivityConfig(connectivityConfig())
+                    .withMqttSpecificConfig(mqttSpecificConfig)
                     .withSshTunnelStateSupplier(this::getSshTunnelState)
                     .withConnectionLogger(connectionLogger)
                     .withActorUuid(actorUuid)
@@ -248,7 +317,7 @@ final class GenericMqttClientActor extends BaseClientActor {
                 mqttClientReconnector.reconnect(false);
             } else {
                 final var mqttDisconnectSource = context.getSource();
-                final var reconnect = connection().isFailoverEnabled();
+                final var reconnect = isReconnect();
                 final var reconnectDelayMillis = getReconnectDelayMillis(retryTimeoutStrategy, mqttDisconnectSource);
                 logger.info("Client <{}> disconnected by <{}>.", clientId, mqttDisconnectSource);
                 if (reconnect) {
@@ -274,6 +343,11 @@ final class GenericMqttClientActor extends BaseClientActor {
         return MqttClientState.CONNECTING == mqttClientConfig.getState();
     }
 
+    private boolean isReconnect() {
+        final var connection = connection();
+        return connection.isFailoverEnabled() && automaticReconnect.get();
+    }
+
     private long getReconnectDelayMillis(final RetryTimeoutStrategy retryTimeoutStrategy,
             final MqttDisconnectSource mqttDisconnectSource) {
 
@@ -289,6 +363,10 @@ final class GenericMqttClientActor extends BaseClientActor {
         return result;
     }
 
+    private void enableAutomaticReconnect() {
+        automaticReconnect.set(true);
+    }
+
     private ExecutionContextExecutor getContextDispatcher() {
         final var actorContext = getContext();
         return actorContext.getDispatcher();
@@ -300,6 +378,7 @@ final class GenericMqttClientActor extends BaseClientActor {
             final boolean shutdownAfterDisconnect) {
 
         if (null != genericMqttClient) {
+            disableAutomaticReconnect();
             Patterns.pipe(
                     genericMqttClient.disconnect()
                             .thenApply(aVoid -> ClientDisconnected.of(origin, shutdownAfterDisconnect)),
@@ -417,9 +496,16 @@ final class GenericMqttClientActor extends BaseClientActor {
     public void postStop() {
         logger.info("Actor stopped, stopping clients.");
         if (null != genericMqttClient) {
+            disableAutomaticReconnect();
             genericMqttClient.disconnect();
         }
         super.postStop();
+    }
+
+    private enum Control {
+
+        RECONNECT_CONSUMER_CLIENT;
+
     }
 
 }

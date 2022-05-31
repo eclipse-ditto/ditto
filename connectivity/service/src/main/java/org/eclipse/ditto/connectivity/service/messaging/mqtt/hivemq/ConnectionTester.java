@@ -31,18 +31,18 @@ import javax.annotation.concurrent.NotThreadSafe;
 import org.eclipse.ditto.connectivity.service.messaging.ChildActorNanny;
 import org.eclipse.ditto.connectivity.service.messaging.ConnectivityStatusResolver;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.KeepAliveInterval;
+import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.client.AllSubscriptionsFailedException;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.client.GenericMqttClient;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.client.GenericMqttClientFactory;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.client.HiveMqttClientProperties;
+import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.client.MqttSubscribeException;
+import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.client.SomeSubscriptionsFailedException;
+import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.client.SubscriptionStatus;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.consuming.MqttConsumerActor;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.message.connect.GenericMqttConnect;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.publishing.MqttPublisherActor;
-import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.client.AllSubscriptionsFailedException;
-import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.client.MqttSubscribeException;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.subscribing.MqttSubscriber;
-import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.client.SomeSubscriptionsFailedException;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.subscribing.SubscribeResult;
-import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.client.SubscriptionStatus;
 import org.eclipse.ditto.connectivity.service.util.ConnectivityMdcEntryKey;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLogger;
@@ -61,7 +61,6 @@ import akka.stream.javadsl.Sink;
 @NotThreadSafe
 final class ConnectionTester {
 
-    private final GenericMqttClientFactory genericMqttClientFactory;
     private final HiveMqttClientProperties hiveMqttClientProperties;
     private final Sink<Object, NotUsed> inboundMappingSink;
     private final ConnectivityStatusResolver connectivityStatusResolver;
@@ -70,7 +69,6 @@ final class ConnectionTester {
     private final ThreadSafeDittoLogger logger;
 
     private ConnectionTester(final Builder builder) {
-        genericMqttClientFactory = checkNotNull(builder.genericMqttClientFactory, "genericMqttClientFactory");
         hiveMqttClientProperties = checkNotNull(builder.hiveMqttClientProperties, "hiveMqttClientProperties");
         inboundMappingSink = checkNotNull(builder.inboundMappingSink, "inboundMappingSink");
         connectivityStatusResolver = checkNotNull(builder.connectivityStatusResolver, "connectivityStatusResolver");
@@ -110,7 +108,7 @@ final class ConnectionTester {
     private CompletionStage<GenericMqttClient> tryToGetGenericMqttClient() {
         try {
             return CompletableFuture.completedFuture(
-                    genericMqttClientFactory.getGenericMqttClientForConnectionTesting(hiveMqttClientProperties)
+                    GenericMqttClientFactory.getGenericMqttClientForConnectionTesting(hiveMqttClientProperties)
             );
         } catch (final Exception e) {
             return CompletableFuture.failedFuture(e);
@@ -263,7 +261,6 @@ final class ConnectionTester {
     @NotThreadSafe
     static final class Builder {
 
-        private GenericMqttClientFactory genericMqttClientFactory;
         private HiveMqttClientProperties hiveMqttClientProperties;
         private Sink<Object, NotUsed> inboundMappingSink;
         private ConnectivityStatusResolver connectivityStatusResolver;
@@ -278,13 +275,6 @@ final class ConnectionTester {
             childActorNanny = null;
             systemProvider = null;
             correlationId = null;
-        }
-
-        Builder withGenericMqttClientFactory(
-                final GenericMqttClientFactory genericMqttClientFactory
-        ) {
-            this.genericMqttClientFactory = checkNotNull(genericMqttClientFactory, "genericMqttClientFactory");
-            return this;
         }
 
         Builder withHiveMqttClientProperties(final HiveMqttClientProperties hiveMqttClientProperties) {

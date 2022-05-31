@@ -36,6 +36,7 @@ import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.config.MqttConfig;
 import org.eclipse.ditto.connectivity.service.messaging.internal.ssl.DittoTrustManagerFactory;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.logs.ConnectionLogger;
+import org.eclipse.ditto.connectivity.service.messaging.mqtt.MqttSpecificConfig;
 import org.eclipse.ditto.connectivity.service.messaging.tunnel.SshTunnelState;
 import org.junit.Before;
 import org.junit.Rule;
@@ -69,6 +70,7 @@ public final class HiveMqttClientFactoryTest {
     public final JUnitSoftAssertions softly = new JUnitSoftAssertions();
 
     @Mock private Connection mqttConnection;
+    @Mock private MqttConfig mqttConfig;
     @Mock private ConnectivityConfig connectivityConfig;
     @Mock private Supplier<SshTunnelState> sshTunnelStateSupplier;
     @Mock private ConnectionLogger connectionLogger;
@@ -83,8 +85,8 @@ public final class HiveMqttClientFactoryTest {
         Mockito.when(mqttConnection.getUsername()).thenReturn(Optional.of(USERNAME));
         Mockito.when(mqttConnection.getPassword()).thenReturn(Optional.of(PASSWORD));
 
-        final var mqttConfig = Mockito.mock(MqttConfig.class);
         Mockito.when(mqttConfig.getEventLoopThreads()).thenReturn(EVENT_LOOP_THREAD_NUMBER);
+
         final var connectionConfig = Mockito.mock(ConnectionConfig.class);
         Mockito.when(connectionConfig.getMqttConfig()).thenReturn(mqttConfig);
         Mockito.when(connectivityConfig.getConnectionConfig()).thenReturn(connectionConfig);
@@ -136,6 +138,7 @@ public final class HiveMqttClientFactoryTest {
         final var hiveMqttClientProperties = HiveMqttClientProperties.builder()
                 .withMqttConnection(mqttConnection)
                 .withConnectivityConfig(connectivityConfig)
+                .withMqttSpecificConfig(MqttSpecificConfig.fromConnection(mqttConnection, mqttConfig))
                 .withSshTunnelStateSupplier(sshTunnelStateSupplier)
                 .withConnectionLogger(connectionLogger)
                 .withActorUuid(ACTOR_UUID)
@@ -199,6 +202,7 @@ public final class HiveMqttClientFactoryTest {
         final var hiveMqttClientProperties = HiveMqttClientProperties.builder()
                 .withMqttConnection(mqttConnection)
                 .withConnectivityConfig(connectivityConfig)
+                .withMqttSpecificConfig(MqttSpecificConfig.fromConnection(mqttConnection, mqttConfig))
                 .withSshTunnelStateSupplier(sshTunnelStateSupplier)
                 .withConnectionLogger(connectionLogger)
                 .withActorUuid(ACTOR_UUID)
@@ -236,6 +240,7 @@ public final class HiveMqttClientFactoryTest {
         final var hiveMqttClientProperties = HiveMqttClientProperties.builder()
                 .withMqttConnection(mqttConnection)
                 .withConnectivityConfig(connectivityConfig)
+                .withMqttSpecificConfig(MqttSpecificConfig.fromConnection(mqttConnection, mqttConfig))
                 .withSshTunnelStateSupplier(sshTunnelStateSupplier)
                 .withConnectionLogger(connectionLogger)
                 .withActorUuid(ACTOR_UUID)
@@ -279,6 +284,7 @@ public final class HiveMqttClientFactoryTest {
         final var hiveMqttClientProperties = HiveMqttClientProperties.builder()
                 .withMqttConnection(mqttConnection)
                 .withConnectivityConfig(connectivityConfig)
+                .withMqttSpecificConfig(MqttSpecificConfig.fromConnection(mqttConnection, mqttConfig))
                 .withSshTunnelStateSupplier(sshTunnelStateSupplier)
                 .withConnectionLogger(connectionLogger)
                 .withActorUuid(ACTOR_UUID)
@@ -342,6 +348,7 @@ public final class HiveMqttClientFactoryTest {
         final var hiveMqttClientProperties = HiveMqttClientProperties.builder()
                 .withMqttConnection(mqttConnection)
                 .withConnectivityConfig(connectivityConfig)
+                .withMqttSpecificConfig(MqttSpecificConfig.fromConnection(mqttConnection, mqttConfig))
                 .withSshTunnelStateSupplier(sshTunnelStateSupplier)
                 .withConnectionLogger(connectionLogger)
                 .withActorUuid(ACTOR_UUID)
@@ -379,6 +386,7 @@ public final class HiveMqttClientFactoryTest {
         final var hiveMqttClientProperties = HiveMqttClientProperties.builder()
                 .withMqttConnection(mqttConnection)
                 .withConnectivityConfig(connectivityConfig)
+                .withMqttSpecificConfig(MqttSpecificConfig.fromConnection(mqttConnection, mqttConfig))
                 .withSshTunnelStateSupplier(sshTunnelStateSupplier)
                 .withConnectionLogger(connectionLogger)
                 .withActorUuid(ACTOR_UUID)

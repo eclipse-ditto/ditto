@@ -46,7 +46,7 @@ public final class HiveMqttClientProperties {
         mqttConnection = builder.mqttConnection;
         connectivityConfig = builder.connectivityConfig;
         mqttConfig = connectivityConfig.getConnectionConfig().getMqttConfig();
-        mqttSpecificConfig = MqttSpecificConfig.fromConnection(mqttConnection, mqttConfig);
+        mqttSpecificConfig = builder.mqttSpecificConfig;
         sshTunnelStateSupplier = builder.sshTunnelStateSupplier;
         connectionLogger = builder.connectionLogger;
         mqttClientConnectedListener = builder.mqttClientConnectedListener;
@@ -118,6 +118,7 @@ public final class HiveMqttClientProperties {
 
     private static final class Builder implements HiveMqttClientPropertiesStepBuilder.MqttConnectionStep,
             HiveMqttClientPropertiesStepBuilder.ConnectivityConfigStep,
+            HiveMqttClientPropertiesStepBuilder.MqttSpecificConfigStep,
             HiveMqttClientPropertiesStepBuilder.SshTunnelStateSupplierStep,
             HiveMqttClientPropertiesStepBuilder.ConnectionLoggerStep,
             HiveMqttClientPropertiesStepBuilder.ActorUuidStep,
@@ -125,6 +126,7 @@ public final class HiveMqttClientProperties {
 
         private Connection mqttConnection;
         private ConnectivityConfig connectivityConfig;
+        private MqttSpecificConfig mqttSpecificConfig;
         private Supplier<SshTunnelState> sshTunnelStateSupplier;
         private ConnectionLogger connectionLogger;
         private GenericMqttClientConnectedListener mqttClientConnectedListener;
@@ -134,6 +136,7 @@ public final class HiveMqttClientProperties {
         private Builder() {
             mqttConnection = null;
             connectivityConfig = null;
+            mqttSpecificConfig = null;
             sshTunnelStateSupplier = null;
             connectionLogger = null;
             mqttClientConnectedListener = (context, clientRole) -> {/* Do nothing.*/};
@@ -151,10 +154,18 @@ public final class HiveMqttClientProperties {
         }
 
         @Override
-        public HiveMqttClientPropertiesStepBuilder.SshTunnelStateSupplierStep withConnectivityConfig(
+        public HiveMqttClientPropertiesStepBuilder.MqttSpecificConfigStep withConnectivityConfig(
                 final ConnectivityConfig connectivityConfig
         ) {
             this.connectivityConfig = checkNotNull(connectivityConfig, "connectivityConfig");
+            return this;
+        }
+
+        @Override
+        public HiveMqttClientPropertiesStepBuilder.SshTunnelStateSupplierStep withMqttSpecificConfig(
+                final MqttSpecificConfig mqttSpecificConfig
+        ) {
+            this.mqttSpecificConfig = checkNotNull(mqttSpecificConfig, "mqttSpecificConfig");
             return this;
         }
 

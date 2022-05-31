@@ -120,7 +120,17 @@ final class DefaultGenericMqttClient implements GenericMqttClient {
 
     @Override
     public CompletionStage<Void> disconnect() {
-        return CompletableFuture.allOf(disconnectPublishingClient(), disconnectSubscribingClient());
+        return disconnectClientRole(ClientRole.CONSUMER_PUBLISHER);
+    }
+
+    @Override
+    public CompletionStage<Void> disconnectClientRole(final ClientRole clientRole) {
+        return switch (checkNotNull(clientRole, "clientRole")) {
+            case CONSUMER -> disconnectSubscribingClient();
+            case PUBLISHER -> disconnectPublishingClient();
+            case CONSUMER_PUBLISHER ->
+                    CompletableFuture.allOf(disconnectPublishingClient(), disconnectSubscribingClient());
+        };
     }
 
     private CompletableFuture<Void> disconnectPublishingClient() {

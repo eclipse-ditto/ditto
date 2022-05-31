@@ -39,4 +39,22 @@ public interface GenericMqttClient
      */
     CompletionStage<Void> connect();
 
+    /**
+     * Disconnects the specified role of this client.
+     * Based on configuration this may trigger an automatic reconnect of that role.
+     * <p>
+     * It might happen, that more roles than the specified one will be disconnected, for example, if configuration
+     * states that no separate publisher client should be used because in this case consuming and publishing is
+     * performed by the <em>same</em> HiveMQ MQTT client.
+     *
+     * @param clientRole the role of the client to be disconnected.
+     * @return a CompletionStage which
+     * <ul>
+     *     <li>completes when the client role was successfully disconnected or</li>
+     *     <li>completes exceptionally if the client role did not disconnect gracefully</li>
+     * </ul>
+     * @throws NullPointerException if {@code clientRole} is {@code null}.
+     */
+    CompletionStage<Void> disconnectClientRole(ClientRole clientRole);
+
 }

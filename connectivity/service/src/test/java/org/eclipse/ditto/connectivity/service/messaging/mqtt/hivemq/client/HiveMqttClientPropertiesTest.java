@@ -45,6 +45,7 @@ public final class HiveMqttClientPropertiesTest {
     private static final UUID ACTOR_UUID = UUID.randomUUID();
 
     @Mock private Connection mqttConnection;
+    @Mock private MqttConfig mqttConfig;
     @Mock private ConnectivityConfig connectivityConfig;
     @Mock private Supplier<SshTunnelState> sshTunnelStateSupplier;
     @Mock private ConnectionLogger connectionLogger;
@@ -96,6 +97,7 @@ public final class HiveMqttClientPropertiesTest {
                 .isThrownBy(() -> HiveMqttClientProperties.builder()
                         .withMqttConnection(mqttConnection)
                         .withConnectivityConfig(connectivityConfig)
+                        .withMqttSpecificConfig(MqttSpecificConfig.fromConnection(mqttConnection, mqttConfig))
                         .withSshTunnelStateSupplier(null))
                 .withMessage("The sshTunnelStateSupplier must not be null!")
                 .withNoCause();
@@ -107,6 +109,7 @@ public final class HiveMqttClientPropertiesTest {
                 .isThrownBy(() -> HiveMqttClientProperties.builder()
                         .withMqttConnection(mqttConnection)
                         .withConnectivityConfig(connectivityConfig)
+                        .withMqttSpecificConfig(MqttSpecificConfig.fromConnection(mqttConnection, mqttConfig))
                         .withSshTunnelStateSupplier(sshTunnelStateSupplier)
                         .withConnectionLogger(null))
                 .withMessage("The connectionLogger must not be null!")
@@ -119,6 +122,7 @@ public final class HiveMqttClientPropertiesTest {
                 .isThrownBy(() -> HiveMqttClientProperties.builder()
                         .withMqttConnection(mqttConnection)
                         .withConnectivityConfig(connectivityConfig)
+                        .withMqttSpecificConfig(MqttSpecificConfig.fromConnection(mqttConnection, mqttConfig))
                         .withSshTunnelStateSupplier(sshTunnelStateSupplier)
                         .withConnectionLogger(connectionLogger)
                         .withActorUuid(null))
@@ -132,6 +136,7 @@ public final class HiveMqttClientPropertiesTest {
                 .isThrownBy(() -> HiveMqttClientProperties.builder()
                         .withMqttConnection(mqttConnection)
                         .withConnectivityConfig(connectivityConfig)
+                        .withMqttSpecificConfig(MqttSpecificConfig.fromConnection(mqttConnection, mqttConfig))
                         .withSshTunnelStateSupplier(sshTunnelStateSupplier)
                         .withConnectionLogger(connectionLogger)
                         .withActorUuid(ACTOR_UUID)
@@ -146,6 +151,7 @@ public final class HiveMqttClientPropertiesTest {
                 .isThrownBy(() -> HiveMqttClientProperties.builder()
                         .withMqttConnection(mqttConnection)
                         .withConnectivityConfig(connectivityConfig)
+                        .withMqttSpecificConfig(MqttSpecificConfig.fromConnection(mqttConnection, mqttConfig))
                         .withSshTunnelStateSupplier(sshTunnelStateSupplier)
                         .withConnectionLogger(connectionLogger)
                         .withActorUuid(ACTOR_UUID)
@@ -168,6 +174,7 @@ public final class HiveMqttClientPropertiesTest {
         final var underTest = HiveMqttClientProperties.builder()
                 .withMqttConnection(mqttConnection)
                 .withConnectivityConfig(connectivityConfig)
+                .withMqttSpecificConfig(MqttSpecificConfig.fromConnection(mqttConnection, mqttConfig))
                 .withSshTunnelStateSupplier(sshTunnelStateSupplier)
                 .withConnectionLogger(connectionLogger)
                 .withActorUuid(ACTOR_UUID)

@@ -19,6 +19,7 @@ import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.ConnectionType;
 import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.logs.ConnectionLogger;
+import org.eclipse.ditto.connectivity.service.messaging.mqtt.MqttSpecificConfig;
 import org.eclipse.ditto.connectivity.service.messaging.tunnel.SshTunnelState;
 
 /**
@@ -57,7 +58,23 @@ public interface HiveMqttClientPropertiesStepBuilder {
          * @return the next builder step.
          * @throws NullPointerException if {@code connectivityConfig} is {@code null}.
          */
-        SshTunnelStateSupplierStep withConnectivityConfig(ConnectivityConfig connectivityConfig);
+        MqttSpecificConfigStep withConnectivityConfig(ConnectivityConfig connectivityConfig);
+
+    }
+
+    /**
+     * Builder step for setting the {@link MqttSpecificConfig}.
+     */
+    interface MqttSpecificConfigStep {
+
+        /**
+         * Sets the MQTT specific config to this builder.
+         *
+         * @param mqttSpecificConfig the specific MQTT config to be set.
+         * @return the next builder step.
+         * @throws NullPointerException if {@code mqttSpecificConfig} is {@code null}.
+         */
+        SshTunnelStateSupplierStep withMqttSpecificConfig(MqttSpecificConfig mqttSpecificConfig);
 
     }
 
