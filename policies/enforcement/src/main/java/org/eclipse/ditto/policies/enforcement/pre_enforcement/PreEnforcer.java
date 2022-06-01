@@ -21,6 +21,7 @@ import java.util.function.Function;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.base.model.entity.id.EntityId;
+import org.eclipse.ditto.base.model.entity.id.NamespacedEntityId;
 import org.eclipse.ditto.base.model.entity.id.WithEntityId;
 import org.eclipse.ditto.base.model.exceptions.DittoInternalErrorException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
@@ -68,6 +69,44 @@ public interface PreEnforcer extends Function<DittoHeadersSettable<?>, Completio
         }
         final String msgPattern = "Message of type <{0}> is not a signal!";
         throw new IllegalArgumentException(MessageFormat.format(msgPattern, message.getClass()));
+    }
+
+    /**
+     * Safe cast the message to a withEntityId
+     *
+     * @param message the message to be cast.
+     * @return the withEntityId.
+     */
+    default WithEntityId getMessageAsWithEntityId(@Nullable final WithDittoHeaders message) {
+        if (message instanceof WithEntityId) {
+            return (WithEntityId) message;
+        }
+        if (null == message) {
+            // just in case
+            LOGGER.error("Given message is null!");
+            throw DittoInternalErrorException.newBuilder().build();
+        }
+        final String msgPattern = "Message of type <{0}> does not implement WithEntityId!";
+        throw new IllegalArgumentException(MessageFormat.format(msgPattern, message.getClass()));
+    }
+
+    /**
+     * Safe cast the entityId to a namespacedEntityId.
+     *
+     * @param entityId the entityId to be cast.
+     * @return the withEntityId.
+     */
+    default NamespacedEntityId getEntityIdAsNamespacedEntityId(@Nullable final EntityId entityId) {
+        if (entityId instanceof NamespacedEntityId) {
+            return (NamespacedEntityId) entityId;
+        }
+        if (null == entityId) {
+            // just in case
+            LOGGER.error("Given entityId is null!");
+            throw DittoInternalErrorException.newBuilder().build();
+        }
+        final String msgPattern = "Entity of type <{0}> is not namespaced!";
+        throw new IllegalArgumentException(MessageFormat.format(msgPattern, entityId.getClass()));
     }
 
     /**

@@ -12,23 +12,18 @@
  */
 package org.eclipse.ditto.policies.enforcement.pre_enforcement;
 
-import java.text.MessageFormat;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CompletionStage;
 import java.util.regex.Pattern;
 
-import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.base.model.entity.id.NamespacedEntityId;
 import org.eclipse.ditto.base.model.entity.id.WithEntityId;
-import org.eclipse.ditto.base.model.exceptions.DittoInternalErrorException;
 import org.eclipse.ditto.base.model.exceptions.EntityNotCreatableException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.DittoHeadersSettable;
-import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLogger;
@@ -154,32 +149,6 @@ public class CreationRestrictionEnforcer implements PreEnforcer {
                         .build();
             }
         });
-    }
-
-    private static WithEntityId getMessageAsWithEntityId(@Nullable final WithDittoHeaders message) {
-        if (message instanceof WithEntityId) {
-            return (WithEntityId) message;
-        }
-        if (null == message) {
-            // just in case
-            LOGGER.error("Given message is null!");
-            throw DittoInternalErrorException.newBuilder().build();
-        }
-        final String msgPattern = "Message of type <{0}> does not implement WithEntityId!";
-        throw new IllegalArgumentException(MessageFormat.format(msgPattern, message.getClass()));
-    }
-
-    private static NamespacedEntityId getEntityIdAsNamespacedEntityId(@Nullable final EntityId entityId) {
-        if (entityId instanceof NamespacedEntityId) {
-            return (NamespacedEntityId) entityId;
-        }
-        if (null == entityId) {
-            // just in case
-            LOGGER.error("Given entityId is null!");
-            throw DittoInternalErrorException.newBuilder().build();
-        }
-        final String msgPattern = "Entity of type <{0}> is not namespaced!";
-        throw new IllegalArgumentException(MessageFormat.format(msgPattern, entityId.getClass()));
     }
 
     /**
