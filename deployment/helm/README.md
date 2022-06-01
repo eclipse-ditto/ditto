@@ -9,7 +9,7 @@ To install the chart with the release name eclipse-ditto, run the following comm
 ```shell script
 helm repo add eclipse-iot https://www.eclipse.org/packages/charts/
 helm repo update
-helm install eclipse-iot/ditto --name eclipse-ditto
+helm install eclipse-ditto eclipse-iot/ditto
 ```
 
 # Uninstall the Helm Chart

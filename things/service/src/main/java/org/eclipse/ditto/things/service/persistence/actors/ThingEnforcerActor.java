@@ -26,8 +26,8 @@ import org.eclipse.ditto.internal.utils.cache.entry.Entry;
 import org.eclipse.ditto.internal.utils.cacheloaders.EnforcementCacheKey;
 import org.eclipse.ditto.internal.utils.cacheloaders.config.AskWithRetryConfig;
 import org.eclipse.ditto.internal.utils.namespaces.BlockedNamespaces;
-import org.eclipse.ditto.policies.enforcement.AbstractEnforcerActor;
 import org.eclipse.ditto.json.JsonFieldSelector;
+import org.eclipse.ditto.policies.enforcement.AbstractEnforcerActor;
 import org.eclipse.ditto.policies.enforcement.PolicyEnforcer;
 import org.eclipse.ditto.policies.enforcement.PolicyEnforcerCacheLoader;
 import org.eclipse.ditto.policies.model.PolicyId;
@@ -86,17 +86,19 @@ public final class ThingEnforcerActor
 
     @Override
     protected CompletionStage<PolicyId> providePolicyIdForEnforcement() {
-        if (null != policyIdForEnforcement) {
-            return CompletableFuture.completedStage(policyIdForEnforcement);
-        } else {
-            return Patterns.ask(getContext().getParent(), SudoRetrieveThing.of(entityId,
-                            JsonFieldSelector.newInstance("policyId"),
-                            DittoHeaders.newBuilder()
-                                    .correlationId("sudoRetrieveThingFromThingEnforcerActor-" + UUID.randomUUID())
-                                    .build()
-                    ), DEFAULT_LOCAL_ASK_TIMEOUT
-            ).thenApply(response -> extractPolicyIdFromSudoRetrieveThingResponse(response).orElse(null));
-        }
+        return getPolicyIdOfCachedEnforcer()
+                .map(CompletableFuture::completedStage)
+                .orElseGet(this::loadPolicyIdFromPersistenceActor);
+    }
+
+    private CompletionStage<PolicyId> loadPolicyIdFromPersistenceActor() {
+        return Patterns.ask(getContext().getParent(), SudoRetrieveThing.of(entityId,
+                        JsonFieldSelector.newInstance("policyId"),
+                        DittoHeaders.newBuilder()
+                                .correlationId("sudoRetrieveThingFromThingEnforcerActor-" + UUID.randomUUID())
+                                .build()
+                ), DEFAULT_LOCAL_ASK_TIMEOUT
+        ).thenApply(response -> extractPolicyIdFromSudoRetrieveThingResponse(response).orElse(null));
     }
 
     /**
@@ -124,7 +126,8 @@ public final class ThingEnforcerActor
         } else {
             final ActorSystem actorSystem = getContext().getSystem();
             if (null == policyEnforcerCacheLoader) {
-                final AskWithRetryConfig askWithRetryConfig = enforcement.getEnforcementConfig().getAskWithRetryConfig();
+                final AskWithRetryConfig askWithRetryConfig =
+                        enforcement.getEnforcementConfig().getAskWithRetryConfig();
                 policyEnforcerCacheLoader = new PolicyEnforcerCacheLoader(askWithRetryConfig,
                         actorSystem.getScheduler(),
                         enforcement.getPoliciesShardRegion()

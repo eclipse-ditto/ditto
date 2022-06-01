@@ -202,7 +202,7 @@ public final class BsonDiffVisitorIT {
     }
 
     @Test
-    public void testArrayConcat() {
+    public void testArrayDiff() {
         final var collection = client.getCollection("test");
 
         final Metadata metadata =
@@ -224,8 +224,8 @@ public final class BsonDiffVisitorIT {
         final List<BsonDocument> updateDoc = diff.consumeAndExport();
 
         assertThat(updateDoc.toString().length())
-                .describedAs("Incremental update should be less than 1/10 as large as replacement")
-                .isLessThan(nextThingDoc.toString().length() / 10);
+                .describedAs("Incremental update should be less than 1/5 as large as replacement")
+                .isLessThan(nextThingDoc.toString().length() / 5);
 
         run(collection.insertOne(toDocument(prevThingDoc)));
         run(collection.updateOne(new Document(), updateDoc));
@@ -334,7 +334,7 @@ public final class BsonDiffVisitorIT {
                 {
                   "thingId":"solar.system:pluto",
                   "_namespace":"solar.system",
-                  "a": [ {"b": "ABCDEFGHIJKLMNOPQRSTUVWXYZ"}, true ],
+                  "a": [ {"b": "ABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZ", "x": 5}, true ],
                   "d": {
                     "e": {
                       "f": "g",
@@ -352,7 +352,7 @@ public final class BsonDiffVisitorIT {
                 {
                   "thingId":"solar.system:pluto",
                   "_namespace":"solar.system",
-                  "a": [ false, {"b": "ABCDEFGHIJKLMNOPQRSTUVWXYZ"} ],
+                  "a": [ false, {"b": "ABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZ", "x": 5} ],
                   "d": {
                     "e": {
                       "h": "lorem ipsum dolor sit amet"
@@ -370,13 +370,13 @@ public final class BsonDiffVisitorIT {
                 {
                   "thingId":"solar.system:pluto",
                   "_namespace":"solar.system",
-                  "a": [ {"b": "ABCDEFGHIJKLMNOPQRSTUVWXYZ"}, true ],
+                  "a": [ {"b": "ABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZ", "y": 6}, true ],
                   "d": {
                     "j": true,
                     "k": 6.0,
                     "l": 123456789012,
                     "e": {
-                      "f": "h",
+                      "f": "g",
                       "h": "lorem ipsum dolor sit amet"
                     }
                   }
@@ -388,7 +388,7 @@ public final class BsonDiffVisitorIT {
                 {
                   "thingId":"solar.system:pluto",
                   "_namespace":"solar.system",
-                  "a": [ {"b": "ABCDEFGHIJKLMNOPQRSTUVWXYZ"}, true ],
+                  "a": [ {"b": "ABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZ", "x": 5}, true ],
                   "d": {
                     "e": {
                       "f": "g",
@@ -408,7 +408,7 @@ public final class BsonDiffVisitorIT {
                 {
                   "thingId":"solar.system:pluto",
                   "_namespace":"solar.system",
-                  "a": [ {"b": "ABCDEFGHIJKLMNOPQRSTUVWXYZ"}, true ],
+                  "a": [ {"b": "ABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZ", "x": 5}, true ],
                   "d": {
                     "e": {
                       "f": "g",
@@ -420,4 +420,5 @@ public final class BsonDiffVisitorIT {
                   }
                 }""");
     }
+
 }

@@ -55,6 +55,14 @@ public abstract class AbstractWriteModel {
     public abstract WriteModel<BsonDocument> toMongo();
 
     /**
+     * Create a copy of this write model with a new metadata.
+     *
+     * @param metadata The new metadata.
+     * @return The copy.
+     */
+    public abstract AbstractWriteModel setMetadata(final Metadata metadata);
+
+    /**
      * Convert this into a MongoDB write model taking the previous update into consideration.
      *
      * @param previousWriteModel The previous write model.
