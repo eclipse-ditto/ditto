@@ -16,12 +16,13 @@ import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import org.eclipse.ditto.base.service.DittoExtensionPoint;
 
-import akka.actor.AbstractActor;
+import akka.actor.AbstractActor.Receive;
+import akka.actor.ActorContext;
 import akka.actor.ActorSystem;
 
 /**
  * This extension allows to extend commands that are forwarded from the edges of ditto to other microservices by
- * handling them in the {@link AbstractActor.Receive} provided by {@link #getReceiveExtension(akka.actor.AbstractActor.ActorContext)}.
+ * handling them in the {@link Receive} provided by {@link #getReceiveExtension(ActorContext)}.
  */
 public interface EdgeCommandForwarderExtension extends DittoExtensionPoint {
 
@@ -38,7 +39,7 @@ public interface EdgeCommandForwarderExtension extends DittoExtensionPoint {
      * @param actorContext can be used for example to determine the original sender of a message.
      * @return The desired receive extension.
      */
-    AbstractActor.Receive getReceiveExtension(AbstractActor.ActorContext actorContext);
+    Receive getReceiveExtension(ActorContext actorContext);
 
     final class ExtensionId extends DittoExtensionPoint.ExtensionId<EdgeCommandForwarderExtension> {
 
