@@ -20,12 +20,12 @@ import java.util.List;
 import java.util.concurrent.CompletionStage;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.policies.model.PolicyId;
-import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.policies.api.commands.sudo.SudoRetrievePolicyRevision;
 import org.eclipse.ditto.policies.api.commands.sudo.SudoRetrievePolicyRevisionResponse;
-import org.eclipse.ditto.thingsearch.service.persistence.write.model.Metadata;
+import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyNotAccessibleException;
+import org.eclipse.ditto.things.model.ThingId;
+import org.eclipse.ditto.thingsearch.service.persistence.write.model.Metadata;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -60,7 +60,7 @@ public final class BackgroundSyncStreamTest {
         final Duration toleranceWindow = Duration.ofHours(1L);
 
         final Source<Metadata, NotUsed> persisted = Source.from(List.of(
-                Metadata.of(ThingId.of("x:0-only-persisted"), 1L, null, 0L, null),
+                Metadata.of(ThingId.of("x:0-only-persisted"), 1L, PolicyId.of("x:0"), 0L, null),
                 Metadata.of(ThingId.of("x:2-within-tolerance"), 3L, null, 0L, null),
                 Metadata.of(ThingId.of("x:3-revision-mismatch"), 3L, PolicyId.of("x:3"), 0L, null),
                 Metadata.of(ThingId.of("x:4-policy-id-mismatch"), 3L, PolicyId.of("x:4"), 0L, null),
@@ -86,6 +86,9 @@ public final class BackgroundSyncStreamTest {
                     underTest.filterForInconsistencies(persisted, indexed)
                             .map(metadata -> metadata.getThingId().toString())
                             .runWith(Sink.seq(), actorSystem);
+
+            expectMsg(SudoRetrievePolicyRevision.of(PolicyId.of("x:0"), DittoHeaders.empty()));
+            reply(SudoRetrievePolicyRevisionResponse.of(PolicyId.of("x:0"), 0L, DittoHeaders.empty()));
 
             expectMsg(SudoRetrievePolicyRevision.of(PolicyId.of("x:5"), DittoHeaders.empty()));
             reply(SudoRetrievePolicyRevisionResponse.of(PolicyId.of("x:5"), 6L, DittoHeaders.empty()));
