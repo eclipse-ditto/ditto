@@ -87,7 +87,7 @@ final class DefaultGenericMqttClient implements GenericMqttClient {
                     if (null == throwable) {
                         logger.debug("Connected subscribing client <{}>.", subscribingClient);
                     } else {
-                        logger.warn("Failed to connect subscribing client <{}>.", subscribingClient, throwable);
+                        logger.info("Failed to connect subscribing client <{}>.", subscribingClient, throwable);
                     }
                 });
     }
@@ -98,7 +98,7 @@ final class DefaultGenericMqttClient implements GenericMqttClient {
                     if (null == throwable) {
                         logger.debug("Connected publishing client <{}>.", publishingClient);
                     } else {
-                        logger.warn("Failed to connect publishing client <{}>. Disconnecting subscribing client …",
+                        logger.info("Failed to connect publishing client <{}>. Disconnecting subscribing client …",
                                 publishingClient,
                                 throwable);
                         disconnectSubscribingClient();
@@ -112,7 +112,7 @@ final class DefaultGenericMqttClient implements GenericMqttClient {
                     if (null == throwable) {
                         logger.debug("Disconnected subscribing client <{}>.", subscribingClient);
                     } else {
-                        logger.warn("Failed to disconnect subscribing client <{}>.", subscribingClient, throwable);
+                        logger.info("Failed to disconnect subscribing client <{}>.", subscribingClient, throwable);
                     }
                 })
                 .toCompletableFuture();
@@ -139,7 +139,7 @@ final class DefaultGenericMqttClient implements GenericMqttClient {
                     if (null == throwable) {
                         logger.debug("Disconnected publishing client <{}>.", publishingClient);
                     } else {
-                        logger.warn("Failed to disconnect publishing client <{}>.", publishingClient);
+                        logger.info("Failed to disconnect publishing client <{}>.", publishingClient);
                     }
                 })
                 .toCompletableFuture();

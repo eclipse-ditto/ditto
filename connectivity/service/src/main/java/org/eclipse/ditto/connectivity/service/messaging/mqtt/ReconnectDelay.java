@@ -22,7 +22,6 @@ import org.eclipse.ditto.base.model.common.ConditionChecker;
 
 /**
  * Delay how long to wait before reconnecting an MQTT client.
- * This delay is guaranteed
  */
 @Immutable
 public final class ReconnectDelay implements Comparable<ReconnectDelay> {

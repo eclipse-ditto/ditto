@@ -117,7 +117,7 @@ public final class MqttSpecificConfig {
     /**
      * Returns the delay how long to wait before reconnecting a consumer client for redelivery.
      *
-     * @return the reconnect delay.
+     * @return the reconnect delay which is at least {@link ReconnectDelay#LOWER_BOUNDARY}.
      */
     public ReconnectDelay getReconnectForDeliveryDelayNg() {
         return ReconnectDelay.ofOrLowerBoundary(specificConfig.getDuration(RECONNECT_FOR_REDELIVERY_DELAY));

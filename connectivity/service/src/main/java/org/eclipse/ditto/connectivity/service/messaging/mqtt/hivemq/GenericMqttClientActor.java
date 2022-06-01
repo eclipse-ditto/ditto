@@ -13,6 +13,7 @@
 package org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq;
 
 import java.text.MessageFormat;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -160,9 +161,9 @@ public final class GenericMqttClientActor extends BaseClientActor {
         return stay();
     }
 
-    private State<BaseClientState, BaseClientData> reconnectConsumerClient(
-            final Control control,
+    private State<BaseClientState, BaseClientData> reconnectConsumerClient(final Control control,
             final BaseClientData baseClientData) {
+
         if (null != genericMqttClient) {
             enableAutomaticReconnect();
             genericMqttClient.disconnectClientRole(ClientRole.CONSUMER);
@@ -199,7 +200,7 @@ public final class GenericMqttClientActor extends BaseClientActor {
                             connectionLogger.failure("Connection test failed: {0}", error.getMessage());
                             return CompletableFuture.completedFuture(new Status.Failure(error));
                         },
-                        v1 -> v1
+                        statusCompletionStage -> statusCompletionStage
                 );
     }
 
@@ -318,17 +319,17 @@ public final class GenericMqttClientActor extends BaseClientActor {
             } else {
                 final var mqttDisconnectSource = context.getSource();
                 final var reconnect = isReconnect();
-                final var reconnectDelayMillis = getReconnectDelayMillis(retryTimeoutStrategy, mqttDisconnectSource);
+                final var reconnectDelay = getReconnectDelay(retryTimeoutStrategy, mqttDisconnectSource);
                 logger.info("Client <{}> disconnected by <{}>.", clientId, mqttDisconnectSource);
                 if (reconnect) {
-                    logger.info("Reconnecting client <{}> with current retries of <{}> and a delay of <{}> ms.",
+                    logger.info("Reconnecting client <{}> with current tries <{}> and a delay of <{}>.",
                             clientId,
                             retryTimeoutStrategy.getCurrentTries(),
-                            reconnectDelayMillis);
+                            reconnectDelay);
                 } else {
                     logger.info("Not reconnecting client <{}>.", clientId);
                 }
-                mqttClientReconnector.delay(reconnectDelayMillis, TimeUnit.MILLISECONDS);
+                mqttClientReconnector.delay(reconnectDelay.toMillis(), TimeUnit.MILLISECONDS);
                 mqttClientReconnector.reconnect(reconnect);
             }
         };
@@ -348,17 +349,21 @@ public final class GenericMqttClientActor extends BaseClientActor {
         return connection.isFailoverEnabled() && automaticReconnect.get();
     }
 
-    private long getReconnectDelayMillis(final RetryTimeoutStrategy retryTimeoutStrategy,
+    private Duration getReconnectDelay(final RetryTimeoutStrategy retryTimeoutStrategy,
             final MqttDisconnectSource mqttDisconnectSource) {
 
-        final long result;
-        final var nextTimeout = retryTimeoutStrategy.getNextTimeout();
+        final Duration result;
+        final var retryTimeoutReconnectDelay = retryTimeoutStrategy.getNextTimeout();
         if (MqttDisconnectSource.SERVER == mqttDisconnectSource) {
-            final var reconnectMinTimeoutForMqttBrokerInitiatedDisconnect =
+            final var reconnectDelayForBrokerInitiatedDisconnect =
                     mqttConfig.getReconnectMinTimeoutForMqttBrokerInitiatedDisconnect();
-            result = Math.max(nextTimeout.toMillis(), reconnectMinTimeoutForMqttBrokerInitiatedDisconnect.toMillis());
+            if (0 <= retryTimeoutReconnectDelay.compareTo(reconnectDelayForBrokerInitiatedDisconnect)) {
+                result = retryTimeoutReconnectDelay;
+            } else {
+                result = reconnectDelayForBrokerInitiatedDisconnect;
+            }
         } else {
-            result = nextTimeout.toMillis();
+            result = retryTimeoutReconnectDelay;
         }
         return result;
     }
@@ -377,16 +382,18 @@ public final class GenericMqttClientActor extends BaseClientActor {
             @Nullable final ActorRef origin,
             final boolean shutdownAfterDisconnect) {
 
-        if (null != genericMqttClient) {
-            disableAutomaticReconnect();
-            Patterns.pipe(
-                    genericMqttClient.disconnect()
-                            .thenApply(aVoid -> ClientDisconnected.of(origin, shutdownAfterDisconnect)),
-                    getContextDispatcher()
-            ).to(getSelf(), origin);
+        final CompletionStage<Void> disconnectFuture;
+        if (null == genericMqttClient) {
+            disconnectFuture = CompletableFuture.completedFuture(null);
         } else {
-            logger.warning("Cannot disconnect generic MQTT client as it is not yet initialised.");
+            disableAutomaticReconnect();
+            disconnectFuture = genericMqttClient.disconnect();
         }
+
+        Patterns.pipe(disconnectFuture
+                        .handle((aVoid, throwable) -> ClientDisconnected.of(origin, shutdownAfterDisconnect)),
+                getContextDispatcher()
+        ).to(getSelf(), origin);
     }
 
     @Nullable
