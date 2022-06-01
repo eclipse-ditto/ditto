@@ -15,6 +15,7 @@ package org.eclipse.ditto.policies.service.starter;
 import org.eclipse.ditto.internal.utils.persistentactors.EmptyEvent;
 import org.eclipse.ditto.internal.utils.test.GlobalEventRegistryTestCases;
 import org.eclipse.ditto.policies.model.signals.events.ResourceDeleted;
+import org.eclipse.ditto.things.api.ThingSnapshotTaken;
 import org.eclipse.ditto.things.model.signals.events.ThingDeleted;
 
 public final class PoliciesServiceGlobalEventRegistryTest extends GlobalEventRegistryTestCases {
@@ -22,7 +23,7 @@ public final class PoliciesServiceGlobalEventRegistryTest extends GlobalEventReg
     public PoliciesServiceGlobalEventRegistryTest() {
         super(
                 ResourceDeleted.class,
-
+                ThingSnapshotTaken.class,
                 // added due to ditto-model-placeholders
                 ThingDeleted.class,         // TODO CR-11383 strictly speaking, the policies service should not must to "know" things-model
                 EmptyEvent.class
