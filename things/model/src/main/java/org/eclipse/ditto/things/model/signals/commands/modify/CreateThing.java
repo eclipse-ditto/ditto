@@ -228,8 +228,7 @@ public final class CreateThing extends AbstractCommand<CreateThing> implements T
             final String policyIdOrPlaceholder = jsonObject.getValue(JSON_POLICY_ID_OR_PLACEHOLDER).orElse(null);
             final Thing thing = ThingsModelFactory.newThing(thingJsonObject);
 
-            return of(thing, initialPolicyObject, policyIdOrPlaceholder,
-                    addMetadataToPutFromThingToDittoHeaders(thing, dittoHeaders));
+            return of(thing, initialPolicyObject, policyIdOrPlaceholder, dittoHeaders);
         });
     }
 
