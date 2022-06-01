@@ -31,7 +31,6 @@ import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
 import org.eclipse.ditto.base.model.exceptions.DittoInternalErrorException;
 import org.eclipse.ditto.base.model.exceptions.DittoJsonException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
-import org.eclipse.ditto.base.model.exceptions.EntityNotCreatableException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.contenttype.ContentType;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
@@ -55,7 +54,6 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.policies.api.Permission;
 import org.eclipse.ditto.policies.api.PoliciesValidator;
 import org.eclipse.ditto.policies.enforcement.AbstractEnforcementReloaded;
-import org.eclipse.ditto.policies.enforcement.CreationRestrictionEnforcer;
 import org.eclipse.ditto.policies.enforcement.EnforcementReloaded;
 import org.eclipse.ditto.policies.enforcement.PolicyEnforcer;
 import org.eclipse.ditto.policies.enforcement.config.EnforcementConfig;
@@ -135,7 +133,6 @@ final class ThingCommandEnforcement
 
     private final ActorRef policiesShardRegion;
     private final PolicyIdReferencePlaceholderResolver policyIdReferencePlaceholderResolver;
-    private final CreationRestrictionEnforcer creationRestrictionEnforcer;
     private final ActorSystem actorSystem;
     private final EnforcementConfig enforcementConfig;
 
@@ -145,18 +142,14 @@ final class ThingCommandEnforcement
      * @param actorSystem the actor system to load config, dispatchers from.
      * @param policiesShardRegion the policies shard region to load policies from and to use in order to create new
      * (inline) policies when creating new things.
-     * @param creationRestrictionEnforcer the CreationRestrictionEnforcer to apply in order to enforce creation of new
-     * things based on its config.
      * @param enforcementConfig the configuration to apply for this command enforcement implementation.
      */
     public ThingCommandEnforcement(final ActorSystem actorSystem,
             final ActorRef policiesShardRegion,
-            final CreationRestrictionEnforcer creationRestrictionEnforcer,
             final EnforcementConfig enforcementConfig) {
 
         this.actorSystem = actorSystem;
         this.policiesShardRegion = requireNonNull(policiesShardRegion);
-        this.creationRestrictionEnforcer = creationRestrictionEnforcer;
         this.enforcementConfig = enforcementConfig;
 
         enforcementConfig.getSpecialLoggingInspectedNamespaces()
@@ -446,11 +439,6 @@ final class ThingCommandEnforcement
 
         final ThingCommand<?> thingCommand = transformModifyThingToCreateThing(command);
         if (thingCommand instanceof CreateThing createThingCommand) {
-            final var enforcerContext = new CreationRestrictionEnforcer.Context(command.getResourceType(),
-                    command.getEntityId().getNamespace(),
-                    command.getDittoHeaders()
-            );
-            if (creationRestrictionEnforcer.canCreate(enforcerContext)) {
                 return replaceInitialPolicyWithCopiedPolicyIfPresent(createThingCommand)
                         .thenApply(createThing -> {
                             final Optional<JsonObject> initialPolicyOptional = createThing.getInitialPolicy();
@@ -458,11 +446,6 @@ final class ThingCommandEnforcement
                                     enforceCreateThingByOwnInlinedPolicyOrThrow(createThing, initialPolicy)
                             ).orElseGet(() -> enforceCreateThingByAuthorizationContext(createThing));
                         });
-            } else {
-                throw EntityNotCreatableException.newBuilder(createThingCommand.getEntityId())
-                        .dittoHeaders(createThingCommand.getDittoHeaders())
-                        .build();
-            }
         } else {
             // Other commands cannot be authorized by policy contained in self.
             final DittoRuntimeException error;

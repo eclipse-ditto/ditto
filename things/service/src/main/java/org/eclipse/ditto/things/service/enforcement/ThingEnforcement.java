@@ -20,7 +20,6 @@ import java.util.function.Function;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
 import org.eclipse.ditto.policies.enforcement.AbstractEnforcementReloaded;
-import org.eclipse.ditto.policies.enforcement.CreationRestrictionEnforcer;
 import org.eclipse.ditto.policies.enforcement.PolicyEnforcer;
 import org.eclipse.ditto.policies.enforcement.config.EnforcementConfig;
 import org.eclipse.ditto.policies.model.Policy;
@@ -41,7 +40,6 @@ public final class ThingEnforcement extends AbstractEnforcementReloaded<Signal<?
 
     public ThingEnforcement(final ActorSystem actorSystem,
             final ActorRef policiesShardRegion,
-            final CreationRestrictionEnforcer creationRestrictionEnforcer,
             final EnforcementConfig enforcementConfig) {
 
         this.policiesShardRegion = policiesShardRegion;
@@ -52,7 +50,6 @@ public final class ThingEnforcement extends AbstractEnforcementReloaded<Signal<?
                 new ThingCommandEnforcement(
                         actorSystem,
                         policiesShardRegion,
-                        creationRestrictionEnforcer,
                         enforcementConfig
                 )
         );

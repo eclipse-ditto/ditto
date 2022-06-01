@@ -151,7 +151,7 @@ public final class ConnectionSupervisorActor
     @Override
     protected Props getPersistenceEnforcerProps(final ConnectionId connectionId) {
         return ConnectionEnforcerActor.props(connectionId,
-                new ConnectivityCommandEnforcement(creationRestrictionEnforcer),
+                new ConnectivityCommandEnforcement(),
                 pubSubMediator);
     }
 

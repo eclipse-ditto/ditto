@@ -19,7 +19,6 @@ import java.util.concurrent.CompletionStage;
 
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
-import org.eclipse.ditto.base.model.exceptions.EntityNotCreatableException;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.base.model.signals.commands.CommandToExceptionRegistry;
 import org.eclipse.ditto.json.JsonFactory;
@@ -29,7 +28,6 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.policies.api.Permission;
 import org.eclipse.ditto.policies.enforcement.AbstractEnforcementReloaded;
-import org.eclipse.ditto.policies.enforcement.CreationRestrictionEnforcer;
 import org.eclipse.ditto.policies.enforcement.PolicyEnforcer;
 import org.eclipse.ditto.policies.model.Label;
 import org.eclipse.ditto.policies.model.Permissions;
@@ -64,18 +62,10 @@ public final class PolicyCommandEnforcement
     private static final JsonFieldSelector POLICY_QUERY_COMMAND_RESPONSE_ALLOWLIST =
             JsonFactory.newFieldSelector(Policy.JsonFields.ID);
 
-    private final CreationRestrictionEnforcer creationRestrictionEnforcer;
-
     /**
-     * Creates a new instance of the policy command enforcer using the passed {@code creationRestrictionEnforcer}.
-     *
-     * @param creationRestrictionEnforcer the CreationRestrictionEnforcer to apply in order to enforce creation of new
-     * policies based on its config.
+     * Creates a new instance of the policy command enforcer.
      */
-    public PolicyCommandEnforcement(final CreationRestrictionEnforcer creationRestrictionEnforcer) {
-
-        this.creationRestrictionEnforcer = creationRestrictionEnforcer;
-    }
+    public PolicyCommandEnforcement() {}
 
     @Override
     public CompletionStage<PolicyCommand<?>> authorizeSignal(final PolicyCommand<?> command,
@@ -118,22 +108,12 @@ public final class PolicyCommandEnforcement
             final ResourceKey policyResourceKey,
             final AuthorizationContext authorizationContext) {
         final PolicyCommand<?> authorizedCommand;
-        final var enforcerContext = new CreationRestrictionEnforcer.Context(createPolicy.getResourceType(),
-                createPolicy.getEntityId().getNamespace(),
-                createPolicy.getDittoHeaders()
-        );
-        if (creationRestrictionEnforcer.canCreate(enforcerContext)) {
             if (createPolicy.getDittoHeaders().isAllowPolicyLockout()
                     || hasUnrestrictedWritePermission(enforcer, policyResourceKey, authorizationContext)) {
                 authorizedCommand = createPolicy;
             } else {
                 throw errorForPolicyCommand(createPolicy);
             }
-        } else {
-            throw EntityNotCreatableException.newBuilder(createPolicy.getEntityId())
-                    .dittoHeaders(createPolicy.getDittoHeaders())
-                    .build();
-        }
         return authorizedCommand;
     }
 

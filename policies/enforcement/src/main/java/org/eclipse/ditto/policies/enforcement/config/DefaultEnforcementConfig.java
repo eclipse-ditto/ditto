@@ -19,6 +19,8 @@ import java.util.Set;
 
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.internal.utils.cache.config.CacheConfig;
+import org.eclipse.ditto.internal.utils.cache.config.DefaultCacheConfig;
 import org.eclipse.ditto.internal.utils.cacheloaders.config.AskWithRetryConfig;
 import org.eclipse.ditto.internal.utils.cacheloaders.config.DefaultAskWithRetryConfig;
 import org.eclipse.ditto.internal.utils.config.ConfigWithFallback;
@@ -33,13 +35,17 @@ public final class DefaultEnforcementConfig implements EnforcementConfig {
 
     private static final String CONFIG_PATH = "enforcement";
     private static final String ASK_WITH_RETRY_CONFIG_PATH = "ask-with-retry";
+    private static final String ID_CACHE_CONFIG_PATH = "id-cache";
 
     private final AskWithRetryConfig askWithRetryConfig;
+    private final CacheConfig idCachingConfig;
+
     private final boolean globalLiveResponseDispatching;
     private final Set<String> specialLoggingInspectedNamespaces;
 
     private DefaultEnforcementConfig(final ConfigWithFallback configWithFallback) {
         askWithRetryConfig = DefaultAskWithRetryConfig.of(configWithFallback, ASK_WITH_RETRY_CONFIG_PATH);
+        idCachingConfig = DefaultCacheConfig.of(configWithFallback, ID_CACHE_CONFIG_PATH);
         globalLiveResponseDispatching =
                 configWithFallback.getBoolean(EnforcementConfigValue.GLOBAL_LIVE_RESPONSE_DISPATCHING.getConfigPath());
         specialLoggingInspectedNamespaces = Collections.unmodifiableSet(new HashSet<>(configWithFallback.getStringList(
@@ -64,6 +70,11 @@ public final class DefaultEnforcementConfig implements EnforcementConfig {
     }
 
     @Override
+    public CacheConfig getIdCacheConfig() {
+        return idCachingConfig;
+    }
+
+    @Override
     public boolean isDispatchLiveResponsesGlobally() {
         return globalLiveResponseDispatching;
     }
@@ -84,18 +95,21 @@ public final class DefaultEnforcementConfig implements EnforcementConfig {
         final DefaultEnforcementConfig that = (DefaultEnforcementConfig) o;
         return globalLiveResponseDispatching == that.globalLiveResponseDispatching &&
                 askWithRetryConfig.equals(that.askWithRetryConfig) &&
+                idCachingConfig.equals(that.idCachingConfig) &&
                 specialLoggingInspectedNamespaces.equals(that.specialLoggingInspectedNamespaces);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(askWithRetryConfig, globalLiveResponseDispatching, specialLoggingInspectedNamespaces);
+        return Objects.hash(askWithRetryConfig, idCachingConfig, globalLiveResponseDispatching,
+                specialLoggingInspectedNamespaces);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
                 "askWithRetryConfig=" + askWithRetryConfig +
+                ", idCachingConfig=" + idCachingConfig +
                 ", globalLiveResponseDispatching=" + globalLiveResponseDispatching +
                 ", specialLoggingInspectedNamespaces=" + specialLoggingInspectedNamespaces +
                 "]";

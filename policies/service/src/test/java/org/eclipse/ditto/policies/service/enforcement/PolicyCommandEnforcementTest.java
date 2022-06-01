@@ -46,8 +46,6 @@ import org.eclipse.ditto.policies.api.Permission;
 import org.eclipse.ditto.policies.api.PolicyTag;
 import org.eclipse.ditto.policies.api.commands.sudo.SudoRetrievePolicy;
 import org.eclipse.ditto.policies.api.commands.sudo.SudoRetrievePolicyResponse;
-import org.eclipse.ditto.policies.enforcement.DefaultCreationRestrictionEnforcer;
-import org.eclipse.ditto.policies.enforcement.config.DefaultEntityCreationConfig;
 import org.eclipse.ditto.policies.model.EffectedPermissions;
 import org.eclipse.ditto.policies.model.Label;
 import org.eclipse.ditto.policies.model.PoliciesModelFactory;
@@ -938,9 +936,7 @@ public final class PolicyCommandEnforcementTest {
         protected Props getPersistenceEnforcerProps(final PolicyId entityId) {
             return PolicyEnforcerActor.props(
                     entityId,
-                    new PolicyCommandEnforcement(
-                            DefaultCreationRestrictionEnforcer.of(DefaultEntityCreationConfig.of(ConfigFactory.empty()))
-                    ),
+                    new PolicyCommandEnforcement(),
                     pubSubMediator,
                     null
             );

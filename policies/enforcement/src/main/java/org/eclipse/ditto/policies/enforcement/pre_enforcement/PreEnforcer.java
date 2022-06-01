@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.policies.enforcement;
+package org.eclipse.ditto.policies.enforcement.pre_enforcement;
 
 import java.text.MessageFormat;
 import java.util.List;

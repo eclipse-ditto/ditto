@@ -37,12 +37,8 @@ import org.eclipse.ditto.base.service.config.supervision.ExponentialBackOffConfi
 import org.eclipse.ditto.internal.utils.akka.actors.AbstractActorWithStashWithTimers;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
-import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.internal.utils.namespaces.BlockedNamespaces;
-import org.eclipse.ditto.policies.enforcement.CreationRestrictionEnforcer;
-import org.eclipse.ditto.policies.enforcement.DefaultCreationRestrictionEnforcer;
-import org.eclipse.ditto.policies.enforcement.PreEnforcerProvider;
-import org.eclipse.ditto.policies.enforcement.config.DefaultEntityCreationConfig;
+import org.eclipse.ditto.policies.enforcement.pre_enforcement.PreEnforcerProvider;
 
 import akka.actor.ActorRef;
 import akka.actor.PoisonPill;
@@ -80,8 +76,6 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
     protected final DittoDiagnosticLoggingAdapter log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
 
     @Nullable protected final BlockedNamespaces blockedNamespaces;
-    protected final CreationRestrictionEnforcer creationRestrictionEnforcer;
-
     @Nullable protected E entityId;
     @Nullable protected ActorRef persistenceActorChild;
 
@@ -104,11 +98,6 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
         this.blockedNamespaces = blockedNamespaces;
         exponentialBackOffConfig = getExponentialBackOffConfig();
         backOff = ExponentialBackOff.initial(exponentialBackOffConfig);
-        creationRestrictionEnforcer = DefaultCreationRestrictionEnforcer.of(
-                DefaultEntityCreationConfig.of(
-                        DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config())
-                )
-        );
     }
 
     /**

@@ -18,7 +18,6 @@ import java.util.concurrent.CompletionStage;
 import org.eclipse.ditto.connectivity.model.signals.commands.ConnectivityCommand;
 import org.eclipse.ditto.connectivity.model.signals.commands.ConnectivityCommandResponse;
 import org.eclipse.ditto.policies.enforcement.AbstractEnforcementReloaded;
-import org.eclipse.ditto.policies.enforcement.CreationRestrictionEnforcer;
 import org.eclipse.ditto.policies.enforcement.PolicyEnforcer;
 
 /**
@@ -27,17 +26,10 @@ import org.eclipse.ditto.policies.enforcement.PolicyEnforcer;
 public final class ConnectivityCommandEnforcement
         extends AbstractEnforcementReloaded<ConnectivityCommand<?>, ConnectivityCommandResponse<?>> {
 
-    private final CreationRestrictionEnforcer creationRestrictionEnforcer;
-
     /**
-     * Creates a new instance of the connectivity command enforcer using the passed {@code creationRestrictionEnforcer}.
-     *
-     * @param creationRestrictionEnforcer the CreationRestrictionEnforcer to apply in order to enforce creation of new
-     * connections based on its config.
+     * Creates a new instance of the connectivity command enforcer.
      */
-    public ConnectivityCommandEnforcement(final CreationRestrictionEnforcer creationRestrictionEnforcer) {
-
-        this.creationRestrictionEnforcer = creationRestrictionEnforcer;
+    public ConnectivityCommandEnforcement() {
     }
 
     @Override

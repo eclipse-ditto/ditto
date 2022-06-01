@@ -271,7 +271,6 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
         final ThingEnforcement thingEnforcement = new ThingEnforcement(
                 actorSystem,
                 policiesShardRegion,
-                creationRestrictionEnforcer,
                 enforcementConfig
         );
 

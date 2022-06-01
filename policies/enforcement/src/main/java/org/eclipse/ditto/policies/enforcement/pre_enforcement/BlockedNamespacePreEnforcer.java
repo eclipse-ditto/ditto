@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.policies.enforcement;
+package org.eclipse.ditto.policies.enforcement.pre_enforcement;
 
 import java.util.concurrent.CompletionStage;
 
@@ -20,7 +20,7 @@ import org.eclipse.ditto.internal.utils.namespaces.BlockedNamespaces;
 
 import akka.actor.ActorSystem;
 
-public final class BlockedNamespacePreEnforcer implements PreEnforcer{
+public final class BlockedNamespacePreEnforcer implements PreEnforcer {
 
     final BlockNamespaceBehavior blockNamespaceBehavior;
 

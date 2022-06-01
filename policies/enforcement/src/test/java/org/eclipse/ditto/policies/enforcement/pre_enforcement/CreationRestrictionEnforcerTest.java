@@ -10,13 +10,12 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.policies.enforcement;
+package org.eclipse.ditto.policies.enforcement.pre_enforcement;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.Arrays;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
@@ -24,25 +23,26 @@ import org.eclipse.ditto.base.model.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.base.model.entity.type.EntityType;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.policies.enforcement.CreationRestrictionEnforcer.Context;
-import org.eclipse.ditto.policies.enforcement.config.DefaultEntityCreationConfig;
 import org.eclipse.ditto.policies.model.PolicyConstants;
 import org.eclipse.ditto.things.model.ThingConstants;
 import org.junit.jupiter.api.Test;
 
 import com.typesafe.config.ConfigFactory;
 
+import akka.actor.ActorSystem;
+
 public final class CreationRestrictionEnforcerTest {
 
     private static CreationRestrictionEnforcer load(final String basename) {
         var config = ConfigFactory.load(basename);
-        return DefaultCreationRestrictionEnforcer.of(DefaultEntityCreationConfig.of(config));
+        final ActorSystem actorSystem = ActorSystem.create(CreationRestrictionEnforcerTest.class.getSimpleName(),
+                config);
+        return new CreationRestrictionEnforcer(actorSystem);
     }
 
     private static DittoHeaders identity(final String... subjects) {
         var authCtx = AuthorizationContext.newInstance(DittoAuthorizationContextType.JWT,
-                Arrays.stream(subjects).map(AuthorizationSubject::newInstance)
-                        .collect(Collectors.toUnmodifiableList())
+                Arrays.stream(subjects).map(AuthorizationSubject::newInstance).toList()
         );
 
         return DittoHeaders.of(Map.of(DittoHeaderDefinition.AUTHORIZATION_CONTEXT.getKey(), authCtx.toJsonString()));
@@ -89,7 +89,7 @@ public final class CreationRestrictionEnforcerTest {
     private void testCanCreate(final CreationRestrictionEnforcer enforcer, final EntityType type,
             final String namespace, final DittoHeaders headers, boolean expectedOutcome) {
 
-        assertEquals(expectedOutcome, enforcer.canCreate(new Context(
+        assertEquals(expectedOutcome, enforcer.canCreate(new CreationRestrictionEnforcer.Context(
                 type.toString(),
                 namespace,
                 headers
