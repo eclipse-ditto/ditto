@@ -76,6 +76,15 @@ public class MetadataWildcardValidatorTest {
     }
 
     @Test
+    public void validateValidMetadataWildcardForRetrieveDesiredFeature() {
+        final String metadataWildcardExpr = "desiredProperties/*/key";
+
+        assertThatNoException()
+                .isThrownBy(() -> MetadataWildcardValidator.validateMetadataWildcard(RetrieveFeature.TYPE,
+                        metadataWildcardExpr));
+    }
+
+    @Test
     public void validateValidMetadataWildcardForRetrieveFeatureProperties() {
         final List<String> metadataWildcardExprList = List.of("/*/key", "*/metaDataKey");
 
@@ -144,6 +153,19 @@ public class MetadataWildcardValidatorTest {
     @Test
     public void validateInvalidMetadataWildcardForRetrieveFeature() {
         final String metadataWildcardExpr = "/properties/*/*/key";
+
+        assertThatExceptionOfType(DittoHeaderInvalidException.class)
+                .isThrownBy(() -> MetadataWildcardValidator.validateMetadataWildcard(RetrieveFeature.TYPE,
+                        metadataWildcardExpr))
+                .withMessage(MessageFormat.format(
+                        "The wildcard expression ''{0}'' in header 'get-metadata' is not valid.",
+                        metadataWildcardExpr))
+                .withNoCause();
+    }
+
+    @Test
+    public void validateInvalidMetadataWildcardForRetrieveDesiredFeature() {
+        final String metadataWildcardExpr = "/desiredProperties/*/*/key";
 
         assertThatExceptionOfType(DittoHeaderInvalidException.class)
                 .isThrownBy(() -> MetadataWildcardValidator.validateMetadataWildcard(RetrieveFeature.TYPE,

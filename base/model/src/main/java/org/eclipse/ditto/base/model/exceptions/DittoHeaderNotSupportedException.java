@@ -45,11 +45,11 @@ public final class DittoHeaderNotSupportedException extends DittoRuntimeExceptio
     /**
      * Error code of this exception.
      */
-    public static final String ERROR_CODE = "header.not.supported";
+    public static final String ERROR_CODE = "header.notsupported";
 
     private static final String DEFAULT_MESSAGE = "The header is not supported.";
 
-    private static final String MESSAGE_TEMPLATE = "The value ''{0}'' of the header ''{1}'' is not supported on this resource level {2}.";
+    private static final String MESSAGE_TEMPLATE = "The value ''{0}'' of the header ''{1}'' is not supported on this resource level.";
 
     private static final String DEFAULT_DESCRIPTION = "Verify that the header has the correct syntax and is used on the correct resource level.";
 
@@ -58,7 +58,7 @@ public final class DittoHeaderNotSupportedException extends DittoRuntimeExceptio
     /**
      * Definition of an optional JSON field that contains the key of the not supported header.
      *
-     * @since 3.0.0
+     * @since 2.5.0
      */
     static final JsonFieldDefinition<String> JSON_FIELD_NOT_SUPPORTED_HEADER_KEY =
             JsonFieldDefinition.ofString("notSupportedHeaderKey",
@@ -83,14 +83,13 @@ public final class DittoHeaderNotSupportedException extends DittoRuntimeExceptio
      *
      * @param headerName the key of the header.
      * @param headerValue the value of the header.
-     * @param headerType the expected type of the header. (int, String, entity-tag...)
      * @return the builder.
      * @throws NullPointerException if any argument is {@code null}.
      */
     public static DittoHeaderNotSupportedException.Builder newInvalidTypeBuilder(final String headerName,
-            @Nullable final CharSequence headerValue, final String headerType) {
+            @Nullable final CharSequence headerValue) {
 
-        return new DittoHeaderNotSupportedException.Builder(headerName, headerValue, headerType);
+        return new DittoHeaderNotSupportedException.Builder(headerName, headerValue);
     }
 
     /**
@@ -98,15 +97,14 @@ public final class DittoHeaderNotSupportedException extends DittoRuntimeExceptio
      *
      * @param headerDefinition the definition of the header.
      * @param headerValue the value of the header.
-     * @param headerType the type of the header. (int, String, entity-tag...)
      * @return the builder.
      * @throws NullPointerException if any argument is {@code null}.
-     * @since 3.0.0
+     * @since 2.5.0
      */
     public static DittoHeaderNotSupportedException.Builder newInvalidTypeBuilder(final HeaderDefinition headerDefinition,
-            @Nullable final CharSequence headerValue, final String headerType) {
+            @Nullable final CharSequence headerValue) {
 
-        return new DittoHeaderNotSupportedException.Builder(headerDefinition.getKey(), headerValue, headerType);
+        return new DittoHeaderNotSupportedException.Builder(headerDefinition.getKey(), headerValue);
     }
 
     /**
@@ -114,7 +112,7 @@ public final class DittoHeaderNotSupportedException extends DittoRuntimeExceptio
      * The returned builder is initialized with a default message and a default description.
      *
      * @return the builder.
-     * @since 3.0.0
+     * @since 2.5.0
      */
     public static DittoHeaderNotSupportedException.Builder newBuilder() {
         return new Builder();
@@ -143,7 +141,7 @@ public final class DittoHeaderNotSupportedException extends DittoRuntimeExceptio
      * Returns the key of the not supported header if known.
      *
      * @return an Optional that either contains the key of the not supported header or is empty if the key is unknown.
-     * @since 3.0.0
+     * @since 2.5.0
      */
     public Optional<String> getNotSupportedHeaderKey() {
         return Optional.ofNullable(notSupportedHeaderKey);
@@ -201,10 +199,9 @@ public final class DittoHeaderNotSupportedException extends DittoRuntimeExceptio
             description(DEFAULT_DESCRIPTION);
         }
 
-        private Builder(final String headerName, @Nullable final CharSequence headerValue, final String headerType) {
+        private Builder(final String headerName, @Nullable final CharSequence headerValue) {
             notSupportedHeaderKey = headerName;
-            message(MessageFormat.format(MESSAGE_TEMPLATE, String.valueOf(headerValue), requireNonNull(headerName),
-                    requireNonNull(headerType)));
+            message(MessageFormat.format(MESSAGE_TEMPLATE, String.valueOf(headerValue), requireNonNull(headerName)));
             description(DEFAULT_DESCRIPTION);
         }
 
@@ -213,7 +210,7 @@ public final class DittoHeaderNotSupportedException extends DittoRuntimeExceptio
          *
          * @param notSupportedHeaderKey the key of the not supported header.
          * @return this builder instance for method chaining.
-         * @since 3.0.0
+         * @since 2.5.0
          */
         public Builder withNotSupportedHeaderKey(@Nullable final CharSequence notSupportedHeaderKey) {
             if (null != notSupportedHeaderKey) {

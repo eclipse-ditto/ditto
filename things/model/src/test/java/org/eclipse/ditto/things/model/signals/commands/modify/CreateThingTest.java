@@ -20,24 +20,24 @@ import java.lang.ref.SoftReference;
 import java.text.MessageFormat;
 
 import org.assertj.core.api.JUnitSoftAssertions;
-
 import org.eclipse.ditto.base.model.entity.metadata.Metadata;
+import org.eclipse.ditto.base.model.exceptions.DittoHeaderInvalidException;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.metadata.MetadataHeader;
 import org.eclipse.ditto.base.model.headers.metadata.MetadataHeaderKey;
 import org.eclipse.ditto.base.model.headers.metadata.MetadataHeaders;
+import org.eclipse.ditto.base.model.json.FieldType;
+import org.eclipse.ditto.base.model.signals.commands.Command;
+import org.eclipse.ditto.base.model.signals.commands.GlobalCommandRegistry;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.ThingTooLargeException;
 import org.eclipse.ditto.things.model.ThingsModelFactory;
-import org.eclipse.ditto.base.model.signals.commands.Command;
-import org.eclipse.ditto.base.model.signals.commands.GlobalCommandRegistry;
 import org.eclipse.ditto.things.model.signals.commands.TestConstants;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommand;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.MetadataNotModifiableException;
@@ -234,6 +234,24 @@ public final class CreateThingTest {
 
         softly.assertThatThrownBy(() -> CreateThing.fromJson(commandJson, dittoHeadersWithMetadata))
                 .isInstanceOf(MetadataNotModifiableException.class);
+    }
+
+    @Test
+    public void initializeWithMetadataAndInvalidMetadataKey() {
+        final Thing thing = Thing.newBuilder()
+                .setGeneratedId()
+                .setAttribute(JsonPointer.of("/foo"), JsonValue.of("bar"))
+                .setMetadata(Metadata.newBuilder()
+                        .set("*/*/foo", 42)
+                        .build())
+                .build();
+        final JsonObject commandJson = JsonFactory.newObjectBuilder()
+                .set(ThingCommand.JsonFields.TYPE, CreateThing.TYPE)
+                .set(CreateThing.JSON_THING, thing.toJson(FieldType.all()))
+                .build();
+
+        softly.assertThatThrownBy(() -> CreateThing.fromJson(commandJson, TestConstants.DITTO_HEADERS))
+                .isInstanceOf(DittoHeaderInvalidException.class);
     }
 
     @Test

@@ -327,7 +327,7 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
      * Key {@code "get-metadata"}, Java type: {@link String}.
      * </p>
      *
-     * @since 3.0.0
+     * @since 2.5.0
      */
     GET_METADATA("get-metadata", String.class, true, false, HeaderValueValidators.getJsonFieldSelectorValidator()),
 
@@ -337,7 +337,7 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
      * Key {@code "delete-metadata"}, Java type: {@link String}.
      * </p>
      *
-     * @since 3.0.0
+     * @since 2.5.0
      */
     DELETE_METADATA("delete-metadata", String.class, true, false, HeaderValueValidators.getJsonFieldSelectorValidator()),
 
@@ -347,7 +347,7 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
      * Key {@code "ditto-metadata"}, Java type: {@link JsonObject}.
      * </p>
      *
-     * @since 3.0.0
+     * @since 2.5.0
      */
     DITTO_METADATA("ditto-metadata", JsonObject.class, false, true, HeaderValueValidators.getNoOpValidator()),
 

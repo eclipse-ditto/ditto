@@ -35,15 +35,17 @@ import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThing;
 final class MetadataWildcardValidator {
 
     private static final String THING_FEATURES_AND_PROPERTIES_WILDCARD_REGEX =
-            "/?features/\\*/properties/\\*/(?!\\*).*";
+            "/?features/\\*/(properties|desiredProperties)/\\*/(?!\\*).*";
     private static final String THING_FEATURES_WITH_ID_ONLY_WILDCARD_REGEX =
-            "/?features/\\*/properties/(?!\\*).*/(?!\\*).*";
+            "/?features/\\*/(properties|desiredProperties)/(?!\\*).*/(?!\\*).*";
     private static final String THING_FEATURES_WITH_PROPERTIES_ONLY_WILDCARD_REGEX =
-            "/?features/(?!\\*).*/properties/\\*/(?!\\*/).*";
-    private static final String FEATURES_WILDCARD_REGEX = "/?\\*/properties/\\*/(?!\\*).*";
-    private static final String FEATURES_WITH_ID_ONLY_WILDCARD_REGEX = "/?\\*/properties/(?!\\*).*/(?!\\*).*";
-    private static final String FEATURES_WITH_PROPERTIES_ONLY_WILDCARD_REGEX = "/?(?!\\*).*/properties/\\*/(?!\\*).*";
-    private static final String FEATURE_PROPERTY_WILDCARD_REGEX = "/?properties/\\*/(?!\\*).*";
+            "/?features/(?!\\*).*/(properties|desiredProperties)/\\*/(?!\\*/).*";
+    private static final String FEATURES_WILDCARD_REGEX = "/?\\*/(properties|desiredProperties)/\\*/(?!\\*).*";
+    private static final String FEATURES_WITH_ID_ONLY_WILDCARD_REGEX =
+            "/?\\*/(properties|desiredProperties)/(?!\\*).*/(?!\\*).*";
+    private static final String FEATURES_WITH_PROPERTIES_ONLY_WILDCARD_REGEX =
+            "/?(?!\\*).*/(properties|desiredProperties)/\\*/(?!\\*).*";
+    private static final String FEATURE_PROPERTY_WILDCARD_REGEX = "/?(properties|desiredProperties)/\\*/(?!\\*).*";
     private static final String ATTRIBUTES_WILDCARD_REGEX = "/?attributes/\\*/(?!\\*).*";
     private static final String LEAF_WILDCARD_REGEX = "^/?\\*/(?!\\*/).*";
 

@@ -40,7 +40,13 @@ import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThing;
 final class MetadataFieldsWildcardResolver {
 
     private static final JsonPointer FEATURES_POINTER = JsonPointer.of("features");
-    private static final JsonPointer PROPERTIES_POINTER = JsonPointer.of("properties");
+
+    private static final String PROPERTIES = "properties";
+    private static final JsonPointer PROPERTIES_POINTER = JsonPointer.of(PROPERTIES);
+
+    private static final String DESIRED_PROPERTIES = "desiredProperties";
+
+    private static final JsonPointer DESIRED_PROPERTIES_POINTER = JsonPointer.of(DESIRED_PROPERTIES);
 
     private MetadataFieldsWildcardResolver() {
         throw new AssertionError();
@@ -84,49 +90,93 @@ final class MetadataFieldsWildcardResolver {
 
         if (MetadataWildcardValidator.matchesThingFeaturesAndPropertiesWildcard(wildcardExpression)) {
             featureIds.forEach(featureId -> {
-                        final List<String> propertyKeys = getFeaturePropertyKeysFromThing(thing, featureId);
-                        propertyKeys.forEach(propertyKey ->
-                                replacedWildcardsPointers.add(
-                                        JsonPointer.empty().append(FEATURES_POINTER)
-                                                .append(JsonPointer.of(featureId))
-                                                .append(PROPERTIES_POINTER)
-                                                .append(JsonPointer.of(propertyKey))
-                                                .append(leafFromWildcardExpression.asPointer())
-                                )
-                        );
+                        if (containsProperties(jsonPointerWithWildcard)) {
+                            final List<String> propertyKeys = getFeaturePropertyKeysFromThing(thing, featureId);
+                            propertyKeys.forEach(propertyKey ->
+                                    replacedWildcardsPointers.add(
+                                            JsonPointer.empty().append(FEATURES_POINTER)
+                                                    .append(JsonPointer.of(featureId))
+                                                    .append(PROPERTIES_POINTER)
+                                                    .append(JsonPointer.of(propertyKey))
+                                                    .append(leafFromWildcardExpression.asPointer())
+                                    )
+                            );
+                        }
+                        if (containsDesiredProperties(jsonPointerWithWildcard)) {
+                            final List<String> desiredPropertyKeys = getFeatureDesiredPropertyKeysFromThing(thing, featureId);
+                            desiredPropertyKeys.forEach(desiredPropertyKey ->
+                                    replacedWildcardsPointers.add(
+                                            JsonPointer.empty().append(FEATURES_POINTER)
+                                                    .append(JsonPointer.of(featureId))
+                                                    .append(DESIRED_PROPERTIES_POINTER)
+                                                    .append(JsonPointer.of(desiredPropertyKey))
+                                                    .append(leafFromWildcardExpression.asPointer())
+                                    )
+                            );
+                        }
                     }
             );
         } else if (MetadataWildcardValidator.matchesThingFeaturesWithIdOnlyWildcard(wildcardExpression)) {
-            final JsonKey propertyKeysFromWildcardExpr = jsonPointerWithWildcard.get(3).orElseThrow(() ->
+            final JsonKey propertyKeyFromWildcardExpr = jsonPointerWithWildcard.get(3).orElseThrow(() ->
                     MetadataWildcardValidator.getDittoHeaderInvalidException(wildcardExpression)
             );
-            featureIds.forEach(featureId ->
-                    replacedWildcardsPointers.add(
-                            JsonPointer.empty()
-                                    .append(FEATURES_POINTER)
-                                    .append(JsonPointer.of(featureId))
-                                    .append(PROPERTIES_POINTER)
-                                    .append(propertyKeysFromWildcardExpr.asPointer())
-                                    .append(leafFromWildcardExpression.asPointer())
-                    )
+            featureIds.forEach(featureId -> {
+                        if (containsProperties(jsonPointerWithWildcard)) {
+                            replacedWildcardsPointers.add(
+                                    JsonPointer.empty()
+                                            .append(FEATURES_POINTER)
+                                            .append(JsonPointer.of(featureId))
+                                            .append(PROPERTIES_POINTER)
+                                            .append(propertyKeyFromWildcardExpr.asPointer())
+                                            .append(leafFromWildcardExpression.asPointer())
+                            );
+                        }
+                        if (containsDesiredProperties(jsonPointerWithWildcard)) {
+                            final List<String> desiredPropertyKeys = getFeatureDesiredPropertyKeysFromThing(thing, featureId);
+                            desiredPropertyKeys.forEach(desiredPropertyKey ->
+                                    replacedWildcardsPointers.add(
+                                            JsonPointer.empty().append(FEATURES_POINTER)
+                                                    .append(JsonPointer.of(featureId))
+                                                    .append(DESIRED_PROPERTIES_POINTER)
+                                                    .append(JsonPointer.of(desiredPropertyKey))
+                                                    .append(leafFromWildcardExpression.asPointer())
+                                    )
+                            );
+                        }
+                    }
             );
         } else if (MetadataWildcardValidator.matchesThingFeaturesWithPropertiesOnlyWildcard(wildcardExpression)) {
             final JsonKey featureIdKeyFromWildcardExpr = jsonPointerWithWildcard.get(1).orElseThrow(() ->
                     MetadataWildcardValidator.getDittoHeaderInvalidException(wildcardExpression)
             );
+            final String featureId = featureIdKeyFromWildcardExpr.toString();
             final List<String> propertyKeys =
-                    getFeaturePropertyKeysFromThing(thing, featureIdKeyFromWildcardExpr.toString());
-            propertyKeys.forEach(propertyKey ->
+                    getFeaturePropertyKeysFromThing(thing, featureId);
+            propertyKeys.forEach(propertyKey -> {
+                if (containsProperties(jsonPointerWithWildcard)) {
                     replacedWildcardsPointers.add(
                             JsonPointer.empty()
                                     .append(FEATURES_POINTER)
                                     .append(featureIdKeyFromWildcardExpr.asPointer())
                                     .append(PROPERTIES_POINTER)
                                     .append(JsonPointer.of(propertyKey))
-                                    .append(leafFromWildcardExpression.asPointer()
-                                    )
-                    )
-            );
+                                    .append(leafFromWildcardExpression.asPointer())
+                    );
+                }
+                if (containsDesiredProperties(jsonPointerWithWildcard)) {
+                    final List<String> desiredPropertyKeys =
+                            getFeatureDesiredPropertyKeysFromThing(thing, featureId);
+                    desiredPropertyKeys.forEach(desiredPropertyKey ->
+                            replacedWildcardsPointers.add(
+                                    JsonPointer.empty().append(FEATURES_POINTER)
+                                            .append(featureIdKeyFromWildcardExpr.asPointer())
+                                            .append(DESIRED_PROPERTIES_POINTER)
+                                            .append(JsonPointer.of(desiredPropertyKey))
+                                            .append(leafFromWildcardExpression.asPointer())
+                            )
+                    );
+                }
+            });
         } else if (MetadataWildcardValidator.matchesAttributesWildcard(wildcardExpression)) {
             final JsonKey metadataKey = jsonPointerWithWildcard.get(2).orElseThrow(() ->
                     MetadataWildcardValidator.getDittoHeaderInvalidException(wildcardExpression)
@@ -159,6 +209,17 @@ final class MetadataFieldsWildcardResolver {
                                                 .append(metadataKey.asPointer())
                                 )
                         );
+                        final List<String> desiredPropertyKeys =
+                                getFeatureDesiredPropertyKeysFromThing(thing, featureId);
+                        desiredPropertyKeys.forEach(desiredPropertyKey ->
+                                replacedWildcardsPointers.add(
+                                        JsonPointer.empty().append(FEATURES_POINTER)
+                                                .append(JsonPointer.of(featureId))
+                                                .append(DESIRED_PROPERTIES_POINTER)
+                                                .append(JsonPointer.of(desiredPropertyKey))
+                                                .append(leafFromWildcardExpression.asPointer())
+                                )
+                        );
                     }
             );
 
@@ -187,46 +248,93 @@ final class MetadataFieldsWildcardResolver {
 
         if (MetadataWildcardValidator.matchesFeaturesWildcard(wildcardExpression)) {
             featureIds.forEach(featureId -> {
-                        final List<String> propertyKeys = getFeaturePropertyKeysFromThing(thing, featureId);
-                        propertyKeys.forEach(propertyKey ->
-                                replacedWildcardsPointer.add(
-                                        JsonPointer.empty()
-                                                .append(JsonPointer.of(featureId))
-                                                .append(PROPERTIES_POINTER)
-                                                .append(JsonPointer.of(propertyKey))
-                                                .append(leafFromWildcardExpression.asPointer())
-                                )
-                        );
+                        if (containsProperties(jsonPointerWithWildcard)) {
+                            final List<String> propertyKeys = getFeaturePropertyKeysFromThing(thing, featureId);
+                            propertyKeys.forEach(propertyKey ->
+                                    replacedWildcardsPointer.add(
+                                            JsonPointer.empty()
+                                                    .append(JsonPointer.of(featureId))
+                                                    .append(PROPERTIES_POINTER)
+                                                    .append(JsonPointer.of(propertyKey))
+                                                    .append(leafFromWildcardExpression.asPointer())
+                                    )
+                            );
+                        }
+                        if (containsDesiredProperties(jsonPointerWithWildcard)) {
+                            final List<String> desiredPropertyKeys =
+                                    getFeatureDesiredPropertyKeysFromThing(thing, featureId);
+                            desiredPropertyKeys.forEach(desiredPropertyKey ->
+                                    replacedWildcardsPointer.add(
+                                            JsonPointer.empty()
+                                                    .append(JsonPointer.of(featureId))
+                                                    .append(DESIRED_PROPERTIES_POINTER)
+                                                    .append(JsonPointer.of(desiredPropertyKey))
+                                                    .append(leafFromWildcardExpression.asPointer())
+                                    )
+                            );
+                        }
                     }
             );
         } else if (MetadataWildcardValidator.matchesFeaturesWithIdOnlyWildcard(wildcardExpression)) {
             final JsonKey propertyKeyFromWildcardExpr = jsonPointerWithWildcard.get(2).orElseThrow(() ->
                     MetadataWildcardValidator.getDittoHeaderInvalidException(wildcardExpression)
             );
-            featureIds.forEach(featureId ->
+            featureIds.forEach(featureId -> {
+                if (containsProperties(jsonPointerWithWildcard)) {
                     replacedWildcardsPointer.add(
                             JsonPointer.empty()
                                     .append(JsonPointer.of(featureId))
                                     .append(PROPERTIES_POINTER)
                                     .append(propertyKeyFromWildcardExpr.asPointer())
                                     .append(leafFromWildcardExpression.asPointer())
-                    )
-            );
+                    );
+                }
+                if (containsDesiredProperties(jsonPointerWithWildcard)) {
+                    final List<String> desiredPropertyKeys =
+                            getFeatureDesiredPropertyKeysFromThing(thing, featureId);
+                    desiredPropertyKeys.forEach(desiredPropertyKey ->
+                            replacedWildcardsPointer.add(
+                                    JsonPointer.empty()
+                                            .append(JsonPointer.of(featureId))
+                                            .append(DESIRED_PROPERTIES_POINTER)
+                                            .append(JsonPointer.of(propertyKeyFromWildcardExpr.asPointer()))
+                                            .append(leafFromWildcardExpression.asPointer())
+                            )
+                    );
+                }
+            });
         } else if (MetadataWildcardValidator.matchesFeaturesWithPropertyOnlyWildcard(wildcardExpression) ||
                 MetadataWildcardValidator.matchesFeaturePropertyWildcard(wildcardExpression)) {
             final JsonKey featureIdFromWildcardExpr = jsonPointerWithWildcard.get(1).orElseThrow(() ->
                     MetadataWildcardValidator.getDittoHeaderInvalidException(wildcardExpression)
             );
+            final String featureId = featureIdFromWildcardExpr.toString();
             final List<String> propertyKeys =
-                    getFeaturePropertyKeysFromThing(thing, featureIdFromWildcardExpr.toString());
-            propertyKeys.forEach(propertyKey ->
-                    replacedWildcardsPointer.add(
-                            JsonPointer.empty()
-                                    .append(featureIdFromWildcardExpr.asPointer())
-                                    .append(PROPERTIES_POINTER)
-                                    .append(JsonPointer.of(propertyKey))
-                                    .append(leafFromWildcardExpression.asPointer())
-                    )
+                    getFeaturePropertyKeysFromThing(thing, featureId);
+            propertyKeys.forEach(propertyKey -> {
+                        if (containsProperties(jsonPointerWithWildcard)) {
+                            replacedWildcardsPointer.add(
+                                    JsonPointer.empty()
+                                            .append(featureIdFromWildcardExpr.asPointer())
+                                            .append(PROPERTIES_POINTER)
+                                            .append(JsonPointer.of(propertyKey))
+                                            .append(leafFromWildcardExpression.asPointer())
+                            );
+                        }
+                        if (containsDesiredProperties(jsonPointerWithWildcard)) {
+                            final List<String> desiredPropertyKeys =
+                                    getFeatureDesiredPropertyKeysFromThing(thing, featureId);
+                            desiredPropertyKeys.forEach(desiredPropertyKey ->
+                                    replacedWildcardsPointer.add(
+                                            JsonPointer.empty()
+                                                    .append(featureIdFromWildcardExpr.asPointer())
+                                                    .append(DESIRED_PROPERTIES_POINTER)
+                                                    .append(JsonPointer.of(desiredPropertyKey))
+                                                    .append(leafFromWildcardExpression.asPointer())
+                                    )
+                            );
+                        }
+                    }
             );
         }
 
@@ -242,15 +350,30 @@ final class MetadataFieldsWildcardResolver {
         );
 
         if (MetadataWildcardValidator.matchesFeaturePropertyWildcard(wildcardExpression)) {
-            final String featureIdFromCommand = retrieveFeature.getFeatureId();
-            final List<String> propertyKeys = getFeaturePropertyKeysFromThing(thing, featureIdFromCommand);
-            propertyKeys.forEach(propertyKey ->
-                    replacedWildcardsPointer.add(
-                            JsonPointer.empty()
-                                    .append(PROPERTIES_POINTER)
-                                    .append(JsonPointer.of(propertyKey))
-                                    .append(leafFromWildcardExpression.asPointer())
-                    )
+            final String featureId = retrieveFeature.getFeatureId();
+            final List<String> propertyKeys = getFeaturePropertyKeysFromThing(thing, featureId);
+            propertyKeys.forEach(propertyKey -> {
+                        if (containsProperties(jsonPointerWithWildcard)) {
+                            replacedWildcardsPointer.add(
+                                    JsonPointer.empty()
+                                            .append(PROPERTIES_POINTER)
+                                            .append(JsonPointer.of(propertyKey))
+                                            .append(leafFromWildcardExpression.asPointer())
+                            );
+                        }
+                        if (containsDesiredProperties(jsonPointerWithWildcard)) {
+                            final List<String> desiredPropertyKeys =
+                                    getFeatureDesiredPropertyKeysFromThing(thing, featureId);
+                            desiredPropertyKeys.forEach(desiredPropertyKey ->
+                                    replacedWildcardsPointer.add(
+                                            JsonPointer.empty()
+                                                    .append(DESIRED_PROPERTIES_POINTER)
+                                                    .append(JsonPointer.of(desiredPropertyKey))
+                                                    .append(leafFromWildcardExpression.asPointer())
+                                    )
+                            );
+                        }
+                    }
             );
         }
 
@@ -285,8 +408,8 @@ final class MetadataFieldsWildcardResolver {
         );
         final Set<JsonPointer> replacedWildcardsPointer = new HashSet<>();
         final String featureIdFromCommand = command.getFeatureId();
-        final List<String> propertyKeys = getFeatureDesiredPropertyKeysFromThing(thing, featureIdFromCommand);
-        propertyKeys.forEach(propertyKey ->
+        final List<String> desiredPropertyKeys = getFeatureDesiredPropertyKeysFromThing(thing, featureIdFromCommand);
+        desiredPropertyKeys.forEach(propertyKey ->
                 replacedWildcardsPointer.add(
                         JsonPointer.empty()
                                 .append(JsonPointer.of(propertyKey))
@@ -317,6 +440,14 @@ final class MetadataFieldsWildcardResolver {
         }
 
         return replacedWildcardsPointer;
+    }
+
+    private static boolean containsProperties(final JsonPointer wildcardPointer) {
+        return wildcardPointer.toString().contains(PROPERTIES);
+    }
+
+    private static boolean containsDesiredProperties(final JsonPointer wildcardPointer) {
+        return wildcardPointer.toString().contains(DESIRED_PROPERTIES);
     }
 
     private static List<String> getFeatureIdsFromThing(final Thing thing) {

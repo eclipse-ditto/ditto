@@ -16,7 +16,6 @@ import static org.assertj.core.api.Assertions.fail;
 import static org.eclipse.ditto.things.model.assertions.DittoThingsAssertions.assertThat;
 
 import java.time.Instant;
-import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
@@ -33,9 +32,6 @@ import org.eclipse.ditto.base.model.entity.metadata.Metadata;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.base.model.headers.metadata.MetadataHeader;
-import org.eclipse.ditto.base.model.headers.metadata.MetadataHeaderKey;
-import org.eclipse.ditto.base.model.headers.metadata.MetadataHeaders;
 import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.signals.events.Event;
@@ -1291,8 +1287,8 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
     }
 
     @Test
-    public void retrieveThingWithGetMetadataHeader() {
-        final Thing thing = createThingV2WithRandomId();
+    public void retrieveFeaturesMetadataWithGetMetadataHeader() {
+        final Thing thing = createThingV2WithRandomIdAndMetadata();
         final DittoHeaders dittoHeaders = dittoHeadersV2.toBuilder()
                 .putHeader(DittoHeaderDefinition.GET_METADATA.getKey(), "/features")
                 .build();
@@ -1304,38 +1300,17 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
             // create thing
             final CreateThing createThing = CreateThing.of(thing, null, dittoHeadersV2);
             underTest.tell(createThing, getRef());
-            expectMsgClass(CreateThingResponse.class);
-
-            // modify thing
-            final MetadataHeaders metadataHeaders = MetadataHeaders.newInstance();
-            metadataHeaders.add(
-                    MetadataHeader.of(MetadataHeaderKey.parse("/features"), JsonObject.newBuilder()
-                            .set("featureId", JsonObject.newBuilder()
-                                    .set("issuedBy", "the epic Ditto team")
-                                    .build())
-                            .build())
-            );
-            metadataHeaders.add(
-                    MetadataHeader.of(MetadataHeaderKey.parse("/attributes"), JsonObject.newBuilder()
-                            .set("createdAt", Instant.now().toString())
-                            .build())
-            );
-
-            final DittoHeaders modifyHeaders = dittoHeaders.toBuilder()
-                    .putHeader(DittoHeaderDefinition.PUT_METADATA.getKey(), metadataHeaders.toJsonString())
-                    .build();
-            final ModifyThing modifyThing = ModifyThing.of(getIdOrThrow(thing), thing, null, modifyHeaders);
-            underTest.tell(modifyThing, getRef());
-            expectMsgClass(ModifyThingResponse.class);
+            expectMsgClass(java.time.Duration.ofSeconds(3600), CreateThingResponse.class);
 
             // retrieve thing with metadata
-            final Thing thingExpected = ThingsModelFactory.newThingBuilder(thing)
-                    .setRevision(2L)
-                    .build();
             final Metadata expectedMetadata = Metadata.newBuilder()
                     .set("features", JsonObject.newBuilder()
-                            .set("featureId", JsonObject.newBuilder()
-                                    .set("issuedBy", "the epic Ditto team")
+                            .set(FEATURE_ID, JsonObject.newBuilder()
+                                    .set("properties", JsonObject.newBuilder()
+                                            .set(FEATURE_KEY, JsonObject.newBuilder()
+                                                    .set("issuedBy", "the epic Ditto team")
+                                                    .build())
+                                            .build())
                                     .build())
                             .build())
                     .build();
@@ -1344,13 +1319,13 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
                     .build();
 
             underTest.tell(retrieveThingCommand, getRef());
-            expectMsgEquals(ETagTestUtils.retrieveThingResponse(thingExpected, null, expectedHeaders));
+            expectMsgEquals(ETagTestUtils.retrieveThingResponse(thing, null, expectedHeaders));
         }};
     }
 
     @Test
-    public void retrieveThingWithGetMetadataHeaderAndWildcard() {
-        final Thing thing = createThingV2WithRandomId()
+    public void retrieveFeatureMetadataWithGetMetadataHeader() {
+        final Thing thing = createThingV2WithRandomIdAndMetadata()
                 .setFeatureProperty("featureId2", "featureKey2", "someValue");
         final DittoHeaders dittoHeaders = dittoHeadersV2.toBuilder()
                 .putHeader(DittoHeaderDefinition.GET_METADATA.getKey(), "/features/featureId")
@@ -1365,23 +1340,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
             underTest.tell(createThing, getRef());
             expectMsgClass(CreateThingResponse.class);
 
-            // modify thing
-            final MetadataHeaders metadataHeaders = MetadataHeaders.newInstance();
-            metadataHeaders.add(
-                    MetadataHeader.of(MetadataHeaderKey.parse("*/issuedBy"), JsonValue.of("the epic Ditto team"))
-            );
-
-            final DittoHeaders modifyHeaders = dittoHeaders.toBuilder()
-                    .putHeader(DittoHeaderDefinition.PUT_METADATA.getKey(), metadataHeaders.toJsonString())
-                    .build();
-            final ModifyThing modifyThing = ModifyThing.of(getIdOrThrow(thing), thing, null, modifyHeaders);
-            underTest.tell(modifyThing, getRef());
-            expectMsgClass(ModifyThingResponse.class);
-
             // retrieve thing with metadata
-            final Thing thingExpected = ThingsModelFactory.newThingBuilder(thing)
-                    .setRevision(2L)
-                    .build();
             final Metadata expectedMetadata = Metadata.newBuilder()
                     .set("features", JsonObject.newBuilder()
                             .set("featureId", JsonObject.newBuilder()
@@ -1401,13 +1360,13 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
                     .build();
 
             underTest.tell(retrieveThingCommand, getRef());
-            expectMsgEquals(ETagTestUtils.retrieveThingResponse(thingExpected, null, expectedHeaders));
+            expectMsgEquals(ETagTestUtils.retrieveThingResponse(thing, null, expectedHeaders));
         }};
     }
 
     @Test
-    public void retrieveAttributeWithGetMetadataHeader() {
-        final Thing thing = createThingV2WithRandomId();
+    public void retrieveAttributesWithGetMetadataHeader() {
+        final Thing thing = createThingV2WithRandomIdAndMetadata();
         final DittoHeaders dittoHeaders = dittoHeadersV2.toBuilder()
                 .putHeader(DittoHeaderDefinition.GET_METADATA.getKey(), "attrKey")
                 .build();
@@ -1420,20 +1379,6 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
             final CreateThing createThing = CreateThing.of(thing, null, dittoHeadersV2);
             underTest.tell(createThing, getRef());
             expectMsgClass(CreateThingResponse.class);
-
-            // modify thing
-            final MetadataHeaders metadataHeaders = MetadataHeaders.newInstance();
-            metadataHeaders.add(
-                    MetadataHeader.of(MetadataHeaderKey.parse("attributes/attrKey/issuedBy"),
-                            JsonValue.of("the epic Ditto team"))
-            );
-
-            final DittoHeaders modifyHeaders = dittoHeaders.toBuilder()
-                    .putHeader(DittoHeaderDefinition.PUT_METADATA.getKey(), metadataHeaders.toJsonString())
-                    .build();
-            final ModifyThing modifyThing = ModifyThing.of(getIdOrThrow(thing), thing, null, modifyHeaders);
-            underTest.tell(modifyThing, getRef());
-            expectMsgClass(ModifyThingResponse.class);
 
             // retrieve attributes with metadata
             final Metadata expectedMetadata = Metadata.newBuilder()
@@ -1452,10 +1397,11 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
     }
 
     @Test
-    public void retrieveThingWithGetMetadataWildcardHeader() {
-        final Thing thing = createThingV2WithRandomId();
+    public void retrieveFeaturePropertyAndAttributeMetadataWithGetMetadataWildcardHeader() {
+        final Thing thing = createThingV2WithRandomIdAndMetadata();
         final DittoHeaders dittoHeaders = dittoHeadersV2.toBuilder()
-                .putHeader(DittoHeaderDefinition.GET_METADATA.getKey(), "features/*/properties/*/unit,attributes/*/edited")
+                .putHeader(DittoHeaderDefinition.GET_METADATA.getKey(),
+                        "features/*/properties/*/unit,attributes/*/edited")
                 .build();
         final ThingCommand<?> retrieveThingCommand = RetrieveThing.of(getIdOrThrow(thing), dittoHeaders);
 
@@ -1467,28 +1413,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
             underTest.tell(createThing, getRef());
             expectMsgClass(CreateThingResponse.class);
 
-            // modify thing
-            final MetadataHeaders metadataHeaders = MetadataHeaders.newInstance();
-            metadataHeaders.addAll(
-                    List.of(MetadataHeader.of(
-                                    MetadataHeaderKey.parse("features/featureId/properties/featureKey/unit"),
-                                    JsonValue.of("Quarks")),
-                            MetadataHeader.of(
-                                    MetadataHeaderKey.parse("attributes/attrKey/edited"),
-                                    JsonValue.of("2022-05-31 15:55:55")))
-            );
-
-            final DittoHeaders modifyHeaders = dittoHeaders.toBuilder()
-                    .putHeader(DittoHeaderDefinition.PUT_METADATA.getKey(), metadataHeaders.toJsonString())
-                    .build();
-            final ModifyThing modifyThing = ModifyThing.of(getIdOrThrow(thing), thing, null, modifyHeaders);
-            underTest.tell(modifyThing, getRef());
-            expectMsgClass(ModifyThingResponse.class);
-
             // retrieve thing with metadata
-            final Thing thingExpected = ThingsModelFactory.newThingBuilder(thing)
-                    .setRevision(2L)
-                    .build();
             final Metadata expectedMetadata = Metadata.newBuilder()
                     .set("attributes", JsonObject.newBuilder()
                             .set("attrKey", JsonObject.newBuilder()
@@ -1510,7 +1435,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
                     .build();
 
             underTest.tell(retrieveThingCommand, getRef());
-            expectMsgEquals(ETagTestUtils.retrieveThingResponse(thingExpected, null, expectedHeaders));
+            expectMsgEquals(ETagTestUtils.retrieveThingResponse(thing, null, expectedHeaders));
         }};
     }
 

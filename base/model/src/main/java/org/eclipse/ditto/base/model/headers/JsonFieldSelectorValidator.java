@@ -24,7 +24,7 @@ import org.eclipse.ditto.json.JsonRuntimeException;
  * This validator parses a CharSequence to a {@link org.eclipse.ditto.json.JsonFieldSelector}.
  * If parsing fails, a {@link org.eclipse.ditto.base.model.exceptions.DittoHeaderInvalidException} with detailed description is thrown.
  *
- * @since 3.0.0
+ * @since 2.5.0
  */
 @Immutable
 final class JsonFieldSelectorValidator extends AbstractHeaderValueValidator {

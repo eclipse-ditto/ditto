@@ -352,7 +352,7 @@ public interface DittoHeaders extends Jsonifiable<JsonObject>, Map<String, Strin
      *
      * @return the MetadataHeaderKeys to get being a sorted set of {@code MetadataHeaderKey}s.
      * Changes on the returned set are not reflected back to this DittoHeaders instance.
-     * @since 3.0.0
+     * @since 2.5.0
      */
     Set<JsonPointer> getMetadataFieldsToGet();
 

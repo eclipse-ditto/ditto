@@ -187,7 +187,7 @@ public final class HeaderValueValidators {
      * Returns a validator for checking if a CharSequence represents a {@link org.eclipse.ditto.json.JsonFieldSelector}.
      *
      * @return the validator.
-     * @since 3.0.0
+     * @since 2.5.0
      */
     static ValueValidator getJsonFieldSelectorValidator() {
         return JsonFieldSelectorValidator.getInstance();
