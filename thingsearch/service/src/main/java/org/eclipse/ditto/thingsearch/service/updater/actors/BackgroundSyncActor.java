@@ -119,8 +119,7 @@ public final class BackgroundSyncActor
     @Override
     protected void preEnhanceSleepingBehavior(final ReceiveBuilder sleepingReceiveBuilder) {
         sleepingReceiveBuilder.matchEquals(Control.BOOKMARK_THING_ID,
-                        trigger ->
-                                // ignore scheduled bookmark messages when sleeping
+                        trigger -> // ignore scheduled bookmark messages when sleeping
                                 log.debug("Ignoring: <{}>", trigger)
                 )
                 .match(ThingId.class, thingId ->
