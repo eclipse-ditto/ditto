@@ -46,6 +46,7 @@ import org.eclipse.ditto.policies.enforcement.config.EnforcementConfig;
 import org.eclipse.ditto.rql.query.Query;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingId;
+import org.eclipse.ditto.thingsearch.api.ThingsSearchConstants;
 import org.eclipse.ditto.thingsearch.api.commands.sudo.SudoCountThings;
 import org.eclipse.ditto.thingsearch.api.commands.sudo.SudoRetrieveNamespaceReport;
 import org.eclipse.ditto.thingsearch.model.SearchModelFactory;
@@ -97,7 +98,7 @@ public final class SearchActor extends AbstractActor {
     /**
      * The name of this actor in the system.
      */
-    static final String ACTOR_NAME = "thingsSearch";
+    static final String ACTOR_NAME = ThingsSearchConstants.SEARCH_ACTOR_NAME;
 
     private static final String SEARCH_DISPATCHER_ID = "search-dispatcher";
 

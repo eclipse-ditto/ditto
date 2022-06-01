@@ -31,6 +31,7 @@ import org.eclipse.ditto.rql.query.QueryBuilderFactory;
 import org.eclipse.ditto.rql.query.expression.FieldExpressionUtil;
 import org.eclipse.ditto.rql.query.expression.ThingsFieldExpressionFactory;
 import org.eclipse.ditto.things.model.Thing;
+import org.eclipse.ditto.thingsearch.api.ThingsSearchConstants;
 import org.eclipse.ditto.thingsearch.service.common.config.SearchConfig;
 import org.eclipse.ditto.thingsearch.service.persistence.query.QueryParser;
 import org.eclipse.ditto.thingsearch.service.persistence.query.validation.QueryCriteriaValidator;
@@ -54,7 +55,7 @@ public final class SearchRootActor extends DittoRootActor {
     /**
      * The name of this Actor in the ActorSystem.
      */
-    public static final String ACTOR_NAME = "thingsWildcardSearchRoot";
+    public static final String ACTOR_NAME = ThingsSearchConstants.ROOT_ACTOR_NAME;
 
     private final LoggingAdapter log;
 

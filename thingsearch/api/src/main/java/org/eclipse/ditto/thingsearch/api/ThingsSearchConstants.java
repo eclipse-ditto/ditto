@@ -33,20 +33,18 @@ public final class ThingsSearchConstants {
     @SuppressWarnings("squid:S1075")
     private static final String USER_PATH = "/user";
 
+    public static final String ROOT_ACTOR_NAME = "thingsWildcardSearchRoot";
+
     /**
      * Path of the root actor.
      */
-    public static final String ROOT_ACTOR_PATH = USER_PATH + "/thingsWildcardSearchRoot";
-
-    /**
-     * Path of the updater root actor.
-     */
-    public static final String UPDATER_ROOT_ACTOR_PATH = ROOT_ACTOR_PATH + "/searchUpdaterRoot";
+    public static final String ROOT_ACTOR_PATH = USER_PATH + "/" + ROOT_ACTOR_NAME;
 
     /**
      * Path of the search actor.
      */
-    public static final String SEARCH_ACTOR_PATH = ROOT_ACTOR_PATH + "/thingsSearch";
+    public static final String SEARCH_ACTOR_NAME = "thingsSearch";
+    public static final String SEARCH_ACTOR_PATH = ROOT_ACTOR_PATH + "/" + SEARCH_ACTOR_NAME;
 
     /*
      * Inhibit instantiation of this utility class.
