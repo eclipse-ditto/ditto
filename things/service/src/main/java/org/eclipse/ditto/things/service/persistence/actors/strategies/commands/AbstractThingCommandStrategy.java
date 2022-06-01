@@ -194,7 +194,7 @@ abstract class AbstractThingCommandStrategy<C extends Command<C>>
 
         metadataPointerWithWildcard.stream()
                 .filter(this::checkIfContainsWildcard)
-                .map(jsonPointer -> GetMetadataWildcardResolver.resolve(command, entity, jsonPointer))
+                .map(jsonPointer -> MetadataFieldsWildcardResolver.resolve(command, entity, jsonPointer))
                 .forEach(resolvedGetMetadataPointers::addAll);
 
         return resolvedGetMetadataPointers;

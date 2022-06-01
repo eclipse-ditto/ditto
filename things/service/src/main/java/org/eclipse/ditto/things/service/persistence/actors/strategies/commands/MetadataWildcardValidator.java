@@ -94,38 +94,101 @@ final class MetadataWildcardValidator {
         }
     }
 
+    /**
+     * Matches the passed {@code wildcardExpression} against wildcard regex
+     * {@code THING_FEATURES_AND_PROPERTIES_WILDCARD_REGEX} and returns {@code true} if they match.
+     *
+     * @param wildcardExpression the wildcard expression that should be checked.
+     * @return {@code true} if the wildcardExpression matches the regex and false if not.
+     */
     public static boolean matchesThingFeaturesAndPropertiesWildcard(final String wildcardExpression) {
         return Pattern.matches(THING_FEATURES_AND_PROPERTIES_WILDCARD_REGEX, wildcardExpression);
     }
 
+    /**
+     * Matches the passed {@code wildcardExpression} against wildcard regex
+     * {@code THING_FEATURES_WITH_ID_ONLY_WILDCARD_REGEX} and returns {@code true} if they match.
+     *
+     * @param wildcardExpression the wildcard expression that should be checked.
+     * @return {@code true} if the wildcardExpression matches the regex and false if not.
+     */
     public static boolean matchesThingFeaturesWithIdOnlyWildcard(final String wildcardExpression) {
         return Pattern.matches(THING_FEATURES_WITH_ID_ONLY_WILDCARD_REGEX, wildcardExpression);
     }
 
+    /**
+     * Matches the passed {@code wildcardExpression} against wildcard regex
+     * {@code THING_FEATURES_WITH_PROPERTIES_ONLY_WILDCARD_REGEX} and returns {@code true} if they match.
+     *
+     * @param wildcardExpression the wildcard expression that should be checked.
+     * @return {@code true} if the wildcardExpression matches the regex and false if not.
+     */
     public static boolean matchesThingFeaturesWithPropertiesOnlyWildcard(final String wildcardExpression) {
         return Pattern.matches(THING_FEATURES_WITH_PROPERTIES_ONLY_WILDCARD_REGEX, wildcardExpression);
     }
 
+    /**
+     * Matches the passed {@code wildcardExpression} against wildcard regex {@code FEATURES_WILDCARD_REGEX}
+     * and returns {@code true} if they match.
+     *
+     * @param wildcardExpression the wildcard expression that should be checked.
+     * @return {@code true} if the wildcardExpression matches the regex and false if not.
+     */
     public static boolean matchesFeaturesWildcard(final String wildcardExpression) {
         return Pattern.matches(FEATURES_WILDCARD_REGEX, wildcardExpression);
     }
 
+    /**
+     * Matches the passed {@code wildcardExpression} against wildcard regex {@code FEATURES_WITH_ID_ONLY_WILDCARD_REGEX}
+     * and returns {@code true} if they match.
+     *
+     * @param wildcardExpression the wildcard expression that should be checked.
+     * @return {@code true} if the wildcardExpression matches the regex and false if not.
+     */
     public static boolean matchesFeaturesWithIdOnlyWildcard(final String wildcardExpression) {
         return Pattern.matches(FEATURES_WITH_ID_ONLY_WILDCARD_REGEX, wildcardExpression);
     }
 
+    /**
+     * Matches the passed {@code wildcardExpression} against wildcard regex
+     * {@code FEATURES_WITH_PROPERTIES_ONLY_WILDCARD_REGEX} and returns {@code true} if they match.
+     *
+     * @param wildcardExpression the wildcard expression that should be checked.
+     * @return {@code true} if the wildcardExpression matches the regex and false if not.
+     */
     public static boolean matchesFeaturesWithPropertyOnlyWildcard(final String wildcardExpression) {
         return Pattern.matches(FEATURES_WITH_PROPERTIES_ONLY_WILDCARD_REGEX, wildcardExpression);
     }
 
+    /**
+     * Matches the passed {@code wildcardExpression} against wildcard regex {@code FEATURE_PROPERTY_WILDCARD_REGEX}
+     * and returns {@code true} if they match.
+     *
+     * @param wildcardExpression the wildcard expression that should be checked.
+     * @return {@code true} if the wildcardExpression matches the regex and false if not.
+     */
     public static boolean matchesFeaturePropertyWildcard(final String wildcardExpression) {
         return Pattern.matches(FEATURE_PROPERTY_WILDCARD_REGEX, wildcardExpression);
     }
 
+    /**
+     * Matches the passed {@code wildcardExpression} against wildcard regex {@code ATTRIBUTES_WILDCARD_REGEX}
+     * and returns {@code true} if they match.
+     *
+     * @param wildcardExpression the wildcard expression that should be checked.
+     * @return {@code true} if the wildcardExpression matches the regex and false if not.
+     */
     public static boolean matchesAttributesWildcard(final String wildcardExpression) {
         return Pattern.matches(ATTRIBUTES_WILDCARD_REGEX, wildcardExpression);
     }
 
+    /**
+     * Matches the passed {@code wildcardExpression} against wildcard regex {@code LEAF_WILDCARD_REGEX}
+     * and returns {@code true} if they match.
+     *
+     * @param wildcardExpression the wildcard expression that should be checked.
+     * @return {@code true} if the wildcardExpression matches the regex and false if not.
+     */
     public static boolean matchesLeafWildcard(final String wildcardExpression) {
         return Pattern.matches(LEAF_WILDCARD_REGEX, wildcardExpression);
     }

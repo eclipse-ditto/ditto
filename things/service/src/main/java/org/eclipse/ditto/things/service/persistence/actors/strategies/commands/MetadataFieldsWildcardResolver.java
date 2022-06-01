@@ -37,12 +37,12 @@ import org.eclipse.ditto.things.model.signals.commands.query.RetrieveFeatures;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThing;
 
 @Immutable
-final class GetMetadataWildcardResolver {
+final class MetadataFieldsWildcardResolver {
 
     private static final JsonPointer FEATURES_POINTER = JsonPointer.of("features");
     private static final JsonPointer PROPERTIES_POINTER = JsonPointer.of("properties");
 
-    private GetMetadataWildcardResolver() {
+    private MetadataFieldsWildcardResolver() {
         throw new AssertionError();
     }
 
