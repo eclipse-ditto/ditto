@@ -23,6 +23,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -51,8 +52,8 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
+import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -116,6 +117,18 @@ public final class ImmutableDittoHeadersTest {
     private static final String KNOWN_TRACEPARENT = "00-dfca0d990402884d22e909a87ac677ec-94fc4da95e842f96-01";
     private static final String KNOWN_TRACESTATE = "eclipse=ditto";
     private static final boolean KNOWN_DITTO_RETRIEVE_DELETED = true;
+
+    private static final String KNOWN_DITTO_GET_METADATA = "attributes/*/key";
+
+    private static final String KNOWN_DITTO_DELETE_METADATA = "features/f1/properties/p1/unit";
+
+    private static final JsonObject KNOWN_DITTO_METADATA = JsonObject.newBuilder()
+            .set("attributes", JsonObject.newBuilder()
+                    .set("a1", JsonObject.newBuilder()
+                            .set("key", "bombolombo")
+                            .build())
+                    .build())
+            .build();
 
 
     static {
@@ -184,6 +197,9 @@ public final class ImmutableDittoHeadersTest {
                 .putHeader(DittoHeaderDefinition.LIVE_CHANNEL_CONDITION_MATCHED.getKey(),
                         String.valueOf(KNOWN_LIVE_CHANNEL_CONDITION_MATCHED))
                 .accept(KNOWN_ACCEPT)
+                .putHeader(DittoHeaderDefinition.GET_METADATA.getKey(), KNOWN_DITTO_GET_METADATA )
+                .putHeader(DittoHeaderDefinition.DELETE_METADATA.getKey(), KNOWN_DITTO_DELETE_METADATA )
+                .putHeader(DittoHeaderDefinition.DITTO_METADATA.getKey(), KNOWN_DITTO_METADATA.formatAsString())
                 .build();
 
         assertThat(underTest).isEqualTo(expectedHeaderMap);
@@ -415,14 +431,14 @@ public final class ImmutableDittoHeadersTest {
     }
 
     @Test
-    public void getMetadataHeadersToPutReturnsEmptySet() {
+    public void metadataHeadersToPutReturnsEmptySet() {
         final ImmutableDittoHeaders underTest = ImmutableDittoHeaders.of(Collections.emptyMap());
 
         assertThat(underTest.getMetadataHeadersToPut()).isEmpty();
     }
 
     @Test
-    public void getMetadataHeadersToPutReturnsExpected() {
+    public void metadataHeadersToPutReturnsExpected() {
         final MetadataHeaderKey specificMetadataKey = MetadataHeaderKey.parse("/foo/bar/baz");
         final JsonValue metadataValue1 = JsonValue.of(1);
         final MetadataHeaderKey wildcardMetadataKey = MetadataHeaderKey.parse("/*/aValue");
@@ -437,6 +453,28 @@ public final class ImmutableDittoHeadersTest {
         final ImmutableDittoHeaders underTest = ImmutableDittoHeaders.of(headerMap);
 
         assertThat(underTest.getMetadataHeadersToPut()).isEqualTo(expected);
+    }
+
+    @Test
+    public void metadataFieldsToGetReturnsEmptySet() {
+        final ImmutableDittoHeaders underTest = ImmutableDittoHeaders.of(Collections.emptyMap());
+
+        assertThat(underTest.getMetadataFieldsToGet()).isEmpty();
+    }
+
+    @Test
+    public void metadataFieldsToGetReturnsExpected() {
+        final String expr1 = "attributes";
+        final String expr2 = "features/f1/properties/p1/key";
+        final String givenMetadataExpression = expr1 + "," + expr2;
+
+        final Set<JsonPointer> expected = new HashSet<>(Arrays.asList(JsonPointer.of(expr1),JsonPointer.of(expr2)));
+
+        final Map<String, String> headerMap = new HashMap<>();
+        headerMap.put(DittoHeaderDefinition.GET_METADATA.getKey(), givenMetadataExpression);
+        final ImmutableDittoHeaders underTest = ImmutableDittoHeaders.of(headerMap);
+
+        assertThat(underTest.getMetadataFieldsToGet()).isEqualTo(expected);
     }
 
     @Test
@@ -487,6 +525,9 @@ public final class ImmutableDittoHeadersTest {
                 .set(DittoHeaderDefinition.LIVE_CHANNEL_CONDITION.getKey(), KNOWN_LIVE_CHANNEL_CONDITION)
                 .set(DittoHeaderDefinition.LIVE_CHANNEL_CONDITION_MATCHED.getKey(),
                         KNOWN_LIVE_CHANNEL_CONDITION_MATCHED)
+                .set(DittoHeaderDefinition.GET_METADATA.getKey(), KNOWN_DITTO_GET_METADATA)
+                .set(DittoHeaderDefinition.DELETE_METADATA.getKey(), KNOWN_DITTO_DELETE_METADATA)
+                .set(DittoHeaderDefinition.DITTO_METADATA.getKey(), KNOWN_DITTO_METADATA)
                 .build();
 
         final Map<String, String> allKnownHeaders = createMapContainingAllKnownHeaders();
@@ -721,6 +762,9 @@ public final class ImmutableDittoHeadersTest {
         result.put(DittoHeaderDefinition.LIVE_CHANNEL_CONDITION.getKey(), KNOWN_LIVE_CHANNEL_CONDITION);
         result.put(DittoHeaderDefinition.LIVE_CHANNEL_CONDITION_MATCHED.getKey(),
                 String.valueOf(KNOWN_LIVE_CHANNEL_CONDITION_MATCHED));
+        result.put(DittoHeaderDefinition.GET_METADATA.getKey(), KNOWN_DITTO_GET_METADATA);
+        result.put(DittoHeaderDefinition.DELETE_METADATA.getKey(), KNOWN_DITTO_DELETE_METADATA);
+        result.put(DittoHeaderDefinition.DITTO_METADATA.getKey(), KNOWN_DITTO_METADATA.formatAsString());
 
         return result;
     }
