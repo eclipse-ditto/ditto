@@ -14,6 +14,7 @@ package org.eclipse.ditto.policies.enforcement.pre_enforcement;
 
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.regex.Pattern;
 
@@ -31,6 +32,10 @@ import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.policies.enforcement.config.CreationRestrictionConfig;
 import org.eclipse.ditto.policies.enforcement.config.DefaultEntityCreationConfig;
 import org.eclipse.ditto.policies.enforcement.config.EntityCreationConfig;
+import org.eclipse.ditto.policies.model.signals.commands.modify.CreatePolicy;
+import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicy;
+import org.eclipse.ditto.things.model.signals.commands.modify.CreateThing;
+import org.eclipse.ditto.things.model.signals.commands.modify.ModifyThing;
 
 import akka.actor.ActorSystem;
 
@@ -40,7 +45,8 @@ import akka.actor.ActorSystem;
 @Immutable
 public class CreationRestrictionEnforcer implements PreEnforcer {
 
-    private static final ThreadSafeDittoLogger log = DittoLoggerFactory.getThreadSafeLogger(CreationRestrictionEnforcer.class);
+    private static final ThreadSafeDittoLogger log =
+            DittoLoggerFactory.getThreadSafeLogger(CreationRestrictionEnforcer.class);
 
     private final EntityCreationConfig config;
     private final ExistenceChecker existenceChecker;
@@ -136,16 +142,35 @@ public class CreationRestrictionEnforcer implements PreEnforcer {
 
     @Override
     public CompletionStage<DittoHeadersSettable<?>> apply(final DittoHeadersSettable<?> dittoHeadersSettable) {
+        final CompletionStage<DittoHeadersSettable<?>> result;
+
         final Signal<?> messageAsSignal = getMessageAsSignal(dittoHeadersSettable);
+        if (isCreatingCommand(messageAsSignal)) {
+            result = handleCreatingCommand(dittoHeadersSettable, messageAsSignal);
+        } else {
+            result = CompletableFuture.completedFuture(dittoHeadersSettable);
+        }
+        return result;
+    }
+
+    private static boolean isCreatingCommand(final Signal<?> signal) {
+        return signal instanceof CreateThing || signal instanceof ModifyThing || signal instanceof CreatePolicy ||
+                signal instanceof ModifyPolicy;
+    }
+
+    private CompletionStage<DittoHeadersSettable<?>> handleCreatingCommand(
+            final DittoHeadersSettable<?> dittoHeadersSettable, final Signal<?> signal) {
+
         final WithEntityId withEntityId = getMessageAsWithEntityId(dittoHeadersSettable);
         final NamespacedEntityId entityId = getEntityIdAsNamespacedEntityId(withEntityId.getEntityId());
-        final var context = new Context(messageAsSignal.getResourceType(), entityId.getNamespace(), messageAsSignal.getDittoHeaders());
-        return existenceChecker.checkExistence(messageAsSignal).thenApply(exists -> {
+        final var context = new Context(signal.getResourceType(), entityId.getNamespace(),
+                signal.getDittoHeaders());
+        return existenceChecker.checkExistence(signal).thenApply(exists -> {
             if (Boolean.TRUE.equals(exists) || canCreate(context)) {
                 return dittoHeadersSettable;
             } else {
                 throw EntityNotCreatableException.newBuilder(withEntityId.getEntityId())
-                        .dittoHeaders(messageAsSignal.getDittoHeaders())
+                        .dittoHeaders(signal.getDittoHeaders())
                         .build();
             }
         });
