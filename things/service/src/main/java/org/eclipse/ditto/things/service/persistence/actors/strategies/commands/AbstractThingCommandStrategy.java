@@ -91,8 +91,10 @@ abstract class AbstractThingCommandStrategy<C extends Command<C>>
                             optionalMetadata.isPresent() ? optionalMetadata.get().toString() :
                                     JsonObject.empty().toString())
                     .build();
-            result = super.apply(context, entity, nextRevision, command.setDittoHeaders(enhancedDittoHeaders));
-        } else if (thingConditionFailed.isPresent()) {
+            command.setDittoHeaders(enhancedDittoHeaders);
+        }
+
+        if (thingConditionFailed.isPresent()) {
             final var conditionFailedException = thingConditionFailed.get();
             loggerWithCorrelationId.debug("Validating condition failed with exception <{}>.",
                     conditionFailedException.getMessage());
