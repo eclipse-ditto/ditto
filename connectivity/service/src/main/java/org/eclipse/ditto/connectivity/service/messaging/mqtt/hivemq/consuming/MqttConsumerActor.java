@@ -311,7 +311,7 @@ public final class MqttConsumerActor extends BaseConsumerActor {
     private void reconnectConsumerClientForRedelivery() {
         final var context = getContext();
         final var parent = context.getParent();
-        parent.tell(ReconnectConsumerClient.of(mqttSpecificConfig.getReconnectForDeliveryDelayNg()), getSelf());
+        parent.tell(ReconnectConsumerClient.of(mqttSpecificConfig.getReconnectForDeliveryDelay()), getSelf());
     }
 
     @Override

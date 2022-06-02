@@ -107,19 +107,11 @@ public final class MqttSpecificConfig {
     }
 
     /**
-     * @return how long to wait before reconnect a consumer client for redelivery.
-     */
-    // TODO jff delete as soon as unused.
-    public Duration getReconnectForDeliveryDelay() {
-        return specificConfig.getDuration(RECONNECT_FOR_REDELIVERY_DELAY);
-    }
-
-    /**
      * Returns the delay how long to wait before reconnecting a consumer client for redelivery.
      *
      * @return the reconnect delay which is at least {@link ReconnectDelay#LOWER_BOUNDARY}.
      */
-    public ReconnectDelay getReconnectForDeliveryDelayNg() {
+    public ReconnectDelay getReconnectForDeliveryDelay() {
         return ReconnectDelay.ofOrLowerBoundary(specificConfig.getDuration(RECONNECT_FOR_REDELIVERY_DELAY));
     }
 
@@ -139,16 +131,6 @@ public final class MqttSpecificConfig {
 
 
     /**
-     * @return the optional topic which should be used on Last Will message.
-     * @deprecated please use {@link #getMqttLastWillTopic()} instead.
-     */
-    // TODO jff delete as soon as unused.
-    @Deprecated
-    public Optional<String> getMqttWillTopic() {
-        return getStringOptional(LAST_WILL_TOPIC);
-    }
-
-    /**
      * Returns the optional MQTT topic where the Last Will message should be sent to.
      *
      * @return the optional MQTT topic of the Last Will message.
@@ -157,16 +139,6 @@ public final class MqttSpecificConfig {
      */
     public Optional<MqttTopic> getMqttLastWillTopic() {
         return getStringOptional(LAST_WILL_TOPIC).map(MqttTopic::of);
-    }
-
-    /**
-     * @return the Qos which should be used on Last Will message.
-     * @deprecated please use {@link #getLastWillQosOrThrow()} instead.
-     */
-    // TODO jff delete as soon as unused.
-    @Deprecated
-    public int getMqttWillQos() {
-        return getSafely(() -> specificConfig.getInt(LAST_WILL_QOS), DEFAULT_LAST_WILL_QOS.getCode());
     }
 
     /**
@@ -201,16 +173,6 @@ public final class MqttSpecificConfig {
     }
 
     /**
-     * @return the interval between keep alive pings.
-     * @deprecated please use {@link #getKeepAliveIntervalOrDefault()} instead.
-     */
-    // TODO jff delete as soon as unused.
-    @Deprecated
-    public Optional<Duration> getKeepAliveInterval() {
-        return getDurationOptional(KEEP_ALIVE_INTERVAL);
-    }
-
-    /**
      * Returns the keep-alive interval, i.e. the number of seconds that the broker permits between when a client
      * finishes sending one MQTT packet and starts to send the next.
      *
@@ -239,7 +201,7 @@ public final class MqttSpecificConfig {
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        final MqttSpecificConfig that = (MqttSpecificConfig) o;
+        final var that = (MqttSpecificConfig) o;
         return Objects.equals(specificConfig, that.specificConfig);
     }
 
@@ -271,7 +233,7 @@ public final class MqttSpecificConfig {
         }
     }
 
-    private static <T> T getSafely(Supplier<T> supplier, final T defaultValue) {
+    private static <T> T getSafely(final Supplier<T> supplier, final T defaultValue) {
         try {
             return supplier.get();
         } catch (final ConfigException e) {
