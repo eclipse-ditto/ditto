@@ -67,7 +67,7 @@ public final class EnforcementCacheKey implements CacheKey<EnforcementContext> {
         return new EnforcementCacheKey(entityId, null);
     }
 
-    static EnforcementCacheKey of(final EntityId entityId, final EnforcementContext context) {
+    public static EnforcementCacheKey of(final EntityId entityId, final EnforcementContext context) {
         return new EnforcementCacheKey(entityId, context);
     }
 

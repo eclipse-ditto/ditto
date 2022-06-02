@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.internal.utils.cacheloaders;
+package org.eclipse.ditto.things.service.enforcement;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
@@ -22,6 +22,9 @@ import org.eclipse.ditto.base.api.persistence.PersistenceLifecycle;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.internal.utils.cache.entry.Entry;
+import org.eclipse.ditto.internal.utils.cacheloaders.ActorAskCacheLoader;
+import org.eclipse.ditto.internal.utils.cacheloaders.EnforcementCacheKey;
+import org.eclipse.ditto.internal.utils.cacheloaders.EnforcementContext;
 import org.eclipse.ditto.internal.utils.cacheloaders.config.AskWithRetryConfig;
 import org.eclipse.ditto.things.api.commands.sudo.SudoRetrieveThing;
 import org.eclipse.ditto.things.api.commands.sudo.SudoRetrieveThingResponse;

@@ -40,7 +40,7 @@ public final class EnforcementContext implements CacheLookupContext {
      * @param persistenceLifecycle the persistence lifecycle of the looked up entity.
      * @return the created context.
      */
-    static EnforcementContext of(@Nullable final PersistenceLifecycle persistenceLifecycle) {
+    public static EnforcementContext of(@Nullable final PersistenceLifecycle persistenceLifecycle) {
         return new EnforcementContext(persistenceLifecycle);
     }
 

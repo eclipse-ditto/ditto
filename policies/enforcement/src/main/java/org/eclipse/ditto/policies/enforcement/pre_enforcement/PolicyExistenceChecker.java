@@ -12,53 +12,48 @@
  */
 package org.eclipse.ditto.policies.enforcement.pre_enforcement;
 
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletionStage;
 
 import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.base.model.entity.id.WithEntityId;
-import org.eclipse.ditto.base.model.entity.type.EntityType;
 import org.eclipse.ditto.base.model.signals.Signal;
-import org.eclipse.ditto.internal.utils.cache.Cache;
-import org.eclipse.ditto.internal.utils.cache.CacheFactory;
 import org.eclipse.ditto.internal.utils.cache.entry.Entry;
 import org.eclipse.ditto.internal.utils.cacheloaders.EnforcementCacheKey;
-import org.eclipse.ditto.internal.utils.cacheloaders.PreEnforcementPolicyIdCacheLoader;
 import org.eclipse.ditto.internal.utils.cluster.ShardRegionProxyActorFactory;
 import org.eclipse.ditto.internal.utils.cluster.config.DefaultClusterConfig;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.policies.api.PoliciesMessagingConstants;
 import org.eclipse.ditto.policies.enforcement.config.DefaultEnforcementConfig;
 import org.eclipse.ditto.policies.enforcement.config.EnforcementConfig;
-import org.eclipse.ditto.policies.model.PolicyConstants;
-import org.eclipse.ditto.policies.model.signals.commands.PolicyCommand;
 
 import com.github.benmanes.caffeine.cache.AsyncCacheLoader;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
-import akka.dispatch.MessageDispatcher;
 
 /**
  * Checks the existence of the entity from a Policy command.
+ *
  * @since 3.0.0
  */
 public final class PolicyExistenceChecker implements ExistenceChecker {
 
-    private static final String ID_CACHE_METRIC_NAME_PREFIX = "ditto_pre_enforcement_id_cache_";
+    public static final String ENFORCEMENT_CACHE_DISPATCHER = "enforcement-cache-dispatcher";
 
-    private final Map<EntityType, Cache<EnforcementCacheKey, ? extends Entry>> resourceToCacheMap;
+    private final AsyncCacheLoader<EnforcementCacheKey, Entry<EnforcementCacheKey>> policyIdCache;
+    private final ActorSystem actorSystem;
 
     public PolicyExistenceChecker(final ActorSystem actorSystem) {
+        this.actorSystem = actorSystem;
         final var enforcementConfig = DefaultEnforcementConfig.of(
                 DefaultScopedConfig.dittoScoped(actorSystem.settings().config()));
-        resourceToCacheMap = buildResourceToCacheMap(getPolicyIdCache(actorSystem, enforcementConfig));
+        policyIdCache = getPolicyIdCache(actorSystem, enforcementConfig);
     }
 
-    private Cache<EnforcementCacheKey, Entry<EnforcementCacheKey>> getPolicyIdCache(final ActorSystem actorSystem,
+    private AsyncCacheLoader<EnforcementCacheKey, Entry<EnforcementCacheKey>> getPolicyIdCache(
+            final ActorSystem actorSystem,
             final EnforcementConfig enforcementConfig) {
 
         final var clusterConfig = DefaultClusterConfig.of(actorSystem.settings().config().getConfig("ditto.cluster"));
@@ -68,42 +63,33 @@ public final class PolicyExistenceChecker implements ExistenceChecker {
         final ActorRef policiesShardRegion = shardRegionProxyActorFactory.getShardRegionProxyActor(
                 PoliciesMessagingConstants.CLUSTER_ROLE, PoliciesMessagingConstants.SHARD_REGION);
 
-        final AsyncCacheLoader<EnforcementCacheKey, Entry<EnforcementCacheKey>> policyIdCacheLoader =
-                new PreEnforcementPolicyIdCacheLoader(enforcementConfig.getAskWithRetryConfig(),
-                        actorSystem.getScheduler(),
-                        policiesShardRegion);
-        final MessageDispatcher enforcementCacheDispatcher =
-                actorSystem.dispatchers().lookup("enforcement-cache-dispatcher");
-
-        return CacheFactory.createCache(policyIdCacheLoader, enforcementConfig.getIdCacheConfig(),
-                ID_CACHE_METRIC_NAME_PREFIX + PolicyCommand.RESOURCE_TYPE, enforcementCacheDispatcher);
-    }
-
-    private static Map<EntityType, Cache<EnforcementCacheKey, ? extends Entry>> buildResourceToCacheMap(
-            final Cache<EnforcementCacheKey, ? extends Entry> policyEnforcerCache) {
-
-        final Map<EntityType, Cache<EnforcementCacheKey, ? extends Entry>> map = new HashMap<>();
-        map.put(PolicyConstants.ENTITY_TYPE, policyEnforcerCache);
-        return map;
+        return new PreEnforcementPolicyIdCacheLoader(enforcementConfig.getAskWithRetryConfig(),
+                actorSystem.getScheduler(),
+                policiesShardRegion);
     }
 
     @Override
     public CompletionStage<Boolean> checkExistence(final Signal<?> signal) {
         final Optional<EntityId> entityIdOptional = WithEntityId.getEntityIdOfType(EntityId.class, signal);
-        final Optional<Cache<EnforcementCacheKey, ? extends Entry>> cacheOptional = entityIdOptional
-                .map(EntityId::getEntityType)
-                .map(resourceToCacheMap::get);
 
-        if (cacheOptional.isEmpty() || entityIdOptional.isEmpty()) {
-            final String message =
-                    String.format("ExistenceChecker: unknown entity type or empty ID <%s:%s> for signal <%s>",
-                            entityIdOptional.map(EntityId::getEntityType).map(Objects::toString).orElse(""),
-                            entityIdOptional.map(Objects::toString).orElse(""), signal.toString());
-            throw new IllegalArgumentException(message);
-        } else {
-            return cacheOptional.get().get(EnforcementCacheKey.of(entityIdOptional.get()))
-                    .thenApply(entryOptional -> entryOptional.map(Entry::exists).orElse(false));
+        try {
+            return policyIdCache.asyncLoad(EnforcementCacheKey.of(
+                                    entityIdOptional.orElseThrow(() -> getWrongEntityException(entityIdOptional, signal))),
+                            actorSystem.dispatchers().lookup(ENFORCEMENT_CACHE_DISPATCHER))
+                    .thenApply(Entry::exists);
+        } catch (final Exception e) {
+            throw new IllegalStateException("Could not load policyId via policyIdCacheLoader", e);
         }
+    }
+
+    private static IllegalArgumentException getWrongEntityException(final Optional<EntityId> entityIdOptional,
+            final Signal<?> signal) {
+
+        final String message =
+                String.format("ExistenceChecker: unknown entity type or empty ID <%s:%s> for signal <%s>",
+                        entityIdOptional.map(EntityId::getEntityType).map(Objects::toString).orElse(""),
+                        entityIdOptional.map(Objects::toString).orElse(""), signal);
+        return new IllegalArgumentException(message);
     }
 
 }

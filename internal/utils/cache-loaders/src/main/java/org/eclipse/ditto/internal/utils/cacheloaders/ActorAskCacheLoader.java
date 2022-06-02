@@ -90,6 +90,7 @@ public final class ActorAskCacheLoader<V, T, C extends CacheLookupContext>
             final ActorRef entityRegion,
             final BiFunction<EntityId, C, Command<?>> commandCreator,
             final BiFunction<Object, C, Entry<V>> responseTransformer) {
+
         requireNonNull(askWithRetryConfig);
         requireNonNull(entityType);
         requireNonNull(entityRegion);
