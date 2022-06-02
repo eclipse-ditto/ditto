@@ -14,9 +14,13 @@ package org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.message.sub
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
+import java.text.MessageFormat;
+import java.util.Objects;
+
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.message.common.GenericMqttAckStatus;
+import org.eclipse.ditto.base.model.common.ConditionChecker;
 
 import com.hivemq.client.mqtt.mqtt3.message.subscribe.suback.Mqtt3SubAckReturnCode;
 import com.hivemq.client.mqtt.mqtt5.message.subscribe.suback.Mqtt5SubAckReasonCode;
@@ -25,10 +29,18 @@ import com.hivemq.client.mqtt.mqtt5.message.subscribe.suback.Mqtt5SubAckReasonCo
  * Generic representation of an MQTT SubAck message status to abstract HiveMQ API for protocol versions 3 and 5.
  */
 @Immutable
-public final class GenericMqttSubAckStatus extends GenericMqttAckStatus {
+public final class GenericMqttSubAckStatus {
+
+    private final int code;
+    private final String name;
+    private final boolean error;
 
     private GenericMqttSubAckStatus(final int code, final String name, final boolean error) {
-        super(code, name, error);
+        this.code = code;
+        this.name = ConditionChecker.checkArgument(checkNotNull(name, "name"),
+                arg -> !arg.isBlank(),
+                () -> "The name must not be blank.");
+        this.error = error;
     }
 
     /**
@@ -57,6 +69,58 @@ public final class GenericMqttSubAckStatus extends GenericMqttAckStatus {
         return new GenericMqttSubAckStatus(mqtt5SubAckReasonCode.getCode(),
                 mqtt5SubAckReasonCode.name(),
                 mqtt5SubAckReasonCode.isError());
+    }
+
+    /**
+     * Returns the code of this MQTT SubAck message status.
+     *
+     * @return the byte code of this MQTT SubAck message status.
+     */
+    public int getCode() {
+        return code;
+    }
+
+    /**
+     * Returns the name of this MQTT SubAck message status.
+     *
+     * @return the name of this MQTT SubAck message status.
+     */
+    public String getName() {
+        return name;
+    }
+
+    /**
+     * Indicates whether this status of a MQTT SubAck message is an error.
+     *
+     * @return {@code true} if this MQTT SubAck message status represents an error, {@code false} else.
+     */
+    public boolean isError() {
+        return error;
+    }
+
+    @Override
+    public boolean equals(@Nullable final Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        final var that = (GenericMqttSubAckStatus) o;
+        return code == that.code && error == that.error && Objects.equals(name, that.name);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(code, name, error);
+    }
+
+    @Override
+    public String toString() {
+        return MessageFormat.format("{0}: {1}({2,number,integer})",
+                isError() ? "Error" : "Success",
+                getName(),
+                getCode());
     }
 
 }
