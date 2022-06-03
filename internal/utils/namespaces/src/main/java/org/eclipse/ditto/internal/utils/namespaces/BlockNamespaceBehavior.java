@@ -18,6 +18,7 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
+import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.base.model.entity.id.WithEntityId;
 import org.eclipse.ditto.base.model.headers.DittoHeadersSettable;
 import org.eclipse.ditto.base.model.namespaces.NamespaceBlockedException;
@@ -53,23 +54,39 @@ public final class BlockNamespaceBehavior {
      * with a {@code NamespaceBlockedException}.
      */
     public CompletionStage<DittoHeadersSettable<?>> block(final DittoHeadersSettable<?> signal) {
-        if (signal instanceof WithEntityId) {
-            final Optional<String> namespaceOptional = NamespaceReader.fromEntityId(((WithEntityId) signal).getEntityId());
-            if (namespaceOptional.isPresent()) {
-                final String namespace = namespaceOptional.get();
-                return blockedNamespaces.contains(namespace)
-                        .thenApply(containsNamespace -> {
-                            if (containsNamespace != null && containsNamespace) {
-                                throw NamespaceBlockedException.newBuilder(namespace)
-                                        .dittoHeaders(signal.getDittoHeaders())
-                                        .build();
-                            } else {
-                                return signal;
-                            }
-                        });
-            }
+        if (signal instanceof WithEntityId withEntityId) {
+            return isBlocked(withEntityId.getEntityId())
+                    .thenApply(containsNamespace -> {
+                        if (containsNamespace != null && containsNamespace) {
+                            throw NamespaceBlockedException.newBuilder(
+                                            NamespaceReader.fromEntityId(withEntityId.getEntityId()).orElseThrow()
+                                    )
+                                    .dittoHeaders(signal.getDittoHeaders())
+                                    .build();
+                        } else {
+                            return signal;
+                        }
+                    });
         }
         return CompletableFuture.completedFuture(signal);
+    }
+
+    /**
+     * Evaluates in the returned completionStage whether the passed {@code entityId}'s namespace is currently blocked
+     * or not.
+     *
+     * @param entityId the entityId to extract the namespace from to check if it is blocked.
+     * @return a completion stage which completes with {@code true} when the namespace of the passed {@code entityId}
+     * is currently blocked and with {@code false} if not.
+     */
+    public CompletionStage<Boolean> isBlocked(final EntityId entityId) {
+        final Optional<String> namespaceOptional = NamespaceReader.fromEntityId(entityId);
+        if (namespaceOptional.isPresent()) {
+            final String namespace = namespaceOptional.get();
+            return blockedNamespaces.contains(namespace);
+        } else {
+            return CompletableFuture.completedFuture(false);
+        }
     }
 
 }

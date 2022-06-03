@@ -65,7 +65,10 @@ import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.rql.query.filter.QueryFilterCriteriaFactory;
-import org.junit.*;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
+import org.junit.Rule;
+import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
 import com.typesafe.config.Config;
@@ -147,7 +150,7 @@ public class ConnectionValidatorTest {
                         .map(source -> ConnectivityModelFactory.newSourceBuilder(source)
                                 .declaredAcknowledgementLabels(Set.of(AcknowledgementLabel.of("ack")))
                                 .build())
-                        .collect(Collectors.toList())
+                        .toList()
                 )
                 .build();
 
@@ -163,7 +166,7 @@ public class ConnectionValidatorTest {
                         .map(source -> ConnectivityModelFactory.newSourceBuilder(source)
                                 .declaredAcknowledgementLabels(Set.of(AcknowledgementLabel.of("{{connection:id}}:ack")))
                                 .build())
-                        .collect(Collectors.toList())
+                        .toList()
                 )
                 .build();
 

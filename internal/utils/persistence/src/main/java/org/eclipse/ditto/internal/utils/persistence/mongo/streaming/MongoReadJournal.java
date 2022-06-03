@@ -629,7 +629,7 @@ public final class MongoReadJournal {
                             new BsonArray(List.of(new BsonString(serializedFieldName), new BsonInt32(0)));
                     return Accumulators.first(fieldName, new BsonDocument().append("$arrayElemAt", bsonArray));
                 })
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private static int computeMaxRestarts(final Duration maxDuration) {

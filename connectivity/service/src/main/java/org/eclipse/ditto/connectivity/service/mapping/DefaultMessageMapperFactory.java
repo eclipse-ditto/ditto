@@ -239,12 +239,12 @@ public final class DefaultMessageMapperFactory implements MessageMapperFactory {
             final ClassTag<MessageMapperExtension> tag =
                     scala.reflect.ClassTag$.MODULE$.apply(MessageMapperExtension.class);
             return dynamicAccess.createInstanceFor(clazz, List$.MODULE$.empty(), tag).get();
-        }).collect(Collectors.toList());
+        }).toList();
     }
 
     private static List<Class<? extends MessageMapperExtension>> loadMessageMapperExtensionClasses() {
         return StreamSupport.stream(ClassIndex.getSubclasses(MessageMapperExtension.class).spliterator(), false)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     /**

@@ -29,7 +29,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
-import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
@@ -211,8 +210,8 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
         for (final var entry : messageHeaders.entrySet()) {
             if (!ReservedHeaders.contains(entry.getKey())) {
                 final var httpHeader = HttpHeader.parse(entry.getKey(), entry.getValue());
-                if (httpHeader instanceof ContentType) {
-                    contentType = (ContentType) httpHeader;
+                if (httpHeader instanceof ContentType contentTypeFromHttpHeader) {
+                    contentType = contentTypeFromHttpHeader;
                 } else {
                     headers.add(httpHeader);
                 }
@@ -318,13 +317,22 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
 
     @Override
     public void postStop() throws Exception {
-        killSwitch.shutdown();
         super.postStop();
     }
 
     @Override
     protected void preEnhancement(final ReceiveBuilder receiveBuilder) {
-        // noop
+        receiveBuilder
+                .matchEquals(GracefulStop.INSTANCE, unused -> this.stopGracefully());
+    }
+
+    private void stopGracefully() {
+        logger.debug("Stopping source queue.");
+        sourceQueue.watchCompletion().whenComplete((done, throwable) -> {
+            logger.debug("Stopping myself.");
+            getContext().stop(getSelf());
+        });
+        killSwitch.shutdown();
     }
 
     @Override
@@ -407,10 +415,9 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
 
         return (queueOfferResult, error) -> {
             if (error != null) {
-                final String errorDescription = "Source queue failure";
-                logger.error(error, errorDescription);
+                logger.warning("Source queue failure: {}", error);
                 resultFuture.completeExceptionally(error);
-                escalate(error, errorDescription);
+                escalate(error, "Source queue failure");
             } else if (Objects.equals(queueOfferResult, QueueOfferResult.dropped())) {
                 resultFuture.completeExceptionally(MessageSendingFailedException.newBuilder()
                         .message("Outgoing HTTP request aborted: There are too many in-flight requests.")
@@ -698,7 +705,7 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
             final HttpPushConfig httpPushConfig) {
         final var specificConfig = HttpPushSpecificConfig.fromConnection(connection, httpPushConfig);
         return specificConfig.omitRequestBody().stream()
-                .map(s -> HttpMethods.lookup(s).orElse(null)).collect(Collectors.toList());
+                .map(s -> HttpMethods.lookup(s).orElse(null)).toList();
     }
 
     private enum ReservedHeaders {
@@ -720,6 +727,19 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
         private boolean matches(final String headerName) {
             return name.equalsIgnoreCase(headerName);
         }
+    }
+
+    /**
+     * Message that allows gracefully stopping the publisher actor.
+     */
+    static final class GracefulStop {
+
+        static final GracefulStop INSTANCE = new GracefulStop();
+
+        private GracefulStop() {
+            // intentionally empty
+        }
+
     }
 
 }

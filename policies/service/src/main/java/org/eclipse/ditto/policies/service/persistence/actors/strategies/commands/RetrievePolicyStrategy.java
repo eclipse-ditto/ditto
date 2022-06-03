@@ -18,14 +18,16 @@ import javax.annotation.Nullable;
 
 import org.eclipse.ditto.base.model.entity.metadata.Metadata;
 import org.eclipse.ditto.base.model.headers.entitytag.EntityTag;
-import org.eclipse.ditto.policies.model.Policy;
-import org.eclipse.ditto.policies.model.PolicyId;
-import org.eclipse.ditto.policies.service.common.config.PolicyConfig;
 import org.eclipse.ditto.internal.utils.persistentactors.results.Result;
 import org.eclipse.ditto.internal.utils.persistentactors.results.ResultFactory;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.policies.model.Policy;
+import org.eclipse.ditto.policies.model.PolicyId;
+import org.eclipse.ditto.policies.model.signals.commands.query.PolicyQueryCommand;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicy;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicyResponse;
 import org.eclipse.ditto.policies.model.signals.events.PolicyEvent;
+import org.eclipse.ditto.policies.service.common.config.PolicyConfig;
 
 /**
  * This strategy handles the {@link org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicy} command.
@@ -45,7 +47,8 @@ final class RetrievePolicyStrategy extends AbstractPolicyQueryCommandStrategy<Re
 
         if (entity != null) {
             return ResultFactory.newQueryResult(command, appendETagHeaderIfProvided(command,
-                    RetrievePolicyResponse.of(context.getState(), entity, command.getDittoHeaders()), entity));
+                    RetrievePolicyResponse.of(context.getState(), getPolicyJson(entity, command),
+                            command.getDittoHeaders()), entity));
         } else {
             return ResultFactory.newErrorResult(policyNotFound(context.getState(), command.getDittoHeaders()), command);
         }
@@ -54,5 +57,11 @@ final class RetrievePolicyStrategy extends AbstractPolicyQueryCommandStrategy<Re
     @Override
     public Optional<EntityTag> nextEntityTag(final RetrievePolicy command, @Nullable final Policy newEntity) {
         return Optional.ofNullable(newEntity).flatMap(EntityTag::fromEntity);
+    }
+
+    private static JsonObject getPolicyJson(final Policy policy, final PolicyQueryCommand<RetrievePolicy> command) {
+        return command.getSelectedFields()
+                .map(selectedFields -> policy.toJson(command.getImplementedSchemaVersion(), selectedFields))
+                .orElseGet(() -> policy.toJson(command.getImplementedSchemaVersion()));
     }
 }

@@ -67,6 +67,15 @@ public final class ImmutableJsonFieldSelectorFactoryTest {
         ImmutableJsonFieldSelectorFactory.newInstance(jsonFieldSelectorString, JSON_PARSE_OPTIONS_WITHOUT_URL_DECODING);
     }
 
+    @Test
+    public void jsonFieldSelectorWithPlaceholders() {
+        final String test = "/features/{{feature:id | fn:lower()}}/definition";
+        final JsonFieldSelector jsonPointers =
+                ImmutableJsonFieldSelectorFactory.newInstance(test, JSON_PARSE_OPTIONS_WITHOUT_URL_DECODING)
+                        .newJsonFieldSelector();
+        assertThat(jsonPointers.getPointers()).hasSize(1);
+        assertThat(jsonPointers.getPointers()).containsExactly(JsonFactory.newPointer(test));
+    }
 
     @Test
     public void newJsonFieldSelectorReturnsExpected() {

@@ -21,15 +21,13 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import org.eclipse.ditto.policies.model.enforcers.Enforcer;
-import org.eclipse.ditto.policies.model.enforcers.PolicyEnforcers;
 import org.eclipse.ditto.policies.model.PoliciesModelFactory;
 import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.rql.query.criteria.Criteria;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingId;
-import org.eclipse.ditto.thingsearch.service.persistence.TestConstants;
 import org.eclipse.ditto.thingsearch.service.persistence.AbstractThingSearchPersistenceITBase;
+import org.eclipse.ditto.thingsearch.service.persistence.TestConstants;
 import org.junit.Test;
 
 /**
@@ -44,7 +42,7 @@ public final class CountIT extends AbstractReadPersistenceITBase {
     private static final String KNOWN_STRING_VALUE = "value";
     private static final String SUDO_NAMESPACE = "sudoThings";
 
-    private final Enforcer otherPolicyEnforcer = PolicyEnforcers.defaultEvaluator(createOtherPolicy());
+    private final Policy otherPolicy = createOtherPolicy();
 
     @Test
     public void countAny() {
@@ -66,7 +64,8 @@ public final class CountIT extends AbstractReadPersistenceITBase {
         insertThingWithAttribute(THING_BASE_ID, KNOWN_STRING_VALUE);
 
         final long actualCount = count(
-                AbstractThingSearchPersistenceITBase.qbf.newUnlimitedBuilder(AbstractThingSearchPersistenceITBase.cf.any()).build(), Collections.emptyList());
+                AbstractThingSearchPersistenceITBase.qbf.newUnlimitedBuilder(
+                        AbstractThingSearchPersistenceITBase.cf.any()).build(), Collections.emptyList());
 
         assertThat(actualCount).isEqualTo(0L);
     }
@@ -132,11 +131,11 @@ public final class CountIT extends AbstractReadPersistenceITBase {
     }
 
     @Override
-    protected Enforcer getPolicyEnforcer(final ThingId thingId) {
+    protected Policy getPolicy(final ThingId thingId) {
         if (thingId.getNamespace().equals(SUDO_NAMESPACE)) {
-            return otherPolicyEnforcer;
+            return otherPolicy;
         } else {
-            return super.getPolicyEnforcer(thingId);
+            return super.getPolicy(thingId);
         }
     }
 

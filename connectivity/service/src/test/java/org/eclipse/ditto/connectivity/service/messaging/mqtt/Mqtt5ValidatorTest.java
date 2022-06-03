@@ -159,12 +159,12 @@ public final class Mqtt5ValidatorTest extends AbstractMqttValidatorTest {
         final Source mqttSourceWithInvalidFilter =
                 ConnectivityModelFactory.newSourceBuilder()
                         .authorizationContext(AUTHORIZATION_CONTEXT)
-                        .enforcement(newSourceAddressEnforcement("things/#/{{ thing:id }}/+"))
+                        .enforcement(newSourceAddressEnforcement("things/+/{{ thing:wasd }}/#"))
                         .address("#")
                         .qos(1)
                         .build();
 
-        testInvalidSourceTopicFilters(mqttSourceWithValidFilter, mqttSourceWithInvalidFilter);
+        testInvalidSourceEnforcementFilters(mqttSourceWithValidFilter, mqttSourceWithInvalidFilter);
     }
 
     @Test
@@ -178,7 +178,7 @@ public final class Mqtt5ValidatorTest extends AbstractMqttValidatorTest {
                         .qos(1)
                         .build();
 
-        testInvalidSourceTopicFilters(mqttSourceWithInvalidFilter);
+        testInvalidSourceEnforcementFilters(mqttSourceWithInvalidFilter);
     }
 
 

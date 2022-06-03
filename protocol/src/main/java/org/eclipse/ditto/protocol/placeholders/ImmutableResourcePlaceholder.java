@@ -63,15 +63,15 @@ final class ImmutableResourcePlaceholder implements ResourcePlaceholder {
     }
 
     @Override
-    public Optional<String> resolve(final WithResource withResource, final String placeholder) {
+    public List<String> resolveValues(final WithResource withResource, final String placeholder) {
         ConditionChecker.argumentNotEmpty(placeholder, "placeholder");
         switch (placeholder) {
             case TYPE_PLACEHOLDER:
-                return Optional.of(withResource.getResourceType());
+                return Collections.singletonList(withResource.getResourceType());
             case PATH_PLACEHOLDER:
-                return Optional.of(withResource.getResourcePath().toString());
+                return Collections.singletonList(withResource.getResourcePath().toString());
             default:
-                return Optional.empty();
+                return Collections.emptyList();
         }
     }
 

@@ -31,7 +31,6 @@ import org.eclipse.ditto.connectivity.model.Source;
 import org.eclipse.ditto.connectivity.model.Topic;
 import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.messaging.TestConstants;
-import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 
@@ -62,7 +61,7 @@ abstract class AbstractMqttValidatorTest {
         }
     }
 
-    void testInvalidSourceTopicFilters(final Source... sources) {
+    void testInvalidSourceEnforcementFilters(final Source... sources) {
         final Connection connection = ConnectivityModelFactory.newConnectionBuilder(CONNECTION_ID, ConnectionType.MQTT,
                 ConnectivityStatus.OPEN, "tcp://localhost:1883")
                 .sources(Arrays.asList(sources))

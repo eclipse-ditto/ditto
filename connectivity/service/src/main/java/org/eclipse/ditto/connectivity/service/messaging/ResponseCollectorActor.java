@@ -15,7 +15,6 @@ package org.eclipse.ditto.connectivity.service.messaging;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
@@ -120,6 +119,7 @@ public final class ResponseCollectorActor extends AbstractActor {
         } else {
             log.error("ReceiveTimeout without Query");
         }
+        getContext().cancelReceiveTimeout();
         getContext().stop(getSelf());
     }
 
@@ -157,7 +157,7 @@ public final class ResponseCollectorActor extends AbstractActor {
         public List<CommandResponse<?>> getFailedResponses() {
             return commandResponses.stream()
                     .filter(Output::isFailedResponse)
-                    .collect(Collectors.toList());
+                    .toList();
         }
 
         @Override
@@ -220,7 +220,7 @@ public final class ResponseCollectorActor extends AbstractActor {
 
         @Override
         public boolean equals(final Object other) {
-            return other instanceof SetCount && ((SetCount) other).count == count;
+            return other instanceof SetCount setCount && setCount.count == count;
         }
     }
 }

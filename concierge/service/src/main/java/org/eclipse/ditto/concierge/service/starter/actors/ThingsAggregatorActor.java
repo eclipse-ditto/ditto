@@ -56,8 +56,6 @@ public final class ThingsAggregatorActor extends AbstractActor {
      */
     public static final String ACTOR_NAME = "aggregator";
 
-    private static final String AGGREGATOR_INTERNAL_DISPATCHER = "aggregator-internal-dispatcher";
-
     private final ThreadSafeDittoLoggingAdapter log = DittoLoggerFactory.getThreadSafeDittoLoggingAdapter(this);
     private final ActorRef targetActor;
     private final java.time.Duration retrieveSingleThingTimeout;
@@ -80,8 +78,7 @@ public final class ThingsAggregatorActor extends AbstractActor {
      * @return the Akka configuration Props object
      */
     public static Props props(final ActorRef targetActor) {
-        return Props.create(ThingsAggregatorActor.class, targetActor)
-                .withDispatcher(AGGREGATOR_INTERNAL_DISPATCHER);
+        return Props.create(ThingsAggregatorActor.class, targetActor);
     }
 
     @Override

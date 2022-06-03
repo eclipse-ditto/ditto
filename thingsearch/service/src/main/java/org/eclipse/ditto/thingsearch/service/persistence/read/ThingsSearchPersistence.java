@@ -23,6 +23,8 @@ import org.eclipse.ditto.rql.query.Query;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.thingsearch.api.SearchNamespaceReportResult;
 import org.eclipse.ditto.thingsearch.service.common.model.ResultList;
+import org.eclipse.ditto.thingsearch.service.common.model.ResultListImpl;
+import org.eclipse.ditto.thingsearch.service.common.model.TimestampedThingId;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.Metadata;
 
 import akka.NotUsed;
@@ -30,6 +32,7 @@ import akka.stream.javadsl.Source;
 
 /**
  * Interface for thing operations on the persistence used within the search service.
+ *
  * @since 1.0.0
  */
 public interface ThingsSearchPersistence {
@@ -76,7 +79,7 @@ public interface ThingsSearchPersistence {
      * @return an {@link Source} which emits the IDs.
      * @throws NullPointerException if {@code query} is {@code null}.
      */
-    Source<ResultList<ThingId>, NotUsed> findAll(Query query, List<String> authorizationSubjectIds,
+    Source<ResultList<TimestampedThingId>, NotUsed> findAll(Query query, List<String> authorizationSubjectIds,
             @Nullable Set<String> namespaces);
 
     /**
@@ -112,7 +115,12 @@ public interface ThingsSearchPersistence {
      */
     default Source<ResultList<ThingId>, NotUsed> findAll(final Query query,
             final List<String> authorizationSubjectIds) {
-        return findAll(query, authorizationSubjectIds, null);
+        return findAll(query, authorizationSubjectIds, null)
+                .map(resultList -> {
+                    final var thingIds = resultList.stream().map(TimestampedThingId::thingId).toList();
+                    return new ResultListImpl<>(thingIds, resultList.nextPageOffset(),
+                            resultList.lastResultSortValues().orElse(null));
+                });
     }
 
 }

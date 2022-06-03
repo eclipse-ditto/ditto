@@ -20,7 +20,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Predicate;
-import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
@@ -118,7 +117,7 @@ public final class SignalFilter {
                 .peek(filteredTarget -> connectionMonitorRegistry.forOutboundFiltered(connection,
                         filteredTarget.getAddress())
                         .success(signal))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private static boolean isTargetAuthorized(final Target target, final Signal<?> signal) {

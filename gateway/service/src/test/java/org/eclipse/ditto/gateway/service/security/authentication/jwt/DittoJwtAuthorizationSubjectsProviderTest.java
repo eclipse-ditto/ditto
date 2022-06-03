@@ -269,10 +269,10 @@ public final class DittoJwtAuthorizationSubjectsProviderTest {
 
         assertThat(authSubjects).containsExactly(
                 AuthorizationSubject.newInstance(subjectIssuer + ":" + "rest-some-audience-ope-test"),
-                AuthorizationSubject.newInstance(subjectIssuer + ":" + "rest-other-ope-test"),
-                AuthorizationSubject.newInstance(subjectIssuer + ":" + "rest-audience-ope-test"),
                 AuthorizationSubject.newInstance(subjectIssuer + ":" + "rest-some-audience-all-test"),
+                AuthorizationSubject.newInstance(subjectIssuer + ":" + "rest-other-ope-test"),
                 AuthorizationSubject.newInstance(subjectIssuer + ":" + "rest-other-all-test"),
+                AuthorizationSubject.newInstance(subjectIssuer + ":" + "rest-audience-ope-test"),
                 AuthorizationSubject.newInstance(subjectIssuer + ":" + "rest-audience-all-test")
         );
     }

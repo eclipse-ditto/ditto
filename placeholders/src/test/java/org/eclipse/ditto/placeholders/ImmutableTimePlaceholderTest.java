@@ -16,9 +16,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.List;
+import java.util.stream.Collectors;
 
 import org.assertj.core.data.TemporalUnitLessThanOffset;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.mutabilitydetector.unittesting.MutabilityAssert;
 import org.mutabilitydetector.unittesting.MutabilityMatchers;
@@ -49,29 +50,34 @@ public final class ImmutableTimePlaceholderTest {
 
     @Test
     public void testReplaceCurrentTimestampIso() {
-        assertThat(UNDER_TEST.resolve(SOME_OBJECT, "now"))
+        final List<Instant> resolved = UNDER_TEST.resolveValues(SOME_OBJECT, "now").stream()
                 .map(Instant::parse)
-                .hasValueSatisfying(i -> {
-                            final Instant now = Instant.now();
-                            assertThat(i)
-                                    .isBefore(now)
-                                    .isCloseTo(now, new TemporalUnitLessThanOffset(1000, ChronoUnit.MILLIS));
-                        }
-                );
+                .collect(Collectors.toList());
+        assertThat(resolved).allSatisfy(i -> {
+                    final Instant now = Instant.now();
+                    assertThat(i)
+                            .isBefore(now)
+                            .isCloseTo(now, new TemporalUnitLessThanOffset(1000, ChronoUnit.MILLIS));
+                }
+        );
+        assertThat(resolved).hasSize(1);
     }
 
     @Test
     public void testReplaceCurrentTimestampMillisSinceEpoch() {
-        assertThat(UNDER_TEST.resolve(SOME_OBJECT, "now_epoch_millis"))
+        final List<Instant> resolved = UNDER_TEST.resolveValues(SOME_OBJECT, "now_epoch_millis").stream()
                 .map(Long::parseLong)
                 .map(Instant::ofEpochMilli)
-                .hasValueSatisfying(i -> {
+                .collect(Collectors.toList());
+        assertThat(resolved)
+                .allSatisfy(i -> {
                             final Instant now = Instant.now();
                             assertThat(i)
                                     .isBefore(now)
                                     .isCloseTo(now, new TemporalUnitLessThanOffset(1000, ChronoUnit.MILLIS));
                         }
                 );
+        assertThat(resolved).hasSize(1);
     }
 
 }

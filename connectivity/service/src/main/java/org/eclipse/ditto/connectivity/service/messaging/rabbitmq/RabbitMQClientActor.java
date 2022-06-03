@@ -234,8 +234,7 @@ public final class RabbitMQClientActor extends BaseClientActor {
 
     @Override
     protected CompletionStage<Status.Status> startConsumerActors(@Nullable final ClientConnected clientConnected) {
-        if (clientConnected instanceof RmqConsumerChannelCreated) {
-            final RmqConsumerChannelCreated rmqConsumerChannelCreated = (RmqConsumerChannelCreated) clientConnected;
+        if (clientConnected instanceof RmqConsumerChannelCreated rmqConsumerChannelCreated) {
             startCommandConsumers(rmqConsumerChannelCreated.getChannel());
         }
         return super.startConsumerActors(clientConnected);
@@ -272,8 +271,7 @@ public final class RabbitMQClientActor extends BaseClientActor {
     }
 
     private static Object messageFromConnectionStatus(final Status.Status status) {
-        if (status instanceof Status.Failure) {
-            final Status.Failure failure = (Status.Failure) status;
+        if (status instanceof Status.Failure failure) {
             return ConnectionFailure.of(null, failure.cause(), null);
         } else {
             return (ClientConnected) Optional::empty;

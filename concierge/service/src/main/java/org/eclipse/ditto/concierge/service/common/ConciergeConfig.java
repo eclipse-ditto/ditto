@@ -15,6 +15,7 @@ package org.eclipse.ditto.concierge.service.common;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.service.config.ServiceSpecificConfig;
+import org.eclipse.ditto.internal.utils.config.KnownConfigValue;
 import org.eclipse.ditto.internal.utils.health.config.WithHealthCheckConfig;
 
 /**
@@ -22,6 +23,14 @@ import org.eclipse.ditto.internal.utils.health.config.WithHealthCheckConfig;
  */
 @Immutable
 public interface ConciergeConfig extends ServiceSpecificConfig, WithHealthCheckConfig {
+
+
+    /**
+     * Returns the default namespace which is used when no namespace is provided.
+     *
+     * @return the default namespace.
+     */
+    String getDefaultNamespace();
 
     /**
      * Returns the config of Concierge's enforcement behaviour.
@@ -44,4 +53,45 @@ public interface ConciergeConfig extends ServiceSpecificConfig, WithHealthCheckC
      */
     ThingsAggregatorConfig getThingsAggregatorConfig();
 
+    /**
+     * @return the path where to dispatch search requests
+     */
+    String getSearchActorPath();
+
+    /**
+     * An enumeration of the known config path expressions and their associated default values for {@code ConciergeConfig}.
+     */
+    enum ConciergeConfigValue implements KnownConfigValue {
+
+        /**
+         * The path of the search actor where to dispatch search requests.
+         */
+        SEARCH_ACTOR_PATH("search-actor-path", "/user/thingsWildcardSearchRoot/thingsSearch"),
+
+        /**
+         * The default namespace to use for creating things without specified namespace.
+         *
+         * @since 2.5.0
+         */
+        DEFAULT_NAMESPACE("default-namespace", "org.eclipse.ditto");
+
+        private final String path;
+        private final Object defaultValue;
+
+        ConciergeConfigValue(final String thePath, final Object theDefaultValue) {
+            path = thePath;
+            defaultValue = theDefaultValue;
+        }
+
+        @Override
+        public String getConfigPath() {
+            return path;
+        }
+
+        @Override
+        public Object getDefaultValue() {
+            return defaultValue;
+        }
+
+    }
 }

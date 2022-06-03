@@ -18,7 +18,6 @@ import static org.mockito.Mockito.verifyNoInteractions;
 
 import java.util.Arrays;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import org.junit.After;
 import org.junit.Test;
@@ -54,14 +53,14 @@ public class PipelineFunctionSplitTest {
 
     @Test
     public void apply() {
-        assertThat(function.applyStreaming(KNOWN_INPUT, "(' ')", expressionResolver))
-                .containsAll(EXPECTED_OUTPUT.stream().map(PipelineElement::resolved).collect(Collectors.toList()));
+        assertThat(function.apply(KNOWN_INPUT, "(' ')", expressionResolver).toStream())
+                .containsAll(EXPECTED_OUTPUT);
     }
 
     @Test
     public void applyNoMatch() {
-        assertThat(function.applyStreaming(KNOWN_INPUT_NO_MATCH, "(' ')", expressionResolver))
-                .containsOnly(PipelineElement.resolved(EXPECTED_OUTPUT_NO_MATCH));
+        assertThat(function.apply(KNOWN_INPUT_NO_MATCH, "(' ')", expressionResolver).toStream())
+                .containsOnly(EXPECTED_OUTPUT_NO_MATCH);
     }
 
     @Test

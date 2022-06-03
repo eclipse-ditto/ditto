@@ -16,7 +16,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
@@ -25,7 +24,6 @@ import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.base.model.entity.id.WithEntityId;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.signals.Signal;
-import org.eclipse.ditto.base.model.signals.WithFeatureId;
 import org.eclipse.ditto.connectivity.api.ExternalMessage;
 import org.eclipse.ditto.connectivity.api.OutboundSignal;
 import org.eclipse.ditto.connectivity.api.placeholders.ConnectivityPlaceholders;
@@ -36,6 +34,7 @@ import org.eclipse.ditto.placeholders.PlaceholderFactory;
 import org.eclipse.ditto.placeholders.PlaceholderResolver;
 import org.eclipse.ditto.protocol.Adaptable;
 import org.eclipse.ditto.protocol.TopicPath;
+import org.eclipse.ditto.protocol.adapter.DittoProtocolAdapter;
 
 /**
  * Creator of expression resolvers for incoming and outgoing messages.
@@ -45,6 +44,8 @@ public final class Resolvers {
     private Resolvers() {
         throw new AssertionError();
     }
+
+    private static final DittoProtocolAdapter PROTOCOL_ADAPTER = DittoProtocolAdapter.newInstance();
 
     /**
      * Placeholder resolver creators for incoming and outgoing messages.
@@ -56,13 +57,7 @@ public final class Resolvers {
                     (e, s, t, a, c) -> WithEntityId.getEntityIdOfType(EntityId.class, s).orElse(null)),
             ResolverCreator.of(ConnectivityPlaceholders.newThingPlaceholder(),
                     (e, s, t, a, c) -> WithEntityId.getEntityIdOfType(EntityId.class, s).orElse(null)),
-            ResolverCreator.of(ConnectivityPlaceholders.newFeaturePlaceholder(), (e, s, t, a, c) -> {
-                if (s instanceof WithFeatureId) {
-                    return ((WithFeatureId) s).getFeatureId();
-                } else {
-                    return null;
-                }
-            }),
+            ResolverCreator.of(ConnectivityPlaceholders.newFeaturePlaceholder(), (e, s, t, a, c) -> s),
             ResolverCreator.of(ConnectivityPlaceholders.newTopicPathPlaceholder(), (e, s, t, a, c) -> t),
             ResolverCreator.of(ConnectivityPlaceholders.newResourcePlaceholder(), (e, s, t, a, c) -> s),
             ResolverCreator.of(ConnectivityPlaceholders.newTimePlaceholder(), (e, s, t, a, c) -> new Object()),
@@ -73,7 +68,7 @@ public final class Resolvers {
     private static final List<Placeholder<?>> PLACEHOLDERS = Collections.unmodifiableList(
             RESOLVER_CREATORS.stream()
                     .map(ResolverCreator::getPlaceholder)
-                    .collect(Collectors.toList())
+                    .toList()
     );
 
     /**
@@ -120,7 +115,7 @@ public final class Resolvers {
         return PlaceholderFactory.newExpressionResolver(
                 RESOLVER_CREATORS.stream()
                         .map(creator -> creator.create(signal.getDittoHeaders(), signal,
-                                null,
+                                PROTOCOL_ADAPTER.toTopicPath(signal),
                                 signal.getDittoHeaders().getAuthorizationContext(),
                                 connectionId))
                         .toArray(PlaceholderResolver[]::new)
@@ -163,7 +158,7 @@ public final class Resolvers {
                 RESOLVER_CREATORS.stream()
                         .map(creator -> creator.create(outboundSignal.getSource().getDittoHeaders(),
                                 outboundSignal.getSource(),
-                                null,
+                                PROTOCOL_ADAPTER.toTopicPath(outboundSignal.getSource()),
                                 outboundSignal.getSource().getDittoHeaders().getAuthorizationContext(),
                                 sendingConnectionId))
                         .toArray(PlaceholderResolver[]::new)

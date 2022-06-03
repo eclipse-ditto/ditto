@@ -75,10 +75,14 @@ import org.eclipse.ditto.internal.models.signalenrichment.SignalEnrichmentFacade
 import org.eclipse.ditto.internal.utils.akka.controlflow.AbstractGraphActor;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.internal.utils.pubsub.StreamingType;
+import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.placeholders.ExpressionResolver;
+import org.eclipse.ditto.placeholders.PipelineElement;
 import org.eclipse.ditto.placeholders.PlaceholderFactory;
 import org.eclipse.ditto.placeholders.PlaceholderResolver;
 import org.eclipse.ditto.placeholders.TimePlaceholder;
@@ -90,6 +94,7 @@ import org.eclipse.ditto.rql.parser.RqlPredicateParser;
 import org.eclipse.ditto.rql.query.criteria.Criteria;
 import org.eclipse.ditto.rql.query.filter.QueryFilterCriteriaFactory;
 import org.eclipse.ditto.rql.query.things.ThingPredicateVisitor;
+import org.eclipse.ditto.things.model.ThingFieldSelector;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingNotAccessibleException;
 import org.eclipse.ditto.things.model.signals.events.ThingEventToThingConverter;
@@ -188,12 +193,12 @@ public final class OutboundMappingProcessorActor
             final List<AcknowledgementLabel> weakAckLabels = requestedAcks.stream()
                     .map(AcknowledgementRequest::getLabel)
                     .filter(isWeakAckLabel)
-                    .collect(Collectors.toList());
+                    .toList();
             if (!weakAckLabels.isEmpty()) {
                 final DittoHeaders dittoHeaders = signal.getDittoHeaders();
                 final List<Acknowledgement> ackList = weakAckLabels.stream()
                         .map(label -> weakAck(label, entityIdWithType.get(), dittoHeaders))
-                        .collect(Collectors.toList());
+                        .toList();
                 final Acknowledgements weakAcks = Acknowledgements.of(ackList, dittoHeaders);
                 sender.tell(weakAcks, ActorRef.noSender());
             }
@@ -214,12 +219,12 @@ public final class OutboundMappingProcessorActor
             final List<AcknowledgementLabel> failedAckLabels = requestedAcks.stream()
                     .map(AcknowledgementRequest::getLabel)
                     .filter(isFailedAckLabel)
-                    .collect(Collectors.toList());
+                    .toList();
             if (!failedAckLabels.isEmpty()) {
                 final DittoHeaders dittoHeaders = signal.getDittoHeaders();
                 final List<Acknowledgement> ackList = failedAckLabels.stream()
                         .map(label -> failedAck(label, entityIdWithType.get(), dittoHeaders, dre))
-                        .collect(Collectors.toList());
+                        .toList();
                 final Acknowledgements failedAcks = Acknowledgements.of(ackList, dittoHeaders);
                 sender.tell(failedAcks, ActorRef.noSender());
             }
@@ -307,9 +312,9 @@ public final class OutboundMappingProcessorActor
 
     @Override
     protected OutboundSignalWithSender mapMessage(final OutboundSignal message) {
-        if (message instanceof OutboundSignalWithSender) {
+        if (message instanceof OutboundSignalWithSender outboundSignalWithSender) {
             // message contains original sender already
-            return (OutboundSignalWithSender) message;
+            return outboundSignalWithSender;
         } else {
             return OutboundSignalWithSender.of(message, getSender());
         }
@@ -377,8 +382,7 @@ public final class OutboundMappingProcessorActor
                                                     Collections.singletonList(targetAndSelector.first())),
                                             targetAndSelector.second()));
 
-                    return Stream.concat(outboundSignalWithoutExtraFields, outboundSignalWithExtraFields)
-                            .collect(Collectors.toList());
+                    return Stream.concat(outboundSignalWithoutExtraFields, outboundSignalWithExtraFields).toList();
                 });
     }
 
@@ -390,8 +394,9 @@ public final class OutboundMappingProcessorActor
 
         final OutboundSignalWithSender outboundSignal = outboundSignalWithExtraFields.first();
         final FilteredTopic filteredTopic = outboundSignalWithExtraFields.second();
-        final Optional<JsonFieldSelector> extraFieldsOptional =
-                Optional.ofNullable(filteredTopic).flatMap(FilteredTopic::getExtraFields);
+        final ExpressionResolver expressionResolver =
+                Resolvers.forSignal(outboundSignal.getSource(), connection.getId());
+        final Optional<JsonFieldSelector> extraFieldsOptional = getExtraFields(expressionResolver, filteredTopic);
         if (extraFieldsOptional.isEmpty()) {
             return CompletableFuture.completedFuture(Collections.singletonList(outboundSignal));
         }
@@ -427,6 +432,22 @@ public final class OutboundMappingProcessorActor
                     // recover from all errors to keep message-mapping-stream running despite enrichment failures
                     return recoverFromEnrichmentError(outboundSignal, target, error);
                 });
+    }
+
+    private static Optional<JsonFieldSelector> getExtraFields(final ExpressionResolver expressionResolver,
+            @Nullable final FilteredTopic filteredTopic) {
+
+        return Optional.ofNullable(filteredTopic)
+                .flatMap(FilteredTopic::getExtraFields)
+                .map(extraFields -> extraFields.getPointers().stream()
+                        .map(JsonPointer::toString)
+                        .map(expressionResolver::resolve)
+                        .flatMap(PipelineElement::toStream)
+                        .map(JsonPointer::of)
+                        .toList())
+                .filter(jsonPointers -> !jsonPointers.isEmpty())
+                .map(JsonFactory::newFieldSelector)
+                .map(ThingFieldSelector::fromJsonFieldSelector);
     }
 
     private static Optional<EntityId> extractEntityId(final Signal<?> signal) {
@@ -577,8 +598,7 @@ public final class OutboundMappingProcessorActor
                             return Source.empty();
                         })
                         .onError((mapperId, exception, topicPath, unused) -> {
-                            if (exception instanceof DittoRuntimeException) {
-                                final DittoRuntimeException e = (DittoRuntimeException) exception;
+                            if (exception instanceof DittoRuntimeException e) {
                                 monitorsForOther.forEach(monitor ->
                                         monitor.getLogger().failure(infoProvider, e));
                                 logger.withCorrelationId(e)
@@ -653,7 +673,7 @@ public final class OutboundMappingProcessorActor
                         final List<Target> targetsToPublishAt = outboundSignals.stream()
                                 .map(OutboundSignal::getTargets)
                                 .flatMap(List::stream)
-                                .collect(Collectors.toList());
+                                .toList();
                         final Predicate<AcknowledgementLabel> willPublish =
                                 ConnectionValidator.getTargetIssuedAcknowledgementLabels(connection.getId(),
                                         targetsToPublishAt)
@@ -662,10 +682,13 @@ public final class OutboundMappingProcessorActor
                                 filterFailedEnrichments(outboundSignals, willPublish);
                         final List<Mapped> mappedSignals = signalsWithoutEnrichmentFailures
                                 .map(OutboundSignalWithSender::asMapped)
-                                .collect(Collectors.toList());
+                                .toList();
                         issueWeakAcknowledgements(outbound.getSource(),
                                 willPublish.negate().and(outboundMappingProcessor::isTargetIssuedAck),
                                 sender);
+                        if (mappedSignals.isEmpty()) {
+                            return List.of();
+                        }
                         return List.of(OutboundSignalFactory.newMultiMappedOutboundSignal(mappedSignals, sender));
                     }
                 });

@@ -15,7 +15,6 @@ package org.eclipse.ditto.protocol.mappingstrategies;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.eclipse.ditto.protocol.JsonifiableMapper;
 import org.eclipse.ditto.policies.model.signals.commands.query.PolicyQueryCommandResponse;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicyEntriesResponse;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicyEntryResponse;
@@ -24,6 +23,7 @@ import org.eclipse.ditto.policies.model.signals.commands.query.RetrieveResourceR
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrieveResourcesResponse;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrieveSubjectResponse;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrieveSubjectsResponse;
+import org.eclipse.ditto.protocol.JsonifiableMapper;
 
 /**
  * Defines mapping strategies (map from signal type to JsonifiableMapper) for policy query command responses.
@@ -55,7 +55,7 @@ final class PolicyQueryCommandResponseMappingStrategies
             final Map<String, JsonifiableMapper<PolicyQueryCommandResponse<?>>> mappingStrategies) {
         mappingStrategies.put(RetrievePolicyResponse.TYPE,
                 adaptable -> RetrievePolicyResponse.of(policyIdFromTopicPath(adaptable.getTopicPath()),
-                        policyFrom(adaptable), dittoHeadersFrom(adaptable)));
+                        policyJsonFrom(adaptable), dittoHeadersFrom(adaptable)));
     }
 
     private static void addPolicyEntryResponses(

@@ -19,13 +19,16 @@ import org.junit.rules.ExternalResource;
 
 /**
  * External Mongo DB resource for utilization within tests.
+ * If the environment variable "HOSTING_ENVIRONMENT" is set to "IDE", then the resource will use localhost:27017 as
+ * the MongoDB container address instead of starting its own container.
  */
 @NotThreadSafe
 public final class MongoDbResource extends ExternalResource {
 
     private static final int MONGO_INTERNAL_PORT = 27017;
-    private static final String MONGO_CONTAINER_NOT_STARTED = "Mongo container hast not been started, yet";
     private static final String MONGO_CONTAINER_ALREADY_STARTED = "Mongo container has already been started.";
+    private static final String HOSTING_ENVIRONMENT_ENV_VARIABLE_NAME = "HOSTING_ENVIRONMENT";
+    private static final String IDE_HOSTING_ENVIRONMENT = "IDE";
 
     @Nullable private DockerContainer mongoContainer;
 
@@ -34,18 +37,19 @@ public final class MongoDbResource extends ExternalResource {
         if (mongoContainer != null) {
             throw new IllegalStateException(MONGO_CONTAINER_ALREADY_STARTED);
         }
-        mongoContainer = MongoContainerFactory.getInstance().createMongoContainer();
-        mongoContainer.start();
+        if (!IDE_HOSTING_ENVIRONMENT.equals(System.getenv(HOSTING_ENVIRONMENT_ENV_VARIABLE_NAME))) {
+            mongoContainer = MongoContainerFactory.getInstance().createMongoContainer();
+            mongoContainer.start();
+        }
     }
 
     @Override
     protected void after() {
-        if (mongoContainer == null) {
-            throw new IllegalStateException(MONGO_CONTAINER_NOT_STARTED);
+        if (mongoContainer != null) {
+            mongoContainer.stop();
+            mongoContainer.remove();
+            mongoContainer = null;
         }
-        mongoContainer.stop();
-        mongoContainer.remove();
-        mongoContainer = null;
     }
 
     /**
@@ -53,7 +57,7 @@ public final class MongoDbResource extends ExternalResource {
      */
     public int getPort() {
         if (mongoContainer == null) {
-            throw new IllegalStateException(MONGO_CONTAINER_NOT_STARTED);
+            return MONGO_INTERNAL_PORT;
         }
         return mongoContainer.getPort(MONGO_INTERNAL_PORT);
     }
@@ -63,7 +67,7 @@ public final class MongoDbResource extends ExternalResource {
      */
     public String getBindIp() {
         if (mongoContainer == null) {
-            throw new IllegalStateException(MONGO_CONTAINER_NOT_STARTED);
+            return "localhost";
         }
         return mongoContainer.getHostname();
     }

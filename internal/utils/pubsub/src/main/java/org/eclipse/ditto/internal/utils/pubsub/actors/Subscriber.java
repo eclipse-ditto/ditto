@@ -159,7 +159,7 @@ public final class Subscriber<T extends SignalWithEntityId<?>> extends AbstractA
                 ackExtractor.getDeclaredCustomAcksRequestedBy(message, responsibleAcks::contains);
         final Collection<AcknowledgementLabel> declaredCustomAcksWithoutSubscribers = declaredCustomAcks.stream()
                 .filter(label -> disjoint(localSubscribers, declaredAcks.getKeys(label.toString())))
-                .collect(Collectors.toList());
+                .toList();
         if (!declaredCustomAcksWithoutSubscribers.isEmpty()) {
             final Acknowledgements acknowledgements =
                     ackExtractor.toWeakAcknowledgements(message, declaredCustomAcksWithoutSubscribers);

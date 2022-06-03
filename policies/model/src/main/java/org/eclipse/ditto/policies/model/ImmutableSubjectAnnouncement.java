@@ -156,6 +156,7 @@ final class ImmutableSubjectAnnouncement implements SubjectAnnouncement {
 
     private static List<AcknowledgementRequest> deserializeRequestedAcks(final JsonArray jsonArray) {
         return jsonArray.stream()
+                .filter(JsonValue::isString)
                 .map(value -> AcknowledgementRequest.parseAcknowledgementRequest(value.asString()))
                 .collect(Collectors.toList());
     }

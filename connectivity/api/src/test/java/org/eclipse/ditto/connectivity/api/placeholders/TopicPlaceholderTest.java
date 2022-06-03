@@ -65,20 +65,20 @@ public final class TopicPlaceholderTest {
         final PlaceholderResolver<TopicPath> underTest = PlaceholderFactory.newPlaceholderResolver(
                 ConnectivityPlaceholders.newTopicPathPlaceholder(), topic);
 
-        assertThat(underTest.resolve("full"))
-                .contains(fullPath);
-        assertThat(underTest.resolve("namespace"))
-                .contains("org.eclipse.ditto");
-        assertThat(underTest.resolve("entityName"))
-                .contains("foo23");
-        assertThat(underTest.resolve("group"))
-                .contains("things");
-        assertThat(underTest.resolve("channel"))
-                .contains("twin");
-        assertThat(underTest.resolve("criterion"))
-                .contains("commands");
-        assertThat(underTest.resolve("action"))
-                .contains("modify");
+        assertThat(underTest.resolveValues("full"))
+                .containsExactly(fullPath);
+        assertThat(underTest.resolveValues("namespace"))
+                .containsExactly("org.eclipse.ditto");
+        assertThat(underTest.resolveValues("entityName"))
+                .containsExactly("foo23");
+        assertThat(underTest.resolveValues("group"))
+                .containsExactly("things");
+        assertThat(underTest.resolveValues("channel"))
+                .containsExactly("twin");
+        assertThat(underTest.resolveValues("criterion"))
+                .containsExactly("commands");
+        assertThat(underTest.resolveValues("action"))
+                .containsExactly("modify");
     }
 
     @Test
@@ -99,21 +99,21 @@ public final class TopicPlaceholderTest {
 
 
         assertThatExceptionOfType(NullPointerException.class).isThrownBy(
-                () -> topicPlaceholder.resolve(knownTopicPath, null));
+                () -> topicPlaceholder.resolveValues(knownTopicPath, null));
         assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(
-                () -> topicPlaceholder.resolve(knownTopicPath, ""));
+                () -> topicPlaceholder.resolveValues(knownTopicPath, ""));
         assertThatExceptionOfType(UnresolvedPlaceholderException.class).isThrownBy(
-                () -> PlaceholderFilter.apply("{{ topic:unknown }}", knownTopicPath, topicPlaceholder));
+                () -> PlaceholderFilter.applyForAll("{{ topic:unknown }}", knownTopicPath, topicPlaceholder));
         assertThatExceptionOfType(UnresolvedPlaceholderException.class).isThrownBy(
-                () -> PlaceholderFilter.apply("{{ {{  topic:name  }} }}", knownTopicPath, topicPlaceholder));
-        assertThat(PlaceholderFilter.apply("eclipse:ditto", knownTopicPath, topicPlaceholder)).isEqualTo(
-                "eclipse:ditto");
-        assertThat(PlaceholderFilter.apply("prefix:{{ topic:channel }}:{{ topic:group }}:suffix", knownTopicPath,
-                topicPlaceholder)).isEqualTo("prefix:twin:things:suffix");
+                () -> PlaceholderFilter.applyForAll("{{ {{  topic:name  }} }}", knownTopicPath, topicPlaceholder));
+        assertThat(PlaceholderFilter.applyForAll("eclipse:ditto", knownTopicPath, topicPlaceholder))
+                .containsExactly("eclipse:ditto");
+        assertThat(PlaceholderFilter.applyForAll("prefix:{{ topic:channel }}:{{ topic:group }}:suffix", knownTopicPath,
+                topicPlaceholder)).containsExactly("prefix:twin:things:suffix");
 
-        assertThat(PlaceholderFilter.apply("{{topic:subject}}", knownTopicPathSubject1,
-                topicPlaceholder)).isEqualTo(knownSubject);
-        assertThat(PlaceholderFilter.apply("{{  topic:action-subject}}", knownTopicPathSubject2,
-                topicPlaceholder)).isEqualTo(knownSubject2);
+        assertThat(PlaceholderFilter.applyForAll("{{topic:subject}}", knownTopicPathSubject1,
+                topicPlaceholder)).containsExactly(knownSubject);
+        assertThat(PlaceholderFilter.applyForAll("{{  topic:action-subject}}", knownTopicPathSubject2,
+                topicPlaceholder)).containsExactly(knownSubject2);
     }
 }

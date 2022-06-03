@@ -12,11 +12,8 @@
  */
 package org.eclipse.ditto.thingsearch.service.persistence.write.model;
 
-import java.time.Duration;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionStage;
 
 import javax.annotation.Nullable;
 
@@ -24,11 +21,10 @@ import org.bson.BsonDocument;
 import org.bson.BsonString;
 import org.bson.conversions.Bson;
 import org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants;
+import org.eclipse.ditto.thingsearch.service.updater.actors.MongoWriteModel;
 
 import com.mongodb.client.model.Filters;
 import com.mongodb.client.model.WriteModel;
-
-import akka.pattern.Patterns;
 
 /**
  * Interface for write models of Thing changes for MongoDB.
@@ -59,25 +55,22 @@ public abstract class AbstractWriteModel {
     public abstract WriteModel<BsonDocument> toMongo();
 
     /**
-     * Convert this into a MongoDB write model taking previous updates cached at the origin into consideration.
+     * Create a copy of this write model with a new metadata.
      *
-     * @return either the MongoDB write model of this object or an incremental update converting
+     * @param metadata The new metadata.
+     * @return The copy.
      */
-    @SuppressWarnings("unchecked")
-    public CompletionStage<Optional<WriteModel<BsonDocument>>> toIncrementalMongo() {
-        final var origin = metadata.getOrigin();
-        if (origin.isPresent()) {
-            return Patterns.ask(origin.orElseThrow(), this, Duration.ofSeconds(10L))
-                    .thenApply(answer -> {
-                        if (answer instanceof WriteModel) {
-                            return Optional.of((WriteModel<BsonDocument>) answer);
-                        } else {
-                            return Optional.empty();
-                        }
-                    });
-        } else {
-            return CompletableFuture.completedStage(Optional.of(toMongo()));
-        }
+    public abstract AbstractWriteModel setMetadata(final Metadata metadata);
+
+    /**
+     * Convert this into a MongoDB write model taking the previous update into consideration.
+     *
+     * @param previousWriteModel The previous write model.
+     * @return Either the MongoDB write model of this object or an incremental update converting the document of
+     * the previous model into this one.
+     */
+    public Optional<MongoWriteModel> toIncrementalMongo(@Nullable final AbstractWriteModel previousWriteModel) {
+        return Optional.of(MongoWriteModel.of(this, toMongo(), false));
     }
 
     /**
@@ -94,15 +87,6 @@ public abstract class AbstractWriteModel {
      */
     public Bson getFilter() {
         return Filters.eq(PersistenceConstants.FIELD_ID, new BsonString(metadata.getThingId().toString()));
-    }
-
-    /**
-     * Check whether this update is a patch update based on a specific sequence number.
-     *
-     * @return Whether this is a patch update.
-     */
-    public boolean isPatchUpdate() {
-        return false;
     }
 
     @Override

@@ -15,23 +15,27 @@ package org.eclipse.ditto.policies.model.signals.commands.query;
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.util.Objects;
+import java.util.Optional;
 import java.util.function.Predicate;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.json.FieldType;
+import org.eclipse.ditto.base.model.json.JsonParsableCommand;
+import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
+import org.eclipse.ditto.base.model.signals.commands.AbstractCommand;
+import org.eclipse.ditto.base.model.signals.commands.CommandJsonDeserializer;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
+import org.eclipse.ditto.json.JsonFieldDefinition;
+import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.base.model.json.JsonParsableCommand;
-import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.signals.commands.PolicyCommand;
-import org.eclipse.ditto.base.model.signals.commands.AbstractCommand;
-import org.eclipse.ditto.base.model.signals.commands.CommandJsonDeserializer;
 
 
 /**
@@ -52,11 +56,19 @@ public final class RetrievePolicy extends AbstractCommand<RetrievePolicy>
      */
     public static final String TYPE = TYPE_PREFIX + NAME;
 
-    private final PolicyId policyId;
+    static final JsonFieldDefinition<String> JSON_SELECTED_FIELDS =
+            JsonFactory.newStringFieldDefinition("selectedFields", FieldType.REGULAR,
+                    JsonSchemaVersion.V_2);
 
-    private RetrievePolicy(final PolicyId policyId, final DittoHeaders dittoHeaders) {
+    private final PolicyId policyId;
+    @Nullable private final JsonFieldSelector selectedFields;
+
+    private RetrievePolicy(final PolicyId policyId, final DittoHeaders dittoHeaders,
+            @Nullable final JsonFieldSelector selectedFields) {
+
         super(TYPE, dittoHeaders);
         this.policyId = checkNotNull(policyId, "policy ID");
+        this.selectedFields = selectedFields;
     }
 
     /**
@@ -69,7 +81,24 @@ public final class RetrievePolicy extends AbstractCommand<RetrievePolicy>
      * @throws NullPointerException if any argument is {@code null}.
      */
     public static RetrievePolicy of(final PolicyId policyId, final DittoHeaders dittoHeaders) {
-        return new RetrievePolicy(policyId, dittoHeaders);
+        return new RetrievePolicy(policyId, dittoHeaders, null);
+    }
+
+    /**
+     * Returns a Command for retrieving the Policy with the given ID.
+     *
+     * @param policyId the ID of a single Policy to be retrieved by this command.
+     * @param dittoHeaders the optional command headers of the request.
+     * @param selectedFields the fields of the JSON representation of the Thing to retrieve.
+     * @return a Command for retrieving the Policy with the {@code policyId} as its ID which is readable from the passed
+     * authorization context.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @since 2.4.0
+     */
+    public static RetrievePolicy of(final PolicyId policyId, final DittoHeaders dittoHeaders,
+            @Nullable final JsonFieldSelector selectedFields) {
+
+        return new RetrievePolicy(policyId, dittoHeaders, selectedFields);
     }
 
     /**
@@ -101,8 +130,12 @@ public final class RetrievePolicy extends AbstractCommand<RetrievePolicy>
         return new CommandJsonDeserializer<RetrievePolicy>(TYPE, jsonObject).deserialize(() -> {
             final String extractedPolicyId = jsonObject.getValueOrThrow(PolicyCommand.JsonFields.JSON_POLICY_ID);
             final PolicyId policyId = PolicyId.of(extractedPolicyId);
+            final Optional<JsonFieldSelector> selectedFields = jsonObject.getValue(JSON_SELECTED_FIELDS)
+                    .map(str -> JsonFactory.newFieldSelector(str, JsonFactory.newParseOptionsBuilder()
+                            .withoutUrlDecoding()
+                            .build()));
 
-            return of(policyId, dittoHeaders);
+            return of(policyId, dittoHeaders, selectedFields.orElse(null));
         });
     }
 
@@ -122,16 +155,24 @@ public final class RetrievePolicy extends AbstractCommand<RetrievePolicy>
     }
 
     @Override
+    public Optional<JsonFieldSelector> getSelectedFields() {
+        return Optional.ofNullable(selectedFields);
+    }
+
+    @Override
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
 
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         jsonObjectBuilder.set(PolicyCommand.JsonFields.JSON_POLICY_ID, String.valueOf(policyId), predicate);
+        if (null != selectedFields) {
+            jsonObjectBuilder.set(JSON_SELECTED_FIELDS, selectedFields.toString(), predicate);
+        }
     }
 
     @Override
     public RetrievePolicy setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return of(policyId, dittoHeaders);
+        return of(policyId, dittoHeaders, selectedFields);
     }
 
     @SuppressWarnings({"squid:MethodCyclomaticComplexity", "squid:S1067", "OverlyComplexMethod"})
@@ -144,7 +185,10 @@ public final class RetrievePolicy extends AbstractCommand<RetrievePolicy>
             return false;
         }
         final RetrievePolicy that = (RetrievePolicy) obj;
-        return that.canEqual(this) && Objects.equals(policyId, that.policyId) && super.equals(that);
+        return that.canEqual(this) &&
+                Objects.equals(policyId, that.policyId) &&
+                Objects.equals(selectedFields, that.selectedFields) &&
+                super.equals(that);
     }
 
     @Override
@@ -155,12 +199,13 @@ public final class RetrievePolicy extends AbstractCommand<RetrievePolicy>
     @SuppressWarnings("squid:S109")
     @Override
     public int hashCode() {
-        return Objects.hash(super.hashCode(), policyId);
+        return Objects.hash(super.hashCode(), policyId, selectedFields);
     }
 
     @Override
     public String toString() {
-        return getClass().getSimpleName() + " [" + super.toString() + ", policyId=" + policyId + "]";
+        return getClass().getSimpleName() + " [" + super.toString() + ", policyId=" + policyId +
+                ", selectedFields=" + selectedFields + "]";
     }
 
 }

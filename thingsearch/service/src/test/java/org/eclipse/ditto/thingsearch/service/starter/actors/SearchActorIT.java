@@ -47,8 +47,6 @@ import org.eclipse.ditto.policies.model.Resource;
 import org.eclipse.ditto.policies.model.ResourceKey;
 import org.eclipse.ditto.policies.model.Subject;
 import org.eclipse.ditto.policies.model.SubjectType;
-import org.eclipse.ditto.policies.model.enforcers.Enforcer;
-import org.eclipse.ditto.policies.model.enforcers.PolicyEnforcers;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.ThingsModelFactory;
@@ -89,7 +87,7 @@ public final class SearchActorIT {
     private static final PolicyId POLICY_ID = PolicyId.of("default", "policy");
     @ClassRule
     public static final MongoDbResource MONGO_RESOURCE = new MongoDbResource();
-    private static Enforcer policyEnforcer;
+    private static Policy policy;
     private static DittoMongoClient mongoClient;
 
     private static Config actorsTestConfig;
@@ -102,20 +100,18 @@ public final class SearchActorIT {
 
     @BeforeClass
     public static void startMongoResource() {
-        final var dispatcherConfig = ConfigFactory.parseString("search-dispatcher {\n" +
-                "  type = PinnedDispatcher\n" +
-                "  executor = \"thread-pool-executor\"\n" +
-                "}\n" +
-                "search-updater-dispatcher {\n" +
-                "  type = PinnedDispatcher\n" +
-                "  executor = \"thread-pool-executor\"\n" +
-                "}");
+        final var dispatcherConfig = ConfigFactory.parseString("""
+                search-dispatcher {
+                  type = PinnedDispatcher
+                  executor = "thread-pool-executor"
+                }
+                """);
         actorsTestConfig = ConfigFactory.load("actors-test.conf").withFallback(dispatcherConfig);
 
         queryParser = SearchRootActor.getQueryParser(DefaultLimitsConfig.of(ConfigFactory.empty()),
                 ActorSystem.create(SearchActorIT.class.getSimpleName(), actorsTestConfig));
         mongoClient = provideClientWrapper();
-        policyEnforcer = PolicyEnforcers.defaultEvaluator(createPolicy());
+        policy = createPolicy();
     }
 
     @Before
@@ -268,12 +264,12 @@ public final class SearchActorIT {
 
         final Thing irrelevantThing = baseThing.toBuilder().removeAllAttributes().build();
 
-        writePersistence.write(template(baseThing, 0, "a"), policyEnforcer, 0L)
-                .concat(writePersistence.write(template(baseThing, 1, "b"), policyEnforcer, 0L))
-                .concat(writePersistence.write(template(baseThing, 2, "a"), policyEnforcer, 0L))
-                .concat(writePersistence.write(template(baseThing, 3, "b"), policyEnforcer, 0L))
-                .concat(writePersistence.write(template(baseThing, 4, "c"), policyEnforcer, 0L))
-                .concat(writePersistence.write(template(irrelevantThing, 5, "c"), policyEnforcer, 0L))
+        writePersistence.write(template(baseThing, 0, "a"), policy, 0L)
+                .concat(writePersistence.write(template(baseThing, 1, "b"), policy, 0L))
+                .concat(writePersistence.write(template(baseThing, 2, "a"), policy, 0L))
+                .concat(writePersistence.write(template(baseThing, 3, "b"), policy, 0L))
+                .concat(writePersistence.write(template(baseThing, 4, "c"), policy, 0L))
+                .concat(writePersistence.write(template(irrelevantThing, 5, "c"), policy, 0L))
                 .runWith(Sink.ignore(), actorSystem)
                 .toCompletableFuture()
                 .join();

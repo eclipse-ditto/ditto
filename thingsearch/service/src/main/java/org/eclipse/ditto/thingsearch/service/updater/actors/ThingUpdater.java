@@ -21,482 +21,596 @@ import java.time.Duration;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.function.Consumer;
+import java.util.function.Function;
 
 import javax.annotation.Nullable;
 
 import org.bson.BsonDocument;
-import org.bson.BsonInvalidOperationException;
+import org.eclipse.ditto.base.api.common.ShutdownReasonType;
 import org.eclipse.ditto.base.model.acks.AcknowledgementRequest;
 import org.eclipse.ditto.base.model.acks.DittoAcknowledgementLabel;
+import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
 import org.eclipse.ditto.base.service.actors.ShutdownBehaviour;
+import org.eclipse.ditto.base.service.config.supervision.ExponentialBackOff;
 import org.eclipse.ditto.internal.models.streaming.IdentifiableStreamingMessage;
-import org.eclipse.ditto.internal.utils.akka.actors.AbstractActorWithStashWithTimers;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLogger;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.akka.streaming.StreamAck;
-import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.internal.utils.metrics.instruments.counter.Counter;
 import org.eclipse.ditto.internal.utils.metrics.instruments.timer.StartedTimer;
 import org.eclipse.ditto.internal.utils.tracing.DittoTracing;
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.policies.api.PolicyReferenceTag;
-import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.events.ThingDeleted;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 import org.eclipse.ditto.thingsearch.api.UpdateReason;
 import org.eclipse.ditto.thingsearch.api.commands.sudo.UpdateThing;
-import org.eclipse.ditto.thingsearch.api.commands.sudo.UpdateThingResponse;
-import org.eclipse.ditto.thingsearch.service.common.config.DittoSearchConfig;
-import org.eclipse.ditto.thingsearch.service.common.config.UpdaterConfig;
-import org.eclipse.ditto.thingsearch.service.persistence.BulkWriteComplete;
-import org.eclipse.ditto.thingsearch.service.persistence.read.MongoThingsSearchPersistence;
-import org.eclipse.ditto.thingsearch.service.persistence.write.mapping.BsonDiff;
+import org.eclipse.ditto.thingsearch.service.common.config.SearchConfig;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.AbstractWriteModel;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.Metadata;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.ThingDeleteModel;
-import org.eclipse.ditto.thingsearch.service.persistence.write.model.ThingWriteModel;
+import org.eclipse.ditto.thingsearch.service.persistence.write.model.WriteResultAndErrors;
+import org.eclipse.ditto.thingsearch.service.persistence.write.streaming.BulkWriteResultAckFlow;
 import org.eclipse.ditto.thingsearch.service.persistence.write.streaming.ConsistencyLag;
-import org.eclipse.ditto.thingsearch.service.persistence.write.streaming.SearchUpdaterStream;
-import org.eclipse.ditto.thingsearch.service.starter.actors.MongoClientExtension;
 
-import com.mongodb.client.model.UpdateOneModel;
-import com.mongodb.client.model.WriteModel;
+import com.mongodb.client.model.DeleteOneModel;
 
 import akka.Done;
+import akka.NotUsed;
+import akka.actor.AbstractFSMWithStash;
 import akka.actor.ActorRef;
-import akka.actor.PoisonPill;
+import akka.actor.FSM;
 import akka.actor.Props;
-import akka.actor.ReceiveTimeout;
-import akka.cluster.sharding.ShardRegion;
-import akka.japi.pf.ReceiveBuilder;
+import akka.cluster.pubsub.DistributedPubSubMediator;
+import akka.japi.pf.FSMStateFunctionBuilder;
+import akka.japi.pf.PFBuilder;
 import akka.pattern.Patterns;
+import akka.stream.KillSwitches;
+import akka.stream.Materializer;
+import akka.stream.UniqueKillSwitch;
+import akka.stream.javadsl.Flow;
+import akka.stream.javadsl.Keep;
 import akka.stream.javadsl.Sink;
+import akka.stream.javadsl.Source;
 
 /**
  * This Actor initiates persistence updates related to 1 thing.
  */
-final class ThingUpdater extends AbstractActorWithStashWithTimers {
+public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State, ThingUpdater.Data> {
 
-    private static final String FORCE_UPDATE = "force-update";
+    private static final Counter INCORRECT_PATCH_UPDATE_COUNT =
+            DittoMetrics.counter("wildcard_search_incorrect_patch_updates");
+    private static final Counter UPDATE_FAILURE_COUNT = DittoMetrics.counter("wildcard_search_update_failures");
+
+    private static final Duration BLOCK_NAMESPACE_SHUTDOWN_DELAY = Duration.ofMinutes(2);
+
+    // alias Ditto Shutdown class because FSM shadows it
+    private static final Class<org.eclipse.ditto.base.api.common.Shutdown> SHUTDOWN_CLASS =
+            org.eclipse.ditto.base.api.common.Shutdown.class;
+
+    // logger for "trace" statements
+    private static final DittoLogger LOGGER = DittoLoggerFactory.getLogger(ThingUpdater.class);
 
     private static final AcknowledgementRequest SEARCH_PERSISTED_REQUEST =
             AcknowledgementRequest.of(DittoAcknowledgementLabel.SEARCH_PERSISTED);
 
-    static final String FORCE_UPDATE_AFTER_START = "FORCE_UPDATE_AFTER_START";
-
-    private static final Counter INCORRECT_PATCH_UPDATE_COUNT = DittoMetrics.counter("search_incorrect_patch_updates");
-    private static final Counter UPDATE_FAILURE_COUNT = DittoMetrics.counter("search_update_failures");
-    private static final Counter PATCH_UPDATE_COUNT = DittoMetrics.counter("search_patch_updates");
-    private static final Counter PATCH_SKIP_COUNT = DittoMetrics.counter("search_patch_skips");
-    private static final Counter FULL_UPDATE_COUNT = DittoMetrics.counter("search_full_updates");
-
-    private static final Duration BULK_RESULT_AWAITING_TIMEOUT = Duration.ofMinutes(2);
-    private static final Duration THING_DELETION_TIMEOUT = Duration.ofMinutes(5);
-
-    private static final DittoLogger LOGGER = DittoLoggerFactory.getLogger(ThingUpdater.class);
-            // logger for "trace" statements
+    private static final String FORCE_UPDATE = "force-update";
 
     private final DittoDiagnosticLoggingAdapter log;
     private final ThingId thingId;
-    private final ShutdownBehaviour shutdownBehaviour;
-    private final ActorRef changeQueueActor;
-    private final double forceUpdateProbability;
-    private final MongoClientExtension mongoClientExtension;
-    private final Consumer<AbstractWriteModel> recoveryCompleteConsumer;
+    private final Flow<Data, Result, NotUsed> flow;
+    private final Materializer materializer;
+    private final Duration writeInterval;
+    private final Duration thingDeletionTimeout;
+    private final boolean sendingAcksEnabled;
+    private ExponentialBackOff backOff;
+    private boolean shuttingDown = false;
+    @Nullable private UniqueKillSwitch killSwitch;
 
-    // state of Thing and Policy
-    private long thingRevision = -1L;
-    @Nullable private PolicyId policyId = null;
-    private long policyRevision = -1L;
+    /**
+     * Data of the thing-updater.
+     *
+     * @param metadata The most up-to-date metadata known to this actor.
+     * @param lastWriteModel The last write model confirmed to be written to the persistence.
+     */
+    public record Data(Metadata metadata, AbstractWriteModel lastWriteModel) {}
 
-    // cache last update document for incremental updates
-    @Nullable AbstractWriteModel lastWriteModel = null;
-    private boolean forceNextUpdate = false;
+    /**
+     * The result of a persistence operation.
+     *
+     * @param mongoWriteModel The write model describing the persistence operation.
+     * @param resultAndErrors The result of the persistence operation.
+     */
+    public record Result(MongoWriteModel mongoWriteModel, WriteResultAndErrors resultAndErrors) {
 
-    @SuppressWarnings("unused") //It is used via reflection. See props method.
-    private ThingUpdater(final ActorRef pubSubMediator,
-            final ActorRef changeQueueActor,
-            final double forceUpdateProbability,
-            final Duration forceUpdateAfterStartTimeout,
-            final double forceUpdateAfterStartRandomFactor) {
-        this(pubSubMediator, changeQueueActor, forceUpdateProbability, forceUpdateAfterStartTimeout,
-                forceUpdateAfterStartRandomFactor, null, true, true,
-                writeModel -> {});
+        public static Result fromError(final Metadata metadata, final Throwable error) {
+            final var mockWriteModel = MongoWriteModel.of(
+                    ThingDeleteModel.of(metadata),
+                    new DeleteOneModel<>(new BsonDocument()),
+                    false);
+            return new Result(mockWriteModel, WriteResultAndErrors.failure(error));
+        }
     }
 
-    ThingUpdater(final ActorRef pubSubMediator,
-            final ActorRef changeQueueActor,
-            final double forceUpdateProbability,
-            final Duration forceUpdateAfterStartTimeout,
-            final double forceUpdateAfterStartRandomFactor,
-            @Nullable final MongoClientExtension mongoClientExtension,
-            final boolean loadPreviousState,
-            final boolean awaitRecovery,
-            final Consumer<AbstractWriteModel> recoveryCompleteConsumer) {
+    enum State {
+        RECOVERING,
+        READY,
+        PERSISTING,
+        RETRYING
+    }
+
+    enum Control {
+        TICK
+    }
+
+    enum ShutdownTrigger {
+        DELETE,
+        IDLE,
+        NAMESPACE_BLOCKED
+    }
+
+    private ThingUpdater(final Flow<Data, Result, NotUsed> flow,
+            final Function<ThingId, Source<AbstractWriteModel, NotUsed>> recoveryFunction,
+            final SearchConfig config, final ActorRef pubSubMediator) {
 
         log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
-        final var dittoSearchConfig = DittoSearchConfig.of(
-                DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config())
-        );
         thingId = tryToGetThingId();
-        shutdownBehaviour = ShutdownBehaviour.fromId(thingId, pubSubMediator, getSelf());
-        this.changeQueueActor = changeQueueActor;
-        this.forceUpdateProbability = forceUpdateProbability;
-        this.mongoClientExtension = Objects.requireNonNullElseGet(mongoClientExtension,
-                () -> MongoClientExtension.get(getContext().getSystem()));
-        this.recoveryCompleteConsumer = recoveryCompleteConsumer;
+        this.flow = flow;
+        materializer = Materializer.createMaterializer(getContext());
+        writeInterval = config.getUpdaterConfig().getStreamConfig().getWriteInterval();
+        backOff = ExponentialBackOff.initial(
+                config.getUpdaterConfig().getStreamConfig().getPersistenceConfig().getExponentialBackOffConfig());
+        thingDeletionTimeout = config.getUpdaterConfig().getStreamConfig().getThingDeletionTimeout();
+        sendingAcksEnabled = config.getUpdaterConfig().getStreamConfig().isSendingAcksEnabled();
 
-        getContext().setReceiveTimeout(dittoSearchConfig.getUpdaterConfig().getMaxIdleTime());
+        startSingleTimer(ShutdownTrigger.IDLE.name(), ShutdownTrigger.IDLE, config.getUpdaterConfig().getMaxIdleTime());
 
-        if (loadPreviousState) {
-            recoverLastWriteModel(thingId);
-        } else if (!awaitRecovery) {
-            // Not loading the previous model is equivalent to initializing via a delete-one model.
-            final var noLastModel = ThingDeleteModel.of(Metadata.of(thingId, -1L, null, null, null));
-            getSelf().tell(noLastModel, getSelf());
-        }
-        if (forceUpdateAfterStartTimeout.negated().isNegative()) {
-            getTimers().startSingleTimer(FORCE_UPDATE_AFTER_START, FORCE_UPDATE_AFTER_START,
-                    randomizeTimeout(forceUpdateAfterStartTimeout, forceUpdateAfterStartRandomFactor));
-        }
+        startWith(State.RECOVERING, getInitialData(thingId));
+        when(State.RECOVERING, recovering());
+        when(State.READY, ready());
+        when(State.PERSISTING, persisting());
+        when(State.RETRYING, retrying());
+        onTransition(this::handleTransition);
+        whenUnhandled(unhandled());
+        initialize();
+
+        killSwitch = recoverLastWriteModel(thingId, recoveryFunction);
+
+        // subscribe for Shutdown commands
+        ShutdownBehaviour.fromId(thingId, pubSubMediator, getSelf());
     }
 
     /**
-     * Creates Akka configuration object for this actor.
+     * Create props of this actor.
      *
-     * @param pubSubMediator Akka pub-sub mediator.
-     * @param changeQueueActor reference of the change queue actor.
-     * @param updaterConfig the updater config.
-     * @return the Akka configuration Props object
+     * @param flow Flow to perform persistence operations.
+     * @param recoveryFunction The function to recover the previous write model on start up.
+     * @param config Configuration of search service.
+     * @param pubSubMediator The pubsub mediator.
+     * @return The Props object.
      */
-    static Props props(final ActorRef pubSubMediator, final ActorRef changeQueueActor,
-            final UpdaterConfig updaterConfig) {
+    public static Props props(final Flow<Data, Result, NotUsed> flow,
+            final Function<ThingId, Source<AbstractWriteModel, NotUsed>> recoveryFunction,
+            final SearchConfig config,
+            final ActorRef pubSubMediator) {
 
-        // Use duration 0 to disable force-update-after-start-timeout.
-        final var effectiveForceUpdateAfterStartTimeout = updaterConfig.isForceUpdateAfterStartEnabled()
-                ? updaterConfig.getForceUpdateAfterStartTimeout()
-                : Duration.ZERO;
-
-        return Props.create(ThingUpdater.class, pubSubMediator, changeQueueActor,
-                updaterConfig.getForceUpdateProbability(),
-                effectiveForceUpdateAfterStartTimeout,
-                updaterConfig.getForceUpdateAfterStartRandomFactor());
+        return Props.create(ThingUpdater.class, flow, recoveryFunction, config, pubSubMediator);
     }
 
     @Override
-    public Receive createReceive() {
-        return shutdownBehaviour.createReceive()
-                .match(AbstractWriteModel.class, this::recoveryComplete)
-                .match(ReceiveTimeout.class, this::stopThisActor)
-                .matchAny(this::matchAnyDuringRecovery)
-                .build();
-    }
-
-    private void recoveryComplete(final AbstractWriteModel writeModel) {
-        log.debug("Recovered: <{}>", writeModel.getClass().getSimpleName());
-        LOGGER.trace("Recovered: <{}>", writeModel);
-        thingRevision = writeModel.getMetadata().getThingRevision();
-        writeModel.getMetadata().getPolicyRevision().ifPresent(rev -> this.policyRevision = rev);
-        lastWriteModel = writeModel;
-        getContext().become(recoveredBehavior(), true);
-        unstashAll();
-        recoveryCompleteConsumer.accept(writeModel);
-    }
-
-    private Receive recoveredBehavior() {
-        return recoveredBehavior("recoveredBehavior");
-    }
-
-    private Receive recoveredBehavior(final String currentBehaviorHintForLogging) {
-        return shutdownBehaviour.createReceive()
-                .match(ThingEvent.class, this::processThingEvent)
-                .match(AbstractWriteModel.class, this::onNextWriteModel)
-                .match(PolicyReferenceTag.class, this::processPolicyReferenceTag)
-                .match(UpdateThing.class, this::updateThing)
-                .match(UpdateThingResponse.class, this::processUpdateThingResponse)
-                .match(ReceiveTimeout.class, this::stopThisActor)
-                .matchEquals(FORCE_UPDATE_AFTER_START, this::forceUpdateAfterStart)
-                .matchAny(m -> {
-                    log.warning("Unknown message in '{}': {}", currentBehaviorHintForLogging, m);
-                    unhandled(m);
-                })
-                .build();
-    }
-
-    private Receive recoveredAwaitingBulkWriteResultBehavior() {
-        getContext().setReceiveTimeout(BULK_RESULT_AWAITING_TIMEOUT);
-        return ReceiveBuilder.create()
-                .match(AbstractWriteModel.class, writeModel -> {
-                    log.debug("Stashing received writeModel while being in " +
-                                    "'recoveredAwaitingBulkWriteResultBehavior': <{}> with revision: <{}>",
-                            writeModel.getClass().getSimpleName(), writeModel.getMetadata().getThingRevision());
-                    stash();
-                })
-                .match(BulkWriteComplete.class, bulkWriteComplete -> {
-                    log.withCorrelationId(bulkWriteComplete.getBulkWriteCorrelationId())
-                            .debug("Got confirmation bulkWrite was performed - switching to 'recoveredBehavior'");
-                    getContext().cancelReceiveTimeout();
-                    getContext().become(recoveredBehavior(), true);
-                    unstashAll();
-                })
-                .match(ReceiveTimeout.class, rt -> {
-                    log.warning("Encountered ReceiveTimeout being in 'recoveredAwaitingBulkWriteResultBehavior' - " +
-                            "switching back to 'recoveredBehavior'");
-                    getContext().cancelReceiveTimeout();
-                    getContext().become(recoveredBehavior(), true);
-                    unstashAll();
-                })
-                .build()
-                .orElse(recoveredBehavior("recoveredAwaitingBulkWriteResultBehavior"));
-    }
-
-    private void matchAnyDuringRecovery(final Object message) {
-        log.debug("Stashing during initialization: <{}>", message);
-        stash();
-    }
-
-    private void forceUpdateAfterStart(final String trigger) {
-        log.debug("Forcing the next update to be a full 'forceUpdate'");
-        forceNextUpdate = true;
-        enqueueMetadata(UpdateReason.FORCE_UPDATE_AFTER_START);
-    }
-
-    private void onNextWriteModel(final AbstractWriteModel nextWriteModel) {
-        final WriteModel<BsonDocument> mongoWriteModel;
-        final boolean forceUpdate = (forceUpdateProbability > 0 && Math.random() < forceUpdateProbability) ||
-                forceNextUpdate;
-        if (!forceUpdate && lastWriteModel instanceof ThingWriteModel && nextWriteModel instanceof ThingWriteModel) {
-            final var last = (ThingWriteModel) lastWriteModel;
-            final var next = (ThingWriteModel) nextWriteModel;
-            final Optional<BsonDiff> diff = tryComputeDiff(next.getThingDocument(), last.getThingDocument());
-            if (diff.isPresent() && diff.get().isDiffSmaller()) {
-                final var aggregationPipeline = diff.get().consumeAndExport();
-                if (aggregationPipeline.isEmpty()) {
-                    log.debug("Skipping update due to empty diff <{}>", nextWriteModel.getClass().getSimpleName());
-                    LOGGER.trace("Skipping update due to empty diff <{}>", nextWriteModel);
-                    getSender().tell(Done.getInstance(), getSelf());
-                    PATCH_SKIP_COUNT.increment();
-
-                    return;
-                }
-                final var filter = ((ThingWriteModel) nextWriteModel)
-                        .asPatchUpdate(lastWriteModel.getMetadata().getThingRevision())
-                        .getFilter();
-                mongoWriteModel = new UpdateOneModel<>(filter, aggregationPipeline);
-                log.debug("Using incremental update <{}>", mongoWriteModel.getClass().getSimpleName());
-                LOGGER.trace("Using incremental update <{}>", mongoWriteModel);
-                PATCH_UPDATE_COUNT.increment();
-            } else {
-                mongoWriteModel = nextWriteModel.toMongo();
-                log.debug("Using replacement because diff is bigger or nonexistent: <{}>",
-                        mongoWriteModel.getClass().getSimpleName());
-                if (LOGGER.isTraceEnabled()) {
-                    LOGGER.trace("Using replacement because diff is bigger or nonexistent. Diff=<{}>",
-                            diff.map(BsonDiff::consumeAndExport));
-                }
-                FULL_UPDATE_COUNT.increment();
-            }
-        } else {
-            mongoWriteModel = nextWriteModel.toMongo();
-            if (forceUpdate) {
-                log.debug("Using replacement (forceUpdate) <{}> - forceNextUpdate was: <{}>",
-                        mongoWriteModel.getClass().getSimpleName(), forceNextUpdate);
-                LOGGER.trace("Using replacement (forceUpdate) <{}> - forceNextUpdate was: <{}>", mongoWriteModel,
-                        forceNextUpdate);
-                forceNextUpdate = false;
-            } else {
-                log.debug("Using replacement <{}>", mongoWriteModel.getClass().getSimpleName());
-                LOGGER.trace("Using replacement <{}>", mongoWriteModel);
-            }
-            FULL_UPDATE_COUNT.increment();
+    public void postStop() {
+        if (killSwitch != null) {
+            killSwitch.shutdown();
         }
-        getSender().tell(mongoWriteModel, getSelf());
-        lastWriteModel = nextWriteModel;
-
-        log.debug("Responded with mongoWriteModel - switching to 'recoveredAwaitingBulkWriteResultBehavior'");
-        getContext().become(recoveredAwaitingBulkWriteResultBehavior(), true);
-    }
-
-    private Optional<BsonDiff> tryComputeDiff(final BsonDocument minuend, final BsonDocument subtrahend) {
+        switch (stateName()) {
+            case PERSISTING, RETRYING -> log.warning("Shut down during <{}>", stateName());
+        }
         try {
-            return Optional.of(BsonDiff.minusThingDocs(minuend, subtrahend));
-        } catch (final BsonInvalidOperationException e) {
-            log.error(e, "Failed to compute BSON diff between <{}> and <{}>", minuend, subtrahend);
-
-            return Optional.empty();
+            super.postStop();
+        } catch (final Exception e) {
+            throw new RuntimeException(e);
         }
     }
 
-    private void stopThisActor(final Object reason) {
-        log.debug("stopping ThingUpdater <{}> due to <{}>", thingId, reason);
-        getContext().getParent().tell(new ShardRegion.Passivate(PoisonPill.getInstance()), getSelf());
+    private FSMStateFunctionBuilder<State, Data> unhandled() {
+        return matchEvent(Acknowledgement.class, (message, data) -> {
+            log.debug("Received redirected Acknowledgement: <{}>", message);
+            return stay();
+        }).anyEvent((message, data) -> {
+            log.warning("Unknown message in <{}>: <{}>", stateName(), message);
+            return stay();
+        });
     }
 
-    /**
-     * Export the metadata of this updater.
-     *
-     * @param timer an optional timer measuring the search updater's consistency lag.
-     */
-    private Metadata exportMetadata(@Nullable final ThingEvent<?> event, @Nullable final StartedTimer timer) {
-        return Metadata.of(thingId, thingRevision, policyId, policyRevision,
-                event == null ? List.of() : List.of(event), timer, null);
+    private FSMStateFunctionBuilder<State, Data> recovering() {
+        return matchEvent(AbstractWriteModel.class, this::recoveryComplete)
+                .event(Throwable.class, this::recoveryFailed)
+                .event(ShutdownTrigger.class, this::shutdown)
+                .event(SHUTDOWN_CLASS, this::shutdownNow)
+                .event(DistributedPubSubMediator.SubscribeAck.class, this::subscribeAck)
+                .anyEvent(this::stashAndStay);
     }
 
-    private Metadata exportMetadataWithSender(final boolean shouldAcknowledge,
-            final ThingEvent<?> event,
-            final ActorRef sender,
-            final StartedTimer consistencyLagTimer) {
-        if (shouldAcknowledge) {
-            return Metadata.of(thingId, thingRevision, policyId, policyRevision, List.of(event), consistencyLagTimer,
-                    sender);
+    private FSMStateFunctionBuilder<State, Data> retrying() {
+        return ready();
+    }
+
+    private FSMStateFunctionBuilder<State, Data> ready() {
+        return matchEvent(ThingEvent.class, this::onThingEvent)
+                .event(Metadata.class, this::onEventMetadata)
+                .event(PolicyReferenceTag.class, this::onPolicyReferenceTag)
+                .event(UpdateThing.class, this::updateThing)
+                .eventEquals(Control.TICK, this::tick)
+                .event(ShutdownTrigger.class, this::shutdown)
+                .event(SHUTDOWN_CLASS, this::shutdownNow)
+                .event(DistributedPubSubMediator.SubscribeAck.class, this::subscribeAck);
+    }
+
+    private FSMStateFunctionBuilder<State, Data> persisting() {
+        return matchEvent(Result.class, this::onResult)
+                .event(Done.class, this::onDone)
+                .event(ThingEvent.class, this::onEventWhenPersisting)
+                .event(ShutdownTrigger.class, this::shutdown)
+                .event(SHUTDOWN_CLASS, this::shutdownNow)
+                .event(DistributedPubSubMediator.SubscribeAck.class, this::subscribeAck)
+                .anyEvent(this::stashAndStay);
+    }
+
+    private FSM.State<State, Data> subscribeAck(final DistributedPubSubMediator.SubscribeAck trigger, final Data data) {
+        log.debug("Received <{}> in state <{}>", trigger, stateName());
+        return stay();
+    }
+
+    private FSM.State<State, Data> shutdownNow(final org.eclipse.ditto.base.api.common.Shutdown shutdown,
+            final Data data) {
+        final var shutdownReason = shutdown.getReason();
+        if (shutdownReason.isRelevantFor(thingId.getNamespace()) || shutdownReason.isRelevantFor(thingId)) {
+            log.info("Shutting down now due to <{}> during <{}>", shutdown, stateName());
+            data.metadata().sendWeakAck(getDescription(shutdown));
+            return stop();
         } else {
-            return exportMetadata(event, consistencyLagTimer);
+            return stay();
         }
     }
 
-    /**
-     * Push metadata of this updater to the queue of thing-changes to be streamed into the persistence.
-     *
-     * @param updateReason the reason why the search index is updated.
-     */
-    private void enqueueMetadata(final UpdateReason updateReason) {
-        enqueueMetadata(exportMetadata(null, null).withUpdateReason(updateReason));
+    private FSM.State<State, Data> shutdown(final Object trigger, final Data data) {
+        log.info("Shutting down due to <{}> during <{}>", trigger, stateName());
+        shuttingDown = true;
+        return switch (stateName()) {
+            case RECOVERING -> stop();
+            case READY, RETRYING -> {
+                getSelf().tell(Control.TICK, ActorRef.noSender());
+                yield stay();
+            }
+            default -> stay();
+        };
     }
 
-    private void enqueueMetadata(final Metadata metadata) {
-        changeQueueActor.tell(metadata.withOrigin(getSelf()), getSelf());
+    private void handleTransition(final State previousState, final State nextState) {
+        if (previousState != nextState) {
+            switch (nextState) {
+                case READY, RETRYING -> {
+                    final Duration delay;
+                    if (nextState == State.READY) {
+                        delay = writeInterval;
+                    } else {
+                        backOff = backOff.calculateNextBackOff();
+                        delay = backOff.getRestartDelay();
+                    }
+                    startTimerWithFixedDelay(Control.TICK.name(), Control.TICK, delay);
+                    unstashAll();
+                }
+                default -> cancelTimer(Control.TICK.name());
+            }
+        }
     }
 
-    private void updateThing(final UpdateThing updateThing) {
+    private FSM.State<State, Data> onEventWhenPersisting(final ThingEvent<?> event, final Data data) {
+        computeEventMetadata(event, data).ifPresent(eventMetadata -> getSelf().tell(eventMetadata, getSelf()));
+        return stay();
+    }
+
+    private FSM.State<State, Data> onResult(final Result result, final Data data) {
+        killSwitch = null;
+        final var writeResultAndErrors = result.resultAndErrors();
+        final var pair = BulkWriteResultAckFlow.checkBulkWriteResult(writeResultAndErrors);
+        pair.second().forEach(log::info);
+        if (shuttingDown) {
+            log.info("Shutting down after completing persistence operation");
+            return stop();
+        } else if (result.resultAndErrors().isNamespaceBlockedException()) {
+            log.info("Disabling actor because namespace is blocked");
+            startSingleTimer(ShutdownTrigger.NAMESPACE_BLOCKED.name(), ShutdownTrigger.NAMESPACE_BLOCKED,
+                    BLOCK_NAMESPACE_SHUTDOWN_DELAY);
+            return goTo(State.RECOVERING).using(getInitialData(thingId));
+        }
+        log.debug("Got Result=<{}>", pair.first());
+        switch (pair.first()) {
+            case INCORRECT_PATCH -> INCORRECT_PATCH_UPDATE_COUNT.increment();
+            case UNACKNOWLEDGED, CONSISTENCY_ERROR, WRITE_ERROR -> UPDATE_FAILURE_COUNT.increment();
+        }
+        return switch (pair.first()) {
+            case UNACKNOWLEDGED, CONSISTENCY_ERROR, INCORRECT_PATCH, WRITE_ERROR -> {
+                final var metadata = data.metadata().export();
+                yield goTo(State.RETRYING).using(new Data(metadata, ThingDeleteModel.of(Metadata.ofDeleted(thingId))));
+            }
+            case OK -> {
+                final var writeModel = result.mongoWriteModel().getDitto();
+                final var nextMetadata = writeModel.getMetadata().export();
+                yield goTo(State.READY).using(new Data(nextMetadata, writeModel));
+            }
+        };
+    }
+
+    private FSM.State<State, Data> onDone(final Done done, final Data data) {
+        killSwitch = null;
+        final var nextMetadata = data.metadata().export();
+        log.debug("Update skipped: <{}>", nextMetadata);
+
+        // initial update was skipped, stop updater to avoid endless skipped updates
+        if (data.metadata().getThingRevision() <= 0 && data.lastWriteModel().getMetadata().getThingRevision() <= 0) {
+            log.info("Initial update was skipped - stopping thing updater for <{}>.", thingId);
+            return stop();
+        } else {
+            return goTo(State.READY).using(new Data(nextMetadata, data.lastWriteModel().setMetadata(nextMetadata)));
+        }
+    }
+
+    private FSM.State<State, Data> tick(final Control tick, final Data data) {
+        if (shouldPersist(data.metadata(), data.lastWriteModel().getMetadata())) {
+            if (log.isDebugEnabled()) {
+                log.debug("Persisting <{}>", data.metadata().export());
+            }
+            ConsistencyLag.startS2WaitForDemand(data.metadata());
+            final var pair = Source.single(data)
+                    .viaMat(KillSwitches.single(), Keep.right())
+                    .via(flow)
+                    .<Object>map(result -> result)
+                    .orElse(Source.single(Done.done()))
+                    .toMat(Sink.head(), Keep.both())
+                    .run(materializer);
+
+            killSwitch = pair.first();
+            final var resultFuture = pair.second().handle((result, error) -> {
+                if (error != null || result == null) {
+                    final var errorToReport = error != null
+                            ? error
+                            : new IllegalStateException("Got no persistence result");
+                    return Result.fromError(data.metadata(), errorToReport);
+                } else {
+                    return result;
+                }
+            });
+
+            Patterns.pipe(resultFuture, getContext().getDispatcher()).to(getSelf());
+            return goTo(State.PERSISTING);
+        } else if (shuttingDown) {
+            // shutting down during READY without pending updates
+            if (log.isDebugEnabled()) {
+                log.debug("Shutting down when requested to persist <{}>", data.metadata().export());
+            }
+            return stop();
+        } else {
+            if (log.isDebugEnabled()) {
+                log.debug("Decided not to persist <{}>", data.metadata().export());
+            }
+            return stay();
+        }
+    }
+
+    private boolean shouldPersist(final Metadata metadata, final Metadata lastMetadata) {
+        return !metadata.equals(lastMetadata.export()) || lastMetadata.getThingRevision() <= 0;
+    }
+
+    private FSM.State<State, Data> updateThing(final UpdateThing updateThing, final Data data) {
         log.withCorrelationId(updateThing)
                 .info("Requested to update search index <{}> by <{}>", updateThing, getSender());
+        final AbstractWriteModel lastWriteModel;
         if (updateThing.getDittoHeaders().containsKey(FORCE_UPDATE)) {
-            lastWriteModel = null;
-            forceNextUpdate = true;
+            lastWriteModel = ThingDeleteModel.of(data.metadata());
+        } else {
+            lastWriteModel = data.lastWriteModel();
         }
-        final Metadata metadata = exportMetadata(null, null)
+        final Metadata metadata = data.metadata()
                 .invalidateCaches(updateThing.shouldInvalidateThing(), updateThing.shouldInvalidatePolicy())
                 .withUpdateReason(updateThing.getUpdateReason());
-        if (updateThing.getDittoHeaders().getAcknowledgementRequests().contains(SEARCH_PERSISTED_REQUEST)) {
-            enqueueMetadata(metadata.withSender(getSender()));
-        } else {
-            enqueueMetadata(metadata);
-        }
+        final Metadata nextMetadata =
+                updateThing.getDittoHeaders().getAcknowledgementRequests().contains(SEARCH_PERSISTED_REQUEST)
+                        ? metadata.withSender(getAckRecipient())
+                        : metadata;
+        return stay().using(new Data(nextMetadata, lastWriteModel));
     }
 
-    private void processUpdateThingResponse(final UpdateThingResponse response) {
-        final var isFailure = !response.isSuccess();
-        final var isIncorrectPatch =
-                response.getDittoHeaders().containsKey(SearchUpdaterStream.FORCE_UPDATE_INCORRECT_PATCH);
-        if (isFailure || isIncorrectPatch) {
-            // discard last write model: index document is not known
-            lastWriteModel = null;
-            final Metadata metadata =
-                    exportMetadata(null, null).invalidateCaches(true, true);
-            final String warningTemplate;
-            // check first for incorrect patch update otherwise the else branch is never triggered.
-            if (isIncorrectPatch) {
-                warningTemplate = "Inconsistent patch update detected for <{}>; updating to <{}>.";
-                INCORRECT_PATCH_UPDATE_COUNT.increment();
-            } else {
-                warningTemplate = "Got negative acknowledgement for <{}>; updating to <{}>.";
-                UPDATE_FAILURE_COUNT.increment();
-            }
-            log.withCorrelationId(response)
-                    .warning(warningTemplate, Metadata.fromResponse(response), metadata);
-            enqueueMetadata(metadata.withUpdateReason(UpdateReason.RETRY));
-        }
-    }
-
-    private void processPolicyReferenceTag(final PolicyReferenceTag policyReferenceTag) {
+    private FSM.State<State, Data> onPolicyReferenceTag(final PolicyReferenceTag policyReferenceTag, final Data data) {
+        final var thingRevision = data.metadata().getThingRevision();
+        final var policyId = data.metadata().getPolicyId().orElse(null);
+        final var policyRevision = data.metadata().getPolicyRevision().orElse(-1L);
         if (log.isDebugEnabled()) {
             log.debug("Received new Policy-Reference-Tag for thing <{}> with revision <{}>,  policy-id <{}> and " +
                             "policy-revision <{}>: <{}>.",
                     thingId, thingRevision, policyId, policyRevision, policyReferenceTag.asIdentifierString());
+        } else {
+            log.info("Got policy update <{}> at revision <{}>. Previous known policy is <{}> at <{}>.",
+                    policyReferenceTag.getPolicyTag().getEntityId(), policyReferenceTag.getPolicyTag().getRevision(),
+                    policyId, policyRevision);
         }
+
+        acknowledge(policyReferenceTag);
 
         final var policyTag = policyReferenceTag.getPolicyTag();
         final var policyIdOfTag = policyTag.getEntityId();
         if (!Objects.equals(policyId, policyIdOfTag) || policyRevision < policyTag.getRevision()) {
-            this.policyId = policyIdOfTag;
-            policyRevision = policyTag.getRevision();
-            enqueueMetadata(UpdateReason.POLICY_UPDATE);
+            final var newMetadata = Metadata.of(thingId, thingRevision, policyIdOfTag, policyTag.getRevision(), null)
+                    .withUpdateReason(UpdateReason.POLICY_UPDATE)
+                    .invalidateCaches(false, true);
+            return enqueue(newMetadata, data);
         } else {
             log.debug("Dropping <{}> because my policyId=<{}> and policyRevision=<{}>",
                     policyReferenceTag, policyId, policyRevision);
+            return stay();
         }
-        acknowledge(policyReferenceTag);
     }
 
-    private void processThingEvent(final ThingEvent<?> thingEvent) {
+    private FSM.State<State, Data> onEventMetadata(final Metadata eventMetadata, final Data data) {
+        return enqueue(eventMetadata, data);
+    }
+
+    private FSM.State<State, Data> onThingEvent(final ThingEvent<?> thingEvent, final Data data) {
+        return computeEventMetadata(thingEvent, data).map(eventMetadata -> onEventMetadata(eventMetadata, data))
+                .orElseGet(this::stay);
+    }
+
+    private Optional<Metadata> computeEventMetadata(final ThingEvent<?> thingEvent, final Data data) {
         final DittoDiagnosticLoggingAdapter l = log.withCorrelationId(thingEvent);
         l.debug("Received new thing event for thing id <{}> with revision <{}>.", thingId, thingEvent.getRevision());
         final boolean shouldAcknowledge =
                 thingEvent.getDittoHeaders().getAcknowledgementRequests().contains(SEARCH_PERSISTED_REQUEST);
 
         // check if the revision is valid (thingEvent.revision = 1 + sequenceNumber)
-        if (thingEvent.getRevision() <= thingRevision && !shouldAcknowledge) {
+        if (thingEvent.getRevision() <= data.metadata().getThingRevision()) {
             l.debug("Dropped thing event for thing id <{}> with revision <{}> because it was older than or "
                             + "equal to the current sequence number <{}> of the update actor.", thingId,
-                    thingEvent.getRevision(), thingRevision);
-        } else {
-            l.debug("Applying thing event <{}>.", thingEvent);
-            thingRevision = thingEvent.getRevision();
-            final StartedTimer timer = DittoMetrics.timer(ConsistencyLag.TIMER_NAME)
-                    .tag(ConsistencyLag.TAG_SHOULD_ACK, Boolean.toString(shouldAcknowledge))
-                    .onExpiration(startedTimer ->
-                            l.warning("Timer measuring consistency lag timed out for event <{}>", thingEvent))
-                    .start();
-            DittoTracing.wrapTimer(DittoTracing.extractTraceContext(thingEvent), timer);
-            ConsistencyLag.startS0InUpdater(timer);
-            enqueueMetadata(
-                    exportMetadataWithSender(shouldAcknowledge, thingEvent, getSender(), timer).withUpdateReason(
-                            UpdateReason.THING_UPDATE));
+                    thingEvent.getRevision(), data.metadata().getThingRevision());
+            if (shouldAcknowledge) {
+                final String hint = String.format("Thing event with revision <%d> for thing <%s> dropped.",
+                        thingEvent.getRevision(),
+                        thingId);
+                exportMetadataWithSender(true, thingEvent, getAckRecipient(), null, data)
+                        .sendWeakAck(JsonValue.of(hint));
+            }
+            return Optional.empty();
         }
 
+        l.debug("Applying thing event <{}>.", thingEvent);
         if (thingEvent instanceof ThingDeleted) {
-            // will stop this actor after 5 minutes (finishing up updating the index):
-            // this time should be longer than the consistency lag, otherwise the actor will be stopped before the
-            // actual "delete" is applied to the search index:
-            getContext().setReceiveTimeout(THING_DELETION_TIMEOUT);
+            // will stop this actor after configured timeout (finishing up updating the index)
+            startSingleTimer(ShutdownTrigger.DELETE.name(), ShutdownTrigger.DELETE, thingDeletionTimeout);
+        } else {
+            cancelTimer(ShutdownTrigger.DELETE.name());
         }
+        if (shouldAcknowledge) {
+            tickNow();
+        }
+
+        final StartedTimer timer = DittoMetrics.timer(ConsistencyLag.TIMER_NAME)
+                .tag(ConsistencyLag.TAG_SHOULD_ACK, Boolean.toString(shouldAcknowledge))
+                .onExpiration(startedTimer ->
+                        l.warning("Timer measuring consistency lag timed out for event <{}>", thingEvent))
+                .start();
+        DittoTracing.wrapTimer(DittoTracing.extractTraceContext(thingEvent), timer);
+        ConsistencyLag.startS1InUpdater(timer);
+        final var metadata = exportMetadataWithSender(shouldAcknowledge, thingEvent, getAckRecipient(), timer, data)
+                .withUpdateReason(UpdateReason.THING_UPDATE);
+        return Optional.of(metadata);
+    }
+
+    private FSM.State<State, Data> enqueue(final Metadata newMetadata, final Data data) {
+        return stay().using(new Data(data.metadata().append(newMetadata), data.lastWriteModel()));
+    }
+
+    private FSM.State<State, Data> recoveryComplete(final AbstractWriteModel lastWriteModel,
+            final Data initialData) {
+
+        log.debug("Recovered: <{}>", lastWriteModel.getClass().getSimpleName());
+        LOGGER.trace("Recovered: <{}>", lastWriteModel);
+        killSwitch = null;
+        return goTo(State.READY).using(new Data(lastWriteModel.getMetadata(), lastWriteModel));
+    }
+
+    private FSM.State<State, Data> recoveryFailed(final Throwable error, final Data initialData) {
+        log.error(error, "Recovery failed");
+        return stop();
+    }
+
+    private FSM.State<State, Data> stashAndStay(final Object message, final Data initialData) {
+        stash();
+        return stay();
     }
 
     private ThingId tryToGetThingId() {
         final Charset utf8 = StandardCharsets.UTF_8;
         try {
-            return getThingId(utf8);
+            final String actorName = self().path().name();
+            return ThingId.of(URLDecoder.decode(actorName, utf8.name()));
         } catch (final UnsupportedEncodingException e) {
             throw new IllegalStateException(MessageFormat.format("Charset <{0}> is unsupported!", utf8.name()), e);
         }
     }
 
-    private ThingId getThingId(final Charset charset) throws UnsupportedEncodingException {
-        final String actorName = self().path().name();
-        return ThingId.of(URLDecoder.decode(actorName, charset.name()));
+    private UniqueKillSwitch recoverLastWriteModel(final ThingId thingId,
+            final Function<ThingId, Source<AbstractWriteModel, NotUsed>> recoveryFunction) {
+
+        final var pair = recoveryFunction.apply(thingId)
+                .<Object>map(writeModel -> writeModel)
+                .recover(new PFBuilder<Throwable, Object>().matchAny(x -> x).build())
+                .viaMat(KillSwitches.single(), Keep.right())
+                .toMat(Sink.head(), Keep.both())
+                .run(materializer);
+        Patterns.pipe(pair.second(), getContext().getDispatcher()).to(getSelf());
+        return pair.first();
     }
 
-    private void acknowledge(final IdentifiableStreamingMessage message) {
-        final ActorRef sender = getSender();
-        if (!getContext().system().deadLetters().equals(sender)) {
-            getSender().tell(StreamAck.success(message.asIdentifierString()), getSelf());
+    private void tickNow() {
+        getSelf().tell(Control.TICK, ActorRef.noSender());
+    }
+
+    private Metadata exportMetadataWithSender(final boolean shouldAcknowledge,
+            final ThingEvent<?> event,
+            final ActorRef sender,
+            @Nullable final StartedTimer consistencyLagTimer,
+            final Data data) {
+        final long thingRevision = event.getRevision();
+        if (shouldAcknowledge) {
+            return Metadata.of(thingId, thingRevision, data.metadata().getPolicyId().orElse(null),
+                    data.metadata().getPolicyRevision().orElse(null), List.of(event), consistencyLagTimer, sender);
+        } else {
+            return exportMetadata(event, thingRevision, consistencyLagTimer, data);
         }
     }
 
-    private void recoverLastWriteModel(final ThingId thingId) {
-        final var actorSystem = getContext().getSystem();
-        // using search client instead of updater client for READ to ensure consistency in case of shard migration
-        final var client = mongoClientExtension.getSearchClient();
-        final var searchPersistence = new MongoThingsSearchPersistence(client, actorSystem);
-        final var writeModelFuture = searchPersistence.recoverLastWriteModel(thingId).runWith(Sink.head(), actorSystem);
-        Patterns.pipe(writeModelFuture, getContext().getDispatcher()).to(getSelf());
+    private Metadata exportMetadata(@Nullable final ThingEvent<?> event, final long thingRevision,
+            @Nullable final StartedTimer timer, final Data data) {
+
+        return Metadata.of(thingId, thingRevision, data.metadata().getPolicyId().orElse(null),
+                data.metadata().getPolicyRevision().orElse(null),
+                event == null ? List.of() : List.of(event), timer, null);
     }
 
-    private static Duration randomizeTimeout(final Duration minTimeout, final double randomFactor) {
-        final long randomDelayMillis = (long) (Math.random() * randomFactor * minTimeout.toMillis());
-        return minTimeout.plus(Duration.ofMillis(randomDelayMillis));
+    private void acknowledge(final IdentifiableStreamingMessage message) {
+        final ActorRef sender = getAckRecipient();
+        if (!getContext().system().deadLetters().equals(sender)) {
+            sender.tell(StreamAck.success(message.asIdentifierString()), getSelf());
+        }
+    }
+
+    private static Data getInitialData(final ThingId thingId) {
+        final var deletedMetadata = Metadata.ofDeleted(thingId);
+        return new Data(deletedMetadata, ThingDeleteModel.of(deletedMetadata));
+    }
+
+    private static JsonValue getDescription(final org.eclipse.ditto.base.api.common.Shutdown shutdown) {
+        final var type = shutdown.getReason().getType();
+        if (type instanceof ShutdownReasonType.Known knownType) {
+            return JsonValue.of(switch (knownType) {
+                case PURGE_NAMESPACE -> "The namespace is being purged.";
+                case PURGE_ENTITIES -> "The entities are being purged.";
+            });
+        } else {
+            return JsonValue.of(type.toString());
+        }
+    }
+
+    private ActorRef getAckRecipient() {
+        if (sendingAcksEnabled) {
+            // normal behavior - return original sender
+            return getSender();
+        } else {
+            // return self as sender to prevent acknowledgements being sent to original sender
+            // this actor just write a log statement when receiving an acknowledgement
+            return getSelf();
+        }
     }
 }

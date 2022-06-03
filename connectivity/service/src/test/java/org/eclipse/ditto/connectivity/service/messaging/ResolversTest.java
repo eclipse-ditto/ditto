@@ -70,7 +70,7 @@ public final class ResolversTest {
 
         final ExpressionResolver expressionResolver = Resolvers.forOutbound(mappedSignal, CONNECTION_ID);
         final Optional<String> resolvedOptional =
-                expressionResolver.resolve("hono.command.my_tenant/{{ entity:id }}").toOptional();
+                expressionResolver.resolve("hono.command.my_tenant/{{ entity:id }}").findFirst();
 
         assertThat(resolvedOptional).contains("hono.command.my_tenant/" + TestConstants.Things.THING_ID);
     }

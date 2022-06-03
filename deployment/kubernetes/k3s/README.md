@@ -21,9 +21,9 @@ Change the owner of `/etc/rancher/k3s/k3s.yaml` to your group and user.
 sudo chown <groupId>:<userId> /etc/rancher/k3s/k3s.yaml
 ```
 
-Copy k3s kube config to local .kube directory.
+Copy k3s kube config to local .kube directory as `config` file (backup existing kubectl `config` if you have one).
 ```bash
-cp /etc/rancher/k3s/k3s.yaml .kube/
+cp /etc/rancher/k3s/k3s.yaml .kube/config
 ```
 
 Verify that the `kubectl` command works:

@@ -10,7 +10,6 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-
 package org.eclipse.ditto.thingsearch.service.updater.actors;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -58,6 +57,7 @@ import org.eclipse.ditto.thingsearch.api.commands.sudo.UpdateThing;
 import org.eclipse.ditto.thingsearch.service.common.config.BackgroundSyncConfig;
 import org.eclipse.ditto.thingsearch.service.common.config.DefaultBackgroundSyncConfig;
 import org.eclipse.ditto.thingsearch.service.common.model.ResultList;
+import org.eclipse.ditto.thingsearch.service.common.model.TimestampedThingId;
 import org.eclipse.ditto.thingsearch.service.persistence.read.ThingsSearchPersistence;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.Metadata;
 import org.junit.After;
@@ -412,7 +412,7 @@ public final class BackgroundSyncActorTest {
         }
 
         @Override
-        public Source<ResultList<ThingId>, NotUsed> findAll(final Query query,
+        public Source<ResultList<TimestampedThingId>, NotUsed> findAll(final Query query,
                 final List<String> authorizationSubjectIds,
                 @Nullable final Set<String> namespaces) {
             throw new UnsupportedOperationException();

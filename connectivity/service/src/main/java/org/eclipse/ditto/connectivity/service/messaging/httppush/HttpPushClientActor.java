@@ -129,7 +129,7 @@ public final class HttpPushClientActor extends BaseClientActor {
     @Override
     protected void cleanupResourcesForConnection() {
         // stop publisher actor also on connection failure
-        stopChildActor(httpPublisherActor);
+        stopPublisherActor();
     }
 
     @Override
@@ -152,7 +152,7 @@ public final class HttpPushClientActor extends BaseClientActor {
     @Override
     protected CompletionStage<Status.Status> startPublisherActor() {
         final CompletableFuture<Status.Status> future = new CompletableFuture<>();
-        stopChildActor(httpPublisherActor);
+        stopPublisherActor();
         final Props props = HttpPublisherActor.props(connection(),
                 factory,
                 connectivityStatusResolver,
@@ -161,6 +161,14 @@ public final class HttpPushClientActor extends BaseClientActor {
         future.complete(DONE);
 
         return future;
+    }
+
+    private void stopPublisherActor() {
+        if (httpPublisherActor != null) {
+            logger.debug("Stopping child actor <{}>.", httpPublisherActor.path());
+            // shutdown using a message, so the actor can clean up first
+            httpPublisherActor.tell(HttpPublisherActor.GracefulStop.INSTANCE, getSelf());
+        }
     }
 
     private CompletionStage<?> testCredentials(final Connection connection) {

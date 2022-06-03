@@ -15,13 +15,13 @@ package org.eclipse.ditto.gateway.service.security.authentication.jwt;
 import static org.eclipse.ditto.base.model.common.ConditionChecker.argumentNotEmpty;
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Stream;
+import java.util.stream.Collectors;
 
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.jwt.model.JsonWebToken;
-import org.eclipse.ditto.placeholders.PipelineElement;
 import org.eclipse.ditto.placeholders.Placeholder;
 
 /**
@@ -61,25 +61,18 @@ public final class JwtPlaceholder implements Placeholder<JsonWebToken> {
     }
 
     @Override
-    public Optional<String> resolve(final JsonWebToken jwt, final String placeholder) {
+    public List<String> resolveValues(final JsonWebToken jwt, final String placeholder) {
         argumentNotEmpty(placeholder, "placeholder");
         checkNotNull(jwt, "jwt");
-        return jwt.getBody().getValue(placeholder).map(JsonValue::formatAsString);
+        final Optional<JsonValue> value = jwt.getBody().getValue(placeholder);
+        return value.filter(JsonValue::isArray)
+                .map(JsonValue::asArray)
+                .map(array -> array.stream()
+                        .map(JsonValue::formatAsString)
+                        .collect(Collectors.toList()))
+                .or(() -> value.map(JsonValue::formatAsString)
+                        .map(Collections::singletonList))
+                .orElseGet(Collections::emptyList);
     }
 
-    /**
-     * Checks whether the passed {@code resolvedSubject} (resolved via JWT and header placeholder mechanism) contains
-     * JsonArrays ({@code ["..."]} and expands those JsonArrays to multiple resolved subjects returned as resulting
-     * stream of this operation.
-     * <p>
-     * Is able to handle an arbitrary amount of JsonArrays in the passed resolvedSubjects.
-     *
-     * @param resolvedSubject the resolved subjects potentially containing JsonArrays as JsonArray-String values.
-     * @return a stream of a single subject when the passed in {@code resolvedSubject} did not contain any
-     * JsonArray-String notation or else a stream of multiple subjects with the JsonArrays being resolved to multiple
-     * results of the stream.
-     */
-    public static Stream<String> expandJsonArraysInResolvedSubject(final String resolvedSubject) {
-        return PipelineElement.expandJsonArraysInString(resolvedSubject);
-    }
 }

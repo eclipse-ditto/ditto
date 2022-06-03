@@ -15,6 +15,7 @@ package org.eclipse.ditto.placeholders;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import javax.annotation.concurrent.Immutable;
@@ -44,31 +45,23 @@ final class PipelineFunctionSplit implements PipelineFunction {
     public PipelineElement apply(final PipelineElement value, final String paramsIncludingParentheses,
             final ExpressionResolver expressionResolver) {
 
-        // Using the split function in a non-streaming way, returns the first element
-        return applyStreaming(value, paramsIncludingParentheses, expressionResolver).findFirst()
-                .orElse(PipelineElement.unresolved());
-    }
-
-    @Override
-    public Stream<PipelineElement> applyStreaming(final PipelineElement value, final String paramsIncludingParentheses,
-            final ExpressionResolver expressionResolver) {
-
         final String splitValue = parseAndResolve(paramsIncludingParentheses, expressionResolver);
-        return value.toOptionalStream()
+        return PipelineElement.resolved(value.toStream()
                 .flatMap(valueToSplit -> {
                     if (valueToSplit.contains(splitValue)) {
-                        return Arrays.stream(valueToSplit.split(splitValue)).map(PipelineElement::resolved);
+                        return Arrays.stream(valueToSplit.split(splitValue));
                     } else {
-                        return Stream.of(PipelineElement.resolved(valueToSplit));
+                        return Stream.of(valueToSplit);
                     }
-                });
+                })
+                .collect(Collectors.toList()));
     }
 
     private String parseAndResolve(final String paramsIncludingParentheses,
             final ExpressionResolver expressionResolver) {
 
         return parameterResolver.apply(paramsIncludingParentheses, expressionResolver, this)
-                .toOptional()
+                .findFirst()
                 .orElseThrow(
                         () -> PlaceholderFunctionSignatureInvalidException.newBuilder(paramsIncludingParentheses, this)
                                 .build());

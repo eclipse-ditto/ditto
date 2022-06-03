@@ -22,15 +22,14 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
-import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.base.model.signals.SignalWithEntityId;
 import org.eclipse.ditto.internal.utils.pubsub.PubSubFactory;
 import org.eclipse.ditto.internal.utils.pubsub.api.PublishSignal;
 import org.eclipse.ditto.internal.utils.pubsub.ddata.SubscriptionsReader;
 import org.eclipse.ditto.internal.utils.pubsub.ddata.ack.Grouped;
-import org.eclipse.ditto.base.model.signals.SignalWithEntityId;
 
 import akka.actor.ActorRef;
 import akka.japi.Pair;
@@ -140,7 +139,7 @@ final class PublisherIndex<T> {
         return subscriberToChosenGroups.entrySet()
                 .stream()
                 .map(entry -> Pair.create(entry.getKey(), PublishSignal.of(signal, entry.getValue())))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private static <T> Consumer<T> computeIndex(final Map<T, Map<ActorRef, Set<String>>> index,

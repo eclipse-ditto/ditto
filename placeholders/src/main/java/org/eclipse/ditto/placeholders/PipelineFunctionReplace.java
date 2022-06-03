@@ -16,7 +16,6 @@ import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.util.Arrays;
 import java.util.List;
-import java.util.stream.Stream;
 
 import javax.annotation.concurrent.Immutable;
 
@@ -47,13 +46,6 @@ final class PipelineFunctionReplace implements PipelineFunction {
         return value.map(str -> str.replace(parameters.getFrom(), parameters.getTo()));
     }
 
-    @Override
-    public Stream<PipelineElement> applyStreaming(final PipelineElement value, final String paramsIncludingParentheses,
-            final ExpressionResolver expressionResolver) {
-
-        return Stream.of(apply(value, paramsIncludingParentheses, expressionResolver));
-    }
-
     private PipelineFunctionReplace.Parameters parseAndResolve(final String paramsIncludingParentheses,
             final ExpressionResolver expressionResolver) {
 
@@ -61,14 +53,15 @@ final class PipelineFunctionReplace implements PipelineFunction {
                 PipelineFunctionParameterResolverFactory.forDoubleOrTripleStringOrPlaceholderParameter()
                         .apply(paramsIncludingParentheses, expressionResolver, this);
 
-        final PipelineFunctionReplace.ParametersBuilder parametersBuilder = new PipelineFunctionReplace.ParametersBuilder();
+        final PipelineFunctionReplace.ParametersBuilder parametersBuilder =
+                new PipelineFunctionReplace.ParametersBuilder();
 
         final PipelineElement fromParamElement = parameterElements.get(0);
-        final String fromParam = fromParamElement.toOptional().orElse("");
+        final String fromParam = fromParamElement.findFirst().orElse("");
         parametersBuilder.withFrom(fromParam);
 
         final PipelineElement toParamElement = parameterElements.get(1);
-        final String toParam = toParamElement.toOptional().orElseThrow(() ->
+        final String toParam = toParamElement.findFirst().orElseThrow(() ->
                 PlaceholderFunctionSignatureInvalidException.newBuilder(paramsIncludingParentheses, this)
                         .build());
         parametersBuilder.withTo(toParam);
@@ -156,6 +149,7 @@ final class PipelineFunctionReplace implements PipelineFunction {
 
     @Immutable
     private static final class Parameters {
+
         private final String from;
         private final String to;
 
@@ -177,6 +171,7 @@ final class PipelineFunctionReplace implements PipelineFunction {
     }
 
     private static final class ParametersBuilder {
+
         private String from;
         private String to;
 

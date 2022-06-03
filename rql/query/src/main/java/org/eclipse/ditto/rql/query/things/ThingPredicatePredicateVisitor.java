@@ -249,9 +249,7 @@ public final class ThingPredicatePredicateVisitor implements PredicateVisitor<Fu
             return additionalPlaceholderResolvers.stream()
                     .filter(pr -> prefix.equals(pr.getPrefix()))
                     .filter(pr -> pr.supports(name))
-                    .map(pr -> pr.resolve(name))
-                    .filter(Optional::isPresent)
-                    .map(Optional::get)
+                    .flatMap(pr -> pr.resolveValues(name).stream())
                     .findFirst()
                     .orElse(null);
         }
@@ -270,9 +268,7 @@ public final class ThingPredicatePredicateVisitor implements PredicateVisitor<Fu
                                 return additionalPlaceholderResolvers.stream()
                                         .filter(pr -> placeholderPrefix.equals(pr.getPrefix()))
                                         .filter(pr -> pr.supports(placeholderName))
-                                        .map(pr -> pr.resolve(placeholderName))
-                                        .filter(Optional::isPresent)
-                                        .map(Optional::get)
+                                        .flatMap(pr -> pr.resolveValues(placeholderName).stream())
                                         .map(JsonValue::of)
                                         .findFirst()
                                         .orElse(null);

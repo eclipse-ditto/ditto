@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.placeholders;
 
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -26,7 +27,23 @@ public interface Placeholder<T> extends Expression {
      *
      * @param placeholderSource the source from which to the placeholder is resolved, e.g. a Thing id.
      * @param name the placeholder variable name (i. e., the part after ':').
-     * @return value of the placeholder variable if the placeholder name is supported, or an empty optional otherwise.
+     * @return The first value this placeholder resolved for the given placeholder source and the given variable nam,
+     * or an empty optional if no value could be resolved.
+     * @deprecated Use {@link #resolveValues(Object, String)} instead to get all resolved values.
      */
-    Optional<String> resolve(T placeholderSource, String name);
+    @Deprecated
+    default Optional<String> resolve(T placeholderSource, String name) {
+        return resolveValues(placeholderSource, name).stream().findFirst();
+    }
+
+    /**
+     * Resolves the placeholder variable by name.
+     *
+     * @param placeholderSource the source from which to the placeholder is resolved, e.g. a Thing id.
+     * @param name the placeholder variable name (i. e., the part after ':').
+     * @return All values this placeholder resolved for the given placeholder source and the given variable name.
+     * @since 2.4.0
+     */
+    List<String> resolveValues(T placeholderSource, String name);
+
 }

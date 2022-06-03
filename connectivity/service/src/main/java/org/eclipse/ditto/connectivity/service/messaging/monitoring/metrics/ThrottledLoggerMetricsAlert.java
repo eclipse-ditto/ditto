@@ -79,13 +79,13 @@ public final class ThrottledLoggerMetricsAlert implements MetricsAlert {
         final String message;
         if (counterKey.getMetricType().isPresent() && counterKey.getMetricDirection().isPresent()) {
             message = String.format("Throttling event occurred for %s %s metric at address '%s'.",
-                    counterKey.getMetricDirection(), counterKey.getMetricType(), counterKey.getAddress());
+                    counterKey.getMetricDirection().get(), counterKey.getMetricType().get(), counterKey.getAddress());
         } else if (counterKey.getMetricDirection().isPresent()) {
             message = String.format("Throttling event occurred for %s metric at address '%s'.",
-                    counterKey.getMetricDirection(), counterKey.getAddress());
+                    counterKey.getMetricDirection().get(), counterKey.getAddress());
         } else if (counterKey.getMetricType().isPresent()) {
             message = String.format("Throttling event occurred for %s metric at address '%s'.",
-                    counterKey.getMetricType(), counterKey.getAddress());
+                    counterKey.getMetricType().get(), counterKey.getAddress());
         } else {
             message = String.format("Throttling event occurred at address '%s'.", counterKey.getAddress());
         }

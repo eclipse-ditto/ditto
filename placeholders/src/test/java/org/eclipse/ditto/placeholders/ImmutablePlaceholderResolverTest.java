@@ -14,10 +14,10 @@ package org.eclipse.ditto.placeholders;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.junit.Ignore;
 import org.junit.Test;
 import org.mutabilitydetector.unittesting.AllowedReason;
 import org.mutabilitydetector.unittesting.MutabilityAssert;
@@ -51,12 +51,12 @@ public class ImmutablePlaceholderResolverTest {
         inputMap.put("two", "2");
 
         final ImmutablePlaceholderResolver<Map<String, String>> underTest = new ImmutablePlaceholderResolver<>(
-                PlaceholderFactory.newHeadersPlaceholder(), inputMap);
+                PlaceholderFactory.newHeadersPlaceholder(), Collections.singletonList(inputMap));
 
-        assertThat(underTest.resolve("one"))
-                .contains("1");
-        assertThat(underTest.resolve("two"))
-                .contains("2");
+        assertThat(underTest.resolveValues("one"))
+                .containsExactly("1");
+        assertThat(underTest.resolveValues("two"))
+                .containsExactly("2");
     }
 
 }

@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.thingsearch.service.persistence.write.model;
 
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -19,6 +20,9 @@ import java.util.Optional;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
+
+import org.eclipse.ditto.base.model.namespaces.NamespaceBlockedException;
+import org.eclipse.ditto.thingsearch.service.updater.actors.MongoWriteModel;
 
 import com.mongodb.MongoBulkWriteException;
 import com.mongodb.bulk.BulkWriteError;
@@ -30,19 +34,19 @@ import com.mongodb.bulk.BulkWriteResult;
 @Immutable
 public final class WriteResultAndErrors {
 
-    private final List<AbstractWriteModel> writeModels;
+    private final List<MongoWriteModel> writeModels;
     private final BulkWriteResult bulkWriteResult;
     private final List<BulkWriteError> bulkWriteErrors;
     @Nullable private final Throwable unexpectedError;
     private final String bulkWriteCorrelationId;
 
     private WriteResultAndErrors(
-            final List<AbstractWriteModel> writeModels,
+            final Collection<MongoWriteModel> writeModels,
             final BulkWriteResult bulkWriteResult,
             final List<BulkWriteError> bulkWriteErrors,
             @Nullable final Throwable unexpectedError,
             final String bulkWriteCorrelationId) {
-        this.writeModels = writeModels;
+        this.writeModels = writeModels.stream().toList();
         this.bulkWriteResult = bulkWriteResult;
         this.bulkWriteErrors = bulkWriteErrors;
         this.unexpectedError = unexpectedError;
@@ -57,10 +61,11 @@ public final class WriteResultAndErrors {
      * @param bulkWriteCorrelationId a correlationId to use for correlating bulk write log statements.
      * @return the write result without errors.
      */
-    public static WriteResultAndErrors success(final List<AbstractWriteModel> writeModels,
+    public static WriteResultAndErrors success(final Collection<MongoWriteModel> writeModels,
             final BulkWriteResult bulkWriteResult,
             final String bulkWriteCorrelationId) {
-        return new WriteResultAndErrors(writeModels, bulkWriteResult, Collections.emptyList(), null, bulkWriteCorrelationId);
+        return new WriteResultAndErrors(writeModels, bulkWriteResult, Collections.emptyList(), null,
+                bulkWriteCorrelationId);
     }
 
     /**
@@ -71,11 +76,15 @@ public final class WriteResultAndErrors {
      * @param bulkWriteCorrelationId a correlationId to use for correlating bulk write log statements.
      * @return the write result with errors.
      */
-    public static WriteResultAndErrors failure(final List<AbstractWriteModel> writeModels,
+    public static WriteResultAndErrors failure(final Collection<MongoWriteModel> writeModels,
             final MongoBulkWriteException mongoBulkWriteException,
             final String bulkWriteCorrelationId) {
         return new WriteResultAndErrors(writeModels, mongoBulkWriteException.getWriteResult(),
                 mongoBulkWriteException.getWriteErrors(), null, bulkWriteCorrelationId);
+    }
+
+    public static WriteResultAndErrors failure(final Throwable error) {
+        return new WriteResultAndErrors(List.of(), BulkWriteResult.unacknowledged(), List.of(), error, "");
     }
 
     /**
@@ -87,7 +96,7 @@ public final class WriteResultAndErrors {
      * @param bulkWriteCorrelationId a correlationId to use for correlating bulk write log statements.
      * @return the write result with an unexpected error.
      */
-    public static WriteResultAndErrors unexpectedError(final List<AbstractWriteModel> writeModels,
+    public static WriteResultAndErrors unexpectedError(final Collection<MongoWriteModel> writeModels,
             final Throwable unexpectedError,
             final String bulkWriteCorrelationId) {
         return new WriteResultAndErrors(writeModels, BulkWriteResult.unacknowledged(), Collections.emptyList(),
@@ -99,7 +108,7 @@ public final class WriteResultAndErrors {
      *
      * @return the write models.
      */
-    public List<AbstractWriteModel> getWriteModels() {
+    public List<MongoWriteModel> getWriteModels() {
         return writeModels;
     }
 
@@ -139,10 +148,18 @@ public final class WriteResultAndErrors {
         return bulkWriteCorrelationId;
     }
 
+    /**
+     * Check if the error is a namespace-blocked exception.
+     *
+     * @return whether the error is a namespace-blocked exception.
+     */
+    public boolean isNamespaceBlockedException() {
+        return unexpectedError instanceof NamespaceBlockedException;
+    }
+
     @Override
     public boolean equals(final Object o) {
-        if (o instanceof WriteResultAndErrors) {
-            final WriteResultAndErrors that = (WriteResultAndErrors) o;
+        if (o instanceof final WriteResultAndErrors that) {
             return Objects.equals(writeModels, that.writeModels) &&
                     Objects.equals(bulkWriteResult, that.bulkWriteResult) &&
                     Objects.equals(bulkWriteErrors, that.bulkWriteErrors) &&

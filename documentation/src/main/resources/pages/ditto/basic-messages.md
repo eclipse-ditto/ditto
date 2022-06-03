@@ -51,7 +51,7 @@ It can be seen as a message router which:
 
 ## Elements
 
-Ditto messages always have to have at least this elements:
+Ditto messages always have to have at least these elements:
 * **Direction**: *to* / *from*,
 * **Thing ID**: the ID of the `Thing` (actual device) which should receive/send the message and
 * **Subject**: the custom subject/topic.
@@ -72,19 +72,23 @@ content-type and serialization is arbitrary.
 
 ## APIs
 
-Messages can be sent via
+Messages can be sent via:
 * the [WebSocket API](httpapi-protocol-bindings-websocket.html) as [Ditto Protocol](protocol-overview.html) messages,
 * the [HTTP API](httpapi-overview.html) either as "fire and forget" messages or, when expecting a response, in a
   blocking way at the [Messages HTTP API endpoint](http-api-doc.html#/Messages)
+* Ditto managed [connection sources](basic-connections.html#sources) when receiving messages in [Ditto Protocol](protocol-overview.html)
+  via the source
 
-Messages can, however, be received only via the [WebSocket API](httpapi-protocol-bindings-websocket.html) as
-[Ditto Protocol](protocol-overview.html) messages.
+Messages can be received via:
+* the [WebSocket API](httpapi-protocol-bindings-websocket.html) as [Ditto Protocol](protocol-overview.html) messages
+* the [Server Sent Event API](httpapi-sse.html#subscribe-for-messages-for-a-specific-thing)
+* Ditto managed [connection targets](basic-connections.html#target-topics-and-filtering) when "subscribing for Thing messages"
 
 
 ## Receiving Messages
 
 To be able to receive Messages for a Thing, you need to have `READ` access on that Thing.
-When a Message is sent to or from a Thing, **every** connected WebSocket or 
+When a Message is sent to or from a Thing, **every** connected WebSocket, [SSE](httpapi-sse.html) or 
 [connection target](basic-connections.html#targets) with the correct access rights will receive the Message.
 
 If there is more than one response to a message received by multiple consumers, only the

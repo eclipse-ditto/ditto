@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.thingsearch.model;
 
+import java.time.Instant;
+
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
@@ -40,6 +42,15 @@ public interface SearchResultBuilder {
      * @return this builder to allow method chaining.
      */
     SearchResultBuilder cursor(@Nullable String cursor);
+
+    /**
+     * Set the timestamp of the last modification of the search result.
+     *
+     * @param lastModified the timestamp.
+     * @return this builder.
+     * @since 2.5.0
+     */
+    SearchResultBuilder lastModified(@Nullable Instant lastModified);
 
     /**
      * Adds at least one {@link JsonValue} to the {@code SearchResult} to be built.

@@ -284,8 +284,8 @@ public abstract class BaseConsumerActor extends AbstractActorWithTimers {
     }
 
     private static Stream<? extends CommandResponse<?>> extractAggregatedResponses(final CommandResponse<?> response) {
-        if (response instanceof Acknowledgements) {
-            return ((Acknowledgements) response).stream();
+        if (response instanceof Acknowledgements acknowledgements) {
+            return acknowledgements.stream();
         } else {
             return Stream.of(response);
         }

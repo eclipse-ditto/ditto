@@ -136,7 +136,7 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
         responseDroppedMonitor = connectionMonitorRegistry.forResponseDropped(connection);
         responsePublishedMonitor = connectionMonitorRegistry.forResponsePublished(connection);
         responseAcknowledgedMonitor = connectionMonitorRegistry.forResponseAcknowledged(connection);
-        replyTargets = connection.getSources().stream().map(Source::getReplyTarget).collect(Collectors.toList());
+        replyTargets = connection.getSources().stream().map(Source::getReplyTarget).toList();
         acknowledgementSizeBudget = connectionConfig.getAcknowledgementConfig().getIssuedMaxBytes();
         logger = DittoLoggerFactory.getThreadSafeDittoLoggingAdapter(this)
                 .withMdcEntry(ConnectivityMdcEntryKey.CONNECTION_ID, connection.getId());
@@ -186,8 +186,8 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
                     final Collection<Acknowledgement> acknowledgements = new ArrayList<>();
                     final Collection<CommandResponse<?>> nonAcknowledgements = new ArrayList<>();
                     responsesList.forEach(response -> {
-                        if (response instanceof Acknowledgement) {
-                            acknowledgements.add((Acknowledgement) response);
+                        if (response instanceof Acknowledgement acknowledgement) {
+                            acknowledgements.add(acknowledgement);
                         } else {
                             nonAcknowledgements.add(response);
                         }
@@ -255,7 +255,7 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
                 .thenApply(aVoid -> Arrays.stream(futures)
                         .map(CompletableFuture::join)
                         .filter(Objects::nonNull)
-                        .collect(Collectors.toList()));
+                        .toList());
     }
 
     private Acknowledgements appendConnectionId(final Acknowledgements acknowledgements) {
@@ -266,7 +266,7 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
             final ConnectionId connectionId) {
         final List<Acknowledgement> acksList = acknowledgements.stream()
                 .map(ack -> appendConnectionIdToAcknowledgementOrResponse(ack, connectionId))
-                .collect(Collectors.toList());
+                .toList();
         // Uses EntityId and StatusCode from input acknowledges expecting these were set when Acknowledgements was created
         return Acknowledgements.of(acknowledgements.getEntityId(), acksList, acknowledgements.getHttpStatus(),
                 acknowledgements.getDittoHeaders());
@@ -320,7 +320,7 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
                                     outboundTargets);
                             return getSendingContextForTarget(outbound, target);
                         })
-                        .collect(Collectors.toList()));
+                        .toList());
 
 
         if (sendingContexts.isEmpty()) {
@@ -595,7 +595,7 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
      * If not resolvable, the returned Optional will be empty.
      */
     private static Optional<String> resolveTargetAddress(final ExpressionResolver resolver, final String value) {
-        return resolver.resolve(value).toOptional();
+        return resolver.resolve(value).findFirst();
     }
 
     private static Charset determineCharset(final CharSequence contentType) {

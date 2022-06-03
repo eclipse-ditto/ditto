@@ -65,8 +65,8 @@ public final class BackgroundSyncActor
     private final BackgroundSyncStream backgroundSyncStream;
     private final ActorRef thingsUpdater;
 
-    private final Counter streamedSnapshots = DittoMetrics.counter("search_streamed_snapshots");
-    private final Counter scannedIndexDocs = DittoMetrics.counter("search_scanned_index_docs");
+    private final Counter streamedSnapshots = DittoMetrics.counter("wildcard_search_streamed_snapshots");
+    private final Counter scannedIndexDocs = DittoMetrics.counter("wildcard_search_scanned_index_docs");
 
     private ThingId progressPersisted = EMPTY_THING_ID;
     private ThingId progressIndexed = EMPTY_THING_ID;
@@ -85,7 +85,7 @@ public final class BackgroundSyncActor
         this.backgroundSyncStream = backgroundSyncStream;
         this.thingsUpdater = thingsUpdater;
 
-        getTimers().startPeriodicTimer(Control.BOOKMARK_THING_ID, Control.BOOKMARK_THING_ID, config.getQuietPeriod());
+        getTimers().startTimerAtFixedRate(Control.BOOKMARK_THING_ID, Control.BOOKMARK_THING_ID, config.getQuietPeriod());
     }
 
     /**
@@ -119,8 +119,7 @@ public final class BackgroundSyncActor
     @Override
     protected void preEnhanceSleepingBehavior(final ReceiveBuilder sleepingReceiveBuilder) {
         sleepingReceiveBuilder.matchEquals(Control.BOOKMARK_THING_ID,
-                        trigger ->
-                                // ignore scheduled bookmark messages when sleeping
+                        trigger -> // ignore scheduled bookmark messages when sleeping
                                 log.debug("Ignoring: <{}>", trigger)
                 )
                 .match(ThingId.class, thingId ->

@@ -143,7 +143,7 @@ import akka.japi.pf.DeciderBuilder;
 import akka.japi.pf.ReceiveBuilder;
 import akka.testkit.TestProbe;
 import akka.testkit.javadsl.TestKit;
-import scala.concurrent.duration.FiniteDuration;
+import scala.PartialFunction;
 
 /**
  * Unit test for the {@link PolicyPersistenceActor}.
@@ -784,7 +784,10 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
 
                 // THEN: a SubjectCreated event should be emitted
                 final DistributedPubSubMediator.Publish subjectCreatedPublish =
-                        pubSubMediatorTestProbe.expectMsgClass(DistributedPubSubMediator.Publish.class);
+                        (DistributedPubSubMediator.Publish) pubSubMediatorTestProbe.fishForMessage(
+                                scala.concurrent.duration.Duration.create(2, "s"),
+                                "publish event",
+                                publishedPolicyEvent());
                 assertThat(subjectCreatedPublish.msg()).isInstanceOf(SubjectCreated.class);
 
                 final long secondsToAdd = 10 - (expiryInstant.getEpochSecond() % 10);
@@ -813,9 +816,11 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
                                 expectedRoundedExpiryInstant);
                 final long secondsToWaitForSubjectDeletedEvent = between.getSeconds() + 2;
                 final DistributedPubSubMediator.Publish policySubjectDeleted =
-                        pubSubMediatorTestProbe.expectMsgClass(
-                                FiniteDuration.apply(secondsToWaitForSubjectDeletedEvent, TimeUnit.SECONDS),
-                                DistributedPubSubMediator.Publish.class);
+                        (DistributedPubSubMediator.Publish) pubSubMediatorTestProbe.fishForMessage(
+                                scala.concurrent.duration.Duration.create(secondsToWaitForSubjectDeletedEvent, "s"),
+                                "publish event",
+                                publishedPolicyEvent()
+                        );
                 final Object subjectDeletedMsg = policySubjectDeleted.msg();
                 assertThat(subjectDeletedMsg).isInstanceOf(SubjectDeleted.class);
                 assertThat(((SubjectDeleted) subjectDeletedMsg).getSubjectId())
@@ -1004,9 +1009,10 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
                             expectedRoundedExpiryInstant);
             final long secondsToWaitForSubjectDeletedEvent = between.getSeconds() + 2;
             final DistributedPubSubMediator.Publish subject1Deleted =
-                    pubSubMediatorTestProbe.expectMsgClass(
-                            FiniteDuration.apply(secondsToWaitForSubjectDeletedEvent, TimeUnit.SECONDS),
-                            DistributedPubSubMediator.Publish.class);
+                    (DistributedPubSubMediator.Publish) pubSubMediatorTestProbe.fishForMessage(
+                            scala.concurrent.duration.Duration.create(secondsToWaitForSubjectDeletedEvent, "s"),
+                            "publish event",
+                            publishedPolicyEvent());
             assertThat(subject1Deleted.msg()).isInstanceOf(SubjectDeleted.class);
             assertThat(((SubjectDeleted) subject1Deleted.msg()).getSubjectId())
                     .isIn(subject1.getId(), subject2.getId());
@@ -1016,7 +1022,10 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
 
             // THEN: subject2 is deleted immediately
             final DistributedPubSubMediator.Publish subject2Deleted =
-                    pubSubMediatorTestProbe.expectMsgClass(DistributedPubSubMediator.Publish.class);
+                    (DistributedPubSubMediator.Publish) pubSubMediatorTestProbe.fishForMessage(
+                            scala.concurrent.duration.Duration.create(secondsToWaitForSubjectDeletedEvent, "s"),
+                            "publish event",
+                            publishedPolicyEvent());
             assertThat(subject2Deleted.msg()).isInstanceOf(SubjectDeleted.class);
             assertThat(((SubjectDeleted) subject2Deleted.msg()).getSubjectId())
                     .isIn(subject1.getId(), subject2.getId());
@@ -1028,6 +1037,12 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
             Assertions.assertThat(response.getPolicy().getEntryFor(POLICY_LABEL).orElseThrow().getSubjects())
                     .containsOnly(subject3);
         }};
+    }
+
+    private PartialFunction<Object, Object> publishedPolicyEvent() {
+        return PartialFunction.fromFunction(msg ->
+                msg instanceof DistributedPubSubMediator.Publish publish &&
+                        publish.topic().startsWith(PolicyEvent.TYPE_PREFIX));
     }
 
     @Test
@@ -1197,7 +1212,11 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
 
                 // event published with group:
                 final DistributedPubSubMediator.Publish policyEntryModifiedPublishSecond =
-                        pubSubMediatorTestProbe.expectMsgClass(DistributedPubSubMediator.Publish.class);
+                        (DistributedPubSubMediator.Publish) pubSubMediatorTestProbe.fishForMessage(
+                                scala.concurrent.duration.Duration.create(2, "s"),
+                                "publish event",
+                                publishedPolicyEvent()
+                        );
                 assertThat(policyEntryModifiedPublishSecond.msg()).isInstanceOf(PolicyEntryCreated.class);
 
                 // restart
@@ -1325,9 +1344,11 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
                                 expectedRoundedExpiryInstant);
                 final long secondsToWaitForSubjectDeletedEvent = between.getSeconds() + 2;
                 final DistributedPubSubMediator.Publish policySubjectDeleted =
-                        pubSubMediatorTestProbe.expectMsgClass(
-                                FiniteDuration.apply(secondsToWaitForSubjectDeletedEvent, TimeUnit.SECONDS),
-                                DistributedPubSubMediator.Publish.class);
+                        (DistributedPubSubMediator.Publish) pubSubMediatorTestProbe.fishForMessage(
+                                scala.concurrent.duration.Duration.create(secondsToWaitForSubjectDeletedEvent, "s"),
+                                "publish event",
+                                publishedPolicyEvent()
+                        );
                 final Object subjectDeletedMsg = policySubjectDeleted.msg();
                 assertThat(subjectDeletedMsg).isInstanceOf(SubjectDeleted.class);
                 assertThat(((SubjectDeleted) subjectDeletedMsg).getSubjectId())
@@ -1406,7 +1427,11 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
 
                 // THEN: the created event should be emitted
                 final DistributedPubSubMediator.Publish policyCreatedPublishSecond =
-                        pubSubMediatorTestProbe.expectMsgClass(DistributedPubSubMediator.Publish.class);
+                        (DistributedPubSubMediator.Publish) pubSubMediatorTestProbe.fishForMessage(
+                                scala.concurrent.duration.Duration.create(2, "s"),
+                                "publish event",
+                                publishedPolicyEvent()
+                        );
                 assertThat(policyCreatedPublishSecond.msg()).isInstanceOf(PolicyCreated.class);
 
                 // WHEN: now the persistence actor is terminated
@@ -1450,7 +1475,10 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
 
                 // THEN: waiting until the expiry interval should emit a SubjectDeleted event
                 final DistributedPubSubMediator.Publish policySubjectDeleted =
-                        pubSubMediatorTestProbe.expectMsgClass(DistributedPubSubMediator.Publish.class);
+                        (DistributedPubSubMediator.Publish) pubSubMediatorTestProbe.fishForMessage(
+                                scala.concurrent.duration.Duration.create(2, "s"),
+                                "publish event",
+                                publishedPolicyEvent());
                 final Object subjectDeletedMsg = policySubjectDeleted.msg();
                 assertThat(subjectDeletedMsg).isInstanceOf(SubjectDeleted.class);
                 assertThat(((SubjectDeleted) subjectDeletedMsg).getSubjectId())
@@ -1496,9 +1524,9 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
 
                 // retrieve the policy's sequence number
                 final long versionExpected = 2;
-                final Policy policyExpected = PoliciesModelFactory.newPolicyBuilder(policy) //
-                        .remove(ANOTHER_POLICY_LABEL) //
-                        .setRevision(versionExpected) //
+                final Policy policyExpected = PoliciesModelFactory.newPolicyBuilder(policy)
+                        .remove(ANOTHER_POLICY_LABEL)
+                        .setRevision(versionExpected)
                         .build();
                 final RetrievePolicy retrievePolicy =
                         RetrievePolicy.of(policy.getEntityId().orElse(null), dittoHeadersV2);
@@ -1531,9 +1559,9 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
 
                 // retrieve the policy's sequence number from recovered actor
                 final long versionExpected = 2;
-                final Policy policyExpected = PoliciesModelFactory.newPolicyBuilder(policy) //
-                        .remove(ANOTHER_POLICY_LABEL) //
-                        .setRevision(versionExpected) //
+                final Policy policyExpected = PoliciesModelFactory.newPolicyBuilder(policy)
+                        .remove(ANOTHER_POLICY_LABEL)
+                        .setRevision(versionExpected)
                         .build();
 
                 // restart
@@ -1751,7 +1779,11 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
     }
 
     private PolicyEvent<?> expectPolicyEvent() {
-        final var publish = pubSubMediatorTestProbe.expectMsgClass(DistributedPubSubMediator.Publish.class);
+        final var publish = (DistributedPubSubMediator.Publish) pubSubMediatorTestProbe.fishForMessage(
+                scala.concurrent.duration.Duration.create(2, "s"),
+                "publish event",
+                publishedPolicyEvent()
+        );
         assertThat(publish.message()).isInstanceOf(PolicyEvent.class);
         return (PolicyEvent<?>) publish.message();
     }

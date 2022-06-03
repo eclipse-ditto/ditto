@@ -28,7 +28,7 @@ public final class ConsistencyLag {
     /**
      * Name of the search updater consistency lag timer.
      */
-    public static final String TIMER_NAME = "things_search_updater_consistency_lag";
+    public static final String TIMER_NAME = "things_wildcard_search_updater_consistency_lag";
 
     /**
      * Tag for differentiating between search updates requiring acks and those who not require them.
@@ -36,14 +36,9 @@ public final class ConsistencyLag {
     public static final String TAG_SHOULD_ACK = "should_ack";
 
     /**
-     * Name of the segment spent before leaving search updater
-     */
-    public static final String S0_IN_UPDATER = "s0_in_updater";
-
-    /**
      * Name of the segment in change queue.
      */
-    public static final String S1_IN_CHANGE_QUEUE = "s1_in_change_queue";
+    public static final String S1_IN_UPDATER = "s1_in_updater";
 
     /**
      * Name of the segment waiting for demand after leaving the change queue actor before downstream demand.
@@ -75,21 +70,12 @@ public final class ConsistencyLag {
     }
 
     /**
-     * Start the segment for time spent in a thing updater.
+     * Start the segment for time spent in change queue.
      *
      * @param timer the timer.
      */
-    public static void startS0InUpdater(final StartedTimer timer) {
-        timer.startNewSegment(S0_IN_UPDATER);
-    }
-
-    /**
-     * Start the segment for time spent in change queue.
-     *
-     * @param metadata the metadata.
-     */
-    public static void startS1InChangeQueue(final Metadata metadata) {
-        stopAndStartSegments(metadata, S0_IN_UPDATER, S1_IN_CHANGE_QUEUE);
+    public static void startS1InUpdater(final StartedTimer timer) {
+        timer.startNewSegment(S1_IN_UPDATER);
     }
 
     /**
@@ -98,7 +84,7 @@ public final class ConsistencyLag {
      * @param metadata the metadata.
      */
     public static void startS2WaitForDemand(final Metadata metadata) {
-        stopAndStartSegments(metadata, S1_IN_CHANGE_QUEUE, S2_WAIT_FOR_DEMAND);
+        stopAndStartSegments(metadata, S1_IN_UPDATER, S2_WAIT_FOR_DEMAND);
     }
 
     /**

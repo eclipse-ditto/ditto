@@ -85,7 +85,7 @@ public final class BsonUtil {
         checkNotNull(bsonObjs, "BSON objects to be converted");
         return bsonObjs.stream()
                 .map(BsonUtil::toBsonDocument)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     /**

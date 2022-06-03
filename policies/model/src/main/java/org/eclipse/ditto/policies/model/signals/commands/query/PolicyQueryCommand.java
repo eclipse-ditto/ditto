@@ -13,6 +13,7 @@
 package org.eclipse.ditto.policies.model.signals.commands.query;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.signals.commands.WithSelectedFields;
 import org.eclipse.ditto.policies.model.signals.commands.PolicyCommand;
 
 /**
@@ -20,7 +21,8 @@ import org.eclipse.ditto.policies.model.signals.commands.PolicyCommand;
  *
  * @param <T> the type of the implementing class.
  */
-public interface PolicyQueryCommand<T extends PolicyQueryCommand<T>> extends PolicyCommand<T> {
+public interface PolicyQueryCommand<T extends PolicyQueryCommand<T>> extends PolicyCommand<T>,
+        WithSelectedFields {
 
     @Override
     T setDittoHeaders(DittoHeaders dittoHeaders);

@@ -16,18 +16,22 @@ import java.util.function.Predicate;
 
 import javax.annotation.Nonnull;
 
-import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
+import org.eclipse.ditto.json.JsonFieldSelector;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.policies.model.PolicyId;
-import org.eclipse.ditto.protocol.adapter.DittoProtocolAdapter;
-import org.eclipse.ditto.protocol.adapter.ProtocolAdapterTest;
+import org.eclipse.ditto.policies.model.signals.commands.query.PolicyQueryCommand;
+import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicy;
+import org.eclipse.ditto.protocol.Adaptable;
+import org.eclipse.ditto.protocol.Payload;
 import org.eclipse.ditto.protocol.TestConstants;
 import org.eclipse.ditto.protocol.TestConstants.Policies;
 import org.eclipse.ditto.protocol.TopicPath;
 import org.eclipse.ditto.protocol.UnknownCommandException;
-import org.eclipse.ditto.policies.model.signals.commands.query.PolicyQueryCommand;
+import org.eclipse.ditto.protocol.adapter.DittoProtocolAdapter;
+import org.eclipse.ditto.protocol.adapter.ProtocolAdapterTest;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -46,6 +50,43 @@ public final class PolicyQueryCommandAdapterTest implements ProtocolAdapterTest 
     @Test(expected = UnknownCommandException.class)
     public void unknownCommandToAdaptable() {
         underTest.toAdaptable(new UnknownPolicyQueryCommand(), TopicPath.Channel.NONE);
+    }
+
+    @Test
+    public void retrieveThingWithFieldsFromAdaptable() {
+        final JsonFieldSelector selectedFields = JsonFieldSelector.newInstance("policyId");
+        final RetrievePolicy expected =
+                RetrievePolicy.of(TestConstants.POLICY_ID, TestConstants.DITTO_HEADERS_V_2, selectedFields);
+
+        final TopicPath topicPath = TopicPath.newBuilder(TestConstants.POLICY_ID).commands().retrieve().build();
+        final JsonPointer path = JsonPointer.empty();
+        final Adaptable adaptable = Adaptable.newBuilder(topicPath)
+                .withPayload(Payload.newBuilder(path)
+                        .withFields(selectedFields)
+                        .build())
+                .withHeaders(TestConstants.HEADERS_V_2)
+                .build();
+        final PolicyQueryCommand<?> actual = underTest.fromAdaptable(adaptable);
+
+        assertWithExternalHeadersThat(actual).isEqualTo(expected);
+    }
+
+    @Test
+    public void retrieveThingWithFieldsToAdaptable() {
+        final JsonFieldSelector selectedFields = JsonFieldSelector.newInstance("policyId");
+        final TopicPath topicPath = TopicPath.newBuilder(TestConstants.POLICY_ID).commands().retrieve().build();
+        final JsonPointer path = JsonPointer.empty();
+
+        final Adaptable expected = Adaptable.newBuilder(topicPath)
+                .withPayload(Payload.newBuilder(path).withFields(selectedFields).build())
+                .withHeaders(TestConstants.HEADERS_V_2)
+                .build();
+
+        final RetrievePolicy retrievePolicy =
+                RetrievePolicy.of(TestConstants.POLICY_ID, TestConstants.HEADERS_V_2_NO_CONTENT_TYPE, selectedFields);
+        final Adaptable actual = underTest.toAdaptable(retrievePolicy, TopicPath.Channel.NONE);
+
+        assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
 
     private static class UnknownPolicyQueryCommand implements PolicyQueryCommand<UnknownPolicyQueryCommand> {

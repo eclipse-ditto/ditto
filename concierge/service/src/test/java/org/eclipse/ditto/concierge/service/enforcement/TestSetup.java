@@ -160,7 +160,8 @@ public final class TestSetup {
             return this;
         }
 
-        public EnforcerActorBuilder setCreationRestrictionEnforcer(@Nullable final CreationRestrictionEnforcer creationRestrictionEnforcer) {
+        public EnforcerActorBuilder setCreationRestrictionEnforcer(
+                @Nullable final CreationRestrictionEnforcer creationRestrictionEnforcer) {
             this.creationRestrictionEnforcer = creationRestrictionEnforcer;
             return this;
         }
@@ -172,10 +173,10 @@ public final class TestSetup {
 
             final AskWithRetryConfig askWithRetryConfig = CACHES_CONFIG.getAskWithRetryConfig();
 
-            final PolicyEnforcerCacheLoader policyEnforcerCacheLoader =
+            final PolicyEnforcerCacheLoader policyCacheLoader =
                     new PolicyEnforcerCacheLoader(askWithRetryConfig, system.getScheduler(), policiesShardRegion);
             final Cache<EnforcementCacheKey, Entry<PolicyEnforcer>> policyEnforcerCache =
-                    CaffeineCache.of(Caffeine.newBuilder(), policyEnforcerCacheLoader);
+                    CaffeineCache.of(Caffeine.newBuilder(), policyCacheLoader);
             final Cache<EnforcementCacheKey, Entry<Enforcer>> projectedEnforcerCache =
                     policyEnforcerCache.projectValues(PolicyEnforcer::project, PolicyEnforcer::embed);
             final ThingEnforcementIdCacheLoader thingEnforcementIdCacheLoader =

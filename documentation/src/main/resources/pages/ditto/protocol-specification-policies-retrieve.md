@@ -18,6 +18,7 @@ Retrieves a Policy identified by the `<namespace>/<policyName>` pair in the `top
 |-----------|-------------------------|
 | **topic** | `<namespace>/<policyName>/policies/commands/retrieve`     |
 | **path**  | `/`     |
+| **fields** | Contains a comma separated list of fields to be included in the returned JSON. |
 
 ### Response
 

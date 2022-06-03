@@ -15,7 +15,6 @@ package org.eclipse.ditto.internal.utils.persistentactors;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.mockito.Mockito;
@@ -61,7 +60,7 @@ final class MockJournalPlugin extends AsyncWriteJournal {
     public Future<Iterable<Optional<Exception>>> doAsyncWriteMessages(final Iterable<AtomicWrite> messages) {
         LOGGER.debug("[doAsyncWriteMessages]: messages {}", messages);
         final Iterable<Optional<Exception>> collect =
-                Stream.of(messages).map(m -> Optional.<Exception>empty()).collect(Collectors.toList());
+                Stream.of(messages).map(m -> Optional.<Exception>empty()).toList();
         return Future.successful(collect);
     }
 

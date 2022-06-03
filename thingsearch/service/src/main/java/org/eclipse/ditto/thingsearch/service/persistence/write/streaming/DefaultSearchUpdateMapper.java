@@ -12,18 +12,13 @@
  */
 package org.eclipse.ditto.thingsearch.service.persistence.write.streaming;
 
-import java.util.List;
-
-import org.bson.BsonDocument;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLogger;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.AbstractWriteModel;
-
-import com.mongodb.client.model.WriteModel;
+import org.eclipse.ditto.thingsearch.service.updater.actors.MongoWriteModel;
 
 import akka.NotUsed;
 import akka.actor.ActorSystem;
-import akka.japi.Pair;
 import akka.stream.javadsl.Source;
 
 /**
@@ -43,10 +38,9 @@ public final class DefaultSearchUpdateMapper extends SearchUpdateMapper {
     }
 
     @Override
-    public Source<List<Pair<AbstractWriteModel, WriteModel<BsonDocument>>>, NotUsed>
-    processWriteModels(final List<AbstractWriteModel> writeModels) {
-
-        return Source.single(writeModels).mapAsync(1, models -> toIncrementalMongo(models, logger));
+    public Source<MongoWriteModel, NotUsed> processWriteModel(final AbstractWriteModel writeModel,
+            final AbstractWriteModel lastWriteModel) {
+        return toIncrementalMongo(writeModel, lastWriteModel, logger);
     }
 
 }

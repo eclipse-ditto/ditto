@@ -24,6 +24,7 @@ import java.util.UUID;
 import java.util.function.Supplier;
 import java.util.regex.Pattern;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.apache.kafka.common.errors.InvalidTopicException;
@@ -38,6 +39,7 @@ import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.messaging.Resolvers;
 import org.eclipse.ditto.connectivity.service.messaging.validation.AbstractProtocolValidator;
 import org.eclipse.ditto.placeholders.PlaceholderFactory;
+import org.eclipse.ditto.placeholders.UnresolvedPlaceholderException;
 
 import akka.actor.ActorSystem;
 
@@ -56,25 +58,31 @@ public final class KafkaValidator extends AbstractProtocolValidator {
     private static final Collection<String> ACCEPTED_SCHEMES = List.of("tcp", "ssl");
     private static final Collection<String> SECURE_SCHEMES = List.of("ssl");
 
-    private static final Collection<KafkaSpecificConfig> SPECIFIC_CONFIGS =
-            List.of(KafkaAuthenticationSpecificConfig.getInstance(),
-                    KafkaBootstrapServerSpecificConfig.getInstance(),
-                    KafkaConsumerGroupSpecificConfig.getInstance(),
-                    KafkaConsumerOffsetResetSpecificConfig.getInstance());
+    @Nullable private static KafkaValidator instance;
 
-    private static final KafkaValidator INSTANCE = new KafkaValidator();
+    private final Collection<KafkaSpecificConfig> specificConfigs;
 
-    private KafkaValidator() {
+    private KafkaValidator(final boolean doubleDecodingEnabled) {
         super();
+        specificConfigs = List.of(KafkaAuthenticationSpecificConfig.getInstance(doubleDecodingEnabled),
+                KafkaBootstrapServerSpecificConfig.getInstance(),
+                KafkaConsumerGroupSpecificConfig.getInstance(),
+                KafkaConsumerOffsetResetSpecificConfig.getInstance());
     }
 
     /**
      * Returns an instance of the Kafka validator.
      *
+     * @param doubleDecodingEnabled whether username and password should get double decoded.
      * @return the instance.
      */
-    public static KafkaValidator getInstance() {
-        return INSTANCE;
+    public static KafkaValidator getInstance(final boolean doubleDecodingEnabled) {
+        KafkaValidator result = instance;
+        if (null == result) {
+            result = new KafkaValidator(doubleDecodingEnabled);
+            instance = result;
+        }
+        return result;
     }
 
     @Override
@@ -106,11 +114,8 @@ public final class KafkaValidator extends AbstractProtocolValidator {
         validateHeaderMapping(source.getHeaderMapping(), dittoHeaders);
 
         final String placeholderReplacement = UUID.randomUUID().toString();
-        source.getAddresses().forEach(address -> {
-            final String addressWithoutPlaceholders = validateTemplateAndReplace(address, dittoHeaders,
-                    placeholderReplacement, Resolvers.getPlaceholders());
-            validateSourceAddress(addressWithoutPlaceholders, dittoHeaders, placeholderReplacement);
-        });
+        source.getAddresses().forEach(
+                address -> validateSourceAddress(address, dittoHeaders, placeholderReplacement));
 
         validateSourceQos(source, dittoHeaders);
     }
@@ -121,10 +126,13 @@ public final class KafkaValidator extends AbstractProtocolValidator {
 
         final String placeholderReplacement = UUID.randomUUID().toString();
         final String addressWithoutPlaceholders = validateTemplateAndReplace(target.getAddress(), dittoHeaders,
-                placeholderReplacement, Resolvers.getPlaceholders());
+                placeholderReplacement, Resolvers.getPlaceholders()).stream()
+                .findFirst()
+                .orElseThrow(() -> UnresolvedPlaceholderException.newBuilder(target.getAddress()).build());
 
         validateTargetAddress(addressWithoutPlaceholders, dittoHeaders, placeholderReplacement);
         validateHeaderMapping(target.getHeaderMapping(), dittoHeaders);
+        validateExtraFields(target);
     }
 
     private static void validateSourceAddress(final String address, final DittoHeaders dittoHeaders,
@@ -218,8 +226,8 @@ public final class KafkaValidator extends AbstractProtocolValidator {
         }
     }
 
-    private static void validateSpecificConfigs(final Connection connection, final DittoHeaders dittoHeaders) {
-        for (final KafkaSpecificConfig specificConfig : SPECIFIC_CONFIGS) {
+    private void validateSpecificConfigs(final Connection connection, final DittoHeaders dittoHeaders) {
+        for (final KafkaSpecificConfig specificConfig : specificConfigs) {
             if (specificConfig.isApplicable(connection)) {
                 specificConfig.validateOrThrow(connection, dittoHeaders);
             }

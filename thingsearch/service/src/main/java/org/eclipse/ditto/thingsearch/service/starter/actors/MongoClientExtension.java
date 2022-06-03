@@ -35,8 +35,8 @@ import akka.actor.Extension;
  */
 public final class MongoClientExtension implements Extension {
 
-    private static final String SEARCH_PREFIX = "search";
-    private static final String UPDATER_PREFIX = "updater";
+    private static final String SEARCH_PREFIX = "wildcard_search";
+    private static final String UPDATER_PREFIX = "wildcard_updater";
     private static final Id EXTENSION_ID = new Id();
 
     private final DittoMongoClient mongoClient;

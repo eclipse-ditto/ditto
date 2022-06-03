@@ -32,8 +32,8 @@ import org.eclipse.ditto.connectivity.model.LogEntry;
 import org.eclipse.ditto.connectivity.model.LogLevel;
 import org.eclipse.ditto.connectivity.model.LogType;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.ConnectionMonitor;
-import org.eclipse.ditto.internal.utils.akka.logging.DittoLogger;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
+import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLogger;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.komamitsu.fluency.BufferFullException;
 import org.komamitsu.fluency.EventTime;
@@ -46,7 +46,8 @@ import org.komamitsu.fluency.Fluency;
 final class FluentPublishingConnectionLogger
         extends AbstractConnectionLogger<FluentPublishingConnectionLogger.Builder, FluentPublishingConnectionLogger> {
 
-    private static final DittoLogger LOGGER = DittoLoggerFactory.getLogger(FluentPublishingConnectionLogger.class);
+    private static final ThreadSafeDittoLogger LOGGER =
+            DittoLoggerFactory.getThreadSafeLogger(FluentPublishingConnectionLogger.class);
 
     private static final String TAG_CONNECTION_ID = "connectionId";
 

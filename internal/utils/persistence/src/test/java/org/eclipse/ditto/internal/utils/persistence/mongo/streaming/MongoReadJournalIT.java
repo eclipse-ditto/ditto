@@ -20,7 +20,6 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.bson.BsonArray;
@@ -400,7 +399,7 @@ public final class MongoReadJournalIT {
                 readJournal.getSmallestEventSeqNo("pid2"),
                 readJournal.getSmallestEventSeqNo("pid3"))
                 .flatMap(source -> source.runWith(Sink.seq(), materializer).toCompletableFuture().join().stream())
-                .collect(Collectors.toList());
+                .toList();
 
         assertThat(lowestSeqNrs).containsExactly(Optional.of(1L), Optional.of(1L), Optional.empty());
     }
@@ -417,7 +416,7 @@ public final class MongoReadJournalIT {
                 readJournal.deleteEvents("pid3", 0, 1))
                 .flatMap(source -> source.runWith(Sink.seq(), materializer).toCompletableFuture().join().stream())
                 .map(DeleteResult::getDeletedCount)
-                .collect(Collectors.toList());
+                .toList();
 
         assertThat(lowestSeqNrs).containsExactly(1L, 1L, 0L);
     }
@@ -444,7 +443,7 @@ public final class MongoReadJournalIT {
                 readJournal.getSmallestSnapshotSeqNo("pid2"),
                 readJournal.getSmallestSnapshotSeqNo("pid3"))
                 .flatMap(source -> source.runWith(Sink.seq(), materializer).toCompletableFuture().join().stream())
-                .collect(Collectors.toList());
+                .toList();
 
         assertThat(lowestSeqNrs).containsExactly(Optional.of(1L), Optional.of(1L), Optional.empty());
     }
@@ -477,7 +476,7 @@ public final class MongoReadJournalIT {
                 readJournal.deleteSnapshots("pid3", 0, 1))
                 .flatMap(source -> source.runWith(Sink.seq(), materializer).toCompletableFuture().join().stream())
                 .map(DeleteResult::getDeletedCount)
-                .collect(Collectors.toList());
+                .toList();
 
         assertThat(lowestSeqNrs).containsExactly(1L, 1L, 0L);
     }
@@ -533,7 +532,7 @@ public final class MongoReadJournalIT {
         }
 
         private JournalEntry withTags(final Collection<String> tags) {
-            final BsonArray bsonTags = new BsonArray(tags.stream().map(BsonString::new).collect(Collectors.toList()));
+            final BsonArray bsonTags = new BsonArray(tags.stream().map(BsonString::new).toList());
             document.append("_tg", bsonTags);
             final BsonDocument event = (BsonDocument) document.get("events", List.class).get(0);
             event.append("_tg", bsonTags);

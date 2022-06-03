@@ -19,7 +19,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.UnaryOperator;
-import java.util.stream.Collectors;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.connectivity.api.ExternalMessage;
@@ -119,7 +118,7 @@ final class WrappingMessageMapper implements MessageMapper {
 
         return externalMessages.stream()
                 .map(markAsResponse)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private <T> List<T> checkMaxMappedMessagesLimit(final List<T> mappingResult, final int maxMappedMessages,

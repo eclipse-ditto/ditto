@@ -62,6 +62,7 @@ import org.eclipse.ditto.thingsearch.model.SortOption;
 import org.eclipse.ditto.thingsearch.model.SortOptionEntry;
 import org.eclipse.ditto.rql.parser.thingsearch.RqlOptionParser;
 import org.eclipse.ditto.thingsearch.service.common.model.ResultList;
+import org.eclipse.ditto.thingsearch.service.common.model.TimestampedThingId;
 import org.eclipse.ditto.thingsearch.service.persistence.write.mapping.JsonToBson;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.thingsearch.model.signals.commands.exceptions.InvalidOptionException;
@@ -454,7 +455,7 @@ final class ThingsSearchCursor {
     static SearchResult processSearchResult(final QueryThings queryThings,
             @Nullable final ThingsSearchCursor cursor,
             final SearchResult searchResult,
-            final ResultList<ThingId> resultList) {
+            final ResultList<?> resultList) {
 
         if (!findAll(LimitOption.class, getOptions(queryThings)).isEmpty()) {
             // do not deliver cursor if "limit" is specified

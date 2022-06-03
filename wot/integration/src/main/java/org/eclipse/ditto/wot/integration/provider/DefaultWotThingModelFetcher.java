@@ -49,6 +49,7 @@ import akka.http.javadsl.model.HttpResponse;
 import akka.http.javadsl.model.MediaRanges;
 import akka.http.javadsl.model.MediaTypes;
 import akka.http.javadsl.model.headers.Accept;
+import akka.http.javadsl.model.headers.Location;
 import akka.stream.Materializer;
 import akka.stream.SystemMaterializer;
 import akka.stream.javadsl.Sink;
@@ -124,8 +125,26 @@ final class DefaultWotThingModelFetcher implements WotThingModelFetcher {
 
     private CompletionStage<HttpResponse> getThingModelFromUrl(final URL url) {
         return httpClient.createSingleHttpRequest(HttpRequest.GET(url.toString()).withHeaders(List.of(ACCEPT_HEADER)))
+                .thenCompose(response -> {
+                    if (response.status().isRedirection()) {
+                        return response.getHeader(Location.class)
+                                .map(location -> {
+                                    try {
+                                        LOGGER.debug("Following redirect to location: <{}>", location);
+                                        return new URL(location.getUri().toString());
+                                    } catch (final MalformedURLException e) {
+                                        throw DittoRuntimeException.asDittoRuntimeException(e,
+                                                cause -> handleUnexpectedException(cause, url));
+                                    }
+                                })
+                                .map(this::getThingModelFromUrl) // recurse following the redirect
+                                .orElseGet(() -> CompletableFuture.completedFuture(response));
+                    } else {
+                        return CompletableFuture.completedFuture(response);
+                    }
+                })
                 .thenApply(response -> {
-                    if (!response.status().isSuccess()) {
+                    if (!response.status().isSuccess() || response.status().isRedirection()) {
                         handleNonSuccessResponse(response, url);
                     }
                     return response;
@@ -142,8 +161,10 @@ final class DefaultWotThingModelFetcher implements WotThingModelFetcher {
         return bodyFuture
                 .thenApply(ThingModel::fromJson)
                 .exceptionally(t -> {
-                    LOGGER.warn("Failed to extract ThingModel from body <{}>", bodyFuture);
+                    LOGGER.warn("Failed to extract ThingModel from response <{}> because of <{}: {}>", response,
+                            t.getClass().getSimpleName(), t.getMessage());
                     throw WotThingModelInvalidException.newBuilder(url)
+                            .cause(t)
                             .build();
                 });
     }

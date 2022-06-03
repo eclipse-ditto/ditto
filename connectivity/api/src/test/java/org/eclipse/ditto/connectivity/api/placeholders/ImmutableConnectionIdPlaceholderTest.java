@@ -16,7 +16,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
 
 import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.junit.Test;
@@ -46,13 +45,13 @@ public final class ImmutableConnectionIdPlaceholderTest {
     @Test
     public void resolve() {
         final String expectedResolvingResult = "myTestId";
-        final Optional<String> result = underTest.resolve(ConnectionId.of(expectedResolvingResult), "id");
-        assertThat(result).contains(expectedResolvingResult);
+        final List<String> result = underTest.resolveValues(ConnectionId.of(expectedResolvingResult), "id");
+        assertThat(result).containsExactly(expectedResolvingResult);
     }
 
     @Test
     public void resolveWithUnsupportedPlaceholder() {
-        final Optional<String> result = underTest.resolve(ConnectionId.of("myTestId"), "unsupported");
+        final List<String> result = underTest.resolveValues(ConnectionId.of("myTestId"), "unsupported");
         assertThat(result).isEmpty();
     }
 

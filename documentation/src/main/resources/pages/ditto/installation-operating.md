@@ -136,7 +136,7 @@ The configured subject-issuer will be used to prefix the value of each individua
   "subjects": {
     "<provider>:<auth-subject-0>": {
       "type": "generated"
-    }
+    },
     ...
     "<provider>:<auth-subject-n>": {
       "type": "generated"
@@ -243,7 +243,7 @@ or `pre-authenticated:service`. `*` will match any number of characters, and `?`
 Gathering logs for a running Ditto installation can be achieved by:
 
 * sending logs to STDOUT/STDERR: this is the default
-   * can be disabled by setting the environment variable `DITTO_LOGGING_DISABLE_SYSOUT_LOG`
+   * can be disabled by setting the environment variable `DITTO_LOGGING_DISABLE_SYSOUT_LOG` to `true`
    * Benefits: simple, works with all Docker logging drivers (e.g. "awslogs", "splunk", etc.)
 
 * pushing logs into ELK stack: this can be done by setting the environment variable `DITTO_LOGGING_LOGSTASH_SERVER`
@@ -254,10 +254,11 @@ Gathering logs for a running Ditto installation can be achieved by:
      variables. It is also possible to clean up old log files and archives at start up.
      In case `DITTO_LOGGING_TOTAL_LOG_FILE_SIZE` is used it is necessary to configure also `DITTO_LOGGING_MAX_LOG_FILE_HISTORY`.
      The detailed meaning of these config values is described in the [logback documentation](https://logback.qos.ch/manual/appenders.html#TimeBasedRollingPolicy).  
-       * `DITTO_LOGGING_FILE_NAME_PATTERN` (default: /var/log/ditto/<service-name>.log.%d{yyyy-MM-dd}.gz) - the rollover period is inferred from the fileNamePattern
-       * `DITTO_LOGGING_MAX_LOG_FILE_HISTORY` (default: 10)
-       * `DITTO_LOGGING_TOTAL_LOG_FILE_SIZE` (default: 1GB)
-       * `DITTO_LOGGING_CLEAN_HISTORY_ON_START` (default: false)
+       * `DITTO_LOGGING_FILE_APPENDER_THRESHOLD` (default: `info`) - the threshold `level` to use for logging (only greater or equal levels will be logged)
+       * `DITTO_LOGGING_FILE_NAME_PATTERN` (default: `/var/log/ditto/<service-name>.log.%d{yyyy-MM-dd}.gz`) - the rollover period is inferred from the fileNamePattern
+       * `DITTO_LOGGING_MAX_LOG_FILE_HISTORY` (default: `10`)
+       * `DITTO_LOGGING_TOTAL_LOG_FILE_SIZE` (default: `1GB`)
+       * `DITTO_LOGGING_CLEAN_HISTORY_ON_START` (default: `false`)
    * the format in which logging is done is "LogstashEncoder" format - that way the logfiles may easily be imported into
      an ELK stack
    * when running Ditto in Kubernetes apply the `ditto-log-files.yaml` to your Kubernetes cluster in order to 
@@ -381,11 +382,11 @@ Response:
 ```json
 {
     "gateway": {
-        "1": {
+        "10.0.0.1": {
             "type": "devops.responses:retrieveLoggerConfig",
             "status": 200,
             "serviceName": "gateway",
-            "instance": 1,
+            "instance": "10.0.0.1",
             "loggerConfigs": [{
                 "level": "info",
                 "logger": "ROOT"
@@ -489,7 +490,7 @@ variables. Response example:
 ```json
 {
   "gateway": {
-    "1": {
+    "10.0.0.1": {
       "type": "common.responses:retrieveConfig",
       "status": 200,
       "config": {
@@ -497,8 +498,8 @@ variables. Response example:
           "PATH": "/usr/games:/usr/local/games"
         },
         "service": {
-          "instance-index": "1",
-          "service-name": "gateway"
+          "instance-id": "10.0.0.1",
+          "name": "gateway"
         },
         "vm-args": [
           "-Dfile.encoding=UTF-8"
@@ -507,7 +508,7 @@ variables. Response example:
     }
   },
   "connectivity": {
-    "1": {
+    "10.0.0.1": {
       "type": "common.responses:retrieveConfig",
       "status": 200,
       "config": {
@@ -515,8 +516,8 @@ variables. Response example:
           "CONNECTIVITY_FLUSH_PENDING_RESPONSES_TIMEOUT": "3d"
         },
         "service": {
-          "instance-index": "1",
-          "service-name": "connectivity"
+          "instance-id": "10.0.0.1",
+          "name": "connectivity"
         },
         "vm-args": [
           "-Dditto.connectivity.connection.snapshot.threshold=2"
@@ -541,21 +542,17 @@ Response example:
 
 ```json
 {
-  "gateway": {
-    "1": {
-      "type": "common.responses:retrieveConfig",
-      "status": 200,
-      "config": {
-        "cluster": {
-          "number-of-shards": 20
-        },
-        "gateway": {
-          "authentication": {
-            "devops": {
-              "password": "foobar",
-              "secured": false
-            }
-          }
+  "type": "common.responses:retrieveConfig",
+  "status": 200,
+  "config": {
+    "cluster": {
+      "number-of-shards": 20
+    },
+    "gateway": {
+      "authentication": {
+        "devops": {
+          "password": "foobar",
+          "secured": false
         }
       }
     }
@@ -730,22 +727,18 @@ The response has the following details:
 
 ```json
 {
-  "things": {
-    "1": {
-      "type": "status.responses:retrieveHealth",
-      "status": 200,
-      "statusInfo": {
-        "status": "UP",
-        "details": [
-          {
-            "INFO": {
-              "state": "RUNNING",
-              "pid": "thing:org.eclipse.ditto:fancy-thing_53"
-            }
-          }
-        ]
+  "type": "status.responses:retrieveHealth",
+  "status": 200,
+  "statusInfo": {
+    "status": "UP",
+    "details": [
+      {
+        "INFO": {
+          "state": "RUNNING",
+          "pid": "thing:org.eclipse.ditto:fancy-thing_53"
+        }
       }
-    }
+    ]
   }
 }
 ```
@@ -768,21 +761,17 @@ Response example:
 
 ```json
 {
-  "things": {
-    "1": {
-      "type": "common.responses:retrieveConfig",
-      "status": 200,
-      "config": {
-        "enabled": true,
-        "interval": "3s",
-        "quiet-period": "5m",
-        "timer-threshold": "150ms",
-        "credits-per-batch": 3,
-        "reads-per-query": 100,
-        "writes-per-credit": 100,
-        "delete-final-deleted-snapshot": false
-      }
-    }
+  "type": "common.responses:retrieveConfig",
+  "status": 200,
+  "config": {
+    "enabled": true,
+    "interval": "3s",
+    "quiet-period": "5m",
+    "timer-threshold": "150ms",
+    "credits-per-batch": 3,
+    "reads-per-query": 100,
+    "writes-per-credit": 100,
+    "delete-final-deleted-snapshot": false
   }
 }
 ```
@@ -819,21 +808,17 @@ The field `last-pid` is not a part of the configuration.
 
 ```json
 {
-  "things": {
-    "1": {
-      "type": "common.responses:modifyConfig",
-      "status": 200,
-      "config": {
-        "enabled": true,
-        "interval": "3s",
-        "quiet-period": "240d",
-        "timer-threshold": "150ms",
-        "credits-per-batch": 3,
-        "reads-per-query": 100,
-        "writes-per-credit": 100,
-        "delete-final-deleted-snapshot": false
-      }
-    }
+  "type": "common.responses:modifyConfig",
+  "status": 200,
+  "config": {
+    "enabled": true,
+    "interval": "3s",
+    "quiet-period": "240d",
+    "timer-threshold": "150ms",
+    "credits-per-batch": 3,
+    "reads-per-query": 100,
+    "writes-per-credit": 100,
+    "delete-final-deleted-snapshot": false
   }
 }
 ```
@@ -862,13 +847,9 @@ Response example:
 
 ```json
 {
-  "concierge": {
-    "1": {
-      "type": "common.responses:shutdown",
-      "status": 200,
-      "message": "Restarting stream in <PT5760H30M5S>."
-    }
-  }
+  "type": "common.responses:shutdown",
+  "status": 200,
+  "message": "Restarting stream in <PT5760H30M5S>."
 }
 ```
 
@@ -898,13 +879,9 @@ Response example:
 
 ```json
 {
-  "things": {
-    "1": {
-      "type": "cleanup.responses:cleanupPersistence",
-      "status": 200,
-      "entityId": "thing:ditto:thing1"
-    }
-  }
+  "type": "cleanup.responses:cleanupPersistence",
+  "status": 200,
+  "entityId": "thing:ditto:thing1"
 }
 ```
 
@@ -1001,14 +978,10 @@ or until you proceed with [step 4](#unblock-messages-to-a-namespace), which unbl
 
 ```json
 {
-  "?": {
-    "?": {
-      "type": "namespaces.responses:blockNamespace",
-      "status": 200,
-      "namespace": "namespaceToBlock",
-      "resourceType": "namespaces"
-    }
-  }
+  "type": "namespaces.responses:blockNamespace",
+  "status": 200,
+  "namespace": "namespaceToBlock",
+  "resourceType": "namespaces"
 }
 ```
 
@@ -1120,13 +1093,9 @@ A response will come once the namespace's blockade is released on all members of
 
 ```json
 {
-  "?": {
-    "?": {
-      "type": "namespaces.responses:unblockNamespace",
-      "status": 200,
-      "namespace": "namespaceToUnblock",
-      "resourceType": "namespaces"
-    }
-  }
+  "type": "namespaces.responses:unblockNamespace",
+  "status": 200,
+  "namespace": "namespaceToUnblock",
+  "resourceType": "namespaces"
 }
 ```

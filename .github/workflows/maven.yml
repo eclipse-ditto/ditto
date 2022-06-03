@@ -29,9 +29,9 @@ jobs:
       - name: Set up JDK 17
         uses: actions/setup-java@v2
         with:
-          distribution: 'zulu'
+          distribution: 'temurin'
           java-version: 17
           cache: 'maven'
 
       - name: Build with Maven
-        run: mvn package javadoc:jar source:jar --batch-mode --errors --quiet -DcreateJavadoc=true -Dakka.test.single-expect-default=10s --file pom.xml
+        run: mvn package javadoc:jar source:jar --batch-mode --errors --quiet -DcreateJavadoc=true -Dakka.test.single-expect-default=10s --file pom.xml -Dbuild.environment=Github

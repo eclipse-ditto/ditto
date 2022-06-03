@@ -22,7 +22,6 @@ import java.time.Duration;
 import org.assertj.core.api.JUnitSoftAssertions;
 import org.eclipse.ditto.base.service.config.supervision.DefaultExponentialBackOffConfig;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 
@@ -36,7 +35,6 @@ import nl.jqno.equalsverifier.EqualsVerifier;
  * Unit tests for {@link DefaultPersistenceStreamConfig}.
  */
 public final class DefaultPersistenceStreamConfigTest {
-
 
     private static Config config;
 
@@ -66,10 +64,6 @@ public final class DefaultPersistenceStreamConfigTest {
     public void underTestReturnsDefaultValuesIfBaseConfigWasEmpty() {
         final PersistenceStreamConfig underTest = DefaultPersistenceStreamConfig.of(ConfigFactory.empty());
 
-        softly.assertThat(underTest.getMaxBulkSize())
-                .as(PersistenceStreamConfigValue.MAX_BULK_SIZE.getConfigPath())
-                .isEqualTo(PersistenceStreamConfigValue.MAX_BULK_SIZE.getDefaultValue());
-
         softly.assertThat(underTest.getAckDelay())
                 .as(PersistenceStreamConfigValue.ACK_DELAY.getConfigPath())
                 .isEqualTo(PersistenceStreamConfigValue.ACK_DELAY.getDefaultValue());
@@ -91,10 +85,6 @@ public final class DefaultPersistenceStreamConfigTest {
     @Test
     public void underTestReturnsValuesOfConfigFile() {
         final PersistenceStreamConfig underTest = DefaultPersistenceStreamConfig.of(config);
-
-        softly.assertThat(underTest.getMaxBulkSize())
-                .as(PersistenceStreamConfigValue.MAX_BULK_SIZE.getConfigPath())
-                .isEqualTo(65);
 
         softly.assertThat(underTest.getAckDelay())
                 .as(PersistenceStreamConfigValue.ACK_DELAY.getConfigPath())

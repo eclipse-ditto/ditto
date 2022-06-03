@@ -14,7 +14,6 @@ package org.eclipse.ditto.thingsearch.service.persistence.write.streaming;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -24,16 +23,15 @@ import java.util.stream.IntStream;
 import org.bson.BsonDocument;
 import org.bson.BsonString;
 import org.eclipse.ditto.base.model.common.HttpStatus;
-import org.eclipse.ditto.base.model.signals.ShardedMessageEnvelope;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.things.model.ThingId;
-import org.eclipse.ditto.thingsearch.api.commands.sudo.UpdateThingResponse;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.AbstractWriteModel;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.Metadata;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.ThingDeleteModel;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.ThingWriteModel;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.WriteResultAndErrors;
+import org.eclipse.ditto.thingsearch.service.updater.actors.MongoWriteModel;
 import org.junit.After;
 import org.junit.Test;
 
@@ -45,6 +43,7 @@ import com.mongodb.bulk.BulkWriteResult;
 import com.mongodb.bulk.BulkWriteUpsert;
 
 import akka.actor.ActorSystem;
+import akka.japi.Pair;
 import akka.stream.javadsl.Sink;
 import akka.stream.javadsl.Source;
 import akka.testkit.TestProbe;
@@ -56,8 +55,6 @@ import akka.testkit.javadsl.TestKit;
 public final class BulkWriteResultAckFlowTest {
 
     private final ActorSystem actorSystem = ActorSystem.create();
-    private final TestProbe updaterShardProbe = TestProbe.apply("updater", actorSystem);
-    private final BulkWriteResultAckFlow underTest = BulkWriteResultAckFlow.of(updaterShardProbe.ref());
 
     @After
     public void stopActorSystem() {
@@ -66,24 +63,27 @@ public final class BulkWriteResultAckFlowTest {
 
     @Test
     public void allSuccess() {
-        final List<AbstractWriteModel> writeModels = generate5WriteModels();
+        final List<MongoWriteModel> writeModels = generate5WriteModels();
         final BulkWriteResult result = BulkWriteResult.acknowledged(0, 3, 1, 1,
                 List.of(new BulkWriteUpsert(0, new BsonString("upsert 0")),
-                        new BulkWriteUpsert(4, new BsonString("upsert 4")))
+                        new BulkWriteUpsert(4, new BsonString("upsert 4"))),
+                List.of()
         );
 
         // WHEN
         final WriteResultAndErrors resultAndErrors = WriteResultAndErrors.success(writeModels, result, "correlation");
-        final String message = runBulkWriteResultAckFlowAndGetFirstLogEntry(resultAndErrors);
+        final var report = runBulkWriteResultAckFlow(resultAndErrors);
 
         // THEN
-        actorSystem.log().info(message);
-        assertThat(message).contains("Acknowledged: Success");
+        for (final var message : getMessages(report)) {
+            actorSystem.log().info(message);
+            assertThat(message).contains("Acknowledged: Success");
+        }
     }
 
     @Test
     public void partialSuccess() {
-        final List<AbstractWriteModel> writeModels = generate5WriteModels();
+        final List<MongoWriteModel> writeModels = generate5WriteModels();
         final BulkWriteResult result = BulkWriteResult.acknowledged(1, 2, 1, 2, List.of(), List.of());
         final List<BulkWriteError> updateFailure = List.of(
                 new BulkWriteError(11000, "E11000 duplicate key error", new BsonDocument(), 3),
@@ -93,41 +93,37 @@ public final class BulkWriteResultAckFlowTest {
         // WHEN: BulkWriteResultAckFlow receives partial update success with errors, one of which is not duplicate key
         final WriteResultAndErrors resultAndErrors = WriteResultAndErrors.failure(writeModels,
                 new MongoBulkWriteException(result, updateFailure, null, new ServerAddress(), Set.of()), "correlation");
-        final String message = runBulkWriteResultAckFlowAndGetFirstLogEntry(resultAndErrors);
+        final var report = runBulkWriteResultAckFlow(resultAndErrors);
+        final var message = report.get(0).second().get(0);
 
         // THEN: the non-duplicate-key error triggers a failure acknowledgement
         actorSystem.log().info(message);
-        assertThat(expectUpdateThingResponse(writeModels.get(4).getMetadata().getThingId()))
-                .describedAs("response is failure")
-                .returns(false, UpdateThingResponse::isSuccess);
         assertThat(message).contains("Acknowledged: PartialSuccess");
+        assertThat(report.get(0).first()).isEqualTo(BulkWriteResultAckFlow.Status.WRITE_ERROR);
     }
 
     @Test
     public void unexpectedMongoSocketReadException() {
-        final List<AbstractWriteModel> writeModels = generate5WriteModels();
+        final List<MongoWriteModel> writeModels = generate5WriteModels();
 
         // WHEN: BulkWriteResultAckFlow receives unexpected error
         final WriteResultAndErrors resultAndErrors = WriteResultAndErrors.unexpectedError(writeModels,
                 new MongoSocketReadException("Gee, database is down. Whatever shall I do?", new ServerAddress(),
                         new IllegalMonitorStateException("Unsupported resolution")), "correlation");
-        final String message = runBulkWriteResultAckFlowAndGetFirstLogEntry(resultAndErrors);
+        final var report = runBulkWriteResultAckFlow(resultAndErrors);
+        final var message = report.get(0).second().get(0);
 
         // THEN: all ThingUpdaters receive negative acknowledgement.
         actorSystem.log().info(message);
-        for (final AbstractWriteModel writeModel : writeModels) {
-            assertThat(expectUpdateThingResponse(writeModel.getMetadata().getThingId()))
-                    .describedAs("response is failure")
-                    .returns(false, UpdateThingResponse::isSuccess);
-        }
         assertThat(message).contains("NotAcknowledged: UnexpectedError", "MongoSocketReadException");
+        assertThat(report.get(0).first()).isEqualTo(BulkWriteResultAckFlow.Status.UNACKNOWLEDGED);
     }
 
     // test that indices in bulk write errors are all within bounds.
     // upsert indexes are not checked since they do not participate in acknowledgement handling.
     @Test
     public void errorIndexOutOfBoundError() {
-        final List<AbstractWriteModel> writeModels = generate5WriteModels();
+        final List<MongoWriteModel> writeModels = generate5WriteModels();
         final BulkWriteResult result = BulkWriteResult.acknowledged(1, 2, 1, 2, List.of(), List.of());
         final List<BulkWriteError> updateFailure = List.of(
                 new BulkWriteError(11000, "E11000 duplicate key error", new BsonDocument(), 0),
@@ -137,22 +133,20 @@ public final class BulkWriteResultAckFlowTest {
         // WHEN: BulkWriteResultAckFlow receives partial update success with at least 1 error with out-of-bound index
         final WriteResultAndErrors resultAndErrors = WriteResultAndErrors.failure(writeModels,
                 new MongoBulkWriteException(result, updateFailure, null, new ServerAddress(), Set.of()), "correlation");
-        final String message = runBulkWriteResultAckFlowAndGetFirstLogEntry(resultAndErrors);
+        final var report = runBulkWriteResultAckFlow(resultAndErrors);
+        final var message = report.get(0).second().get(0);
 
         // THEN: All updates are considered failures
         actorSystem.log().info(message);
-        for (final AbstractWriteModel writeModel : writeModels) {
-            final UpdateThingResponse response = expectUpdateThingResponse(writeModel.getMetadata().getThingId());
-            assertThat(response).describedAs("response is failure").returns(false, UpdateThingResponse::isSuccess);
-        }
         assertThat(message).contains("ConsistencyError[indexOutOfBound]");
+        assertThat(report.get(0).first()).isEqualTo(BulkWriteResultAckFlow.Status.CONSISTENCY_ERROR);
     }
 
     @Test
     public void acknowledgements() {
         final List<TestProbe> probes =
                 IntStream.range(0, 5).mapToObj(i -> TestProbe.apply(actorSystem)).collect(Collectors.toList());
-        final List<AbstractWriteModel> writeModels = generateWriteModels(probes);
+        final List<MongoWriteModel> writeModels = generateWriteModels(probes);
         final BulkWriteResult result = BulkWriteResult.acknowledged(1, 2, 1, 2, List.of(), List.of());
         final List<BulkWriteError> updateFailure = List.of(
                 new BulkWriteError(11000, "E11000 duplicate key error", new BsonDocument(), 3),
@@ -162,7 +156,7 @@ public final class BulkWriteResultAckFlowTest {
         // WHEN: BulkWriteResultAckFlow receives partial update success with errors, one of which is not duplicate key
         final WriteResultAndErrors resultAndErrors = WriteResultAndErrors.failure(writeModels,
                 new MongoBulkWriteException(result, updateFailure, null, new ServerAddress(), Set.of()), "correlation");
-        runBulkWriteResultAckFlowAndGetFirstLogEntry(resultAndErrors);
+        runBulkWriteResultAckFlow(resultAndErrors);
 
         // THEN: only the non-duplicate-key sender receives negative acknowledgement
         assertThat(probes.get(0).expectMsgClass(Acknowledgement.class).getHttpStatus())
@@ -177,45 +171,44 @@ public final class BulkWriteResultAckFlowTest {
                 .isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
-    private String runBulkWriteResultAckFlowAndGetFirstLogEntry(final WriteResultAndErrors writeResultAndErrors) {
+    private List<String> getMessages(final List<Pair<BulkWriteResultAckFlow.Status, List<String>>> report) {
+        final var messages = report.stream().flatMap(pair -> pair.second().stream()).toList();
+        assertThat(messages).isNotEmpty();
+        return messages;
+    }
+
+    private List<Pair<BulkWriteResultAckFlow.Status, List<String>>> runBulkWriteResultAckFlow(
+            final WriteResultAndErrors writeResultAndErrors) {
         return Source.single(writeResultAndErrors)
-                .via(underTest.start(Duration.ZERO))
-                .runWith(Sink.head(), actorSystem)
+                .via(BulkWriteResultAckFlow.start())
+                .runWith(Sink.seq(), actorSystem)
                 .toCompletableFuture()
                 .join();
     }
 
-    private List<AbstractWriteModel> generate5WriteModels() {
+    private List<MongoWriteModel> generate5WriteModels() {
         return generateWriteModels(
                 IntStream.range(0, 5).mapToObj(i -> TestProbe.apply(actorSystem)).collect(Collectors.toList()));
     }
 
-    private List<AbstractWriteModel> generateWriteModels(final List<TestProbe> probes) {
+    private List<MongoWriteModel> generateWriteModels(final List<TestProbe> probes) {
         final int howMany = probes.size();
-        final List<AbstractWriteModel> writeModels = new ArrayList<>(howMany);
+        final List<MongoWriteModel> writeModels = new ArrayList<>(howMany);
         for (int i = 0; i < howMany; ++i) {
             final ThingId thingId = ThingId.of("thing", String.valueOf(i));
-            final long thingRevision = i * 10;
+            final long thingRevision = i * 10L;
             final PolicyId policyId = i % 4 < 2 ? null : PolicyId.of("policy", String.valueOf(i));
-            final long policyRevision = i * 100;
+            final long policyRevision = i * 100L;
             final Metadata metadata =
                     Metadata.of(thingId, thingRevision, policyId, policyRevision, List.of(), null, probes.get(i).ref());
+            final AbstractWriteModel abstractModel;
             if (i % 2 == 0) {
-                writeModels.add(ThingDeleteModel.of(metadata));
+                abstractModel = ThingDeleteModel.of(metadata);
             } else {
-                writeModels.add(ThingWriteModel.of(metadata, new BsonDocument()));
+                abstractModel = ThingWriteModel.of(metadata, new BsonDocument());
             }
+            writeModels.add(MongoWriteModel.of(abstractModel, abstractModel.toMongo(), false));
         }
         return writeModels;
     }
-
-    private UpdateThingResponse expectUpdateThingResponse(final ThingId forWhom) {
-        final ShardedMessageEnvelope envelope = updaterShardProbe.expectMsgClass(ShardedMessageEnvelope.class);
-        assertThat(envelope.getType()).describedAs("ShardedMessageEnvelope#getType")
-                .isEqualTo(UpdateThingResponse.TYPE);
-        assertThat((CharSequence) envelope.getEntityId()).describedAs("ShardedMessageEnvelope#getEntityId")
-                .isEqualTo(forWhom);
-        return UpdateThingResponse.fromJson(envelope.getMessage(), envelope.getDittoHeaders());
-    }
-
 }

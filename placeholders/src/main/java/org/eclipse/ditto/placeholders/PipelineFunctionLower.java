@@ -14,7 +14,6 @@ package org.eclipse.ditto.placeholders;
 
 import java.util.Collections;
 import java.util.List;
-import java.util.stream.Stream;
 
 import javax.annotation.concurrent.Immutable;
 
@@ -43,13 +42,6 @@ final class PipelineFunctionLower implements PipelineFunction {
         // check if signature matches (empty params!)
         validateOrThrow(paramsIncludingParentheses);
         return element.map(String::toLowerCase);
-    }
-
-    @Override
-    public Stream<PipelineElement> applyStreaming(final PipelineElement element, final String paramsIncludingParentheses,
-            final ExpressionResolver expressionResolver) {
-
-        return Stream.of(apply(element, paramsIncludingParentheses, expressionResolver));
     }
 
     private void validateOrThrow(final String paramsIncludingParentheses) {

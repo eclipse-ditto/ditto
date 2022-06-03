@@ -155,7 +155,7 @@ public final class OutboundMappingProcessor extends AbstractMappingProcessor<Out
                     .stream()
                     .map(e -> OutboundSignalFactory.newMappableOutboundSignal(outboundSignal.getSource(), e.getValue(),
                             e.getKey()))
-                    .collect(Collectors.toList());
+                    .toList();
         }
         return processMappableSignals(outboundSignal, mappableSignals);
     }

@@ -77,6 +77,15 @@ abstract class AbstractPolicyMappingStrategies<T extends Jsonifiable.WithPredica
         return PoliciesModelFactory.newPolicy(value);
     }
 
+    protected static JsonObject policyJsonFrom(final Adaptable adaptable) {
+        return adaptable.getPayload()
+                .getValue()
+                .filter(JsonValue::isObject)
+                .map(JsonValue::asObject)
+                .orElseThrow(
+                        () -> new NullPointerException("Payload value must be a non-null object."));
+    }
+
     /**
      * Policy entry from policy entry.
      *

@@ -119,17 +119,19 @@ public final class PoliciesRoute extends AbstractRoute {
     private Route policyId(final RequestContext ctx, final DittoHeaders dittoHeaders, final PolicyId policyId) {
         return pathEndOrSingleSlash(() ->
                 concat(
-                        get(() -> // GET /policies/<policyId>
-                                handlePerRequest(ctx, RetrievePolicy.of(policyId, dittoHeaders))
-                        ),
+                        // GET /policies/<policyId>?fields=<fieldsString>
+                        get(() -> parameterOptional(PoliciesParameter.FIELDS.toString(), fieldsString ->
+                                handlePerRequest(ctx, RetrievePolicy.of(policyId, dittoHeaders,
+                                        calculateSelectedFields(fieldsString).orElse(null)))
+                        )),
                         put(() -> // PUT /policies/<policyId>
                                 ensureMediaTypeJsonWithFallbacksThenExtractDataBytes(ctx, dittoHeaders,
                                         payloadSource ->
                                                 handlePerRequest(ctx, dittoHeaders, payloadSource,
                                                         policyJson -> ModifyPolicy
                                                                 .of(policyId, PoliciesModelFactory.newPolicy(
-                                                                                createPolicyJsonObjectForPut(policyJson,
-                                                                                        policyId)),
+                                                                        createPolicyJsonObjectForPut(policyJson,
+                                                                                policyId)),
                                                                         dittoHeaders)
                                                 )
                                 )

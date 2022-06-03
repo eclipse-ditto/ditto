@@ -20,7 +20,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 
 import org.eclipse.ditto.base.model.acks.AcknowledgementLabel;
 import org.eclipse.ditto.base.model.acks.AcknowledgementRequest;
@@ -117,7 +116,7 @@ public final class OutboundMappingProcessorActorTest {
             final List<String> ackLabels = acks.getSuccessfulAcknowledgements()
                     .stream()
                     .map(ack -> ack.getLabel().toString())
-                    .collect(Collectors.toList());
+                    .toList();
             assertThat(ackLabels).containsExactlyInAnyOrder("source1", "target1", "target2");
             acks.forEach(ack -> assertThat(ack.isWeak()).describedAs("Expect weak ack, got: " + ack).isTrue());
         }};
@@ -143,7 +142,7 @@ public final class OutboundMappingProcessorActorTest {
             final List<String> fackLabels = acks.getFailedAcknowledgements()
                     .stream()
                     .map(ack -> ack.getLabel().toString())
-                    .collect(Collectors.toList());
+                    .toList();
             assertThat(fackLabels).containsExactlyInAnyOrder("target2");
         }};
     }
@@ -172,7 +171,7 @@ public final class OutboundMappingProcessorActorTest {
             final List<String> ackLabels = acks.getSuccessfulAcknowledgements()
                     .stream()
                     .map(ack -> ack.getLabel().toString())
-                    .collect(Collectors.toList());
+                    .toList();
             assertThat(ackLabels).containsExactlyInAnyOrder("target2");
             acks.forEach(ack -> assertThat(ack.isWeak()).describedAs("Expect weak ack, got: " + ack).isTrue());
         }};
@@ -200,7 +199,7 @@ public final class OutboundMappingProcessorActorTest {
             final List<String> ackLabels = acks.getSuccessfulAcknowledgements()
                     .stream()
                     .map(ack -> ack.getLabel().toString())
-                    .collect(Collectors.toList());
+                    .toList();
             assertThat(ackLabels).containsExactlyInAnyOrder("target3");
             acks.forEach(ack -> assertThat(ack.isWeak()).describedAs("Expect weak ack, got: " + ack).isTrue());
         }};
@@ -228,7 +227,7 @@ public final class OutboundMappingProcessorActorTest {
             final List<String> ackLabels = acks.getSuccessfulAcknowledgements()
                     .stream()
                     .map(ack -> ack.getLabel().toString())
-                    .collect(Collectors.toList());
+                    .toList();
             assertThat(ackLabels).containsExactlyInAnyOrder("target3");
         }};
     }
@@ -274,7 +273,7 @@ public final class OutboundMappingProcessorActorTest {
         final ThingModified thingModified = ThingModified.of(thing, 2L, Instant.EPOCH, DittoHeaders.newBuilder()
                         .acknowledgementRequests(requestedAcks.stream()
                                 .map(AcknowledgementRequest::parseAcknowledgementRequest)
-                                .collect(Collectors.toList()))
+                                .toList())
                         .build(),
                 Metadata.newMetadata(JsonObject.empty()));
         return OutboundSignalFactory.newOutboundSignal(thingModified, targets);

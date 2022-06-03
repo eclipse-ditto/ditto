@@ -44,11 +44,11 @@
         </then>
     </if>
 
-    <if condition='isDefined("DITTO_LOGGING_FILE_APPENDER")'>
+    <if condition='property("DITTO_LOGGING_FILE_APPENDER").equals("true")'>
         <then>
             <appender name="file" class="ch.qos.logback.core.rolling.RollingFileAppender">
                 <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
-                    <level>info</level>
+                    <level>${DITTO_LOGGING_FILE_APPENDER_THRESHOLD:-info}</level>
                 </filter>
                 <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
                     <!-- The rollover period is inferred from the fileNamePattern -->
@@ -69,6 +69,7 @@
 
     <logger name="akka.management.cluster.bootstrap.contactpoint.HttpClusterBootstrapRoutes" level="WARN"/>
     <logger name="akka.management.cluster.bootstrap.internal.BootstrapCoordinator" level="WARN"/>
+    <logger name="akka.actor.CoordinatedShutdown" level="DEBUG"/>
 
     <!-- Log level for the application -->
     <logger name="org.eclipse.ditto" level="${LOG_LEVEL_APPLICATION:-INFO}"/>
@@ -76,10 +77,21 @@
 
     <root level="${LOG_LEVEL:-INFO}">
         <!-- Logging INFO messages can be disabled by setting environment variable -->
-        <if condition='isNull("DITTO_LOGGING_DISABLE_SYSOUT_LOG")'>
+        <if condition='isDefined("DITTO_LOGGING_DISABLE_SYSOUT_LOG")'>
             <then>
-                <appender-ref ref="STDOUT"/>
+                <if condition='property("DITTO_LOGGING_DISABLE_SYSOUT_LOG").equals("true")'>
+                    <then>
+                        <!-- don't use the "STDOUT" appender -->
+                    </then>
+                    <else>
+                        <appender-ref ref="STDOUT"/>
+                    </else>
+                </if>
             </then>
+            <else>
+                <!-- if not defined, assume logging to STDOUT is desired -->
+                <appender-ref ref="STDOUT"/>
+            </else>
         </if>
 
         <!-- Always log ERRORs to syserr -->
@@ -91,7 +103,7 @@
             </then>
         </if>
 
-        <if condition='isDefined("DITTO_LOGGING_FILE_APPENDER")'>
+        <if condition='property("DITTO_LOGGING_FILE_APPENDER").equals("true")'>
             <then>
                 <appender-ref ref="file"/>
             </then>

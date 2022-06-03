@@ -54,6 +54,7 @@ import org.eclipse.ditto.connectivity.model.signals.commands.modify.TestConnecti
 import org.eclipse.ditto.connectivity.service.config.Amqp10Config;
 import org.eclipse.ditto.connectivity.service.config.ClientConfig;
 import org.eclipse.ditto.connectivity.service.config.ConnectionConfig;
+import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.messaging.BaseClientActor;
 import org.eclipse.ditto.connectivity.service.messaging.BaseClientData;
 import org.eclipse.ditto.connectivity.service.messaging.amqp.status.ConnectionFailureStatusReport;
@@ -122,7 +123,7 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
      */
     @SuppressWarnings("unused")
     private AmqpClientActor(final Connection connection,
-            ActorRef proxyActor,
+            final ActorRef proxyActor,
             final ActorRef connectionActor,
             final Config connectivityConfigOverwrites,
             final DittoHeaders dittoHeaders) {
@@ -130,9 +131,9 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
         super(connection, proxyActor, connectionActor, dittoHeaders, connectivityConfigOverwrites);
         final ConnectionConfig connectionConfig = connectivityConfig().getConnectionConfig();
         final Amqp10Config amqp10Config = connectionConfig.getAmqp10Config();
-        this.jmsConnectionFactory =
+        jmsConnectionFactory =
                 ConnectionBasedJmsConnectionFactory.getInstance(AmqpSpecificConfig.toDefaultConfig(amqp10Config),
-                        this::getSshTunnelState, getContext().getSystem());
+                        this::getSshTunnelState, getContext().getSystem(), connectionConfig.doubleDecodingEnabled());
         connectionListener = new StatusReportingListener(getSelf(), logger, connectionLogger);
         consumerByNamePrefix = new HashMap<>();
         recoverSessionOnSessionClosed = isRecoverSessionOnSessionClosedEnabled(connection);
@@ -182,8 +183,8 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
             final ActorRef connectionActor, final Config configOverwrites, final ActorSystem actorSystem,
             final DittoHeaders dittoHeaders) {
 
-        return Props.create(AmqpClientActor.class, validateConnection(connection, actorSystem), proxyActor,
-                connectionActor, configOverwrites, dittoHeaders);
+        return Props.create(AmqpClientActor.class, validateConnection(connection, actorSystem, configOverwrites),
+                proxyActor, connectionActor, configOverwrites, dittoHeaders);
     }
 
     /**
@@ -200,18 +201,23 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
             final ActorRef connectionActor, final JmsConnectionFactory jmsConnectionFactory,
             final ActorSystem actorSystem) {
 
-        return Props.create(AmqpClientActor.class, validateConnection(connection, actorSystem),
+        return Props.create(AmqpClientActor.class, validateConnection(connection, actorSystem, ConfigFactory.empty()),
                 jmsConnectionFactory, proxyActor, connectionActor, DittoHeaders.empty());
     }
 
-    private static Connection validateConnection(final Connection connection, final ActorSystem actorSystem) {
+    private static Connection validateConnection(final Connection connection, final ActorSystem actorSystem,
+            final Config configOverwrites) {
         try {
+            final Config withOverwrites = configOverwrites.withFallback(actorSystem.settings().config());
+            final ConnectivityConfig connectivityConfig = ConnectivityConfig.of(withOverwrites);
+
             final String connectionUri = ConnectionBasedJmsConnectionFactory.buildAmqpConnectionUri(connection,
                     connection.getId().toString(),
                     // fake established tunnel state for uri validation
                     () -> SshTunnelState.from(connection).established(22222),
                     Map.of(),
-                    SaslPlainCredentialsSupplier.of(actorSystem));
+                    SaslPlainCredentialsSupplier.of(actorSystem),
+                    connectivityConfig.getConnectionConfig().doubleDecodingEnabled());
             ProviderFactory.create(URI.create(connectionUri));
             // it is safe to pass an empty map as default config as only default values are loaded via that config
             // of which we can be certain that they are always valid
@@ -251,7 +257,7 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
     protected FSMStateFunctionBuilder<BaseClientState, BaseClientData> inAnyState() {
         return super.inAnyState()
                 .event(ConnectionRestoredStatusReport.class,
-                        (report, currentData) -> this.handleConnectionRestored(currentData))
+                        (report, currentData) -> handleConnectionRestored(currentData))
                 .event(ConnectionFailureStatusReport.class, this::handleConnectionFailure)
                 .event(ConsumerClosedStatusReport.class, this::handleConsumerClosed)
                 .event(ProducerClosedStatusReport.class, this::handleProducerClosed)
@@ -270,8 +276,8 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
                     logger.withCorrelationId(testConnectionCommand)
                             .withMdcEntry(ConnectivityMdcEntryKey.CONNECTION_ID, connectionToBeTested.getId())
                             .debug("Closing AMQP 1.0 connection after testing connection.");
-                    if (response instanceof JmsConnected) {
-                        final JmsConnection connectedJmsConnection = ((JmsConnected) response).connection;
+                    if (response instanceof JmsConnected jmsConnected) {
+                        final JmsConnection connectedJmsConnection = jmsConnected.connection;
                         final JmsDisconnect jmsDisconnect = new JmsDisconnect(ActorRef.noSender(),
                                 connectedJmsConnection, true);
                         return Patterns.ask(getDisconnectConnectionHandler(connectionToBeTested), jmsDisconnect,
@@ -293,8 +299,8 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
                                                 ex.getClass().getSimpleName() + ": " + ex.getMessage() + "'")
                                         .cause(ex).build();
                         return new Status.Failure(failedException);
-                    } else if (response instanceof ConnectionFailure) {
-                        return ((ConnectionFailure) response).getFailure();
+                    } else if (response instanceof ConnectionFailure connectionFailure) {
+                        return connectionFailure.getFailure();
                     } else {
                         return new Status.Success(response);
                     }
@@ -317,13 +323,12 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
 
     @Override
     protected void allocateResourcesOnConnection(final ClientConnected clientConnected) {
-        if (clientConnected instanceof JmsConnected) {
-            final JmsConnected c = (JmsConnected) clientConnected;
+        if (clientConnected instanceof JmsConnected client) {
             logger.info("Received JmsConnected");
             ensureJmsConnectionClosed();
-            jmsConnection = c.connection;
+            jmsConnection = client.connection;
             jmsConnection.addConnectionListener(connectionListener);
-            jmsSession = c.session;
+            jmsSession = client.session;
         } else {
             logger.info(
                     "ClientConnected was not JmsConnected as expected, ignoring as this probably was a reconnection");
@@ -344,8 +349,8 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
                     .whenComplete((result, error) -> {
                         if (error != null) {
                             future.completeExceptionally(error);
-                        } else if (result instanceof Throwable) {
-                            future.completeExceptionally((Throwable) result);
+                        } else if (result instanceof Throwable throwable) {
+                            future.completeExceptionally(throwable);
                         } else {
                             future.complete(DONE);
                         }
@@ -361,10 +366,9 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
 
     @Override
     protected CompletionStage<Status.Status> startConsumerActors(@Nullable final ClientConnected clientConnected) {
-        if (clientConnected instanceof JmsConnected) {
-            final JmsConnected c = (JmsConnected) clientConnected;
+        if (clientConnected instanceof JmsConnected jmsConnected) {
             final ActorRef jmsActor = getConnectConnectionHandler(connection());
-            return startCommandConsumers(c.consumerList, jmsActor)
+            return startCommandConsumers(jmsConnected.consumerList, jmsActor)
                     .thenApply(ignored -> new Status.Success(Done.getInstance()));
         }
         return CompletableFuture.completedFuture(new Status.Success(Done.getInstance()));

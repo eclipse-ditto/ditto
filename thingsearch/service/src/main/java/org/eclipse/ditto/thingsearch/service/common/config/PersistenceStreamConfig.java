@@ -27,13 +27,6 @@ import com.mongodb.WriteConcern;
 public interface PersistenceStreamConfig extends StreamStageConfig {
 
     /**
-     * Returns the amount of write operations to perform in one bulk.
-     *
-     * @return the max bulk size.
-     */
-    int getMaxBulkSize();
-
-    /**
      * Returns the delay between DB acknowledgement and sending "search-persisted" acknowledgement.
      *
      * @return the delay.
@@ -54,11 +47,6 @@ public interface PersistenceStreamConfig extends StreamStageConfig {
      * This enumeration is a logical extension of {@link StreamStageConfig.StreamStageConfigValue}.
      */
     enum PersistenceStreamConfigValue implements KnownConfigValue {
-
-        /**
-         * The amount of write operations to perform in one bulk.
-         */
-        MAX_BULK_SIZE("max-bulk-size", 250),
 
         /**
          * Internal delay between acknowledgement from database and the sending of "search-persisted" acknowledgements.

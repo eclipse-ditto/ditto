@@ -21,7 +21,6 @@ import java.util.List;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
 
 import org.eclipse.ditto.internal.utils.persistence.mongo.indices.Index;
 import org.eclipse.ditto.internal.utils.persistence.mongo.indices.IndexOperations;
@@ -105,7 +104,7 @@ public class MongoIndexAssertions {
     private static List<Index> removeDefaultIndex(final Collection<Index> indices) {
         return indices.stream()
                 .filter(index -> !INDEX_NAME_ID.equals(index.getName()))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private static <T> T runBlocking(final CompletionStage<T> completionStage) {

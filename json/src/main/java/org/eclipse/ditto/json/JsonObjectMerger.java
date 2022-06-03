@@ -20,7 +20,7 @@ import javax.annotation.concurrent.Immutable;
  * Package-private function to merge 2 {@link org.eclipse.ditto.json.JsonObject}s into 1.
  */
 @Immutable
-final class JsonObjectMerger extends AbstractJsonMerger {
+final class JsonObjectMerger {
 
     private JsonObjectMerger() {}
 
@@ -35,7 +35,7 @@ final class JsonObjectMerger extends AbstractJsonMerger {
     public static JsonObject mergeJsonObjects(final JsonObject jsonObject1, final JsonObject jsonObject2) {
         final JsonObjectBuilder builder = JsonFactory.newObjectBuilder();
 
-        if(jsonObject1.isNull() && jsonObject2.isNull()) {
+        if (jsonObject1.isNull() && jsonObject2.isNull()) {
             return JsonFactory.nullObject();
         }
 
@@ -64,9 +64,9 @@ final class JsonObjectMerger extends AbstractJsonMerger {
 
     private static JsonValue mergeJsonValues(final JsonValue value1, final JsonValue value2) {
         final JsonValue result;
-        if (areJsonObjects(value1, value2)) {
+        if (value1.isObject() && value2.isObject()) {
             result = mergeJsonObjects(value1.asObject(), value2.asObject());
-        } else if (areJsonArrays(value1, value2)) {
+        } else if (value1.isArray() && value2.isArray()) {
             // take jsonArray from jsonObject1 - jsonArrays will not get merged
             result = value1.asArray();
         } else {
