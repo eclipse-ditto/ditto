@@ -90,7 +90,7 @@ public final class Contextual<T extends WithDittoHeaders> implements WithSender<
     static <T extends WithDittoHeaders> Contextual<T> forActor(final ActorRef self,
             final ActorSystem actorSystem,
             final ActorRef pubSubMediator,
-            final ActorRef conciergeForwarder,
+            final ActorRef commandForwarder,
             final AskWithRetryConfig askWithRetryConfig,
             final ThreadSafeDittoLoggingAdapter log) {
 
@@ -100,7 +100,7 @@ public final class Contextual<T extends WithDittoHeaders> implements WithSender<
                 actorSystem.getScheduler(),
                 actorSystem.dispatchers().lookup(POLICY_ENFORCER_CACHE_DISPATCHER),
                 pubSubMediator,
-                conciergeForwarder,
+                commandForwarder,
                 askWithRetryConfig,
                 log,
                 null,

@@ -29,13 +29,8 @@ import org.eclipse.ditto.base.model.signals.WithType;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.internal.utils.cacheloaders.EnforcementCacheKey;
 import org.eclipse.ditto.internal.utils.cacheloaders.config.AskWithRetryConfig;
-import org.eclipse.ditto.policies.api.Permission;
-import org.eclipse.ditto.policies.model.ResourceKey;
-import org.eclipse.ditto.policies.model.enforcers.Enforcer;
-import org.eclipse.ditto.things.model.ThingConstants;
 
 import akka.actor.ActorRef;
-import akka.pattern.AskTimeoutException;
 
 /**
  * Contains self-type requirements for aspects of enforcer actor dealing with specific commands.
@@ -165,37 +160,6 @@ public abstract class AbstractEnforcement<C extends Signal<?>> {
     }
 
     /**
-     * Extend a signal by subject headers given with granted and revoked READ access.
-     * The subjects are provided by the given enforcer for the resource type {@link ThingConstants#ENTITY_TYPE}.
-     *
-     * @param signal the signal to extend.
-     * @param enforcer the enforcer.
-     * @return the extended signal.
-     */
-    protected static <T extends Signal<T>> T addEffectedReadSubjectsToThingSignal(final Signal<T> signal,
-            final Enforcer enforcer) {
-
-        final var resourceKey = ResourceKey.newInstance(ThingConstants.ENTITY_TYPE, signal.getResourcePath());
-        final var authorizationSubjects = enforcer.getSubjectsWithUnrestrictedPermission(resourceKey, Permission.READ);
-        final var newHeaders = DittoHeaders.newBuilder(signal.getDittoHeaders())
-                .readGrantedSubjects(authorizationSubjects)
-                .build();
-
-        return signal.setDittoHeaders(newHeaders);
-    }
-
-    /**
-     * Check whether response or error from a future is {@code AskTimeoutException}.
-     *
-     * @param response response from a future.
-     * @param error error thrown in a future.
-     * @return whether either is {@code AskTimeoutException}.
-     */
-    protected static boolean isAskTimeoutException(final Object response, @Nullable final Throwable error) {
-        return error instanceof AskTimeoutException || response instanceof AskTimeoutException;
-    }
-
-    /**
      * @return the configuration of "ask with retry" pattern during enforcement.
      */
     protected AskWithRetryConfig getAskWithRetryConfig() {
@@ -319,13 +283,6 @@ public abstract class AbstractEnforcement<C extends Signal<?>> {
      */
     protected DittoHeaders dittoHeaders() {
         return signal().getDittoHeaders();
-    }
-
-    /**
-     * @return the {@code ConciergeForwarderActor} reference
-     */
-    protected ActorRef commandForwarder() {
-        return context.getCommandForwarder();
     }
 
 }

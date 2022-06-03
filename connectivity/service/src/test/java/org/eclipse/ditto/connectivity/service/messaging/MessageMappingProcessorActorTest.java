@@ -191,7 +191,7 @@ public final class MessageMappingProcessorActorTest extends AbstractMessageMappi
     @Test
     public void testSignalEnrichmentWithPayloadMappedTargets() {
         resetActorSystemWithCachingSignalEnrichmentProvider();
-        final TestProbe proxyActorProbe = TestProbe.apply("mockConciergeForwarder", actorSystem);
+        final TestProbe proxyActorProbe = TestProbe.apply("mockEdgeForwarder", actorSystem);
         setUpProxyActor(proxyActorProbe.ref());
 
         new TestKit(actorSystem) {{

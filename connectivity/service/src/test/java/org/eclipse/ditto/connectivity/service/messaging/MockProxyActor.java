@@ -30,7 +30,7 @@ final class MockProxyActor extends AbstractActor {
     }
 
     /**
-     * Create a mock /connectivityRoot/conciergeForwarder actor that forwards everything to the last ActorRef message it
+     * Create a mock /connectivityRoot/edgeCommandForwarder actor that forwards everything to the last ActorRef message it
      * received.
      *
      * @param actorSystem the actor system where the mock concierge forwarder is to be created.

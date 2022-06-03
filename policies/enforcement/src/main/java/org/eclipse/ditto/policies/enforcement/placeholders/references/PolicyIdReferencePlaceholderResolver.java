@@ -168,7 +168,7 @@ public final class PolicyIdReferencePlaceholderResolver implements ReferencePlac
      * Creates a new {@link PolicyIdReferencePlaceholderResolver} responsible for resolving a policy id of a referenced
      * entity.
      *
-     * @param commandForwarderActor the ActorRef of the {@code ConciergeForwarderActor} which to ask for "retrieve"
+     * @param commandForwarderActor the ActorRef of the {@code EdgeCommandForwarderActor} which to ask for "retrieve"
      * commands.
      * @param askWithRetryConfig the configuration for the "ask with retry" pattern applied when asking for retrieves.
      * @param actorSystem the actorSystem to load scheduler and dispatcher to use for the "ask with retry" pattern from.

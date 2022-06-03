@@ -61,7 +61,7 @@ public final class EnforcementSchedulerTest {
     public void testOrdering() {
         final var testKit = ACTOR_SYSTEM_RESOURCE.newTestKit();
         final var pubSubProbe = ACTOR_SYSTEM_RESOURCE.newTestProbe();
-        final var conciergeForwarderProbe = ACTOR_SYSTEM_RESOURCE.newTestProbe();
+        final var commandForwarderProbe = ACTOR_SYSTEM_RESOURCE.newTestProbe();
         final var receiver = ACTOR_SYSTEM_RESOURCE.newTestKit();
         final var mockLogger = mock(ThreadSafeDittoLoggingAdapter.class);
         doAnswer(invocation -> mockLogger).when(mockLogger).withCorrelationId(any(DittoHeaders.class));
@@ -70,7 +70,7 @@ public final class EnforcementSchedulerTest {
         final Contextual<WithDittoHeaders> baseContextual = Contextual.forActor(testKit.getRef(),
                 ACTOR_SYSTEM_RESOURCE.getActorSystem(),
                 pubSubProbe.ref(),
-                conciergeForwarderProbe.ref(),
+                commandForwarderProbe.ref(),
                 DefaultAskWithRetryConfig.of(ConfigFactory.empty(), "test"),
                 mockLogger);
         final var thingId = ThingId.of("busy", "thing");

@@ -47,7 +47,7 @@ public final class SearchSourceBuilderTest {
     }
 
     @Test(expected = NullPointerException.class)
-    public void failWithMissingConciergeForwarder() {
+    public void failWithMissingCommandForwarder() {
         system = ActorSystem.create();
         SearchSource.newBuilder()
                 .dittoHeaders(DittoHeaders.empty())
