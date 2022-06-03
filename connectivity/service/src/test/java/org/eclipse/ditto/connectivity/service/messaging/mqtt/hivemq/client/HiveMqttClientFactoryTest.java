@@ -82,8 +82,8 @@ public final class HiveMqttClientFactoryTest {
         Mockito.when(mqttConnection.getConnectionType()).thenReturn(ConnectionType.MQTT_5);
         Mockito.when(mqttConnection.getUri()).thenReturn(CONNECTION_URI.toString());
         Mockito.when(mqttConnection.getProtocol()).thenReturn(CONNECTION_URI.getScheme());
-        Mockito.when(mqttConnection.getUsername()).thenReturn(Optional.of(USERNAME));
-        Mockito.when(mqttConnection.getPassword()).thenReturn(Optional.of(PASSWORD));
+        Mockito.when(mqttConnection.getUsername(Mockito.anyBoolean())).thenReturn(Optional.of(USERNAME));
+        Mockito.when(mqttConnection.getPassword(Mockito.anyBoolean())).thenReturn(Optional.of(PASSWORD));
 
         Mockito.when(mqttConfig.getEventLoopThreads()).thenReturn(EVENT_LOOP_THREAD_NUMBER);
 

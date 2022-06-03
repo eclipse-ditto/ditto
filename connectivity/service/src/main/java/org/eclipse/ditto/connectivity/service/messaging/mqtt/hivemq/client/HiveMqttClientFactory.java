@@ -79,7 +79,7 @@ final class HiveMqttClientFactory {
 
         return getGenericMqttClientBuilder(hiveMqttClientProperties, mqttClientIdentifier, clientRole)
                 .useMqttVersion3()
-                .simpleAuth(getMqtt3SimpleAuth(hiveMqttClientProperties.getMqttConnection()).orElse(null))
+                .simpleAuth(getMqtt3SimpleAuth(hiveMqttClientProperties).orElse(null))
                 .willPublish(mqttLastWillMessage.map(GenericMqttPublish::getAsMqtt3Publish).orElse(null))
                 .build();
     }
@@ -185,20 +185,33 @@ final class HiveMqttClientFactory {
         return context -> genericMqttClientDisconnectedListener.onDisconnected(context, clientRole);
     }
 
-    private static Optional<Mqtt3SimpleAuth> getMqtt3SimpleAuth(final Connection mqttConnection) {
-        return getSimpleAuthCredentials(mqttConnection)
+    private static Optional<Mqtt3SimpleAuth> getMqtt3SimpleAuth(
+            final HiveMqttClientProperties hiveMqttClientProperties
+    ) {
+        return getSimpleAuthCredentials(hiveMqttClientProperties)
                 .map(simpleAuthCredentials -> Mqtt3SimpleAuth.builder()
                         .username(simpleAuthCredentials.username())
                         .password(simpleAuthCredentials.passwordBytes())
                         .build());
     }
 
-    private static Optional<SimpleAuthCredentials> getSimpleAuthCredentials(final Connection mqttConnection) {
-        return mqttConnection.getUsername()
-                .flatMap(username -> mqttConnection.getPassword()
+    private static Optional<SimpleAuthCredentials> getSimpleAuthCredentials(
+            final HiveMqttClientProperties hiveMqttClientProperties
+    ) {
+        final var doubleDecodingEnabled = isDoubleDecodingEnabled(hiveMqttClientProperties);
+        final var mqttConnection = hiveMqttClientProperties.getMqttConnection();
+
+        return mqttConnection.getUsername(doubleDecodingEnabled)
+                .flatMap(username -> mqttConnection.getPassword(doubleDecodingEnabled)
                         .map(pw -> pw.getBytes(StandardCharsets.UTF_8))
                         .map(pwBytes -> new SimpleAuthCredentials(username, pwBytes))
                 );
+    }
+
+    private static boolean isDoubleDecodingEnabled(final HiveMqttClientProperties hiveMqttClientProperties) {
+        final var connectivityConfig = hiveMqttClientProperties.getConnectivityConfig();
+        final var connectionConfig = connectivityConfig.getConnectionConfig();
+        return connectionConfig.doubleDecodingEnabled();
     }
 
     /**
@@ -226,13 +239,15 @@ final class HiveMqttClientFactory {
 
         return getGenericMqttClientBuilder(hiveMqttClientProperties, mqttClientIdentifier, clientRole)
                 .useMqttVersion5()
-                .simpleAuth(getMqtt5SimpleAuth(hiveMqttClientProperties.getMqttConnection()).orElse(null))
+                .simpleAuth(getMqtt5SimpleAuth(hiveMqttClientProperties).orElse(null))
                 .willPublish(mqttLastWillMessage.map(GenericMqttPublish::getAsMqtt5Publish).orElse(null))
                 .build();
     }
 
-    private static Optional<Mqtt5SimpleAuth> getMqtt5SimpleAuth(final Connection mqttConnection) {
-        return getSimpleAuthCredentials(mqttConnection)
+    private static Optional<Mqtt5SimpleAuth> getMqtt5SimpleAuth(
+            final HiveMqttClientProperties hiveMqttClientProperties
+    ) {
+        return getSimpleAuthCredentials(hiveMqttClientProperties)
                 .map(connectionCredentials -> Mqtt5SimpleAuth.builder()
                         .username(connectionCredentials.username())
                         .password(connectionCredentials.passwordBytes())
