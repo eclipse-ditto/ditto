@@ -19,6 +19,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -632,11 +633,32 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
         }
 
         @Override
+        public boolean equals(@Nullable final Object o) {
+            if (this == o) {
+                return true;
+            }
+            if (o == null || getClass() != o.getClass()) {
+                return false;
+            }
+            if (!super.equals(o)) {
+                return false;
+            }
+            final var that = (JmsConnect) o;
+            return Objects.equals(clientId, that.clientId);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(super.hashCode(), clientId);
+        }
+
+        @Override
         public String toString() {
             return getClass().getSimpleName() + " [" + super.toString() +
                     ", clientId=" + clientId +
                     "]";
         }
+
     }
 
     /**
@@ -647,8 +669,10 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
         private final javax.jms.Connection connection;
         @Nullable private final Session session;
 
-        JmsRecoverSession(@Nullable final ActorRef origin, @Nullable final javax.jms.Connection connection,
+        JmsRecoverSession(@Nullable final ActorRef origin,
+                @Nullable final javax.jms.Connection connection,
                 @Nullable final Session session) {
+
             super(origin);
             this.connection = connection;
             this.session = session;
@@ -663,12 +687,33 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
         }
 
         @Override
+        public boolean equals(@Nullable final Object o) {
+            if (this == o) {
+                return true;
+            }
+            if (o == null || getClass() != o.getClass()) {
+                return false;
+            }
+            if (!super.equals(o)) {
+                return false;
+            }
+            final var that = (JmsRecoverSession) o;
+            return Objects.equals(connection, that.connection) && Objects.equals(session, that.session);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(super.hashCode(), connection, session);
+        }
+
+        @Override
         public String toString() {
             return getClass().getSimpleName() + " [" + super.toString() +
                     ", connection=" + connection +
                     ", session=" + session +
                     "]";
         }
+
     }
 
     /**
@@ -688,11 +733,32 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
         }
 
         @Override
+        public boolean equals(@Nullable final Object o) {
+            if (this == o) {
+                return true;
+            }
+            if (o == null || getClass() != o.getClass()) {
+                return false;
+            }
+            if (!super.equals(o)) {
+                return false;
+            }
+            final var that = (JmsCloseSession) o;
+            return Objects.equals(session, that.session);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(super.hashCode(), session);
+        }
+
+        @Override
         public String toString() {
             return getClass().getSimpleName() + " [" + super.toString() +
                     ", session=" + session +
                     "]";
         }
+
     }
 
     /**
@@ -703,8 +769,10 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
         @Nullable private final javax.jms.Connection connection;
         private final boolean shutdownAfterDisconnect;
 
-        JmsDisconnect(@Nullable final ActorRef origin, @Nullable final javax.jms.Connection connection,
+        JmsDisconnect(@Nullable final ActorRef origin,
+                @Nullable final javax.jms.Connection connection,
                 final boolean shutdownAfterDisconnect) {
+
             super(origin);
             this.connection = connection;
             this.shutdownAfterDisconnect = shutdownAfterDisconnect;
@@ -719,12 +787,34 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
         }
 
         @Override
+        public boolean equals(@Nullable final Object o) {
+            if (this == o) {
+                return true;
+            }
+            if (o == null || getClass() != o.getClass()) {
+                return false;
+            }
+            if (!super.equals(o)) {
+                return false;
+            }
+            final var that = (JmsDisconnect) o;
+            return shutdownAfterDisconnect == that.shutdownAfterDisconnect &&
+                    Objects.equals(connection, that.connection);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(super.hashCode(), connection, shutdownAfterDisconnect);
+        }
+
+        @Override
         public String toString() {
             return getClass().getSimpleName() + " [" + super.toString() +
                     ", connection=" + connection +
                     ", shutdownAfterDisconnect=" + shutdownAfterDisconnect +
                     "]";
         }
+
     }
 
     /**
@@ -748,6 +838,28 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
         }
 
         @Override
+        public boolean equals(@Nullable final Object o) {
+            if (this == o) {
+                return true;
+            }
+            if (o == null || getClass() != o.getClass()) {
+                return false;
+            }
+            if (!super.equals(o)) {
+                return false;
+            }
+            final var that = (JmsConnected) o;
+            return Objects.equals(connection, that.connection) &&
+                    Objects.equals(session, that.session) &&
+                    Objects.equals(consumerList, that.consumerList);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(super.hashCode(), connection, session, consumerList);
+        }
+
+        @Override
         public String toString() {
             return getClass().getSimpleName() + " [" + super.toString() +
                     ", connection=" + connection +
@@ -755,6 +867,7 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
                     ", consumerList=" + consumerList +
                     "]";
         }
+
     }
 
     /**
@@ -784,12 +897,33 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
         }
 
         @Override
+        public boolean equals(@Nullable final Object o) {
+            if (this == o) {
+                return true;
+            }
+            if (o == null || getClass() != o.getClass()) {
+                return false;
+            }
+            if (!super.equals(o)) {
+                return false;
+            }
+            final var that = (JmsSessionRecovered) o;
+            return Objects.equals(session, that.session) && Objects.equals(consumerList, that.consumerList);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(super.hashCode(), session, consumerList);
+        }
+
+        @Override
         public String toString() {
             return getClass().getSimpleName() + " [" + super.toString() +
                     ", session=" + session +
                     ", consumerList=" + consumerList +
                     "]";
         }
+
     }
 
     /**

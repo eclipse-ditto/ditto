@@ -22,8 +22,7 @@ import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.message.subs
  * This exception is thrown to indicate that subscribing a client via one or multiple Subscribe messages
  * ({@link GenericMqttSubscribe}) failed for some reason.
  */
-public sealed class MqttSubscribeException extends RuntimeException
-        permits AllSubscriptionsFailedException, SomeSubscriptionsFailedException {
+public sealed class MqttSubscribeException extends RuntimeException permits SubscriptionsFailedException {
 
     @Serial private static final long serialVersionUID = 1936431587204652088L;
 
