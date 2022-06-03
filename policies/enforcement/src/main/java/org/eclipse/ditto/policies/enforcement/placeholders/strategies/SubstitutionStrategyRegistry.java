@@ -41,11 +41,11 @@ public final class SubstitutionStrategyRegistry {
      * Get a matching strategy for handling the given {@code withDittoHeaders}.
      *
      * @param withDittoHeaders the instance of {@link WithDittoHeaders} to be handled.
-     * @return an {@link java.util.Optional} containing the first strategy which matches; an empty {@link java.util.Optional} in case no
+     * @return an {@link Optional} containing the first strategy which matches; an empty {@link Optional} in case no
      * strategy matches.
      */
     @SuppressWarnings({"rawtypes", "java:S3740"})
-    public final Optional<SubstitutionStrategy> getMatchingStrategy(final DittoHeadersSettable<?> withDittoHeaders) {
+    public Optional<SubstitutionStrategy> getMatchingStrategy(final DittoHeadersSettable<?> withDittoHeaders) {
         for (final SubstitutionStrategy<?> strategy : strategies) {
             if (strategy.matches(withDittoHeaders)) {
                 return Optional.of(strategy);

@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.policies.enforcement.pre_enforcement;
+package org.eclipse.ditto.policies.enforcement.pre;
 
 import java.util.List;
 import java.util.Set;
@@ -24,7 +24,6 @@ import org.eclipse.ditto.base.model.entity.id.NamespacedEntityId;
 import org.eclipse.ditto.base.model.entity.id.WithEntityId;
 import org.eclipse.ditto.base.model.exceptions.EntityNotCreatableException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.base.model.headers.DittoHeadersSettable;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLogger;
@@ -40,18 +39,23 @@ import org.eclipse.ditto.things.model.signals.commands.modify.ModifyThing;
 import akka.actor.ActorSystem;
 
 /**
- * PreEnforcer for evaluating if the entity creation should be restricted.
+ * Pre-Enforcer for evaluating if creation of new entities should be restricted.
  */
 @Immutable
-public class CreationRestrictionEnforcer implements PreEnforcer {
+public final class CreationRestrictionPreEnforcer implements PreEnforcer {
 
-    private static final ThreadSafeDittoLogger log =
-            DittoLoggerFactory.getThreadSafeLogger(CreationRestrictionEnforcer.class);
+    private static final ThreadSafeDittoLogger LOG =
+            DittoLoggerFactory.getThreadSafeLogger(CreationRestrictionPreEnforcer.class);
 
     private final EntityCreationConfig config;
     private final ExistenceChecker existenceChecker;
 
-    public CreationRestrictionEnforcer(final ActorSystem actorSystem) {
+    /**
+     * Constructs a new instance of CreationRestrictionPreEnforcer extension.
+     *
+     * @param actorSystem the actor system in which to load the extension.
+     */
+    public CreationRestrictionPreEnforcer(final ActorSystem actorSystem) {
         config = DefaultEntityCreationConfig.of(DefaultScopedConfig.dittoScoped(actorSystem.settings().config()));
         existenceChecker = ExistenceChecker.get(actorSystem);
     }
@@ -76,7 +80,7 @@ public class CreationRestrictionEnforcer implements PreEnforcer {
     private static boolean matchesResourceType(final Set<String> resourceTypes, final Context context) {
         if (resourceTypes.isEmpty()) {
             // no restriction -> pass
-            log.withCorrelationId(context.headers()).debug("No resource type restriction: pass");
+            LOG.withCorrelationId(context.headers()).debug("No resource type restriction: pass");
             return true;
         }
 
@@ -84,7 +88,7 @@ public class CreationRestrictionEnforcer implements PreEnforcer {
             return true;
         }
 
-        log.withCorrelationId(context.headers()).debug("No resource type match: reject");
+        LOG.withCorrelationId(context.headers()).debug("No resource type match: reject");
         // no match, but non-empty list -> reject
         return false;
     }
@@ -92,21 +96,21 @@ public class CreationRestrictionEnforcer implements PreEnforcer {
     private static boolean matchesAuthSubjectPattern(final List<Pattern> authSubjectPatterns, final Context context) {
         if (authSubjectPatterns.isEmpty()) {
             // no restrictions -> pass
-            log.withCorrelationId(context.headers()).debug("No auth subject restriction: pass");
+            LOG.withCorrelationId(context.headers()).debug("No auth subject restriction: pass");
             return true;
         }
 
         for (final var subject : context.headers().getAuthorizationContext().getAuthorizationSubjectIds()) {
             for (final var authSubjectPattern : authSubjectPatterns) {
                 if (authSubjectPattern.matcher(subject).matches()) {
-                    log.withCorrelationId(context.headers()).debug("Matched auth subject {}: pass", subject);
+                    LOG.withCorrelationId(context.headers()).debug("Matched auth subject {}: pass", subject);
                     // entry found -> pass
                     return true;
                 }
             }
         }
 
-        log.withCorrelationId(context.headers()).debug("No auth subject match: reject");
+        LOG.withCorrelationId(context.headers()).debug("No auth subject match: reject");
         // no match, but non-empty list -> reject
         return false;
     }
@@ -114,7 +118,7 @@ public class CreationRestrictionEnforcer implements PreEnforcer {
     private static boolean matchesNamespacePattern(final List<Pattern> namespacePatterns, final Context context) {
 
         if (namespacePatterns.isEmpty()) {
-            log.withCorrelationId(context.headers()).debug("No namespace restriction: pass");
+            LOG.withCorrelationId(context.headers()).debug("No namespace restriction: pass");
             // no restrictions -> pass
             return true;
         }
@@ -122,13 +126,13 @@ public class CreationRestrictionEnforcer implements PreEnforcer {
         var namespace = context.namespace();
         for (final var namespacePattern : namespacePatterns) {
             if (namespacePattern.matcher(namespace).matches()) {
-                log.withCorrelationId(context.headers()).debug("Namespace '{}' matched {}: pass", namespace,
+                LOG.withCorrelationId(context.headers()).debug("Namespace '{}' matched {}: pass", namespace,
                         namespacePattern);
                 return true;
             }
         }
 
-        log.withCorrelationId(context.headers()).debug("No namespace match: reject");
+        LOG.withCorrelationId(context.headers()).debug("No namespace match: reject");
         // no match, but non-empty list -> reject
         return false;
     }
@@ -141,14 +145,13 @@ public class CreationRestrictionEnforcer implements PreEnforcer {
     }
 
     @Override
-    public CompletionStage<DittoHeadersSettable<?>> apply(final DittoHeadersSettable<?> dittoHeadersSettable) {
-        final CompletionStage<DittoHeadersSettable<?>> result;
+    public CompletionStage<Signal<?>> apply(final Signal<?> signal) {
+        final CompletionStage<Signal<?>> result;
 
-        final Signal<?> messageAsSignal = getMessageAsSignal(dittoHeadersSettable);
-        if (isCreatingCommand(messageAsSignal)) {
-            result = handleCreatingCommand(dittoHeadersSettable, messageAsSignal);
+        if (isCreatingCommand(signal)) {
+            result = handleCreatingCommand(signal);
         } else {
-            result = CompletableFuture.completedFuture(dittoHeadersSettable);
+            result = CompletableFuture.completedFuture(signal);
         }
         return result;
     }
@@ -158,16 +161,15 @@ public class CreationRestrictionEnforcer implements PreEnforcer {
                 signal instanceof ModifyPolicy;
     }
 
-    private CompletionStage<DittoHeadersSettable<?>> handleCreatingCommand(
-            final DittoHeadersSettable<?> dittoHeadersSettable, final Signal<?> signal) {
+    private CompletionStage<Signal<?>> handleCreatingCommand(final Signal<?> signal) {
 
-        final WithEntityId withEntityId = getMessageAsWithEntityId(dittoHeadersSettable);
+        final WithEntityId withEntityId = getMessageAsWithEntityId(signal);
         final NamespacedEntityId entityId = getEntityIdAsNamespacedEntityId(withEntityId.getEntityId());
         final var context = new Context(signal.getResourceType(), entityId.getNamespace(),
                 signal.getDittoHeaders());
         return existenceChecker.checkExistence(signal).thenApply(exists -> {
             if (Boolean.TRUE.equals(exists) || canCreate(context)) {
-                return dittoHeadersSettable;
+                return signal;
             } else {
                 throw EntityNotCreatableException.newBuilder(withEntityId.getEntityId())
                         .dittoHeaders(signal.getDittoHeaders())

@@ -28,7 +28,7 @@ import com.typesafe.config.Config;
  * This class implements {@link CreationRestrictionConfig} for Ditto's Concierge service.
  */
 @Immutable
-public class DefaultCreationRestrictionConfig implements CreationRestrictionConfig {
+public final class DefaultCreationRestrictionConfig implements CreationRestrictionConfig {
 
     private static final String RESOURCE_TYPES_CONFIG_PATH = "resource-types";
     private static final String NAMESPACES_CONFIG_PATH = "namespaces";

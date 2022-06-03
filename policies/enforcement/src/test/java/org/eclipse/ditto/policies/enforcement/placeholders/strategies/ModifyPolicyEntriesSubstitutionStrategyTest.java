@@ -29,7 +29,7 @@ import org.junit.Test;
 
 /**
  * Tests {@link org.eclipse.ditto.policies.enforcement.placeholders.strategies.ModifyPolicyEntriesSubstitutionStrategy} in context of
- * {@link org.eclipse.ditto.policies.enforcement.placeholders.PlaceholderSubstitution}.
+ * {@link org.eclipse.ditto.policies.enforcement.placeholders.PlaceholderSubstitutionPreEnforcer}.
  */
 public class ModifyPolicyEntriesSubstitutionStrategyTest extends AbstractSubstitutionStrategyTestBase {
 

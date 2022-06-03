@@ -12,14 +12,26 @@
  */
 package org.eclipse.ditto.edge.service.dispatching;
 
+import javax.annotation.concurrent.Immutable;
+
 import akka.actor.AbstractActor.Receive;
 import akka.actor.ActorContext;
 import akka.actor.ActorSystem;
 import akka.japi.pf.ReceiveBuilder;
 
+/**
+ * No-operation implementation of {@link EdgeCommandForwarderExtension}.
+ */
+@Immutable
 public final class NoOpEdgeCommandForwarderExtension implements EdgeCommandForwarderExtension {
 
+    /**
+     * Constructs a new instance of NoOpEdgeCommandForwarderExtension.
+     *
+     * @param actorSystem the actor system in which to load the extension.
+     */
     public NoOpEdgeCommandForwarderExtension(final ActorSystem actorSystem) {
+        // no-op
     }
 
     @Override

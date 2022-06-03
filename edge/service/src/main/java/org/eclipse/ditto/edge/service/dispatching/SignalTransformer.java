@@ -22,8 +22,14 @@ import org.eclipse.ditto.base.service.DittoExtensionPoint;
 
 import akka.actor.ActorSystem;
 
+/**
+ * Extension which transforms a received {@link Signal} (at the "edge") to a CompletionStage of a transformed Signal,
+ * e.g. in order to enhance the Signal.
+ *
+ * TODO TJ consolidate maybe with PreEnforcer ? and the loader - in order to load multiple ones
+ */
 @FunctionalInterface
-public interface SignalTransformer extends DittoExtensionPoint, Function<Signal<?>, CompletionStage<Signal<?>>> {
+public interface SignalTransformer extends Function<Signal<?>, CompletionStage<Signal<?>>>, DittoExtensionPoint {
 
     /**
      * Loads the implementation of {@code SignalTransformer} which is configured for the

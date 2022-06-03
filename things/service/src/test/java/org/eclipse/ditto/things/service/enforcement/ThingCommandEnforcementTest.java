@@ -462,8 +462,7 @@ public final class ThingCommandEnforcementTest extends AbstractThingEnforcementT
     }
 
     @Test
-    @Ignore() //todo: CR-11387 pre-enforcement can complete faster for some messages, thus f-ing up the message order
-    // . Should be considered in stream implementation.
+    @Ignore("TODO: CR-11387 pre-enforcement can complete faster for some messages, thus f-ing up the message order")
     public void testParallelEnforcementTaskScheduling() {
         final Thing thing = newThing().build();
         final PolicyId policyId = PolicyId.of(THING_ID);

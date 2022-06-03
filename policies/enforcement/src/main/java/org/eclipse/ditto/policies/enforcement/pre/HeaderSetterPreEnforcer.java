@@ -10,31 +10,40 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.policies.enforcement.pre_enforcement;
+package org.eclipse.ditto.policies.enforcement.pre;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+
+import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.DittoHeadersSettable;
+import org.eclipse.ditto.base.model.signals.Signal;
 
 import akka.actor.ActorSystem;
 
 /**
- * Sets additional headers to a signal.
+ * Pre-Enforcer which sets additional headers to a signal.
  */
-public class HeaderSetter implements PreEnforcer {
+@Immutable
+public final class HeaderSetterPreEnforcer implements PreEnforcer {
 
-    public HeaderSetter(final ActorSystem actorSystem) {
-
+    /**
+     * Constructs a new instance of HeaderSetterPreEnforcer extension.
+     *
+     * @param actorSystem the actor system in which to load the extension.
+     */
+    public HeaderSetterPreEnforcer(final ActorSystem actorSystem) {
+        // no-op
     }
 
     @Override
-    public CompletionStage<DittoHeadersSettable<?>> apply(final DittoHeadersSettable<?> originalSignal) {
-        return CompletableFuture.completedFuture(setOriginatorHeader(originalSignal));
+    public CompletionStage<Signal<?>> apply(final Signal<?> signal) {
+        return CompletableFuture.completedFuture(setOriginatorHeader(signal));
     }
 
     /**
@@ -43,7 +52,6 @@ public class HeaderSetter implements PreEnforcer {
      * @param originalSignal A signal with authorization context.
      * @param <T> the type of the {@code originalSignal} to preserve in the response.
      * @return A copy of the signal with the header "ditto-originator" set.
-     * @since 3.0.0
      */
     @SuppressWarnings("unchecked")
     public static <T extends DittoHeadersSettable<?>> T setOriginatorHeader(final T originalSignal) {

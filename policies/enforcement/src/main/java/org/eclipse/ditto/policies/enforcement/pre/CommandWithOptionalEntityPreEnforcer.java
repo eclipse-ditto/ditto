@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.policies.enforcement.validators;
+package org.eclipse.ditto.policies.enforcement.pre;
 
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
@@ -19,49 +19,55 @@ import java.util.concurrent.CompletionStage;
 import org.eclipse.ditto.base.model.exceptions.DittoJsonException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeadersSettable;
+import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.WithOptionalEntity;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonParseException;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.policies.enforcement.pre_enforcement.PreEnforcer;
 
 import akka.actor.ActorSystem;
 
 /**
- * Checks that commands that modify entities cause no harm downstream.
+ * Pre-Enforcer which checks that commands that modify entities cause no harm downstream.
  */
-public final class CommandWithOptionalEntityValidator implements PreEnforcer {
+public final class CommandWithOptionalEntityPreEnforcer implements PreEnforcer {
 
-    public CommandWithOptionalEntityValidator(final ActorSystem actorSystem) {
+    /**
+     * Constructs a new instance of CommandWithOptionalEntityPreEnforcer extension.
+     *
+     * @param actorSystem the actor system in which to load the extension.
+     */
+    public CommandWithOptionalEntityPreEnforcer(final ActorSystem actorSystem) {
+        // no-op
     }
 
-    public static CommandWithOptionalEntityValidator createInstance() {
-        return new CommandWithOptionalEntityValidator(null);
+    static CommandWithOptionalEntityPreEnforcer createInstance() {
+        return new CommandWithOptionalEntityPreEnforcer(null);
     }
 
     @Override
-    public CompletionStage<DittoHeadersSettable<?>> apply(final DittoHeadersSettable<?> withDittoHeaders) {
-        return checkForHarmfulEntity(withDittoHeaders);
+    public CompletionStage<Signal<?>> apply(final Signal<?> signal) {
+        return checkForHarmfulEntity(signal);
     }
 
-    private static <T extends DittoHeadersSettable<?>> CompletionStage<T> checkForHarmfulEntity(
-            final T withDittoHeaders) {
-        if (withDittoHeaders instanceof Command && withDittoHeaders instanceof WithOptionalEntity) {
-            final Optional<JsonValue> optionalEntity = ((WithOptionalEntity) withDittoHeaders).getEntity();
+    private static <T extends Signal<?>> CompletionStage<T> checkForHarmfulEntity(final T signal) {
+
+        if (signal instanceof Command && signal instanceof WithOptionalEntity) {
+            final Optional<JsonValue> optionalEntity = ((WithOptionalEntity) signal).getEntity();
             if (optionalEntity.isPresent() && isJsonValueIllegal(optionalEntity.get())) {
-                throw buildError(withDittoHeaders);
+                throw buildError(signal);
             }
         }
-        return CompletableFuture.completedFuture(withDittoHeaders);
+        return CompletableFuture.completedFuture(signal);
     }
 
     private static boolean isJsonValueIllegal(final JsonValue entity) {
         final boolean result;
         if (entity.isArray()) {
-            result = entity.asArray().stream().anyMatch(CommandWithOptionalEntityValidator::isJsonValueIllegal);
+            result = entity.asArray().stream().anyMatch(CommandWithOptionalEntityPreEnforcer::isJsonValueIllegal);
         } else if (entity.isObject()) {
-            result = entity.asObject().stream().anyMatch(CommandWithOptionalEntityValidator::isJsonFieldIllegal);
+            result = entity.asObject().stream().anyMatch(CommandWithOptionalEntityPreEnforcer::isJsonFieldIllegal);
         } else if (entity.isString()) {
             result = isStringIllegal(entity.asString());
         } else {

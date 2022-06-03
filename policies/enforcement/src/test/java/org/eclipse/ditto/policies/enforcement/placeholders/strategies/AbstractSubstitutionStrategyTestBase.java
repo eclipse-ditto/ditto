@@ -20,9 +20,9 @@ import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
 import org.eclipse.ditto.base.model.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.base.model.headers.DittoHeadersSettable;
+import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.policies.enforcement.placeholders.PlaceholderSubstitution;
+import org.eclipse.ditto.policies.enforcement.placeholders.PlaceholderSubstitutionPreEnforcer;
 import org.eclipse.ditto.policies.model.EffectedPermissions;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.Resource;
@@ -58,18 +58,18 @@ public abstract class AbstractSubstitutionStrategyTestBase {
                     AuthorizationSubject.newInstance(SUBJECT_ID)))
             .build();
 
-    protected PlaceholderSubstitution substitution;
+    protected PlaceholderSubstitutionPreEnforcer substitution;
 
     @Before
     public void init() {
-        substitution = PlaceholderSubstitution.newInstance();
+        substitution = PlaceholderSubstitutionPreEnforcer.newInstance();
     }
 
     @Test
     public abstract void assertImmutability();
 
-    protected final DittoHeadersSettable<?> applyBlocking(final DittoHeadersSettable<?> input) {
-        final CompletionStage<DittoHeadersSettable<?>> responseFuture = substitution.apply(input);
+    protected final Signal<?> applyBlocking(final Signal<?> input) {
+        final CompletionStage<Signal<?>> responseFuture = substitution.apply(input);
         try {
             return responseFuture.toCompletableFuture().get();
         } catch (final InterruptedException | ExecutionException e) {

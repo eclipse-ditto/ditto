@@ -25,32 +25,36 @@ import java.util.function.Function;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.base.model.headers.DittoHeadersSettable;
-import org.eclipse.ditto.policies.enforcement.pre_enforcement.PreEnforcer;
+import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.policies.enforcement.placeholders.strategies.SubstitutionStrategy;
 import org.eclipse.ditto.policies.enforcement.placeholders.strategies.SubstitutionStrategyRegistry;
+import org.eclipse.ditto.policies.enforcement.pre.PreEnforcer;
 
 import akka.actor.ActorSystem;
 
 /**
- * A function which applies substitution of placeholders on a command (subtype of {@link DittoHeadersSettable}) based on
- * its {@link DittoHeaders}.
- *
+ * Pre-Enforcer which applies substitution of placeholders on a command (subtype of {@link Signal}) based on its
+ * {@link DittoHeaders}.
  */
 @Immutable
-public final class PlaceholderSubstitution implements PreEnforcer {
+public final class PlaceholderSubstitutionPreEnforcer implements PreEnforcer {
 
     private final HeaderBasedPlaceholderSubstitutionAlgorithm substitutionAlgorithm;
     private final SubstitutionStrategyRegistry substitutionStrategyRegistry;
 
-    private PlaceholderSubstitution(final HeaderBasedPlaceholderSubstitutionAlgorithm substitutionAlgorithm,
+    private PlaceholderSubstitutionPreEnforcer(final HeaderBasedPlaceholderSubstitutionAlgorithm substitutionAlgorithm,
             final SubstitutionStrategyRegistry substitutionStrategyRegistry) {
 
         this.substitutionAlgorithm = substitutionAlgorithm;
         this.substitutionStrategyRegistry = substitutionStrategyRegistry;
     }
 
-    public PlaceholderSubstitution(final ActorSystem actorSystem) {
+    /**
+     * Constructs a new instance of PlaceholderSubstitutionPreEnforcer extension.
+     *
+     * @param actorSystem the actor system in which to load the extension.
+     */
+    public PlaceholderSubstitutionPreEnforcer(final ActorSystem actorSystem) {
         this.substitutionAlgorithm =
                 HeaderBasedPlaceholderSubstitutionAlgorithm.newInstance(createDefaultReplacementDefinitions());
         this.substitutionStrategyRegistry = SubstitutionStrategyRegistry.newInstance();
@@ -62,7 +66,7 @@ public final class PlaceholderSubstitution implements PreEnforcer {
      * @return the created instance.
      * @see #newExtendedInstance(java.util.Map)
      */
-    public static PlaceholderSubstitution newInstance() {
+    public static PlaceholderSubstitutionPreEnforcer newInstance() {
         final Map<String, Function<DittoHeaders, String>> defaultReplacementDefinitions =
                 createDefaultReplacementDefinitions();
 
@@ -77,7 +81,7 @@ public final class PlaceholderSubstitution implements PreEnforcer {
      * @return the created instance.
      * @see #newInstance()
      */
-    public static PlaceholderSubstitution newExtendedInstance(
+    public static PlaceholderSubstitutionPreEnforcer newExtendedInstance(
             final Map<String, Function<DittoHeaders, String>> additionalReplacementDefinitions) {
         requireNonNull(additionalReplacementDefinitions);
 
@@ -94,13 +98,13 @@ public final class PlaceholderSubstitution implements PreEnforcer {
 
     @Override
     @SuppressWarnings({"unchecked", "rawtypes", "java:S3740"})
-    public CompletionStage<DittoHeadersSettable<?>> apply(final DittoHeadersSettable<?> dittoHeadersSettable) {
+    public CompletionStage<Signal<?>> apply(final Signal<?> dittoHeadersSettable) {
         requireNonNull(dittoHeadersSettable);
 
         final Optional<SubstitutionStrategy> firstMatchingStrategyOpt =
                 substitutionStrategyRegistry.getMatchingStrategy(dittoHeadersSettable);
         if (firstMatchingStrategyOpt.isPresent()) {
-            final SubstitutionStrategy<DittoHeadersSettable<?>> firstMatchingStrategy = firstMatchingStrategyOpt.get();
+            final SubstitutionStrategy<Signal<?>> firstMatchingStrategy = firstMatchingStrategyOpt.get();
             return CompletableFuture.supplyAsync(() ->
                     firstMatchingStrategy.apply(dittoHeadersSettable, substitutionAlgorithm)
             ).thenApply(Function.identity());
@@ -118,13 +122,13 @@ public final class PlaceholderSubstitution implements PreEnforcer {
         return Collections.unmodifiableMap(defaultReplacementDefinitions);
     }
 
-    private static PlaceholderSubstitution createInstance(
+    private static PlaceholderSubstitutionPreEnforcer createInstance(
             final Map<String, Function<DittoHeaders, String>> replacementDefinitions) {
         final HeaderBasedPlaceholderSubstitutionAlgorithm algorithm =
                 HeaderBasedPlaceholderSubstitutionAlgorithm.newInstance(replacementDefinitions);
         final SubstitutionStrategyRegistry substitutionStrategyRegistry =
                 SubstitutionStrategyRegistry.newInstance();
 
-        return new PlaceholderSubstitution(algorithm, substitutionStrategyRegistry);
+        return new PlaceholderSubstitutionPreEnforcer(algorithm, substitutionStrategyRegistry);
     }
 }

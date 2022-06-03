@@ -38,7 +38,10 @@ import com.github.benmanes.caffeine.cache.AsyncCacheLoader;
 import akka.actor.ActorRef;
 import akka.actor.Scheduler;
 
-public class PreEnforcementThingIdCacheLoader implements
+/**
+ * Cache loader used for Thing existence check in pre-enforcement.
+ */
+final class PreEnforcementThingIdCacheLoader implements
         AsyncCacheLoader<EnforcementCacheKey, Entry<EnforcementCacheKey>> {
 
     private final ActorAskCacheLoader<EnforcementCacheKey, Command<?>, EnforcementContext> delegate;
@@ -72,8 +75,7 @@ public class PreEnforcementThingIdCacheLoader implements
     private static Entry<EnforcementCacheKey> handleSudoRetrieveThingResponse(final Object response,
             @Nullable final EnforcementContext context) {
 
-        if (response instanceof SudoRetrieveThingResponse) {
-            final var sudoRetrieveThingResponse = (SudoRetrieveThingResponse) response;
+        if (response instanceof SudoRetrieveThingResponse sudoRetrieveThingResponse) {
             final var thing = sudoRetrieveThingResponse.getThing();
             final long revision = thing.getRevision().map(ThingRevision::toLong)
                     .orElseThrow(badThingResponse("no revision"));

@@ -21,7 +21,7 @@ import akka.actor.ActorContext;
 import akka.actor.ActorSystem;
 
 /**
- * This extension allows to extend commands that are forwarded from the edges of ditto to other microservices by
+ * This extension allows to extend commands that are forwarded from the edges of Ditto to other microservices by
  * handling them in the {@link Receive} provided by {@link #getReceiveExtension(ActorContext)}.
  */
 public interface EdgeCommandForwarderExtension extends DittoExtensionPoint {

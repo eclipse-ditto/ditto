@@ -10,11 +10,11 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.policies.enforcement.pre_enforcement;
+package org.eclipse.ditto.policies.enforcement.pre;
 
 import java.util.concurrent.CompletionStage;
 
-import org.eclipse.ditto.base.model.headers.DittoHeadersSettable;
+import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.internal.utils.namespaces.BlockNamespaceBehavior;
 import org.eclipse.ditto.internal.utils.namespaces.BlockedNamespaces;
 
@@ -22,19 +22,22 @@ import akka.actor.ActorSystem;
 
 /**
  * Pre-Enforcer for blocking commands to blocked namespaces
- *
- * @since 3.0.0
  */
 public final class BlockedNamespacePreEnforcer implements PreEnforcer {
 
     final BlockNamespaceBehavior blockNamespaceBehavior;
 
+    /**
+     * Constructs a new instance of BlockedNamespacePreEnforcer extension.
+     *
+     * @param actorSystem the actor system in which to load the extension.
+     */
     public BlockedNamespacePreEnforcer(final ActorSystem actorSystem) {
         blockNamespaceBehavior = BlockNamespaceBehavior.of(BlockedNamespaces.of(actorSystem));
     }
 
     @Override
-    public CompletionStage<DittoHeadersSettable<?>> apply(final DittoHeadersSettable<?> t) {
-        return blockNamespaceBehavior.block(t);
+    public CompletionStage<Signal<?>> apply(final Signal<?> signal) {
+        return blockNamespaceBehavior.block(signal);
     }
 }

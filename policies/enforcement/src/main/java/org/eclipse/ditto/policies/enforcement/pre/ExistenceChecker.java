@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.policies.enforcement.pre_enforcement;
+package org.eclipse.ditto.policies.enforcement.pre;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
@@ -22,17 +22,17 @@ import org.eclipse.ditto.base.service.DittoExtensionPoint;
 import akka.actor.ActorSystem;
 
 /**
- * Checks existence of a signals' entity, in effort to validate f the entity already exists.
- * @since 3.0.0
+ * Checks existence of a signals' entity, in effort to validate if the entity already exists.
  */
 public interface ExistenceChecker extends DittoExtensionPoint {
 
     /**
-     * Checks the existence of the sings entity
-     * @param signal the signal from which to get the entity.
+     * Checks the existence of the entity identified by the passed {@code signal}.
+     *
+     * @param signal the signal from which to get the entity ID to check for from.
      * @return whether the entity exists.
      */
-    CompletionStage<Boolean> checkExistence(final Signal<?> signal);
+    CompletionStage<Boolean> checkExistence(Signal<?> signal);
 
     /**
      * Loads the implementation of {@code ExistenceChecker} which is configured for the {@code ActorSystem}.
