@@ -31,7 +31,7 @@ import org.eclipse.ditto.connectivity.model.signals.commands.exceptions.Connecti
 import org.eclipse.ditto.connectivity.service.config.ConnectionConfig;
 import org.eclipse.ditto.connectivity.service.config.ConnectivityConfigModifiedBehavior;
 import org.eclipse.ditto.connectivity.service.config.DittoConnectivityConfig;
-import org.eclipse.ditto.connectivity.service.enforcement.ConnectivityCommandEnforcement;
+import org.eclipse.ditto.connectivity.service.enforcement.ConnectionEnforcerActorPropsFactory;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.internal.utils.persistentactors.AbstractPersistenceSupervisor;
 
@@ -74,11 +74,15 @@ public final class ConnectionSupervisorActor
     private Config connectivityConfigOverwrites = ConfigFactory.empty();
     private boolean isRegisteredForConnectivityConfigChanges = false;
 
+    private final ConnectionEnforcerActorPropsFactory enforcerActorPropsFactory;
+
     @SuppressWarnings("unused")
-    private ConnectionSupervisorActor(final ActorRef proxyActor, final ActorRef pubSubMediator) {
+    private ConnectionSupervisorActor(final ActorRef proxyActor, final ActorRef pubSubMediator,
+            final ConnectionEnforcerActorPropsFactory enforcerActorPropsFactory) {
         super(null);
         this.proxyActor = proxyActor;
         this.pubSubMediator = pubSubMediator;
+        this.enforcerActorPropsFactory = enforcerActorPropsFactory;
     }
 
     /**
@@ -88,15 +92,16 @@ public final class ConnectionSupervisorActor
      * stops it for {@link ActorKilledException}'s and escalates all others.
      * </p>
      *
-     * @param proxyActor the actor used to send signals into the ditto cluster..
+     * @param proxyActor the actor used to send signals into the ditto cluster.
      * @param pubSubMediator pub-sub-mediator for the shutdown behavior.
+     * @param enforcerActorPropsFactory used to create the enforcer actor.
      * @return the {@link Props} to create this actor.
      */
     public static Props props(final ActorRef proxyActor,
-            final ActorRef pubSubMediator) {
+            final ActorRef pubSubMediator,
+            final ConnectionEnforcerActorPropsFactory enforcerActorPropsFactory) {
 
-        return Props.create(ConnectionSupervisorActor.class, proxyActor,
-                 pubSubMediator);
+        return Props.create(ConnectionSupervisorActor.class, proxyActor, pubSubMediator, enforcerActorPropsFactory);
     }
 
     @Override
@@ -150,9 +155,7 @@ public final class ConnectionSupervisorActor
 
     @Override
     protected Props getPersistenceEnforcerProps(final ConnectionId connectionId) {
-        return ConnectionEnforcerActor.props(connectionId,
-                new ConnectivityCommandEnforcement(),
-                pubSubMediator);
+        return enforcerActorPropsFactory.get(connectionId);
     }
 
     @Override

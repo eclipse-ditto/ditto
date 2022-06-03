@@ -99,6 +99,7 @@ import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.config.DittoConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.config.MonitoringConfig;
 import org.eclipse.ditto.connectivity.service.config.mapping.MappingConfig;
+import org.eclipse.ditto.connectivity.service.enforcement.ConnectionEnforcerActorPropsFactory;
 import org.eclipse.ditto.connectivity.service.messaging.internal.ssl.TestCertificates;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.ConnectionMonitor;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.ConnectionMonitorRegistry;
@@ -917,8 +918,8 @@ public final class TestConstants {
             final ActorRef proxyActor,
             final ActorRef pubSubMediator) {
 
-        final Props props =
-                ConnectionSupervisorActor.props(proxyActor, pubSubMediator);
+        final var enforcerActorPropsFactory = ConnectionEnforcerActorPropsFactory.get(actorSystem);
+        final Props props = ConnectionSupervisorActor.props(proxyActor, pubSubMediator, enforcerActorPropsFactory);
 
         final Props shardRegionMockProps = Props.create(ShardRegionMockActor.class, props, connectionId.toString());
 

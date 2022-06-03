@@ -31,6 +31,7 @@ import org.eclipse.ditto.connectivity.model.signals.commands.modify.CreateConnec
 import org.eclipse.ditto.connectivity.model.signals.commands.modify.CreateConnectionResponse;
 import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConnection;
 import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConnectionResponse;
+import org.eclipse.ditto.connectivity.service.enforcement.ConnectionEnforcerActorPropsFactory;
 import org.eclipse.ditto.internal.utils.persistence.mongo.ops.eventsource.MongoEventSourceITAssertions;
 import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
 import org.junit.Test;
@@ -78,7 +79,7 @@ public final class ConnectionPersistenceOperationsActorIT extends MongoEventSour
                 ConnectivityModelFactory.newSource(authorizationContext, "address");
         final Connection connection =
                 ConnectivityModelFactory.newConnectionBuilder(id, ConnectionType.AMQP_091, ConnectivityStatus.CLOSED,
-                        "amqp://user:pass@8.8.8.8:5671")
+                                "amqp://user:pass@8.8.8.8:5671")
                         .sources(Collections.singletonList(source))
                         .build();
         return CreateConnection.of(connection, DittoHeaders.newBuilder()
@@ -123,8 +124,9 @@ public final class ConnectionPersistenceOperationsActorIT extends MongoEventSour
 
         // essentially never restart
         final TestProbe proxyActorProbe = new TestProbe(system, "proxyActor");
+        final var enforcerActorPropsFactory = ConnectionEnforcerActorPropsFactory.get(system);
         final Props props =
-                ConnectionSupervisorActor.props(proxyActorProbe.ref(), pubSubMediator);
+                ConnectionSupervisorActor.props(proxyActorProbe.ref(), pubSubMediator, enforcerActorPropsFactory);
 
         return system.actorOf(props, String.valueOf(id));
     }

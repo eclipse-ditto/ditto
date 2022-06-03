@@ -20,6 +20,7 @@ import org.eclipse.ditto.base.service.actors.DittoRootActor;
 import org.eclipse.ditto.connectivity.api.ConnectivityMessagingConstants;
 import org.eclipse.ditto.connectivity.service.config.ConnectionIdsRetrievalConfig;
 import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
+import org.eclipse.ditto.connectivity.service.enforcement.ConnectionEnforcerActorPropsFactory;
 import org.eclipse.ditto.connectivity.service.messaging.ConnectionIdsRetrievalActor;
 import org.eclipse.ditto.connectivity.service.messaging.ConnectivityProxyActor;
 import org.eclipse.ditto.connectivity.service.messaging.persistence.ConnectionPersistenceOperationsActor;
@@ -79,9 +80,9 @@ public final class ConnectivityRootActor extends DittoRootActor {
         final ActorRef proxyActor =
                 startChildActor(ConnectivityProxyActor.ACTOR_NAME, ConnectivityProxyActor.props(commandForwarder));
 
-        final var connectionSupervisorProps = getConnectivitySupervisorActorProps(
-                pubSubMediator, proxyActor
-        );
+        final var enforcerActorPropsFactory = ConnectionEnforcerActorPropsFactory.get(actorSystem);
+        final var connectionSupervisorProps =
+                ConnectionSupervisorActor.props(proxyActor, pubSubMediator, enforcerActorPropsFactory);
         // Create persistence streaming actor (with no cache) and make it known to pubSubMediator.
         final ActorRef persistenceStreamingActor =
                 startChildActor(ConnectionPersistenceStreamingActorCreator.ACTOR_NAME,
@@ -118,12 +119,6 @@ public final class ConnectivityRootActor extends DittoRootActor {
 
         final ActorRef healthCheckingActor = getHealthCheckingActor(connectivityConfig);
         bindHttpStatusRoute(connectivityConfig.getHttpConfig(), healthCheckingActor);
-    }
-
-    private static Props getConnectivitySupervisorActorProps(final ActorRef pubSubMediator,
-            final ActorRef proxyActor) {
-
-        return ConnectionSupervisorActor.props(proxyActor, pubSubMediator);
     }
 
     /**
