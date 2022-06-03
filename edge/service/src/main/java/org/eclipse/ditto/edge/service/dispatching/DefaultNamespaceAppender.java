@@ -35,15 +35,21 @@ import akka.actor.ActorSystem;
 import akka.japi.pf.PFBuilder;
 import scala.PartialFunction;
 
-public class DefaultNamespaceAppender implements SignalTransformer {
+/**
+ * Appends the globally configured {@link EntityCreationConfig#getDefaultNamespace() Default namespace} to creation
+ * commands which do not include an explicit namespace.
+ */
+public final class DefaultNamespaceAppender implements SignalTransformer {
 
     private final String defaultNamespace;
     private final PartialFunction<Signal<?>, Signal<?>> signalTransformer;
 
     /**
+     * Constructs a new instance of DefaultNamespaceAppender extension.
+     *
      * @param actorSystem the actor system in which to load the extension.
      */
-    protected DefaultNamespaceAppender(final ActorSystem actorSystem) {
+    public DefaultNamespaceAppender(final ActorSystem actorSystem) {
         final EntityCreationConfig entityCreationConfig = DefaultEntityCreationConfig.of(
                 DefaultScopedConfig.dittoScoped(actorSystem.settings().config())
         );

@@ -26,7 +26,7 @@ import com.typesafe.config.Config;
  * This class implements {@link EntityCreationConfig} for Ditto's Concierge service.
  */
 @Immutable
-public class DefaultEntityCreationConfig implements EntityCreationConfig {
+public final class DefaultEntityCreationConfig implements EntityCreationConfig {
 
     private static final String CONFIG_PATH = "entity-creation";
 

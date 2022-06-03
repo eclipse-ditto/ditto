@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.policies.enforcement.pre_enforcement;
+package org.eclipse.ditto.policies.enforcement.pre;
 
 import java.util.HashMap;
 import java.util.List;

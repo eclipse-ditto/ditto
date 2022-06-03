@@ -36,7 +36,6 @@ import akka.pattern.AskTimeoutException;
  *
  * @param <S> the type of the Signal to enforce/authorize.
  * @param <R> the type of the CommandResponse to filter.
- * @since 3.0.0
  */
 public abstract class AbstractEnforcementReloaded<S extends Signal<?>, R extends CommandResponse<?>>
         implements EnforcementReloaded<S, R> {
@@ -145,3 +144,5 @@ public abstract class AbstractEnforcementReloaded<S extends Signal<?>, R extends
     }
 
 }
+
+

@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.policies.enforcement.pre_enforcement;
+package org.eclipse.ditto.policies.enforcement.pre;
 
 import java.text.MessageFormat;
 import java.util.List;
@@ -26,7 +26,6 @@ import org.eclipse.ditto.base.model.entity.id.WithEntityId;
 import org.eclipse.ditto.base.model.exceptions.DittoInternalErrorException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.base.model.headers.DittoHeadersSettable;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.service.DittoExtensionPoint;
@@ -41,37 +40,16 @@ import akka.actor.ActorSystem;
 import akka.actor.ExtendedActorSystem;
 
 /**
- * Create processing units of Akka stream graph before enforcement from an asynchronous function that may abort
- * enforcement by throwing exceptions.
- *
- * @since 3.0.0
+ * A Pre-Enforcer is a function converting a {@link Signal} to a CompletionStage of a Signal, potentially throwing an
+ * exception if something was "forbidden" by the enforcer implementation.
+ * Can also modify the signal, e.g. by enriching headers.
  */
-public interface PreEnforcer extends Function<DittoHeadersSettable<?>, CompletionStage<DittoHeadersSettable<?>>>,
-        DittoExtensionPoint {
+public interface PreEnforcer extends Function<Signal<?>, CompletionStage<Signal<?>>>, DittoExtensionPoint {
 
     /**
      * Logger of pre-enforcers.
      */
     DittoLogger LOGGER = DittoLoggerFactory.getLogger(PreEnforcer.class);
-
-    /**
-     * Safe cast the message to a signal
-     *
-     * @param message the message to be cast.
-     * @return the signal.
-     */
-    default Signal<?> getMessageAsSignal(@Nullable final WithDittoHeaders message) {
-        if (message instanceof Signal) {
-            return (Signal<?>) message;
-        }
-        if (null == message) {
-            // just in case
-            LOGGER.error("Given message is null!");
-            throw DittoInternalErrorException.newBuilder().build();
-        }
-        final String msgPattern = "Message of type <{0}> is not a signal!";
-        throw new IllegalArgumentException(MessageFormat.format(msgPattern, message.getClass()));
-    }
 
     /**
      * Safe cast the message to a withEntityId
@@ -80,8 +58,8 @@ public interface PreEnforcer extends Function<DittoHeadersSettable<?>, Completio
      * @return the withEntityId.
      */
     default WithEntityId getMessageAsWithEntityId(@Nullable final WithDittoHeaders message) {
-        if (message instanceof WithEntityId) {
-            return (WithEntityId) message;
+        if (message instanceof WithEntityId withEntityId) {
+            return withEntityId;
         }
         if (null == message) {
             // just in case
@@ -99,8 +77,8 @@ public interface PreEnforcer extends Function<DittoHeadersSettable<?>, Completio
      * @return the withEntityId.
      */
     default NamespacedEntityId getEntityIdAsNamespacedEntityId(@Nullable final EntityId entityId) {
-        if (entityId instanceof NamespacedEntityId) {
-            return (NamespacedEntityId) entityId;
+        if (entityId instanceof NamespacedEntityId namespacedEntityId) {
+            return namespacedEntityId;
         }
         if (null == entityId) {
             // just in case
@@ -117,12 +95,13 @@ public interface PreEnforcer extends Function<DittoHeadersSettable<?>, Completio
      * @param signal the signal to retrieve the {@code EntityId} from.
      * @return the {@code EntityId}.
      */
-    default Optional<EntityId> extractEntityRelatedSignalId(Signal<?> signal) {
+    default Optional<EntityId> extractEntityRelatedSignalId(final Signal<?> signal) {
         return WithEntityId.getEntityIdOfType(EntityId.class, signal);
     }
 
     /**
      * Perform pre-enforcement with error handling.
+     * TODO CR-11297 candidate for removal as only used in EnforcementProvider
      *
      * @param withSender input signal together with its sender.
      * @param onError result after pre-enforcement failure.
@@ -132,12 +111,12 @@ public interface PreEnforcer extends Function<DittoHeadersSettable<?>, Completio
      * @return result of the pre-enforcement.
      */
     @SuppressWarnings({"unchecked", "rawtypes", "java:S3740"})
-    default <S extends WithSender<? extends DittoHeadersSettable<?>>, F> CompletionStage<F> withErrorHandlingAsync(
+    default <S extends WithSender<? extends Signal<?>>, F> CompletionStage<F> withErrorHandlingAsync(
             final S withSender,
             final F onError,
             final Function<S, CompletionStage<F>> andThen) {
 
-        final DittoHeadersSettable message = withSender.getMessage();
+        final Signal<?> message = withSender.getMessage();
         return apply(message)
                 // the cast to (S) is safe if the post-condition of this.apply(DittoHeadersSettable<?>) holds.
                 .thenCompose(msg -> andThen.apply((S) ((WithSender) withSender).withMessage(msg)))

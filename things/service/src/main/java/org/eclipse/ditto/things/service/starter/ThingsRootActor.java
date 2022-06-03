@@ -124,8 +124,6 @@ public final class ThingsRootActor extends DittoRootActor {
         );
         final Props props = ThingsAggregatorActor.props(thingsShardRegion, thingsAggregatorConfig);
         final ActorRef thingsAggregatorActor = getContext().actorOf(props, ThingsAggregatorActor.ACTOR_NAME);
-        // register on pub/sub so that others may send "RetrieveThings" messages to the aggregator:
-        pubSubMediator.tell(DistPubSubAccess.put(thingsAggregatorActor), getSelf());
 
         retrieveStatisticsDetailsResponseSupplier = RetrieveStatisticsDetailsResponseSupplier.of(thingsShardRegion,
                 ThingsMessagingConstants.SHARD_REGION, log);

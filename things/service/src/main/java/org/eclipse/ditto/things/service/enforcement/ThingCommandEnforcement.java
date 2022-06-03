@@ -439,13 +439,13 @@ final class ThingCommandEnforcement
 
         final ThingCommand<?> thingCommand = transformModifyThingToCreateThing(command);
         if (thingCommand instanceof CreateThing createThingCommand) {
-                return replaceInitialPolicyWithCopiedPolicyIfPresent(createThingCommand)
-                        .thenApply(createThing -> {
-                            final Optional<JsonObject> initialPolicyOptional = createThing.getInitialPolicy();
-                            return initialPolicyOptional.map(initialPolicy ->
-                                    enforceCreateThingByOwnInlinedPolicyOrThrow(createThing, initialPolicy)
-                            ).orElseGet(() -> enforceCreateThingByAuthorizationContext(createThing));
-                        });
+            return replaceInitialPolicyWithCopiedPolicyIfPresent(createThingCommand)
+                    .thenApply(createThing -> {
+                        final Optional<JsonObject> initialPolicyOptional = createThing.getInitialPolicy();
+                        return initialPolicyOptional.map(initialPolicy ->
+                                enforceCreateThingByOwnInlinedPolicyOrThrow(createThing, initialPolicy)
+                        ).orElseGet(() -> enforceCreateThingByAuthorizationContext(createThing));
+                    });
         } else {
             // Other commands cannot be authorized by policy contained in self.
             final DittoRuntimeException error;

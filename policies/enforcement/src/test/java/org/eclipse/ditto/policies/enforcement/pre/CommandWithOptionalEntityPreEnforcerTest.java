@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Contributors to the Eclipse Foundation
+ * Copyright (c) 2022 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -10,13 +10,13 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.policies.enforcement.validators;
+package org.eclipse.ditto.policies.enforcement.pre;
 
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.base.model.headers.DittoHeadersSettable;
+import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
@@ -26,9 +26,9 @@ import org.eclipse.ditto.things.model.signals.commands.modify.ModifyFeaturePrope
 import org.junit.Test;
 
 /**
- * Unit test for {@link org.eclipse.ditto.policies.enforcement.validators.CommandWithOptionalEntityValidator}.
+ * Unit test for {@link org.eclipse.ditto.policies.enforcement.pre.CommandWithOptionalEntityPreEnforcer}.
  */
-public final class CommandWithOptionalEntityValidatorTest {
+public final class CommandWithOptionalEntityPreEnforcerTest {
 
     private static final String NULL_CHARACTER = "\u0000";
 
@@ -37,7 +37,7 @@ public final class CommandWithOptionalEntityValidatorTest {
         final JsonValue jsonValue = JsonValue.of(NULL_CHARACTER);
 
         assertThatExceptionOfType(DittoRuntimeException.class)
-                .isThrownBy(() -> CommandWithOptionalEntityValidator.createInstance().apply(createTestCommand(jsonValue)));
+                .isThrownBy(() -> CommandWithOptionalEntityPreEnforcer.createInstance().apply(createTestCommand(jsonValue)));
     }
 
     @Test
@@ -45,7 +45,7 @@ public final class CommandWithOptionalEntityValidatorTest {
         final JsonArray jsonArray = JsonArray.newBuilder().add(JsonValue.of(NULL_CHARACTER)).build();
 
         assertThatExceptionOfType(DittoRuntimeException.class)
-                .isThrownBy(() -> CommandWithOptionalEntityValidator.createInstance().apply(createTestCommand(jsonArray)));
+                .isThrownBy(() -> CommandWithOptionalEntityPreEnforcer.createInstance().apply(createTestCommand(jsonArray)));
     }
 
     @Test
@@ -54,10 +54,10 @@ public final class CommandWithOptionalEntityValidatorTest {
 
         assertThatExceptionOfType(DittoRuntimeException.class)
                 .isThrownBy(
-                        () -> CommandWithOptionalEntityValidator.createInstance().apply(createTestCommand(jsonObject)));
+                        () -> CommandWithOptionalEntityPreEnforcer.createInstance().apply(createTestCommand(jsonObject)));
     }
 
-    private DittoHeadersSettable<?> createTestCommand(final JsonValue jsonValue) {
+    private Signal<?> createTestCommand(final JsonValue jsonValue) {
         final ThingId thingId = ThingId.of("org.eclipse.ditto.test:myThing");
         final String featureId = "myFeature";
         final JsonPointer propertyJsonPointer = JsonPointer.of("/bumlux");

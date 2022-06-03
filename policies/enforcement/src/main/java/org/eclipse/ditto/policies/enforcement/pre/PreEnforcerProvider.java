@@ -10,14 +10,15 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.policies.enforcement.pre_enforcement;
+package org.eclipse.ditto.policies.enforcement.pre;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
-import org.eclipse.ditto.base.model.headers.DittoHeadersSettable;
+import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.service.DittoExtensionPoint;
 import org.eclipse.ditto.internal.utils.akka.AkkaClassLoader;
 
@@ -26,15 +27,14 @@ import akka.actor.ActorSystem;
 import akka.actor.ExtendedActorSystem;
 
 /**
- * Extension to provide the pre-enforcer for a service.
- *
- * @since 3.0.0
+ * Extension to provide the Pre-Enforcers for a service.
  */
 public final class PreEnforcerProvider implements DittoExtensionPoint {
 
     private static final String CONFIG_PATH = "ditto.pre-enforcers";
     private final List<PreEnforcer> preEnforcers;
 
+    @SuppressWarnings("unused")
     private PreEnforcerProvider(final ActorSystem actorSystem) {
         preEnforcers = actorSystem.settings().config().getStringList(CONFIG_PATH)
                 .stream()
@@ -48,14 +48,10 @@ public final class PreEnforcerProvider implements DittoExtensionPoint {
      *
      * @param signal the signal the pre-enforcement is executed for.
      */
-    public CompletionStage<DittoHeadersSettable<?>> apply(final DittoHeadersSettable<?> signal) {
-        CompletionStage<DittoHeadersSettable<?>> prior = null;
+    public CompletionStage<Signal<?>> apply(final Signal<?> signal) {
+        CompletionStage<Signal<?>> prior = CompletableFuture.completedStage(signal);
         for (final PreEnforcer preEnforcer : preEnforcers) {
-            if (preEnforcer.equals(preEnforcers.get(0))) {
-                prior = preEnforcer.apply(signal);
-            } else {
-                prior = prior.thenCompose(preEnforcer);
-            }
+           prior = prior.thenCompose(preEnforcer);
         }
         return prior;
     }

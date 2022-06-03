@@ -19,32 +19,21 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.commands.Command;
-import org.eclipse.ditto.internal.utils.cache.config.CacheConfig;
 import org.eclipse.ditto.internal.utils.cacheloaders.config.AskWithRetryConfig;
 import org.eclipse.ditto.internal.utils.config.KnownConfigValue;
 
-//TODO: remove concierge from javadoc
 /**
- * Provides configuration settings for Concierge enforcement behaviour.
+ * Provides configuration settings for enforcement behaviour.
  */
 @Immutable
 public interface EnforcementConfig {
 
     /**
-     * Returns the configuration for the used "ask with retry" pattern in the concierge enforcement to load
-     * things+policies.
+     * Returns the configuration for the used "ask with retry" pattern in to e.g. load things+policies.
      *
      * @return the "ask with retry" pattern config for retrieval of things and policies.
      */
     AskWithRetryConfig getAskWithRetryConfig();
-
-    /**
-     * Returns the configuration for the used caching in the pre-enforcement to load
-     * thing+policy Ids.
-     *
-     * @return the caching config for retrieval of thing and policy Ids.
-     */
-    CacheConfig getIdCacheConfig();
 
     /**
      * Returns whether live responses from channels other than their subscribers should be dispatched.

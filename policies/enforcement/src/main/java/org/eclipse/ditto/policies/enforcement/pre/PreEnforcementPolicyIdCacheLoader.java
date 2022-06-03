@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.policies.enforcement.pre_enforcement;
+package org.eclipse.ditto.policies.enforcement.pre;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
@@ -40,10 +40,8 @@ import akka.actor.Scheduler;
 
 /**
  * Cache loader used for Policy existence check in pre-enforcement.
- *
- * @since 3.0.0
  */
-public class PreEnforcementPolicyIdCacheLoader implements
+final class PreEnforcementPolicyIdCacheLoader implements
         AsyncCacheLoader<EnforcementCacheKey, Entry<EnforcementCacheKey>> {
 
     private final ActorAskCacheLoader<EnforcementCacheKey, Command<?>, EnforcementContext> delegate;
@@ -77,8 +75,7 @@ public class PreEnforcementPolicyIdCacheLoader implements
     private static Entry<EnforcementCacheKey> handleSudoRetrievePolicyResponse(final Object response,
             @Nullable final EnforcementContext context) {
 
-        if (response instanceof SudoRetrievePolicyResponse) {
-            final var sudoRetrievePolicyResponse = (SudoRetrievePolicyResponse) response;
+        if (response instanceof SudoRetrievePolicyResponse sudoRetrievePolicyResponse) {
             final var policy = sudoRetrievePolicyResponse.getPolicy();
             final long revision = policy.getRevision().map(PolicyRevision::toLong)
                     .orElseThrow(badPolicyResponse("no revision"));

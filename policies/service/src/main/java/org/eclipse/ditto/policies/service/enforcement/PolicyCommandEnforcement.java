@@ -62,11 +62,6 @@ public final class PolicyCommandEnforcement
     private static final JsonFieldSelector POLICY_QUERY_COMMAND_RESPONSE_ALLOWLIST =
             JsonFactory.newFieldSelector(Policy.JsonFields.ID);
 
-    /**
-     * Creates a new instance of the policy command enforcer.
-     */
-    public PolicyCommandEnforcement() {}
-
     @Override
     public CompletionStage<PolicyCommand<?>> authorizeSignal(final PolicyCommand<?> command,
             final PolicyEnforcer policyEnforcer) {
@@ -107,13 +102,14 @@ public final class PolicyCommandEnforcement
             final CreatePolicy createPolicy,
             final ResourceKey policyResourceKey,
             final AuthorizationContext authorizationContext) {
+
         final PolicyCommand<?> authorizedCommand;
-            if (createPolicy.getDittoHeaders().isAllowPolicyLockout()
-                    || hasUnrestrictedWritePermission(enforcer, policyResourceKey, authorizationContext)) {
-                authorizedCommand = createPolicy;
-            } else {
-                throw errorForPolicyCommand(createPolicy);
-            }
+        if (createPolicy.getDittoHeaders().isAllowPolicyLockout()
+                || hasUnrestrictedWritePermission(enforcer, policyResourceKey, authorizationContext)) {
+            authorizedCommand = createPolicy;
+        } else {
+            throw errorForPolicyCommand(createPolicy);
+        }
         return authorizedCommand;
     }
 

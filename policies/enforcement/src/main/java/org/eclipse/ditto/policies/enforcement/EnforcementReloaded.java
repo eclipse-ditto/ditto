@@ -27,7 +27,6 @@ import org.eclipse.ditto.policies.model.PolicyId;
  *
  * @param <S> the type of the Signal to enforce/authorize.
  * @param <R> the type of the CommandResponse to filter.
- * @since 3.0.0
  */
 public interface EnforcementReloaded<S extends Signal<?>, R extends CommandResponse<?>> {
 

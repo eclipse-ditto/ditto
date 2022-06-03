@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.policies.enforcement.pre_enforcement;
+package org.eclipse.ditto.policies.enforcement.pre;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -31,15 +31,15 @@ import com.typesafe.config.ConfigFactory;
 
 import akka.actor.ActorSystem;
 
-public final class CreationRestrictionEnforcerTest {
+public final class CreationRestrictionPreEnforcerTest {
 
-    private static CreationRestrictionEnforcer load(final String basename) {
+    private static CreationRestrictionPreEnforcer load(final String basename) {
         var config =
-                ConfigFactory.parseMap(Map.of("ditto.existence-checker", "org.eclipse.ditto.policies.enforcement" +
-                        ".pre_enforcement.MockExistenceChecker")).withFallback(ConfigFactory.load(basename));
-        final ActorSystem actorSystem = ActorSystem.create(CreationRestrictionEnforcerTest.class.getSimpleName(),
+                ConfigFactory.parseMap(Map.of("ditto.existence-checker", MockExistenceChecker.class.getName()))
+                        .withFallback(ConfigFactory.load(basename));
+        final ActorSystem actorSystem = ActorSystem.create(CreationRestrictionPreEnforcerTest.class.getSimpleName(),
                 config);
-        return new CreationRestrictionEnforcer(actorSystem);
+        return new CreationRestrictionPreEnforcer(actorSystem);
     }
 
     private static DittoHeaders identity(final String... subjects) {
@@ -88,10 +88,10 @@ public final class CreationRestrictionEnforcerTest {
                 false);
     }
 
-    private void testCanCreate(final CreationRestrictionEnforcer enforcer, final EntityType type,
+    private void testCanCreate(final CreationRestrictionPreEnforcer enforcer, final EntityType type,
             final String namespace, final DittoHeaders headers, boolean expectedOutcome) {
 
-        assertEquals(expectedOutcome, enforcer.canCreate(new CreationRestrictionEnforcer.Context(
+        assertEquals(expectedOutcome, enforcer.canCreate(new CreationRestrictionPreEnforcer.Context(
                 type.toString(),
                 namespace,
                 headers

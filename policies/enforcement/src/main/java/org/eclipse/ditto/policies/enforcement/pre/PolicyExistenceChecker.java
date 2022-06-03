@@ -10,9 +10,8 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.policies.enforcement.pre_enforcement;
+package org.eclipse.ditto.policies.enforcement.pre;
 
-import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletionStage;
 
@@ -34,25 +33,28 @@ import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 
 /**
- * Checks the existence of the entity from a Policy command.
- *
- * @since 3.0.0
+ * Thing specific implementation of {@link ExistenceChecker} checking for the existence of policies.
  */
 public final class PolicyExistenceChecker implements ExistenceChecker {
 
     public static final String ENFORCEMENT_CACHE_DISPATCHER = "enforcement-cache-dispatcher";
 
-    private final AsyncCacheLoader<EnforcementCacheKey, Entry<EnforcementCacheKey>> policyIdCache;
+    private final AsyncCacheLoader<EnforcementCacheKey, Entry<EnforcementCacheKey>> policyIdLoader;
     private final ActorSystem actorSystem;
 
+    /**
+     * Constructs a new instance of PolicyExistenceChecker extension.
+     *
+     * @param actorSystem the actor system in which to load the extension.
+     */
     public PolicyExistenceChecker(final ActorSystem actorSystem) {
         this.actorSystem = actorSystem;
         final var enforcementConfig = DefaultEnforcementConfig.of(
                 DefaultScopedConfig.dittoScoped(actorSystem.settings().config()));
-        policyIdCache = getPolicyIdCache(actorSystem, enforcementConfig);
+        policyIdLoader = getPolicyIdLoader(actorSystem, enforcementConfig);
     }
 
-    private AsyncCacheLoader<EnforcementCacheKey, Entry<EnforcementCacheKey>> getPolicyIdCache(
+    private AsyncCacheLoader<EnforcementCacheKey, Entry<EnforcementCacheKey>> getPolicyIdLoader(
             final ActorSystem actorSystem,
             final EnforcementConfig enforcementConfig) {
 
@@ -73,22 +75,19 @@ public final class PolicyExistenceChecker implements ExistenceChecker {
         final Optional<EntityId> entityIdOptional = WithEntityId.getEntityIdOfType(EntityId.class, signal);
 
         try {
-            return policyIdCache.asyncLoad(EnforcementCacheKey.of(
-                                    entityIdOptional.orElseThrow(() -> getWrongEntityException(entityIdOptional, signal))),
+            return policyIdLoader.asyncLoad(EnforcementCacheKey.of(
+                                    entityIdOptional.orElseThrow(() -> getWrongEntityException(signal))),
                             actorSystem.dispatchers().lookup(ENFORCEMENT_CACHE_DISPATCHER))
                     .thenApply(Entry::exists);
         } catch (final Exception e) {
-            throw new IllegalStateException("Could not load policyId via policyIdCacheLoader", e);
+            throw new IllegalStateException("Could not load policyId via policyIdLoader", e);
         }
     }
 
-    private static IllegalArgumentException getWrongEntityException(final Optional<EntityId> entityIdOptional,
-            final Signal<?> signal) {
+    private static IllegalArgumentException getWrongEntityException(final Signal<?> signal) {
 
         final String message =
-                String.format("ExistenceChecker: unknown entity type or empty ID <%s:%s> for signal <%s>",
-                        entityIdOptional.map(EntityId::getEntityType).map(Objects::toString).orElse(""),
-                        entityIdOptional.map(Objects::toString).orElse(""), signal);
+                String.format("ExistenceChecker: unknown entity type or empty ID for signal type <%s>", signal.getType());
         return new IllegalArgumentException(message);
     }
 

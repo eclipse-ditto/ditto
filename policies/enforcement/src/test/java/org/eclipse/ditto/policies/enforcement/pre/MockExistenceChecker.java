@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.policies.enforcement.pre_enforcement;
+package org.eclipse.ditto.policies.enforcement.pre;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
@@ -19,7 +19,7 @@ import org.eclipse.ditto.base.model.signals.Signal;
 
 import akka.actor.ActorSystem;
 
-public class MockExistenceChecker implements ExistenceChecker{
+public final class MockExistenceChecker implements ExistenceChecker{
 
     public MockExistenceChecker(final ActorSystem actorSystem) {
 

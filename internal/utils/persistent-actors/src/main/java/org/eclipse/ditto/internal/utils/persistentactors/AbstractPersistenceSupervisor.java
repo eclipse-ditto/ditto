@@ -38,7 +38,7 @@ import org.eclipse.ditto.internal.utils.akka.actors.AbstractActorWithStashWithTi
 import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.namespaces.BlockedNamespaces;
-import org.eclipse.ditto.policies.enforcement.pre_enforcement.PreEnforcerProvider;
+import org.eclipse.ditto.policies.enforcement.pre.PreEnforcerProvider;
 
 import akka.actor.ActorRef;
 import akka.actor.PoisonPill;
@@ -81,6 +81,7 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
 
     @Nullable protected ActorRef enforcerChild;
 
+    private final PreEnforcerProvider preEnforcer;
     private final ExponentialBackOffConfig exponentialBackOffConfig;
     private ExponentialBackOff backOff;
     private boolean waitingForStopBeforeRestart = false;
@@ -96,6 +97,7 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
         this.persistenceActorChild = persistenceActorChild;
         this.enforcerChild = enforcerChild;
         this.blockedNamespaces = blockedNamespaces;
+        preEnforcer = PreEnforcerProvider.get(getContext().getSystem());
         exponentialBackOffConfig = getExponentialBackOffConfig();
         backOff = ExponentialBackOff.initial(exponentialBackOffConfig);
     }
@@ -544,11 +546,11 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
     protected CompletionStage<Object> enforceSignalAndForwardToTargetActor(final S signal, final ActorRef sender) {
 
         if (null != enforcerChild) {
-            return PreEnforcerProvider.get(getContext().getSystem()).apply(signal).thenCompose(preEnforcedCommand ->
-                    askEnforcerChild((Signal<?>) preEnforcedCommand)
+            return preEnforcer.apply(signal).thenCompose(preEnforcedSignal ->
+                    askEnforcerChild(preEnforcedSignal)
                             .thenCompose(this::modifyEnforcerActorEnforcedSignalResponse)
                             .thenCompose(enforcedCommand -> enforcerResponseToTargetActor(
-                                    preEnforcedCommand.getDittoHeaders(),
+                                    preEnforcedSignal.getDittoHeaders(),
                                     enforcedCommand,
                                     sender
                             ))

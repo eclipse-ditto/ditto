@@ -27,8 +27,8 @@ import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
 import org.eclipse.ditto.base.model.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.base.model.headers.DittoHeadersSettable;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
+import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.policies.enforcement.placeholders.strategies.SubstitutionStrategyRegistry;
@@ -43,11 +43,11 @@ import org.junit.Before;
 import org.junit.Test;
 
 /**
- * Tests specifics of {@link org.eclipse.ditto.policies.enforcement.placeholders.PlaceholderSubstitution}. Command-specific details are tested in concrete strategy tests
+ * Tests specifics of {@link PlaceholderSubstitutionPreEnforcer}. Command-specific details are tested in concrete strategy tests
  * (see implementations of
  * {@link org.eclipse.ditto.policies.enforcement.placeholders.strategies.AbstractSubstitutionStrategyTestBase}.
  */
-public class PlaceholderSubstitutionTest {
+public class PlaceholderSubstitutionPreEnforcerTest {
 
     private static final String SUBJECT_ID = "nginx:ditto";
     private static final String CUSTOM_HEADER_KEY = "customHeaderKey";
@@ -59,16 +59,16 @@ public class PlaceholderSubstitutionTest {
             .putHeader(CUSTOM_HEADER_KEY, ANOTHER_SUBJECT_ID)
             .build();
 
-    private PlaceholderSubstitution underTest;
+    private PlaceholderSubstitutionPreEnforcer underTest;
 
     @Before
     public void init() {
-        underTest = PlaceholderSubstitution.newInstance();
+        underTest = PlaceholderSubstitutionPreEnforcer.newInstance();
     }
 
     @Test
     public void assertImmutability() {
-        assertInstancesOf(PlaceholderSubstitution.class, areImmutable(),
+        assertInstancesOf(PlaceholderSubstitutionPreEnforcer.class, areImmutable(),
                 provided(HeaderBasedPlaceholderSubstitutionAlgorithm.class, SubstitutionStrategyRegistry.class)
                         .areAlsoImmutable());
     }
@@ -89,8 +89,8 @@ public class PlaceholderSubstitutionTest {
         final Map<String, Function<DittoHeaders, String>> additionalReplacementDefinitions =
                 Collections.singletonMap(customPlaceholderKey,
                         dittoHeaders -> dittoHeaders.get(CUSTOM_HEADER_KEY));
-        final PlaceholderSubstitution extendedPlaceholderSubstitution =
-                PlaceholderSubstitution.newExtendedInstance(additionalReplacementDefinitions);
+        final PlaceholderSubstitutionPreEnforcer extendedPlaceholderSubstitution =
+                PlaceholderSubstitutionPreEnforcer.newExtendedInstance(additionalReplacementDefinitions);
         final ModifySubject commandWithoutPlaceholders = ModifySubject.of(PolicyId.of("org.eclipse.ditto:my-policy"),
                 Label.of("my-label"), Subject.newInstance("{{ " + customPlaceholderKey + " }}",
                         SubjectType.GENERATED), DITTO_HEADERS);
@@ -118,13 +118,12 @@ public class PlaceholderSubstitutionTest {
         assertThat(response).isEqualTo(expectedCommandWithPlaceholders);
     }
 
-    private DittoHeadersSettable<?> applyBlocking(final DittoHeadersSettable<?> input) {
+    private Signal<?> applyBlocking(final Signal<?> input) {
         return applyBlocking(input, underTest);
     }
 
-    private DittoHeadersSettable<?> applyBlocking(final DittoHeadersSettable<?> input,
-            final PlaceholderSubstitution substitution) {
-        final CompletionStage<DittoHeadersSettable<?>> responseFuture = substitution.apply(input);
+    private Signal<?> applyBlocking(final Signal<?> input, final PlaceholderSubstitutionPreEnforcer substitution) {
+        final CompletionStage<Signal<?>> responseFuture = substitution.apply(input);
         try {
             return responseFuture.toCompletableFuture().get();
         } catch (final InterruptedException | ExecutionException e) {
