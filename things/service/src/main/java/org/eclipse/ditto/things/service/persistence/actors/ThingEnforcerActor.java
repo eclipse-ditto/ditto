@@ -22,13 +22,10 @@ import javax.annotation.Nullable;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
-import org.eclipse.ditto.internal.utils.cache.entry.Entry;
-import org.eclipse.ditto.internal.utils.cacheloaders.EnforcementCacheKey;
 import org.eclipse.ditto.internal.utils.cacheloaders.config.AskWithRetryConfig;
 import org.eclipse.ditto.internal.utils.namespaces.BlockedNamespaces;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.policies.enforcement.AbstractPolicyLoadingEnforcerActor;
-import org.eclipse.ditto.policies.enforcement.PolicyEnforcer;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.things.api.commands.sudo.SudoRetrieveThing;
 import org.eclipse.ditto.things.api.commands.sudo.SudoRetrieveThingResponse;
@@ -38,8 +35,6 @@ import org.eclipse.ditto.things.model.signals.commands.ThingCommandResponse;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingNotAccessibleException;
 import org.eclipse.ditto.things.model.signals.commands.modify.ThingModifyCommand;
 import org.eclipse.ditto.things.service.enforcement.ThingEnforcement;
-
-import com.github.benmanes.caffeine.cache.AsyncCacheLoader;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
@@ -51,8 +46,6 @@ import akka.pattern.Patterns;
  */
 public final class ThingEnforcerActor
         extends AbstractPolicyLoadingEnforcerActor<ThingId, Signal<?>, CommandResponse<?>, ThingEnforcement> {
-
-    @Nullable private AsyncCacheLoader<EnforcementCacheKey, Entry<PolicyEnforcer>> policyEnforcerCacheLoader;
 
     @SuppressWarnings("unused")
     private ThingEnforcerActor(final ThingId thingId,
