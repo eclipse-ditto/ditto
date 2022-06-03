@@ -25,6 +25,7 @@ import org.eclipse.ditto.base.model.signals.SignalWithEntityId;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
+import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.things.api.commands.sudo.SudoRetrieveThing;
 import org.eclipse.ditto.things.api.commands.sudo.SudoRetrieveThings;
@@ -35,6 +36,7 @@ import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThings;
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
 import akka.actor.Props;
+import akka.cluster.pubsub.DistributedPubSub;
 import akka.japi.pf.ReceiveBuilder;
 import akka.stream.SourceRef;
 import akka.stream.SystemMaterializer;
@@ -72,6 +74,14 @@ public final class ThingsAggregatorActor extends AbstractActor {
      */
     public static Props props(final ActorRef targetActor, final ThingsAggregatorConfig aggregatorConfig) {
         return Props.create(ThingsAggregatorActor.class, targetActor, aggregatorConfig);
+    }
+
+    @Override
+    public void preStart() throws Exception {
+        super.preStart();
+        final var mediator = DistributedPubSub.get(getContext().getSystem()).mediator();
+        // register on pub/sub so that others may send "RetrieveThings" messages to the aggregator:
+        mediator.tell(DistPubSubAccess.put(getSelf()), getSelf());
     }
 
     @Override
