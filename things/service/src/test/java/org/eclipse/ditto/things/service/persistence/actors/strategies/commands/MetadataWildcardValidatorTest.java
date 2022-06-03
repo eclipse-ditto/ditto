@@ -22,6 +22,7 @@ import java.util.List;
 
 import org.eclipse.ditto.base.model.exceptions.DittoHeaderInvalidException;
 import org.eclipse.ditto.base.model.exceptions.DittoHeaderNotSupportedException;
+import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveAttribute;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveAttributes;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveFeature;
@@ -35,6 +36,8 @@ import org.junit.Test;
  * Unit test for {@link MetadataWildcardValidator}.
  */
 public class MetadataWildcardValidatorTest {
+
+    private static final String GET_METADATA_HEADER_KEY = DittoHeaderDefinition.GET_METADATA.getKey();
 
     @Test
     public void assertImmutability() {
@@ -50,7 +53,7 @@ public class MetadataWildcardValidatorTest {
         metadataWildcardExprList.forEach(wildcardExpr ->
                 assertThatNoException()
                         .isThrownBy(() -> MetadataWildcardValidator.validateMetadataWildcard(RetrieveThing.TYPE,
-                                wildcardExpr))
+                                wildcardExpr, GET_METADATA_HEADER_KEY))
         );
     }
 
@@ -62,7 +65,7 @@ public class MetadataWildcardValidatorTest {
         metadataWildcardExprList.forEach(wildcardExpr ->
                 assertThatNoException()
                         .isThrownBy(() -> MetadataWildcardValidator.validateMetadataWildcard(RetrieveFeatures.TYPE,
-                                wildcardExpr))
+                                wildcardExpr, GET_METADATA_HEADER_KEY))
         );
     }
 
@@ -72,7 +75,7 @@ public class MetadataWildcardValidatorTest {
 
         assertThatNoException()
                 .isThrownBy(() -> MetadataWildcardValidator.validateMetadataWildcard(RetrieveFeature.TYPE,
-                        metadataWildcardExpr));
+                        metadataWildcardExpr, GET_METADATA_HEADER_KEY));
     }
 
     @Test
@@ -81,7 +84,7 @@ public class MetadataWildcardValidatorTest {
 
         assertThatNoException()
                 .isThrownBy(() -> MetadataWildcardValidator.validateMetadataWildcard(RetrieveFeature.TYPE,
-                        metadataWildcardExpr));
+                        metadataWildcardExpr, GET_METADATA_HEADER_KEY));
     }
 
     @Test
@@ -92,7 +95,7 @@ public class MetadataWildcardValidatorTest {
                 assertThatNoException()
                         .isThrownBy(
                                 () -> MetadataWildcardValidator.validateMetadataWildcard(RetrieveFeatureProperties.TYPE,
-                                        metadataWildcardExpr))
+                                        metadataWildcardExpr, GET_METADATA_HEADER_KEY))
         );
     }
 
@@ -105,7 +108,7 @@ public class MetadataWildcardValidatorTest {
                         .isThrownBy(
                                 () -> MetadataWildcardValidator.validateMetadataWildcard(
                                         RetrieveFeatureDesiredProperties.TYPE,
-                                        metadataWildcardExpr))
+                                        metadataWildcardExpr, GET_METADATA_HEADER_KEY))
         );
     }
 
@@ -115,7 +118,7 @@ public class MetadataWildcardValidatorTest {
 
         assertThatNoException()
                 .isThrownBy(() -> MetadataWildcardValidator.validateMetadataWildcard(RetrieveAttributes.TYPE,
-                        metadataWildcardExpr));
+                        metadataWildcardExpr, GET_METADATA_HEADER_KEY));
     }
 
     @Test
@@ -127,10 +130,10 @@ public class MetadataWildcardValidatorTest {
         metadataWildcardExprList.forEach(wildcardExpr ->
                 assertThatExceptionOfType(DittoHeaderInvalidException.class)
                         .isThrownBy(() -> MetadataWildcardValidator.validateMetadataWildcard(RetrieveThing.TYPE,
-                                wildcardExpr))
+                                wildcardExpr, GET_METADATA_HEADER_KEY))
                         .withMessage(MessageFormat.format(
-                                "The wildcard expression ''{0}'' in header 'get-metadata' is not valid.",
-                                wildcardExpr))
+                                "The wildcard expression ''{0}'' in header ''{1}'' is not valid.",
+                                wildcardExpr, GET_METADATA_HEADER_KEY))
                         .withNoCause()
         );
     }
@@ -142,10 +145,10 @@ public class MetadataWildcardValidatorTest {
         metadataWildcardExprList.forEach(wildcardExpr ->
                 assertThatExceptionOfType(DittoHeaderInvalidException.class)
                         .isThrownBy(() -> MetadataWildcardValidator.validateMetadataWildcard(RetrieveFeatures.TYPE,
-                                wildcardExpr))
+                                wildcardExpr, GET_METADATA_HEADER_KEY))
                         .withMessage(MessageFormat.format(
-                                "The wildcard expression ''{0}'' in header 'get-metadata' is not valid.",
-                                wildcardExpr))
+                                "The wildcard expression ''{0}'' in header ''{1}'' is not valid.",
+                                wildcardExpr, GET_METADATA_HEADER_KEY))
                         .withNoCause()
         );
     }
@@ -156,10 +159,10 @@ public class MetadataWildcardValidatorTest {
 
         assertThatExceptionOfType(DittoHeaderInvalidException.class)
                 .isThrownBy(() -> MetadataWildcardValidator.validateMetadataWildcard(RetrieveFeature.TYPE,
-                        metadataWildcardExpr))
+                        metadataWildcardExpr, GET_METADATA_HEADER_KEY))
                 .withMessage(MessageFormat.format(
-                        "The wildcard expression ''{0}'' in header 'get-metadata' is not valid.",
-                        metadataWildcardExpr))
+                        "The wildcard expression ''{0}'' in header ''{1}'' is not valid.",
+                        metadataWildcardExpr, GET_METADATA_HEADER_KEY))
                 .withNoCause();
     }
 
@@ -169,10 +172,10 @@ public class MetadataWildcardValidatorTest {
 
         assertThatExceptionOfType(DittoHeaderInvalidException.class)
                 .isThrownBy(() -> MetadataWildcardValidator.validateMetadataWildcard(RetrieveFeature.TYPE,
-                        metadataWildcardExpr))
+                        metadataWildcardExpr, GET_METADATA_HEADER_KEY))
                 .withMessage(MessageFormat.format(
-                        "The wildcard expression ''{0}'' in header 'get-metadata' is not valid.",
-                        metadataWildcardExpr))
+                        "The wildcard expression ''{0}'' in header ''{1}'' is not valid.",
+                        metadataWildcardExpr, GET_METADATA_HEADER_KEY))
                 .withNoCause();
     }
 
@@ -184,10 +187,10 @@ public class MetadataWildcardValidatorTest {
                 assertThatExceptionOfType(DittoHeaderInvalidException.class)
                         .isThrownBy(
                                 () -> MetadataWildcardValidator.validateMetadataWildcard(RetrieveFeatureProperties.TYPE,
-                                        metadataWildcardExpr))
+                                        metadataWildcardExpr, GET_METADATA_HEADER_KEY))
                         .withMessage(MessageFormat.format(
-                                "The wildcard expression ''{0}'' in header 'get-metadata' is not valid.",
-                                metadataWildcardExpr))
+                                "The wildcard expression ''{0}'' in header ''{1}'' is not valid.",
+                                metadataWildcardExpr, GET_METADATA_HEADER_KEY))
                         .withNoCause()
         );
     }
@@ -198,10 +201,10 @@ public class MetadataWildcardValidatorTest {
 
         assertThatExceptionOfType(DittoHeaderInvalidException.class)
                 .isThrownBy(() -> MetadataWildcardValidator.validateMetadataWildcard(RetrieveAttributes.TYPE,
-                        metadataWildcardExpr))
+                        metadataWildcardExpr, GET_METADATA_HEADER_KEY))
                 .withMessage(MessageFormat.format(
-                        "The wildcard expression ''{0}'' in header 'get-metadata' is not valid.",
-                        metadataWildcardExpr))
+                        "The wildcard expression ''{0}'' in header ''{1}'' is not valid.",
+                        metadataWildcardExpr, GET_METADATA_HEADER_KEY))
                 .withNoCause();
     }
 
@@ -212,10 +215,10 @@ public class MetadataWildcardValidatorTest {
         metadataWildcardExprList.forEach(wildcardExpr ->
                 assertThatExceptionOfType(DittoHeaderNotSupportedException.class)
                         .isThrownBy(() -> MetadataWildcardValidator.validateMetadataWildcard(RetrieveAttribute.TYPE,
-                                wildcardExpr))
+                                wildcardExpr, GET_METADATA_HEADER_KEY))
                         .withMessage(MessageFormat.format(
-                                "The wildcard expression ''{0}'' in header 'get-metadata' is not supported on this resource level.",
-                                wildcardExpr))
+                                "The wildcard expression ''{0}'' in header ''{1}'' is not supported on this resource level.",
+                                wildcardExpr, GET_METADATA_HEADER_KEY))
                         .withNoCause()
         );
     }

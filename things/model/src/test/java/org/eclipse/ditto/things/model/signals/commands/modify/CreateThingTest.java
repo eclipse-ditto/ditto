@@ -204,9 +204,8 @@ public final class CreateThingTest {
         final DittoHeaders expectedDittoHeaders = DittoHeaders.newBuilder()
                 .putHeader(DittoHeaderDefinition.PUT_METADATA.toString(), expectedMetadataHeaders.toJsonString())
                 .build();
-        final CreateThing expectedCommand = CreateThing.of(thing, null, DittoHeaders.empty());
+        final CreateThing expectedCommand = CreateThing.of(thing, null, expectedDittoHeaders);
         softly.assertThat(parsedCommand).isEqualTo(expectedCommand);
-        softly.assertThat(parsedCommand.getDittoHeaders()).isEqualTo(expectedDittoHeaders);
     }
 
     @Test

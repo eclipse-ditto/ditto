@@ -371,6 +371,13 @@ public abstract class AbstractDittoHeaders implements DittoHeaders {
     }
 
     @Override
+    public Set<JsonPointer> getMetadataFieldsToDelete() {
+        final String metadataFieldSelector = getOrDefault(DittoHeaderDefinition.DELETE_METADATA.getKey(), "");
+        return JsonFactory.newFieldSelector(metadataFieldSelector,
+                JsonParseOptions.newBuilder().withoutUrlDecoding().build()).getPointers();
+    }
+
+    @Override
     public boolean isAllowPolicyLockout() {
         return isExpectedBoolean(DittoHeaderDefinition.ALLOW_POLICY_LOCKOUT, Boolean.TRUE);
     }

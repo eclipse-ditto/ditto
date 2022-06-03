@@ -22,6 +22,7 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.base.model.entity.metadata.Metadata;
 import org.eclipse.ditto.base.model.entity.metadata.MetadataBuilder;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.signals.WithOptionalEntity;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.internal.utils.headers.conditional.ConditionalHeadersValidator;
@@ -35,6 +36,7 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommand;
+import org.eclipse.ditto.things.model.signals.commands.modify.ThingModifyCommand;
 import org.eclipse.ditto.things.model.signals.commands.query.ThingQueryCommand;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 
@@ -73,25 +75,22 @@ abstract class AbstractThingCommandStrategy<C extends Command<C>>
     public Result<ThingEvent<?>> apply(final Context<ThingId> context, @Nullable final Thing entity,
             final long nextRevision, final C command) {
 
+        final var dittoHeaders = command.getDittoHeaders();
+        final var dittoHeadersBuilder = dittoHeaders.toBuilder();
         final var loggerWithCorrelationId = context.getLog().withCorrelationId(command);
-        final var thingConditionFailed = command.getDittoHeaders()
-                .getCondition()
+        final var thingConditionFailed = dittoHeaders.getCondition()
                 .flatMap(condition -> ThingConditionValidator.validate(command, condition, entity));
-        final Boolean liveChannelConditionPassed = command.getDittoHeaders()
-                .getLiveChannelCondition()
+        final Boolean liveChannelConditionPassed = dittoHeaders.getLiveChannelCondition()
                 .map(condition -> ThingConditionValidator.validate(command, condition, entity).isEmpty())
                 .orElse(false);
 
         final Result<ThingEvent<?>> result;
         if (command instanceof ThingQueryCommand<?> &&
-                !command.getDittoHeaders().getMetadataFieldsToGet().isEmpty()) {
+                !dittoHeaders.getMetadataFieldsToGet().isEmpty()) {
             final Optional<Metadata> optionalMetadata = calculateMetadataForGetRequests(entity, command);
-            final var enhancedDittoHeaders = command.getDittoHeaders().toBuilder()
-                    .putHeader(DittoHeaderDefinition.DITTO_METADATA.getKey(),
-                            optionalMetadata.isPresent() ? optionalMetadata.get().toString() :
-                                    JsonObject.empty().toString())
-                    .build();
-            command.setDittoHeaders(enhancedDittoHeaders);
+            dittoHeadersBuilder.putHeader(DittoHeaderDefinition.DITTO_METADATA.getKey(),
+                    optionalMetadata.isPresent() ? optionalMetadata.get().toString() :
+                            JsonObject.empty().toString());
         }
 
         if (thingConditionFailed.isPresent()) {
@@ -99,15 +98,12 @@ abstract class AbstractThingCommandStrategy<C extends Command<C>>
             loggerWithCorrelationId.debug("Validating condition failed with exception <{}>.",
                     conditionFailedException.getMessage());
             result = ResultFactory.newErrorResult(conditionFailedException, command);
-        } else if (command.getDittoHeaders().getLiveChannelCondition().isPresent()) {
-            final var enhancedHeaders = command.getDittoHeaders()
-                    .toBuilder()
-                    .putHeader(DittoHeaderDefinition.LIVE_CHANNEL_CONDITION_MATCHED.getKey(),
-                            liveChannelConditionPassed.toString())
-                    .build();
-            result = super.apply(context, entity, nextRevision, command.setDittoHeaders(enhancedHeaders));
+        } else if (dittoHeaders.getLiveChannelCondition().isPresent()) {
+            dittoHeadersBuilder.putHeader(DittoHeaderDefinition.LIVE_CHANNEL_CONDITION_MATCHED.getKey(),
+                    liveChannelConditionPassed.toString());
+            result = super.apply(context, entity, nextRevision, command.setDittoHeaders(dittoHeadersBuilder.build()));
         } else {
-            result = super.apply(context, entity, nextRevision, command);
+            result = super.apply(context, entity, nextRevision, command.setDittoHeaders(dittoHeadersBuilder.build()));
         }
 
         return result;
@@ -115,11 +111,16 @@ abstract class AbstractThingCommandStrategy<C extends Command<C>>
 
     @Override
     protected Optional<Metadata> calculateRelativeMetadata(@Nullable final Thing entity, final C command) {
-        if (command instanceof WithOptionalEntity withOptionalEntity) {
-            final Metadata existingRelativeMetadata = getExistingMetadata(entity, command);
+        final DittoHeaders dittoHeaders = command.getDittoHeaders();
+        final Metadata existingRelativeMetadata = getExistingMetadata(entity, command);
+
+        if (command instanceof WithOptionalEntity withOptionalEntity &&
+                !dittoHeaders.getMetadataHeadersToPut().isEmpty()) {
             final MetadataFromSignal relativeMetadata =
                     MetadataFromSignal.of(command, withOptionalEntity, existingRelativeMetadata);
             return Optional.ofNullable(relativeMetadata.get());
+        } else if (command instanceof ThingModifyCommand<?> && !dittoHeaders.getMetadataFieldsToDelete().isEmpty()) {
+            return calculateMetadataForDeleteRequests(entity, command);
         }
 
         return Optional.empty();
@@ -137,9 +138,10 @@ abstract class AbstractThingCommandStrategy<C extends Command<C>>
             metadataFields.stream()
                     .filter(this::checkIfContainsWildcard)
                     .forEach(jsonPointer -> MetadataWildcardValidator.validateMetadataWildcard(command.getType(),
-                            jsonPointer.toString()));
+                            jsonPointer.toString(), DittoHeaderDefinition.GET_METADATA.getKey()));
             metadataFieldsWithResolvedWildcard =
-                    expandWildcardsInMetadataExpression(metadataFields, entity, command);
+                    expandWildcardsInMetadataExpression(metadataFields, entity, command,
+                            DittoHeaderDefinition.GET_METADATA.getKey());
         } else {
             metadataFieldsWithResolvedWildcard = metadataFields;
         }
@@ -151,6 +153,38 @@ abstract class AbstractThingCommandStrategy<C extends Command<C>>
                 metadataValue.ifPresent(
                         jsonValue -> metadataBuilder.set(metadataFieldPointer.toString(), jsonValue));
             });
+            return Optional.of(metadataBuilder.build());
+        }
+
+        return Optional.empty();
+    }
+
+    private Optional<Metadata> calculateMetadataForDeleteRequests(@Nullable Thing entity, final C command) {
+        final Metadata existingMetadata = getExistingMetadata(entity, command);
+        final Set<JsonPointer> metadataFieldsToDelete = command.getDittoHeaders().getMetadataFieldsToDelete();
+        if (containsExactlySingleWildcard(metadataFieldsToDelete) && existingMetadata != null) {
+            // delete all metadata
+            return Optional.of(Metadata.newMetadata(JsonObject.empty()));
+        }
+
+        final Set<JsonPointer> metadataFieldsWithResolvedWildcard;
+        if (checkIfContainsWildcards(metadataFieldsToDelete) && entity != null) {
+            metadataFieldsToDelete.stream()
+                    .filter(this::checkIfContainsWildcard)
+                    .forEach(jsonPointer -> MetadataWildcardValidator.validateMetadataWildcard(command.getType(),
+                            jsonPointer.toString(), DittoHeaderDefinition.DELETE_METADATA.getKey()));
+            metadataFieldsWithResolvedWildcard =
+                    expandWildcardsInMetadataExpression(metadataFieldsToDelete, entity, command,
+                            DittoHeaderDefinition.DELETE_METADATA.getKey());
+        } else {
+            metadataFieldsWithResolvedWildcard = metadataFieldsToDelete;
+        }
+
+
+        if (existingMetadata != null && !metadataFieldsWithResolvedWildcard.isEmpty()) {
+            final MetadataBuilder metadataBuilder = existingMetadata.toBuilder();
+            metadataFieldsWithResolvedWildcard.forEach(metadataBuilder::remove);
+
             return Optional.of(metadataBuilder.build());
         }
 
@@ -186,19 +220,20 @@ abstract class AbstractThingCommandStrategy<C extends Command<C>>
     }
 
     private Set<JsonPointer> expandWildcardsInMetadataExpression(final Set<JsonPointer> metadataPointerWithWildcard,
-            final Thing entity, final C command) {
+            final Thing entity, final C command, final String headerKey) {
 
-        final Set<JsonPointer> resolvedGetMetadataPointers = new HashSet<>();
+        final Set<JsonPointer> resolvedMetadataPointers = new HashSet<>();
 
         metadataPointerWithWildcard.stream()
                 .filter(jsonPointer -> !checkIfContainsWildcard(jsonPointer))
-                .forEach(resolvedGetMetadataPointers::add);
+                .forEach(resolvedMetadataPointers::add);
 
         metadataPointerWithWildcard.stream()
                 .filter(this::checkIfContainsWildcard)
-                .map(jsonPointer -> MetadataFieldsWildcardResolver.resolve(command, entity, jsonPointer))
-                .forEach(resolvedGetMetadataPointers::addAll);
+                .map(jsonPointer -> MetadataFieldsWildcardResolver.resolve(command, entity, jsonPointer, headerKey))
+                .forEach(resolvedMetadataPointers::addAll);
 
-        return resolvedGetMetadataPointers;
+        return resolvedMetadataPointers;
     }
+
 }

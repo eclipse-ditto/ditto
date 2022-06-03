@@ -348,13 +348,22 @@ public interface DittoHeaders extends Jsonifiable<JsonObject>, Map<String, Strin
     MetadataHeaders getMetadataHeadersToPut();
 
     /**
-     * Returns the metadata header keys to get for the (retrieving) response were they should be added to.
+     * Returns the metadata fields to get for the (retrieving) response were they should be added to.
      *
-     * @return the MetadataHeaderKeys to get being a sorted set of {@code MetadataHeaderKey}s.
+     * @return set of {@code JsonPointer}s to get {@code Metadata} for.
      * Changes on the returned set are not reflected back to this DittoHeaders instance.
      * @since 2.5.0
      */
     Set<JsonPointer> getMetadataFieldsToGet();
+
+    /**
+     * Returns the metadata fields to delete metadata for the modifying request.
+     *
+     * @return set of {@code JsonPointer}s to delete {@code Metadata} for.
+     * Changes on the returned set are not reflected back to this DittoHeaders instance.
+     * @since 2.5.0
+     */
+    Set<JsonPointer> getMetadataFieldsToDelete();
 
     /**
      * Returns whether the policy lockout is allowed.

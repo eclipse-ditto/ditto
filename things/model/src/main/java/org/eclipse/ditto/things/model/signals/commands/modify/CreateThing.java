@@ -49,9 +49,9 @@ import org.eclipse.ditto.things.model.signals.commands.exceptions.MetadataNotMod
 import org.eclipse.ditto.things.model.signals.commands.exceptions.PoliciesConflictingException;
 
 /**
- * This command creates a new Thing. It contains the full {@link org.eclipse.ditto.things.model.Thing} including the Thing ID which should be used for
- * creation. If the Thing ID is already in the system, a response with a status code {@code 409} (Conflict) will be
- * generated.
+ * This command creates a new Thing. It contains the full {@link org.eclipse.ditto.things.model.Thing} including the
+ * Thing ID which should be used for creation. If the Thing ID is already in the system, a response with a status code
+ * {@code 409} (Conflict) will be generated.
  */
 @Immutable
 @JsonParsableCommand(typePrefix = ThingCommand.TYPE_PREFIX, name = CreateThing.NAME)
@@ -101,7 +101,7 @@ public final class CreateThing extends AbstractCommand<CreateThing> implements T
     @Nullable private final String policyIdOrPlaceholder;
 
     private CreateThing(final Thing thing, @Nullable final JsonObject initialPolicy, final DittoHeaders dittoHeaders) {
-        super(TYPE, addMetadataToPutFromThingToDittoHeaders(thing, dittoHeaders));
+        super(TYPE, dittoHeaders);
         this.thing = thing;
         this.initialPolicy = initialPolicy;
         this.policyIdOrPlaceholder = null;
@@ -115,7 +115,7 @@ public final class CreateThing extends AbstractCommand<CreateThing> implements T
     }
 
     private CreateThing(final Thing thing, final String policyIdOrPlaceholder, final DittoHeaders dittoHeaders) {
-        super(TYPE, addMetadataToPutFromThingToDittoHeaders(thing, dittoHeaders));
+        super(TYPE, dittoHeaders);
         this.thing = thing;
         this.initialPolicy = null;
         this.policyIdOrPlaceholder = policyIdOrPlaceholder;
@@ -174,7 +174,7 @@ public final class CreateThing extends AbstractCommand<CreateThing> implements T
      * @param newThing the new {@link org.eclipse.ditto.things.model.Thing} to create.
      * @param initialPolicy the initial {@code Policy} to set for the Thing - may be null.
      * @param policyIdOrPlaceholder the policy id of the {@code Policy} to copy and set for the Thing when creating it.
-     * If it is a placeholder it will be resolved to a policy id.
+     * If its a placeholder it will be resolved to a policy id.
      * Placeholder must be of the syntax: {{ ref:things/theThingId/policyId }}.
      * @param dittoHeaders the headers of the command.
      * @return a Command for creating the provided new Thing.
@@ -228,7 +228,27 @@ public final class CreateThing extends AbstractCommand<CreateThing> implements T
             final String policyIdOrPlaceholder = jsonObject.getValue(JSON_POLICY_ID_OR_PLACEHOLDER).orElse(null);
             final Thing thing = ThingsModelFactory.newThing(thingJsonObject);
 
-            return of(thing, initialPolicyObject, policyIdOrPlaceholder, dittoHeaders);
+            final DittoHeaders headers = thing.getMetadata()
+                    .map(metadata -> {
+                        if (dittoHeaders.containsKey(DittoHeaderDefinition.PUT_METADATA.toString())) {
+                            throw MetadataNotModifiableException.newBuilder().build();
+                        }
+
+                        final MetadataHeaders metadataHeaders = MetadataHeaders.newInstance();
+                        metadata.forEach(jsonField -> {
+                            final MetadataHeaderKey key = MetadataHeaderKey.of(jsonField.getKey().asPointer());
+                            final MetadataHeader metadataHeader = MetadataHeader.of(key, jsonField.getValue());
+                            metadataHeaders.add(metadataHeader);
+                        });
+
+                        final DittoHeaders h = dittoHeaders.toBuilder()
+                                .putHeader(DittoHeaderDefinition.PUT_METADATA.toString(), metadataHeaders.toJsonString())
+                                .build();
+                        return h;
+                    })
+                    .orElse(dittoHeaders);
+
+            return of(thing, initialPolicyObject, policyIdOrPlaceholder, headers);
         });
     }
 
@@ -251,30 +271,7 @@ public final class CreateThing extends AbstractCommand<CreateThing> implements T
     /**
      * @return the policyIdOrPlaceholder that should be used to copy an existing policy when creating the Thing.
      */
-    public Optional<String> getPolicyIdOrPlaceholder() {return Optional.ofNullable(policyIdOrPlaceholder);}
-
-    private static DittoHeaders addMetadataToPutFromThingToDittoHeaders(final Thing thing,
-            final DittoHeaders dittoHeaders) {
-        return thing.getMetadata()
-                .map(metadata -> {
-                    if (dittoHeaders.containsKey(DittoHeaderDefinition.PUT_METADATA.toString())) {
-                        throw MetadataNotModifiableException.newBuilder().build();
-                    }
-
-                    final MetadataHeaders metadataHeaders = MetadataHeaders.newInstance();
-                    metadata.forEach(jsonField -> {
-                        final MetadataHeaderKey key = MetadataHeaderKey.of(jsonField.getKey().asPointer());
-                        final MetadataHeader metadataHeader = MetadataHeader.of(key, jsonField.getValue());
-                        metadataHeaders.add(metadataHeader);
-                    });
-
-                    final DittoHeaders h = dittoHeaders.toBuilder()
-                            .putHeader(DittoHeaderDefinition.PUT_METADATA.toString(), metadataHeaders.toJsonString())
-                            .build();
-                    return h;
-                })
-                .orElse(dittoHeaders);
-    }
+    public Optional<String> getPolicyIdOrPlaceholder() { return Optional.ofNullable(policyIdOrPlaceholder);}
 
     @Override
     public ThingId getEntityId() {

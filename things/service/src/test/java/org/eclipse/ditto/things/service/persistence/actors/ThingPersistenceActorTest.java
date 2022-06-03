@@ -1301,7 +1301,8 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
             final ActorRef underTest = createPersistenceActorFor(thing);
 
             // create thing
-            final CreateThing createThing = CreateThing.of(thing, null, dittoHeadersV2);
+            final JsonObject commandJson = getJsonCommand(thing);
+            final CreateThing createThing = CreateThing.fromJson(commandJson, dittoHeadersV2);
             underTest.tell(createThing, getRef());
             expectMsgClass(java.time.Duration.ofSeconds(3600), CreateThingResponse.class);
 
@@ -1343,7 +1344,8 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
             final ActorRef underTest = createPersistenceActorFor(thing);
 
             // create thing
-            final CreateThing createThing = CreateThing.of(thing, null, dittoHeadersV2);
+            final JsonObject commandJson = getJsonCommand(thing);
+            final CreateThing createThing = CreateThing.fromJson(commandJson, dittoHeadersV2);
             underTest.tell(createThing, getRef());
             expectMsgClass(CreateThingResponse.class);
 
@@ -1384,7 +1386,8 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
             final ActorRef underTest = createPersistenceActorFor(thing);
 
             // create thing
-            final CreateThing createThing = CreateThing.of(thing, null, dittoHeadersV2);
+            final JsonObject commandJson = getJsonCommand(thing);
+            final CreateThing createThing = CreateThing.fromJson(commandJson, dittoHeadersV2);
             underTest.tell(createThing, getRef());
             expectMsgClass(CreateThingResponse.class);
 
@@ -1418,7 +1421,8 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
             final ActorRef underTest = createPersistenceActorFor(thing);
 
             // create thing
-            final CreateThing createThing = CreateThing.of(thing, null, dittoHeadersV2);
+            final JsonObject commandJson = getJsonCommand(thing);
+            final CreateThing createThing = CreateThing.fromJson(commandJson, dittoHeadersV2);
             underTest.tell(createThing, getRef());
             expectMsgClass(CreateThingResponse.class);
 
@@ -1460,7 +1464,8 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
             final ActorRef underTest = createPersistenceActorFor(thing);
 
             // create thing
-            final CreateThing createThing = CreateThing.of(thing, null, dittoHeadersV2);
+            final JsonObject commandJson = getJsonCommand(thing);
+            final CreateThing createThing = CreateThing.fromJson(commandJson, dittoHeadersV2);
             underTest.tell(createThing, getRef());
             expectMsgClass(CreateThingResponse.class);
 
@@ -1564,6 +1569,13 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
                 .setRevision(thing.getRevision()
                         .map(Revision::increment)
                         .orElseGet(() -> ThingRevision.newInstance(1L)))
+                .build();
+    }
+
+    private static JsonObject getJsonCommand(final Thing thing) {
+        return JsonFactory.newObjectBuilder()
+                .set(ThingCommand.JsonFields.TYPE, CreateThing.TYPE)
+                .set(CreateThing.JSON_THING, thing.toJson(FieldType.all()))
                 .build();
     }
 

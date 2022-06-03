@@ -82,8 +82,9 @@ public abstract class AbstractDittoHeadersBuilder<S extends AbstractDittoHeaders
     private final Map<String, Header> headers;
     private final Map<String, HeaderDefinition> definitions;
     private MetadataHeaders metadataHeaders;
-
     private JsonFieldSelector getMetadataFieldSelector;
+    private JsonFieldSelector deleteMetadataFieldSelector;
+
     /**
      * Constructs a new {@code AbstractDittoHeadersBuilder} object.
      *
@@ -106,7 +107,8 @@ public abstract class AbstractDittoHeadersBuilder<S extends AbstractDittoHeaders
         metadataHeaders = MetadataHeaders.newInstance();
         metadataHeaders.addAll(extractMetadataHeaders(headers));
         this.definitions = getHeaderDefinitionsAsMap(definitions);
-        getMetadataFieldSelector = extractGetMetadataFieldSelector(headers);
+        getMetadataFieldSelector = extractMetadataFieldSelector(headers, DittoHeaderDefinition.GET_METADATA);
+        deleteMetadataFieldSelector = extractMetadataFieldSelector(headers, DittoHeaderDefinition.DELETE_METADATA);
     }
 
     private static MetadataHeaders extractMetadataHeaders(final Map<String, Header> headers) {
@@ -120,12 +122,14 @@ public abstract class AbstractDittoHeadersBuilder<S extends AbstractDittoHeaders
         return result;
     }
 
-    private static JsonFieldSelector extractGetMetadataFieldSelector(final Map<String, Header> headers) {
+    private static JsonFieldSelector extractMetadataFieldSelector(final Map<String, Header> headers,
+            final DittoHeaderDefinition headerDefinition) {
         final JsonFieldSelector result;
-        final CharSequence getMetadataFieldSelector = headers.remove(DittoHeaderDefinition.GET_METADATA.getKey());
+        final CharSequence metadataFieldSelector = headers.remove(headerDefinition.getKey());
 
-        if (null != getMetadataFieldSelector) {
-            result = JsonFactory.newFieldSelector(getMetadataFieldSelector.toString(), JSON_FIELD_SELECTOR_PARSE_OPTIONS);
+        if (null != metadataFieldSelector) {
+            result = JsonFactory.newFieldSelector(metadataFieldSelector.toString(),
+                    JSON_FIELD_SELECTOR_PARSE_OPTIONS);
         } else {
             result = JsonFactory.emptyFieldSelector();
         }
@@ -168,7 +172,8 @@ public abstract class AbstractDittoHeadersBuilder<S extends AbstractDittoHeaders
         metadataHeaders = MetadataHeaders.newInstance();
         metadataHeaders.addAll(extractMetadataHeaders(headers));
         this.definitions = getHeaderDefinitionsAsMap(definitions);
-        getMetadataFieldSelector = extractGetMetadataFieldSelector(headers);
+        getMetadataFieldSelector = extractMetadataFieldSelector(headers, DittoHeaderDefinition.GET_METADATA);
+        deleteMetadataFieldSelector = extractMetadataFieldSelector(headers, DittoHeaderDefinition.DELETE_METADATA);
     }
 
     /**
@@ -511,9 +516,12 @@ public abstract class AbstractDittoHeadersBuilder<S extends AbstractDittoHeaders
         if (isPutMetadataKey(keyString)) {
             metadataHeaders = MetadataHeaders.parseMetadataHeaders(value);
         } else if (isGetMetadataKey(keyString)) {
-            getMetadataFieldSelector = JsonFactory.newFieldSelector(value.toString(), JSON_FIELD_SELECTOR_PARSE_OPTIONS);
-        }
-        else if (DittoHeaderDefinition.CORRELATION_ID.getKey().equals(keyString)) {
+            getMetadataFieldSelector =
+                    JsonFactory.newFieldSelector(value.toString(), JSON_FIELD_SELECTOR_PARSE_OPTIONS);
+        } else if (isDeleteMetadataKey(keyString)) {
+            deleteMetadataFieldSelector =
+                    JsonFactory.newFieldSelector(value.toString(), JSON_FIELD_SELECTOR_PARSE_OPTIONS);
+        } else if (DittoHeaderDefinition.CORRELATION_ID.getKey().equals(keyString)) {
             correlationId(value);
         } else {
             headers.remove(keyString);
@@ -541,6 +549,10 @@ public abstract class AbstractDittoHeadersBuilder<S extends AbstractDittoHeaders
         return Objects.equals(DittoHeaderDefinition.GET_METADATA.getKey(), key.toString());
     }
 
+    private static boolean isDeleteMetadataKey(final CharSequence key) {
+        return Objects.equals(DittoHeaderDefinition.DELETE_METADATA.getKey(), key.toString());
+    }
+
     @Override
     public S putHeaders(final Map<String, String> headers) {
         checkNotNull(headers, "headers");
@@ -559,6 +571,10 @@ public abstract class AbstractDittoHeadersBuilder<S extends AbstractDittoHeaders
         if (isGetMetadataKey(keyString)) {
             getMetadataFieldSelector = JsonFactory.emptyFieldSelector();
         }
+        if (isDeleteMetadataKey(keyString)) {
+            deleteMetadataFieldSelector = JsonFactory.emptyFieldSelector();
+        }
+
         return myself;
     }
 
@@ -587,9 +603,9 @@ public abstract class AbstractDittoHeadersBuilder<S extends AbstractDittoHeaders
 
     @Override
     public R build() {
-        // do it here
         putMetadataHeadersToRegularHeaders();
         putGetMetadataFieldSelectorToRegularHeaders();
+        putDeleteMetadataFieldSelectorToRegularHeaders();
         final ImmutableDittoHeaders dittoHeaders = ImmutableDittoHeaders.fromBuilder(headers);
         return doBuild(dittoHeaders);
     }
@@ -605,6 +621,13 @@ public abstract class AbstractDittoHeadersBuilder<S extends AbstractDittoHeaders
         if (!getMetadataFieldSelector.isEmpty()) {
             headers.put(DittoHeaderDefinition.GET_METADATA.getKey(),
                     Header.of(DittoHeaderDefinition.GET_METADATA.getKey(), getMetadataFieldSelector.toString()));
+        }
+    }
+
+    private void putDeleteMetadataFieldSelectorToRegularHeaders() {
+        if (!deleteMetadataFieldSelector.isEmpty()) {
+            headers.put(DittoHeaderDefinition.DELETE_METADATA.getKey(),
+                    Header.of(DittoHeaderDefinition.DELETE_METADATA.getKey(), deleteMetadataFieldSelector.toString()));
         }
     }
 

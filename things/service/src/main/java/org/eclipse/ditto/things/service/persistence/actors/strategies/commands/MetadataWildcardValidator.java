@@ -19,7 +19,12 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.model.exceptions.DittoHeaderInvalidException;
 import org.eclipse.ditto.base.model.exceptions.DittoHeaderNotSupportedException;
-import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
+import org.eclipse.ditto.things.model.signals.commands.modify.ModifyAttributes;
+import org.eclipse.ditto.things.model.signals.commands.modify.ModifyFeature;
+import org.eclipse.ditto.things.model.signals.commands.modify.ModifyFeatureDesiredProperties;
+import org.eclipse.ditto.things.model.signals.commands.modify.ModifyFeatureProperties;
+import org.eclipse.ditto.things.model.signals.commands.modify.ModifyFeatures;
+import org.eclipse.ditto.things.model.signals.commands.modify.ModifyThing;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveAttributes;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveFeature;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveFeatureDesiredProperties;
@@ -28,7 +33,7 @@ import org.eclipse.ditto.things.model.signals.commands.query.RetrieveFeatures;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThing;
 
 /**
- * Validates thw wildcard expression in the {@code get-metadata} header.
+ * Validates the wildcard expression in the {@code get-metadata} or {@code delete-metadata} header.
  * If the expression is invalid, a {@link DittoHeaderInvalidException} is thrown.
  */
 @Immutable
@@ -57,42 +62,45 @@ final class MetadataWildcardValidator {
      * Checks if the metaDataWildcardExpression for the command type is valid.
      *
      * @param commandType teh commandType to validate.
-     * @param metaDataWildcardExpression the wildcard expression used in the get-metadata header.
+     * @param metaDataWildcardExpression the wildcard expression.
+     * @param headerKey the header key.
      * @throws DittoHeaderInvalidException if {@code metaDataWildcardExpression} is not valid for the commandType.
      */
-    public static void validateMetadataWildcard(final String commandType, final String metaDataWildcardExpression) {
+    public static void validateMetadataWildcard(final String commandType, final String metaDataWildcardExpression,
+            final String headerKey) {
 
         switch (commandType) {
-            case RetrieveThing.TYPE -> {
+            case RetrieveThing.TYPE, ModifyThing.TYPE -> {
                 if (!Pattern.matches(THING_FEATURES_AND_PROPERTIES_WILDCARD_REGEX, metaDataWildcardExpression)
                         &&
                         !Pattern.matches(THING_FEATURES_WITH_PROPERTIES_ONLY_WILDCARD_REGEX, metaDataWildcardExpression)
                         && !Pattern.matches(THING_FEATURES_WITH_ID_ONLY_WILDCARD_REGEX, metaDataWildcardExpression)
                         && !Pattern.matches(ATTRIBUTES_WILDCARD_REGEX, metaDataWildcardExpression)
                         && !Pattern.matches(LEAF_WILDCARD_REGEX, metaDataWildcardExpression)) {
-                    throw getDittoHeaderInvalidException(metaDataWildcardExpression);
+                    throw getDittoHeaderInvalidException(metaDataWildcardExpression, headerKey);
                 }
             }
-            case RetrieveFeatures.TYPE -> {
+            case RetrieveFeatures.TYPE, ModifyFeatures.TYPE -> {
                 if (!Pattern.matches(FEATURES_WILDCARD_REGEX, metaDataWildcardExpression)
                         && !Pattern.matches(FEATURES_WITH_PROPERTIES_ONLY_WILDCARD_REGEX, metaDataWildcardExpression)
                         && !Pattern.matches(FEATURES_WITH_ID_ONLY_WILDCARD_REGEX, metaDataWildcardExpression)) {
-                    throw getDittoHeaderInvalidException(metaDataWildcardExpression);
+                    throw getDittoHeaderInvalidException(metaDataWildcardExpression, headerKey);
                 }
             }
-            case RetrieveFeature.TYPE -> {
+            case RetrieveFeature.TYPE, ModifyFeature.TYPE -> {
                 if (!Pattern.matches(FEATURE_PROPERTY_WILDCARD_REGEX, metaDataWildcardExpression)
                         && !Pattern.matches(FEATURES_WITH_ID_ONLY_WILDCARD_REGEX, metaDataWildcardExpression)
                         && !Pattern.matches(FEATURES_WITH_PROPERTIES_ONLY_WILDCARD_REGEX, metaDataWildcardExpression)) {
-                    throw getDittoHeaderInvalidException(metaDataWildcardExpression);
+                    throw getDittoHeaderInvalidException(metaDataWildcardExpression, headerKey);
                 }
             }
-            case RetrieveFeatureDesiredProperties.TYPE, RetrieveFeatureProperties.TYPE, RetrieveAttributes.TYPE -> {
+            case RetrieveFeatureDesiredProperties.TYPE, RetrieveFeatureProperties.TYPE, RetrieveAttributes.TYPE,
+                    ModifyFeatureDesiredProperties.TYPE, ModifyFeatureProperties.TYPE, ModifyAttributes.TYPE -> {
                 if (!Pattern.matches(LEAF_WILDCARD_REGEX, metaDataWildcardExpression)) {
-                    throw getDittoHeaderInvalidException(metaDataWildcardExpression);
+                    throw getDittoHeaderInvalidException(metaDataWildcardExpression, headerKey);
                 }
             }
-            default -> throw getDittoHeaderNotSupportedException(metaDataWildcardExpression);
+            default -> throw getDittoHeaderNotSupportedException(metaDataWildcardExpression, headerKey);
         }
     }
 
@@ -199,15 +207,18 @@ final class MetadataWildcardValidator {
      * Returns an instance of {@code DittoHeaderInvalidException}.
      *
      * @param metaDataWildcardExpression the metadata wildcard expression.
+     * @param headerKey the key of the header which is invalid.
      * @return the DittoHeaderInvalidException.
      */
-    public static DittoHeaderInvalidException getDittoHeaderInvalidException(final String metaDataWildcardExpression) {
+    public static DittoHeaderInvalidException getDittoHeaderInvalidException(final String metaDataWildcardExpression,
+            final String headerKey) {
         return DittoHeaderInvalidException.newBuilder()
-                .withInvalidHeaderKey(DittoHeaderDefinition.GET_METADATA.getKey())
+                .withInvalidHeaderKey(headerKey)
                 .message(MessageFormat.format(
-                        "The wildcard expression ''{0}'' in header 'get-metadata' is not valid.",
-                        metaDataWildcardExpression))
-                .description("Verify that the value of the 'get-metadata' header is valid and try again.")
+                        "The wildcard expression ''{0}'' in header ''{1}'' is not valid.",
+                        metaDataWildcardExpression, headerKey))
+                .description(MessageFormat.format("Verify that the value of the ''{0}'' header is valid and try again.",
+                        headerKey))
                 .build();
     }
 
@@ -215,17 +226,19 @@ final class MetadataWildcardValidator {
      * Returns an instance of {@code DittoHeaderNotSupportedException}.
      *
      * @param metaDataWildcardExpression the metadata wildcard expression.
+     * @param headerKey the key of the header which is not supported.
      * @return the DittoHeaderNotSupportedException.
      */
     public static DittoHeaderNotSupportedException getDittoHeaderNotSupportedException(
-            final String metaDataWildcardExpression) {
+            final String metaDataWildcardExpression, final String headerKey) {
         return DittoHeaderNotSupportedException.newBuilder()
-                .withNotSupportedHeaderKey(DittoHeaderDefinition.GET_METADATA.getKey())
+                .withNotSupportedHeaderKey(headerKey)
                 .message(MessageFormat.format(
-                        "The wildcard expression ''{0}'' in header 'get-metadata' is not supported on this resource level.",
-                        metaDataWildcardExpression))
-                .description(
-                        "Verify that the resource level and the value of the 'get-metadata' header is valid and try again.")
+                        "The wildcard expression ''{0}'' in header ''{1}'' is not supported on this resource level.",
+                        metaDataWildcardExpression, headerKey))
+                .description(MessageFormat.format(
+                        "Verify that the resource level and the value of the ''{0}'' header is valid and try again.",
+                        headerKey))
                 .build();
     }
 
