@@ -222,7 +222,7 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
                 Command.isLiveCommand(thingQueryCommand)) {
 
             return liveChannelDispatching.dispatchLiveChannelThingQueryCommand(thingQueryCommand, sender,
-                            liveChannelDispatching::prepareForPubSubPublishing);
+                    liveChannelDispatching::prepareForPubSubPublishing);
         } else if (message instanceof Signal<?> signal &&
                 (Command.isLiveCommand(signal) || Event.isLiveEvent(signal))) {
 
@@ -274,7 +274,8 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
                 enforcementConfig
         );
 
-        return ThingEnforcerActor.props(entityId, thingEnforcement, pubSubMediator, blockedNamespaces);
+        return ThingEnforcerActor.props(entityId, thingEnforcement, pubSubMediator, blockedNamespaces,
+                enforcementConfig.getAskWithRetryConfig(), policiesShardRegion);
     }
 
     @Override

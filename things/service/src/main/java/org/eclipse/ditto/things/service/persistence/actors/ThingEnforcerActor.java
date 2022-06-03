@@ -27,9 +27,8 @@ import org.eclipse.ditto.internal.utils.cacheloaders.EnforcementCacheKey;
 import org.eclipse.ditto.internal.utils.cacheloaders.config.AskWithRetryConfig;
 import org.eclipse.ditto.internal.utils.namespaces.BlockedNamespaces;
 import org.eclipse.ditto.json.JsonFieldSelector;
-import org.eclipse.ditto.policies.enforcement.AbstractEnforcerActor;
+import org.eclipse.ditto.policies.enforcement.AbstractPolicyLoadingEnforcerActor;
 import org.eclipse.ditto.policies.enforcement.PolicyEnforcer;
-import org.eclipse.ditto.policies.enforcement.PolicyEnforcerCacheLoader;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.things.api.commands.sudo.SudoRetrieveThing;
 import org.eclipse.ditto.things.api.commands.sudo.SudoRetrieveThingResponse;
@@ -43,7 +42,6 @@ import org.eclipse.ditto.things.service.enforcement.ThingEnforcement;
 import com.github.benmanes.caffeine.cache.AsyncCacheLoader;
 
 import akka.actor.ActorRef;
-import akka.actor.ActorSystem;
 import akka.actor.Props;
 import akka.pattern.Patterns;
 
@@ -52,7 +50,7 @@ import akka.pattern.Patterns;
  * {@link ThingEnforcement}.
  */
 public final class ThingEnforcerActor
-        extends AbstractEnforcerActor<ThingId, Signal<?>, CommandResponse<?>, ThingEnforcement> {
+        extends AbstractPolicyLoadingEnforcerActor<ThingId, Signal<?>, CommandResponse<?>, ThingEnforcement> {
 
     @Nullable private AsyncCacheLoader<EnforcementCacheKey, Entry<PolicyEnforcer>> policyEnforcerCacheLoader;
 
@@ -60,9 +58,11 @@ public final class ThingEnforcerActor
     private ThingEnforcerActor(final ThingId thingId,
             final ThingEnforcement thingEnforcement,
             final ActorRef pubSubMediator,
-            @Nullable final BlockedNamespaces blockedNamespaces) {
+            @Nullable final BlockedNamespaces blockedNamespaces,
+            final AskWithRetryConfig askWithRetryConfig,
+            final ActorRef policiesShardRegion) {
 
-        super(thingId, thingEnforcement, pubSubMediator, blockedNamespaces);
+        super(thingId, thingEnforcement, pubSubMediator, blockedNamespaces, askWithRetryConfig, policiesShardRegion);
     }
 
     /**
@@ -73,15 +73,19 @@ public final class ThingEnforcerActor
      * @param pubSubMediator the ActorRef of the distributed pub-sub-mediator used to subscribe for policy updates in
      * order to perform invalidations.
      * @param blockedNamespaces the blocked namespaces functionality to retrieve/subscribe for blocked namespaces.
+     * @param askWithRetryConfig used to configure retry mechanism policy loading.
+     * @param policiesShardRegion used to load the policy.
      * @return the {@link Props} to create this actor.
      */
     public static Props props(final ThingId thingId,
             final ThingEnforcement thingEnforcement,
             final ActorRef pubSubMediator,
-            @Nullable final BlockedNamespaces blockedNamespaces) {
+            @Nullable final BlockedNamespaces blockedNamespaces,
+            final AskWithRetryConfig askWithRetryConfig,
+            final ActorRef policiesShardRegion) {
 
         return Props.create(ThingEnforcerActor.class, thingId, thingEnforcement, pubSubMediator,
-                blockedNamespaces);
+                blockedNamespaces, askWithRetryConfig, policiesShardRegion);
     }
 
     @Override
@@ -116,39 +120,6 @@ public final class ThingEnforcerActor
             return Optional.empty();
         } else {
             throw new IllegalStateException("expected SudoRetrieveThingResponse, got: " + response);
-        }
-    }
-
-    @Override
-    protected CompletionStage<PolicyEnforcer> providePolicyEnforcer(@Nullable final PolicyId policyId) {
-        if (null == policyId) {
-            return CompletableFuture.completedStage(null);
-        } else {
-            final ActorSystem actorSystem = getContext().getSystem();
-            if (null == policyEnforcerCacheLoader) {
-                final AskWithRetryConfig askWithRetryConfig =
-                        enforcement.getEnforcementConfig().getAskWithRetryConfig();
-                policyEnforcerCacheLoader = new PolicyEnforcerCacheLoader(askWithRetryConfig,
-                        actorSystem.getScheduler(),
-                        enforcement.getPoliciesShardRegion()
-                );
-            }
-
-            try {
-                return policyEnforcerCacheLoader.asyncLoad(EnforcementCacheKey.of(policyId),
-                                actorSystem.dispatchers()
-                                        .lookup(PolicyEnforcerCacheLoader.ENFORCEMENT_CACHE_DISPATCHER)
-                        )
-                        .thenApply(entry -> {
-                            if (entry.exists()) {
-                                return entry.getValueOrThrow();
-                            } else {
-                                return null;
-                            }
-                        });
-            } catch (final Exception e) {
-                throw new IllegalStateException("Could not load policyEnforcer via policyEnforcerCacheLoader", e);
-            }
         }
     }
 
