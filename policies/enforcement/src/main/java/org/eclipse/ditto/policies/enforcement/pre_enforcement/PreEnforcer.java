@@ -43,6 +43,8 @@ import akka.actor.ExtendedActorSystem;
 /**
  * Create processing units of Akka stream graph before enforcement from an asynchronous function that may abort
  * enforcement by throwing exceptions.
+ *
+ * @since 3.0.0
  */
 public interface PreEnforcer extends Function<DittoHeadersSettable<?>, CompletionStage<DittoHeadersSettable<?>>>,
         DittoExtensionPoint {

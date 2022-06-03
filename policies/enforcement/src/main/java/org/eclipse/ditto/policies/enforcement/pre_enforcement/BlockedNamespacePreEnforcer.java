@@ -20,6 +20,11 @@ import org.eclipse.ditto.internal.utils.namespaces.BlockedNamespaces;
 
 import akka.actor.ActorSystem;
 
+/**
+ * Pre-Enforcer for blocking commands to blocked namespaces
+ *
+ * @since 3.0.0
+ */
 public final class BlockedNamespacePreEnforcer implements PreEnforcer {
 
     final BlockNamespaceBehavior blockNamespaceBehavior;

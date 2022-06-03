@@ -38,6 +38,11 @@ import com.github.benmanes.caffeine.cache.AsyncCacheLoader;
 import akka.actor.ActorRef;
 import akka.actor.Scheduler;
 
+/**
+ * Cache loader used for Policy existence check in pre-enforcement.
+ *
+ * @since 3.0.0
+ */
 public class PreEnforcementPolicyIdCacheLoader implements
         AsyncCacheLoader<EnforcementCacheKey, Entry<EnforcementCacheKey>> {
 
