@@ -30,21 +30,30 @@ public final class ThingsSearchConstants {
      */
     public static final String CLUSTER_ROLE = "things-wildcard-search";
 
+    private static final String PATH_DELIMITER = "/";
+
     @SuppressWarnings("squid:S1075")
     private static final String USER_PATH = "/user";
 
+    /**
+     * Name of the search actor.
+     */
     public static final String ROOT_ACTOR_NAME = "thingsWildcardSearchRoot";
 
     /**
      * Path of the root actor.
      */
-    public static final String ROOT_ACTOR_PATH = USER_PATH + "/" + ROOT_ACTOR_NAME;
+    public static final String ROOT_ACTOR_PATH = USER_PATH + PATH_DELIMITER + ROOT_ACTOR_NAME;
+
+    /**
+     * Name of the search actor.
+     */
+    public static final String SEARCH_ACTOR_NAME = "thingsSearch";
 
     /**
      * Path of the search actor.
      */
-    public static final String SEARCH_ACTOR_NAME = "thingsSearch";
-    public static final String SEARCH_ACTOR_PATH = ROOT_ACTOR_PATH + "/" + SEARCH_ACTOR_NAME;
+    public static final String SEARCH_ACTOR_PATH = ROOT_ACTOR_PATH + PATH_DELIMITER + SEARCH_ACTOR_NAME;
 
     /*
      * Inhibit instantiation of this utility class.
