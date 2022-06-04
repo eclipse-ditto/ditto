@@ -106,6 +106,13 @@ paths:
         - $ref: '#/components/parameters/TimeoutParam'
         - $ref: '#/components/parameters/ResponseRequiredParam'
         - $ref: '#/components/parameters/AllowPolicyLockoutParam'
+        - name: namespace
+          in: query
+          description: Defines custom namespace for the thing while generating thing ID.
+          required: false
+          schema:
+            type: string
+            example: my.custom.namespace
       responses:
         '201':
           description: The thing was successfully created.

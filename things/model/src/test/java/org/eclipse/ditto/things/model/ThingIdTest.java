@@ -14,6 +14,7 @@ package org.eclipse.ditto.things.model;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import static org.junit.Assert.assertEquals;
 import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
@@ -51,7 +52,11 @@ public final class ThingIdTest {
                 .withIgnoredFields("name", "namespace")
                 .verify();
     }
-
+    @Test
+    public void generateNamespaceTest(){
+        final ThingId randomThingId = ThingId.generateRandom("my.cool.namespace");
+        assertEquals(randomThingId.getNamespace(),"my.cool.namespace");
+    }
     @Test
     public void instantiationFromEntityTypeCreatesThingId() {
         final NamespacedEntityId namespacedEntityId =
@@ -110,7 +115,6 @@ public final class ThingIdTest {
     @Test
     public void generateRandomHasEmptyNamespace() {
         final ThingId randomThingId = ThingId.generateRandom();
-
         assertThat(randomThingId.getNamespace()).isEmpty();
     }
 
