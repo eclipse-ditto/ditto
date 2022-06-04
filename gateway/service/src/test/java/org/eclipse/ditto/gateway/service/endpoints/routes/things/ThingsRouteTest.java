@@ -61,14 +61,7 @@ public final class ThingsRouteTest extends EndpointTestBase {
                 .withEntity(ContentTypes.APPLICATION_JSON, "{\"attributes\": {\"foo\": \"bar\"}}"));
         result.assertStatusCode(StatusCodes.OK);
     }
-
-    @Test
-    public void createThing(){
-        final var body = "{\"_policy\"org.eclipse.ditto:1234}";
-        final RequestEntity requestEntity = HttpEntities.create(ContentTypes.APPLICATION_JSON, body);
-        final var result = underTest.run(HttpRequest.POST("/things").withEntity(requestEntity));
-        result.assertStatusCode(StatusCodes.BAD_REQUEST);
-    }
+    
     @Test
     public void postFeaturesReturnsMethodNotAllowed() {
         final var result = underTest.run(HttpRequest.POST("/things/org.eclipse.ditto%3Adummy/features"));
