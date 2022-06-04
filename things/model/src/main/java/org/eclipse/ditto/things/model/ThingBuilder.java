@@ -13,6 +13,7 @@
 package org.eclipse.ditto.things.model;
 
 import java.time.Instant;
+import java.util.Optional;
 import java.util.function.Predicate;
 
 import javax.annotation.Nullable;
@@ -37,6 +38,10 @@ public interface ThingBuilder {
      */
     static ThingId generateRandomTypedThingId() {
         return ThingId.generateRandom();
+    }
+
+    static ThingId generateRandomTypedThingId(final Optional<String> namespace){
+            return ThingId.generateRandom(namespace);
     }
 
 

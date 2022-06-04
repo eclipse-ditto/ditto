@@ -288,15 +288,17 @@ public final class ThingsRoute extends AbstractRoute {
         return parameterOptional(DittoHeaderDefinition.CHANNEL.getKey(), channelOpt -> {
             if (isLiveChannel(channelOpt, dittoHeaders)) {
                 throw ThingNotCreatableException.forLiveChannel(dittoHeaders);
-            }
+            }return parameterOptional("namespace", namespaceOpt->{
 
-            return ensureMediaTypeJsonWithFallbacksThenExtractDataBytes(ctx, dittoHeaders,
-                    payloadSource ->
-                            handlePerRequest(ctx, dittoHeaders, payloadSource,
-                                    thingJson -> CreateThing.of(createThingForPost(thingJson),
-                                            createInlinePolicyJson(thingJson),
-                                            getCopyPolicyFrom(thingJson),
-                                            dittoHeaders)));
+                return ensureMediaTypeJsonWithFallbacksThenExtractDataBytes(ctx, dittoHeaders,
+                        payloadSource ->
+                                handlePerRequest(ctx, dittoHeaders, payloadSource,
+                                        thingJson -> CreateThing.of(createThingForPost(thingJson,namespaceOpt),
+                                                createInlinePolicyJson(thingJson),
+                                                getCopyPolicyFrom(thingJson),
+                                                dittoHeaders)));
+            });
+
         });
     }
 
@@ -308,14 +310,15 @@ public final class ThingsRoute extends AbstractRoute {
         return isLiveChannelQueryParameter || isLiveChannelHeader;
     }
 
-    private static Thing createThingForPost(final String jsonString) {
+    private static Thing createThingForPost(final String jsonString,Optional<String> namespace) {
         final var inputJson = wrapJsonRuntimeException(() -> JsonFactory.newObject(jsonString));
         if (inputJson.contains(Thing.JsonFields.ID.getPointer())) {
             throw ThingIdNotExplicitlySettableException.forPostMethod().build();
         }
 
+
         return ThingsModelFactory.newThingBuilder(inputJson)
-                .setId(ThingBuilder.generateRandomTypedThingId())
+                .setId(ThingBuilder.generateRandomTypedThingId(namespace))
                 .build();
     }
 

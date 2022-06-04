@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.things.model;
 
+import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Supplier;
 
@@ -30,6 +31,7 @@ import org.eclipse.ditto.base.model.entity.id.TypedEntityId;
 public final class ThingId extends AbstractNamespacedEntityId {
 
     private static final String DEFAULT_NAMESPACE = "";
+
 
     private ThingId(final CharSequence thingId) {
         super(ThingConstants.ENTITY_TYPE, thingId);
@@ -89,9 +91,12 @@ public final class ThingId extends AbstractNamespacedEntityId {
      * @return the generated thing ID.
      */
     public static ThingId generateRandom() {
-        return wrapInThingIdInvalidException(() -> new ThingId(DEFAULT_NAMESPACE, UUID.randomUUID().toString(), true));
+        return generateRandom(Optional.empty());
     }
 
+    public static ThingId generateRandom(Optional<String>namespace){
+        return wrapInThingIdInvalidException(() -> new ThingId(namespace.orElse(DEFAULT_NAMESPACE), UUID.randomUUID().toString(), true));
+    }
     private static <T> T wrapInThingIdInvalidException(final Supplier<T> supplier) {
         try {
             return supplier.get();
