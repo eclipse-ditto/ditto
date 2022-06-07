@@ -21,6 +21,7 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.model.entity.metadata.Metadata;
 import org.eclipse.ditto.base.model.entity.metadata.MetadataBuilder;
+import org.eclipse.ditto.base.model.entity.metadata.MetadataModelFactory;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.signals.WithOptionalEntity;
@@ -120,7 +121,7 @@ abstract class AbstractThingCommandStrategy<C extends Command<C>>
                     MetadataFromSignal.of(command, withOptionalEntity, existingRelativeMetadata);
             return Optional.ofNullable(relativeMetadata.get());
         } else if (command instanceof ThingModifyCommand<?> && !dittoHeaders.getMetadataFieldsToDelete().isEmpty()) {
-            return calculateMetadataForDeleteRequests(entity, command);
+            return calculateMetadataForDeleteMetadataRequests(entity, command);
         }
 
         return Optional.empty();
@@ -159,12 +160,12 @@ abstract class AbstractThingCommandStrategy<C extends Command<C>>
         return Optional.empty();
     }
 
-    private Optional<Metadata> calculateMetadataForDeleteRequests(@Nullable Thing entity, final C command) {
+    private Optional<Metadata> calculateMetadataForDeleteMetadataRequests(@Nullable Thing entity, final C command) {
         final Metadata existingMetadata = getExistingMetadata(entity, command);
         final Set<JsonPointer> metadataFieldsToDelete = command.getDittoHeaders().getMetadataFieldsToDelete();
         if (containsExactlySingleWildcard(metadataFieldsToDelete) && existingMetadata != null) {
             // delete all metadata
-            return Optional.of(Metadata.newMetadata(JsonObject.empty()));
+            return Optional.of(MetadataModelFactory.emptyMetadata());
         }
 
         final Set<JsonPointer> metadataFieldsWithResolvedWildcard;
@@ -180,15 +181,19 @@ abstract class AbstractThingCommandStrategy<C extends Command<C>>
             metadataFieldsWithResolvedWildcard = metadataFieldsToDelete;
         }
 
-
         if (existingMetadata != null && !metadataFieldsWithResolvedWildcard.isEmpty()) {
-            final MetadataBuilder metadataBuilder = existingMetadata.toBuilder();
-            metadataFieldsWithResolvedWildcard.forEach(metadataBuilder::remove);
-
-            return Optional.of(metadataBuilder.build());
+            return deleteMetadata(existingMetadata, metadataFieldsWithResolvedWildcard);
         }
 
         return Optional.empty();
+    }
+
+    private Optional<Metadata> deleteMetadata(final Metadata existingMetadata,
+            final Set<JsonPointer> metadataFieldsToDelete) {
+            final MetadataBuilder metadataBuilder = existingMetadata.toBuilder();
+            metadataFieldsToDelete.forEach(metadataBuilder::remove);
+
+            return Optional.of(metadataBuilder.build());
     }
 
     @Override

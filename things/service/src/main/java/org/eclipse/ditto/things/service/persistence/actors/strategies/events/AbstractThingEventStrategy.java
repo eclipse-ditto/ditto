@@ -17,13 +17,15 @@ import java.util.Optional;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.base.model.entity.metadata.Metadata;
 import org.eclipse.ditto.base.model.entity.metadata.MetadataBuilder;
+import org.eclipse.ditto.base.model.signals.commands.Command;
+import org.eclipse.ditto.internal.utils.persistentactors.events.EventStrategy;
+import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingBuilder;
-import org.eclipse.ditto.internal.utils.persistentactors.events.EventStrategy;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
+import org.eclipse.ditto.things.model.signals.events.ThingModifiedEvent;
 
 /**
  * This abstract implementation of {@code EventStrategy} checks if the Thing to be handled is {@code null}.
@@ -64,7 +66,8 @@ abstract class AbstractThingEventStrategy<T extends ThingEvent<T>> implements Ev
 
         final JsonPointer eventMetadataResourcePath = event.getResourcePath();
         final Optional<Metadata> eventMetadataOpt = event.getMetadata();
-        final Optional<Metadata> thingMetadata = Optional.ofNullable(thing).flatMap(Thing::getMetadata);
+        final Optional<Metadata> thingMetadata = deleteMetadataForDeletedEvent(thing, event);
+
         if (eventMetadataResourcePath.isEmpty() && eventMetadataOpt.isPresent()) {
             return eventMetadataOpt.get();
         } else if (eventMetadataOpt.isPresent()) {
@@ -91,4 +94,13 @@ abstract class AbstractThingEventStrategy<T extends ThingEvent<T>> implements Ev
         return thingBuilder;
     }
 
+    private Optional<Metadata> deleteMetadataForDeletedEvent(@Nullable final Thing thing, final T event) {
+        final Optional<Metadata> optionalMetadata = Optional.ofNullable(thing).flatMap(Thing::getMetadata);
+        // delete metadata for delete events
+        if (event instanceof ThingModifiedEvent && event.getCommandCategory().equals(Command.Category.DELETE)) {
+            return optionalMetadata.map(metadata -> metadata.toBuilder().remove(event.getResourcePath()).build());
+        } else {
+            return optionalMetadata;
+        }
+    }
 }

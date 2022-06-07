@@ -87,9 +87,36 @@ public abstract class PersistenceActorTestBase {
             Thing.JsonFields.CREATED, Thing.JsonFields.REVISION, Thing.JsonFields.POLICY_ID,
             Thing.JsonFields.LIFECYCLE);
 
+    protected static final JsonFieldSelector ALL_FIELDS_SELECTOR_WITH_METADATA = JsonFactory.newFieldSelector(
+            Thing.JsonFields.ATTRIBUTES, Thing.JsonFields.FEATURES, Thing.JsonFields.ID, Thing.JsonFields.MODIFIED,
+            Thing.JsonFields.CREATED, Thing.JsonFields.REVISION, Thing.JsonFields.POLICY_ID,
+            Thing.JsonFields.LIFECYCLE, Thing.JsonFields.METADATA);
+
     protected static final String FEATURE_ID = "featureId";
     protected static final String FEATURE_KEY = "featureKey";
     protected static final String FEATURE_VALUE = "featureValue";
+    protected static final Metadata METADATA = Metadata.newBuilder()
+            .set("attributes", JsonObject.newBuilder()
+                    .set(ATTRIBUTE_KEY, JsonObject.newBuilder()
+                            .set("issuedBy", "the epic Ditto team")
+                            .set("edited", "2022-05-31 15:55:55")
+                            .build())
+                    .build())
+            .set("features", JsonObject.newBuilder()
+                    .set(FEATURE_ID, JsonObject.newBuilder()
+                            .set("definition", JsonObject.newBuilder()
+                                    .set("issuedBy", "the epic Ditto team")
+                                    .build())
+                            .set("properties", JsonObject.newBuilder()
+                                    .set(FEATURE_KEY, JsonObject.newBuilder()
+                                            .set("issuedBy", "the epic Ditto team")
+                                            .set("unit", "Quarks")
+                                            .build())
+                                    .build())
+                            .build())
+                    .build())
+            .build();
+
     private static final FeatureProperties FEATURE_PROPERTIES =
             FeatureProperties.newBuilder().set(FEATURE_KEY, FEATURE_VALUE).build();
     private static final FeatureDefinition FEATURE_DEFINITION = FeatureDefinition.fromIdentifier("ns:name:version");
@@ -141,27 +168,7 @@ public abstract class PersistenceActorTestBase {
     protected static Thing createThingV2WithRandomIdAndMetadata() {
         return createThingV2WithId(ThingId.of(THING_ID.getNamespace(), THING_ID.getName() + UUID.randomUUID()))
                 .toBuilder()
-                .setMetadata(Metadata.newBuilder()
-                        .set("attributes", JsonObject.newBuilder()
-                                .set(ATTRIBUTE_KEY, JsonObject.newBuilder()
-                                        .set("issuedBy", "the epic Ditto team")
-                                        .set("edited", "2022-05-31 15:55:55")
-                                        .build())
-                                .build())
-                        .set("features", JsonObject.newBuilder()
-                                .set(FEATURE_ID, JsonObject.newBuilder()
-                                        .set("definition", JsonObject.newBuilder()
-                                                .set("issuedBy", "the epic Ditto team")
-                                                .build())
-                                        .set("properties", JsonObject.newBuilder()
-                                                .set(FEATURE_KEY, JsonObject.newBuilder()
-                                                        .set("issuedBy", "the epic Ditto team")
-                                                        .set("unit", "Quarks")
-                                                        .build())
-                                                .build())
-                                        .build())
-                                .build())
-                        .build())
+                .setMetadata(METADATA)
                 .build();
     }
 

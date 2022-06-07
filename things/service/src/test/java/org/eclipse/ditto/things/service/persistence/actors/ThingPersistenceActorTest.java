@@ -122,10 +122,6 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
             JsonFactory.newParseOptionsBuilder().withoutUrlDecoding().build();
 
     private static final Instant TIMESTAMP = Instant.EPOCH;
-    private static final Metadata METADATA = Metadata.newBuilder()
-            .set("creator", "The epic Ditto team")
-            .build();
-
 
     private static void assertThingInResponse(final Thing actualThing, final Thing expectedThing) {
         // Policy entries are ignored by things-persistence.
@@ -1514,6 +1510,112 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
 
             underTest.tell(retrieveThingCommand, getRef());
             expectMsgEquals(ETagTestUtils.retrieveThingResponse(thingExpected, null, expectedHeaders));
+        }};
+    }
+
+    @Test
+    public void deleteAttributesMetadataWithDeleteMetadataHeader() {
+        final Thing thing = createThingV2WithRandomIdAndMetadata();
+        final DittoHeaders dittoHeaders = dittoHeadersV2.toBuilder()
+                .putHeader(DittoHeaderDefinition.DELETE_METADATA.getKey(), "attributes/")
+                .build();
+        final ThingCommand<?> modifyThingCommand = ModifyThing.of(getIdOrThrow(thing), thing, null, dittoHeaders);
+
+        new TestKit(actorSystem) {{
+            final ActorRef underTest = createPersistenceActorFor(thing);
+
+            // create thing from json to use initial metadata creation
+            final JsonObject commandJson = getJsonCommand(thing);
+            final CreateThing createThing = CreateThing.fromJson(commandJson, dittoHeadersV2);
+            underTest.tell(createThing, getRef());
+            expectMsgClass(CreateThingResponse.class);
+
+            underTest.tell(modifyThingCommand, getRef());
+            expectMsgClass(ModifyThingResponse.class);
+
+            // retrieve thing with metadata
+            final Metadata expectedMetadata = METADATA.toBuilder()
+                    .remove("attributes")
+                    .build();
+
+            final RetrieveThing retrieveModifiedThing =
+                    RetrieveThing.getBuilder(getIdOrThrow(thing), dittoHeadersV2)
+                            .withSelectedFields(ALL_FIELDS_SELECTOR_WITH_METADATA)
+                            .build();
+            underTest.tell(retrieveModifiedThing, getRef());
+            final RetrieveThingResponse retrieveModifiedThingResponse = expectMsgClass(RetrieveThingResponse.class);
+            assertThat(retrieveModifiedThingResponse.getThing().getMetadata().orElseThrow())
+                    .isEqualTo(expectedMetadata);
+        }};
+    }
+
+    @Test
+    public void deleteFeaturePropertyMetadataWithDeleteMetadataWildcardHeader() {
+        final Thing thing = createThingV2WithRandomIdAndMetadata();
+        final DittoHeaders dittoHeaders = dittoHeadersV2.toBuilder()
+                .putHeader(DittoHeaderDefinition.DELETE_METADATA.getKey(), "features/*/properties/*/unit")
+                .build();
+        final ThingCommand<?> modifyThingCommand = ModifyThing.of(getIdOrThrow(thing), thing, null, dittoHeaders);
+
+        new TestKit(actorSystem) {{
+            final ActorRef underTest = createPersistenceActorFor(thing);
+
+            // create thing from json to use initial metadata creation
+            final JsonObject commandJson = getJsonCommand(thing);
+            final CreateThing createThing = CreateThing.fromJson(commandJson, dittoHeadersV2);
+            underTest.tell(createThing, getRef());
+            expectMsgClass(CreateThingResponse.class);
+
+            underTest.tell(modifyThingCommand, getRef());
+            expectMsgClass(ModifyThingResponse.class);
+
+            // retrieve thing with metadata
+            final Metadata expectedMetadata = METADATA.toBuilder()
+                    .remove("features/featureId/properties/featureKey/unit")
+                    .build();
+
+            final RetrieveThing retrieveModifiedThing =
+                    RetrieveThing.getBuilder(getIdOrThrow(thing), dittoHeadersV2)
+                            .withSelectedFields(ALL_FIELDS_SELECTOR_WITH_METADATA)
+                            .build();
+            underTest.tell(retrieveModifiedThing, getRef());
+            final RetrieveThingResponse retrieveModifiedThingResponse = expectMsgClass(RetrieveThingResponse.class);
+            assertThat(retrieveModifiedThingResponse.getThing().getMetadata().orElseThrow())
+                    .isEqualTo(expectedMetadata);
+        }};
+    }
+
+    @Test
+    public void deleteMetadataForDeleteAttributeCommand() {
+        final Thing thing = createThingV2WithRandomIdAndMetadata();
+        final ThingCommand<?> deleteAttributeCommand =
+                DeleteAttribute.of(getIdOrThrow(thing), JsonPointer.of(ATTRIBUTE_KEY), dittoHeadersV2);
+
+        new TestKit(actorSystem) {{
+            final ActorRef underTest = createPersistenceActorFor(thing);
+
+            // create thing from json to use initial metadata creation
+            final JsonObject commandJson = getJsonCommand(thing);
+            final CreateThing createThing = CreateThing.fromJson(commandJson, dittoHeadersV2);
+            underTest.tell(createThing, getRef());
+            expectMsgClass(CreateThingResponse.class);
+
+            underTest.tell(deleteAttributeCommand, getRef());
+            expectMsgClass(DeleteAttributeResponse.class);
+
+            // retrieve thing with metadata
+            final Metadata expectedMetadata = METADATA.toBuilder()
+                    .remove("attributes/attrKey")
+                    .build();
+
+            final RetrieveThing retrieveModifiedThing =
+                    RetrieveThing.getBuilder(getIdOrThrow(thing), dittoHeadersV2)
+                            .withSelectedFields(ALL_FIELDS_SELECTOR_WITH_METADATA)
+                            .build();
+            underTest.tell(retrieveModifiedThing, getRef());
+            final RetrieveThingResponse retrieveThingResponse = expectMsgClass(RetrieveThingResponse.class);
+            assertThat(retrieveThingResponse.getThing().getMetadata().orElseThrow())
+                    .isEqualTo(expectedMetadata);
         }};
     }
 
