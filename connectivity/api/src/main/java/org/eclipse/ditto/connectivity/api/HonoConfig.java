@@ -24,7 +24,14 @@ public interface HonoConfig extends Extension {
     String getBaseUri();
     enum ConfigValues implements KnownConfigValue {
 
-        BASE_URI("base-uri", "my.hono.host:1234");
+        BASE_URI("base-uri", "my.hono.host:1234"),
+        TELEMETRY_ADDRESS("telemetry", "telemetry/..."),
+        EVENT_ADDRESS("event", "event/..."),
+        COMMAND_AND_CONTROL_ADDRESS("commandAndControl", "command/..."),
+        COMMAND_RESPONSE_ADDRESS("commandResponse", "response/..."),
+        USERNAME("username", ""),
+        PASSWORD("password", "");
+
         private final String path;
         private final Object defaultValue;
         ConfigValues(final String thePath, final Object theDefaultValue) {
