@@ -12,13 +12,21 @@
  */
 package org.eclipse.ditto.edge.service.dispatching;
 
+import java.util.concurrent.CompletionException;
+
+import javax.annotation.Nullable;
+
 import org.eclipse.ditto.base.model.entity.id.WithEntityId;
+import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.connectivity.model.signals.commands.ConnectivityCommand;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
+import org.eclipse.ditto.internal.utils.cacheloaders.config.AskWithRetryConfig;
+import org.eclipse.ditto.internal.utils.cacheloaders.config.DefaultAskWithRetryConfig;
 import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
+import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.messages.model.signals.commands.MessageCommand;
 import org.eclipse.ditto.policies.model.signals.commands.PolicyCommand;
 import org.eclipse.ditto.things.api.ThingsMessagingConstants;
@@ -31,6 +39,7 @@ import org.eclipse.ditto.thingsearch.model.signals.commands.ThingSearchCommand;
 
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
+import akka.actor.ActorSystem;
 import akka.actor.Props;
 import akka.cluster.pubsub.DistributedPubSubMediator;
 import akka.japi.pf.ReceiveBuilder;
@@ -40,6 +49,7 @@ import akka.japi.pf.ReceiveBuilder;
  * directly to the shard regions of the services the commands are targeted to.
  * For "thing search" commands, it sends them via pub/sub to the SearchActor.
  */
+//TODO CR-11315 Ask-retry for messages sent to PubSub?
 public class EdgeCommandForwarderActor extends AbstractActor {
 
     /**
@@ -52,6 +62,7 @@ public class EdgeCommandForwarderActor extends AbstractActor {
     private final ActorRef pubSubMediator;
     private final ShardRegions shardRegions;
     private final SignalTransformer signalTransformer;
+    private final AskWithRetryForwarder askWithRetryForwarder;
 
     @SuppressWarnings("unused")
     private EdgeCommandForwarderActor(final ActorRef pubSubMediator, final ShardRegions shardRegions,
@@ -60,6 +71,13 @@ public class EdgeCommandForwarderActor extends AbstractActor {
         this.pubSubMediator = pubSubMediator;
         this.shardRegions = shardRegions;
         this.signalTransformer = signalTransformer;
+        final AskWithRetryConfig config =
+                DefaultAskWithRetryConfig.of(
+                        DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config()),
+                        "ask-with-retry");
+        final ActorSystem actorSystem = getContext().getSystem();
+        askWithRetryForwarder = AskWithRetryForwarder.newInstance(actorSystem.getScheduler(),
+                actorSystem.dispatcher(), config);
     }
 
     /**
@@ -72,6 +90,7 @@ public class EdgeCommandForwarderActor extends AbstractActor {
      */
     public static Props props(final ActorRef pubSubMediator, final ShardRegions shardRegions,
             final SignalTransformer signalTransformer) {
+
         return Props.create(EdgeCommandForwarderActor.class, pubSubMediator, shardRegions, signalTransformer);
     }
 
@@ -108,8 +127,8 @@ public class EdgeCommandForwarderActor extends AbstractActor {
                     log.withCorrelationId(transformedMessageCommand)
                             .info("Forwarding message command with ID <{}> and type <{}> to 'things' shard region",
                                     transformedMessageCommand.getEntityId(), transformedMessageCommand.getType());
-                    shardRegions.things()
-                            .tell(transformedMessageCommand, sender);
+                    askWithRetry(transformedMessageCommand, shardRegions.things(), sender);
+
                 });
     }
 
@@ -121,8 +140,8 @@ public class EdgeCommandForwarderActor extends AbstractActor {
                     log.withCorrelationId(transformedThingCommand)
                             .info("Forwarding thing command with ID <{}> and type <{}> to 'things' shard region",
                                     transformedThingCommand.getEntityId(), transformedThingCommand.getType());
-                    shardRegions.things()
-                            .tell(transformedThingCommand, sender);
+                    askWithRetry(transformedThingCommand, shardRegions.things(), sender);
+
                 });
     }
 
@@ -140,8 +159,7 @@ public class EdgeCommandForwarderActor extends AbstractActor {
                     log.withCorrelationId(transformedPolicyCommand)
                             .info("Forwarding policy command with ID <{}> and type <{}> to 'policies' shard region",
                                     transformedPolicyCommand.getEntityId(), transformedPolicyCommand.getType());
-                    shardRegions.policies()
-                            .tell(transformedPolicyCommand, sender);
+                    askWithRetry(transformedPolicyCommand, shardRegions.policies(), sender);
                 });
 
     }
@@ -157,8 +175,7 @@ public class EdgeCommandForwarderActor extends AbstractActor {
                                 .info("Forwarding connectivity command with ID <{}> and type <{}> to 'connections' " +
                                                 "shard region", withEntityId.getEntityId(),
                                         transformedConnectivityCommand.getType());
-                        shardRegions.connections()
-                                .tell(transformedConnectivityCommand, sender);
+                        askWithRetry(transformedConnectivityCommand, shardRegions.connections(), sender);
                     });
         } else {
             log.withCorrelationId(connectivityCommand)
@@ -181,6 +198,32 @@ public class EdgeCommandForwarderActor extends AbstractActor {
                     l.error("Received signal <{}> which is not known how to be handled: {}",
                             signalType, transformedSignal);
                 });
+    }
+
+    private void askWithRetry(final Signal<?> command,
+            final ActorRef receiver,
+            final ActorRef sender) {
+
+        askWithRetryForwarder.ask(receiver, command)
+                .exceptionally(t -> handleException(t, sender))
+                .thenAccept(response -> handleResponse(response, sender));
+    }
+
+    @Nullable
+    private <T extends Signal<?>> T handleException(final Throwable t, final ActorRef sender) {
+        if (t instanceof CompletionException && t.getCause() instanceof DittoRuntimeException) {
+            sender.tell(t.getCause(), getSelf());
+        } else {
+            throw (RuntimeException) t;
+        }
+        return null;
+    }
+
+    private <T extends Signal<?>> void handleResponse(@Nullable final T response, final ActorRef sender) {
+        if (null != response) {
+            log.withCorrelationId(response.getDittoHeaders()).debug("Forwarding response: {}", response);
+            sender.tell(response, getSelf());
+        }
     }
 
 }
