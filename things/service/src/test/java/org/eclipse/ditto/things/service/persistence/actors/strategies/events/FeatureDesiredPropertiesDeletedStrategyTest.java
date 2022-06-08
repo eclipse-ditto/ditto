@@ -56,6 +56,7 @@ public final class FeatureDesiredPropertiesDeletedStrategyTest extends AbstractS
                 .setRevision(NEXT_REVISION)
                 .setModified(timestamp)
                 .build();
+
         assertThat(thingWithEventApplied).isEqualTo(expected);
     }
 
@@ -85,6 +86,7 @@ public final class FeatureDesiredPropertiesDeletedStrategyTest extends AbstractS
                 .setMetadata(existingMetadata)
                 .setModified(timestamp)
                 .build();
+
         assertThat(thingWithEventApplied).isEqualTo(expected);
     }
 

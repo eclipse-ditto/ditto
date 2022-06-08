@@ -18,14 +18,13 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 
 import java.time.Instant;
 
-import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.base.model.entity.metadata.Metadata;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.things.model.FeatureProperties;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.signals.events.FeaturePropertyDeleted;
-import org.junit.Ignore;
 import org.junit.Test;
 
 /**
@@ -59,6 +58,7 @@ public final class FeaturePropertyDeletedStrategyTest extends AbstractStrategyTe
                 .setRevision(NEXT_REVISION)
                 .setModified(timestamp)
                 .build();
+
         assertThat(thingWithEventApplied).isEqualTo(expected);
     }
 
@@ -94,6 +94,7 @@ public final class FeaturePropertyDeletedStrategyTest extends AbstractStrategyTe
                 .setModified(timestamp)
                 .setMetadata(expectedMetadata)
                 .build();
+
         assertThat(thingWithEventApplied).isEqualTo(expected);
     }
 

@@ -56,6 +56,7 @@ public final class FeaturePropertiesDeletedStrategyTest extends AbstractStrategy
                 .setRevision(NEXT_REVISION)
                 .setModified(timestamp)
                 .build();
+
         assertThat(thingWithEventApplied).isEqualTo(expected);
     }
 
@@ -82,9 +83,10 @@ public final class FeaturePropertiesDeletedStrategyTest extends AbstractStrategy
         final Thing expected = THING.toBuilder()
                 .setFeature(FEATURE)
                 .setRevision(NEXT_REVISION)
-                .setMetadata(existingMetadata)
                 .setModified(timestamp)
+                .setMetadata(existingMetadata)
                 .build();
+
         assertThat(thingWithEventApplied).isEqualTo(expected);
     }
 
