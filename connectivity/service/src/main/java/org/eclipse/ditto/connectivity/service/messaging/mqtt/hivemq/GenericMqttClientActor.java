@@ -390,8 +390,8 @@ public final class GenericMqttClientActor extends BaseClientActor {
             disconnectFuture = genericMqttClient.disconnect();
         }
 
-        Patterns.pipe(disconnectFuture
-                        .handle((aVoid, throwable) -> ClientDisconnected.of(origin, shutdownAfterDisconnect)),
+        Patterns.pipe(
+                disconnectFuture.handle((aVoid, throwable) -> ClientDisconnected.of(origin, shutdownAfterDisconnect)),
                 getContextDispatcher()
         ).to(getSelf(), origin);
     }
