@@ -16,8 +16,10 @@ import java.util.concurrent.CompletionException;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.base.model.acks.DittoAcknowledgementLabel;
 import org.eclipse.ditto.base.model.entity.id.WithEntityId;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.connectivity.model.signals.commands.ConnectivityCommand;
@@ -127,7 +129,7 @@ public class EdgeCommandForwarderActor extends AbstractActor {
                     log.withCorrelationId(transformedMessageCommand)
                             .info("Forwarding message command with ID <{}> and type <{}> to 'things' shard region",
                                     transformedMessageCommand.getEntityId(), transformedMessageCommand.getType());
-                    askWithRetry(transformedMessageCommand, shardRegions.things(), sender);
+                    forwardCommand(transformedMessageCommand, shardRegions.things(), sender);
 
                 });
     }
@@ -140,7 +142,7 @@ public class EdgeCommandForwarderActor extends AbstractActor {
                     log.withCorrelationId(transformedThingCommand)
                             .info("Forwarding thing command with ID <{}> and type <{}> to 'things' shard region",
                                     transformedThingCommand.getEntityId(), transformedThingCommand.getType());
-                    askWithRetry(transformedThingCommand, shardRegions.things(), sender);
+                    forwardCommand(transformedThingCommand, shardRegions.things(), sender);
 
                 });
     }
@@ -159,7 +161,7 @@ public class EdgeCommandForwarderActor extends AbstractActor {
                     log.withCorrelationId(transformedPolicyCommand)
                             .info("Forwarding policy command with ID <{}> and type <{}> to 'policies' shard region",
                                     transformedPolicyCommand.getEntityId(), transformedPolicyCommand.getType());
-                    askWithRetry(transformedPolicyCommand, shardRegions.policies(), sender);
+                    forwardCommand(transformedPolicyCommand, shardRegions.policies(), sender);
                 });
 
     }
@@ -175,7 +177,7 @@ public class EdgeCommandForwarderActor extends AbstractActor {
                                 .info("Forwarding connectivity command with ID <{}> and type <{}> to 'connections' " +
                                                 "shard region", withEntityId.getEntityId(),
                                         transformedConnectivityCommand.getType());
-                        askWithRetry(transformedConnectivityCommand, shardRegions.connections(), sender);
+                        forwardCommand(transformedConnectivityCommand, shardRegions.connections(), sender);
                     });
         } else {
             log.withCorrelationId(connectivityCommand)
@@ -200,13 +202,35 @@ public class EdgeCommandForwarderActor extends AbstractActor {
                 });
     }
 
-    private void askWithRetry(final Signal<?> command,
+    private void forwardCommand(final Signal<?> command,
             final ActorRef receiver,
             final ActorRef sender) {
 
-        askWithRetryForwarder.ask(receiver, command)
-                .exceptionally(t -> handleException(t, sender))
-                .thenAccept(response -> handleResponse(response, sender));
+        if (shouldSendResponse(command.getDittoHeaders())) {
+            askWithRetryForwarder.ask(receiver, command)
+                    .exceptionally(t -> handleException(t, sender))
+                    .thenAccept(response -> handleResponse(response, sender));
+        } else {
+            receiver.tell(command, sender);
+        }
+    }
+
+    private boolean shouldSendResponse(final DittoHeaders dittoHeaders) {
+        return dittoHeaders.isResponseRequired() ||
+                needsTwinPersistedAcknowledgement(dittoHeaders) ||
+                needsLiveResponseAcknowledgement(dittoHeaders);
+    }
+
+    private boolean needsTwinPersistedAcknowledgement(final DittoHeaders dittoHeaders) {
+        return dittoHeaders.getAcknowledgementRequests()
+                .stream()
+                .anyMatch(ar -> DittoAcknowledgementLabel.TWIN_PERSISTED.equals(ar.getLabel()));
+    }
+
+    private boolean needsLiveResponseAcknowledgement(final DittoHeaders dittoHeaders) {
+        return dittoHeaders.getAcknowledgementRequests()
+                .stream()
+                .anyMatch(ar -> DittoAcknowledgementLabel.LIVE_RESPONSE.equals(ar.getLabel()));
     }
 
     @Nullable
