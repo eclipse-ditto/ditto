@@ -54,6 +54,7 @@ public final class PlaceholderSubstitutionPreEnforcer implements PreEnforcer {
      *
      * @param actorSystem the actor system in which to load the extension.
      */
+    @SuppressWarnings("unused")
     public PlaceholderSubstitutionPreEnforcer(final ActorSystem actorSystem) {
         this.substitutionAlgorithm =
                 HeaderBasedPlaceholderSubstitutionAlgorithm.newInstance(createDefaultReplacementDefinitions());

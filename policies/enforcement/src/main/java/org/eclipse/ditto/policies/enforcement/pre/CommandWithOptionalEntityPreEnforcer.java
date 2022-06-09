@@ -38,6 +38,7 @@ public final class CommandWithOptionalEntityPreEnforcer implements PreEnforcer {
      *
      * @param actorSystem the actor system in which to load the extension.
      */
+    @SuppressWarnings("unused")
     public CommandWithOptionalEntityPreEnforcer(final ActorSystem actorSystem) {
         // no-op
     }

@@ -32,6 +32,7 @@ public final class BlockedNamespacePreEnforcer implements PreEnforcer {
      *
      * @param actorSystem the actor system in which to load the extension.
      */
+    @SuppressWarnings("unused")
     public BlockedNamespacePreEnforcer(final ActorSystem actorSystem) {
         blockNamespaceBehavior = BlockNamespaceBehavior.of(BlockedNamespaces.of(actorSystem));
     }
