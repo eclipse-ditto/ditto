@@ -250,29 +250,25 @@ public final class MqttPublisherActor extends BasePublisherActor<MqttPublishTarg
 
     private CompletionStage<SendResult> offerToSourceQueue(final MqttPublishingContext mqttPublishingContext) {
         final CompletionStage<SendResult> result;
+
         final var queueOfferResult = sourceQueue.offer(mqttPublishingContext);
         if (isDropped(queueOfferResult)) {
-            result = CompletableFuture.failedFuture(
-                    getMessageSendingFailedExceptionBecauseDroppedBySourceQueue(mqttPublishingContext)
-            );
+            throw getMessageSendingFailedExceptionBecauseDroppedBySourceQueue(mqttPublishingContext);
         } else if (isQueueClosed(queueOfferResult)) {
-            result = CompletableFuture.failedFuture(
-                    getMessageSendingFailedExceptionBecauseSourceQueueClosed(mqttPublishingContext)
-            );
+            throw getMessageSendingFailedExceptionBecauseSourceQueueClosed(mqttPublishingContext);
         } else if (queueOfferResult instanceof QueueOfferResult.Failure failure) {
             result = CompletableFuture.failedFuture(failure.cause());
         } else {
             result = mqttPublishingContext.getSendResultCompletableFuture();
         }
+
         return result.whenComplete((sendResult, error) -> {
             if (null != error) {
                 final var errorDescription = MessageFormat.format(
                         "Failed to enqueue MQTT message to topic <{0}> for sending to broker.",
                         mqttPublishingContext.getGenericMqttPublish().getTopic()
                 );
-                logger.withCorrelationId(mqttPublishingContext.getSignalDittoHeaders())
-                        .error(error, errorDescription);
-
+                logger.withCorrelationId(mqttPublishingContext.getSignalDittoHeaders()).error(error, errorDescription);
                 escalate(error, errorDescription);
             }
         });
@@ -280,10 +276,6 @@ public final class MqttPublisherActor extends BasePublisherActor<MqttPublishTarg
 
     private static boolean isDropped(final QueueOfferResult queueOfferResult) {
         return Objects.equals(queueOfferResult, QueueOfferResult.dropped());
-    }
-
-    private static boolean isQueueClosed(final QueueOfferResult queueOfferResult) {
-        return queueOfferResult instanceof QueueOfferResult.QueueClosed$;
     }
 
     private MessageSendingFailedException getMessageSendingFailedExceptionBecauseDroppedBySourceQueue(
@@ -304,6 +296,10 @@ public final class MqttPublisherActor extends BasePublisherActor<MqttPublishTarg
                         connection.getId()))
                 .dittoHeaders(mqttPublishingContext.getSignalDittoHeaders())
                 .build();
+    }
+
+    private static boolean isQueueClosed(final QueueOfferResult queueOfferResult) {
+        return queueOfferResult instanceof QueueOfferResult.QueueClosed$;
     }
 
     private static MessageSendingFailedException getMessageSendingFailedExceptionBecauseSourceQueueClosed(
