@@ -63,6 +63,7 @@ import org.eclipse.ditto.things.model.ThingsModelFactory;
 import org.eclipse.ditto.things.model.signals.commands.TestConstants;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommand;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.FeatureNotAccessibleException;
+import org.eclipse.ditto.things.model.signals.commands.exceptions.MetadataHeadersConflictException;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingNotAccessibleException;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingUnavailableException;
 import org.eclipse.ditto.things.model.signals.commands.modify.CreateThing;
@@ -1616,6 +1617,33 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
             final RetrieveThingResponse retrieveThingResponse = expectMsgClass(RetrieveThingResponse.class);
             assertThat(retrieveThingResponse.getThing().getMetadata().orElseThrow())
                     .isEqualTo(expectedMetadata);
+        }};
+    }
+
+    @Test
+    public void multipleMetadataHeadersResultsInException() {
+        final Thing thing = createThingV2WithRandomIdAndMetadata();
+        final MetadataHeaders metadataHeaders = MetadataHeaders.newInstance();
+        metadataHeaders.add(MetadataHeader.of(MetadataHeaderKey.of(JsonPointer.of("*/foo")), JsonValue.of("bar")));
+        final DittoHeaders dittoHeaders = dittoHeadersV2.toBuilder()
+                .putHeader(DittoHeaderDefinition.DELETE_METADATA.getKey(), "attributes/")
+                .putHeader(DittoHeaderDefinition.PUT_METADATA.getKey(), metadataHeaders.toJsonString())
+                .build();
+        final ThingCommand<?> modifyAttributeCommand =
+                ModifyAttribute.of(getIdOrThrow(thing), JsonPointer.of(ATTRIBUTE_KEY), JsonValue.nullLiteral(),
+                        dittoHeaders);
+
+        new TestKit(actorSystem) {{
+            final ActorRef underTest = createPersistenceActorFor(thing);
+
+            // create thing from json to use initial metadata creation
+            final JsonObject commandJson = getJsonCommand(thing);
+            final CreateThing createThing = CreateThing.fromJson(commandJson, dittoHeadersV2);
+            underTest.tell(createThing, getRef());
+            expectMsgClass(CreateThingResponse.class);
+
+            underTest.tell(modifyAttributeCommand, getRef());
+            expectMsgClass(MetadataHeadersConflictException.class);
         }};
     }
 

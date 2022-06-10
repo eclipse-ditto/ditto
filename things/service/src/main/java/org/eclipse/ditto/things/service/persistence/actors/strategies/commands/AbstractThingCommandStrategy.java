@@ -84,6 +84,7 @@ abstract class AbstractThingCommandStrategy<C extends Command<C>>
         final Boolean liveChannelConditionPassed = dittoHeaders.getLiveChannelCondition()
                 .map(condition -> ThingConditionValidator.validate(command, condition, entity).isEmpty())
                 .orElse(false);
+        MetadataHeaderChecker.check(command, dittoHeaders);
 
         final Result<ThingEvent<?>> result;
         if (command instanceof ThingQueryCommand<?> &&

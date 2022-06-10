@@ -606,6 +606,7 @@ public abstract class AbstractDittoHeadersBuilder<S extends AbstractDittoHeaders
         putMetadataHeadersToRegularHeaders();
         putGetMetadataFieldSelectorToRegularHeaders();
         putDeleteMetadataFieldSelectorToRegularHeaders();
+
         final ImmutableDittoHeaders dittoHeaders = ImmutableDittoHeaders.fromBuilder(headers);
         return doBuild(dittoHeaders);
     }
@@ -634,6 +635,8 @@ public abstract class AbstractDittoHeadersBuilder<S extends AbstractDittoHeaders
     @Override
     public String toString() {
         putMetadataHeadersToRegularHeaders();
+        putGetMetadataFieldSelectorToRegularHeaders();
+        putDeleteMetadataFieldSelectorToRegularHeaders();
         return headers.toString();
     }
 
@@ -646,6 +649,13 @@ public abstract class AbstractDittoHeadersBuilder<S extends AbstractDittoHeaders
             final LinkedHashMap<String, Header> result = new LinkedHashMap<>();
             headers.forEach((k, v) -> result.put(k.toLowerCase(), Header.of(k, v)));
             return result;
+        }
+    }
+
+    private void checkMetadataHeaders() {
+        if (headers.containsKey(DittoHeaderDefinition.GET_METADATA.getKey()) &&
+                headers.containsKey(DittoHeaderDefinition.DELETE_METADATA.getKey())) {
+
         }
     }
 
