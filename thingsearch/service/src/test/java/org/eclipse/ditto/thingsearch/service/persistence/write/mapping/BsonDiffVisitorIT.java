@@ -15,7 +15,6 @@ package org.eclipse.ditto.thingsearch.service.persistence.write.mapping;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.eclipse.ditto.policies.model.PoliciesResourceType.THING;
 
-import java.io.IOException;
 import java.util.List;
 
 import org.bson.BsonDocument;
@@ -35,7 +34,6 @@ import org.eclipse.ditto.policies.model.SubjectType;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.Metadata;
 import org.junit.After;
-import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
@@ -117,7 +115,7 @@ public final class BsonDiffVisitorIT {
         final BsonDocument nextThingDoc =
                 EnforcedThingMapper.toBsonDocument(nextThing, policy, metadata);
 
-        final BsonDiff diff = BsonDiff.minusThingDocs(nextThingDoc, prevThingDoc);
+        final BsonDiff diff = BsonDiff.minusThingDocs(nextThingDoc, prevThingDoc, 13);
 
         final List<BsonDocument> updateDoc = diff.consumeAndExport();
 
@@ -151,7 +149,7 @@ public final class BsonDiffVisitorIT {
         final BsonDocument nextThingDoc =
                 EnforcedThingMapper.toBsonDocument(nextThing, policy2, metadata);
 
-        final BsonDiff diff = BsonDiff.minusThingDocs(nextThingDoc, prevThingDoc);
+        final BsonDiff diff = BsonDiff.minusThingDocs(nextThingDoc, prevThingDoc, 13);
 
         final List<BsonDocument> updateDoc = diff.consumeAndExport();
 
@@ -185,7 +183,7 @@ public final class BsonDiffVisitorIT {
         final BsonDocument nextThingDoc =
                 EnforcedThingMapper.toBsonDocument(nextThing, policy2, metadata);
 
-        final BsonDiff diff = BsonDiff.minusThingDocs(nextThingDoc, prevThingDoc);
+        final BsonDiff diff = BsonDiff.minusThingDocs(nextThingDoc, prevThingDoc, 13);
 
         final List<BsonDocument> updateDoc = diff.consumeAndExport();
 
@@ -221,7 +219,7 @@ public final class BsonDiffVisitorIT {
 
         assertThat(prevThingDoc).isNotEqualTo(nextThingDoc);
 
-        final BsonDiff diff = BsonDiff.minusThingDocs(nextThingDoc, prevThingDoc);
+        final BsonDiff diff = BsonDiff.minusThingDocs(nextThingDoc, prevThingDoc, client.getMaxWireVersion());
 
         final List<BsonDocument> updateDoc = diff.consumeAndExport();
 
@@ -257,7 +255,7 @@ public final class BsonDiffVisitorIT {
 
         assertThat(prevThingDoc).isNotEqualTo(nextThingDoc);
 
-        final BsonDiff diff = BsonDiff.minusThingDocs(nextThingDoc, prevThingDoc);
+        final BsonDiff diff = BsonDiff.minusThingDocs(nextThingDoc, prevThingDoc, 13);
 
         final List<BsonDocument> updateDoc = diff.consumeAndExport();
 
@@ -291,7 +289,7 @@ public final class BsonDiffVisitorIT {
         final BsonDocument nextThingDoc =
                 EnforcedThingMapper.toBsonDocument(nextThing, policy, metadata);
 
-        final BsonDiff diff = BsonDiff.minusThingDocs(nextThingDoc, prevThingDoc);
+        final BsonDiff diff = BsonDiff.minusThingDocs(nextThingDoc, prevThingDoc, 13);
 
         final List<BsonDocument> updateDoc = diff.consumeAndExport();
 

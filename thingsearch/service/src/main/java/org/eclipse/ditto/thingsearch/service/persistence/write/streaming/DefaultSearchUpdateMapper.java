@@ -33,8 +33,11 @@ public final class DefaultSearchUpdateMapper extends SearchUpdateMapper {
      */
     @SuppressWarnings("unused")
     private DefaultSearchUpdateMapper(final ActorSystem actorSystem) {
-        super(actorSystem);
-        // Nothing to initialize.
+        this(actorSystem, 0);
+    }
+
+    private DefaultSearchUpdateMapper(final ActorSystem actorSystem, final Integer maxWireVersion) {
+        super(actorSystem, maxWireVersion);
     }
 
     @Override

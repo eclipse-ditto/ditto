@@ -17,7 +17,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.net.URLEncoder;
 import java.nio.charset.Charset;
 import java.time.Duration;
-import java.time.Instant;
 import java.util.List;
 
 import org.bson.BsonArray;
