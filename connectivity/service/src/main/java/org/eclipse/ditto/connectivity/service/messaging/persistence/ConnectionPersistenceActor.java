@@ -18,6 +18,7 @@ import static org.eclipse.ditto.connectivity.api.ConnectivityMessagingConstants.
 import java.text.MessageFormat;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -28,6 +29,8 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 import javax.annotation.Nullable;
@@ -385,7 +388,57 @@ public final class ConnectionPersistenceActor
     @Override
     protected ConnectivityEvent<?> modifyEventBeforePersist(final ConnectivityEvent<?> event) {
         final ConnectivityEvent<?> superEvent = super.modifyEventBeforePersist(event);
+        final DittoHeaders headersWithJournalTags = superEvent.getDittoHeaders().toBuilder()
+                .journalTags(journalTags(event))
+                .build();
+        return superEvent.setDittoHeaders(headersWithJournalTags);
+    }
 
+    private Set<String> journalTags() {
+        final Collection<String> connectionTags = connectionTags();
+        final Collection<String> activeConnectionTags = activeConnectionTags();
+        return Stream.concat(connectionTags.stream(), activeConnectionTags.stream()).collect(Collectors.toSet());
+    }
+
+    private Set<String> journalTags(final ConnectivityEvent<?> event) {
+        final Collection<String> connectionTags = connectionTags(event);
+        final Collection<String> activeConnectionTags = activeConnectionTags(event);
+        return Stream.concat(connectionTags.stream(), activeConnectionTags.stream()).collect(Collectors.toSet());
+    }
+
+    private Collection<String> connectionTags() {
+        return Optional.ofNullable(entity)
+                .map(Connection::getTags)
+                .map(Collection::stream)
+                .map(Stream::toList)
+                .orElseGet(List::of);
+    }
+
+    private Collection<String> connectionTags(final ConnectivityEvent<?> event) {
+        final Collection<String> connectionTags;
+        if (event instanceof ConnectionCreated connectionCreated) {
+            connectionTags = connectionCreated.getConnection().getTags();
+        } else if (event instanceof ConnectionDeleted) {
+            connectionTags = Set.of();
+        } else {
+            connectionTags = connectionTags();
+        }
+        return connectionTags;
+    }
+
+    private Collection<String> activeConnectionTags() {
+        final Set<String> activeConnectionTags;
+        if (isDesiredStateOpen()) {
+            activeConnectionTags = Set.of(JOURNAL_TAG_ALWAYS_ALIVE,
+                    MongoReadJournal.PRIORITY_TAG_PREFIX + Optional.ofNullable(priority).orElse(0));
+        } else {
+            activeConnectionTags = Set.of();
+        }
+        return activeConnectionTags;
+    }
+
+    private Collection<String> activeConnectionTags(final ConnectivityEvent<?> event) {
+        final Set<String> activeConnectionTags;
         final ConnectivityStatus targetConnectionStatus;
         if (event instanceof ConnectionCreated connectionCreated) {
             targetConnectionStatus = connectionCreated.getConnection().getConnectionStatus();
@@ -405,18 +458,12 @@ public final class ConnectionPersistenceActor
 
         final var alwaysAlive = (targetConnectionStatus == ConnectivityStatus.OPEN);
         if (alwaysAlive) {
-            final DittoHeaders headersWithJournalTags = superEvent.getDittoHeaders().toBuilder()
-                    .journalTags(journalTags())
-                    .build();
-            return superEvent.setDittoHeaders(headersWithJournalTags);
+            activeConnectionTags = Set.of(JOURNAL_TAG_ALWAYS_ALIVE,
+                    MongoReadJournal.PRIORITY_TAG_PREFIX + Optional.ofNullable(priority).orElse(0));
+        } else {
+            activeConnectionTags = Set.of();
         }
-
-        return superEvent;
-    }
-
-    private Set<String> journalTags() {
-        return Set.of(JOURNAL_TAG_ALWAYS_ALIVE,
-                MongoReadJournal.PRIORITY_TAG_PREFIX + Optional.ofNullable(priority).orElse(0));
+        return activeConnectionTags;
     }
 
     @Override
@@ -554,7 +601,7 @@ public final class ConnectionPersistenceActor
                 // enforcer Actor.
                 try {
                     Thread.sleep(1000);
-                } catch(Exception e) {
+                } catch (Exception e) {
                     throw new IllegalStateException(e);
                 }
                 //This actor will stop. Subsequent actions are ignored.
