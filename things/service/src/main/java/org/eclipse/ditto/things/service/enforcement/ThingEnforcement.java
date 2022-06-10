@@ -35,15 +35,10 @@ import akka.actor.ActorSystem;
 public final class ThingEnforcement extends AbstractEnforcementReloaded<Signal<?>, CommandResponse<?>> {
 
     private final List<ThingEnforcementStrategy> enforcementStrategies;
-    private final ActorRef policiesShardRegion;
-    private final EnforcementConfig enforcementConfig;
 
     public ThingEnforcement(final ActorSystem actorSystem,
             final ActorRef policiesShardRegion,
             final EnforcementConfig enforcementConfig) {
-
-        this.policiesShardRegion = policiesShardRegion;
-        this.enforcementConfig = enforcementConfig;
 
         enforcementStrategies = List.of(
                 new LiveSignalEnforcement(),
@@ -53,20 +48,6 @@ public final class ThingEnforcement extends AbstractEnforcementReloaded<Signal<?
                         enforcementConfig
                 )
         );
-    }
-
-    /**
-     * @return the policies shard region which this things specific enforcement received during construction.
-     */
-    public ActorRef getPoliciesShardRegion() {
-        return policiesShardRegion;
-    }
-
-    /**
-     * @return the EnforcementConfig which this things specific enforcement received during construction.
-     */
-    public EnforcementConfig getEnforcementConfig() {
-        return enforcementConfig;
     }
 
     @Override

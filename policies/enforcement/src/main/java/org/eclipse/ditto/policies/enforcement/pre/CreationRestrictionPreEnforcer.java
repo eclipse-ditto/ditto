@@ -55,6 +55,7 @@ public final class CreationRestrictionPreEnforcer implements PreEnforcer {
      *
      * @param actorSystem the actor system in which to load the extension.
      */
+    @SuppressWarnings("unused")
     public CreationRestrictionPreEnforcer(final ActorSystem actorSystem) {
         config = DefaultEntityCreationConfig.of(DefaultScopedConfig.dittoScoped(actorSystem.settings().config()));
         existenceChecker = ExistenceChecker.get(actorSystem);

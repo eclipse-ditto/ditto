@@ -37,6 +37,7 @@ public final class HeaderSetterPreEnforcer implements PreEnforcer {
      *
      * @param actorSystem the actor system in which to load the extension.
      */
+    @SuppressWarnings("unused")
     public HeaderSetterPreEnforcer(final ActorSystem actorSystem) {
         // no-op
     }
