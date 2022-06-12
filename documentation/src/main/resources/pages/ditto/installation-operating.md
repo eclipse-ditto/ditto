@@ -895,7 +895,7 @@ the same commands.
 
 ```json
 {
-  "targetActorSelection": "/user/thingsSearchRoot/searchUpdaterRoot/backgroundSyncProxy",
+  "targetActorSelection": "/user/thingsWildcardSearchRoot/searchUpdaterRoot/backgroundSyncProxy",
   "headers": {
     "aggregate": false,
     "is-grouped-topic": true
@@ -924,7 +924,7 @@ for a particular thing by a DevOp-command and bring the entry up-to-date immedia
 
 ```json
 {
-  "targetActorSelection": "/user/thingsSearchRoot/searchUpdaterRoot/thingsUpdater",
+  "targetActorSelection": "/user/thingsWildcardSearchRoot/searchUpdaterRoot/thingsUpdater",
   "headers": {
     "aggregate": false,
     "is-grouped-topic": true
