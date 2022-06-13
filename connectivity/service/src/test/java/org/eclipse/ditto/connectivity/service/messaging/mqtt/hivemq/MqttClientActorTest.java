@@ -94,14 +94,14 @@ import io.reactivex.Flowable;
 import io.reactivex.Single;
 
 /**
- * Unit test for {@link GenericMqttClientActor}.
+ * Unit test for {@link MqttClientActor}.
  */
 // It is crucial to use `TestActorRef` for the GenericMqttClientActor.
 // This ensures that the actor runs in the same thread as the tests.
 // The same thread is necessary because otherwise Mockito's static mocking
 // of `GenericMqttClientFactory` would not work.
 @RunWith(MockitoJUnitRunner.class)
-public final class GenericMqttClientActorTest extends AbstractBaseClientActorTest {
+public final class MqttClientActorTest extends AbstractBaseClientActorTest {
 
     private static final TestConstants.FreePort FREE_PORT = new TestConstants.FreePort();
 
@@ -199,7 +199,7 @@ public final class GenericMqttClientActorTest extends AbstractBaseClientActorTes
 
     @Override
     protected Props createClientActor(final ActorRef proxyActor, final Connection connection) {
-        return GenericMqttClientActor.props(connection,
+        return MqttClientActor.props(connection,
                 proxyActor,
                 connectionActor.getRef(),
                 DittoHeaders.empty(),

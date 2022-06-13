@@ -155,8 +155,8 @@ final class MqttPublishToExternalMessageTransformer {
         final var result = new HashMap<String, String>();
 
         result.put(MqttHeader.MQTT_TOPIC.getName(), getTopicAsString(genericMqttPublish));
-        result.put(MqttHeader.MQTT_QOS.getName(), getQosAsString(genericMqttPublish));
-        result.put(MqttHeader.MQTT_RETAIN.getName(), getRetainAsString(genericMqttPublish));
+        result.put(MqttHeader.MQTT_QOS.getName(), getQosCodeAsString(genericMqttPublish));
+        result.put(MqttHeader.MQTT_RETAIN.getName(), getIsRetainAsString(genericMqttPublish));
 
         genericMqttPublish.getCorrelationData()
                 .map(ByteBufferUtils::toUtf8String)
@@ -179,12 +179,12 @@ final class MqttPublishToExternalMessageTransformer {
         return String.valueOf(genericMqttPublish.getTopic());
     }
 
-    private static String getQosAsString(final GenericMqttPublish genericMqttPublish) {
+    private static String getQosCodeAsString(final GenericMqttPublish genericMqttPublish) {
         final var mqttQos = genericMqttPublish.getQos();
         return String.valueOf(mqttQos.getCode());
     }
 
-    private static String getRetainAsString(final GenericMqttPublish genericMqttPublish) {
+    private static String getIsRetainAsString(final GenericMqttPublish genericMqttPublish) {
         return String.valueOf(genericMqttPublish.isRetain());
     }
 

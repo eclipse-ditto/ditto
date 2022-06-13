@@ -127,7 +127,7 @@ final class HiveMqttClientFactory {
     }
 
     private static URI getConnectionUri(final HiveMqttClientProperties hiveMqttClientProperties) {
-        final var sshTunnelState = hiveMqttClientProperties.getSshTunnelState().orElse(SshTunnelState.disabled());
+        final var sshTunnelState = hiveMqttClientProperties.getSshTunnelState().orElseGet(SshTunnelState::disabled);
         return sshTunnelState.getURI(hiveMqttClientProperties.getMqttConnection());
     }
 

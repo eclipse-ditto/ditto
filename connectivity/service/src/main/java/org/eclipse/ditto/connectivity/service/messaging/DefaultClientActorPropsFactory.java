@@ -20,7 +20,7 @@ import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.service.messaging.amqp.AmqpClientActor;
 import org.eclipse.ditto.connectivity.service.messaging.httppush.HttpPushClientActor;
 import org.eclipse.ditto.connectivity.service.messaging.kafka.KafkaClientActor;
-import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.GenericMqttClientActor;
+import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.MqttClientActor;
 import org.eclipse.ditto.connectivity.service.messaging.rabbitmq.RabbitMQClientActor;
 
 import com.typesafe.config.Config;
@@ -72,7 +72,7 @@ public final class DefaultClientActorPropsFactory implements ClientActorPropsFac
                     connectivityConfigOverwrites,
                     actorSystem,
                     dittoHeaders);
-            case MQTT, MQTT_5 -> GenericMqttClientActor.props(connection,
+            case MQTT, MQTT_5 -> MqttClientActor.props(connection,
                     proxyActor,
                     connectionActor,
                     dittoHeaders,

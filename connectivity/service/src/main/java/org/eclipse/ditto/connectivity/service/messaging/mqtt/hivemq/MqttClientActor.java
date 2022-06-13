@@ -72,7 +72,7 @@ import scala.util.Try;
 /**
  * Actor for handling connection to an MQTT broker for protocol versions 3 or 5.
  */
-public final class GenericMqttClientActor extends BaseClientActor {
+public final class MqttClientActor extends BaseClientActor {
 
     private final MqttConfig mqttConfig;
     private final MqttSpecificConfig mqttSpecificConfig;
@@ -83,7 +83,7 @@ public final class GenericMqttClientActor extends BaseClientActor {
     private final List<ActorRef> mqttConsumerActorRefs;
 
     @SuppressWarnings("java:S1144")
-    private GenericMqttClientActor(final Connection connection,
+    private MqttClientActor(final Connection connection,
             final ActorRef proxyActor,
             final ActorRef connectionActor,
             final DittoHeaders dittoHeaders,
@@ -120,7 +120,7 @@ public final class GenericMqttClientActor extends BaseClientActor {
             final DittoHeaders dittoHeaders,
             final Config connectivityConfigOverwrites) {
 
-        return Props.create(GenericMqttClientActor.class,
+        return Props.create(MqttClientActor.class,
                 ConditionChecker.checkNotNull(mqttConnection, "mqttConnection"),
                 ConditionChecker.checkNotNull(proxyActor, "proxyActor"),
                 ConditionChecker.checkNotNull(connectionActor, "connectionActor"),
