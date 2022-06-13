@@ -1472,7 +1472,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
                     MetadataHeader.of(MetadataHeaderKey.parse("*/issuedBy"), JsonValue.of("the epic Ditto team"))
             );
 
-            final DittoHeaders modifyHeaders = dittoHeaders.toBuilder()
+            final DittoHeaders modifyHeaders = dittoHeadersV2.toBuilder()
                     .putHeader(DittoHeaderDefinition.PUT_METADATA.getKey(), metadataHeaders.toJsonString())
                     .build();
             final ModifyThing modifyThing = ModifyThing.of(getIdOrThrow(thing), thing, null, modifyHeaders);
