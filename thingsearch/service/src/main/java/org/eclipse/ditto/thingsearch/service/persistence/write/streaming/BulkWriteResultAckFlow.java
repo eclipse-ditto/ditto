@@ -14,21 +14,17 @@ package org.eclipse.ditto.thingsearch.service.persistence.write.streaming;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
-import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.base.model.signals.ShardedMessageEnvelope;
+import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLogger;
 import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.internal.utils.metrics.instruments.counter.Counter;
-import org.eclipse.ditto.thingsearch.api.commands.sudo.UpdateThingResponse;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.AbstractWriteModel;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.Metadata;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.ThingDeleteModel;
@@ -40,86 +36,73 @@ import com.mongodb.bulk.BulkWriteError;
 import com.mongodb.bulk.BulkWriteResult;
 
 import akka.NotUsed;
-import akka.actor.ActorRef;
-import akka.stream.DelayOverflowStrategy;
+import akka.japi.Pair;
 import akka.stream.javadsl.Flow;
 
 /**
  * Flow that sends acknowledgements to ThingUpdater according to bulk write results.
  */
-final class BulkWriteResultAckFlow {
+public final class BulkWriteResultAckFlow {
+
+    private static final Counter ERRORS_COUNTER = DittoMetrics.counter("wildcard-search-index-update-errors");
 
     private static final ThreadSafeDittoLogger LOGGER =
             DittoLoggerFactory.getThreadSafeLogger(BulkWriteResultAckFlow.class);
 
-    private static final String ERRORS_COUNTER_NAME = "search-index-update-errors";
+    private BulkWriteResultAckFlow() {}
 
-    private static final DittoHeaders INCORRECT_PATCH_HEADERS = DittoHeaders.newBuilder()
-            .putHeader(SearchUpdaterStream.FORCE_UPDATE_INCORRECT_PATCH, "true")
-            .build();
-
-    private final ActorRef updaterShard;
-    private final Counter errorsCounter;
-
-    private BulkWriteResultAckFlow(final ActorRef updaterShard) {
-        this.updaterShard = updaterShard;
-        errorsCounter = DittoMetrics.counter(ERRORS_COUNTER_NAME);
+    static Flow<WriteResultAndErrors, Pair<Status, List<String>>, NotUsed> start() {
+        return Flow.<WriteResultAndErrors>create().map(BulkWriteResultAckFlow::checkBulkWriteResult);
     }
 
-    static BulkWriteResultAckFlow of(final ActorRef updaterShard) {
-        return new BulkWriteResultAckFlow(updaterShard);
-    }
+    /**
+     * Check the result of an update operation, acknowledge successes and failures, and generate a report.
+     *
+     * @param writeResultAndErrors The result of an update operation.
+     * @return The report.
+     */
+    public static Pair<Status, List<String>> checkBulkWriteResult(final WriteResultAndErrors writeResultAndErrors) {
 
-    Flow<WriteResultAndErrors, String, NotUsed> start(final Duration delay) {
-        return getDelayFlow(delay).mapConcat(this::checkBulkWriteResult);
-    }
-
-    private Iterable<String> checkBulkWriteResult(final WriteResultAndErrors writeResultAndErrors) {
         if (wasNotAcknowledged(writeResultAndErrors)) {
             // All failed.
-            acknowledgeFailures(getAllMetadata(writeResultAndErrors), writeResultAndErrors.getBulkWriteCorrelationId());
-            return Collections.singleton(logResult("NotAcknowledged", writeResultAndErrors, false,
-                    false));
+            acknowledgeFailures(getAllMetadata(writeResultAndErrors));
+            return Pair.create(Status.UNACKNOWLEDGED,
+                    List.of(logResult("NotAcknowledged", writeResultAndErrors, false, false)));
         } else {
             final var consistencyError = checkForConsistencyError(writeResultAndErrors);
-            switch (consistencyError.status) {
+            switch (consistencyError.status()) {
                 case CONSISTENCY_ERROR:
                     // write result is not consistent; there is a bug with Ditto or with its environment
-                    acknowledgeFailures(getAllMetadata(writeResultAndErrors),
-                            writeResultAndErrors.getBulkWriteCorrelationId());
+                    acknowledgeFailures(getAllMetadata(writeResultAndErrors));
 
-                    return Collections.singleton(consistencyError.message);
+                    return Pair.create(consistencyError.status(), List.of(consistencyError.message));
                 case INCORRECT_PATCH:
                     reportIncorrectPatch(writeResultAndErrors);
 
-                    return getConsistencyOKResult(writeResultAndErrors, true);
+                    return Pair.create(consistencyError.status(),
+                            getConsistencyOKResult(writeResultAndErrors, true));
                 case OK:
                 default:
-                    return getConsistencyOKResult(writeResultAndErrors, false);
+                    return Pair.create(consistencyError.status(),
+                            getConsistencyOKResult(writeResultAndErrors, false));
             }
         }
     }
 
-    private Iterable<String> getConsistencyOKResult(final WriteResultAndErrors writeResultAndErrors,
+    private static List<String> getConsistencyOKResult(final WriteResultAndErrors writeResultAndErrors,
             final boolean containsIncorrectPatch) {
         return acknowledgeSuccessesAndFailures(writeResultAndErrors, containsIncorrectPatch);
     }
 
-    private void reportIncorrectPatch(final WriteResultAndErrors writeResultAndErrors) {
+    private static void reportIncorrectPatch(final WriteResultAndErrors writeResultAndErrors) {
         // Some patches are not applied due to inconsistent sequence number in the search index.
         // It is not possible to identify which patches are not applied; therefore request all patch updates to retry.
         writeResultAndErrors.getWriteModels().forEach(model -> {
             if (model.isPatchUpdate()) {
                 final var abstractModel = model.getDitto();
-                final var response =
-                        createFailureResponse(abstractModel.getMetadata(), INCORRECT_PATCH_HEADERS.toBuilder()
-                                .correlationId(writeResultAndErrors.getBulkWriteCorrelationId()).build());
                 LOGGER.withCorrelationId(writeResultAndErrors.getBulkWriteCorrelationId())
                         .warn("Encountered incorrect patch update for metadata: <{}> and filter: <{}>",
                                 abstractModel.getMetadata(), abstractModel.getFilter());
-                abstractModel.getMetadata()
-                        .getOrigin()
-                        .ifPresent(updater -> updater.tell(response, ActorRef.noSender()));
             } else {
                 LOGGER.withCorrelationId(writeResultAndErrors.getBulkWriteCorrelationId())
                         .info("Skipping retry of full update in a batch with an incorrect patch: <{}>",
@@ -128,10 +111,10 @@ final class BulkWriteResultAckFlow {
         });
     }
 
-    private Collection<String> acknowledgeSuccessesAndFailures(final WriteResultAndErrors writeResultAndErrors,
+    private static List<String> acknowledgeSuccessesAndFailures(final WriteResultAndErrors writeResultAndErrors,
             final boolean containsIncorrectPatch) {
         final List<BulkWriteError> errors = writeResultAndErrors.getBulkWriteErrors();
-        final Collection<String> logEntries = new ArrayList<>(errors.size() + 1);
+        final List<String> logEntries = new ArrayList<>(errors.size() + 1);
         final Collection<Metadata> failedMetadata = new ArrayList<>(errors.size());
         logEntries.add(logResult("Acknowledged", writeResultAndErrors, errors.isEmpty(), containsIncorrectPatch));
         final BitSet failedIndices = new BitSet(writeResultAndErrors.getWriteModels().size());
@@ -145,67 +128,26 @@ final class BulkWriteResultAckFlow {
                 // duplicate key error is considered success
             }
         }
-        acknowledgeFailures(failedMetadata, writeResultAndErrors.getBulkWriteCorrelationId());
-        acknowledgeSuccesses(failedIndices, writeResultAndErrors.getBulkWriteCorrelationId(),
+        acknowledgeFailures(failedMetadata);
+        acknowledgeSuccesses(failedIndices,
                 writeResultAndErrors.getWriteModels());
 
         return logEntries;
     }
 
-    private static void acknowledgeSuccesses(final BitSet failedIndices, final String bulkWriteCorrelationId,
-            final List<MongoWriteModel> writeModels) {
+    private static void acknowledgeSuccesses(final BitSet failedIndices, final List<MongoWriteModel> writeModels) {
         for (int i = 0; i < writeModels.size(); ++i) {
             if (!failedIndices.get(i)) {
-                final var metadata = writeModels.get(i).getDitto().getMetadata();
-                metadata.sendAck();
-                metadata.sendBulkWriteCompleteToOrigin(bulkWriteCorrelationId);
+                writeModels.get(i).getDitto().getMetadata().sendAck();
             }
         }
     }
 
-    private void acknowledgeFailures(final Collection<Metadata> metadataList, final String bulkWriteCorrelationId) {
-        errorsCounter.increment(metadataList.size());
+    private static void acknowledgeFailures(final Collection<Metadata> metadataList) {
+        ERRORS_COUNTER.increment(metadataList.size());
         for (final Metadata metadata : metadataList) {
             metadata.sendNAck(); // also stops timer even if no acknowledgement is requested
-            metadata.sendBulkWriteCompleteToOrigin(bulkWriteCorrelationId);
-            final UpdateThingResponse response = createFailureResponse(metadata, DittoHeaders.newBuilder()
-                    .correlationId(bulkWriteCorrelationId)
-                    .build());
-            metadata.getOrigin().ifPresentOrElse(
-                    origin -> origin.tell(response, ActorRef.noSender()),
-                    () -> {
-                        final ShardedMessageEnvelope envelope =
-                                ShardedMessageEnvelope.of(response.getEntityId(), response.getType(), response.toJson(),
-                                        response.getDittoHeaders());
-                        updaterShard.tell(envelope, ActorRef.noSender());
-                    }
-            );
         }
-    }
-
-    private static Flow<WriteResultAndErrors, WriteResultAndErrors, NotUsed> getDelayFlow(final Duration delay) {
-        if (isPositive(delay)) {
-            // delay required to delay the first result. delay applied for each buffered batch.
-            return Flow.<WriteResultAndErrors>create()
-                    .delay(delay, DelayOverflowStrategy.backpressure());
-        } else {
-            return Flow.create();
-        }
-    }
-
-    private static boolean isPositive(final Duration duration) {
-        return Duration.ZERO.minus(duration).isNegative();
-    }
-
-    private static UpdateThingResponse createFailureResponse(final Metadata metadata, final DittoHeaders dittoHeaders) {
-        return UpdateThingResponse.of(
-                metadata.getThingId(),
-                metadata.getThingRevision(),
-                metadata.getPolicyId().orElse(null),
-                metadata.getPolicyId().flatMap(policyId -> metadata.getPolicyRevision()).orElse(null),
-                false,
-                dittoHeaders
-        );
     }
 
     private static boolean wasNotAcknowledged(final WriteResultAndErrors writeResultAndErrors) {
@@ -224,11 +166,13 @@ final class BulkWriteResultAckFlow {
             // some indexes not within bounds
             final var message = String.format("ConsistencyError[indexOutOfBound]: %s", resultAndErrors);
 
-            return new ConsistencyCheckResult(ConsistencyStatus.CONSISTENCY_ERROR, message);
+            return new ConsistencyCheckResult(Status.CONSISTENCY_ERROR, message);
         } else if (areUpdatesMissing(resultAndErrors)) {
-            return new ConsistencyCheckResult(ConsistencyStatus.INCORRECT_PATCH, "");
+            return new ConsistencyCheckResult(Status.INCORRECT_PATCH, "");
+        } else if (!resultAndErrors.getBulkWriteErrors().isEmpty()) {
+            return new ConsistencyCheckResult(Status.WRITE_ERROR, "");
         } else {
-            return new ConsistencyCheckResult(ConsistencyStatus.OK, "");
+            return new ConsistencyCheckResult(Status.OK, "");
         }
     }
 
@@ -261,12 +205,16 @@ final class BulkWriteResultAckFlow {
         final Optional<Throwable> unexpectedError = writeResultAndErrors.getUnexpectedError();
         if (unexpectedError.isPresent()) {
             final Throwable error = unexpectedError.get();
-            final StringWriter stackTraceWriter = new StringWriter();
-            stackTraceWriter.append(String.format("%s: UnexpectedError[stacktrace=", status));
-            error.printStackTrace(new PrintWriter(stackTraceWriter));
-            return stackTraceWriter.append("] - correlation: ")
-                    .append(writeResultAndErrors.getBulkWriteCorrelationId())
-                    .toString();
+            if (error instanceof DittoRuntimeException dittoRuntimeException) {
+                return dittoRuntimeException.toJsonString();
+            } else {
+                final StringWriter stackTraceWriter = new StringWriter();
+                stackTraceWriter.append(String.format("%s: UnexpectedError[stacktrace=", status));
+                error.printStackTrace(new PrintWriter(stackTraceWriter));
+                return stackTraceWriter.append("] - correlation: ")
+                        .append(writeResultAndErrors.getBulkWriteCorrelationId())
+                        .toString();
+            }
         } else if (containsNoErrors) {
             final BulkWriteResult bulkWriteResult = writeResultAndErrors.getBulkWriteResult();
 
@@ -283,9 +231,8 @@ final class BulkWriteResultAckFlow {
                     bulkWriteResult.getDeletedCount(),
                     writeResultAndErrors.getBulkWriteCorrelationId());
         } else {
-            // partial success
+            // partial success or failure
             final BulkWriteResult bulkWriteResult = writeResultAndErrors.getBulkWriteResult();
-
             return String.format(
                     "%s: PartialSuccess[ack=%b,errorCount=%d,matched=%d,upserts=%d,inserted=%d,modified=%d," +
                             "deleted=%d,errors=%s] - correlation: %s",
@@ -303,20 +250,16 @@ final class BulkWriteResultAckFlow {
         }
     }
 
-    private static final class ConsistencyCheckResult {
+    private record ConsistencyCheckResult(Status status, String message) {}
 
-        private final ConsistencyStatus status;
-        private final String message;
-
-        private ConsistencyCheckResult(final ConsistencyStatus status, final String message) {
-            this.status = status;
-            this.message = message;
-        }
-    }
-
-    private enum ConsistencyStatus {
+    /**
+     * Summary of the write result status.
+     */
+    public enum Status {
+        UNACKNOWLEDGED,
         CONSISTENCY_ERROR,
         INCORRECT_PATCH,
+        WRITE_ERROR,
         OK
     }
 

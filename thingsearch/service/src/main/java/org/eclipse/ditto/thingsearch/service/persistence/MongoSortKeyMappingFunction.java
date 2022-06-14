@@ -16,7 +16,7 @@ import java.util.Arrays;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import org.eclipse.ditto.thingsearch.service.common.util.KeyEscapeUtil;
+import org.eclipse.ditto.internal.utils.persistence.mongo.KeyNameReviser;
 
 /**
  * This function does (in this order)
@@ -30,10 +30,12 @@ public final class MongoSortKeyMappingFunction implements Function<String[], Str
 
     private static final MongoSortKeyMappingFunction INSTANCE = new MongoSortKeyMappingFunction();
 
+    private static final KeyNameReviser KEY_NAME_REVISER = KeyNameReviser.escapeProblematicPlainChars();
+
     @Override
     public String apply(final String[] values) {
         return Arrays.stream(values)
-                .map(KeyEscapeUtil::escape)
+                .map(KEY_NAME_REVISER)
                 .map(s -> s.replace('/', '.'))
                 .collect(Collectors.joining(PersistenceConstants.DOT));
     }

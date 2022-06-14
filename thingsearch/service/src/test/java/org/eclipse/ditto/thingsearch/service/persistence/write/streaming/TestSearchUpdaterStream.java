@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Contributors to the Eclipse Foundation
+ * Copyright (c) 2022 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -16,8 +16,8 @@ import javax.annotation.Nullable;
 
 import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyId;
-import org.eclipse.ditto.policies.model.enforcers.Enforcer;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.thingsearch.service.common.config.DefaultPersistenceStreamConfig;
@@ -26,6 +26,7 @@ import org.eclipse.ditto.thingsearch.service.persistence.write.model.AbstractWri
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.Metadata;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.ThingDeleteModel;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.WriteResultAndErrors;
+import org.eclipse.ditto.thingsearch.service.updater.actors.ThingUpdater;
 
 import com.mongodb.reactivestreams.client.MongoDatabase;
 import com.typesafe.config.ConfigFactory;
@@ -54,8 +55,8 @@ public final class TestSearchUpdaterStream {
             final SearchUpdateMapper searchUpdateMapper) {
 
         final var mongoSearchUpdaterFlow = MongoSearchUpdaterFlow.of(database,
-                DefaultPersistenceStreamConfig.of(ConfigFactory.empty()),
-                searchUpdateMapper);
+                DefaultPersistenceStreamConfig.of(ConfigFactory.empty())
+        );
         return new TestSearchUpdaterStream(mongoSearchUpdaterFlow);
     }
 
@@ -63,22 +64,24 @@ public final class TestSearchUpdaterStream {
      * Write a thing into the updater stream.
      *
      * @param thing the thing
-     * @param enforcer the enforcer
+     * @param policy the policy
      * @param policyRevision the policy revision
      * @return source of write result.
      */
     public Source<WriteResultAndErrors, NotUsed> write(final Thing thing,
-            final Enforcer enforcer,
+            final Policy policy,
             final long policyRevision) {
 
         final JsonObject thingJson = thing.toJson(FieldType.all());
-        final AbstractWriteModel writeModel = EnforcedThingMapper.toWriteModel(thingJson, enforcer, policyRevision, -1,
-                null);
+        final AbstractWriteModel writeModel = EnforcedThingMapper.toWriteModel(thingJson, policy, policyRevision,
+                null, -1);
+        final var mongoWriteModel =
+                writeModel.toIncrementalMongo(
+                        ThingDeleteModel.of(Metadata.ofDeleted(thing.getEntityId().orElseThrow()))).orElseThrow();
 
-        final var source = Source.single(writeModel)
-                .groupBy(1, foo -> 0)
-                .grouped(1);
-        return mongoSearchUpdaterFlow.start(source, false).mergeSubstreams();
+        return Source.single(mongoWriteModel)
+                .via(mongoSearchUpdaterFlow.create())
+                .map(ThingUpdater.Result::resultAndErrors);
     }
 
     /**
@@ -103,10 +106,9 @@ public final class TestSearchUpdaterStream {
      */
     private Source<WriteResultAndErrors, NotUsed> delete(final Metadata metadata) {
         final AbstractWriteModel writeModel = ThingDeleteModel.of(metadata);
-        final var source = Source.single(writeModel)
-                .groupBy(1, foo -> 0)
-                .grouped(1);
-        return mongoSearchUpdaterFlow.start(source, false).mergeSubstreams();
+        return Source.single(writeModel.toIncrementalMongo(writeModel).orElseThrow())
+                .via(mongoSearchUpdaterFlow.create())
+                .map(ThingUpdater.Result::resultAndErrors);
     }
 
 }

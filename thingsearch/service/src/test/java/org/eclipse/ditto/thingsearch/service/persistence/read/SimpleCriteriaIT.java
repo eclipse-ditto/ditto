@@ -93,6 +93,14 @@ public final class SimpleCriteriaIT extends AbstractReadPersistenceITBase {
     }
 
     @Test
+    public void findNeByNonexistentAttribute() {
+        final Criteria crit = cf.fieldCriteria(ef.filterByAttribute("nonexistent"), cf.ne(KNOWN_STRING_VALUE));
+        final Collection<ThingId> result = findForCriteria(crit);
+
+        assertThat(result).isEmpty();
+    }
+
+    @Test
     public void findNeByStringAttribute() {
         final Criteria crit = cf.fieldCriteria(ef.filterByAttribute(KNOWN_ATTRIBUTE_KEY), cf.ne(KNOWN_STRING_VALUE));
         final Collection<ThingId> result = findForCriteria(crit);

@@ -31,7 +31,7 @@ public class SearchService extends DittoService<SearchConfig> {
     /**
      * Name of things-search service.
      */
-    public static final String SERVICE_NAME = "things-search";
+    public static final String SERVICE_NAME = "search";
 
     private static final Logger LOGGER = LoggerFactory.getLogger(SearchService.class);
 
