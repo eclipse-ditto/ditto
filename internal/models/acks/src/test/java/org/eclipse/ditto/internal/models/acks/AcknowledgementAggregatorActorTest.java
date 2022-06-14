@@ -15,6 +15,7 @@ package org.eclipse.ditto.internal.models.acks;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.time.Duration;
+import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
@@ -34,8 +35,9 @@ import org.eclipse.ditto.base.model.signals.commands.exceptions.CommandTimeoutEx
 import org.eclipse.ditto.internal.models.acks.config.DefaultAcknowledgementConfig;
 import org.eclipse.ditto.internal.models.signal.correlation.MatchingValidationResult;
 import org.eclipse.ditto.internal.utils.akka.ActorSystemResource;
+import org.eclipse.ditto.messages.model.signals.commands.acks.MessageCommandResponseAcknowledgementProvider;
 import org.eclipse.ditto.things.model.ThingId;
-import org.eclipse.ditto.things.model.signals.commands.ThingErrorResponse;
+import org.eclipse.ditto.things.model.signals.commands.acks.ThingCommandResponseAcknowledgementProvider;
 import org.eclipse.ditto.things.model.signals.commands.modify.DeleteThing;
 import org.eclipse.ditto.things.model.signals.commands.modify.DeleteThingResponse;
 import org.eclipse.ditto.things.model.signals.commands.modify.ThingModifyCommand;
@@ -131,8 +133,9 @@ public final class AcknowledgementAggregatorActorTest {
         testKit.childActorOf(getAcknowledgementAggregatorProps(command, testKit));
 
         // THEN
-        final var thingErrorResponse = testKit.expectMsgClass(ThingErrorResponse.class);
-        assertThat(thingErrorResponse.getDittoRuntimeException()).isInstanceOf(CommandTimeoutException.class);
+        final var commandTimeoutException = testKit.expectMsgClass(CommandTimeoutException.class);
+        assertThat(commandTimeoutException.getDittoHeaders().get(DittoHeaderDefinition.ENTITY_ID.getKey()))
+                .isEqualTo(THING_ID.toString());
     }
 
     @Test
@@ -151,8 +154,9 @@ public final class AcknowledgementAggregatorActorTest {
         testKit.childActorOf(getAcknowledgementAggregatorProps(command, testKit));
 
         // THEN
-        final var thingErrorResponse = testKit.expectMsgClass(ThingErrorResponse.class);
-        assertThat(thingErrorResponse.getDittoRuntimeException()).isInstanceOf(CommandTimeoutException.class);
+        final var commandTimeoutException = testKit.expectMsgClass(CommandTimeoutException.class);
+        assertThat(commandTimeoutException.getDittoHeaders().get(DittoHeaderDefinition.ENTITY_ID.getKey()))
+                .isEqualTo(THING_ID.toString());
     }
 
     @Test
@@ -363,17 +367,16 @@ public final class AcknowledgementAggregatorActorTest {
         underTest.tell(response, ActorRef.noSender());
 
         // THEN
-        final var thingErrorResponse = testKit.expectMsgClass(Duration.ofSeconds(5L), ThingErrorResponse.class);
-        assertThat((CharSequence) thingErrorResponse.getEntityId()).isEqualTo(THING_ID);
-        assertThat(thingErrorResponse.getDittoRuntimeException())
-                .isInstanceOfSatisfying(CommandTimeoutException.class,
-                        timeoutException -> assertThat(timeoutException.getDescription())
-                                .hasValueSatisfying(description -> assertThat(description)
-                                        .contains(String.format(
-                                                "Entity ID of live response <%s> differs from entity ID of command <%s>.",
-                                                randomThingId,
-                                                THING_ID
-                                        ))));
+        final var commandTimeoutException = testKit.expectMsgClass(Duration.ofSeconds(5L), CommandTimeoutException.class);
+        assertThat(commandTimeoutException.getDittoHeaders().get(DittoHeaderDefinition.ENTITY_ID.getKey()))
+                .isEqualTo(THING_ID.toString());
+        assertThat(commandTimeoutException.getDescription())
+                .hasValueSatisfying(description -> assertThat(description)
+                        .contains(String.format(
+                                "Entity ID of live response <%s> differs from entity ID of command <%s>.",
+                                randomThingId,
+                                THING_ID
+                        )));
     }
 
     @Test
@@ -398,17 +401,16 @@ public final class AcknowledgementAggregatorActorTest {
         underTest.tell(response, ActorRef.noSender());
 
         // THEN
-        final var thingErrorResponse = testKit.expectMsgClass(Duration.ofSeconds(5L), ThingErrorResponse.class);
-        assertThat((CharSequence) thingErrorResponse.getEntityId()).isEqualTo(THING_ID);
-        assertThat(thingErrorResponse.getDittoRuntimeException())
-                .isInstanceOfSatisfying(CommandTimeoutException.class,
-                        timeoutException -> assertThat(timeoutException.getDescription())
-                                .hasValueSatisfying(description -> assertThat(description)
-                                        .contains(String.format(
-                                                "Entity ID of live response <%s> differs from entity ID of command <%s>.",
-                                                randomThingId,
-                                                THING_ID
-                                        ))));
+        final var commandTimeoutException = testKit.expectMsgClass(Duration.ofSeconds(5L), CommandTimeoutException.class);
+        assertThat(commandTimeoutException.getDittoHeaders().get(DittoHeaderDefinition.ENTITY_ID.getKey()))
+                .isEqualTo(THING_ID.toString());
+        assertThat(commandTimeoutException.getDescription())
+                .hasValueSatisfying(description -> assertThat(description)
+                        .contains(String.format(
+                                "Entity ID of live response <%s> differs from entity ID of command <%s>.",
+                                randomThingId,
+                                THING_ID
+                        )));
         final var responseValidationFailureArgumentCaptor =
                 ArgumentCaptor.forClass(MatchingValidationResult.Failure.class);
         Mockito.verify(responseValidationFailureConsumer).accept(responseValidationFailureArgumentCaptor.capture());
@@ -436,7 +438,12 @@ public final class AcknowledgementAggregatorActorTest {
                 DefaultAcknowledgementConfig.of(ConfigFactory.empty()),
                 headerTranslator,
                 tellThis(testKit.getRef()),
-                responseValidationFailureConsumer);
+                responseValidationFailureConsumer,
+                List.of(
+                        ThingCommandResponseAcknowledgementProvider.getInstance(),
+                        MessageCommandResponseAcknowledgementProvider.getInstance()
+                )
+        );
     }
 
     private static Consumer<Object> tellThis(final ActorRef testKit) {

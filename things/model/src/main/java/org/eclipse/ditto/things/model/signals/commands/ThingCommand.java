@@ -12,16 +12,13 @@
  */
 package org.eclipse.ditto.things.model.signals.commands;
 
-
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.base.model.entity.type.EntityType;
 import org.eclipse.ditto.base.model.entity.type.WithEntityType;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.base.model.headers.LiveChannelTimeoutStrategy;
 import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
-import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.SignalWithEntityId;
 import org.eclipse.ditto.base.model.signals.WithType;
 import org.eclipse.ditto.base.model.signals.commands.Command;
@@ -81,35 +78,6 @@ public interface ThingCommand<T extends ThingCommand<T>> extends Command<T>, Wit
      */
     static boolean isThingCommand(@Nullable final WithType signal) {
         return WithType.hasTypePrefix(signal, ThingCommand.TYPE_PREFIX);
-    }
-
-    /**
-     * Indicates whether the specified {@code Signal} argument is a {@code query} command using smart channel
-     * selection.
-     *
-     * @param signal the signal to be checked.
-     * @return {@code true} if {@code signal} is a {@code query} command handled by smart channel selection.
-     * @since 3.0.0
-     */
-    static boolean isChannelSmart(@Nullable final Signal<?> signal) {
-        final boolean result;
-        if (signal instanceof ThingCommand<?>) {
-            final ThingCommand<?> thingCommand = (ThingCommand<?>) signal;
-            if (thingCommand.getCategory() == Category.QUERY) {
-                final DittoHeaders headers = thingCommand.getDittoHeaders();
-                if (Signal.isChannelLive(thingCommand)) {
-                    result = LiveChannelTimeoutStrategy.USE_TWIN ==
-                            headers.getLiveChannelTimeoutStrategy().orElse(LiveChannelTimeoutStrategy.FAIL);
-                } else {
-                    result = headers.getLiveChannelCondition().isPresent();
-                }
-            } else {
-                result = false;
-            }
-        } else  {
-            result = false;
-        }
-        return result;
     }
 
     /**

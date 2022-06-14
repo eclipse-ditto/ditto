@@ -45,6 +45,18 @@ public interface WithType {
     String THINGS_COMMAND_RESPONSES_PREFIX = "things.responses:";
 
     /**
+     * Commonly known type prefix for {@code ThingEvent}s.
+     * @since 3.0.0
+     */
+    String THINGS_EVENTS_PREFIX = "things.events:";
+
+    /**
+     * Commonly known type prefix for {@code PolicyAnnouncement}s.
+     * @since 3.0.0
+     */
+    String POLICY_ANNOUNCEMENT_PREFIX = "policies.announcements:";
+
+    /**
      * Returns the type of this entity.
      *
      * @return the type.

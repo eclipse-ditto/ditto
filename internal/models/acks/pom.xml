@@ -26,17 +26,10 @@
 
     <dependencies>
         <!-- ### Compile ### -->
-        <!-- TODO CR-11383 this should not depend on ditto-things-model and ditto-messages-model -->
-        <!--  fix AcknowledementAggregator stuff so that it does not pull in entity models -->
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-things-model</artifactId>
+            <artifactId>ditto-internal-models-signal</artifactId>
         </dependency>
-        <dependency>
-            <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-messages-model</artifactId>
-        </dependency>
-
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-internal-utils-akka</artifactId>
@@ -46,13 +39,23 @@
             <groupId>com.typesafe.akka</groupId>
             <artifactId>akka-actor_${scala.version}</artifactId>
         </dependency>
-
         <dependency>
-            <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-internal-models-signal</artifactId>
+            <groupId>com.typesafe.akka</groupId>
+            <artifactId>akka-cluster_${scala.version}</artifactId>
         </dependency>
 
         <!-- ### Testing ### -->
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-things-model</artifactId>
+            <scope>test</scope> <!-- only for testing, pull in things-model -->
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-messages-model</artifactId>
+            <scope>test</scope> <!-- only for testing, pull in messages-model -->
+        </dependency>
+
         <dependency>
             <groupId>com.typesafe.akka</groupId>
             <artifactId>akka-testkit_${scala.version}</artifactId>

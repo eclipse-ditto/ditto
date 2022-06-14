@@ -191,13 +191,13 @@ public final class PolicyPersistenceActor
 
     @Override
     protected void publishEvent(final PolicyEvent<?> event) {
-        pubSubMediator.tell(DistPubSubAccess.publishViaGroup(PolicyEvent.TYPE_PREFIX, event), getSender());
+        pubSubMediator.tell(DistPubSubAccess.publishViaGroup(PolicyEvent.TYPE_PREFIX, event), getSelf());
 
         final PolicyTag policyTag = PolicyTag.of(entityId, event.getRevision());
-        pubSubMediator.tell(DistPubSubAccess.publishViaGroup(PolicyTag.PUB_SUB_TOPIC_MODIFIED, policyTag), getSender());
+        pubSubMediator.tell(DistPubSubAccess.publishViaGroup(PolicyTag.PUB_SUB_TOPIC_MODIFIED, policyTag), getSelf());
 
         pubSubMediator.tell(DistPubSubAccess.publish(PolicyTag.PUB_SUB_TOPIC_INVALIDATE_ENFORCERS, policyTag),
-                getSender());
+                getSelf());
     }
 
     @Override

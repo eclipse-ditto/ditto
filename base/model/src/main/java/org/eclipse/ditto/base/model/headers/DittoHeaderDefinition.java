@@ -360,15 +360,17 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
             HeaderValueValidators.getJsonArrayValidator()),
 
     /**
-     * W3C traceparent header. See https://www.w3.org/TR/trace-context/#traceparent-header.
+     * W3C traceparent header.
      *
+     * @see <a href="https://www.w3.org/TR/trace-context/#traceparent-header">https://www.w3.org/TR/trace-context/#traceparent-header</a>
      * @since 2.1.0
      */
     W3C_TRACEPARENT("traceparent", String.class, true, true, HeaderValueValidators.getNoOpValidator()),
 
     /**
-     * W3C tracestate header. See https://www.w3.org/TR/trace-context/#tracestate-header.
+     * W3C tracestate header.
      *
+     * @see <a href="https://www.w3.org/TR/trace-context/#tracestate-header">https://www.w3.org/TR/trace-context/#tracestate-header</a>
      * @since 2.1.0
      */
     W3C_TRACESTATE("tracestate", String.class, true, true, HeaderValueValidators.getNoOpValidator()),
@@ -392,6 +394,19 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
             false,
             false,
             HeaderValueValidators.getBooleanValidator()),
+
+    /**
+     * Internal header passing through the Akka address of an {@code AcknowledgementAggregatorActor} which was started
+     * at an edge (gateway/connectivity) and is awaiting {@code Acknowledgement}s which can be sent to it by using
+     * this address in an {@code ActorSelection}.
+     *
+     * @since 3.0.0
+     */
+    DITTO_ACKREGATOR_ADDRESS("ditto-ackgregator-address",
+            String.class,
+            false,
+            false,
+            HeaderValueValidators.getNonEmptyValidator()),
 
     /**
      * Header definition to identify a request for a conditional update.

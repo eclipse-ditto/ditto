@@ -68,7 +68,8 @@ import org.eclipse.ditto.json.JsonRuntimeException;
 import org.eclipse.ditto.messages.model.Message;
 import org.eclipse.ditto.messages.model.signals.commands.MessageCommandResponse;
 import org.eclipse.ditto.messages.model.signals.commands.acks.MessageCommandAckRequestSetter;
-import org.eclipse.ditto.things.model.signals.commands.ThingCommand;
+import org.eclipse.ditto.messages.model.signals.commands.acks.MessageCommandResponseAcknowledgementProvider;
+import org.eclipse.ditto.things.model.signals.commands.acks.ThingCommandResponseAcknowledgementProvider;
 import org.eclipse.ditto.things.model.signals.commands.acks.ThingLiveCommandAckRequestSetter;
 import org.eclipse.ditto.things.model.signals.commands.acks.ThingModifyCommandAckRequestSetter;
 
@@ -135,9 +136,15 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
                 HttpAcknowledgementConfig.of(httpConfig),
                 headerTranslator,
                 getResponseValidationFailureConsumer(connectivityShardRegionProxy),
-                ThingModifyCommandAckRequestSetter.getInstance(),
-                ThingLiveCommandAckRequestSetter.getInstance(),
-                MessageCommandAckRequestSetter.getInstance());
+                List.of(
+                        ThingModifyCommandAckRequestSetter.getInstance(),
+                        ThingLiveCommandAckRequestSetter.getInstance(),
+                        MessageCommandAckRequestSetter.getInstance()
+                ),
+                List.of(
+                        ThingCommandResponseAcknowledgementProvider.getInstance(),
+                        MessageCommandResponseAcknowledgementProvider.getInstance()
+                ));
 
         responseLocationUri = null;
         receivedCommand = null;
@@ -731,7 +738,7 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
                 .filter(timeout -> timeout.minus(maxTimeout).isNegative())
                 .orElse(maxTimeout);
 
-        if (ThingCommand.isChannelSmart(originatingSignal)) {
+        if (Signal.isChannelSmart(originatingSignal)) {
             return candidateTimeout.plus(commandConfig.getSmartChannelBuffer());
         } else {
             return candidateTimeout;

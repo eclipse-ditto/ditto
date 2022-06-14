@@ -31,11 +31,10 @@ import org.eclipse.ditto.base.model.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
 import org.eclipse.ditto.base.model.signals.acks.AcknowledgementRequestDuplicateCorrelationIdException;
+import org.eclipse.ditto.base.model.signals.announcements.Announcement;
+import org.eclipse.ditto.base.model.signals.commands.Command;
+import org.eclipse.ditto.base.model.signals.events.Event;
 import org.eclipse.ditto.internal.models.acks.config.AcknowledgementConfig;
-import org.eclipse.ditto.messages.model.signals.commands.MessageCommand;
-import org.eclipse.ditto.policies.model.signals.announcements.PolicyAnnouncement;
-import org.eclipse.ditto.things.model.signals.commands.ThingCommand;
-import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorRefFactory;
@@ -101,7 +100,7 @@ final class AcknowledgementForwarderActorStarter implements Supplier<Optional<Ac
      */
     static AcknowledgementForwarderActorStarter getInstance(final ActorRefFactory actorRefFactory,
             final ActorRef parent,
-            final ActorRef ackRequester,
+            final ActorRef ackRequester, // TODO TJ the ackRequester can probably be removed
             final EntityId entityId,
             final Signal<?> signal,
             final AcknowledgementConfig acknowledgementConfig,
@@ -239,13 +238,13 @@ final class AcknowledgementForwarderActorStarter implements Supplier<Optional<Ac
 
     static boolean hasEffectiveAckRequests(final Signal<?> signal, final Set<AcknowledgementRequest> ackRequests) {
         final boolean isLiveSignal = isLiveSignal(signal);
-        if (signal instanceof ThingEvent && !isLiveSignal) {
+        if (Event.isThingEvent(signal) && !isLiveSignal) {
             return ackRequests.stream()
                     .anyMatch(AcknowledgementForwarderActorStarter::isNotTwinPersistedOrLiveResponse);
-        } else if (signal instanceof MessageCommand || (isLiveSignal && signal instanceof ThingCommand)) {
+        } else if (Command.isMessageCommand(signal) || (isLiveSignal && Command.isThingCommand(signal))) {
             return ackRequests.stream().anyMatch(AcknowledgementForwarderActorStarter::isNotTwinPersisted) ||
                     signal.getDittoHeaders().isResponseRequired();
-        } else if (signal instanceof PolicyAnnouncement) {
+        } else if (Announcement.isPolicyAnnouncement(signal)) {
             return !ackRequests.isEmpty();
         } else {
             return false;

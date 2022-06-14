@@ -54,7 +54,6 @@ import org.eclipse.ditto.connectivity.api.ExternalMessage;
 import org.eclipse.ditto.connectivity.api.InboundSignal;
 import org.eclipse.ditto.connectivity.api.MappedInboundExternalMessage;
 import org.eclipse.ditto.connectivity.api.messaging.monitoring.logs.LogEntryFactory;
-import org.eclipse.ditto.connectivity.service.placeholders.ConnectivityPlaceholders;
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.ConnectivityInternalErrorException;
 import org.eclipse.ditto.connectivity.model.LogType;
@@ -68,6 +67,7 @@ import org.eclipse.ditto.connectivity.service.messaging.monitoring.ConnectionMon
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.DefaultConnectionMonitorRegistry;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.logs.InfoProviderFactory;
 import org.eclipse.ditto.connectivity.service.messaging.validation.ConnectionValidator;
+import org.eclipse.ditto.connectivity.service.placeholders.ConnectivityPlaceholders;
 import org.eclipse.ditto.connectivity.service.util.ConnectivityMdcEntryKey;
 import org.eclipse.ditto.internal.models.acks.AcknowledgementAggregatorActorStarter;
 import org.eclipse.ditto.internal.models.acks.config.AcknowledgementConfig;
@@ -80,6 +80,7 @@ import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLogger;
 import org.eclipse.ditto.messages.model.signals.commands.MessageCommand;
 import org.eclipse.ditto.messages.model.signals.commands.acks.MessageCommandAckRequestSetter;
+import org.eclipse.ditto.messages.model.signals.commands.acks.MessageCommandResponseAcknowledgementProvider;
 import org.eclipse.ditto.placeholders.ExpressionResolver;
 import org.eclipse.ditto.placeholders.PlaceholderFactory;
 import org.eclipse.ditto.placeholders.PlaceholderFilter;
@@ -91,6 +92,7 @@ import org.eclipse.ditto.protocol.mappingstrategies.IllegalAdaptableException;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommand;
 import org.eclipse.ditto.things.model.signals.commands.ThingErrorResponse;
+import org.eclipse.ditto.things.model.signals.commands.acks.ThingCommandResponseAcknowledgementProvider;
 import org.eclipse.ditto.things.model.signals.commands.acks.ThingLiveCommandAckRequestSetter;
 import org.eclipse.ditto.things.model.signals.commands.acks.ThingModifyCommandAckRequestSetter;
 import org.eclipse.ditto.thingsearch.model.signals.commands.WithSubscriptionId;
@@ -175,9 +177,16 @@ public final class InboundDispatchingSink
                 acknowledgementConfig,
                 headerTranslator,
                 responseValidationFailureConsumer,
-                ThingModifyCommandAckRequestSetter.getInstance(),
-                ThingLiveCommandAckRequestSetter.getInstance(),
-                MessageCommandAckRequestSetter.getInstance());
+                List.of(
+                        ThingModifyCommandAckRequestSetter.getInstance(),
+                        ThingLiveCommandAckRequestSetter.getInstance(),
+                        MessageCommandAckRequestSetter.getInstance()
+                ),
+                List.of(
+                        ThingCommandResponseAcknowledgementProvider.getInstance(),
+                        MessageCommandResponseAcknowledgementProvider.getInstance()
+                )
+        );
     }
 
     /**
@@ -594,9 +603,8 @@ public final class InboundDispatchingSink
                         sender.tell(responseSignal, ActorRef.noSender());
                     }
                 },
-                ackregator -> {
-                    proxyActor.tell(signal, ackregator);
-
+                (ackregator, adjustedSignal) -> {
+                    proxyActor.tell(adjustedSignal, ackregator);
                     return null;
                 });
     }

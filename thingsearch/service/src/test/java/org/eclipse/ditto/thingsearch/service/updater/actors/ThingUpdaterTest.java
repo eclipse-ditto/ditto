@@ -17,7 +17,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.net.URLEncoder;
 import java.nio.charset.Charset;
 import java.time.Duration;
-import java.time.Instant;
 import java.util.List;
 
 import org.bson.BsonArray;
@@ -41,9 +40,9 @@ import org.eclipse.ditto.things.model.signals.events.AttributeModified;
 import org.eclipse.ditto.things.model.signals.events.ThingDeleted;
 import org.eclipse.ditto.thingsearch.api.UpdateReason;
 import org.eclipse.ditto.thingsearch.api.commands.sudo.UpdateThing;
-import org.eclipse.ditto.thingsearch.service.common.model.PolicyReferenceTag;
 import org.eclipse.ditto.thingsearch.service.common.config.DittoSearchConfig;
 import org.eclipse.ditto.thingsearch.service.common.config.SearchConfig;
+import org.eclipse.ditto.thingsearch.service.common.model.PolicyReferenceTag;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.Metadata;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.ThingDeleteModel;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.ThingWriteModel;
@@ -165,7 +164,7 @@ public final class ThingUpdaterTest {
             final var data = inletProbe.expectNext();
             assertThat(data.metadata().export()).isEqualTo(Metadata.of(THING_ID, REVISION + 1, null, null, null));
             assertThat(data.metadata().getTimers().size()).isEqualTo(1);
-            assertThat(data.metadata().getSenders()).isEmpty();
+            assertThat(data.metadata().getAckRecipients()).isEmpty();
             assertThat(data.lastWriteModel()).isEqualTo(getThingWriteModel());
         }};
     }
@@ -189,7 +188,7 @@ public final class ThingUpdaterTest {
             final var data = inletProbe.expectNext();
             assertThat(data.metadata().export()).isEqualTo(Metadata.of(THING_ID, REVISION + 1, null, null, null));
             assertThat(data.metadata().getTimers().size()).isEqualTo(1);
-            assertThat(data.metadata().getSenders()).containsOnly(getRef());
+            assertThat(data.metadata().getAckRecipients()).containsOnly(getSystem().actorSelection(getRef().path()));
             assertThat(data.lastWriteModel()).isEqualTo(getThingWriteModel());
         }};
     }
@@ -263,7 +262,7 @@ public final class ThingUpdaterTest {
             final var data = inletProbe.expectNext();
             assertThat(data.metadata().export()).isEqualTo(Metadata.of(THING_ID, REVISION + 1, null, null, null));
             assertThat(data.metadata().getTimers().size()).isEqualTo(1);
-            assertThat(data.metadata().getSenders()).isEmpty();
+            assertThat(data.metadata().getAckRecipients()).isEmpty();
             assertThat(data.lastWriteModel()).isEqualTo(getThingWriteModel());
 
             // THEN: tell updater actor the event was skipped
@@ -278,7 +277,7 @@ public final class ThingUpdaterTest {
             final var data2 = inletProbe.expectNext();
             assertThat(data2.metadata().export()).isEqualTo(Metadata.of(THING_ID, REVISION + 2, null, null, null));
             assertThat(data2.metadata().getTimers().size()).isEqualTo(1);
-            assertThat(data2.metadata().getSenders()).isEmpty();
+            assertThat(data2.metadata().getAckRecipients()).isEmpty();
             assertThat(data2.lastWriteModel()).isEqualTo(getThingWriteModel().setMetadata(data.metadata().export()));
         }};
     }

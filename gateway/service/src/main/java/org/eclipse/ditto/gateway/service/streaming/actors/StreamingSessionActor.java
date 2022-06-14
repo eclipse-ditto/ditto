@@ -66,6 +66,7 @@ import org.eclipse.ditto.internal.utils.search.SubscriptionManager;
 import org.eclipse.ditto.jwt.model.ImmutableJsonWebToken;
 import org.eclipse.ditto.messages.model.signals.commands.MessageCommand;
 import org.eclipse.ditto.messages.model.signals.commands.acks.MessageCommandAckRequestSetter;
+import org.eclipse.ditto.messages.model.signals.commands.acks.MessageCommandResponseAcknowledgementProvider;
 import org.eclipse.ditto.placeholders.TimePlaceholder;
 import org.eclipse.ditto.policies.model.signals.announcements.PolicyAnnouncement;
 import org.eclipse.ditto.protocol.placeholders.ResourcePlaceholder;
@@ -73,6 +74,7 @@ import org.eclipse.ditto.protocol.placeholders.TopicPathPlaceholder;
 import org.eclipse.ditto.rql.parser.RqlPredicateParser;
 import org.eclipse.ditto.rql.query.criteria.Criteria;
 import org.eclipse.ditto.rql.query.filter.QueryFilterCriteriaFactory;
+import org.eclipse.ditto.things.model.signals.commands.acks.ThingCommandResponseAcknowledgementProvider;
 import org.eclipse.ditto.things.model.signals.commands.acks.ThingLiveCommandAckRequestSetter;
 import org.eclipse.ditto.things.model.signals.commands.acks.ThingModifyCommandAckRequestSetter;
 import org.eclipse.ditto.thingsearch.model.signals.commands.ThingSearchCommand;
@@ -143,9 +145,15 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
                 acknowledgementConfig,
                 headerTranslator,
                 null,
-                ThingModifyCommandAckRequestSetter.getInstance(),
-                ThingLiveCommandAckRequestSetter.getInstance(),
-                MessageCommandAckRequestSetter.getInstance());
+                List.of(
+                        ThingModifyCommandAckRequestSetter.getInstance(),
+                        ThingLiveCommandAckRequestSetter.getInstance(),
+                        MessageCommandAckRequestSetter.getInstance()
+                ),
+                List.of(
+                        ThingCommandResponseAcknowledgementProvider.getInstance(),
+                        MessageCommandResponseAcknowledgementProvider.getInstance()
+                ));
         logger = DittoLoggerFactory.getThreadSafeDittoLoggingAdapter(this)
                 .withCorrelationId(connectionCorrelationId);
         connect.getSessionExpirationTime().ifPresent(this::startSessionTimeout);
@@ -440,7 +448,9 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
                         return headerInvalid.map(this::publishResponseOrError)
                                 .orElseGet(() -> ackregatorStarter.doStart(entityIdOptional.get(),
                                         s, null, this::publishResponseOrError,
-                                        ackregator -> forwardToCommandRouterAndReturnDone(s, ackregator)));
+                                        (ackregator, adjustedSignal) ->
+                                                forwardToCommandRouterAndReturnDone(adjustedSignal, ackregator)
+                                ));
                     } else {
                         return doNothing(s);
                     }

@@ -23,6 +23,7 @@ import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.WithOptionalEntity;
+import org.eclipse.ditto.base.model.signals.WithType;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
@@ -104,6 +105,18 @@ public interface Event<T extends Event<T>> extends Signal<T>, WithOptionalEntity
      */
     static boolean isEvent(@Nullable final Signal<?> signal) {
         return signal instanceof Event;
+    }
+
+    /**
+     * Indicates whether the specified signal argument is a {@code ThingEvent} without requiring a direct dependency
+     * to the things-model.
+     *
+     * @param signal the signal to be checked.
+     * @return {@code true} if {@code signal} is a {@code ThingEvent}, {@code false} else.
+     * @since 3.0.0
+     */
+    static boolean isThingEvent(@Nullable final WithType signal) {
+        return WithType.hasTypePrefix(signal, WithType.THINGS_EVENTS_PREFIX);
     }
 
     /**

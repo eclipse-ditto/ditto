@@ -126,8 +126,7 @@ public final class ThingPersistenceActor
                     .getLiveChannelTimeoutStrategy()
                     .orElse(LiveChannelTimeoutStrategy.FAIL);
             if (liveChannelTimeoutStrategy != LiveChannelTimeoutStrategy.USE_TWIN &&
-                    response instanceof ThingQueryCommandResponse) {
-                final var queryResponse = (ThingQueryCommandResponse<?>) response;
+                    response instanceof ThingQueryCommandResponse<?> queryResponse) {
                 super.onQuery(command, queryResponse.setEntity(JsonFactory.nullLiteral()));
                 return;
             }
@@ -215,7 +214,7 @@ public final class ThingPersistenceActor
 
     @Override
     protected void publishEvent(final ThingEvent<?> event) {
-        distributedPub.publishWithAcks(event, ACK_EXTRACTOR, getSender());
+        distributedPub.publishWithAcks(event, ACK_EXTRACTOR, getSelf());
     }
 
     @Override

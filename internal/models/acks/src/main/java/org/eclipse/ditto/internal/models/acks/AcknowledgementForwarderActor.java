@@ -161,7 +161,7 @@ public final class AcknowledgementForwarderActor extends AbstractActor {
      */
     public static Signal<?> startAcknowledgementForwarder(final ActorRefFactory actorRefFactory,
             final ActorRef parent,
-            final ActorRef ackRequester,
+            final ActorRef ackRequester, // TODO TJ the ackRequester can probably be removed and instead the ackRequster is determined by the Event's DittoHeader
             final EntityId entityId,
             final Signal<?> signal,
             final AcknowledgementConfig acknowledgementConfig,

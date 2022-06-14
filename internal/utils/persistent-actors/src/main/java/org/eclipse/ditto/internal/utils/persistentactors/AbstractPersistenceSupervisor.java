@@ -351,7 +351,7 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
 
     private void startChildren(final Control startChild) {
         ensurePersistenceActorBeingStarted();
-        ensureEnforcerActorBeeingStarted();
+        ensureEnforcerActorBeingStarted();
     }
 
     private void ensurePersistenceActorBeingStarted() {
@@ -365,7 +365,7 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
         }
     }
 
-    private void ensureEnforcerActorBeeingStarted() {
+    private void ensureEnforcerActorBeingStarted() {
         if (null == enforcerChild) {
             log.debug("Starting enforcer actor for entity with ID <{}>.", entityId);
             assert entityId != null;
@@ -405,7 +405,7 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
         } else if (message.getActor().equals(enforcerChild)) {
             enforcerChild = null;
             // simply restart the enforcer actor
-            ensureEnforcerActorBeeingStarted();
+            ensureEnforcerActorBeingStarted();
         }
     }
 

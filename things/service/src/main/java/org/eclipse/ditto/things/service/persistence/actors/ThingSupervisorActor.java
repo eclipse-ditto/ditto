@@ -35,7 +35,6 @@ import org.eclipse.ditto.internal.utils.pubsub.DistributedPub;
 import org.eclipse.ditto.internal.utils.pubsub.LiveSignalPub;
 import org.eclipse.ditto.policies.enforcement.config.DefaultEnforcementConfig;
 import org.eclipse.ditto.things.model.ThingId;
-import org.eclipse.ditto.things.model.signals.commands.ThingCommand;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommandResponse;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingUnavailableException;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThing;
@@ -215,7 +214,7 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
 
             return liveChannelDispatching.dispatchGlobalLiveCommandResponse(commandResponse);
         } else if (message instanceof ThingQueryCommand<?> thingQueryCommand &&
-                ThingCommand.isChannelSmart(thingQueryCommand)) {
+                Signal.isChannelSmart(thingQueryCommand)) {
 
             return smartChannelDispatching.dispatchSmartChannelThingQueryCommand(thingQueryCommand, sender);
         } else if (message instanceof ThingQueryCommand<?> thingQueryCommand &&

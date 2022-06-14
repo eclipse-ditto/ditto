@@ -21,7 +21,6 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
-import java.util.function.Function;
 
 import javax.annotation.Nullable;
 
@@ -104,7 +103,8 @@ public final class SubjectExpiryActor extends AbstractFSM<SubjectExpiryState, No
         enableAnnouncementsWhenDeleted = config.isEnableAnnouncementsWhenDeleted();
 
         ackregatorStarter =
-                AcknowledgementAggregatorActorStarter.of(getContext(), maxTimeout, HeaderTranslator.empty(), null);
+                AcknowledgementAggregatorActorStarter.of(getContext(), maxTimeout, HeaderTranslator.empty(),
+                        null, List.of(), List.of());
         this.commandForwarder = commandForwarder;
         deleteExpiredSubject =
                 DeleteExpiredSubject.of(policyId, subject, DittoHeaders.newBuilder().responseRequired(false).build());
@@ -462,7 +462,7 @@ public final class SubjectExpiryActor extends AbstractFSM<SubjectExpiryState, No
             return null;
         } else {
             return ackregatorStarter.doStart(policyId, announcement, null, this::receiveAcknowledgements,
-                    Function.identity());
+                    (ackregator, adjustedSignal) -> ackregator);
         }
     }
 
