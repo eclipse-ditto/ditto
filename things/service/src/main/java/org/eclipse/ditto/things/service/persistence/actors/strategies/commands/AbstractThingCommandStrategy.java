@@ -119,7 +119,8 @@ abstract class AbstractThingCommandStrategy<C extends Command<C>>
         if (command instanceof WithOptionalEntity withOptionalEntity &&
                 !dittoHeaders.getMetadataHeadersToPut().isEmpty()) {
             final MetadataFromSignal relativeMetadata =
-                    MetadataFromSignal.of(command, withOptionalEntity, existingRelativeMetadata);
+                    MetadataFromSignal.of(command, withOptionalEntity, entity, existingRelativeMetadata);
+
             return Optional.ofNullable(relativeMetadata.get());
         } else if (command instanceof ThingModifyCommand<?> && !dittoHeaders.getMetadataFieldsToDelete().isEmpty()) {
             return calculateMetadataForDeleteMetadataRequests(entity, command);
@@ -191,10 +192,10 @@ abstract class AbstractThingCommandStrategy<C extends Command<C>>
 
     private Optional<Metadata> deleteMetadata(final Metadata existingMetadata,
             final Set<JsonPointer> metadataFieldsToDelete) {
-            final MetadataBuilder metadataBuilder = existingMetadata.toBuilder();
-            metadataFieldsToDelete.forEach(metadataBuilder::remove);
+        final MetadataBuilder metadataBuilder = existingMetadata.toBuilder();
+        metadataFieldsToDelete.forEach(metadataBuilder::remove);
 
-            return Optional.of(metadataBuilder.build());
+        return Optional.of(metadataBuilder.build());
     }
 
     @Override

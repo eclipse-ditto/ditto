@@ -28,13 +28,16 @@ import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.metadata.MetadataHeader;
 import org.eclipse.ditto.base.model.headers.metadata.MetadataHeaderKey;
 import org.eclipse.ditto.base.model.json.FieldType;
+import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.WithOptionalEntity;
+import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonKey;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.things.model.Thing;
 
 /**
  * Creates or extends/modifies Metadata of an entity based on {@link MetadataHeader}s of a Signal's DittoHeaders.
@@ -46,12 +49,16 @@ public final class MetadataFromSignal implements Supplier<Metadata> {
 
     private final Signal<?> signal;
     private final WithOptionalEntity withOptionalEntity;
+    @Nullable private final Thing thingEntity;
     @Nullable private final Metadata existingMetadata;
 
-    private MetadataFromSignal(final Signal<?> signal, final WithOptionalEntity withOptionalEntity,
+    private MetadataFromSignal(final Signal<?> signal,
+            final WithOptionalEntity withOptionalEntity,
+            @Nullable final Thing thingEntity,
             @Nullable final Metadata existingMetadata) {
         this.signal = signal;
         this.withOptionalEntity = withOptionalEntity;
+        this.thingEntity = thingEntity;
         this.existingMetadata = existingMetadata;
     }
 
@@ -59,16 +66,18 @@ public final class MetadataFromSignal implements Supplier<Metadata> {
      * Returns an instance of {@code MetadataFromSignal}.
      *
      * @param signal provides modified paths and headers.
-     * @param withOptionalEntity provides the optional entity used to check which paths/leaves were actually modified.
+     * @param thingEntity provides the thing as json value.
      * @param existingMetadata provides existing metadata to be extended.
      * @return the instance.
      * @throws NullPointerException if {@code signal} is {@code null}.
      */
     public static MetadataFromSignal of(final Signal<?> signal,
             final WithOptionalEntity withOptionalEntity,
+            @Nullable final Thing thingEntity,
             @Nullable final Metadata existingMetadata) {
         return new MetadataFromSignal(checkNotNull(signal, "signal"),
                 checkNotNull(withOptionalEntity, "withOptionalEntity"),
+                thingEntity,
                 existingMetadata);
     }
 
@@ -101,11 +110,13 @@ public final class MetadataFromSignal implements Supplier<Metadata> {
             if (metadataHeaders.isEmpty()) {
                 result = existingMetadata;
             } else {
-                result = buildMetadata(entityOptional.get(), metadataHeaders);
+                final JsonValue mergedThingJson = getMergedThingJson(entityOptional.get());
+                result = buildMetadata(mergedThingJson, metadataHeaders);
             }
         } else {
             result = existingMetadata;
         }
+
         return result;
     }
 
@@ -164,6 +175,22 @@ public final class MetadataFromSignal implements Supplier<Metadata> {
             final MetadataHeaderKey metadataHeaderKey = metadataHeader.getKey();
             metadataBuilder.set(path.append(metadataHeaderKey.getPath()), metadataHeader.getValue());
         }
+    }
+
+    private JsonValue getMergedThingJson(final JsonValue thingJsonFromCommand){
+        final JsonSchemaVersion schemaVersion =
+                signal.getDittoHeaders().getSchemaVersion().orElse(signal.getLatestSchemaVersion());
+
+        final JsonValue mergedThingJson;
+        if (thingEntity != null) {
+            final JsonObject thingJson = thingEntity.toJson(schemaVersion);
+            mergedThingJson = JsonFactory.mergeJsonValues(thingJsonFromCommand,
+                    thingJson.getValue(signal.getResourcePath().toString()).orElse(JsonObject.empty()));
+        } else {
+            mergedThingJson = thingJsonFromCommand;
+        }
+
+        return mergedThingJson;
     }
 
 }

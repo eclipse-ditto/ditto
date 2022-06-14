@@ -95,6 +95,7 @@ public abstract class PersistenceActorTestBase {
     protected static final String FEATURE_ID = "featureId";
     protected static final String FEATURE_KEY = "featureKey";
     protected static final String FEATURE_VALUE = "featureValue";
+
     protected static final Metadata METADATA = Metadata.newBuilder()
             .set("attributes", JsonObject.newBuilder()
                     .set(ATTRIBUTE_KEY, JsonObject.newBuilder()

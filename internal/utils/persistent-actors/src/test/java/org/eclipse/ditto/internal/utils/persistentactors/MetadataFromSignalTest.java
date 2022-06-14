@@ -20,27 +20,27 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 
 import java.util.Optional;
 
-import org.eclipse.ditto.json.JsonField;
-import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.base.model.entity.Entity;
 import org.eclipse.ditto.base.model.entity.metadata.Metadata;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.metadata.MetadataHeaderKey;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
+import org.eclipse.ditto.base.model.signals.Signal;
+import org.eclipse.ditto.base.model.signals.WithOptionalEntity;
+import org.eclipse.ditto.json.JsonField;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.things.model.Feature;
 import org.eclipse.ditto.things.model.FeatureDefinition;
 import org.eclipse.ditto.things.model.FeatureProperties;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingId;
-import org.eclipse.ditto.base.model.signals.Signal;
-import org.eclipse.ditto.base.model.signals.WithOptionalEntity;
+import org.eclipse.ditto.things.model.signals.commands.modify.MergeThing;
 import org.eclipse.ditto.things.model.signals.commands.modify.ModifyFeature;
 import org.eclipse.ditto.things.model.signals.commands.modify.ThingModifyCommand;
 import org.junit.Before;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
@@ -57,7 +57,7 @@ public final class MetadataFromSignalTest {
     private static Feature fluxCapacitor;
     private static Thing thingWithoutMetadata;
 
-    @Mock private ThingModifyCommand command;
+    @Mock private ThingModifyCommand<?> command;
     @Mock private Entity<?> entity;
 
     @BeforeClass
@@ -91,13 +91,13 @@ public final class MetadataFromSignalTest {
     public void assertImmutability() {
         assertInstancesOf(MetadataFromSignal.class,
                 areImmutable(),
-                provided(Signal.class, WithOptionalEntity.class, Metadata.class).areAlsoImmutable());
+                provided(Signal.class, WithOptionalEntity.class, Thing.class, Metadata.class).areAlsoImmutable());
     }
 
     @Test
     public void tryToGetInstanceWithNullCommand() {
         assertThatNullPointerException()
-                .isThrownBy(() -> MetadataFromSignal.of(null, null, entity.getMetadata().orElse(null)))
+                .isThrownBy(() -> MetadataFromSignal.of(null, null, null, entity.getMetadata().orElse(null)))
                 .withMessage("The signal must not be null!")
                 .withNoCause();
     }
@@ -106,7 +106,8 @@ public final class MetadataFromSignalTest {
     public void getMetadataWhenEventHasNoEntityAndEntityHasNullExistingMetadata() {
         Mockito.when(command.getEntity(Mockito.any())).thenReturn(Optional.empty());
         Mockito.when(entity.getMetadata()).thenReturn(Optional.empty());
-        final MetadataFromSignal underTest = MetadataFromSignal.of(command, command, entity.getMetadata().orElse(null));
+        final MetadataFromSignal underTest =
+                MetadataFromSignal.of(command, command, null, entity.getMetadata().orElse(null));
 
         assertThat(underTest.get()).isNull();
     }
@@ -116,7 +117,8 @@ public final class MetadataFromSignalTest {
         Mockito.when(command.getEntity(Mockito.any())).thenReturn(Optional.of(thingWithoutMetadata.toJson()));
         Mockito.when(command.getDittoHeaders()).thenReturn(DittoHeaders.empty());
         Mockito.when(entity.getMetadata()).thenReturn(Optional.empty());
-        final MetadataFromSignal underTest = MetadataFromSignal.of(command, command, entity.getMetadata().orElse(null));
+        final MetadataFromSignal underTest =
+                MetadataFromSignal.of(command, command, null, entity.getMetadata().orElse(null));
 
         assertThat(underTest.get()).isNull();
     }
@@ -127,7 +129,8 @@ public final class MetadataFromSignalTest {
         Mockito.when(command.getEntity(Mockito.any())).thenReturn(Optional.of(thingWithoutMetadata.toJson()));
         Mockito.when(command.getDittoHeaders()).thenReturn(DittoHeaders.empty());
         Mockito.when(entity.getMetadata()).thenReturn(Optional.of(existingMetadata));
-        final MetadataFromSignal underTest = MetadataFromSignal.of(command, command, entity.getMetadata().orElse(null));
+        final MetadataFromSignal underTest =
+                MetadataFromSignal.of(command, command, null, entity.getMetadata().orElse(null));
 
         assertThat(underTest.get()).isEqualTo(existingMetadata);
     }
@@ -157,7 +160,7 @@ public final class MetadataFromSignalTest {
                 .set(JsonPointer.of("properties/grumbo/lastSeen"), 1955)
                 .build();
 
-        final MetadataFromSignal underTest = MetadataFromSignal.of(modifyFeature, modifyFeature, null);
+        final MetadataFromSignal underTest = MetadataFromSignal.of(modifyFeature, modifyFeature, null, null);
 
         assertThat(underTest.get()).isEqualTo(expected);
     }
@@ -192,7 +195,8 @@ public final class MetadataFromSignalTest {
                 .set(JsonPointer.of("properties/grumbo/lastSeen"), 1955)
                 .build();
 
-        final MetadataFromSignal underTest = MetadataFromSignal.of(modifyFeature, modifyFeature, existingMetadata);
+        final MetadataFromSignal underTest =
+                MetadataFromSignal.of(modifyFeature, modifyFeature, null, existingMetadata);
 
         assertThat(underTest.get()).isEqualTo(expected);
     }
@@ -221,7 +225,7 @@ public final class MetadataFromSignalTest {
                 .set(JsonPointer.of("properties/grumbo/type"), metric)
                 .build();
 
-        final MetadataFromSignal underTest = MetadataFromSignal.of(modifyFeature, modifyFeature,
+        final MetadataFromSignal underTest = MetadataFromSignal.of(modifyFeature, modifyFeature, null,
                 thingWithoutMetadata.getMetadata().orElse(null));
 
         assertThat(underTest.get()).isEqualTo(expected);
@@ -244,11 +248,55 @@ public final class MetadataFromSignalTest {
                 modifiedFeature,
                 dittoHeaders);
 
-        final MetadataFromSignal underTest = MetadataFromSignal.of(modifyFeature, modifyFeature, null);
+        final MetadataFromSignal underTest =
+                MetadataFromSignal.of(modifyFeature, modifyFeature, null, null);
 
         assertThat(underTest.get())
                 .isNotEmpty()
                 .doesNotContain(JsonField.newInstance("/properties/capacitorNr", JsonValue.of("unlimited")));
+    }
+
+    @Test
+    public void createMetadataForPatchCommandWithEmptyBody() {
+        final Feature emptyFeature = Feature.newBuilder().withId(fluxCapacitor.getId()).build();
+        final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
+                .putMetadata(MetadataHeaderKey.parse("/scruplusFine"), JsonValue.of("^6,00.32"))
+                .putMetadata(MetadataHeaderKey.parse("/*/lastSeen"), JsonValue.of(1955))
+                .build();
+        final MergeThing mergeFeature = MergeThing.withFeature(thingWithoutMetadata.getEntityId().orElseThrow(),
+                emptyFeature,
+                dittoHeaders);
+        final Metadata expected = Metadata.newBuilder()
+                .set(JsonPointer.of("scruplusFine"), "^6,00.32")
+                .set(JsonPointer.of("properties/capacity/value/lastSeen"), 1955)
+                .set(JsonPointer.of("properties/capacity/unit/lastSeen"), 1955)
+                .build();
+
+        final MetadataFromSignal underTest =
+                MetadataFromSignal.of(mergeFeature, mergeFeature, thingWithoutMetadata, null);
+
+        assertThat(underTest.get()).isEqualTo(expected);
+    }
+
+    @Test
+    public void createMetadataForPatchCommandWithEmptyBodyAndExistingMetadata() {
+        final Metadata existingMetadata = Metadata.newBuilder()
+                .set(JsonPointer.of("thingId"), JsonObject.newBuilder()
+                        .set("description", "The Id of the thing")
+                        .build())
+                .set(JsonPointer.of("policyId"), JsonObject.newBuilder()
+                        .set("description", "The policyId of the thing")
+                        .build())
+                .set(JsonPointer.of("features/flux-capacitor/properties/capacity/value/lastSeen"), 1955)
+                .set(JsonPointer.of("features/flux-capacitor/properties/capacity/unit/lastSeen"), 1955)
+                .build();
+        final MergeThing mergeThing = MergeThing.withThing(thingWithoutMetadata.getEntityId().orElseThrow(),
+                Thing.newBuilder().build(),
+                DittoHeaders.empty());
+
+        final MetadataFromSignal underTest = MetadataFromSignal.of(mergeThing, mergeThing, null, existingMetadata);
+
+        assertThat(underTest.get()).isEqualTo(existingMetadata);
     }
 
 }
