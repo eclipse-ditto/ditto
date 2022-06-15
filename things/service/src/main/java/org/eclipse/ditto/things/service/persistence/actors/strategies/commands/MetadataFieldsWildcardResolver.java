@@ -23,6 +23,7 @@ import java.util.stream.Collectors;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.model.json.FieldType;
+import org.eclipse.ditto.base.model.signals.WithFeatureId;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.json.JsonKey;
 import org.eclipse.ditto.json.JsonObject;
@@ -31,6 +32,7 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.things.model.Feature;
 import org.eclipse.ditto.things.model.FeatureProperties;
 import org.eclipse.ditto.things.model.Thing;
+import org.eclipse.ditto.things.model.signals.commands.modify.CreateThing;
 import org.eclipse.ditto.things.model.signals.commands.modify.ModifyAttributes;
 import org.eclipse.ditto.things.model.signals.commands.modify.ModifyFeature;
 import org.eclipse.ditto.things.model.signals.commands.modify.ModifyFeatureDesiredProperties;
@@ -71,19 +73,19 @@ final class MetadataFieldsWildcardResolver {
             final JsonPointer jsonPointerWithWildcard,
             final String metadataHeaderKey) {
         return switch (command.getType()) {
-            case RetrieveThing.TYPE, ModifyThing.TYPE ->
+            case RetrieveThing.TYPE, ModifyThing.TYPE, CreateThing.TYPE ->
                     replaceWildcardForThingBasedCommands(thing, jsonPointerWithWildcard, metadataHeaderKey);
             case RetrieveFeatures.TYPE, ModifyFeatures.TYPE ->
                     replaceWildcardForFeaturesBasedCommands(thing, jsonPointerWithWildcard, metadataHeaderKey);
             case RetrieveFeature.TYPE, ModifyFeature.TYPE ->
                     replaceWildcardForFeatureBasedCommands(thing, jsonPointerWithWildcard, metadataHeaderKey,
-                            (RetrieveFeature) command);
+                            (WithFeatureId) command);
             case RetrieveFeatureProperties.TYPE, ModifyFeatureProperties.TYPE ->
                     replaceWildcardForFeaturePropertiesBasedCommands(thing, jsonPointerWithWildcard, metadataHeaderKey,
-                            (RetrieveFeatureProperties) command);
+                            (WithFeatureId) command);
             case RetrieveFeatureDesiredProperties.TYPE, ModifyFeatureDesiredProperties.TYPE ->
                     replaceWildcardForFeatureDesiredPropertiesBasedCommands(thing, jsonPointerWithWildcard,
-                            metadataHeaderKey, (RetrieveFeatureDesiredProperties) command);
+                            metadataHeaderKey, (WithFeatureId) command);
             case RetrieveAttributes.TYPE, ModifyAttributes.TYPE ->
                     replaceWildcardForAttributesBasedCommands(thing, jsonPointerWithWildcard, metadataHeaderKey);
             default -> Set.of();
@@ -259,9 +261,9 @@ final class MetadataFieldsWildcardResolver {
     private static Set<JsonPointer> replaceWildcardForFeatureBasedCommands(final Thing thing,
             final JsonPointer jsonPointerWithWildcard,
             final String headerKey,
-            final RetrieveFeature retrieveFeature) {
+            final WithFeatureId command) {
         final String wildcardExpression = jsonPointerWithWildcard.toString();
-        final String featureId = retrieveFeature.getFeatureId();
+        final String featureId = command.getFeatureId();
         final List<String> propertyKeys = getFeaturePropertyKeysFromThing(thing, featureId);
         final JsonKey leafFromWildcardExpression = jsonPointerWithWildcard.getLeaf().orElseThrow(() ->
                 MetadataWildcardValidator.getDittoHeaderInvalidException(wildcardExpression, headerKey)
@@ -287,7 +289,7 @@ final class MetadataFieldsWildcardResolver {
     private static Set<JsonPointer> replaceWildcardForFeaturePropertiesBasedCommands(final Thing thing,
             final JsonPointer jsonPointerWithWildcard,
             final String headerKey,
-            final RetrieveFeatureProperties command) {
+            final WithFeatureId command) {
         final String wildcardExpression = jsonPointerWithWildcard.toString();
         final String featureIdFromCommand = command.getFeatureId();
         final List<String> propertyKeys = getFeaturePropertyKeysFromThing(thing, featureIdFromCommand);
@@ -302,7 +304,7 @@ final class MetadataFieldsWildcardResolver {
     private static Set<JsonPointer> replaceWildcardForFeatureDesiredPropertiesBasedCommands(final Thing thing,
             final JsonPointer jsonPointerWithWildcard,
             final String headerKey,
-            final RetrieveFeatureDesiredProperties command) {
+            final WithFeatureId command) {
         final String wildcardExpression = jsonPointerWithWildcard.toString();
         final String featureIdFromCommand = command.getFeatureId();
         final JsonKey leafFromWildcardExpression = jsonPointerWithWildcard.getLeaf().orElseThrow(() ->

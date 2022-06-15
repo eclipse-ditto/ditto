@@ -21,7 +21,6 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
-import org.eclipse.ditto.base.model.auth.AuthorizationModelFactory;
 import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
 import org.eclipse.ditto.base.model.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.base.model.entity.metadata.Metadata;
@@ -47,19 +46,18 @@ import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 import org.eclipse.ditto.things.service.common.config.DefaultThingConfig;
 import org.eclipse.ditto.things.service.common.config.ThingConfig;
 import org.eclipse.ditto.utils.jsr305.annotations.AllParametersAndReturnValuesAreNonnullByDefault;
-import org.junit.After;
-import org.junit.BeforeClass;
-import org.junit.rules.TestWatcher;
-import org.slf4j.Logger;
-
-import com.typesafe.config.Config;
-import com.typesafe.config.ConfigFactory;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
 import akka.testkit.TestProbe;
 import akka.testkit.javadsl.TestKit;
+import com.typesafe.config.Config;
+import com.typesafe.config.ConfigFactory;
+import org.junit.After;
+import org.junit.BeforeClass;
+import org.junit.rules.TestWatcher;
+import org.slf4j.Logger;
 
 /**
  * Base test class for testing persistence actors of the things persistence.
@@ -69,8 +67,6 @@ public abstract class PersistenceActorTestBase {
     protected static final ThingId THING_ID = ThingId.of("org.eclipse.ditto", "thingId");
     protected static final PolicyId POLICY_ID = PolicyId.of("org.eclipse.ditto:policyId");
     protected static final String AUTH_SUBJECT = "allowedId";
-    protected static final AuthorizationSubject AUTHORIZED_SUBJECT =
-            AuthorizationModelFactory.newAuthSubject(AUTH_SUBJECT);
 
     protected static final String ATTRIBUTE_KEY = "attrKey";
     protected static final String ATTRIBUTE_VALUE = "attrVal";
@@ -93,9 +89,8 @@ public abstract class PersistenceActorTestBase {
             Thing.JsonFields.LIFECYCLE, Thing.JsonFields.METADATA);
 
     protected static final String FEATURE_ID = "featureId";
-    protected static final String FEATURE_KEY = "featureKey";
-    protected static final String FEATURE_VALUE = "featureValue";
-
+    protected static final String FEATURE_PROPERTY_KEY = "featurePropertyKey";
+    protected static final String FEATURE_PROPERTY_VALUE = "featurePropertyValue";
     protected static final Metadata METADATA = Metadata.newBuilder()
             .set("attributes", JsonObject.newBuilder()
                     .set(ATTRIBUTE_KEY, JsonObject.newBuilder()
@@ -109,7 +104,7 @@ public abstract class PersistenceActorTestBase {
                                     .set("issuedBy", "the epic Ditto team")
                                     .build())
                             .set("properties", JsonObject.newBuilder()
-                                    .set(FEATURE_KEY, JsonObject.newBuilder()
+                                    .set(FEATURE_PROPERTY_KEY, JsonObject.newBuilder()
                                             .set("issuedBy", "the epic Ditto team")
                                             .set("unit", "Quarks")
                                             .build())
@@ -118,13 +113,14 @@ public abstract class PersistenceActorTestBase {
                     .build())
             .build();
 
-    private static final FeatureProperties FEATURE_PROPERTIES =
-            FeatureProperties.newBuilder().set(FEATURE_KEY, FEATURE_VALUE).build();
-    private static final FeatureDefinition FEATURE_DEFINITION = FeatureDefinition.fromIdentifier("ns:name:version");
-    private static final Feature THING_FEATURE =
+    protected static final FeatureProperties FEATURE_PROPERTIES = FeatureProperties.newBuilder()
+            .set(FEATURE_PROPERTY_KEY, FEATURE_PROPERTY_VALUE)
+            .build();
+    protected static final FeatureDefinition FEATURE_DEFINITION = FeatureDefinition.fromIdentifier("ns:name:version");
+    protected static final Feature THING_FEATURE =
             ThingsModelFactory.newFeature(FEATURE_ID, FEATURE_DEFINITION, FEATURE_PROPERTIES);
 
-    private static final Features THING_FEATURES = ThingsModelFactory.newFeaturesBuilder()
+    protected static final Features THING_FEATURES = ThingsModelFactory.newFeaturesBuilder()
             .set(THING_FEATURE)
             .build();
     private static final ThingLifecycle THING_LIFECYCLE = ThingLifecycle.ACTIVE;

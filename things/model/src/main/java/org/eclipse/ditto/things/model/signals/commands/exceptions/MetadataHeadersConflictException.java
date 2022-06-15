@@ -27,7 +27,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.things.model.ThingException;
 
 /**
- * Thrown if multiple metadata headers are contained in one request.
+ * Thrown if metadata of a Thing can't be modified.
  *
  * @since 2.5.0
  */

@@ -19,7 +19,6 @@ import java.text.MessageFormat;
 import java.util.Comparator;
 import java.util.NoSuchElementException;
 import java.util.Objects;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
@@ -88,15 +87,6 @@ final class DefaultMetadataHeaderKey implements MetadataHeaderKey {
                     "A wildcard path of a metadata header key must have exactly two levels but it had <{0}>!",
                     path.getLevelCount()));
         }
-        final AtomicInteger levelCounter = new AtomicInteger(0);
-        path.forEach(jsonKey -> {
-            final int currentLvl = levelCounter.getAndIncrement();
-            if (0 < currentLvl && jsonKey.equals(HIERARCHY_WILDCARD)) {
-                throw new IllegalArgumentException(MessageFormat.format(
-                        "The path of a metadata header key must not contain <{0}> at level <{1}>!",
-                        HIERARCHY_WILDCARD, currentLvl));
-            }
-        });
     }
 
     @Override

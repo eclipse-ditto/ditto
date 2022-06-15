@@ -23,11 +23,9 @@ import org.eclipse.ditto.base.model.entity.metadata.Metadata;
 import org.eclipse.ditto.base.model.entity.metadata.MetadataBuilder;
 import org.eclipse.ditto.base.model.entity.metadata.MetadataModelFactory;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
-import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.signals.WithOptionalEntity;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.internal.utils.headers.conditional.ConditionalHeadersValidator;
-import org.eclipse.ditto.internal.utils.persistentactors.MetadataFromSignal;
 import org.eclipse.ditto.internal.utils.persistentactors.etags.AbstractConditionHeaderCheckingCommandStrategy;
 import org.eclipse.ditto.internal.utils.persistentactors.results.Result;
 import org.eclipse.ditto.internal.utils.persistentactors.results.ResultFactory;
@@ -37,6 +35,8 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommand;
+import org.eclipse.ditto.things.model.signals.commands.exceptions.MetadataNotModifiableException;
+import org.eclipse.ditto.things.model.signals.commands.modify.CreateThing;
 import org.eclipse.ditto.things.model.signals.commands.modify.ThingModifyCommand;
 import org.eclipse.ditto.things.model.signals.commands.query.ThingQueryCommand;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
@@ -86,7 +86,6 @@ abstract class AbstractThingCommandStrategy<C extends Command<C>>
                 .orElse(false);
         MetadataHeaderChecker.check(command, dittoHeaders);
 
-        final Result<ThingEvent<?>> result;
         if (command instanceof ThingQueryCommand<?> &&
                 !dittoHeaders.getMetadataFieldsToGet().isEmpty()) {
             final Optional<Metadata> optionalMetadata = calculateMetadataForGetRequests(entity, command);
@@ -95,6 +94,7 @@ abstract class AbstractThingCommandStrategy<C extends Command<C>>
                             JsonObject.empty().toString());
         }
 
+        final Result<ThingEvent<?>> result;
         if (thingConditionFailed.isPresent()) {
             final var conditionFailedException = thingConditionFailed.get();
             loggerWithCorrelationId.debug("Validating condition failed with exception <{}>.",
@@ -113,20 +113,41 @@ abstract class AbstractThingCommandStrategy<C extends Command<C>>
 
     @Override
     protected Optional<Metadata> calculateRelativeMetadata(@Nullable final Thing entity, final C command) {
-        final DittoHeaders dittoHeaders = command.getDittoHeaders();
-        final Metadata existingRelativeMetadata = getExistingMetadata(entity, command);
-
-        if (command instanceof WithOptionalEntity withOptionalEntity &&
-                !dittoHeaders.getMetadataHeadersToPut().isEmpty()) {
-            final MetadataFromSignal relativeMetadata =
-                    MetadataFromSignal.of(command, withOptionalEntity, entity, existingRelativeMetadata);
-
+        if (commandModifiesMetadata(command)) {
+            final Metadata existingRelativeMetadata = getExistingMetadata(entity, command);
+            final MetadataFromCommand relativeMetadata = MetadataFromCommand.of(command, entity, existingRelativeMetadata);
             return Optional.ofNullable(relativeMetadata.get());
-        } else if (command instanceof ThingModifyCommand<?> && !dittoHeaders.getMetadataFieldsToDelete().isEmpty()) {
+        } else if (commandDeletesMetadata(command)) {
             return calculateMetadataForDeleteMetadataRequests(entity, command);
         }
 
         return Optional.empty();
+    }
+
+    private boolean commandModifiesMetadata(final C command) {
+        boolean modifiesMetadata = false;
+
+        if (command instanceof WithOptionalEntity) {
+            final var putMetadataHeaderIsPresent = !command.getDittoHeaders()
+                    .getMetadataHeadersToPut()
+                    .isEmpty();
+            final var createThingWithInlineMetadata = command instanceof CreateThing createThing && createThing.getThing()
+                    .getMetadata()
+                    .isPresent();
+
+            if (putMetadataHeaderIsPresent && createThingWithInlineMetadata) {
+                throw MetadataNotModifiableException.newBuilder().build();
+            }
+
+            modifiesMetadata = putMetadataHeaderIsPresent || createThingWithInlineMetadata;
+        }
+
+        return modifiesMetadata;
+    }
+
+    private boolean commandDeletesMetadata(final C command) {
+        return command instanceof ThingModifyCommand<?> &&
+                !command.getDittoHeaders().getMetadataFieldsToDelete().isEmpty();
     }
 
     private Optional<Metadata> calculateMetadataForGetRequests(@Nullable Thing entity, final C command) {
@@ -192,10 +213,10 @@ abstract class AbstractThingCommandStrategy<C extends Command<C>>
 
     private Optional<Metadata> deleteMetadata(final Metadata existingMetadata,
             final Set<JsonPointer> metadataFieldsToDelete) {
-        final MetadataBuilder metadataBuilder = existingMetadata.toBuilder();
-        metadataFieldsToDelete.forEach(metadataBuilder::remove);
+            final MetadataBuilder metadataBuilder = existingMetadata.toBuilder();
+            metadataFieldsToDelete.forEach(metadataBuilder::remove);
 
-        return Optional.of(metadataBuilder.build());
+            return Optional.of(metadataBuilder.build());
     }
 
     @Override

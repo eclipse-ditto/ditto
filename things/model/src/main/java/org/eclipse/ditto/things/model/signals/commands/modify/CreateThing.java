@@ -22,11 +22,7 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.model.common.Placeholders;
-import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.base.model.headers.metadata.MetadataHeader;
-import org.eclipse.ditto.base.model.headers.metadata.MetadataHeaderKey;
-import org.eclipse.ditto.base.model.headers.metadata.MetadataHeaders;
 import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.json.JsonParsableCommand;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
@@ -45,7 +41,6 @@ import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.ThingsModelFactory;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommand;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommandSizeValidator;
-import org.eclipse.ditto.things.model.signals.commands.exceptions.MetadataNotModifiableException;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.PoliciesConflictingException;
 
 /**
@@ -228,27 +223,7 @@ public final class CreateThing extends AbstractCommand<CreateThing> implements T
             final String policyIdOrPlaceholder = jsonObject.getValue(JSON_POLICY_ID_OR_PLACEHOLDER).orElse(null);
             final Thing thing = ThingsModelFactory.newThing(thingJsonObject);
 
-            final DittoHeaders headers = thing.getMetadata()
-                    .map(metadata -> {
-                        if (dittoHeaders.containsKey(DittoHeaderDefinition.PUT_METADATA.toString())) {
-                            throw MetadataNotModifiableException.newBuilder().build();
-                        }
-
-                        final MetadataHeaders metadataHeaders = MetadataHeaders.newInstance();
-                        metadata.forEach(jsonField -> {
-                            final MetadataHeaderKey key = MetadataHeaderKey.of(jsonField.getKey().asPointer());
-                            final MetadataHeader metadataHeader = MetadataHeader.of(key, jsonField.getValue());
-                            metadataHeaders.add(metadataHeader);
-                        });
-
-                        final DittoHeaders h = dittoHeaders.toBuilder()
-                                .putHeader(DittoHeaderDefinition.PUT_METADATA.toString(), metadataHeaders.toJsonString())
-                                .build();
-                        return h;
-                    })
-                    .orElse(dittoHeaders);
-
-            return of(thing, initialPolicyObject, policyIdOrPlaceholder, headers);
+            return of(thing, initialPolicyObject, policyIdOrPlaceholder, dittoHeaders);
         });
     }
 
