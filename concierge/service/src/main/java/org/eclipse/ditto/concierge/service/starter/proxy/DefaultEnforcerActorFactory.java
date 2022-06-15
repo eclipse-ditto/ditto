@@ -137,8 +137,8 @@ public final class DefaultEnforcerActorFactory implements EnforcerActorFactory<C
                 ConciergeEnforcerClusterRouterFactory.createConciergeEnforcerClusterRouter(context,
                         conciergeConfig.getClusterConfig().getNumberOfShards());
 
-        context.actorOf(DispatcherActor.props(pubSubMediator, conciergeEnforcerRouter),
-                DispatcherActor.ACTOR_NAME);
+        context.actorOf(DispatcherActor.props(conciergeConfig.getSearchActorPath(), pubSubMediator,
+                conciergeEnforcerRouter), DispatcherActor.ACTOR_NAME);
 
         final ActorRef conciergeForwarder =
                 context.actorOf(ConciergeForwarderActor.props(pubSubMediator, conciergeEnforcerRouter),

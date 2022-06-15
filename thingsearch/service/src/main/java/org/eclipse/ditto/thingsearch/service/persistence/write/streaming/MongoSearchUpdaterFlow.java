@@ -13,7 +13,6 @@
 package org.eclipse.ditto.thingsearch.service.persistence.write.streaming;
 
 import java.util.Collection;
-import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -25,9 +24,9 @@ import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.internal.utils.metrics.instruments.timer.StartedTimer;
 import org.eclipse.ditto.thingsearch.service.common.config.PersistenceStreamConfig;
 import org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants;
-import org.eclipse.ditto.thingsearch.service.persistence.write.model.AbstractWriteModel;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.WriteResultAndErrors;
 import org.eclipse.ditto.thingsearch.service.updater.actors.MongoWriteModel;
+import org.eclipse.ditto.thingsearch.service.updater.actors.ThingUpdater;
 
 import com.mongodb.MongoBulkWriteException;
 import com.mongodb.client.model.BulkWriteOptions;
@@ -42,33 +41,27 @@ import com.mongodb.reactivestreams.client.MongoDatabase;
 
 import akka.NotUsed;
 import akka.japi.pf.PFBuilder;
+import akka.stream.javadsl.Flow;
 import akka.stream.javadsl.Source;
-import akka.stream.javadsl.SubSource;
 
 /**
  * Flow mapping write models to write results via the search persistence.
  */
 final class MongoSearchUpdaterFlow {
 
-    private static final String TRACE_THING_BULK_UPDATE = "things_search_thing_bulkUpdate";
-    private static final String COUNT_THING_BULK_UPDATES_PER_BULK = "things_search_thing_bulkUpdate_updates_per_bulk";
+    private static final String TRACE_THING_BULK_UPDATE = "things_wildcard_search_thing_bulkUpdate";
+    private static final String COUNT_THING_BULK_UPDATES_PER_BULK = "things_wildcard_search_thing_bulkUpdate_updates_per_bulk";
     private static final String UPDATE_TYPE_TAG = "update_type";
 
     private static final ThreadSafeDittoLogger LOGGER =
             DittoLoggerFactory.getThreadSafeLogger(MongoSearchUpdaterFlow.class);
 
     private final MongoCollection<BsonDocument> collection;
-    private final MongoCollection<BsonDocument> collectionWithAcknowledgements;
-    private final SearchUpdateMapper searchUpdateMapper;
 
     private MongoSearchUpdaterFlow(final MongoCollection<BsonDocument> collection,
-            final PersistenceStreamConfig persistenceConfig,
-            final SearchUpdateMapper searchUpdateMapper) {
+            final PersistenceStreamConfig persistenceConfig) {
 
-        this.collection = collection;
-        collectionWithAcknowledgements = collection.withWriteConcern(
-                persistenceConfig.getWithAcknowledgementsWriteConcern());
-        this.searchUpdateMapper = searchUpdateMapper;
+        this.collection = collection.withWriteConcern(persistenceConfig.getWithAcknowledgementsWriteConcern());
     }
 
     /**
@@ -76,54 +69,34 @@ final class MongoSearchUpdaterFlow {
      *
      * @param database the MongoDB database.
      * @param persistenceConfig the persistence configuration for the search updater stream.
-     * @param searchUpdateMapper the mapper for custom processing on search updates.
      * @return the MongoSearchUpdaterFlow object.
      */
     public static MongoSearchUpdaterFlow of(final MongoDatabase database,
-            final PersistenceStreamConfig persistenceConfig,
-            final SearchUpdateMapper searchUpdateMapper) {
+            final PersistenceStreamConfig persistenceConfig) {
 
         return new MongoSearchUpdaterFlow(
                 database.getCollection(PersistenceConstants.THINGS_COLLECTION_NAME, BsonDocument.class),
-                persistenceConfig,
-                searchUpdateMapper);
+                persistenceConfig
+        );
     }
 
     /**
-     * Create a new flow through the search persistence.
-     * No logging or recovery is attempted.
+     * Create a flow that performs the database operation described by a MongoWriteModel.
      *
-     * @param subSource sub-source of write models.
-     * @param shouldAcknowledge whether to use a write concern to guarantee the consistency of acknowledgements.
-     * {@link org.eclipse.ditto.base.model.acks.DittoAcknowledgementLabel#SEARCH_PERSISTED} was required or not.
-     * @return sub-source of write results.
+     * @return The flow.
      */
-    public SubSource<WriteResultAndErrors, NotUsed> start(
-            final SubSource<List<AbstractWriteModel>, NotUsed> subSource,
-            final boolean shouldAcknowledge) {
-
-        return subSource.map(MongoSearchUpdaterFlow::sortBySeqNr)
-                .flatMapConcat(searchUpdateMapper::processWriteModels)
-                .flatMapConcat(writeModels -> executeBulkWrite(shouldAcknowledge, writeModels));
+    public Flow<MongoWriteModel, ThingUpdater.Result, NotUsed> create() {
+        return Flow.<MongoWriteModel>create()
+                .flatMapConcat(writeModel -> executeBulkWrite(List.of(writeModel))
+                        .map(resultOrErrors -> new ThingUpdater.Result(writeModel, resultOrErrors)));
     }
 
-    private Source<WriteResultAndErrors, NotUsed> executeBulkWrite(final boolean shouldAcknowledge,
-            final Collection<MongoWriteModel> writeModels) {
-
-        final MongoCollection<BsonDocument> theCollection;
-        if (shouldAcknowledge) {
-            theCollection = collectionWithAcknowledgements;
-        } else {
-            theCollection = collection;
-        }
-
+    private Source<WriteResultAndErrors, NotUsed> executeBulkWrite(final Collection<MongoWriteModel> writeModels) {
         final String bulkWriteCorrelationId = UUID.randomUUID().toString();
-
         if (writeModels.isEmpty()) {
             LOGGER.withCorrelationId(bulkWriteCorrelationId).debug("Requested to make empty update");
             return Source.empty();
         }
-
         if (LOGGER.isDebugEnabled()) {
             LOGGER.withCorrelationId(bulkWriteCorrelationId)
                     .debug("Executing BulkWrite containing <{}> things: [<thingId>:{correlationIds}:<filter>]: {}",
@@ -144,7 +117,7 @@ final class MongoSearchUpdaterFlow {
         }
         final var bulkWriteTimer = startBulkWriteTimer(writeModels);
         final var bsons = writeModels.stream().map(MongoWriteModel::getBson).toList();
-        return Source.fromPublisher(theCollection.bulkWrite(bsons, new BulkWriteOptions().ordered(false)))
+        return Source.fromPublisher(collection.bulkWrite(bsons, new BulkWriteOptions().ordered(false)))
                 .map(bulkWriteResult -> WriteResultAndErrors.success(
                         writeModels, bulkWriteResult, bulkWriteCorrelationId))
                 .recoverWithRetries(1, new PFBuilder<Throwable, Source<WriteResultAndErrors, NotUsed>>()
@@ -193,19 +166,6 @@ final class MongoSearchUpdaterFlow {
         } catch (final IllegalStateException e) {
             // it is okay if the timer stopped already; simply return the result.
         }
-    }
-
-    /**
-     * Sort a list of write models by sequence number so that for each thing ID, any earlier update is guaranteed to
-     * be applied earlier than any later update.
-     *
-     * @param writeModels A list of write models in a batch update.
-     * @return The sorted write models.
-     */
-    private static List<AbstractWriteModel> sortBySeqNr(final List<AbstractWriteModel> writeModels) {
-        return writeModels.stream()
-                .sorted(Comparator.comparing(writeModel -> writeModel.getMetadata().getThingRevision()))
-                .toList();
     }
 
 }

@@ -12,8 +12,8 @@
  */
 package org.eclipse.ditto.thingsearch.service.persistence.write.mapping;
 
-import static org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants.FIELD_INTERNAL;
-import static org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants.FIELD_INTERNAL_KEY;
+import static org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants.FIELD_FEATURE_ID;
+import static org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants.FIELD_F_ARRAY;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -51,23 +51,23 @@ final class BsonArrayDiff {
         return diff(key, minuend, subtrahend, (v, j) -> j);
     }
 
-    static BsonDiff diffInternalArray(final BsonArray minuend, final BsonArray subtrahend) {
+    static BsonDiff diffFeaturesArray(final BsonArray minuend, final BsonArray subtrahend) {
         final BsonSizeVisitor bsonSizeVisitor = new BsonSizeVisitor();
         final int replacementSize = bsonSizeVisitor.eval(subtrahend);
         if (minuend.equals(subtrahend)) {
             return BsonDiff.empty(replacementSize);
         }
-        final JsonPointer internalArrayKey = JsonPointer.of(FIELD_INTERNAL);
+        final JsonPointer internalArrayKey = JsonPointer.of(FIELD_F_ARRAY);
         final Map<BsonValue, Integer> kMap = IntStream.range(0, subtrahend.size())
                 .boxed()
                 .collect(Collectors.toMap(
-                        i -> subtrahend.get(i).asDocument().get(FIELD_INTERNAL_KEY),
+                        i -> subtrahend.get(i).asDocument().get(FIELD_FEATURE_ID),
                         Function.identity(),
                         (x, y) -> x
                 ));
         final BiFunction<BsonDocument, Integer, Integer> kMapGet =
-                // use 0 as default value to re-use root grant/revoke arrays where possible
-                (doc, j) -> kMap.getOrDefault(doc.get(FIELD_INTERNAL_KEY), 0);
+                // use 0 as default value to re-use root grant/revoke
+                (doc, j) -> kMap.getOrDefault(doc.get(FIELD_FEATURE_ID), 0);
         final BsonValue difference = diff(internalArrayKey, minuend, subtrahend, kMapGet);
         return new BsonDiff(
                 replacementSize,
@@ -279,8 +279,7 @@ final class BsonArrayDiff {
 
         @Override
         public boolean addElementToGroup(final Element element) {
-            if (element instanceof Pointer) {
-                final var pointer = (Pointer) element;
+            if (element instanceof final Pointer pointer) {
                 if (end + 1 == pointer.index) {
                     end = pointer.index;
                     return true;

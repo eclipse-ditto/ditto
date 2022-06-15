@@ -23,7 +23,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
@@ -223,7 +222,7 @@ public final class MongoThingsSearchPersistence implements ThingsSearchPersisten
      * does not exist.
      */
     public Source<AbstractWriteModel, NotUsed> recoverLastWriteModel(final ThingId thingId) {
-        final var metadata = Metadata.of(thingId, -1, null, null, null);
+        final var metadata = Metadata.ofDeleted(thingId);
         final var publisher = collection.find(Filters.eq(PersistenceConstants.FIELD_ID, thingId.toString())).limit(1);
         final var emptySource =
                 Source.<AbstractWriteModel>single(ThingDeleteModel.of(metadata));
@@ -313,7 +312,7 @@ public final class MongoThingsSearchPersistence implements ThingsSearchPersisten
     private static List<TimestampedThingId> toTimestampedThingIds(final List<Document> docs) {
         return docs.stream()
                 .map(MongoThingsSearchPersistence::toTimestampedThingId)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private static TimestampedThingId toTimestampedThingId(final Document doc) {
@@ -326,7 +325,7 @@ public final class MongoThingsSearchPersistence implements ThingsSearchPersisten
 
     private static Optional<Instant> getModifiedTimestampOptional(final Document doc) {
         try {
-            final var path = List.of(PersistenceConstants.FIELD_SORTING, PersistenceConstants.FIELD_MODIFIED);
+            final var path = List.of(PersistenceConstants.FIELD_THING, PersistenceConstants.FIELD_MODIFIED);
             final var timestampString = doc.getEmbedded(path, String.class);
             if (timestampString != null) {
                 return Optional.of(Instant.parse(timestampString));
@@ -371,7 +370,7 @@ public final class MongoThingsSearchPersistence implements ThingsSearchPersisten
         final long policyRevision =
                 Optional.ofNullable(document.getLong(PersistenceConstants.FIELD_POLICY_REVISION)).orElse(0L);
         final String nullableTimestamp =
-                document.getEmbedded(List.of(PersistenceConstants.FIELD_SORTING, PersistenceConstants.FIELD_MODIFIED),
+                document.getEmbedded(List.of(PersistenceConstants.FIELD_THING, PersistenceConstants.FIELD_MODIFIED),
                         String.class);
         final Instant modified = Optional.ofNullable(nullableTimestamp).map(Instant::parse).orElse(null);
         return Metadata.of(thingId, thingRevision, policyId, policyRevision, modified, null);

@@ -21,6 +21,7 @@ import org.eclipse.ditto.rql.query.SortDirection;
 import org.eclipse.ditto.rql.query.SortOption;
 import org.eclipse.ditto.rql.query.expression.AttributeExpression;
 import org.eclipse.ditto.rql.query.expression.SortFieldExpression;
+import org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants;
 import org.junit.Test;
 
 /**
@@ -38,12 +39,14 @@ public final class GetSortBsonVisitorTest {
 
     @Test
     public void documentSortValuesAsArray() {
-        final var document = new Document().append("s", new Document().append("attributes",
-                new Document().append("sortKey", new Document().append("key", "value"))));
+        final var document = new Document().append(PersistenceConstants.FIELD_THING,
+                new Document().append("attributes",
+                        new Document().append("sortKey", new Document().append("key", "value"))));
         final SortFieldExpression expression = AttributeExpression.of("sortKey");
         final SortOption sortOption = new SortOption(expression, SortDirection.ASC);
 
         final var result = GetSortBsonVisitor.sortValuesAsArray(document, List.of(sortOption));
-        assertThat(result.toString()).isEqualTo("[{\"key\":\"value\"}]");
+        assertThat(result.toString()).hasToString("[{\"key\":\"value\"}]");
     }
+
 }

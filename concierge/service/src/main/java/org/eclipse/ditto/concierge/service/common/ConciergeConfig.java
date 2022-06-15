@@ -53,7 +53,20 @@ public interface ConciergeConfig extends ServiceSpecificConfig, WithHealthCheckC
      */
     ThingsAggregatorConfig getThingsAggregatorConfig();
 
+    /**
+     * @return the path where to dispatch search requests
+     */
+    String getSearchActorPath();
+
+    /**
+     * An enumeration of the known config path expressions and their associated default values for {@code ConciergeConfig}.
+     */
     enum ConciergeConfigValue implements KnownConfigValue {
+
+        /**
+         * The path of the search actor where to dispatch search requests.
+         */
+        SEARCH_ACTOR_PATH("search-actor-path", "/user/thingsWildcardSearchRoot/thingsSearch"),
 
         /**
          * The default namespace to use for creating things without specified namespace.
@@ -71,14 +84,14 @@ public interface ConciergeConfig extends ServiceSpecificConfig, WithHealthCheckC
         }
 
         @Override
+        public String getConfigPath() {
+            return path;
+        }
+
+        @Override
         public Object getDefaultValue() {
             return defaultValue;
         }
 
-        @Override
-        public String getConfigPath() {
-            return path;
-        }
     }
-
 }

@@ -20,6 +20,7 @@ import org.eclipse.ditto.base.service.config.DittoServiceConfig;
 import org.eclipse.ditto.base.service.config.http.HttpConfig;
 import org.eclipse.ditto.base.service.config.limits.LimitsConfig;
 import org.eclipse.ditto.internal.utils.cluster.config.ClusterConfig;
+import org.eclipse.ditto.internal.utils.config.ConfigWithFallback;
 import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import org.eclipse.ditto.internal.utils.config.WithConfigPath;
 import org.eclipse.ditto.internal.utils.health.config.DefaultHealthCheckConfig;
@@ -40,6 +41,7 @@ public final class DittoConciergeConfig implements ConciergeConfig, WithConfigPa
     private final DefaultEnforcementConfig enforcementConfig;
     private final DefaultCachesConfig cachesConfig;
     private final DefaultThingsAggregatorConfig thingsAggregatorConfig;
+    private final String searchActorPath;
     private final String defaultNamespace;
 
     private DittoConciergeConfig(final ScopedConfig dittoScopedConfig) {
@@ -48,6 +50,9 @@ public final class DittoConciergeConfig implements ConciergeConfig, WithConfigPa
         enforcementConfig = DefaultEnforcementConfig.of(serviceSpecificConfig);
         cachesConfig = DefaultCachesConfig.of(serviceSpecificConfig);
         thingsAggregatorConfig = DefaultThingsAggregatorConfig.of(serviceSpecificConfig);
+        final ConfigWithFallback conciergeConfig =
+                ConfigWithFallback.newInstance(dittoScopedConfig, CONFIG_PATH, ConciergeConfigValue.values());
+        searchActorPath = conciergeConfig.getString(ConciergeConfigValue.SEARCH_ACTOR_PATH.getConfigPath());
         defaultNamespace = dittoScopedConfig.getString(ConciergeConfigValue.DEFAULT_NAMESPACE.getConfigPath());
     }
 
@@ -114,6 +119,11 @@ public final class DittoConciergeConfig implements ConciergeConfig, WithConfigPa
     }
 
     @Override
+    public String getSearchActorPath() {
+        return searchActorPath;
+    }
+
+    @Override
     public String getConfigPath() {
         return CONFIG_PATH;
     }
@@ -128,15 +138,18 @@ public final class DittoConciergeConfig implements ConciergeConfig, WithConfigPa
         }
         final DittoConciergeConfig that = (DittoConciergeConfig) o;
         return serviceSpecificConfig.equals(that.serviceSpecificConfig) &&
-                healthCheckConfig.equals(that.healthCheckConfig) && enforcementConfig.equals(that.enforcementConfig) &&
-                cachesConfig.equals(that.cachesConfig) && thingsAggregatorConfig.equals(that.thingsAggregatorConfig) &&
+                healthCheckConfig.equals(that.healthCheckConfig) &&
+                enforcementConfig.equals(that.enforcementConfig) &&
+                cachesConfig.equals(that.cachesConfig) &&
+                thingsAggregatorConfig.equals(that.thingsAggregatorConfig) &&
+                searchActorPath.equals(that.searchActorPath) &&
                 defaultNamespace.equals(that.defaultNamespace);
     }
 
     @Override
     public int hashCode() {
         return Objects.hash(serviceSpecificConfig, healthCheckConfig, enforcementConfig, cachesConfig,
-                thingsAggregatorConfig, defaultNamespace);
+                thingsAggregatorConfig, searchActorPath, defaultNamespace);
     }
 
     @Override
@@ -147,6 +160,7 @@ public final class DittoConciergeConfig implements ConciergeConfig, WithConfigPa
                 ", enforcementConfig=" + enforcementConfig +
                 ", cachesConfig=" + cachesConfig +
                 ", thingsAggregatorConfig=" + thingsAggregatorConfig +
+                ", searchActorPath=" + searchActorPath +
                 ", defaultNamespace='" + defaultNamespace +
                 "]";
     }

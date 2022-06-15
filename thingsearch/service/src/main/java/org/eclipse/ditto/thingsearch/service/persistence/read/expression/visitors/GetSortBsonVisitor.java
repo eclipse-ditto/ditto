@@ -98,20 +98,20 @@ public final class GetSortBsonVisitor implements SortFieldExpressionVisitor<Stri
     @Override
     public String visitAttribute(final String key) {
         return MongoSortKeyMappingFunction.mapSortKey(
-                PersistenceConstants.FIELD_SORTING, PersistenceConstants.FIELD_ATTRIBUTES, key);
+                PersistenceConstants.FIELD_THING, PersistenceConstants.FIELD_ATTRIBUTES, key);
     }
 
     @Override
     public String visitFeatureIdProperty(final String featureId, final String property) {
         return MongoSortKeyMappingFunction.mapSortKey(
-                PersistenceConstants.FIELD_SORTING, PersistenceConstants.FIELD_FEATURES, featureId,
+                PersistenceConstants.FIELD_THING, PersistenceConstants.FIELD_FEATURES, featureId,
                 PersistenceConstants.FIELD_PROPERTIES, property);
     }
 
     @Override
     public String visitFeatureIdDesiredProperty(final CharSequence featureId, final CharSequence desiredProperty) {
         return MongoSortKeyMappingFunction.mapSortKey(
-                PersistenceConstants.FIELD_SORTING, PersistenceConstants.FIELD_FEATURES, featureId.toString(),
+                PersistenceConstants.FIELD_THING, PersistenceConstants.FIELD_FEATURES, featureId.toString(),
                 PersistenceConstants.FIELD_DESIRED_PROPERTIES,
                 desiredProperty.toString());
     }
@@ -119,7 +119,7 @@ public final class GetSortBsonVisitor implements SortFieldExpressionVisitor<Stri
     @Override
     public String visitSimple(final String fieldName) {
         return fieldName.startsWith(PersistenceConstants.SLASH)
-                ? MongoSortKeyMappingFunction.mapSortKey(PersistenceConstants.FIELD_SORTING + fieldName)
+                ? MongoSortKeyMappingFunction.mapSortKey(PersistenceConstants.FIELD_THING + fieldName)
                 : fieldName;
     }
 
@@ -134,17 +134,11 @@ public final class GetSortBsonVisitor implements SortFieldExpressionVisitor<Stri
     private static List<Bson> getSortBson(final SortDirection sortDirection, final String sortKey) {
         requireNonNull(sortDirection);
 
-        final Bson sort;
-        switch (sortDirection) {
-            case ASC:
-                sort = Sorts.ascending(sortKey);
-                break;
-            case DESC:
-                sort = Sorts.descending(sortKey);
-                break;
-            default:
-                throw new IllegalStateException("Unknown SortDirection=" + sortDirection);
-        }
+        final Bson sort = switch (sortDirection) {
+            case ASC -> Sorts.ascending(sortKey);
+            case DESC -> Sorts.descending(sortKey);
+            default -> throw new IllegalStateException("Unknown SortDirection=" + sortDirection);
+        };
 
         return Collections.singletonList(sort);
     }
@@ -164,10 +158,10 @@ public final class GetSortBsonVisitor implements SortFieldExpressionVisitor<Stri
     }
 
     private static JsonValue toJsonValue(final Object object) {
-        if (object instanceof Document) {
-            return JsonFactory.readFrom(((Document) object).toJson());
-        } else if (object instanceof BsonValue) {
-            return DittoBsonJson.getInstance().serialize((BsonValue) object);
+        if (object instanceof Document document) {
+            return JsonFactory.readFrom((document).toJson());
+        } else if (object instanceof BsonValue bsonValue) {
+            return DittoBsonJson.getInstance().serialize(bsonValue);
         } else {
             return JsonValue.of(object);
         }

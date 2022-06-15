@@ -33,12 +33,12 @@ public final class PersistenceConstants {
     /**
      * The thing collection name.
      */
-    public static final String THINGS_COLLECTION_NAME = "searchThings";
+    public static final String THINGS_COLLECTION_NAME = "search";
 
     /**
      * The collection name for the background sync collection storing background sync progress.
      */
-    public static final String BACKGROUND_SYNC_COLLECTION_NAME = "searchThingsSync";
+    public static final String BACKGROUND_SYNC_COLLECTION_NAME = "searchSync";
 
     /**
      * Field name for revision.
@@ -72,6 +72,11 @@ public final class PersistenceConstants {
     public static final String FIELD_NAMESPACE = "_namespace";
 
     /**
+     * Field name for _metadata.
+     */
+    public static final String FIELD_METADATA = "_metadata";
+
+    /**
      * Field name for attributes.
      */
     public static final String FIELD_ATTRIBUTES = "attributes";
@@ -80,6 +85,11 @@ public final class PersistenceConstants {
      * Field name for features.
      */
     public static final String FIELD_FEATURES = "features";
+
+    /**
+     * Field name for feature ID.
+     */
+    public static final String FIELD_FEATURE_ID = "id";
 
     /**
      * Field name for feature properties.
@@ -107,14 +117,14 @@ public final class PersistenceConstants {
     public static final String FIELD_FEATURES_PATH = SLASH + FIELD_FEATURES + SLASH;
 
     /**
-     * Field name for attributes.
+     * Prefix for the path to attributes.
      */
-    public static final String FIELD_ATTRIBUTE_PREFIX = "attributes";
+    public static final String FIELD_ATTRIBUTES_PATH = SLASH + FIELD_ATTRIBUTES + SLASH;
 
     /**
-     * Field name for attributes.
+     * Prefix for the path to _metadata.
      */
-    public static final String FIELD_ATTRIBUTES_PATH = SLASH + FIELD_ATTRIBUTE_PREFIX + SLASH;
+    public static final String FIELD_METADATA_PATH = SLASH + FIELD_METADATA + SLASH;
 
     /**
      * Field name for subject IDs with partial READ permission and are not revoked at root.
@@ -124,47 +134,39 @@ public final class PersistenceConstants {
     /**
      * Field name for hierarchical attributes for sorting.
      */
-    public static final String FIELD_SORTING = "s";
+    public static final String FIELD_THING = "t";
 
     /**
-     * Field name for internal flat attributes.
+     * Field name for the "f" array containing features for wildcard-feature queries.
      */
-    public static final String FIELD_INTERNAL = "d";
+    public static final String FIELD_F_ARRAY = "f";
 
     /**
-     * Field name of attribute's value.
+     * Field name for policies.
      */
-    public static final String FIELD_INTERNAL_VALUE = "v";
+    public static final String FIELD_POLICY = "p";
 
     /**
-     * Path to an attribute's value.
+     * Field name for policies of features.
      */
-    public static final String FIELD_PATH_VALUE = FIELD_INTERNAL + DOT + FIELD_INTERNAL_VALUE;
+    public static final String FIELD_FEATURE_POLICY = FIELD_F_ARRAY + DOT + FIELD_POLICY;
 
     /**
-     * Field name of a key of an attribute or feature property.
+     * Special character used as prefix for grant (g) and revoke (r) fields in index document to avoid conflict
+     * actual fields in a thing. The character is part of the restricted fields (see
+     * {@link org.eclipse.ditto.base.model.entity.id.RegexPatterns#CONTROL_CHARS}).
      */
-    public static final String FIELD_INTERNAL_KEY = "k";
-
-    /**
-     * Path to an attributes/properties key.
-     */
-    public static final String FIELD_PATH_KEY = FIELD_INTERNAL + DOT + FIELD_INTERNAL_KEY;
+    private static final String FIELD_PERMISSION_PREFIX = Character.valueOf((char) 183).toString();
 
     /**
      * Field name for policy read grants.
      */
-    public static final String FIELD_GRANTED = "g";
-
-    /**
-     * Full path of the granted field.
-     */
-    public static final String FIELD_GRANTED_PATH = FIELD_INTERNAL + DOT + FIELD_GRANTED;
+    public static final String FIELD_GRANTED = FIELD_PERMISSION_PREFIX + "g";
 
     /**
      * Field name for policy read revokes.
      */
-    public static final String FIELD_REVOKED = "r";
+    public static final String FIELD_REVOKED = FIELD_PERMISSION_PREFIX + "r";
 
     /**
      * Mark a document for deletion.
@@ -179,7 +181,7 @@ public final class PersistenceConstants {
     /**
      * Expression of the full path of the last modified timestamp under FIELD_SORTING.
      */
-    public static final String FIELD_PATH_MODIFIED = FIELD_SORTING + DOT + FIELD_MODIFIED;
+    public static final String FIELD_PATH_MODIFIED = FIELD_THING + DOT + FIELD_MODIFIED;
 
     private PersistenceConstants() {
     }

@@ -12,32 +12,38 @@
  */
 package org.eclipse.ditto.thingsearch.service.persistence.read.expression.visitors;
 
+import static org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants.DESIRED_PROPERTIES;
+import static org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants.FIELD_ATTRIBUTES_PATH;
+import static org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants.FIELD_FEATURES_PATH;
+import static org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants.FIELD_F_ARRAY;
+import static org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants.FIELD_METADATA_PATH;
+import static org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants.FIELD_THING;
+import static org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants.PROPERTIES;
+
 import java.util.List;
 import java.util.function.Function;
 
 import javax.annotation.Nullable;
 
 import org.bson.conversions.Bson;
+import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.rql.query.expression.FilterFieldExpression;
 import org.eclipse.ditto.rql.query.expression.visitors.FilterFieldExpressionVisitor;
-import org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants;
 
 import com.mongodb.client.model.Filters;
 
 /**
  * Creates a Mongo Bson object for field-based search criteria.
  */
-public class GetFilterBsonVisitor extends AbstractFieldBsonCreator implements FilterFieldExpressionVisitor<Bson> {
+public final class GetFilterBsonVisitor extends AbstractFieldBsonCreator implements FilterFieldExpressionVisitor<Bson> {
 
     private final Function<String, Bson> predicateFunction;
-    private final Bson valueFilter;
 
-    private GetFilterBsonVisitor(final Function<String, Bson> predicateFunction,
+    GetFilterBsonVisitor(final Function<String, Bson> predicateFunction,
             @Nullable final List<String> authorizationSubjectIds) {
 
         super(authorizationSubjectIds);
         this.predicateFunction = predicateFunction;
-        this.valueFilter = predicateFunction.apply(PersistenceConstants.FIELD_INTERNAL_VALUE);
     }
 
     /**
@@ -69,31 +75,35 @@ public class GetFilterBsonVisitor extends AbstractFieldBsonCreator implements Fi
 
     @Override
     public Bson visitAttribute(final String key) {
-        return matchKeyValue(PersistenceConstants.FIELD_ATTRIBUTES_PATH + key);
+        return matchValue(FIELD_ATTRIBUTES_PATH + key);
     }
 
     @Override
     public Bson visitFeatureIdProperty(final String featureId, final String property) {
-        return matchKeyValue(
-                PersistenceConstants.FIELD_FEATURES_PATH + featureId + PersistenceConstants.PROPERTIES + property);
+        if (FEATURE_ID_WILDCARD.equals(featureId)) {
+            return matchWildcardFeatureValue(PROPERTIES + property);
+        } else {
+            return matchValue(FIELD_FEATURES_PATH + featureId + PROPERTIES + property);
+        }
     }
 
     @Override
     public Bson visitFeatureIdDesiredProperty(final CharSequence featureId, final CharSequence desiredProperty) {
-        return matchKeyValue(
-                PersistenceConstants.FIELD_FEATURES_PATH + featureId + PersistenceConstants.DESIRED_PROPERTIES +
-                        desiredProperty);
+        if (FEATURE_ID_WILDCARD.equals(featureId)) {
+            return matchWildcardFeatureValue(DESIRED_PROPERTIES + desiredProperty);
+        } else {
+            return matchValue(FIELD_FEATURES_PATH + featureId + DESIRED_PROPERTIES + desiredProperty);
+        }
     }
 
     @Override
     public Bson visitMetadata(final String key) {
-        // search on _metadata is not supported, return filter that don't match
-        return Filters.eq("nomatch");
+        return matchValue(FIELD_METADATA_PATH + key);
     }
 
     @Override
     Bson visitPointer(final String pointer) {
-        return matchKeyValue(pointer);
+        return matchValue(pointer);
     }
 
     @Override
@@ -101,12 +111,20 @@ public class GetFilterBsonVisitor extends AbstractFieldBsonCreator implements Fi
         return predicateFunction.apply(fieldName);
     }
 
-    private Bson matchKeyValue(final String key) {
-        final Bson keyValueFilter = Filters.and(Filters.eq(PersistenceConstants.FIELD_INTERNAL_KEY, key), valueFilter);
-        return Filters.elemMatch(PersistenceConstants.FIELD_INTERNAL,
-                getAuthorizationBson()
-                        .map(authBson -> Filters.and(keyValueFilter, authBson))
-                        .orElse(keyValueFilter));
+    private Bson matchValue(final CharSequence key) {
+        final JsonPointer pointer = JsonPointer.of(key);
+        final Bson keyValueFilter = predicateFunction.apply(toDottedPath(FIELD_THING, pointer));
+        return getAuthorizationBson(pointer)
+                .map(authBson -> Filters.and(keyValueFilter, authBson))
+                .orElse(keyValueFilter);
+    }
+
+    private Bson matchWildcardFeatureValue(final CharSequence key) {
+        final JsonPointer pointer = JsonPointer.of(key);
+        final Bson keyValueFilter = predicateFunction.apply(toDottedPath(pointer));
+        return getFeatureWildcardAuthorizationBson(pointer)
+                .map(authBson -> Filters.elemMatch(FIELD_F_ARRAY, Filters.and(keyValueFilter, authBson)))
+                .orElse(keyValueFilter);
     }
 
 }

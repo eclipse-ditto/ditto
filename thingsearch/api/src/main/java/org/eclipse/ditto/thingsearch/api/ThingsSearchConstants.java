@@ -23,12 +23,12 @@ public final class ThingsSearchConstants {
     /**
      * Name of the shard region for Things-Search updater.
      */
-    public static final String SHARD_REGION = "search-updater";
+    public static final String SHARD_REGION = "search-wildcard-updater";
 
     /**
      * Name of the akka cluster role.
      */
-    public static final String CLUSTER_ROLE = "things-search";
+    public static final String CLUSTER_ROLE = "things-wildcard-search";
 
     @SuppressWarnings("squid:S1075")
     private static final String USER_PATH = "/user";
@@ -36,7 +36,7 @@ public final class ThingsSearchConstants {
     /**
      * Path of the root actor.
      */
-    public static final String ROOT_ACTOR_PATH = USER_PATH + "/thingsSearchRoot";
+    public static final String ROOT_ACTOR_PATH = USER_PATH + "/thingsWildcardSearchRoot";
 
     /**
      * Path of the updater root actor.

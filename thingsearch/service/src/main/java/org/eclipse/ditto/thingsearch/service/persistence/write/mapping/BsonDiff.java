@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.thingsearch.service.persistence.write.mapping;
 
-import static org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants.FIELD_INTERNAL;
+import static org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants.FIELD_F_ARRAY;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -95,17 +95,7 @@ public final class BsonDiff {
      * @return the difference.
      */
     public static BsonDiff minusThingDocs(final BsonDocument minuend, final BsonDocument subtrahend) {
-        // compute the internal array diff especially to find similar elements by internal key
-        final var minuendInternal = minuend.getArray(FIELD_INTERNAL);
-        final var subtrahendInternal = subtrahend.getArray(FIELD_INTERNAL);
-        final var diffInternal = BsonArrayDiff.diffInternalArray(minuendInternal, subtrahendInternal);
-        // compute the rest of the diff without the internal array
-        final var minuendWithoutInternal = minuend.clone();
-        final var subtrahendWithoutInternal = subtrahend.clone();
-        minuendWithoutInternal.remove(FIELD_INTERNAL);
-        subtrahendWithoutInternal.remove(FIELD_INTERNAL);
-        final var diffWithoutInternal = minus(minuendWithoutInternal, subtrahendWithoutInternal, true);
-        return diffWithoutInternal.concat(diffInternal);
+        return minus(minuend, subtrahend, true);
     }
 
     /**
