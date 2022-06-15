@@ -152,7 +152,6 @@ final class OutboundDispatchingActor extends AbstractActor {
             // start ackregator for source declared acks
             return AcknowledgementForwarderActor.startAcknowledgementForwarder(getContext(),
                     self(),
-                    sender(),
                     entityId,
                     signal,
                     settings.getAcknowledgementConfig(),

@@ -25,7 +25,6 @@ import org.eclipse.ditto.base.model.signals.commands.CommandNotSupportedExceptio
 import org.eclipse.ditto.base.model.signals.commands.exceptions.CommandTimeoutException;
 import org.eclipse.ditto.base.model.signals.commands.exceptions.PathUnknownException;
 import org.eclipse.ditto.internal.utils.test.GlobalErrorRegistryTestCases;
-import org.eclipse.ditto.messages.model.AuthorizationSubjectBlockedException;
 import org.eclipse.ditto.placeholders.PlaceholderFunctionUnknownException;
 import org.eclipse.ditto.policies.model.PolicyEntryInvalidException;
 import org.eclipse.ditto.policies.model.PolicyIdInvalidException;
@@ -46,7 +45,6 @@ public final class PoliciesServiceGlobalErrorRegistryTest extends GlobalErrorReg
                 DittoInternalErrorException.class,
                 CommandTimeoutException.class,
                 PolicyConflictException.class,
-                AuthorizationSubjectBlockedException.class,
                 JsonTypeNotParsableException.class,
                 NamespaceBlockedException.class,
                 NamespacedEntityIdInvalidException.class,

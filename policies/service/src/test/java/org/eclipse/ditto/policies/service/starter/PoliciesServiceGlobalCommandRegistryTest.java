@@ -22,7 +22,6 @@ import org.eclipse.ditto.internal.models.streaming.SudoStreamPids;
 import org.eclipse.ditto.internal.utils.health.RetrieveHealth;
 import org.eclipse.ditto.internal.utils.pubsub.api.PublishSignal;
 import org.eclipse.ditto.internal.utils.test.GlobalCommandRegistryTestCases;
-import org.eclipse.ditto.messages.model.signals.commands.SendClaimMessage;
 import org.eclipse.ditto.policies.api.commands.sudo.SudoRetrievePolicy;
 import org.eclipse.ditto.policies.model.signals.commands.actions.ActivateTokenIntegration;
 import org.eclipse.ditto.policies.model.signals.commands.modify.DeleteSubject;
@@ -39,7 +38,6 @@ public final class PoliciesServiceGlobalCommandRegistryTest extends GlobalComman
                 RetrieveFeature.class,          // TODO CR-11383 strictly speaking, the policies service should not must to "know" things-model
                 ModifyFeatureProperty.class,    // TODO CR-11383 strictly speaking, the policies service should not must to "know" things-model
                 ExecutePiggybackCommand.class,
-                SendClaimMessage.class,
                 Shutdown.class,
                 PurgeNamespace.class,
                 RetrieveResource.class,

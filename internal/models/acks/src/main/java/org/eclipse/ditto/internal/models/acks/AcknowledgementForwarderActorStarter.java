@@ -26,6 +26,7 @@ import org.eclipse.ditto.base.model.acks.AcknowledgementRequest;
 import org.eclipse.ditto.base.model.acks.DittoAcknowledgementLabel;
 import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.base.model.signals.Signal;
@@ -35,9 +36,12 @@ import org.eclipse.ditto.base.model.signals.announcements.Announcement;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.base.model.signals.events.Event;
 import org.eclipse.ditto.internal.models.acks.config.AcknowledgementConfig;
+import org.eclipse.ditto.internal.utils.akka.logging.DittoLogger;
+import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorRefFactory;
+import akka.actor.ActorSelection;
 import akka.actor.InvalidActorNameException;
 import akka.actor.Props;
 import akka.japi.Pair;
@@ -50,13 +54,14 @@ import akka.japi.Pair;
  */
 final class AcknowledgementForwarderActorStarter implements Supplier<Optional<ActorRef>> {
 
+    private static final DittoLogger LOGGER = DittoLoggerFactory.getLogger(AcknowledgementForwarderActorStarter.class);
+
     private static final String PREFIX_COUNTER_SEPARATOR = "#";
 
     private static final String LIVE_CHANNEL = "live";
 
     private final ActorRefFactory actorRefFactory;
     private final ActorRef parent;
-    private final ActorRef ackRequester;
     private final EntityId entityId;
     private final Signal<?> signal;
     private final DittoHeaders dittoHeaders;
@@ -65,7 +70,6 @@ final class AcknowledgementForwarderActorStarter implements Supplier<Optional<Ac
 
     private AcknowledgementForwarderActorStarter(final ActorRefFactory actorRefFactory,
             final ActorRef parent,
-            final ActorRef ackRequester,
             final EntityId entityId,
             final Signal<?> signal,
             final AcknowledgementConfig acknowledgementConfig,
@@ -73,7 +77,6 @@ final class AcknowledgementForwarderActorStarter implements Supplier<Optional<Ac
 
         this.actorRefFactory = checkNotNull(actorRefFactory, "actorRefFactory");
         this.parent = parent;
-        this.ackRequester = ackRequester;
         this.entityId = checkNotNull(entityId, "entityId");
         this.signal = checkNotNull(signal, "signal");
         dittoHeaders = signal.getDittoHeaders();
@@ -89,7 +92,6 @@ final class AcknowledgementForwarderActorStarter implements Supplier<Optional<Ac
      *
      * @param actorRefFactory the factory to start the forwarder actor in.
      * @param parent the parent of the forwarder actor.
-     * @param ackRequester the actor which should receive the forwarded acknowledgements.
      * @param entityId is used for the NACKs if the forwarder actor cannot be started.
      * @param signal the signal for which the forwarder actor is to start.
      * @param acknowledgementConfig provides configuration setting regarding acknowledgement handling.
@@ -100,13 +102,12 @@ final class AcknowledgementForwarderActorStarter implements Supplier<Optional<Ac
      */
     static AcknowledgementForwarderActorStarter getInstance(final ActorRefFactory actorRefFactory,
             final ActorRef parent,
-            final ActorRef ackRequester, // TODO TJ the ackRequester can probably be removed
             final EntityId entityId,
             final Signal<?> signal,
             final AcknowledgementConfig acknowledgementConfig,
             final Predicate<AcknowledgementLabel> isAckLabelAllowed) {
 
-        return new AcknowledgementForwarderActorStarter(actorRefFactory, parent, ackRequester, entityId, signal,
+        return new AcknowledgementForwarderActorStarter(actorRefFactory, parent, entityId, signal,
                 acknowledgementConfig,
                 // live-response is always allowed
                 isAckLabelAllowed.or(DittoAcknowledgementLabel.LIVE_RESPONSE::equals));
@@ -191,7 +192,7 @@ final class AcknowledgementForwarderActorStarter implements Supplier<Optional<Ac
     }
 
     private ActorRef startAckForwarderActor(final DittoHeaders dittoHeaders) {
-        final Props props = AcknowledgementForwarderActor.props(ackRequester, dittoHeaders,
+        final Props props = AcknowledgementForwarderActor.props(dittoHeaders,
                 acknowledgementConfig.getForwarderFallbackTimeout());
         return actorRefFactory.actorOf(props, AcknowledgementForwarderActor.determineActorName(dittoHeaders));
     }
@@ -205,12 +206,21 @@ final class AcknowledgementForwarderActorStarter implements Supplier<Optional<Ac
     }
 
     private void declineAllNonDittoAckRequests(final DittoRuntimeException dittoRuntimeException) {
-        // answer NACKs for all AcknowledgementRequests with labels which were not Ditto-defined
-        acknowledgementRequests.stream()
-                .map(AcknowledgementRequest::getLabel)
-                .filter(Predicate.not(DittoAcknowledgementLabel::contains))
-                .map(label -> getNack(label, dittoRuntimeException))
-                .forEach(nack -> ackRequester.tell(nack, parent));
+        final DittoHeaders headers = dittoRuntimeException.getDittoHeaders();
+        final String ackregatorAddress = headers.get(DittoHeaderDefinition.DITTO_ACKREGATOR_ADDRESS.getKey());
+        if (null != ackregatorAddress) {
+            final ActorSelection acknowledgementRequester = actorRefFactory.actorSelection(ackregatorAddress);
+            // answer NACKs for all AcknowledgementRequests with labels which were not Ditto-defined
+            acknowledgementRequests.stream()
+                    .map(AcknowledgementRequest::getLabel)
+                    .filter(Predicate.not(DittoAcknowledgementLabel::contains))
+                    .map(label -> getNack(label, dittoRuntimeException))
+                    .forEach(nack -> acknowledgementRequester.tell(nack, parent));
+        } else {
+            LOGGER.withCorrelationId(headers)
+                    .error("Received DittoRuntimeException <{}> did not contain header of Ackgregator address: {}",
+                            dittoRuntimeException.getClass().getSimpleName(), headers);
+        }
     }
 
     private Acknowledgement getNack(final AcknowledgementLabel label,

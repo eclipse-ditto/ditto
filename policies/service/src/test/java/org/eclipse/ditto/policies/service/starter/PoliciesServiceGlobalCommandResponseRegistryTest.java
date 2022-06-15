@@ -21,7 +21,6 @@ import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
 import org.eclipse.ditto.base.service.cluster.ModifySplitBrainResolverResponse;
 import org.eclipse.ditto.internal.utils.health.RetrieveHealthResponse;
 import org.eclipse.ditto.internal.utils.test.GlobalCommandResponseRegistryTestCases;
-import org.eclipse.ditto.messages.model.signals.commands.SendClaimMessageResponse;
 import org.eclipse.ditto.policies.api.commands.sudo.SudoRetrievePolicyResponse;
 import org.eclipse.ditto.policies.model.signals.commands.PolicyErrorResponse;
 import org.eclipse.ditto.policies.model.signals.commands.actions.ActivateTokenIntegrationResponse;
@@ -39,7 +38,6 @@ public final class PoliciesServiceGlobalCommandResponseRegistryTest extends Glob
                 RetrieveFeatureResponse.class,          // TODO CR-11383 strictly speaking, the policies service should not need to "know" things-model
                 ModifyFeaturePropertyResponse.class,    // TODO CR-11383 strictly speaking, the policies service should not need to "know" things-model
                 ThingErrorResponse.class,               // TODO CR-11383 strictly speaking, the policies service should not need to "know" things-model
-                SendClaimMessageResponse.class,
                 PurgeNamespaceResponse.class,
                 RetrieveResourceResponse.class,
                 DeleteSubjectResponse.class,

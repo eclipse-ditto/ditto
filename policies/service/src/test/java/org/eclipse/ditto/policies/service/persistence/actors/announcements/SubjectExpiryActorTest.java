@@ -80,7 +80,7 @@ public final class SubjectExpiryActorTest {
     private static final SubjectId SUBJECT_DITTO_DITTO = SubjectId.newInstance("ditto:ditto");
     private static final String ACK_LABEL_CONNECTION_ACK = "connection:ack";
 
-    private final ActorSystem system = ActorSystem.create();
+    private final ActorSystem system = ActorSystem.create(getClass().getSimpleName(), ConfigFactory.load("test"));
     private final PolicyId policyId = PolicyId.of("policy:id");
     private final Duration maxTimeout = Duration.ofMinutes(1);
 

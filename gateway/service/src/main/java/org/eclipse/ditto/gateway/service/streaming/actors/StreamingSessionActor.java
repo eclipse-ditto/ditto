@@ -475,7 +475,6 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
             final var entityIdWithType = entityIdOptional.get();
             return AcknowledgementForwarderActor.startAcknowledgementForwarder(getContext(),
                     self(),
-                    sender(),
                     entityIdWithType,
                     signal,
                     acknowledgementConfig,
