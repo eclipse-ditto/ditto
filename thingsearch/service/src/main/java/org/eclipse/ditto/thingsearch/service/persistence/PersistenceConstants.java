@@ -72,6 +72,11 @@ public final class PersistenceConstants {
     public static final String FIELD_NAMESPACE = "_namespace";
 
     /**
+     * Field name for _metadata.
+     */
+    public static final String FIELD_METADATA = "_metadata";
+
+    /**
      * Field name for attributes.
      */
     public static final String FIELD_ATTRIBUTES = "attributes";
@@ -112,14 +117,14 @@ public final class PersistenceConstants {
     public static final String FIELD_FEATURES_PATH = SLASH + FIELD_FEATURES + SLASH;
 
     /**
-     * Field name for attributes.
+     * Prefix for the path to attributes.
      */
-    public static final String FIELD_ATTRIBUTE_PREFIX = "attributes";
+    public static final String FIELD_ATTRIBUTES_PATH = SLASH + FIELD_ATTRIBUTES + SLASH;
 
     /**
-     * Field name for attributes.
+     * Prefix for the path to _metadata.
      */
-    public static final String FIELD_ATTRIBUTES_PATH = SLASH + FIELD_ATTRIBUTE_PREFIX + SLASH;
+    public static final String FIELD_METADATA_PATH = SLASH + FIELD_METADATA + SLASH;
 
     /**
      * Field name for subject IDs with partial READ permission and are not revoked at root.

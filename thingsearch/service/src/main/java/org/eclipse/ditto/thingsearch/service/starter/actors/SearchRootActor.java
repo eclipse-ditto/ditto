@@ -142,7 +142,7 @@ public final class SearchRootActor extends DittoRootActor {
     private static ThingsFieldExpressionFactory getThingsFieldExpressionFactory() {
         // Not possible to use ModelBasedThingsFieldExpressionFactory
         // because the field expression factory is supposed to map 'thingId' to '_id', which is only meaningful for MongoDB
-        final Map<String, String> mappings = new HashMap<>(6);
+        final Map<String, String> mappings = new HashMap<>(8);
         mappings.put(FieldExpressionUtil.FIELD_NAME_THING_ID, FieldExpressionUtil.FIELD_ID);
         mappings.put(FieldExpressionUtil.FIELD_NAME_NAMESPACE, FieldExpressionUtil.FIELD_NAMESPACE);
         addMapping(mappings, Thing.JsonFields.POLICY_ID); // also present as top-level field in search collection, however not indexed
@@ -150,6 +150,7 @@ public final class SearchRootActor extends DittoRootActor {
         addMapping(mappings, Thing.JsonFields.MODIFIED);
         addMapping(mappings, Thing.JsonFields.CREATED);
         addMapping(mappings, Thing.JsonFields.DEFINITION);
+        addMapping(mappings, Thing.JsonFields.METADATA);
         return ThingsFieldExpressionFactory.of(mappings);
     }
 
