@@ -122,7 +122,8 @@ public final class ConnectionTesterTest {
         Mockito.when(genericMqttClient.connect(Mockito.any(GenericMqttConnect.class)))
                 .thenReturn(CompletableFuture.completedFuture(null));
 
-        genericMqttClientFactory.when(() -> GenericMqttClientFactory.getGenericMqttClientForConnectionTesting(Mockito.any()))
+        genericMqttClientFactory.when(
+                        () -> GenericMqttClientFactory.getGenericMqttClientForConnectionTesting(Mockito.any()))
                 .thenReturn(genericMqttClient);
 
         childActorNanny = ChildActorNanny.newInstance(actorRefFactory, Mockito.mock(LoggingAdapter.class));
@@ -136,6 +137,7 @@ public final class ConnectionTesterTest {
                         .withConnectivityStatusResolver(connectivityStatusResolver)
                         .withChildActorNanny(childActorNanny)
                         .withActorSystemProvider(actorSystemResource.getActorSystem())
+                        .asTest()
                         .build())
                 .withMessage("The hiveMqttClientProperties must not be null!")
                 .withNoCause();
@@ -149,6 +151,7 @@ public final class ConnectionTesterTest {
                         .withConnectivityStatusResolver(connectivityStatusResolver)
                         .withChildActorNanny(childActorNanny)
                         .withActorSystemProvider(actorSystemResource.getActorSystem())
+                        .asTest()
                         .build())
                 .withMessage("The inboundMappingSink must not be null!")
                 .withNoCause();
@@ -162,6 +165,7 @@ public final class ConnectionTesterTest {
                         .withInboundMappingSink(inboundMappingSink)
                         .withChildActorNanny(childActorNanny)
                         .withActorSystemProvider(actorSystemResource.getActorSystem())
+                        .asTest()
                         .build())
                 .withMessage("The connectivityStatusResolver must not be null!")
                 .withNoCause();
@@ -175,6 +179,7 @@ public final class ConnectionTesterTest {
                         .withInboundMappingSink(inboundMappingSink)
                         .withConnectivityStatusResolver(connectivityStatusResolver)
                         .withActorSystemProvider(actorSystemResource.getActorSystem())
+                        .asTest()
                         .build())
                 .withMessage("The childActorNanny must not be null!")
                 .withNoCause();
@@ -188,6 +193,7 @@ public final class ConnectionTesterTest {
                         .withInboundMappingSink(inboundMappingSink)
                         .withConnectivityStatusResolver(connectivityStatusResolver)
                         .withChildActorNanny(childActorNanny)
+                        .asTest()
                         .build())
                 .withMessage("The systemProvider must not be null!")
                 .withNoCause();
@@ -205,6 +211,7 @@ public final class ConnectionTesterTest {
                 .withChildActorNanny(childActorNanny)
                 .withActorSystemProvider(actorSystemResource.getActorSystem())
                 .withCorrelationId(testNameCorrelationId.getCorrelationId())
+                .asTest()
                 .build();
 
         final var statusCompletionStage = underTest.testConnection();
@@ -241,6 +248,7 @@ public final class ConnectionTesterTest {
                 .withChildActorNanny(childActorNanny)
                 .withActorSystemProvider(actorSystemResource.getActorSystem())
                 .withCorrelationId(testNameCorrelationId.getCorrelationId())
+                .asTest()
                 .build();
     }
 
@@ -283,9 +291,6 @@ public final class ConnectionTesterTest {
                     .succeedsWithin(Duration.ofMillis(500L))
                     .isEqualTo(new Status.Success(successMessage));
             Mockito.verify(connectionLogger).success(successMessage);
-            Mockito.verify(actorRefFactory).stop(Mockito.eq(consumerActor1Ref));
-            Mockito.verify(actorRefFactory).stop(Mockito.eq(consumerActor2Ref));
-            Mockito.verify(actorRefFactory).stop(Mockito.eq(publisherActor1Ref));
         }
     }
 
@@ -335,7 +340,6 @@ public final class ConnectionTesterTest {
                                     .isInstanceOf(MqttSubscribeException.class)
                                     .hasMessage(errorMessage));
             Mockito.verify(connectionLogger).failure("Connection test failed: {0}", errorMessage);
-            Mockito.verify(actorRefFactory).stop(Mockito.eq(publisherActor1Ref));
         }
     }
 
@@ -392,7 +396,6 @@ public final class ConnectionTesterTest {
                                     .isInstanceOf(MqttSubscribeException.class)
                                     .hasMessage(errorMessage));
             Mockito.verify(connectionLogger).failure("Connection test failed: {0}", errorMessage);
-            Mockito.verify(actorRefFactory).stop(Mockito.eq(publisherActor1Ref));
         }
     }
 
@@ -436,7 +439,6 @@ public final class ConnectionTesterTest {
                                     .isInstanceOf(MqttSubscribeException.class)
                                     .hasMessage(errorMessage));
             Mockito.verify(connectionLogger).failure("Connection test failed: {0}", errorMessage);
-            Mockito.verify(actorRefFactory).stop(Mockito.eq(publisherActor1Ref));
         }
     }
 

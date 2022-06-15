@@ -32,9 +32,12 @@ import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.message.publ
 import org.eclipse.ditto.connectivity.service.util.ConnectivityMdcEntryKey;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
+import org.eclipse.ditto.internal.utils.health.RetrieveHealth;
 
+import akka.Done;
 import akka.NotUsed;
 import akka.actor.Props;
+import akka.actor.Status;
 import akka.japi.function.Predicate;
 import akka.stream.KillSwitch;
 import akka.stream.KillSwitches;
@@ -319,7 +322,12 @@ public final class MqttConsumerActor extends BaseConsumerActor {
         return receiveBuilder()
                 .match(RetrieveAddressStatus.class, msg -> getSender().tell(getCurrentSourceStatus(), getSelf()))
                 .match(GracefulStop.class, gracefulStop -> shutdown())
+                .match(RetrieveHealth.class, this::checkThatThisActorIsRunning)
                 .build();
+    }
+
+    private void checkThatThisActorIsRunning(final RetrieveHealth command) {
+        getSender().tell(new Status.Success(Done.done()), getSelf());
     }
 
     private void shutdown() {

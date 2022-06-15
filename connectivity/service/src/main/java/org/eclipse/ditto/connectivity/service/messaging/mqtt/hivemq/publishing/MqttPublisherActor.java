@@ -34,8 +34,11 @@ import org.eclipse.ditto.connectivity.service.messaging.BasePublisherActor;
 import org.eclipse.ditto.connectivity.service.messaging.ConnectivityStatusResolver;
 import org.eclipse.ditto.connectivity.service.messaging.SendResult;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.client.GenericMqttPublishingClient;
+import org.eclipse.ditto.internal.utils.health.RetrieveHealth;
 
+import akka.Done;
 import akka.actor.Props;
+import akka.actor.Status;
 import akka.japi.Pair;
 import akka.japi.pf.ReceiveBuilder;
 import akka.stream.BoundedSourceQueue;
@@ -204,7 +207,11 @@ public final class MqttPublisherActor extends BasePublisherActor<MqttPublishTarg
 
     @Override
     protected void postEnhancement(final ReceiveBuilder receiveBuilder) {
-        // Nothing to do here.
+        receiveBuilder.match(RetrieveHealth.class, this::checkThatThisActorIsRunning);
+    }
+
+    private void checkThatThisActorIsRunning(final RetrieveHealth command) {
+        getSender().tell(new Status.Success(Done.done()), getSelf());
     }
 
     @Override

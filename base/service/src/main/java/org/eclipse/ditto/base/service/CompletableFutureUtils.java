@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.gateway.service.health;
+package org.eclipse.ditto.base.service;
 
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -20,7 +20,7 @@ import java.util.stream.Collectors;
 /**
  * Utility methods for working with {@link java.util.concurrent.CompletableFuture}.
  */
-final class CompletableFutureUtils {
+public final class CompletableFutureUtils {
 
     private CompletableFutureUtils() {
         throw new AssertionError();
@@ -35,14 +35,24 @@ final class CompletableFutureUtils {
      * @param <T> the type of the results.
      * @return the resulting single completable future.
      */
-    static <T> CompletableFuture<List<T>> collectAsList(final List<CompletableFuture<T>> futures) {
+    public static <T> CompletableFuture<List<T>> collectAsList(final List<CompletableFuture<T>> futures) {
         return collect(futures, Collectors.toList());
     }
 
-    private static <T, A, R> CompletableFuture<R> collect(final List<CompletableFuture<T>> futures,
+    /**
+     * Collect the results of futures with a collector.
+     *
+     * @param futures the completable futures.
+     * @param collector the collector.
+     * @param <T> the type of results of each future.
+     * @param <A> the type of accumulators of the collector.
+     * @param <R> the type of results of the collector.
+     * @return the resulting single completable future.
+     */
+    public static <T, A, R> CompletableFuture<R> collect(final List<CompletableFuture<T>> futures,
             final Collector<T, A, R> collector) {
 
-        return CompletableFuture.allOf(futures.toArray(new CompletableFuture[futures.size()]))
+        return CompletableFuture.allOf(futures.toArray(CompletableFuture[]::new))
                 .thenApply(v -> futures.stream().map(CompletableFuture::join).collect(collector));
     }
 

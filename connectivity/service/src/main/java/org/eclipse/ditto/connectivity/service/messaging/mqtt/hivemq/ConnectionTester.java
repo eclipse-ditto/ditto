@@ -28,6 +28,8 @@ import java.util.stream.Stream;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
+import org.eclipse.ditto.base.service.CompletableFutureUtils;
+import org.eclipse.ditto.connectivity.service.messaging.AsyncChildActorNanny;
 import org.eclipse.ditto.connectivity.service.messaging.ChildActorNanny;
 import org.eclipse.ditto.connectivity.service.messaging.ConnectivityStatusResolver;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.KeepAliveInterval;
@@ -46,11 +48,13 @@ import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.subscribing.
 import org.eclipse.ditto.connectivity.service.util.ConnectivityMdcEntryKey;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLogger;
+import org.eclipse.ditto.internal.utils.health.RetrieveHealth;
 
 import akka.NotUsed;
 import akka.actor.ActorRef;
 import akka.actor.ClassicActorSystemProvider;
 import akka.actor.Status;
+import akka.pattern.Patterns;
 import akka.stream.javadsl.Keep;
 import akka.stream.javadsl.Sink;
 
@@ -64,21 +68,25 @@ final class ConnectionTester {
     private final HiveMqttClientProperties hiveMqttClientProperties;
     private final Sink<Object, NotUsed> inboundMappingSink;
     private final ConnectivityStatusResolver connectivityStatusResolver;
-    private final ChildActorNanny childActorNanny;
+    private final AsyncChildActorNanny asyncChildActorNanny;
     private final ClassicActorSystemProvider systemProvider;
     private final ThreadSafeDittoLogger logger;
+    private final boolean shouldEnsureActorsAreRunning;
 
     private ConnectionTester(final Builder builder) {
         hiveMqttClientProperties = checkNotNull(builder.hiveMqttClientProperties, "hiveMqttClientProperties");
         inboundMappingSink = checkNotNull(builder.inboundMappingSink, "inboundMappingSink");
         connectivityStatusResolver = checkNotNull(builder.connectivityStatusResolver, "connectivityStatusResolver");
-        childActorNanny = checkNotNull(builder.childActorNanny, "childActorNanny");
         systemProvider = checkNotNull(builder.systemProvider, "systemProvider");
+        asyncChildActorNanny = builder.isTest
+                ? AsyncChildActorNanny.newInstanceForTest(systemProvider.classicSystem(), builder.childActorNanny)
+                : AsyncChildActorNanny.newInstance(builder.childActorNanny);
 
         final var mqttConnection = hiveMqttClientProperties.getMqttConnection();
         logger = DittoLoggerFactory.getThreadSafeLogger(getClass())
                 .withCorrelationId(builder.correlationId)
                 .withMdcEntry(ConnectivityMdcEntryKey.CONNECTION_ID, mqttConnection.getId());
+        shouldEnsureActorsAreRunning = !builder.isTest;
     }
 
     /**
@@ -98,8 +106,9 @@ final class ConnectionTester {
                 .thenCompose(genericMqttClient ->
                         connectClient(genericMqttClient)
                                 .thenApply(logMqttConnectionEstablished())
-                                .thenApply(startPublisherActor())
+                                .thenCompose(startPublisherActor())
                                 .thenCombine(subscribe(genericMqttClient), handleTotalSubscribeResult())
+                                .thenCompose(ensureActorsAreRunning())
                                 .handle(getAppropriateStatus(genericMqttClient))
                 )
                 .exceptionally(this::logFailureAndGetStatus);
@@ -127,8 +136,8 @@ final class ConnectionTester {
         return Function.identity();
     }
 
-    private Function<GenericMqttClient, ActorRef> startPublisherActor() {
-        return genericMqttClient -> childActorNanny.startChildActorConflictFree(
+    private Function<GenericMqttClient, CompletionStage<ActorRef>> startPublisherActor() {
+        return genericMqttClient -> asyncChildActorNanny.startChildActorConflictFree(
                 MqttPublisherActor.class.getSimpleName(),
                 MqttPublisherActor.propsDryRun(hiveMqttClientProperties.getMqttConnection(),
                         connectivityStatusResolver,
@@ -146,18 +155,43 @@ final class ConnectionTester {
                 .thenApply(TotalSubscribeResult::of);
     }
 
-    private BiFunction<ActorRef, TotalSubscribeResult, Stream<ActorRef>> handleTotalSubscribeResult() {
+    private BiFunction<ActorRef, TotalSubscribeResult, CompletionStage<List<ActorRef>>> handleTotalSubscribeResult() {
         return (producerActorRef, totalSubscribeResult) -> {
             if (totalSubscribeResult.hasFailures()) {
-                childActorNanny.stopChildActor(producerActorRef);
+                asyncChildActorNanny.stop();
                 throw newMqttSubscribeExceptionForFailedSourceSubscribeResults(totalSubscribeResult);
             } else {
-                return Stream.concat(
-                        totalSubscribeResult.successfulSubscribeResults().map(this::startConsumerActor),
-                        Stream.of(producerActorRef)
-                );
+                final var actorRefFutures = Stream.concat(
+                                totalSubscribeResult.successfulSubscribeResults().map(this::startConsumerActor),
+                                Stream.of(CompletableFuture.completedStage(producerActorRef)))
+                        .map(CompletionStage::toCompletableFuture)
+                        .toList();
+                return CompletableFutureUtils.collectAsList(actorRefFutures);
             }
         };
+    }
+
+    private Function<CompletionStage<List<ActorRef>>, CompletionStage<List<ActorRef>>> ensureActorsAreRunning() {
+        if (shouldEnsureActorsAreRunning) {
+            return actorRefsFuture -> {
+                final var retrieveHealth = RetrieveHealth.newInstance();
+                return actorRefsFuture.thenCompose(actorRefs -> {
+                    final var askResultsFuture = actorRefs.stream()
+                            .map(actorRef -> Patterns.ask(actorRef, retrieveHealth, AsyncChildActorNanny.TIMEOUT)
+                                    .thenApply(reply -> {
+                                        if (reply instanceof Status.Failure failure) {
+                                            throw new CompletionException(failure.cause());
+                                        }
+                                        return actorRef;
+                                    })
+                                    .toCompletableFuture())
+                            .toList();
+                    return CompletableFutureUtils.collectAsList(askResultsFuture);
+                });
+            };
+        } else {
+            return Function.identity();
+        }
     }
 
     private static MqttSubscribeException newMqttSubscribeExceptionForFailedSourceSubscribeResults(
@@ -187,8 +221,8 @@ final class ConnectionTester {
         );
     }
 
-    private ActorRef startConsumerActor(final SubscribeResult subscribeSuccess) {
-        return childActorNanny.startChildActorConflictFree(
+    private CompletionStage<ActorRef> startConsumerActor(final SubscribeResult subscribeSuccess) {
+        return asyncChildActorNanny.startChildActorConflictFree(
                 MqttConsumerActor.class.getSimpleName(),
                 MqttConsumerActor.propsDryRun(hiveMqttClientProperties.getMqttConnection(),
                         inboundMappingSink,
@@ -199,13 +233,13 @@ final class ConnectionTester {
         );
     }
 
-    private BiFunction<Stream<ActorRef>, Throwable, Status.Status> getAppropriateStatus(
+    private BiFunction<List<ActorRef>, Throwable, Status.Status> getAppropriateStatus(
             final GenericMqttClient genericMqttClient
     ) {
         return (childActorRefs, error) -> {
             final Status.Status result;
             if (null == error) {
-                result = handleConnectionTestSuccess(childActorRefs);
+                result = handleConnectionTestSuccess();
             } else {
                 result = logFailureAndGetStatus(error);
             }
@@ -214,7 +248,7 @@ final class ConnectionTester {
         };
     }
 
-    private Status.Status handleConnectionTestSuccess(final Stream<ActorRef> childActorRefs) {
+    private Status.Status handleConnectionTestSuccess() {
         final var mqttConnection = hiveMqttClientProperties.getMqttConnection();
         logger.info("Test for connection <{}> at <{}> was successful.",
                 mqttConnection.getId(),
@@ -224,7 +258,7 @@ final class ConnectionTester {
         final var connectionLogger = hiveMqttClientProperties.getConnectionLogger();
         connectionLogger.success(successMessage);
 
-        childActorRefs.forEach(childActorNanny::stopChildActor);
+        asyncChildActorNanny.stop();
 
         return new Status.Success(successMessage);
     }
@@ -267,6 +301,7 @@ final class ConnectionTester {
         private ChildActorNanny childActorNanny;
         private ClassicActorSystemProvider systemProvider;
         @Nullable private CharSequence correlationId;
+        private boolean isTest;
 
         private Builder() {
             hiveMqttClientProperties = null;
@@ -275,6 +310,7 @@ final class ConnectionTester {
             childActorNanny = null;
             systemProvider = null;
             correlationId = null;
+            isTest = false;
         }
 
         Builder withHiveMqttClientProperties(final HiveMqttClientProperties hiveMqttClientProperties) {
@@ -307,6 +343,11 @@ final class ConnectionTester {
             return this;
         }
 
+        Builder asTest() {
+            this.isTest = true;
+            return this;
+        }
+
         ConnectionTester build() {
             return new ConnectionTester(this);
         }
@@ -336,7 +377,7 @@ final class ConnectionTester {
          * @return the instance.
          * @throws NullPointerException if {@code sourceSubscribeResults} is {@code null}.
          */
-         static TotalSubscribeResult of(final List<SubscribeResult> sourceSubscribeResults) {
+        static TotalSubscribeResult of(final List<SubscribeResult> sourceSubscribeResults) {
             checkNotNull(sourceSubscribeResults, "sourceSubscribeResults");
             final var subscribeResultsByIsSuccess =
                     sourceSubscribeResults.stream().collect(Collectors.partitioningBy(SubscribeResult::isSuccess));
