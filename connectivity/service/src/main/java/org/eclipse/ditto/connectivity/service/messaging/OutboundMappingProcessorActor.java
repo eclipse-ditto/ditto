@@ -301,7 +301,7 @@ public final class OutboundMappingProcessorActor
     private Object handleNotExpectedAcknowledgement(final Acknowledgement acknowledgement) {
         // acknowledgements are not published to targets or reply-targets. this one is mis-routed.
         logger.withCorrelationId(acknowledgement)
-                .warning("Received Acknowledgement where non was expected, discarding it: {}", acknowledgement);
+                .warning("Received Acknowledgement where none was expected, discarding it: {}", acknowledgement);
         return Done.getInstance();
     }
 

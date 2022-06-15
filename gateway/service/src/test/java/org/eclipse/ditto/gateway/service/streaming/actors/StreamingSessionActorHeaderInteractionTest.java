@@ -30,6 +30,7 @@ import org.eclipse.ditto.base.model.acks.DittoAcknowledgementLabel;
 import org.eclipse.ditto.base.model.auth.AuthorizationModelFactory;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.translator.HeaderTranslator;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
@@ -39,6 +40,7 @@ import org.eclipse.ditto.gateway.service.security.authentication.jwt.JwtAuthenti
 import org.eclipse.ditto.gateway.service.security.authentication.jwt.JwtValidator;
 import org.eclipse.ditto.gateway.service.streaming.signals.Connect;
 import org.eclipse.ditto.gateway.service.streaming.signals.IncomingSignal;
+import org.eclipse.ditto.internal.models.acks.AcknowledgementAggregatorActorStarter;
 import org.eclipse.ditto.internal.models.acks.config.DefaultAcknowledgementConfig;
 import org.eclipse.ditto.internal.utils.pubsub.DittoProtocolSub;
 import org.eclipse.ditto.things.model.Thing;
@@ -128,7 +130,7 @@ public final class StreamingSessionActorHeaderInteractionTest {
 
     @BeforeClass
     public static void startActorSystem() {
-        actorSystem = ActorSystem.create();
+        actorSystem = ActorSystem.create("testSystem", ConfigFactory.load("test"));
         actorSystem.eventStream().setLogLevel(Attributes.logLevelWarning());
     }
 
@@ -157,7 +159,19 @@ public final class StreamingSessionActorHeaderInteractionTest {
             final Optional<HttpStatus> expectedStatusCode = getExpectedOutcome();
             final boolean isBadRequest = expectedStatusCode.filter(HttpStatus.BAD_REQUEST::equals).isPresent();
             if (!isBadRequest) {
-                commandRouterProbe.expectMsg(modifyThing);
+                ModifyThing receivedModifyThing = commandRouterProbe.expectMsgClass(ModifyThing.class);
+                final DittoHeaders receivedHeaders = receivedModifyThing.getDittoHeaders();
+                if (AcknowledgementAggregatorActorStarter.shouldStartForIncoming(modifyThing)) {
+                    assertThat(receivedHeaders.get(DittoHeaderDefinition.DITTO_ACKREGATOR_ADDRESS.getKey()))
+                            .startsWith("akka:");
+                    receivedModifyThing = receivedModifyThing.setDittoHeaders(
+                            receivedHeaders.toBuilder()
+                                    .removeHeader(DittoHeaderDefinition.DITTO_ACKREGATOR_ADDRESS.getKey())
+                                    .build()
+                    );
+                }
+                assertThat(receivedModifyThing).isEqualTo(modifyThing);
+
                 // Regardless whether downstream sends reply, streaming session actor should not publish response
                 // or error when response-required = false.
                 commandRouterProbe.reply(getModifyThingResponse(modifyThing));

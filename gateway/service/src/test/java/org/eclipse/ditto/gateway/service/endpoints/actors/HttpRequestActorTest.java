@@ -37,6 +37,7 @@ import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.connectivity.model.LogLevel;
 import org.eclipse.ditto.connectivity.model.LogType;
 import org.eclipse.ditto.gateway.service.endpoints.routes.whoami.Whoami;
+import org.eclipse.ditto.internal.models.acks.AcknowledgementAggregatorActorStarter;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
@@ -111,7 +112,19 @@ public final class HttpRequestActorTest extends AbstractHttpRequestActorTest {
         final var underTest = createHttpRequestActor(proxyActorProbe.ref(), request, responseFuture);
         underTest.tell(command, ActorRef.noSender());
 
-        proxyActorProbe.expectMsg(command);
+        ModifyAttribute receivedModifyAttribute = proxyActorProbe.expectMsgClass(ModifyAttribute.class);
+        final DittoHeaders receivedHeaders = receivedModifyAttribute.getDittoHeaders();
+        if (AcknowledgementAggregatorActorStarter.shouldStartForIncoming(command)) {
+            assertThat(receivedHeaders.get(DittoHeaderDefinition.DITTO_ACKREGATOR_ADDRESS.getKey()))
+                    .startsWith("akka:");
+            receivedModifyAttribute = receivedModifyAttribute.setDittoHeaders(
+                    receivedHeaders.toBuilder()
+                            .removeHeader(DittoHeaderDefinition.DITTO_ACKREGATOR_ADDRESS.getKey())
+                            .build()
+            );
+        }
+        assertThat(receivedModifyAttribute).isEqualTo(command);
+
         proxyActorProbe.reply(createAttributeResponse);
         proxyActorProbe.reply(customAcknowledgement);
 
@@ -145,7 +158,6 @@ public final class HttpRequestActorTest extends AbstractHttpRequestActorTest {
                 .build();
 
         testThingModifyCommand(thingId,
-                attributeName,
                 attributePointer,
                 dittoHeaders,
                 expectedHeaders,
@@ -174,7 +186,6 @@ public final class HttpRequestActorTest extends AbstractHttpRequestActorTest {
                 .build();
 
         testThingModifyCommand(thingId,
-                attributeName,
                 attributePointer,
                 dittoHeaders,
                 expectedHeaders,
@@ -203,7 +214,6 @@ public final class HttpRequestActorTest extends AbstractHttpRequestActorTest {
                 setResponseRequiredToFalse(expectedHeaders));
 
         testThingModifyCommand(thingId,
-                attributeName,
                 attributePointer,
                 dittoHeaders,
                 expectedHeaders,
@@ -222,7 +232,6 @@ public final class HttpRequestActorTest extends AbstractHttpRequestActorTest {
                 .build();
 
         testThingModifyCommand(ThingId.generateRandom(),
-                attributeName,
                 JsonPointer.of(attributeName),
                 dittoHeaders,
                 DittoHeaders.newBuilder(dittoHeaders).acknowledgementRequests(Collections.emptyList()).build(),
@@ -251,7 +260,6 @@ public final class HttpRequestActorTest extends AbstractHttpRequestActorTest {
                 .build();
 
         testThingModifyCommand(thingId,
-                attributeName,
                 attributePointer,
                 dittoHeaders,
                 expectedHeaders,

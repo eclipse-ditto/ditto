@@ -35,6 +35,7 @@ import org.eclipse.ditto.gateway.service.endpoints.routes.whoami.DefaultUserInfo
 import org.eclipse.ditto.gateway.service.endpoints.routes.whoami.Whoami;
 import org.eclipse.ditto.gateway.service.util.config.DittoGatewayConfig;
 import org.eclipse.ditto.gateway.service.util.config.GatewayConfig;
+import org.eclipse.ditto.internal.models.acks.AcknowledgementAggregatorActorStarter;
 import org.eclipse.ditto.internal.utils.akka.ActorSystemResource;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.json.JsonObject;
@@ -74,7 +75,8 @@ import akka.util.ByteString;
 public abstract class AbstractHttpRequestActorTest {
 
     @ClassRule
-    public static final ActorSystemResource ACTOR_SYSTEM_RESOURCE = ActorSystemResource.newInstance();
+    public static final ActorSystemResource ACTOR_SYSTEM_RESOURCE = ActorSystemResource.newInstance(
+            ConfigFactory.load("test"));
 
     static final HeaderTranslator HEADER_TRANSLATOR = HeaderTranslator.of(DittoHeaderDefinition.values(),
             MessageHeaderDefinition.values());
@@ -92,7 +94,6 @@ public abstract class AbstractHttpRequestActorTest {
     }
 
     void testThingModifyCommand(final ThingId thingId,
-            final String attributeName,
             final JsonPointer attributePointer,
             final DittoHeaders dittoHeaders,
             final DittoHeaders expectedHeaders,
@@ -108,8 +109,19 @@ public abstract class AbstractHttpRequestActorTest {
 
         underTest.tell(modifyAttribute, ActorRef.noSender());
 
-        final var expectedModifyAttribute = modifyAttribute.setDittoHeaders(expectedHeaders);
-        proxyActorProbe.expectMsg(expectedModifyAttribute);
+        final ModifyAttribute expectedModifyAttribute = modifyAttribute.setDittoHeaders(expectedHeaders);
+        ModifyAttribute receivedModifyAttribute = proxyActorProbe.expectMsgClass(ModifyAttribute.class);
+        final DittoHeaders receivedHeaders = receivedModifyAttribute.getDittoHeaders();
+        if (AcknowledgementAggregatorActorStarter.shouldStartForIncoming(expectedModifyAttribute)) {
+            assertThat(receivedHeaders.get(DittoHeaderDefinition.DITTO_ACKREGATOR_ADDRESS.getKey()))
+                    .startsWith("akka:");
+            receivedModifyAttribute = receivedModifyAttribute.setDittoHeaders(
+                    receivedHeaders.toBuilder()
+                            .removeHeader(DittoHeaderDefinition.DITTO_ACKREGATOR_ADDRESS.getKey())
+                            .build()
+            );
+        }
+        assertThat(receivedModifyAttribute).isEqualTo(expectedModifyAttribute);
 
         if (null != probeResponse) {
             proxyActorProbe.reply(probeResponse);
@@ -184,7 +196,19 @@ public abstract class AbstractHttpRequestActorTest {
         underTest.tell(sendThingMessage, ActorRef.noSender());
 
         final var expectedSendThingMessage = sendThingMessage.setDittoHeaders(expectedHeaders);
-        proxyActorProbe.expectMsg(expectedSendThingMessage);
+
+        SendThingMessage<?> receivedSendThingMessage = proxyActorProbe.expectMsgClass(SendThingMessage.class);
+        final DittoHeaders receivedHeaders = receivedSendThingMessage.getDittoHeaders();
+        if (AcknowledgementAggregatorActorStarter.shouldStartForIncoming(expectedSendThingMessage)) {
+            assertThat(receivedHeaders.get(DittoHeaderDefinition.DITTO_ACKREGATOR_ADDRESS.getKey()))
+                    .startsWith("akka:");
+            receivedSendThingMessage = receivedSendThingMessage.setDittoHeaders(
+                    receivedHeaders.toBuilder()
+                            .removeHeader(DittoHeaderDefinition.DITTO_ACKREGATOR_ADDRESS.getKey())
+                            .build()
+            );
+        }
+        assertThat(receivedSendThingMessage).isEqualTo(expectedSendThingMessage);
 
         if (null != probeResponse) {
             proxyActorProbe.reply(probeResponse);

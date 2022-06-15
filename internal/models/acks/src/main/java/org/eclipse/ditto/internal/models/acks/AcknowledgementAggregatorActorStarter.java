@@ -140,6 +140,32 @@ public final class AcknowledgementAggregatorActorStarter {
                 responseAcknowledgementProviders);
     }
 
+
+    /**
+     * Checks if the {@code AcknowledgementAggregatorActor} should be started for the passed {@code signal}.
+     * Public because this is also used in unit tests.
+     *
+     * @param signal the signal to check for whether the ack aggregator actor should be started.
+     * @return whether the ack aggregator actor should be started
+     */
+    public static boolean shouldStartForIncoming(final Signal<?> signal) {
+        final boolean result;
+
+        final var isLiveSignal = Signal.isChannelLive(signal);
+        final var isChannelSmart = Signal.isChannelSmart(signal);
+        final Collection<AcknowledgementRequest> ackRequests = signal.getDittoHeaders().getAcknowledgementRequests();
+        if (signal instanceof Command<?> command && command.getCategory() == Command.Category.MODIFY && !isLiveSignal) {
+            result = ackRequests.stream().anyMatch(AcknowledgementForwarderActorStarter::isNotLiveResponse);
+        } else if (Command.isMessageCommand(signal) || isLiveSignal && Command.isThingCommand(signal)) {
+            result = ackRequests.stream().anyMatch(AcknowledgementForwarderActorStarter::isNotTwinPersisted);
+        } else {
+            result = isChannelSmart;
+        }
+
+        return result;
+    }
+
+
     /**
      * Start an acknowledgement aggregator actor if needed.
      *
@@ -298,25 +324,6 @@ public final class AcknowledgementAggregatorActorStarter {
             }
         } else {
             result = false;
-        }
-
-        return result;
-    }
-
-    private static boolean shouldStartForIncoming(final Signal<?> signal) {
-        final boolean result;
-
-        final var isLiveSignal = Signal.isChannelLive(signal);
-        final var isChannelSmart = Signal.isChannelSmart(signal);
-        final Collection<AcknowledgementRequest> ackRequests = signal.getDittoHeaders().getAcknowledgementRequests();
-        if (signal instanceof Command<?> command && command.getCategory() == Command.Category.MODIFY && !isLiveSignal) {
-            result = ackRequests.stream().anyMatch(AcknowledgementForwarderActorStarter::isNotLiveResponse);
-        } else if (Command.isMessageCommand(signal) ||
-                isLiveSignal && Command.isThingCommand(signal)) {
-
-            result = ackRequests.stream().anyMatch(AcknowledgementForwarderActorStarter::isNotTwinPersisted);
-        } else {
-            result = isChannelSmart;
         }
 
         return result;

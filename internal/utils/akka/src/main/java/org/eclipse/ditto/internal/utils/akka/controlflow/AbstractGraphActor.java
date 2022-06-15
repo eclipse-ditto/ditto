@@ -184,14 +184,14 @@ public abstract class AbstractGraphActor<T, M> extends AbstractActor {
 
     private void handleMatched(final SourceQueue<T> sourceQueue, final M match) {
         final ThreadSafeDittoLoggingAdapter loggerWithCID;
-        if (match instanceof WithDittoHeaders) {
-            loggerWithCID = logger.withCorrelationId((WithDittoHeaders) match);
+        if (match instanceof WithDittoHeaders withDittoHeaders) {
+            loggerWithCID = logger.withCorrelationId(withDittoHeaders);
         } else {
             loggerWithCID = logger;
         }
-        if (match instanceof WithEntityId) {
+        if (match instanceof WithEntityId withEntityId) {
             loggerWithCID.debug("Received <{}> with ID <{}>.", match.getClass().getSimpleName(),
-                    ((WithEntityId) match).getEntityId());
+                    withEntityId.getEntityId());
         } else {
             loggerWithCID.debug("Received match: <{}>.", match);
         }
@@ -206,8 +206,7 @@ public abstract class AbstractGraphActor<T, M> extends AbstractActor {
             enqueueDroppedCounter.increment();
             logger.error("Dropped message as result of backpressure strategy! - result was: {} - adjust queue " +
                     "size or scaling if this appears regularly", result);
-        } else if (result instanceof QueueOfferResult.Failure) {
-            final var failure = (QueueOfferResult.Failure) result;
+        } else if (result instanceof QueueOfferResult.Failure failure) {
             logger.error(failure.cause(), "Enqueue failed!");
             enqueueFailureCounter.increment();
         } else {

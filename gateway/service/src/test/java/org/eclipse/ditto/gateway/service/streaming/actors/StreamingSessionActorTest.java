@@ -97,7 +97,8 @@ public final class StreamingSessionActorTest {
     private static AuthorizationContext authorizationContext;
 
     @Rule
-    public final ActorSystemResource actorSystemResource = ActorSystemResource.newInstance();
+    public final ActorSystemResource actorSystemResource = ActorSystemResource.newInstance(
+            ConfigFactory.load("test"));
 
     @Rule
     public final TestName testName = new TestName();
