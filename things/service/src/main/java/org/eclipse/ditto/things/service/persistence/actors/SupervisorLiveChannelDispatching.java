@@ -87,23 +87,21 @@ final class SupervisorLiveChannelDispatching {
      * acknowledgements.
      *
      * @param thingQueryCommand the command to handle as "live" query command
-     * @param sender the original sender of the command required for responding the live response to
      * @param responseHandler a response handler function creating the instance of {@link TargetActorWithMessage} the
      * returned CompletionStage will be completed with
      * @return a CompletionStage which will be completed with a target actor and a message to send to this target actor
      */
     CompletionStage<TargetActorWithMessage> dispatchLiveChannelThingQueryCommand(
             final ThingQueryCommand<?> thingQueryCommand,
-            final ActorRef sender,
             final BiFunction<ThingQueryCommand<?>, ActorRef, TargetActorWithMessage> responseHandler) {
 
         if (enforcementConfig.shouldDispatchGlobally(thingQueryCommand)) {
             return responseReceiverCache.insertResponseReceiverConflictFree(thingQueryCommand,
-                    conflictFreeCommand -> createLiveResponseReceiverActor(conflictFreeCommand, sender),
+                    this::createLiveResponseReceiverActor,
                     responseHandler
             );
         } else {
-            final var receiver = createLiveResponseReceiverActor(thingQueryCommand, sender);
+            final var receiver = createLiveResponseReceiverActor(thingQueryCommand);
             return CompletableFuture.completedStage(responseHandler.apply(thingQueryCommand, receiver));
         }
     }
@@ -278,12 +276,10 @@ final class SupervisorLiveChannelDispatching {
         }
     }
 
-    private ActorRef createLiveResponseReceiverActor(final ThingQueryCommand<?> thingQueryCommand,
-            final ActorRef sender) {
+    private ActorRef createLiveResponseReceiverActor(final ThingQueryCommand<?> thingQueryCommand) {
 
         final var pub = liveSignalPub.command();
-        final var props = LiveResponseAndAcknowledgementForwarder.props(thingQueryCommand, pub.getPublisher(),
-                sender);
+        final var props = LiveResponseAndAcknowledgementForwarder.props(thingQueryCommand, pub.getPublisher());
         // and start the actor using the provided actorRefFactory
         return actorRefFactory.actorOf(props);
     }

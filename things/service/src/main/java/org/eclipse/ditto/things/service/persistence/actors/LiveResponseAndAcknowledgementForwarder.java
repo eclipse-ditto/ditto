@@ -19,6 +19,7 @@ import java.util.Set;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.base.model.acks.AcknowledgementLabel;
+import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgements;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
@@ -30,15 +31,14 @@ import org.eclipse.ditto.things.model.signals.commands.query.ThingQueryCommand;
 
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
+import akka.actor.ActorSelection;
 import akka.actor.Props;
 import akka.actor.ReceiveTimeout;
 import akka.japi.pf.ReceiveBuilder;
 
 /**
  * An actor to deal with a live thing query command expecting a response and requesting custom acknowledgements.
- * The sender of the live command is an actor in Concierge in order to apply policy enforcement on the response.
- * As a result, custom acknowledgements are also sent to Concierge, which must forward them to the acknowledgement
- * aggregator actor.
+ * The sender of the live command is an actor in order to apply policy enforcement on the response.
  */
 final class LiveResponseAndAcknowledgementForwarder extends AbstractActor {
 
@@ -47,7 +47,6 @@ final class LiveResponseAndAcknowledgementForwarder extends AbstractActor {
     private final DittoDiagnosticLoggingAdapter log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
 
     private final ActorRef messageReceiver;
-    private final ActorRef acknowledgementReceiver;
     private final Set<AcknowledgementLabel> pendingAcknowledgements;
     private final ThingQueryCommand<?> thingQueryCommand;
     private final CommandAndCommandResponseMatchingValidator responseValidator;
@@ -58,12 +57,10 @@ final class LiveResponseAndAcknowledgementForwarder extends AbstractActor {
 
     @SuppressWarnings("unused")
     private LiveResponseAndAcknowledgementForwarder(final ThingQueryCommand<?> thingQueryCommand,
-            final ActorRef messageReceiver,
-            final ActorRef acknowledgementReceiver) {
+            final ActorRef messageReceiver) {
 
         pendingAcknowledgements = new HashSet<>();
         this.messageReceiver = messageReceiver;
-        this.acknowledgementReceiver = acknowledgementReceiver;
         this.thingQueryCommand = thingQueryCommand;
         responseValidator = CommandAndCommandResponseMatchingValidator.getInstance();
         getContext().setReceiveTimeout(this.thingQueryCommand.getDittoHeaders().getTimeout().orElse(DEFAULT_TIMEOUT));
@@ -77,14 +74,11 @@ final class LiveResponseAndAcknowledgementForwarder extends AbstractActor {
      *
      * @param thingQueryCommand The live command whose acknowledgements and responses this actor listens for.
      * @param messageReceiver Receiver of the message to publish.
-     * @param acknowledgementReceiver Receiver of acknowledgements.
      * @return The Props object.
      */
     public static Props props(final ThingQueryCommand<?> thingQueryCommand,
-            final ActorRef messageReceiver,
-            final ActorRef acknowledgementReceiver) {
-        return Props.create(LiveResponseAndAcknowledgementForwarder.class, thingQueryCommand, messageReceiver,
-                acknowledgementReceiver);
+            final ActorRef messageReceiver) {
+        return Props.create(LiveResponseAndAcknowledgementForwarder.class, thingQueryCommand, messageReceiver);
     }
 
     @Override
@@ -107,7 +101,7 @@ final class LiveResponseAndAcknowledgementForwarder extends AbstractActor {
     private void onAcknowledgement(final Acknowledgement ack) {
         log.debug("Got <{}>", ack);
         pendingAcknowledgements.remove(ack.getLabel());
-        acknowledgementReceiver.forward(ack, getContext());
+        forwardToAcknowledgementRequester(ack);
     }
 
     private void onAcknowledgements(final Acknowledgements acks) {
@@ -115,7 +109,7 @@ final class LiveResponseAndAcknowledgementForwarder extends AbstractActor {
         for (final var ack : acks) {
             pendingAcknowledgements.remove(ack.getLabel());
         }
-        acknowledgementReceiver.forward(acks, getContext());
+        forwardToAcknowledgementRequester(acks);
     }
 
     private void onCommandResponse(final CommandResponse<?> incomingResponse) {
@@ -132,7 +126,26 @@ final class LiveResponseAndAcknowledgementForwarder extends AbstractActor {
                 stopSelf("Message sender not found");
             }
         } else {
-            acknowledgementReceiver.forward(response, getContext());
+            forwardToAcknowledgementRequester(response);
+        }
+    }
+
+    private void forwardToAcknowledgementRequester(final CommandResponse<?> ackResponse) {
+        final String ackregatorAddress = ackResponse.getDittoHeaders()
+                .getOrDefault(DittoHeaderDefinition.DITTO_ACKREGATOR_ADDRESS.getKey(),
+                        thingQueryCommand.getDittoHeaders()
+                                .get(DittoHeaderDefinition.DITTO_ACKREGATOR_ADDRESS.getKey()));
+        if (null != ackregatorAddress) {
+            final ActorSelection acknowledgementRequester = getContext().actorSelection(ackregatorAddress);
+            log.withCorrelationId(ackResponse)
+                    .debug("Received Acknowledgement / live CommandResponse, forwarding to original requester <{}>: " +
+                            "<{}>", acknowledgementRequester, ackResponse);
+            acknowledgementRequester.forward(ackResponse, getContext());
+        } else {
+            log.withCorrelationId(ackResponse)
+                    .error("Received Acknowledgement / live CommandResponse <{}> did not contain header of " +
+                                    "Ackgregator address: {}", ackResponse.getClass().getSimpleName(),
+                            ackResponse.getDittoHeaders());
         }
     }
 

@@ -153,7 +153,9 @@ public final class SmartChannelEnforcementTest extends AbstractThingEnforcementT
 
             expectLiveQueryCommandOnPubSub(retrieveThing);
             pubSubMediatorProbe.reply(ThingErrorResponse.of(ThingIdInvalidException.newBuilder(retrieveThing.getEntityId())
-                    .dittoHeaders(DittoHeaders.newBuilder().channel("live").build())
+                    .dittoHeaders(DittoHeaders.newBuilder().channel("live")
+                            .putHeader(DittoHeaderDefinition.DITTO_ACKREGATOR_ADDRESS.getKey(), getRef().path().toSerializationFormat())
+                            .build())
                     .build()));
 
             final var receivedErrorResponse = expectMsgClass(ThingErrorResponse.class);
@@ -245,7 +247,9 @@ public final class SmartChannelEnforcementTest extends AbstractThingEnforcementT
 
             expectLiveQueryCommandOnPubSub(retrieveThing);
             pubSubMediatorProbe.reply(ThingErrorResponse.of(ThingIdInvalidException.newBuilder(retrieveThing.getEntityId())
-                    .dittoHeaders(DittoHeaders.newBuilder().channel("live").build())
+                    .dittoHeaders(DittoHeaders.newBuilder().channel("live")
+                            .putHeader(DittoHeaderDefinition.DITTO_ACKREGATOR_ADDRESS.getKey(), getRef().path().toSerializationFormat())
+                            .build())
                     .build()));
             final var receivedErrorResponse = expectMsgClass(ThingErrorResponse.class);
             assertLiveChannel(receivedErrorResponse);

@@ -20,6 +20,8 @@ import java.time.Duration;
 import java.util.Optional;
 import java.util.function.Predicate;
 
+import javax.annotation.Nullable;
+
 import org.eclipse.ditto.base.model.acks.AcknowledgementLabel;
 import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
@@ -57,6 +59,7 @@ public final class AcknowledgementForwarderActor extends AbstractActor {
     static final String ACTOR_NAME_PREFIX = "ackForwarder-";
 
     private final String correlationId;
+    @Nullable private final String ackgregatorAddressFallback;
     private final DittoDiagnosticLoggingAdapter log;
 
     @SuppressWarnings("unused")
@@ -67,6 +70,7 @@ public final class AcknowledgementForwarderActor extends AbstractActor {
                         // fall back using the actor name which also contains the correlation-id
                         getSelf().path().name().replace(ACTOR_NAME_PREFIX, "")
                 );
+        ackgregatorAddressFallback = dittoHeaders.get(DittoHeaderDefinition.DITTO_ACKREGATOR_ADDRESS.getKey());
         log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
 
         getContext().setReceiveTimeout(dittoHeaders.getTimeout().orElse(defaultTimeout));
@@ -94,7 +98,8 @@ public final class AcknowledgementForwarderActor extends AbstractActor {
 
     private void forwardCommandResponse(final WithDittoHeaders acknowledgementOrResponse) {
         final DittoHeaders dittoHeaders = acknowledgementOrResponse.getDittoHeaders();
-        final String ackregatorAddress = dittoHeaders.get(DittoHeaderDefinition.DITTO_ACKREGATOR_ADDRESS.getKey());
+        final String ackregatorAddress = dittoHeaders.getOrDefault(
+                DittoHeaderDefinition.DITTO_ACKREGATOR_ADDRESS.getKey(), ackgregatorAddressFallback);
         if (null != ackregatorAddress) {
             final ActorSelection acknowledgementRequester = getContext().actorSelection(ackregatorAddress);
             log.withCorrelationId(acknowledgementOrResponse)

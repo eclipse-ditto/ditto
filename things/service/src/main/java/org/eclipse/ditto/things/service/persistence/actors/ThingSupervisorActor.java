@@ -220,7 +220,7 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
         } else if (message instanceof ThingQueryCommand<?> thingQueryCommand &&
                 Command.isLiveCommand(thingQueryCommand)) {
 
-            return liveChannelDispatching.dispatchLiveChannelThingQueryCommand(thingQueryCommand, sender,
+            return liveChannelDispatching.dispatchLiveChannelThingQueryCommand(thingQueryCommand,
                     liveChannelDispatching::prepareForPubSubPublishing);
         } else if (message instanceof Signal<?> signal &&
                 (Command.isLiveCommand(signal) || Event.isLiveEvent(signal))) {

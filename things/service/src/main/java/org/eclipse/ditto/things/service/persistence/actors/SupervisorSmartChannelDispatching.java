@@ -88,7 +88,7 @@ final class SupervisorSmartChannelDispatching {
                     if (shouldAttemptLiveChannel(thingQueryCommand, twinQueryCommandResponse)) {
                         // perform conversion + publishing of live command
                         final ThingQueryCommand<?> liveCommand = toLiveCommand(thingQueryCommand);
-                        return liveChannelDispatching.dispatchLiveChannelThingQueryCommand(liveCommand, sender,
+                        return liveChannelDispatching.dispatchLiveChannelThingQueryCommand(liveCommand,
                                 (command, receiver) ->
                                         liveChannelDispatching.prepareForPubSubPublishing(command, receiver,
                                                 response ->
