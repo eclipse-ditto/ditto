@@ -119,9 +119,9 @@ public class EdgeCommandForwarderActor extends AbstractActor {
                     log.withCorrelationId(transformedMessageCommand)
                             .info("Forwarding message command with ID <{}> and type <{}> to 'things' shard region",
                                     transformedMessageCommand.getEntityId(), transformedMessageCommand.getType());
-                    askWithRetryCommandForwarder.forwardCommand(transformedMessageCommand, shardRegions.things(),
-                            sender);
 
+                    // don't send message commands with retries - we cannot assure idempotency!
+                    shardRegions.things().tell(transformedMessageCommand, sender);
                 });
     }
 
@@ -133,8 +133,16 @@ public class EdgeCommandForwarderActor extends AbstractActor {
                     log.withCorrelationId(transformedThingCommand)
                             .info("Forwarding thing command with ID <{}> and type <{}> to 'things' shard region",
                                     transformedThingCommand.getEntityId(), transformedThingCommand.getType());
-                    askWithRetryCommandForwarder.forwardCommand(transformedThingCommand, shardRegions.things(), sender);
 
+                    if (!Signal.isChannelLive(transformedThingCommand) &&
+                            !Signal.isChannelSmart(transformedThingCommand) &&
+                            isIdempotent(transformedThingCommand)) {
+                        askWithRetryCommandForwarder.forwardCommand(transformedThingCommand,
+                                shardRegions.things(),
+                                sender);
+                    } else {
+                        shardRegions.things().tell(transformedThingCommand, sender);
+                    }
                 });
     }
 
@@ -153,8 +161,14 @@ public class EdgeCommandForwarderActor extends AbstractActor {
                     log.withCorrelationId(transformedPolicyCommand)
                             .info("Forwarding policy command with ID <{}> and type <{}> to 'policies' shard region",
                                     transformedPolicyCommand.getEntityId(), transformedPolicyCommand.getType());
-                    askWithRetryCommandForwarder.forwardCommand(transformedPolicyCommand, shardRegions.policies(),
-                            sender);
+
+                    if (isIdempotent(transformedPolicyCommand)) {
+                        askWithRetryCommandForwarder.forwardCommand(transformedPolicyCommand,
+                                shardRegions.policies(),
+                                sender);
+                    } else {
+                        shardRegions.policies().tell(transformedPolicyCommand, sender);
+                    }
                 });
 
     }
@@ -170,9 +184,15 @@ public class EdgeCommandForwarderActor extends AbstractActor {
                                 .info("Forwarding connectivity command with ID <{}> and type <{}> to 'connections' " +
                                                 "shard region", withEntityId.getEntityId(),
                                         transformedConnectivityCommand.getType());
-                        askWithRetryCommandForwarder.forwardCommand(transformedConnectivityCommand,
-                                shardRegions.connections(),
-                                sender);
+
+                        if (isIdempotent(transformedConnectivityCommand)) {
+                            askWithRetryCommandForwarder.forwardCommand(transformedConnectivityCommand,
+                                    shardRegions.connections(),
+                                    sender);
+                        } else {
+                            shardRegions.connections().tell(transformedConnectivityCommand, sender);
+                        }
+
                     });
         } else {
             log.withCorrelationId(connectivityCommand)
@@ -182,9 +202,18 @@ public class EdgeCommandForwarderActor extends AbstractActor {
     }
 
     private void forwardToThingSearch(final Command<?> command) {
-        final ActorRef sender = getSender();
-        final var message = DistPubSubAccess.send(ThingsSearchConstants.SEARCH_ACTOR_PATH, command);
-        askWithRetryCommandForwarder.forwardCommandViaPubSub(command, message, pubSubMediator, sender);
+        // don't use "ask with retry" as the search could take some time and we don't want to stress the search
+        // by retrying a query several times if it took long
+        pubSubMediator.tell(
+                DistPubSubAccess.send(ThingsSearchConstants.SEARCH_ACTOR_PATH, command),
+                getSender());
+    }
+
+    private static boolean isIdempotent(final Command<?> command) {
+        return switch (command.getCategory()) {
+            case QUERY, MERGE, MODIFY, DELETE -> true;
+            default -> false;
+        };
     }
 
     private void handleUnknownSignal(final Signal<?> signal) {

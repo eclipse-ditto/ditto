@@ -134,6 +134,11 @@ public interface Command<T extends Command<T>> extends Signal<T> {
         QUERY,
 
         /**
+         * Category of commands that creates entities.
+         */
+        CREATE,
+
+        /**
          * Category of commands that change the state of entities.
          */
         MODIFY,

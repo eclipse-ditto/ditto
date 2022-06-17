@@ -164,7 +164,7 @@ public final class CreatePolicy extends AbstractCommand<CreatePolicy> implements
 
     @Override
     public Category getCategory() {
-        return Category.MODIFY;
+        return Category.CREATE;
     }
 
     @Override

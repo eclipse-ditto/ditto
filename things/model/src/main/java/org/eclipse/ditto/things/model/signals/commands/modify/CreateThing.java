@@ -288,7 +288,7 @@ public final class CreateThing extends AbstractCommand<CreateThing> implements T
 
     @Override
     public Category getCategory() {
-        return Category.MODIFY;
+        return Category.CREATE;
     }
 
     @Override

@@ -61,7 +61,8 @@ public final class ThingCreated extends AbstractThingEvent<ThingCreated> impleme
             final DittoHeaders dittoHeaders,
             @Nullable final Metadata metadata) {
 
-        super(TYPE, thing.getEntityId().orElse(null), revision, timestamp, dittoHeaders, metadata);
+        super(TYPE, thing.getEntityId().orElseThrow(() -> new NullPointerException("Thing has no ID!")),
+                revision, timestamp, dittoHeaders, metadata);
         this.thing = thing;
     }
 
