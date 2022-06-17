@@ -16,8 +16,10 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.connectivity.api.HonoConfig;
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.ConnectionType;
+import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
 import org.eclipse.ditto.connectivity.service.messaging.amqp.AmqpClientActor;
 import org.eclipse.ditto.connectivity.service.messaging.httppush.HttpPushClientActor;
 import org.eclipse.ditto.connectivity.service.messaging.kafka.KafkaClientActor;
@@ -80,9 +82,13 @@ public final class DefaultClientActorPropsFactory implements ClientActorPropsFac
                 result = HiveMqtt5ClientActor.props(connection, proxyActor, connectionActor, dittoHeaders,
                         connectivityConfigOverwrites);
                 break;
-            case KAFKA, HONO:
+            case KAFKA:
                 result = KafkaClientActor.props(connection, proxyActor, connectionActor, dittoHeaders,
                         connectivityConfigOverwrites);
+                break;
+            case HONO:
+                result = KafkaClientActor.props(getEnrichedConnection(actorSystem, connection),
+                        proxyActor, connectionActor, dittoHeaders, connectivityConfigOverwrites);
                 break;
             case HTTP_PUSH:
                 result = HttpPushClientActor.props(connection, proxyActor, connectionActor, dittoHeaders,
@@ -92,6 +98,22 @@ public final class DefaultClientActorPropsFactory implements ClientActorPropsFac
                 throw new IllegalArgumentException("ConnectionType <" + connectionType + "> is not supported.");
         }
         return result;
+    }
+
+    private Connection getEnrichedConnection(final ActorSystem actorSystem, final Connection connection) {
+        var honoConfig = HonoConfig.get(actorSystem);
+        return ConnectivityModelFactory.newConnectionBuilder(
+                        connection.getId(),
+                        connection.getConnectionType(),
+                        connection.getConnectionStatus(),
+                        honoConfig.getBaseUri())
+                .credentials(honoConfig.getCredentials(connection.getId()))
+//                        .sources(connection.getSources()
+//                                .stream()
+//                                .map(source -> new Source(
+//                                    source.getAddresses().map(replaceAlias).collect(Collectors.toList());
+//                                            return source
+                .build();
     }
 
 }

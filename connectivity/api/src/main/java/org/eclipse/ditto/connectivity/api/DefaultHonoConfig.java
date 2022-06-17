@@ -13,6 +13,7 @@
 package org.eclipse.ditto.connectivity.api;
 
 import org.eclipse.ditto.base.model.common.ConditionChecker;
+import org.eclipse.ditto.connectivity.model.HonoAddressAliasValues;
 import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.connectivity.model.Credentials;
 import org.eclipse.ditto.connectivity.model.UserPasswordCredentials;
@@ -20,26 +21,33 @@ import org.eclipse.ditto.connectivity.model.UserPasswordCredentials;
 import com.typesafe.config.Config;
 
 import akka.actor.ActorSystem;
+
+/**
+ * Configuration class providing parameters for connection type 'Hono' in Ditto from static configuration
+ */
 public final class DefaultHonoConfig implements HonoConfig {
 
     private final String baseUri;
+    private final SaslMechanism saslMechanism;
+    private final String bootstrapServers;
 
-    private final String telemetryAddress;
-    private final String eventAddress;
-    private final String commandAndControlAddress;
-    private final String commandResponseAddress;
+    private final HonoAddressAliasValues honoAddressAliasValues;
 
     private final Credentials credentials;
 
     public DefaultHonoConfig(final ActorSystem actorSystem) {
         ConditionChecker.checkNotNull(actorSystem, "actorSystem");
         final Config config = actorSystem.settings().config().getConfig(PREFIX);
-        this.baseUri = config.getString(ConfigValues.BASE_URI.getConfigPath());
 
-        this.telemetryAddress = config.getString(ConfigValues.TELEMETRY_ADDRESS.getConfigPath());
-        this.eventAddress = config.getString(ConfigValues.EVENT_ADDRESS.getConfigPath());
-        this.commandAndControlAddress = config.getString(ConfigValues.COMMAND_AND_CONTROL_ADDRESS.getConfigPath());
-        this.commandResponseAddress = config.getString(ConfigValues.COMMAND_RESPONSE_ADDRESS.getConfigPath());
+        this.baseUri = config.getString(ConfigValues.BASE_URI.getConfigPath());
+        this.saslMechanism = config.getEnum(SaslMechanism.class, ConfigValues.SASL_MECHANISM.getConfigPath());
+        this.bootstrapServers = config.getString(ConfigValues.BOOTSTRAP_SERVERS.getConfigPath());
+
+        honoAddressAliasValues = HonoAddressAliasValues.newInstance(
+                config.getString(ConfigValues.TELEMETRY_ADDRESS.getConfigPath()),
+                config.getString(ConfigValues.EVENT_ADDRESS.getConfigPath()),
+                config.getString(ConfigValues.COMMAND_AND_CONTROL_ADDRESS.getConfigPath()),
+                config.getString(ConfigValues.COMMAND_RESPONSE_ADDRESS.getConfigPath()));
 
         this.credentials = UserPasswordCredentials.newInstance(
                 config.getString(ConfigValues.USERNAME.getConfigPath()),
@@ -52,23 +60,18 @@ public final class DefaultHonoConfig implements HonoConfig {
     }
 
     @Override
-    public String getTelemetryAddress() {
-        return telemetryAddress;
+    public SaslMechanism getSaslMechanism() {
+        return saslMechanism;
     }
 
     @Override
-    public String getEventAddress() {
-        return eventAddress;
+    public String getBootstrapServers() {
+        return bootstrapServers;
     }
 
     @Override
-    public String getCommandAndControlAddress() {
-        return commandAndControlAddress;
-    }
-
-    @Override
-    public String getCommandResponseAddress() {
-        return commandResponseAddress;
+    public HonoAddressAliasValues getAddressAliases(final ConnectionId connectionId) {
+        return honoAddressAliasValues;
     }
 
     @Override

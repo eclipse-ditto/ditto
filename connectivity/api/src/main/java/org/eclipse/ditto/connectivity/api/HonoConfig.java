@@ -12,6 +12,7 @@
 package org.eclipse.ditto.connectivity.api;
 import java.util.List;
 
+import org.eclipse.ditto.connectivity.model.HonoAddressAliasValues;
 import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.connectivity.model.Credentials;
 import org.eclipse.ditto.internal.utils.akka.AkkaClassLoader;
@@ -30,7 +31,7 @@ public interface HonoConfig extends Extension {
     /**
      * Prefix in .conf files
      */
-    String PREFIX = "hono-connection";
+    String PREFIX = "ditto/connectivity/hono-connection";
 
     /**
      * Gets the Base URI configuration value
@@ -40,33 +41,26 @@ public interface HonoConfig extends Extension {
     String getBaseUri();
 
     /**
-     * Gets the 'telemetry' alias configuration value
+     * Gets the SASL mechanism of Hono-connection (Kafka specific property)
      *
-     * @return The telemetry address
+     * @return {@link SaslMechanism}
      */
-    String getTelemetryAddress();
+    SaslMechanism getSaslMechanism();
 
     /**
-     * Gets the 'event' alias configuration value
+     * Gets bootstrap servers
      *
-     * @return The event address
+     * @return {@link String} containing comma separated bootstrap server list
      */
-    String getEventAddress();
+    String getBootstrapServers();
 
     /**
-     * Gets the 'commandAndControl' alias configuration value
+     * Gets the connection address aliases
      *
-     * @return The command&control address
+     * @param connectionId The connection ID of the connection to get aliases
+     * @return {@link org.eclipse.ditto.connectivity.model.HonoAddressAliasValues}
      */
-
-    String getCommandAndControlAddress();
-
-    /**
-     * Gets the 'commandResponse' alias configuration value
-     *
-     * @return The commandResponse address
-     */
-    String getCommandResponseAddress();
+    HonoAddressAliasValues getAddressAliases(ConnectionId connectionId);
 
     /**
      * Gets the credentials for specified Hono-connection
@@ -74,34 +68,44 @@ public interface HonoConfig extends Extension {
      * @param connectionId The connection ID of the connection to get credentials
      * @return The credentials of the connection
      */
-    Credentials getCredentials(final ConnectionId connectionId);
+    Credentials getCredentials(ConnectionId connectionId);
 
     enum ConfigValues implements KnownConfigValue {
 
         /**
          * Base URI, including port number (without protocol prefix)
          */
-        BASE_URI("base-uri", "my.hono.host:1234"),
+        BASE_URI("base-uri", ""),
+
+        /**
+         * SASL mechanism for connections of type Hono
+          */
+        SASL_MECHANISM("sasl-mechanism", "plain"),
+
+        /**
+         * Bootstrap servers, comma separated
+         */
+        BOOTSTRAP_SERVERS("bootstrap-servers", ""),
 
         /**
          * Telemetry address alias
          */
-        TELEMETRY_ADDRESS("telemetry", "telemetry/..."),
+        TELEMETRY_ADDRESS("telemetry", ""),
 
         /**
          * Event address alias
          */
-        EVENT_ADDRESS("event", "event/..."),
+        EVENT_ADDRESS("event", ""),
 
         /**
          * Command and control address alias
          */
-        COMMAND_AND_CONTROL_ADDRESS("commandAndControl", "command/..."),
+        COMMAND_AND_CONTROL_ADDRESS("commandAndControl", ""),
 
         /**
          * Command response address alias
          */
-        COMMAND_RESPONSE_ADDRESS("commandResponse", "response/..."),
+        COMMAND_RESPONSE_ADDRESS("commandResponse", ""),
 
         /**
          * Username
@@ -160,6 +164,17 @@ public interface HonoConfig extends Extension {
                     implementation,
                     List.of(ActorSystem.class),
                     List.of(system));
+        }
+    }
+
+    enum SaslMechanism {
+
+        PLAIN("plain");
+
+        final String value;
+
+        SaslMechanism(String value) {
+            this.value = value;
         }
     }
 }
