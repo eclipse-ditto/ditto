@@ -141,21 +141,18 @@ public final class MetadataFromCommandTest {
         final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
                 .putMetadata(MetadataHeaderKey.parse("/scruplusFine"), JsonValue.of("^6,00.32"))
                 .putMetadata(MetadataHeaderKey.parse("/properties/grumbo/froodNoops"), JsonValue.of(5))
-                .putMetadata(MetadataHeaderKey.parse("/*/lastSeen"), JsonValue.of(1955))
+                .putMetadata(MetadataHeaderKey.parse("/properties/*/lastSeen"), JsonValue.of(1955))
                 .build();
         final ModifyFeature modifyFeature = ModifyFeature.of(thingWithoutMetadata.getEntityId().orElseThrow(),
                 modifiedFeature,
                 dittoHeaders);
         final Metadata expected = Metadata.newBuilder()
                 .set(JsonPointer.of("scruplusFine"), "^6,00.32")
-                .set(JsonPointer.of("definition/lastSeen"), 1955)
-                .set(JsonPointer.of("properties/capacity/value/lastSeen"), 1955)
-                .set(JsonPointer.of("properties/capacity/unit/lastSeen"), 1955)
                 .set(JsonPointer.of("properties/grumbo/froodNoops"), 5)
-                .set(JsonPointer.of("properties/grumbo/lastSeen"), 1955)
+                .set(JsonPointer.of("properties/capacity/lastSeen"), 1955)
                 .build();
 
-        final MetadataFromCommand underTest = MetadataFromCommand.of(modifyFeature, null, null);
+        final MetadataFromCommand underTest = MetadataFromCommand.of(modifyFeature, thingWithoutMetadata, null);
 
         assertThat(underTest.get()).isEqualTo(expected);
     }
@@ -175,7 +172,7 @@ public final class MetadataFromCommandTest {
         final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
                 .putMetadata(MetadataHeaderKey.parse("/scruplusFine"), JsonValue.of("^6,00.32"))
                 .putMetadata(MetadataHeaderKey.parse("/properties/grumbo/froodNoops"), JsonValue.of(5))
-                .putMetadata(MetadataHeaderKey.parse("/*/lastSeen"), JsonValue.of(1955))
+                .putMetadata(MetadataHeaderKey.parse("/properties/*/lastSeen"), JsonValue.of(1955))
                 .build();
         final ModifyFeature modifyFeature = ModifyFeature.of(thingWithoutMetadata.getEntityId().orElseThrow(),
                 modifiedFeature,
@@ -183,14 +180,12 @@ public final class MetadataFromCommandTest {
         final Metadata expected = existingMetadata.toBuilder()
                 .set(JsonPointer.of("airplaneMode"), "forbidden")
                 .set(JsonPointer.of("scruplusFine"), "^6,00.32")
-                .set(JsonPointer.of("definition/lastSeen"), 1955)
-                .set(JsonPointer.of("properties/capacity/value/lastSeen"), 1955)
-                .set(JsonPointer.of("properties/capacity/unit/lastSeen"), 1955)
+                .set(JsonPointer.of("definition/lastSeen"), 2023)
+                .set(JsonPointer.of("properties/capacity/lastSeen"), 1955)
                 .set(JsonPointer.of("properties/grumbo/froodNoops"), 5)
-                .set(JsonPointer.of("properties/grumbo/lastSeen"), 1955)
                 .build();
 
-        final MetadataFromCommand underTest = MetadataFromCommand.of(modifyFeature, null, existingMetadata);
+        final MetadataFromCommand underTest = MetadataFromCommand.of(modifyFeature, thingWithoutMetadata, existingMetadata);
 
         assertThat(underTest.get()).isEqualTo(expected);
     }
@@ -200,8 +195,8 @@ public final class MetadataFromCommandTest {
         final JsonValue metric = JsonValue.of("metric");
         final JsonValue nonMetric = JsonValue.of("non-metric");
         final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
-                .putMetadata(MetadataHeaderKey.parse("/properties/capacity/unit/type"), nonMetric)
-                .putMetadata(MetadataHeaderKey.parse("/*/type"), metric)
+                .putMetadata(MetadataHeaderKey.parse("/properties/capacity/type"), nonMetric)
+                .putMetadata(MetadataHeaderKey.parse("/properties/*/type"), metric)
                 .build();
         final Feature modifiedFeature = fluxCapacitor.toBuilder()
                 .properties(fluxCapacitorProperties.toBuilder()
@@ -213,13 +208,10 @@ public final class MetadataFromCommandTest {
                 modifiedFeature,
                 dittoHeaders);
         final Metadata expected = Metadata.newBuilder()
-                .set(JsonPointer.of("definition/type"), metric)
-                .set(JsonPointer.of("properties/capacity/value/type"), metric)
-                .set(JsonPointer.of("properties/capacity/unit/type"), nonMetric)
-                .set(JsonPointer.of("properties/grumbo/type"), metric)
+                .set(JsonPointer.of("properties/capacity/type"), nonMetric)
                 .build();
 
-        final MetadataFromCommand underTest = MetadataFromCommand.of(modifyFeature, null,
+        final MetadataFromCommand underTest = MetadataFromCommand.of(modifyFeature, thingWithoutMetadata,
                 thingWithoutMetadata.getMetadata().orElse(null));
 
         assertThat(underTest.get()).isEqualTo(expected);

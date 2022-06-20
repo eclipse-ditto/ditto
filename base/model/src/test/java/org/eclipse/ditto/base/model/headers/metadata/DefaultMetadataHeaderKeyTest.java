@@ -19,14 +19,13 @@ import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
-import org.assertj.core.api.AutoCloseableSoftAssertions;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonKey;
 import org.eclipse.ditto.json.JsonPointer;
-import org.junit.Ignore;
-import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
+import org.assertj.core.api.AutoCloseableSoftAssertions;
+import org.junit.Test;
 
 /**
  * Unit tests for {@link org.eclipse.ditto.base.model.headers.metadata.DefaultMetadataHeaderKey}.
@@ -76,22 +75,6 @@ public final class DefaultMetadataHeaderKeyTest {
         assertThatIllegalArgumentException()
                 .isThrownBy(() -> DefaultMetadataHeaderKey.of(JsonPointer.of("/*/foo/meta")))
                 .withMessage("A wildcard path of a metadata header key must have exactly two levels but it had <3>!")
-                .withNoCause();
-    }
-
-    @Test
-    public void wildcardPathHasAsteriskLeaf() {
-        assertThatIllegalArgumentException()
-                .isThrownBy(() -> DefaultMetadataHeaderKey.of(JsonPointer.of("/*/*")))
-                .withMessage("The path of a metadata header key must not contain <*> at level <1>!")
-                .withNoCause();
-    }
-
-    @Test
-    public void pathContainsAsteriskAtWrongLevel() {
-        assertThatIllegalArgumentException()
-                .isThrownBy(() -> DefaultMetadataHeaderKey.of(JsonPointer.of("/foo/*/baz")))
-                .withMessage("The path of a metadata header key must not contain <*> at level <1>!")
                 .withNoCause();
     }
 
