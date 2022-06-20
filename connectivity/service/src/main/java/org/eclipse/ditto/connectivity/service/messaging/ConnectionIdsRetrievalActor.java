@@ -125,7 +125,6 @@ public final class ConnectionIdsRetrievalActor extends AbstractActor {
         final String tag = retrieveConnectionIdsByTag.getTag();
         final DittoHeaders dittoHeaders = retrieveConnectionIdsByTag.getDittoHeaders();
         try {
-            //TODO: CR-11344 Make sure that only IDs of connections are returned, that are not deleted.
             final ActorRef sender = sender();
             final CompletionStage<RetrieveConnectionIdsByTagResponse>
                     retrieveConnectionIdsByTagResponseCompletionStage =

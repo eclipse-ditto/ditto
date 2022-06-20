@@ -15,9 +15,11 @@ package org.eclipse.ditto.internal.utils.persistence.mongo.streaming;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -591,9 +593,6 @@ public final class MongoReadJournal {
 
         final List<Bson> pipeline = new ArrayList<>(6);
         // optional match stages: consecutive match stages are optimized together ($match + $match coalescence)
-        if (!tag.isEmpty()) {
-            pipeline.add(Aggregates.match(Filters.eq(J_TAGS, tag)));
-        }
         if (!startPid.isEmpty()) {
             pipeline.add(Aggregates.match(Filters.gt(J_PROCESSOR_ID, startPid)));
         }
@@ -604,8 +603,20 @@ public final class MongoReadJournal {
         // limit stage. It should come before group stage or MongoDB would scan the entire journal collection.
         pipeline.add(Aggregates.limit(batchSize));
 
+        final Set<String> fieldNamesWithOptionalTags;
+        if (tag.isEmpty()) {
+            fieldNamesWithOptionalTags = Arrays.stream(fieldNames).collect(Collectors.toSet());
+        } else {
+            fieldNamesWithOptionalTags = Stream
+                    .concat(Arrays.stream(fieldNames), Stream.of(J_TAGS))
+                    .collect(Collectors.toSet());
+        }
         // group stage
-        pipeline.add(Aggregates.group("$" + J_PROCESSOR_ID, toFirstJournalEntryFields(fieldNames)));
+        pipeline.add(Aggregates.group("$" + J_PROCESSOR_ID, toFirstJournalEntryFields(fieldNamesWithOptionalTags)));
+
+        if (!tag.isEmpty()) {
+            pipeline.add(Aggregates.match(Filters.eq(J_TAGS, tag)));
+        }
 
         // sort stage 2 -- order after group stage is not defined
         pipeline.add(Aggregates.sort(Sorts.ascending(J_ID)));
@@ -621,8 +632,8 @@ public final class MongoReadJournal {
         );
     }
 
-    private static List<BsonField> toFirstJournalEntryFields(final String... journalFields) {
-        return Arrays.stream(journalFields)
+    private static List<BsonField> toFirstJournalEntryFields(final Collection<String> journalFields) {
+        return journalFields.stream()
                 .map(fieldName -> {
                     final String serializedFieldName = String.format("$%s.%s", J_EVENT, fieldName);
                     final BsonArray bsonArray =
