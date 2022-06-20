@@ -47,7 +47,7 @@ final class ConnectionLoggerFactory {
 
     /**
      * Creates a new {@link ConnectionLogger} that will
-     * evict old messages. Moreover it will have some predefined default log messages for its {@code logCategory} and
+     * evict old messages. Moreover, it will have some predefined default log messages for its {@code logCategory} and
      * {@code logType}.
      *
      * @param successCapacity how many success messages will be stored by the logger.
@@ -64,18 +64,13 @@ final class ConnectionLoggerFactory {
             final LogCategory logCategory, final LogType logType,
             @Nullable final String address) {
 
-        switch (logCategory) {
-            case SOURCE:
-                return newSourceLogger(logType, successCapacity, failureCapacity, address);
-            case TARGET:
-                return newTargetLogger(logType, successCapacity, failureCapacity, address);
-            case RESPONSE:
-                return newResponseLogger(logType, successCapacity, failureCapacity, address);
-            case CONNECTION:
-                return newConnectionLogger(logType, successCapacity, failureCapacity, address);
-            default:
-                throw new AssertionError("Missing switch case.");
-        }
+        return switch (logCategory) {
+            case SOURCE -> newSourceLogger(logType, successCapacity, failureCapacity, address);
+            case TARGET -> newTargetLogger(logType, successCapacity, failureCapacity, address);
+            case RESPONSE -> newResponseLogger(logType, successCapacity, failureCapacity, address);
+            case CONNECTION -> newConnectionLogger(logType, successCapacity, failureCapacity, address);
+            default -> throw new AssertionError("Missing switch case.");
+        };
     }
 
     /**
