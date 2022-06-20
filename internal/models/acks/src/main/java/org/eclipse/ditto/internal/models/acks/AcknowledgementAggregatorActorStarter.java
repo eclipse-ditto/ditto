@@ -154,7 +154,8 @@ public final class AcknowledgementAggregatorActorStarter {
         final var isLiveSignal = Signal.isChannelLive(signal);
         final var isChannelSmart = Signal.isChannelSmart(signal);
         final Collection<AcknowledgementRequest> ackRequests = signal.getDittoHeaders().getAcknowledgementRequests();
-        if (signal instanceof Command<?> command && command.getCategory() == Command.Category.MODIFY && !isLiveSignal) {
+        if (signal instanceof Command<?> command && Command.Category.isCreateOrModify(command.getCategory()) &&
+                !isLiveSignal) {
             result = ackRequests.stream().anyMatch(AcknowledgementForwarderActorStarter::isNotLiveResponse);
         } else if (Command.isMessageCommand(signal) || isLiveSignal && Command.isThingCommand(signal)) {
             result = ackRequests.stream().anyMatch(AcknowledgementForwarderActorStarter::isNotTwinPersisted);
@@ -170,23 +171,23 @@ public final class AcknowledgementAggregatorActorStarter {
      * Start an acknowledgement aggregator actor if needed.
      *
      * @param <T> type of the result.
-     * @param command the command to start the aggregator actor for.
-     * @param timeoutOverride duration to override the timeout of the command.
+     * @param signal the signal to start the aggregator actor for.
+     * @param timeoutOverride duration to override the timeout of the signal.
      * @param responseSignalConsumer consumer of the aggregated response or error.
      * @param ackregatorStartedFunction what to do if the aggregator actor started. The first argument is
-     * the command after setting requested-acks and response-required.
+     * the signal after setting requested-acks and response-required.
      * @param ackregatorNotStartedFunction what to do if the aggregator actor did not start.
      * @return the result.
      */
-    public <T> T start(final Command<?> command,
-            final Duration timeoutOverride,
+    public <T> T start(final Signal<?> signal,
+            @Nullable final Duration timeoutOverride,
             final Function<Object, T> responseSignalConsumer,
             final BiFunction<Signal<?>, ActorRef, T> ackregatorStartedFunction,
             final Function<Signal<?>, T> ackregatorNotStartedFunction) {
 
-        return preprocess(command,
+        return preprocess(signal,
                 (originatingSignal, shouldStart) -> {
-                    final var entityIdOptional = WithEntityId.getEntityId(command);
+                    final var entityIdOptional = WithEntityId.getEntityId(signal);
                     if (shouldStart && entityIdOptional.isPresent()) {
                         return doStart(entityIdOptional.get(),
                                 originatingSignal,

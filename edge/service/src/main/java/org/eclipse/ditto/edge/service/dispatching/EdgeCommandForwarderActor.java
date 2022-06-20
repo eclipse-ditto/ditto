@@ -28,6 +28,7 @@ import org.eclipse.ditto.things.api.ThingsMessagingConstants;
 import org.eclipse.ditto.things.api.commands.sudo.SudoRetrieveThings;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommand;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThings;
+import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 import org.eclipse.ditto.thingsearch.api.ThingsSearchConstants;
 import org.eclipse.ditto.thingsearch.api.commands.sudo.ThingSearchSudoCommand;
 import org.eclipse.ditto.thingsearch.model.signals.commands.ThingSearchCommand;
@@ -94,6 +95,7 @@ public class EdgeCommandForwarderActor extends AbstractActor {
         final Receive forwardingReceive = ReceiveBuilder.create()
                 .match(MessageCommand.class, this::forwardToThings)
                 .match(ThingCommand.class, this::forwardToThings)
+                .match(ThingEvent.class, Signal::isChannelLive, this::forwardToThings)
                 .match(RetrieveThings.class, this::forwardToThingsAggregator)
                 .match(SudoRetrieveThings.class, this::forwardToThingsAggregator)
                 .match(PolicyCommand.class, this::forwardToPolicies)
@@ -125,23 +127,24 @@ public class EdgeCommandForwarderActor extends AbstractActor {
                 });
     }
 
-    private void forwardToThings(final ThingCommand<?> thingCommand) {
+    private void forwardToThings(final Signal<?> thingSignal) {
         final ActorRef sender = getSender();
-        signalTransformer.apply(thingCommand)
+        signalTransformer.apply(thingSignal)
                 .thenAccept(transformed -> {
-                    final ThingCommand<?> transformedThingCommand = (ThingCommand<?>) transformed;
-                    log.withCorrelationId(transformedThingCommand)
-                            .info("Forwarding thing command with ID <{}> and type <{}> to 'things' shard region",
-                                    transformedThingCommand.getEntityId(), transformedThingCommand.getType());
+                    log.withCorrelationId(transformed)
+                            .info("Forwarding thing signal with ID <{}> and type <{}> to 'things' shard region",
+                                    transformed instanceof WithEntityId withEntityId ? withEntityId.getEntityId() : null,
+                                    transformed.getType());
 
-                    if (!Signal.isChannelLive(transformedThingCommand) &&
-                            !Signal.isChannelSmart(transformedThingCommand) &&
-                            isIdempotent(transformedThingCommand)) {
-                        askWithRetryCommandForwarder.forwardCommand(transformedThingCommand,
+                    if (!Signal.isChannelLive(transformed) &&
+                            !Signal.isChannelSmart(transformed) &&
+                            transformed instanceof Command<?> command &&
+                            isIdempotent(command)) {
+                        askWithRetryCommandForwarder.forwardCommand(command,
                                 shardRegions.things(),
                                 sender);
                     } else {
-                        shardRegions.things().tell(transformedThingCommand, sender);
+                        shardRegions.things().tell(transformed, sender);
                     }
                 });
     }

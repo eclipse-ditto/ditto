@@ -130,6 +130,7 @@ public interface Command<T extends Command<T>> extends Signal<T> {
     enum Category {
         /**
          * Category of commands that do not change the state of any entity.
+         * @since 3.0.0
          */
         QUERY,
 
@@ -157,7 +158,18 @@ public interface Command<T extends Command<T>> extends Signal<T> {
          * Category of commands that are neither of the above 3 (query, modify, delete) but perform an action on the
          * entity.
          */
-        ACTION
+        ACTION;
+
+        /**
+         * Determines whether the passed {@code category} is CREATE or MODIFY.
+         *
+         * @param category the category to check.
+         * @return whether the passed {@code category} is CREATE or MODIFY
+         * @since 3.0.0
+         */
+        public static boolean isCreateOrModify(final Category category) {
+            return category == CREATE || category == MODIFY;
+        }
     }
 
     /**

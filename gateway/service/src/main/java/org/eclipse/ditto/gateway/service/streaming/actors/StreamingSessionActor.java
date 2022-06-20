@@ -354,9 +354,7 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
                                             authorizationContext.getAuthorizationSubjectIds())
                                     .thenAccept(ack -> getSelf().tell(unsubscribeConfirmation, getSelf()));
                             break;
-                        case LIVE_COMMANDS:
-                        case LIVE_EVENTS:
-                        case MESSAGES:
+                        case LIVE_COMMANDS, LIVE_EVENTS, MESSAGES:
                         default:
                             dittoProtocolSub.updateLiveSubscriptions(currentStreamingTypes,
                                             authorizationContext.getAuthorizationSubjectIds(), getSelf())
@@ -448,8 +446,10 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
                         return headerInvalid.map(this::publishResponseOrError)
                                 .orElseGet(() -> ackregatorStarter.doStart(entityIdOptional.get(),
                                         s, null, this::publishResponseOrError,
-                                        (ackregator, adjustedSignal) ->
-                                                forwardToCommandRouterAndReturnDone(adjustedSignal, ackregator)
+                                        (ackregator, adjustedSignal) -> {
+                                            commandRouter.tell(adjustedSignal, ackregator);
+                                            return Done.getInstance();
+                                        }
                                 ));
                     } else {
                         return doNothing(s);
@@ -457,11 +457,6 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
                 },
                 this::publishResponseOrError
         );
-    }
-
-    private Object forwardToCommandRouterAndReturnDone(final Signal<?> signalToForward, final ActorRef ackregator) {
-        commandRouter.tell(signalToForward, ackregator);
-        return Done.getInstance();
     }
 
     private static <T> Object doNothing(final T result) {

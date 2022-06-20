@@ -27,8 +27,7 @@ final class PolicyAnnouncementTopicExtractor implements PubSubTopicExtractor<Pol
 
     @Override
     public Collection<String> getTopics(final PolicyAnnouncement<?> message) {
-        if (message instanceof SubjectDeletionAnnouncement) {
-            final SubjectDeletionAnnouncement announcement = (SubjectDeletionAnnouncement) message;
+        if (message instanceof SubjectDeletionAnnouncement announcement) {
             return announcement.getSubjectIds()
                     .stream()
                     .map(SubjectId::toString)

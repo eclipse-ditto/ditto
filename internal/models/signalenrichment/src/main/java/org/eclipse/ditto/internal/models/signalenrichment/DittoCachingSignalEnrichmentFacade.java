@@ -346,7 +346,6 @@ public final class DittoCachingSignalEnrichmentFacade implements CachingSignalEn
                 case DELETE:
                     jsonObject = getDeleteJsonObject(jsonObject, thingEvent);
                     break;
-                case MODIFY:
                 default:
                     jsonObject = getDefaultJsonObject(jsonObject, thingEvent);
             }

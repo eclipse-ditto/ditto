@@ -241,9 +241,9 @@ public final class AcknowledgementAggregatorActor extends AbstractActorWithTimer
     @Override
     public Receive createReceive() {
         return receiveBuilder()
-                .match(CommandResponse.class, this::handleCommandResponse)
                 .match(Acknowledgement.class, this::handleAcknowledgement)
                 .match(Acknowledgements.class, this::handleAcknowledgements)
+                .match(CommandResponse.class, this::handleCommandResponse)
                 .match(DittoRuntimeException.class, this::handleDittoRuntimeException)
                 .match(Control.class, Control.WAITING_FOR_ACKS_TIMED_OUT::equals, this::handleReceiveTimeout)
                 .matchAny(m -> log.warning("Received unexpected message: <{}>", m))

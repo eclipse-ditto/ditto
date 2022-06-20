@@ -236,8 +236,8 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
             ackregatorStarter.start(command,
                     timeoutOverride,
                     this::onAggregatedResponseOrError,
-                    this::handleCommandWithAckregator,
-                    command1 -> handleCommandWithoutAckregator(command1, timeoutOverride)
+                    this::handleSignalWithAckregator,
+                    signalWithoutAckregator -> handleSignalWithoutAckregator(signalWithoutAckregator, timeoutOverride)
             );
             final var responseBehavior = ReceiveBuilder.create()
                     .match(Acknowledgements.class, this::completeAcknowledgements)
@@ -268,19 +268,19 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
         return null;
     }
 
-    private Void handleCommandWithAckregator(final Signal<?> command, final ActorRef aggregator) {
-        logger.debug("Got <{}>. Telling the target actor about it.", command);
-        proxyActor.tell(command, aggregator);
+    private Void handleSignalWithAckregator(final Signal<?> signal, final ActorRef ackregator) {
+        logger.debug("Got <{}>. Telling the target actor about it.", signal);
+        proxyActor.tell(signal, ackregator);
 
         return null;
     }
 
-    private Void handleCommandWithoutAckregator(final Signal<?> command, final Duration timeoutOverride) {
-        if (isDevOpsCommand(command) || !shallAcceptImmediately(command)) {
-            handleCommandWithResponse(command, getResponseAwaitingBehavior(), timeoutOverride);
-            setDefaultTimeoutExceptionSupplier(command);
+    private Void handleSignalWithoutAckregator(final Signal<?> signalWithoutAckregator, final Duration timeoutOverride) {
+        if (isDevOpsCommand(signalWithoutAckregator) || !shallAcceptImmediately(signalWithoutAckregator)) {
+            handleCommandWithResponse(signalWithoutAckregator, getResponseAwaitingBehavior(), timeoutOverride);
+            setDefaultTimeoutExceptionSupplier(signalWithoutAckregator);
         } else {
-            handleCommandAndAcceptImmediately(command);
+            handleCommandAndAcceptImmediately(signalWithoutAckregator);
         }
 
         return null;
