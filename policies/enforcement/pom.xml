@@ -16,6 +16,15 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
+    <parent>
+        <groupId>org.eclipse.ditto</groupId>
+        <artifactId>ditto-policies</artifactId>
+        <version>${revision}</version>
+    </parent>
+
+    <artifactId>ditto-policies-enforcement</artifactId>
+    <name>Eclipse Ditto :: Policies :: Enforcement</name>
+
     <dependencies>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
@@ -33,6 +42,7 @@
             <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-policies-model</artifactId>
         </dependency>
+
         <!-- TODO CR-11383 this should not rely on things-model (it currently does because of placeholders package - which could be pulled out) -->
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
@@ -128,14 +138,5 @@
             <artifactId>ditto-internal-utils-namespaces</artifactId>
         </dependency>
     </dependencies>
-
-    <parent>
-        <artifactId>ditto-policies</artifactId>
-        <groupId>org.eclipse.ditto</groupId>
-        <version>${revision}</version>
-    </parent>
-    <artifactId>ditto-policies-enforcement</artifactId>
-
-    <name>Eclipse Ditto :: Policies :: Enforcement</name>
 
 </project>

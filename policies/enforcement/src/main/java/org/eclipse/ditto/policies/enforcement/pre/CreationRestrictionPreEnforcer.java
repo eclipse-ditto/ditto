@@ -25,16 +25,13 @@ import org.eclipse.ditto.base.model.entity.id.WithEntityId;
 import org.eclipse.ditto.base.model.exceptions.EntityNotCreatableException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.signals.Signal;
+import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLogger;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.policies.enforcement.config.CreationRestrictionConfig;
 import org.eclipse.ditto.policies.enforcement.config.DefaultEntityCreationConfig;
 import org.eclipse.ditto.policies.enforcement.config.EntityCreationConfig;
-import org.eclipse.ditto.policies.model.signals.commands.modify.CreatePolicy;
-import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicy;
-import org.eclipse.ditto.things.model.signals.commands.modify.CreateThing;
-import org.eclipse.ditto.things.model.signals.commands.modify.ModifyThing;
 
 import akka.actor.ActorSystem;
 
@@ -158,8 +155,16 @@ public final class CreationRestrictionPreEnforcer implements PreEnforcer {
     }
 
     private static boolean isCreatingCommand(final Signal<?> signal) {
-        return signal instanceof CreateThing || signal instanceof ModifyThing || signal instanceof CreatePolicy ||
-                signal instanceof ModifyPolicy;
+        return isCategoryCreate(signal) || isCategoryModifyOnRootResource(signal);
+    }
+
+    private static boolean isCategoryCreate(final Signal<?> signal) {
+        return signal instanceof Command<?> command && command.getCategory().equals(Command.Category.CREATE);
+    }
+
+    private static boolean isCategoryModifyOnRootResource(final Signal<?> signal) {
+        return signal instanceof Command<?> command && command.getCategory().equals(Command.Category.MODIFY) &&
+                command.getResourcePath().isEmpty();
     }
 
     private CompletionStage<Signal<?>> handleCreatingCommand(final Signal<?> signal) {
