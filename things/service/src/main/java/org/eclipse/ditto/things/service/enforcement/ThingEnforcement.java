@@ -38,6 +38,7 @@ public final class ThingEnforcement extends AbstractEnforcementReloaded<Signal<?
 
     public ThingEnforcement(final ActorSystem actorSystem,
             final ActorRef policiesShardRegion,
+            final ActorRef thingsShardRegion,
             final EnforcementConfig enforcementConfig) {
 
         enforcementStrategies = List.of(
@@ -45,6 +46,7 @@ public final class ThingEnforcement extends AbstractEnforcementReloaded<Signal<?
                 new ThingCommandEnforcement(
                         actorSystem,
                         policiesShardRegion,
+                        thingsShardRegion,
                         enforcementConfig
                 )
         );

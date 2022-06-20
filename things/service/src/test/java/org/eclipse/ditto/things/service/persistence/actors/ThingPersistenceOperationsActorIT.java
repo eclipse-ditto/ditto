@@ -37,7 +37,6 @@ import com.typesafe.config.Config;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
-import akka.testkit.TestProbe;
 
 /**
  * Tests {@link ThingPersistenceOperationsActor} against a local MongoDB.
@@ -110,12 +109,10 @@ public final class ThingPersistenceOperationsActorIT extends MongoEventSourceITA
     @Override
     protected ActorRef startEntityActor(final ActorSystem system, final ActorRef pubSubMediator, final ThingId id) {
 
-        final TestProbe policiesShardRegionTestProbe = TestProbe.apply("mock-policiesShardRegion", system);
-        final ActorRef policiesShardRegion = policiesShardRegionTestProbe.ref();
         final LiveSignalPub liveSignalPub = new TestSetup.DummyLiveSignalPub(pubSubMediator);
 
         final Props props =
-                ThingSupervisorActor.props(pubSubMediator, policiesShardRegion,
+                ThingSupervisorActor.props(pubSubMediator,
                         new DistributedPub<>() {
 
                             @Override

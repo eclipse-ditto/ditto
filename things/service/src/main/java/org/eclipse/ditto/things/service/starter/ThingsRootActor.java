@@ -24,7 +24,6 @@ import org.eclipse.ditto.internal.utils.cluster.ClusterUtil;
 import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.internal.utils.cluster.RetrieveStatisticsDetailsResponseSupplier;
 import org.eclipse.ditto.internal.utils.cluster.ShardRegionExtractor;
-import org.eclipse.ditto.internal.utils.cluster.ShardRegionProxyActorFactory;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.internal.utils.health.DefaultHealthCheckingActorFactory;
 import org.eclipse.ditto.internal.utils.health.HealthCheckingActorOptions;
@@ -39,7 +38,6 @@ import org.eclipse.ditto.internal.utils.pubsub.DistributedAcks;
 import org.eclipse.ditto.internal.utils.pubsub.DistributedPub;
 import org.eclipse.ditto.internal.utils.pubsub.LiveSignalPub;
 import org.eclipse.ditto.internal.utils.pubsub.ThingEventPubSubFactory;
-import org.eclipse.ditto.policies.api.PoliciesMessagingConstants;
 import org.eclipse.ditto.things.api.ThingsMessagingConstants;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 import org.eclipse.ditto.things.service.common.config.ThingsConfig;
@@ -87,14 +85,6 @@ public final class ThingsRootActor extends DittoRootActor {
         final DistributedPub<ThingEvent<?>> distributedPubThingEventsForTwin = pubSubFactory.startDistributedPub();
         final LiveSignalPub liveSignalPub = LiveSignalPub.of(getContext(), distributedAcks);
 
-        final ShardRegionProxyActorFactory shardRegionProxyActorFactory =
-                ShardRegionProxyActorFactory.newInstance(actorSystem, clusterConfig);
-
-        final ActorRef policiesShardRegion = shardRegionProxyActorFactory.getShardRegionProxyActor(
-                PoliciesMessagingConstants.CLUSTER_ROLE,
-                PoliciesMessagingConstants.SHARD_REGION
-        );
-
         final BlockedNamespaces blockedNamespaces = BlockedNamespaces.of(actorSystem);
         // start cluster singleton that writes to the distributed cache of blocked namespaces
         final Props blockedNamespacesUpdaterProps = BlockedNamespacesUpdater.props(blockedNamespaces, pubSubMediator);
@@ -102,7 +92,6 @@ public final class ThingsRootActor extends DittoRootActor {
                 BlockedNamespacesUpdater.ACTOR_NAME, blockedNamespacesUpdaterProps);
 
         final Props thingSupervisorActorProps = getThingSupervisorActorProps(pubSubMediator,
-                policiesShardRegion,
                 distributedPubThingEventsForTwin,
                 liveSignalPub,
                 propsFactory,
@@ -184,13 +173,12 @@ public final class ThingsRootActor extends DittoRootActor {
     }
 
     private static Props getThingSupervisorActorProps(final ActorRef pubSubMediator,
-            final ActorRef policiesShardRegion,
             final DistributedPub<ThingEvent<?>> distributedPubThingEventsForTwin,
             final LiveSignalPub liveSignalPub,
             final ThingPersistenceActorPropsFactory propsFactory,
             final BlockedNamespaces blockedNamespaces) {
 
-        return ThingSupervisorActor.props(pubSubMediator, policiesShardRegion, distributedPubThingEventsForTwin,
+        return ThingSupervisorActor.props(pubSubMediator, distributedPubThingEventsForTwin,
                 liveSignalPub, propsFactory, blockedNamespaces);
     }
 

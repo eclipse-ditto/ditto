@@ -148,7 +148,7 @@ public final class ThingCommandEnforcementTest extends AbstractThingEnforcementT
             expectAndAnswerSudoRetrieveThing(error);
 
             supervisor.tell(getModifyCommand(), getRef());
-            expectMsgClass(ThingNotModifiableException.class);
+            expectMsgClass(ThingNotAccessibleException.class);
         }};
     }
 
@@ -179,7 +179,7 @@ public final class ThingCommandEnforcementTest extends AbstractThingEnforcementT
             expectAndAnswerSudoRetrievePolicy(policyId, PolicyNotAccessibleException.newBuilder(policyId).build());
 
             supervisor.tell(getModifyCommand(), getRef());
-            final DittoRuntimeException error = TestSetup.fishForMsgClass(this, ThingNotModifiableException.class);
+            final DittoRuntimeException error = TestSetup.fishForMsgClass(this, ThingNotAccessibleException.class);
             assertThat(error.getMessage()).contains(THING_ID);
         }};
     }

@@ -23,8 +23,6 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.base.model.exceptions.DittoInternalErrorException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.placeholders.PlaceholderReferenceNotSupportedException;
-import org.eclipse.ditto.placeholders.PlaceholderReferenceUnknownFieldException;
 import org.eclipse.ditto.internal.utils.akka.logging.AutoCloseableSlf4jLogger;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLogger;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
@@ -32,6 +30,8 @@ import org.eclipse.ditto.internal.utils.cacheloaders.AskWithRetry;
 import org.eclipse.ditto.internal.utils.cacheloaders.config.AskWithRetryConfig;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.placeholders.PlaceholderReferenceNotSupportedException;
+import org.eclipse.ditto.placeholders.PlaceholderReferenceUnknownFieldException;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.commands.ThingErrorResponse;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThing;
@@ -48,16 +48,16 @@ public final class PolicyIdReferencePlaceholderResolver implements ReferencePlac
 
     private static final DittoLogger LOGGER = DittoLoggerFactory.getLogger(PolicyIdReferencePlaceholderResolver.class);
 
-    private final ActorRef commandForwarderActor;
+    private final ActorRef thingsShardRegion;
     private final AskWithRetryConfig askWithRetryConfig;
     private final ActorSystem actorSystem;
     private final Map<ReferencePlaceholder.ReferencedEntityType, ResolveEntityReferenceStrategy>
             supportedEntityTypesToActionMap = new EnumMap<>(ReferencePlaceholder.ReferencedEntityType.class);
     private final Set<CharSequence> supportedEntityTypeNames;
 
-    private PolicyIdReferencePlaceholderResolver(final ActorRef commandForwarderActor,
+    private PolicyIdReferencePlaceholderResolver(final ActorRef thingsShardRegion,
             final AskWithRetryConfig askWithRetryConfig, final ActorSystem actorSystem) {
-        this.commandForwarderActor = commandForwarderActor;
+        this.thingsShardRegion = thingsShardRegion;
         this.askWithRetryConfig = askWithRetryConfig;
         this.actorSystem = actorSystem;
         initializeSupportedEntityTypeReferences();
@@ -105,7 +105,7 @@ public final class PolicyIdReferencePlaceholderResolver implements ReferencePlac
                 .withSelectedFields(referencePlaceholder.getReferencedField().toFieldSelector())
                 .build();
 
-        return AskWithRetry.askWithRetry(commandForwarderActor, retrieveThingCommand, askWithRetryConfig, actorSystem,
+        return AskWithRetry.askWithRetry(thingsShardRegion, retrieveThingCommand, askWithRetryConfig, actorSystem,
                 response -> handleRetrieveThingResponse(response, referencePlaceholder, dittoHeaders)
         );
     }
@@ -168,16 +168,16 @@ public final class PolicyIdReferencePlaceholderResolver implements ReferencePlac
      * Creates a new {@link PolicyIdReferencePlaceholderResolver} responsible for resolving a policy id of a referenced
      * entity.
      *
-     * @param commandForwarderActor the ActorRef of the {@code EdgeCommandForwarderActor} which to ask for "retrieve"
-     * commands.
+     * @param thingsShardRegion the ActorRef of the things shard region to retrieve things from.
      * @param askWithRetryConfig the configuration for the "ask with retry" pattern applied when asking for retrieves.
      * @param actorSystem the actorSystem to load scheduler and dispatcher to use for the "ask with retry" pattern from.
      * @return the created PolicyIdReferencePlaceholderResolver instance.
      */
-    public static PolicyIdReferencePlaceholderResolver of(final ActorRef commandForwarderActor,
-            final AskWithRetryConfig askWithRetryConfig, final ActorSystem actorSystem) {
+    public static PolicyIdReferencePlaceholderResolver of(final ActorRef thingsShardRegion,
+            final AskWithRetryConfig askWithRetryConfig,
+            final ActorSystem actorSystem) {
 
-        return new PolicyIdReferencePlaceholderResolver(commandForwarderActor, askWithRetryConfig, actorSystem);
+        return new PolicyIdReferencePlaceholderResolver(thingsShardRegion, askWithRetryConfig, actorSystem);
     }
 
     interface ResolveEntityReferenceStrategy {

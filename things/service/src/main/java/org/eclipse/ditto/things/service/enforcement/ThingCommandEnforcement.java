@@ -142,10 +142,12 @@ final class ThingCommandEnforcement
      * @param actorSystem the actor system to load config, dispatchers from.
      * @param policiesShardRegion the policies shard region to load policies from and to use in order to create new
      * (inline) policies when creating new things.
+     * @param thingsShardRegion the things shard region to load things from (e.g. for "_copyPolicyFrom" feature)
      * @param enforcementConfig the configuration to apply for this command enforcement implementation.
      */
     public ThingCommandEnforcement(final ActorSystem actorSystem,
             final ActorRef policiesShardRegion,
+            final ActorRef thingsShardRegion,
             final EnforcementConfig enforcementConfig) {
 
         this.actorSystem = actorSystem;
@@ -158,8 +160,8 @@ final class ThingCommandEnforcement
                         DittoLoggerFactory.getThreadSafeLogger(ThingCommandEnforcement.class.getName() +
                                 ".namespace." + loggedNamespace)));
 
-        policyIdReferencePlaceholderResolver = PolicyIdReferencePlaceholderResolver.of(policiesShardRegion,
-                enforcementConfig.getAskWithRetryConfig(), actorSystem);
+        policyIdReferencePlaceholderResolver = PolicyIdReferencePlaceholderResolver.of(
+                thingsShardRegion, enforcementConfig.getAskWithRetryConfig(), actorSystem);
     }
 
     @Override
@@ -448,16 +450,9 @@ final class ThingCommandEnforcement
                     });
         } else {
             // Other commands cannot be authorized by policy contained in self.
-            final DittoRuntimeException error;
-            if (thingCommand instanceof ThingModifyCommand) {
-                error = ThingNotModifiableException.newBuilder(thingCommand.getEntityId())
-                        .dittoHeaders(thingCommand.getDittoHeaders())
-                        .build();
-            } else {
-                error = ThingNotAccessibleException.newBuilder(thingCommand.getEntityId())
-                        .dittoHeaders(thingCommand.getDittoHeaders())
-                        .build();
-            }
+            final DittoRuntimeException error = ThingNotAccessibleException.newBuilder(thingCommand.getEntityId())
+                    .dittoHeaders(thingCommand.getDittoHeaders())
+                    .build();
             LOGGER.withCorrelationId(command)
                     .info("Enforcer was not existing for Thing <{}> and no auth info was inlined, responding with: {} - {}",
                             thingCommand.getEntityId(), error.getClass().getSimpleName(), error.getMessage());

@@ -197,7 +197,7 @@ final class SupervisorInlinePolicyEnrichment {
                 }
         ).exceptionally(error -> {
             log.withCorrelationId(getCorrelationIdOrNull(error, retrievePolicy))
-                    .error("Retrieving inlined policy after RetrieveThing", error);
+                    .error(error, "Retrieving inlined policy after RetrieveThing");
             return Optional.empty();
         });
     }

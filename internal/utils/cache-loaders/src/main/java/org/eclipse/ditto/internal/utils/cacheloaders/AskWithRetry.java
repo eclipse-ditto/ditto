@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.internal.utils.cacheloaders;
 
+import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
+
 import java.time.Duration;
 import java.util.Optional;
 import java.util.concurrent.Callable;
@@ -40,7 +42,7 @@ import akka.pattern.Patterns;
 import scala.compat.java8.FutureConverters;
 
 /**
- * Helper/Pattern class providing a "ask with retry" pattern based on a provided {@link AskWithRetryConfig}.
+ * Helper/Pattern class providing an "ask with retry" pattern based on a provided {@link AskWithRetryConfig}.
  */
 public final class AskWithRetry {
 
@@ -110,6 +112,7 @@ public final class AskWithRetry {
      * @param <A> the type of the answer.
      * @return a CompletionStage which is completed by applying the passed in {@code responseMapper} function on the
      * response of the asked message or which is completed exceptionally with the Exception.
+     * @throws java.lang.NullPointerException if any of the passed arguments was {@code null}.
      */
     public static <M, A> CompletionStage<A> askWithRetry(final ActorRef actorToAsk,
             final M message,
@@ -117,6 +120,13 @@ public final class AskWithRetry {
             final Scheduler scheduler,
             final Executor executor,
             final Function<Object, A> responseMapper) {
+
+        checkNotNull(actorToAsk, "actorToAsk");
+        checkNotNull(message, "message");
+        checkNotNull(config, "config");
+        checkNotNull(scheduler, "scheduler");
+        checkNotNull(executor, "executor");
+        checkNotNull(responseMapper, "responseMapper");
 
         final DittoHeaders dittoHeaders;
         if (message instanceof WithDittoHeaders withDittoHeaders) {
