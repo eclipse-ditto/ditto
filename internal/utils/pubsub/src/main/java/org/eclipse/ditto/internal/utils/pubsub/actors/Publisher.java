@@ -23,6 +23,7 @@ import org.eclipse.ditto.base.model.acks.AcknowledgementLabel;
 import org.eclipse.ditto.base.model.acks.AcknowledgementRequest;
 import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.signals.SignalWithEntityId;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgements;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
@@ -209,7 +210,7 @@ public final class Publisher extends AbstractActor {
     /**
      * Requests to a publisher actor.
      */
-    public interface Request {}
+    public interface Request extends WithDittoHeaders {}
 
     /**
      * Request for the publisher to publish a message.
@@ -223,6 +224,11 @@ public final class Publisher extends AbstractActor {
         private Publish(final Collection<String> topics, final SignalWithEntityId<?> message) {
             this.topics = topics;
             this.message = message;
+        }
+
+        @Override
+        public DittoHeaders getDittoHeaders() {
+            return message.getDittoHeaders();
         }
     }
 
@@ -254,6 +260,11 @@ public final class Publisher extends AbstractActor {
 
         private Acknowledgements toWeakAcks(final Collection<AcknowledgementLabel> ackLabels) {
             return ACK_EXTRACTOR.toWeakAcknowledgements(this, ackLabels);
+        }
+
+        @Override
+        public DittoHeaders getDittoHeaders() {
+            return dittoHeaders;
         }
     }
 }

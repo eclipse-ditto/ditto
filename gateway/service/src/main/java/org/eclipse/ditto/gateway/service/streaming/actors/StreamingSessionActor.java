@@ -229,6 +229,8 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
 
         final Receive signalBehavior = ReceiveBuilder.create()
                 .match(Acknowledgement.class, this::hasUndeclaredAckLabel, this::ackLabelNotDeclared)
+                .match(CommandResponse.class, CommandResponse::isLiveCommandResponse, liveCommandResponse ->
+                        commandRouter.forward(liveCommandResponse, getContext()))
                 .match(CommandResponse.class, this::forwardAcknowledgementOrLiveCommandResponse)
                 .match(ThingSearchCommand.class, this::forwardSearchCommand)
                 .match(Signal.class, signal ->

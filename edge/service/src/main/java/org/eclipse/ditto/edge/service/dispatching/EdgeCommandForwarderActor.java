@@ -15,6 +15,8 @@ package org.eclipse.ditto.edge.service.dispatching;
 import org.eclipse.ditto.base.model.entity.id.WithEntityId;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.commands.Command;
+import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
+import org.eclipse.ditto.base.model.signals.events.Event;
 import org.eclipse.ditto.connectivity.model.signals.commands.ConnectivityCommand;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
@@ -27,6 +29,7 @@ import org.eclipse.ditto.policies.model.signals.commands.PolicyCommand;
 import org.eclipse.ditto.things.api.ThingsMessagingConstants;
 import org.eclipse.ditto.things.api.commands.sudo.SudoRetrieveThings;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommand;
+import org.eclipse.ditto.things.model.signals.commands.ThingCommandResponse;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThings;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 import org.eclipse.ditto.thingsearch.api.ThingsSearchConstants;
@@ -95,7 +98,8 @@ public class EdgeCommandForwarderActor extends AbstractActor {
         final Receive forwardingReceive = ReceiveBuilder.create()
                 .match(MessageCommand.class, this::forwardToThings)
                 .match(ThingCommand.class, this::forwardToThings)
-                .match(ThingEvent.class, Signal::isChannelLive, this::forwardToThings)
+                .match(ThingCommandResponse.class, CommandResponse::isLiveCommandResponse, this::forwardToThings)
+                .match(ThingEvent.class, Event::isLiveEvent, this::forwardToThings)
                 .match(RetrieveThings.class, this::forwardToThingsAggregator)
                 .match(SudoRetrieveThings.class, this::forwardToThingsAggregator)
                 .match(PolicyCommand.class, this::forwardToPolicies)

@@ -94,6 +94,7 @@ final class LiveResponseAndAcknowledgementForwarder extends AbstractActor {
 
     private void sendMessage(final Object message) {
         log.debug("Got message to send <{}>", message);
+        // TODO TJ messageSender is a tmp actor probably caused by "ask" pattern - check if this is expected!
         messageSender = getSender();
         messageReceiver.tell(message, getSelf());
     }
