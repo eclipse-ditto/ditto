@@ -15,6 +15,7 @@ package org.eclipse.ditto.things.service.persistence.actors.strategies.commands;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -396,9 +397,13 @@ final class MetadataFieldsWildcardResolver {
     private static Set<JsonPointer> getReplacedWildcardsPointersForLeafs(final List<String> featureIds,
             final Thing thing,
             final JsonKey metadataKey) {
-        final Set<JsonPointer> replacedWildcardsPointers = new HashSet<>();
+        final Set<JsonPointer> replacedWildcardsPointers = new LinkedHashSet<>();
         replacedWildcardsPointers.add(JsonPointer.of("thingId/" + metadataKey));
         replacedWildcardsPointers.add(JsonPointer.of("policyId/" + metadataKey));
+
+        replacedWildcardsPointers.addAll(
+                getReplacedWildcardPointersForAttributeIds(getAttributesLeafsFromThing(thing),
+                        metadataKey.asPointer()));
 
         featureIds.forEach(featureId -> {
                     replacedWildcardsPointers.addAll(
@@ -412,10 +417,6 @@ final class MetadataFieldsWildcardResolver {
                                     JsonPointer.of(featureId), DESIRED_PROPERTIES_POINTER, metadataKey.asPointer()));
                 }
         );
-
-        replacedWildcardsPointers.addAll(
-                getReplacedWildcardPointersForAttributeIds(getAttributesLeafsFromThing(thing),
-                        metadataKey.asPointer()));
 
         return replacedWildcardsPointers;
     }

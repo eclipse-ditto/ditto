@@ -17,6 +17,7 @@ import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.SortedSet;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -115,7 +116,7 @@ final class MetadataFromCommand implements Supplier<Metadata> {
     public Metadata get() {
         return getInlineMetadata().orElseGet(() -> {
             if (null != commandEntity) {
-                final Set<MetadataHeader> metadataHeaders = getMetadataHeadersToPut();
+                final SortedSet<MetadataHeader> metadataHeaders = getMetadataHeadersToPut();
                 if (!metadataHeaders.isEmpty()) {
                     final var expandedMetadataHeaders = metadataHeaders.stream()
                             .flatMap(this::expandWildcards)
@@ -131,7 +132,7 @@ final class MetadataFromCommand implements Supplier<Metadata> {
         return command instanceof CreateThing createThing ? createThing.getThing().getMetadata() : Optional.empty();
     }
 
-    private Set<MetadataHeader> getMetadataHeadersToPut() {
+    private SortedSet<MetadataHeader> getMetadataHeadersToPut() {
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
         return dittoHeaders.getMetadataHeadersToPut();
     }
@@ -140,7 +141,7 @@ final class MetadataFromCommand implements Supplier<Metadata> {
         if (containsWildcard(metadataHeader)) {
             final var thing = command instanceof CreateThing createThing ? createThing.getThing() : existingThing;
             final var jsonPointers = MetadataFieldsWildcardResolver.resolve(command, thing,
-                    metadataHeader.getKey().getPath(), DittoHeaderDefinition.PUT_METADATA.getKey());
+                    metadataHeader.getKey().getOriginalPath(), DittoHeaderDefinition.PUT_METADATA.getKey());
             return jsonPointers.stream()
                     .map(MetadataHeaderKey::of)
                     .map(metadataHeaderKey -> MetadataHeader.of(metadataHeaderKey, metadataHeader.getValue()));

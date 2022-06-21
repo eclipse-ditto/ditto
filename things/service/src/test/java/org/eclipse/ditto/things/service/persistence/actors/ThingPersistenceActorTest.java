@@ -1552,7 +1552,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
         final Thing thing = createThingV2WithRandomIdAndMetadata();
         final DittoHeaders dittoHeaders = dittoHeadersV2.toBuilder()
                 .putHeader(DittoHeaderDefinition.GET_METADATA.getKey(),
-                        "features/*/properties/*/unit,attributes/*/edited")
+                        "attributes/*/edited,features/*/properties/*/unit")
                 .build();
         final ThingCommand<?> retrieveThingCommand = RetrieveThing.of(getIdOrThrow(thing), dittoHeaders);
 
@@ -1626,6 +1626,9 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
                     .setRevision(2L)
                     .build();
             final Metadata expectedMetadata = Metadata.newBuilder()
+                    .set("thingId", JsonObject.newBuilder()
+                            .set("issuedBy", "the epic Ditto team")
+                            .build())
                     .set("policyId", JsonObject.newBuilder()
                             .set("issuedBy", "the epic Ditto team")
                             .build())
@@ -1633,9 +1636,6 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
                             .set(ATTRIBUTE_KEY, JsonObject.newBuilder()
                                     .set("issuedBy", "the epic Ditto team")
                                     .build())
-                            .build())
-                    .set("thingId", JsonObject.newBuilder()
-                            .set("issuedBy", "the epic Ditto team")
                             .build())
                     .set("features", JsonObject.newBuilder()
                             .set(FEATURE_ID, JsonObject.newBuilder()

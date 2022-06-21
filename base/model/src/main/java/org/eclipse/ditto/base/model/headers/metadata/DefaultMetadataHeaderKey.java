@@ -110,6 +110,11 @@ final class DefaultMetadataHeaderKey implements MetadataHeaderKey {
     }
 
     @Override
+    public JsonPointer getOriginalPath() {
+        return path;
+    }
+
+    @Override
     public int compareTo(final MetadataHeaderKey other) {
         checkNotNull(other, "other");
 

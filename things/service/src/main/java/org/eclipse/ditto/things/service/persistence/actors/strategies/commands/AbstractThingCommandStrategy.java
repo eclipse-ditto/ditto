@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.things.service.persistence.actors.strategies.commands;
 
-import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.Optional;
 import java.util.Set;
 
@@ -250,16 +250,16 @@ abstract class AbstractThingCommandStrategy<C extends Command<C>>
     private Set<JsonPointer> expandWildcardsInMetadataExpression(final Set<JsonPointer> metadataPointerWithWildcard,
             final Thing entity, final C command, final String headerKey) {
 
-        final Set<JsonPointer> resolvedMetadataPointers = new HashSet<>();
+        final Set<JsonPointer> resolvedMetadataPointers = new LinkedHashSet<>();
 
-        metadataPointerWithWildcard.stream()
-                .filter(jsonPointer -> !checkIfContainsWildcard(jsonPointer))
-                .forEach(resolvedMetadataPointers::add);
-
-        metadataPointerWithWildcard.stream()
-                .filter(this::checkIfContainsWildcard)
-                .map(jsonPointer -> MetadataFieldsWildcardResolver.resolve(command, entity, jsonPointer, headerKey))
-                .forEach(resolvedMetadataPointers::addAll);
+        metadataPointerWithWildcard.forEach(jsonPointer -> {
+            if (checkIfContainsWildcard(jsonPointer)) {
+                final var resolved = MetadataFieldsWildcardResolver.resolve(command, entity, jsonPointer, headerKey);
+                resolvedMetadataPointers.addAll(resolved);
+            } else {
+                resolvedMetadataPointers.add(jsonPointer);
+            }
+        });
 
         return resolvedMetadataPointers;
     }
