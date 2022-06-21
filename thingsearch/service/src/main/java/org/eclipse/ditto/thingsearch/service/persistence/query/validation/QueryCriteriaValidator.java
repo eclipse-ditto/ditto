@@ -17,6 +17,7 @@ import java.util.concurrent.CompletionStage;
 
 import org.eclipse.ditto.internal.utils.akka.AkkaClassLoader;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
+import org.eclipse.ditto.rql.query.Query;
 import org.eclipse.ditto.thingsearch.model.signals.commands.query.ThingSearchQueryCommand;
 import org.eclipse.ditto.thingsearch.service.common.config.DittoSearchConfig;
 import org.eclipse.ditto.thingsearch.service.common.config.SearchConfig;
@@ -42,16 +43,13 @@ public abstract class QueryCriteriaValidator implements Extension {
     }
 
     /**
-     * Gets the criteria of a {@link org.eclipse.ditto.thingsearch.model.signals.commands.query.ThingSearchQueryCommand} and
-     * validates it.
-     * <p>
-     * May throw an exception depending on the implementation in the used QueryCriteriaValidator.
+     * Validate a parsed query of a
+     * {@link org.eclipse.ditto.thingsearch.model.signals.commands.query.ThingSearchQueryCommand}.
      *
-     * @param command the command to validate.
-     * @return the validated command in a future if it is valid, or a failed future if it is not.
+     * @param query The query.
+     * @return The validated query in a future if it is valid, or a failed future if it is not.
      */
-    public abstract CompletionStage<ThingSearchQueryCommand<?>> validateCommand(
-            final ThingSearchQueryCommand<?> command);
+    public abstract CompletionStage<Query> validateQuery(final ThingSearchQueryCommand<?> command, final Query query);
 
     /**
      * Load a {@code QueryCriteriaValidator} dynamically according to the search configuration.
