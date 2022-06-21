@@ -69,7 +69,7 @@ final class MetadataFieldsWildcardResolver {
      * @param jsonPointerWithWildcard pointer which contains the wildcards to resolve.
      * @return a set of pointers with replaced wildcards.
      */
-    public static Set<JsonPointer> resolve(final Command<?> command,
+    static Set<JsonPointer> resolve(final Command<?> command,
             final Thing thing,
             final JsonPointer jsonPointerWithWildcard,
             final String metadataHeaderKey) {
@@ -529,7 +529,6 @@ final class MetadataFieldsWildcardResolver {
                 .map(jsonKeys -> jsonKeys.stream().map(Objects::toString).toList())
                 .orElse(List.of());
     }
-
 
     private static List<String> getAttributesLeafsFromThing(final Thing thing) {
         final List<String> attributesLeafs = new ArrayList<>();

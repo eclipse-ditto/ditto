@@ -53,7 +53,6 @@ public class MetadataFieldsWildcardResolverTest {
         assertInstancesOf(MetadataFieldsWildcardResolver.class, areImmutable());
     }
 
-
     @Test
     public void validateUnknownMetadataWildcardResolvesToEmptySet() {
         final JsonPointer metadataWildcardExpr = JsonPointer.of("features/*/bumlux/*/key");
