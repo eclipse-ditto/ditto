@@ -15,6 +15,8 @@ package org.eclipse.ditto.thingsearch.service.persistence.write.mapping;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.eclipse.ditto.policies.model.PoliciesResourceType.THING;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 
 import org.bson.BsonDocument;
@@ -37,6 +39,8 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 import org.reactivestreams.Publisher;
 
 import com.mongodb.reactivestreams.client.MongoCollection;
@@ -49,10 +53,7 @@ import akka.testkit.javadsl.TestKit;
 /**
  * Tests incremental update.
  */
-public final class BsonDiffVisitorIT {
-
-    @ClassRule
-    public static final MongoDbResource MONGO_RESOURCE = new MongoDbResource("5.0");
+abstract class BsonDiffVisitorIT {
 
     private DittoMongoClient client;
     private MongoCollection<Document> collection;
@@ -60,10 +61,12 @@ public final class BsonDiffVisitorIT {
     private Policy policy;
     private Policy policy2;
 
+    protected abstract MongoDbResource getMongoDbResource();
+
     @Before
     public void init() {
         client = MongoClientWrapper.getBuilder()
-                .hostnameAndPort(MONGO_RESOURCE.getBindIp(), MONGO_RESOURCE.getPort())
+                .hostnameAndPort(getMongoDbResource().getBindIp(), getMongoDbResource().getPort())
                 .defaultDatabaseName("test")
                 .build();
 
