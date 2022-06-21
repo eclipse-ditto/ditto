@@ -35,6 +35,7 @@ import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.translator.HeaderTranslator;
 import org.eclipse.ditto.base.model.signals.Signal;
+import org.eclipse.ditto.base.model.signals.announcements.Announcement;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.internal.models.acks.config.AcknowledgementConfig;
 import org.eclipse.ditto.internal.models.signal.correlation.MatchingValidationResult;
@@ -154,7 +155,9 @@ public final class AcknowledgementAggregatorActorStarter {
         final var isLiveSignal = Signal.isChannelLive(signal);
         final var isChannelSmart = Signal.isChannelSmart(signal);
         final Collection<AcknowledgementRequest> ackRequests = signal.getDittoHeaders().getAcknowledgementRequests();
-        if (signal instanceof Command<?> command && Command.Category.isCreateOrModify(command.getCategory()) &&
+        if (signal instanceof Announcement<?>) {
+            result = !ackRequests.isEmpty();
+        } else if (signal instanceof Command<?> command && Command.Category.isCreateOrModify(command.getCategory()) &&
                 !isLiveSignal) {
             result = ackRequests.stream().anyMatch(AcknowledgementForwarderActorStarter::isNotLiveResponse);
         } else if (Command.isMessageCommand(signal) || isLiveSignal && Command.isThingCommand(signal)) {
