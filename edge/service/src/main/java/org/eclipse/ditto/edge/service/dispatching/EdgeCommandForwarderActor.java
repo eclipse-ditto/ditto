@@ -188,14 +188,8 @@ public class EdgeCommandForwarderActor extends AbstractActor {
                                                 "shard region", withEntityId.getEntityId(),
                                         transformedConnectivityCommand.getType());
 
-                        if (isIdempotent(transformedConnectivityCommand)) {
-                            askWithRetryCommandForwarder.forwardCommand(transformedConnectivityCommand,
-                                    shardRegions.connections(),
-                                    sender);
-                        } else {
-                            shardRegions.connections().tell(transformedConnectivityCommand, sender);
-                        }
-
+                        // don't retry connectivity commands
+                        shardRegions.connections().tell(transformedConnectivityCommand, sender);
                     });
         } else {
             log.withCorrelationId(connectivityCommand)
