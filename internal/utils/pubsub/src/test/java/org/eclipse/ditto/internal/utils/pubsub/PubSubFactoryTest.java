@@ -36,8 +36,10 @@ import org.eclipse.ditto.base.model.acks.AcknowledgementRequest;
 import org.eclipse.ditto.base.model.acks.PubSubTerminatedException;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.entity.id.EntityId;
+import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.things.model.ThingId;
+import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
+import org.eclipse.ditto.base.model.signals.acks.Acknowledgements;
 import org.eclipse.ditto.internal.utils.pubsub.actors.ActorEvent;
 import org.eclipse.ditto.internal.utils.pubsub.api.LocalAcksChanged;
 import org.eclipse.ditto.internal.utils.pubsub.api.SubAck;
@@ -45,8 +47,7 @@ import org.eclipse.ditto.internal.utils.pubsub.api.Subscribe;
 import org.eclipse.ditto.internal.utils.pubsub.api.Unsubscribe;
 import org.eclipse.ditto.internal.utils.pubsub.config.PubSubConfig;
 import org.eclipse.ditto.internal.utils.pubsub.extractors.AckExtractor;
-import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
-import org.eclipse.ditto.base.model.signals.acks.Acknowledgements;
+import org.eclipse.ditto.things.model.ThingId;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -58,6 +59,7 @@ import akka.actor.AbstractActor;
 import akka.actor.ActorContext;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
+import akka.actor.Address;
 import akka.actor.PoisonPill;
 import akka.actor.Props;
 import akka.actor.Terminated;
@@ -416,14 +418,18 @@ public final class PubSubFactoryTest {
             waitForHeartBeats(system2, factory2);
 
             // WHEN: message with the subscriber's declared ack and a different topic is published
+            final Address selfRemoteAddress = Cluster.get(system1).selfUniqueAddress().address();
             final ThingId thingId = ThingId.of("thing:id");
             final DittoHeaders dittoHeaders = DittoHeaders.newBuilder().acknowledgementRequest(
                     AcknowledgementRequest.parseAcknowledgementRequest("ack"),
                     AcknowledgementRequest.parseAcknowledgementRequest("no-declaration")
-            ).build();
+            )
+                    .putHeader(DittoHeaderDefinition.DITTO_ACKREGATOR_ADDRESS.getKey(),
+                            publisher.ref().path().toSerializationFormatWithAddress(selfRemoteAddress))
+                    .build();
             thingIdMap.put(publisherTopic, thingId);
             dittoHeadersMap.put(publisherTopic, dittoHeaders);
-            pub.publishWithAcks(signal(publisherTopic), ackExtractor, publisher.ref());
+            pub.publishWithAcks(signal(publisherTopic), ackExtractor, ActorRef.noSender());
 
             // THEN: the publisher receives a weak acknowledgement for the ack request with a declared label
             final Acknowledgements weakAcks = publisher.expectMsgClass(Acknowledgements.class);
