@@ -914,6 +914,8 @@ the same commands.
 
 For each command type, please refer to the corresponding segment of "Managing background cleanup" for the exact format.
 
+{% include note.html content="Only a subset of the configuration has an effect when changed via `common.commands:modifyConfig` command: `enabled`, `quiet-period` and `keep.events`. Refer to [Ditto configuration](installation-operating.html#ditto-configuration) for instructions how to modify the other configuration settings." %}
+
 #### Force search index update for one thing
 
 The search index should rarely become out-of-sync for a long time, and it can repair itself
