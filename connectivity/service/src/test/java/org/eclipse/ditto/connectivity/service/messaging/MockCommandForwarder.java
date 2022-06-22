@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.connectivity.service.messaging;
 
+import org.eclipse.ditto.edge.service.dispatching.EdgeCommandForwarderActor;
+
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
@@ -21,11 +23,11 @@ import akka.japi.pf.ReceiveBuilder;
 /**
  * Mock actor that forwards all messages to the final ActorRef message.
  */
-final class MockProxyActor extends AbstractActor {
+final class MockCommandForwarder extends AbstractActor {
 
     private final ActorRef notificationRecipient;
 
-    private MockProxyActor(final ActorRef notificationRecipient) {
+    private MockCommandForwarder(final ActorRef notificationRecipient) {
         this.notificationRecipient = notificationRecipient;
     }
 
@@ -36,12 +38,13 @@ final class MockProxyActor extends AbstractActor {
      * @param actorSystem the actor system where the mock concierge forwarder is to be created.
      */
     public static ActorRef create(final ActorSystem actorSystem, final ActorRef notificationRecipient) {
-        return actorSystem.actorOf(Props.create(MockProxyActor.class, notificationRecipient), "connectivityRoot");
+        return actorSystem.actorOf(Props.create(MockCommandForwarder.class, notificationRecipient), "connectivityRoot");
     }
 
     @Override
     public void preStart() {
-        getContext().actorOf(Props.create(MockInnerActor.class, notificationRecipient), "connectivityProxyActor");
+        getContext().actorOf(Props.create(MockInnerActor.class, notificationRecipient),
+                EdgeCommandForwarderActor.ACTOR_NAME);
     }
 
     @Override

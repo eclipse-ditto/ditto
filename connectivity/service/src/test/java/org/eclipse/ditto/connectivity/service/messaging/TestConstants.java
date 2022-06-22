@@ -915,11 +915,11 @@ public final class TestConstants {
 
     public static ActorRef createConnectionSupervisorActor(final ConnectionId connectionId,
             final ActorSystem actorSystem,
-            final ActorRef proxyActor,
+            final ActorRef commandForwarderActor,
             final ActorRef pubSubMediator) {
 
         final var enforcerActorPropsFactory = ConnectionEnforcerActorPropsFactory.get(actorSystem);
-        final Props props = ConnectionSupervisorActor.props(proxyActor, pubSubMediator, enforcerActorPropsFactory);
+        final Props props = ConnectionSupervisorActor.props(commandForwarderActor, pubSubMediator, enforcerActorPropsFactory);
 
         final Props shardRegionMockProps = Props.create(ShardRegionMockActor.class, props, connectionId.toString());
 

@@ -743,24 +743,6 @@ public final class ThingCommandEnforcementTest extends AbstractThingEnforcementT
     }
 
     @Test
-    public void transformModifyThingToCreateThing() {
-        final Thing thingInPayload = newThing().setId(THING_ID).build();
-        final Policy policy = provideDefaultImplicitPolicy(THING_ID);
-
-        new TestKit(system) {{
-            final ModifyThing modifyThing = ModifyThing.of(THING_ID, thingInPayload, null, headers());
-            supervisor.tell(modifyThing, getRef());
-
-            expectAndAnswerSudoRetrieveThing(ThingNotAccessibleException.newBuilder(THING_ID).build());
-
-            policiesShardRegionProbe.expectMsgClass(CreatePolicy.class);
-            policiesShardRegionProbe.reply(CreatePolicyResponse.of(PolicyId.of(THING_ID), policy, headers()));
-
-            thingPersistenceActorProbe.expectMsgClass(CreateThing.class);
-        }};
-    }
-
-    @Test
     public void rejectModifyWithConditionAndNoReadPermissionForAttributes() {
         final PolicyId policyId = PolicyId.of("policy:id");
         final JsonObject thingWithPolicy = newThingWithAttributeWithPolicyId(policyId);

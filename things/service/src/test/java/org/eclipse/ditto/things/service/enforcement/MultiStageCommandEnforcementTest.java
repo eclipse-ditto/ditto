@@ -15,7 +15,6 @@ package org.eclipse.ditto.things.service.enforcement;
 import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;
 
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
 import javax.annotation.Nullable;
@@ -322,9 +321,9 @@ public final class MultiStageCommandEnforcementTest extends AbstractThingEnforce
                     SudoRetrieveThingResponse.of(thing.toJson(FieldType.all()), DittoHeaders.empty());
 
             // WHEN: received ModifyThing
-            final ModifyThing modifyThing = ModifyThing.of(thingId, thing, null, DEFAULT_HEADERS);
+            final CreateThing createThing = CreateThing.of(thing, null, DEFAULT_HEADERS);
 
-            supervisor.tell(modifyThing, getRef());
+            supervisor.tell(createThing, getRef());
             expectAndAnswerSudoRetrieveThing(ThingNotAccessibleException.newBuilder(thingId).build());
             expectAndAnswerSudoRetrievePolicy(policyId, sudoRetrievePolicyResponse);
 
@@ -346,9 +345,9 @@ public final class MultiStageCommandEnforcementTest extends AbstractThingEnforce
             final Policy policy = defaultPolicy(policyId);
 
             // WHEN: received ModifyThing
-            final ModifyThing modifyThing = ModifyThing.of(thingId, thing, null, DEFAULT_HEADERS);
+            final var createThing = CreateThing.of(thing, null, DEFAULT_HEADERS);
 
-            supervisor.tell(modifyThing, getRef());
+            supervisor.tell(createThing, getRef());
             expectAndAnswerSudoRetrieveThing(ThingNotAccessibleException.newBuilder(thingId).build());
 
             policiesShardRegionProbe.expectMsgClass(CreatePolicy.class);
@@ -372,9 +371,9 @@ public final class MultiStageCommandEnforcementTest extends AbstractThingEnforce
             final Policy policy = defaultPolicy(policyId);
 
             // WHEN: received ModifyThing
-            final ModifyThing modifyThing = ModifyThing.of(thingId, thing, null, DEFAULT_HEADERS);
+            final var createThing = CreateThing.of(thing, null, DEFAULT_HEADERS);
 
-            supervisor.tell(modifyThing, getRef());
+            supervisor.tell(createThing, getRef());
             expectAndAnswerSudoRetrieveThing(ThingNotAccessibleException.newBuilder(thingId).build());
 
             policiesShardRegionProbe.expectMsgClass(CreatePolicy.class);
@@ -400,10 +399,9 @@ public final class MultiStageCommandEnforcementTest extends AbstractThingEnforce
                     SudoRetrievePolicyResponse.of(policyId, policy, DittoHeaders.empty());
 
             // WHEN: received ModifyThing
-            final ModifyThing modifyThing =
-                    ModifyThing.of(thingId, thing, policy.toJson(), DEFAULT_HEADERS);
+            final var createThing = CreateThing.of(thing, policy.toJson(), DEFAULT_HEADERS);
 
-            supervisor.tell(modifyThing, getRef());
+            supervisor.tell(createThing, getRef());
             expectAndAnswerSudoRetrieveThing(ThingNotAccessibleException.newBuilder(thingId).build());
 
             policiesShardRegionProbe.expectMsgClass(CreatePolicy.class);
@@ -429,10 +427,9 @@ public final class MultiStageCommandEnforcementTest extends AbstractThingEnforce
                     SudoRetrieveThingResponse.of(thing.toJson(FieldType.all()), DittoHeaders.empty());
 
             // WHEN: received ModifyThing whose inline policy does not permit creation of itself
-            final ModifyThing modifyThing =
-                    ModifyThing.of(thingId, thing, policy.toJson(), DEFAULT_HEADERS);
+            final var createThing = CreateThing.of(thing, policy.toJson(), DEFAULT_HEADERS);
 
-            supervisor.tell(modifyThing, getRef());
+            supervisor.tell(createThing, getRef());
             expectAndAnswerSudoRetrieveThing(ThingNotAccessibleException.newBuilder(thingId).build());
 
             policiesShardRegionProbe.expectMsgClass(CreatePolicy.class);
