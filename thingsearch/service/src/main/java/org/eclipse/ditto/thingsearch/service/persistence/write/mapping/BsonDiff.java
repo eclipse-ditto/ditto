@@ -80,11 +80,10 @@ public final class BsonDiff {
      * @param recurseIntoArrays whether diff computation should descend into arrays.
      * @return the change to edit the starting BSON document into the target BSON document.
      */
-    public static BsonDiff minus(final BsonDocument minuend,
-            final BsonDocument subtrahend,
-            final boolean recurseIntoArrays) {
+    public static BsonDiff minus(final BsonDocument minuend, final BsonDocument subtrahend,
+            final boolean recurseIntoArrays, final int maxWireVersion) {
 
-        return new BsonDiffVisitor(recurseIntoArrays).eval(minuend).apply(subtrahend);
+        return new BsonDiffVisitor(recurseIntoArrays, maxWireVersion).eval(minuend).apply(subtrahend);
     }
 
     /**
@@ -94,8 +93,19 @@ public final class BsonDiff {
      * @param subtrahend the subtrahend document.
      * @return the difference.
      */
-    public static BsonDiff minusThingDocs(final BsonDocument minuend, final BsonDocument subtrahend) {
-        return minus(minuend, subtrahend, true);
+    public static BsonDiff minusThingDocs(final BsonDocument minuend, final BsonDocument subtrahend,
+            final int maxWireVersion) {
+        // compute the internal array diff especially to find similar elements by internal key
+        final var minuendFeatures = minuend.getArray(FIELD_F_ARRAY);
+        final var subtrahendFeatures = subtrahend.getArray(FIELD_F_ARRAY);
+        final var diffFeatures = BsonArrayDiff.diffFeaturesArray(minuendFeatures, subtrahendFeatures, maxWireVersion);
+        // compute the rest of the diff without the internal array
+        final var minuendWithoutInternal = minuend.clone();
+        final var subtrahendWithoutInternal = subtrahend.clone();
+        minuendWithoutInternal.remove(FIELD_F_ARRAY);
+        subtrahendWithoutInternal.remove(FIELD_F_ARRAY);
+        final var diffWithoutInternal = minus(minuendWithoutInternal, subtrahendWithoutInternal, true, maxWireVersion);
+        return diffWithoutInternal.concat(diffFeatures);
     }
 
     /**

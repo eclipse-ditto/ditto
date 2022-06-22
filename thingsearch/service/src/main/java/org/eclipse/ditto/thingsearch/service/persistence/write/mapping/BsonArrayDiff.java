@@ -40,18 +40,25 @@ import akka.japi.Pair;
  */
 final class BsonArrayDiff {
 
+    /**
+     * The minimum max-wire-version of a MongoDB server to support the $unsetField operator.
+     * Wire version 13 corresponds to MongoDB 5.0.
+     */
+    private static final int MIN_UNSET_WIRE_VERSION = 13;
+
     private static final String ARRAY_ELEM_AT = "$arrayElemAt";
     private static final String CONCAT_ARRAYS = "$concatArrays";
     private static final String SLICE = "$slice";
 
     static BsonValue diff(final JsonPointer key,
             final BsonArray minuend,
-            final BsonArray subtrahend) {
+            final BsonArray subtrahend,
+            final int maxWireVersion) {
 
-        return diff(key, minuend, subtrahend, (v, j) -> j);
+        return diff(key, minuend, subtrahend, maxWireVersion, (v, j) -> j);
     }
 
-    static BsonDiff diffFeaturesArray(final BsonArray minuend, final BsonArray subtrahend) {
+    static BsonDiff diffFeaturesArray(final BsonArray minuend, final BsonArray subtrahend, final int maxWireVersion) {
         final BsonSizeVisitor bsonSizeVisitor = new BsonSizeVisitor();
         final int replacementSize = bsonSizeVisitor.eval(subtrahend);
         if (minuend.equals(subtrahend)) {
@@ -68,7 +75,7 @@ final class BsonArrayDiff {
         final BiFunction<BsonDocument, Integer, Integer> kMapGet =
                 // use 0 as default value to re-use root grant/revoke
                 (doc, j) -> kMap.getOrDefault(doc.get(FIELD_FEATURE_ID), 0);
-        final BsonValue difference = diff(internalArrayKey, minuend, subtrahend, kMapGet);
+        final BsonValue difference = diff(internalArrayKey, minuend, subtrahend, maxWireVersion, kMapGet);
         return new BsonDiff(
                 replacementSize,
                 bsonSizeVisitor.eval(difference),
@@ -80,8 +87,9 @@ final class BsonArrayDiff {
     private static BsonValue diff(final JsonPointer key,
             final BsonArray minuend,
             final BsonArray subtrahend,
+            final int maxWireVersion,
             final BiFunction<BsonDocument, Integer, Integer> mostSimilarIndex) {
-        final List<Element> elements = diffAsElementList(key, minuend, subtrahend, mostSimilarIndex);
+        final List<Element> elements = diffAsElementList(key, minuend, subtrahend, maxWireVersion, mostSimilarIndex);
         final List<ElementGroup> aggregatedElements = aggregate(elements);
         if (elements.size() - aggregatedElements.size() > 1 && aggregatedElements.size() > 1) {
             // aggregated element groups are suitable for array concatenation syntax.
@@ -105,6 +113,7 @@ final class BsonArrayDiff {
     private static List<Element> diffAsElementList(final JsonPointer key,
             final BsonArray minuend,
             final BsonArray subtrahend,
+            final int maxWireVersion,
             final BiFunction<BsonDocument, Integer, Integer> mostSimilarIndex) {
 
         final BsonSizeVisitor bsonSizeVisitor = new BsonSizeVisitor();
@@ -122,9 +131,12 @@ final class BsonArrayDiff {
                 final int k = mostSimilarIndex.apply(elementDoc, j);
                 if (isMostSimilarElementADocument(subtrahend, k)) {
                     final int replaceSize = bsonSizeVisitor.eval(elementDoc);
-                    final BsonDiff diff = BsonDiff.minus(element.asDocument(), subtrahend.get(k).asDocument(), false);
+                    final BsonDiff diff =
+                            BsonDiff.minus(element.asDocument(), subtrahend.get(k).asDocument(), false, maxWireVersion);
                     final BsonDiffList diffList = diff.consumeAndExportToList();
-                    final var diffInPipeline = diffList.toBsonInPipeline(getSubtrahendElement(subtrahendExpr, k));
+                    final boolean isUnsetAllowed = maxWireVersion >= MIN_UNSET_WIRE_VERSION;
+                    final var diffInPipeline =
+                            diffList.toBsonInPipeline(getSubtrahendElement(subtrahendExpr, k), isUnsetAllowed);
                     final boolean diffSizeIsBetter = diffInPipeline.map(bsonSizeVisitor::eval)
                             .map(diffSize -> diffSize < replaceSize)
                             .orElse(false);

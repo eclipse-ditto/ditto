@@ -73,11 +73,12 @@ public final class ThingWriteModel extends AbstractWriteModel {
     }
 
     @Override
-    public Optional<MongoWriteModel> toIncrementalMongo(@Nullable final AbstractWriteModel previousWriteModel) {
+    public Optional<MongoWriteModel> toIncrementalMongo(@Nullable final AbstractWriteModel previousWriteModel,
+            final int maxWireVersion) {
         if (previousWriteModel instanceof ThingWriteModel thingWriteModel) {
-            return computeDiff(thingWriteModel);
+            return computeDiff(thingWriteModel, maxWireVersion);
         } else {
-            return super.toIncrementalMongo(previousWriteModel);
+            return super.toIncrementalMongo(previousWriteModel, maxWireVersion);
         }
     }
 
@@ -156,7 +157,7 @@ public final class ThingWriteModel extends AbstractWriteModel {
                 "]";
     }
 
-    private Optional<MongoWriteModel> computeDiff(final ThingWriteModel lastWriteModel) {
+    private Optional<MongoWriteModel> computeDiff(final ThingWriteModel lastWriteModel, final int maxWireVersion) {
         final WriteModel<BsonDocument> mongoWriteModel;
         final boolean isPatchUpdate;
 
@@ -166,38 +167,40 @@ public final class ThingWriteModel extends AbstractWriteModel {
             PATCH_SKIP_COUNT.increment();
             return Optional.empty();
         }
-        final Optional<BsonDiff> diff = tryComputeDiff(getThingDocument(), lastWriteModel.getThingDocument());
+        final var diff = tryComputeDiff(getThingDocument(), lastWriteModel.getThingDocument(), maxWireVersion);
         if (diff.isPresent() && diff.get().isDiffSmaller()) {
             final var aggregationPipeline = diff.get().consumeAndExport();
             if (aggregationPipeline.isEmpty()) {
-                LOGGER.debug("Skipping update due to {} <{}>", "empty diff", ((AbstractWriteModel) this).getClass().getSimpleName());
+                LOGGER.debug("Skipping update due to {} <{}>", "empty diff",
+                        ((AbstractWriteModel) this).getClass().getSimpleName());
                 LOGGER.trace("Skipping update due to {} <{}>", "empty diff", this);
                 PATCH_SKIP_COUNT.increment();
                 return Optional.empty();
             }
             final var filter = asPatchUpdate(lastWriteModel.getMetadata().getThingRevision()).getFilter();
             mongoWriteModel = new UpdateOneModel<>(filter, aggregationPipeline);
-             LOGGER.debug("Using incremental update <{}>", mongoWriteModel.getClass().getSimpleName());
-             LOGGER.trace("Using incremental update <{}>", mongoWriteModel);
-             PATCH_UPDATE_COUNT.increment();
+            LOGGER.debug("Using incremental update <{}>", mongoWriteModel.getClass().getSimpleName());
+            LOGGER.trace("Using incremental update <{}>", mongoWriteModel);
+            PATCH_UPDATE_COUNT.increment();
             isPatchUpdate = true;
         } else {
             mongoWriteModel = this.toMongo();
-             LOGGER.debug("Using replacement because diff is bigger or nonexistent: <{}>",
+            LOGGER.debug("Using replacement because diff is bigger or nonexistent: <{}>",
                     mongoWriteModel.getClass().getSimpleName());
-             if (LOGGER.isTraceEnabled()) {
+            if (LOGGER.isTraceEnabled()) {
                 LOGGER.trace("Using replacement because diff is bigger or nonexistent. Diff=<{}>",
                         diff.map(BsonDiff::consumeAndExport));
-             }
-             FULL_UPDATE_COUNT.increment();
+            }
+            FULL_UPDATE_COUNT.increment();
             isPatchUpdate = false;
         }
         return Optional.of(MongoWriteModel.of(this, mongoWriteModel, isPatchUpdate));
     }
 
-    private Optional<BsonDiff> tryComputeDiff(final BsonDocument minuend, final BsonDocument subtrahend) {
+    private Optional<BsonDiff> tryComputeDiff(final BsonDocument minuend, final BsonDocument subtrahend,
+            final int maxWireVersion) {
         try {
-            return Optional.of(BsonDiff.minusThingDocs(minuend, subtrahend));
+            return Optional.of(BsonDiff.minusThingDocs(minuend, subtrahend, maxWireVersion));
         } catch (final BsonInvalidOperationException e) {
             LOGGER.error("Failed to compute BSON diff between <{}> and <{}>", minuend, subtrahend, e);
             return Optional.empty();
