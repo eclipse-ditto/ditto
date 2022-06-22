@@ -48,7 +48,6 @@ import org.eclipse.ditto.connectivity.model.Topic;
 import org.eclipse.ditto.connectivity.model.signals.commands.exceptions.ConnectionFailedException;
 import org.eclipse.ditto.connectivity.model.signals.commands.modify.CloseConnection;
 import org.eclipse.ditto.connectivity.model.signals.commands.modify.OpenConnection;
-import org.eclipse.ditto.connectivity.model.signals.commands.modify.TestConnection;
 import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConnectionMetrics;
 import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConnectionMetricsResponse;
 import org.eclipse.ditto.connectivity.service.messaging.AbstractBaseClientActorTest;
@@ -58,7 +57,6 @@ import org.eclipse.ditto.connectivity.service.messaging.mqtt.MqttServerRule;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.client.GenericMqttClient;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.client.GenericMqttClientFactory;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.client.GenericMqttPublishResult;
-import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.client.MqttClientConnectException;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.client.MqttSubscribeException;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.message.publish.GenericMqttPublish;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.message.subscribe.GenericMqttSubAck;
@@ -160,7 +158,6 @@ public final class MqttClientActorTest extends AbstractBaseClientActorTest {
 
     private void enableGenericMqttClientMethodStubbing() {
         Mockito.when(genericMqttClient.connect()).thenReturn(CompletableFuture.completedFuture(null));
-        Mockito.when(genericMqttClient.connect(Mockito.any())).thenReturn(CompletableFuture.completedFuture(null));
         Mockito.when(genericMqttClient.disconnect()).thenReturn(CompletableFuture.completedFuture(null));
         Mockito.when(genericMqttClient.subscribe(Mockito.any()))
                 .thenReturn(Single.just(Mockito.mock(GenericMqttSubAck.class)));
