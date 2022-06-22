@@ -102,6 +102,8 @@ public final class UserPasswordCredentials implements Credentials {
     /**
      * Create credentials with username and password.
      *
+     * @param username the username
+     * @param password the password
      * @return credentials.
      */
     public static UserPasswordCredentials newInstance(final String username, final String password) {

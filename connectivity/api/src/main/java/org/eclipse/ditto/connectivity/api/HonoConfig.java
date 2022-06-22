@@ -6,15 +6,16 @@
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License 2.0 which is available at
- * http://www.eclipse.org/legal/epl-2.0 *
+ * http://www.eclipse.org/legal/epl-2.0
+ *
  * SPDX-License-Identifier: EPL-2.0
  */
 package org.eclipse.ditto.connectivity.api;
 import java.util.List;
 
-import org.eclipse.ditto.connectivity.model.HonoAddressAliasValues;
 import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.connectivity.model.Credentials;
+import org.eclipse.ditto.connectivity.model.HonoAddressAliasValues;
 import org.eclipse.ditto.internal.utils.akka.AkkaClassLoader;
 import org.eclipse.ditto.internal.utils.config.KnownConfigValue;
 import akka.actor.AbstractExtensionId;
@@ -31,7 +32,7 @@ public interface HonoConfig extends Extension {
     /**
      * Prefix in .conf files
      */
-    String PREFIX = "ditto/connectivity/hono-connection";
+    String PREFIX = "ditto.connectivity.hono-connection";
 
     /**
      * Gets the Base URI configuration value

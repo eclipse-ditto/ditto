@@ -24,7 +24,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 
 /**
- * Address aliases used by connections of type 'Hono'
+ * Address values for each alias used by connections of type 'Hono'
  *
  * @since 2.5.0
  */
@@ -65,7 +65,7 @@ public final class HonoAddressAliasValues {
     /**
      * Gets the 'commandAndControl' alias value
      *
-     * @return The command&control address
+     * @return The commandAndControl address
      */
 
     public String getCommandAndControlAddress() {

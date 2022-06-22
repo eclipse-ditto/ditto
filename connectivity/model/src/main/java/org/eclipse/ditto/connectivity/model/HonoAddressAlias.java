@@ -13,10 +13,28 @@
 
 package org.eclipse.ditto.connectivity.model;
 
+/**
+ * Possible Aliases for Address used by connections of type 'Hono'
+ */
 public enum HonoAddressAlias {
+    /**
+     * telemetry address alias
+     */
     TELEMETRY("telemetry"),
+
+    /**
+     * event address alias
+     */
     EVENT("event"),
+
+    /**
+     * command&control address alias
+     */
     COMMAND("commandAndControl"),
+
+    /**
+     * command response address alias
+     */
     COMMAND_RESPONSE("commandResponse");
 
     private final String name;
@@ -25,6 +43,11 @@ public enum HonoAddressAlias {
         this.name = name;
     }
 
+    /**
+     * Gets the name of the alias
+     *
+     * @return The name of the alias
+     */
     public String getName() {
         return name;
     }
