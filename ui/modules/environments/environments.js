@@ -31,7 +31,7 @@ let environments = {
   eclipse_sandbox: {
     api_uri: 'https://ditto.eclipseprojects.io',
     bearer: '',
-    usernamePassword: null,
+    usernamePassword: 'ditto:ditto',
     useBasicAuth: false,
   },
 };
