@@ -19,6 +19,7 @@ import java.util.Set;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.base.model.acks.AcknowledgementLabel;
+import org.eclipse.ditto.base.model.acks.DittoAcknowledgementLabel;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgements;
@@ -26,7 +27,6 @@ import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
 import org.eclipse.ditto.internal.models.signal.correlation.CommandAndCommandResponseMatchingValidator;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
-import org.eclipse.ditto.policies.enforcement.pre.HeaderSetterPreEnforcer;
 import org.eclipse.ditto.things.model.signals.commands.query.ThingQueryCommand;
 
 import akka.actor.AbstractActor;
@@ -94,19 +94,18 @@ final class LiveResponseAndAcknowledgementForwarder extends AbstractActor {
 
     private void sendMessage(final Object message) {
         log.debug("Got message to send <{}>", message);
-        // TODO TJ messageSender is a tmp actor probably caused by "ask" pattern - check if this is expected!
         messageSender = getSender();
         messageReceiver.tell(message, getSelf());
     }
 
     private void onAcknowledgement(final Acknowledgement ack) {
-        log.debug("Got <{}>", ack);
+        log.withCorrelationId(ack).debug("Got <{}>", ack);
         pendingAcknowledgements.remove(ack.getLabel());
         forwardToAcknowledgementRequester(ack);
     }
 
     private void onAcknowledgements(final Acknowledgements acks) {
-        log.debug("Got <{}>", acks);
+        log.withCorrelationId(acks).debug("Got <{}>", acks);
         for (final var ack : acks) {
             pendingAcknowledgements.remove(ack.getLabel());
         }
@@ -114,20 +113,24 @@ final class LiveResponseAndAcknowledgementForwarder extends AbstractActor {
     }
 
     private void onCommandResponse(final CommandResponse<?> incomingResponse) {
-        final CommandResponse<?> response = HeaderSetterPreEnforcer.setOriginatorHeader(incomingResponse);
-        final boolean validResponse = isValidResponse(response);
-        log.debug("Got <{}>, valid=<{}>", response, validResponse);
+        final boolean validResponse = isValidResponse(incomingResponse);
+        log.withCorrelationId(incomingResponse)
+                .info("Got <{}>, valid=<{}>", incomingResponse, validResponse);
         if (validResponse) {
             responseReceived = true;
+            pendingAcknowledgements.remove(DittoAcknowledgementLabel.LIVE_RESPONSE);
             if (messageSender != null) {
-                messageSender.forward(response, getContext());
+                messageSender.tell(incomingResponse, ActorRef.noSender());
+                // as the message sender was a temporary one based on "ask" pattern, set it to "null" after first use:
+                messageSender = null;
                 checkCompletion();
             } else {
-                log.error("Got response without receiving command");
+                log.withCorrelationId(incomingResponse)
+                        .error("Got response without receiving command");
                 stopSelf("Message sender not found");
             }
         } else {
-            forwardToAcknowledgementRequester(response);
+            forwardToAcknowledgementRequester(incomingResponse);
         }
     }
 

@@ -233,11 +233,11 @@ final class SupervisorLiveChannelDispatching {
                     if (responseReceiverEntry.isPresent()) {
                         final var receiver = responseReceiverEntry.get();
                         log.withCorrelationId(liveResponse)
-                                .info("Responding with command response type <{}> to original sender <{}>",
+                                .info("Responding with 'live' CommandResponse type <{}> to original sender <{}>",
                                         liveResponse.getType(), receiver);
                         targetActorWithMessage = new TargetActorWithMessage(receiver.sender(),
                                 liveResponse,
-                                getLiveSignalTimeout(liveResponse),
+                                Duration.ZERO, // ZERO duration means that no "ask" is used, but "tell" - not expecting an answer
                                 Function.identity()
                         );
                         responseReceiverCache.invalidate(correlationId);
