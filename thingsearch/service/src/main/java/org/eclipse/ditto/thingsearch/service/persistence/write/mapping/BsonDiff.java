@@ -150,15 +150,6 @@ public final class BsonDiff {
         return diffSize < replacementSize;
     }
 
-    /**
-     * Destroy this object and convert the set and unset fields into lists.
-     *
-     * @return exported set and unset lists.
-     */
-    BsonDiffList consumeAndExportToList() {
-        return new BsonDiffList(setPointers.collect(Collectors.toList()), unsetPointers.collect(Collectors.toList()));
-    }
-
     private BsonDocument consumeAndExportSet() {
         final BsonDocument setDocument = new BsonDocument();
         setPointers.forEach(pair -> setDocument.append(getPathString(pair.first()), pair.second()));

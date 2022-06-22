@@ -116,47 +116,19 @@ final class BsonArrayDiff {
             final int maxWireVersion,
             final BiFunction<BsonDocument, Integer, Integer> mostSimilarIndex) {
 
-        final BsonSizeVisitor bsonSizeVisitor = new BsonSizeVisitor();
         final BsonString subtrahendExpr = getPathExpr(key);
         final Map<BsonValue, Integer> subtrahendIndexMap = IntStream.range(0, subtrahend.size()).boxed()
                 .collect(Collectors.toMap(subtrahend::get, Function.identity(), (i, j) -> i));
         final List<Element> result = new ArrayList<>(minuend.size());
-        for (int j = 0; j < minuend.size(); ++j) {
-            final var element = minuend.get(j);
+        for (final BsonValue element : minuend) {
             final Integer i = subtrahendIndexMap.get(element);
             if (i != null) {
                 result.add(new Pointer(subtrahendExpr, i));
-            } else if (element.isDocument()) {
-                final var elementDoc = element.asDocument();
-                final int k = mostSimilarIndex.apply(elementDoc, j);
-                if (isMostSimilarElementADocument(subtrahend, k)) {
-                    final int replaceSize = bsonSizeVisitor.eval(elementDoc);
-                    final BsonDiff diff =
-                            BsonDiff.minus(element.asDocument(), subtrahend.get(k).asDocument(), false, maxWireVersion);
-                    final BsonDiffList diffList = diff.consumeAndExportToList();
-                    final boolean isUnsetAllowed = maxWireVersion >= MIN_UNSET_WIRE_VERSION;
-                    final var diffInPipeline =
-                            diffList.toBsonInPipeline(getSubtrahendElement(subtrahendExpr, k), isUnsetAllowed);
-                    final boolean diffSizeIsBetter = diffInPipeline.map(bsonSizeVisitor::eval)
-                            .map(diffSize -> diffSize < replaceSize)
-                            .orElse(false);
-                    if (diffSizeIsBetter) {
-                        result.add(new Replace(diffInPipeline.orElseThrow()));
-                    } else {
-                        result.add(new Replace(element));
-                    }
-                } else {
-                    result.add(new Replace(element));
-                }
             } else {
                 result.add(new Replace(element));
             }
         }
         return result;
-    }
-
-    private static boolean isMostSimilarElementADocument(final BsonArray subtrahend, final int k) {
-        return k >= 0 && k < subtrahend.size() && subtrahend.get(k).isDocument();
     }
 
     private static BsonDocument getSubtrahendElement(final BsonValue subtrahendExpr, final int i) {
