@@ -237,51 +237,6 @@ public final class MqttClientActorTest extends AbstractBaseClientActorTest {
     }
 
     @Test
-    public void testConnectionIsSuccessful() {
-        final var connection = ConnectivityModelFactory.newConnectionBuilder(getConnection(false))
-                .connectionStatus(ConnectivityStatus.CLOSED)
-                .build();
-        final var testKit = actorSystemResource.newTestKit();
-        final var underTest = testKit.watch(TestActorRef.apply(
-                createClientActor(proxyActor.getRef(), connection),
-                actorSystemResource.getActorSystem()
-        ));
-
-        underTest.tell(TestConnection.of(connection, getDittoHeadersWithCorrelationId()), testKit.getRef());
-
-        testKit.expectMsg(new Status.Success("successfully connected + initialized mapper"));
-        Mockito.verify(genericMqttClient).disconnect();
-        testKit.expectTerminated(Duration.ofSeconds(5L), underTest);
-        Mockito.verify(genericMqttClient).disconnect();
-    }
-
-    @Test
-    public void testConnectionFails() {
-        final var mqttClientConnectException = new MqttClientConnectException("Failed to connect.", null);
-        Mockito.when(genericMqttClient.connect(Mockito.any())).thenThrow(mqttClientConnectException);
-        final var connection = ConnectivityModelFactory.newConnectionBuilder(getConnection(false))
-                .connectionStatus(ConnectivityStatus.CLOSED)
-                .build();
-        final var testKit = actorSystemResource.newTestKit();
-        final var underTest = testKit.watch(TestActorRef.apply(
-                createClientActor(proxyActor.getRef(), connection),
-                actorSystemResource.getActorSystem()
-        ));
-
-        underTest.tell(TestConnection.of(connection, getDittoHeadersWithCorrelationId()), testKit.getRef());
-
-        final var failure = testKit.expectMsgClass(Status.Failure.class);
-        assertThat(failure.cause())
-                .isInstanceOfSatisfying(ConnectionFailedException.class, connectionFailedException -> {
-                    assertThat(connectionFailedException.getDescription())
-                            .hasValue("Cause: " + mqttClientConnectException.getMessage());
-                    assertThat(connectionFailedException).hasCause(mqttClientConnectException);
-                });
-        testKit.expectTerminated(Duration.ofSeconds(5L), underTest);
-        Mockito.verify(genericMqttClient, Mockito.never()).disconnect();
-    }
-
-    @Test
     public void subscribeFails() {
         final var mqttSubscribeException = new MqttSubscribeException("Quisquam omnis in quia hic et libero.", null);
         Mockito.when(genericMqttClient.subscribe(Mockito.any())).thenReturn(Single.error(mqttSubscribeException));
