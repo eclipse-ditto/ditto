@@ -187,7 +187,7 @@ public final class Mqtt3RxSubscribingClientTest {
                 .withThrowableOfType(ExecutionException.class)
                 .havingCause()
                 .isInstanceOfSatisfying(AllSubscriptionsFailedException.class,
-                        exception -> softly.assertThat(exception.getFailedSubscriptionStatuses())
+                        exception -> softly.assertThat(exception.failedSubscriptionStatuses())
                                 .containsOnly(SubscriptionStatus.newInstance(
                                         mqttTopicFilter,
                                         GenericMqttSubAckStatus.ofMqtt3SubAckReturnCode(mqtt3SubAckReturnCode)
@@ -220,7 +220,7 @@ public final class Mqtt3RxSubscribingClientTest {
                 .withThrowableOfType(ExecutionException.class)
                 .havingCause()
                 .isInstanceOfSatisfying(SomeSubscriptionsFailedException.class,
-                        exception -> softly.assertThat(exception.getFailedSubscriptionStatuses())
+                        exception -> softly.assertThat(exception.failedSubscriptionStatuses())
                                 .hasSameElementsAs(topicFiltersAndReturnCodes.entrySet()
                                         .stream()
                                         .filter(entry -> entry.getValue().isError())

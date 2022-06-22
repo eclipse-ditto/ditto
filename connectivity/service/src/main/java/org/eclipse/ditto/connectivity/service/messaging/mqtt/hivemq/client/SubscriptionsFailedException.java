@@ -14,6 +14,7 @@ package org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.client;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
 
@@ -22,7 +23,7 @@ import org.eclipse.ditto.base.model.common.ConditionChecker;
 /**
  * Base implementation of an {@link MqttSubscribeException} which has failed {@link SubscriptionStatus}es.
  */
-abstract sealed class SubscriptionsFailedException extends MqttSubscribeException
+public abstract sealed class SubscriptionsFailedException extends MqttSubscribeException
         permits AllSubscriptionsFailedException, SomeSubscriptionsFailedException {
 
     private final transient List<SubscriptionStatus> failedSubscriptionStatuses;
@@ -41,8 +42,8 @@ abstract sealed class SubscriptionsFailedException extends MqttSubscribeExceptio
      *
      * @return the failed subscription statuses.
      */
-    public List<SubscriptionStatus> getFailedSubscriptionStatuses() {
-        return failedSubscriptionStatuses;
+    public Stream<SubscriptionStatus> failedSubscriptionStatuses() {
+        return failedSubscriptionStatuses.stream();
     }
 
     @Override

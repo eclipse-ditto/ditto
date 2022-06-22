@@ -26,13 +26,13 @@ import org.mockito.Mockito;
 import nl.jqno.equalsverifier.EqualsVerifier;
 
 /**
- * Unit test for {@link ConnectionTester.TotalSubscribeResult}.
+ * Unit test for {@link ConnectionTesterActor.TotalSubscribeResult}.
  */
 public final class TotalSubscribeResultTest {
 
     @Test
     public void testHashCodeAndEquals() {
-        EqualsVerifier.forClass(ConnectionTester.TotalSubscribeResult.class)
+        EqualsVerifier.forClass(ConnectionTesterActor.TotalSubscribeResult.class)
                 .usingGetClass()
                 .verify();
     }
@@ -40,7 +40,7 @@ public final class TotalSubscribeResultTest {
     @Test
     public void ofWithNullSourceSubscribeResultsThrowsException() {
         Assertions.assertThatNullPointerException()
-                .isThrownBy(() -> ConnectionTester.TotalSubscribeResult.of(null))
+                .isThrownBy(() -> ConnectionTesterActor.TotalSubscribeResult.of(null))
                 .withMessage("The sourceSubscribeResults must not be null!")
                 .withNoCause();
     }
@@ -48,7 +48,7 @@ public final class TotalSubscribeResultTest {
     @Test
     public void totalSubscribeResultsWithSuccessResultsOnlyHasNoFailures() {
         final var source = Mockito.mock(Source.class);
-        final var underTest = ConnectionTester.TotalSubscribeResult.of(List.of(
+        final var underTest = ConnectionTesterActor.TotalSubscribeResult.of(List.of(
                 getSuccessfulSubscribeResult(source),
                 getSuccessfulSubscribeResult(source),
                 getSuccessfulSubscribeResult(source)
@@ -74,7 +74,7 @@ public final class TotalSubscribeResultTest {
                 getFailedSubscribeResult(source),
                 getSuccessfulSubscribeResult(source)
         );
-        final var underTest = ConnectionTester.TotalSubscribeResult.of(sourceSubscribeResults);
+        final var underTest = ConnectionTesterActor.TotalSubscribeResult.of(sourceSubscribeResults);
 
         try (final var softly = new AutoCloseableSoftAssertions()) {
             softly.assertThat(underTest.hasFailures()).as("has failures").isTrue();

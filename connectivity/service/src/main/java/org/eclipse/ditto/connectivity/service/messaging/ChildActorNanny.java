@@ -17,8 +17,11 @@ import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
+
+import javax.annotation.concurrent.NotThreadSafe;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorRefFactory;
@@ -31,16 +34,17 @@ import akka.event.LoggingAdapter;
  * (see {@link #startChildActorConflictFree(CharSequence, Props)}).
  * In this case the names of the actors to be started are concatenated with a count to make the names unique.
  */
+@NotThreadSafe // Cannot be thread-safe because of ActorRefFactory.
 public final class ChildActorNanny {
 
     private final ActorRefFactory actorRefFactory;
     private final LoggingAdapter logger;
-    private final Map<String, Integer> childActorCounts;
+    private final Map<String, AtomicInteger> childActorCounts;
 
     private ChildActorNanny(final ActorRefFactory actorRefFactory, final LoggingAdapter logger) {
         this.actorRefFactory = actorRefFactory;
         this.logger = logger;
-        childActorCounts = new ConcurrentHashMap<>();
+        childActorCounts = new HashMap<>();
     }
 
     /**
@@ -117,14 +121,8 @@ public final class ChildActorNanny {
     }
 
     private String getNextChildActorName(final String baseActorName) {
-        final var childActorCount = childActorCounts.compute(baseActorName, (name, previousCount) -> {
-            if (previousCount == null) {
-                return 1;
-            } else {
-                return ++previousCount;
-            }
-        });
-        return baseActorName + childActorCount;
+        final var childActorCount = childActorCounts.computeIfAbsent(baseActorName, unused -> new AtomicInteger(0));
+        return baseActorName + childActorCount.incrementAndGet();
     }
 
     /**

@@ -33,11 +33,11 @@ import org.eclipse.ditto.connectivity.service.util.ConnectivityMdcEntryKey;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.internal.utils.health.RetrieveHealth;
+import org.eclipse.ditto.internal.utils.health.RetrieveHealthResponse;
+import org.eclipse.ditto.internal.utils.health.StatusInfo;
 
-import akka.Done;
 import akka.NotUsed;
 import akka.actor.Props;
-import akka.actor.Status;
 import akka.japi.function.Predicate;
 import akka.stream.KillSwitch;
 import akka.stream.KillSwitches;
@@ -327,7 +327,9 @@ public final class MqttConsumerActor extends BaseConsumerActor {
     }
 
     private void checkThatThisActorIsRunning(final RetrieveHealth command) {
-        getSender().tell(new Status.Success(Done.done()), getSelf());
+        final var sender = getSender();
+        sender.tell(RetrieveHealthResponse.of(StatusInfo.fromStatus(StatusInfo.Status.UP), command.getDittoHeaders()),
+                getSelf());
     }
 
     private void shutdown() {

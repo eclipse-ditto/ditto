@@ -35,10 +35,10 @@ import org.eclipse.ditto.connectivity.service.messaging.ConnectivityStatusResolv
 import org.eclipse.ditto.connectivity.service.messaging.SendResult;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.client.GenericMqttPublishingClient;
 import org.eclipse.ditto.internal.utils.health.RetrieveHealth;
+import org.eclipse.ditto.internal.utils.health.RetrieveHealthResponse;
+import org.eclipse.ditto.internal.utils.health.StatusInfo;
 
-import akka.Done;
 import akka.actor.Props;
-import akka.actor.Status;
 import akka.japi.Pair;
 import akka.japi.pf.ReceiveBuilder;
 import akka.stream.BoundedSourceQueue;
@@ -211,7 +211,9 @@ public final class MqttPublisherActor extends BasePublisherActor<MqttPublishTarg
     }
 
     private void checkThatThisActorIsRunning(final RetrieveHealth command) {
-        getSender().tell(new Status.Success(Done.done()), getSelf());
+        final var sender = getSender();
+        sender.tell(RetrieveHealthResponse.of(StatusInfo.fromStatus(StatusInfo.Status.UP), command.getDittoHeaders()),
+                getSelf());
     }
 
     @Override

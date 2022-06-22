@@ -17,6 +17,7 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -47,8 +48,6 @@ import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.consuming.Re
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.publishing.MqttPublisherActor;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.subscribing.MqttSubscriber;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.subscribing.SubscribeResult;
-import org.eclipse.ditto.connectivity.service.util.ConnectivityMdcEntryKey;
-import org.eclipse.ditto.internal.models.signal.SignalInformationPoint;
 
 import com.hivemq.client.mqtt.MqttClientConfig;
 import com.hivemq.client.mqtt.MqttClientState;
@@ -58,6 +57,7 @@ import com.typesafe.config.Config;
 
 import akka.NotUsed;
 import akka.actor.ActorRef;
+import akka.actor.PoisonPill;
 import akka.actor.Props;
 import akka.actor.Status;
 import akka.japi.pf.FSMStateFunctionBuilder;
@@ -66,8 +66,6 @@ import akka.stream.javadsl.Keep;
 import akka.stream.javadsl.Sink;
 import akka.stream.javadsl.Source;
 import scala.concurrent.ExecutionContextExecutor;
-import scala.util.Success;
-import scala.util.Try;
 
 /**
  * Actor for handling connection to an MQTT broker for protocol versions 3 or 5.
@@ -186,50 +184,27 @@ public final class MqttClientActor extends BaseClientActor {
 
     @Override
     protected CompletionStage<Status.Status> doTestConnection(final TestConnection testConnectionCmd) {
-        final var connection = testConnectionCmd.getConnection();
-        return tryToGetHiveMqttClientPropertiesForConnectionTest(connection)
-                .map(hiveMqttClientProperties -> getConnectionTester(hiveMqttClientProperties, testConnectionCmd))
-                .map(ConnectionTester::testConnection)
-                .fold(
-                        error -> {
-                            logger.withCorrelationId(testConnectionCmd)
-                                    .withMdcEntry(ConnectivityMdcEntryKey.CONNECTION_ID, connection.getId())
-                                    .info("Test for connection <{}> at <{}> failed.",
-                                            connection.getId(),
-                                            connection.getUri());
-                            connectionLogger.failure("Connection test failed: {0}", error.getMessage());
-                            return CompletableFuture.completedFuture(new Status.Failure(error));
-                        },
-                        statusCompletionStage -> statusCompletionStage
-                );
-    }
-
-    private Try<HiveMqttClientProperties> tryToGetHiveMqttClientPropertiesForConnectionTest(final Connection connection) {
-        try {
-            return new Success<>(HiveMqttClientProperties.builder()
-                    .withMqttConnection(connection)
-                    .withConnectivityConfig(connectivityConfig())
-                    .withMqttSpecificConfig(mqttSpecificConfig)
-                    .withSshTunnelStateSupplier(this::getSshTunnelState)
-                    .withConnectionLogger(connectionLogger)
-                    .withActorUuid(actorUuid)
-                    .build());
-        } catch (final NoMqttConnectionException e) {
-            return new scala.util.Failure<>(e);
-        }
-    }
-
-    private ConnectionTester getConnectionTester(final HiveMqttClientProperties hiveMqttClientProperties,
-            final TestConnection testConnectionCmd) {
-
-        return ConnectionTester.builder()
-                .withHiveMqttClientProperties(hiveMqttClientProperties)
-                .withInboundMappingSink(getInboundMappingSink())
-                .withConnectivityStatusResolver(connectivityStatusResolver)
-                .withChildActorNanny(childActorNanny)
-                .withActorSystemProvider(getContext().getSystem())
-                .withCorrelationId(SignalInformationPoint.getCorrelationId(testConnectionCmd).orElse(null))
-                .build();
+        final var connectionTesterActorRef = childActorNanny.startChildActorConflictFree(
+                ConnectionTesterActor.class.getSimpleName(),
+                ConnectionTesterActor.props(connectivityConfig(),
+                        this::getSshTunnelState,
+                        connectionLogger,
+                        actorUuid,
+                        connectivityStatusResolver)
+        );
+        return Patterns.ask(connectionTesterActorRef, testConnectionCmd, ConnectionTesterActor.ASK_TIMEOUT)
+                .handle((response, throwable) -> {
+                    final Status.Status result;
+                    if (null == throwable) {
+                        result = new Status.Success(response);
+                    } else if (throwable instanceof CompletionException completionException) {
+                        result = new Status.Failure(completionException.getCause());
+                    } else {
+                        result = new Status.Failure(throwable);
+                    }
+                    return result;
+                })
+                .whenComplete((status, error) -> connectionTesterActorRef.tell(PoisonPill.getInstance(), getSelf()));
     }
 
     @Override
@@ -511,7 +486,7 @@ public final class MqttClientActor extends BaseClientActor {
 
     private enum Control {
 
-        RECONNECT_CONSUMER_CLIENT;
+        RECONNECT_CONSUMER_CLIENT
 
     }
 
