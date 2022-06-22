@@ -13,6 +13,7 @@
 package org.eclipse.ditto.connectivity.service.mapping;
 
 import org.eclipse.ditto.connectivity.model.ConnectionId;
+import org.eclipse.ditto.edge.service.dispatching.EdgeCommandForwarderActor;
 import org.eclipse.ditto.internal.models.signalenrichment.ByRoundTripSignalEnrichmentFacade;
 import org.eclipse.ditto.internal.models.signalenrichment.DefaultSignalEnrichmentFacadeByRoundTripConfig;
 import org.eclipse.ditto.internal.models.signalenrichment.SignalEnrichmentConfig;
@@ -27,7 +28,8 @@ import akka.actor.ActorSystem;
  */
 public final class ConnectivityByRoundTripSignalEnrichmentProvider implements ConnectivitySignalEnrichmentProvider {
 
-    private static final String PROXY_ACTOR_PATH = "/user/connectivityRoot/connectivityProxyActor";
+    private static final String COMMAND_FORWARDER_ACTOR_PATH =
+            "/user/connectivityRoot/" + EdgeCommandForwarderActor.ACTOR_NAME;
 
     private final ByRoundTripSignalEnrichmentFacade byRoundTripSignalEnrichmentFacade;
 
@@ -40,7 +42,7 @@ public final class ConnectivityByRoundTripSignalEnrichmentProvider implements Co
     @SuppressWarnings("unused")
     public ConnectivityByRoundTripSignalEnrichmentProvider(final ActorSystem actorSystem,
             final SignalEnrichmentConfig signalEnrichmentConfig) {
-        final ActorSelection commandHandler = actorSystem.actorSelection(PROXY_ACTOR_PATH);
+        final ActorSelection commandHandler = actorSystem.actorSelection(COMMAND_FORWARDER_ACTOR_PATH);
         final SignalEnrichmentFacadeByRoundTripConfig config =
                 DefaultSignalEnrichmentFacadeByRoundTripConfig.of(signalEnrichmentConfig.getProviderConfig());
         byRoundTripSignalEnrichmentFacade =
