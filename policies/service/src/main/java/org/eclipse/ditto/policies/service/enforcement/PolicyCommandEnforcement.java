@@ -116,13 +116,12 @@ public final class PolicyCommandEnforcement
     @Override
     public CompletionStage<PolicyCommand<?>> authorizeSignalWithMissingEnforcer(final PolicyCommand<?> command) {
 
-        final PolicyCommand<?> policyCommand = transformModifyPolicyToCreatePolicy(command);
-        if (policyCommand instanceof CreatePolicy createPolicy) {
+        if (command instanceof CreatePolicy createPolicy) {
             final var enforcer = PolicyEnforcers.defaultEvaluator(createPolicy.getPolicy());
             return authorizeSignal(createPolicy, PolicyEnforcer.of(enforcer));
         } else {
-            throw PolicyNotAccessibleException.newBuilder(policyCommand.getEntityId())
-                    .dittoHeaders(policyCommand.getDittoHeaders())
+            throw PolicyNotAccessibleException.newBuilder(command.getEntityId())
+                    .dittoHeaders(command.getDittoHeaders())
                     .build();
         }
     }
@@ -223,14 +222,6 @@ public final class PolicyCommandEnforcement
 
         return enforcer.buildJsonView(resourceKey, responseEntity, authorizationContext,
                 POLICY_QUERY_COMMAND_RESPONSE_ALLOWLIST, Permissions.newInstance(Permission.READ));
-    }
-
-    private static PolicyCommand<?> transformModifyPolicyToCreatePolicy(final PolicyCommand<?> receivedCommand) {
-        if (receivedCommand instanceof ModifyPolicy modifyPolicy) {
-            return CreatePolicy.of(modifyPolicy.getPolicy(), modifyPolicy.getDittoHeaders());
-        } else {
-            return receivedCommand;
-        }
     }
 
     /**

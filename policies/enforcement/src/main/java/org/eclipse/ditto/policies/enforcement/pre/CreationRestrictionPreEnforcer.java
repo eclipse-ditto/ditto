@@ -45,7 +45,6 @@ public final class CreationRestrictionPreEnforcer implements PreEnforcer {
             DittoLoggerFactory.getThreadSafeLogger(CreationRestrictionPreEnforcer.class);
 
     private final EntityCreationConfig config;
-    private final ExistenceChecker existenceChecker;
 
     /**
      * Constructs a new instance of CreationRestrictionPreEnforcer extension.
@@ -55,7 +54,6 @@ public final class CreationRestrictionPreEnforcer implements PreEnforcer {
     @SuppressWarnings("unused")
     public CreationRestrictionPreEnforcer(final ActorSystem actorSystem) {
         config = DefaultEntityCreationConfig.of(DefaultScopedConfig.dittoScoped(actorSystem.settings().config()));
-        existenceChecker = ExistenceChecker.get(actorSystem);
     }
 
     boolean canCreate(final Context context) {
@@ -147,7 +145,7 @@ public final class CreationRestrictionPreEnforcer implements PreEnforcer {
         final CompletionStage<Signal<?>> result;
 
         if (isCreatingCommand(signal)) {
-            result = handleCreatingCommand(signal);
+            result = CompletableFuture.completedStage(handleCreatingCommand(signal));
         } else {
             result = CompletableFuture.completedFuture(signal);
         }
@@ -155,33 +153,22 @@ public final class CreationRestrictionPreEnforcer implements PreEnforcer {
     }
 
     private static boolean isCreatingCommand(final Signal<?> signal) {
-        return isCategoryCreate(signal) || isCategoryModifyOnRootResource(signal);
-    }
-
-    private static boolean isCategoryCreate(final Signal<?> signal) {
         return signal instanceof Command<?> command && command.getCategory().equals(Command.Category.CREATE);
     }
 
-    private static boolean isCategoryModifyOnRootResource(final Signal<?> signal) {
-        return signal instanceof Command<?> command && command.getCategory().equals(Command.Category.MODIFY) &&
-                command.getResourcePath().isEmpty();
-    }
-
-    private CompletionStage<Signal<?>> handleCreatingCommand(final Signal<?> signal) {
+    private Signal<?> handleCreatingCommand(final Signal<?> signal) {
 
         final WithEntityId withEntityId = getMessageAsWithEntityId(signal);
         final NamespacedEntityId entityId = getEntityIdAsNamespacedEntityId(withEntityId.getEntityId());
         final var context = new Context(signal.getResourceType(), entityId.getNamespace(),
                 signal.getDittoHeaders());
-        return existenceChecker.checkExistence(signal).thenApply(exists -> {
-            if (Boolean.TRUE.equals(exists) || canCreate(context)) {
-                return signal;
-            } else {
-                throw EntityNotCreatableException.newBuilder(withEntityId.getEntityId())
-                        .dittoHeaders(signal.getDittoHeaders())
-                        .build();
-            }
-        });
+        if (canCreate(context)) {
+            return signal;
+        } else {
+            throw EntityNotCreatableException.newBuilder(withEntityId.getEntityId())
+                    .dittoHeaders(signal.getDittoHeaders())
+                    .build();
+        }
     }
 
     /**

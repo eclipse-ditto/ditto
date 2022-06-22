@@ -99,7 +99,6 @@ import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingNotCreata
 import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingNotModifiableException;
 import org.eclipse.ditto.things.model.signals.commands.modify.CreateThing;
 import org.eclipse.ditto.things.model.signals.commands.modify.MergeThing;
-import org.eclipse.ditto.things.model.signals.commands.modify.ModifyThing;
 import org.eclipse.ditto.things.model.signals.commands.modify.ThingModifyCommand;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveFeature;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThing;
@@ -439,8 +438,7 @@ final class ThingCommandEnforcement
      */
     private CompletionStage<CreateThing> enforceCreateThingBySelf(final ThingCommand<?> command) {
 
-        final ThingCommand<?> thingCommand = transformModifyThingToCreateThing(command);
-        if (thingCommand instanceof CreateThing createThingCommand) {
+        if (command instanceof CreateThing createThingCommand) {
             return replaceInitialPolicyWithCopiedPolicyIfPresent(createThingCommand)
                     .thenApply(createThing -> {
                         final Optional<JsonObject> initialPolicyOptional = createThing.getInitialPolicy();
@@ -450,12 +448,12 @@ final class ThingCommandEnforcement
                     });
         } else {
             // Other commands cannot be authorized by policy contained in self.
-            final DittoRuntimeException error = ThingNotAccessibleException.newBuilder(thingCommand.getEntityId())
-                    .dittoHeaders(thingCommand.getDittoHeaders())
+            final DittoRuntimeException error = ThingNotAccessibleException.newBuilder(command.getEntityId())
+                    .dittoHeaders(command.getDittoHeaders())
                     .build();
             LOGGER.withCorrelationId(command)
                     .info("Enforcer was not existing for Thing <{}> and no auth info was inlined, responding with: {} - {}",
-                            thingCommand.getEntityId(), error.getClass().getSimpleName(), error.getMessage());
+                            command.getEntityId(), error.getClass().getSimpleName(), error.getMessage());
             throw error;
         }
     }
@@ -569,27 +567,6 @@ final class ThingCommandEnforcement
                 throw reportError("Error during creation of inline policy from JSON", e,
                         createThing.getDittoHeaders());
             }
-        }
-    }
-
-    /**
-     * Transform a {@code ModifyThing} command sent to nonexistent thing to {@code CreateThing} command if it is sent to
-     * a nonexistent thing.
-     *
-     * @param receivedCommand the command to transform.
-     * @return {@code CreateThing} command containing the same information if the argument is a {@code ModifyThing}
-     * command. Otherwise return the command itself.
-     */
-    private static ThingCommand<?> transformModifyThingToCreateThing(final ThingCommand<?> receivedCommand) {
-        if (receivedCommand instanceof ModifyThing modifyThing) {
-            final JsonObject initialPolicy = modifyThing.getInitialPolicy().orElse(null);
-            final String policyIdOrPlaceholder = modifyThing.getPolicyIdOrPlaceholder().orElse(null);
-            final var newThing = modifyThing.getThing().toBuilder()
-                    .setId(modifyThing.getEntityId())
-                    .build();
-            return CreateThing.of(newThing, initialPolicy, policyIdOrPlaceholder, modifyThing.getDittoHeaders());
-        } else {
-            return receivedCommand;
         }
     }
 

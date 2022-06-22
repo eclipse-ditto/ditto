@@ -34,9 +34,7 @@ import akka.actor.ActorSystem;
 public final class CreationRestrictionPreEnforcerTest {
 
     private static CreationRestrictionPreEnforcer load(final String basename) {
-        var config =
-                ConfigFactory.parseMap(Map.of("ditto.existence-checker", MockExistenceChecker.class.getName()))
-                        .withFallback(ConfigFactory.load(basename));
+        var config = ConfigFactory.load(basename);
         final ActorSystem actorSystem = ActorSystem.create(CreationRestrictionPreEnforcerTest.class.getSimpleName(),
                 config);
         return new CreationRestrictionPreEnforcer(actorSystem);
