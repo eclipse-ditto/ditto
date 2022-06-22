@@ -181,6 +181,7 @@ public final class OutboundDispatchingActorTest {
             final AcknowledgementLabel acknowledgementLabel = getTestAck(connectionId);
             final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
                     .acknowledgementRequest(AcknowledgementRequest.of(acknowledgementLabel))
+                    .putHeader(DittoHeaderDefinition.DITTO_ACKREGATOR_ADDRESS.getKey(), getRef().path().toSerializationFormat())
                     .readGrantedSubjects(Collections.singleton(TestConstants.Authorization.SUBJECT))
                     .timeout("2s")
                     .randomCorrelationId()
@@ -229,6 +230,7 @@ public final class OutboundDispatchingActorTest {
             final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
                     .acknowledgementRequest(AcknowledgementRequest.of(acknowledgementLabel))
                     .readGrantedSubjects(Collections.singleton(TestConstants.Authorization.SUBJECT))
+                    .putHeader(DittoHeaderDefinition.DITTO_ACKREGATOR_ADDRESS.getKey(), getRef().path().toSerializationFormat())
                     .timeout("2s")
                     .randomCorrelationId()
                     .build();

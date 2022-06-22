@@ -106,7 +106,8 @@ public abstract class AbstractPublisherActorTest {
             final TestProbe probe = new TestProbe(actorSystem);
             setupMocks(probe);
             final OutboundSignal.MultiMapped multiMapped = OutboundSignalFactory.newMultiMappedOutboundSignal(
-                    List.of(getMockOutboundSignalWithAutoAck("please-verify")),
+                    List.of(getMockOutboundSignalWithAutoAck("please-verify",
+                            DittoHeaderDefinition.DITTO_ACKREGATOR_ADDRESS.getKey(), getRef().path().toSerializationFormat())),
                     getRef()
             );
 

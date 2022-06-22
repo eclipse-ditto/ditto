@@ -514,6 +514,8 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
                         .info("Received DittoRuntimeException during enforcement or " +
                                 "forwarding to target actor, telling sender: {}", dre);
                 sender.tell(dre, getSelf());
+            } else if (response instanceof Status.Success success) {
+                log.debug("Ignoring Status.Success message as expected 'to be ignored' outcome: <{}>", success);
             } else if (null != response) {
                 sender.tell(response, getSelf());
             } else {

@@ -27,6 +27,7 @@ import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
 import org.eclipse.ditto.base.model.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.base.model.entity.metadata.Metadata;
+import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgements;
 import org.eclipse.ditto.connectivity.api.OutboundSignal;
@@ -105,8 +106,8 @@ public final class OutboundMappingProcessorActorTest {
             final OutboundSignal outboundSignal = outboundTwinEvent(
                     Attributes.newBuilder().build(),
                     List.of("source1", "target1", "target2", "unknown"),
-                    List.of(target2()) // authorized target2 will drop the signal after filtering
-            );
+                    List.of(target2()), // authorized target2 will drop the signal after filtering
+                    getRef());
             underTest.tell(outboundSignal, getRef());
             proxyActorProbe.expectMsgClass(RetrieveThing.class);
             proxyActorProbe.reply(retrieveThingResponse(Attributes.newBuilder().build()));
@@ -133,8 +134,8 @@ public final class OutboundMappingProcessorActorTest {
             final OutboundSignal outboundSignal = outboundTwinEvent(
                     Attributes.newBuilder().set("target2", "wayne").build(),
                     List.of("source1", "target1", "target2", "unknown"),
-                    List.of(target1(), target2())
-            );
+                    List.of(target1(), target2()),
+                    getRef());
             underTest.tell(outboundSignal, getRef());
             proxyActorProbe.expectMsgClass(RetrieveThing.class);
 
@@ -160,8 +161,8 @@ public final class OutboundMappingProcessorActorTest {
             final OutboundSignal outboundSignal = outboundTwinEvent(
                     Attributes.newBuilder().build(),
                     List.of("source1", "target1", "target2", "unknown"),
-                    List.of(target1(), target2())
-            );
+                    List.of(target1(), target2()),
+                    getRef());
             underTest.tell(outboundSignal, getRef());
             proxyActorProbe.expectMsgClass(RetrieveThing.class);
             proxyActorProbe.reply(retrieveThingResponse(Attributes.newBuilder().build()));
@@ -190,8 +191,8 @@ public final class OutboundMappingProcessorActorTest {
             final OutboundSignal outboundSignal = outboundTwinEvent(
                     Attributes.newBuilder().build(),
                     List.of("source1", "target1", "target3"),
-                    List.of(target1(), target3())
-            );
+                    List.of(target1(), target3()),
+                    getRef());
             underTest.tell(outboundSignal, getRef());
 
             // THEN: sender receives weak acknowledgement only for the target that dropped it
@@ -218,7 +219,8 @@ public final class OutboundMappingProcessorActorTest {
             final OutboundSignal outboundSignal = outboundLiveEvent(
                     Attributes.newBuilder().build(),
                     List.of("source1", "target1", "target3", "live-response"),
-                    List.of(target1(), target3(), target4())
+                    List.of(target1(), target3(), target4()),
+                    getRef()
             );
             underTest.tell(outboundSignal, getRef());
 
@@ -245,8 +247,8 @@ public final class OutboundMappingProcessorActorTest {
             final OutboundSignal outboundSignal = outboundTwinEvent(
                     Attributes.newBuilder().build(),
                     List.of("source1", "target1", "target2"),
-                    List.of(target1())
-            );
+                    List.of(target1()),
+                    getRef());
             underTest.tell(outboundSignal, getRef());
 
             // THEN: only the source-declared ack is present in the published signal
@@ -266,7 +268,7 @@ public final class OutboundMappingProcessorActorTest {
     }
 
     private static OutboundSignal outboundTwinEvent(final Attributes attributes, final Collection<String> requestedAcks,
-            final List<Target> targets) {
+            final List<Target> targets, final ActorRef testRef) {
         final Thing thing = Thing.newBuilder().setId(thingId())
                 .setAttributes(attributes)
                 .build();
@@ -274,14 +276,15 @@ public final class OutboundMappingProcessorActorTest {
                         .acknowledgementRequests(requestedAcks.stream()
                                 .map(AcknowledgementRequest::parseAcknowledgementRequest)
                                 .toList())
+                        .putHeader(DittoHeaderDefinition.DITTO_ACKREGATOR_ADDRESS.getKey(), testRef.path().toSerializationFormat())
                         .build(),
                 Metadata.newMetadata(JsonObject.empty()));
         return OutboundSignalFactory.newOutboundSignal(thingModified, targets);
     }
 
     private static OutboundSignal outboundLiveEvent(final Attributes attributes, final Collection<String> requestedAcks,
-            final List<Target> targets) {
-        final OutboundSignal outboundTwinEvent = outboundTwinEvent(attributes, requestedAcks, targets);
+            final List<Target> targets, final ActorRef testRef) {
+        final OutboundSignal outboundTwinEvent = outboundTwinEvent(attributes, requestedAcks, targets, testRef);
         return OutboundSignalFactory.newOutboundSignal(
                 outboundTwinEvent.getSource()
                         .setDittoHeaders(outboundTwinEvent.getSource().getDittoHeaders().toBuilder()
