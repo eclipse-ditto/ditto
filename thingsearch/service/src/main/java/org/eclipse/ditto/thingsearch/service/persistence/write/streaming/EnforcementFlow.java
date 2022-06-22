@@ -17,6 +17,7 @@ import java.time.Instant;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Executor;
 
@@ -63,6 +64,7 @@ import akka.actor.ActorSystem;
 import akka.actor.Scheduler;
 import akka.japi.Pair;
 import akka.japi.pf.PFBuilder;
+import akka.pattern.AskTimeoutException;
 import akka.stream.javadsl.Flow;
 import akka.stream.javadsl.Keep;
 import akka.stream.javadsl.Source;
@@ -172,7 +174,7 @@ final class EnforcementFlow {
 
         return source.flatMapConcat(changes -> Source.fromIterator(changes::iterator)
                         .flatMapMerge(parallelismPerBulkShard, changedMetadata ->
-                                retrieveThingFromCachingFacade(changedMetadata.getThingId(), changedMetadata)
+                                retrieveThingFromCachingFacade(changedMetadata.getThingId(), changedMetadata, 2)
                                         .flatMapConcat(pair -> {
                                             final JsonObject thing = pair.second();
                                             searchUpdateObserver.process(changedMetadata, thing);
@@ -191,7 +193,7 @@ final class EnforcementFlow {
      */
     public Flow<ThingUpdater.Data, MongoWriteModel, NotUsed> create(final SearchUpdateMapper mapper) {
         return Flow.<ThingUpdater.Data>create()
-                .flatMapConcat(data -> retrieveThingFromCachingFacade(data.metadata().getThingId(), data.metadata())
+                .flatMapConcat(data -> retrieveThingFromCachingFacade(data.metadata().getThingId(), data.metadata(), 2)
                         .flatMapConcat(pair -> {
                             final JsonObject thing = pair.second();
                             searchUpdateObserver.process(data.metadata(), thing);
@@ -206,23 +208,35 @@ final class EnforcementFlow {
     }
 
     private Source<Pair<ThingId, JsonObject>, NotUsed> retrieveThingFromCachingFacade(final ThingId thingId,
-            final Metadata metadata) {
+            final Metadata metadata, final int leftRetryAttempts) {
         ConsistencyLag.startS3RetrieveThing(metadata);
+        final CompletionStage<JsonObject> thingFuture = provideThingFuture(thingId, metadata);
+
+        return Source.completionStage(thingFuture)
+                .map(thing -> Pair.create(thingId, thing))
+                .recoverWithRetries(1, new PFBuilder<Throwable, Source<Pair<ThingId, JsonObject>, NotUsed>>()
+                        .match(Throwable.class, error -> {
+                            if (leftRetryAttempts > 0 && error instanceof CompletionException completionException &&
+                                    completionException.getCause() instanceof AskTimeoutException) {
+                                // retry ask timeouts
+                                return retrieveThingFromCachingFacade(thingId, metadata, leftRetryAttempts - 1);
+                            }
+
+                            log.error("Unexpected exception during SudoRetrieveThing via cache: <{}> - {}", thingId,
+                                    error.getClass().getSimpleName(), error);
+                            return Source.empty();
+                        })
+                        .build());
+    }
+
+    private CompletionStage<JsonObject> provideThingFuture(final ThingId thingId, final Metadata metadata) {
         final CompletionStage<JsonObject> thingFuture;
         if (metadata.shouldInvalidateThing()) {
             thingFuture = thingsFacade.retrieveThing(thingId, List.of(), -1);
         } else {
             thingFuture = thingsFacade.retrieveThing(thingId, metadata.getEvents(), metadata.getThingRevision());
         }
-
-        return Source.completionStage(thingFuture)
-                .map(thing -> Pair.create(thingId, thing))
-                .recoverWithRetries(1, new PFBuilder<Throwable, Source<Pair<ThingId, JsonObject>, NotUsed>>()
-                        .match(Throwable.class, error -> {
-                            log.error("Unexpected response for SudoRetrieveThing via cache: <{}>", thingId, error);
-                            return Source.empty();
-                        })
-                        .build());
+        return thingFuture;
     }
 
     private Source<AbstractWriteModel, NotUsed> computeWriteModel(final Metadata metadata,
