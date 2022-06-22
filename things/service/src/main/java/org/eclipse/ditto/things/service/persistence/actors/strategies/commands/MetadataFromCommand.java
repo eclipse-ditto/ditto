@@ -170,15 +170,9 @@ final class MetadataFromCommand implements Supplier<Metadata> {
                     return;
                 }
             }
-            final JsonPointer attachedPropertyPath = metadataHeaderKey.getPath()
-                    .cutLeaf();
             if (metadataHeaderKey.appliesToAllLeaves()) {
                 addMetadataToLeaf(JsonPointer.empty(), metadataHeader, metadataBuilder, entity);
-            } else if (entity.isObject() && entity.asObject()
-                    .getField(attachedPropertyPath)
-                    .isPresent()) {
-                metadataBuilder.set(metadataHeaderKey.getPath(), metadataHeaderValue);
-            } else if (attachedPropertyPath.isEmpty()) {
+            } else {
                 metadataBuilder.set(metadataHeaderKey.getPath(), metadataHeaderValue);
             }
         };
