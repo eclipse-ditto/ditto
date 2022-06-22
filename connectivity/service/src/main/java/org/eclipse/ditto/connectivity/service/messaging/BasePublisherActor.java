@@ -50,7 +50,6 @@ import org.eclipse.ditto.base.model.signals.acks.Acknowledgements;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
 import org.eclipse.ditto.connectivity.api.ExternalMessage;
 import org.eclipse.ditto.connectivity.api.OutboundSignal;
-import org.eclipse.ditto.connectivity.service.placeholders.ConnectivityPlaceholders;
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
@@ -72,6 +71,7 @@ import org.eclipse.ditto.connectivity.service.messaging.monitoring.ConnectionMon
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.DefaultConnectionMonitorRegistry;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.logs.ConnectionLogger;
 import org.eclipse.ditto.connectivity.service.messaging.validation.ConnectionValidator;
+import org.eclipse.ditto.connectivity.service.placeholders.ConnectivityPlaceholders;
 import org.eclipse.ditto.connectivity.service.util.ConnectivityMdcEntryKey;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
@@ -87,6 +87,7 @@ import org.eclipse.ditto.thingsearch.model.signals.events.SubscriptionEvent;
 
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
+import akka.actor.ActorSelection;
 import akka.japi.pf.ReceiveBuilder;
 import kamon.context.Context;
 
@@ -196,7 +197,7 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
                         }
                     });
 
-                    issueAcknowledgements(multiMapped, sender, acknowledgements);
+                    issueAcknowledgements(multiMapped, acknowledgements);
                     sendBackResponses(multiMapped, sender, nonAcknowledgements);
                 })
                 .exceptionally(e -> {
@@ -207,22 +208,26 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
                 });
     }
 
-    private void issueAcknowledgements(final OutboundSignal.MultiMapped multiMapped, @Nullable final ActorRef sender,
+    private void issueAcknowledgements(final OutboundSignal.MultiMapped multiMapped,
             final Collection<Acknowledgement> ackList) {
 
         final ThreadSafeDittoLoggingAdapter l = logger.withCorrelationId(multiMapped.getSource());
-        if (Objects.equals(sender, getSelf())) {
-            l.debug("Not sending acks <{}> because sender is this publisher actor," +
-                    " which can't handle acknowledgements.", ackList);
-        } else if (!ackList.isEmpty() && sender != null) {
+        if (!ackList.isEmpty()) {
             final Acknowledgements aggregatedAcks = appendConnectionId(
                     Acknowledgements.of(ackList, multiMapped.getSource().getDittoHeaders()));
-            l.debug("Message sent. Replying to <{}>: <{}>", sender, aggregatedAcks);
-            sender.tell(aggregatedAcks, getSelf());
-        } else if (ackList.isEmpty()) {
-            l.debug("Message sent: No acks requested.");
+
+            final String ackregatorAddress = aggregatedAcks.getDittoHeaders()
+                    .get(DittoHeaderDefinition.DITTO_ACKREGATOR_ADDRESS.getKey());
+            if (null != ackregatorAddress) {
+                final ActorSelection acknowledgementRequester = getContext().actorSelection(ackregatorAddress);
+                l.debug("Message sent. Replying to <{}>: <{}>", acknowledgementRequester, aggregatedAcks);
+                acknowledgementRequester.tell(aggregatedAcks, ActorRef.noSender());
+            } else {
+                l.error("Aggregated Acknowledgements did not contain header of acknowledgement aggregator " +
+                        "address: {}", aggregatedAcks.getDittoHeaders());
+            }
         } else {
-            l.error("Message sent: Acks requested, but no sender: <{}>", multiMapped.getSource());
+            l.debug("Message sent: No acks requested.");
         }
     }
 

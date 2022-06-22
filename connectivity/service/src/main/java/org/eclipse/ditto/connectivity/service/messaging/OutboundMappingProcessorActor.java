@@ -102,6 +102,7 @@ import org.eclipse.ditto.things.model.signals.events.ThingEventToThingConverter;
 import akka.Done;
 import akka.NotUsed;
 import akka.actor.ActorRef;
+import akka.actor.ActorSelection;
 import akka.actor.Props;
 import akka.actor.Status;
 import akka.japi.Pair;
@@ -179,11 +180,13 @@ public final class OutboundMappingProcessorActor
      *
      * @param signal the signal with 0 or more acknowledgement requests.
      * @param isWeakAckLabel the predicate to test if a requested acknowledgement label should generate a weak ack.
-     * @param sender the actor who send the signal and who should receive the weak acknowledgements.
+     * @param actorContext the ActorContext to use for looking up actor selections.
+     * @param log the logger to use for logging.
      */
     public static void issueWeakAcknowledgements(final Signal<?> signal,
             final Predicate<AcknowledgementLabel> isWeakAckLabel,
-            final ActorRef sender) {
+            final akka.actor.ActorContext actorContext,
+            final ThreadSafeDittoLoggingAdapter log) {
         final Set<AcknowledgementRequest> requestedAcks = signal.getDittoHeaders().getAcknowledgementRequests();
         final boolean customAckRequested = requestedAcks.stream()
                 .anyMatch(request -> !DittoAcknowledgementLabel.contains(request.getLabel()));
@@ -200,7 +203,16 @@ public final class OutboundMappingProcessorActor
                         .map(label -> weakAck(label, entityIdWithType.get(), dittoHeaders))
                         .toList();
                 final Acknowledgements weakAcks = Acknowledgements.of(ackList, dittoHeaders);
-                sender.tell(weakAcks, ActorRef.noSender());
+                final String ackregatorAddress = weakAcks.getDittoHeaders()
+                        .get(DittoHeaderDefinition.DITTO_ACKREGATOR_ADDRESS.getKey());
+                if (null != ackregatorAddress) {
+                    final ActorSelection acknowledgementRequester = actorContext.actorSelection(ackregatorAddress);
+                    acknowledgementRequester.tell(weakAcks, ActorRef.noSender());
+                } else {
+                    log.withCorrelationId(weakAcks)
+                            .error("Aggregated Acknowledgements did not contain header of acknowledgement aggregator " +
+                                    "address: {}", weakAcks.getDittoHeaders());
+                }
             }
         }
     }
@@ -208,7 +220,8 @@ public final class OutboundMappingProcessorActor
     private static void issueFailedAcknowledgements(final Signal<?> signal,
             final Predicate<AcknowledgementLabel> isFailedAckLabel,
             final DittoRuntimeException dre,
-            final ActorRef sender) {
+            final ActorContext context,
+            final ThreadSafeDittoLoggingAdapter logger) {
 
         final Set<AcknowledgementRequest> requestedAcks = signal.getDittoHeaders().getAcknowledgementRequests();
         final boolean customAckRequested = requestedAcks.stream()
@@ -226,7 +239,17 @@ public final class OutboundMappingProcessorActor
                         .map(label -> failedAck(label, entityIdWithType.get(), dittoHeaders, dre))
                         .toList();
                 final Acknowledgements failedAcks = Acknowledgements.of(ackList, dittoHeaders);
-                sender.tell(failedAcks, ActorRef.noSender());
+
+                final String ackregatorAddress = failedAcks.getDittoHeaders()
+                        .get(DittoHeaderDefinition.DITTO_ACKREGATOR_ADDRESS.getKey());
+                if (null != ackregatorAddress) {
+                    final ActorSelection acknowledgementRequester = context.actorSelection(ackregatorAddress);
+                    acknowledgementRequester.tell(failedAcks, ActorRef.noSender());
+                } else {
+                    logger.withCorrelationId(failedAcks)
+                            .error("Failed Acknowledgements did not contain header of acknowledgement aggregator " +
+                                    "address: {}", failedAcks.getDittoHeaders());
+                }
             }
         }
     }
@@ -660,13 +683,15 @@ public final class OutboundMappingProcessorActor
             final OutboundMappingProcessor outboundMappingProcessor,
             final Source<OutboundSignalWithSender, T> source) {
 
+        final ActorContext context = getContext();
         return source.runWith(Sink.seq(), materializer)
                 .thenApply(outboundSignals -> {
                     if (outboundSignals.isEmpty()) {
                         // signal dropped; issue weak acks for all requested acks belonging to this connection
                         issueWeakAcknowledgements(outbound.getSource(),
                                 outboundMappingProcessor::isSourceDeclaredOrTargetIssuedAck,
-                                outbound.sender);
+                                context,
+                                logger);
                         return List.of();
                     } else {
                         final ActorRef sender = outboundSignals.get(0).sender;
@@ -679,13 +704,14 @@ public final class OutboundMappingProcessorActor
                                         targetsToPublishAt)
                                         .collect(Collectors.toSet())::contains;
                         final var signalsWithoutEnrichmentFailures =
-                                filterFailedEnrichments(outboundSignals, willPublish);
+                                filterFailedEnrichments(outboundSignals, willPublish, context, logger);
                         final List<Mapped> mappedSignals = signalsWithoutEnrichmentFailures
                                 .map(OutboundSignalWithSender::asMapped)
                                 .toList();
                         issueWeakAcknowledgements(outbound.getSource(),
                                 willPublish.negate().and(outboundMappingProcessor::isTargetIssuedAck),
-                                sender);
+                                context,
+                                logger);
                         if (mappedSignals.isEmpty()) {
                             return List.of();
                         }
@@ -696,7 +722,9 @@ public final class OutboundMappingProcessorActor
 
     private static Stream<OutboundSignalWithSender> filterFailedEnrichments(
             final Collection<OutboundSignalWithSender> signals,
-            final Predicate<AcknowledgementLabel> predicate) {
+            final Predicate<AcknowledgementLabel> predicate,
+            final ActorContext context,
+            final ThreadSafeDittoLoggingAdapter logger) {
 
         return signals.stream().filter(signal -> {
             if (null != signal.enrichmentFailure) {
@@ -708,7 +736,7 @@ public final class OutboundMappingProcessorActor
                             optionalAcknowledgementLabel.get()::equals;
                     final var combinedPredicate = predicate.and(perTargetPredicate);
                     issueFailedAcknowledgements(signal.getSource(), combinedPredicate, signal.enrichmentFailure.first(),
-                            signal.sender);
+                            context, logger);
                 }
                 return false;
             } else {

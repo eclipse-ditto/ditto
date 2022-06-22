@@ -142,13 +142,13 @@ final class LiveResponseAndAcknowledgementForwarder extends AbstractActor {
         if (null != ackregatorAddress) {
             final ActorSelection acknowledgementRequester = getContext().actorSelection(ackregatorAddress);
             log.withCorrelationId(ackResponse)
-                    .debug("Received Acknowledgement / live CommandResponse, forwarding to original requester <{}>: " +
-                            "<{}>", acknowledgementRequester, ackResponse);
+                    .debug("Received Acknowledgement / live CommandResponse, forwarding to acknowledgement " +
+                            "aggregator <{}>: <{}>", acknowledgementRequester, ackResponse);
             acknowledgementRequester.forward(ackResponse, getContext());
         } else {
             log.withCorrelationId(ackResponse)
                     .error("Received Acknowledgement / live CommandResponse <{}> did not contain header of " +
-                                    "Ackgregator address: {}", ackResponse.getClass().getSimpleName(),
+                                    "acknowledgement aggregator address: {}", ackResponse.getClass().getSimpleName(),
                             ackResponse.getDittoHeaders());
         }
     }

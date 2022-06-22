@@ -172,7 +172,8 @@ public final class Subscriber<T extends SignalWithEntityId<?>> extends AbstractA
                 acknowledgementRequester.tell(acknowledgements, ActorRef.noSender());
             } else {
                 logger.withCorrelationId(acknowledgements)
-                        .error("Received Acknowledgements did not contain header of Ackgregator address: {}",
+                        .error("Issuing weak Acknowledgements to acknowledgement aggregator failed because " +
+                                        "ackgregator address was missing from headers: {}",
                                 acknowledgements.getDittoHeaders());
             }
         }

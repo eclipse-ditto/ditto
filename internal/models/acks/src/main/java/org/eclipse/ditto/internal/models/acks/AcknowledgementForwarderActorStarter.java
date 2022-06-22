@@ -218,8 +218,8 @@ final class AcknowledgementForwarderActorStarter implements Supplier<Optional<Ac
                     .forEach(nack -> acknowledgementRequester.tell(nack, parent));
         } else {
             LOGGER.withCorrelationId(headers)
-                    .error("Received DittoRuntimeException <{}> did not contain header of Ackgregator address: {}",
-                            dittoRuntimeException.getClass().getSimpleName(), headers);
+                    .error("Received DittoRuntimeException <{}> did not contain header of acknowledgement aggregator " +
+                                    "address: {}", dittoRuntimeException.getClass().getSimpleName(), headers);
         }
     }
 

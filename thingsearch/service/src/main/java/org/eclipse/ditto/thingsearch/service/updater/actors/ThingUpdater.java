@@ -603,11 +603,14 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
 
     private ActorSelection getAckRecipient(final DittoHeaders dittoHeaders) {
         if (sendingAcksEnabled) {
-            // normal behavior - return original sender
             final String ackregatorAddress = dittoHeaders.get(DittoHeaderDefinition.DITTO_ACKREGATOR_ADDRESS.getKey());
             if (null != ackregatorAddress) {
                 return getContext().actorSelection(ackregatorAddress);
             } else {
+                log.withCorrelationId(dittoHeaders)
+                        .error("Processed Event did not contain header of acknowledgement aggregator address: {}",
+                                dittoHeaders);
+                // fallback to sender:
                 return getContext().actorSelection(getSender().path());
             }
         } else {

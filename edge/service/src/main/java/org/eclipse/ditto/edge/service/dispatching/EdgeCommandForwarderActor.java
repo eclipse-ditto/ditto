@@ -25,6 +25,7 @@ import org.eclipse.ditto.internal.utils.cacheloaders.config.DefaultAskWithRetryC
 import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.messages.model.signals.commands.MessageCommand;
+import org.eclipse.ditto.messages.model.signals.commands.MessageCommandResponse;
 import org.eclipse.ditto.policies.model.signals.commands.PolicyCommand;
 import org.eclipse.ditto.things.api.ThingsMessagingConstants;
 import org.eclipse.ditto.things.api.commands.sudo.SudoRetrieveThings;
@@ -97,6 +98,7 @@ public class EdgeCommandForwarderActor extends AbstractActor {
 
         final Receive forwardingReceive = ReceiveBuilder.create()
                 .match(MessageCommand.class, this::forwardToThings)
+                .match(MessageCommandResponse.class, this::forwardToThings)
                 .match(ThingCommand.class, this::forwardToThings)
                 .match(ThingCommandResponse.class, CommandResponse::isLiveCommandResponse, this::forwardToThings)
                 .match(ThingEvent.class, Event::isLiveEvent, this::forwardToThings)
@@ -115,20 +117,6 @@ public class EdgeCommandForwarderActor extends AbstractActor {
                 .build();
 
         return receiveExtension.orElse(forwardingReceive);
-    }
-
-    private void forwardToThings(final MessageCommand<?, ?> messageCommand) {
-        final ActorRef sender = getSender();
-        signalTransformer.apply(messageCommand)
-                .thenAccept(transformed -> {
-                    final MessageCommand<?, ?> transformedMessageCommand = (MessageCommand<?, ?>) transformed;
-                    log.withCorrelationId(transformedMessageCommand)
-                            .info("Forwarding message command with ID <{}> and type <{}> to 'things' shard region",
-                                    transformedMessageCommand.getEntityId(), transformedMessageCommand.getType());
-
-                    // don't send message commands with retries - we cannot assure idempotency!
-                    shardRegions.things().tell(transformedMessageCommand, sender);
-                });
     }
 
     private void forwardToThings(final Signal<?> thingSignal) {
