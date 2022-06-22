@@ -59,7 +59,6 @@ import akka.actor.AbstractActor;
 import akka.actor.ActorContext;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
-import akka.actor.Address;
 import akka.actor.PoisonPill;
 import akka.actor.Props;
 import akka.actor.Terminated;
@@ -382,9 +381,14 @@ public final class PubSubFactoryTest {
                     DittoHeaders.newBuilder().acknowledgementRequest(
                             AcknowledgementRequest.parseAcknowledgementRequest("ack"),
                             AcknowledgementRequest.parseAcknowledgementRequest("no-declaration")
-                    ).build()
+                    )
+                            .putHeader(DittoHeaderDefinition.DITTO_ACKREGATOR_ADDRESS.getKey(),
+                                    publisher.ref().path().toSerializationFormatWithAddress(
+                                            Cluster.get(system1).selfUniqueAddress().address()
+                                    ))
+                            .build()
             );
-            pub.publishWithAcks(signal(publisherTopic), ackExtractor, publisher.ref());
+            pub.publishWithAcks(signal(publisherTopic), ackExtractor, ActorRef.noSender());
 
             // THEN: the publisher receives a weak acknowledgement for the ack request with a declared label
             final Acknowledgements weakAcks = publisher.expectMsgClass(Acknowledgements.class);
@@ -418,14 +422,15 @@ public final class PubSubFactoryTest {
             waitForHeartBeats(system2, factory2);
 
             // WHEN: message with the subscriber's declared ack and a different topic is published
-            final Address selfRemoteAddress = Cluster.get(system1).selfUniqueAddress().address();
             final ThingId thingId = ThingId.of("thing:id");
             final DittoHeaders dittoHeaders = DittoHeaders.newBuilder().acknowledgementRequest(
                     AcknowledgementRequest.parseAcknowledgementRequest("ack"),
                     AcknowledgementRequest.parseAcknowledgementRequest("no-declaration")
             )
                     .putHeader(DittoHeaderDefinition.DITTO_ACKREGATOR_ADDRESS.getKey(),
-                            publisher.ref().path().toSerializationFormatWithAddress(selfRemoteAddress))
+                            publisher.ref().path().toSerializationFormatWithAddress(
+                                    Cluster.get(system1).selfUniqueAddress().address()
+                            ))
                     .build();
             thingIdMap.put(publisherTopic, thingId);
             dittoHeadersMap.put(publisherTopic, dittoHeaders);
