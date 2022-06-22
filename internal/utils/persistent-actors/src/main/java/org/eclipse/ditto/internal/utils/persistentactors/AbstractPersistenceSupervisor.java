@@ -17,7 +17,6 @@ import java.time.Duration;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ThreadLocalRandom;
-import java.util.function.BiConsumer;
 import java.util.function.Function;
 
 import javax.annotation.Nullable;
@@ -479,8 +478,29 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
                                 entityId, message);
                 unhandled(message);
             } else {
-                enforceSignalAndForwardToTargetActor((S) signal, sender)
-                        .whenComplete(handleSignalEnforcementResponse(signal, sender));
+                getContext().become(ReceiveBuilder.create()
+                        .match(Terminated.class, this::childTerminated)
+                        .matchEquals(Control.START_CHILDREN, this::startChildren)
+                        .matchEquals(Control.PASSIVATE, this::passivate)
+                        .matchEquals(Control.PROCESS_NEXT_MESSAGE, processNextMsg -> {
+                            unstashAll();
+                            becomeActive(getShutdownBehaviour(entityId));
+                        })
+                        .match(SudoCommand.class, this::forwardSudoCommandToChildIfAvailable)
+                        .match(WithDittoHeaders.class, w -> w.getDittoHeaders().isSudo(),
+                                this::forwardDittoSudoToChildIfAvailable)
+                        .matchAny(m -> stash()) // stash all Signals
+                        .build()
+                );
+
+                Patterns.pipe(
+                        enforceSignalAndForwardToTargetActor((S) signal, sender)
+                            .handle((response, throwable) -> {
+                                handleSignalEnforcementResponse(response, throwable, signal, sender);
+                                return Control.PROCESS_NEXT_MESSAGE;
+                            }),
+                        getContext().getDispatcher()
+                ).pipeTo(getSelf(), getSelf());
             }
         } else if (null != persistenceActorChild) {
             if (persistenceActorChild.equals(sender)) {
@@ -495,36 +515,36 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
         }
     }
 
-    private BiConsumer<Object, Throwable> handleSignalEnforcementResponse(final WithDittoHeaders signal,
+    private void handleSignalEnforcementResponse(@Nullable final Object response,
+            @Nullable final Throwable throwable,
+            final WithDittoHeaders signal,
             final ActorRef sender) {
 
-        return (response, throwable) -> {
-            if (null != throwable) {
-                final DittoRuntimeException dre =
-                        DittoRuntimeException.asDittoRuntimeException(throwable, t -> {
-                            log.withCorrelationId(signal)
-                                    .warning("Encountered Throwable when interacting with enforcer " +
-                                            "or target actor, telling sender: {}", throwable);
-                            return DittoInternalErrorException.newBuilder()
-                                    .dittoHeaders(signal.getDittoHeaders())
-                                    .cause(t)
-                                    .build();
-                        });
-                log.withCorrelationId(dre)
-                        .info("Received DittoRuntimeException during enforcement or " +
-                                "forwarding to target actor, telling sender: {}", dre);
-                sender.tell(dre, getSelf());
-            } else if (response instanceof Status.Success success) {
-                log.debug("Ignoring Status.Success message as expected 'to be ignored' outcome: <{}>", success);
-            } else if (null != response) {
-                sender.tell(response, getSelf());
-            } else {
-                log.withCorrelationId(signal)
-                        .error("Received nothing when enforcing signal and forwarding to " +
-                                "target actor - this should not happen.");
-                replyUnavailableException(signal, sender);
-            }
-        };
+        if (null != throwable) {
+            final DittoRuntimeException dre =
+                    DittoRuntimeException.asDittoRuntimeException(throwable, t -> {
+                        log.withCorrelationId(signal)
+                                .warning("Encountered Throwable when interacting with enforcer " +
+                                        "or target actor, telling sender: {}", throwable);
+                        return DittoInternalErrorException.newBuilder()
+                                .dittoHeaders(signal.getDittoHeaders())
+                                .cause(t)
+                                .build();
+                    });
+            log.withCorrelationId(dre)
+                    .info("Received DittoRuntimeException during enforcement or " +
+                            "forwarding to target actor, telling sender: {}", dre);
+            sender.tell(dre, getSelf());
+        } else if (response instanceof Status.Success success) {
+            log.debug("Ignoring Status.Success message as expected 'to be ignored' outcome: <{}>", success);
+        } else if (null != response) {
+            sender.tell(response, getSelf());
+        } else {
+            log.withCorrelationId(signal)
+                    .error("Received nothing when enforcing signal and forwarding to " +
+                            "target actor - this should not happen.");
+            replyUnavailableException(signal, sender);
+        }
     }
 
     /**
@@ -658,7 +678,12 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
         /**
          * Signals initialization is done, child actors can be started.
          */
-        INIT_DONE
+        INIT_DONE,
+
+        /**
+         * Signals the actor to process the next message.
+         */
+        PROCESS_NEXT_MESSAGE
     }
 
     private record EnforcedSignalAndTargetActorResponse(@Nullable Signal<?> enforcedSignal,
