@@ -32,7 +32,11 @@ public final class ModifyToCreateThingTransformer implements PreEnforcer {
     private final ExistenceChecker existenceChecker;
 
     ModifyToCreateThingTransformer(final ActorSystem actorSystem) {
-        this.existenceChecker = ExistenceChecker.get(actorSystem);
+        this(ExistenceChecker.get(actorSystem));
+    }
+
+    ModifyToCreateThingTransformer(final ExistenceChecker existenceChecker) {
+        this.existenceChecker = existenceChecker;
     }
 
     @Override
