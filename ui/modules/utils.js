@@ -109,8 +109,8 @@ export function addTab(tabItemsNode, tabContentsNode, title, contentHTML) {
 
   const template = document.createElement('template');
   template.innerHTML = contentHTML;
-  template.content.firstChild.id = id;
-  tabContentsNode.appendChild(template.content.firstChild);
+  template.content.firstElementChild.id = id;
+  tabContentsNode.appendChild(template.content.firstElementChild);
 }
 
 /**
