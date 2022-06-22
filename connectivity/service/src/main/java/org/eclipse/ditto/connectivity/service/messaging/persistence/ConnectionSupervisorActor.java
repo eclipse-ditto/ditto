@@ -69,7 +69,7 @@ public final class ConnectionSupervisorActor
                             .orElse(SupervisorStrategy.stoppingStrategy().decider()));
     private static final Duration OVERWRITES_CHECK_BACKOFF_DURATION = Duration.ofSeconds(30);
 
-    private final ActorRef proxyActor;
+    private final ActorRef commandForwarderActor;
     private final ActorRef pubSubMediator;
     private Config connectivityConfigOverwrites = ConfigFactory.empty();
     private boolean isRegisteredForConnectivityConfigChanges = false;
@@ -77,10 +77,10 @@ public final class ConnectionSupervisorActor
     private final ConnectionEnforcerActorPropsFactory enforcerActorPropsFactory;
 
     @SuppressWarnings("unused")
-    private ConnectionSupervisorActor(final ActorRef proxyActor, final ActorRef pubSubMediator,
+    private ConnectionSupervisorActor(final ActorRef commandForwarderActor, final ActorRef pubSubMediator,
             final ConnectionEnforcerActorPropsFactory enforcerActorPropsFactory) {
         super(null);
-        this.proxyActor = proxyActor;
+        this.commandForwarderActor = commandForwarderActor;
         this.pubSubMediator = pubSubMediator;
         this.enforcerActorPropsFactory = enforcerActorPropsFactory;
     }
@@ -92,16 +92,16 @@ public final class ConnectionSupervisorActor
      * stops it for {@link ActorKilledException}'s and escalates all others.
      * </p>
      *
-     * @param proxyActor the actor used to send signals into the ditto cluster.
+     * @param commandForwarder the actor used to send signals into the ditto cluster.
      * @param pubSubMediator pub-sub-mediator for the shutdown behavior.
      * @param enforcerActorPropsFactory used to create the enforcer actor.
      * @return the {@link Props} to create this actor.
      */
-    public static Props props(final ActorRef proxyActor,
+    public static Props props(final ActorRef commandForwarder,
             final ActorRef pubSubMediator,
             final ConnectionEnforcerActorPropsFactory enforcerActorPropsFactory) {
 
-        return Props.create(ConnectionSupervisorActor.class, proxyActor, pubSubMediator, enforcerActorPropsFactory);
+        return Props.create(ConnectionSupervisorActor.class, commandForwarder, pubSubMediator, enforcerActorPropsFactory);
     }
 
     @Override
@@ -149,7 +149,7 @@ public final class ConnectionSupervisorActor
 
     @Override
     protected Props getPersistenceActorProps(final ConnectionId entityId) {
-        return ConnectionPersistenceActor.props(entityId, proxyActor, pubSubMediator,
+        return ConnectionPersistenceActor.props(entityId, commandForwarderActor, pubSubMediator,
                 connectivityConfigOverwrites);
     }
 

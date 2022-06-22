@@ -18,6 +18,7 @@ import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
 import org.eclipse.ditto.base.model.signals.events.Event;
 import org.eclipse.ditto.connectivity.model.signals.commands.ConnectivityCommand;
+import org.eclipse.ditto.internal.utils.aggregator.ThingsAggregatorProxyActor;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.cacheloaders.config.AskWithRetryConfig;
@@ -27,7 +28,6 @@ import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.messages.model.signals.commands.MessageCommand;
 import org.eclipse.ditto.messages.model.signals.commands.MessageCommandResponse;
 import org.eclipse.ditto.policies.model.signals.commands.PolicyCommand;
-import org.eclipse.ditto.things.api.ThingsMessagingConstants;
 import org.eclipse.ditto.things.api.commands.sudo.SudoRetrieveThings;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommand;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommandResponse;
@@ -62,6 +62,7 @@ public class EdgeCommandForwarderActor extends AbstractActor {
     private final ShardRegions shardRegions;
     private final SignalTransformer signalTransformer;
     private final AskWithRetryCommandForwarder askWithRetryCommandForwarder;
+    private final ActorRef aggregatorProxyActor;
 
     @SuppressWarnings("unused")
     private EdgeCommandForwarderActor(final ActorRef pubSubMediator, final ShardRegions shardRegions,
@@ -75,6 +76,8 @@ public class EdgeCommandForwarderActor extends AbstractActor {
                 "ask-with-retry");
         final ActorSystem actorSystem = getContext().getSystem();
         askWithRetryCommandForwarder = AskWithRetryCommandForwarder.get(actorSystem);
+        aggregatorProxyActor = getContext().actorOf(ThingsAggregatorProxyActor.props(pubSubMediator),
+                ThingsAggregatorProxyActor.ACTOR_NAME);
     }
 
     /**
@@ -102,8 +105,8 @@ public class EdgeCommandForwarderActor extends AbstractActor {
                 .match(ThingCommand.class, this::forwardToThings)
                 .match(ThingCommandResponse.class, CommandResponse::isLiveCommandResponse, this::forwardToThings)
                 .match(ThingEvent.class, Event::isLiveEvent, this::forwardToThings)
-                .match(RetrieveThings.class, this::forwardToThingsAggregator)
-                .match(SudoRetrieveThings.class, this::forwardToThingsAggregator)
+                .match(RetrieveThings.class, this::forwardToThingsAggregatorProxy)
+                .match(SudoRetrieveThings.class, this::forwardToThingsAggregatorProxy)
                 .match(PolicyCommand.class, this::forwardToPolicies)
                 .match(ConnectivityCommand.class, this::forwardToConnectivity)
                 .match(ThingSearchCommand.class, this::forwardToThingSearch)
@@ -125,7 +128,8 @@ public class EdgeCommandForwarderActor extends AbstractActor {
                 .thenAccept(transformed -> {
                     log.withCorrelationId(transformed)
                             .info("Forwarding thing signal with ID <{}> and type <{}> to 'things' shard region",
-                                    transformed instanceof WithEntityId withEntityId ? withEntityId.getEntityId() : null,
+                                    transformed instanceof WithEntityId withEntityId ? withEntityId.getEntityId() :
+                                            null,
                                     transformed.getType());
 
                     if (!Signal.isChannelLive(transformed) &&
@@ -141,11 +145,10 @@ public class EdgeCommandForwarderActor extends AbstractActor {
                 });
     }
 
-    private void forwardToThingsAggregator(final Command<?> command) {
+    private void forwardToThingsAggregatorProxy(final Command<?> command) {
         final ActorRef sender = getSender();
-        final DistributedPubSubMediator.Send pubSubMsg =
-                DistPubSubAccess.send(ThingsMessagingConstants.THINGS_AGGREGATOR_ACTOR_PATH, command);
-        askWithRetryCommandForwarder.forwardCommandViaPubSub(command, pubSubMsg, pubSubMediator, sender);
+        signalTransformer.apply(command)
+                .thenAccept(transformed -> aggregatorProxyActor.tell(transformed, sender));
     }
 
     private void forwardToPolicies(final PolicyCommand<?> policyCommand) {

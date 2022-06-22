@@ -15,9 +15,6 @@ package org.eclipse.ditto.gateway.service.proxy.actors;
 import org.eclipse.ditto.base.api.devops.signals.commands.DevOpsCommand;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.commands.Command;
-import org.eclipse.ditto.internal.utils.aggregator.ThingsAggregatorProxyActor;
-import org.eclipse.ditto.things.api.commands.sudo.SudoRetrieveThings;
-import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThings;
 import org.eclipse.ditto.thingsearch.model.signals.commands.query.QueryThings;
 
 import akka.actor.ActorRef;
@@ -32,7 +29,6 @@ public abstract class AbstractThingProxyActor extends AbstractProxyActor {
 
     private final ActorSelection devOpsCommandsActor;
     private final ActorRef edgeCommandForwarder;
-    private final ActorRef aggregatorProxyActor;
 
     protected AbstractThingProxyActor(final ActorRef pubSubMediator,
             final ActorSelection devOpsCommandsActor,
@@ -42,28 +38,20 @@ public abstract class AbstractThingProxyActor extends AbstractProxyActor {
 
         this.devOpsCommandsActor = devOpsCommandsActor;
         this.edgeCommandForwarder = edgeCommandForwarder;
-
-        aggregatorProxyActor = getContext().actorOf(ThingsAggregatorProxyActor.props(pubSubMediator),
-                ThingsAggregatorProxyActor.ACTOR_NAME);
     }
 
     @Override
     protected void addCommandBehaviour(final ReceiveBuilder receiveBuilder) {
         receiveBuilder
-                /* DevOps Commands */
                 .match(DevOpsCommand.class, command -> {
                     getLogger().withCorrelationId(command)
                             .debug("Got 'DevOpsCommand' message <{}>, forwarding to local devOpsCommandsActor",
                                     command.getType());
                     devOpsCommandsActor.forward(command, getContext());
                 })
-                /* handle RetrieveThings in a special way */
-                .match(RetrieveThings.class, rt -> aggregatorProxyActor.forward(rt, getContext()))
-                .match(SudoRetrieveThings.class, srt -> aggregatorProxyActor.forward(srt, getContext()))
-
                 .match(QueryThings.class, qt -> {
                     final ActorRef responseActor = getContext().actorOf(
-                            QueryThingsPerRequestActor.props(qt, aggregatorProxyActor, getSender(),
+                            QueryThingsPerRequestActor.props(qt, edgeCommandForwarder, getSender(),
                                     pubSubMediator));
                     edgeCommandForwarder.tell(qt, responseActor);
                 })

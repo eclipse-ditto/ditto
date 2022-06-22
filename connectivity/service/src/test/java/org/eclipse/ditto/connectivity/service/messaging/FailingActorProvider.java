@@ -40,7 +40,7 @@ public final class FailingActorProvider implements ClientActorPropsFactory {
 
     @Override
     public Props getActorPropsForType(final Connection connection,
-            final ActorRef proxyActor,
+            final ActorRef commandForwarderActor,
             final ActorRef connectionActor,
             final ActorSystem system,
             final DittoHeaders dittoHeaders,

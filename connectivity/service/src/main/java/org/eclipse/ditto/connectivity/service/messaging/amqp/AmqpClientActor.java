@@ -122,12 +122,12 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
      */
     @SuppressWarnings("unused")
     private AmqpClientActor(final Connection connection,
-            final ActorRef proxyActor,
+            final ActorRef commandForwarderActor,
             final ActorRef connectionActor,
             final Config connectivityConfigOverwrites,
             final DittoHeaders dittoHeaders) {
 
-        super(connection, proxyActor, connectionActor, dittoHeaders, connectivityConfigOverwrites);
+        super(connection, commandForwarderActor, connectionActor, dittoHeaders, connectivityConfigOverwrites);
         final ConnectionConfig connectionConfig = connectivityConfig().getConnectionConfig();
         final Amqp10Config amqp10Config = connectionConfig.getAmqp10Config();
         jmsConnectionFactory =
@@ -152,10 +152,10 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
     @SuppressWarnings("unused")
     private AmqpClientActor(final Connection connection,
             final JmsConnectionFactory jmsConnectionFactory,
-            final ActorRef proxyActor,
+            final ActorRef commandForwarderActor,
             final ActorRef connectionActor, final DittoHeaders dittoHeaders) {
 
-        super(connection, proxyActor, connectionActor, dittoHeaders, ConfigFactory.empty());
+        super(connection, commandForwarderActor, connectionActor, dittoHeaders, ConfigFactory.empty());
 
         this.jmsConnectionFactory = jmsConnectionFactory;
         connectionListener = new StatusReportingListener(getSelf(), logger, connectionLogger);
@@ -170,7 +170,7 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
      * Creates Akka configuration object for this actor.
      *
      * @param connection the connection.
-     * @param proxyActor the actor used to send signals into the ditto cluster.
+     * @param commandForwarderActor the actor used to send signals into the ditto cluster.
      * @param connectionActor the connectionPersistenceActor which created this client.
      * @param configOverwrites an override for the default connectivity config values -
      * @param actorSystem the actor system.
@@ -178,30 +178,30 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
      * @param dittoHeaders headers of the command that caused this actor to be created.
      * @return the Akka configuration Props object.
      */
-    public static Props props(final Connection connection, final ActorRef proxyActor,
+    public static Props props(final Connection connection, final ActorRef commandForwarderActor,
             final ActorRef connectionActor, final Config configOverwrites, final ActorSystem actorSystem,
             final DittoHeaders dittoHeaders) {
 
         return Props.create(AmqpClientActor.class, validateConnection(connection, actorSystem, configOverwrites),
-                proxyActor, connectionActor, configOverwrites, dittoHeaders);
+                commandForwarderActor, connectionActor, configOverwrites, dittoHeaders);
     }
 
     /**
      * Creates Akka configuration object for this actor.
      *
      * @param connection connection parameters.
-     * @param proxyActor the actor used to send signals into the ditto cluster.
+     * @param commandForwarderActor the actor used to send signals into the ditto cluster.
      * @param connectionActor the connectionPersistenceActor which created this client.
      * @param jmsConnectionFactory the JMS connection factory.
      * @param actorSystem the actor system.
      * @return the Akka configuration Props object.
      */
-    static Props propsForTest(final Connection connection, @Nullable final ActorRef proxyActor,
+    static Props propsForTest(final Connection connection, @Nullable final ActorRef commandForwarderActor,
             final ActorRef connectionActor, final JmsConnectionFactory jmsConnectionFactory,
             final ActorSystem actorSystem) {
 
         return Props.create(AmqpClientActor.class, validateConnection(connection, actorSystem, ConfigFactory.empty()),
-                jmsConnectionFactory, proxyActor, connectionActor, DittoHeaders.empty());
+                jmsConnectionFactory, commandForwarderActor, connectionActor, DittoHeaders.empty());
     }
 
     private static Connection validateConnection(final Connection connection, final ActorSystem actorSystem,

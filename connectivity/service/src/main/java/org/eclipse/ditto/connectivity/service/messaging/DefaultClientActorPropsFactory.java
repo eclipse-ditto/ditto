@@ -41,7 +41,7 @@ public final class DefaultClientActorPropsFactory implements ClientActorPropsFac
     }
 
     @Override
-    public Props getActorPropsForType(final Connection connection, final ActorRef proxyActor,
+    public Props getActorPropsForType(final Connection connection, final ActorRef commandForwarderActor,
             final ActorRef connectionActor,
             final ActorSystem actorSystem,
             final DittoHeaders dittoHeaders,
@@ -51,27 +51,27 @@ public final class DefaultClientActorPropsFactory implements ClientActorPropsFac
         final Props result;
         switch (connectionType) {
             case AMQP_091:
-                result = RabbitMQClientActor.props(connection, proxyActor, connectionActor, dittoHeaders,
+                result = RabbitMQClientActor.props(connection, commandForwarderActor, connectionActor, dittoHeaders,
                         connectivityConfigOverwrites);
                 break;
             case AMQP_10:
-                result = AmqpClientActor.props(connection, proxyActor, connectionActor, connectivityConfigOverwrites,
+                result = AmqpClientActor.props(connection, commandForwarderActor, connectionActor, connectivityConfigOverwrites,
                         actorSystem, dittoHeaders);
                 break;
             case MQTT:
-                result = HiveMqtt3ClientActor.props(connection, proxyActor, connectionActor, dittoHeaders,
+                result = HiveMqtt3ClientActor.props(connection, commandForwarderActor, connectionActor, dittoHeaders,
                         connectivityConfigOverwrites);
                 break;
             case MQTT_5:
-                result = HiveMqtt5ClientActor.props(connection, proxyActor, connectionActor, dittoHeaders,
+                result = HiveMqtt5ClientActor.props(connection, commandForwarderActor, connectionActor, dittoHeaders,
                         connectivityConfigOverwrites);
                 break;
             case KAFKA:
-                result = KafkaClientActor.props(connection, proxyActor, connectionActor, dittoHeaders,
+                result = KafkaClientActor.props(connection, commandForwarderActor, connectionActor, dittoHeaders,
                         connectivityConfigOverwrites);
                 break;
             case HTTP_PUSH:
-                result = HttpPushClientActor.props(connection, proxyActor, connectionActor, dittoHeaders,
+                result = HttpPushClientActor.props(connection, commandForwarderActor, connectionActor, dittoHeaders,
                         connectivityConfigOverwrites);
                 break;
             default:

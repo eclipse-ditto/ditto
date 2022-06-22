@@ -57,7 +57,7 @@ public final class MockClientActorPropsFactory implements ClientActorPropsFactor
     }
 
     @Override
-    public Props getActorPropsForType(final Connection connection, final ActorRef proxyActor,
+    public Props getActorPropsForType(final Connection connection, final ActorRef commandForwarderActor,
             final ActorRef connectionActor,
             final ActorSystem actorSystem, final DittoHeaders dittoHeaders,
             final Config connectivityConfigOverwrites) {

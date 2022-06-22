@@ -141,7 +141,6 @@ import akka.actor.Status;
 import akka.actor.SupervisorStrategy;
 import akka.actor.Terminated;
 import akka.cluster.pubsub.DistributedPubSub;
-import akka.http.javadsl.ConnectionContext;
 import akka.japi.Pair;
 import akka.japi.pf.DeciderBuilder;
 import akka.japi.pf.FSMStateFunctionBuilder;
@@ -165,7 +164,6 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     protected final ThreadSafeDittoLoggingAdapter logger;
     protected static final Status.Success DONE = new Status.Success(Done.getInstance());
 
-    protected ConnectionContext connectionContext;
     protected final ConnectionLogger connectionLogger;
     protected final ConnectivityStatusResolver connectivityStatusResolver;
 
@@ -184,7 +182,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     private final Connection connection;
     private final ConnectivityConfig connectivityConfig;
     private final ActorRef connectionActor;
-    private final ActorSelection proxyActorSelection;
+    private final ActorSelection commandForwarderActorSelection;
     private final Gauge clientGauge;
     private final Gauge clientConnectingGauge;
     private final ReconnectTimeoutStrategy reconnectTimeoutStrategy;
@@ -197,7 +195,6 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     protected final ConnectivityCounterRegistry connectionCounterRegistry;
     protected final ConnectionLoggerRegistry connectionLoggerRegistry;
     private final boolean dryRun;
-    private final ActorRef proxyActor;
 
     // counter for all child actors ever started to disambiguate between them
     private int childActorCount = 0;
@@ -208,7 +205,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     private ActorRef tunnelActor;
 
     protected BaseClientActor(final Connection connection,
-            final ActorRef proxyActor,
+            final ActorRef commandForwarderActor,
             final ActorRef connectionActor,
             final DittoHeaders dittoHeaders,
             final Config connectivityConfigOverwrites) {
@@ -219,7 +216,6 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         final Config withOverwrites = connectivityConfigOverwrites.withFallback(config);
         connectivityConfig = ConnectivityConfig.of(withOverwrites);
         this.connectionActor = connectionActor;
-        this.proxyActor = proxyActor;
 
         // this is retrieve via the extension for each baseClientActor in order to not pass it as constructor arg
         //  as all constructor arguments need to be serializable as the BaseClientActor is started behind a cluster
@@ -233,7 +229,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         // log the default client ID for tracing
         logger.info("Using default client ID <{}>", getDefaultClientId());
 
-        proxyActorSelection = getLocalActorOfSamePath(proxyActor);
+        commandForwarderActorSelection = getLocalActorOfSamePath(commandForwarderActor);
 
         final UserIndicatedErrors userIndicatedErrors = UserIndicatedErrors.of(config);
         connectivityStatusResolver = ConnectivityStatusResolver.of(userIndicatedErrors);
@@ -322,7 +318,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
 
         final var inboundDispatchingSink = getInboundDispatchingSink(actorPair.second());
         inboundMappingSink = getInboundMappingSink(protocolAdapter, inboundDispatchingSink);
-        subscriptionManager = startSubscriptionManager(proxyActorSelection, connectivityConfig().getClientConfig());
+        subscriptionManager = startSubscriptionManager(commandForwarderActorSelection, connectivityConfig().getClientConfig());
 
         if (connection.getSshTunnel().map(SshTunnel::isEnabled).orElse(false)) {
             tunnelActor = startChildActor(SshTunnelActor.ACTOR_NAME, SshTunnelActor.props(connection,
@@ -393,15 +389,6 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
      */
     protected String getDefaultClientId() {
         return getClientId(connection.getId());
-    }
-
-    /**
-     * Get the proxyActor reference.
-     *
-     * @return the proxyActor ref.
-     */
-    protected ActorRef getProxyActor() {
-        return proxyActor;
     }
 
     private FSM.State<BaseClientState, BaseClientData> completeInitialization() {
@@ -1727,7 +1714,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         try {
             // this one throws DittoRuntimeExceptions when the mapper could not be configured
             settings = OutboundMappingSettings.of(connection, connectivityConfig, getContext().getSystem(),
-                    proxyActorSelection, protocolAdapter, logger);
+                    commandForwarderActorSelection, protocolAdapter, logger);
             outboundMappingProcessors = IntStream.range(0, processorPoolSize)
                     .mapToObj(i -> OutboundMappingProcessor.of(settings))
                     .toList();
@@ -1763,7 +1750,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     private Sink<Object, NotUsed> getInboundDispatchingSink(final ActorRef outboundMappingProcessorActor) {
         return InboundDispatchingSink.createSink(connection,
                 protocolAdapter.headerTranslator(),
-                proxyActorSelection,
+                commandForwarderActorSelection,
                 connectionActor,
                 outboundMappingProcessorActor,
                 getSelf(),

@@ -171,7 +171,7 @@ public final class ConnectionPersistenceActor
     private static final SupervisorStrategy ESCALATE_ALWAYS_STRATEGY = OneForOneEscalateStrategy.escalateStrategy();
 
     private final Cluster cluster;
-    private final ActorRef proxyActor;
+    private final ActorRef commandForwarderActor;
     private final ClientActorPropsFactory propsFactory;
     private final ActorRef pubSubMediator;
     private final boolean allClientActorsOnOneNode;
@@ -194,7 +194,7 @@ public final class ConnectionPersistenceActor
     @Nullable private Instant recoveredAt;
 
     ConnectionPersistenceActor(final ConnectionId connectionId,
-            final ActorRef proxyActor,
+            final ActorRef commandForwarderActor,
             final ActorRef pubSubMediator,
             final Trilean allClientActorsOnOneNode,
             final Config connectivityConfigOverwrites) {
@@ -203,7 +203,7 @@ public final class ConnectionPersistenceActor
 
         final var actorSystem = getContext().getSystem();
         cluster = Cluster.get(actorSystem);
-        this.proxyActor = proxyActor;
+        this.commandForwarderActor = commandForwarderActor;
         propsFactory = ClientActorPropsFactory.get(actorSystem);
         this.pubSubMediator = pubSubMediator;
         this.connectivityConfigOverwrites = connectivityConfigOverwrites;
@@ -256,16 +256,16 @@ public final class ConnectionPersistenceActor
      * Creates Akka configuration object for this actor.
      *
      * @param connectionId the connection ID.
-     * @param proxyActor the actor used to send signals into the ditto cluster..
+     * @param commandForwarderActor the actor used to send signals into the ditto cluster..
      * @param connectivityConfigOverwrites the overwrites for the connectivity config for the given connection.
      * @return the Akka configuration Props object.
      */
     public static Props props(final ConnectionId connectionId,
-            final ActorRef proxyActor,
+            final ActorRef commandForwarderActor,
             final ActorRef pubSubMediator,
             final Config connectivityConfigOverwrites
     ) {
-        return Props.create(ConnectionPersistenceActor.class, connectionId, proxyActor, pubSubMediator,
+        return Props.create(ConnectionPersistenceActor.class, connectionId, commandForwarderActor, pubSubMediator,
                 Trilean.UNKNOWN, connectivityConfigOverwrites);
     }
 
@@ -1085,7 +1085,7 @@ public final class ConnectionPersistenceActor
     private void startClientActorsIfRequired(final int clientCount, final DittoHeaders dittoHeaders) {
         if (entity != null && clientActorRouter == null && clientCount > 0) {
             log.info("Starting ClientActor for connection <{}> with <{}> clients.", entityId, clientCount);
-            final Props props = propsFactory.getActorPropsForType(entity, proxyActor, getSelf(),
+            final Props props = propsFactory.getActorPropsForType(entity, commandForwarderActor, getSelf(),
                     getContext().getSystem(), dittoHeaders, connectivityConfigOverwrites);
             final ClusterRouterPoolSettings clusterRouterPoolSettings =
                     new ClusterRouterPoolSettings(clientCount, clientActorsPerNode(clientCount), true,
@@ -1190,7 +1190,7 @@ public final class ConnectionPersistenceActor
                         HttpPushValidator.newInstance(connectivityConfig.getConnectionConfig().getHttpPushConfig()));
 
         final DittoConnectivityCommandValidator dittoCommandValidator =
-                new DittoConnectivityCommandValidator(propsFactory, proxyActor, getSelf(), connectionValidator,
+                new DittoConnectivityCommandValidator(propsFactory, commandForwarderActor, getSelf(), connectionValidator,
                         actorSystem);
 
         final var customCommandValidator =

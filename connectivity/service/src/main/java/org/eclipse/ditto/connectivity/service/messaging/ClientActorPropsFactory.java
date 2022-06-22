@@ -33,14 +33,14 @@ public interface ClientActorPropsFactory extends DittoExtensionPoint {
      * Create actor {@link Props} for a connection.
      *
      * @param connection the connection.
-     * @param proxyActor the actor used to send signals into the ditto cluster..
+     * @param commandForwarderActor the actor used to send signals into the ditto cluster..
      * @param connectionActor the connectionPersistenceActor which creates this client.
      * @param actorSystem the actorSystem.
      * @param dittoHeaders Ditto headers of the command that caused the client actors to be created.
      * @return the actor props
      */
     Props getActorPropsForType(Connection connection,
-            ActorRef proxyActor,
+            ActorRef commandForwarderActor,
             ActorRef connectionActor,
             ActorSystem actorSystem,
             DittoHeaders dittoHeaders,

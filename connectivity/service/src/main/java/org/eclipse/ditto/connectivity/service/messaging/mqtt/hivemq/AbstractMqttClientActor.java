@@ -87,10 +87,10 @@ abstract class AbstractMqttClientActor<S, P, Q extends MqttClient, R> extends Ba
     @Nullable private ActorRef publisherActor;
     private final MqttConfig mqttConfig;
 
-    AbstractMqttClientActor(final Connection connection, final ActorRef proxyActor,
+    AbstractMqttClientActor(final Connection connection, final ActorRef commandForwarderActor,
             final ActorRef connectionActor, final DittoHeaders dittoHeaders,
             final Config connectivityConfigOverwrites) {
-        super(connection, proxyActor, connectionActor, dittoHeaders, connectivityConfigOverwrites);
+        super(connection, commandForwarderActor, connectionActor, dittoHeaders, connectivityConfigOverwrites);
         this.connection = connection;
         mqttConfig = connectivityConfig().getConnectionConfig().getMqttConfig();
         mqttSpecificConfig = MqttSpecificConfig.fromConnection(connection, mqttConfig);

@@ -60,7 +60,7 @@ final class QueryThingsPerRequestActor extends AbstractActor {
     private final DittoDiagnosticLoggingAdapter log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
 
     private final QueryThings queryThings;
-    private final ActorRef aggregatorProxyActor;
+    private final ActorRef commandForwarderActor;
     private final ActorRef originatingSender;
     private final ActorRef pubSubMediator;
 
@@ -69,12 +69,12 @@ final class QueryThingsPerRequestActor extends AbstractActor {
 
     @SuppressWarnings("unused")
     private QueryThingsPerRequestActor(final QueryThings queryThings,
-            final ActorRef aggregatorProxyActor,
+            final ActorRef commandForwarderActor,
             final ActorRef originatingSender,
             final ActorRef pubSubMediator) {
 
         this.queryThings = queryThings;
-        this.aggregatorProxyActor = aggregatorProxyActor;
+        this.commandForwarderActor = commandForwarderActor;
         this.originatingSender = originatingSender;
         this.pubSubMediator = pubSubMediator;
         queryThingsResponse = null;
@@ -92,11 +92,11 @@ final class QueryThingsPerRequestActor extends AbstractActor {
      * @return the Akka configuration Props object.
      */
     static Props props(final QueryThings queryThings,
-            final ActorRef aggregatorProxyActor,
+            final ActorRef commandForwarderActor,
             final ActorRef originatingSender,
             final ActorRef pubSubMediator) {
 
-        return Props.create(QueryThingsPerRequestActor.class, queryThings, aggregatorProxyActor, originatingSender,
+        return Props.create(QueryThingsPerRequestActor.class, queryThings, commandForwarderActor, originatingSender,
                 pubSubMediator);
     }
 
@@ -132,7 +132,7 @@ final class QueryThingsPerRequestActor extends AbstractActor {
                                 .selectedFields(selectedFieldsWithThingId)
                                 .build();
                         // delegate to the ThingsAggregatorProxyActor which receives the results via a cluster stream:
-                        aggregatorProxyActor.tell(retrieveThings, getSelf());
+                        commandForwarderActor.tell(retrieveThings, getSelf());
                     }
                 })
                 .match(RetrieveThingsResponse.class, rtr -> {

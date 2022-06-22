@@ -49,23 +49,23 @@ public final class HiveMqtt5ClientActor
 
     @SuppressWarnings("unused") // used by `props` via reflection
     private HiveMqtt5ClientActor(final Connection connection,
-            final ActorRef proxyActor,
+            final ActorRef commandForwarderActor,
             final ActorRef connectionActor,
             final HiveMqtt5ClientFactory clientFactory,
             final DittoHeaders dittoHeaders,
             final Config connectivityConfigOverwrites) {
 
-        super(connection, proxyActor, connectionActor, dittoHeaders, connectivityConfigOverwrites);
+        super(connection, commandForwarderActor, connectionActor, dittoHeaders, connectivityConfigOverwrites);
         this.clientFactory = clientFactory;
     }
 
     @SuppressWarnings("unused") // used by `props` via reflection
     private HiveMqtt5ClientActor(final Connection connection,
-            final ActorRef proxyActor,
+            final ActorRef commandForwarderActor,
             final ActorRef connectionActor,
             final DittoHeaders dittoHeaders,
             final Config connectivityConfigOverwrites) {
-        super(connection, proxyActor, connectionActor, dittoHeaders, connectivityConfigOverwrites);
+        super(connection, commandForwarderActor, connectionActor, dittoHeaders, connectivityConfigOverwrites);
         this.clientFactory = DefaultHiveMqtt5ClientFactory.getInstance(this::getSshTunnelState);
     }
 
@@ -78,17 +78,17 @@ public final class HiveMqtt5ClientActor
      * Creates Akka configuration object for this actor.
      *
      * @param connection the connection.
-     * @param proxyActor the actor used to send signals into the ditto cluster.
+     * @param commandForwarderActor the actor used to send signals into the ditto cluster.
      * @param clientFactory factory used to create required mqtt clients
      * @param connectionActor the parent connection actor
      * @param dittoHeaders headers of the command that caused this actor to be created
      * @param connectivityConfigOverwrites the overwrites for the connectivity config for the given connection.
      * @return the Akka configuration Props object.
      */
-    public static Props props(final Connection connection, final ActorRef proxyActor,
+    public static Props props(final Connection connection, final ActorRef commandForwarderActor,
             final HiveMqtt5ClientFactory clientFactory, final ActorRef connectionActor,
             final DittoHeaders dittoHeaders, final Config connectivityConfigOverwrites) {
-        return Props.create(HiveMqtt5ClientActor.class, connection, proxyActor, connectionActor, clientFactory,
+        return Props.create(HiveMqtt5ClientActor.class, connection, commandForwarderActor, connectionActor, clientFactory,
                 dittoHeaders, connectivityConfigOverwrites);
     }
 
@@ -96,15 +96,15 @@ public final class HiveMqtt5ClientActor
      * Creates Akka configuration object for this actor.
      *
      * @param connection the connection.
-     * @param proxyActor the actor used to send signals into the ditto cluster.
+     * @param commandForwarderActor the actor used to send signals into the ditto cluster.
      * @param connectionActor the parent connection actor.
      * @param dittoHeaders headers of the command that caused this actor to be created.
      * @return the Akka configuration Props object.
      */
-    public static Props props(final Connection connection, final ActorRef proxyActor,
+    public static Props props(final Connection connection, final ActorRef commandForwarderActor,
             final ActorRef connectionActor, final DittoHeaders dittoHeaders,
             final Config connectivityConfigOverwrites) {
-        return Props.create(HiveMqtt5ClientActor.class, connection, proxyActor, connectionActor, dittoHeaders,
+        return Props.create(HiveMqtt5ClientActor.class, connection, commandForwarderActor, connectionActor, dittoHeaders,
                 connectivityConfigOverwrites);
     }
 

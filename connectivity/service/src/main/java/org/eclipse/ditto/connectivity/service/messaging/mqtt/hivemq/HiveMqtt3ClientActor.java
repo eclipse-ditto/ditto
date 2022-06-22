@@ -47,20 +47,20 @@ public final class HiveMqtt3ClientActor
 
     @SuppressWarnings("unused") // used by `props` via reflection
     private HiveMqtt3ClientActor(final Connection connection,
-            final ActorRef proxyActor,
+            final ActorRef commandForwarderActor,
             final ActorRef connectionActor,
             final HiveMqtt3ClientFactory clientFactory,
             final DittoHeaders dittoHeaders,
             final Config connectivityConfigOverwrites) {
-        super(connection, proxyActor, connectionActor, dittoHeaders, connectivityConfigOverwrites);
+        super(connection, commandForwarderActor, connectionActor, dittoHeaders, connectivityConfigOverwrites);
         this.clientFactory = clientFactory;
     }
 
     @SuppressWarnings("unused") // used by `props` via reflection
-    private HiveMqtt3ClientActor(final Connection connection, final ActorRef proxyActor,
+    private HiveMqtt3ClientActor(final Connection connection, final ActorRef commandForwarderActor,
             final ActorRef connectionActor, final DittoHeaders dittoHeaders,
             final Config connectivityConfigOverwrites) {
-        super(connection, proxyActor, connectionActor, dittoHeaders, connectivityConfigOverwrites);
+        super(connection, commandForwarderActor, connectionActor, dittoHeaders, connectivityConfigOverwrites);
         clientFactory = DefaultHiveMqtt3ClientFactory.getInstance(this::getSshTunnelState);
     }
 
@@ -91,15 +91,15 @@ public final class HiveMqtt3ClientActor
      * Creates Akka configuration object for this actor.
      *
      * @param connection the connection.
-     * @param proxyActor the actor used to send signals into the ditto cluster.
+     * @param commandForwarderActor the actor used to send signals into the ditto cluster.
      * @param connectionActor the connectionPersistenceActor which created this client.
      * @param dittoHeaders headers of the command that caused this actor to be created.
      * @return the Akka configuration Props object.
      */
-    public static Props props(final Connection connection, final ActorRef proxyActor,
+    public static Props props(final Connection connection, final ActorRef commandForwarderActor,
             final ActorRef connectionActor, final DittoHeaders dittoHeaders,
             final Config connectivityConfigOverwrites) {
-        return Props.create(HiveMqtt3ClientActor.class, connection, proxyActor, connectionActor, dittoHeaders,
+        return Props.create(HiveMqtt3ClientActor.class, connection, commandForwarderActor, connectionActor, dittoHeaders,
                 connectivityConfigOverwrites);
     }
 

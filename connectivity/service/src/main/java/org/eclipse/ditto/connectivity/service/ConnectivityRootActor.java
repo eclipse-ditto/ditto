@@ -22,7 +22,6 @@ import org.eclipse.ditto.connectivity.service.config.ConnectionIdsRetrievalConfi
 import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.enforcement.ConnectionEnforcerActorPropsFactory;
 import org.eclipse.ditto.connectivity.service.messaging.ConnectionIdsRetrievalActor;
-import org.eclipse.ditto.connectivity.service.messaging.ConnectivityProxyActor;
 import org.eclipse.ditto.connectivity.service.messaging.persistence.ConnectionPersistenceOperationsActor;
 import org.eclipse.ditto.connectivity.service.messaging.persistence.ConnectionPersistenceStreamingActorCreator;
 import org.eclipse.ditto.connectivity.service.messaging.persistence.ConnectionSupervisorActor;
@@ -77,12 +76,9 @@ public final class ConnectivityRootActor extends DittoRootActor {
 
         final ActorRef commandForwarder = getCommandForwarder(clusterConfig, pubSubMediator);
 
-        final ActorRef proxyActor =
-                startChildActor(ConnectivityProxyActor.ACTOR_NAME, ConnectivityProxyActor.props(commandForwarder));
-
         final var enforcerActorPropsFactory = ConnectionEnforcerActorPropsFactory.get(actorSystem);
         final var connectionSupervisorProps =
-                ConnectionSupervisorActor.props(proxyActor, pubSubMediator, enforcerActorPropsFactory);
+                ConnectionSupervisorActor.props(commandForwarder, pubSubMediator, enforcerActorPropsFactory);
         // Create persistence streaming actor (with no cache) and make it known to pubSubMediator.
         final ActorRef persistenceStreamingActor =
                 startChildActor(ConnectionPersistenceStreamingActorCreator.ACTOR_NAME,
