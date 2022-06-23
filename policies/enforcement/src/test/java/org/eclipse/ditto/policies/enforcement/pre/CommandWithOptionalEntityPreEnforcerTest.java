@@ -17,12 +17,13 @@ import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.signals.Signal;
-import org.eclipse.ditto.json.JsonArray;
-import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.things.model.ThingId;
-import org.eclipse.ditto.things.model.signals.commands.modify.ModifyFeatureProperty;
+import org.eclipse.ditto.policies.model.EffectedPermissions;
+import org.eclipse.ditto.policies.model.Label;
+import org.eclipse.ditto.policies.model.PolicyId;
+import org.eclipse.ditto.policies.model.Resource;
+import org.eclipse.ditto.policies.model.ResourceKey;
+import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyResource;
 import org.junit.Test;
 
 /**
@@ -40,28 +41,12 @@ public final class CommandWithOptionalEntityPreEnforcerTest {
                 .isThrownBy(() -> CommandWithOptionalEntityPreEnforcer.createInstance().apply(createTestCommand(jsonValue)));
     }
 
-    @Test
-    public void illegalNullCharacterIsInvalidInArray() {
-        final JsonArray jsonArray = JsonArray.newBuilder().add(JsonValue.of(NULL_CHARACTER)).build();
-
-        assertThatExceptionOfType(DittoRuntimeException.class)
-                .isThrownBy(() -> CommandWithOptionalEntityPreEnforcer.createInstance().apply(createTestCommand(jsonArray)));
-    }
-
-    @Test
-    public void illegalNullCharacterIsInvalidInObject() {
-        final JsonObject jsonObject = JsonObject.newBuilder().set("prop", JsonValue.of(NULL_CHARACTER)).build();
-
-        assertThatExceptionOfType(DittoRuntimeException.class)
-                .isThrownBy(
-                        () -> CommandWithOptionalEntityPreEnforcer.createInstance().apply(createTestCommand(jsonObject)));
-    }
-
     private Signal<?> createTestCommand(final JsonValue jsonValue) {
-        final ThingId thingId = ThingId.of("org.eclipse.ditto.test:myThing");
-        final String featureId = "myFeature";
-        final JsonPointer propertyJsonPointer = JsonPointer.of("/bumlux");
-        return ModifyFeatureProperty.of(thingId, featureId, propertyJsonPointer, jsonValue, DittoHeaders.empty());
+        final PolicyId policyId = PolicyId.of("org.eclipse.ditto.test:myPolicy");
+        return ModifyResource.of(policyId, Label.of("test"),
+                Resource.newInstance(
+                        ResourceKey.newInstance("policy:/" + jsonValue.asString()),
+                        EffectedPermissions.newInstance(null, null)), DittoHeaders.empty());
     }
 
 }

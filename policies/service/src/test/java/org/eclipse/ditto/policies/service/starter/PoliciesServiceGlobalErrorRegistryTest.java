@@ -29,8 +29,6 @@ import org.eclipse.ditto.placeholders.PlaceholderFunctionUnknownException;
 import org.eclipse.ditto.policies.model.PolicyEntryInvalidException;
 import org.eclipse.ditto.policies.model.PolicyIdInvalidException;
 import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyConflictException;
-import org.eclipse.ditto.things.model.ThingIdInvalidException;
-import org.eclipse.ditto.things.model.signals.commands.exceptions.AttributePointerInvalidException;
 
 public final class PoliciesServiceGlobalErrorRegistryTest extends GlobalErrorRegistryTestCases {
 
@@ -38,7 +36,6 @@ public final class PoliciesServiceGlobalErrorRegistryTest extends GlobalErrorReg
         super(
                 DittoHeaderInvalidException.class,
                 PolicyEntryInvalidException.class,
-                AttributePointerInvalidException.class,
                 CommandNotSupportedException.class,
                 UnsupportedSchemaVersionException.class,
                 UnsupportedSignalException.class,
@@ -48,7 +45,6 @@ public final class PoliciesServiceGlobalErrorRegistryTest extends GlobalErrorReg
                 JsonTypeNotParsableException.class,
                 NamespaceBlockedException.class,
                 NamespacedEntityIdInvalidException.class,
-                ThingIdInvalidException.class,
                 PolicyIdInvalidException.class,
                 AcknowledgementLabelInvalidException.class,
                 AcknowledgementCorrelationIdMissingException.class,

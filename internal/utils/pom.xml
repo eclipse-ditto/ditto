@@ -28,7 +28,6 @@
     <modules>
         <module>aggregator</module>
         <module>akka</module>
-        <module>pubsub</module>
         <module>cache</module>
         <module>cache-loaders</module>
         <module>cluster</module>
@@ -40,6 +39,9 @@
         <module>jwt</module>
         <module>namespaces</module>
         <module>persistence</module>
+        <module>pubsub</module>
+        <module>pubsub-policies</module>
+        <module>pubsub-things</module>
         <module>protocol</module>
         <module>search</module>
         <module>test</module>

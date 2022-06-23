@@ -21,13 +21,10 @@ import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
 import org.eclipse.ditto.base.model.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.signals.Signal;
-import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.policies.enforcement.placeholders.PlaceholderSubstitutionPreEnforcer;
 import org.eclipse.ditto.policies.model.EffectedPermissions;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.Resource;
-import org.eclipse.ditto.things.model.Thing;
-import org.eclipse.ditto.things.model.ThingId;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -47,11 +44,6 @@ public abstract class AbstractSubstitutionStrategyTestBase {
     protected static final Iterable<Resource> RESOURCES = Collections.singleton(
             Resource.newInstance("resourceKey", "resourcePath",
                     EffectedPermissions.newInstance(Collections.singleton("READ"), Collections.emptySet())));
-
-    protected static final ThingId THING_ID = ThingId.of(NAMESPACE, "my-thing");
-    protected static final Thing THING = Thing.newBuilder().setId(THING_ID)
-            .setAttributes(JsonObject.newBuilder().set("key", "val").build())
-            .build();
 
     protected static final DittoHeaders DITTO_HEADERS = DittoHeaders.newBuilder()
             .authorizationContext(AuthorizationContext.newInstance(DittoAuthorizationContextType.UNSPECIFIED,

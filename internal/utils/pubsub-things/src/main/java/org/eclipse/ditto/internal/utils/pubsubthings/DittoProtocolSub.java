@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Contributors to the Eclipse Foundation
+ * Copyright (c) 2022 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.internal.utils.pubsub;
+package org.eclipse.ditto.internal.utils.pubsubthings;
 
 import java.util.Collection;
 import java.util.concurrent.CompletionStage;
@@ -18,6 +18,7 @@ import java.util.concurrent.CompletionStage;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.base.model.acks.AcknowledgementLabel;
+import org.eclipse.ditto.internal.utils.pubsub.StreamingType;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;

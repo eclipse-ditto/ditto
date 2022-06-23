@@ -24,7 +24,6 @@ import org.eclipse.ditto.base.model.entity.type.EntityType;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.policies.model.PolicyConstants;
-import org.eclipse.ditto.things.model.ThingConstants;
 import org.junit.jupiter.api.Test;
 
 import com.typesafe.config.ConfigFactory;
@@ -56,7 +55,7 @@ public final class CreationRestrictionPreEnforcerTest {
                 PolicyConstants.ENTITY_TYPE, "ns1", identity("keycloak:some-user"),
                 true);
         testCanCreate(enforcer,
-                ThingConstants.ENTITY_TYPE, "ns1", identity("keycloak:some-user"),
+                EntityType.of("thing"), "ns1", identity("keycloak:some-user"),
                 true);
     }
 
@@ -68,21 +67,21 @@ public final class CreationRestrictionPreEnforcerTest {
                 PolicyConstants.ENTITY_TYPE, "ns1", identity("keycloak:some-user"),
                 false);
         testCanCreate(enforcer,
-                ThingConstants.ENTITY_TYPE, "ns1", identity("keycloak:some-user"),
+                EntityType.of("thing"), "ns1", identity("keycloak:some-user"),
                 false);
 
         testCanCreate(enforcer,
                 PolicyConstants.ENTITY_TYPE, "ns1", identity("keycloak:some-admin"),
                 false);
         testCanCreate(enforcer,
-                ThingConstants.ENTITY_TYPE, "ns1", identity("keycloak:some-admin"),
+                EntityType.of("thing"), "ns1", identity("keycloak:some-admin"),
                 true);
 
         testCanCreate(enforcer,
                 PolicyConstants.ENTITY_TYPE, "some-ns-1", identity("keycloak:some-user"),
                 true);
         testCanCreate(enforcer,
-                ThingConstants.ENTITY_TYPE, "some-ns-1", identity("keycloak:some-user"),
+                EntityType.of("thing"), "some-ns-1", identity("keycloak:some-user"),
                 false);
     }
 

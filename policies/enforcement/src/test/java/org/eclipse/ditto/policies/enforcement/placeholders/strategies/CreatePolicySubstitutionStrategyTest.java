@@ -36,7 +36,7 @@ public class CreatePolicySubstitutionStrategyTest extends AbstractSubstitutionSt
 
     @Override
     public void assertImmutability() {
-        assertInstancesOf(ModifyPolicySubstitutionStrategy.class, areImmutable());
+        assertInstancesOf(CreatePolicySubstitutionStrategy.class, areImmutable());
     }
 
     @Test

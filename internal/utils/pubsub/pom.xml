@@ -25,12 +25,6 @@
     <name>Eclipse Ditto :: Internal :: Utils :: Pub-Sub</name>
 
     <dependencies>
-        <!-- TODO CR-11383 this should not be a dependency IMO: maybe move to extra module pubsub-things?? -->
-        <dependency>
-            <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-things-model</artifactId>
-        </dependency>
-
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-internal-utils-akka</artifactId>

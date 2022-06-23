@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Contributors to the Eclipse Foundation
+ * Copyright (c) 2022 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -11,25 +11,26 @@
  * SPDX-License-Identifier: EPL-2.0
  */
 
-package org.eclipse.ditto.policies.enforcement.placeholders.references;
+package org.eclipse.ditto.things.service.enforcement;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.Optional;
 
-import org.eclipse.ditto.placeholders.PlaceholderReferenceNotSupportedException;
+import org.eclipse.ditto.base.model.entity.id.EntityId;
+import org.eclipse.ditto.base.model.entity.type.EntityType;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.assertions.DittoJsonAssertions;
-import org.eclipse.ditto.things.model.ThingId;
+import org.eclipse.ditto.placeholders.PlaceholderReferenceNotSupportedException;
 import org.junit.Test;
 
 /**
- * Tests {@link org.eclipse.ditto.policies.enforcement.placeholders.references.ReferencePlaceholder}.
+ * Tests {@link ReferencePlaceholder}.
  */
 public class ReferencePlaceholderTest {
 
-    private static final ThingId THING_ID = ThingId.of("namespace:myThing");
+    private static final EntityId THING_ID = EntityId.of(EntityType.of("thing"), "namespace:myThing");
 
     @Test
     public void fromCharSequence() {

@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.policies.enforcement.placeholders.references;
+package org.eclipse.ditto.things.service.enforcement;
 
 import java.util.concurrent.CompletionStage;
 
@@ -21,7 +21,7 @@ import org.eclipse.ditto.base.model.headers.DittoHeaders;
  *
  * @param <T> The type of the field.
  */
-public interface ReferencePlaceholderResolver<T> {
+interface ReferencePlaceholderResolver<T> {
 
     CompletionStage<T> resolve(ReferencePlaceholder referencePlaceholder, DittoHeaders dittoHeaders);
 }

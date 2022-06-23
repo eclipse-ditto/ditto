@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.policies.enforcement.placeholders.references;
+package org.eclipse.ditto.things.service.enforcement;
 
 import java.util.Arrays;
 import java.util.Objects;
@@ -25,15 +25,16 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.model.entity.id.EntityId;
-import org.eclipse.ditto.placeholders.PlaceholderReferenceNotSupportedException;
+import org.eclipse.ditto.base.model.entity.id.NamespacedEntityId;
+import org.eclipse.ditto.base.model.entity.type.EntityType;
 import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.things.model.ThingId;
+import org.eclipse.ditto.placeholders.PlaceholderReferenceNotSupportedException;
 
 /**
  * Responsible to extract and hold information about a referenced entity from a placeholder String.
  */
 @Immutable
-public final class ReferencePlaceholder {
+final class ReferencePlaceholder {
 
     private static String placeholderBeginning = "\\{\\{\\s?";
     private static String placeholderEnding = "\\s?}}";
@@ -126,7 +127,7 @@ public final class ReferencePlaceholder {
 
     public enum ReferencedEntityType {
 
-        THINGS(ThingId::of);
+        THINGS(id -> NamespacedEntityId.of(EntityType.of("thing"), id));
 
         private final Function<? super CharSequence, ? extends EntityId> entityIdFactory;
 

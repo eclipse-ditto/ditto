@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Contributors to the Eclipse Foundation
+ * Copyright (c) 2022 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -11,7 +11,7 @@
  * SPDX-License-Identifier: EPL-2.0
  */
 
-package org.eclipse.ditto.policies.enforcement.placeholders.references;
+package org.eclipse.ditto.things.service.enforcement;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -22,11 +22,11 @@ import org.awaitility.Awaitility;
 import org.eclipse.ditto.base.model.exceptions.DittoInternalErrorException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.placeholders.PlaceholderReferenceUnknownFieldException;
 import org.eclipse.ditto.internal.utils.cacheloaders.config.DefaultAskWithRetryConfig;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.placeholders.PlaceholderReferenceUnknownFieldException;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingId;
@@ -44,7 +44,7 @@ import akka.actor.ActorSystem;
 import akka.testkit.TestProbe;
 
 /**
- * Tests {@link org.eclipse.ditto.policies.enforcement.placeholders.references.PolicyIdReferencePlaceholderResolver}.
+ * Tests {@link PolicyIdReferencePlaceholderResolver}.
  */
 public class PolicyIdReferencePlaceholderResolverTest {
 

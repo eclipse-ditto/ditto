@@ -36,6 +36,7 @@ import org.eclipse.ditto.base.model.acks.AcknowledgementRequest;
 import org.eclipse.ditto.base.model.acks.PubSubTerminatedException;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.entity.id.EntityId;
+import org.eclipse.ditto.base.model.entity.type.EntityType;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
@@ -47,7 +48,6 @@ import org.eclipse.ditto.internal.utils.pubsub.api.Subscribe;
 import org.eclipse.ditto.internal.utils.pubsub.api.Unsubscribe;
 import org.eclipse.ditto.internal.utils.pubsub.config.PubSubConfig;
 import org.eclipse.ditto.internal.utils.pubsub.extractors.AckExtractor;
-import org.eclipse.ditto.things.model.ThingId;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -90,7 +90,7 @@ public final class PubSubFactoryTest {
     private DistributedAcks distributedAcks2;
     private DistributedAcks distributedAcks3;
     private AckExtractor<Acknowledgement> ackExtractor;
-    private Map<String, ThingId> thingIdMap;
+    private Map<String, EntityId> thingIdMap;
     private Map<String, DittoHeaders> dittoHeadersMap;
 
     private Config getTestConf() {
@@ -121,7 +121,7 @@ public final class PubSubFactoryTest {
         thingIdMap = new ConcurrentHashMap<>();
         dittoHeadersMap = new ConcurrentHashMap<>();
         ackExtractor = AckExtractor.of(
-                s -> thingIdMap.getOrDefault(s.getLabel().toString(), ThingId.of("pub.sub.test:thing-id")),
+                s -> thingIdMap.getOrDefault(s.getLabel().toString(), EntityId.of(EntityType.of("thing"), "pub.sub.test:thing-id")),
                 s -> dittoHeadersMap.getOrDefault(s.getLabel().toString(), DittoHeaders.empty())
         );
         factory1 = TestPubSubFactory.of(context1, ackExtractor, distributedAcks1);
@@ -376,7 +376,7 @@ public final class PubSubFactoryTest {
 
             // WHEN: message with the subscriber's declared ack and a different topic is published
             final String publisherTopic = "publisher-topic";
-            thingIdMap.put(publisherTopic, ThingId.of("thing:id"));
+            thingIdMap.put(publisherTopic, EntityId.of(EntityType.of("thing"), "thing:id"));
             dittoHeadersMap.put(publisherTopic,
                     DittoHeaders.newBuilder().acknowledgementRequest(
                             AcknowledgementRequest.parseAcknowledgementRequest("ack"),
@@ -422,7 +422,7 @@ public final class PubSubFactoryTest {
             waitForHeartBeats(system2, factory2);
 
             // WHEN: message with the subscriber's declared ack and a different topic is published
-            final ThingId thingId = ThingId.of("thing:id");
+            final EntityId thingId = EntityId.of(EntityType.of("thing"), "thing:id");
             final DittoHeaders dittoHeaders = DittoHeaders.newBuilder().acknowledgementRequest(
                     AcknowledgementRequest.parseAcknowledgementRequest("ack"),
                     AcknowledgementRequest.parseAcknowledgementRequest("no-declaration")
@@ -627,7 +627,7 @@ public final class PubSubFactoryTest {
             await(sub2.subscribeWithFilterAndGroup(List.of(topic), subscriber4.ref(), null, null));
 
             // WHEN: signals are published with different entity IDs differing by 1 in the last byte
-            final ThingId thingId = ThingId.of("thing:id");
+            final EntityId thingId = EntityId.of(EntityType.of("thing"), "thing:id");
             final DittoHeaders dittoHeaders = DittoHeaders.newBuilder().acknowledgementRequest(
                     AcknowledgementRequest.parseAcknowledgementRequest("ack")
             ).build();
@@ -756,13 +756,13 @@ public final class PubSubFactoryTest {
     }
 
     private static Acknowledgement signal(final String string) {
-        return Acknowledgement.of(AcknowledgementLabel.of(string), ThingId.of("pub.sub.ack.test:thing-id"),
+        return Acknowledgement.of(AcknowledgementLabel.of(string), EntityId.of(EntityType.of("thing"), "pub.sub.ack.test:thing-id"),
                 HttpStatus.OK,
                 DittoHeaders.empty());
     }
 
     private static Acknowledgement signal(final String string, final int seq) {
-        return Acknowledgement.of(AcknowledgementLabel.of(string), ThingId.of("ns:" + seq), HttpStatus.OK,
+        return Acknowledgement.of(AcknowledgementLabel.of(string), EntityId.of(EntityType.of("thing"), "ns:" + seq), HttpStatus.OK,
                 DittoHeaders.empty());
     }
 

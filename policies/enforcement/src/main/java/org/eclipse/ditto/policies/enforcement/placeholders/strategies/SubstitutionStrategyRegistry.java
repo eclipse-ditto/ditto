@@ -70,10 +70,6 @@ public final class SubstitutionStrategyRegistry {
         strategies.add(new ModifyPolicySubstitutionStrategy());
         strategies.add(new CreatePolicySubstitutionStrategy());
 
-        // replacement for both policy-subject-id
-        strategies.add(new ModifyThingSubstitutionStrategy());
-        strategies.add(new CreateThingSubstitutionStrategy());
-
         return strategies;
     }
 }

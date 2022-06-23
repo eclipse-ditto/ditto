@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.policies.enforcement.placeholders.references;
+package org.eclipse.ditto.things.service.enforcement;
 
 import java.util.EnumMap;
 import java.util.Map;
@@ -44,7 +44,7 @@ import akka.actor.ActorSystem;
  * Responsible for resolving a policy id of a referenced entity.
  */
 @Immutable
-public final class PolicyIdReferencePlaceholderResolver implements ReferencePlaceholderResolver<String> {
+final class PolicyIdReferencePlaceholderResolver implements ReferencePlaceholderResolver<String> {
 
     private static final DittoLogger LOGGER = DittoLoggerFactory.getLogger(PolicyIdReferencePlaceholderResolver.class);
 

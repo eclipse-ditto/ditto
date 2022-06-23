@@ -28,7 +28,7 @@ public interface SubstitutionStrategy<T extends DittoHeadersSettable<?>> {
      * @param dittoHeadersSettable the command which may have content to be substituted.
      * @return {@code true}, if this strategy is applicable; {@code false}, otherwise.
      */
-    boolean matches(final DittoHeadersSettable<?> dittoHeadersSettable);
+    boolean matches(DittoHeadersSettable<?> dittoHeadersSettable);
 
     /**
      * Apply (placeholder) substitution on the given {@code withDittoHeaders} using the {@code substitutionAlgorithm}.

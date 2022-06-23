@@ -32,15 +32,15 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.policies.model.EffectedPermissions;
 import org.eclipse.ditto.policies.model.Label;
 import org.eclipse.ditto.policies.model.PolicyId;
+import org.eclipse.ditto.policies.model.Resource;
+import org.eclipse.ditto.policies.model.ResourceKey;
 import org.eclipse.ditto.policies.model.Subject;
 import org.eclipse.ditto.policies.model.SubjectType;
+import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyResource;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifySubject;
-import org.eclipse.ditto.things.model.ThingId;
-import org.eclipse.ditto.things.model.signals.commands.modify.ModifyAttribute;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -67,8 +67,9 @@ public class SubstitutionStrategyRegistryTest {
 
     @Test
     public void getMatchingStrategyReturnsEmptyOptionalWhenNoStrategyMatches() {
-        final ModifyAttribute nonHandledCommand = ModifyAttribute.of(ThingId.of("org.eclipse.ditto:my-thing"),
-                JsonPointer.of("attributePointer"), JsonValue.of("attributeValue"), DITTO_HEADERS);
+        final ModifyResource nonHandledCommand = ModifyResource.of(PolicyId.of("org.eclipse.ditto:my-thing"),
+                Label.of("foo"), Resource.newInstance(ResourceKey.newInstance("policy:/"),
+                        EffectedPermissions.newInstance(null, null)), DITTO_HEADERS);
 
         final Optional<SubstitutionStrategy> strategy = underTest.getMatchingStrategy(nonHandledCommand);
         assertThat(strategy).isEmpty();
