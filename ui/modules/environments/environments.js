@@ -28,12 +28,6 @@ let environments = {
     usernamePasswordDevOps: 'devops:foobar',
     useBasicAuth: true,
   },
-  eclipse_sandbox: {
-    api_uri: 'https://ditto.eclipseprojects.io',
-    bearer: '',
-    usernamePassword: 'ditto:ditto',
-    useBasicAuth: false,
-  },
 };
 
 let theEnv;
