@@ -63,9 +63,9 @@ public final class PoliciesMappingStrategies extends MappingStrategies {
     private static MappingStrategies getPoliciesMappingStrategies() {
         return MappingStrategiesBuilder.newInstance()
                 .add(Policy.class, jsonObject -> PoliciesModelFactory.newPolicy(jsonObject))
-                .add(PolicyTag.class, jsonObject -> PolicyTag.fromJson(jsonObject))  // do not replace with lambda!
+                .add(PolicyTag.class, PolicyTag::fromJson)
                 .add(BatchedEntityIdWithRevisions.typeOf(PolicyTag.class),
-                        BatchedEntityIdWithRevisions.deserializer(jsonObject -> PolicyTag.fromJson(jsonObject)))
+                        BatchedEntityIdWithRevisions.deserializer(PolicyTag::fromJson))
                 .putAll(GlobalMappingStrategies.getInstance())
                 .build();
     }

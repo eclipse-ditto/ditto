@@ -272,14 +272,14 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
      * {@link #getTargetActorForSendingEnforcedMessageTo(Object, boolean, akka.actor.ActorRef)} - the passed {@code message}.
      *
      * @param message the message to ask the target actor.
-     * @param responseRequired whether the message requires a response or not.
+     * @param shouldSendResponse whether the message should send a response or not.
      * @param sender the sender which originally sent the message.
      * @param <T> the type of the message.
      * @return the completion stage with the response for the message or a failed stage.
      */
-    protected <T> CompletionStage<Object> askTargetActor(final T message, final boolean responseRequired,
+    protected <T> CompletionStage<Object> askTargetActor(final T message, final boolean shouldSendResponse,
             final ActorRef sender) {
-        return getTargetActorForSendingEnforcedMessageTo(message, responseRequired, sender)
+        return getTargetActorForSendingEnforcedMessageTo(message, shouldSendResponse, sender)
                 .thenCompose(this::askOrForwardToTargetActor)
                 .thenApply(response -> {
                     if (null == response) {
@@ -319,21 +319,21 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
      * May be overwritten by implementations to determine the target actor in a different way.
      *
      * @param message the message to determine the target actor for.
-     * @param responseRequired whether the message requires a response or not.
+     * @param shouldSendResponse whether the message should send a response or not.
      * @param sender the sender which originally sent the message.
      * @param <T> the type of the message.
      * @return the completion stage with the determined {@link TargetActorWithMessage} which includes the target actor
      * and the message to send it to
      */
     protected <T> CompletionStage<TargetActorWithMessage> getTargetActorForSendingEnforcedMessageTo(final T message,
-            final boolean responseRequired,
+            final boolean shouldSendResponse,
             final ActorRef sender) {
         if (null != persistenceActorChild) {
             return CompletableFuture.completedStage(
                     new TargetActorWithMessage(
                             persistenceActorChild,
                             message,
-                            responseRequired ? DEFAULT_LOCAL_ASK_TIMEOUT : Duration.ZERO,
+                            shouldSendResponse ? DEFAULT_LOCAL_ASK_TIMEOUT : Duration.ZERO,
                             Function.identity()
                     ));
         } else {
@@ -631,7 +631,7 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
             log.withCorrelationId(enforcedSignal)
                     .debug("Received enforcedSignal from enforcerChild, forwarding to target actor: {}",
                             enforcedSignal);
-            return askTargetActor(enforcedSignal, enforcedSignal.getDittoHeaders().isResponseRequired(), sender)
+            return askTargetActor(enforcedSignal, shouldSendResponse(enforcedSignal), sender)
                     .thenCompose(response ->
                             modifyTargetActorCommandResponse(enforcedSignal, response))
                     .thenApply(response ->
@@ -653,6 +653,16 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
         } else {
             return CompletableFuture.completedStage(new EnforcedSignalAndTargetActorResponse(null, null));
         }
+    }
+
+    /**
+     * Determines whether the passed {@code WithDittoHeaders} resolves to that a response should be sent or not.
+     *
+     * @param withDittoHeaders where to extract the DittoHeaders from.
+     * @return whether a response should be sent or not.
+     */
+    protected boolean shouldSendResponse(final WithDittoHeaders withDittoHeaders) {
+        return withDittoHeaders.getDittoHeaders().isResponseRequired();
     }
 
     protected CompletionStage<Object> filterTargetActorResponseViaEnforcer(

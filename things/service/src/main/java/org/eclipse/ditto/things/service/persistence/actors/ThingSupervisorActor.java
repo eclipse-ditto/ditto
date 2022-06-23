@@ -19,8 +19,10 @@ import java.util.concurrent.CompletionStage;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.base.model.acks.DittoAcknowledgementLabel;
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeExceptionBuilder;
+import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
@@ -240,7 +242,7 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
 
     @Override
     protected CompletionStage<TargetActorWithMessage> getTargetActorForSendingEnforcedMessageTo(final Object message,
-            final boolean responseRequired,
+            final boolean shouldSendResponse,
             final ActorRef sender) {
 
         if (message instanceof CommandResponse<?> commandResponse &&
@@ -262,7 +264,7 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
             return liveChannelDispatching.dispatchLiveSignal(signal, sender);
         } else {
 
-            return super.getTargetActorForSendingEnforcedMessageTo(message, responseRequired, sender);
+            return super.getTargetActorForSendingEnforcedMessageTo(message, shouldSendResponse, sender);
         }
     }
 
@@ -310,6 +312,14 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
 
         return ThingEnforcerActor.props(entityId, thingEnforcement, pubSubMediator, blockedNamespaces,
                 enforcementConfig.getAskWithRetryConfig(), policiesShardRegion);
+    }
+
+    @Override
+    protected boolean shouldSendResponse(final WithDittoHeaders withDittoHeaders) {
+        return withDittoHeaders.getDittoHeaders().isResponseRequired() ||
+                withDittoHeaders.getDittoHeaders().getAcknowledgementRequests()
+                        .stream()
+                        .anyMatch(ar -> DittoAcknowledgementLabel.TWIN_PERSISTED.equals(ar.getLabel()));
     }
 
     @Override

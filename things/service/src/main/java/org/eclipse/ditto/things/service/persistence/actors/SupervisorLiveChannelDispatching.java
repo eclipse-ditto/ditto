@@ -176,7 +176,7 @@ final class SupervisorLiveChannelDispatching {
                     .thenApply(distributedPub -> new TargetActorWithMessage(
                             distributedPub.pub().getPublisher(),
                             distributedPub.wrappedSignalForPublication(),
-                            distributedPub.signal().getDittoHeaders().getTimeout().orElse(DEFAULT_LIVE_TIMEOUT),
+                            calculateLiveChannelTimeout(distributedPub.signal()),
                             response -> handleEncounteredAskTimeoutsAsCommandTimeoutException(
                                     signal, distributedPub, response)
                     ));
@@ -186,9 +186,17 @@ final class SupervisorLiveChannelDispatching {
             return CompletableFuture.completedStage(new TargetActorWithMessage(
                     distributedPubWithMessage.pub().getPublisher(),
                     distributedPubWithMessage.wrappedSignalForPublication(),
-                    signal.getDittoHeaders().getTimeout().orElse(DEFAULT_LIVE_TIMEOUT),
+                    calculateLiveChannelTimeout(signal),
                     Function.identity()
             ));
+        }
+    }
+
+    private static Duration calculateLiveChannelTimeout(final WithDittoHeaders withDittoHeaders) {
+        if (withDittoHeaders.getDittoHeaders().isResponseRequired()) {
+            return withDittoHeaders.getDittoHeaders().getTimeout().orElse(DEFAULT_LIVE_TIMEOUT);
+        } else {
+            return Duration.ZERO;
         }
     }
 
