@@ -1291,7 +1291,8 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
     public void modifyAttributesMetadata() {
         final var thing = createThingV2WithRandomId();
         final var headers = DittoHeaders.newBuilder()
-                .putHeader(DittoHeaderDefinition.PUT_METADATA.getKey(), "[{\"key\":\"/attrKey\",\"value\":{\"type\":\"bumlux\"}}]")
+                .putHeader(DittoHeaderDefinition.PUT_METADATA.getKey(),
+                        "[{\"key\":\"/attrKey\",\"value\":{\"type\":\"bumlux\"}}]")
                 .build();
         final var modifyAttributes = ModifyAttributes.of(getIdOrThrow(thing), THING_ATTRIBUTES, headers);
 
@@ -1306,7 +1307,8 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
 
             // modify attributes with metadata
             underTest.tell(modifyAttributes, getRef());
-            expectMsgEquals(ETagTestUtils.modifyAttributeResponse(getIdOrThrow(thing), THING_ATTRIBUTES, headers, false));
+            expectMsgEquals(
+                    ETagTestUtils.modifyAttributeResponse(getIdOrThrow(thing), THING_ATTRIBUTES, headers, false));
 
             // assert that metadata was modified as expected
             final Metadata expectedMetadata = Metadata.newBuilder()
@@ -1322,9 +1324,12 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
     public void modifyAttributeMetadata() {
         final var thing = createThingV2WithRandomId();
         final var headers = DittoHeaders.newBuilder()
-                .putHeader(DittoHeaderDefinition.PUT_METADATA.getKey(), "[{\"key\":\"/sub\",\"value\":{\"type\":\"bumlux\"}}]")
+                .putHeader(DittoHeaderDefinition.PUT_METADATA.getKey(),
+                        "[{\"key\":\"/sub\",\"value\":{\"type\":\"bumlux\"}}]")
                 .build();
-        final var modifyAttribute = ModifyAttribute.of(getIdOrThrow(thing), JsonPointer.of(ATTRIBUTE_KEY), JsonValue.of(ATTRIBUTE_VALUE), headers);
+        final var modifyAttribute =
+                ModifyAttribute.of(getIdOrThrow(thing), JsonPointer.of(ATTRIBUTE_KEY), JsonValue.of(ATTRIBUTE_VALUE),
+                        headers);
 
         new TestKit(actorSystem) {{
             final ActorRef underTest = createPersistenceActorFor(thing);
@@ -1337,7 +1342,8 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
 
             // modify attribute with metadata
             underTest.tell(modifyAttribute, getRef());
-            expectMsgEquals(ETagTestUtils.modifyAttributeResponse(getIdOrThrow(thing), JsonPointer.of(ATTRIBUTE_KEY), JsonValue.of(ATTRIBUTE_VALUE), headers, false));
+            expectMsgEquals(ETagTestUtils.modifyAttributeResponse(getIdOrThrow(thing), JsonPointer.of(ATTRIBUTE_KEY),
+                    JsonValue.of(ATTRIBUTE_VALUE), headers, false));
 
             // assert that metadata was modified as expected
             final Metadata expectedMetadata = Metadata.newBuilder()
@@ -1353,7 +1359,8 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
     public void modifyFeaturesMetadata() {
         final var thing = createThingV2WithRandomId();
         final var headers = DittoHeaders.newBuilder()
-                .putHeader(DittoHeaderDefinition.PUT_METADATA.getKey(), "[{\"key\":\"/featureId\",\"value\":{\"type\":\"bumlux\"}}]")
+                .putHeader(DittoHeaderDefinition.PUT_METADATA.getKey(),
+                        "[{\"key\":\"/featureId\",\"value\":{\"type\":\"bumlux\"}}]")
                 .build();
         final var modifyFeatures = ModifyFeatures.of(getIdOrThrow(thing), THING_FEATURES, headers);
 
@@ -1384,7 +1391,8 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
     public void modifyFeatureMetadata() {
         final var thing = createThingV2WithRandomId();
         final var headers = DittoHeaders.newBuilder()
-                .putHeader(DittoHeaderDefinition.PUT_METADATA.getKey(), "[{\"key\":\"/sub\",\"value\":{\"type\":\"bumlux\"}}]")
+                .putHeader(DittoHeaderDefinition.PUT_METADATA.getKey(),
+                        "[{\"key\":\"/sub\",\"value\":{\"type\":\"bumlux\"}}]")
                 .build();
         final var modifyFeature = ModifyFeature.of(getIdOrThrow(thing), THING_FEATURE, headers);
 
@@ -1412,8 +1420,42 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
     }
 
     @Test
-    public void modifyMetadataWithWildcard() {
-        
+    public void modifyThingWithWildcardInMetadata() {
+        final var thing = createThingV2WithRandomId();
+        final var headers = DittoHeaders.newBuilder()
+                .putHeader(DittoHeaderDefinition.PUT_METADATA.getKey(),
+                        "[{\"key\":\"*/modified\",\"value\":\"2022-06-23T06:49:05\"}]")
+                .build();
+        final var modifyThing = ModifyThing.of(getIdOrThrow(thing), thing, null, headers);
+
+        new TestKit(actorSystem) {{
+            final ActorRef underTest = createPersistenceActorFor(thing);
+
+            // create thing
+            final JsonObject commandJson = getJsonCommand(thing);
+            final CreateThing createThing = CreateThing.fromJson(commandJson, dittoHeadersV2);
+            underTest.tell(createThing, getRef());
+            expectMsgClass(CreateThingResponse.class);
+
+            // modify features with metadata
+            underTest.tell(modifyThing, getRef());
+            expectMsgEquals(java.time.Duration.ofSeconds(3600),
+                    ETagTestUtils.modifyThingResponse(thing, thing, headers, false));
+
+            final var modifiedMetadata = JsonObject.newBuilder()
+                    .set("modified", "2022-06-23T06:49:05")
+                    .build();
+            // assert that metadata was created as expected
+            final Metadata expectedMetadata = Metadata.newBuilder()
+                    .set("thingId", modifiedMetadata)
+                    .set("policyId", modifiedMetadata)
+                    .set("/attributes/attrKey", modifiedMetadata)
+                    .set("/features/featureId/definition", modifiedMetadata)
+                    .set("/features/featureId/properties/featurePropertyKey", modifiedMetadata)
+                    .build();
+
+            assertMetadataAsExpected(this, underTest, getIdOrThrow(thing), expectedMetadata);
+        }};
     }
 
     private static void assertMetadataAsExpected(final TestKit testKit, final ActorRef underTest, final ThingId thingId,

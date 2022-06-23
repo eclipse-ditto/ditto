@@ -19,18 +19,8 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.model.exceptions.DittoHeaderInvalidException;
 import org.eclipse.ditto.base.model.exceptions.DittoHeaderNotSupportedException;
-import org.eclipse.ditto.things.model.signals.commands.modify.ModifyAttributes;
-import org.eclipse.ditto.things.model.signals.commands.modify.ModifyFeature;
-import org.eclipse.ditto.things.model.signals.commands.modify.ModifyFeatureDesiredProperties;
-import org.eclipse.ditto.things.model.signals.commands.modify.ModifyFeatureProperties;
-import org.eclipse.ditto.things.model.signals.commands.modify.ModifyFeatures;
-import org.eclipse.ditto.things.model.signals.commands.modify.ModifyThing;
-import org.eclipse.ditto.things.model.signals.commands.query.RetrieveAttributes;
-import org.eclipse.ditto.things.model.signals.commands.query.RetrieveFeature;
-import org.eclipse.ditto.things.model.signals.commands.query.RetrieveFeatureDesiredProperties;
-import org.eclipse.ditto.things.model.signals.commands.query.RetrieveFeatureProperties;
-import org.eclipse.ditto.things.model.signals.commands.query.RetrieveFeatures;
-import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThing;
+import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.things.model.Thing;
 
 /**
  * Validates the wildcard expression in the {@code get-metadata} or {@code delete-metadata} header.
@@ -38,6 +28,18 @@ import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThing;
  */
 @Immutable
 final class MetadataWildcardValidator {
+
+    public static final JsonPointer ROOT_PATH = JsonPointer.of("/");
+    public static final JsonPointer FEATURES_PATH = Thing.JsonFields.FEATURES.getPointer();
+    public static final JsonPointer ATTRIBUTES_PATH = Thing.JsonFields.ATTRIBUTES.getPointer();
+    public static final String FEATURE_PATH = FEATURES_PATH + "/.*";
+    public static final String FEATURE_PROPERTIES_PATH = FEATURES_PATH + "/.*/properties";
+    public static final String FEATURE_DESIRED_PROPERTIES_PATH = FEATURES_PATH + "/.*/desiredProperties";
+    public static final String FEATURE_PROPERTY_PATH = FEATURES_PATH + "/.*/properties/.*";
+    public static final String FEATURE_DESIRED_PROPERTY_PATH = FEATURES_PATH + "/.*/desiredProperties/.*";
+
+    public static final String FEATURE_DEFINITION_PATH = FEATURES_PATH + "/.*/definition/.*";
+    public static final String FEATURES_SUB_PATH = FEATURES_PATH + "/.*/(properties|desiredProperties)(.*)";
 
     private static final String THING_FEATURES_AND_PROPERTIES_WILDCARD_REGEX =
             "/?features/\\*/(properties|desiredProperties)/\\*/(?!\\*).*";
@@ -51,6 +53,9 @@ final class MetadataWildcardValidator {
     private static final String FEATURES_WITH_PROPERTIES_ONLY_WILDCARD_REGEX =
             "/?(?!\\*).*/(properties|desiredProperties)/\\*/(?!\\*).*";
     private static final String FEATURE_PROPERTY_WILDCARD_REGEX = "/?(properties|desiredProperties)/\\*/(?!\\*).*";
+
+    private static final String THING_FEATURES_DEFINITION_WILDCARD_REGEX = "/?features/\\*/definition/(?!\\*).*";
+    private static final String FEATURES_DEFINITION_WILDCARD_REGEX = "/?\\*/definition/(?!\\*).*";
     private static final String ATTRIBUTES_WILDCARD_REGEX = "/?attributes/\\*/(?!\\*).*";
     private static final String LEAF_WILDCARD_REGEX = "^/?\\*/(?!\\*/).*";
 
@@ -59,48 +64,62 @@ final class MetadataWildcardValidator {
     }
 
     /**
-     * Checks if the metaDataWildcardExpression for the command type is valid.
+     * Checks if the {@code metaDataWildcardExpression} for the command type is valid.
      *
-     * @param commandType teh commandType to validate.
+     * @param resourcePath the resourcePath to validate against.
      * @param metaDataWildcardExpression the wildcard expression.
      * @param headerKey the header key.
      * @throws DittoHeaderInvalidException if {@code metaDataWildcardExpression} is not valid for the commandType.
      */
-    public static void validateMetadataWildcard(final String commandType, final String metaDataWildcardExpression,
+    public static void validateMetadataWildcard(final JsonPointer resourcePath, final String metaDataWildcardExpression,
             final String headerKey) {
+        final int levelCount = resourcePath.getLevelCount();
+        final String resourcePathAsString = resourcePath.toString();
 
-        switch (commandType) {
-            case RetrieveThing.TYPE, ModifyThing.TYPE -> {
-                if (!Pattern.matches(THING_FEATURES_AND_PROPERTIES_WILDCARD_REGEX, metaDataWildcardExpression)
-                        &&
-                        !Pattern.matches(THING_FEATURES_WITH_PROPERTIES_ONLY_WILDCARD_REGEX, metaDataWildcardExpression)
-                        && !Pattern.matches(THING_FEATURES_WITH_ID_ONLY_WILDCARD_REGEX, metaDataWildcardExpression)
-                        && !Pattern.matches(ATTRIBUTES_WILDCARD_REGEX, metaDataWildcardExpression)
-                        && !Pattern.matches(LEAF_WILDCARD_REGEX, metaDataWildcardExpression)) {
-                    throw getDittoHeaderInvalidException(metaDataWildcardExpression, headerKey);
-                }
+        if (resourcePath.equals(ROOT_PATH)) {
+            validateWildcardExpressionOnRootLevel(metaDataWildcardExpression, headerKey);
+        } else if (resourcePath.equals(FEATURES_PATH)) {
+            validateWildcardExpressionOnFeaturesLevel(metaDataWildcardExpression, headerKey);
+        } else if (levelCount == 2 && resourcePathAsString.matches(FEATURE_PATH)) {
+            validateWildcardExpressionOnFeatureLevel(metaDataWildcardExpression, headerKey);
+        } else if ((levelCount >= 3 && resourcePathAsString.matches(FEATURES_SUB_PATH))
+                || resourcePath.equals(ATTRIBUTES_PATH)) {
+            if (!Pattern.matches(LEAF_WILDCARD_REGEX, metaDataWildcardExpression)) {
+                throw getDittoHeaderInvalidException(metaDataWildcardExpression, headerKey);
             }
-            case RetrieveFeatures.TYPE, ModifyFeatures.TYPE -> {
-                if (!Pattern.matches(FEATURES_WILDCARD_REGEX, metaDataWildcardExpression)
-                        && !Pattern.matches(FEATURES_WITH_PROPERTIES_ONLY_WILDCARD_REGEX, metaDataWildcardExpression)
-                        && !Pattern.matches(FEATURES_WITH_ID_ONLY_WILDCARD_REGEX, metaDataWildcardExpression)) {
-                    throw getDittoHeaderInvalidException(metaDataWildcardExpression, headerKey);
-                }
-            }
-            case RetrieveFeature.TYPE, ModifyFeature.TYPE -> {
-                if (!Pattern.matches(FEATURE_PROPERTY_WILDCARD_REGEX, metaDataWildcardExpression)
-                        && !Pattern.matches(FEATURES_WITH_ID_ONLY_WILDCARD_REGEX, metaDataWildcardExpression)
-                        && !Pattern.matches(FEATURES_WITH_PROPERTIES_ONLY_WILDCARD_REGEX, metaDataWildcardExpression)) {
-                    throw getDittoHeaderInvalidException(metaDataWildcardExpression, headerKey);
-                }
-            }
-            case RetrieveFeatureDesiredProperties.TYPE, RetrieveFeatureProperties.TYPE, RetrieveAttributes.TYPE,
-                    ModifyFeatureDesiredProperties.TYPE, ModifyFeatureProperties.TYPE, ModifyAttributes.TYPE -> {
-                if (!Pattern.matches(LEAF_WILDCARD_REGEX, metaDataWildcardExpression)) {
-                    throw getDittoHeaderInvalidException(metaDataWildcardExpression, headerKey);
-                }
-            }
-            default -> throw getDittoHeaderNotSupportedException(metaDataWildcardExpression, headerKey);
+        } else {
+            throw getDittoHeaderNotSupportedException(metaDataWildcardExpression, headerKey);
+        }
+    }
+
+    private static void validateWildcardExpressionOnRootLevel(final String metaDataWildcardExpression,
+            final String headerKey) {
+        if (!Pattern.matches(THING_FEATURES_AND_PROPERTIES_WILDCARD_REGEX, metaDataWildcardExpression)
+                && !Pattern.matches(THING_FEATURES_WITH_PROPERTIES_ONLY_WILDCARD_REGEX, metaDataWildcardExpression)
+                && !Pattern.matches(THING_FEATURES_WITH_ID_ONLY_WILDCARD_REGEX, metaDataWildcardExpression)
+                && !Pattern.matches(THING_FEATURES_DEFINITION_WILDCARD_REGEX, metaDataWildcardExpression)
+                && !Pattern.matches(ATTRIBUTES_WILDCARD_REGEX, metaDataWildcardExpression)
+                && !Pattern.matches(LEAF_WILDCARD_REGEX, metaDataWildcardExpression)) {
+            throw getDittoHeaderInvalidException(metaDataWildcardExpression, headerKey);
+        }
+    }
+
+    private static void validateWildcardExpressionOnFeaturesLevel(final String metaDataWildcardExpression,
+            final String headerKey) {
+        if (!Pattern.matches(FEATURES_WILDCARD_REGEX, metaDataWildcardExpression)
+                && !Pattern.matches(FEATURES_WITH_PROPERTIES_ONLY_WILDCARD_REGEX, metaDataWildcardExpression)
+                && !Pattern.matches(FEATURES_WITH_ID_ONLY_WILDCARD_REGEX, metaDataWildcardExpression)
+                && !Pattern.matches(FEATURES_DEFINITION_WILDCARD_REGEX, metaDataWildcardExpression)) {
+            throw getDittoHeaderInvalidException(metaDataWildcardExpression, headerKey);
+        }
+    }
+
+    private static void validateWildcardExpressionOnFeatureLevel(final String metaDataWildcardExpression,
+            final String headerKey) {
+        if (!Pattern.matches(FEATURE_PROPERTY_WILDCARD_REGEX, metaDataWildcardExpression)
+                && !Pattern.matches(FEATURES_WITH_ID_ONLY_WILDCARD_REGEX, metaDataWildcardExpression)
+                && !Pattern.matches(FEATURES_WITH_PROPERTIES_ONLY_WILDCARD_REGEX, metaDataWildcardExpression)) {
+            throw getDittoHeaderInvalidException(metaDataWildcardExpression, headerKey);
         }
     }
 
@@ -138,6 +157,17 @@ final class MetadataWildcardValidator {
     }
 
     /**
+     * Matches the passed {@code wildcardExpression} against wildcard regex
+     * {@code THING_FEATURES_DEFINITION_WILDCARD_REGEX} and returns {@code true} if they match.
+     *
+     * @param wildcardExpression the wildcard expression that should be checked.
+     * @return {@code true} if the wildcardExpression matches the regex and false if not.
+     */
+    public static boolean matchesThingFeaturesDefinitionWildcard(final String wildcardExpression) {
+        return Pattern.matches(THING_FEATURES_DEFINITION_WILDCARD_REGEX, wildcardExpression);
+    }
+
+    /**
      * Matches the passed {@code wildcardExpression} against wildcard regex {@code FEATURES_WILDCARD_REGEX}
      * and returns {@code true} if they match.
      *
@@ -168,6 +198,17 @@ final class MetadataWildcardValidator {
      */
     public static boolean matchesFeaturesWithPropertyOnlyWildcard(final String wildcardExpression) {
         return Pattern.matches(FEATURES_WITH_PROPERTIES_ONLY_WILDCARD_REGEX, wildcardExpression);
+    }
+
+    /**
+     * Matches the passed {@code wildcardExpression} against wildcard regex
+     * {@code FEATURES_DEFINITION_WILDCARD_REGEX} and returns {@code true} if they match.
+     *
+     * @param wildcardExpression the wildcard expression that should be checked.
+     * @return {@code true} if the wildcardExpression matches the regex and false if not.
+     */
+    public static boolean matchesFeaturesDefinitionWildcard(final String wildcardExpression) {
+        return Pattern.matches(FEATURES_DEFINITION_WILDCARD_REGEX, wildcardExpression);
     }
 
     /**

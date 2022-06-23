@@ -70,7 +70,7 @@ final class MetadataFromCommand implements Supplier<Metadata> {
     }
 
     /**
-     * Returns a new {@code MetadataFromSignal}.
+     * Returns a new {@code MetadataFromCommand}.
      *
      * @param command provides modified paths and headers.
      * @param existingThing provides the existing thing.

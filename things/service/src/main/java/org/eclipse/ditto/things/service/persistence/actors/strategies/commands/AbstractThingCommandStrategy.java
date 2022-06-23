@@ -115,7 +115,8 @@ abstract class AbstractThingCommandStrategy<C extends Command<C>>
     protected Optional<Metadata> calculateRelativeMetadata(@Nullable final Thing entity, final C command) {
         if (commandModifiesMetadata(command)) {
             final Metadata existingRelativeMetadata = getExistingMetadata(entity, command);
-            final MetadataFromCommand relativeMetadata = MetadataFromCommand.of(command, entity, existingRelativeMetadata);
+            final MetadataFromCommand relativeMetadata =
+                    MetadataFromCommand.of(command, entity, existingRelativeMetadata);
             return Optional.ofNullable(relativeMetadata.get());
         } else if (commandDeletesMetadata(command)) {
             return calculateMetadataForDeleteMetadataRequests(entity, command);
@@ -131,9 +132,10 @@ abstract class AbstractThingCommandStrategy<C extends Command<C>>
             final var putMetadataHeaderIsPresent = !command.getDittoHeaders()
                     .getMetadataHeadersToPut()
                     .isEmpty();
-            final var createThingWithInlineMetadata = command instanceof CreateThing createThing && createThing.getThing()
-                    .getMetadata()
-                    .isPresent();
+            final var createThingWithInlineMetadata =
+                    command instanceof CreateThing createThing && createThing.getThing()
+                            .getMetadata()
+                            .isPresent();
 
             if (putMetadataHeaderIsPresent && createThingWithInlineMetadata) {
                 throw MetadataNotModifiableException.newBuilder().build();
@@ -161,8 +163,9 @@ abstract class AbstractThingCommandStrategy<C extends Command<C>>
         if (checkIfContainsWildcards(metadataFields) && entity != null) {
             metadataFields.stream()
                     .filter(this::checkIfContainsWildcard)
-                    .forEach(jsonPointer -> MetadataWildcardValidator.validateMetadataWildcard(command.getType(),
-                            jsonPointer.toString(), DittoHeaderDefinition.GET_METADATA.getKey()));
+                    .forEach(jsonPointer -> MetadataWildcardValidator.validateMetadataWildcard(
+                            command.getResourcePath(), jsonPointer.toString(),
+                            DittoHeaderDefinition.GET_METADATA.getKey()));
             metadataFieldsWithResolvedWildcard =
                     expandWildcardsInMetadataExpression(metadataFields, entity, command,
                             DittoHeaderDefinition.GET_METADATA.getKey());
@@ -195,8 +198,9 @@ abstract class AbstractThingCommandStrategy<C extends Command<C>>
         if (checkIfContainsWildcards(metadataFieldsToDelete) && entity != null) {
             metadataFieldsToDelete.stream()
                     .filter(this::checkIfContainsWildcard)
-                    .forEach(jsonPointer -> MetadataWildcardValidator.validateMetadataWildcard(command.getType(),
-                            jsonPointer.toString(), DittoHeaderDefinition.DELETE_METADATA.getKey()));
+                    .forEach(jsonPointer -> MetadataWildcardValidator.validateMetadataWildcard(
+                            command.getResourcePath(), jsonPointer.toString(),
+                            DittoHeaderDefinition.DELETE_METADATA.getKey()));
             metadataFieldsWithResolvedWildcard =
                     expandWildcardsInMetadataExpression(metadataFieldsToDelete, entity, command,
                             DittoHeaderDefinition.DELETE_METADATA.getKey());
@@ -213,10 +217,10 @@ abstract class AbstractThingCommandStrategy<C extends Command<C>>
 
     private Optional<Metadata> deleteMetadata(final Metadata existingMetadata,
             final Set<JsonPointer> metadataFieldsToDelete) {
-            final MetadataBuilder metadataBuilder = existingMetadata.toBuilder();
-            metadataFieldsToDelete.forEach(metadataBuilder::remove);
+        final MetadataBuilder metadataBuilder = existingMetadata.toBuilder();
+        metadataFieldsToDelete.forEach(metadataBuilder::remove);
 
-            return Optional.of(metadataBuilder.build());
+        return Optional.of(metadataBuilder.build());
     }
 
     @Override

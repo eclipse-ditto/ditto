@@ -427,6 +427,7 @@ public final class TestConstants {
         public static final org.eclipse.ditto.things.model.Feature FLUX_CAPACITOR =
                 ThingsModelFactory.newFeatureBuilder()
                         .properties(FLUX_CAPACITOR_PROPERTIES)
+                        .definition(FLUX_CAPACITOR_DEFINITION)
                         .withId(FLUX_CAPACITOR_ID)
                         .build();
 

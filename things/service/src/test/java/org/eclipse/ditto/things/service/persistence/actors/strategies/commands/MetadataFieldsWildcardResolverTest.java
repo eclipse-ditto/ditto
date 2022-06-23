@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.things.service.persistence.actors.strategies.commands;
 
+import static org.eclipse.ditto.things.model.signals.commands.TestConstants.Feature.FEATURES;
 import static org.eclipse.ditto.things.model.signals.commands.TestConstants.Feature.FLUX_CAPACITOR_ID;
 import static org.eclipse.ditto.things.model.signals.commands.TestConstants.Feature.HOVER_BOARD_ID;
 import static org.eclipse.ditto.things.model.signals.commands.TestConstants.Thing.THING;
@@ -24,17 +25,19 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.assertj.core.api.JUnitSoftAssertions;
-
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.things.model.Attributes;
+import org.eclipse.ditto.things.model.signals.commands.modify.MergeThing;
+import org.eclipse.ditto.things.model.signals.commands.modify.ModifyFeatureProperty;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveAttributes;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveFeature;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveFeatureDesiredProperties;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveFeatureProperties;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveFeatures;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThing;
-
 import org.junit.Rule;
 import org.junit.Test;
 
@@ -156,7 +159,6 @@ public class MetadataFieldsWildcardResolverTest {
     @Test
     public void validateMetadataWildcardResolvingOnLeafLevelForRetrieveThing() {
         final JsonPointer metadataWildcardExpr = JsonPointer.of("*/key");
-
         final Set<JsonPointer> expectedValues = Set.of(
                 JsonPointer.of("/thingId/key"),
                 JsonPointer.of("/policyId/key"),
@@ -168,16 +170,19 @@ public class MetadataFieldsWildcardResolverTest {
                 JsonPointer.of("/features/HoverBoard/desiredProperties/height_above_ground/key"),
                 JsonPointer.of("/features/HoverBoard/properties/stability_factor/key"),
                 JsonPointer.of("/features/HoverBoard/desiredProperties/stability_factor/key"),
+                JsonPointer.of("/features/HoverBoard/desiredProperties/speed/key"),
+                JsonPointer.of("/features/HoverBoard/definition/key"),
                 JsonPointer.of("/features/FluxCapacitor/properties/target_year_2/key"),
                 JsonPointer.of("/features/FluxCapacitor/properties/target_year_3/key"),
                 JsonPointer.of("/features/FluxCapacitor/properties/target_year_1/key"),
-                JsonPointer.of("/features/HoverBoard/desiredProperties/speed/key"));
+                JsonPointer.of("/features/FluxCapacitor/definition/key"));
+
 
         final Set<JsonPointer> resolvedValues = MetadataFieldsWildcardResolver.resolve(
                 RetrieveThing.of(THING_ID, DittoHeaders.empty()), THING, metadataWildcardExpr,
                 GET_METADATA_HEADER_KEY);
 
-        softly.assertThat(resolvedValues).containsAll(expectedValues);
+        softly.assertThat(resolvedValues).containsExactlyInAnyOrderElementsOf(expectedValues);
     }
 
     @Test
@@ -323,6 +328,90 @@ public class MetadataFieldsWildcardResolverTest {
 
         softly.assertThat(resolvedValues)
                 .containsExactlyElementsOf(expectedValues);
+    }
+
+    @Test
+    public void validateMetadataWildcardResolvingOnAttributesLevelForMergeThing() {
+        final JsonPointer metadataWildcardExpr = JsonPointer.of("/*/description");
+
+        final List<String> expectedEntries = List.of("/location/description", "/maker/description");
+
+        final Set<JsonPointer> expectedValues =
+                expectedEntries.stream()
+                        .map(JsonPointer::of)
+                        .collect(Collectors.toSet());
+
+        final Set<JsonPointer> resolvedValues = MetadataFieldsWildcardResolver.resolve(
+                MergeThing.withAttributes(THING_ID, Attributes.newBuilder().build(), DittoHeaders.empty()), THING,
+                metadataWildcardExpr, GET_METADATA_HEADER_KEY);
+
+        softly.assertThat(resolvedValues)
+                .containsExactlyElementsOf(expectedValues);
+    }
+
+    @Test
+    public void validateMetadataWildcardResolvingOnFeaturePropertyLevel() {
+        final JsonPointer metadataWildcardExpr = JsonPointer.of("/*/description");
+
+        final JsonPointer expectedEntry =
+                JsonPointer.of("features/HoverBoard/properties/speed/description");
+
+        final Set<JsonPointer> resolvedValues = MetadataFieldsWildcardResolver.resolve(
+                ModifyFeatureProperty.of(THING_ID, HOVER_BOARD_ID, JsonPointer.of("speed"),
+                        JsonValue.of(55), DittoHeaders.empty()),
+                THING, metadataWildcardExpr, GET_METADATA_HEADER_KEY);
+
+        softly.assertThat(resolvedValues).containsExactly(expectedEntry);
+    }
+
+    @Test
+    public void validateMetadataWildcardResolvingOnFeaturePropertyLevelForMergeThing() {
+        final JsonPointer metadataWildcardExpr = JsonPointer.of("/*/description");
+
+        final JsonPointer expectedEntry =
+                JsonPointer.of("features/HoverBoard/properties/speed/description");
+
+        final Set<JsonPointer> resolvedValues = MetadataFieldsWildcardResolver.resolve(
+                MergeThing.withFeatureProperty(THING_ID, HOVER_BOARD_ID, JsonPointer.of("speed"),
+                        JsonValue.of(22), DittoHeaders.empty()),
+                THING, metadataWildcardExpr, GET_METADATA_HEADER_KEY);
+
+        softly.assertThat(resolvedValues).containsExactly(expectedEntry);
+    }
+
+    @Test
+    public void validateMetadataWildcardResolvingOnThingLevelForMergeThing() {
+        final JsonPointer metadataWildcardExpr = JsonPointer.of("features/*/definition/modified");
+
+        final List<String> expectedEntries =
+                List.of("/features/FluxCapacitor/definition/modified", "features/HoverBoard/definition/modified");
+        final Set<JsonPointer> expectedElements = expectedEntries.stream()
+                .map(JsonPointer::of)
+                .collect(Collectors.toSet());
+
+
+        final Set<JsonPointer> resolvedValues = MetadataFieldsWildcardResolver.resolve(
+                MergeThing.withThing(THING_ID, THING, DittoHeaders.empty()),
+                THING, metadataWildcardExpr, GET_METADATA_HEADER_KEY);
+
+        softly.assertThat(resolvedValues).containsExactlyElementsOf(expectedElements);
+    }
+
+    @Test
+    public void validateMetadataWildcardResolvingOnFeaturesLevelForMergeThing() {
+        final JsonPointer metadataWildcardExpr = JsonPointer.of("/*/definition/modified");
+
+        final List<String> expectedEntries =
+                List.of("/features/FluxCapacitor/definition/modified", "features/HoverBoard/definition/modified");
+        final Set<JsonPointer> expectedElements = expectedEntries.stream()
+                .map(JsonPointer::of)
+                .collect(Collectors.toSet());
+
+        final Set<JsonPointer> resolvedValues = MetadataFieldsWildcardResolver.resolve(
+                MergeThing.withFeatures(THING_ID, FEATURES, DittoHeaders.empty()),
+                THING, metadataWildcardExpr, GET_METADATA_HEADER_KEY);
+
+        softly.assertThat(resolvedValues).containsExactlyElementsOf(expectedElements);
     }
 
 }
