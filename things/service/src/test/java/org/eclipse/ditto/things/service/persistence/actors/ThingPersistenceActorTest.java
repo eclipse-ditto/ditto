@@ -1686,6 +1686,9 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
                                                     .set("issuedBy", "the epic Ditto team")
                                                     .build())
                                             .build())
+                                    .set("definition", JsonObject.newBuilder()
+                                            .set("issuedBy", "the epic Ditto team")
+                                            .build())
                                     .build())
                             .build())
                     .build();
