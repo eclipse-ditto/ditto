@@ -251,15 +251,19 @@ public final class BackgroundSyncActor
     }
 
     private Source<ThingId, NotUsed> getLowerBoundSource() {
-        return backgroundSyncPersistence.getTaggedTimestamp()
-                .map(optional -> {
-                    if (optional.isPresent()) {
-                        final String bookmarkedThingId = optional.get().second();
-                        if (bookmarkedThingId != null && !bookmarkedThingId.isEmpty())
-                            return ThingId.of(bookmarkedThingId);
-                    }
-                    return EMPTY_THING_ID;
-                });
+        if (forceUpdateAllThings) {
+            return Source.single(EMPTY_THING_ID);
+        } else {
+            return backgroundSyncPersistence.getTaggedTimestamp()
+                    .map(optional -> {
+                        if (optional.isPresent()) {
+                            final String bookmarkedThingId = optional.get().second();
+                            if (bookmarkedThingId != null && !bookmarkedThingId.isEmpty())
+                                return ThingId.of(bookmarkedThingId);
+                        }
+                        return EMPTY_THING_ID;
+                    });
+        }
     }
 
     private Source<Metadata, NotUsed> getPersistedMetadataSourceWithProgressReporting(final ThingId lowerBound) {
