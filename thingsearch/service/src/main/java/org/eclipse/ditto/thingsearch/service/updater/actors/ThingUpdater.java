@@ -421,7 +421,7 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
                 updateThing.getDittoHeaders().getAcknowledgementRequests().contains(SEARCH_PERSISTED_REQUEST)
                         ? metadata.withSender(getAckRecipient())
                         : metadata;
-        return stay().using(new Data(nextMetadata, lastWriteModel));
+        return stay().using(new Data(data.metadata().append(nextMetadata), lastWriteModel));
     }
 
     private FSM.State<State, Data> onPolicyReferenceTag(final PolicyReferenceTag policyReferenceTag, final Data data) {
