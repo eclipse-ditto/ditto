@@ -76,9 +76,9 @@ import org.eclipse.ditto.things.model.signals.commands.modify.CreateThingRespons
 import org.eclipse.ditto.things.model.signals.commands.modify.ModifyAttribute;
 import org.eclipse.ditto.things.model.signals.commands.modify.ModifyAttributeResponse;
 import org.eclipse.ditto.things.model.signals.commands.modify.ModifyFeature;
+import org.eclipse.ditto.things.model.signals.commands.modify.ModifyFeatureResponse;
 import org.eclipse.ditto.things.model.signals.commands.modify.ModifyPolicyId;
 import org.eclipse.ditto.things.model.signals.commands.modify.ModifyPolicyIdResponse;
-import org.eclipse.ditto.things.model.signals.commands.modify.ModifyThing;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveAttribute;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveAttributeResponse;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThing;
@@ -232,6 +232,10 @@ public final class ThingCommandEnforcementTest extends AbstractThingEnforcementT
             final ThingCommand<?> expectedWriteCommand = addReadSubjectHeader(write,
                     SubjectId.newInstance(GOOGLE, TestSetup.SUBJECT_ID));
             thingPersistenceActorProbe.expectMsg(expectedWriteCommand);
+            final ModifyFeatureResponse modifyFeatureResponse =
+                    ModifyFeatureResponse.modified(THING_ID, "x", headers());
+            thingPersistenceActorProbe.reply(modifyFeatureResponse);
+            expectMsg(modifyFeatureResponse);
 
             final ThingCommand<?> read = getReadCommand();
             final RetrieveThingResponse retrieveThingResponse =

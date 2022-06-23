@@ -115,7 +115,9 @@ abstract class AbstractThingEnforcementTest {
                 new TestSetup.DummyLiveSignalPub(pubSubMediatorProbe.ref()),
                 thingPersistenceActorProbe.ref(),
                 null
-        ), system.guardian(), URLEncoder.encode(THING_ID.toString(), Charset.defaultCharset()));
+        ).withDispatcher("akka.actor.default-dispatcher"), system.guardian(), URLEncoder.encode(THING_ID.toString(), Charset.defaultCharset()));
+        // Actors using "stash()" require the above dispatcher to be configured, otherwise stash() and unstashAll() won't
+        // work like in the "normal" actor!
     }
 
     protected void expectAndAnswerSudoRetrieveThing(final Object sudoRetrieveThingResponse) {

@@ -240,6 +240,7 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
 
     @Override
     protected CompletionStage<TargetActorWithMessage> getTargetActorForSendingEnforcedMessageTo(final Object message,
+            final boolean responseRequired,
             final ActorRef sender) {
 
         if (message instanceof CommandResponse<?> commandResponse &&
@@ -261,7 +262,7 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
             return liveChannelDispatching.dispatchLiveSignal(signal, sender);
         } else {
 
-            return super.getTargetActorForSendingEnforcedMessageTo(message, sender);
+            return super.getTargetActorForSendingEnforcedMessageTo(message, responseRequired, sender);
         }
     }
 

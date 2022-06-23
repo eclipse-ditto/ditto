@@ -23,11 +23,13 @@ import javax.annotation.Nullable;
 import javax.jms.JMSRuntimeException;
 
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeExceptionBuilder;
+import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.service.actors.ShutdownBehaviour;
 import org.eclipse.ditto.base.service.config.supervision.ExponentialBackOffConfig;
 import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.connectivity.model.signals.commands.ConnectivityCommand;
 import org.eclipse.ditto.connectivity.model.signals.commands.exceptions.ConnectionUnavailableException;
+import org.eclipse.ditto.connectivity.model.signals.commands.modify.LoggingExpired;
 import org.eclipse.ditto.connectivity.service.config.ConnectionConfig;
 import org.eclipse.ditto.connectivity.service.config.ConnectivityConfigModifiedBehavior;
 import org.eclipse.ditto.connectivity.service.config.DittoConnectivityConfig;
@@ -44,6 +46,7 @@ import akka.actor.OneForOneStrategy;
 import akka.actor.Props;
 import akka.actor.SupervisorStrategy;
 import akka.japi.pf.DeciderBuilder;
+import akka.japi.pf.FI;
 import akka.japi.pf.ReceiveBuilder;
 import akka.pattern.Patterns;
 
@@ -121,7 +124,8 @@ public final class ConnectionSupervisorActor
     }
 
     @Override
-    protected Receive activeBehaviour() {
+    protected Receive activeBehaviour(final FI.UnitApply<AbstractPersistenceSupervisor.Control> matchProcessNextTwinMessageBehavior,
+            final FI.UnitApply<Object> matchAnyBehavior) {
         return ReceiveBuilder.create()
                 .match(Config.class, this::onConnectivityConfigModified)
                 .matchEquals(Control.CHECK_FOR_OVERWRITES_CONFIG,
@@ -132,7 +136,14 @@ public final class ConnectionSupervisorActor
                 })
                 .build()
                 .orElse(connectivityConfigModifiedBehavior())
-                .orElse(super.activeBehaviour());
+                .orElse(super.activeBehaviour(matchProcessNextTwinMessageBehavior, matchAnyBehavior));
+    }
+
+    @Override
+    protected boolean shouldBecomeTwinSignalProcessingAwaiting(final Signal<?> signal) {
+        return super.shouldBecomeTwinSignalProcessingAwaiting(signal) &&
+                !(signal instanceof LoggingExpired) // twin signal without a response
+                ;
     }
 
     @Override

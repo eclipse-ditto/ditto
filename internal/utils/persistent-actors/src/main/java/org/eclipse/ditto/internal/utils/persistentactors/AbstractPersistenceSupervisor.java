@@ -47,6 +47,7 @@ import akka.actor.Status;
 import akka.actor.SupervisorStrategy;
 import akka.actor.Terminated;
 import akka.cluster.sharding.ShardRegion;
+import akka.japi.pf.FI;
 import akka.japi.pf.ReceiveBuilder;
 import akka.pattern.Patterns;
 
@@ -151,15 +152,17 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
         return true;
     }
 
-    protected Receive activeBehaviour() {
+    protected Receive activeBehaviour(final FI.UnitApply<Control> matchProcessNextTwinMessageBehavior,
+            final FI.UnitApply<Object> matchAnyBehavior) {
         return ReceiveBuilder.create()
                 .match(Terminated.class, this::childTerminated)
                 .matchEquals(Control.START_CHILDREN, this::startChildren)
                 .matchEquals(Control.PASSIVATE, this::passivate)
+                .matchEquals(Control.PROCESS_NEXT_TWIN_MESSAGE, matchProcessNextTwinMessageBehavior)
                 .match(SudoCommand.class, this::forwardSudoCommandToChildIfAvailable)
                 .match(WithDittoHeaders.class, w -> w.getDittoHeaders().isSudo(),
                         this::forwardDittoSudoToChildIfAvailable)
-                .matchAny(this::enforceAndForwardToTargetActor)
+                .matchAny(matchAnyBehavior)
                 .build();
     }
 
@@ -266,15 +269,17 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
     /**
      * Asks the "target actor" (being either the {@link AbstractPersistenceActor} for "twin" commands or e.g. a
      * pub/sub actor reference for "live" commands/messages) - which is determined by
-     * {@link #getTargetActorForSendingEnforcedMessageTo(Object, akka.actor.ActorRef)} - the passed {@code message}.
+     * {@link #getTargetActorForSendingEnforcedMessageTo(Object, boolean, akka.actor.ActorRef)} - the passed {@code message}.
      *
      * @param message the message to ask the target actor.
+     * @param responseRequired whether the message requires a response or not.
      * @param sender the sender which originally sent the message.
      * @param <T> the type of the message.
      * @return the completion stage with the response for the message or a failed stage.
      */
-    protected <T> CompletionStage<Object> askTargetActor(final T message, final ActorRef sender) {
-        return getTargetActorForSendingEnforcedMessageTo(message, sender)
+    protected <T> CompletionStage<Object> askTargetActor(final T message, final boolean responseRequired,
+            final ActorRef sender) {
+        return getTargetActorForSendingEnforcedMessageTo(message, responseRequired, sender)
                 .thenCompose(this::askOrForwardToTargetActor)
                 .thenApply(response -> {
                     if (null == response) {
@@ -314,19 +319,21 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
      * May be overwritten by implementations to determine the target actor in a different way.
      *
      * @param message the message to determine the target actor for.
+     * @param responseRequired whether the message requires a response or not.
      * @param sender the sender which originally sent the message.
      * @param <T> the type of the message.
      * @return the completion stage with the determined {@link TargetActorWithMessage} which includes the target actor
      * and the message to send it to
      */
     protected <T> CompletionStage<TargetActorWithMessage> getTargetActorForSendingEnforcedMessageTo(final T message,
+            final boolean responseRequired,
             final ActorRef sender) {
         if (null != persistenceActorChild) {
             return CompletableFuture.completedStage(
                     new TargetActorWithMessage(
                             persistenceActorChild,
                             message,
-                            DEFAULT_LOCAL_ASK_TIMEOUT,
+                            responseRequired ? DEFAULT_LOCAL_ASK_TIMEOUT : Duration.ZERO,
                             Function.identity()
                     ));
         } else {
@@ -339,8 +346,32 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
     }
 
     private void becomeActive(final ShutdownBehaviour shutdownBehaviour) {
-        getContext().become(shutdownBehaviour.createReceive().build()
-                .orElse(activeBehaviour()));
+        getContext().become(
+                shutdownBehaviour.createReceive().build().orElse(
+                        activeBehaviour(
+                                processNextTwinMessage -> {
+                                    // ingore
+                                },
+                                this::enforceAndForwardToTargetActor
+                        )
+                )
+        );
+    }
+
+    protected void becomeTwinSignalProcessingAwaiting() {
+        getContext().become(
+                activeBehaviour(
+                        processNextTwinMsg -> {
+                            unstashAll();
+                            becomeActive(getShutdownBehaviour(entityId));
+                        },
+                        m -> {
+                            log.withCorrelationId(m instanceof WithDittoHeaders w ? w : null)
+                                    .debug("stashing during 'becomeTwinSignalProcessingAwaiting': <{}>", m.getClass().getSimpleName());
+                            stash();
+                        }
+                )
+        );
     }
 
     private void passivate(final Control passivationTrigger) {
@@ -478,26 +509,15 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
                                 entityId, message);
                 unhandled(message);
             } else {
-                getContext().become(ReceiveBuilder.create()
-                        .match(Terminated.class, this::childTerminated)
-                        .matchEquals(Control.START_CHILDREN, this::startChildren)
-                        .matchEquals(Control.PASSIVATE, this::passivate)
-                        .matchEquals(Control.PROCESS_NEXT_MESSAGE, processNextMsg -> {
-                            unstashAll();
-                            becomeActive(getShutdownBehaviour(entityId));
-                        })
-                        .match(SudoCommand.class, this::forwardSudoCommandToChildIfAvailable)
-                        .match(WithDittoHeaders.class, w -> w.getDittoHeaders().isSudo(),
-                                this::forwardDittoSudoToChildIfAvailable)
-                        .matchAny(m -> stash()) // stash all Signals
-                        .build()
-                );
+                if (shouldBecomeTwinSignalProcessingAwaiting(signal)) {
+                    becomeTwinSignalProcessingAwaiting();
+                }
 
                 Patterns.pipe(
                         enforceSignalAndForwardToTargetActor((S) signal, sender)
                             .handle((response, throwable) -> {
                                 handleSignalEnforcementResponse(response, throwable, signal, sender);
-                                return Control.PROCESS_NEXT_MESSAGE;
+                                return Control.PROCESS_NEXT_TWIN_MESSAGE;
                             }),
                         getContext().getDispatcher()
                 ).pipeTo(getSelf(), getSelf());
@@ -513,6 +533,19 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
         } else {
             replyUnavailableException(message, sender);
         }
+    }
+
+    /**
+     * Determines whether the passed {@code signal} should stash further Signals sent to the supervisor until it was
+     * processed.
+     * That is required in order to guarantee in-order processing of twin commands.
+     *
+     * @param signal the signal to determine it for.
+     * @return whether the supervisor should become signal processing awaiting for the passed signal.
+     */
+    protected boolean shouldBecomeTwinSignalProcessingAwaiting(final Signal<?> signal) {
+        return !Signal.isChannelLive(signal) && !Signal.isChannelSmart(signal) &&
+                signal.getDittoHeaders().isResponseRequired();
     }
 
     private void handleSignalEnforcementResponse(@Nullable final Object response,
@@ -598,14 +631,16 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
             log.withCorrelationId(enforcedSignal)
                     .debug("Received enforcedSignal from enforcerChild, forwarding to target actor: {}",
                             enforcedSignal);
-            return askTargetActor(enforcedSignal, sender)
+            return askTargetActor(enforcedSignal, enforcedSignal.getDittoHeaders().isResponseRequired(), sender)
                     .thenCompose(response ->
                             modifyTargetActorCommandResponse(enforcedSignal, response))
                     .thenApply(response ->
                             new EnforcedSignalAndTargetActorResponse(enforcedSignal, response)
                     );
         } else if (enforcerResponse instanceof DistributedPubWithMessage distributedPubWithMessage) {
-            return askTargetActor(distributedPubWithMessage, sender)
+            return askTargetActor(distributedPubWithMessage,
+                    distributedPubWithMessage.signal().getDittoHeaders().isResponseRequired(), sender
+            )
                     .thenCompose(response ->
                             modifyTargetActorCommandResponse(distributedPubWithMessage.signal(), response))
                     .thenApply(response ->
@@ -683,7 +718,7 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
         /**
          * Signals the actor to process the next message.
          */
-        PROCESS_NEXT_MESSAGE
+        PROCESS_NEXT_TWIN_MESSAGE
     }
 
     private record EnforcedSignalAndTargetActorResponse(@Nullable Signal<?> enforcedSignal,
