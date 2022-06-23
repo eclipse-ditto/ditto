@@ -35,8 +35,7 @@ public final class BsonDiffList {
     /**
      * $unsetField only possible for top-level fields
      */
-    private static final String SET_FIELD = "$setField";
-    private static final BsonString SET_FIELD_REMOVE = new BsonString("$$REMOVE");
+    private static final String UNSET_FIELD = "$unsetField";
     private static final String FIELD = "field";
     private static final String INPUT = "input";
     private static final String VALUE = "value";
@@ -55,9 +54,10 @@ public final class BsonDiffList {
      *
      * @return the diff document, or an empty optional if we gave up.
      */
-    Optional<BsonValue> toBsonInPipeline(final BsonValue previousDocumentExpression) {
+    Optional<BsonValue> toBsonInPipeline(final BsonValue previousDocumentExpression, final boolean isUnsetAllowed) {
         final boolean hasNestedUnset = unset.stream().anyMatch(pointer -> pointer.getLevelCount() > 1);
-        if (hasNestedUnset) {
+        final boolean unsetNotAllowed = !isUnsetAllowed && !unset.isEmpty();
+        if (hasNestedUnset || unsetNotAllowed) {
             return Optional.empty();
         }
         final BsonValue beforeUnset;
@@ -84,10 +84,9 @@ public final class BsonDiffList {
         if (keys.hasNext()) {
             final String key = keys.next().getRoot().map(JsonKey::toString).orElseThrow();
             final BsonDocument nextDoc = new BsonDocument()
-                    .append(SET_FIELD, new BsonDocument()
+                    .append(UNSET_FIELD, new BsonDocument()
                             .append(FIELD, new BsonString(key))
                             .append(INPUT, beforeUnset)
-                            .append(VALUE, SET_FIELD_REMOVE)
                     );
             return buildUnsetDocument(nextDoc, keys);
         } else {

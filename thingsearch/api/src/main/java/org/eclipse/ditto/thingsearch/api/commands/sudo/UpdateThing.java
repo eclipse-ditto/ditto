@@ -133,13 +133,13 @@ public final class UpdateThing extends AbstractCommand<UpdateThing> implements S
      * "thingId".
      */
     public static UpdateThing fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return of(
-                ThingId.of(jsonObject.getValueOrThrow(JSON_THING_ID)),
-                jsonObject.getValueOrThrow(JSON_INVALIDATE_THING),
-                jsonObject.getValueOrThrow(JSON_INVALIDATE_POLICY),
-                UpdateReason.valueOf(jsonObject.getValueOrThrow(JSON_UPDATE_REASON)),
-                dittoHeaders
-        );
+        final UpdateReason updateReason = jsonObject.getValue(JSON_UPDATE_REASON)
+                .map(UpdateThing::updateReasonFromString)
+                .orElse(UpdateReason.UNKNOWN);
+        final boolean invalidateThing = jsonObject.getValue(JSON_INVALIDATE_THING).orElse(false);
+        final boolean invalidatePolicy = jsonObject.getValue(JSON_INVALIDATE_POLICY).orElse(false);
+        return of(ThingId.of(jsonObject.getValueOrThrow(JSON_THING_ID)), invalidateThing, invalidatePolicy,
+                updateReason, dittoHeaders);
     }
 
     @Override
@@ -239,6 +239,14 @@ public final class UpdateThing extends AbstractCommand<UpdateThing> implements S
                 ",invalidatePolicy=" + invalidatePolicy +
                 ",updateReason=" + updateReason +
                 "]";
+    }
+
+    private static UpdateReason updateReasonFromString(final String name) {
+        try {
+            return UpdateReason.valueOf(name);
+        } catch (final IllegalArgumentException e) {
+            return UpdateReason.UNKNOWN;
+        }
     }
 
 }

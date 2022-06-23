@@ -38,6 +38,7 @@ import com.mongodb.ReadPreference;
 import com.mongodb.ServerAddress;
 import com.mongodb.WriteConcern;
 import com.mongodb.connection.ClusterDescription;
+import com.mongodb.connection.ServerDescription;
 import com.mongodb.connection.netty.NettyStreamFactoryFactory;
 import com.mongodb.event.CommandListener;
 import com.mongodb.event.ConnectionPoolListener;
@@ -221,6 +222,16 @@ public final class MongoClientWrapper implements DittoMongoClient {
     @Override
     public MongoClientSettings getClientSettings() {
         return clientSettings;
+    }
+
+    @Override
+    public int getMaxWireVersion() {
+        return mongoClient.getClusterDescription()
+                .getServerDescriptions()
+                .stream()
+                .mapToInt(ServerDescription::getMaxWireVersion)
+                .max()
+                .orElse(0);
     }
 
     @Override
