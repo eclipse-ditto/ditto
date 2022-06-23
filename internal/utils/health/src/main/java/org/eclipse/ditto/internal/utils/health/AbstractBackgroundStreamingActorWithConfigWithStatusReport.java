@@ -245,7 +245,7 @@ public abstract class AbstractBackgroundStreamingActorWithConfigWithStatusReport
         getTimers().startSingleTimer(WokeUp.class, WokeUp.ENABLED_INSTANCE, when);
     }
 
-    private void shutdownStream(final Shutdown shutdown) {
+    protected void shutdownStream(final Shutdown shutdown) {
         log.info("Terminating stream on demand: <{}>", shutdown);
         shutdownKillSwitch();
 
