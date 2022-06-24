@@ -254,7 +254,7 @@ function addMoreToThingList() {
   moreCell.style.textAlign = 'center';
   moreCell.style.cursor = 'pointer';
   moreCell.disabled = true;
-  moreCell.parentNode.style.color = '#3a8c9a';
+  moreCell.style.color = '#3a8c9a';
   moreCell.parentNode.id = 'searchThingsMore';
 };
 
