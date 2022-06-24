@@ -44,27 +44,32 @@ export function setAuthHeader(forDevOps) {
  * @return {Object} result as json object
  */
 export async function callDittoREST(method, path, body) {
-  const response = await fetch(Environments.current().api_uri + '/api/2' + path, {
-    method: method,
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': authHeader,
-    },
-    body: JSON.stringify(body),
-  });
-  if (!response.ok) {
-    response.json()
-        .then((dittoErr) => {
-          Utils.showError(dittoErr.message, dittoErr.error, dittoErr.status);
-        })
-        .catch((err) => {
-          Utils.showError('No error details from ditto', response.statusText, response.status);
-        });
-    throw new Error('An error occured: ' + response.status);
-  }
-  if (response.status != 204) {
-    return response.json();
-  } else {
-    return null;
+  try {
+    const response = await fetch(Environments.current().api_uri + '/api/2' + path, {
+      method: method,
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': authHeader,
+      },
+      body: JSON.stringify(body),
+    });
+    if (!response.ok) {
+      response.json()
+          .then((dittoErr) => {
+            Utils.showError(dittoErr.message, dittoErr.error, dittoErr.status);
+          })
+          .catch((err) => {
+            Utils.showError('No error details from ditto', response.statusText, response.status);
+          });
+      throw new Error('An error occured: ' + response.status);
+    }
+    if (response.status != 204) {
+      return response.json();
+    } else {
+      return null;
+    }
+  } catch (err) {
+    Utils.showError(err);
+    throw err;
   }
 }
