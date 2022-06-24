@@ -21,7 +21,6 @@ import org.eclipse.ditto.internal.utils.cache.entry.Entry;
 import org.eclipse.ditto.internal.utils.cacheloaders.EnforcementCacheKey;
 import org.eclipse.ditto.internal.utils.cacheloaders.config.AskWithRetryConfig;
 import org.eclipse.ditto.policies.model.Policy;
-import org.eclipse.ditto.policies.model.enforcers.PolicyEnforcers;
 
 import com.github.benmanes.caffeine.cache.AsyncCacheLoader;
 
@@ -62,8 +61,7 @@ public final class PolicyEnforcerCacheLoader implements AsyncCacheLoader<Enforce
         if (entry.exists()) {
             final var revision = entry.getRevision();
             final var policy = entry.getValueOrThrow();
-            final var enforcer = PolicyEnforcers.defaultEvaluator(policy);
-            return Entry.of(revision, PolicyEnforcer.of(policy, enforcer));
+            return Entry.of(revision, PolicyEnforcer.of(policy));
         } else {
             return Entry.nonexistent();
         }

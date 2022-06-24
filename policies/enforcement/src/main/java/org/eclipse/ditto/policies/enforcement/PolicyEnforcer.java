@@ -20,6 +20,7 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.internal.utils.cache.entry.Entry;
 import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.enforcers.Enforcer;
+import org.eclipse.ditto.policies.model.enforcers.PolicyEnforcers;
 
 /**
  * Policy together with its enforcer.
@@ -36,24 +37,25 @@ public final class PolicyEnforcer {
     }
 
     /**
+     * Create a policy enforcer from policy.
+     *
+     * @param policy the policy
+     * @return the pair
+     */
+    public static PolicyEnforcer of(final Policy policy) {
+        final var enforcer = PolicyEnforcers.defaultEvaluator(policy);
+        return of(policy, enforcer);
+    }
+
+    /**
      * Create a policy together with its enforcer.
      *
      * @param policy the policy
      * @param enforcer the enforcer
      * @return the pair
      */
-    public static PolicyEnforcer of(@Nullable final Policy policy, final Enforcer enforcer) {
+    public static PolicyEnforcer of(final Policy policy, final Enforcer enforcer) {
         return new PolicyEnforcer(policy, enforcer);
-    }
-
-    /**
-     * Create a policy enforcer without policy.
-     *
-     * @param enforcer the enforcer
-     * @return the pair
-     */
-    public static PolicyEnforcer of(final Enforcer enforcer) {
-        return new PolicyEnforcer(null, enforcer);
     }
 
     /**

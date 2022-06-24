@@ -48,11 +48,11 @@ import org.eclipse.ditto.things.model.signals.commands.query.ThingQueryCommand;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 import org.eclipse.ditto.things.service.common.config.DittoThingsConfig;
 import org.eclipse.ditto.things.service.enforcement.ThingEnforcement;
+import org.eclipse.ditto.things.service.enforcement.ThingEnforcerActor;
 
 import akka.actor.ActorKilledException;
 import akka.actor.ActorRef;
 import akka.actor.ActorSelection;
-import akka.actor.ActorSystem;
 import akka.actor.Props;
 import akka.stream.Materializer;
 import akka.stream.javadsl.Keep;
@@ -301,17 +301,11 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
     @Override
     protected Props getPersistenceEnforcerProps(final ThingId entityId) {
         final ActorContext actorContext = getContext();
-        final ActorSystem actorSystem = actorContext.getSystem();
 
-        final ThingEnforcement thingEnforcement = new ThingEnforcement(
-                actorSystem,
-                policiesShardRegion,
-                thingsShardRegion,
-                enforcementConfig
-        );
+        final ThingEnforcement thingEnforcement = new ThingEnforcement(enforcementConfig);
 
         return ThingEnforcerActor.props(entityId, thingEnforcement, pubSubMediator, blockedNamespaces,
-                enforcementConfig.getAskWithRetryConfig(), policiesShardRegion);
+                enforcementConfig.getAskWithRetryConfig(), policiesShardRegion, thingsShardRegion);
     }
 
     @Override

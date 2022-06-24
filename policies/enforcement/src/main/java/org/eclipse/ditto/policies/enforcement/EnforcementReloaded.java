@@ -13,13 +13,9 @@
 package org.eclipse.ditto.policies.enforcement;
 
 import java.util.concurrent.CompletionStage;
-import java.util.function.Consumer;
-import java.util.function.Function;
 
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
-import org.eclipse.ditto.policies.model.Policy;
-import org.eclipse.ditto.policies.model.PolicyId;
 
 /**
  * Interface providing enforcement/authorization of {@code Signal}s and filtering of {@code CommandResponse}s with the
@@ -71,24 +67,5 @@ public interface EnforcementReloaded<S extends Signal<?>, R extends CommandRespo
      * @return a CompletionStage with the filtered command response or a failed stage with a DittoRuntimeException.
      */
     CompletionStage<R> filterResponse(R commandResponse, PolicyEnforcer policyEnforcer);
-
-    /**
-     * Registers a "loader" of additional {@link PolicyEnforcer}s by providing a function which can load a
-     * PolicyEnforcer using the passed in {@link PolicyId}.
-     * There is only one "loader" registered, so the last registered loader wins.
-     *
-     * @param policyEnforcerLoader the PolicyEnforcer loader function to register.
-     */
-    void registerPolicyEnforcerLoader(Function<PolicyId, CompletionStage<PolicyEnforcer>> policyEnforcerLoader);
-
-    /**
-     * Allows to register consumers which should be notified if this enforcement implementation received a Policy, e.g.
-     * as response of a {@code CreatePolicy} command issued by this implementation.
-     * This can optimize the registered consumer as it does not have to load the policy of the policy shard region as
-     * a consequence.
-     *
-     * @param policyInjectionConsumer the consumer to register which shall be notified about an injected Policy.
-     */
-    void registerPolicyInjectionConsumer(Consumer<Policy> policyInjectionConsumer);
 
 }

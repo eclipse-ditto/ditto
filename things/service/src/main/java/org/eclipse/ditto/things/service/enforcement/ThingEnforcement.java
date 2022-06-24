@@ -14,8 +14,6 @@ package org.eclipse.ditto.things.service.enforcement;
 
 import java.util.List;
 import java.util.concurrent.CompletionStage;
-import java.util.function.Consumer;
-import java.util.function.Function;
 
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
@@ -23,10 +21,8 @@ import org.eclipse.ditto.policies.enforcement.AbstractEnforcementReloaded;
 import org.eclipse.ditto.policies.enforcement.PolicyEnforcer;
 import org.eclipse.ditto.policies.enforcement.config.EnforcementConfig;
 import org.eclipse.ditto.policies.model.Policy;
-import org.eclipse.ditto.policies.model.PolicyId;
-
-import akka.actor.ActorRef;
-import akka.actor.ActorSystem;
+import org.eclipse.ditto.things.model.Thing;
+import org.eclipse.ditto.things.model.signals.commands.modify.CreateThing;
 
 /**
  * Authorizes {@link Signal}s and filters {@link CommandResponse}s related to things by applying different included
@@ -36,47 +32,32 @@ public final class ThingEnforcement extends AbstractEnforcementReloaded<Signal<?
 
     private final List<ThingEnforcementStrategy> enforcementStrategies;
 
-    public ThingEnforcement(final ActorSystem actorSystem,
-            final ActorRef policiesShardRegion,
-            final ActorRef thingsShardRegion,
-            final EnforcementConfig enforcementConfig) {
+    public ThingEnforcement(final EnforcementConfig enforcementConfig) {
 
         enforcementStrategies = List.of(
                 new LiveSignalEnforcement(),
-                new ThingCommandEnforcement(
-                        actorSystem,
-                        policiesShardRegion,
-                        thingsShardRegion,
-                        enforcementConfig
-                )
-        );
-    }
-
-    @Override
-    public void registerPolicyEnforcerLoader(
-            final Function<PolicyId, CompletionStage<PolicyEnforcer>> policyEnforcerLoader) {
-        super.registerPolicyEnforcerLoader(policyEnforcerLoader);
-        enforcementStrategies.forEach(strategy -> strategy.getEnforcement()
-                .registerPolicyEnforcerLoader(policyEnforcerLoader)
-        );
-    }
-
-    @Override
-    public void registerPolicyInjectionConsumer(final Consumer<Policy> policyInjectionConsumer) {
-        super.registerPolicyInjectionConsumer(policyInjectionConsumer);
-        enforcementStrategies.forEach(strategy -> strategy.getEnforcement()
-                .registerPolicyInjectionConsumer(policyInjectionConsumer)
+                new ThingCommandEnforcement(enforcementConfig)
         );
     }
 
     @Override
     public CompletionStage<Signal<?>> authorizeSignal(final Signal<?> signal, final PolicyEnforcer policyEnforcer) {
+        final Signal<?> adaptedSignal;
+        if (signal instanceof CreateThing createThing) {
+            final Thing thingWithBestEffortPolicyId = createThing.getThing()
+                    .toBuilder()
+                    .setPolicyId(policyEnforcer.getPolicy().flatMap(Policy::getEntityId).orElse(null))
+                    .build();
+            adaptedSignal = CreateThing.of(thingWithBestEffortPolicyId, null, createThing.getDittoHeaders());
+        } else {
+            adaptedSignal = signal;
+        }
         return enforcementStrategies.stream()
-                .filter(strategy -> strategy.isApplicable(signal))
+                .filter(strategy -> strategy.isApplicable(adaptedSignal))
                 .findFirst()
-                .map(strategy -> strategy.getEnforcement().authorizeSignal(signal, policyEnforcer))
+                .map(strategy -> strategy.getEnforcement().authorizeSignal(adaptedSignal, policyEnforcer))
                 .orElseThrow(() -> new IllegalArgumentException(
-                        "Unsupported signal to perform authorizeSignal: " + signal
+                        "Unsupported signal to perform authorizeSignal: " + adaptedSignal
                 ));
     }
 

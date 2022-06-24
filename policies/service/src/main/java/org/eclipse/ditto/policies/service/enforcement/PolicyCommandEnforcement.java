@@ -36,7 +36,6 @@ import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyEntry;
 import org.eclipse.ditto.policies.model.ResourceKey;
 import org.eclipse.ditto.policies.model.enforcers.Enforcer;
-import org.eclipse.ditto.policies.model.enforcers.PolicyEnforcers;
 import org.eclipse.ditto.policies.model.signals.commands.PolicyCommand;
 import org.eclipse.ditto.policies.model.signals.commands.PolicyCommandResponse;
 import org.eclipse.ditto.policies.model.signals.commands.actions.PolicyActionCommand;
@@ -46,7 +45,6 @@ import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyComman
 import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyCommandToModifyExceptionRegistry;
 import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyNotAccessibleException;
 import org.eclipse.ditto.policies.model.signals.commands.modify.CreatePolicy;
-import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicy;
 import org.eclipse.ditto.policies.model.signals.commands.modify.PolicyModifyCommand;
 import org.eclipse.ditto.policies.model.signals.commands.query.PolicyQueryCommandResponse;
 
@@ -115,15 +113,9 @@ public final class PolicyCommandEnforcement
 
     @Override
     public CompletionStage<PolicyCommand<?>> authorizeSignalWithMissingEnforcer(final PolicyCommand<?> command) {
-
-        if (command instanceof CreatePolicy createPolicy) {
-            final var enforcer = PolicyEnforcers.defaultEvaluator(createPolicy.getPolicy());
-            return authorizeSignal(createPolicy, PolicyEnforcer.of(enforcer));
-        } else {
-            throw PolicyNotAccessibleException.newBuilder(command.getEntityId())
-                    .dittoHeaders(command.getDittoHeaders())
-                    .build();
-        }
+        throw PolicyNotAccessibleException.newBuilder(command.getEntityId())
+                .dittoHeaders(command.getDittoHeaders())
+                .build();
     }
 
     @Override

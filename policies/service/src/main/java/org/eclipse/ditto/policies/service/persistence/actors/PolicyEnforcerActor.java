@@ -22,16 +22,15 @@ import javax.annotation.Nullable;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.internal.utils.namespaces.BlockedNamespaces;
-import org.eclipse.ditto.policies.enforcement.AbstractEnforcerActor;
 import org.eclipse.ditto.policies.api.commands.sudo.SudoRetrievePolicy;
 import org.eclipse.ditto.policies.api.commands.sudo.SudoRetrievePolicyResponse;
+import org.eclipse.ditto.policies.enforcement.AbstractEnforcerActor;
 import org.eclipse.ditto.policies.enforcement.PolicyEnforcer;
 import org.eclipse.ditto.policies.model.PolicyId;
-import org.eclipse.ditto.policies.model.enforcers.PolicyEnforcers;
 import org.eclipse.ditto.policies.model.signals.commands.PolicyCommand;
 import org.eclipse.ditto.policies.model.signals.commands.PolicyCommandResponse;
 import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyNotAccessibleException;
-import org.eclipse.ditto.policies.model.signals.commands.modify.PolicyModifyCommand;
+import org.eclipse.ditto.policies.model.signals.commands.modify.CreatePolicy;
 import org.eclipse.ditto.policies.service.enforcement.PolicyCommandEnforcement;
 
 import akka.actor.ActorRef;
@@ -74,7 +73,7 @@ public final class PolicyEnforcerActor
     }
 
     @Override
-    protected CompletionStage<PolicyId> providePolicyIdForEnforcement() {
+    protected CompletionStage<PolicyId> providePolicyIdForEnforcement(final Signal<?> signal) {
         return CompletableFuture.completedStage(entityId);
     }
 
@@ -93,16 +92,17 @@ public final class PolicyEnforcerActor
     }
 
     @Override
-    protected boolean shouldInvalidatePolicyEnforcerAfterEnforcement(final Signal<?> signal) {
-        // this should always be done for modifying commands:
-        return signal instanceof PolicyModifyCommand<?>;
-        // TODO CR-11297 optimization: only if the resources/subjects of the policy were changed
+    protected CompletionStage<Optional<PolicyEnforcer>> loadPolicyEnforcer(final Signal<?> signal) {
+        if (signal instanceof CreatePolicy createPolicy) {
+            return CompletableFuture.completedStage(Optional.of(PolicyEnforcer.of(createPolicy.getPolicy())));
+        }
+        return super.loadPolicyEnforcer(signal);
     }
 
     private static Optional<PolicyEnforcer> handleSudoRetrievePolicyResponse(final Object response) {
         if (response instanceof SudoRetrievePolicyResponse sudoRetrievePolicyResponse) {
             final var policy = sudoRetrievePolicyResponse.getPolicy();
-            return Optional.of(PolicyEnforcer.of(policy, PolicyEnforcers.defaultEvaluator(policy)));
+            return Optional.of(PolicyEnforcer.of(policy));
         } else if (response instanceof PolicyNotAccessibleException) {
             return Optional.empty();
         } else {
