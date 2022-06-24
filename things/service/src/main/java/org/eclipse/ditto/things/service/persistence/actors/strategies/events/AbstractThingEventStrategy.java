@@ -21,7 +21,9 @@ import org.eclipse.ditto.base.model.entity.metadata.Metadata;
 import org.eclipse.ditto.base.model.entity.metadata.MetadataBuilder;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.internal.utils.persistentactors.events.EventStrategy;
+import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingBuilder;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
@@ -61,23 +63,23 @@ abstract class AbstractThingEventStrategy<T extends ThingEvent<T>> implements Ev
         return null;
     }
 
-    @Nullable
     protected Metadata mergeMetadata(@Nullable final Thing thing, final T event) {
 
         final JsonPointer eventMetadataResourcePath = event.getResourcePath();
         final Optional<Metadata> eventMetadataOpt = event.getMetadata();
-        final Optional<Metadata> thingMetadata = deleteMetadataForDeletedEvent(thing, event);
+        final Optional<Metadata> thingMetadata = Optional.ofNullable(thing).flatMap(Thing::getMetadata);
+        final MetadataBuilder metadataBuilder =
+                thingMetadata.map(Metadata::toBuilder).orElseGet(Metadata::newBuilder);
 
         if (eventMetadataResourcePath.isEmpty() && eventMetadataOpt.isPresent()) {
             return eventMetadataOpt.get();
         } else if (eventMetadataOpt.isPresent()) {
             final Metadata eventMetadata = eventMetadataOpt.get();
-            final MetadataBuilder metadataBuilder =
-                    thingMetadata.map(Metadata::toBuilder).orElseGet(Metadata::newBuilder);
-            metadataBuilder.set(eventMetadataResourcePath, eventMetadata.toJson());
-            return metadataBuilder.build();
+
+            return deleteMetadataForModifiedEvents(event,
+                    metadataBuilder.set(eventMetadataResourcePath, eventMetadata.toJson()));
         } else {
-            return thingMetadata.orElse(null);
+            return deleteMetadataForModifiedEvents(event, metadataBuilder);
         }
     }
 
@@ -85,7 +87,7 @@ abstract class AbstractThingEventStrategy<T extends ThingEvent<T>> implements Ev
      * Apply the specified event to the also specified ThingBuilder.
      * The builder has already the specified revision set as well as the event's timestamp.
      *
-     * @param event the ThingEvent<?>to be applied.
+     * @param event the ThingEvent<?> to be applied.
      * @param thingBuilder builder which is derived from the {@code event}'s Thing with the revision and event
      * timestamp already set.
      * @return the updated {@code thingBuilder} after applying {@code event}.
@@ -94,13 +96,24 @@ abstract class AbstractThingEventStrategy<T extends ThingEvent<T>> implements Ev
         return thingBuilder;
     }
 
-    private Optional<Metadata> deleteMetadataForDeletedEvent(@Nullable final Thing thing, final T event) {
-        final Optional<Metadata> optionalMetadata = Optional.ofNullable(thing).flatMap(Thing::getMetadata);
-        // delete metadata for delete events
+    private Metadata deleteMetadataForModifiedEvents(final T event, final MetadataBuilder metadataBuilder) {
         if (event instanceof ThingModifiedEvent && event.getCommandCategory().equals(Command.Category.DELETE)) {
-            return optionalMetadata.map(metadata -> metadata.toBuilder().remove(event.getResourcePath()).build());
-        } else {
-            return optionalMetadata;
+            return metadataBuilder.remove(event.getResourcePath()).build();
         }
+        else if (event instanceof ThingModifiedEvent && event.getCommandCategory().equals(Command.Category.MERGE)) {
+            final Optional<JsonValue> optionalJsonValue = event.getEntity();
+            if (optionalJsonValue.isEmpty() || optionalJsonValue.get().isNull()) {
+                return metadataBuilder.remove(event.getResourcePath()).build();
+            }
+        } else if (event instanceof ThingModifiedEvent && event.getCommandCategory().equals(Command.Category.MODIFY)) {
+            final Optional<JsonValue> optionalJsonValue = event.getEntity();
+            if (optionalJsonValue.isPresent() && optionalJsonValue.get().isObject()
+                    && optionalJsonValue.get().asObject().isEmpty()) {
+                return metadataBuilder.set(event.getResourcePath(), JsonFactory.newObject()).build();
+            }
+        }
+
+        return metadataBuilder.build();
     }
+
 }
