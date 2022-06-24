@@ -77,6 +77,11 @@ export function ready() {
     }, 10);
   });
 
+  document.querySelector('a[data-bs-target="#tabCrudFeature"]').addEventListener('shown.bs.tab', (event) => {
+    featurePropertiesEditor.renderer.updateFull();
+    featureDesiredPropertiesEditor.renderer.updateFull();
+  });
+
   document.getElementById('messageFeature').onclick = messageFeature;
 
   Things.addChangeListener(onThingChanged);
@@ -184,7 +189,7 @@ function onThingChanged(thing) {
   }
 }
 
-const messageFeature = function() {
+function messageFeature() {
   const subject = dom.messageFeatureSubject.value;
   const feature = dom.theFeatureId.value;
   const timeout = dom.messageTimeout.value;
@@ -201,7 +206,7 @@ const messageFeature = function() {
         dom.messageFeatureResponse.value = JSON.stringify(data, null, 2);
       };
     }).catch((err) => {
-      // nothing to clean up on error
+      dom.messageFeatureResponse.value = null;
     });
   } else {
     Utils.showError('FeatureId or Subject or Payload is empty');
