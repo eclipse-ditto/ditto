@@ -13,6 +13,8 @@
 
 package org.eclipse.ditto.connectivity.model;
 
+import java.util.Arrays;
+
 /**
  * Possible Aliases for Address used by connections of type 'Hono'
  */
@@ -50,6 +52,17 @@ public enum HonoAddressAlias {
      */
     public String getName() {
         return name;
+    }
+
+    /**
+     * @return the Enum representation for the given string.
+     * @throws IllegalArgumentException if unknown string.
+     */
+    public static HonoAddressAlias fromName(String s) throws IllegalArgumentException {
+        return Arrays.stream(HonoAddressAlias.values())
+                .filter(v -> v.name.equals(s))
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException("Unknown Address Alias value: " + s));
     }
 
 }

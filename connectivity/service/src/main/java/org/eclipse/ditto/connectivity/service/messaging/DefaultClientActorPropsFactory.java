@@ -12,6 +12,9 @@
  */
 package org.eclipse.ditto.connectivity.service.messaging;
 
+import java.util.Map;
+import java.util.Optional;
+
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
@@ -20,12 +23,19 @@ import org.eclipse.ditto.connectivity.api.HonoConfig;
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.ConnectionType;
 import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
+import org.eclipse.ditto.connectivity.model.HonoAddressAlias;
+import org.eclipse.ditto.connectivity.model.Source;
+import org.eclipse.ditto.connectivity.model.Target;
 import org.eclipse.ditto.connectivity.service.messaging.amqp.AmqpClientActor;
 import org.eclipse.ditto.connectivity.service.messaging.httppush.HttpPushClientActor;
 import org.eclipse.ditto.connectivity.service.messaging.kafka.KafkaClientActor;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.HiveMqtt3ClientActor;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.HiveMqtt5ClientActor;
 import org.eclipse.ditto.connectivity.service.messaging.rabbitmq.RabbitMQClientActor;
+import org.eclipse.ditto.json.JsonArray;
+import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonValue;
 
 import com.typesafe.config.Config;
 
@@ -107,12 +117,40 @@ public final class DefaultClientActorPropsFactory implements ClientActorPropsFac
                         connection.getConnectionType(),
                         connection.getConnectionStatus(),
                         honoConfig.getBaseUri())
+                .validateCertificate(honoConfig.getValidateCertificates())
+                .specificConfig(Map.of(
+                        "saslMechanism", honoConfig.getSaslMechanism().getValue(),
+                        "bootstrapServers", honoConfig.getBootstrapServers()))
                 .credentials(honoConfig.getCredentials(connection.getId()))
-//                        .sources(connection.getSources()
-//                                .stream()
-//                                .map(source -> new Source(
-//                                    source.getAddresses().map(replaceAlias).collect(Collectors.toList());
-//                                            return source
+                .sources(connection.getSources()
+                        .stream()
+                        .map(source -> ConnectivityModelFactory.sourceFromJson(
+                                resolveSourceAliases(source, honoConfig.getTenantId(connection.getId())), 1))
+                        .toList())
+                .targets(connection.getTargets()
+                        .stream()
+                        .map(target -> ConnectivityModelFactory.targetFromJson(
+                                resolveTargetAlias(target, honoConfig.getTenantId(connection.getId()))))
+                        .toList())
+                .build();
+    }
+
+    private JsonObject resolveSourceAliases(final Source source, String tenantId) {
+        return JsonFactory.newObjectBuilder(source.toJson())
+                .set(Source.JsonFields.REPLY_TARGET, )
+                .set(Source.JsonFields.ADDRESSES, JsonArray.of(source.getAddresses().stream()
+                        .map(a -> HonoAddressAlias.fromName(a) + "/" + tenantId)
+                        .map(JsonValue::of)
+                        .toList()))
+                .build();
+    }
+
+    private JsonObject resolveTargetAlias(final Target target, String tenantId) {
+        return JsonFactory.newObjectBuilder(target.toJson())
+                .set(Target.JsonFields.ADDRESS, Optional.of(target.getAddress())
+                        .map(a -> HonoAddressAlias.fromName(a) + "/" + tenantId)
+                        .orElse("")
+                )
                 .build();
     }
 

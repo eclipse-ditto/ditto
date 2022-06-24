@@ -11,13 +11,14 @@
  * SPDX-License-Identifier: EPL-2.0
  */
 package org.eclipse.ditto.connectivity.api;
+
 import java.util.List;
 
 import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.connectivity.model.Credentials;
-import org.eclipse.ditto.connectivity.model.HonoAddressAliasValues;
 import org.eclipse.ditto.internal.utils.akka.AkkaClassLoader;
 import org.eclipse.ditto.internal.utils.config.KnownConfigValue;
+
 import akka.actor.AbstractExtensionId;
 import akka.actor.ActorSystem;
 import akka.actor.ExtendedActorSystem;
@@ -41,6 +42,11 @@ public interface HonoConfig extends Extension {
      */
     String getBaseUri();
 
+    /*
+
+
+     */
+    Boolean getValidateCertificates();
     /**
      * Gets the SASL mechanism of Hono-connection (Kafka specific property)
      *
@@ -56,20 +62,20 @@ public interface HonoConfig extends Extension {
     String getBootstrapServers();
 
     /**
-     * Gets the connection address aliases
-     *
-     * @param connectionId The connection ID of the connection to get aliases
-     * @return {@link org.eclipse.ditto.connectivity.model.HonoAddressAliasValues}
-     */
-    HonoAddressAliasValues getAddressAliases(ConnectionId connectionId);
-
-    /**
      * Gets the credentials for specified Hono-connection
      *
-     * @param connectionId The connection ID of the connection to get credentials
+     * @param connectionId The connection ID of the connection
      * @return The credentials of the connection
      */
     Credentials getCredentials(ConnectionId connectionId);
+
+    /**
+     * Gets the Kafka GroupId property
+     *
+     * @param connectionId The connection ID of the connection
+     * @return GroupId
+     */
+    String getTenantId(ConnectionId connectionId);
 
     enum ConfigValues implements KnownConfigValue {
 
@@ -79,9 +85,19 @@ public interface HonoConfig extends Extension {
         BASE_URI("base-uri", ""),
 
         /**
+         * validateCertificates boolean property
+         */
+        VALIDATE_CERTIFICATES("validateCertificates", false),
+
+        /**
          * SASL mechanism for connections of type Hono
           */
         SASL_MECHANISM("sasl-mechanism", "plain"),
+
+        /**
+         * Kafka Group ID property
+         */
+        GROUP_ID("groupId", ""),
 
         /**
          * Bootstrap servers, comma separated
@@ -176,6 +192,10 @@ public interface HonoConfig extends Extension {
 
         SaslMechanism(String value) {
             this.value = value;
+        }
+
+        public String getValue() {
+            return value;
         }
     }
 }

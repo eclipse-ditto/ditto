@@ -13,7 +13,6 @@
 package org.eclipse.ditto.connectivity.api;
 
 import org.eclipse.ditto.base.model.common.ConditionChecker;
-import org.eclipse.ditto.connectivity.model.HonoAddressAliasValues;
 import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.connectivity.model.Credentials;
 import org.eclipse.ditto.connectivity.model.UserPasswordCredentials;
@@ -28,10 +27,9 @@ import akka.actor.ActorSystem;
 public final class DefaultHonoConfig implements HonoConfig {
 
     private final String baseUri;
+    private final Boolean validateCertificates;
     private final SaslMechanism saslMechanism;
     private final String bootstrapServers;
-
-    private final HonoAddressAliasValues honoAddressAliasValues;
 
     private final Credentials credentials;
 
@@ -40,14 +38,9 @@ public final class DefaultHonoConfig implements HonoConfig {
         final Config config = actorSystem.settings().config().getConfig(PREFIX);
 
         this.baseUri = config.getString(ConfigValues.BASE_URI.getConfigPath());
+        this.validateCertificates = config.getBoolean(ConfigValues.VALIDATE_CERTIFICATES.getConfigPath());
         this.saslMechanism = config.getEnum(SaslMechanism.class, ConfigValues.SASL_MECHANISM.getConfigPath());
         this.bootstrapServers = config.getString(ConfigValues.BOOTSTRAP_SERVERS.getConfigPath());
-
-        honoAddressAliasValues = HonoAddressAliasValues.newInstance(
-                config.getString(ConfigValues.TELEMETRY_ADDRESS.getConfigPath()),
-                config.getString(ConfigValues.EVENT_ADDRESS.getConfigPath()),
-                config.getString(ConfigValues.COMMAND_AND_CONTROL_ADDRESS.getConfigPath()),
-                config.getString(ConfigValues.COMMAND_RESPONSE_ADDRESS.getConfigPath()));
 
         this.credentials = UserPasswordCredentials.newInstance(
                 config.getString(ConfigValues.USERNAME.getConfigPath()),
@@ -57,6 +50,11 @@ public final class DefaultHonoConfig implements HonoConfig {
     @Override
     public String getBaseUri() {
         return baseUri;
+    }
+
+    @Override
+    public Boolean getValidateCertificates() {
+        return validateCertificates;
     }
 
     @Override
@@ -70,13 +68,13 @@ public final class DefaultHonoConfig implements HonoConfig {
     }
 
     @Override
-    public HonoAddressAliasValues getAddressAliases(final ConnectionId connectionId) {
-        return honoAddressAliasValues;
+    public Credentials getCredentials(final ConnectionId connectionId) {
+        return credentials;
     }
 
     @Override
-    public Credentials getCredentials(final ConnectionId connectionId) {
-        return credentials;
+    public String getTenantId(ConnectionId connectionId) {
+        return connectionId.toString();
     }
 
 }
