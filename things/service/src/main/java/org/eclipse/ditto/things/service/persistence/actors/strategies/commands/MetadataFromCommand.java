@@ -14,6 +14,7 @@ package org.eclipse.ditto.things.service.persistence.actors.strategies.commands;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
+import java.util.LinkedHashSet;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -119,7 +120,7 @@ final class MetadataFromCommand implements Supplier<Metadata> {
                 if (!metadataHeaders.isEmpty()) {
                     final var expandedMetadataHeaders = metadataHeaders.stream()
                             .flatMap(this::expandWildcards)
-                            .collect(Collectors.toSet());
+                            .collect(Collectors.toCollection(LinkedHashSet::new));
                     return buildMetadata(commandEntity, expandedMetadataHeaders);
                 }
             }

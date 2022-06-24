@@ -487,6 +487,12 @@ final class MetadataFieldsWildcardResolver {
                         metadataKey.asPointer())));
 
         featureIds.forEach(featureId -> {
+                    if (isFeatureDefinitionPresent(thing, featureId)) {
+                        final JsonPointer jsonPointer =
+                                getReplacedWildcardPointerForDefinitionLevel(featureId, metadataKey.asPointer());
+                        replacedWildcardsPointers.add(jsonPointer);
+                    }
+
                     replacedWildcardsPointers.addAll(
                             getReplacedWildcardPointersForPropertyKeysOnFeaturesLevel(
                                     getFeaturePropertyLeafsFromThing(thing, featureId), JsonPointer.of(featureId),
@@ -496,12 +502,6 @@ final class MetadataFieldsWildcardResolver {
                             getReplacedWildcardPointersForPropertyKeysOnFeaturesLevel(
                                     getFeatureDesiredPropertyLeafsFromThing(thing, featureId), JsonPointer.of(featureId),
                                     DESIRED_PROPERTIES_POINTER, metadataKey.asPointer()));
-
-                    if (isFeatureDefinitionPresent(thing, featureId)) {
-                        final JsonPointer jsonPointer =
-                                getReplacedWildcardPointerForDefinitionLevel(featureId, metadataKey.asPointer());
-                        replacedWildcardsPointers.add(jsonPointer);
-                    }
                 }
         );
 
