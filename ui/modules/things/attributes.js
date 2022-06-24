@@ -1,5 +1,4 @@
 /*
- *
  * Copyright (c) 2022 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
@@ -12,8 +11,8 @@
  * SPDX-License-Identifier: EPL-2.0
  */
 
-import * as Utils from '../utils.js';
 import * as API from '../api.js';
+import * as Utils from '../utils.js';
 import * as Things from './things.js';
 
 const dom = {
@@ -48,13 +47,13 @@ export function ready() {
 /**
  * Creates a onclick handler function
  * @param {String} method PUT or DELETE
- * @return {function} Click handler function to PUT or DELETE ditto attribute
+ * @return {function} Click handler function to PUT or DELETE Ditto attribute
  */
 function clickAttribute(method) {
   return function() {
     Utils.assert(Things.theThing, 'No Thing selected');
     Utils.assert(dom.attributePath.value, 'Attribute path is empty');
-    Utils.assert(method != 'PUT' || dom.attributeValue.value, 'Attribute value is empty');
+    Utils.assert(method !== 'PUT' || dom.attributeValue.value, 'Attribute value is empty');
     API.callDittoREST(
         method,
         `/things/${Things.theThing.thingId}/attributes/${dom.attributePath.value}`,
@@ -102,8 +101,8 @@ function attributeToString(attribute) {
 }
 
 /**
- * Converts a String into a json value for a ditto attribute
- * @param {String} attribute ditto attribute as a String
+ * Converts a String into a json value for a Ditto attribute
+ * @param {String} attribute Ditto attribute as a String
  * @return {Object} object in case it could be parsed, else the orignal String
  */
 function attributeFromString(attribute) {

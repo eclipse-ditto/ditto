@@ -1,5 +1,4 @@
 /*
- *
  * Copyright (c) 2022 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
@@ -14,9 +13,9 @@
 
 /* eslint-disable new-cap */
 import {JSONPath} from 'https://cdn.jsdelivr.net/npm/jsonpath-plus@5.0.3/dist/index-browser-esm.min.js';
+import * as API from '../api.js';
 
 import * as Environments from '../environments/environments.js';
-import * as API from '../api.js';
 import * as Utils from '../utils.js';
 import * as Fields from './fields.js';
 
@@ -99,7 +98,7 @@ function fillThingsTable(thingsList) {
   thingsList.forEach((item, t) => {
     const row = dom.thingsTable.insertRow();
     row.id = item.thingId;
-    if (theThing && (item.thingId == theThing.thingId)) {
+    if (theThing && (item.thingId === theThing.thingId)) {
       row.classList.add('table-active');
     };
     Utils.addCheckboxToRow(
@@ -111,14 +110,14 @@ function fillThingsTable(thingsList) {
     row.insertCell(-1).innerHTML = item.thingId;
     fields.forEach((key, i) => {
       let path = key.replace(/\//g, '.');
-      if (path.charAt(0) != '.') {
+      if (path.charAt(0) !== '.') {
         path = '$.' + path;
       }
       const elem = JSONPath({
         json: item,
         path: path,
       });
-      row.insertCell(-1).innerHTML = elem.length != 0 ? elem[0] : '';
+      row.insertCell(-1).innerHTML = elem.length !== 0 ? elem[0] : '';
     });
   });
 };
@@ -132,8 +131,8 @@ export function setSearchFilterEdit(filter) {
 }
 
 /**
- * Calls ditto search api and fills UI with the result
- * @param {String} filter ditto search filter (rql)
+ * Calls Ditto search api and fills UI with the result
+ * @param {String} filter Ditto search filter (rql)
  * @param {String} cursor (optional) cursor returned from things search for additional pages
  */
 export function searchThings(filter, cursor) {
@@ -163,7 +162,7 @@ export function searchThings(filter, cursor) {
 };
 
 /**
- * Gets things from ditto by thingIds and fills the UI with the result
+ * Gets things from Ditto by thingIds and fills the UI with the result
  * @param {Array} thingIds Array of thingIds
  */
 export function getThings(thingIds) {
@@ -182,7 +181,7 @@ export function getThings(thingIds) {
  */
 function clickModifyThing(method) {
   return function() {
-    Utils.assert(dom.thingId.value, 'ThingId is empty');
+    Utils.assert(dom.thingId.value, 'Thing ID is empty');
     API.callDittoREST(method,
         '/things/' + dom.thingId.value,
         method === 'PUT' ? JSON.parse(thingJsonEditor.getValue()) : null,
@@ -194,7 +193,7 @@ function clickModifyThing(method) {
 };
 
 /**
- * Load thing from ditto and update all UI components
+ * Load thing from Ditto and update all UI components
  * @param {String} thingId ThingId
  */
 export function refreshThing(thingId) {
@@ -232,8 +231,8 @@ export function setTheThing(thingJson) {
 }
 
 /**
- * Updates UI depepending on existing additional pages on ditto things search
- * @param {Object} searchResult Result from ditto thing search
+ * Updates UI depepending on existing additional pages on Ditto things search
+ * @param {Object} searchResult Result from Ditto thing search
  */
 function checkMorePages(searchResult) {
   if (searchResult['cursor']) {

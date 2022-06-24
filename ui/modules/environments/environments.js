@@ -1,5 +1,4 @@
 /*
- *
  * Copyright (c) 2022 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
@@ -12,12 +11,12 @@
  * SPDX-License-Identifier: EPL-2.0
  */
 
+import * as API from '../api.js';
 /* eslint-disable arrow-parens */
 /* eslint-disable prefer-const */
 /* eslint-disable no-invalid-this */
 /* eslint-disable require-jsdoc */
 import * as Utils from '../utils.js';
-import * as API from '../api.js';
 
 let environments = {
   local_ditto: {

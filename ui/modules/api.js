@@ -1,5 +1,4 @@
 /*
- *
  * Copyright (c) 2022 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
@@ -37,9 +36,9 @@ export function setAuthHeader(forDevOps) {
 }
 
 /**
- * Calls the ditto api
+ * Calls the Ditto api
  * @param {String} method 'POST', 'GET', 'DELETE', etc.
- * @param {String} path of the ditto call (e.g. '/things')
+ * @param {String} path of the Ditto call (e.g. '/things')
  * @param {Object} body payload for the api call
  * @return {Object} result as json object
  */
@@ -59,11 +58,11 @@ export async function callDittoREST(method, path, body) {
             Utils.showError(dittoErr.message, dittoErr.error, dittoErr.status);
           })
           .catch((err) => {
-            Utils.showError('No error details from ditto', response.statusText, response.status);
+            Utils.showError('No error details from Ditto', response.statusText, response.status);
           });
       throw new Error('An error occured: ' + response.status);
     }
-    if (response.status != 204) {
+    if (response.status !== 204) {
       return response.json();
     } else {
       return null;

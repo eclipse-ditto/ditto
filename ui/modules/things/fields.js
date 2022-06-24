@@ -1,5 +1,4 @@
 /*
- *
  * Copyright (c) 2022 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
@@ -23,12 +22,12 @@ const dom = {
 };
 
 /**
- * Create a ditto search query parameter from the active fields
- * @return {String} The fields query parameter for ditto search
+ * Create a Ditto search query parameter from the active fields
+ * @return {String} The fields query parameter for Ditto search
  */
 export function getQueryParameter() {
   const fields = Environments.current().fieldList.filter((f) => f.active).map((f) => f.path);
-  return 'fields=thingId' + (fields != '' ? ',' + fields : '');
+  return 'fields=thingId' + (fields !== '' ? ',' + fields : '');
 };
 
 /**
@@ -56,7 +55,7 @@ export async function ready() {
 
   dom.fieldList.addEventListener('click', (event) => {
     if (event.target && event.target.tagName === 'TD') {
-      if (theFieldIndex == event.target.parentNode.rowIndex) {
+      if (theFieldIndex === event.target.parentNode.rowIndex) {
         theFieldIndex = -1;
         dom.fieldPath.value = null;
       } else {

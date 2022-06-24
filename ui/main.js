@@ -1,5 +1,4 @@
 /*
- *
  * Copyright (c) 2022 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
@@ -12,13 +11,13 @@
  * SPDX-License-Identifier: EPL-2.0
  */
 
-import * as Things from './modules/things/things.js';
-import * as Fields from './modules/things/fields.js';
-import * as Attributes from './modules/things/attributes.js';
-import * as SearchFilter from './modules/things/searchFilter.js';
-import * as Features from './modules/things/features.js';
-import * as Environments from './modules/environments/environments.js';
 import * as Authorization from './modules/environments/authorization.js';
+import * as Environments from './modules/environments/environments.js';
+import * as Attributes from './modules/things/attributes.js';
+import * as Features from './modules/things/features.js';
+import * as Fields from './modules/things/fields.js';
+import * as SearchFilter from './modules/things/searchFilter.js';
+import * as Things from './modules/things/things.js';
 
 let resized = false;
 let mainNavbar;
@@ -53,7 +52,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     e.addEventListener('click', (event) => {
       if (event.target && event.target.tagName === 'TD') {
         Array.from(event.target.parentNode.parentNode.children).forEach((n) => {
-          if (n != event.target.parentNode) {
+          if (n !== event.target.parentNode) {
             n.classList.remove('table-active');
           }
         });

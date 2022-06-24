@@ -1,5 +1,4 @@
 /*
- *
  * Copyright (c) 2022 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
@@ -78,7 +77,7 @@ export async function ready() {
   };
 
   dom.searchFilterEdit.onclick = (event) => {
-    if (event.target.selectionStart == event.target.selectionEnd) {
+    if (event.target.selectionStart === event.target.selectionEnd) {
       event.target.select();
     };
   };

@@ -1,5 +1,4 @@
 /*
- *
  * Copyright (c) 2022 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
@@ -12,13 +11,13 @@
  * SPDX-License-Identifier: EPL-2.0
  */
 
+import {JSONPath} from 'https://cdn.jsdelivr.net/npm/jsonpath-plus@5.0.3/dist/index-browser-esm.min.js';
+import * as API from '../api.js';
 /* eslint-disable comma-dangle */
 /* eslint-disable new-cap */
 import * as Utils from '../utils.js';
-import * as API from '../api.js';
-import * as Things from './things.js';
 import * as Fields from './fields.js';
-import {JSONPath} from 'https://cdn.jsdelivr.net/npm/jsonpath-plus@5.0.3/dist/index-browser-esm.min.js';
+import * as Things from './things.js';
 
 let featurePropertiesEditor;
 let featureDesiredPropertiesEditor;
@@ -88,7 +87,7 @@ export function ready() {
 }
 
 /**
- * Creates a new empty feature for the given thing in ditto
+ * Creates a new empty feature for the given thing in Ditto
  * @param {String} newFeatureId Name of the new feature.
  */
 export function createFeature(newFeatureId) {
@@ -96,7 +95,7 @@ export function createFeature(newFeatureId) {
   Utils.assert(Things.theThing, 'No Thing selected');
   if (Things.theThing['features']) {
     Utils.assert(!Object.keys(Things.theThing.features).includes(newFeatureId),
-        `FeatureId ${newFeatureId} already exists in Thing`);
+        `Feature ID ${newFeatureId} already exists in Thing`);
   }
 
   API.callDittoREST('PUT',
@@ -106,7 +105,7 @@ export function createFeature(newFeatureId) {
 }
 
 /**
- * Triggers a feature update in ditto according to UI contents
+ * Triggers a feature update in Ditto according to UI contents
  * @param {String} method Either PUT to update the feature or DELETE to delete the feature
  */
 function updateFeature(method) {
@@ -209,6 +208,6 @@ function messageFeature() {
       dom.messageFeatureResponse.value = null;
     });
   } else {
-    Utils.showError('FeatureId or Subject or Payload is empty');
+    Utils.showError('Feature ID or Subject or Payload is empty');
   }
 };

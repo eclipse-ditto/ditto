@@ -1,5 +1,4 @@
 /*
- *
  * Copyright (c) 2022 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
@@ -12,11 +11,11 @@
  * SPDX-License-Identifier: EPL-2.0
  */
 
+import * as API from '../api.js';
+import * as Utils from '../utils.js';
 /* eslint-disable prefer-const */
 /* eslint-disable require-jsdoc */
 import * as Environments from './environments.js';
-import * as Utils from '../utils.js';
-import * as API from '../api.js';
 
 let dom = {
   bearer: null,
