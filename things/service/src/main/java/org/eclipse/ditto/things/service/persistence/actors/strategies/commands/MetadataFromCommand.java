@@ -35,7 +35,6 @@ import org.eclipse.ditto.base.model.headers.metadata.MetadataHeaderKey;
 import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.signals.WithOptionalEntity;
 import org.eclipse.ditto.base.model.signals.commands.Command;
-import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonKey;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
@@ -162,18 +161,30 @@ final class MetadataFromCommand implements Supplier<Metadata> {
         final Consumer<MetadataHeader> addMetadataToBuilder = metadataHeader -> {
             final MetadataHeaderKey metadataHeaderKey = metadataHeader.getKey();
             final JsonValue metadataHeaderValue = metadataHeader.getValue();
-            if (entity.isObject()) {
-                final Optional<JsonField> field = entity.asObject()
-                        .getField(metadataHeaderKey.getPath());
-                if (field.isPresent() && !metadataHeaderValue.isObject()) {
-                    // ignore metadata header value that isn't an object.
-                    return;
-                }
-            }
+
             if (metadataHeaderKey.appliesToAllLeaves()) {
                 addMetadataToLeaf(JsonPointer.empty(), metadataHeader, metadataBuilder, entity);
             } else {
-                metadataBuilder.set(metadataHeaderKey.getPath(), metadataHeaderValue);
+                if (entity.isObject()) {
+                    final var field = entity.asObject().getField(metadataHeaderKey.getPath());
+                    final var metadataHeaderKeyLeaf = metadataHeaderKey.getPath()
+                            .cutLeaf();
+                    if (field.isPresent()) {
+                        if (field.get().getValue().isObject()) {
+                            metadataBuilder.set(metadataHeaderKey.getPath(), metadataHeaderValue);
+                        }
+                    } else if (entity.asObject().contains(metadataHeaderKeyLeaf)) {
+                        final var optionalLeafValue = entity.asObject()
+                                .getValue(metadataHeaderKeyLeaf);
+                        if (optionalLeafValue.isEmpty() || optionalLeafValue.get().isObject() || metadataHeaderKey.getPath().getLevelCount() > 1) {
+                            metadataBuilder.set(metadataHeaderKey.getPath(), metadataHeaderValue);
+                        }
+                    } else if (metadataHeaderKey.getPath().getLevelCount() == 1) {
+                        metadataBuilder.set(metadataHeaderKey.getPath(), metadataHeaderValue);
+                    }
+                } else if (metadataHeaderKey.getPath().getLevelCount() > 1 || metadataHeaderValue.isObject()) {
+                    metadataBuilder.set(metadataHeaderKey.getPath(), metadataHeaderValue);
+                }
             }
         };
 

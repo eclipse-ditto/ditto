@@ -64,6 +64,11 @@ final class CreateThingStrategy extends AbstractThingCommandStrategy<CreateThing
     }
 
     @Override
+    protected Optional<Metadata> calculateRelativeMetadata(@Nullable Thing entity, CreateThing command) {
+        return super.calculateRelativeMetadata(command.getThing(), command);
+    }
+
+    @Override
     public boolean isDefined(final CreateThing command) {
         return true;
     }
