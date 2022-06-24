@@ -10,11 +10,12 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.policies.enforcement.placeholders.strategies;
+package org.eclipse.ditto.policies.service.enforcement.pre;
 
 import static java.util.Objects.requireNonNull;
 
 import org.eclipse.ditto.policies.enforcement.placeholders.HeaderBasedPlaceholderSubstitutionAlgorithm;
+import org.eclipse.ditto.policies.enforcement.placeholders.strategies.AbstractTypedSubstitutionStrategy;
 import org.eclipse.ditto.policies.model.Subject;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifySubject;
 

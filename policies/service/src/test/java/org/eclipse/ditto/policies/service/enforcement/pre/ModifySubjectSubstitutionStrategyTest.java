@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Contributors to the Eclipse Foundation
+ * Copyright (c) 2022 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.policies.enforcement.placeholders.strategies;
+package org.eclipse.ditto.policies.service.enforcement.pre;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
@@ -24,10 +24,10 @@ import org.eclipse.ditto.policies.model.signals.commands.modify.ModifySubject;
 import org.junit.Test;
 
 /**
- * Tests {@link org.eclipse.ditto.policies.enforcement.placeholders.strategies.ModifySubjectSubstitutionStrategy} in context of
- * {@link org.eclipse.ditto.policies.enforcement.placeholders.PlaceholderSubstitutionPreEnforcer}.
+ * Tests {@link ModifySubjectSubstitutionStrategy} in context of
+ * {@link org.eclipse.ditto.policies.enforcement.placeholders.AbstractPlaceholderSubstitutionPreEnforcer}.
  */
-public class ModifySubjectSubstitutionStrategyTest extends AbstractSubstitutionStrategyTestBase {
+public class ModifySubjectSubstitutionStrategyTest extends AbstractPolicySubstitutionStrategyTestBase {
 
     @Override
     public void assertImmutability() {
@@ -36,9 +36,10 @@ public class ModifySubjectSubstitutionStrategyTest extends AbstractSubstitutionS
 
     @Test
     public void applyReturnsTheSameCommandInstanceWhenNoPlaceholderIsSpecified() {
-        final ModifySubject commandWithoutPlaceholders = ModifySubject.of(POLICY_ID,
-                Label.of(LABEL), Subject.newInstance(SUBJECT_ID, SubjectType.GENERATED),
-                DITTO_HEADERS);
+        final ModifySubject commandWithoutPlaceholders = ModifySubject.of(AbstractPolicySubstitutionStrategyTestBase.POLICY_ID,
+                Label.of(AbstractPolicySubstitutionStrategyTestBase.LABEL), Subject.newInstance(
+                        AbstractPolicySubstitutionStrategyTestBase.SUBJECT_ID, SubjectType.GENERATED),
+                AbstractPolicySubstitutionStrategyTestBase.DITTO_HEADERS);
 
         final WithDittoHeaders response = applyBlocking(commandWithoutPlaceholders);
 
@@ -47,14 +48,15 @@ public class ModifySubjectSubstitutionStrategyTest extends AbstractSubstitutionS
 
     @Test
     public void applyReturnsTheReplacedCommandInstanceWhenPlaceholderIsSpecified() {
-        final ModifySubject commandWithPlaceholders = ModifySubject.of(POLICY_ID,
-                Label.of(LABEL), Subject.newInstance(SUBJECT_ID_PLACEHOLDER, SubjectType.GENERATED), DITTO_HEADERS);
+        final ModifySubject commandWithPlaceholders = ModifySubject.of(AbstractPolicySubstitutionStrategyTestBase.POLICY_ID,
+                Label.of(AbstractPolicySubstitutionStrategyTestBase.LABEL), Subject.newInstance(
+                        AbstractPolicySubstitutionStrategyTestBase.SUBJECT_ID_PLACEHOLDER, SubjectType.GENERATED), AbstractPolicySubstitutionStrategyTestBase.DITTO_HEADERS);
 
         final WithDittoHeaders response = applyBlocking(commandWithPlaceholders);
 
         final ModifySubject expectedCommandReplaced = ModifySubject.of(commandWithPlaceholders.getEntityId(),
-                commandWithPlaceholders.getLabel(), Subject.newInstance(SUBJECT_ID, SubjectType.GENERATED),
-                DITTO_HEADERS);
+                commandWithPlaceholders.getLabel(), Subject.newInstance(AbstractPolicySubstitutionStrategyTestBase.SUBJECT_ID, SubjectType.GENERATED),
+                AbstractPolicySubstitutionStrategyTestBase.DITTO_HEADERS);
         assertThat(response).isEqualTo(expectedCommandReplaced);
     }
 

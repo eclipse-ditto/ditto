@@ -638,19 +638,21 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
      */
     private void declareAcknowledgementLabels(final Collection<AcknowledgementLabel> acknowledgementLabels) {
         final ActorRef self = getSelf();
-        logger.info("Declaring acknowledgement labels <{}>", acknowledgementLabels);
-        dittoProtocolSub.declareAcknowledgementLabels(acknowledgementLabels, self, null)
-                .thenAccept(unused -> logger.info("Acknowledgement label declaration successful for labels: <{}>",
-                        acknowledgementLabels))
-                .exceptionally(error -> {
-                    final var dittoRuntimeException =
-                            DittoRuntimeException.asDittoRuntimeException(error,
-                                    cause -> AcknowledgementLabelNotUniqueException.newBuilder().cause(cause).build());
-                    logger.info("Acknowledgement label declaration failed for labels: <{}> - cause: {} {}",
-                            acknowledgementLabels, error.getClass().getSimpleName(), error.getMessage());
-                    self.tell(dittoRuntimeException, ActorRef.noSender());
-                    return null;
-                });
+        if (!acknowledgementLabels.isEmpty()) {
+            logger.info("Declaring acknowledgement labels <{}>", acknowledgementLabels);
+            dittoProtocolSub.declareAcknowledgementLabels(acknowledgementLabels, self, null)
+                    .thenAccept(unused -> logger.info("Acknowledgement label declaration successful for labels: <{}>",
+                            acknowledgementLabels))
+                    .exceptionally(error -> {
+                        final var dittoRuntimeException =
+                                DittoRuntimeException.asDittoRuntimeException(error,
+                                        cause -> AcknowledgementLabelNotUniqueException.newBuilder().cause(cause).build());
+                        logger.info("Acknowledgement label declaration failed for labels: <{}> - cause: {} {}",
+                                acknowledgementLabels, error.getClass().getSimpleName(), error.getMessage());
+                        self.tell(dittoRuntimeException, ActorRef.noSender());
+                        return null;
+                    });
+        }
     }
 
     private static StreamingType determineStreamingType(final Signal<?> signal) {

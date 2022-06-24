@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Contributors to the Eclipse Foundation
+ * Copyright (c) 2022 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.policies.enforcement.placeholders;
+package org.eclipse.ditto.policies.service.enforcement.pre;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mutabilitydetector.unittesting.AllowedReason.provided;
@@ -29,6 +29,7 @@ import org.eclipse.ditto.base.model.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.signals.Signal;
+import org.eclipse.ditto.policies.enforcement.placeholders.HeaderBasedPlaceholderSubstitutionAlgorithm;
 import org.eclipse.ditto.policies.enforcement.placeholders.strategies.SubstitutionStrategyRegistry;
 import org.eclipse.ditto.policies.model.EffectedPermissions;
 import org.eclipse.ditto.policies.model.Label;
@@ -43,11 +44,12 @@ import org.junit.Before;
 import org.junit.Test;
 
 /**
- * Tests specifics of {@link PlaceholderSubstitutionPreEnforcer}. Command-specific details are tested in concrete strategy tests
+ * Tests specifics of {@link PoliciesPlaceholderSubstitutionPreEnforcer}.
+ * Command-specific details are tested in concrete strategy tests
  * (see implementations of
- * {@link org.eclipse.ditto.policies.enforcement.placeholders.strategies.AbstractSubstitutionStrategyTestBase}.
+ * {@link org.eclipse.ditto.policies.service.enforcement.pre.AbstractPolicySubstitutionStrategyTestBase}.
  */
-public class PlaceholderSubstitutionPreEnforcerTest {
+public final class PoliciesPlaceholderSubstitutionPreEnforcerTest {
 
     private static final String SUBJECT_ID = "nginx:ditto";
     private static final String CUSTOM_HEADER_KEY = "customHeaderKey";
@@ -59,16 +61,16 @@ public class PlaceholderSubstitutionPreEnforcerTest {
             .putHeader(CUSTOM_HEADER_KEY, ANOTHER_SUBJECT_ID)
             .build();
 
-    private PlaceholderSubstitutionPreEnforcer underTest;
+    private PoliciesPlaceholderSubstitutionPreEnforcer underTest;
 
     @Before
     public void init() {
-        underTest = PlaceholderSubstitutionPreEnforcer.newInstance();
+        underTest = PoliciesPlaceholderSubstitutionPreEnforcer.newInstance();
     }
 
     @Test
     public void assertImmutability() {
-        assertInstancesOf(PlaceholderSubstitutionPreEnforcer.class, areImmutable(),
+        assertInstancesOf(PoliciesPlaceholderSubstitutionPreEnforcer.class, areImmutable(),
                 provided(HeaderBasedPlaceholderSubstitutionAlgorithm.class, SubstitutionStrategyRegistry.class)
                         .areAlsoImmutable());
     }
@@ -90,8 +92,8 @@ public class PlaceholderSubstitutionPreEnforcerTest {
         final Map<String, Function<DittoHeaders, String>> additionalReplacementDefinitions =
                 Collections.singletonMap(customPlaceholderKey,
                         dittoHeaders -> dittoHeaders.get(CUSTOM_HEADER_KEY));
-        final PlaceholderSubstitutionPreEnforcer extendedPlaceholderSubstitution =
-                PlaceholderSubstitutionPreEnforcer.newExtendedInstance(additionalReplacementDefinitions);
+        final PoliciesPlaceholderSubstitutionPreEnforcer extendedPlaceholderSubstitution =
+                PoliciesPlaceholderSubstitutionPreEnforcer.newExtendedInstance(additionalReplacementDefinitions);
         final ModifySubject commandWithoutPlaceholders = ModifySubject.of(PolicyId.of("org.eclipse.ditto:my-policy"),
                 Label.of("my-label"), Subject.newInstance("{{ " + customPlaceholderKey + " }}",
                         SubjectType.GENERATED), DITTO_HEADERS);
@@ -123,7 +125,7 @@ public class PlaceholderSubstitutionPreEnforcerTest {
         return applyBlocking(input, underTest);
     }
 
-    private Signal<?> applyBlocking(final Signal<?> input, final PlaceholderSubstitutionPreEnforcer substitution) {
+    private Signal<?> applyBlocking(final Signal<?> input, final PoliciesPlaceholderSubstitutionPreEnforcer substitution) {
         final CompletionStage<Signal<?>> responseFuture = substitution.apply(input);
         try {
             return responseFuture.toCompletableFuture().get();

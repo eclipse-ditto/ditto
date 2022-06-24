@@ -33,11 +33,11 @@ import org.eclipse.ditto.policies.model.Subjects;
  *
  * @param <T> the subtype of {@link DittoHeadersSettable} handled by this strategy.
  */
-abstract class AbstractTypedSubstitutionStrategy<T extends DittoHeadersSettable<?>> implements SubstitutionStrategy<T> {
+public abstract class AbstractTypedSubstitutionStrategy<T extends DittoHeadersSettable<?>> implements SubstitutionStrategy<T> {
 
     private final Class<T> type;
 
-    AbstractTypedSubstitutionStrategy(final Class<T> type) {
+    protected AbstractTypedSubstitutionStrategy(final Class<T> type) {
         this.type = requireNonNull(type);
     }
 
@@ -46,7 +46,7 @@ abstract class AbstractTypedSubstitutionStrategy<T extends DittoHeadersSettable<
         return type.isAssignableFrom(dittoHeadersSettable.getClass());
     }
 
-    static Subjects substituteSubjects(final Subjects subjects,
+    protected static Subjects substituteSubjects(final Subjects subjects,
             final HeaderBasedPlaceholderSubstitutionAlgorithm substitutionAlgorithm, final DittoHeaders dittoHeaders) {
         Subjects newSubjects = subjects;
         for (final Subject subject : subjects) {
@@ -64,7 +64,7 @@ abstract class AbstractTypedSubstitutionStrategy<T extends DittoHeadersSettable<
         return newSubjects;
     }
 
-    static PolicyEntry substitutePolicyEntry(final PolicyEntry existingPolicyEntry,
+    protected static PolicyEntry substitutePolicyEntry(final PolicyEntry existingPolicyEntry,
             final HeaderBasedPlaceholderSubstitutionAlgorithm substitutionAlgorithm, final DittoHeaders dittoHeaders) {
         final Subjects existingSubjects = existingPolicyEntry.getSubjects();
         final Subjects substitutedSubjects = substituteSubjects(existingSubjects, substitutionAlgorithm, dittoHeaders);
@@ -80,7 +80,7 @@ abstract class AbstractTypedSubstitutionStrategy<T extends DittoHeadersSettable<
         return resultEntry;
     }
 
-    static Policy substitutePolicy(final Policy policy,
+    protected static Policy substitutePolicy(final Policy policy,
             final HeaderBasedPlaceholderSubstitutionAlgorithm substitutionAlgorithm,
             final DittoHeaders dittoHeaders) {
         final Iterable<PolicyEntry> existingEntries = policy.getEntriesSet();
@@ -98,7 +98,7 @@ abstract class AbstractTypedSubstitutionStrategy<T extends DittoHeadersSettable<
     }
 
 
-    static Iterable<PolicyEntry> substitutePolicyEntries(final Iterable<PolicyEntry> policyEntries,
+    protected static Iterable<PolicyEntry> substitutePolicyEntries(final Iterable<PolicyEntry> policyEntries,
             final HeaderBasedPlaceholderSubstitutionAlgorithm substitutionAlgorithm,
             final DittoHeaders dittoHeaders) {
         final Iterator<PolicyEntry> existingEntriesIterator = policyEntries.iterator();

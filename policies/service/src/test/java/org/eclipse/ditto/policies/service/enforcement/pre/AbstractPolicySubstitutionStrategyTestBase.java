@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Contributors to the Eclipse Foundation
+ * Copyright (c) 2022 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.policies.enforcement.placeholders.strategies;
+package org.eclipse.ditto.policies.service.enforcement.pre;
 
 import java.util.Collections;
 import java.util.concurrent.CompletionStage;
@@ -21,7 +21,6 @@ import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
 import org.eclipse.ditto.base.model.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.signals.Signal;
-import org.eclipse.ditto.policies.enforcement.placeholders.PlaceholderSubstitutionPreEnforcer;
 import org.eclipse.ditto.policies.model.EffectedPermissions;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.Resource;
@@ -29,9 +28,11 @@ import org.junit.Before;
 import org.junit.Test;
 
 /**
- * Abstract base class for test of concrete implementations of {@link org.eclipse.ditto.policies.enforcement.placeholders.strategies.SubstitutionStrategy}.
+ * Abstract base class for test of concrete implementations of
+ * {@link org.eclipse.ditto.policies.enforcement.placeholders.strategies.SubstitutionStrategy} via
+ * {@link PoliciesPlaceholderSubstitutionPreEnforcer}.
  */
-public abstract class AbstractSubstitutionStrategyTestBase {
+abstract class AbstractPolicySubstitutionStrategyTestBase {
 
     protected static final String SUBJECT_ID_PLACEHOLDER = "{{ request:subjectId }}";
 
@@ -50,11 +51,11 @@ public abstract class AbstractSubstitutionStrategyTestBase {
                     AuthorizationSubject.newInstance(SUBJECT_ID)))
             .build();
 
-    protected PlaceholderSubstitutionPreEnforcer substitution;
+    protected PoliciesPlaceholderSubstitutionPreEnforcer substitution;
 
     @Before
     public void init() {
-        substitution = PlaceholderSubstitutionPreEnforcer.newInstance();
+        substitution = PoliciesPlaceholderSubstitutionPreEnforcer.newInstance();
     }
 
     @Test

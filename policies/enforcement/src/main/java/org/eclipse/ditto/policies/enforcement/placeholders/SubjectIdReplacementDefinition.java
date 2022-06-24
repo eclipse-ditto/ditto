@@ -23,13 +23,13 @@ import org.eclipse.ditto.base.model.headers.DittoHeaders;
  * Replaces the placeholder {@link #REPLACER_NAME} with the first AuthorizationSubject in the headers'
  * AuthorizationContext.
  */
-final class SubjectIdReplacementDefinition implements Function<DittoHeaders, String> {
+public final class SubjectIdReplacementDefinition implements Function<DittoHeaders, String> {
 
     /**
      * The name of the replacer.
      */
-    static final String REPLACER_NAME = "request:subjectId";
-    static final String LEGACY_REPLACER_NAME = "request.subjectId";
+    public static final String REPLACER_NAME = "request:subjectId";
+    public static final String LEGACY_REPLACER_NAME = "request.subjectId";
 
     private static final SubjectIdReplacementDefinition INSTANCE = new SubjectIdReplacementDefinition();
 

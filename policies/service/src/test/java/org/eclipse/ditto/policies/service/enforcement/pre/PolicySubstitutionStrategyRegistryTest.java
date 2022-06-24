@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Contributors to the Eclipse Foundation
+ * Copyright (c) 2022 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.policies.enforcement.placeholders.strategies;
+package org.eclipse.ditto.policies.service.enforcement.pre;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mutabilitydetector.unittesting.AllowedReason.assumingFields;
@@ -32,6 +32,7 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.policies.enforcement.placeholders.strategies.SubstitutionStrategy;
 import org.eclipse.ditto.policies.model.EffectedPermissions;
 import org.eclipse.ditto.policies.model.Label;
 import org.eclipse.ditto.policies.model.PolicyId;
@@ -45,22 +46,22 @@ import org.junit.Before;
 import org.junit.Test;
 
 /**
- * Tests {@link org.eclipse.ditto.policies.enforcement.placeholders.strategies.SubstitutionStrategyRegistry}.
+ * Tests {@link PolicySubstitutionStrategyRegistry}.
  */
-public class SubstitutionStrategyRegistryTest {
+public class PolicySubstitutionStrategyRegistryTest {
 
     private static final DittoHeaders DITTO_HEADERS = DittoHeaders.empty();
 
-    private SubstitutionStrategyRegistry underTest;
+    private PolicySubstitutionStrategyRegistry underTest;
 
     @Before
     public void init() {
-        underTest = SubstitutionStrategyRegistry.newInstance();
+        underTest = PolicySubstitutionStrategyRegistry.newInstance();
     }
 
     @Test
     public void assertImmutability() {
-        assertInstancesOf(SubstitutionStrategyRegistry.class, areImmutable(),
+        assertInstancesOf(PolicySubstitutionStrategyRegistry.class, areImmutable(),
                 provided(SubstitutionStrategy.class).isAlsoImmutable(),
                 assumingFields("strategies").areSafelyCopiedUnmodifiableCollectionsWithImmutableElements());
     }
@@ -98,7 +99,7 @@ public class SubstitutionStrategyRegistryTest {
 
     private static List<Class<? extends SubstitutionStrategy>> getAllStrategyClasses()
             throws UnsupportedEncodingException {
-        final String packageName = SubstitutionStrategyRegistry.class.getPackage().getName();
+        final String packageName = PolicySubstitutionStrategyRegistry.class.getPackage().getName();
         final List<Class> allClasses = getClasses(packageName);
 
 
