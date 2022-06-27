@@ -18,6 +18,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.IllegalKeepAliveIntervalSecondsException;
+import org.eclipse.ditto.connectivity.service.messaging.mqtt.IllegalReceiveMaximumValueException;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.message.connect.GenericMqttConnect;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.message.publish.GenericMqttPublish;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.message.subscribe.GenericMqttSubAck;
@@ -67,9 +68,12 @@ final class DefaultGenericMqttClient implements GenericMqttClient {
     private CompletionStage<GenericMqttConnect> getGenericMqttConnect() {
         final var mqttSpecificConfig = hiveMqttClientProperties.getMqttSpecificConfig();
         try {
-            return CompletableFuture.completedFuture(GenericMqttConnect.newInstance(mqttSpecificConfig.cleanSession(),
-                    mqttSpecificConfig.getKeepAliveIntervalOrDefault()));
-        } catch (final IllegalKeepAliveIntervalSecondsException e) {
+            return CompletableFuture.completedFuture(
+                    GenericMqttConnect.newInstance(mqttSpecificConfig.cleanSession(),
+                            mqttSpecificConfig.getKeepAliveIntervalOrDefault(),
+                            mqttSpecificConfig.getClientReceiveMaximumOrDefault())
+            );
+        } catch (final IllegalKeepAliveIntervalSecondsException | IllegalReceiveMaximumValueException e) {
             return CompletableFuture.failedFuture(e);
         }
     }

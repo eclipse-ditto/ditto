@@ -40,6 +40,7 @@ import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.messaging.ChildActorNanny;
 import org.eclipse.ditto.connectivity.service.messaging.ConnectivityStatusResolver;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.logs.ConnectionLogger;
+import org.eclipse.ditto.connectivity.service.messaging.mqtt.IllegalReceiveMaximumValueException;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.KeepAliveInterval;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.MqttSpecificConfig;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.client.GenericMqttClient;
@@ -199,10 +200,29 @@ final class ConnectionTesterActor extends AbstractActor {
         }
     }
 
-    private static CompletionStage<ClientContext> connectClient(final ClientContext clientContext) {
+    private CompletionStage<ClientContext> connectClient(final ClientContext clientContext) {
         final var client = clientContext.genericMqttClient();
-        return client.connect(GenericMqttConnect.newInstance(true, KeepAliveInterval.zero()))
+
+        return tryToGetGenericMqttConnect(clientContext)
+                .thenCompose(client::connect)
                 .thenApply(unusedVoid -> clientContext);
+    }
+
+    private CompletionStage<GenericMqttConnect> tryToGetGenericMqttConnect(final ClientContext clientContext) {
+        final var hiveMqttClientProperties = clientContext.clientProperties();
+        final var mqttSpecificConfig = hiveMqttClientProperties.getMqttSpecificConfig();
+        try {
+            return CompletableFuture.completedFuture(
+                    GenericMqttConnect.newInstance(true,
+                            KeepAliveInterval.zero(),
+                            mqttSpecificConfig.getClientReceiveMaximumOrDefault())
+            );
+        } catch (final IllegalReceiveMaximumValueException e) {
+            logger.withCorrelationId(clientContext.correlationId())
+                    .withMdcEntry(ConnectivityMdcEntryKey.CONNECTION_ID, clientContext.connectionId())
+                    .info("Failed to get client Receive Maximum: {}", e.getMessage());
+            return CompletableFuture.failedFuture(e);
+        }
     }
 
     private Function<ClientContext, ClientContext> logMqttConnectionEstablished() {

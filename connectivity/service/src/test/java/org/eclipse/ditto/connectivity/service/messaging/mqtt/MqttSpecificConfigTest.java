@@ -47,7 +47,8 @@ public final class MqttSpecificConfigTest {
     }
 
     @Test
-    public void parseMqttSpecificConfig() throws IllegalKeepAliveIntervalSecondsException {
+    public void parseMqttSpecificConfig()
+            throws IllegalKeepAliveIntervalSecondsException, IllegalReceiveMaximumValueException {
 
         // GIVEN
         final Map<String, String> configuredSpecificConfig = new HashMap<>();
@@ -61,6 +62,7 @@ public final class MqttSpecificConfigTest {
         configuredSpecificConfig.put("lastWillQos", "1");
         configuredSpecificConfig.put("lastWillMessage", "last will message");
         configuredSpecificConfig.put("lastWillRetain", "true");
+        configuredSpecificConfig.put("receive-maximum-client", "50000");
 
         // WHEN
         when(connection.getSpecificConfig()).thenReturn(configuredSpecificConfig);
@@ -75,7 +77,7 @@ public final class MqttSpecificConfigTest {
                 .isEqualTo(ReconnectDelay.ofOrLowerBoundary(Duration.ofMinutes(4L)));
         assertThat(specificConfig.getKeepAliveIntervalOrDefault())
                 .isEqualTo(KeepAliveInterval.of(Duration.ofSeconds(30L)));
-
+        assertThat(specificConfig.getClientReceiveMaximumOrDefault()).isEqualTo(ReceiveMaximum.of(50_000));
         assertThat(specificConfig.getMqttLastWillTopic()).contains(MqttTopic.of("lastWillTopic"));
         assertThat(specificConfig.getLastWillQosOrThrow()).isEqualTo(MqttQos.AT_LEAST_ONCE);
         assertThat(specificConfig.getMqttWillRetain()).isEqualTo(true);
@@ -83,7 +85,7 @@ public final class MqttSpecificConfigTest {
     }
 
     @Test
-    public void defaultConfig() throws IllegalKeepAliveIntervalSecondsException {
+    public void defaultConfig() throws IllegalKeepAliveIntervalSecondsException, IllegalReceiveMaximumValueException {
         when(connection.getSpecificConfig()).thenReturn(Collections.emptyMap());
         final MqttSpecificConfig specificConfig = MqttSpecificConfig.fromConnection(connection, mqttConfig);
 
@@ -98,6 +100,7 @@ public final class MqttSpecificConfigTest {
         assertThat(specificConfig.getLastWillQosOrThrow()).isEqualTo(MqttSpecificConfig.DEFAULT_LAST_WILL_QOS);
         assertThat(specificConfig.getMqttWillMessage()).isEmpty();
         assertThat(specificConfig.getMqttWillRetain()).isFalse();
+        assertThat(specificConfig.getClientReceiveMaximumOrDefault()).isEqualTo(ReceiveMaximum.defaultReceiveMaximum());
     }
 
 }

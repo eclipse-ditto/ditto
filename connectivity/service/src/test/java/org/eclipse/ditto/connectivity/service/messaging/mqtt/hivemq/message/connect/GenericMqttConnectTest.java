@@ -20,7 +20,9 @@ import java.time.Duration;
 
 import org.assertj.core.api.Assertions;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.IllegalKeepAliveIntervalSecondsException;
+import org.eclipse.ditto.connectivity.service.messaging.mqtt.IllegalReceiveMaximumValueException;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.KeepAliveInterval;
+import org.eclipse.ditto.connectivity.service.messaging.mqtt.ReceiveMaximum;
 import org.junit.Test;
 
 import com.hivemq.client.mqtt.mqtt3.message.connect.Mqtt3Connect;
@@ -48,8 +50,16 @@ public final class GenericMqttConnectTest {
     @Test
     public void newInstanceWithNullKeepAliveIntervalThrowsException() {
         Assertions.assertThatNullPointerException()
-                .isThrownBy(() -> GenericMqttConnect.newInstance(true, null))
+                .isThrownBy(() -> GenericMqttConnect.newInstance(true, null, ReceiveMaximum.defaultReceiveMaximum()))
                 .withMessage("The keepAliveInterval must not be null!")
+                .withNoCause();
+    }
+
+    @Test
+    public void newInstanceWithNullReceiveMaximumThrowsException() {
+        Assertions.assertThatNullPointerException()
+                .isThrownBy(() -> GenericMqttConnect.newInstance(true, KeepAliveInterval.defaultKeepAlive(), null))
+                .withMessage("The receiveMaximum must not be null!")
                 .withNoCause();
     }
 
@@ -57,7 +67,8 @@ public final class GenericMqttConnectTest {
     public void getAsMqtt3ConnectReturnsExpected() throws IllegalKeepAliveIntervalSecondsException {
         final var cleanSession = true;
         final var keepAliveInterval = KeepAliveInterval.of(Duration.ofSeconds(13L));
-        final var underTest = GenericMqttConnect.newInstance(cleanSession, keepAliveInterval);
+        final var underTest =
+                GenericMqttConnect.newInstance(cleanSession, keepAliveInterval, ReceiveMaximum.defaultReceiveMaximum());
 
         assertThat(underTest.getAsMqtt3Connect())
                 .isEqualTo(Mqtt3Connect.builder()
@@ -67,15 +78,19 @@ public final class GenericMqttConnectTest {
     }
 
     @Test
-    public void getAsMqtt5ConnectReturnsExpected() throws IllegalKeepAliveIntervalSecondsException {
+    public void getAsMqtt5ConnectReturnsExpected()
+            throws IllegalKeepAliveIntervalSecondsException, IllegalReceiveMaximumValueException {
+
         final var cleanSession = false;
         final var keepAliveInterval = KeepAliveInterval.of(Duration.ofSeconds(42L));
-        final var underTest = GenericMqttConnect.newInstance(cleanSession, keepAliveInterval);
+        final var receiveMaximum = ReceiveMaximum.of(35_000);
+        final var underTest = GenericMqttConnect.newInstance(cleanSession, keepAliveInterval, receiveMaximum);
 
         assertThat(underTest.getAsMqtt5Connect())
                 .isEqualTo(Mqtt5Connect.builder()
                         .cleanStart(cleanSession)
                         .keepAlive(keepAliveInterval.getSeconds())
+                        .restrictions().receiveMaximum(receiveMaximum.getValue()).applyRestrictions()
                         .build());
     }
 

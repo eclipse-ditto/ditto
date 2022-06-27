@@ -17,19 +17,20 @@ import java.io.Serial;
 import javax.annotation.Nullable;
 
 /**
- * This exception is thrown to indicate that the seconds of an MQTT keep alive interval is outside its allowed range.
+ * This exception is thrown to indicate that a particular number value does not represent a valid MQTT Receive Maximum.
+ * The details that led to this exception are stated in the detail message.
  */
-public final class IllegalKeepAliveIntervalSecondsException extends Exception {
+public final class IllegalReceiveMaximumValueException extends Exception {
 
-    @Serial private static final long serialVersionUID = 1749375435178271254L;
+    @Serial private static final long serialVersionUID = -2401780934628723671L;
 
     /**
-     * Constructs a {@code IllegalKeepAliveIntervalSecondsException} for the specified detail message argument.
+     * Constructs an {@code IllegalReceiveMaximumValueException} for the specified detail message argument.
      *
      * @param detailMessage the detail message of the exception.
      * @param cause the cause of the exception or {@code null} if unknown.
      */
-    IllegalKeepAliveIntervalSecondsException(final String detailMessage, @Nullable final Throwable cause) {
+    IllegalReceiveMaximumValueException(final String detailMessage, final @Nullable Throwable cause) {
         super(detailMessage, cause);
     }
 

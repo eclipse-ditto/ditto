@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.connectivity.service.messaging.mqtt;
 
-import java.text.MessageFormat;
 import java.time.Duration;
 import java.util.Objects;
 
@@ -44,6 +43,7 @@ public final class KeepAliveInterval {
      *
      * @param duration the duration of the keep alive interval. The seconds of this duration must be between
      * {@value #MIN_INTERVAL_SECONDS} and {@value #MAX_INTERVAL_SECONDS} (both inclusive).
+     * @return the KeepAliveInterval for {@code duration}.
      * @throws NullPointerException if {@code duration} is {@code null}.
      * @throws IllegalKeepAliveIntervalSecondsException if the seconds of {@code duration} is less than
      * {@value MIN_INTERVAL_SECONDS} or greater than {@value #MAX_INTERVAL_SECONDS}.
@@ -52,15 +52,12 @@ public final class KeepAliveInterval {
         ConditionChecker.checkNotNull(duration, "duration");
         final var durationSeconds = duration.getSeconds();
         if (durationSeconds < MIN_INTERVAL_SECONDS || durationSeconds > MAX_INTERVAL_SECONDS) {
-            throw new IllegalKeepAliveIntervalSecondsException(MessageFormat.format(
-                    """
-                            Expected seconds of duration to be within [{0,number,integer}, {1,number,integer}] \
-                            but it was <{2,number,integer}>.\
-                            """,
-                    MIN_INTERVAL_SECONDS,
-                    MAX_INTERVAL_SECONDS,
-                    durationSeconds
-            ));
+            throw new IllegalKeepAliveIntervalSecondsException(
+                    String.format("Expected seconds of duration to be within [%d, %d] but it was <%d>.",
+                            MIN_INTERVAL_SECONDS,
+                            MAX_INTERVAL_SECONDS,
+                            durationSeconds),
+                    null);
         } else {
             return new KeepAliveInterval((int) durationSeconds);
         }

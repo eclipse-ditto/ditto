@@ -19,6 +19,7 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.model.common.ConditionChecker;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.KeepAliveInterval;
+import org.eclipse.ditto.connectivity.service.messaging.mqtt.ReceiveMaximum;
 
 import com.hivemq.client.mqtt.mqtt3.message.connect.Mqtt3Connect;
 import com.hivemq.client.mqtt.mqtt5.message.connect.Mqtt5Connect;
@@ -31,15 +32,19 @@ public final class GenericMqttConnect {
 
     private final boolean cleanSession;
     private final KeepAliveInterval keepAliveInterval;
+    private final ReceiveMaximum receiveMaximum;
 
-    private GenericMqttConnect(final boolean cleanSession, final KeepAliveInterval keepAliveInterval) {
+    private GenericMqttConnect(final boolean cleanSession,
+            final KeepAliveInterval keepAliveInterval,
+            final ReceiveMaximum receiveMaximum) {
+
         this.cleanSession = cleanSession;
         this.keepAliveInterval = keepAliveInterval;
+        this.receiveMaximum = receiveMaximum;
     }
 
     /**
-     * Returns a new instance of {@code GenericMqttConnect} for the specified boolean and {@code KeepAliveInterval}
-     * argument.
+     * Returns a new instance of {@code GenericMqttConnect} for the specified arguments.
      *
      * @param cleanSession tells the broker whether the client wants to establish a persistent session or not.
      * In a persistent session ({@code cleanSession} = {@code false}), the broker stores all subscriptions for the
@@ -49,14 +54,19 @@ public final class GenericMqttConnect {
      * @param keepAliveInterval time interval that the client specifies and communicates to the broker when the
      * connection established.
      * This interval defines the longest period of time that the broker and client can endure without sending a message.
+     * @param receiveMaximum the maximum number of unacknowledged QoS 1 and QoS 2 PUBLISH messages the client is able
+     * to receive.
+     * The Receive Maximum is only applied for MQTT protocol version 5
      * @return the new instance.
-     * @throws NullPointerException if {@code keepAliveInterval} is {@code null}.
+     * @throws NullPointerException if {@code keepAliveInterval} or {@code receiveMaximum} is {@code null}.
      */
     public static GenericMqttConnect newInstance(final boolean cleanSession,
-            final KeepAliveInterval keepAliveInterval) {
+            final KeepAliveInterval keepAliveInterval,
+            final ReceiveMaximum receiveMaximum) {
 
         return new GenericMqttConnect(cleanSession,
-                ConditionChecker.checkNotNull(keepAliveInterval, "keepAliveInterval"));
+                ConditionChecker.checkNotNull(keepAliveInterval, "keepAliveInterval"),
+                ConditionChecker.checkNotNull(receiveMaximum, "receiveMaximum"));
     }
 
     /**
@@ -80,6 +90,7 @@ public final class GenericMqttConnect {
         return Mqtt5Connect.builder()
                 .cleanStart(cleanSession)
                 .keepAlive(keepAliveInterval.getSeconds())
+                .restrictions().receiveMaximum(receiveMaximum.getValue()).applyRestrictions()
                 .build();
     }
 
@@ -92,12 +103,14 @@ public final class GenericMqttConnect {
             return false;
         }
         final var that = (GenericMqttConnect) o;
-        return cleanSession == that.cleanSession && Objects.equals(keepAliveInterval, that.keepAliveInterval);
+        return cleanSession == that.cleanSession &&
+                Objects.equals(keepAliveInterval, that.keepAliveInterval) &&
+                Objects.equals(receiveMaximum, that.receiveMaximum);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(cleanSession, keepAliveInterval);
+        return Objects.hash(cleanSession, keepAliveInterval, receiveMaximum);
     }
 
 }
