@@ -1,0 +1,120 @@
+/*
+ *
+ * Copyright (c) 2022 Contributors to the Eclipse Foundation
+ *
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
+ *
+ * SPDX-License-Identifier: EPL-2.0
+ */
+
+.table {
+    --bs-table-active-bg: #3a8c9a;
+    --bs-table-active-color: white;
+}
+
+.table-active {
+    --bs-table-striped-bg: #3a8c9a;
+    --bs-table-striped-color: white;
+    --bs-table-hover-bg: #3a8c9a;
+    --bs-table-hover-color: white;
+}
+
+body { 
+    padding-top: 60px;
+}
+
+.toast-header {
+    color: #842029;
+    background-color: #f8d7da;
+    border-color: #f5c2c7;
+}
+
+textarea {
+    white-space: pre;
+    overflow-wrap:    normal;
+    overflow-x:  scroll;
+    font-family: Monospace;
+}
+
+.bg-info {
+    background-color: #3a8c9a !important;
+    color: white !important;
+}
+
+.badge-info {
+    background-color: #3a8c9a !important;
+}
+
+.nav-tabs > li > a {
+    color: #3a8c9a;
+}
+
+.nav-link {
+    padding-top: 0.1rem;
+    padding-bottom: 0.1rem;
+}
+
+.tab-pane {
+    max-width: none;
+}
+
+.no-margin {
+    margin-left: 0px;
+    padding-left: 0px;
+}
+
+.table-wrap {
+    height: 100%;
+    flex-grow: 1;
+    overflow-y: scroll;    
+}
+
+.ace_container {
+    position: relative;
+}
+
+.button_round_right {
+    border-bottom-right-radius: 0.2rem !important;
+    border-top-right-radius: 0.2rem !important;
+    border-bottom-left-radius: 0 !important;
+    border-top-left-radius: 0 !important;
+}
+
+.button_round_left {
+    border-bottom-right-radius: 0 !important;
+    border-top-right-radius: 0 !important;
+    border-bottom-left-radius: 0.2rem !important;
+    border-top-left-radius: 0.2rem !important;
+}
+
+.resizable_pane {
+    overflow: auto;
+    resize: vertical;
+}
+
+.resizable_flex_column {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.script_editor {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+}
+
+h5 {
+    margin-bottom: 0;
+}
+
+hr {
+    margin-top: 0.1rem;
+}

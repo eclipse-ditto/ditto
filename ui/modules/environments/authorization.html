@@ -1,0 +1,70 @@
+<!--
+  ~ Copyright (c) 2022 Contributors to the Eclipse Foundation
+  ~
+  ~ See the NOTICE file(s) distributed with this work for additional
+  ~ information regarding copyright ownership.
+  ~
+  ~ This program and the accompanying materials are made available under the
+  ~ terms of the Eclipse Public License 2.0 which is available at
+  ~ http://www.eclipse.org/legal/epl-2.0
+  ~
+  ~ SPDX-License-Identifier: EPL-2.0
+  -->
+<div class="modal fade bd-example-modal-sm" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                Authorize
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <h5>Basic Auth</h5>
+                <hr />
+                <div class="row">
+                    <div class="col-md-4">
+                        <label>Main User</label>
+                    </div>
+                    <div class="col-md-8">
+                        <div class="input-group input-group-sm mb-1">
+                            <label class="input-group-text">Username</label>
+                            <input type="text" class="form-control form-control-sm" id="userName"></input>
+                        </div>
+                        <div class="input-group input-group-sm mb-1">
+                            <label class="input-group-text">Password</label>
+                            <input type="password" class="form-control form-control-sm" id="password"></input>
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-4">
+                        <label>DevOps User<br /><small>(for Connections, optional)</small></label>
+                    </div>
+                    <div class="col-md-8">
+                        <div class="input-group input-group-sm mb-1">
+                            <label class="input-group-text">DevOps Username</label>
+                            <input type="text" class="form-control form-control-sm" id="devOpsUserName"></input>
+                        </div>
+                        <div class="input-group input-group-sm mb-1">
+                            <label class="input-group-text">DevOps Password</label>
+                            <input type="password" class="form-control form-control-sm" id="devOpsPassword"></input>
+                        </div>
+                    </div>
+                </div>
+                <div class="input-group input-group-sm" style="flex-direction: row-reverse;">
+                    <button class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal"
+                        id="authorizeBasic">Authorize</button>
+                </div>
+                <h5>Bearer</h5>
+                <hr />
+                <div class="input-group input-group-sm mb-1">
+                    <label class="input-group-text">Value</label>
+                    <input type="password" class="form-control form-control-sm" id="bearer"></input>
+                </div>
+                <div class="input-group input-group-sm" style="flex-direction: row-reverse;">
+                    <button class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal"
+                        id="authorizeBearer">Authorize</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

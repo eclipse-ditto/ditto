@@ -1,0 +1,39 @@
+<!--
+  ~ Copyright (c) 2022 Contributors to the Eclipse Foundation
+  ~
+  ~ See the NOTICE file(s) distributed with this work for additional
+  ~ information regarding copyright ownership.
+  ~
+  ~ This program and the accompanying materials are made available under the
+  ~ terms of the Eclipse Public License 2.0 which is available at
+  ~ http://www.eclipse.org/legal/epl-2.0
+  ~
+  ~ SPDX-License-Identifier: EPL-2.0
+  -->
+  <div class="tab-pane container no-margin">
+    <div class="resizable_flex_column">
+        <div class="input-group input-group-sm mb-1 mt-1">
+            <label class="input-group-text">Field</label>
+            <input type="text" class="form-control" id="fieldPath"></input>
+            <button class="btn btn-outline-secondary btn-sm" id="fieldUpdate" data-bs-toggle="tooltip"
+                    title="Add field as column to the things table">
+                <i class="bi bi-plus-square"></i>
+            </button>
+            <button class="btn btn-outline-secondary btn-sm" id="fieldDelete" data-bs-toggle="tooltip"
+                    title="Remove field as column from the things table">
+                <i class="bi bi-trash3"></i>
+            </button>
+            <button class="btn btn-outline-secondary btn-sm" id="fieldUp">
+                <i class="bi bi-chevron-up"></i>
+            </button>
+            <button class="btn btn-outline-secondary btn-sm" id="fieldDown">
+                <i class="bi bi-chevron-down"></i>
+            </button>
+        </div>
+        <div class="table-wrap mb-3">
+            <table class="table table-striped table-hover table-sm">
+                <tbody id="fieldList"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
