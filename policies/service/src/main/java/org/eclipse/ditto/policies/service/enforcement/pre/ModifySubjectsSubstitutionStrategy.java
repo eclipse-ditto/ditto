@@ -31,19 +31,19 @@ final class ModifySubjectsSubstitutionStrategy extends AbstractTypedSubstitution
     }
 
     @Override
-    public ModifySubjects apply(final ModifySubjects modifySubjects,
+    public ModifySubjects apply(final ModifySubjects signal,
             final HeaderBasedPlaceholderSubstitutionAlgorithm substitutionAlgorithm) {
-        requireNonNull(modifySubjects);
+        requireNonNull(signal);
         requireNonNull(substitutionAlgorithm);
 
-        final DittoHeaders dittoHeaders = modifySubjects.getDittoHeaders();
-        final Subjects existingSubjects = modifySubjects.getSubjects();
+        final DittoHeaders dittoHeaders = signal.getDittoHeaders();
+        final Subjects existingSubjects = signal.getSubjects();
         Subjects substitutedSubjects = substituteSubjects(existingSubjects, substitutionAlgorithm, dittoHeaders);
 
         if (existingSubjects.equals(substitutedSubjects)) {
-            return modifySubjects;
+            return signal;
         } else {
-            return ModifySubjects.of(modifySubjects.getEntityId(), modifySubjects.getLabel(), substitutedSubjects,
+            return ModifySubjects.of(signal.getEntityId(), signal.getLabel(), substitutedSubjects,
                     dittoHeaders);
         }
     }

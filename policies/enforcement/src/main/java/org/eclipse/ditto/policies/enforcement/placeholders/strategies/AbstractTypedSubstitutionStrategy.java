@@ -19,7 +19,7 @@ import java.util.Iterator;
 import java.util.List;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.base.model.headers.DittoHeadersSettable;
+import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.policies.enforcement.placeholders.HeaderBasedPlaceholderSubstitutionAlgorithm;
 import org.eclipse.ditto.policies.model.PoliciesModelFactory;
 import org.eclipse.ditto.policies.model.Policy;
@@ -29,11 +29,11 @@ import org.eclipse.ditto.policies.model.Subjects;
 
 /**
  * Abstract base class for instances of {@link SubstitutionStrategy} which matches on a concrete subtype of
- * {@link DittoHeadersSettable}.
+ * {@link Signal}.
  *
- * @param <T> the subtype of {@link DittoHeadersSettable} handled by this strategy.
+ * @param <T> the subtype of {@link Signal} handled by this strategy.
  */
-public abstract class AbstractTypedSubstitutionStrategy<T extends DittoHeadersSettable<?>> implements SubstitutionStrategy<T> {
+public abstract class AbstractTypedSubstitutionStrategy<T extends Signal<?>> implements SubstitutionStrategy<T> {
 
     private final Class<T> type;
 
@@ -42,8 +42,8 @@ public abstract class AbstractTypedSubstitutionStrategy<T extends DittoHeadersSe
     }
 
     @Override
-    public boolean matches(final DittoHeadersSettable<?> dittoHeadersSettable) {
-        return type.isAssignableFrom(dittoHeadersSettable.getClass());
+    public boolean matches(final Signal<?> signal) {
+        return type.isAssignableFrom(signal.getClass());
     }
 
     protected static Subjects substituteSubjects(final Subjects subjects,

@@ -18,7 +18,7 @@ import java.util.Optional;
 
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.base.model.headers.DittoHeadersSettable;
+import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.policies.enforcement.placeholders.strategies.SubstitutionStrategy;
 import org.eclipse.ditto.policies.enforcement.placeholders.strategies.SubstitutionStrategyRegistry;
 
@@ -28,7 +28,7 @@ import org.eclipse.ditto.policies.enforcement.placeholders.strategies.Substituti
 @Immutable
 final class ThingSubstitutionStrategyRegistry implements SubstitutionStrategyRegistry {
 
-    private final List<SubstitutionStrategy<?>> strategies;
+    private final List<SubstitutionStrategy<? extends Signal<?>>> strategies;
 
     private ThingSubstitutionStrategyRegistry() {
         strategies = List.copyOf(createStrategies());
@@ -39,17 +39,16 @@ final class ThingSubstitutionStrategyRegistry implements SubstitutionStrategyReg
     }
 
     /**
-     * Get a matching strategy for handling the given {@code withDittoHeaders}.
+     * Get a matching strategy for handling the given {@code signal}.
      *
-     * @param withDittoHeaders the instance of {@link org.eclipse.ditto.base.model.headers.WithDittoHeaders} to be handled.
-     * @return an {@link java.util.Optional} containing the first strategy which matches; an empty {@link java.util.Optional} in case no
+     * @param signal the instance of {@link Signal} to be handled.
+     * @return an {@link Optional} containing the first strategy which matches; an empty {@link Optional} in case no
      * strategy matches.
      */
-    @SuppressWarnings({"rawtypes", "java:S3740"})
     @Override
-    public Optional<SubstitutionStrategy> getMatchingStrategy(final DittoHeadersSettable<?> withDittoHeaders) {
-        for (final SubstitutionStrategy<?> strategy : strategies) {
-            if (strategy.matches(withDittoHeaders)) {
+    public Optional<SubstitutionStrategy<? extends Signal<?>>> getMatchingStrategy(final Signal<?> signal) {
+        for (final SubstitutionStrategy<? extends Signal<?>> strategy : strategies) {
+            if (strategy.matches(signal)) {
                 return Optional.of(strategy);
             }
         }
@@ -57,12 +56,12 @@ final class ThingSubstitutionStrategyRegistry implements SubstitutionStrategyReg
     }
 
     @Override
-    public List<SubstitutionStrategy<?>> getStrategies() {
+    public List<SubstitutionStrategy<? extends Signal<?>>> getStrategies() {
         return strategies;
     }
 
-    private static List<SubstitutionStrategy<?>> createStrategies() {
-        final List<SubstitutionStrategy<?>> strategies = new LinkedList<>();
+    private static List<SubstitutionStrategy<? extends Signal<?>>> createStrategies() {
+        final List<SubstitutionStrategy<? extends Signal<?>>> strategies = new LinkedList<>();
 
         // replacement for policy-subject-id
         strategies.add(new CreateThingSubstitutionStrategy());

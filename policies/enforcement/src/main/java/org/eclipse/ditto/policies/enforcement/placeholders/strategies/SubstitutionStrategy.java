@@ -12,31 +12,31 @@
  */
 package org.eclipse.ditto.policies.enforcement.placeholders.strategies;
 
-import org.eclipse.ditto.base.model.headers.DittoHeadersSettable;
+import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.policies.enforcement.placeholders.HeaderBasedPlaceholderSubstitutionAlgorithm;
 
 /**
- * Defines the (placeholder) substitution strategy for a certain command (which is of type {@link DittoHeadersSettable}.
+ * Defines the (placeholder) substitution strategy for a certain command (which is of type {@link Signal}.
  *
- * @param <T> the subtype of {@link DittoHeadersSettable} handled by this strategy.
+ * @param <T> the subtype of {@link Signal} handled by this strategy.
  */
-public interface SubstitutionStrategy<T extends DittoHeadersSettable<?>> {
+public interface SubstitutionStrategy<T extends Signal<?>> {
 
     /**
-     * Checks whether this strategy is applicable for the given {@code dittoHeadersSettable}.
+     * Checks whether this strategy is applicable for the given {@code signal}.
      *
-     * @param dittoHeadersSettable the command which may have content to be substituted.
+     * @param signal the command which may have content to be substituted.
      * @return {@code true}, if this strategy is applicable; {@code false}, otherwise.
      */
-    boolean matches(DittoHeadersSettable<?> dittoHeadersSettable);
+    boolean matches(Signal<?> signal);
 
     /**
-     * Apply (placeholder) substitution on the given {@code withDittoHeaders} using the {@code substitutionAlgorithm}.
+     * Apply (placeholder) substitution on the given {@code signal} using the {@code substitutionAlgorithm}.
      *
-     * @param withDittoHeaders the command which may have content to be substituted.
+     * @param signal the command which may have content to be substituted.
      * @param substitutionAlgorithm the algorithm to be used for placeholder substitution.
-     * @return a copy of {@code withDittoHeaders} with substitutions applied, if substitutions were necessary; the
-     * same {@code withDittoHeaders}, if no substitutions were necessary.
+     * @return a copy of {@code signal} with substitutions applied, if substitutions were necessary; the
+     * same {@code signal}, if no substitutions were necessary.
      */
-    T apply(T withDittoHeaders, HeaderBasedPlaceholderSubstitutionAlgorithm substitutionAlgorithm);
+    T apply(T signal, HeaderBasedPlaceholderSubstitutionAlgorithm substitutionAlgorithm);
 }

@@ -31,19 +31,19 @@ final class ModifyPolicyEntrySubstitutionStrategy extends AbstractTypedSubstitut
     }
 
     @Override
-    public ModifyPolicyEntry apply(final ModifyPolicyEntry modifyPolicyEntry,
+    public ModifyPolicyEntry apply(final ModifyPolicyEntry signal,
             final HeaderBasedPlaceholderSubstitutionAlgorithm substitutionAlgorithm) {
-        requireNonNull(modifyPolicyEntry);
+        requireNonNull(signal);
         requireNonNull(substitutionAlgorithm);
 
-        final DittoHeaders dittoHeaders = modifyPolicyEntry.getDittoHeaders();
-        final PolicyEntry existingPolicyEntry = modifyPolicyEntry.getPolicyEntry();
+        final DittoHeaders dittoHeaders = signal.getDittoHeaders();
+        final PolicyEntry existingPolicyEntry = signal.getPolicyEntry();
         final PolicyEntry resultEntry = substitutePolicyEntry(existingPolicyEntry, substitutionAlgorithm, dittoHeaders);
 
         if (existingPolicyEntry.equals(resultEntry)) {
-            return modifyPolicyEntry;
+            return signal;
         } else {
-            return ModifyPolicyEntry.of(modifyPolicyEntry.getEntityId(), resultEntry, modifyPolicyEntry.getDittoHeaders());
+            return ModifyPolicyEntry.of(signal.getEntityId(), resultEntry, signal.getDittoHeaders());
         }
     }
 

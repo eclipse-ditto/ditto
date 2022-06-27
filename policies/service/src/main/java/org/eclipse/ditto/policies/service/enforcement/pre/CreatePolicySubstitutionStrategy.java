@@ -31,18 +31,18 @@ final class CreatePolicySubstitutionStrategy extends AbstractTypedSubstitutionSt
     }
 
     @Override
-    public CreatePolicy apply(final CreatePolicy createPolicy,
+    public CreatePolicy apply(final CreatePolicy signal,
             final HeaderBasedPlaceholderSubstitutionAlgorithm substitutionAlgorithm) {
-        requireNonNull(createPolicy);
+        requireNonNull(signal);
         requireNonNull(substitutionAlgorithm);
 
-        final DittoHeaders dittoHeaders = createPolicy.getDittoHeaders();
-        final Policy existingPolicy = createPolicy.getPolicy();
+        final DittoHeaders dittoHeaders = signal.getDittoHeaders();
+        final Policy existingPolicy = signal.getPolicy();
         final Policy substitutedPolicy =
                 substitutePolicy(existingPolicy, substitutionAlgorithm, dittoHeaders);
 
         if (existingPolicy.equals(substitutedPolicy)) {
-            return createPolicy;
+            return signal;
         } else {
             return CreatePolicy.of(substitutedPolicy, dittoHeaders);
         }

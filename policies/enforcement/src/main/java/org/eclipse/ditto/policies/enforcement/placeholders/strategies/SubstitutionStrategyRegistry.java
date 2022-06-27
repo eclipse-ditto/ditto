@@ -17,8 +17,7 @@ import java.util.Optional;
 
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.base.model.headers.DittoHeadersSettable;
-import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
+import org.eclipse.ditto.base.model.signals.Signal;
 
 /**
  * Registry interface for determining {@link SubstitutionStrategy}s to use for a Signal.
@@ -27,18 +26,19 @@ import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 public interface SubstitutionStrategyRegistry {
 
     /**
-     * Get a matching strategy for handling the given {@code withDittoHeaders}.
+     * Get a matching strategy for handling the given {@code signal}.
      *
-     * @param withDittoHeaders the instance of {@link WithDittoHeaders} to be handled.
+     * @param signal the instance of {@link Signal} to be handled.
      * @return an {@link Optional} containing the first strategy which matches; an empty {@link Optional} in case no
      * strategy matches.
      */
-    Optional<SubstitutionStrategy> getMatchingStrategy(DittoHeadersSettable<?> withDittoHeaders);
+    Optional<SubstitutionStrategy<? extends Signal<?>>> getMatchingStrategy(Signal<?> signal);
 
     /**
-     * TODO TJ javadoc
-     * @return
+     * Returns all configured available SubstitutionStrategies.
+     *
+     * @return all available SubstitutionStrategies.
      */
-    List<SubstitutionStrategy<?>> getStrategies();
+    List<SubstitutionStrategy<? extends Signal<?>>> getStrategies();
 
 }

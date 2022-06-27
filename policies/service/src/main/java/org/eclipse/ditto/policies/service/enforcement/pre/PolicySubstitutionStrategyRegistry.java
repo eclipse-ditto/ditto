@@ -18,7 +18,7 @@ import java.util.Optional;
 
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.base.model.headers.DittoHeadersSettable;
+import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.policies.enforcement.placeholders.strategies.SubstitutionStrategy;
 import org.eclipse.ditto.policies.enforcement.placeholders.strategies.SubstitutionStrategyRegistry;
 
@@ -39,17 +39,16 @@ final class PolicySubstitutionStrategyRegistry implements SubstitutionStrategyRe
     }
 
     /**
-     * Get a matching strategy for handling the given {@code withDittoHeaders}.
+     * Get a matching strategy for handling the given {@code signal}.
      *
-     * @param withDittoHeaders the instance of {@link org.eclipse.ditto.base.model.headers.WithDittoHeaders} to be handled.
-     * @return an {@link java.util.Optional} containing the first strategy which matches; an empty {@link java.util.Optional} in case no
+     * @param signal the instance of {@link Signal} to be handled.
+     * @return an {@link Optional} containing the first strategy which matches; an empty {@link Optional} in case no
      * strategy matches.
      */
-    @SuppressWarnings({"rawtypes", "java:S3740"})
     @Override
-    public Optional<SubstitutionStrategy> getMatchingStrategy(final DittoHeadersSettable<?> withDittoHeaders) {
+    public Optional<SubstitutionStrategy<? extends Signal<?>>> getMatchingStrategy(final Signal<?> signal) {
         for (final SubstitutionStrategy<?> strategy : strategies) {
-            if (strategy.matches(withDittoHeaders)) {
+            if (strategy.matches(signal)) {
                 return Optional.of(strategy);
             }
         }

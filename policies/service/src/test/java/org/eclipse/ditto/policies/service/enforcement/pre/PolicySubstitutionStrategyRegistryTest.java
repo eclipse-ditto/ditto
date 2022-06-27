@@ -32,6 +32,7 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.policies.enforcement.placeholders.strategies.SubstitutionStrategy;
 import org.eclipse.ditto.policies.model.EffectedPermissions;
 import org.eclipse.ditto.policies.model.Label;
@@ -72,7 +73,7 @@ public class PolicySubstitutionStrategyRegistryTest {
                 Label.of("foo"), Resource.newInstance(ResourceKey.newInstance("policy:/"),
                         EffectedPermissions.newInstance(null, null)), DITTO_HEADERS);
 
-        final Optional<SubstitutionStrategy> strategy = underTest.getMatchingStrategy(nonHandledCommand);
+        final Optional<SubstitutionStrategy<? extends Signal<?>>> strategy = underTest.getMatchingStrategy(nonHandledCommand);
         assertThat(strategy).isEmpty();
     }
 
@@ -82,7 +83,7 @@ public class PolicySubstitutionStrategyRegistryTest {
                 Label.of("my-label"), Subject.newInstance("my-issuer:my-id", SubjectType.GENERATED),
                 DITTO_HEADERS);
 
-        final Optional<SubstitutionStrategy> strategy = underTest.getMatchingStrategy(commandWithoutPlaceholders);
+        final Optional<SubstitutionStrategy<? extends Signal<?>>> strategy = underTest.getMatchingStrategy(commandWithoutPlaceholders);
         assertThat(strategy).isPresent();
         assertThat(strategy.get()).isInstanceOf(ModifySubjectSubstitutionStrategy.class);
     }

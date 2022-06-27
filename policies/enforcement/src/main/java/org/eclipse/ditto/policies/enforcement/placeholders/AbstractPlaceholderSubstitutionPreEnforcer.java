@@ -48,19 +48,20 @@ public abstract class AbstractPlaceholderSubstitutionPreEnforcer implements PreE
     }
 
     @Override
-    @SuppressWarnings({"unchecked", "rawtypes", "java:S3740"})
-    public CompletionStage<Signal<?>> apply(final Signal<?> dittoHeadersSettable) {
-        requireNonNull(dittoHeadersSettable);
+    @SuppressWarnings("unchecked")
+    public CompletionStage<Signal<?>> apply(final Signal<?> signal) {
+        requireNonNull(signal);
 
-        final Optional<SubstitutionStrategy> firstMatchingStrategyOpt =
-                substitutionStrategyRegistry.getMatchingStrategy(dittoHeadersSettable);
+        final Optional<SubstitutionStrategy<? extends Signal<?>>> firstMatchingStrategyOpt =
+                substitutionStrategyRegistry.getMatchingStrategy(signal);
         if (firstMatchingStrategyOpt.isPresent()) {
-            final SubstitutionStrategy<Signal<?>> firstMatchingStrategy = firstMatchingStrategyOpt.get();
+            final SubstitutionStrategy<Signal<?>> firstMatchingStrategy =
+                    (SubstitutionStrategy<Signal<?>>) firstMatchingStrategyOpt.get();
             return CompletableFuture.supplyAsync(() ->
-                    firstMatchingStrategy.apply(dittoHeadersSettable, substitutionAlgorithm)
+                    firstMatchingStrategy.apply(signal, substitutionAlgorithm)
             ).thenApply(Function.identity());
         } else {
-            return CompletableFuture.completedFuture(dittoHeadersSettable);
+            return CompletableFuture.completedFuture(signal);
         }
     }
 
