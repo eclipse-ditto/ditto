@@ -44,6 +44,8 @@ import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonParseOptions;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.policies.api.commands.sudo.SudoRetrievePolicy;
+import org.eclipse.ditto.policies.api.commands.sudo.SudoRetrievePolicyResponse;
 import org.eclipse.ditto.policies.model.Permissions;
 import org.eclipse.ditto.policies.model.PoliciesModelFactory;
 import org.eclipse.ditto.policies.model.PoliciesResourceType;
@@ -195,9 +197,21 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
                 // retrieve created thing
                 final RetrieveThing retrieveThing = RetrieveThing.of(thingId, dittoHeadersV2);
                 underTest.tell(retrieveThing, getRef());
+                final SudoRetrievePolicy sudoRetrievePolicy =
+                        policiesShardRegionTestProbe.expectMsgClass(SudoRetrievePolicy.class);
+                policiesShardRegionTestProbe.reply(
+                        SudoRetrievePolicyResponse.of(POLICY_ID, inlinePolicy, sudoRetrievePolicy.getDittoHeaders())
+                );
+                final SudoRetrievePolicy sudoRetrievePolicyForResponseFiltering =
+                        policiesShardRegionTestProbe.expectMsgClass(SudoRetrievePolicy.class);
+                policiesShardRegionTestProbe.reply(
+                        SudoRetrievePolicyResponse.of(POLICY_ID, inlinePolicy,
+                                sudoRetrievePolicyForResponseFiltering.getDittoHeaders())
+                );
                 final DittoHeaders expectedHeaders = dittoHeadersV2.toBuilder()
                         .readGrantedSubjects(List.of(AUTHORIZED_SUBJECT))
-                        .putHeader(DittoHeaderDefinition.ORIGINATOR.getKey(), AUTHORIZED_SUBJECT.getId()) //pre-enforcement
+                        .putHeader(DittoHeaderDefinition.ORIGINATOR.getKey(),
+                                AUTHORIZED_SUBJECT.getId()) //pre-enforcement
                         .build();
                 expectMsgEquals(ETagTestUtils.retrieveThingResponse(thing, null, expectedHeaders));
 
@@ -452,7 +466,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
                 underTest.tell(modifyThingCommand, getRef());
 
                 expectMsgEquals(ETagTestUtils.modifyThingResponse(thingWithFirstLevelFields, minimalThing, dittoHeaders,
-                                false));
+                        false));
 
                 assertPublishEvent(ThingModified.of(expectedThing, 2L, TIMESTAMP, dittoHeaders, null));
 
@@ -926,7 +940,8 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
 
                 // retrieve the thing's sequence number
                 final JsonFieldSelector versionFieldSelector =
-                        JsonFactory.newFieldSelector(Thing.JsonFields.REVISION.getPointer().toString(), JSON_PARSE_OPTIONS);
+                        JsonFactory.newFieldSelector(Thing.JsonFields.REVISION.getPointer().toString(),
+                                JSON_PARSE_OPTIONS);
                 final long versionExpected = 2;
                 final Thing thingExpected = ThingsModelFactory.newThingBuilder(thingToModify)
                         .setRevision(versionExpected)
@@ -935,7 +950,8 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
                         .withSelectedFields(versionFieldSelector)
                         .build();
                 underTest.tell(retrieveThing, getRef());
-                expectMsgEquals(ETagTestUtils.retrieveThingResponse(thingExpected, versionFieldSelector, dittoHeadersV2));
+                expectMsgEquals(
+                        ETagTestUtils.retrieveThingResponse(thingExpected, versionFieldSelector, dittoHeadersV2));
             }
         };
     }
@@ -963,7 +979,8 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
 
                 // retrieve the thing's sequence number from recovered actor
                 final JsonFieldSelector versionFieldSelector =
-                        JsonFactory.newFieldSelector(Thing.JsonFields.REVISION.getPointer().toString(), JSON_PARSE_OPTIONS);
+                        JsonFactory.newFieldSelector(Thing.JsonFields.REVISION.getPointer().toString(),
+                                JSON_PARSE_OPTIONS);
                 final long versionExpected = 2;
                 final Thing thingExpected = ThingsModelFactory.newThingBuilder(thingToModify)
                         .setRevision(versionExpected)
