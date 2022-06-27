@@ -63,6 +63,7 @@ abstract class AbstractThingEventStrategy<T extends ThingEvent<T>> implements Ev
         return null;
     }
 
+    @Nullable
     protected Metadata mergeMetadata(@Nullable final Thing thing, final T event) {
 
         final JsonPointer eventMetadataResourcePath = event.getResourcePath();
@@ -73,13 +74,15 @@ abstract class AbstractThingEventStrategy<T extends ThingEvent<T>> implements Ev
 
         if (eventMetadataResourcePath.isEmpty() && eventMetadataOpt.isPresent()) {
             return eventMetadataOpt.get();
-        } else if (eventMetadataOpt.isPresent()) {
+        } else if (eventMetadataOpt.isPresent() && thing != null) {
             final Metadata eventMetadata = eventMetadataOpt.get();
 
-            return deleteMetadataForModifiedEvents(event,
-                    metadataBuilder.set(eventMetadataResourcePath, eventMetadata.toJson()));
+            return deleteMetadataForMergeAndModifiedEvents(event,
+                            metadataBuilder.set(eventMetadataResourcePath, eventMetadata.toJson()));
+        } else if (thingMetadata.isPresent()){
+            return deleteMetadataForMergeAndModifiedEvents(event, metadataBuilder);
         } else {
-            return deleteMetadataForModifiedEvents(event, metadataBuilder);
+            return null;
         }
     }
 
@@ -96,11 +99,10 @@ abstract class AbstractThingEventStrategy<T extends ThingEvent<T>> implements Ev
         return thingBuilder;
     }
 
-    private Metadata deleteMetadataForModifiedEvents(final T event, final MetadataBuilder metadataBuilder) {
+    private Metadata deleteMetadataForMergeAndModifiedEvents(final T event, final MetadataBuilder metadataBuilder) {
         if (event instanceof ThingModifiedEvent && event.getCommandCategory().equals(Command.Category.DELETE)) {
             return metadataBuilder.remove(event.getResourcePath()).build();
-        }
-        else if (event instanceof ThingModifiedEvent && event.getCommandCategory().equals(Command.Category.MERGE)) {
+        } else if (event instanceof ThingModifiedEvent && event.getCommandCategory().equals(Command.Category.MERGE)) {
             final Optional<JsonValue> optionalJsonValue = event.getEntity();
             if (optionalJsonValue.isEmpty() || optionalJsonValue.get().isNull()) {
                 return metadataBuilder.remove(event.getResourcePath()).build();
