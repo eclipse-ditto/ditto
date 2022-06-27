@@ -41,6 +41,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.things.model.Thing;
+import org.eclipse.ditto.things.model.ThingsModelFactory;
 import org.eclipse.ditto.things.model.signals.commands.modify.CreateThing;
 
 /**
@@ -53,19 +54,16 @@ import org.eclipse.ditto.things.model.signals.commands.modify.CreateThing;
 final class MetadataFromCommand implements Supplier<Metadata> {
 
     private final Command<?> command;
-    @Nullable
-    private final JsonValue commandEntity;
-    private final Thing existingThing;
+    private final Thing mergedThing;
+
     @Nullable
     private final Metadata existingMetadata;
 
     private MetadataFromCommand(final Command<?> command,
-            @Nullable final JsonValue commandEntity,
-            final Thing existingThing,
+            final Thing mergedThing,
             @Nullable final Metadata existingMetadata) {
         this.command = checkNotNull(command, "command");
-        this.commandEntity = commandEntity;
-        this.existingThing = checkNotNull(existingThing, "existingThing");
+        this.mergedThing = checkNotNull(mergedThing, "mergedThing");
         this.existingMetadata = existingMetadata;
     }
 
@@ -80,19 +78,24 @@ final class MetadataFromCommand implements Supplier<Metadata> {
     static MetadataFromCommand of(final Command<?> command,
             @Nullable final Thing existingThing,
             @Nullable final Metadata existingMetadata) {
-        final JsonValue commandEntity;
+
+        final Thing existingOrEmptyThing = Objects.requireNonNullElseGet(existingThing, () -> Thing.newBuilder().build());
+
         if (command instanceof WithOptionalEntity withOptionalEntity) {
-            commandEntity = withOptionalEntity.getEntity(command.getDittoHeaders()
-                            .getSchemaVersion()
-                            .orElse(command.getLatestSchemaVersion()))
-                    .orElse(null);
+            final var mergedThing = withOptionalEntity.getEntity()
+                    .map(entity -> {
+                        final var resourcePath = command.getResourcePath();
+                        if (resourcePath.isEmpty() && entity.isObject()) {
+                            return ThingsModelFactory.newThing(entity.asObject());
+                        } else {
+                            return ThingsModelFactory.newThing(existingOrEmptyThing.toJson().setValue(resourcePath, entity));
+                        }
+                    })
+                    .orElse(existingOrEmptyThing);
+            return new MetadataFromCommand(command, mergedThing, existingMetadata);
         } else {
-            commandEntity = null;
+            return new MetadataFromCommand(command, existingOrEmptyThing, existingMetadata);
         }
-
-        final Thing thing = Objects.requireNonNullElseGet(existingThing, () -> Thing.newBuilder().build());
-
-        return new MetadataFromCommand(command, commandEntity, thing, existingMetadata);
     }
 
     /**
@@ -115,21 +118,30 @@ final class MetadataFromCommand implements Supplier<Metadata> {
     @Nullable
     public Metadata get() {
         return getInlineMetadata().orElseGet(() -> {
-            if (null != commandEntity) {
-                final SortedSet<MetadataHeader> metadataHeaders = getMetadataHeadersToPut();
-                if (!metadataHeaders.isEmpty()) {
-                    final var expandedMetadataHeaders = metadataHeaders.stream()
-                            .flatMap(this::expandWildcards)
-                            .collect(Collectors.toCollection(LinkedHashSet::new));
-                    return buildMetadata(commandEntity, expandedMetadataHeaders);
-                }
+            final JsonValue commandEntity;
+            if (command instanceof WithOptionalEntity withOptionalEntity) {
+                commandEntity = withOptionalEntity.getEntity(command.getDittoHeaders()
+                                .getSchemaVersion()
+                                .orElse(command.getLatestSchemaVersion()))
+                        .orElse(null);
+            } else {
+                commandEntity = null;
+            }
+            final SortedSet<MetadataHeader> metadataHeaders = getMetadataHeadersToPut();
+            if (null != commandEntity && !metadataHeaders.isEmpty()) {
+                // TODO this should probably work without a command entity
+                final var expandedMetadataHeaders = metadataHeaders.stream()
+                        .flatMap(this::expandWildcards)
+                        .collect(Collectors.toCollection(LinkedHashSet::new));
+                return buildMetadata(commandEntity, expandedMetadataHeaders);
             }
             return existingMetadata;
         });
     }
 
     private Optional<Metadata> getInlineMetadata() {
-        return command instanceof CreateThing createThing ? createThing.getThing().getMetadata() : Optional.empty();
+        return command instanceof CreateThing createThing ? createThing.getThing()
+                .getMetadata() : Optional.empty();
     }
 
     private SortedSet<MetadataHeader> getMetadataHeadersToPut() {
@@ -139,8 +151,7 @@ final class MetadataFromCommand implements Supplier<Metadata> {
 
     private Stream<MetadataHeader> expandWildcards(final MetadataHeader metadataHeader) {
         if (containsWildcard(metadataHeader)) {
-            final var thing = command instanceof CreateThing createThing ? createThing.getThing() : existingThing;
-            final var jsonPointers = MetadataFieldsWildcardResolver.resolve(command, thing,
+            final var jsonPointers = MetadataFieldsWildcardResolver.resolve(command, mergedThing,
                     metadataHeader.getKey().getOriginalPath(), DittoHeaderDefinition.PUT_METADATA.getKey());
             return jsonPointers.stream()
                     .map(MetadataHeaderKey::of)
@@ -167,23 +178,31 @@ final class MetadataFromCommand implements Supplier<Metadata> {
                 addMetadataToLeaf(JsonPointer.empty(), metadataHeader, metadataBuilder, entity);
             } else {
                 if (entity.isObject()) {
-                    final var field = entity.asObject().getField(metadataHeaderKey.getPath());
+                    final var field = entity.asObject()
+                            .getField(metadataHeaderKey.getPath());
                     final var metadataHeaderKeyLeaf = metadataHeaderKey.getPath()
                             .cutLeaf();
                     if (field.isPresent()) {
-                        if (field.get().getValue().isObject()) {
+                        if (field.get()
+                                .getValue()
+                                .isObject()) {
                             metadataBuilder.set(metadataHeaderKey.getPath(), metadataHeaderValue);
                         }
-                    } else if (entity.asObject().contains(metadataHeaderKeyLeaf)) {
+                    } else if (entity.asObject()
+                            .contains(metadataHeaderKeyLeaf)) {
                         final var optionalLeafValue = entity.asObject()
                                 .getValue(metadataHeaderKeyLeaf);
-                        if (optionalLeafValue.isEmpty() || optionalLeafValue.get().isObject() || metadataHeaderKey.getPath().getLevelCount() > 1) {
+                        if (optionalLeafValue.isEmpty() || optionalLeafValue.get()
+                                .isObject() || metadataHeaderKey.getPath()
+                                .getLevelCount() > 1) {
                             metadataBuilder.set(metadataHeaderKey.getPath(), metadataHeaderValue);
                         }
-                    } else if (metadataHeaderKey.getPath().getLevelCount() == 1) {
+                    } else if (metadataHeaderKey.getPath()
+                            .getLevelCount() == 1) {
                         metadataBuilder.set(metadataHeaderKey.getPath(), metadataHeaderValue);
                     }
-                } else if (metadataHeaderKey.getPath().getLevelCount() > 1 || metadataHeaderValue.isObject()) {
+                } else if (metadataHeaderKey.getPath()
+                        .getLevelCount() > 1 || metadataHeaderValue.isObject()) {
                     metadataBuilder.set(metadataHeaderKey.getPath(), metadataHeaderValue);
                 }
             }
