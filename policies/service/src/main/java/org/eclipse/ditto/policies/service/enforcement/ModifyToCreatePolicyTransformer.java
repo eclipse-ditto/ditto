@@ -24,7 +24,7 @@ import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicy;
 import akka.actor.ActorSystem;
 
 /**
- * Transforms a ModifyThing into a CreateThing if the thing does not exist already.
+ * Transforms a ModifyPolicy into a CreatePolicy if the thing does not exist already.
  */
 public final class ModifyToCreatePolicyTransformer implements PreEnforcer {
 
