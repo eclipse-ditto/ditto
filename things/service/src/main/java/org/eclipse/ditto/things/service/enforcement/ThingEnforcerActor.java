@@ -129,7 +129,7 @@ public final class ThingEnforcerActor
 
     @Override
     protected CompletionStage<Optional<PolicyEnforcer>> loadPolicyEnforcer(final Signal<?> signal) {
-        if (signal instanceof CreateThing createThing) {
+        if (signal instanceof CreateThing createThing && !Signal.isChannelLive(createThing)) {
             return loadPolicyEnforcerForCreateThing(createThing)
                     .thenApply(Optional::of);
         } else {
