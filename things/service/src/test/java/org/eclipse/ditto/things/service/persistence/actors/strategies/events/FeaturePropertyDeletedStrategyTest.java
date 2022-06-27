@@ -20,6 +20,7 @@ import java.time.Instant;
 
 import org.eclipse.ditto.base.model.entity.metadata.Metadata;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.things.model.FeatureProperties;
@@ -84,9 +85,9 @@ public final class FeaturePropertyDeletedStrategyTest extends AbstractStrategyTe
         final Thing thingWithEventApplied = strategy.handle(event, thingWithFeatureWithProperty, NEXT_REVISION);
 
         final Metadata expectedMetadata = thingMetadata.toBuilder()
-                .set(JsonPointer.of(String.format("features/%s/properties", FEATURE_ID))
-                        .append(FEATURE_PROPERTY_POINTER), eventMetadata)
+                .set(JsonPointer.of(String.format("features/%s/properties", FEATURE_ID)), JsonFactory.newObject())
                 .build();
+
         final Thing expected = THING.toBuilder()
                 .setFeatureProperties(FEATURE_ID, FeatureProperties.newBuilder().build())
                 .setRevision(NEXT_REVISION)
