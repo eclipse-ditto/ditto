@@ -83,10 +83,9 @@ public final class LiveSignalEnforcementTest extends AbstractThingEnforcementTes
                 SudoRetrievePolicyResponse.of(policyId, emptyPolicy, DittoHeaders.empty());
 
         new TestKit(system) {{
+            supervisor.tell(thingMessageCommand("abc"), getRef());
             expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
             expectAndAnswerSudoRetrievePolicy(policyId, sudoRetrievePolicyResponse);
-
-            supervisor.tell(thingMessageCommand("abc"), getRef());
             TestSetup.fishForMsgClass(this, MessageSendNotAllowedException.class);
         }};
     }
@@ -105,13 +104,14 @@ public final class LiveSignalEnforcementTest extends AbstractThingEnforcementTes
                 SudoRetrievePolicyResponse.of(policyId, emptyPolicy, DittoHeaders.empty());
 
         new TestKit(system) {{
+            supervisor.tell(getRetrieveThingCommand(liveHeaders()), getRef());
             expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
             expectAndAnswerSudoRetrievePolicy(policyId, sudoRetrievePolicyResponse);
-
-            supervisor.tell(getRetrieveThingCommand(liveHeaders()), getRef());
             TestSetup.fishForMsgClass(this, ThingNotAccessibleException.class);
 
             supervisor.tell(getModifyFeatureCommand(liveHeaders()), getRef());
+            expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
+            expectAndAnswerSudoRetrievePolicy(policyId, sudoRetrievePolicyResponse);
             expectMsgClass(FeatureNotModifiableException.class);
         }};
     }
@@ -134,17 +134,19 @@ public final class LiveSignalEnforcementTest extends AbstractThingEnforcementTes
                 SudoRetrievePolicyResponse.of(policyId, policy, DittoHeaders.empty());
 
         new TestKit(system) {{
-            expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
-            expectAndAnswerSudoRetrievePolicy(policyId, sudoRetrievePolicyResponse);
-
             final ThingCommand<?> write = getModifyFeatureCommand(liveHeaders());
             supervisor.tell(write, getRef());
+
+            expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
+            expectAndAnswerSudoRetrievePolicy(policyId, sudoRetrievePolicyResponse);
 
             expectPubsubLiveCommandPublish("publish live command", write.getEntityId());
 
             final ThingCommand<?> read = getRetrieveThingCommand(liveHeaders());
             RetrieveThingResponse.of(TestSetup.THING_ID, JsonFactory.newObject(), DittoHeaders.empty());
             supervisor.tell(read, getRef());
+            expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
+            expectAndAnswerSudoRetrievePolicy(policyId, sudoRetrievePolicyResponse);
             final DistributedPubSubMediator.Publish publishRead =
                     pubSubMediatorProbe.expectMsgClass(DistributedPubSubMediator.Publish.class);
 
@@ -175,13 +177,12 @@ public final class LiveSignalEnforcementTest extends AbstractThingEnforcementTes
                 SudoRetrievePolicyResponse.of(policyId, policy, DittoHeaders.empty());
 
         new TestKit(system) {{
-            expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
-            expectAndAnswerSudoRetrievePolicy(policyId, sudoRetrievePolicyResponse);
-
             final DittoHeaders headers = liveHeaders();
             final ThingCommand<?> read = getRetrieveThingCommand(headers);
 
             supervisor.tell(read, getRef());
+            expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
+            expectAndAnswerSudoRetrievePolicy(policyId, sudoRetrievePolicyResponse);
             expectPubsubLiveCommandPublish("publish live read command", read.getEntityId());
 
             // the response auth ctx shall be ignored for filtering live retrieve responses,
@@ -198,6 +199,10 @@ public final class LiveSignalEnforcementTest extends AbstractThingEnforcementTes
                     .build();
 
             supervisor.tell(readResponse, getRef());
+            expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
+            expectAndAnswerSudoRetrievePolicy(policyId, sudoRetrievePolicyResponse);
+            expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
+            expectAndAnswerSudoRetrievePolicy(policyId, sudoRetrievePolicyResponse);
             final RetrieveThingResponse retrieveThingResponse = expectMsgClass(RetrieveThingResponse.class);
             assertThat(retrieveThingResponse.getThing()).isEqualTo(expectedThing);
         }};
@@ -223,13 +228,13 @@ public final class LiveSignalEnforcementTest extends AbstractThingEnforcementTes
                 SudoRetrievePolicyResponse.of(policyId, policy, DittoHeaders.empty());
 
         new TestKit(system) {{
-            expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
-            expectAndAnswerSudoRetrievePolicy(policyId, sudoRetrievePolicyResponse);
-
             final DittoHeaders headers = liveHeaders();
             final ThingCommand<?> read = getRetrieveThingCommand(headers);
 
             supervisor.tell(read, getRef());
+
+            expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
+            expectAndAnswerSudoRetrievePolicy(policyId, sudoRetrievePolicyResponse);
 
             expectPubsubLiveCommandPublish("publish live read command", read.getEntityId());
 
@@ -243,15 +248,30 @@ public final class LiveSignalEnforcementTest extends AbstractThingEnforcementTes
 
             // Second message right after the response for the first was sent, should have the same correlation-id (Not suffixed).
             supervisor.tell(readResponse, getRef());
+
+            expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
+            expectAndAnswerSudoRetrievePolicy(policyId, sudoRetrievePolicyResponse);
+            expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
+            expectAndAnswerSudoRetrievePolicy(policyId, sudoRetrievePolicyResponse);
+
             final RetrieveThingResponse retrieveThingResponse = expectMsgClass(RetrieveThingResponse.class);
             assertThat(retrieveThingResponse.getDittoHeaders().getCorrelationId()).isEqualTo(
                     read.getDittoHeaders().getCorrelationId());
 
             supervisor.tell(read, getRef());
 
+            expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
+            expectAndAnswerSudoRetrievePolicy(policyId, sudoRetrievePolicyResponse);
+
             expectPubsubLiveCommandPublish("publish live read command", read.getEntityId());
 
             supervisor.tell(readResponse, getRef());
+
+            expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
+            expectAndAnswerSudoRetrievePolicy(policyId, sudoRetrievePolicyResponse);
+            expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
+            expectAndAnswerSudoRetrievePolicy(policyId, sudoRetrievePolicyResponse);
+
             final RetrieveThingResponse retrieveThingResponse2 = expectMsgClass(RetrieveThingResponse.class);
             assertThat(retrieveThingResponse2.getDittoHeaders().getCorrelationId()).isEqualTo(
                     read.getDittoHeaders().getCorrelationId());
@@ -276,12 +296,13 @@ public final class LiveSignalEnforcementTest extends AbstractThingEnforcementTes
                 SudoRetrievePolicyResponse.of(policyId, policy, DittoHeaders.empty());
 
         new TestKit(system) {{
-            expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
-            expectAndAnswerSudoRetrievePolicy(policyId, sudoRetrievePolicyResponse);
 
             final MessageCommand<?, ?> message = thingMessageCommand("abc");
 
             supervisor.tell(message, getRef());
+
+            expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
+            expectAndAnswerSudoRetrievePolicy(policyId, sudoRetrievePolicyResponse);
 
             final var firstPublishRead = expectPubsubMessagePublish(message.getEntityId());
             assertThat((CharSequence) ((WithDittoHeaders) firstPublishRead.msg()).getDittoHeaders()
@@ -290,6 +311,9 @@ public final class LiveSignalEnforcementTest extends AbstractThingEnforcementTes
                     message.getDittoHeaders().getCorrelationId().orElseThrow());
 
             supervisor.tell(message, getRef());
+
+            expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
+            expectAndAnswerSudoRetrievePolicy(policyId, sudoRetrievePolicyResponse);
 
             final var secondPublishRead = expectPubsubMessagePublish(message.getEntityId());
             // Assure second command has suffixed correlation-id, because of conflict with first command.
@@ -323,11 +347,12 @@ public final class LiveSignalEnforcementTest extends AbstractThingEnforcementTes
                 SudoRetrievePolicyResponse.of(policyId, policy, DittoHeaders.empty());
 
         new TestKit(system) {{
+            final MessageCommand<?, ?> msgCommand = thingMessageCommand("abc");
+            supervisor.tell(msgCommand, getRef());
+
             expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
             expectAndAnswerSudoRetrievePolicy(policyId, sudoRetrievePolicyResponse);
 
-            final MessageCommand<?, ?> msgCommand = thingMessageCommand("abc");
-            supervisor.tell(msgCommand, getRef());
             expectPubsubMessagePublish(msgCommand.getEntityId());
         }};
     }
@@ -351,11 +376,12 @@ public final class LiveSignalEnforcementTest extends AbstractThingEnforcementTes
                 SudoRetrievePolicyResponse.of(policyId, policy, DittoHeaders.empty());
 
         new TestKit(system) {{
+            final MessageCommand<?, ?> msgCommand = featureMessageCommand();
+            supervisor.tell(msgCommand, getRef());
+
             expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
             expectAndAnswerSudoRetrievePolicy(policyId, sudoRetrievePolicyResponse);
 
-            final MessageCommand<?, ?> msgCommand = featureMessageCommand();
-            supervisor.tell(msgCommand, getRef());
             expectPubsubMessagePublish(msgCommand.getEntityId());
         }};
     }
@@ -374,10 +400,9 @@ public final class LiveSignalEnforcementTest extends AbstractThingEnforcementTes
                 SudoRetrievePolicyResponse.of(policyId, emptyPolicy, DittoHeaders.empty());
 
         new TestKit(system) {{
+            supervisor.tell(liveEventGranted(), getRef());
             expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
             expectAndAnswerSudoRetrievePolicy(policyId, sudoRetrievePolicyResponse);
-
-            supervisor.tell(liveEventGranted(), getRef());
             TestSetup.fishForMsgClass(this, EventSendNotAllowedException.class);
         }};
     }
@@ -402,11 +427,11 @@ public final class LiveSignalEnforcementTest extends AbstractThingEnforcementTes
                 SudoRetrievePolicyResponse.of(policyId, policy, DittoHeaders.empty());
 
         new TestKit(system) {{
-            expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
-            expectAndAnswerSudoRetrievePolicy(policyId, sudoRetrievePolicyResponse);
-
             final ThingEvent<?> liveEventGranted = liveEventGranted();
             supervisor.tell(liveEventGranted, getRef());
+
+            expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
+            expectAndAnswerSudoRetrievePolicy(policyId, sudoRetrievePolicyResponse);
 
             final DistributedPubSubMediator.Publish publishLiveEvent =
                     (DistributedPubSubMediator.Publish) pubSubMediatorProbe.fishForMessage(
@@ -426,6 +451,10 @@ public final class LiveSignalEnforcementTest extends AbstractThingEnforcementTes
             final ThingEvent<?> liveEventRevoked = liveEventRevoked();
 
             supervisor.tell(liveEventRevoked, getRef());
+
+            expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
+            expectAndAnswerSudoRetrievePolicy(policyId, sudoRetrievePolicyResponse);
+
             TestSetup.fishForMsgClass(this, EventSendNotAllowedException.class);
         }};
     }

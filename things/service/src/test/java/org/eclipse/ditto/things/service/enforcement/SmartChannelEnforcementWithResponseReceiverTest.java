@@ -101,6 +101,13 @@ public final class SmartChannelEnforcementWithResponseReceiverTest extends Abstr
 
             expectLiveQueryCommandOnPubSub(retrieveThing);
             supervisor.tell(getRetrieveThingResponse(retrieveThing, b -> b.channel("live")), ActorRef.noSender());
+
+            expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
+            expectAndAnswerSudoRetrievePolicy(POLICY_ID, sudoRetrievePolicyResponse);
+
+            expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
+            expectAndAnswerSudoRetrievePolicy(POLICY_ID, sudoRetrievePolicyResponse);
+
             assertLiveChannel(expectMsgClass(RetrieveThingResponse.class));
         }};
     }
@@ -125,6 +132,10 @@ public final class SmartChannelEnforcementWithResponseReceiverTest extends Abstr
                     ThingIdInvalidException.newBuilder(retrieveThing.getEntityId())
                             .dittoHeaders(retrieveThing.getDittoHeaders().toBuilder().channel("live").build())
                             .build()), ActorRef.noSender());
+
+            expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
+            expectAndAnswerSudoRetrievePolicy(POLICY_ID, sudoRetrievePolicyResponse);
+
             final var receivedError = expectMsgClass(ThingIdInvalidException.class);
             assertLiveChannel(receivedError);
         }};
@@ -155,6 +166,10 @@ public final class SmartChannelEnforcementWithResponseReceiverTest extends Abstr
                     ThingIdInvalidException.newBuilder(retrieveThing.getEntityId())
                             .dittoHeaders(retrieveThing.getDittoHeaders().toBuilder().channel("live").build())
                             .build()), ActorRef.noSender());
+
+            expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
+            expectAndAnswerSudoRetrievePolicy(POLICY_ID, sudoRetrievePolicyResponse);
+
             final var receivedError = expectMsgClass(ThingIdInvalidException.class);
             assertLiveChannel(receivedError);
         }};

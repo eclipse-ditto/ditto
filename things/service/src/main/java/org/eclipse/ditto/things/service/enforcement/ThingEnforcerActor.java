@@ -12,14 +12,18 @@
  */
 package org.eclipse.ditto.things.service.enforcement;
 
+import static org.eclipse.ditto.policies.api.Permission.MIN_REQUIRED_POLICY_PERMISSIONS;
+
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
 import org.eclipse.ditto.base.model.exceptions.DittoInternalErrorException;
+import org.eclipse.ditto.base.model.exceptions.DittoJsonException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.namespaces.NamespaceBlockedException;
@@ -31,6 +35,8 @@ import org.eclipse.ditto.internal.utils.namespaces.BlockedNamespaces;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
+import org.eclipse.ditto.json.JsonRuntimeException;
+import org.eclipse.ditto.policies.api.PoliciesValidator;
 import org.eclipse.ditto.policies.enforcement.AbstractEnforcementReloaded;
 import org.eclipse.ditto.policies.enforcement.AbstractPolicyLoadingEnforcerActor;
 import org.eclipse.ditto.policies.enforcement.PolicyEnforcer;
@@ -54,6 +60,7 @@ import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommand;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommandResponse;
+import org.eclipse.ditto.things.model.signals.commands.exceptions.PolicyInvalidException;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingNotAccessibleException;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingNotCreatableException;
 import org.eclipse.ditto.things.model.signals.commands.modify.CreateThing;
@@ -141,33 +148,24 @@ public final class ThingEnforcerActor
                     .orElseGet(() -> thing.getEntityId().map(PolicyId::of).orElseThrow());
             final DittoHeaders dittoHeaders = createThing.getDittoHeaders();
             policyCs = getCopiedPolicy(policyIdOrPlaceholder.get(), dittoHeaders, policyIdToBe)
-                    .map(copiedPolicyCs -> copiedPolicyCs.thenCompose(
-                            copiedPolicy -> createPolicy(copiedPolicy, createThing)))
-                    .orElseGet(() ->
-                            //If optional is empty this means that no Policy should be copied => Get referenced Policy
-                            retrievePolicyWithEnforcement(dittoHeaders, PolicyId.of(policyIdOrPlaceholder.get())));
+                    .thenCompose(copiedPolicy -> createPolicy(copiedPolicy, createThing));
         } else if (initialPolicyJson.isPresent()) {
             // An initial policy was defined => build policy and return it as enforcer
-            final JsonObject policyJson = initialPolicyJson.get();
-            final JsonObjectBuilder policyJsonBuilder = policyJson.toBuilder();
-            final var thing = createThing.getThing();
-            if (thing.getPolicyId().isPresent() || !policyJson.contains(Policy.JsonFields.ID.getPointer())) {
-                final String policyId = thing.getPolicyId()
-                        .map(String::valueOf)
-                        .orElse(createThing.getEntityId().toString());
-                policyJsonBuilder.set(Policy.JsonFields.ID, policyId);
-            }
-            final Policy initialPolicy = PoliciesModelFactory.newPolicy(policyJsonBuilder.build());
+            final Policy initialPolicy = getInitialPolicy(createThing, initialPolicyJson.get());
             policyCs = createPolicy(initialPolicy, createThing);
+        } else if (createThing.getThing().getPolicyId().isPresent()) {
+            // An existing policy should be reused => retrieve policy and return it as enforcer
+            final PolicyId referencedPolicyId = createThing.getThing().getPolicyId().get();
+            policyCs = retrievePolicyWithEnforcement(createThing.getDittoHeaders(), referencedPolicyId);
         } else {
-            // No policy to copy defined and no initial policy present => build default policy and return it as enforcer
+            // No policy to copy defined, no existing policy referenced and no initial policy present => build default policy and return it as enforcer
             final Policy defaultPolicy = getDefaultPolicy(createThing.getDittoHeaders(), createThing.getEntityId());
             policyCs = createPolicy(defaultPolicy, createThing);
         }
         return policyCs.thenApply(PolicyEnforcer::of);
     }
 
-    private Optional<CompletionStage<Policy>> getCopiedPolicy(final String policyIdOrPlaceholder,
+    private CompletionStage<Policy> getCopiedPolicy(final String policyIdOrPlaceholder,
             final DittoHeaders dittoHeaders, final PolicyId policyIdForCopiedPolicy) {
         return ReferencePlaceholder.fromCharSequence(policyIdOrPlaceholder)
                 .map(referencePlaceholder -> {
@@ -180,13 +178,13 @@ public final class ThingEnforcerActor
                             .build();
                     return policyIdReferencePlaceholderResolver.resolve(referencePlaceholder,
                                     dittoHeadersWithoutPreconditionHeaders)
-                            .thenApply(PolicyId::of)
-                            .thenCompose(
-                                    resolvedPolicyId -> retrievePolicyWithEnforcement(dittoHeaders, resolvedPolicyId)
-                                            .thenApply(Policy::toBuilder)
-                                            .thenApply(policyBuilder -> policyBuilder.setId(policyIdForCopiedPolicy)
-                                                    .build()));
-                });
+                            .thenApply(PolicyId::of);
+                })
+                .orElseGet(() -> CompletableFuture.completedStage(PolicyId.of(policyIdOrPlaceholder)))
+                .thenCompose(resolvedPolicyId -> retrievePolicyWithEnforcement(dittoHeaders, resolvedPolicyId)
+                        .thenApply(Policy::toBuilder)
+                        .thenApply(policyBuilder -> policyBuilder.setId(policyIdForCopiedPolicy)
+                                .build()));
     }
 
     private CompletionStage<Policy> retrievePolicyWithEnforcement(final DittoHeaders dittoHeaders,
@@ -214,6 +212,36 @@ public final class ThingEnforcerActor
                         throw DittoInternalErrorException.newBuilder().build();
                     }
                 });
+    }
+
+    private Policy getInitialPolicy(final CreateThing createThing, final JsonObject inlinedPolicy) {
+        try {
+            final var thing = createThing.getThing();
+            final JsonObjectBuilder policyJsonBuilder = inlinedPolicy.toBuilder();
+            if (thing.getPolicyId().isPresent() || !inlinedPolicy.contains(Policy.JsonFields.ID.getPointer())) {
+                final String policyId = thing.getPolicyId()
+                        .map(String::valueOf)
+                        .orElse(createThing.getEntityId().toString());
+                policyJsonBuilder.set(Policy.JsonFields.ID, policyId);
+            }
+            final var initialPolicy = PoliciesModelFactory.newPolicy(policyJsonBuilder.build());
+            final var policiesValidator = PoliciesValidator.newInstance(initialPolicy);
+            if (policiesValidator.isValid()) {
+                return initialPolicy;
+            } else {
+                throw PolicyInvalidException.newBuilder(MIN_REQUIRED_POLICY_PERMISSIONS, createThing.getEntityId())
+                        .dittoHeaders(createThing.getDittoHeaders())
+                        .build();
+            }
+        } catch (final JsonRuntimeException | DittoJsonException e) {
+            final var thingId = createThing.getEntityId();
+            throw PolicyInvalidException.newBuilderForCause(e, thingId)
+                    .dittoHeaders(createThing.getDittoHeaders())
+                    .build();
+        } catch (final DittoRuntimeException e) {
+            final var dittoHeaders = createThing.getDittoHeaders();
+            throw e.setDittoHeaders(dittoHeaders);
+        }
     }
 
     private static Policy getDefaultPolicy(final DittoHeaders dittoHeaders, final ThingId thingId) {

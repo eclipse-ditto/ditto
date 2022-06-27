@@ -125,6 +125,10 @@ public final class ThingCommandEnforcementTest extends AbstractThingEnforcementT
             TestSetup.fishForMsgClass(this, ThingNotAccessibleException.class);
 
             supervisor.tell(getModifyCommand(), getRef());
+
+            expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
+            expectAndAnswerSudoRetrievePolicy(policyId, sudoRetrievePolicyResponse);
+
             expectMsgClass(FeatureNotModifiableException.class);
         }};
     }
@@ -134,9 +138,8 @@ public final class ThingCommandEnforcementTest extends AbstractThingEnforcementT
         final DittoRuntimeException error = ThingNotAccessibleException.newBuilder(THING_ID).build();
 
         new TestKit(system) {{
-            expectAndAnswerSudoRetrieveThing(error);
-
             supervisor.tell(getReadCommand(), getRef());
+            expectAndAnswerSudoRetrieveThing(error);
             fishForMessage(Duration.create(500, TimeUnit.MILLISECONDS), "error", msg -> msg.equals(error));
         }};
     }
@@ -145,9 +148,8 @@ public final class ThingCommandEnforcementTest extends AbstractThingEnforcementT
     public void rejectUpdateByThingNotAccessibleException() {
         final DittoRuntimeException error = ThingNotAccessibleException.newBuilder(THING_ID).build();
         new TestKit(system) {{
-            expectAndAnswerSudoRetrieveThing(error);
-
             supervisor.tell(getModifyCommand(), getRef());
+            expectAndAnswerSudoRetrieveThing(error);
             expectMsgClass(ThingNotAccessibleException.class);
         }};
     }
@@ -159,10 +161,9 @@ public final class ThingCommandEnforcementTest extends AbstractThingEnforcementT
                 SudoRetrieveThingResponse.of(TestSetup.newThingWithPolicyId(policyId), DittoHeaders.empty());
 
         new TestKit(system) {{
+            supervisor.tell(getReadCommand(), getRef());
             expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
             expectAndAnswerSudoRetrievePolicy(policyId, PolicyNotAccessibleException.newBuilder(policyId).build());
-
-            supervisor.tell(getReadCommand(), getRef());
             final DittoRuntimeException error = TestSetup.fishForMsgClass(this, ThingNotAccessibleException.class);
             assertThat(error.getMessage()).contains(THING_ID);
         }};
@@ -175,10 +176,11 @@ public final class ThingCommandEnforcementTest extends AbstractThingEnforcementT
                 SudoRetrieveThingResponse.of(TestSetup.newThingWithPolicyId(policyId), DittoHeaders.empty());
 
         new TestKit(system) {{
+            supervisor.tell(getModifyCommand(), getRef());
+
             expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
             expectAndAnswerSudoRetrievePolicy(policyId, PolicyNotAccessibleException.newBuilder(policyId).build());
 
-            supervisor.tell(getModifyCommand(), getRef());
             final DittoRuntimeException error = TestSetup.fishForMsgClass(this, ThingNotAccessibleException.class);
             assertThat(error.getMessage()).contains(THING_ID);
         }};
@@ -196,10 +198,12 @@ public final class ThingCommandEnforcementTest extends AbstractThingEnforcementT
         final Thing thing = newThing().build();
 
         new TestKit(system) {{
-            expectAndAnswerSudoRetrieveThing(ThingNotAccessibleException.newBuilder(THING_ID).build());
-
             final CreateThing createThing = CreateThing.of(thing, policy.toJson(), headers());
             supervisor.tell(createThing, getRef());
+
+            policiesShardRegionProbe.expectMsgClass(CreatePolicy.class);
+            policiesShardRegionProbe.reply(CreatePolicyResponse.of(policyId, policy, headers()));
+
             TestSetup.fishForMsgClass(this, ThingNotModifiableException.class);
         }};
 
@@ -242,10 +246,17 @@ public final class ThingCommandEnforcementTest extends AbstractThingEnforcementT
                     RetrieveThingResponse.of(THING_ID, JsonFactory.newObject(), DittoHeaders.empty());
             supervisor.tell(read, getRef());
 
+            expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
+            expectAndAnswerSudoRetrievePolicy(policyId, sudoRetrievePolicyResponse);
+
             final ThingCommand<?> expectedReadCommand = addReadSubjectHeader(read,
                     SubjectId.newInstance(GOOGLE, TestSetup.SUBJECT_ID));
             thingPersistenceActorProbe.expectMsg(expectedReadCommand);
             thingPersistenceActorProbe.reply(retrieveThingResponse);
+
+            expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
+            expectAndAnswerSudoRetrievePolicy(policyId, sudoRetrievePolicyResponse);
+
             expectMsg(retrieveThingResponse);
         }};
     }
@@ -286,6 +297,9 @@ public final class ThingCommandEnforcementTest extends AbstractThingEnforcementT
 
             supervisor.tell(getReadCommand(), getRef());
             thingPersistenceActorProbe.reply(retrieveThingResponseWithAttr);
+
+            expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
+            expectAndAnswerSudoRetrievePolicy(policyId, sudoRetrievePolicyResponse);
 
             final JsonObject jsonObjectWithoutAttr = thingWithPolicy.remove(attributePointer);
             final RetrieveThingResponse retrieveThingResponseWithoutAttr =
@@ -334,6 +348,9 @@ public final class ThingCommandEnforcementTest extends AbstractThingEnforcementT
             final RetrieveThingResponse retrieveThingResponse = RetrieveThingResponse.of(THING_ID, thing, headers());
             thingPersistenceActorProbe.reply(retrieveThingResponse);
 
+            expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
+            expectAndAnswerSudoRetrievePolicy(policyId, sudoRetrievePolicyResponse);
+
             // THEN: The command is authorized and response is forwarded
             final var response1 = expectMsgClass(RetrieveThingResponse.class);
             Assertions.assertThat(response1.getThing().toJson().get(revokedFeaturePointer))
@@ -345,6 +362,9 @@ public final class ThingCommandEnforcementTest extends AbstractThingEnforcementT
                     getRetrieveThing(builder -> builder.condition("exists(features/revokedFeature)"));
             supervisor.tell(conditionalRetrieveThing2, getRef());
 
+            expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
+            expectAndAnswerSudoRetrievePolicy(policyId, sudoRetrievePolicyResponse);
+
             // THEN: The command is rejected
             expectMsgClass(ThingConditionFailedException.class);
 
@@ -352,6 +372,9 @@ public final class ThingCommandEnforcementTest extends AbstractThingEnforcementT
             final var conditionalRetrieveThing3 = getRetrieveThing(builder ->
                     builder.liveChannelCondition("exists(features/revokedFeature)").channel("live"));
             supervisor.tell(conditionalRetrieveThing3, getRef());
+
+            expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
+            expectAndAnswerSudoRetrievePolicy(policyId, sudoRetrievePolicyResponse);
 
             // THEN: The command is rejected
             expectMsgClass(ThingConditionFailedException.class);
@@ -412,14 +435,9 @@ public final class ThingCommandEnforcementTest extends AbstractThingEnforcementT
                 .build();
         final Thing thing = newThing().build();
 
-        final SudoRetrievePolicyResponse sudoRetrievePolicyResponse =
-                SudoRetrievePolicyResponse.of(policyId, policy.toJson(FieldType.all()), DittoHeaders.empty());
-
         new TestKit(system) {{
             final CreateThing createThing = CreateThing.of(thing, policy.toJson(), headers());
             supervisor.tell(createThing, getRef());
-
-            expectAndAnswerSudoRetrieveThing(ThingNotAccessibleException.newBuilder(THING_ID).build());
 
             policiesShardRegionProbe.expectMsgClass(CreatePolicy.class);
             policiesShardRegionProbe.reply(CreatePolicyResponse.of(policyId, policy, headers()));
@@ -448,8 +466,6 @@ public final class ThingCommandEnforcementTest extends AbstractThingEnforcementT
             final CreateThing createThing = CreateThing.of(thing, null, headers());
             // first Thing command triggers cache load
             supervisor.tell(createThing, getRef());
-
-            expectAndAnswerSudoRetrieveThing(ThingNotAccessibleException.newBuilder(THING_ID).build());
 
             policiesShardRegionProbe.expectMsgClass(CreatePolicy.class);
             policiesShardRegionProbe.reply(CreatePolicyResponse.of(policyId, policy, headers()));
@@ -580,14 +596,9 @@ public final class ThingCommandEnforcementTest extends AbstractThingEnforcementT
                 .build();
         final Thing thing = newThing().build();
 
-        final SudoRetrievePolicyResponse sudoRetrievePolicyResponse =
-                SudoRetrievePolicyResponse.of(policyId, policy.toJson(FieldType.all()), DittoHeaders.empty());
-
         new TestKit(system) {{
             final CreateThing createThing = CreateThing.of(thing, policy.toJson(), headers());
             supervisor.tell(createThing, getRef());
-
-            expectAndAnswerSudoRetrieveThing(ThingNotAccessibleException.newBuilder(THING_ID).build());
 
             policiesShardRegionProbe.expectMsgClass(CreatePolicy.class);
             policiesShardRegionProbe.reply(CreatePolicyResponse.of(PolicyId.of(THING_ID), policy, headers()));
@@ -643,14 +654,9 @@ public final class ThingCommandEnforcementTest extends AbstractThingEnforcementT
                 .build();
         final Thing thing = newThing().build();
 
-        final SudoRetrievePolicyResponse sudoRetrievePolicyResponse =
-                SudoRetrievePolicyResponse.of(policyId, policy.toJson(FieldType.all()), DittoHeaders.empty());
-
         new TestKit(system) {{
             final CreateThing createThing = CreateThing.of(thing, null, policyId.toString(), dittoHeaders);
             supervisor.tell(createThing, getRef());
-
-            expectAndAnswerSudoRetrieveThing(ThingNotAccessibleException.newBuilder(THING_ID).build());
 
             // retrieve looks up the policy to copy:
             final RetrievePolicy retrievePolicy = policiesShardRegionProbe.expectMsgClass(RetrievePolicy.class);
@@ -659,18 +665,19 @@ public final class ThingCommandEnforcementTest extends AbstractThingEnforcementT
             policiesShardRegionProbe.reply(RetrievePolicyResponse.of(policyId, policy,
                     retrievePolicy.getDittoHeaders()));
 
-            final PolicyId newPolicyId = PolicyId.of(THING_ID);
+            final CreatePolicy createPolicy = policiesShardRegionProbe.expectMsgClass(CreatePolicy.class);
+            final PolicyId newPolicyId = createPolicy.getEntityId();
 
             if (lockoutExpected) {
                 // this logic is done in PolicyCommandEnforcement which is in policies-service - simulate it here:
-                policiesShardRegionProbe.expectMsgClass(CreatePolicy.class);
                 policiesShardRegionProbe.reply(PolicyNotAccessibleException.newBuilder(newPolicyId)
                         .dittoHeaders(dittoHeaders)
                         .build());
             } else {
                 // after that, a copy of the policy is created:
-                policiesShardRegionProbe.expectMsgClass(CreatePolicy.class);
-                policiesShardRegionProbe.reply(CreatePolicyResponse.of(newPolicyId, policy, headers()));
+                policiesShardRegionProbe.reply(
+                        CreatePolicyResponse.of(newPolicyId, policy.toBuilder().setId(newPolicyId).build(), headers())
+                );
             }
 
             if (lockoutExpected) {
@@ -708,8 +715,6 @@ public final class ThingCommandEnforcementTest extends AbstractThingEnforcementT
             final CreateThing createThing = CreateThing.of(thing, invalidPolicyJson, headers());
             supervisor.tell(createThing, getRef());
 
-            expectAndAnswerSudoRetrieveThing(ThingNotAccessibleException.newBuilder(THING_ID).build());
-
             policiesShardRegionProbe.expectNoMessage();
             thingPersistenceActorProbe.expectNoMessage();
 
@@ -736,8 +741,6 @@ public final class ThingCommandEnforcementTest extends AbstractThingEnforcementT
         new TestKit(system) {{
             final CreateThing createThing = CreateThing.of(thing, invalidPolicyJson, headers());
             supervisor.tell(createThing, getRef());
-
-            expectAndAnswerSudoRetrieveThing(ThingNotAccessibleException.newBuilder(THING_ID).build());
 
             policiesShardRegionProbe.expectNoMessage();
             thingPersistenceActorProbe.expectNoMessage();
@@ -800,15 +803,14 @@ public final class ThingCommandEnforcementTest extends AbstractThingEnforcementT
                 SudoRetrievePolicyResponse.of(policyId, policy, DittoHeaders.empty());
 
         new TestKit(system) {{
-            expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
-            expectAndAnswerSudoRetrievePolicy(policyId, sudoRetrievePolicyResponse);
-
             final DittoHeaders dittoHeaders = headers().toBuilder()
                     .condition("eq(attributes//testAttr,\"testString\")")
                     .build();
 
             final ThingCommand<?> modifyCommand = getModifyCommand(dittoHeaders);
             supervisor.tell(modifyCommand, getRef());
+            expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
+            expectAndAnswerSudoRetrievePolicy(policyId, sudoRetrievePolicyResponse);
 
             thingPersistenceActorProbe.expectNoMessage();
 

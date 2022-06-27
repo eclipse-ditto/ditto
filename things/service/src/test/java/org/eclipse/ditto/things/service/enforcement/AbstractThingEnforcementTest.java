@@ -26,6 +26,7 @@ import org.eclipse.ditto.internal.utils.pubsub.DistributedPub;
 import org.eclipse.ditto.internal.utils.pubsub.extractors.AckExtractor;
 import org.eclipse.ditto.policies.api.commands.sudo.SudoRetrievePolicy;
 import org.eclipse.ditto.policies.model.PolicyId;
+import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicy;
 import org.eclipse.ditto.things.api.commands.sudo.SudoRetrieveThing;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommand;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
@@ -132,6 +133,12 @@ abstract class AbstractThingEnforcementTest {
                 policiesShardRegionProbe.expectMsgClass(SudoRetrievePolicy.class);
         assertThat((CharSequence) sudoRetrievePolicy.getEntityId()).isEqualTo(policyId);
         policiesShardRegionProbe.reply(sudoRetrievePolicyResponse);
+    }
+
+    protected void expectAndAnswerRetrievePolicy(final PolicyId policyId, final Object retrievePolicyResponse) {
+        final var retrievePolicy = policiesShardRegionProbe.expectMsgClass(RetrievePolicy.class);
+        assertThat((CharSequence) retrievePolicy.getEntityId()).isEqualTo(policyId);
+        policiesShardRegionProbe.reply(retrievePolicyResponse);
     }
 
     @SuppressWarnings("unchecked")

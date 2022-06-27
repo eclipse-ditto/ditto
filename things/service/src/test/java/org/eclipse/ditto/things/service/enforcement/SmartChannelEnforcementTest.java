@@ -109,12 +109,16 @@ public final class SmartChannelEnforcementTest extends AbstractThingEnforcementT
             supervisor.tell(retrieveThing, getRef());
             expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
             expectAndAnswerSudoRetrievePolicy(POLICY_ID, sudoRetrievePolicyResponse);
-            
+
             thingPersistenceActorProbe.expectMsg(addReadSubjectHeader(retrieveThing, TestSetup.GOOGLE_SUBJECT));
             thingPersistenceActorProbe.reply(getRetrieveThingResponse(retrieveThing, true, b -> {}));
 
             expectLiveQueryCommandOnPubSub(retrieveThing);
             pubSubMediatorProbe.reply(getRetrieveThingResponse(retrieveThing, true, b -> b.channel("live")));
+
+            expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
+            expectAndAnswerSudoRetrievePolicy(POLICY_ID, sudoRetrievePolicyResponse);
+
             assertLiveChannel(expectMsgClass(RetrieveThingResponse.class));
         }};
     }
@@ -128,10 +132,13 @@ public final class SmartChannelEnforcementTest extends AbstractThingEnforcementT
             supervisor.tell(retrieveThing, getRef());
             expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
             expectAndAnswerSudoRetrievePolicy(POLICY_ID, sudoRetrievePolicyResponse);
-            
+
             thingPersistenceActorProbe.expectMsg(addReadSubjectHeader(retrieveThing, TestSetup.GOOGLE_SUBJECT));
             final var twinResponse = getRetrieveThingResponse(retrieveThing, true, b -> {});
             thingPersistenceActorProbe.reply(twinResponse);
+
+            expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
+            expectAndAnswerSudoRetrievePolicy(POLICY_ID, sudoRetrievePolicyResponse);
 
             expectLiveQueryCommandOnPubSub(retrieveThing);
             assertTwinChannel(expectMsgClass(RetrieveThingResponse.class));
@@ -152,15 +159,18 @@ public final class SmartChannelEnforcementTest extends AbstractThingEnforcementT
             thingPersistenceActorProbe.reply(twinResponse);
 
             expectLiveQueryCommandOnPubSub(retrieveThing);
-            pubSubMediatorProbe.reply(ThingErrorResponse.of(ThingIdInvalidException.newBuilder(retrieveThing.getEntityId())
-                    .dittoHeaders(DittoHeaders.newBuilder().channel("live")
-                            .putHeader(DittoHeaderDefinition.DITTO_ACKREGATOR_ADDRESS.getKey(), getRef().path().toSerializationFormat())
-                            .build())
-                    .build()));
+            pubSubMediatorProbe.reply(
+                    ThingErrorResponse.of(ThingIdInvalidException.newBuilder(retrieveThing.getEntityId())
+                            .dittoHeaders(DittoHeaders.newBuilder().channel("live")
+                                    .putHeader(DittoHeaderDefinition.DITTO_ACKREGATOR_ADDRESS.getKey(),
+                                            getRef().path().toSerializationFormat())
+                                    .build())
+                            .build()));
 
             final var receivedErrorResponse = expectMsgClass(ThingErrorResponse.class);
             assertLiveChannel(receivedErrorResponse);
-            Assertions.assertThat(receivedErrorResponse.getDittoRuntimeException()).isInstanceOf(ThingIdInvalidException.class);
+            Assertions.assertThat(receivedErrorResponse.getDittoRuntimeException())
+                    .isInstanceOf(ThingIdInvalidException.class);
         }};
     }
 
@@ -194,7 +204,7 @@ public final class SmartChannelEnforcementTest extends AbstractThingEnforcementT
             thingPersistenceActorProbe.expectMsg(addReadSubjectHeader(retrieveThing, TestSetup.GOOGLE_SUBJECT));
             final var twinResponse = getRetrieveThingResponse(retrieveThing, false, b -> {});
             thingPersistenceActorProbe.reply(twinResponse);
-            
+
             final var response = TestSetup.fishForMsgClass(this, RetrieveThingResponse.class);
             assertTwinChannel(response);
             Assertions.assertThat(response.getDittoHeaders().didLiveChannelConditionMatch()).isFalse();
@@ -221,6 +231,9 @@ public final class SmartChannelEnforcementTest extends AbstractThingEnforcementT
             final var twinResponse = getRetrieveThingResponse(retrieveThing, true, b -> {});
             thingPersistenceActorProbe.reply(twinResponse);
 
+            expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
+            expectAndAnswerSudoRetrievePolicy(POLICY_ID, sudoRetrievePolicyResponse);
+
             expectLiveQueryCommandOnPubSub(retrieveThing);
             assertTwinChannel(expectMsgClass(RetrieveThingResponse.class));
         }};
@@ -246,17 +259,20 @@ public final class SmartChannelEnforcementTest extends AbstractThingEnforcementT
             thingPersistenceActorProbe.reply(twinResponse);
 
             expectLiveQueryCommandOnPubSub(retrieveThing);
-            pubSubMediatorProbe.reply(ThingErrorResponse.of(ThingIdInvalidException.newBuilder(retrieveThing.getEntityId())
-                    .dittoHeaders(DittoHeaders.newBuilder().channel("live")
-                            .putHeader(DittoHeaderDefinition.DITTO_ACKREGATOR_ADDRESS.getKey(), getRef().path().toSerializationFormat())
-                            .build())
-                    .build()));
+            pubSubMediatorProbe.reply(
+                    ThingErrorResponse.of(ThingIdInvalidException.newBuilder(retrieveThing.getEntityId())
+                            .dittoHeaders(DittoHeaders.newBuilder().channel("live")
+                                    .putHeader(DittoHeaderDefinition.DITTO_ACKREGATOR_ADDRESS.getKey(),
+                                            getRef().path().toSerializationFormat())
+                                    .build())
+                            .build()));
             final var receivedErrorResponse = expectMsgClass(ThingErrorResponse.class);
             assertLiveChannel(receivedErrorResponse);
-            Assertions.assertThat(receivedErrorResponse.getDittoRuntimeException()).isInstanceOf(ThingIdInvalidException.class);
+            Assertions.assertThat(receivedErrorResponse.getDittoRuntimeException())
+                    .isInstanceOf(ThingIdInvalidException.class);
         }};
     }
-    
+
     private DittoHeaders headers() {
         return DittoHeaders.newBuilder()
                 .authorizationContext(
