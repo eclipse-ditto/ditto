@@ -1294,7 +1294,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
         final var thing = createThingV2WithRandomId();
         final var headers = DittoHeaders.newBuilder()
                 .putHeader(DittoHeaderDefinition.PUT_METADATA.getKey(),
-                        "[{\"key\":\"/attrKey\",\"value\":{\"type\":\"bumlux\"}}]")
+                        "[{\"key\":\"/attrKey/meta\",\"value\":{\"type\":\"bumlux\"}}]")
                 .build();
         final var modifyAttributes = ModifyAttributes.of(getIdOrThrow(thing), THING_ATTRIBUTES, headers);
 
@@ -1314,7 +1314,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
 
             // assert that metadata was modified as expected
             final Metadata expectedMetadata = Metadata.newBuilder()
-                    .set("/attributes/attrKey", JsonObject.newBuilder()
+                    .set("/attributes/attrKey/meta", JsonObject.newBuilder()
                             .set("type", "bumlux")
                             .build())
                     .build();
