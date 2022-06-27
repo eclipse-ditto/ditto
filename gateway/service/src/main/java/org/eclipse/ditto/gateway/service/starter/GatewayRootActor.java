@@ -47,7 +47,7 @@ import org.eclipse.ditto.gateway.service.endpoints.utils.GatewaySignalEnrichment
 import org.eclipse.ditto.gateway.service.health.DittoStatusAndHealthProviderFactory;
 import org.eclipse.ditto.gateway.service.health.GatewayHttpReadinessCheck;
 import org.eclipse.ditto.gateway.service.health.StatusAndHealthProvider;
-import org.eclipse.ditto.gateway.service.proxy.actors.ProxyActor;
+import org.eclipse.ditto.gateway.service.proxy.actors.GatewayProxyActor;
 import org.eclipse.ditto.gateway.service.security.authentication.jwt.JwtAuthenticationFactory;
 import org.eclipse.ditto.gateway.service.security.authentication.jwt.JwtAuthenticationResultProvider;
 import org.eclipse.ditto.gateway.service.streaming.actors.StreamingActor;
@@ -311,8 +311,8 @@ public final class GatewayRootActor extends DittoRootActor {
         final ActorSelection devOpsCommandsActor =
                 actorSystem.actorSelection(DevOpsRoute.DEVOPS_COMMANDS_ACTOR_SELECTION);
 
-        return startChildActor(ProxyActor.ACTOR_NAME,
-                ProxyActor.props(pubSubMediator, devOpsCommandsActor, edgeCommandForwarder));
+        return startChildActor(GatewayProxyActor.ACTOR_NAME,
+                GatewayProxyActor.props(pubSubMediator, devOpsCommandsActor, edgeCommandForwarder));
 
     }
 

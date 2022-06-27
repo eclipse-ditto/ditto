@@ -38,9 +38,9 @@ import akka.japi.pf.DeciderBuilder;
 import akka.japi.pf.ReceiveBuilder;
 
 /**
- * Abstract base implementation for a command proxy.
+ * A command proxy for the Ditto gateway.
  */
-public final class ProxyActor extends AbstractActor {
+public final class GatewayProxyActor extends AbstractActor {
 
     /**
      * The name of this Actor in the ActorSystem.
@@ -55,7 +55,8 @@ public final class ProxyActor extends AbstractActor {
 
     private final ActorRef statisticsActor;
 
-    ProxyActor(final ActorRef pubSubMediator,
+    @SuppressWarnings("unused")
+    private GatewayProxyActor(final ActorRef pubSubMediator,
             final ActorSelection devOpsCommandsActor,
             final ActorRef edgeCommandForwarder) {
         this.pubSubMediator = pubSubMediator;
@@ -65,7 +66,7 @@ public final class ProxyActor extends AbstractActor {
     }
 
     /**
-     * Creates Akka configuration object Props for this ProxyActor.
+     * Creates Akka configuration object Props for this GatewayProxyActor.
      *
      * @param pubSubMediator the Pub/Sub mediator to use for subscribing for events.
      * @param devOpsCommandsActor the Actor ref to the local DevOpsCommandsActor.
@@ -76,7 +77,7 @@ public final class ProxyActor extends AbstractActor {
             final ActorSelection devOpsCommandsActor,
             final ActorRef edgeCommandForwarder) {
 
-        return Props.create(ProxyActor.class, pubSubMediator, devOpsCommandsActor, edgeCommandForwarder);
+        return Props.create(GatewayProxyActor.class, pubSubMediator, devOpsCommandsActor, edgeCommandForwarder);
     }
 
     static boolean isLiveCommandOrEvent(final Signal<?> signal) {
@@ -129,7 +130,7 @@ public final class ProxyActor extends AbstractActor {
                 .match(Command.class, this::forwardToCommandForwarder)
 
                 /* Live Signals */
-                .match(Signal.class, ProxyActor::isLiveCommandOrEvent, this::forwardToCommandForwarder)
+                .match(Signal.class, GatewayProxyActor::isLiveCommandOrEvent, this::forwardToCommandForwarder)
                 .match(Status.Failure.class, failure -> {
                     Throwable cause = failure.cause();
                     if (cause instanceof JsonRuntimeException) {

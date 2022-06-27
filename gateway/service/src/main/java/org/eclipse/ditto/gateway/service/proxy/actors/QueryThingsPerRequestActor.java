@@ -131,7 +131,8 @@ final class QueryThingsPerRequestActor extends AbstractActor {
                                 .dittoHeaders(qtr.getDittoHeaders().toBuilder().responseRequired(true).build())
                                 .selectedFields(selectedFieldsWithThingId)
                                 .build();
-                        // delegate to the ThingsAggregatorProxyActor which receives the results via a cluster stream:
+                        // delegate to the ThingsAggregatorProxyActor via the command forwarder -
+                        // which receives the results via a cluster stream:
                         commandForwarderActor.tell(retrieveThings, getSelf());
                     }
                 })
