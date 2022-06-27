@@ -123,7 +123,7 @@ final class QueryThingsPerRequestActor extends AbstractActor {
                         // shortcuts: we don't have to look up the things
                         // - for no search results
                         // - if only the "thingId" was selected in the QueryThings commands
-                        originatingSender.tell(stripLastModifiedTimestampFromSearchResult(qtr), getSelf());
+                        originatingSender.tell(qtr, getSelf());
                         stopMyself();
                     } else {
                         final Optional<JsonFieldSelector> selectedFieldsWithThingId = getSelectedFieldsWithThingId();
@@ -164,15 +164,6 @@ final class QueryThingsPerRequestActor extends AbstractActor {
                     stopMyself();
                 })
                 .build();
-    }
-
-    private static QueryThingsResponse stripLastModifiedTimestampFromSearchResult(
-            final QueryThingsResponse queryThingsResponse) {
-
-        return queryThingsResponse.setEntity(queryThingsResponse.getSearchResult().toBuilder()
-                .lastModified(null)
-                .build()
-                .toJson());
     }
 
     private boolean queryThingsOnlyContainsThingIdSelector() {

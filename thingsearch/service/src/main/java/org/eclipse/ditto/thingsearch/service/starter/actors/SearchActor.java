@@ -12,8 +12,6 @@
  */
 package org.eclipse.ditto.thingsearch.service.starter.actors;
 
-import java.time.Instant;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -414,22 +412,13 @@ public final class SearchActor extends AbstractActor {
         } else {
             // only respond with the determined "thingIds", the lookup of the things is done in gateway:
             final JsonArray items = getItems(thingIds);
-            final Instant lastModified = getLastModified(thingIds);
             final var searchResults =
-                    SearchModelFactory.newSearchResult(items, thingIds.nextPageOffset(), lastModified);
+                    SearchModelFactory.newSearchResult(items, thingIds.nextPageOffset());
             final var processedResults =
                     ThingsSearchCursor.processSearchResult(queryThings, cursor, searchResults, thingIds);
 
             return QueryThingsResponse.of(processedResults, dittoHeaders);
         }
-    }
-
-    private static Instant getLastModified(final ResultList<TimestampedThingId> thingIds) {
-        final var now = Instant.now();
-        return thingIds.stream()
-                .map(timestampedThingId -> timestampedThingId.lastModified().orElse(now))
-                .max(Comparator.naturalOrder())
-                .orElse(now);
     }
 
     private static JsonArray getItems(final ResultList<TimestampedThingId> thingIds) {
