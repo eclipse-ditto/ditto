@@ -42,8 +42,8 @@ import org.eclipse.ditto.policies.model.SubjectId;
 import org.eclipse.ditto.policies.model.SubjectType;
 import org.eclipse.ditto.policies.model.signals.announcements.PolicyAnnouncement;
 import org.eclipse.ditto.policies.model.signals.announcements.SubjectDeletionAnnouncement;
-import org.eclipse.ditto.policies.model.signals.commands.modify.DeleteExpiredSubject;
 import org.eclipse.ditto.policies.service.common.config.PolicyAnnouncementConfig;
+import org.eclipse.ditto.policies.service.persistence.actors.strategies.commands.SudoDeleteExpiredSubject;
 import org.junit.After;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
@@ -293,7 +293,7 @@ public final class SubjectExpiryActorTest {
                     maxTimeout, getTestActor(), config);
             final ActorRef underTest = watch(childActorOf(props));
 
-            final var deleteCommand = expectMsgClass(Duration.ofSeconds(30), DeleteExpiredSubject.class);
+            final var deleteCommand = expectMsgClass(Duration.ofSeconds(30), SudoDeleteExpiredSubject.class);
             assertThat(deleteCommand.getSubject()).isEqualTo(subject);
             underTest.tell(SUBJECT_DELETED, ActorRef.noSender());
 
@@ -320,7 +320,7 @@ public final class SubjectExpiryActorTest {
                     maxTimeout, getTestActor(), config);
             final ActorRef underTest = watch(childActorOf(props));
 
-            final var deleteCommand = expectMsgClass(Duration.ofSeconds(30), DeleteExpiredSubject.class);
+            final var deleteCommand = expectMsgClass(Duration.ofSeconds(30), SudoDeleteExpiredSubject.class);
             assertThat(deleteCommand.getSubject()).isEqualTo(subject);
             underTest.tell(SUBJECT_DELETED, ActorRef.noSender());
 
@@ -357,7 +357,7 @@ public final class SubjectExpiryActorTest {
                     maxTimeout, getTestActor(), config);
             final ActorRef underTest = watch(childActorOf(props));
 
-            final var deleteCommand = expectMsgClass(Duration.ofSeconds(30), DeleteExpiredSubject.class);
+            final var deleteCommand = expectMsgClass(Duration.ofSeconds(30), SudoDeleteExpiredSubject.class);
             assertThat(deleteCommand.getSubject()).isEqualTo(subject);
             underTest.tell(SUBJECT_DELETED, ActorRef.noSender());
 
@@ -396,10 +396,10 @@ public final class SubjectExpiryActorTest {
                     maxTimeout, getTestActor(), config);
             final ActorRef underTest = watch(childActorOf(props));
 
-            expectMsgClass(Duration.ofSeconds(30), DeleteExpiredSubject.class);
+            expectMsgClass(Duration.ofSeconds(30), SudoDeleteExpiredSubject.class);
             underTest.tell(FSM.StateTimeout$.MODULE$, ActorRef.noSender());
 
-            expectMsgClass(Duration.ofSeconds(30), DeleteExpiredSubject.class);
+            expectMsgClass(Duration.ofSeconds(30), SudoDeleteExpiredSubject.class);
             underTest.tell(SUBJECT_DELETED, ActorRef.noSender());
 
             verify(policiesPub, timeout(30_000))
@@ -431,7 +431,7 @@ public final class SubjectExpiryActorTest {
                             maxTimeout, getTestActor(), config);
             final ActorRef underTest = watch(childActorOf(props));
 
-            expectMsgClass(Duration.ofSeconds(30), DeleteExpiredSubject.class);
+            expectMsgClass(Duration.ofSeconds(30), SudoDeleteExpiredSubject.class);
             underTest.tell(FSM.StateTimeout$.MODULE$, ActorRef.noSender());
 
             expectTerminated(underTest);
@@ -466,7 +466,7 @@ public final class SubjectExpiryActorTest {
             assertThat(subjectDeletionAnnouncement.getDittoHeaders().getAcknowledgementRequests())
                     .isEmpty();
 
-            final var deleteCommand = expectMsgClass(DeleteExpiredSubject.class);
+            final var deleteCommand = expectMsgClass(SudoDeleteExpiredSubject.class);
             assertThat(deleteCommand.getSubject()).isEqualTo(subject);
             underTest.tell(SUBJECT_DELETED, ActorRef.noSender());
             expectTerminated(underTest);
@@ -491,7 +491,7 @@ public final class SubjectExpiryActorTest {
 
             verify(policiesPub, timeout(30_000)).publishWithAcks(any(), any(), any());
 
-            // no need for expectNoMsg because extraneous DeleteExpiredSubject will cause expectTerminated to fail
+            // no need for expectNoMsg because extraneous SudoDeleteExpiredSubject will cause expectTerminated to fail
             expectTerminated(underTest);
             verifyNoMoreInteractions(policiesPub);
         }};
@@ -512,7 +512,7 @@ public final class SubjectExpiryActorTest {
 
             verify(policiesPub, timeout(30_000)).publishWithAcks(any(), any(), any());
 
-            var deleteCommand = expectMsgClass(DeleteExpiredSubject.class);
+            var deleteCommand = expectMsgClass(SudoDeleteExpiredSubject.class);
             assertThat(deleteCommand.getSubject()).isEqualTo(subject);
             underTest.tell(FSM.StateTimeout$.MODULE$, ActorRef.noSender());
 
@@ -547,7 +547,7 @@ public final class SubjectExpiryActorTest {
             assertThat(subjectDeletionAnnouncement.getDittoHeaders().getAcknowledgementRequests())
                     .isEmpty();
 
-            var deleteCommand = expectMsgClass(DeleteExpiredSubject.class);
+            var deleteCommand = expectMsgClass(SudoDeleteExpiredSubject.class);
             assertThat(deleteCommand.getSubject()).isEqualTo(subject);
             underTest.tell(FSM.StateTimeout$.MODULE$, ActorRef.noSender());
 
@@ -588,7 +588,7 @@ public final class SubjectExpiryActorTest {
             assertThat(subjectDeletionAnnouncement.getDittoHeaders().getAcknowledgementRequests())
                     .containsExactly(AcknowledgementRequest.parseAcknowledgementRequest(ACK_LABEL_CONNECTION_ACK));
 
-            final var deleteCommand = expectMsgClass(DeleteExpiredSubject.class);
+            final var deleteCommand = expectMsgClass(SudoDeleteExpiredSubject.class);
             assertThat(deleteCommand.getSubject()).isEqualTo(subject);
             underTest.tell(SUBJECT_DELETED, ActorRef.noSender());
             expectTerminated(underTest);
@@ -713,7 +713,7 @@ public final class SubjectExpiryActorTest {
             sender.tell(Acknowledgement.of(AcknowledgementLabel.of(ACK_LABEL_CONNECTION_ACK), policyId,
                     HttpStatus.OK, announcement.getDittoHeaders()), getTestActor());
 
-            expectMsgClass(DeleteExpiredSubject.class);
+            expectMsgClass(SudoDeleteExpiredSubject.class);
             underTest.tell(SUBJECT_DELETED, ActorRef.noSender());
             expectTerminated(underTest);
             verifyNoMoreInteractions(policiesPub);
@@ -743,7 +743,7 @@ public final class SubjectExpiryActorTest {
             sender.tell(Acknowledgement.of(AcknowledgementLabel.of(ACK_LABEL_CONNECTION_ACK), policyId,
                     HttpStatus.INTERNAL_SERVER_ERROR, announcement.getDittoHeaders()), getTestActor());
 
-            expectMsgClass(DeleteExpiredSubject.class);
+            expectMsgClass(SudoDeleteExpiredSubject.class);
             underTest.tell(SUBJECT_DELETED, ActorRef.noSender());
             expectTerminated(underTest);
             verifyNoMoreInteractions(policiesPub);
@@ -776,7 +776,7 @@ public final class SubjectExpiryActorTest {
             assertThat(subjectDeletionAnnouncement.getDittoHeaders().getAcknowledgementRequests())
                     .isEmpty();
 
-            final var deleteCommand = expectMsgClass(DeleteExpiredSubject.class);
+            final var deleteCommand = expectMsgClass(SudoDeleteExpiredSubject.class);
             assertThat(deleteCommand.getSubject()).isEqualTo(subject);
             underTest.tell(SUBJECT_DELETED, ActorRef.noSender());
             expectTerminated(underTest);
@@ -843,7 +843,7 @@ public final class SubjectExpiryActorTest {
 
             verify(policiesPub, timeout(30_000)).publishWithAcks(any(), any(), any());
 
-            expectMsgClass(DeleteExpiredSubject.class);
+            expectMsgClass(SudoDeleteExpiredSubject.class);
             underTest.tell(FSM.StateTimeout$.MODULE$, ActorRef.noSender());
             expectTerminated(underTest);
             verifyNoMoreInteractions(policiesPub);
@@ -881,7 +881,7 @@ public final class SubjectExpiryActorTest {
             assertThat(subjectDeletionAnnouncement.getDittoHeaders().getAcknowledgementRequests())
                     .containsExactly(AcknowledgementRequest.parseAcknowledgementRequest(ACK_LABEL_CONNECTION_ACK));
 
-            final var deleteCommand = expectMsgClass(DeleteExpiredSubject.class);
+            final var deleteCommand = expectMsgClass(SudoDeleteExpiredSubject.class);
             assertThat(deleteCommand.getSubject()).isEqualTo(subject);
             underTest.tell(SUBJECT_DELETED, ActorRef.noSender());
             expectTerminated(underTest);
@@ -1133,7 +1133,7 @@ public final class SubjectExpiryActorTest {
             sender.tell(Acknowledgement.of(AcknowledgementLabel.of(ACK_LABEL_CONNECTION_ACK), policyId,
                     HttpStatus.INTERNAL_SERVER_ERROR, announcement.getDittoHeaders()), getTestActor());
 
-            expectMsgClass(DeleteExpiredSubject.class);
+            expectMsgClass(SudoDeleteExpiredSubject.class);
             underTest.tell(SUBJECT_DELETED, ActorRef.noSender());
 
             verify(policiesPub, timeout(30_000).times(2))
@@ -1172,7 +1172,7 @@ public final class SubjectExpiryActorTest {
             sender.tell(Acknowledgement.of(AcknowledgementLabel.of(ACK_LABEL_CONNECTION_ACK), policyId,
                     HttpStatus.INTERNAL_SERVER_ERROR, announcement.getDittoHeaders()), getTestActor());
 
-            expectMsgClass(DeleteExpiredSubject.class);
+            expectMsgClass(SudoDeleteExpiredSubject.class);
             underTest.tell(SUBJECT_DELETED, ActorRef.noSender());
 
             verify(policiesPub, timeout(30_000).times(2))
@@ -1218,7 +1218,7 @@ public final class SubjectExpiryActorTest {
             sender.tell(Acknowledgement.of(AcknowledgementLabel.of(ACK_LABEL_CONNECTION_ACK), policyId,
                     HttpStatus.OK, announcement.getDittoHeaders()), getTestActor());
 
-            expectMsgClass(DeleteExpiredSubject.class);
+            expectMsgClass(SudoDeleteExpiredSubject.class);
             underTest.tell(SUBJECT_DELETED, ActorRef.noSender());
             expectTerminated(underTest);
             verifyNoMoreInteractions(policiesPub);
@@ -1247,7 +1247,7 @@ public final class SubjectExpiryActorTest {
             sender.tell(Acknowledgement.of(AcknowledgementLabel.of(ACK_LABEL_CONNECTION_ACK), policyId,
                     HttpStatus.OK, announcement.getDittoHeaders()), getTestActor());
 
-            expectMsgClass(DeleteExpiredSubject.class);
+            expectMsgClass(SudoDeleteExpiredSubject.class);
             underTest.tell(FSM.StateTimeout$.MODULE$, ActorRef.noSender());
 
             expectTerminated(underTest);

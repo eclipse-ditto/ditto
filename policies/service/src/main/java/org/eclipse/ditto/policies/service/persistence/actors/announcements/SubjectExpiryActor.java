@@ -41,8 +41,8 @@ import org.eclipse.ditto.policies.model.SubjectAnnouncement;
 import org.eclipse.ditto.policies.model.SubjectExpiry;
 import org.eclipse.ditto.policies.model.signals.announcements.PolicyAnnouncement;
 import org.eclipse.ditto.policies.model.signals.announcements.SubjectDeletionAnnouncement;
-import org.eclipse.ditto.policies.model.signals.commands.modify.DeleteExpiredSubject;
 import org.eclipse.ditto.policies.service.common.config.PolicyAnnouncementConfig;
+import org.eclipse.ditto.policies.service.persistence.actors.strategies.commands.SudoDeleteExpiredSubject;
 
 import akka.NotUsed;
 import akka.actor.AbstractFSM;
@@ -73,7 +73,7 @@ public final class SubjectExpiryActor extends AbstractFSM<SubjectExpiryState, No
     private final Duration gracePeriod;
     private final DistributedPub<PolicyAnnouncement<?>> policyAnnouncementPub;
     private final AcknowledgementAggregatorActorStarter ackregatorStarter;
-    private final DeleteExpiredSubject deleteExpiredSubject;
+    private final SudoDeleteExpiredSubject sudoDeleteExpiredSubject;
     private final Duration persistenceTimeout;
     private final ActorRef commandForwarder;
     private final boolean enableAnnouncementsWhenDeleted;
@@ -105,8 +105,8 @@ public final class SubjectExpiryActor extends AbstractFSM<SubjectExpiryState, No
                 AcknowledgementAggregatorActorStarter.of(getContext(), maxTimeout, HeaderTranslator.empty(),
                         null, List.of(), List.of());
         this.commandForwarder = commandForwarder;
-        deleteExpiredSubject =
-                DeleteExpiredSubject.of(policyId, subject, DittoHeaders.newBuilder().responseRequired(false).build());
+        sudoDeleteExpiredSubject =
+                SudoDeleteExpiredSubject.of(policyId, subject, DittoHeaders.newBuilder().responseRequired(false).build());
         persistenceTimeout = maxTimeout;
 
         final var backOffConfig = config.getExponentialBackOffConfig();
@@ -314,7 +314,7 @@ public final class SubjectExpiryActor extends AbstractFSM<SubjectExpiryState, No
             return stop();
         } else {
             // retry deletion
-            commandForwarder.tell(deleteExpiredSubject, ActorRef.noSender());
+            commandForwarder.tell(sudoDeleteExpiredSubject, ActorRef.noSender());
 
             return goTo(DELETED);
         }
@@ -360,7 +360,7 @@ public final class SubjectExpiryActor extends AbstractFSM<SubjectExpiryState, No
         } else {
             // outside of grace period; delete
             l.info("Grace period past for subject <{}>. Deleting.", subject);
-            commandForwarder.tell(deleteExpiredSubject, ActorRef.noSender());
+            commandForwarder.tell(sudoDeleteExpiredSubject, ActorRef.noSender());
 
             return goTo(DELETED);
         }
@@ -404,7 +404,7 @@ public final class SubjectExpiryActor extends AbstractFSM<SubjectExpiryState, No
     }
 
     private void doDelete() {
-        commandForwarder.tell(deleteExpiredSubject, ActorRef.noSender());
+        commandForwarder.tell(sudoDeleteExpiredSubject, ActorRef.noSender());
         cancelTimer(Message.DELETE.name());
     }
 

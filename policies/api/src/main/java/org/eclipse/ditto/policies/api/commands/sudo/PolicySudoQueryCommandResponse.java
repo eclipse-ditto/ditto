@@ -12,12 +12,11 @@
  */
 package org.eclipse.ditto.policies.api.commands.sudo;
 
-import org.eclipse.ditto.base.api.commands.sudo.SudoCommandResponse;
+import org.eclipse.ditto.base.api.commands.sudo.SudoQueryCommandResponse;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
-import org.eclipse.ditto.base.model.signals.commands.WithEntity;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonValue;
@@ -27,8 +26,8 @@ import org.eclipse.ditto.json.JsonValue;
  *
  * @param <T> the type of the implementing class.
  */
-public interface PolicySudoCommandResponse<T extends PolicySudoCommandResponse<T>> extends SudoCommandResponse<T>,
-        WithEntity<T> {
+public interface PolicySudoQueryCommandResponse<T extends PolicySudoQueryCommandResponse<T>> extends
+        SudoQueryCommandResponse<T> {
 
     /**
      * Type Prefix of Policy sudo command responses.
@@ -47,7 +46,7 @@ public interface PolicySudoCommandResponse<T extends PolicySudoCommandResponse<T
     T setDittoHeaders(DittoHeaders dittoHeaders);
 
     /**
-     * An enumeration of the known {@link org.eclipse.ditto.json.JsonField}s of a {@link PolicySudoCommandResponse}.
+     * An enumeration of the known {@link org.eclipse.ditto.json.JsonField}s of a {@link PolicySudoQueryCommandResponse}.
      */
     class JsonFields extends CommandResponse.JsonFields {
 

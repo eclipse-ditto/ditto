@@ -161,14 +161,14 @@ public interface Command<T extends Command<T>> extends Signal<T> {
         ACTION;
 
         /**
-         * Determines whether the passed {@code category} is CREATE or MODIFY.
+         * Determines whether the passed {@code category} effectively modifies the targeted entity.
          *
          * @param category the category to check.
-         * @return whether the passed {@code category} is CREATE or MODIFY
+         * @return whether the passed {@code category} effectively modifies the targeted entity
          * @since 3.0.0
          */
-        public static boolean isCreateOrModify(final Category category) {
-            return category == CREATE || category == MODIFY;
+        public static boolean isEntityModifyingCommand(final Category category) {
+            return category == CREATE || category == MODIFY || category == MERGE || category == DELETE;
         }
     }
 

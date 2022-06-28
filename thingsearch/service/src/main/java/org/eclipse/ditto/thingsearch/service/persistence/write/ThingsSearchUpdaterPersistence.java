@@ -18,7 +18,7 @@ import org.eclipse.ditto.internal.utils.persistence.operations.NamespacePersiste
 import org.eclipse.ditto.policies.api.PolicyTag;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.things.model.ThingId;
-import org.eclipse.ditto.thingsearch.service.common.model.PolicyReferenceTag;
+import org.eclipse.ditto.thingsearch.api.PolicyReferenceTag;
 
 import akka.NotUsed;
 import akka.stream.javadsl.Source;

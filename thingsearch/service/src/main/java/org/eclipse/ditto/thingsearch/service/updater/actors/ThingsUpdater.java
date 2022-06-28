@@ -37,11 +37,11 @@ import org.eclipse.ditto.internal.utils.pubsub.DistributedSub;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
+import org.eclipse.ditto.thingsearch.api.PolicyReferenceTag;
 import org.eclipse.ditto.thingsearch.api.UpdateReason;
 import org.eclipse.ditto.thingsearch.api.commands.sudo.UpdateThing;
 import org.eclipse.ditto.thingsearch.model.signals.events.ThingsOutOfSync;
 import org.eclipse.ditto.thingsearch.service.common.config.UpdaterConfig;
-import org.eclipse.ditto.thingsearch.service.common.model.PolicyReferenceTag;
 
 import akka.actor.AbstractActorWithTimers;
 import akka.actor.ActorRef;
@@ -238,9 +238,9 @@ final class ThingsUpdater extends AbstractActorWithTimers {
                 .exceptionally(throwable -> {
                     if (!Objects.equals(sender, deadLetters)) {
                         // Only acknowledge IdentifiableStreamingMessage. No other messages should be acknowledged.
-                        if (message instanceof IdentifiableStreamingMessage) {
+                        if (message instanceof IdentifiableStreamingMessage identifiableStreamingMessage) {
                             final StreamAck streamAck =
-                                    StreamAck.success(((IdentifiableStreamingMessage) message).asIdentifierString());
+                                    StreamAck.success(identifiableStreamingMessage.asIdentifierString());
                             sender.tell(streamAck, getSelf());
                         }
                     }

@@ -52,7 +52,7 @@ import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
 @AllValuesAreNonnullByDefault
 @JsonParsableCommandResponse(type = SudoRetrieveThingsResponse.TYPE)
 public final class SudoRetrieveThingsResponse extends AbstractCommandResponse<SudoRetrieveThingsResponse>
-        implements ThingSudoCommandResponse<SudoRetrieveThingsResponse> {
+        implements ThingSudoQueryCommandResponse<SudoRetrieveThingsResponse> {
 
     /**
      * Name of the response.

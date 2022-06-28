@@ -157,7 +157,8 @@ public final class AcknowledgementAggregatorActorStarter {
         final Collection<AcknowledgementRequest> ackRequests = signal.getDittoHeaders().getAcknowledgementRequests();
         if (signal instanceof Announcement<?>) {
             result = !ackRequests.isEmpty();
-        } else if (signal instanceof Command<?> command && Command.Category.isCreateOrModify(command.getCategory()) &&
+        } else if (signal instanceof Command<?> command &&
+                Command.Category.isEntityModifyingCommand(command.getCategory()) &&
                 !isLiveSignal) {
             result = ackRequests.stream().anyMatch(AcknowledgementForwarderActorStarter::isNotLiveResponse);
         } else if (Command.isMessageCommand(signal) || isLiveSignal && Command.isThingCommand(signal)) {

@@ -14,16 +14,14 @@ package org.eclipse.ditto.base.api.commands.sudo;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
-import org.eclipse.ditto.base.model.signals.commands.WithEntity;
 import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.json.JsonValue;
 
 /**
  * Aggregates all sudo command responses in Ditto.
  *
  * @param <T> the type of the implementing class.
  */
-public interface SudoCommandResponse<T extends SudoCommandResponse<T>> extends CommandResponse<T>, WithEntity<T> {
+public interface SudoCommandResponse<T extends SudoCommandResponse<T>> extends CommandResponse<T> {
 
     /**
      * Type qualifier of sudo command responses.
@@ -36,9 +34,6 @@ public interface SudoCommandResponse<T extends SudoCommandResponse<T>> extends C
         // SudoCommandResponses:
         return JsonPointer.empty();
     }
-
-    @Override
-    T setEntity(JsonValue entity);
 
     @Override
     T setDittoHeaders(DittoHeaders dittoHeaders);

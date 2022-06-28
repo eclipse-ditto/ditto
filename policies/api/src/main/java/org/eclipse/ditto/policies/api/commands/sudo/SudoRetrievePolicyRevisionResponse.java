@@ -44,7 +44,7 @@ import org.eclipse.ditto.policies.model.PolicyId;
 @JsonParsableCommandResponse(type = SudoRetrievePolicyRevisionResponse.TYPE)
 public final class SudoRetrievePolicyRevisionResponse
         extends AbstractCommandResponse<SudoRetrievePolicyRevisionResponse>
-        implements PolicySudoCommandResponse<SudoRetrievePolicyRevisionResponse>,
+        implements PolicySudoQueryCommandResponse<SudoRetrievePolicyRevisionResponse>,
         SignalWithEntityId<SudoRetrievePolicyRevisionResponse> {
 
     /**
@@ -62,7 +62,7 @@ public final class SudoRetrievePolicyRevisionResponse
                     context -> {
                         final var jsonObject = context.getJsonObject();
                         return new SudoRetrievePolicyRevisionResponse(
-                                PolicyId.of(jsonObject.getValueOrThrow(PolicySudoCommandResponse.JsonFields.JSON_POLICY_ID)),
+                                PolicyId.of(jsonObject.getValueOrThrow(PolicySudoQueryCommandResponse.JsonFields.JSON_POLICY_ID)),
                                 jsonObject.getValueOrThrow(JSON_REVISION),
                                 context.getDeserializedHttpStatus(),
                                 context.getDittoHeaders()
@@ -170,7 +170,7 @@ public final class SudoRetrievePolicyRevisionResponse
             final Predicate<JsonField> thePredicate) {
 
         final var predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(PolicySudoCommandResponse.JsonFields.JSON_POLICY_ID, String.valueOf(policyId), predicate);
+        jsonObjectBuilder.set(PolicySudoQueryCommandResponse.JsonFields.JSON_POLICY_ID, String.valueOf(policyId), predicate);
         jsonObjectBuilder.set(JSON_REVISION, revision, predicate);
     }
 

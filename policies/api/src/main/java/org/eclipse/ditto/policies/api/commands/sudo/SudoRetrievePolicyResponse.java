@@ -45,7 +45,7 @@ import org.eclipse.ditto.policies.model.PolicyId;
 @Immutable
 @JsonParsableCommandResponse(type = SudoRetrievePolicyResponse.TYPE)
 public final class SudoRetrievePolicyResponse extends AbstractCommandResponse<SudoRetrievePolicyResponse>
-        implements PolicySudoCommandResponse<SudoRetrievePolicyResponse>, SignalWithEntityId<SudoRetrievePolicyResponse> {
+        implements PolicySudoQueryCommandResponse<SudoRetrievePolicyResponse>, SignalWithEntityId<SudoRetrievePolicyResponse> {
 
     /**
      * Type of this response.
@@ -62,7 +62,7 @@ public final class SudoRetrievePolicyResponse extends AbstractCommandResponse<Su
                     context -> {
                         final var jsonObject = context.getJsonObject();
                         return new SudoRetrievePolicyResponse(
-                                PolicyId.of(jsonObject.getValueOrThrow(PolicySudoCommandResponse.JsonFields.JSON_POLICY_ID)),
+                                PolicyId.of(jsonObject.getValueOrThrow(PolicySudoQueryCommandResponse.JsonFields.JSON_POLICY_ID)),
                                 context.getDeserializedHttpStatus(),
                                 jsonObject.getValueOrThrow(JSON_POLICY),
                                 context.getDittoHeaders()
@@ -188,7 +188,7 @@ public final class SudoRetrievePolicyResponse extends AbstractCommandResponse<Su
             final Predicate<JsonField> thePredicate) {
 
         final var predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(PolicySudoCommandResponse.JsonFields.JSON_POLICY_ID, String.valueOf(policyId), predicate);
+        jsonObjectBuilder.set(PolicySudoQueryCommandResponse.JsonFields.JSON_POLICY_ID, String.valueOf(policyId), predicate);
         jsonObjectBuilder.set(JSON_POLICY, policy, predicate);
     }
 

@@ -41,8 +41,8 @@ public final class SudoRetrieveThingResponseTest {
     private static final Thing THING = Thing.newBuilder().setId(THING_ID).build();
 
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()
-            .set(ThingSudoCommandResponse.JsonFields.TYPE, SudoRetrieveThingResponse.TYPE)
-            .set(ThingSudoCommandResponse.JsonFields.STATUS, HttpStatus.OK.getCode())
+            .set(ThingSudoQueryCommandResponse.JsonFields.TYPE, SudoRetrieveThingResponse.TYPE)
+            .set(ThingSudoQueryCommandResponse.JsonFields.STATUS, HttpStatus.OK.getCode())
             .set(SudoRetrieveThingResponse.JSON_THING, THING.toJson())
             .build();
 

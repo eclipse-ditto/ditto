@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.base.api.persistence.cleanup;
 
-import org.eclipse.ditto.base.api.commands.sudo.SudoCommandResponse;
+import org.eclipse.ditto.base.api.commands.sudo.SudoQueryCommandResponse;
 import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
@@ -27,7 +27,7 @@ import org.eclipse.ditto.json.JsonPointer;
  *
  * @param <T> the type of the implementing class.
  */
-public interface CleanupCommandResponse<T extends CleanupCommandResponse<T>> extends SudoCommandResponse<T>,
+public interface CleanupCommandResponse<T extends CleanupCommandResponse<T>> extends SudoQueryCommandResponse<T>,
         SignalWithEntityId<T> {
 
     /**

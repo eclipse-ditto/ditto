@@ -12,10 +12,9 @@
  */
 package org.eclipse.ditto.things.api.commands.sudo;
 
-import org.eclipse.ditto.base.api.commands.sudo.SudoCommandResponse;
+import org.eclipse.ditto.base.api.commands.sudo.SudoQueryCommandResponse;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
-import org.eclipse.ditto.base.model.signals.commands.WithEntity;
 import org.eclipse.ditto.json.JsonValue;
 
 /**
@@ -23,8 +22,8 @@ import org.eclipse.ditto.json.JsonValue;
  *
  * @param <T> the type of the implementing class.
  */
-public interface ThingSudoCommandResponse<T extends ThingSudoCommandResponse<T>> extends SudoCommandResponse<T>,
-        WithEntity<T>{
+public interface ThingSudoQueryCommandResponse<T extends ThingSudoQueryCommandResponse<T>> extends
+        SudoQueryCommandResponse<T> {
 
     /**
      * Type Prefix of thing sudo command responses.

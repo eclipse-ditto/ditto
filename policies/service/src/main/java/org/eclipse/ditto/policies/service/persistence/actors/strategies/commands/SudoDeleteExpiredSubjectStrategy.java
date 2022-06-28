@@ -35,27 +35,26 @@ import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.Subject;
 import org.eclipse.ditto.policies.model.SubjectId;
 import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyNotModifiableException;
-import org.eclipse.ditto.policies.model.signals.commands.modify.DeleteExpiredSubject;
 import org.eclipse.ditto.policies.model.signals.events.PolicyEvent;
 import org.eclipse.ditto.policies.model.signals.events.SubjectDeleted;
 import org.eclipse.ditto.policies.model.signals.events.SubjectsDeletedPartially;
 import org.eclipse.ditto.policies.service.common.config.PolicyConfig;
 
 /**
- * This strategy handles the {@link org.eclipse.ditto.policies.model.signals.commands.modify.DeleteExpiredSubject}
- * command.
+ * This strategy handles the {@link SudoDeleteExpiredSubject} command.
  */
-final class DeleteExpiredSubjectStrategy extends AbstractPolicyCommandStrategy<DeleteExpiredSubject, PolicyEvent<?>> {
+final class SudoDeleteExpiredSubjectStrategy extends
+        AbstractPolicyCommandStrategy<SudoDeleteExpiredSubject, PolicyEvent<?>> {
 
-    DeleteExpiredSubjectStrategy(final PolicyConfig policyConfig) {
-        super(DeleteExpiredSubject.class, policyConfig);
+    SudoDeleteExpiredSubjectStrategy(final PolicyConfig policyConfig) {
+        super(SudoDeleteExpiredSubject.class, policyConfig);
     }
 
     @Override
     protected Result<PolicyEvent<?>> doApply(final Context<PolicyId> context,
             @Nullable final Policy policy,
             final long nextRevision,
-            final DeleteExpiredSubject command,
+            final SudoDeleteExpiredSubject command,
             @Nullable final Metadata metadata) {
 
         final Policy nonNullPolicy = checkNotNull(policy, "policy");
@@ -101,13 +100,13 @@ final class DeleteExpiredSubjectStrategy extends AbstractPolicyCommandStrategy<D
     }
 
     @Override
-    public Optional<EntityTag> previousEntityTag(final DeleteExpiredSubject command,
+    public Optional<EntityTag> previousEntityTag(final SudoDeleteExpiredSubject command,
             @Nullable final Policy previousEntity) {
         return Optional.ofNullable(previousEntity).flatMap(EntityTag::fromEntity);
     }
 
     @Override
-    public Optional<EntityTag> nextEntityTag(final DeleteExpiredSubject command, @Nullable final Policy newEntity) {
+    public Optional<EntityTag> nextEntityTag(final SudoDeleteExpiredSubject command, @Nullable final Policy newEntity) {
         return Optional.ofNullable(newEntity).flatMap(EntityTag::fromEntity);
     }
 }

@@ -34,11 +34,9 @@ import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
 import org.eclipse.ditto.base.service.actors.ShutdownBehaviour;
 import org.eclipse.ditto.base.service.config.supervision.ExponentialBackOff;
-import org.eclipse.ditto.internal.models.streaming.IdentifiableStreamingMessage;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLogger;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
-import org.eclipse.ditto.internal.utils.akka.streaming.StreamAck;
 import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.internal.utils.metrics.instruments.counter.Counter;
 import org.eclipse.ditto.internal.utils.metrics.instruments.timer.StartedTimer;
@@ -47,10 +45,10 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.events.ThingDeleted;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
+import org.eclipse.ditto.thingsearch.api.PolicyReferenceTag;
 import org.eclipse.ditto.thingsearch.api.UpdateReason;
 import org.eclipse.ditto.thingsearch.api.commands.sudo.UpdateThing;
 import org.eclipse.ditto.thingsearch.service.common.config.SearchConfig;
-import org.eclipse.ditto.thingsearch.service.common.model.PolicyReferenceTag;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.AbstractWriteModel;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.Metadata;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.ThingDeleteModel;
@@ -435,8 +433,6 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
                     policyId, policyRevision);
         }
 
-        acknowledge(policyReferenceTag);
-
         final var policyTag = policyReferenceTag.getPolicyTag();
         final var policyIdOfTag = policyTag.getEntityId();
         if (!Objects.equals(policyId, policyIdOfTag) || policyRevision < policyTag.getRevision()) {
@@ -577,11 +573,6 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
         return Metadata.of(thingId, thingRevision, data.metadata().getPolicyId().orElse(null),
                 data.metadata().getPolicyRevision().orElse(null),
                 event == null ? List.of() : List.of(event), timer, null);
-    }
-
-    private void acknowledge(final IdentifiableStreamingMessage message) {
-        final ActorSelection ackRecipient = getAckRecipient(DittoHeaders.empty());
-        ackRecipient.tell(StreamAck.success(message.asIdentifierString()), getSelf());
     }
 
     private static Data getInitialData(final ThingId thingId) {

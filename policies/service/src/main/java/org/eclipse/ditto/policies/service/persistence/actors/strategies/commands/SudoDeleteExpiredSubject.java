@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Contributors to the Eclipse Foundation
+ * Copyright (c) 2022 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.policies.model.signals.commands.modify;
+package org.eclipse.ditto.policies.service.persistence.actors.strategies.commands;
 
 import java.util.Objects;
 import java.util.function.Predicate;
@@ -18,6 +18,7 @@ import java.util.function.Predicate;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.base.model.entity.id.WithEntityId;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.json.JsonParsableCommand;
@@ -30,6 +31,7 @@ import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.policies.api.commands.sudo.PolicySudoCommand;
 import org.eclipse.ditto.policies.model.PoliciesModelFactory;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.Subject;
@@ -37,20 +39,18 @@ import org.eclipse.ditto.policies.model.SubjectId;
 import org.eclipse.ditto.policies.model.signals.commands.PolicyCommand;
 
 /**
- * This internal command deletes all occurrences of an expired {@link org.eclipse.ditto.policies.model.Subject}.
+ * This internal command deletes all occurrences of an expired {@link Subject}.
  * There is no response.
- *
- * @since 2.1.0
  */
 @Immutable
-@JsonParsableCommand(typePrefix = PolicyCommand.TYPE_PREFIX, name = DeleteExpiredSubject.NAME)
-public final class DeleteExpiredSubject extends AbstractCommand<DeleteExpiredSubject>
-        implements PolicyModifyCommand<DeleteExpiredSubject> {
+@JsonParsableCommand(typePrefix = PolicySudoCommand.TYPE_PREFIX, name = SudoDeleteExpiredSubject.NAME)
+public final class SudoDeleteExpiredSubject extends AbstractCommand<SudoDeleteExpiredSubject>
+        implements PolicySudoCommand<SudoDeleteExpiredSubject>, WithEntityId {
 
     /**
      * Name of this command.
      */
-    public static final String NAME = "deleteExpiredSubject";
+    public static final String NAME = "sudoDeleteExpiredSubject";
 
     /**
      * Type of this command.
@@ -65,7 +65,7 @@ public final class DeleteExpiredSubject extends AbstractCommand<DeleteExpiredSub
     private final PolicyId policyId;
     private final Subject subject;
 
-    private DeleteExpiredSubject(final PolicyId policyId, final Subject subject, final DittoHeaders dittoHeaders) {
+    private SudoDeleteExpiredSubject(final PolicyId policyId, final Subject subject, final DittoHeaders dittoHeaders) {
         super(TYPE, dittoHeaders);
         this.policyId = policyId;
         this.subject = subject;
@@ -80,13 +80,13 @@ public final class DeleteExpiredSubject extends AbstractCommand<DeleteExpiredSub
      * @return the command.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static DeleteExpiredSubject of(final PolicyId policyId,
+    public static SudoDeleteExpiredSubject of(final PolicyId policyId,
             final Subject subject,
             final DittoHeaders dittoHeaders) {
 
         Objects.requireNonNull(policyId, "policyId");
         Objects.requireNonNull(subject, "subject");
-        return new DeleteExpiredSubject(policyId, subject, dittoHeaders);
+        return new SudoDeleteExpiredSubject(policyId, subject, dittoHeaders);
     }
 
     /**
@@ -99,8 +99,8 @@ public final class DeleteExpiredSubject extends AbstractCommand<DeleteExpiredSub
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
      * format.
      */
-    public static DeleteExpiredSubject fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new CommandJsonDeserializer<DeleteExpiredSubject>(TYPE, jsonObject).deserialize(() -> {
+    public static SudoDeleteExpiredSubject fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
+        return new CommandJsonDeserializer<SudoDeleteExpiredSubject>(TYPE, jsonObject).deserialize(() -> {
             final String extractedPolicyId = jsonObject.getValueOrThrow(PolicyCommand.JsonFields.JSON_POLICY_ID);
             final PolicyId policyId = PolicyId.of(extractedPolicyId);
             final SubjectId subjectId = PoliciesModelFactory.newSubjectId(jsonObject.getValueOrThrow(JSON_SUBJECT_ID));
@@ -146,13 +146,13 @@ public final class DeleteExpiredSubject extends AbstractCommand<DeleteExpiredSub
     }
 
     @Override
-    public DeleteExpiredSubject setDittoHeaders(final DittoHeaders dittoHeaders) {
+    public SudoDeleteExpiredSubject setDittoHeaders(final DittoHeaders dittoHeaders) {
         return of(policyId, subject, dittoHeaders);
     }
 
     @Override
     protected boolean canEqual(@Nullable final Object other) {
-        return other instanceof DeleteExpiredSubject;
+        return other instanceof SudoDeleteExpiredSubject;
     }
 
     @SuppressWarnings("squid:MethodCyclomaticComplexity")
@@ -164,7 +164,7 @@ public final class DeleteExpiredSubject extends AbstractCommand<DeleteExpiredSub
         if (null == obj || getClass() != obj.getClass()) {
             return false;
         }
-        final DeleteExpiredSubject that = (DeleteExpiredSubject) obj;
+        final SudoDeleteExpiredSubject that = (SudoDeleteExpiredSubject) obj;
         return that.canEqual(this) && Objects.equals(policyId, that.policyId) &&
                 Objects.equals(subject, that.subject) && super.equals(obj);
     }

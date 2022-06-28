@@ -37,9 +37,9 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 public final class SudoRetrievePolicyResponseTest {
 
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder() //
-            .set(PolicySudoCommandResponse.JsonFields.TYPE, SudoRetrievePolicyResponse.TYPE) //
-            .set(PolicySudoCommandResponse.JsonFields.STATUS, HttpStatus.OK.getCode()) //
-            .set(PolicySudoCommandResponse.JsonFields.JSON_POLICY_ID, TestConstants.Policy.POLICY_ID.toString()) //
+            .set(PolicySudoQueryCommandResponse.JsonFields.TYPE, SudoRetrievePolicyResponse.TYPE) //
+            .set(PolicySudoQueryCommandResponse.JsonFields.STATUS, HttpStatus.OK.getCode()) //
+            .set(PolicySudoQueryCommandResponse.JsonFields.JSON_POLICY_ID, TestConstants.Policy.POLICY_ID.toString()) //
             .set(SudoRetrievePolicyResponse.JSON_POLICY,
                     TestConstants.Policy.POLICY.toJson(FieldType.regularOrSpecial())) //
             .build();
