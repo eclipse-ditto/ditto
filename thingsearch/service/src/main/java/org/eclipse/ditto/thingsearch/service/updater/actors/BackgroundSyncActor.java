@@ -19,6 +19,7 @@ import java.util.Optional;
 import java.util.function.Function;
 
 import akka.japi.function.Procedure;
+
 import org.eclipse.ditto.base.api.common.Shutdown;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.internal.models.streaming.LowerBound;
@@ -62,6 +63,8 @@ public final class BackgroundSyncActor
 
     private static final ThingId EMPTY_THING_ID = ThingId.of(LowerBound.emptyEntityId(ThingConstants.ENTITY_TYPE));
     private static final String FORCE_UPDATE_HEADER = "force-update";
+    private static final String INVALIDATE_THING_HEADER = "invalidate-thing";
+    private static final String INVALIDATE_POLICY_HEADER = "invalidate-policy";
 
     private final ThingsMetadataSource thingsMetadataSource;
     private final ThingsSearchPersistence thingsSearchPersistence;
@@ -76,6 +79,8 @@ public final class BackgroundSyncActor
     private ThingId progressIndexed = EMPTY_THING_ID;
 
     private boolean forceUpdateAllThings = false;
+    private boolean forceInvalidateThing = false;
+    private boolean forceInvalidatePolicy = false;
 
     @SuppressWarnings("unused")
     private BackgroundSyncActor(final BackgroundSyncConfig backgroundSyncConfig,
@@ -91,7 +96,8 @@ public final class BackgroundSyncActor
         this.backgroundSyncStream = backgroundSyncStream;
         this.thingsUpdater = thingsUpdater;
 
-        getTimers().startTimerAtFixedRate(Control.BOOKMARK_THING_ID, Control.BOOKMARK_THING_ID, config.getQuietPeriod());
+        getTimers().startTimerAtFixedRate(Control.BOOKMARK_THING_ID, Control.BOOKMARK_THING_ID,
+                config.getQuietPeriod());
     }
 
     /**
@@ -158,6 +164,8 @@ public final class BackgroundSyncActor
         progressPersisted = EMPTY_THING_ID;
         progressIndexed = EMPTY_THING_ID;
         forceUpdateAllThings = false;
+        forceInvalidateThing = false;
+        forceInvalidatePolicy = false;
         doBookmarkThingId("");
     }
 
@@ -165,17 +173,25 @@ public final class BackgroundSyncActor
     protected void shutdownStream(Shutdown shutdown) {
         super.shutdownStream(shutdown);
         // if force-update header is set on shutdown command, force-update all things in the next round
-        forceUpdateAllThings = Optional.ofNullable(shutdown.getDittoHeaders().get(FORCE_UPDATE_HEADER)).map(Boolean::valueOf).orElse(false);
+        forceUpdateAllThings = getOptionalHeader(shutdown.getDittoHeaders(), FORCE_UPDATE_HEADER);
         if (forceUpdateAllThings) {
             log.withCorrelationId(shutdown).info("Next sync round will be forced updates for all things!");
         }
+        forceInvalidateThing = getOptionalHeader(shutdown.getDittoHeaders(), INVALIDATE_THING_HEADER);
+        forceInvalidatePolicy = getOptionalHeader(shutdown.getDittoHeaders(), INVALIDATE_POLICY_HEADER);
+    }
+
+    private boolean getOptionalHeader(final DittoHeaders dittoHeaders, final String header) {
+        return Optional.ofNullable(dittoHeaders.get(header))
+                .map(Boolean::valueOf)
+                .orElse(false);
     }
 
     @Override
     protected Source<?, ?> getSource() {
         return getLowerBoundSource()
                 .flatMapConcat(this::streamMetadataFromLowerBound)
-                .wireTap(handleInconsistency(forceUpdateAllThings));
+                .wireTap(handleInconsistency(forceUpdateAllThings, forceInvalidateThing, forceInvalidatePolicy));
     }
 
     @Override
@@ -232,7 +248,8 @@ public final class BackgroundSyncActor
                 .runWith(Sink.ignore(), materializer);
     }
 
-    private Procedure<Metadata> handleInconsistency(final boolean forceUpdateAllThings) {
+    private Procedure<Metadata> handleInconsistency(final boolean forceUpdateAllThings,
+            final boolean forceInvalidateThing, final boolean forceInvalidatePolicy) {
         return metadata -> {
             final var thingId = metadata.getThingId();
 
@@ -244,7 +261,8 @@ public final class BackgroundSyncActor
             }
 
             final var command =
-                    UpdateThing.of(thingId, metadata.shouldInvalidateThing(), metadata.shouldInvalidatePolicy(),
+                    UpdateThing.of(thingId, forceInvalidateThing || metadata.shouldInvalidateThing(),
+                            forceInvalidatePolicy || metadata.shouldInvalidatePolicy(),
                             UpdateReason.BACKGROUND_SYNC, headers);
             thingsUpdater.tell(command, ActorRef.noSender());
         };
