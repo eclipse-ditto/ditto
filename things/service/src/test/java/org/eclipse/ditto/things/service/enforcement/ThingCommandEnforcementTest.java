@@ -181,7 +181,7 @@ public final class ThingCommandEnforcementTest extends AbstractThingEnforcementT
             expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
             expectAndAnswerSudoRetrievePolicy(policyId, PolicyNotAccessibleException.newBuilder(policyId).build());
 
-            final DittoRuntimeException error = TestSetup.fishForMsgClass(this, ThingNotAccessibleException.class);
+            final DittoRuntimeException error = TestSetup.fishForMsgClass(this, ThingNotModifiableException.class);
             assertThat(error.getMessage()).contains(THING_ID);
         }};
     }
