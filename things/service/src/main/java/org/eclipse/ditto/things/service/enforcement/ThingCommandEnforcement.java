@@ -305,41 +305,6 @@ final class ThingCommandEnforcement
     }
 
     /**
-     * Create error for commands to an existing thing whose policy is deleted.
-     *
-     * @param thingCommand the triggering command.
-     * @param thingId ID of the thing.
-     * @param policyId ID of the deleted policy.
-     * @return an appropriate error.
-     */
-    private static DittoRuntimeException errorForExistingThingWithDeletedPolicy(final ThingCommand<?> thingCommand,
-            final ThingId thingId, final CharSequence policyId) {
-
-        //TODO: Yannic check when this exception should be thrown
-
-        final var message = String.format(
-                "The Thing with ID '%s' could not be accessed as its Policy with ID '%s' is not or no longer existing.",
-                thingId, policyId);
-        final var description = String.format(
-                "Recreate/create the Policy with ID '%s' in order to get access to the Thing again.",
-                policyId);
-
-        if (thingCommand instanceof ThingModifyCommand) {
-            return ThingNotModifiableException.newBuilder(thingId)
-                    .message(message)
-                    .description(description)
-                    .dittoHeaders(thingCommand.getDittoHeaders())
-                    .build();
-        } else {
-            return ThingNotAccessibleException.newBuilder(thingId)
-                    .message(message)
-                    .description(description)
-                    .dittoHeaders(thingCommand.getDittoHeaders())
-                    .build();
-        }
-    }
-
-    /**
      * Create error due to failing to execute a thing-command in the expected way.
      *
      * @param thingCommand the command.

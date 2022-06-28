@@ -63,7 +63,9 @@ import org.eclipse.ditto.things.model.signals.commands.ThingCommandResponse;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.PolicyInvalidException;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingNotAccessibleException;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingNotCreatableException;
+import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingNotModifiableException;
 import org.eclipse.ditto.things.model.signals.commands.modify.CreateThing;
+import org.eclipse.ditto.things.model.signals.commands.modify.ThingModifyCommand;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
@@ -133,7 +135,51 @@ public final class ThingEnforcerActor
             return loadPolicyEnforcerForCreateThing(createThing)
                     .thenApply(Optional::of);
         } else {
-            return super.loadPolicyEnforcer(signal);
+            return providePolicyIdForEnforcement(signal)
+                    .thenCompose(policyId -> providePolicyEnforcer(policyId)
+                            .thenApply(policyEnforcer -> {
+                                if (policyId != null &&
+                                        policyEnforcer == null &&
+                                        signal instanceof ThingCommand<?> thingCommand) {
+                                    throw errorForExistingThingWithDeletedPolicy(thingCommand, policyId);
+                                } else {
+                                    return Optional.ofNullable(policyEnforcer);
+                                }
+                            }));
+        }
+    }
+
+    /**
+     * Create error for commands to an existing thing whose policy is deleted.
+     *
+     * @param thingCommand the triggering command.
+     * @param policyId ID of the deleted policy.
+     * @return an appropriate error.
+     */
+    private static DittoRuntimeException errorForExistingThingWithDeletedPolicy(final ThingCommand<?> thingCommand,
+            final PolicyId policyId) {
+
+        final ThingId thingId = thingCommand.getEntityId();
+
+        final var message = String.format(
+                "The Thing with ID '%s' could not be accessed as its Policy with ID '%s' is not or no longer existing.",
+                thingId, policyId);
+        final var description = String.format(
+                "Recreate/create the Policy with ID '%s' in order to get access to the Thing again.",
+                policyId);
+
+        if (thingCommand instanceof ThingModifyCommand) {
+            return ThingNotModifiableException.newBuilder(thingId)
+                    .message(message)
+                    .description(description)
+                    .dittoHeaders(thingCommand.getDittoHeaders())
+                    .build();
+        } else {
+            return ThingNotAccessibleException.newBuilder(thingId)
+                    .message(message)
+                    .description(description)
+                    .dittoHeaders(thingCommand.getDittoHeaders())
+                    .build();
         }
     }
 
