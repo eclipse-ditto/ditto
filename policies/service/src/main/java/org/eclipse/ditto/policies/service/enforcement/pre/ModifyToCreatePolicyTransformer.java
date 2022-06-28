@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.policies.service.enforcement;
+package org.eclipse.ditto.policies.service.enforcement.pre;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;

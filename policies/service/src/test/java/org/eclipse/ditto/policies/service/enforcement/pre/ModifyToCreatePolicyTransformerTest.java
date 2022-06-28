@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.policies.service.enforcement;
+package org.eclipse.ditto.policies.service.enforcement.pre;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.verify;
@@ -28,6 +28,7 @@ import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.signals.commands.modify.CreatePolicy;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicy;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicy;
+import org.eclipse.ditto.policies.service.enforcement.pre.ModifyToCreatePolicyTransformer;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
