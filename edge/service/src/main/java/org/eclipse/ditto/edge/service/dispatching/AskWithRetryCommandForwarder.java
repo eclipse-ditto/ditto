@@ -115,7 +115,7 @@ public final class AskWithRetryCommandForwarder implements Extension {
                     .exceptionally(t -> handleException(t, sender))
                     .thenAccept(response -> handleResponse(response, sender));
         } else {
-            pubSubMediator.tell(command, sender);
+            pubSubMediator.tell(message, sender);
         }
     }
 

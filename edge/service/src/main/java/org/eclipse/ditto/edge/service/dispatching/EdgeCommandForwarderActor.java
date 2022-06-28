@@ -94,6 +94,19 @@ public class EdgeCommandForwarderActor extends AbstractActor {
         return Props.create(EdgeCommandForwarderActor.class, pubSubMediator, shardRegions, signalTransformer);
     }
 
+    /**
+     * Determines whether the passed {@code command} is idempotent or not.
+     *
+     * @param command the command to check.
+     * @return whether the command is idempotent or not.
+     */
+    public static boolean isIdempotent(final Command<?> command) {
+        return switch (command.getCategory()) {
+            case QUERY, MERGE, MODIFY, DELETE -> true;
+            default -> false;
+        };
+    }
+
     @Override
     public Receive createReceive() {
         final Receive receiveExtension = EdgeCommandForwarderExtension.get(context().system())
@@ -199,13 +212,6 @@ public class EdgeCommandForwarderActor extends AbstractActor {
         pubSubMediator.tell(
                 DistPubSubAccess.send(ThingsSearchConstants.SEARCH_ACTOR_PATH, command),
                 getSender());
-    }
-
-    private static boolean isIdempotent(final Command<?> command) {
-        return switch (command.getCategory()) {
-            case QUERY, MERGE, MODIFY, DELETE -> true;
-            default -> false;
-        };
     }
 
     private void handleUnknownSignal(final Signal<?> signal) {
