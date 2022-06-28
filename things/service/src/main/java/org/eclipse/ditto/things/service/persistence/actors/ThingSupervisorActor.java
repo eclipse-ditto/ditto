@@ -300,9 +300,8 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
 
     @Override
     protected Props getPersistenceEnforcerProps(final ThingId entityId) {
-        final ActorContext actorContext = getContext();
-
-        final ThingEnforcement thingEnforcement = new ThingEnforcement(enforcementConfig);
+        final ThingEnforcement thingEnforcement =
+                new ThingEnforcement(policiesShardRegion, getContext().getSystem(), enforcementConfig);
 
         return ThingEnforcerActor.props(entityId, thingEnforcement, pubSubMediator, blockedNamespaces,
                 enforcementConfig.getAskWithRetryConfig(), policiesShardRegion, thingsShardRegion);

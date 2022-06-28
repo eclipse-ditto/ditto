@@ -23,6 +23,7 @@ import java.util.stream.Collectors;
 
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.contenttype.ContentType;
 import org.eclipse.ditto.base.model.signals.FeatureToggle;
@@ -32,6 +33,8 @@ import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
 import org.eclipse.ditto.base.model.signals.commands.CommandToExceptionRegistry;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLogger;
+import org.eclipse.ditto.internal.utils.cacheloaders.AskWithRetry;
+import org.eclipse.ditto.internal.utils.cacheloaders.config.AskWithRetryConfig;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
@@ -45,8 +48,13 @@ import org.eclipse.ditto.policies.enforcement.PolicyEnforcer;
 import org.eclipse.ditto.policies.enforcement.config.EnforcementConfig;
 import org.eclipse.ditto.policies.model.Permissions;
 import org.eclipse.ditto.policies.model.PoliciesResourceType;
+import org.eclipse.ditto.policies.model.Policy;
+import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.ResourceKey;
 import org.eclipse.ditto.policies.model.enforcers.Enforcer;
+import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyNotAccessibleException;
+import org.eclipse.ditto.policies.model.signals.commands.modify.DeletePolicy;
+import org.eclipse.ditto.policies.model.signals.commands.modify.DeletePolicyResponse;
 import org.eclipse.ditto.rql.model.ParserException;
 import org.eclipse.ditto.rql.model.predicates.ast.RootNode;
 import org.eclipse.ditto.rql.parser.RqlPredicateParser;
@@ -71,6 +79,10 @@ import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThing;
 import org.eclipse.ditto.things.model.signals.commands.query.ThingQueryCommand;
 import org.eclipse.ditto.things.model.signals.commands.query.ThingQueryCommandResponse;
 
+import akka.Done;
+import akka.actor.ActorRef;
+import akka.actor.ActorSystem;
+
 /**
  * Authorizes {@link ThingCommand}s and filters {@link ThingCommandResponse}s.
  */
@@ -85,14 +97,26 @@ final class ThingCommandEnforcement
      */
     private static final JsonFieldSelector THING_QUERY_COMMAND_RESPONSE_ALLOWLIST =
             JsonFactory.newFieldSelector(Thing.JsonFields.ID);
+    private final ActorSystem actorSystem;
+    private final ActorRef policiesShardRegion;
+    private final AskWithRetryConfig askWithRetryConfig;
 
     /**
      * Creates a new instance of the thing command enforcer.
      *
+     * @param actorSystem the actor system to load config, dispatchers from.
+     * @param policiesShardRegion the policies shard region to load policies from and to use in order to create new
+     * (inline) policies when creating new things.
      * @param enforcementConfig the configuration to apply for this command enforcement implementation.
      */
-    public ThingCommandEnforcement(final EnforcementConfig enforcementConfig) {
+    public ThingCommandEnforcement(
+            final ActorSystem actorSystem,
+            final ActorRef policiesShardRegion,
+            final EnforcementConfig enforcementConfig) {
 
+        this.actorSystem = actorSystem;
+        this.policiesShardRegion = policiesShardRegion;
+        this.askWithRetryConfig = enforcementConfig.getAskWithRetryConfig();
         enforcementConfig.getSpecialLoggingInspectedNamespaces()
                 .forEach(loggedNamespace -> NAMESPACE_INSPECTION_LOGGERS.put(
                         loggedNamespace,
@@ -134,18 +158,26 @@ final class ThingCommandEnforcement
             // for retrieving the WoT TD, assume that full TD gets returned unfiltered:
             authorizedCommand = prepareThingCommandBeforeSendingToPersistence(command);
         } else {
-            final ThingCommand<?> commandWithReadSubjects = authorizeByPolicyOrThrow(policyEnforcer.getEnforcer(),
-                    command);
-            if (commandWithReadSubjects instanceof ThingQueryCommand<?> thingQueryCommand) {
-                authorizedCommand = prepareThingCommandBeforeSendingToPersistence(
-                        ensureTwinChannel(thingQueryCommand)
-                );
-            } else if (commandWithReadSubjects.getDittoHeaders().getLiveChannelCondition().isPresent()) {
-                throw LiveChannelConditionNotAllowedException.newBuilder()
-                        .dittoHeaders(commandWithReadSubjects.getDittoHeaders())
-                        .build();
-            } else {
-                authorizedCommand = prepareThingCommandBeforeSendingToPersistence(commandWithReadSubjects);
+            try {
+                final ThingCommand<?> commandWithReadSubjects = authorizeByPolicyOrThrow(policyEnforcer.getEnforcer(),
+                        command);
+                if (commandWithReadSubjects instanceof ThingQueryCommand<?> thingQueryCommand) {
+                    authorizedCommand = prepareThingCommandBeforeSendingToPersistence(
+                            ensureTwinChannel(thingQueryCommand)
+                    );
+                } else if (commandWithReadSubjects.getDittoHeaders().getLiveChannelCondition().isPresent()) {
+                    throw LiveChannelConditionNotAllowedException.newBuilder()
+                            .dittoHeaders(commandWithReadSubjects.getDittoHeaders())
+                            .build();
+                } else {
+                    authorizedCommand = prepareThingCommandBeforeSendingToPersistence(commandWithReadSubjects);
+                }
+            } catch (final Throwable error) {
+                if (command instanceof CreateThing createThing && !Signal.isChannelLive(createThing)) {
+                    return handleFailedCreateThing(createThing, policyEnforcer)
+                            .thenCompose(done -> CompletableFuture.failedStage(error));
+                }
+                return CompletableFuture.failedStage(error);
             }
         }
         return CompletableFuture.completedStage(authorizedCommand);
@@ -365,6 +397,60 @@ final class ThingCommandEnforcement
             throw errorForThingCommand(command);
         }
     }
+
+    private CompletionStage<Done> handleFailedCreateThing(
+            final CreateThing createThing,
+            final PolicyEnforcer policyEnforcer) {
+        if (shouldDeletePolicy(createThing)) {
+            return deletePolicy(policyEnforcer.getPolicy().flatMap(Policy::getEntityId).orElseThrow(), createThing);
+        }
+        return CompletableFuture.completedStage(Done.getInstance());
+    }
+
+    private static boolean shouldDeletePolicy(final CreateThing createThing) {
+        return wasPolicyCopied(createThing)
+                || wasInlinePolicyCreated(createThing)
+                || wasDefaultPolicyCreated(createThing);
+    }
+
+    private static boolean wasPolicyCopied(final CreateThing createThing) {
+        return createThing.getPolicyIdOrPlaceholder().isPresent();
+    }
+
+    private static boolean wasInlinePolicyCreated(final CreateThing createThing) {
+        return createThing.getInitialPolicy().isPresent();
+    }
+
+    private static boolean wasDefaultPolicyCreated(final CreateThing createThing) {
+        return createThing.getThing().getPolicyId().isEmpty() && createThing.getPolicyIdOrPlaceholder().isEmpty();
+    }
+
+    private CompletionStage<Done> deletePolicy(final PolicyId policyId, final CreateThing createThing) {
+        final DittoHeaders dittoHeaders = createThing.getDittoHeaders();
+        final var dittoHeadersForCreatePolicy = DittoHeaders.newBuilder(dittoHeaders)
+                .removePreconditionHeaders()
+                .responseRequired(true)
+                .putHeader(DittoHeaderDefinition.DITTO_SUDO.getKey(), "true")
+                .build();
+        return doDeletePolicy(DeletePolicy.of(policyId, dittoHeadersForCreatePolicy));
+    }
+
+    private CompletionStage<Done> doDeletePolicy(final DeletePolicy deletePolicy) {
+        return AskWithRetry.askWithRetry(policiesShardRegion, deletePolicy, askWithRetryConfig, actorSystem,
+                        this::handleDeletePolicyResponse)
+                .thenCompose(success -> {
+                    if (!success) {
+                        return doDeletePolicy(deletePolicy);
+                    }
+                    return CompletableFuture.completedStage(Done.getInstance());
+                });
+    }
+
+    private boolean handleDeletePolicyResponse(final Object policyResponse) {
+        //not accessible means already deleted and can be considered as success
+        return policyResponse instanceof DeletePolicyResponse || policyResponse instanceof PolicyNotAccessibleException;
+    }
+
 
     /**
      * Extend a signal by subject headers given with granted and revoked READ access.

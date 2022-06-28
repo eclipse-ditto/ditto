@@ -22,6 +22,7 @@ import org.eclipse.ditto.base.api.commands.sudo.SudoCommand;
 import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.base.model.exceptions.DittoInternalErrorException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
@@ -178,40 +179,44 @@ public abstract class AbstractEnforcerActor<I extends EntityId, S extends Signal
                     .thenCompose(optionalPolicyEnforcer -> optionalPolicyEnforcer
                             .map(policyEnforcer -> enforcement.authorizeSignal(signal, policyEnforcer))
                             .orElseGet(() -> enforcement.authorizeSignalWithMissingEnforcer(signal))
-                    ).handle((authorizedSignal, throwable) -> {
+                    )
+                    .whenComplete((authorizedSignal, throwable) -> {
                         if (null != authorizedSignal) {
                             log.withCorrelationId(authorizedSignal)
                                     .info("Completed enforcement of message type <{}> with outcome 'success'",
                                             authorizedSignal.getType());
                             sender.tell(authorizedSignal, self);
-                            return authorizedSignal;
                         } else if (null != throwable) {
-                            final DittoRuntimeException dittoRuntimeException =
-                                    DittoRuntimeException.asDittoRuntimeException(throwable, t ->
-                                            DittoInternalErrorException.newBuilder()
-                                                    .cause(t)
-                                                    .dittoHeaders(signal.getDittoHeaders())
-                                                    .build()
-                                    );
-                            log.withCorrelationId(dittoRuntimeException)
-                                    .info("Completed enforcement of message type <{}> with outcome 'failed' and headers: <{}>",
-                                            signal.getType(), signal.getDittoHeaders());
-                            sender.tell(dittoRuntimeException, self);
-                            return null;
+                            handleAuthorizationFailure(signal, throwable, sender);
                         } else {
                             log.withCorrelationId(signal)
                                     .warning(
                                             "Neither authorizedSignal nor throwable were present during enforcement of signal: " +
                                                     "<{}>", signal);
-                            return null;
                         }
                     });
         } catch (final DittoRuntimeException dittoRuntimeException) {
-            log.withCorrelationId(dittoRuntimeException)
-                    .info("Completed enforcement of message type <{}> with outcome 'failed' and headers: <{}>",
-                            signal.getType(), signal.getDittoHeaders());
-            sender.tell(dittoRuntimeException, self);
+            handleAuthorizationFailure(signal, dittoRuntimeException, sender);
         }
+    }
+
+    private void handleAuthorizationFailure(
+            final Signal<?> signal,
+            final Throwable throwable,
+            final ActorRef sender
+            ) {
+        final DittoHeaders dittoHeaders = signal.getDittoHeaders();
+        final DittoRuntimeException dittoRuntimeException =
+                DittoRuntimeException.asDittoRuntimeException(throwable, t ->
+                        DittoInternalErrorException.newBuilder()
+                                .cause(t)
+                                .dittoHeaders(dittoHeaders)
+                                .build()
+                );
+        log.withCorrelationId(dittoRuntimeException)
+                .info("Completed enforcement of message type <{}> with outcome 'failed' and headers: <{}>",
+                        signal.getType(), dittoHeaders);
+        sender.tell(dittoRuntimeException, getSelf());
     }
 
     /**

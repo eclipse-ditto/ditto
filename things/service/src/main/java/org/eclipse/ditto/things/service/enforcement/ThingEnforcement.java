@@ -24,6 +24,9 @@ import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.signals.commands.modify.CreateThing;
 
+import akka.actor.ActorRef;
+import akka.actor.ActorSystem;
+
 /**
  * Authorizes {@link Signal}s and filters {@link CommandResponse}s related to things by applying different included
  * {@link ThingEnforcementStrategy}s.
@@ -32,11 +35,12 @@ public final class ThingEnforcement extends AbstractEnforcementReloaded<Signal<?
 
     private final List<ThingEnforcementStrategy> enforcementStrategies;
 
-    public ThingEnforcement(final EnforcementConfig enforcementConfig) {
+    public ThingEnforcement(final ActorRef policiesShardRegion, final ActorSystem actorSystem,
+            final EnforcementConfig enforcementConfig) {
 
         enforcementStrategies = List.of(
                 new LiveSignalEnforcement(),
-                new ThingCommandEnforcement(enforcementConfig)
+                new ThingCommandEnforcement(actorSystem, policiesShardRegion, enforcementConfig)
         );
     }
 
