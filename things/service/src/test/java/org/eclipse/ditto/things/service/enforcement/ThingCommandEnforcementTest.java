@@ -53,6 +53,8 @@ import org.eclipse.ditto.policies.model.SubjectId;
 import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyNotAccessibleException;
 import org.eclipse.ditto.policies.model.signals.commands.modify.CreatePolicy;
 import org.eclipse.ditto.policies.model.signals.commands.modify.CreatePolicyResponse;
+import org.eclipse.ditto.policies.model.signals.commands.modify.DeletePolicy;
+import org.eclipse.ditto.policies.model.signals.commands.modify.DeletePolicyResponse;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicy;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicyResponse;
 import org.eclipse.ditto.things.api.Permission;
@@ -203,6 +205,13 @@ public final class ThingCommandEnforcementTest extends AbstractThingEnforcementT
 
             policiesShardRegionProbe.expectMsgClass(CreatePolicy.class);
             policiesShardRegionProbe.reply(CreatePolicyResponse.of(policyId, policy, headers()));
+
+            //Ensure that created policy is deleted after failed authorization of CreateThing
+            final DeletePolicy deletePolicy = policiesShardRegionProbe.expectMsgClass(DeletePolicy.class);
+            assertThat(deletePolicy.getDittoHeaders().isSudo()).isTrue();
+            assertThat(deletePolicy.getDittoHeaders().isResponseRequired()).isTrue();
+            assertThat(deletePolicy.getEntityId().toString()).isEqualTo(policyId.toString());
+            policiesShardRegionProbe.reply(DeletePolicyResponse.of(policyId, deletePolicy.getDittoHeaders()));
 
             TestSetup.fishForMsgClass(this, ThingNotModifiableException.class);
         }};
@@ -443,7 +452,7 @@ public final class ThingCommandEnforcementTest extends AbstractThingEnforcementT
             policiesShardRegionProbe.reply(CreatePolicyResponse.of(policyId, policy, headers()));
 
             final CreateThing expectedCreateThing = addReadSubjectHeader(
-                    CreateThing.of(thing.setPolicyId(policyId), null, headers()));
+                    CreateThing.of(thing.setPolicyId(policyId), policy.toJson(), headers()));
             thingPersistenceActorProbe.expectMsg(expectedCreateThing);
             final CreateThingResponse createThingResponse = CreateThingResponse.of(thing, headers());
             thingPersistenceActorProbe.reply(createThingResponse);
@@ -604,7 +613,7 @@ public final class ThingCommandEnforcementTest extends AbstractThingEnforcementT
             policiesShardRegionProbe.reply(CreatePolicyResponse.of(PolicyId.of(THING_ID), policy, headers()));
 
             final CreateThing expectedCreateThing = addReadSubjectHeader(
-                    CreateThing.of(thing.setPolicyId(policyId), null, headers()));
+                    CreateThing.of(thing.setPolicyId(policyId), policy.toJson(), null, headers()));
             thingPersistenceActorProbe.expectMsg(expectedCreateThing);
             final CreateThingResponse createThingResponse = CreateThingResponse.of(thing, headers());
             thingPersistenceActorProbe.reply(createThingResponse);
@@ -685,7 +694,7 @@ public final class ThingCommandEnforcementTest extends AbstractThingEnforcementT
             } else {
                 final Thing thingWithNewPolicyId = thing.setPolicyId(newPolicyId);
                 final CreateThing expectedCreateThing = addReadSubjectHeader(
-                        CreateThing.of(thingWithNewPolicyId, null, dittoHeaders));
+                        CreateThing.of(thingWithNewPolicyId, null, policyId.toString(), dittoHeaders));
                 thingPersistenceActorProbe.expectMsg(expectedCreateThing);
 
                 final CreateThingResponse createThingResponse = CreateThingResponse.of(thingWithNewPolicyId, headers());

@@ -52,7 +52,12 @@ public final class ThingEnforcement extends AbstractEnforcementReloaded<Signal<?
                     .toBuilder()
                     .setPolicyId(policyEnforcer.getPolicy().flatMap(Policy::getEntityId).orElse(null))
                     .build();
-            adaptedSignal = CreateThing.of(thingWithBestEffortPolicyId, null, createThing.getDittoHeaders());
+            adaptedSignal = CreateThing.of(
+                    thingWithBestEffortPolicyId,
+                    createThing.getInitialPolicy().orElse(null),
+                    createThing.getPolicyIdOrPlaceholder().orElse(null),
+                    createThing.getDittoHeaders()
+            );
         } else {
             adaptedSignal = signal;
         }
