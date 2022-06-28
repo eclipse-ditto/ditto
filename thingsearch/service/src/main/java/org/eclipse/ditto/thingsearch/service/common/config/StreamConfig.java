@@ -45,11 +45,6 @@ public interface StreamConfig {
     Duration getThingDeletionTimeout();
 
     /**
-     * @return whether sending acks is enabled
-     */
-    boolean isSendingAcksEnabled();
-
-    /**
      * Returns the configuration for the used "ask with retry" pattern in the search updater for retrieval of things and
      * policies.
      *
@@ -103,12 +98,7 @@ public interface StreamConfig {
         /**
          * The delay before the updater actor is stopped after receiving a ThingDeleted event.
          */
-        THING_DELETION_TIMEOUT("thing-deletion-timeout", Duration.ofMinutes(5)),
-
-        /**
-         * Whether sending acks from ThingUpdaterActor is enabled.
-         */
-        SENDING_ACKS_ENABLED("sending-acks-enabled", true);
+        THING_DELETION_TIMEOUT("thing-deletion-timeout", Duration.ofMinutes(5));
 
         private final String configPath;
         private final Object defaultValue;
