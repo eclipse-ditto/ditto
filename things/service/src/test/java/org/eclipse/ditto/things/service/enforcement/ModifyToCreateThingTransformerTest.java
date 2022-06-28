@@ -47,7 +47,7 @@ public final class ModifyToCreateThingTransformerTest {
     }
 
     @Test
-    public void modifyThingStaysModifyPolicyWhenAlreadyExisting() {
+    public void modifyThingStaysModifyThingWhenAlreadyExisting() {
         final var thingId = ThingId.generateRandom();
         final var modifyThing = ModifyThing.of(thingId, Thing.newBuilder().setId(thingId).build(), null, null,
                 DittoHeaders.of(Map.of("foo", "bar")));
@@ -60,7 +60,7 @@ public final class ModifyToCreateThingTransformerTest {
     }
 
     @Test
-    public void modifyThingBecomesCreatePolicyWhenNotYetExisting() {
+    public void modifyThingBecomesCreateThingPolicyWhenNotYetExisting() {
         final var thingId = ThingId.generateRandom();
         final var modifyThing = ModifyThing.of(thingId, Thing.newBuilder().setId(thingId).build(), null, null,
                 DittoHeaders.of(Map.of("foo", "bar")));
