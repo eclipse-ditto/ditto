@@ -163,9 +163,7 @@ final class CachingPolicyEnforcerProvider implements PolicyEnforcerProvider {
                             final String cachedNamespace = policyId.getNamespace();
                             return namespaces.contains(cachedNamespace);
                         })
-                        .forEach(policyId -> {
-                            policyEnforcerCache.invalidate(policyId);
-                        });
+                        .forEach(policyEnforcerCache::invalidate);
             } else {
                 log.warning("Unhandled: <{}>", changed);
             }
