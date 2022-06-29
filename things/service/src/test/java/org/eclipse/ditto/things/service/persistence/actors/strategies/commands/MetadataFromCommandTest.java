@@ -18,9 +18,6 @@ import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
-import java.util.Optional;
-
-import org.eclipse.ditto.base.model.entity.Entity;
 import org.eclipse.ditto.base.model.entity.metadata.Metadata;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.metadata.MetadataHeaderKey;
@@ -38,6 +35,7 @@ import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.commands.modify.MergeThing;
 import org.eclipse.ditto.things.model.signals.commands.modify.ModifyFeature;
 import org.eclipse.ditto.things.model.signals.commands.modify.ThingModifyCommand;
+
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -57,7 +55,6 @@ public final class MetadataFromCommandTest {
     private static Thing thingWithoutMetadata;
 
     @Mock private ThingModifyCommand command;
-    @Mock private Entity<?> entity;
 
     @BeforeClass
     public static void setUpClass() {
@@ -96,28 +93,24 @@ public final class MetadataFromCommandTest {
     @Test
     public void tryToGetInstanceWithNullCommand() {
         assertThatNullPointerException()
-                .isThrownBy(() -> MetadataFromCommand.of(null, null, entity.getMetadata().orElse(null)))
+                .isThrownBy(() -> MetadataFromCommand.of(null, null, null))
                 .withMessage("The command must not be null!")
                 .withNoCause();
     }
 
     @Test
     public void getMetadataWhenEventHasNoEntityAndEntityHasNullExistingMetadata() {
-        Mockito.when(command.getEntity(Mockito.any())).thenReturn(Optional.empty());
         Mockito.when(command.getResourcePath()).thenReturn(JsonPointer.empty());
-        Mockito.when(entity.getMetadata()).thenReturn(Optional.empty());
-        final MetadataFromCommand underTest = MetadataFromCommand.of(command, null, entity.getMetadata().orElse(null));
+        final MetadataFromCommand underTest = MetadataFromCommand.of(command, null, null);
 
         assertThat(underTest.get()).isNull();
     }
 
     @Test
     public void entityHasNoMetadataAndEventDittoHeadersHaveNoMetadata() {
-        Mockito.when(command.getEntity(Mockito.any())).thenReturn(Optional.of(thingWithoutMetadata.toJson()));
         Mockito.when(command.getResourcePath()).thenReturn(JsonPointer.empty());
         Mockito.when(command.getDittoHeaders()).thenReturn(DittoHeaders.empty());
-        Mockito.when(entity.getMetadata()).thenReturn(Optional.empty());
-        final MetadataFromCommand underTest = MetadataFromCommand.of(command, null, entity.getMetadata().orElse(null));
+        final MetadataFromCommand underTest = MetadataFromCommand.of(command, null, null);
 
         assertThat(underTest.get()).isNull();
     }
@@ -125,11 +118,9 @@ public final class MetadataFromCommandTest {
     @Test
     public void entityMetadataButEventDittoHeadersHaveNoMetadata() {
         final Metadata existingMetadata = Metadata.newBuilder().set("/scruplusFine", JsonValue.of("^6,00.32")).build();
-        Mockito.when(command.getEntity(Mockito.any())).thenReturn(Optional.of(thingWithoutMetadata.toJson()));
         Mockito.when(command.getResourcePath()).thenReturn(JsonPointer.empty());
         Mockito.when(command.getDittoHeaders()).thenReturn(DittoHeaders.empty());
-        Mockito.when(entity.getMetadata()).thenReturn(Optional.of(existingMetadata));
-        final MetadataFromCommand underTest = MetadataFromCommand.of(command, null, entity.getMetadata().orElse(null));
+        final MetadataFromCommand underTest = MetadataFromCommand.of(command, null, existingMetadata);
 
         assertThat(underTest.get()).isEqualTo(existingMetadata);
     }
