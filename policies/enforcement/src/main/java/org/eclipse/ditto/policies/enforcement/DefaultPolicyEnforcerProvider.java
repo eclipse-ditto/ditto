@@ -19,6 +19,7 @@ import java.util.concurrent.CompletionStage;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
+import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLogger;
 import org.eclipse.ditto.internal.utils.cache.CacheFactory;
 import org.eclipse.ditto.internal.utils.cache.config.DefaultCacheConfig;
 import org.eclipse.ditto.internal.utils.cache.entry.Entry;
@@ -32,7 +33,6 @@ import org.eclipse.ditto.internal.utils.namespaces.BlockedNamespaces;
 import org.eclipse.ditto.policies.api.PoliciesMessagingConstants;
 import org.eclipse.ditto.policies.enforcement.config.DefaultEnforcementConfig;
 import org.eclipse.ditto.policies.model.PolicyId;
-import org.slf4j.Logger;
 
 import com.github.benmanes.caffeine.cache.AsyncCacheLoader;
 
@@ -46,7 +46,9 @@ import akka.dispatch.MessageDispatcher;
  */
 public final class DefaultPolicyEnforcerProvider implements PolicyEnforcerProvider {
 
-    private static Logger LOGGER = DittoLoggerFactory.getThreadSafeLogger(DefaultPolicyEnforcerProvider.class);
+    private static final ThreadSafeDittoLogger LOGGER =
+            DittoLoggerFactory.getThreadSafeLogger(DefaultPolicyEnforcerProvider.class);
+
     private final AsyncCacheLoader<EnforcementCacheKey, Entry<PolicyEnforcer>> policyEnforcerCacheLoader;
     private final MessageDispatcher enforcementCacheDispatcher;
 

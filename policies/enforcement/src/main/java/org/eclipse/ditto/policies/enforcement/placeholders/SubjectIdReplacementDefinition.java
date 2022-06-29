@@ -29,6 +29,10 @@ public final class SubjectIdReplacementDefinition implements Function<DittoHeade
      * The name of the replacer.
      */
     public static final String REPLACER_NAME = "request:subjectId";
+
+    /**
+     * The legacy name of the replacer which still is supported.
+     */
     public static final String LEGACY_REPLACER_NAME = "request.subjectId";
 
     private static final SubjectIdReplacementDefinition INSTANCE = new SubjectIdReplacementDefinition();

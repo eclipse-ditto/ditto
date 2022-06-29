@@ -40,10 +40,12 @@ public abstract class AbstractPlaceholderSubstitutionPreEnforcer implements PreE
     private final HeaderBasedPlaceholderSubstitutionAlgorithm substitutionAlgorithm;
     private final SubstitutionStrategyRegistry substitutionStrategyRegistry;
 
-    protected AbstractPlaceholderSubstitutionPreEnforcer(final HeaderBasedPlaceholderSubstitutionAlgorithm substitutionAlgorithm,
+    protected AbstractPlaceholderSubstitutionPreEnforcer(
             final SubstitutionStrategyRegistry substitutionStrategyRegistry) {
 
-        this.substitutionAlgorithm = substitutionAlgorithm;
+        this.substitutionAlgorithm = HeaderBasedPlaceholderSubstitutionAlgorithm.newInstance(
+                createReplacementDefinitions()
+        );
         this.substitutionStrategyRegistry = substitutionStrategyRegistry;
     }
 
@@ -65,7 +67,15 @@ public abstract class AbstractPlaceholderSubstitutionPreEnforcer implements PreE
         }
     }
 
-    protected static Map<String, Function<DittoHeaders, String>> createDefaultReplacementDefinitions() {
+    /**
+     * Creates the replacement definitions as map of placeholder as key and function as value for determining the
+     * placeholder based on {@link DittoHeaders} of a processed {@link Signal}.
+     * May be overwritten by subclasses in order to provide additional replacement definitions.
+     *
+     * @return the default replacement definitions resolving placeholders from {@link DittoHeaders} of a processed
+     * {@link Signal}
+     */
+    protected Map<String, Function<DittoHeaders, String>> createReplacementDefinitions() {
         final Map<String, Function<DittoHeaders, String>> defaultReplacementDefinitions = new LinkedHashMap<>();
         defaultReplacementDefinitions.put(SubjectIdReplacementDefinition.REPLACER_NAME,
                 SubjectIdReplacementDefinition.getInstance());

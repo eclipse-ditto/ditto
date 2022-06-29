@@ -12,24 +12,19 @@
  */
 package org.eclipse.ditto.things.service.enforcement.pre;
 
-import static java.util.Objects.requireNonNull;
-
-import java.util.LinkedHashMap;
-import java.util.Map;
-import java.util.function.Function;
-
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.policies.enforcement.placeholders.AbstractPlaceholderSubstitutionPreEnforcer;
-import org.eclipse.ditto.policies.enforcement.placeholders.HeaderBasedPlaceholderSubstitutionAlgorithm;
-import org.eclipse.ditto.policies.enforcement.placeholders.strategies.SubstitutionStrategyRegistry;
 
 import akka.actor.ActorSystem;
 
 /**
  * Things specific Pre-Enforcer which applies substitution of placeholders on a thing command
  * (subtype of {@link org.eclipse.ditto.base.model.signals.Signal}) based on its {@link DittoHeaders}.
+ *
+ * May be subclassed in order to provide additional/different {@link #createReplacementDefinitions()} by overwriting
+ * that method.
  */
-public final class ThingsPlaceholderSubstitutionPreEnforcer extends AbstractPlaceholderSubstitutionPreEnforcer {
+public class ThingsPlaceholderSubstitutionPreEnforcer extends AbstractPlaceholderSubstitutionPreEnforcer {
 
     /**
      * Constructs a new instance of ThingsPlaceholderSubstitutionPreEnforcer extension.
@@ -38,61 +33,7 @@ public final class ThingsPlaceholderSubstitutionPreEnforcer extends AbstractPlac
      */
     @SuppressWarnings("unused")
     public ThingsPlaceholderSubstitutionPreEnforcer(final ActorSystem actorSystem) {
-        super(
-                HeaderBasedPlaceholderSubstitutionAlgorithm.newInstance(createDefaultReplacementDefinitions()),
-                ThingSubstitutionStrategyRegistry.newInstance()
-        );
+        super(ThingSubstitutionStrategyRegistry.newInstance());
     }
 
-    private ThingsPlaceholderSubstitutionPreEnforcer(
-            final HeaderBasedPlaceholderSubstitutionAlgorithm substitutionAlgorithm,
-            final SubstitutionStrategyRegistry substitutionStrategyRegistry) {
-        super(substitutionAlgorithm, substitutionStrategyRegistry);
-    }
-
-    /**
-     * Creates a new instance with default replacement definitions.
-     *
-     * @return the created instance.
-     * @see #newExtendedInstance(java.util.Map)
-     */
-    public static ThingsPlaceholderSubstitutionPreEnforcer newInstance() {
-        final Map<String, Function<DittoHeaders, String>> defaultReplacementDefinitions =
-                createDefaultReplacementDefinitions();
-
-        return createInstance(defaultReplacementDefinitions);
-    }
-
-    /**
-     * Creates a new instance with default replacement definitions, extended with
-     * {@code additionalReplacementDefinitions}.
-     *
-     * @param additionalReplacementDefinitions the additional replacement definitions.
-     * @return the created instance.
-     * @see #newInstance()
-     */
-    public static ThingsPlaceholderSubstitutionPreEnforcer newExtendedInstance(
-            final Map<String, Function<DittoHeaders, String>> additionalReplacementDefinitions) {
-        requireNonNull(additionalReplacementDefinitions);
-
-        final Map<String, Function<DittoHeaders, String>> defaultReplacementDefinitions =
-                createDefaultReplacementDefinitions();
-
-        final Map<String, Function<DittoHeaders, String>> allReplacementDefinitions =
-                new LinkedHashMap<>();
-        allReplacementDefinitions.putAll(defaultReplacementDefinitions);
-        allReplacementDefinitions.putAll(additionalReplacementDefinitions);
-
-        return createInstance(allReplacementDefinitions);
-    }
-
-    private static ThingsPlaceholderSubstitutionPreEnforcer createInstance(
-            final Map<String, Function<DittoHeaders, String>> replacementDefinitions) {
-        final HeaderBasedPlaceholderSubstitutionAlgorithm algorithm =
-                HeaderBasedPlaceholderSubstitutionAlgorithm.newInstance(replacementDefinitions);
-        final SubstitutionStrategyRegistry substitutionStrategyRegistry =
-                ThingSubstitutionStrategyRegistry.newInstance();
-
-        return new ThingsPlaceholderSubstitutionPreEnforcer(algorithm, substitutionStrategyRegistry);
-    }
 }

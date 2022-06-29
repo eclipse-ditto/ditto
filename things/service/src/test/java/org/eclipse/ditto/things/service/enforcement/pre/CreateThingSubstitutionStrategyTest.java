@@ -41,6 +41,9 @@ import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.commands.modify.CreateThing;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mockito;
+
+import akka.actor.ActorSystem;
 
 /**
  * Tests {@link CreateThingSubstitutionStrategy} in context of
@@ -72,7 +75,7 @@ public class CreateThingSubstitutionStrategyTest  {
 
     @Before
     public void init() {
-        substitution = ThingsPlaceholderSubstitutionPreEnforcer.newInstance();
+        substitution = new ThingsPlaceholderSubstitutionPreEnforcer(Mockito.mock(ActorSystem.class));
     }
 
     @Test

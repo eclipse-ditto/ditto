@@ -26,6 +26,9 @@ import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.Resource;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mockito;
+
+import akka.actor.ActorSystem;
 
 /**
  * Abstract base class for test of concrete implementations of
@@ -55,7 +58,7 @@ abstract class AbstractPolicySubstitutionStrategyTestBase {
 
     @Before
     public void init() {
-        substitution = PoliciesPlaceholderSubstitutionPreEnforcer.newInstance();
+        substitution = new PoliciesPlaceholderSubstitutionPreEnforcer(Mockito.mock(ActorSystem.class));
     }
 
     @Test

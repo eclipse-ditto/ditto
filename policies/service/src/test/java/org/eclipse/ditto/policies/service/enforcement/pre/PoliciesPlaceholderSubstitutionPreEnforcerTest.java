@@ -13,11 +13,9 @@
 package org.eclipse.ditto.policies.service.enforcement.pre;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ExecutionException;
@@ -29,8 +27,6 @@ import org.eclipse.ditto.base.model.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.signals.Signal;
-import org.eclipse.ditto.policies.enforcement.placeholders.HeaderBasedPlaceholderSubstitutionAlgorithm;
-import org.eclipse.ditto.policies.enforcement.placeholders.strategies.SubstitutionStrategyRegistry;
 import org.eclipse.ditto.policies.model.EffectedPermissions;
 import org.eclipse.ditto.policies.model.Label;
 import org.eclipse.ditto.policies.model.PolicyId;
@@ -42,6 +38,9 @@ import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyResource;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifySubject;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mockito;
+
+import akka.actor.ActorSystem;
 
 /**
  * Tests specifics of {@link PoliciesPlaceholderSubstitutionPreEnforcer}.
@@ -65,14 +64,7 @@ public final class PoliciesPlaceholderSubstitutionPreEnforcerTest {
 
     @Before
     public void init() {
-        underTest = PoliciesPlaceholderSubstitutionPreEnforcer.newInstance();
-    }
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(PoliciesPlaceholderSubstitutionPreEnforcer.class, areImmutable(),
-                provided(HeaderBasedPlaceholderSubstitutionAlgorithm.class, SubstitutionStrategyRegistry.class)
-                        .areAlsoImmutable());
+        underTest = new PoliciesPlaceholderSubstitutionPreEnforcer(Mockito.mock(ActorSystem.class));
     }
 
     @Test
@@ -93,7 +85,15 @@ public final class PoliciesPlaceholderSubstitutionPreEnforcerTest {
                 Collections.singletonMap(customPlaceholderKey,
                         dittoHeaders -> dittoHeaders.get(CUSTOM_HEADER_KEY));
         final PoliciesPlaceholderSubstitutionPreEnforcer extendedPlaceholderSubstitution =
-                PoliciesPlaceholderSubstitutionPreEnforcer.newExtendedInstance(additionalReplacementDefinitions);
+                new PoliciesPlaceholderSubstitutionPreEnforcer(Mockito.mock(ActorSystem.class)) {
+            @Override
+            protected Map<String, Function<DittoHeaders, String>> createReplacementDefinitions() {
+                final Map<String, Function<DittoHeaders, String>> definitions = super.createReplacementDefinitions();
+                final Map<String, Function<DittoHeaders, String>> mergedDefinitions = new HashMap<>(definitions);
+                mergedDefinitions.putAll(additionalReplacementDefinitions);
+                return mergedDefinitions;
+            }
+        };
         final ModifySubject commandWithoutPlaceholders = ModifySubject.of(PolicyId.of("org.eclipse.ditto:my-policy"),
                 Label.of("my-label"), Subject.newInstance("{{ " + customPlaceholderKey + " }}",
                         SubjectType.GENERATED), DITTO_HEADERS);
