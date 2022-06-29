@@ -14,8 +14,11 @@ package org.eclipse.ditto.things.service.enforcement;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.eclipse.ditto.policies.model.SubjectIssuer.GOOGLE;
+import static org.mockito.Mockito.when;
 
 import java.util.List;
+import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 
 import org.assertj.core.api.Assertions;
@@ -33,9 +36,11 @@ import org.eclipse.ditto.internal.utils.pubsub.StreamingType;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.policies.api.commands.sudo.SudoRetrievePolicyResponse;
+import org.eclipse.ditto.policies.enforcement.PolicyEnforcer;
 import org.eclipse.ditto.policies.model.Permissions;
 import org.eclipse.ditto.policies.model.PoliciesModelFactory;
 import org.eclipse.ditto.policies.model.PoliciesResourceType;
+import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.things.api.Permission;
 import org.eclipse.ditto.things.api.commands.sudo.SudoRetrieveThingResponse;
@@ -76,16 +81,16 @@ public final class SmartChannelEnforcementWithResponseReceiverTest extends Abstr
         super.init();
         final PolicyId policyId = POLICY_ID;
         thing = TestSetup.newThingWithPolicyId(policyId);
-        final JsonObject policy = PoliciesModelFactory.newPolicyBuilder(policyId)
+        final Policy policy = PoliciesModelFactory.newPolicyBuilder(policyId)
                 .setRevision(1L)
                 .forLabel("authorize-self")
                 .setSubject(GOOGLE, TestSetup.SUBJECT_ID)
                 .setGrantedPermissions(PoliciesResourceType.thingResource(JsonPointer.empty()),
                         Permissions.newInstance(Permission.READ, Permission.WRITE))
-                .build()
-                .toJson(FieldType.all());
+                .build();
         sudoRetrieveThingResponse = SudoRetrieveThingResponse.of(thing, DittoHeaders.empty());
-        sudoRetrievePolicyResponse = SudoRetrievePolicyResponse.of(policyId, policy, DittoHeaders.empty());
+        when(policyEnforcerProvider.getPolicyEnforcer(policyId))
+                .thenReturn(CompletableFuture.completedStage(Optional.of(PolicyEnforcer.of(policy))));
     }
 
     @Test
@@ -94,7 +99,6 @@ public final class SmartChannelEnforcementWithResponseReceiverTest extends Abstr
             final var retrieveThing = getRetrieveThing(headers -> headers.liveChannelCondition("exists(thingId)"));
             supervisor.tell(retrieveThing, getRef());
             expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
-            expectAndAnswerSudoRetrievePolicy(POLICY_ID, sudoRetrievePolicyResponse);
 
             thingPersistenceActorProbe.expectMsg(addReadSubjectHeader(retrieveThing, TestSetup.GOOGLE_SUBJECT));
             thingPersistenceActorProbe.reply(getRetrieveThingResponse(retrieveThing, b -> {}));
@@ -103,10 +107,8 @@ public final class SmartChannelEnforcementWithResponseReceiverTest extends Abstr
             supervisor.tell(getRetrieveThingResponse(retrieveThing, b -> b.channel("live")), ActorRef.noSender());
 
             expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
-            expectAndAnswerSudoRetrievePolicy(POLICY_ID, sudoRetrievePolicyResponse);
 
             expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
-            expectAndAnswerSudoRetrievePolicy(POLICY_ID, sudoRetrievePolicyResponse);
 
             assertLiveChannel(expectMsgClass(RetrieveThingResponse.class));
         }};
@@ -120,7 +122,6 @@ public final class SmartChannelEnforcementWithResponseReceiverTest extends Abstr
             supervisor.tell(retrieveThing, getRef());
 
             expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
-            expectAndAnswerSudoRetrievePolicy(POLICY_ID, sudoRetrievePolicyResponse);
 
             thingPersistenceActorProbe.expectMsg(addReadSubjectHeader(retrieveThing, TestSetup.GOOGLE_SUBJECT));
             final var twinResponse = getRetrieveThingResponse(retrieveThing, b -> {});
@@ -134,7 +135,6 @@ public final class SmartChannelEnforcementWithResponseReceiverTest extends Abstr
                             .build()), ActorRef.noSender());
 
             expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
-            expectAndAnswerSudoRetrievePolicy(POLICY_ID, sudoRetrievePolicyResponse);
 
             final var receivedError = expectMsgClass(ThingIdInvalidException.class);
             assertLiveChannel(receivedError);
@@ -149,7 +149,6 @@ public final class SmartChannelEnforcementWithResponseReceiverTest extends Abstr
             supervisor.tell(retrieveThing, getRef());
 
             expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
-            expectAndAnswerSudoRetrievePolicy(POLICY_ID, sudoRetrievePolicyResponse);
 
             RetrieveThing expectedRetrieveThing = addReadSubjectHeader(retrieveThing, TestSetup.GOOGLE_SUBJECT);
             expectedRetrieveThing = expectedRetrieveThing.setDittoHeaders(expectedRetrieveThing.getDittoHeaders()
@@ -168,7 +167,6 @@ public final class SmartChannelEnforcementWithResponseReceiverTest extends Abstr
                             .build()), ActorRef.noSender());
 
             expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
-            expectAndAnswerSudoRetrievePolicy(POLICY_ID, sudoRetrievePolicyResponse);
 
             final var receivedError = expectMsgClass(ThingIdInvalidException.class);
             assertLiveChannel(receivedError);

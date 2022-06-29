@@ -21,11 +21,11 @@ import javax.annotation.Nullable;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.signals.Signal;
-import org.eclipse.ditto.internal.utils.namespaces.BlockedNamespaces;
 import org.eclipse.ditto.policies.api.commands.sudo.SudoRetrievePolicy;
 import org.eclipse.ditto.policies.api.commands.sudo.SudoRetrievePolicyResponse;
 import org.eclipse.ditto.policies.enforcement.AbstractEnforcerActor;
 import org.eclipse.ditto.policies.enforcement.PolicyEnforcer;
+import org.eclipse.ditto.policies.enforcement.PolicyEnforcerProvider;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.signals.commands.PolicyCommand;
 import org.eclipse.ditto.policies.model.signals.commands.PolicyCommandResponse;
@@ -33,7 +33,6 @@ import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyNotAcc
 import org.eclipse.ditto.policies.model.signals.commands.modify.CreatePolicy;
 import org.eclipse.ditto.policies.service.enforcement.PolicyCommandEnforcement;
 
-import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.pattern.Patterns;
 
@@ -44,13 +43,22 @@ import akka.pattern.Patterns;
 public final class PolicyEnforcerActor
         extends AbstractEnforcerActor<PolicyId, PolicyCommand<?>, PolicyCommandResponse<?>, PolicyCommandEnforcement> {
 
-    @SuppressWarnings("unused")
-    private PolicyEnforcerActor(final PolicyId policyId,
-            final PolicyCommandEnforcement policyCommandEnforcement,
-            final ActorRef pubSubMediator,
-            @Nullable final BlockedNamespaces blockedNamespaces) {
+    private final PolicyEnforcerProvider policyEnforcerProvider = policyId -> {
+        if (null == policyId) {
+            return CompletableFuture.completedStage(Optional.empty());
+        } else {
+            return Patterns.ask(getContext().getParent(), SudoRetrievePolicy.of(policyId,
+                            DittoHeaders.newBuilder()
+                                    .correlationId("sudoRetrievePolicyFromPolicyEnforcerActor-" + UUID.randomUUID())
+                                    .build()
+                    ), DEFAULT_LOCAL_ASK_TIMEOUT
+            ).thenApply(PolicyEnforcerActor::handleSudoRetrievePolicyResponse);
+        }
+    };
 
-        super(policyId, policyCommandEnforcement, pubSubMediator, blockedNamespaces);
+    @SuppressWarnings("unused")
+    private PolicyEnforcerActor(final PolicyId policyId, final PolicyCommandEnforcement policyCommandEnforcement) {
+        super(policyId, policyCommandEnforcement);
     }
 
     /**
@@ -58,18 +66,10 @@ public final class PolicyEnforcerActor
      *
      * @param policyId the PolicyId this enforcer actor is responsible for.
      * @param policyCommandEnforcement the policy command enforcement logic to apply in the enforcer.
-     * @param pubSubMediator the ActorRef of the distributed pub-sub-mediator used to subscribe for policy updates in
-     * order to perform invalidations.
-     * @param blockedNamespaces the blocked namespaces functionality to retrieve/subscribe for blocked namespaces.
      * @return the {@link Props} to create this actor.
      */
-    public static Props props(final PolicyId policyId,
-            final PolicyCommandEnforcement policyCommandEnforcement,
-            final ActorRef pubSubMediator,
-            @Nullable final BlockedNamespaces blockedNamespaces) {
-
-        return Props.create(PolicyEnforcerActor.class, policyId, policyCommandEnforcement, pubSubMediator,
-                blockedNamespaces);
+    public static Props props(final PolicyId policyId, final PolicyCommandEnforcement policyCommandEnforcement) {
+        return Props.create(PolicyEnforcerActor.class, policyId, policyCommandEnforcement);
     }
 
     @Override
@@ -78,17 +78,8 @@ public final class PolicyEnforcerActor
     }
 
     @Override
-    protected CompletionStage<PolicyEnforcer> providePolicyEnforcer(@Nullable final PolicyId policyId) {
-        if (null == policyId) {
-            return CompletableFuture.completedStage(null);
-        } else {
-            return Patterns.ask(getContext().getParent(), SudoRetrievePolicy.of(policyId,
-                            DittoHeaders.newBuilder()
-                                    .correlationId("sudoRetrievePolicyFromPolicyEnforcerActor-" + UUID.randomUUID())
-                                    .build()
-                    ), DEFAULT_LOCAL_ASK_TIMEOUT
-            ).thenApply(response -> handleSudoRetrievePolicyResponse(response).orElse(null));
-        }
+    protected CompletionStage<Optional<PolicyEnforcer>> providePolicyEnforcer(@Nullable final PolicyId policyId) {
+        return policyEnforcerProvider.getPolicyEnforcer(policyId);
     }
 
     @Override

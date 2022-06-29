@@ -31,7 +31,6 @@ import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
 import org.eclipse.ditto.internal.utils.cacheloaders.AskWithRetry;
 import org.eclipse.ditto.internal.utils.cacheloaders.config.AskWithRetryConfig;
-import org.eclipse.ditto.internal.utils.namespaces.BlockedNamespaces;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
@@ -40,6 +39,7 @@ import org.eclipse.ditto.policies.api.PoliciesValidator;
 import org.eclipse.ditto.policies.enforcement.AbstractEnforcementReloaded;
 import org.eclipse.ditto.policies.enforcement.AbstractPolicyLoadingEnforcerActor;
 import org.eclipse.ditto.policies.enforcement.PolicyEnforcer;
+import org.eclipse.ditto.policies.enforcement.PolicyEnforcerProvider;
 import org.eclipse.ditto.policies.model.PoliciesModelFactory;
 import org.eclipse.ditto.policies.model.PoliciesResourceType;
 import org.eclipse.ditto.policies.model.Policy;
@@ -90,13 +90,12 @@ public final class ThingEnforcerActor
     @SuppressWarnings("unused")
     private ThingEnforcerActor(final ThingId thingId,
             final ThingEnforcement thingEnforcement,
-            final ActorRef pubSubMediator,
-            @Nullable final BlockedNamespaces blockedNamespaces,
             final AskWithRetryConfig askWithRetryConfig,
             final ActorRef policiesShardRegion,
-            final ActorRef thingsShardRegion) {
+            final ActorRef thingsShardRegion,
+            final PolicyEnforcerProvider policyEnforcerProvider) {
 
-        super(thingId, thingEnforcement, pubSubMediator, blockedNamespaces, askWithRetryConfig, policiesShardRegion);
+        super(thingId, thingEnforcement, policyEnforcerProvider);
 
         this.policiesShardRegion = policiesShardRegion;
         this.askWithRetryConfig = askWithRetryConfig;
@@ -109,24 +108,21 @@ public final class ThingEnforcerActor
      *
      * @param thingId the ThingId this enforcer actor is responsible for.
      * @param thingEnforcement the thing enforcement logic to apply in the enforcer.
-     * @param pubSubMediator the ActorRef of the distributed pub-sub-mediator used to subscribe for policy updates in
-     * order to perform invalidations.
-     * @param blockedNamespaces the blocked namespaces functionality to retrieve/subscribe for blocked namespaces.
      * @param askWithRetryConfig used to configure retry mechanism policy loading.
-     * @param policiesShardRegion used to load the policy.
+     * @param policiesShardRegion used to create the policy when handling create thing commands.
      * @param thingsShardRegion used to resolve policy placeholder.
+     * @param policyEnforcerProvider used to load the policy enforcer.
      * @return the {@link Props} to create this actor.
      */
     public static Props props(final ThingId thingId,
             final ThingEnforcement thingEnforcement,
-            final ActorRef pubSubMediator,
-            @Nullable final BlockedNamespaces blockedNamespaces,
             final AskWithRetryConfig askWithRetryConfig,
             final ActorRef policiesShardRegion,
-            final ActorRef thingsShardRegion) {
+            final ActorRef thingsShardRegion,
+            final PolicyEnforcerProvider policyEnforcerProvider) {
 
-        return Props.create(ThingEnforcerActor.class, thingId, thingEnforcement, pubSubMediator,
-                blockedNamespaces, askWithRetryConfig, policiesShardRegion, thingsShardRegion);
+        return Props.create(ThingEnforcerActor.class, thingId, thingEnforcement, askWithRetryConfig,
+                policiesShardRegion, thingsShardRegion, policyEnforcerProvider);
     }
 
     @Override
@@ -139,11 +135,11 @@ public final class ThingEnforcerActor
                     .thenCompose(policyId -> providePolicyEnforcer(policyId)
                             .thenApply(policyEnforcer -> {
                                 if (policyId != null &&
-                                        policyEnforcer == null &&
+                                        policyEnforcer.isEmpty() &&
                                         signal instanceof ThingCommand<?> thingCommand) {
                                     throw errorForExistingThingWithDeletedPolicy(thingCommand, policyId);
                                 } else {
-                                    return Optional.ofNullable(policyEnforcer);
+                                    return policyEnforcer;
                                 }
                             }));
         }

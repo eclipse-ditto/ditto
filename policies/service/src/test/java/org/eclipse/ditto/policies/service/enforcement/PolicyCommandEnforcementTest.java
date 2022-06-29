@@ -827,12 +827,7 @@ public final class PolicyCommandEnforcementTest {
 
         @Override
         protected Props getPersistenceEnforcerProps(final PolicyId entityId) {
-            return PolicyEnforcerActor.props(
-                    entityId,
-                    new PolicyCommandEnforcement(),
-                    pubSubMediator,
-                    null
-            );
+            return PolicyEnforcerActor.props(entityId, new PolicyCommandEnforcement());
         }
 
         @Override

@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.policies.enforcement;
 
-import java.util.concurrent.CompletableFuture;
+import java.util.Optional;
 import java.util.concurrent.CompletionStage;
 
 import javax.annotation.Nullable;
@@ -20,16 +20,7 @@ import javax.annotation.Nullable;
 import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
-import org.eclipse.ditto.internal.utils.cache.entry.Entry;
-import org.eclipse.ditto.internal.utils.cacheloaders.EnforcementCacheKey;
-import org.eclipse.ditto.internal.utils.cacheloaders.config.AskWithRetryConfig;
-import org.eclipse.ditto.internal.utils.namespaces.BlockedNamespaces;
 import org.eclipse.ditto.policies.model.PolicyId;
-
-import com.github.benmanes.caffeine.cache.AsyncCacheLoader;
-
-import akka.actor.ActorRef;
-import akka.dispatch.MessageDispatcher;
 
 /**
  * Abstract enforcer of commands performing authorization / enforcement of incoming signals based on policy
@@ -43,41 +34,18 @@ import akka.dispatch.MessageDispatcher;
 public abstract class AbstractPolicyLoadingEnforcerActor<I extends EntityId, S extends Signal<?>, R extends CommandResponse<?>,
         E extends EnforcementReloaded<S, R>> extends AbstractEnforcerActor<I, S, R, E> {
 
-    private final AsyncCacheLoader<EnforcementCacheKey, Entry<PolicyEnforcer>> policyEnforcerCacheLoader;
-    private final MessageDispatcher enforcementCacheDispatcher;
+    private final PolicyEnforcerProvider policyEnforcerProvider;
 
     protected AbstractPolicyLoadingEnforcerActor(final I entityId,
             final E enforcement,
-            final ActorRef pubSubMediator,
-            @Nullable final BlockedNamespaces blockedNamespaces,
-            final AskWithRetryConfig askWithRetryConfig,
-            final ActorRef policiesShardRegion) {
-        super(entityId, enforcement, pubSubMediator, blockedNamespaces);
-        this.policyEnforcerCacheLoader = new PolicyEnforcerCacheLoader(askWithRetryConfig,
-                context().system().getScheduler(),
-                policiesShardRegion
-        );
-        enforcementCacheDispatcher =
-                context().system().dispatchers().lookup(PolicyEnforcerCacheLoader.ENFORCEMENT_CACHE_DISPATCHER);
+            final PolicyEnforcerProvider policyEnforcerProvider) {
+        super(entityId, enforcement);
+        this.policyEnforcerProvider = policyEnforcerProvider;
     }
 
     @Override
-    protected CompletionStage<PolicyEnforcer> providePolicyEnforcer(@Nullable final PolicyId policyId) {
-        if (null == policyId) {
-            return CompletableFuture.completedStage(null);
-        } else {
-            try {
-                return policyEnforcerCacheLoader.asyncLoad(EnforcementCacheKey.of(policyId), enforcementCacheDispatcher)
-                        .thenApply(entry -> {
-                            if (entry.exists()) {
-                                return entry.getValueOrThrow();
-                            } else {
-                                return null;
-                            }
-                        });
-            } catch (final Exception e) {
-                throw new IllegalStateException("Could not load policyEnforcer via policyEnforcerCacheLoader", e);
-            }
-        }
+    protected CompletionStage<Optional<PolicyEnforcer>> providePolicyEnforcer(@Nullable final PolicyId policyId) {
+        return policyEnforcerProvider.getPolicyEnforcer(policyId)
+                .exceptionally(error -> Optional.empty());
     }
 }

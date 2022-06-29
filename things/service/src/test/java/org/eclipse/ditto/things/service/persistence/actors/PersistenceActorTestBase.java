@@ -32,6 +32,7 @@ import org.eclipse.ditto.internal.utils.pubsubthings.LiveSignalPub;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldSelector;
+import org.eclipse.ditto.policies.enforcement.PolicyEnforcerProvider;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.things.model.Attributes;
 import org.eclipse.ditto.things.model.Feature;
@@ -48,8 +49,10 @@ import org.eclipse.ditto.things.service.common.config.ThingConfig;
 import org.eclipse.ditto.things.service.enforcement.TestSetup;
 import org.eclipse.ditto.utils.jsr305.annotations.AllParametersAndReturnValuesAreNonnullByDefault;
 import org.junit.After;
+import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.rules.TestWatcher;
+import org.mockito.Mockito;
 import org.slf4j.Logger;
 
 import com.typesafe.config.Config;
@@ -107,10 +110,17 @@ public abstract class PersistenceActorTestBase {
     protected ActorRef policiesShardRegion = null;
     protected DittoHeaders dittoHeadersV2;
 
+    protected PolicyEnforcerProvider policyEnforcerProvider;
+
     @BeforeClass
     public static void initTestFixture() {
         testConfig = ConfigFactory.load("test");
         thingConfig = getThingConfig(testConfig);
+    }
+
+    @Before
+    public void setup() {
+        policyEnforcerProvider = Mockito.mock(PolicyEnforcerProvider.class);
     }
 
     protected static ThingConfig getThingConfig(final Config testConfig) {
@@ -203,7 +213,9 @@ public abstract class PersistenceActorTestBase {
                             }
                         },
                         liveSignalPub,
-                        this::getPropsOfThingPersistenceActor, null);
+                        this::getPropsOfThingPersistenceActor,
+                        null,
+                        policyEnforcerProvider);
 
         return actorSystem.actorOf(props, thingId.toString());
     }

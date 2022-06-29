@@ -25,6 +25,7 @@ import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
 import org.eclipse.ditto.internal.utils.pubsub.DistributedPub;
 import org.eclipse.ditto.internal.utils.pubsub.extractors.AckExtractor;
 import org.eclipse.ditto.policies.api.commands.sudo.SudoRetrievePolicy;
+import org.eclipse.ditto.policies.enforcement.PolicyEnforcerProvider;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicy;
 import org.eclipse.ditto.things.api.commands.sudo.SudoRetrieveThing;
@@ -33,6 +34,7 @@ import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 import org.eclipse.ditto.things.service.persistence.actors.ThingSupervisorActor;
 import org.junit.After;
 import org.junit.Before;
+import org.mockito.Mockito;
 
 import com.typesafe.config.ConfigFactory;
 
@@ -54,11 +56,14 @@ abstract class AbstractThingEnforcementTest {
     protected ActorRef supervisor;
     protected ThingSupervisorActor mockThingPersistenceSupervisor;
 
+    protected PolicyEnforcerProvider policyEnforcerProvider;
+
     @Before
     public void init() {
         system = ActorSystem.create("test", ConfigFactory.parseMap(Map.of("akka.actor.provider",
                 "akka.cluster.ClusterActorRefProvider")).withFallback(ConfigFactory.load(
                 "test")));
+        policyEnforcerProvider = Mockito.mock(PolicyEnforcerProvider.class);
         pubSubMediatorProbe = createPubSubMediatorProbe();
         thingPersistenceActorProbe = createThingPersistenceActorProbe();
         policiesShardRegionProbe = getTestProbe(createUniqueName("policiesShardRegionProbe-"));
@@ -115,7 +120,8 @@ abstract class AbstractThingEnforcementTest {
                 },
                 new TestSetup.DummyLiveSignalPub(pubSubMediatorProbe.ref()),
                 thingPersistenceActorProbe.ref(),
-                null
+                null,
+                policyEnforcerProvider
         ).withDispatcher("akka.actor.default-dispatcher"), system.guardian(), URLEncoder.encode(THING_ID.toString(), Charset.defaultCharset()));
         // Actors using "stash()" require the above dispatcher to be configured, otherwise stash() and unstashAll() won't
         // work like in the "normal" actor!

@@ -18,6 +18,7 @@ import org.eclipse.ditto.internal.utils.persistence.mongo.ops.eventsource.MongoE
 import org.eclipse.ditto.internal.utils.pubsub.DistributedPub;
 import org.eclipse.ditto.internal.utils.pubsub.extractors.AckExtractor;
 import org.eclipse.ditto.internal.utils.pubsubthings.LiveSignalPub;
+import org.eclipse.ditto.policies.enforcement.PolicyEnforcerProvider;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingId;
@@ -30,7 +31,9 @@ import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThingRespon
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 import org.eclipse.ditto.things.service.enforcement.TestSetup;
 import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
+import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mockito;
 
 import com.typesafe.config.Config;
 
@@ -43,6 +46,13 @@ import akka.actor.Props;
  */
 @AllValuesAreNonnullByDefault
 public final class ThingPersistenceOperationsActorIT extends MongoEventSourceITAssertions<ThingId> {
+
+    private PolicyEnforcerProvider policyEnforcerProvider;
+
+    @Before
+    public void setup() {
+        policyEnforcerProvider = Mockito.mock(PolicyEnforcerProvider.class);
+    }
 
     @Test
     public void purgeNamespace() {
@@ -134,7 +144,8 @@ public final class ThingPersistenceOperationsActorIT extends MongoEventSourceITA
                         liveSignalPub,
                         (thingId, distributedPub) -> ThingPersistenceActor.props(thingId, distributedPub,
                                 pubSubMediator),
-                        null);
+                        null,
+                        policyEnforcerProvider);
 
         return system.actorOf(props, id.toString());
     }

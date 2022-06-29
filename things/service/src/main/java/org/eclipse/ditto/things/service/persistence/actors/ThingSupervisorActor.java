@@ -37,6 +37,7 @@ import org.eclipse.ditto.internal.utils.persistentactors.TargetActorWithMessage;
 import org.eclipse.ditto.internal.utils.pubsub.DistributedPub;
 import org.eclipse.ditto.internal.utils.pubsubthings.LiveSignalPub;
 import org.eclipse.ditto.policies.api.PoliciesMessagingConstants;
+import org.eclipse.ditto.policies.enforcement.PolicyEnforcerProvider;
 import org.eclipse.ditto.policies.enforcement.config.DefaultEnforcementConfig;
 import org.eclipse.ditto.things.api.ThingsMessagingConstants;
 import org.eclipse.ditto.things.model.ThingId;
@@ -53,6 +54,7 @@ import org.eclipse.ditto.things.service.enforcement.ThingEnforcerActor;
 import akka.actor.ActorKilledException;
 import akka.actor.ActorRef;
 import akka.actor.ActorSelection;
+import akka.actor.ActorSystem;
 import akka.actor.Props;
 import akka.stream.Materializer;
 import akka.stream.javadsl.Keep;
@@ -82,17 +84,20 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
     private final SupervisorLiveChannelDispatching liveChannelDispatching;
     private final SupervisorSmartChannelDispatching smartChannelDispatching;
 
-    @SuppressWarnings("unused")
+    private final PolicyEnforcerProvider policyEnforcerProvider;
+
     private ThingSupervisorActor(final ActorRef pubSubMediator,
             @Nullable final ActorRef policiesShardRegion,
             final DistributedPub<ThingEvent<?>> distributedPubThingEventsForTwin,
             final LiveSignalPub liveSignalPub,
             @Nullable final ThingPersistenceActorPropsFactory thingPersistenceActorPropsFactory,
             @Nullable final ActorRef thingPersistenceActorRef,
-            @Nullable final BlockedNamespaces blockedNamespaces) {
+            @Nullable final BlockedNamespaces blockedNamespaces,
+            final PolicyEnforcerProvider policyEnforcerProvider) {
 
         super(blockedNamespaces);
 
+        this.policyEnforcerProvider = policyEnforcerProvider;
         this.pubSubMediator = pubSubMediator;
         this.distributedPubThingEventsForTwin = distributedPubThingEventsForTwin;
         this.thingPersistenceActorPropsFactory = thingPersistenceActorPropsFactory;
@@ -155,16 +160,19 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
      * @param liveSignalPub distributed-pub access for "live" channel.
      * @param propsFactory factory for creating Props to be used for creating
      * @param blockedNamespaces the blocked namespaces functionality to retrieve/subscribe for blocked namespaces.
+     * @param policyEnforcerProvider used to load the policy enforcer.
      * @return the {@link Props} to create this actor.
      */
     public static Props props(final ActorRef pubSubMediator,
             final DistributedPub<ThingEvent<?>> distributedPubThingEventsForTwin,
             final LiveSignalPub liveSignalPub,
             final ThingPersistenceActorPropsFactory propsFactory,
-            @Nullable final BlockedNamespaces blockedNamespaces) {
+            @Nullable final BlockedNamespaces blockedNamespaces,
+            final PolicyEnforcerProvider policyEnforcerProvider) {
 
         return Props.create(ThingSupervisorActor.class, pubSubMediator, null,
-                distributedPubThingEventsForTwin, liveSignalPub, propsFactory, null, blockedNamespaces);
+                distributedPubThingEventsForTwin, liveSignalPub, propsFactory, null, blockedNamespaces,
+                policyEnforcerProvider);
     }
 
     /**
@@ -175,10 +183,12 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
             final DistributedPub<ThingEvent<?>> distributedPubThingEventsForTwin,
             final LiveSignalPub liveSignalPub,
             final ThingPersistenceActorPropsFactory propsFactory,
-            @Nullable final BlockedNamespaces blockedNamespaces) {
+            @Nullable final BlockedNamespaces blockedNamespaces,
+            final PolicyEnforcerProvider policyEnforcerProvider) {
 
         return Props.create(ThingSupervisorActor.class, pubSubMediator, policiesShardRegion,
-                distributedPubThingEventsForTwin, liveSignalPub, propsFactory, null, blockedNamespaces);
+                distributedPubThingEventsForTwin, liveSignalPub, propsFactory, null, blockedNamespaces,
+                policyEnforcerProvider);
     }
 
     /**
@@ -189,10 +199,12 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
             final DistributedPub<ThingEvent<?>> distributedPubThingEventsForTwin,
             final LiveSignalPub liveSignalPub,
             final ActorRef thingsPersistenceActor,
-            @Nullable final BlockedNamespaces blockedNamespaces) {
+            @Nullable final BlockedNamespaces blockedNamespaces,
+            final PolicyEnforcerProvider policyEnforcerProvider) {
 
         return Props.create(ThingSupervisorActor.class, pubSubMediator, policiesShardRegion,
-                distributedPubThingEventsForTwin, liveSignalPub, null, thingsPersistenceActor, blockedNamespaces);
+                distributedPubThingEventsForTwin, liveSignalPub, null, thingsPersistenceActor, blockedNamespaces,
+                policyEnforcerProvider);
     }
 
     @Override
@@ -300,11 +312,12 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
 
     @Override
     protected Props getPersistenceEnforcerProps(final ThingId entityId) {
+        final ActorSystem system = getContext().getSystem();
         final ThingEnforcement thingEnforcement =
-                new ThingEnforcement(policiesShardRegion, getContext().getSystem(), enforcementConfig);
+                new ThingEnforcement(policiesShardRegion, system, enforcementConfig);
 
-        return ThingEnforcerActor.props(entityId, thingEnforcement, pubSubMediator, blockedNamespaces,
-                enforcementConfig.getAskWithRetryConfig(), policiesShardRegion, thingsShardRegion);
+        return ThingEnforcerActor.props(entityId, thingEnforcement, enforcementConfig.getAskWithRetryConfig(),
+                policiesShardRegion, thingsShardRegion, policyEnforcerProvider);
     }
 
     @Override

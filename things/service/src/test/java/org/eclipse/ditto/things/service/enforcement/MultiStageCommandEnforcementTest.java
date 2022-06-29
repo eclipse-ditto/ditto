@@ -13,9 +13,12 @@
 package org.eclipse.ditto.things.service.enforcement;
 
 import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;
+import static org.mockito.Mockito.when;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 
 import javax.annotation.Nullable;
 
@@ -31,6 +34,7 @@ import org.eclipse.ditto.json.JsonKey;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.policies.api.Permission;
 import org.eclipse.ditto.policies.api.commands.sudo.SudoRetrievePolicyResponse;
+import org.eclipse.ditto.policies.enforcement.PolicyEnforcer;
 import org.eclipse.ditto.policies.model.Permissions;
 import org.eclipse.ditto.policies.model.PoliciesModelFactory;
 import org.eclipse.ditto.policies.model.PoliciesResourceType;
@@ -99,8 +103,8 @@ public final class MultiStageCommandEnforcementTest extends AbstractThingEnforce
             final SudoRetrieveThingResponse sudoRetrieveThingResponse =
                     SudoRetrieveThingResponse.of(thing.toJson(FieldType.all()), DittoHeaders.empty());
             final Policy policy = defaultPolicy(policyId);
-            final SudoRetrievePolicyResponse sudoRetrievePolicyResponse =
-                    SudoRetrievePolicyResponse.of(policyId, policy, DittoHeaders.empty());
+            when(policyEnforcerProvider.getPolicyEnforcer(policyId))
+                    .thenReturn(CompletableFuture.completedStage(Optional.of(PolicyEnforcer.of(policy))));
 
             // WHEN: received RetrieveThing
             final JsonFieldSelector selectedFields = JsonFieldSelector.newInstance("_policy", "thingId");
@@ -110,7 +114,6 @@ public final class MultiStageCommandEnforcementTest extends AbstractThingEnforce
 
             supervisor.tell(retrieveThing, getRef());
             expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
-            expectAndAnswerSudoRetrievePolicy(policyId, sudoRetrievePolicyResponse);
 
             final RetrieveThing expectedRetrieveThing = retrieveThing.setDittoHeaders(DEFAULT_HEADERS.toBuilder()
                     .readGrantedSubjects(List.of(AUTHORIZATION_SUBJECT)).build());
@@ -124,7 +127,6 @@ public final class MultiStageCommandEnforcementTest extends AbstractThingEnforce
 
             // THEN: Load enforcer to filter response
             expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
-            expectAndAnswerSudoRetrievePolicy(policyId, sudoRetrievePolicyResponse);
 
             // THEN: initial requester receives Thing with inline policy
             final RetrieveThingResponse response = TestSetup.fishForMsgClass(this, RetrieveThingResponse.class);
@@ -145,8 +147,8 @@ public final class MultiStageCommandEnforcementTest extends AbstractThingEnforce
             final SudoRetrieveThingResponse sudoRetrieveThingResponse =
                     SudoRetrieveThingResponse.of(thing.toJson(FieldType.all()), DittoHeaders.empty());
             final Policy policy = thingOnlyPolicy(policyId);
-            final SudoRetrievePolicyResponse sudoRetrievePolicyResponse =
-                    SudoRetrievePolicyResponse.of(policyId, policy, DittoHeaders.empty());
+            when(policyEnforcerProvider.getPolicyEnforcer(policyId))
+                    .thenReturn(CompletableFuture.completedStage(Optional.of(PolicyEnforcer.of(policy))));
 
             // WHEN: received RetrieveThing
             final JsonFieldSelector selectedFields = JsonFieldSelector.newInstance("_policy", "thingId");
@@ -158,7 +160,6 @@ public final class MultiStageCommandEnforcementTest extends AbstractThingEnforce
 
             // THEN:: Retrieve enforcer for authorization of command
             expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
-            expectAndAnswerSudoRetrievePolicy(policyId, sudoRetrievePolicyResponse);
 
             final DittoHeaders expectedHeaders = DEFAULT_HEADERS.toBuilder()
                     .readGrantedSubjects(List.of(AUTHORIZATION_SUBJECT)).build();
@@ -174,7 +175,6 @@ public final class MultiStageCommandEnforcementTest extends AbstractThingEnforce
 
             // THEN:: Retrieve enforcer for filtering of response
             expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
-            expectAndAnswerSudoRetrievePolicy(policyId, sudoRetrievePolicyResponse);
 
             // THEN: initial requester receives Thing with inline policy
             final RetrieveThingResponse response = expectMsgClass(RetrieveThingResponse.class);
@@ -194,8 +194,8 @@ public final class MultiStageCommandEnforcementTest extends AbstractThingEnforce
             final SudoRetrieveThingResponse sudoRetrieveThingResponse =
                     SudoRetrieveThingResponse.of(thing.toJson(FieldType.all()), DittoHeaders.empty());
             final Policy policy = thingOnlyPolicy(policyId);
-            final SudoRetrievePolicyResponse sudoRetrievePolicyResponse =
-                    SudoRetrievePolicyResponse.of(policyId, policy, DittoHeaders.empty());
+            when(policyEnforcerProvider.getPolicyEnforcer(policyId))
+                    .thenReturn(CompletableFuture.completedStage(Optional.of(PolicyEnforcer.of(policy))));
 
             // WHEN: received RetrieveThing
             final JsonFieldSelector selectedFields = JsonFieldSelector.newInstance("_policy", "thingId");
@@ -205,7 +205,6 @@ public final class MultiStageCommandEnforcementTest extends AbstractThingEnforce
 
             supervisor.tell(retrieveThing, getRef());
             expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
-            expectAndAnswerSudoRetrievePolicy(policyId, sudoRetrievePolicyResponse);
 
             final RetrieveThing expectedRetrieveThing = retrieveThing.setDittoHeaders(DEFAULT_HEADERS.toBuilder()
                     .readGrantedSubjects(List.of(AUTHORIZATION_SUBJECT)).build());
@@ -220,7 +219,6 @@ public final class MultiStageCommandEnforcementTest extends AbstractThingEnforce
 
             // THEN: Load enforcer to authorize retrieve thing
             expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
-            expectAndAnswerSudoRetrievePolicy(policyId, sudoRetrievePolicyResponse);
 
             thingPersistenceActorProbe.expectMsg(expectedRetrieveThing);
             thingPersistenceActorProbe.reply(RetrieveThingResponse.of(thingId, thing, null, null, DEFAULT_HEADERS));
@@ -231,7 +229,6 @@ public final class MultiStageCommandEnforcementTest extends AbstractThingEnforce
 
             // THEN: Load enforcer to filter response
             expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
-            expectAndAnswerSudoRetrievePolicy(policyId, sudoRetrievePolicyResponse);
 
             // THEN: initial requester receives Thing without Policy
             final RetrieveThingResponse response = expectMsgClass(RetrieveThingResponse.class);
@@ -251,8 +248,8 @@ public final class MultiStageCommandEnforcementTest extends AbstractThingEnforce
             final SudoRetrieveThingResponse sudoRetrieveThingResponse =
                     SudoRetrieveThingResponse.of(thing.toJson(FieldType.all()), DittoHeaders.empty());
             final Policy policy = defaultPolicy(policyId);
-            final SudoRetrievePolicyResponse sudoRetrievePolicyResponse =
-                    SudoRetrievePolicyResponse.of(policyId, policy, DittoHeaders.empty());
+            when(policyEnforcerProvider.getPolicyEnforcer(policyId))
+                    .thenReturn(CompletableFuture.completedStage(Optional.of(PolicyEnforcer.of(policy))));
 
             // WHEN: received RetrieveThing but both shard regions time out
             final JsonFieldSelector selectedFields = JsonFieldSelector.newInstance("_policy", "thingId");
@@ -264,7 +261,6 @@ public final class MultiStageCommandEnforcementTest extends AbstractThingEnforce
 
             // THEN: Load enforcer to authorize retrieve thing
             expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
-            expectAndAnswerSudoRetrievePolicy(policyId, sudoRetrievePolicyResponse);
 
             final RetrieveThing expectedRetrieveThing = retrieveThing.setDittoHeaders(DEFAULT_HEADERS.toBuilder()
                     .readGrantedSubjects(List.of(AUTHORIZATION_SUBJECT)).build());
@@ -279,7 +275,6 @@ public final class MultiStageCommandEnforcementTest extends AbstractThingEnforce
 
             // THEN: Load enforcer to authorize retrieve thing
             expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
-            expectAndAnswerSudoRetrievePolicy(policyId, sudoRetrievePolicyResponse);
 
             thingPersistenceActorProbe.expectMsg(expectedRetrieveThing);
             thingPersistenceActorProbe.reply(RetrieveThingResponse.of(thingId, thing, null, null, DEFAULT_HEADERS));
@@ -291,7 +286,6 @@ public final class MultiStageCommandEnforcementTest extends AbstractThingEnforce
 
             // THEN: Load enforcer to filter response
             expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
-            expectAndAnswerSudoRetrievePolicy(policyId, sudoRetrievePolicyResponse);
 
             // THEN: initial requester receives Thing without Policy
             final RetrieveThingResponse response = expectMsgClass(RetrieveThingResponse.class);
@@ -311,15 +305,14 @@ public final class MultiStageCommandEnforcementTest extends AbstractThingEnforce
             final SudoRetrieveThingResponse sudoRetrieveThingResponse =
                     SudoRetrieveThingResponse.of(thing.toJson(FieldType.all()), DittoHeaders.empty());
             final Policy policy = defaultPolicy(policyId);
-            final SudoRetrievePolicyResponse sudoRetrievePolicyResponse =
-                    SudoRetrievePolicyResponse.of(policyId, policy, DittoHeaders.empty());
+            when(policyEnforcerProvider.getPolicyEnforcer(policyId))
+                    .thenReturn(CompletableFuture.completedStage(Optional.of(PolicyEnforcer.of(policy))));
 
             // WHEN: received ModifyThing
             final ModifyThing modifyThing = ModifyThing.of(thingId, thing, null, DEFAULT_HEADERS);
 
             supervisor.tell(modifyThing, getRef());
             expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
-            expectAndAnswerSudoRetrievePolicy(policyId, sudoRetrievePolicyResponse);
 
             final DittoHeaders expectedHeaders = DEFAULT_HEADERS.toBuilder()
                     .readGrantedSubjects(List.of(AUTHORIZATION_SUBJECT)).build();

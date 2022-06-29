@@ -29,14 +29,9 @@ import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
 import org.eclipse.ditto.internal.utils.akka.actors.AbstractActorWithStashWithTimers;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
-import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
-import org.eclipse.ditto.internal.utils.namespaces.BlockedNamespaces;
-import org.eclipse.ditto.policies.api.PolicyTag;
 import org.eclipse.ditto.policies.model.PolicyId;
 
 import akka.actor.ActorRef;
-import akka.cluster.ddata.ORSet;
-import akka.cluster.ddata.Replicator;
 import akka.cluster.pubsub.DistributedPubSubMediator;
 import akka.japi.pf.ReceiveBuilder;
 
@@ -63,19 +58,9 @@ public abstract class AbstractEnforcerActor<I extends EntityId, S extends Signal
     protected final I entityId;
     protected final E enforcement;
 
-    protected AbstractEnforcerActor(final I entityId, final E enforcement, final ActorRef pubSubMediator,
-            @Nullable final BlockedNamespaces blockedNamespaces) {
-
+    protected AbstractEnforcerActor(final I entityId, final E enforcement) {
         this.entityId = entityId;
         this.enforcement = enforcement;
-
-        // subscribe for PolicyTags in order to reload policyEnforcer when "backing policy" was modified
-        pubSubMediator.tell(DistPubSubAccess.subscribe(PolicyTag.PUB_SUB_TOPIC_INVALIDATE_ENFORCERS, getSelf()),
-                getSelf());
-
-        if (null != blockedNamespaces) {
-            blockedNamespaces.subscribeForChanges(getSelf());
-        }
     }
 
     /**
@@ -93,29 +78,20 @@ public abstract class AbstractEnforcerActor<I extends EntityId, S extends Signal
      * The implementation chooses the most efficient strategy to retrieve it.
      *
      * @param policyId the {@link PolicyId} to retrieve the PolicyEnforcer for.
-     * @return a successful CompletionStage of either the loaded {@link PolicyEnforcer} or a failed CompletionStage with
-     * the cause for the failure.
+     * @return a successful CompletionStage of either an optional holding the loaded {@link PolicyEnforcer} or an empty optional if the enforcer could not be loaded.
      */
-    protected abstract CompletionStage<PolicyEnforcer> providePolicyEnforcer(@Nullable PolicyId policyId);
+    protected abstract CompletionStage<Optional<PolicyEnforcer>> providePolicyEnforcer(@Nullable PolicyId policyId);
 
     @SuppressWarnings("unchecked")
     @Override
     public Receive createReceive() {
         return ReceiveBuilder.create()
                 .match(DistributedPubSubMediator.SubscribeAck.class, s -> log.debug("Got subscribeAck <{}>.", s))
-                .match(PolicyTag.class, this::matchesPolicy, pt -> {
-                    //TODO: yannic invalidate policy cache later
-                })
-                .match(PolicyTag.class, pt -> {
-                    //TODO: yannic we should not even retrieve those, as this could lead to a lot of traffic
-                    // ignore policy tags not intended for this actor - not necessary to log on debug!
-                })
                 .match(SudoCommand.class, sudoCommand -> log.withCorrelationId(sudoCommand)
                         .error("Received SudoCommand in enforcer which should never happen: <{}>", sudoCommand)
                 )
                 .match(CommandResponse.class, r -> filterResponse((R) r))
                 .match(Signal.class, s -> enforceSignal((S) s))
-                .match(Replicator.Changed.class, this::handleChanged)
                 .matchAny(message ->
                         log.withCorrelationId(
                                         message instanceof WithDittoHeaders withDittoHeaders ? withDittoHeaders : null)
@@ -125,40 +101,7 @@ public abstract class AbstractEnforcerActor<I extends EntityId, S extends Signal
 
     protected CompletionStage<Optional<PolicyEnforcer>> loadPolicyEnforcer(Signal<?> signal) {
         return providePolicyIdForEnforcement(signal)
-                .thenCompose(this::providePolicyEnforcer)
-                .handle((pEnf, throwable) -> {
-                    if (null != throwable) {
-                        log.error(throwable, "Failed to load policy enforcer; stopping myself..");
-                        getContext().stop(getSelf());
-                        return Optional.empty();
-                    } else {
-                        return Optional.ofNullable(pEnf);
-                    }
-                });
-    }
-
-    @SuppressWarnings("unchecked")
-    private void handleChanged(final Replicator.Changed<?> changed) {
-        if (changed.dataValue() instanceof ORSet) {
-            final ORSet<String> namespaces = (ORSet<String>) changed.dataValue();
-            logNamespaces("Received", namespaces);
-            //TODO: Yannic invalidate policy cache after caching is reintroduced
-        } else {
-            log.warning("Unhandled: <{}>", changed);
-        }
-    }
-
-    private void logNamespaces(final String verb, final ORSet<String> namespaces) {
-        if (namespaces.size() > 25) {
-            log.info("{} <{}> namespaces", verb, namespaces.size());
-        } else {
-            log.info("{} namespaces: <{}>", verb, namespaces);
-        }
-    }
-
-    private boolean matchesPolicy(final PolicyTag policyTag) {
-        //TODO: Yannic this method should not be necessary
-        return false;
+                .thenCompose(this::providePolicyEnforcer);
     }
 
     /**
@@ -204,7 +147,7 @@ public abstract class AbstractEnforcerActor<I extends EntityId, S extends Signal
             final Signal<?> signal,
             final Throwable throwable,
             final ActorRef sender
-            ) {
+    ) {
         final DittoHeaders dittoHeaders = signal.getDittoHeaders();
         final DittoRuntimeException dittoRuntimeException =
                 DittoRuntimeException.asDittoRuntimeException(throwable, t ->

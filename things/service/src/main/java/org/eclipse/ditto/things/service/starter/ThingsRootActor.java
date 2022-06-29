@@ -38,6 +38,8 @@ import org.eclipse.ditto.internal.utils.pubsub.DistributedAcks;
 import org.eclipse.ditto.internal.utils.pubsub.DistributedPub;
 import org.eclipse.ditto.internal.utils.pubsubthings.LiveSignalPub;
 import org.eclipse.ditto.internal.utils.pubsubthings.ThingEventPubSubFactory;
+import org.eclipse.ditto.policies.enforcement.PolicyEnforcerProvider;
+import org.eclipse.ditto.policies.enforcement.DefaultPolicyEnforcerProvider;
 import org.eclipse.ditto.things.api.ThingsMessagingConstants;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 import org.eclipse.ditto.things.service.common.config.ThingsConfig;
@@ -90,12 +92,13 @@ public final class ThingsRootActor extends DittoRootActor {
         final Props blockedNamespacesUpdaterProps = BlockedNamespacesUpdater.props(blockedNamespaces, pubSubMediator);
         ClusterUtil.startSingleton(actorSystem, getContext(), CLUSTER_ROLE,
                 BlockedNamespacesUpdater.ACTOR_NAME, blockedNamespacesUpdaterProps);
-
+        final PolicyEnforcerProvider policyEnforcerProvider = DefaultPolicyEnforcerProvider.getInstance(actorSystem);
         final Props thingSupervisorActorProps = getThingSupervisorActorProps(pubSubMediator,
                 distributedPubThingEventsForTwin,
                 liveSignalPub,
                 propsFactory,
-                blockedNamespaces
+                blockedNamespaces,
+                policyEnforcerProvider
         );
         final ActorRef thingsShardRegion = ClusterSharding.get(actorSystem)
                 .start(ThingsMessagingConstants.SHARD_REGION,
@@ -176,10 +179,11 @@ public final class ThingsRootActor extends DittoRootActor {
             final DistributedPub<ThingEvent<?>> distributedPubThingEventsForTwin,
             final LiveSignalPub liveSignalPub,
             final ThingPersistenceActorPropsFactory propsFactory,
-            final BlockedNamespaces blockedNamespaces) {
+            final BlockedNamespaces blockedNamespaces,
+            final PolicyEnforcerProvider policyEnforcerProvider) {
 
         return ThingSupervisorActor.props(pubSubMediator, distributedPubThingEventsForTwin,
-                liveSignalPub, propsFactory, blockedNamespaces);
+                liveSignalPub, propsFactory, blockedNamespaces, policyEnforcerProvider);
     }
 
     private static MongoReadJournal newMongoReadJournal(final MongoDbConfig mongoDbConfig,
