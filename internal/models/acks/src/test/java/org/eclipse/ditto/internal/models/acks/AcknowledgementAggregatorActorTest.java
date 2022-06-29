@@ -62,7 +62,7 @@ import akka.testkit.javadsl.TestKit;
 @RunWith(MockitoJUnitRunner.class)
 public final class AcknowledgementAggregatorActorTest {
 
-    private static final ThingId THING_ID = ThingId.of("thing:id");
+    private static final ThingId THING_ID = ThingId.of("mynamespace:myname");
 
     private static HeaderTranslator headerTranslator;
 
@@ -135,7 +135,7 @@ public final class AcknowledgementAggregatorActorTest {
         // THEN
         final var commandTimeoutException = testKit.expectMsgClass(CommandTimeoutException.class);
         assertThat(commandTimeoutException.getDittoHeaders().get(DittoHeaderDefinition.ENTITY_ID.getKey()))
-                .isEqualTo(THING_ID.toString());
+                .isEqualTo(THING_ID.getEntityType() + ":" + THING_ID);
     }
 
     @Test
@@ -156,7 +156,7 @@ public final class AcknowledgementAggregatorActorTest {
         // THEN
         final var commandTimeoutException = testKit.expectMsgClass(CommandTimeoutException.class);
         assertThat(commandTimeoutException.getDittoHeaders().get(DittoHeaderDefinition.ENTITY_ID.getKey()))
-                .isEqualTo(THING_ID.toString());
+                .isEqualTo(THING_ID.getEntityType() + ":" + THING_ID);
     }
 
     @Test
@@ -369,7 +369,7 @@ public final class AcknowledgementAggregatorActorTest {
         // THEN
         final var commandTimeoutException = testKit.expectMsgClass(Duration.ofSeconds(5L), CommandTimeoutException.class);
         assertThat(commandTimeoutException.getDittoHeaders().get(DittoHeaderDefinition.ENTITY_ID.getKey()))
-                .isEqualTo(THING_ID.toString());
+                .isEqualTo(THING_ID.getEntityType() + ":" + THING_ID);
         assertThat(commandTimeoutException.getDescription())
                 .hasValueSatisfying(description -> assertThat(description)
                         .contains(String.format(
@@ -403,7 +403,7 @@ public final class AcknowledgementAggregatorActorTest {
         // THEN
         final var commandTimeoutException = testKit.expectMsgClass(Duration.ofSeconds(5L), CommandTimeoutException.class);
         assertThat(commandTimeoutException.getDittoHeaders().get(DittoHeaderDefinition.ENTITY_ID.getKey()))
-                .isEqualTo(THING_ID.toString());
+                .isEqualTo(THING_ID.getEntityType() + ":" + THING_ID);
         assertThat(commandTimeoutException.getDescription())
                 .hasValueSatisfying(description -> assertThat(description)
                         .contains(String.format(
