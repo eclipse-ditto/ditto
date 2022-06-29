@@ -79,6 +79,7 @@ import org.eclipse.ditto.connectivity.service.config.MqttConfig;
 import org.eclipse.ditto.connectivity.service.messaging.ClientActorPropsFactory;
 import org.eclipse.ditto.connectivity.service.messaging.ClientActorRefs;
 import org.eclipse.ditto.connectivity.service.messaging.amqp.AmqpValidator;
+import org.eclipse.ditto.connectivity.service.messaging.hono.HonoValidator;
 import org.eclipse.ditto.connectivity.service.messaging.httppush.HttpPushValidator;
 import org.eclipse.ditto.connectivity.service.messaging.kafka.KafkaValidator;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.logs.ConnectionLogger;
@@ -1133,6 +1134,7 @@ public final class ConnectionPersistenceActor
                         AmqpValidator.newInstance(),
                         Mqtt3Validator.newInstance(mqttConfig),
                         Mqtt5Validator.newInstance(mqttConfig),
+                        HonoValidator.getInstance(),
                         KafkaValidator.getInstance(connectivityConfig.getConnectionConfig().doubleDecodingEnabled()),
                         HttpPushValidator.newInstance(connectivityConfig.getConnectionConfig().getHttpPushConfig()));
 
