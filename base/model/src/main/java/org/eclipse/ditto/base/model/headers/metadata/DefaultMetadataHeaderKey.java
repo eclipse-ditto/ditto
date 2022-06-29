@@ -15,9 +15,7 @@ package org.eclipse.ditto.base.model.headers.metadata;
 import static org.eclipse.ditto.base.model.common.ConditionChecker.argumentNotEmpty;
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
-import java.text.MessageFormat;
 import java.util.Comparator;
-import java.util.NoSuchElementException;
 import java.util.Objects;
 
 import javax.annotation.Nullable;
@@ -82,11 +80,6 @@ final class DefaultMetadataHeaderKey implements MetadataHeaderKey {
         if (path.isEmpty()) {
             throw new IllegalArgumentException("The path of a metadata header key must not be empty!");
         }
-        if (appliesToAllLeaves() && 2 != path.getLevelCount()) {
-            throw new IllegalArgumentException(MessageFormat.format(
-                    "A wildcard path of a metadata header key must have exactly two levels but it had <{0}>!",
-                    path.getLevelCount()));
-        }
     }
 
     @Override
@@ -98,19 +91,6 @@ final class DefaultMetadataHeaderKey implements MetadataHeaderKey {
 
     @Override
     public JsonPointer getPath() {
-        final JsonPointer result;
-        if (appliesToAllLeaves()) {
-
-            // The sub-pointer consists only of the leaf in this case. This is guaranteed by validation.
-            result = path.getSubPointer(1).orElseThrow(NoSuchElementException::new);
-        } else {
-            result = path;
-        }
-        return result;
-    }
-
-    @Override
-    public JsonPointer getOriginalPath() {
         return path;
     }
 

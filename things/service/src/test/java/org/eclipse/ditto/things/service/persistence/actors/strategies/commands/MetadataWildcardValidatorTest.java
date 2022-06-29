@@ -88,36 +88,35 @@ public class MetadataWildcardValidatorTest {
     }
 
     @Test
-    public void validateValidMetadataWildcardOnFeaturePropertiesLevel() {
-        final List<String> metadataWildcardExprList = List.of("/*/metadataKey", "*/metaDataKey");
-
-        metadataWildcardExprList.forEach(metadataWildcardExpr ->
-                assertThatNoException()
-                        .isThrownBy(() -> MetadataWildcardValidator.validateMetadataWildcard(
-                                FEATURE_ID_POINTER.addLeaf(JsonKey.of("properties")),
-                                metadataWildcardExpr, GET_METADATA_HEADER_KEY))
-        );
-    }
-
-    @Test
     public void validateValidMetadataWildcardOnFeatureDesiredPropertiesLevel() {
         final List<String> metadataWildcardExprList = List.of("/*/metadataKey", "*/metaDataKey");
 
         metadataWildcardExprList.forEach(metadataWildcardExpr ->
-                assertThatNoException()
+                assertThatExceptionOfType(DittoHeaderNotSupportedException.class)
                         .isThrownBy(() -> MetadataWildcardValidator.validateMetadataWildcard(
                                 FEATURE_ID_POINTER.addLeaf(JsonKey.of("desiredProperties")),
                                 metadataWildcardExpr, GET_METADATA_HEADER_KEY))
+                        .withMessage(MessageFormat.format(
+                                "The wildcard expression ''{0}'' in header ''{1}'' is not supported on this resource level.",
+                                metadataWildcardExpr, GET_METADATA_HEADER_KEY))
+                        .withNoCause()
         );
     }
 
     @Test
-    public void validateValidMetadataWildcardOnAttributesLevel() {
-        final String metadataWildcardExpr = "/*/metadataKey";
+    public void validateInValidMetadataWildcardOnFeaturePropertiesLevel() {
+        final List<String> metadataWildcardExprList = List.of("/*/metadataKey", "*/metaDataKey");
 
-        assertThatNoException()
-                .isThrownBy(() -> MetadataWildcardValidator.validateMetadataWildcard(ATTRIBUTES_POINTER,
-                        metadataWildcardExpr, GET_METADATA_HEADER_KEY));
+        metadataWildcardExprList.forEach(wildcardExpr ->
+                assertThatExceptionOfType(DittoHeaderNotSupportedException.class)
+                        .isThrownBy(() -> MetadataWildcardValidator.validateMetadataWildcard(
+                                FEATURE_ID_POINTER.addLeaf(JsonKey.of("properties")),
+                                wildcardExpr, GET_METADATA_HEADER_KEY))
+                        .withMessage(MessageFormat.format(
+                                "The wildcard expression ''{0}'' in header ''{1}'' is not supported on this resource level.",
+                                wildcardExpr, GET_METADATA_HEADER_KEY))
+                        .withNoCause()
+        );
     }
 
     @Test
@@ -186,12 +185,12 @@ public class MetadataWildcardValidatorTest {
                 List.of("/properties/*/*/metadataKey", "/*/*/*/metadataKey", "/*");
 
         metadataWildcardExprList.forEach(metadataWildcardExpr ->
-                assertThatExceptionOfType(DittoHeaderInvalidException.class)
+                assertThatExceptionOfType(DittoHeaderNotSupportedException.class)
                         .isThrownBy(() -> MetadataWildcardValidator.validateMetadataWildcard(
                                 FEATURE_ID_POINTER.addLeaf(JsonKey.of("properties")),
                                 metadataWildcardExpr, GET_METADATA_HEADER_KEY))
                         .withMessage(MessageFormat.format(
-                                "The wildcard expression ''{0}'' in header ''{1}'' is not valid.",
+                                "The wildcard expression ''{0}'' in header ''{1}'' is not supported on this resource level.",
                                 metadataWildcardExpr, GET_METADATA_HEADER_KEY))
                         .withNoCause()
         );
@@ -201,11 +200,11 @@ public class MetadataWildcardValidatorTest {
     public void validateInvalidMetadataWildcardOnAttributesLevel() {
         final String metadataWildcardExpr = "attributes/*/*/metadataKey";
 
-        assertThatExceptionOfType(DittoHeaderInvalidException.class)
+        assertThatExceptionOfType(DittoHeaderNotSupportedException.class)
                 .isThrownBy(() -> MetadataWildcardValidator.validateMetadataWildcard(ATTRIBUTES_POINTER,
                         metadataWildcardExpr, GET_METADATA_HEADER_KEY))
                 .withMessage(MessageFormat.format(
-                        "The wildcard expression ''{0}'' in header ''{1}'' is not valid.",
+                        "The wildcard expression ''{0}'' in header ''{1}'' is not supported on this resource level.",
                         metadataWildcardExpr, GET_METADATA_HEADER_KEY))
                 .withNoCause();
     }
@@ -228,13 +227,17 @@ public class MetadataWildcardValidatorTest {
     }
 
     @Test
-    public void validateValidMetadataWildcardOnFeaturePropertyLevel() {
+    public void validateInvalidMetadataWildcardOnFeaturePropertyLevel() {
         final String metadataWildcardExpr = "/*/metadataKey";
 
-        assertThatNoException()
+        assertThatExceptionOfType(DittoHeaderNotSupportedException.class)
                 .isThrownBy(() -> MetadataWildcardValidator.validateMetadataWildcard(
                         FEATURE_ID_POINTER.addLeaf(JsonKey.of("properties")).addLeaf(JsonKey.of("temp")),
-                        metadataWildcardExpr, GET_METADATA_HEADER_KEY));
+                        metadataWildcardExpr, GET_METADATA_HEADER_KEY))
+                .withMessage(MessageFormat.format(
+                        "The wildcard expression ''{0}'' in header ''{1}'' is not supported on this resource level.",
+                        metadataWildcardExpr, GET_METADATA_HEADER_KEY))
+                .withNoCause();
     }
 
     @Test

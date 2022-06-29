@@ -13,6 +13,8 @@
 package org.eclipse.ditto.things.service.persistence.actors.strategies.events;
 
 import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
@@ -22,6 +24,8 @@ import org.eclipse.ditto.base.model.entity.metadata.MetadataBuilder;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.internal.utils.persistentactors.events.EventStrategy;
 import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonKey;
+import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.things.model.Thing;
@@ -106,6 +110,16 @@ abstract class AbstractThingEventStrategy<T extends ThingEvent<T>> implements Ev
             final Optional<JsonValue> optionalJsonValue = event.getEntity();
             if (optionalJsonValue.isEmpty() || optionalJsonValue.get().isNull()) {
                 return metadataBuilder.remove(event.getResourcePath()).build();
+            } else if (optionalJsonValue.get().isObject()) {
+                final JsonObject jsonObject = optionalJsonValue.get().asObject();
+                final Set<JsonKey> jsonKeysForNullValue = jsonObject.getKeys().stream()
+                        .filter(jsonKey -> jsonObject.getValue(jsonKey).orElseThrow().isNull())
+                        .collect(Collectors.toSet());
+
+                jsonKeysForNullValue.forEach(jsonKey ->
+                        metadataBuilder.remove(event.getResourcePath() + "/" + jsonKey.toString()));
+
+                return metadataBuilder.build();
             }
         } else if (event instanceof ThingModifiedEvent && event.getCommandCategory().equals(Command.Category.MODIFY)) {
             final Optional<JsonValue> optionalJsonValue = event.getEntity();

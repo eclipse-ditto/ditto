@@ -31,15 +31,7 @@ final class MetadataWildcardValidator {
 
     public static final JsonPointer ROOT_PATH = JsonPointer.of("/");
     public static final JsonPointer FEATURES_PATH = Thing.JsonFields.FEATURES.getPointer();
-    public static final JsonPointer ATTRIBUTES_PATH = Thing.JsonFields.ATTRIBUTES.getPointer();
     public static final String FEATURE_PATH = FEATURES_PATH + "/.*";
-    public static final String FEATURE_PROPERTIES_PATH = FEATURES_PATH + "/.*/properties";
-    public static final String FEATURE_DESIRED_PROPERTIES_PATH = FEATURES_PATH + "/.*/desiredProperties";
-    public static final String FEATURE_PROPERTY_PATH = FEATURES_PATH + "/.*/properties/.*";
-    public static final String FEATURE_DESIRED_PROPERTY_PATH = FEATURES_PATH + "/.*/desiredProperties/.*";
-
-    public static final String FEATURE_DEFINITION_PATH = FEATURES_PATH + "/.*/definition/.*";
-    public static final String FEATURES_SUB_PATH = FEATURES_PATH + "/.*/(properties|desiredProperties)(.*)";
 
     private static final String THING_FEATURES_AND_PROPERTIES_WILDCARD_REGEX =
             "/?features/\\*/(properties|desiredProperties)/\\*/(?!\\*).*";
@@ -82,11 +74,6 @@ final class MetadataWildcardValidator {
             validateWildcardExpressionOnFeaturesLevel(metaDataWildcardExpression, headerKey);
         } else if (levelCount == 2 && resourcePathAsString.matches(FEATURE_PATH)) {
             validateWildcardExpressionOnFeatureLevel(metaDataWildcardExpression, headerKey);
-        } else if ((levelCount >= 3 && resourcePathAsString.matches(FEATURES_SUB_PATH))
-                || resourcePath.equals(ATTRIBUTES_PATH)) {
-            if (!Pattern.matches(LEAF_WILDCARD_REGEX, metaDataWildcardExpression)) {
-                throw getDittoHeaderInvalidException(metaDataWildcardExpression, headerKey);
-            }
         } else {
             throw getDittoHeaderNotSupportedException(metaDataWildcardExpression, headerKey);
         }
@@ -198,17 +185,6 @@ final class MetadataWildcardValidator {
      */
     public static boolean matchesFeaturesWithPropertyOnlyWildcard(final String wildcardExpression) {
         return Pattern.matches(FEATURES_WITH_PROPERTIES_ONLY_WILDCARD_REGEX, wildcardExpression);
-    }
-
-    /**
-     * Matches the passed {@code wildcardExpression} against wildcard regex
-     * {@code FEATURES_DEFINITION_WILDCARD_REGEX} and returns {@code true} if they match.
-     *
-     * @param wildcardExpression the wildcard expression that should be checked.
-     * @return {@code true} if the wildcardExpression matches the regex and false if not.
-     */
-    public static boolean matchesFeaturesDefinitionWildcard(final String wildcardExpression) {
-        return Pattern.matches(FEATURES_DEFINITION_WILDCARD_REGEX, wildcardExpression);
     }
 
     /**

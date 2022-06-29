@@ -35,6 +35,7 @@ import org.eclipse.ditto.things.model.FeatureDefinition;
 import org.eclipse.ditto.things.model.FeatureProperties;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingId;
+import org.eclipse.ditto.things.model.signals.commands.modify.MergeThing;
 import org.eclipse.ditto.things.model.signals.commands.modify.ModifyFeature;
 import org.eclipse.ditto.things.model.signals.commands.modify.ThingModifyCommand;
 import org.junit.Before;
@@ -103,6 +104,7 @@ public final class MetadataFromCommandTest {
     @Test
     public void getMetadataWhenEventHasNoEntityAndEntityHasNullExistingMetadata() {
         Mockito.when(command.getEntity(Mockito.any())).thenReturn(Optional.empty());
+        Mockito.when(command.getResourcePath()).thenReturn(JsonPointer.empty());
         Mockito.when(entity.getMetadata()).thenReturn(Optional.empty());
         final MetadataFromCommand underTest = MetadataFromCommand.of(command, null, entity.getMetadata().orElse(null));
 
@@ -112,6 +114,7 @@ public final class MetadataFromCommandTest {
     @Test
     public void entityHasNoMetadataAndEventDittoHeadersHaveNoMetadata() {
         Mockito.when(command.getEntity(Mockito.any())).thenReturn(Optional.of(thingWithoutMetadata.toJson()));
+        Mockito.when(command.getResourcePath()).thenReturn(JsonPointer.empty());
         Mockito.when(command.getDittoHeaders()).thenReturn(DittoHeaders.empty());
         Mockito.when(entity.getMetadata()).thenReturn(Optional.empty());
         final MetadataFromCommand underTest = MetadataFromCommand.of(command, null, entity.getMetadata().orElse(null));
@@ -123,6 +126,7 @@ public final class MetadataFromCommandTest {
     public void entityMetadataButEventDittoHeadersHaveNoMetadata() {
         final Metadata existingMetadata = Metadata.newBuilder().set("/scruplusFine", JsonValue.of("^6,00.32")).build();
         Mockito.when(command.getEntity(Mockito.any())).thenReturn(Optional.of(thingWithoutMetadata.toJson()));
+        Mockito.when(command.getResourcePath()).thenReturn(JsonPointer.empty());
         Mockito.when(command.getDittoHeaders()).thenReturn(DittoHeaders.empty());
         Mockito.when(entity.getMetadata()).thenReturn(Optional.of(existingMetadata));
         final MetadataFromCommand underTest = MetadataFromCommand.of(command, null, entity.getMetadata().orElse(null));
@@ -144,11 +148,11 @@ public final class MetadataFromCommandTest {
                 .putMetadata(MetadataHeaderKey.parse("/properties/*/lastSeen"), JsonValue.of(1955))
                 .build();
         final ModifyFeature modifyFeature = ModifyFeature.of(thingWithoutMetadata.getEntityId().orElseThrow(),
-                modifiedFeature,
-                dittoHeaders);
+                modifiedFeature, dittoHeaders);
         final Metadata expected = Metadata.newBuilder()
                 .set(JsonPointer.of("scruplusFine"), "^6,00.32")
                 .set(JsonPointer.of("properties/grumbo/froodNoops"), 5)
+                .set(JsonPointer.of("properties/grumbo/lastSeen"), 1955)
                 .set(JsonPointer.of("properties/capacity/lastSeen"), 1955)
                 .build();
 
@@ -158,7 +162,7 @@ public final class MetadataFromCommandTest {
     }
 
     @Test
-    public void modifyExistingMetadata() {
+    public void modifyExistingMetadataWithMergeCommand() {
         final Metadata existingMetadata = Metadata.newBuilder()
                 .set(JsonPointer.of("airplaneMode"), "forbidden")
                 .set(JsonPointer.of("definition/lastSeen"), 2023)
@@ -174,18 +178,18 @@ public final class MetadataFromCommandTest {
                 .putMetadata(MetadataHeaderKey.parse("/properties/grumbo/froodNoops"), JsonValue.of(5))
                 .putMetadata(MetadataHeaderKey.parse("/properties/*/lastSeen"), JsonValue.of(1955))
                 .build();
-        final ModifyFeature modifyFeature = ModifyFeature.of(thingWithoutMetadata.getEntityId().orElseThrow(),
-                modifiedFeature,
-                dittoHeaders);
+        final MergeThing mergeFeature = MergeThing.withFeature(thingWithoutMetadata.getEntityId().orElseThrow(),
+                modifiedFeature, dittoHeaders);
         final Metadata expected = existingMetadata.toBuilder()
                 .set(JsonPointer.of("airplaneMode"), "forbidden")
                 .set(JsonPointer.of("scruplusFine"), "^6,00.32")
                 .set(JsonPointer.of("definition/lastSeen"), 2023)
                 .set(JsonPointer.of("properties/capacity/lastSeen"), 1955)
+                .set(JsonPointer.of("properties/grumbo/lastSeen"), 1955)
                 .set(JsonPointer.of("properties/grumbo/froodNoops"), 5)
                 .build();
 
-        final MetadataFromCommand underTest = MetadataFromCommand.of(modifyFeature, thingWithoutMetadata, existingMetadata);
+        final MetadataFromCommand underTest = MetadataFromCommand.of(mergeFeature, thingWithoutMetadata, existingMetadata);
 
         assertThat(underTest.get()).isEqualTo(expected);
     }
@@ -205,9 +209,9 @@ public final class MetadataFromCommandTest {
                 .definition(FeatureDefinition.fromIdentifier("foo:bar:1"))
                 .build();
         final ModifyFeature modifyFeature = ModifyFeature.of(thingWithoutMetadata.getEntityId().orElseThrow(),
-                modifiedFeature,
-                dittoHeaders);
+                modifiedFeature, dittoHeaders);
         final Metadata expected = Metadata.newBuilder()
+                .set(JsonPointer.of("properties/grumbo/type"), metric)
                 .set(JsonPointer.of("properties/capacity/type"), nonMetric)
                 .build();
 
@@ -228,11 +232,9 @@ public final class MetadataFromCommandTest {
         final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
                 .putMetadata(MetadataHeaderKey.parse("/scruplusFine"), JsonValue.of("^6,00.32"))
                 .putMetadata(MetadataHeaderKey.parse("/properties/capacitorNr"), JsonValue.of("unlimited"))
-                .putMetadata(MetadataHeaderKey.parse("/*/lastSeen"), JsonValue.of(1955))
                 .build();
         final ModifyFeature modifyFeature = ModifyFeature.of(thingWithoutMetadata.getEntityId().orElseThrow(),
-                modifiedFeature,
-                dittoHeaders);
+                modifiedFeature, dittoHeaders);
 
         final MetadataFromCommand underTest = MetadataFromCommand.of(modifyFeature, null, null);
 

@@ -33,16 +33,15 @@ import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.metadata.MetadataHeader;
 import org.eclipse.ditto.base.model.headers.metadata.MetadataHeaderKey;
-import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.signals.WithOptionalEntity;
 import org.eclipse.ditto.base.model.signals.commands.Command;
-import org.eclipse.ditto.json.JsonKey;
+import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingsModelFactory;
 import org.eclipse.ditto.things.model.signals.commands.modify.CreateThing;
+import org.eclipse.ditto.things.model.signals.commands.modify.MergeThing;
 
 /**
  * Creates or extends/modifies Metadata of an entity based on {@link MetadataHeader}s of a {@link Command}'s
@@ -79,16 +78,25 @@ final class MetadataFromCommand implements Supplier<Metadata> {
             @Nullable final Thing existingThing,
             @Nullable final Metadata existingMetadata) {
 
-        final Thing existingOrEmptyThing = Objects.requireNonNullElseGet(existingThing, () -> Thing.newBuilder().build());
+        final Thing existingOrEmptyThing =
+                Objects.requireNonNullElseGet(existingThing, () -> Thing.newBuilder().build());
 
         if (command instanceof WithOptionalEntity withOptionalEntity) {
             final var mergedThing = withOptionalEntity.getEntity()
                     .map(entity -> {
                         final var resourcePath = command.getResourcePath();
                         if (resourcePath.isEmpty() && entity.isObject()) {
-                            return ThingsModelFactory.newThing(entity.asObject());
+                            final JsonObject mergedThingJson =
+                                    JsonFactory.newObject(entity.asObject(), existingOrEmptyThing.toJson());
+                            return ThingsModelFactory.newThing(mergedThingJson);
+                        } else if (command instanceof MergeThing && entity.isObject()) {
+                            final JsonObject mergedJson =
+                                    JsonFactory.newObject(entity.asObject(),
+                                            existingOrEmptyThing.toJson().get(resourcePath));
+                            return ThingsModelFactory.newThing(existingOrEmptyThing.toJson().setValue(resourcePath, mergedJson));
                         } else {
-                            return ThingsModelFactory.newThing(existingOrEmptyThing.toJson().setValue(resourcePath, entity));
+                            return ThingsModelFactory.newThing(
+                                    existingOrEmptyThing.toJson().setValue(resourcePath, entity));
                         }
                     })
                     .orElse(existingOrEmptyThing);
@@ -118,30 +126,21 @@ final class MetadataFromCommand implements Supplier<Metadata> {
     @Nullable
     public Metadata get() {
         return getInlineMetadata().orElseGet(() -> {
-            final JsonValue commandEntity;
-            if (command instanceof WithOptionalEntity withOptionalEntity) {
-                commandEntity = withOptionalEntity.getEntity(command.getDittoHeaders()
-                                .getSchemaVersion()
-                                .orElse(command.getLatestSchemaVersion()))
-                        .orElse(null);
-            } else {
-                commandEntity = null;
-            }
+
             final SortedSet<MetadataHeader> metadataHeaders = getMetadataHeadersToPut();
-            if (null != commandEntity && !metadataHeaders.isEmpty()) {
-                // TODO this should probably work without a command entity
+            final Optional<JsonValue> optionalJsonValue = mergedThing.toJson().getValue(command.getResourcePath());
+            if (!metadataHeaders.isEmpty() && optionalJsonValue.isPresent()) {
                 final var expandedMetadataHeaders = metadataHeaders.stream()
                         .flatMap(this::expandWildcards)
                         .collect(Collectors.toCollection(LinkedHashSet::new));
-                return buildMetadata(commandEntity, expandedMetadataHeaders);
+                return buildMetadata(optionalJsonValue.get(), expandedMetadataHeaders);
             }
             return existingMetadata;
         });
     }
 
     private Optional<Metadata> getInlineMetadata() {
-        return command instanceof CreateThing createThing ? createThing.getThing()
-                .getMetadata() : Optional.empty();
+        return command instanceof CreateThing createThing ? createThing.getThing().getMetadata() : Optional.empty();
     }
 
     private SortedSet<MetadataHeader> getMetadataHeadersToPut() {
@@ -151,8 +150,10 @@ final class MetadataFromCommand implements Supplier<Metadata> {
 
     private Stream<MetadataHeader> expandWildcards(final MetadataHeader metadataHeader) {
         if (containsWildcard(metadataHeader)) {
+            MetadataWildcardValidator.validateMetadataWildcard(command.getResourcePath(),
+                    metadataHeader.getKey().toString(), DittoHeaderDefinition.PUT_METADATA.getKey());
             final var jsonPointers = MetadataFieldsWildcardResolver.resolve(command, mergedThing,
-                    metadataHeader.getKey().getOriginalPath(), DittoHeaderDefinition.PUT_METADATA.getKey());
+                    metadataHeader.getKey().getPath(), DittoHeaderDefinition.PUT_METADATA.getKey());
             return jsonPointers.stream()
                     .map(MetadataHeaderKey::of)
                     .map(metadataHeaderKey -> MetadataHeader.of(metadataHeaderKey, metadataHeader.getValue()));
@@ -174,68 +175,33 @@ final class MetadataFromCommand implements Supplier<Metadata> {
             final MetadataHeaderKey metadataHeaderKey = metadataHeader.getKey();
             final JsonValue metadataHeaderValue = metadataHeader.getValue();
 
-            if (metadataHeaderKey.appliesToAllLeaves()) {
-                addMetadataToLeaf(JsonPointer.empty(), metadataHeader, metadataBuilder, entity);
-            } else {
-                if (entity.isObject()) {
-                    final var field = entity.asObject()
-                            .getField(metadataHeaderKey.getPath());
-                    final var metadataHeaderKeyLeaf = metadataHeaderKey.getPath()
-                            .cutLeaf();
-                    if (field.isPresent()) {
-                        if (field.get()
-                                .getValue()
-                                .isObject()) {
-                            metadataBuilder.set(metadataHeaderKey.getPath(), metadataHeaderValue);
-                        }
-                    } else if (entity.asObject()
-                            .contains(metadataHeaderKeyLeaf)) {
-                        final var optionalLeafValue = entity.asObject()
-                                .getValue(metadataHeaderKeyLeaf);
-                        if (optionalLeafValue.isEmpty() || optionalLeafValue.get()
-                                .isObject() || metadataHeaderKey.getPath()
-                                .getLevelCount() > 1) {
-                            metadataBuilder.set(metadataHeaderKey.getPath(), metadataHeaderValue);
-                        }
-                    } else if (metadataHeaderKey.getPath()
-                            .getLevelCount() == 1) {
+            if (entity.isObject()) {
+                final var field = entity.asObject().getField(metadataHeaderKey.getPath());
+                final var metadataHeaderKeyLeaf = metadataHeaderKey.getPath().cutLeaf();
+                if (field.isPresent()) {
+                    if (field.get().getValue().isObject()) {
                         metadataBuilder.set(metadataHeaderKey.getPath(), metadataHeaderValue);
                     }
-                } else if (metadataHeaderKey.getPath()
-                        .getLevelCount() > 1 || metadataHeaderValue.isObject()) {
+                } else if (entity.asObject().contains(metadataHeaderKeyLeaf)) {
+                    final var optionalLeafValue = entity.asObject().getValue(metadataHeaderKeyLeaf);
+                    if (optionalLeafValue.isEmpty() || optionalLeafValue.get().isObject()
+                            || metadataHeaderKey.getPath().getLevelCount() > 1) {
+                        metadataBuilder.set(metadataHeaderKey.getPath(), metadataHeaderValue);
+                    }
+                } else if (metadataHeaderKey.getPath().getLevelCount() == 1) {
                     metadataBuilder.set(metadataHeaderKey.getPath(), metadataHeaderValue);
                 }
+            } else if (metadataHeaderKey.getPath().getLevelCount() > 1 || metadataHeaderValue.isObject()) {
+                metadataBuilder.set(metadataHeaderKey.getPath(), metadataHeaderValue);
             }
         };
-
         metadataHeaders.forEach(addMetadataToBuilder);
 
         return metadataBuilder.build();
     }
 
     private MetadataBuilder getMetadataBuilder() {
-        return null != existingMetadata ? Metadata.newBuilder()
-                .setAll(existingMetadata) : Metadata.newBuilder();
-    }
-
-    private static void addMetadataToLeaf(final JsonPointer path,
-            final MetadataHeader metadataHeader,
-            final MetadataBuilder metadataBuilder,
-            final JsonValue entity) {
-
-        if (entity.isObject()) {
-            final JsonObject entityObject = entity.asObject();
-            entityObject.stream()
-                    .filter(field -> !(field.isMarkedAs(FieldType.SPECIAL) || field.isMarkedAs(FieldType.HIDDEN)))
-                    .forEach(jsonField -> {
-                        final JsonKey key = jsonField.getKey();
-                        addMetadataToLeaf(path.append(key.asPointer()), metadataHeader, metadataBuilder,
-                                jsonField.getValue());
-                    });
-        } else {
-            final MetadataHeaderKey metadataHeaderKey = metadataHeader.getKey();
-            metadataBuilder.set(path.append(metadataHeaderKey.getPath()), metadataHeader.getValue());
-        }
+        return null != existingMetadata ? Metadata.newBuilder().setAll(existingMetadata) : Metadata.newBuilder();
     }
 
 }

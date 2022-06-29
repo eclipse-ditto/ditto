@@ -19,13 +19,13 @@ import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
+import org.assertj.core.api.AutoCloseableSoftAssertions;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonKey;
 import org.eclipse.ditto.json.JsonPointer;
+import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
-import org.assertj.core.api.AutoCloseableSoftAssertions;
-import org.junit.Test;
 
 /**
  * Unit tests for {@link org.eclipse.ditto.base.model.headers.metadata.DefaultMetadataHeaderKey}.
@@ -59,22 +59,6 @@ public final class DefaultMetadataHeaderKeyTest {
         assertThatIllegalArgumentException()
                 .isThrownBy(() -> DefaultMetadataHeaderKey.of(JsonPointer.empty()))
                 .withMessage("The path of a metadata header key must not be empty!")
-                .withNoCause();
-    }
-
-    @Test
-    public void wildcardPathHasTooFewLevels() {
-        assertThatIllegalArgumentException()
-                .isThrownBy(() -> DefaultMetadataHeaderKey.of(JsonPointer.of("/*")))
-                .withMessage("A wildcard path of a metadata header key must have exactly two levels but it had <1>!")
-                .withNoCause();
-    }
-
-    @Test
-    public void wildcardPathHasTooManyLevels() {
-        assertThatIllegalArgumentException()
-                .isThrownBy(() -> DefaultMetadataHeaderKey.of(JsonPointer.of("/*/foo/meta")))
-                .withMessage("A wildcard path of a metadata header key must have exactly two levels but it had <3>!")
                 .withNoCause();
     }
 
@@ -117,7 +101,7 @@ public final class DefaultMetadataHeaderKeyTest {
         final JsonPointer path = JsonFactory.newPointer(DefaultMetadataHeaderKey.HIERARCHY_WILDCARD, leaf);
         final MetadataHeaderKey underTest = DefaultMetadataHeaderKey.of(path);
 
-        assertThat((CharSequence) underTest.getPath()).isEqualTo(leaf.asPointer());
+        assertThat((CharSequence) underTest.getPath()).isEqualTo(path);
     }
 
     @Test

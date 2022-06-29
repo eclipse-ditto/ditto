@@ -81,13 +81,6 @@ public interface MetadataHeaderKey extends Comparable<MetadataHeaderKey> {
     JsonPointer getPath();
 
     /**
-     * Returns the original path of this key.
-     *
-     * @return the path.
-     */
-    JsonPointer getOriginalPath();
-
-    /**
      * Returns this key as string as it would appear in DittoHeaders.
      *
      * @return the string representation of this key.
