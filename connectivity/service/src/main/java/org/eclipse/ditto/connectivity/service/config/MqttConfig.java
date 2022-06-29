@@ -155,7 +155,7 @@ public interface MqttConfig {
          * The client Receive Maximum for MQTT 5, i.e. the number of QoS 1 and Qos2 publications the broker is willing
          * to process concurrently for the client.
          */
-        CLIENT_RECEIVE_MAXIMUM("client-receive-maximum", ReceiveMaximum.DEFAULT_VALUE);
+        CLIENT_RECEIVE_MAXIMUM("receive-maximum-client", ReceiveMaximum.DEFAULT_VALUE);
 
         private final String path;
         private final Object defaultValue;
