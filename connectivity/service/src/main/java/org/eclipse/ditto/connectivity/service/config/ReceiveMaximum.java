@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.connectivity.service.messaging.mqtt;
+package org.eclipse.ditto.connectivity.service.config;
 
 import java.util.Objects;
 
@@ -34,9 +34,14 @@ public final class ReceiveMaximum implements Comparable<ReceiveMaximum> {
     static final int MIN_VALUE = 1;
 
     /**
-     * The default and maximum value (65535) for the Receive Maximum as defined by protocol specification.
+     * The maximum value (65535) for the Receive Maximum as defined by protocol specification.
      */
-    static final int DEFAULT_AND_MAX_VALUE = 0xFFFF;
+    static final int MAX_VALUE = 0xFFFF;
+
+    /**
+     * The default value for the Receive Maximum.
+     */
+    public static final int DEFAULT_VALUE = MAX_VALUE;
 
     private final int value;
 
@@ -48,17 +53,17 @@ public final class ReceiveMaximum implements Comparable<ReceiveMaximum> {
      * Returns an instance of {@code ReceiveMaximum} for the specified integer value.
      *
      * @param value the value of the Receive Maximum. It must be between (inclusive) {@value #MIN_VALUE} and
-     * {@value #DEFAULT_AND_MAX_VALUE}.
+     * {@value #DEFAULT_VALUE}.
      * @return the ReceiveMaximum for {@code value}.
      * @throws IllegalReceiveMaximumValueException if {@code value} is less than {@value #MIN_VALUE} or greater than
-     * {@value #DEFAULT_AND_MAX_VALUE}.
+     * {@value #DEFAULT_VALUE}.
      */
     public static ReceiveMaximum of(final int value) throws IllegalReceiveMaximumValueException {
-        if (value < MIN_VALUE || value > DEFAULT_AND_MAX_VALUE) {
+        if (value < MIN_VALUE || value > MAX_VALUE) {
             throw new IllegalReceiveMaximumValueException(
                     String.format("Expected value to be within [%d, %d] but it was <%d>.",
                             MIN_VALUE,
-                            DEFAULT_AND_MAX_VALUE,
+                            MAX_VALUE,
                             value),
                     null
             );
@@ -68,13 +73,13 @@ public final class ReceiveMaximum implements Comparable<ReceiveMaximum> {
     }
 
     /**
-     * Returns an instance of {@code ReceiveMaximum} with the default value of {@value #DEFAULT_AND_MAX_VALUE}.
+     * Returns an instance of {@code ReceiveMaximum} with the default value of {@value #DEFAULT_VALUE}.
      * This is the default and value that is determined by MQTT 5 protocol specification.
      *
      * @return the default Receive Maximum.
      */
     public static ReceiveMaximum defaultReceiveMaximum() {
-        return new ReceiveMaximum(DEFAULT_AND_MAX_VALUE);
+        return new ReceiveMaximum(DEFAULT_VALUE);
     }
 
     /**

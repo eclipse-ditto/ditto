@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.connectivity.service.messaging.mqtt;
+package org.eclipse.ditto.connectivity.service.config;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
@@ -55,20 +55,20 @@ public final class ReceiveMaximumTest {
                 .isThrownBy(() -> ReceiveMaximum.of(value))
                 .withMessage("Expected value to be within [%d, %d] but it was <%d>.",
                         ReceiveMaximum.MIN_VALUE,
-                        ReceiveMaximum.DEFAULT_AND_MAX_VALUE,
+                        ReceiveMaximum.MAX_VALUE,
                         value)
                 .withNoCause();
     }
 
     @Test
     public void ofWithValueExceedingMaximumThrowsException() {
-        final var value = ReceiveMaximum.DEFAULT_AND_MAX_VALUE + 1;
+        final var value = ReceiveMaximum.MAX_VALUE + 1;
 
         Assertions.assertThatExceptionOfType(IllegalReceiveMaximumValueException.class)
                 .isThrownBy(() -> ReceiveMaximum.of(value))
                 .withMessage("Expected value to be within [%d, %d] but it was <%d>.",
                         ReceiveMaximum.MIN_VALUE,
-                        ReceiveMaximum.DEFAULT_AND_MAX_VALUE,
+                        ReceiveMaximum.MAX_VALUE,
                         value)
                 .withNoCause();
     }

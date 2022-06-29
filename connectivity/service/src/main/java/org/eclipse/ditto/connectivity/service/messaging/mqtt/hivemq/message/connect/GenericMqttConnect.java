@@ -18,8 +18,8 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.model.common.ConditionChecker;
+import org.eclipse.ditto.connectivity.service.config.ReceiveMaximum;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.KeepAliveInterval;
-import org.eclipse.ditto.connectivity.service.messaging.mqtt.ReceiveMaximum;
 
 import com.hivemq.client.mqtt.mqtt3.message.connect.Mqtt3Connect;
 import com.hivemq.client.mqtt.mqtt5.message.connect.Mqtt5Connect;
@@ -111,6 +111,15 @@ public final class GenericMqttConnect {
     @Override
     public int hashCode() {
         return Objects.hash(cleanSession, keepAliveInterval, receiveMaximum);
+    }
+
+    @Override
+    public String toString() {
+        return getClass().getSimpleName() + " [" +
+                "cleanSession=" + cleanSession +
+                ", keepAliveInterval=" + keepAliveInterval +
+                ", receiveMaximum=" + receiveMaximum +
+                "]";
     }
 
 }

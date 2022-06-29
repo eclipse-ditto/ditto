@@ -98,6 +98,14 @@ public interface MqttConfig {
     ThrottlingConfig getConsumerThrottlingConfig();
 
     /**
+     * Returns the client Receive Maximum for MQTT 5, i.e. the number of QoS 1 and Qos2 publications the broker is
+     * willing to process concurrently for the client.
+     *
+     * @return a ReceiveMaximum with the configured value or {@link ReceiveMaximum#defaultReceiveMaximum()}.
+     */
+    ReceiveMaximum getClientReceiveMaximum();
+
+    /**
      * An enumeration of the known config path expressions and their associated default values for
      * {@code MqttConfig}.
      */
@@ -141,12 +149,18 @@ public interface MqttConfig {
          */
         RECONNECT_MIN_TIMEOUT_FOR_MQTT_BROKER_INITIATED_DISCONNECT(
                 "reconnect.min-timeout-for-mqtt-broker-initiated-disconnect",
-                Duration.ofSeconds(1));
+                Duration.ofSeconds(1)),
+
+        /**
+         * The client Receive Maximum for MQTT 5, i.e. the number of QoS 1 and Qos2 publications the broker is willing
+         * to process concurrently for the client.
+         */
+        CLIENT_RECEIVE_MAXIMUM("client-receive-maximum", ReceiveMaximum.DEFAULT_VALUE);
 
         private final String path;
         private final Object defaultValue;
 
-        MqttConfigValue(final String thePath, final Object theDefaultValue) {
+        private MqttConfigValue(final String thePath, final Object theDefaultValue) {
             path = thePath;
             defaultValue = theDefaultValue;
         }

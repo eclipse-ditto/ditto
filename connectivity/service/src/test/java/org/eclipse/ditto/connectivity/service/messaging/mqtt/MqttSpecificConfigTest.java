@@ -21,6 +21,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.eclipse.ditto.connectivity.model.Connection;
+import org.eclipse.ditto.connectivity.service.config.IllegalReceiveMaximumValueException;
 import org.eclipse.ditto.connectivity.service.config.MqttConfig;
 import org.junit.Before;
 import org.junit.Test;
@@ -38,7 +39,7 @@ public final class MqttSpecificConfigTest {
     private Connection connection;
 
     @Before
-    public void setup() {
+    public void setup() throws IllegalReceiveMaximumValueException {
         mqttConfig = Mockito.mock(MqttConfig.class);
         when(mqttConfig.getReconnectForRedeliveryDelay()).thenReturn(Duration.ofSeconds(2));
         when(mqttConfig.shouldUseSeparatePublisherClient()).thenReturn(false);
@@ -47,8 +48,7 @@ public final class MqttSpecificConfigTest {
     }
 
     @Test
-    public void parseMqttSpecificConfig()
-            throws IllegalKeepAliveIntervalSecondsException, IllegalReceiveMaximumValueException {
+    public void parseMqttSpecificConfig() throws IllegalKeepAliveIntervalSecondsException {
 
         // GIVEN
         final Map<String, String> configuredSpecificConfig = new HashMap<>();
@@ -62,11 +62,10 @@ public final class MqttSpecificConfigTest {
         configuredSpecificConfig.put("lastWillQos", "1");
         configuredSpecificConfig.put("lastWillMessage", "last will message");
         configuredSpecificConfig.put("lastWillRetain", "true");
-        configuredSpecificConfig.put("receive-maximum-client", "50000");
 
         // WHEN
         when(connection.getSpecificConfig()).thenReturn(configuredSpecificConfig);
-        final MqttSpecificConfig specificConfig = MqttSpecificConfig.fromConnection(connection, mqttConfig);
+        final var specificConfig = MqttSpecificConfig.fromConnection(connection, mqttConfig);
 
         // THEN
         assertThat(specificConfig.reconnectForRedelivery()).isFalse();
@@ -77,7 +76,6 @@ public final class MqttSpecificConfigTest {
                 .isEqualTo(ReconnectDelay.ofOrLowerBoundary(Duration.ofMinutes(4L)));
         assertThat(specificConfig.getKeepAliveIntervalOrDefault())
                 .isEqualTo(KeepAliveInterval.of(Duration.ofSeconds(30L)));
-        assertThat(specificConfig.getClientReceiveMaximumOrDefault()).isEqualTo(ReceiveMaximum.of(50_000));
         assertThat(specificConfig.getMqttLastWillTopic()).contains(MqttTopic.of("lastWillTopic"));
         assertThat(specificConfig.getLastWillQosOrThrow()).isEqualTo(MqttQos.AT_LEAST_ONCE);
         assertThat(specificConfig.getMqttWillRetain()).isEqualTo(true);
@@ -85,9 +83,9 @@ public final class MqttSpecificConfigTest {
     }
 
     @Test
-    public void defaultConfig() throws IllegalKeepAliveIntervalSecondsException, IllegalReceiveMaximumValueException {
+    public void defaultConfig() throws IllegalKeepAliveIntervalSecondsException {
         when(connection.getSpecificConfig()).thenReturn(Collections.emptyMap());
-        final MqttSpecificConfig specificConfig = MqttSpecificConfig.fromConnection(connection, mqttConfig);
+        final var specificConfig = MqttSpecificConfig.fromConnection(connection, mqttConfig);
 
         assertThat(specificConfig.reconnectForRedelivery()).isFalse();
         assertThat(specificConfig.separatePublisherClient()).isFalse();
@@ -100,7 +98,6 @@ public final class MqttSpecificConfigTest {
         assertThat(specificConfig.getLastWillQosOrThrow()).isEqualTo(MqttSpecificConfig.DEFAULT_LAST_WILL_QOS);
         assertThat(specificConfig.getMqttWillMessage()).isEmpty();
         assertThat(specificConfig.getMqttWillRetain()).isFalse();
-        assertThat(specificConfig.getClientReceiveMaximumOrDefault()).isEqualTo(ReceiveMaximum.defaultReceiveMaximum());
     }
 
 }

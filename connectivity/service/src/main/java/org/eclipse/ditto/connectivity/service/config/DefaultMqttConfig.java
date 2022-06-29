@@ -20,6 +20,7 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.service.config.ThrottlingConfig;
 import org.eclipse.ditto.internal.utils.config.ConfigWithFallback;
+import org.eclipse.ditto.internal.utils.config.DittoConfigError;
 import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 
 import com.typesafe.config.Config;
@@ -43,6 +44,7 @@ final class DefaultMqttConfig implements MqttConfig {
     private final Duration reconnectMinTimeoutForMqttBrokerInitiatedDisconnect;
     private final BackOffConfig reconnectBackOffConfig;
     private final ThrottlingConfig consumerThrottlingConfig;
+    private final ReceiveMaximum clientReceiveMaximum;
 
     private DefaultMqttConfig(final ScopedConfig config) {
         eventLoopThreads = config.getNonNegativeIntOrThrow(MqttConfigValue.EVENT_LOOP_THREADS);
@@ -58,6 +60,15 @@ final class DefaultMqttConfig implements MqttConfig {
                 ? config.getConfig(RECONNECT_PATH)
                 : ConfigFactory.parseString("backoff" + "={}"));
         consumerThrottlingConfig = ThrottlingConfig.of(config);
+        clientReceiveMaximum = getClientReceiveMaximumOrThrow(config);
+    }
+
+    private static ReceiveMaximum getClientReceiveMaximumOrThrow(final ScopedConfig config) {
+        try {
+            return ReceiveMaximum.of(config.getPositiveIntOrThrow(MqttConfigValue.CLIENT_RECEIVE_MAXIMUM));
+        } catch (final IllegalReceiveMaximumValueException e) {
+            throw new DittoConfigError(e);
+        }
     }
 
     /**
@@ -112,6 +123,11 @@ final class DefaultMqttConfig implements MqttConfig {
     }
 
     @Override
+    public ReceiveMaximum getClientReceiveMaximum() {
+        return clientReceiveMaximum;
+    }
+
+    @Override
     public BackOffConfig getReconnectBackOffConfig() {
         return reconnectBackOffConfig;
     }
@@ -134,7 +150,8 @@ final class DefaultMqttConfig implements MqttConfig {
                         that.reconnectMinTimeoutForMqttBrokerInitiatedDisconnect) &&
                 Objects.equals(maxQueueSize, that.maxQueueSize) &&
                 Objects.equals(reconnectBackOffConfig, that.reconnectBackOffConfig) &&
-                Objects.equals(consumerThrottlingConfig, that.consumerThrottlingConfig);
+                Objects.equals(consumerThrottlingConfig, that.consumerThrottlingConfig) &&
+                Objects.equals(clientReceiveMaximum, that.clientReceiveMaximum);
     }
 
     @Override
@@ -147,7 +164,8 @@ final class DefaultMqttConfig implements MqttConfig {
                 reconnectMinTimeoutForMqttBrokerInitiatedDisconnect,
                 maxQueueSize,
                 reconnectBackOffConfig,
-                consumerThrottlingConfig);
+                consumerThrottlingConfig,
+                clientReceiveMaximum);
     }
 
     @Override
@@ -163,6 +181,7 @@ final class DefaultMqttConfig implements MqttConfig {
                 ", maxQueueSize=" + maxQueueSize +
                 ", reconnectBackOffConfig=" + reconnectBackOffConfig +
                 ", consumerThrottlingConfig=" + consumerThrottlingConfig +
+                ", clientReceiveMaximum=" + clientReceiveMaximum +
                 "]";
     }
 

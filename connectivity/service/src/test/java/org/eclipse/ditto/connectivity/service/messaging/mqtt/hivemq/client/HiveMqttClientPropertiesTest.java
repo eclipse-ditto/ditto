@@ -162,9 +162,7 @@ public final class HiveMqttClientPropertiesTest {
 
     @Test
     public void buildReturnsExpectedInstance() throws NoMqttConnectionException {
-        final var eventLoopThreadNumber = 8;
         final var mqttConfig = Mockito.mock(MqttConfig.class);
-        Mockito.when(mqttConfig.getEventLoopThreads()).thenReturn(eventLoopThreadNumber);
         final var connectionConfig = Mockito.mock(ConnectionConfig.class);
         Mockito.when(connectionConfig.getMqttConfig()).thenReturn(mqttConfig);
         Mockito.when(connectivityConfig.getConnectionConfig()).thenReturn(connectionConfig);
@@ -191,9 +189,7 @@ public final class HiveMqttClientPropertiesTest {
                     .as("connectivity config")
                     .isEqualTo(connectivityConfig);
             softly.assertThat(underTest.getSshTunnelState()).as("SSH tunnel state").hasValue(sshTunnelState);
-            softly.assertThat(underTest.getEventLoopThreadNumber())
-                    .as("event loop thread number")
-                    .isEqualTo(eventLoopThreadNumber);
+            softly.assertThat(underTest.getMqttConfig()).as("MQTT config").isEqualTo(mqttConfig);
             softly.assertThat(underTest.getConnectionLogger()).as("connection logger").isEqualTo(connectionLogger);
             softly.assertThat(underTest.getActorUuid()).as("actor UUID").isEqualTo(ACTOR_UUID);
             softly.assertThat(underTest.getMqttClientConnectedListener())

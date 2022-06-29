@@ -111,9 +111,11 @@ final class HiveMqttClientFactory {
             final MqttClientIdentifier mqttClientIdentifier,
             final ClientRole clientRole
     ) {
+        final var mqttConfig = hiveMqttClientProperties.getMqttConfig();
+
         return MqttClient.builder()
                 .serverAddress(getInetSocketAddress(getConnectionUri(hiveMqttClientProperties)))
-                .executorConfig(getMqttClientExecutorConfig(hiveMqttClientProperties.getEventLoopThreadNumber()))
+                .executorConfig(getMqttClientExecutorConfig(mqttConfig.getEventLoopThreads()))
                 .sslConfig(getMqttClientSslConfig(hiveMqttClientProperties).orElse(null))
                 .addConnectedListener(getConnectedListener(
                         hiveMqttClientProperties.getMqttClientConnectedListener(),

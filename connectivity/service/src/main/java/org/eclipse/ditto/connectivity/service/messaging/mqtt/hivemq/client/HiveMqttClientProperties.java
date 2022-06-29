@@ -81,8 +81,8 @@ public final class HiveMqttClientProperties {
         return Optional.ofNullable(sshTunnelStateSupplier.get());
     }
 
-    public int getEventLoopThreadNumber() {
-        return mqttConfig.getEventLoopThreads();
+    public MqttConfig getMqttConfig() {
+        return mqttConfig;
     }
 
     /**

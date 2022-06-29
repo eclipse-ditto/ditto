@@ -49,7 +49,6 @@ public final class MqttSpecificConfig {
     private static final String CLIENT_ID = "clientId";
     private static final String PUBLISHER_ID = "publisherId";
     private static final String KEEP_ALIVE_INTERVAL = "keepAlive";
-    private static final String RECEIVE_MAXIMUM_CLIENT = "receive-maximum-client";
 
     private static final boolean DEFAULT_LAST_WILL_RETAIN = false;
     static final MqttQos DEFAULT_LAST_WILL_QOS = MqttQos.AT_MOST_ONCE;
@@ -195,34 +194,6 @@ public final class MqttSpecificConfig {
         } catch (final ConfigException.WrongType e) {
             throw new IllegalKeepAliveIntervalSecondsException(
                     MessageFormat.format("Configured value for Keep Alive Interval is invalid: {0}", e.getMessage()),
-                    e
-            );
-        }
-        return result;
-    }
-
-    /**
-     * Returns the client Receive Maximum, i.e. the number of QoS 1 and Qos2 publications the broker is willing to
-     * process concurrently for the client.
-     *
-     * @return a ReceiveMaximum with the configured value or {@link ReceiveMaximum#defaultReceiveMaximum()} ()} if
-     * configuration key {@value #RECEIVE_MAXIMUM_CLIENT} has no value at all.
-     * @throws IllegalReceiveMaximumValueException if the configured value for {@value #RECEIVE_MAXIMUM_CLIENT} either
-     * <ul>
-     *     <li>is not a number or</li>
-     *     <li>it exceeds the allowed range or a Receive Maximum.</li>
-     * </ul>
-     * @see KeepAliveInterval#defaultKeepAlive()
-     */
-    public ReceiveMaximum getClientReceiveMaximumOrDefault() throws IllegalReceiveMaximumValueException {
-        ReceiveMaximum result;
-        try {
-            result = ReceiveMaximum.of(specificConfig.getInt(RECEIVE_MAXIMUM_CLIENT));
-        } catch (final ConfigException.Missing e) {
-            result = ReceiveMaximum.defaultReceiveMaximum();
-        } catch (final ConfigException.WrongType e) {
-            throw new IllegalReceiveMaximumValueException(
-                    MessageFormat.format("Configured value for client Receive Maximum is invalid: {0}", e.getMessage()),
                     e
             );
         }

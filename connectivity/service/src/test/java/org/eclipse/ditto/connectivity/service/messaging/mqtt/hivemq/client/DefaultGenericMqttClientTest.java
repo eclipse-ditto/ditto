@@ -26,12 +26,12 @@ import org.assertj.core.api.Assertions;
 import org.eclipse.ditto.base.model.common.ByteBufferUtils;
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.ConnectionId;
+import org.eclipse.ditto.connectivity.service.config.IllegalReceiveMaximumValueException;
 import org.eclipse.ditto.connectivity.service.config.MqttConfig;
+import org.eclipse.ditto.connectivity.service.config.ReceiveMaximum;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.IllegalKeepAliveIntervalSecondsException;
-import org.eclipse.ditto.connectivity.service.messaging.mqtt.IllegalReceiveMaximumValueException;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.KeepAliveInterval;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.MqttSpecificConfig;
-import org.eclipse.ditto.connectivity.service.messaging.mqtt.ReceiveMaximum;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.message.connect.GenericMqttConnect;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.message.publish.GenericMqttPublish;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.message.subscribe.GenericMqttSubAck;
@@ -61,12 +61,14 @@ public final class DefaultGenericMqttClientTest {
 
     @Mock private BaseGenericMqttSubscribingClient<?> subscribingClient;
     @Mock private BaseGenericMqttPublishingClient<?> publishingClient;
+    @Mock private MqttConfig mqttConfig;
     @Mock private MqttSpecificConfig mqttSpecificConfig;
     @Mock private HiveMqttClientProperties hiveMqttClientProperties;
 
     @Before
     public void before() throws IllegalKeepAliveIntervalSecondsException {
         Mockito.when(hiveMqttClientProperties.getConnectionId()).thenReturn(CONNECTION_ID);
+        Mockito.when(hiveMqttClientProperties.getMqttConfig()).thenReturn(mqttConfig);
         Mockito.when(hiveMqttClientProperties.getMqttSpecificConfig()).thenReturn(mqttSpecificConfig);
     }
 
@@ -104,12 +106,12 @@ public final class DefaultGenericMqttClientTest {
 
         Mockito.when(subscribingClient.connect(Mockito.any())).thenReturn(CompletableFuture.completedFuture(null));
         Mockito.when(publishingClient.connect(Mockito.any())).thenReturn(CompletableFuture.completedFuture(null));
+        final var receiveMaximum = ReceiveMaximum.of(22_000);
+        Mockito.when(mqttConfig.getClientReceiveMaximum()).thenReturn(receiveMaximum);
         final var cleanSession = true;
         final var keepAliveInterval = KeepAliveInterval.of(Duration.ofSeconds(23L));
-        final var receiveMaximum = ReceiveMaximum.of(22_000);
         Mockito.when(mqttSpecificConfig.cleanSession()).thenReturn(cleanSession);
         Mockito.when(mqttSpecificConfig.getKeepAliveIntervalOrDefault()).thenReturn(keepAliveInterval);
-        Mockito.when(mqttSpecificConfig.getClientReceiveMaximumOrDefault()).thenReturn(receiveMaximum);
         final var underTest =
                 DefaultGenericMqttClient.newInstance(subscribingClient, publishingClient, hiveMqttClientProperties);
         final var genericMqttConnect = GenericMqttConnect.newInstance(cleanSession, keepAliveInterval, receiveMaximum);
