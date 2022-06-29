@@ -99,13 +99,16 @@ public final class MongoThingsSearchPersistence implements ThingsSearchPersisten
     public MongoThingsSearchPersistence(final DittoMongoClient mongoClient, final ActorSystem actorSystem,
             final SearchPersistenceConfig persistenceConfig) {
         final MongoDatabase database = mongoClient.getDefaultDatabase();
+        final var readConcern = persistenceConfig.readConcern().getMongoReadConcern();
+        final var readPreference = persistenceConfig.readPreference().getMongoReadPreference();
         collection = database.getCollection(PersistenceConstants.THINGS_COLLECTION_NAME)
-                .withReadConcern(persistenceConfig.readConcern().getMongoReadConcern())
-                .withReadPreference(persistenceConfig.readPreference().getMongoReadPreference());
+                .withReadConcern(readConcern)
+                .withReadPreference(readPreference);
         log = Logging.getLogger(actorSystem, getClass());
         indexInitializer = IndexInitializer.of(database, SystemMaterializer.get(actorSystem).materializer());
         maxQueryTime = mongoClient.getDittoSettings().getMaxQueryTime();
         hints = MongoHints.empty();
+        log.info("Query readConcern=<{}> readPreference=<{}>", readConcern, readPreference);
     }
 
     private MongoThingsSearchPersistence(
