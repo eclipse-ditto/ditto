@@ -127,7 +127,7 @@ public final class AcknowledgementAggregatorActor extends AbstractActorWithTimer
         if (null != entityId) {
             return withDittoHeaders.getDittoHeaders()
                     .toBuilder()
-                    .putHeader(DittoHeaderDefinition.ENTITY_ID.getKey(), entityId.toString())
+                    .putHeader(DittoHeaderDefinition.ENTITY_ID.getKey(), entityId.getEntityType() + ":" + entityId)
                     .build();
         } else {
             return withDittoHeaders.getDittoHeaders();
