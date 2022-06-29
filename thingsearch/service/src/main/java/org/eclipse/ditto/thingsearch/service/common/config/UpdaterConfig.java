@@ -100,7 +100,7 @@ public interface UpdaterConfig {
      *
      * @return the config.
      */
-    UpdaterPersistenceConfig getUpdaterPersistenceConfig();
+    SearchPersistenceConfig getUpdaterPersistenceConfig();
 
     /**
      * An enumeration of the known config path expressions and their associated default values for

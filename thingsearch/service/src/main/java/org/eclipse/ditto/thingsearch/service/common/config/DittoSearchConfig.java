@@ -36,6 +36,8 @@ import org.eclipse.ditto.internal.utils.persistence.operations.DefaultPersistenc
 import org.eclipse.ditto.internal.utils.persistence.operations.PersistenceOperationsConfig;
 import org.eclipse.ditto.internal.utils.tracing.config.TracingConfig;
 
+import com.typesafe.config.ConfigFactory;
+
 /**
  * This class is the default implementation of {@link SearchConfig}.
  */
@@ -43,6 +45,8 @@ import org.eclipse.ditto.internal.utils.tracing.config.TracingConfig;
 public final class DittoSearchConfig implements SearchConfig, WithConfigPath {
 
     private static final String CONFIG_PATH = "search";
+
+    private static final String QUERY_PATH = "query";
 
     private final DittoServiceConfig dittoServiceConfig;
     @Nullable private final String mongoHintsByNamespace;
@@ -54,6 +58,7 @@ public final class DittoSearchConfig implements SearchConfig, WithConfigPath {
     private final IndexInitializationConfig indexInitializationConfig;
     private final PersistenceOperationsConfig persistenceOperationsConfig;
     private final MongoDbConfig mongoDbConfig;
+    private final SearchPersistenceConfig queryPersistenceConfig;
 
     private DittoSearchConfig(final ScopedConfig dittoScopedConfig) {
         dittoServiceConfig = DittoServiceConfig.of(dittoScopedConfig, CONFIG_PATH);
@@ -69,6 +74,11 @@ public final class DittoSearchConfig implements SearchConfig, WithConfigPath {
         searchUpdateObserver = configWithFallback.getStringOrNull(SearchConfigValue.SEARCH_UPDATE_OBSERVER);
         updaterConfig = DefaultUpdaterConfig.of(configWithFallback);
         indexInitializationConfig = DefaultIndexInitializationConfig.of(configWithFallback);
+
+        final var queryConfig = configWithFallback.hasPath(QUERY_PATH)
+                ? configWithFallback.getConfig(QUERY_PATH)
+                : ConfigFactory.empty();
+        queryPersistenceConfig = DefaultSearchPersistenceConfig.of(queryConfig);
     }
 
     /**
@@ -109,6 +119,11 @@ public final class DittoSearchConfig implements SearchConfig, WithConfigPath {
     @Override
     public UpdaterConfig getUpdaterConfig() {
         return updaterConfig;
+    }
+
+    @Override
+    public SearchPersistenceConfig getQueryPersistenceConfig() {
+        return queryPersistenceConfig;
     }
 
     @Override
@@ -175,15 +190,15 @@ public final class DittoSearchConfig implements SearchConfig, WithConfigPath {
                 Objects.equals(healthCheckConfig, that.healthCheckConfig) &&
                 Objects.equals(indexInitializationConfig, that.indexInitializationConfig) &&
                 Objects.equals(persistenceOperationsConfig, that.persistenceOperationsConfig) &&
-                Objects.equals(mongoDbConfig, that.mongoDbConfig);
+                Objects.equals(mongoDbConfig, that.mongoDbConfig) &&
+                Objects.equals(queryPersistenceConfig, that.queryPersistenceConfig);
     }
 
     @Override
     public int hashCode() {
         return Objects.hash(mongoHintsByNamespace, queryCriteriaValidator, searchUpdateMapper, searchUpdateObserver,
                 updaterConfig, dittoServiceConfig, healthCheckConfig, indexInitializationConfig,
-                persistenceOperationsConfig,
-                mongoDbConfig);
+                persistenceOperationsConfig, mongoDbConfig, queryPersistenceConfig);
     }
 
     @Override
@@ -199,6 +214,7 @@ public final class DittoSearchConfig implements SearchConfig, WithConfigPath {
                 ", indexInitializationConfig=" + indexInitializationConfig +
                 ", persistenceOperationsConfig=" + persistenceOperationsConfig +
                 ", mongoDbConfig=" + mongoDbConfig +
+                ", queryPersistenceConfig=" + queryPersistenceConfig +
                 "]";
     }
 

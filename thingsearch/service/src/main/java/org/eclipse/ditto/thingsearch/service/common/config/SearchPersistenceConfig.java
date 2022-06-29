@@ -19,27 +19,27 @@ import org.eclipse.ditto.internal.utils.persistence.mongo.config.ReadConcern;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.ReadPreference;
 
 /**
- * Provides configuration settings of the Search updater persistence.
+ * Provides configuration settings of the Search query and updater persistence.
  */
 @Immutable
-public interface UpdaterPersistenceConfig {
+public interface SearchPersistenceConfig {
 
     /**
-     * Gets the desired read preference that should be used for queries done in the updater persistence.
+     * Gets the desired read preference that should be used for queries done in the persistence.
      *
      * @return the desired read preference.
      */
     ReadPreference readPreference();
 
     /**
-     * Gets the desired read concern that should be used for queries done in the updater persistence.
+     * Gets the desired read concern that should be used for queries done in the persistence.
      *
      * @return the desired read concern.
      */
     ReadConcern readConcern();
 
     /**
-     * An enumeration of known config path expressions and their associated default values for {@code UpdaterPersistenceConfig}.
+     * An enumeration of known config path expressions and their associated default values for {@code SearchPersistenceConfig}.
      */
     enum ConfigValue implements KnownConfigValue {
 

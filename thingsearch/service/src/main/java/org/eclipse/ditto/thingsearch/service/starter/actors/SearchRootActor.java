@@ -102,8 +102,8 @@ public final class SearchRootActor extends DittoRootActor {
             final DittoMongoClient mongoDbClient) {
 
         final ActorContext context = getContext();
-        final var persistence =
-                new MongoThingsSearchPersistence(mongoDbClient, context.getSystem());
+        final var persistenceConfig = searchConfig.getQueryPersistenceConfig();
+        final var persistence = new MongoThingsSearchPersistence(mongoDbClient, context.getSystem(), persistenceConfig);
 
         final var indexInitializationConfig = searchConfig.getIndexInitializationConfig();
         if (indexInitializationConfig.isIndexInitializationConfigEnabled()) {
@@ -145,8 +145,11 @@ public final class SearchRootActor extends DittoRootActor {
         final Map<String, String> mappings = new HashMap<>(6);
         mappings.put(FieldExpressionUtil.FIELD_NAME_THING_ID, FieldExpressionUtil.FIELD_ID);
         mappings.put(FieldExpressionUtil.FIELD_NAME_NAMESPACE, FieldExpressionUtil.FIELD_NAMESPACE);
-        addMapping(mappings, Thing.JsonFields.POLICY_ID); // also present as top-level field in search collection, however not indexed
-        addMapping(mappings, Thing.JsonFields.REVISION); // also present as top-level field in search collection, however not indexed
+
+        // also present as top-level field in search collection, whether indexed or not
+        addMapping(mappings, Thing.JsonFields.POLICY_ID);
+        addMapping(mappings, Thing.JsonFields.REVISION);
+
         addMapping(mappings, Thing.JsonFields.MODIFIED);
         addMapping(mappings, Thing.JsonFields.CREATED);
         addMapping(mappings, Thing.JsonFields.DEFINITION);

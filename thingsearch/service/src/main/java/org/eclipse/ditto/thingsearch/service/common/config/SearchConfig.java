@@ -67,6 +67,13 @@ public interface SearchConfig extends ServiceSpecificConfig, WithHealthCheckConf
     UpdaterConfig getUpdaterConfig();
 
     /**
+     * Returns the query persistence config.
+     *
+     * @return the config.
+     */
+    SearchPersistenceConfig getQueryPersistenceConfig();
+
+    /**
      * An enumeration of the known config path expressions and their associated default values for SearchConfig.
      */
     enum SearchConfigValue implements KnownConfigValue {
