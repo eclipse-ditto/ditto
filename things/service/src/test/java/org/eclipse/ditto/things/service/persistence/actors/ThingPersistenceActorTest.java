@@ -14,10 +14,13 @@ package org.eclipse.ditto.things.service.persistence.actors;
 
 import static org.assertj.core.api.Assertions.fail;
 import static org.eclipse.ditto.things.model.assertions.DittoThingsAssertions.assertThat;
+import static org.mockito.Mockito.when;
 
 import java.time.Instant;
 import java.util.List;
 import java.util.NoSuchElementException;
+import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
@@ -44,8 +47,7 @@ import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonParseOptions;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.policies.api.commands.sudo.SudoRetrievePolicy;
-import org.eclipse.ditto.policies.api.commands.sudo.SudoRetrievePolicyResponse;
+import org.eclipse.ditto.policies.enforcement.PolicyEnforcer;
 import org.eclipse.ditto.policies.model.Permissions;
 import org.eclipse.ditto.policies.model.PoliciesModelFactory;
 import org.eclipse.ditto.policies.model.PoliciesResourceType;
@@ -193,21 +195,11 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
 
                 final CreateThingResponse createThingResponse = expectMsgClass(CreateThingResponse.class);
                 assertThingInResponse(createThingResponse.getThingCreated().orElse(null), thing);
-
+                when(policyEnforcerProvider.getPolicyEnforcer(POLICY_ID))
+                        .thenReturn(CompletableFuture.completedStage(Optional.of(PolicyEnforcer.of(inlinePolicy))));
                 // retrieve created thing
                 final RetrieveThing retrieveThing = RetrieveThing.of(thingId, dittoHeadersV2);
                 underTest.tell(retrieveThing, getRef());
-                final SudoRetrievePolicy sudoRetrievePolicy =
-                        policiesShardRegionTestProbe.expectMsgClass(SudoRetrievePolicy.class);
-                policiesShardRegionTestProbe.reply(
-                        SudoRetrievePolicyResponse.of(POLICY_ID, inlinePolicy, sudoRetrievePolicy.getDittoHeaders())
-                );
-                final SudoRetrievePolicy sudoRetrievePolicyForResponseFiltering =
-                        policiesShardRegionTestProbe.expectMsgClass(SudoRetrievePolicy.class);
-                policiesShardRegionTestProbe.reply(
-                        SudoRetrievePolicyResponse.of(POLICY_ID, inlinePolicy,
-                                sudoRetrievePolicyForResponseFiltering.getDittoHeaders())
-                );
                 final DittoHeaders expectedHeaders = dittoHeadersV2.toBuilder()
                         .readGrantedSubjects(List.of(AUTHORIZED_SUBJECT))
                         .putHeader(DittoHeaderDefinition.ORIGINATOR.getKey(),
