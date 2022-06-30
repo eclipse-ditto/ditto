@@ -62,7 +62,6 @@ import org.eclipse.ditto.policies.model.signals.commands.modify.DeletePolicyResp
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicy;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicyResponse;
 import org.eclipse.ditto.things.api.Permission;
-import org.eclipse.ditto.things.api.commands.sudo.SudoRetrieveThing;
 import org.eclipse.ditto.things.api.commands.sudo.SudoRetrieveThingResponse;
 import org.eclipse.ditto.things.model.Feature;
 import org.eclipse.ditto.things.model.Thing;
@@ -89,7 +88,6 @@ import org.eclipse.ditto.things.model.signals.commands.query.RetrieveAttribute;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveAttributeResponse;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThing;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThingResponse;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
@@ -395,7 +393,6 @@ public final class ThingCommandEnforcementTest extends AbstractThingEnforcementT
                 .setGrantedPermissions(PoliciesResourceType.thingResource(JsonPointer.empty()),
                         Permissions.newInstance(Permission.READ, Permission.WRITE))
                 .build();
-        final JsonObject policyJsonObject = policy.toJson(FieldType.all());
 
         final SudoRetrieveThingResponse sudoRetrieveThingResponse =
                 SudoRetrieveThingResponse.of(newThingWithAttributeWithPolicyId(policyId), DittoHeaders.empty());
@@ -484,7 +481,6 @@ public final class ThingCommandEnforcementTest extends AbstractThingEnforcementT
     }
 
     @Test
-    @Ignore("TODO: CR-11387 pre-enforcement can complete faster for some messages, thus f-ing up the message order")
     public void testParallelEnforcementTaskScheduling() {
         final Thing thing = newThing().build();
         final PolicyId policyId = PolicyId.of(THING_ID);
@@ -498,8 +494,6 @@ public final class ThingCommandEnforcementTest extends AbstractThingEnforcementT
                         Permissions.newInstance(Permission.READ, Permission.WRITE))
                 .build();
         final CreatePolicyResponse createPolicyResponse = CreatePolicyResponse.of(policyId, policy, headers());
-        final ThingNotAccessibleException thingNotAccessibleException =
-                ThingNotAccessibleException.newBuilder(THING_ID).build();
         final SudoRetrieveThingResponse sudoRetrieveThingResponse =
                 SudoRetrieveThingResponse.of(
                         JsonObject.newBuilder()
@@ -508,8 +502,6 @@ public final class ThingCommandEnforcementTest extends AbstractThingEnforcementT
                                 .set(Thing.JsonFields.REVISION, 1L)
                                 .build(),
                         headers());
-        final SudoRetrievePolicyResponse sudoRetrievePolicyResponse =
-                SudoRetrievePolicyResponse.of(policyId, policy.toJson(FieldType.all()), headers());
         final CreateThing createThing = CreateThing.of(thing, null, headers());
         final CreateThingResponse createThingResponse = CreateThingResponse.of(thing, headers());
         final RetrieveThing retrieveThing = RetrieveThing.of(THING_ID, headers());
@@ -527,6 +519,9 @@ public final class ThingCommandEnforcementTest extends AbstractThingEnforcementT
         final RetrieveAttributeResponse retrieveAttributeResponse =
                 RetrieveAttributeResponse.of(THING_ID, JsonPointer.of("x"), JsonValue.of(5), headers());
 
+        when(policyEnforcerProvider.getPolicyEnforcer(policyId))
+                .thenReturn(CompletableFuture.completedStage(Optional.of(PolicyEnforcer.of(policy))));
+
         new TestKit(system) {{
             // GIVEN: all commands are sent in one batch
             supervisor.tell(createThing, getRef());
@@ -535,52 +530,43 @@ public final class ThingCommandEnforcementTest extends AbstractThingEnforcementT
             supervisor.tell(modifyAttribute, getRef());
             supervisor.tell(retrieveAttribute, getRef());
 
-            // THEN: expect enforcement start: CreateThing
-            expectAndAnswerSudoRetrieveThing(thingNotAccessibleException);
             policiesShardRegionProbe.expectMsgClass(CreatePolicy.class);
-
-            // THEN: no other message should come through before enforcement of CreateThing completes
-            thingPersistenceActorProbe.expectNoMessage(Duration.create(150, TimeUnit.MILLISECONDS));
-
-            // WHEN: CreateThing completes
             policiesShardRegionProbe.reply(createPolicyResponse);
+
             thingPersistenceActorProbe.expectMsgClass(CreateThing.class);
             thingPersistenceActorProbe.reply(createThingResponse);
 
-            // THEN: the next commands are dispatched until authorization change happens again
+            expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
+            expectMsgClass(CreateThingResponse.class);
+
             thingPersistenceActorProbe.expectMsgClass(RetrieveThing.class);
             final ActorRef retrieveThingSender = thingPersistenceActorProbe.lastSender();
+            retrieveThingSender.tell(retrieveThingResponse, ActorRef.noSender());
+
+            expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
+            expectMsgClass(RetrieveThingResponse.class);
+            expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
+
             thingPersistenceActorProbe.expectMsgClass(ModifyPolicyId.class);
             final ActorRef modifyPolicyIdSender = thingPersistenceActorProbe.lastSender();
-
-            // THEN: the authorization-changing command causes a cache reload
-            thingPersistenceActorProbe.expectMsgClass(SudoRetrieveThing.class);
-
-            // WHEN: cache reload completes
-            thingPersistenceActorProbe.reply(sudoRetrieveThingResponse);
-            expectAndAnswerSudoRetrievePolicy(policyId, sudoRetrievePolicyResponse);
-
             modifyPolicyIdSender.tell(modifyPolicyIdResponse, ActorRef.noSender());
 
-            // THEN: the other queued commands are dispatched
+            expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
+            expectMsgClass(ModifyPolicyIdResponse.class);
+
             thingPersistenceActorProbe.expectMsgClass(ModifyAttribute.class);
             final ActorRef modifyAttributeSender = thingPersistenceActorProbe.lastSender();
-            thingPersistenceActorProbe.expectMsgClass(RetrieveAttribute.class);
-            final ActorRef retrieveAttributeSender = thingPersistenceActorProbe.lastSender();
-
-            // THEN: responses are delivered to the command sender
             modifyAttributeSender.tell(modifyAttributeResponse, ActorRef.noSender());
 
-            // and THEN: order of command responses is preserved
-            expectMsgClass(CreateThingResponse.class);
-            expectMsgClass(ModifyPolicyIdResponse.class);
+            expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
             expectMsgClass(ModifyAttributeResponse.class);
 
-            // ThingQueryCommandResponses involve a detour. If sent together, arrival order won't be deterministic.
+            thingPersistenceActorProbe.expectMsgClass(RetrieveAttribute.class);
+            final ActorRef retrieveAttributeSender = thingPersistenceActorProbe.lastSender();
             retrieveAttributeSender.tell(retrieveAttributeResponse, ActorRef.noSender());
+
+            expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
             expectMsgClass(RetrieveAttributeResponse.class);
-            retrieveThingSender.tell(retrieveThingResponse, ActorRef.noSender());
-            expectMsgClass(RetrieveThingResponse.class);
         }};
     }
 

@@ -124,7 +124,8 @@ public final class ConnectionSupervisorActor
     }
 
     @Override
-    protected Receive activeBehaviour(final FI.UnitApply<AbstractPersistenceSupervisor.Control> matchProcessNextTwinMessageBehavior,
+    protected Receive activeBehaviour(
+            final FI.UnitApply<AbstractPersistenceSupervisor.Control> matchProcessNextTwinMessageBehavior,
             final FI.UnitApply<Object> matchAnyBehavior) {
         return ReceiveBuilder.create()
                 .match(Config.class, this::onConnectivityConfigModified)
