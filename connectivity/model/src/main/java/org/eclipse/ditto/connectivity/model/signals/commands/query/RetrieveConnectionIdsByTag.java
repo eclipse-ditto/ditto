@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Contributors to the Eclipse Foundation
+ * Copyright (c) 2022 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -32,8 +32,10 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 
 /**
- * Command which retrieves all {@link org.eclipse.ditto.connectivity.model.ConnectionId}s of connections that have tag
+ * Command which retrieves all {@link org.eclipse.ditto.connectivity.model.ConnectionId}s of connections that have a tag
  * which matches {@link #tag}.
+ *
+ * @since 3.0.0
  */
 @Immutable
 @JsonParsableCommand(typePrefix = ConnectivityCommand.TYPE_PREFIX, name = RetrieveConnectionIdsByTag.NAME)
@@ -83,7 +85,7 @@ public final class RetrieveConnectionIdsByTag extends AbstractCommand<RetrieveCo
     }
 
     /**
-     * Creates a new {@code RetrieveAllConnectionIds} from a JSON object.
+     * Creates a new {@code RetrieveConnectionIdsByTag} from a JSON object.
      *
      * @param jsonObject the JSON object of which the command is to be created.
      * @param dittoHeaders the headers of the command.
@@ -127,24 +129,28 @@ public final class RetrieveConnectionIdsByTag extends AbstractCommand<RetrieveCo
 
     @Override
     public boolean equals(@Nullable final Object o) {
-        if (this == o) {
-            return true;
+        if (this == o) {return true;
         }
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        return super.equals(o);
+        if (!super.equals(o)) {
+            return false;
+        }
+        final RetrieveConnectionIdsByTag that = (RetrieveConnectionIdsByTag) o;
+        return Objects.equals(tag, that.tag);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(super.hashCode());
+        return Objects.hash(super.hashCode(), tag);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
                 super.toString() +
+                ", tag=" + tag +
                 "]";
     }
 

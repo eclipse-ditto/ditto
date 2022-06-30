@@ -27,7 +27,7 @@ public interface ConnectionEnforcerActorPropsFactory extends DittoExtensionPoint
 
     /**
      * @param connectionId the ID of the connection for which the actor should enforce the commands.
-     * @return the enforcer actor.
+     * @return the enforcer actor props.
      */
     Props get(ConnectionId connectionId);
 

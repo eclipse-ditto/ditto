@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Contributors to the Eclipse Foundation
+ * Copyright (c) 2022 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -40,6 +40,8 @@ import org.eclipse.ditto.json.JsonValue;
 
 /**
  * Response to a {@link RetrieveConnectionIdsByTag} command.
+ *
+ * @since 3.0.0
  */
 @Immutable
 @JsonParsableCommandResponse(type = RetrieveConnectionIdsByTagResponse.TYPE)
@@ -82,10 +84,10 @@ public final class RetrieveConnectionIdsByTagResponse
     }
 
     /**
-     * Returns a new instance of {@code RetrieveConnectionIdsByTag}.
+     * Returns a new instance of {@code RetrieveConnectionIdsByTagResponse}.
      *
      * @param dittoHeaders the headers of the request.
-     * @param connectionIds the connection ids
+     * @param connectionIds the connection ids.
      * @return a new RetrieveAllConnectionIdsResponse response.
      * @throws NullPointerException if any argument is {@code null}.
      */
@@ -96,7 +98,7 @@ public final class RetrieveConnectionIdsByTagResponse
     }
 
     /**
-     * Creates a new {@code RetrieveConnectionIdsByTag} from a JSON string.
+     * Creates a new {@code RetrieveConnectionIdsByTagResponse} from a JSON string.
      *
      * @param jsonString the JSON string of which the response is to be retrieved.
      * @param dittoHeaders the headers of the response.
@@ -112,7 +114,7 @@ public final class RetrieveConnectionIdsByTagResponse
     }
 
     /**
-     * Creates a new {@code RetrieveConnectionIdsByTag} from a JSON object.
+     * Creates a new {@code RetrieveConnectionIdsByTagResponse} from a JSON object.
      *
      * @param jsonObject the JSON object of which the response is to be created.
      * @param dittoHeaders the headers of the response.

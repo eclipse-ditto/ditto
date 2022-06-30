@@ -37,12 +37,14 @@ import org.eclipse.ditto.connectivity.model.signals.events.ConnectionDeleted;
 import org.eclipse.ditto.connectivity.service.config.ConnectionIdsRetrievalConfig;
 import org.eclipse.ditto.connectivity.service.messaging.persistence.ConnectionPersistenceActor;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
+import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.MongoReadJournal;
 
 import akka.NotUsed;
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
 import akka.actor.Props;
+import akka.cluster.pubsub.DistributedPubSub;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.pf.ReceiveBuilder;
 import akka.pattern.Patterns;
@@ -84,6 +86,14 @@ public final class ConnectionIdsRetrievalActor extends AbstractActor {
         taggedPidSourceFunction =
                 tag -> readJournal.getJournalPidsWithTag(tag, connectionIdsRetrievalConfig.getReadJournalBatchSize(),
                         Duration.ofSeconds(1), materializer);
+    }
+
+    @Override
+    public void preStart() {
+        final var actorSystem = getContext().getSystem();
+        final var pubSubMediator = DistributedPubSub.get(actorSystem).mediator();
+        final var self = getSelf();
+        pubSubMediator.tell(DistPubSubAccess.put(self), self);
     }
 
     /**
