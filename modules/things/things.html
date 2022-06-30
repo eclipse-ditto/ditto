@@ -1,0 +1,113 @@
+<!--
+  ~ Copyright (c) 2022 Contributors to the Eclipse Foundation
+  ~
+  ~ See the NOTICE file(s) distributed with this work for additional
+  ~ information regarding copyright ownership.
+  ~
+  ~ This program and the accompanying materials are made available under the
+  ~ terms of the Eclipse Public License 2.0 which is available at
+  ~ http://www.eclipse.org/legal/epl-2.0
+  ~
+  ~ SPDX-License-Identifier: EPL-2.0
+  -->
+<div>
+    <h5>Things</h5>
+    <hr />
+    <div>
+        <div class="row resizable_pane" style="height:300px;">
+            <div class="col-md-6 resizable_flex_column">
+                <div class="input-group input-group-sm mb-1 mt-1">
+                    <button id="searchFavourite" class="btn btn-outline-secondary btn-sm" data-bs-toggle="tooltip"
+                        title="Toggle favourite for search filter">
+                        <i id="favIcon" class="bi bi-star"></i>
+                    </button>
+                    <input type="text" class="form-control form-control-sm autocomplete" placeholder="Search things..."
+                        id="searchFilterEdit"></input>
+                    <button id="searchThings" class="btn btn-outline-secondary btn-sm" data-bs-toggle="tooltip"
+                        title="Search things by thingId or valid ditto search filter">
+                        search
+                    </button>
+                    <button id="pinnedThings" class="btn btn-outline-secondary btn-sm me-3 button_round_right"
+                        data-bs-toggle="tooltip" title="Pinned things: get the list of all individually pinned things">
+                        pinned
+                    </button>
+                    <button id="createThing" class="btn btn-outline-secondary btn-sm button_round_left"
+                        data-bs-toggle="tooltip" title="Create an empty thing with a default policy">
+                        <i class="bi bi-plus-square"></i>
+                    </button>
+                    <button id="deleteThing" class="btn btn-outline-secondary btn-sm">
+                        <i class="bi bi-trash3"></i>
+                    </button>
+                </div>
+                <div class="table-wrap mb-3">
+                    <table class="table table-striped table-hover table-sm">
+                        <tbody id="thingsTable"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="col-md-6 resizable_flex_column" id="details">
+                <ul id="thingsTabsItems" class="nav nav-tabs">
+                    <li class="nav-item">
+                        <a class="nav-link active" data-bs-toggle="tab" data-bs-target="#tabThingDetails">Thing
+                            Details</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" data-bs-toggle="tab" data-bs-target="#tabModifyThing">Thing JSON</a>
+                    </li>
+                </ul>
+                <div id="thingsTabsContent" class="tab-content" style="flex-grow:1; overflow:hidden;">
+                    <div class="tab-pane fade show active container no-margin" id="tabThingDetails">
+                        <table class="table table-striped table-hover table-sm">
+                            <tbody id="thingDetails"></tbody>
+                        </table>
+                    </div>
+                    <div class="tab-pane fade container no-margin" style="height:100%;" id="tabModifyThing">
+                        <div class="resizable_flex_column">
+                            <div class="input-group input-group-sm mb-1 mt-1">
+                                <label class="input-group-text">Thing ID</label>
+                                <input type="text" class="form-control" id="thingId">
+                                <button class="btn btn-outline-secondary btn-sm" id="putThing">update</button>
+                            </div>
+                            <div class="ace_container" style="flex-grow: 1;">
+                                <div class="script_editor" id="thingJsonEditor"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<h5 data-bs-toggle="collapse" data-bs-target="#collapseAttributes">Attributes <span class="badge badge-info" id="attributeCount"></span></h5>
+<hr />
+<div class="collapse" id="collapseAttributes">
+    <div class="row">
+        <div class="col-md-4">
+            <table class="table table-striped table-hover table-sm">
+                <tbody id="attributesTable"></tbody>
+            </table>
+        </div>
+        <div class="col-md-8">
+            <ul class="nav nav-tabs">
+                <li class="nav-item">
+                    <a class="nav-link active">Attribute Details</a>
+                </li>
+            </ul>
+            <div class="tab-content">
+                <div class="tab-pane container active no-margin">
+                    <div class="input-group input-group-sm mb-1 mt-1">
+                        <label class="input-group-text">Path</label>
+                        <input type="text" class="form-control" id="attributePath"></input>
+                        <button class="btn btn-outline-secondary btn-sm" id="putAttribute">create/update</button>
+                        <button class="btn btn-outline-secondary btn-sm" id="deleteAttribute">delete</button>
+                    </div>
+                    <div class="input-group input-group-sm mb-1">
+                        <label class="input-group-text">Value</label>
+                        <input type="text" class="form-control form-control-sm" id="attributeValue"></input>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
