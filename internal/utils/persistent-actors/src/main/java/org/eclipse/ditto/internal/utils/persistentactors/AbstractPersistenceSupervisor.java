@@ -15,7 +15,6 @@ package org.eclipse.ditto.internal.utils.persistentactors;
 import java.text.MessageFormat;
 import java.time.Duration;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionException;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Function;
@@ -50,6 +49,7 @@ import akka.actor.Terminated;
 import akka.cluster.sharding.ShardRegion;
 import akka.japi.pf.FI;
 import akka.japi.pf.ReceiveBuilder;
+import akka.pattern.AskTimeoutException;
 import akka.pattern.Patterns;
 
 /**
@@ -687,8 +687,10 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
             log.withCorrelationId(targetActorResponse.enforcedSignal())
                     .info("Got success message from target actor: {}", success);
             return CompletableFuture.completedStage(success);
-        } else if (targetActorResponse.response() instanceof CompletionException completionException) {
-            return CompletableFuture.failedFuture(completionException.getCause());
+        } else if (targetActorResponse.response() instanceof AskTimeoutException askTimeoutException) {
+            log.withCorrelationId(targetActorResponse.enforcedSignal())
+                    .warning("Encountered ask timeout from target actor: {}", askTimeoutException.getMessage());
+            return CompletableFuture.completedStage(null);
         } else if (targetActorResponse.response() instanceof Throwable throwable) {
             return CompletableFuture.failedFuture(throwable);
         } else {
