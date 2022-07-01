@@ -209,6 +209,7 @@ final class EnforcementFlow {
 
     private Source<Pair<ThingId, JsonObject>, NotUsed> retrieveThingFromCachingFacade(final ThingId thingId,
             final Metadata metadata, final int leftRetryAttempts) {
+
         ConsistencyLag.startS3RetrieveThing(metadata);
         final CompletionStage<JsonObject> thingFuture = provideThingFuture(thingId, metadata);
 

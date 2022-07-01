@@ -124,6 +124,7 @@ public final class AcknowledgementAggregatorActor extends AbstractActorWithTimer
 
     private static DittoHeaders calculateHeadersWithEntityId(@Nullable final EntityId entityId,
             final WithDittoHeaders withDittoHeaders) {
+
         if (null != entityId) {
             return withDittoHeaders.getDittoHeaders()
                     .toBuilder()
@@ -306,12 +307,12 @@ public final class AcknowledgementAggregatorActor extends AbstractActorWithTimer
 
     private static MatchingValidationResult validateLiveResponse(final Command<?> command,
             final CommandResponse<?> commandResponse) {
+
         final var responseMatchingValidator =
                 CommandAndCommandResponseMatchingValidator.getInstance();
 
         return responseMatchingValidator.apply(command, commandResponse);
     }
-
 
     private void handleReceiveTimeout(final Control receiveTimeout) {
         log.withCorrelationId(correlationId).info("Timed out waiting for all requested acknowledgements, " +
@@ -382,6 +383,7 @@ public final class AcknowledgementAggregatorActor extends AbstractActorWithTimer
 
     private static Duration getTimeout(final Signal<?> originatingSignal, final Duration maxTimeout,
             @Nullable final Duration specifiedTimeout) {
+
         if (specifiedTimeout != null) {
             return specifiedTimeout;
         } else if (Signal.isChannelSmart(originatingSignal)) {

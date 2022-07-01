@@ -21,7 +21,7 @@ import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
 /**
  * Provides {@link Acknowledgement}s based on {@link CommandResponse}s abstracting away model-specific dependencies.
  *
- * @param <R> the type of the command response which to provide the Acknowledgements for.
+ * @param <R> the type of the command response for which to provide the Acknowledgements.
  * @since 3.0.0
  */
 @Immutable
@@ -51,6 +51,5 @@ public interface CommandResponseAcknowledgementProvider<R extends CommandRespons
      * @return the class of the command response.
      */
     Class<R> getMatchedClass();
-
 
 }

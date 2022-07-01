@@ -121,9 +121,8 @@ public final class ThingPersistenceOperationsActorIT extends MongoEventSourceITA
 
         final LiveSignalPub liveSignalPub = new TestSetup.DummyLiveSignalPub(pubSubMediator);
 
-        final Props props =
-                ThingSupervisorActor.props(pubSubMediator,
-                        new DistributedPub<>() {
+        final Props props = ThingSupervisorActor.props(pubSubMediator,
+                new DistributedPub<>() {
 
                             @Override
                             public ActorRef getPublisher() {

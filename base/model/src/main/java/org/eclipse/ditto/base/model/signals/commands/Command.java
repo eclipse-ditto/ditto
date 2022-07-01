@@ -130,12 +130,13 @@ public interface Command<T extends Command<T>> extends Signal<T> {
     enum Category {
         /**
          * Category of commands that do not change the state of any entity.
-         * @since 3.0.0
          */
         QUERY,
 
         /**
          * Category of commands that creates entities.
+         *
+         * @since 3.0.0
          */
         CREATE,
 
@@ -164,7 +165,7 @@ public interface Command<T extends Command<T>> extends Signal<T> {
          * Determines whether the passed {@code category} effectively modifies the targeted entity.
          *
          * @param category the category to check.
-         * @return whether the passed {@code category} effectively modifies the targeted entity
+         * @return whether the passed {@code category} effectively modifies the targeted entity.
          * @since 3.0.0
          */
         public static boolean isEntityModifyingCommand(final Category category) {

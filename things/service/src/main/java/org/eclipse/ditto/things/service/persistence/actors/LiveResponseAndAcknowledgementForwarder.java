@@ -76,8 +76,7 @@ final class LiveResponseAndAcknowledgementForwarder extends AbstractActor {
      * @param messageReceiver Receiver of the message to publish.
      * @return The Props object.
      */
-    public static Props props(final ThingQueryCommand<?> thingQueryCommand,
-            final ActorRef messageReceiver) {
+    public static Props props(final ThingQueryCommand<?> thingQueryCommand, final ActorRef messageReceiver) {
         return Props.create(LiveResponseAndAcknowledgementForwarder.class, thingQueryCommand, messageReceiver);
     }
 

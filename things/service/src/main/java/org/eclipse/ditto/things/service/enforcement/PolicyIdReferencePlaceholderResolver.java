@@ -57,6 +57,7 @@ final class PolicyIdReferencePlaceholderResolver implements ReferencePlaceholder
 
     private PolicyIdReferencePlaceholderResolver(final ActorRef thingsShardRegion,
             final AskWithRetryConfig askWithRetryConfig, final ActorSystem actorSystem) {
+
         this.thingsShardRegion = thingsShardRegion;
         this.askWithRetryConfig = askWithRetryConfig;
         this.actorSystem = actorSystem;

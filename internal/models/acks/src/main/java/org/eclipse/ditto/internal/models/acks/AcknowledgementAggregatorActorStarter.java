@@ -147,7 +147,7 @@ public final class AcknowledgementAggregatorActorStarter {
      * Public because this is also used in unit tests.
      *
      * @param signal the signal to check for whether the ack aggregator actor should be started.
-     * @return whether the ack aggregator actor should be started
+     * @return whether the ack aggregator actor should be started.
      */
     public static boolean shouldStartForIncoming(final Signal<?> signal) {
         final boolean result;

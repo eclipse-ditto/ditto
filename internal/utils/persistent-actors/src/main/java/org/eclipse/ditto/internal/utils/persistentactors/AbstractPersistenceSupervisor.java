@@ -154,6 +154,7 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
 
     protected Receive activeBehaviour(final FI.UnitApply<Control> matchProcessNextTwinMessageBehavior,
             final FI.UnitApply<Object> matchAnyBehavior) {
+
         return ReceiveBuilder.create()
                 .match(Terminated.class, this::childTerminated)
                 .matchEquals(Control.START_CHILDREN, this::startChildren)
@@ -194,6 +195,7 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
      */
     protected CompletionStage<Object> modifyTargetActorCommandResponse(final Signal<?> enforcedSignal,
             final Object persistenceCommandResponse) {
+
         return CompletableFuture.completedStage(persistenceCommandResponse);
     }
 
@@ -279,6 +281,7 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
      */
     protected <T> CompletionStage<Object> askTargetActor(final T message, final boolean shouldSendResponse,
             final ActorRef sender) {
+
         return getTargetActorForSendingEnforcedMessageTo(message, shouldSendResponse, sender)
                 .thenCompose(this::askOrForwardToTargetActor)
                 .thenApply(response -> {
@@ -294,6 +297,7 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
 
     private CompletionStage<Object> askOrForwardToTargetActor(
             @Nullable final TargetActorWithMessage targetActorWithMessage) {
+
         if (null != targetActorWithMessage) {
             if (!targetActorWithMessage.messageTimeout().isZero()) {
                 return Patterns.ask(
@@ -328,6 +332,7 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
     protected <T> CompletionStage<TargetActorWithMessage> getTargetActorForSendingEnforcedMessageTo(final T message,
             final boolean shouldSendResponse,
             final ActorRef sender) {
+
         if (null != persistenceActorChild) {
             return CompletableFuture.completedStage(
                     new TargetActorWithMessage(
