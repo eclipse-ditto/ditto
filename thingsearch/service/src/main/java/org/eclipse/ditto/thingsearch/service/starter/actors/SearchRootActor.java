@@ -14,22 +14,13 @@ package org.eclipse.ditto.thingsearch.service.starter.actors;
 
 import static org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants.BACKGROUND_SYNC_COLLECTION_NAME;
 
-import java.util.HashMap;
-import java.util.Map;
-
 import org.eclipse.ditto.base.service.actors.DittoRootActor;
-import org.eclipse.ditto.base.service.config.limits.LimitsConfig;
 import org.eclipse.ditto.internal.utils.akka.streaming.TimestampPersistence;
 import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.internal.utils.persistence.mongo.DittoMongoClient;
 import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.MongoTimestampPersistence;
-import org.eclipse.ditto.json.JsonFieldDefinition;
-import org.eclipse.ditto.json.JsonKey;
-import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.rql.query.QueryBuilderFactory;
-import org.eclipse.ditto.rql.query.expression.FieldExpressionUtil;
 import org.eclipse.ditto.rql.query.expression.ThingsFieldExpressionFactory;
-import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.thingsearch.service.common.config.SearchConfig;
 import org.eclipse.ditto.thingsearch.service.persistence.query.QueryParser;
 import org.eclipse.ditto.thingsearch.service.persistence.query.validation.QueryCriteriaValidator;
@@ -90,13 +81,6 @@ public final class SearchRootActor extends DittoRootActor {
         final QueryBuilderFactory queryBuilderFactory = new MongoQueryBuilderFactory(limitsConfig);
         final var queryCriteriaValidator = QueryCriteriaValidator.get(actorSystem);
         return QueryParser.of(fieldExpressionFactory, queryBuilderFactory, queryCriteriaValidator);
-    }
-
-    private static void addMapping(final Map<String, String> fieldMappings, final JsonFieldDefinition<?> definition) {
-        final JsonPointer pointer = definition.getPointer();
-        final String key = pointer.getRoot().map(JsonKey::toString).orElse("");
-        final var value = pointer.toString();
-        fieldMappings.put(key, value);
     }
 
     private MongoThingsSearchPersistence getThingsSearchPersistence(final SearchConfig searchConfig,
