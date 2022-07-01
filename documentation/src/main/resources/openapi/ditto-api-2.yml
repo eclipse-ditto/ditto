@@ -112,7 +112,7 @@ paths:
           required: false
           schema:
             type: string
-            example: my.custom.namespace
+            example: my.cool.namespace
       responses:
         '201':
           description: The thing was successfully created.
