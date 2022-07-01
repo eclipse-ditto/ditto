@@ -16,6 +16,9 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
+import javax.annotation.Nullable;
+
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.signals.events.Event;
 import org.eclipse.ditto.connectivity.model.ConnectionId;
 
@@ -38,13 +41,14 @@ public class DittoConnectionConfigProvider implements ConnectionConfigProvider {
     }
 
     @Override
-    public CompletionStage<Config> getConnectivityConfigOverwrites(final ConnectionId connectionId) {
+    public CompletionStage<Config> getConnectivityConfigOverwrites(final ConnectionId connectionId,
+            @Nullable final DittoHeaders dittoHeaders) {
         return CompletableFuture.completedFuture(ConfigFactory.empty());
     }
 
     @Override
     public CompletionStage<Void> registerForConnectivityConfigChanges(final ConnectionId connectionId,
-            final ActorRef subscriber) {
+            @Nullable final DittoHeaders dittoHeaders, final ActorRef subscriber) {
         // nothing to do, config changes are not supported by the default implementation
         return CompletableFuture.completedStage(null);
     }

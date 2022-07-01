@@ -18,6 +18,7 @@ import org.eclipse.ditto.base.api.devops.signals.commands.ExecutePiggybackComman
 import org.eclipse.ditto.base.api.persistence.cleanup.CleanupPersistence;
 import org.eclipse.ditto.base.model.namespaces.signals.commands.PurgeNamespace;
 import org.eclipse.ditto.base.service.cluster.ModifySplitBrainResolver;
+import org.eclipse.ditto.connectivity.api.commands.sudo.SudoRetrieveConnectionIdsByTag;
 import org.eclipse.ditto.connectivity.api.messaging.monitoring.logs.AddConnectionLogEntry;
 import org.eclipse.ditto.connectivity.model.signals.commands.modify.OpenConnection;
 import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConnection;
@@ -50,6 +51,7 @@ public final class GatewayServiceGlobalCommandRegistryTest extends GlobalCommand
                 CreateSubscription.class,
                 RetrieveConnection.class,
                 OpenConnection.class,
+                SudoRetrieveConnectionIdsByTag.class,
                 RetrieveFeature.class,
                 ModifyFeatureProperty.class,
                 ExecutePiggybackCommand.class,

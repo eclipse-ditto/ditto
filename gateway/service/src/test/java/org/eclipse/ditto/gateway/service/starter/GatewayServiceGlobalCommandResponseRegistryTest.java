@@ -19,6 +19,7 @@ import org.eclipse.ditto.base.api.persistence.cleanup.CleanupPersistenceResponse
 import org.eclipse.ditto.base.model.namespaces.signals.commands.PurgeNamespaceResponse;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
 import org.eclipse.ditto.base.service.cluster.ModifySplitBrainResolverResponse;
+import org.eclipse.ditto.connectivity.api.commands.sudo.SudoRetrieveConnectionIdsByTagResponse;
 import org.eclipse.ditto.connectivity.model.signals.commands.ConnectivityErrorResponse;
 import org.eclipse.ditto.connectivity.model.signals.commands.modify.OpenConnectionResponse;
 import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConnectionResponse;
@@ -49,6 +50,7 @@ public final class GatewayServiceGlobalCommandResponseRegistryTest extends Globa
                 QueryThingsResponse.class,
                 RetrieveConnectionResponse.class,
                 OpenConnectionResponse.class,
+                SudoRetrieveConnectionIdsByTagResponse.class,
                 RetrieveFeatureResponse.class,
                 ModifyFeaturePropertyResponse.class,
                 SendClaimMessageResponse.class,

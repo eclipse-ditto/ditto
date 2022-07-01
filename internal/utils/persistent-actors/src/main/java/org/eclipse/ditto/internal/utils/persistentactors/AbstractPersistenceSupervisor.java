@@ -15,6 +15,7 @@ package org.eclipse.ditto.internal.utils.persistentactors;
 import java.text.MessageFormat;
 import java.time.Duration;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Function;
@@ -148,7 +149,7 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
      * @return {@code true} if child actor is started in {@link #preStart()} method or {@code false} if the
      * implementation signals finished initialization with {@link Control#INIT_DONE} message. Default is {@code true}.
      */
-    protected boolean isStartChildImmediately() {
+    protected boolean shouldStartChildImmediately() {
         return true;
     }
 
@@ -216,7 +217,7 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
         super.preStart();
         try {
             entityId = getEntityId();
-            if (isStartChildImmediately()) {
+            if (shouldStartChildImmediately()) {
                 getSelf().tell(Control.INIT_DONE, getSelf());
             } else {
                 log.debug("Not starting child actor, waiting for initialization to be finished.");
@@ -686,6 +687,10 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
             log.withCorrelationId(targetActorResponse.enforcedSignal())
                     .info("Got success message from target actor: {}", success);
             return CompletableFuture.completedStage(success);
+        } else if (targetActorResponse.response() instanceof CompletionException completionException) {
+            return CompletableFuture.failedFuture(completionException.getCause());
+        } else if (targetActorResponse.response() instanceof Throwable throwable) {
+            return CompletableFuture.failedFuture(throwable);
         } else {
             log.withCorrelationId(targetActorResponse.enforcedSignal())
                     .warning("Unexpected response from target actor: {}", targetActorResponse);
@@ -704,7 +709,13 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
         sender.tell(builder.build(), getSelf());
     }
 
-    private void handleMessagesDuringStartup(final Object message) {
+    /**
+     * Handles messages received during startup - by default by "stashing" them.
+     * May be overwritten in order to additionally do something with those messages.
+     *
+     * @param message the message received during startup.
+     */
+    protected void handleMessagesDuringStartup(final Object message) {
         stash();
         log.withCorrelationId(message instanceof WithDittoHeaders withDittoHeaders ? withDittoHeaders : null)
                 .debug("Stashed received message during startup of supervised PersistenceActor: <{}>",

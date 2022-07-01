@@ -26,13 +26,13 @@ import org.bson.Document;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
+import org.eclipse.ditto.connectivity.api.commands.sudo.SudoRetrieveConnectionIdsByTag;
+import org.eclipse.ditto.connectivity.api.commands.sudo.SudoRetrieveConnectionIdsByTagResponse;
 import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.connectivity.model.ConnectivityInternalErrorException;
 import org.eclipse.ditto.connectivity.model.signals.commands.ConnectivityErrorResponse;
 import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveAllConnectionIds;
 import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveAllConnectionIdsResponse;
-import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConnectionIdsByTag;
-import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConnectionIdsByTagResponse;
 import org.eclipse.ditto.connectivity.model.signals.events.ConnectionDeleted;
 import org.eclipse.ditto.connectivity.service.config.ConnectionIdsRetrievalConfig;
 import org.eclipse.ditto.connectivity.service.messaging.persistence.ConnectionPersistenceActor;
@@ -124,19 +124,19 @@ public final class ConnectionIdsRetrievalActor extends AbstractActor {
     public Receive createReceive() {
         return ReceiveBuilder.create()
                 .match(RetrieveAllConnectionIds.class, this::getAllConnectionIDs)
-                .match(RetrieveConnectionIdsByTag.class, this::getConnectionIDsByTag)
+                .match(SudoRetrieveConnectionIdsByTag.class, this::getConnectionIDsByTag)
                 .matchAny(m -> {
                     log.warning("Unknown message: {}", m);
                     unhandled(m);
                 }).build();
     }
 
-    private void getConnectionIDsByTag(final RetrieveConnectionIdsByTag retrieveConnectionIdsByTag) {
-        final String tag = retrieveConnectionIdsByTag.getTag();
-        final DittoHeaders dittoHeaders = retrieveConnectionIdsByTag.getDittoHeaders();
+    private void getConnectionIDsByTag(final SudoRetrieveConnectionIdsByTag sudoRetrieveConnectionIdsByTag) {
+        final String tag = sudoRetrieveConnectionIdsByTag.getTag();
+        final DittoHeaders dittoHeaders = sudoRetrieveConnectionIdsByTag.getDittoHeaders();
         try {
             final ActorRef sender = sender();
-            final CompletionStage<RetrieveConnectionIdsByTagResponse>
+            final CompletionStage<SudoRetrieveConnectionIdsByTagResponse>
                     retrieveConnectionIdsByTagResponseCompletionStage =
                     taggedPidSourceFunction.apply(tag)
                             .filter(pid -> pid.startsWith(ConnectionPersistenceActor.PERSISTENCE_ID_PREFIX))
@@ -144,7 +144,7 @@ public final class ConnectionIdsRetrievalActor extends AbstractActor {
                             .map(ConnectionId::of)
                             .runWith(Sink.seq(), materializer)
                             .thenApply(connectionIds -> Set.of(connectionIds.toArray(new ConnectionId[0])))
-                            .thenApply(connectionIds -> RetrieveConnectionIdsByTagResponse.of(connectionIds,
+                            .thenApply(connectionIds -> SudoRetrieveConnectionIdsByTagResponse.of(connectionIds,
                                     dittoHeaders));
             Patterns.pipe(retrieveConnectionIdsByTagResponseCompletionStage, getContext().dispatcher()).to(sender);
         } catch (final Exception e) {

@@ -23,6 +23,8 @@ import javax.annotation.Nullable;
 import javax.jms.JMSRuntimeException;
 
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeExceptionBuilder;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.service.actors.ShutdownBehaviour;
 import org.eclipse.ditto.base.service.config.supervision.ExponentialBackOffConfig;
@@ -129,8 +131,8 @@ public final class ConnectionSupervisorActor
             final FI.UnitApply<Object> matchAnyBehavior) {
         return ReceiveBuilder.create()
                 .match(Config.class, this::onConnectivityConfigModified)
-                .matchEquals(Control.CHECK_FOR_OVERWRITES_CONFIG,
-                        checkForOverwrites -> initConfigOverwrites(getEntityId()))
+                .match(CheckForOverwritesConfig.class,
+                        checkForOverwrites -> initConfigOverwrites(getEntityId(), checkForOverwrites.dittoHeaders))
                 .matchEquals(Control.REGISTRATION_FOR_CONFIG_CHANGES_SUCCESSFUL, c -> {
                     log.debug("Successfully registered for connectivity config changes.");
                     isRegisteredForConnectivityConfigChanges = true;
@@ -148,15 +150,13 @@ public final class ConnectionSupervisorActor
     }
 
     @Override
-    public void preStart() throws Exception {
-        try {
-            final ConnectionId connectionId = getEntityId();
-            initConfigOverwrites(connectionId);
-            super.preStart();
-        } catch (final Exception e) {
-            log.error(e, "Failed to determine entity ID; becoming corrupted.");
-            becomeCorrupted();
+    protected void handleMessagesDuringStartup(final Object message) {
+        if (message instanceof WithDittoHeaders withDittoHeaders) {
+            initConfigOverwrites(entityId, withDittoHeaders.getDittoHeaders());
+        } else if (message != Control.REGISTRATION_FOR_CONFIG_CHANGES_SUCCESSFUL) {
+            initConfigOverwrites(entityId, null);
         }
+        super.handleMessagesDuringStartup(message);
     }
 
     @Override
@@ -205,7 +205,7 @@ public final class ConnectionSupervisorActor
     }
 
     @Override
-    protected boolean isStartChildImmediately() {
+    protected boolean shouldStartChildImmediately() {
         // do not start persistence actor immediately, wait for retrieval or timeout of connectivity config
         return false;
     }
@@ -215,19 +215,23 @@ public final class ConnectionSupervisorActor
         restartChild();
     }
 
-    private void initConfigOverwrites(final ConnectionId connectionId) {
+    private void initConfigOverwrites(final ConnectionId connectionId, @Nullable final DittoHeaders dittoHeaders) {
         log.debug("Retrieve config overwrites for connection: {}", connectionId);
-        Patterns.pipe(retrieveConfigOverwritesOrTimeout(connectionId), getContext().getDispatcher()).to(getSelf());
+        Patterns.pipe(retrieveConfigOverwritesOrTimeout(connectionId, dittoHeaders), getContext().getDispatcher())
+                .to(getSelf());
     }
 
-    private CompletionStage<Config> retrieveConfigOverwritesOrTimeout(final ConnectionId connectionId) {
-        return getConnectivityConfigProvider().getConnectivityConfigOverwrites(connectionId)
+    private CompletionStage<Config> retrieveConfigOverwritesOrTimeout(final ConnectionId connectionId,
+            @Nullable final DittoHeaders dittoHeaders) {
+
+        return getConnectivityConfigProvider()
+                .getConnectivityConfigOverwrites(connectionId, dittoHeaders)
                 .thenApply(config -> {
                     // try to register for connectivity changes after retrieval was successful and the actor is not
                     // yet registered
                     if (!isRegisteredForConnectivityConfigChanges) {
                         getConnectivityConfigProvider()
-                                .registerForConnectivityConfigChanges(connectionId, getSelf())
+                                .registerForConnectivityConfigChanges(connectionId, dittoHeaders, getSelf())
                                 .thenAccept(unused -> getSelf().tell(Control.REGISTRATION_FOR_CONFIG_CHANGES_SUCCESSFUL,
                                         getSelf()));
                     }
@@ -235,27 +239,35 @@ public final class ConnectionSupervisorActor
                 })
                 .toCompletableFuture()
                 .orTimeout(MAX_CONFIG_RETRIEVAL_DURATION.toSeconds(), TimeUnit.SECONDS)
-                .exceptionally(this::handleConfigRetrievalException);
+                .exceptionally(e -> handleConfigRetrievalException(e, dittoHeaders));
     }
 
-    private void triggerCheckForOverwritesConfig() {
-        getTimers().startSingleTimer(Control.CHECK_FOR_OVERWRITES_CONFIG, Control.CHECK_FOR_OVERWRITES_CONFIG,
+    private void triggerCheckForOverwritesConfig(@Nullable final DittoHeaders dittoHeaders) {
+        getTimers().startSingleTimer(CheckForOverwritesConfig.class, new CheckForOverwritesConfig(dittoHeaders),
                 OVERWRITES_CHECK_BACKOFF_DURATION);
     }
 
-    private Config handleConfigRetrievalException(final Throwable throwable) {
+    private Config handleConfigRetrievalException(final Throwable throwable,
+            @Nullable final DittoHeaders dittoHeaders) {
         // If not possible to retrieve overwrites in time, keep going with empty overwrites and potentially restart
         // the actor later.
         log.error(throwable,
                 "Could not retrieve overwrites within timeout of <{}>. Persistence actor is started anyway " +
                         "and retrieval of overwrites will be retried after <{}> potentially causing the actor to " +
                         "restart.", MAX_CONFIG_RETRIEVAL_DURATION, OVERWRITES_CHECK_BACKOFF_DURATION);
-        triggerCheckForOverwritesConfig();
+        triggerCheckForOverwritesConfig(dittoHeaders);
         return ConfigFactory.empty();
     }
 
     private enum Control {
-        CHECK_FOR_OVERWRITES_CONFIG,
         REGISTRATION_FOR_CONFIG_CHANGES_SUCCESSFUL
+    }
+
+    private static class CheckForOverwritesConfig {
+        @Nullable private final DittoHeaders dittoHeaders;
+
+        private CheckForOverwritesConfig(@Nullable final DittoHeaders dittoHeaders) {
+            this.dittoHeaders = dittoHeaders;
+        }
     }
 }

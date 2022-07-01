@@ -326,6 +326,22 @@ public final class MongoReadJournal {
     }
 
     /**
+     * Retrieves all tags (by looking at the last persisted event) of the passed {@code pid} in the
+     * journal entries in the newest journal entry for that pid.
+     *
+     * @param pid the persistence id to look up the most recent tags for, e.g.: {@code connection:123456}
+     * @return a Source of tags of the pid or an empty source if either the pid or no tags could be found
+     */
+    public Source<String, NotUsed> getMostRecentJournalTagsForPid(final String pid) {
+
+        return getJournal().withAttributes(Attributes.inputBuffer(1, 1))
+                .flatMapConcat(journal ->
+                        listJournalEntryTags(journal, pid)
+                )
+                .mapConcat(tags -> tags);
+    }
+
+    /**
      * Retrieve all unique PIDs in journals selected by a provided {@code tag} above a lower bound.
      * Does its best not to create long-living cursors on the database by reading {@code batchSize} events per query.
      *
@@ -714,6 +730,18 @@ public final class MongoReadJournal {
                         return Source.single(new SnapshotBatch(theMaxPid, document.getList(items, Document.class)));
                     }
                 });
+    }
+
+    private static Source<List<String>, NotUsed> listJournalEntryTags(final MongoCollection<Document> journal,
+            final String pid) {
+
+        return Source.fromPublisher(journal.find(Filters.eq(J_PROCESSOR_ID, pid))
+                        .sort(Sorts.descending(J_TO))
+                        .limit(1)
+                )
+                .map(document -> Optional.ofNullable(document.getList(J_TAGS, String.class))
+                        .orElse(List.of()))
+                .orElse(Source.single(List.of()));
     }
 
     /**

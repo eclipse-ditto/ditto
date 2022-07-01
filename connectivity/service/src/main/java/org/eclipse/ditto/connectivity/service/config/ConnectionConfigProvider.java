@@ -16,7 +16,10 @@ package org.eclipse.ditto.connectivity.service.config;
 import java.util.Optional;
 import java.util.concurrent.CompletionStage;
 
+import javax.annotation.Nullable;
+
 import org.atteo.classindex.IndexSubclasses;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.signals.events.Event;
 import org.eclipse.ditto.connectivity.model.ConnectionId;
 
@@ -34,9 +37,11 @@ public interface ConnectionConfigProvider {
      * Loads specific overwrites of connectivity for a given connection ID.
      *
      * @param connectionId the connection id for which to load config overwrites
+     * @param dittoHeaders the DittoHeaders of the original command which woke up the connection supervisor actor.
      * @return the future config overwrites
      */
-    CompletionStage<Config> getConnectivityConfigOverwrites(ConnectionId connectionId);
+    CompletionStage<Config> getConnectivityConfigOverwrites(ConnectionId connectionId,
+            @Nullable DittoHeaders dittoHeaders);
 
     /**
      * Register the given {@code subscriber} for changes to the {@link ConnectivityConfig} of the given {@code
@@ -44,10 +49,12 @@ public interface ConnectionConfigProvider {
      * {@link ConnectivityConfig}.
      *
      * @param connectionId the connection id
+     * @param dittoHeaders the DittoHeaders of the original command which woke up the connection supervisor actor.
      * @param subscriber the subscriber that will receive {@link org.eclipse.ditto.base.model.signals.events.Event}s
      * @return a future that succeeds or fails depending on whether registration was successful.
      */
-    CompletionStage<Void> registerForConnectivityConfigChanges(ConnectionId connectionId, ActorRef subscriber);
+    CompletionStage<Void> registerForConnectivityConfigChanges(ConnectionId connectionId,
+            @Nullable DittoHeaders dittoHeaders, ActorRef subscriber);
 
     /**
      * Returns {@code true} if the implementation can handle the given {@code event} to generate a modified {@link
