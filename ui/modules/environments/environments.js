@@ -14,7 +14,6 @@
 import * as API from '../api.js';
 /* eslint-disable arrow-parens */
 /* eslint-disable prefer-const */
-/* eslint-disable no-invalid-this */
 /* eslint-disable require-jsdoc */
 import * as Utils from '../utils.js';
 
@@ -29,17 +28,23 @@ let environments = {
   },
 };
 
-let theEnv;
 let settingsEditor;
 
 let dom = {
   environmentSelector: null,
+  buttonCreateEnvironment: null,
+  buttonDeleteEnvironment: null,
+  buttonUpdateFields: null,
+  buttonUpdateJson: null,
+  inputEnvironmentName: null,
+  inputApiUri: null,
+  tbodyEnvironments: null,
 };
 
 let observers = [];
 
 export function current() {
-  return environments[theEnv];
+  return environments[dom.environmentSelector.value];
 };
 
 export function addChangeListener(observer) {
@@ -60,65 +65,96 @@ export function ready() {
 
   settingsEditor = ace.edit('settingsEditor');
   settingsEditor.session.setMode('ace/mode/json');
-  settingsEditor.setValue(JSON.stringify(environments, null, 2), -1);
-  environmentsJsonChanged();
 
-  settingsEditor.on('blur', () => {
-    environments = JSON.parse(settingsEditor.getValue());
+  dom.buttonUpdateJson.onclick = () => {
+    environments[dom.inputEnvironmentName.value] = JSON.parse(settingsEditor.getValue());
     environmentsJsonChanged();
-  });
-
-  document.getElementById('tabEnvironments').onclick = () => {
-    settingsEditor.setValue(JSON.stringify(environments, null, 2), -1);
   };
 
+  dom.buttonUpdateFields.onclick = () => {
+    environments[dom.inputEnvironmentName.value].api_uri = dom.inputApiUri.value;
+    environmentsJsonChanged();
+  };
+
+  dom.tbodyEnvironments.addEventListener('click', (event) => {
+    if (event.target && event.target.tagName === 'TD') {
+      dom.inputEnvironmentName.value = event.target.parentNode.id;
+      updateEnvEditors();
+    }
+  });
+
+  dom.buttonCreateEnvironment.onclick = () => {
+    Utils.assert(dom.inputEnvironmentName.value, 'Please provide an environment name', dom.inputEnvironmentName);
+    Utils.assert(!environments[dom.inputEnvironmentName.value], 'Name already used', dom.inputEnvironmentName);
+    environments[dom.inputEnvironmentName.value] = {
+      api_uri: '',
+    };
+    environmentsJsonChanged();
+  };
+
+  dom.buttonDeleteEnvironment.onclick = () => {
+    Utils.assert(dom.inputEnvironmentName.value, 'No environment selected');
+    Utils.assert(Object.keys(environments).length >= 2, 'At least one environment is required');
+    delete environments[dom.inputEnvironmentName.value];
+    dom.inputEnvironmentName.value = null;
+    environmentsJsonChanged();
+  };
+
+  // Ensure that ace editor to refresh when updated while hidden
+  document.querySelector('a[data-bs-target="#tabEnvJson"]').addEventListener('shown.bs.tab', () => {
+    settingsEditor.renderer.updateFull();
+  });
+
+  // Ensure to togle right Ditto user for rest or dev ops api
   document.querySelectorAll('.mainUser,.devOpsUser').forEach((menuTab) => {
     menuTab.addEventListener('click', (event) => {
       API.setAuthHeader(event.target.parentNode.classList.contains('devOpsUser'));
     });
   });
 
-  document.getElementById('environmentSelector').onchange = (event) => {
-    theEnv = event.target.value;
-    activateEnvironment();
-  };
-}
+  document.getElementById('environmentSelector').onchange = notifyAll;
 
-export function togglePinnedThing(evt) {
-  if (evt.target.checked) {
-    current().pinnedThings.push(this.id);
-  } else {
-    const index = current().pinnedThings.indexOf(this.id);
-    if (index > -1) {
-      current().pinnedThings.splice(index, 1);
-    };
-  };
   environmentsJsonChanged();
-};
+}
 
 export function environmentsJsonChanged() {
   localStorage.setItem('ditto-ui-env', JSON.stringify(environments));
 
-  dom.environmentSelector.innerHTML = '';
-  if (theEnv && !current()) {
-    theEnv = null;
+  updateEnvSelector();
+  updateEnvEditors();
+  updateEnvTable();
+  notifyAll();
+}
+
+function updateEnvSelector() {
+  if (!dom.environmentSelector.value || !environments[dom.environmentSelector.value]) {
+    dom.environmentSelector.value = environments[0];
   };
-  for (const key of Object.keys(environments)) {
+
+  dom.environmentSelector.innerHTML = '';
+  Object.keys(environments).forEach((key) => {
+    // todo: replace with Utils.addDropDownEntries(dom.environmentSelector, [key]);
     let option = document.createElement('option');
     option.text = key;
     dom.environmentSelector.add(option);
-    if (!theEnv) {
-      theEnv = key;
-    };
-  };
-  dom.environmentSelector.value = theEnv;
-  activateEnvironment();
+  });
 }
 
-function activateEnvironment() {
-  if (!current()['pinnedThings']) {
-    current().pinnedThings = [];
-  };
+function updateEnvEditors() {
+  const selectedEnvironment = environments[dom.inputEnvironmentName.value];
+  if (selectedEnvironment) {
+    settingsEditor.setValue(JSON.stringify(selectedEnvironment, null, 2), -1);
+    dom.inputApiUri.value = selectedEnvironment.api_uri;
+  } else {
+    dom.inputEnvironmentName.value = null;
+    settingsEditor.setValue('');
+    dom.inputApiUri.value = null;
+  }
+}
 
-  notifyAll();
+function updateEnvTable() {
+  dom.tbodyEnvironments.innerHTML = '';
+  Object.keys(environments).forEach((key) => {
+    Utils.addTableRow(dom.tbodyEnvironments, key, null, key === dom.inputEnvironmentName.value);
+  });
 }

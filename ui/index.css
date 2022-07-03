@@ -24,6 +24,17 @@
     --bs-table-hover-color: white;
 }
 
+thead {
+    position: sticky;
+    top: 0;
+    background-color: white;
+    box-shadow: 0 2px 2px -1px rgba(0, 0, 0, 0.4);
+}
+
+tbody {
+    border-top: 0 !important;
+}
+
 body { 
     padding-top: 60px;
 }

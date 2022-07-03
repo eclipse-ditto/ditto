@@ -10,10 +10,62 @@
   ~
   ~ SPDX-License-Identifier: EPL-2.0
   -->
-<h5>Settings</h5>
-<hr/>
-<div style="position: relative; height:600px">
-    <div>
-        <div class="script_editor" id="settingsEditor"></div>
+<h5>Environments</h5>
+<hr />
+<div class="row resizable_pane" style="height:300px">
+    <div class="col-md-4 resizable_flex_column">
+        <div class="input-group input-group-sm mb-1 mt-1">
+            <label class="input-group-text">Name</label>
+            <input type="text" class="form-control" id="inputEnvironmentName">
+            <button class="btn btn-outline-secondary btn-sm" id="buttonCreateEnvironment">
+                <i class="bi bi-plus-square"></i>
+            </button>
+            <button class="btn btn-outline-secondary btn-sm" id="buttonDeleteEnvironment">
+                <i class="bi bi-trash3"></i>
+            </button>
+            <div class="invalid-feedback"></div>
+        </div>
+        <div class="table-wrap">
+            <table class="table table-striped table-hover table-sm">
+                <tbody id="tbodyEnvironments"></tbody>
+            </table>
+        </div>
+    </div>
+    <div class="col-md-8 resizable_flex_column">
+        <ul class="nav nav-tabs">
+            <li class="nav-item">
+                <a class="nav-link active" data-bs-toggle="tab" data-bs-target="#tabEnvDetails">Environment Details</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" data-bs-toggle="tab" data-bs-target="#tabEnvJson">Full JSON</a>
+            </li>
+        </ul>
+        <div class="tab-content" style="flex-grow: 1;">
+            <div class="tab-pane container active no-margin" id="tabEnvDetails">
+                <div class="input-group input-group-sm mt-1">
+                    <label class="input-group-text" data-bs-toggle="tooltip"
+                        title="URI including protocol, host and port (e.g. http://localhost:8080)">API URI</label>
+                    <input type="text" class="form-control form-control-sm" id="inputApiUri"></input>
+                    <button class="btn btn-outline-secondary btn-sm button_round_left" id="buttonUpdateFields"
+                        data-bs-toggle="tooltip" title="Save selected field details">
+                        <i class="bi bi-save2"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="tab-pane container no-margin" id="tabEnvJson">
+                <div class="input-group input-group-sm mb-1">
+                    <div class="form-control-sm" style="flex-grow: 1;"></div>
+                    <button class="btn btn-outline-secondary btn-sm button_round_left" id="buttonUpdateJson"
+                        data-bs-toggle="tooltip" title="Save selected environment json">
+                        <i class="bi bi-save2"></i>
+                    </button>
+                </div>
+                <div class="ace_container" style="height: 100%;">
+                    <div>
+                        <div class="script_editor" id="settingsEditor"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
