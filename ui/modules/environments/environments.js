@@ -134,7 +134,6 @@ function updateEnvSelector() {
 
   dom.environmentSelector.innerHTML = '';
   Object.keys(environments).forEach((key) => {
-    // todo: replace with Utils.addDropDownEntries(dom.environmentSelector, [key]);
     let option = document.createElement('option');
     option.text = key;
     dom.environmentSelector.add(option);

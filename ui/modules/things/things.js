@@ -281,7 +281,7 @@ function togglePinnedThing(evt) {
       Environments.current().pinnedThings.splice(index, 1);
     };
   };
-  environmentsJsonChanged();
+  Environments.environmentsJsonChanged();
 };
 
 
