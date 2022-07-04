@@ -127,8 +127,9 @@ export function environmentsJsonChanged() {
 }
 
 function updateEnvSelector() {
-  if (!dom.environmentSelector.value || !environments[dom.environmentSelector.value]) {
-    dom.environmentSelector.value = environments[0];
+  let activeEnvironment = dom.environmentSelector.value;
+  if (!activeEnvironment || !environments[activeEnvironment]) {
+    activeEnvironment = Object.keys(environments)[0];
   };
 
   dom.environmentSelector.innerHTML = '';
@@ -138,6 +139,8 @@ function updateEnvSelector() {
     option.text = key;
     dom.environmentSelector.add(option);
   });
+
+  dom.environmentSelector.value = activeEnvironment;
 }
 
 function updateEnvEditors() {
