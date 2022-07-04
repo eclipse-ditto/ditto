@@ -18,10 +18,10 @@ import java.util.function.Predicate;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
+import org.eclipse.ditto.base.model.entity.metadata.Metadata;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.base.model.entity.metadata.Metadata;
 import org.eclipse.ditto.policies.model.PolicyId;
 
 /**
@@ -36,9 +36,18 @@ public interface ThingBuilder {
      * @return the ID
      */
     static ThingId generateRandomTypedThingId() {
-        return ThingId.generateRandom();
+        return ThingId.generateRandom(null);
     }
 
+    /**
+     * Generates a random Thing ID with a specified namespace
+     * @since 2.5.0
+     * @param namespace the specified namespace
+     * @return the ID
+     */
+    static ThingId generateRandomTypedThingId(@Nullable final String namespace) {
+        return ThingId.generateRandom(namespace);
+    }
 
     /**
      * A mutable builder with a fluent API for an immutable {@link Thing} from scratch.
