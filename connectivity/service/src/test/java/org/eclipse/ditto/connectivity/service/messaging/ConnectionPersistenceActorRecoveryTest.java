@@ -38,7 +38,6 @@ import org.eclipse.ditto.json.JsonValue;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import com.typesafe.config.ConfigValueFactory;
@@ -98,7 +97,6 @@ public final class ConnectionPersistenceActorRecoveryTest extends WithMockServer
      * is a ConnectionDeleted event.
      */
     @Test
-    @Ignore("TODO TJ fix again")
     public void testRecoveryOfDeletedConnectionsWithoutSnapshot() {
         new TestKit(actorSystem) {{
             final Queue<ConnectivityEvent<?>> existingEvents

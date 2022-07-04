@@ -606,11 +606,9 @@ public abstract class AbstractPersistenceActor<
         return confirmedSnapshotRevision;
     }
 
-    private void notAccessible(final Object message) {
-        final DittoRuntimeExceptionBuilder<?> builder = newNotAccessibleExceptionBuilder();
-        if (message instanceof WithDittoHeaders) {
-            builder.dittoHeaders(((WithDittoHeaders) message).getDittoHeaders());
-        }
+    private void notAccessible(final WithDittoHeaders withDittoHeaders) {
+        final DittoRuntimeExceptionBuilder<?> builder = newNotAccessibleExceptionBuilder()
+                .dittoHeaders(withDittoHeaders.getDittoHeaders());
         notifySender(builder.build());
     }
 
@@ -641,7 +639,8 @@ public abstract class AbstractPersistenceActor<
      */
     protected Receive matchAnyWhenDeleted() {
         return ReceiveBuilder.create()
-                .matchAny(this::notAccessible)
+                .match(WithDittoHeaders.class, this::notAccessible)
+                .matchAny(m -> log.info("Received message in 'deleted' state - ignoring!: {}", m))
                 .build();
     }
 
