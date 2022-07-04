@@ -86,6 +86,7 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
 
     private final PolicyEnforcerProvider policyEnforcerProvider;
 
+    @SuppressWarnings("unused")
     private ThingSupervisorActor(final ActorRef pubSubMediator,
             @Nullable final ActorRef policiesShardRegion,
             final DistributedPub<ThingEvent<?>> distributedPubThingEventsForTwin,
@@ -95,7 +96,7 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
             @Nullable final BlockedNamespaces blockedNamespaces,
             final PolicyEnforcerProvider policyEnforcerProvider) {
 
-        super(blockedNamespaces);
+        super(blockedNamespaces, DEFAULT_LOCAL_ASK_TIMEOUT);
 
         this.policyEnforcerProvider = policyEnforcerProvider;
         this.pubSubMediator = pubSubMediator;
