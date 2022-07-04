@@ -181,7 +181,6 @@ public final class MqttConsumerActor extends BaseConsumerActor {
     private KillSwitch processMqttPublishes() {
         final var mqttPublishTransformer = MqttPublishToExternalMessageTransformer.newInstance(sourceAddress, source);
 
-        // TODO jff backpressure should work this way, right?
         return mqttPublishSource.viaMat(KillSwitches.single(), Keep.right())
                 .map(mqttPublishTransformer::transform)
                 .divertTo(getTransformationFailureSink(), TransformationResult::isFailure)

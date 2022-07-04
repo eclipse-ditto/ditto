@@ -442,8 +442,6 @@ public final class MqttClientActor extends BaseClientActor {
                             subscribeResult.getMqttPublishSourceOrThrow())
             );
         } else {
-
-            // TODO jff really no entry in connection log?
             throw subscribeResult.getErrorOrThrow();
         }
     }
