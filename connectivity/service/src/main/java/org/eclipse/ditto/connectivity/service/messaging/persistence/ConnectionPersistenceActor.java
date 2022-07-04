@@ -27,6 +27,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
@@ -596,8 +597,14 @@ public final class ConnectionPersistenceActor
                 interpretStagedCommand(command.next());
                 break;
             case PASSIVATE:
-                //This actor will stop. Subsequent actions are ignored.
+                // This actor will stop. Subsequent actions are ignored.
                 log.debug("Passivating");
+                try {
+                    TimeUnit.MILLISECONDS.sleep(200);
+                } catch (final InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    throw new IllegalStateException(e);
+                }
                 passivate();
                 break;
             case OPEN_CONNECTION:
