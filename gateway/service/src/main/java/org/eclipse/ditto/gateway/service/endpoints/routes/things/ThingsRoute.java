@@ -16,7 +16,6 @@ import static org.eclipse.ditto.base.model.exceptions.DittoJsonException.wrapJso
 
 import java.util.EnumMap;
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -92,6 +91,7 @@ public final class ThingsRoute extends AbstractRoute {
     private static final String PATH_POLICY_ID = "policyId";
     private static final String PATH_ATTRIBUTES = "attributes";
     private static final String PATH_THING_DEFINITION = "definition";
+    private static final String NAMESPACE_PARAMETER = "namespace";
 
     private final FeaturesRoute featuresRoute;
     private final MessagesRoute messagesRoute;
@@ -289,18 +289,17 @@ public final class ThingsRoute extends AbstractRoute {
         return parameterOptional(DittoHeaderDefinition.CHANNEL.getKey(), channelOpt -> {
             if (isLiveChannel(channelOpt, dittoHeaders)) {
                 throw ThingNotCreatableException.forLiveChannel(dittoHeaders);
-            } return parameterOptional("namespace", namespaceOpt -> {
-
-
-                return ensureMediaTypeJsonWithFallbacksThenExtractDataBytes(ctx, dittoHeaders,
-                        payloadSource ->
-                                handlePerRequest(ctx, dittoHeaders, payloadSource,
-                                        thingJson -> CreateThing.of(createThingForPost(thingJson, namespaceOpt.orElse(null)),
-                                                createInlinePolicyJson(thingJson),
-                                                getCopyPolicyFrom(thingJson),
-                                                dittoHeaders)));
-            });
-
+            }
+            return parameterOptional(NAMESPACE_PARAMETER, namespaceOpt ->
+                    ensureMediaTypeJsonWithFallbacksThenExtractDataBytes(ctx, dittoHeaders,
+                            payloadSource ->
+                                    handlePerRequest(ctx, dittoHeaders, payloadSource,
+                                            thingJson -> CreateThing.of(
+                                                    createThingForPost(thingJson, namespaceOpt.orElse(null)),
+                                                    createInlinePolicyJson(thingJson),
+                                                    getCopyPolicyFrom(thingJson),
+                                                    dittoHeaders)))
+            );
         });
     }
 
@@ -317,7 +316,6 @@ public final class ThingsRoute extends AbstractRoute {
         if (inputJson.contains(Thing.JsonFields.ID.getPointer())) {
             throw ThingIdNotExplicitlySettableException.forPostMethod().build();
         }
-
 
         return ThingsModelFactory.newThingBuilder(inputJson)
                 .setId(ThingBuilder.generateRandomTypedThingId(namespace))

@@ -11,8 +11,8 @@
 name: namespace
 in: query
 description: |-
-  Defines custom namespace for the thing while generating thing ID.
+  Defines a custom namespace for the thing while generating a new thing ID.
 required: false
 schema:
   type: string
-  example: my.cool.namespace
+  example: com.example.namespace

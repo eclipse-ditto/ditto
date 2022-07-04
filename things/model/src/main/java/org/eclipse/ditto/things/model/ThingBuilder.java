@@ -13,16 +13,15 @@
 package org.eclipse.ditto.things.model;
 
 import java.time.Instant;
-import java.util.Optional;
 import java.util.function.Predicate;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
+import org.eclipse.ditto.base.model.entity.metadata.Metadata;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.base.model.entity.metadata.Metadata;
 import org.eclipse.ditto.policies.model.PolicyId;
 
 /**
@@ -46,8 +45,8 @@ public interface ThingBuilder {
      * @param namespace the specified namespace
      * @return the ID
      */
-    static ThingId generateRandomTypedThingId(@Nullable final String namespace){
-            return ThingId.generateRandom(namespace);
+    static ThingId generateRandomTypedThingId(@Nullable final String namespace) {
+        return ThingId.generateRandom(namespace);
     }
 
     /**

@@ -22,7 +22,6 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 import org.assertj.core.api.JUnitSoftAssertions;
 import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.base.model.entity.id.NamespacedEntityId;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 
@@ -53,9 +52,10 @@ public final class ThingIdTest {
                 .verify();
     }
     @Test
-    public void generateNamespaceTest(){
-        final ThingId randomThingId = ThingId.generateRandom("my.cool.namespace");
-        assertEquals(randomThingId.getNamespace(),"my.cool.namespace");
+    public void generateNamespaceTest() {
+        final String namespace = "my.cool.namespace";
+        final ThingId randomThingId = ThingId.generateRandom(namespace);
+        assertEquals(randomThingId.getNamespace(), namespace);
     }
     @Test
     public void instantiationFromEntityTypeCreatesThingId() {
