@@ -14,6 +14,7 @@ package org.eclipse.ditto.policies.service.enforcement;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -807,7 +808,7 @@ public final class PolicyCommandEnforcementTest {
         private final ActorRef pubSubMediator;
 
         private MockPolicyPersistenceSupervisor(final ActorRef pubSubMediator, final ActorRef policyPersistenceActor) {
-            super(policyPersistenceActor, null, null);
+            super(policyPersistenceActor, null, null, Duration.ofSeconds(5));
             this.pubSubMediator = pubSubMediator;
         }
 

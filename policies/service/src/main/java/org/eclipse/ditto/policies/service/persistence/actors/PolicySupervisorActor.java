@@ -60,7 +60,7 @@ public final class PolicySupervisorActor extends AbstractPersistenceSupervisor<P
             final DistributedPub<PolicyAnnouncement<?>> policyAnnouncementPub,
             @Nullable final BlockedNamespaces blockedNamespaces) {
 
-        super(blockedNamespaces);
+        super(blockedNamespaces, DEFAULT_LOCAL_ASK_TIMEOUT);
         this.pubSubMediator = pubSubMediator;
         this.snapshotAdapter = snapshotAdapter;
         final DittoPoliciesConfig policiesConfig = DittoPoliciesConfig.of(

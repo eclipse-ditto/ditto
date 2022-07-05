@@ -82,22 +82,27 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
 
     @Nullable protected ActorRef enforcerChild;
 
+    private final Duration defaultLocalAskTimeout;
+
     private final PreEnforcerProvider preEnforcer;
     private final ExponentialBackOffConfig exponentialBackOffConfig;
     private ExponentialBackOff backOff;
     private boolean waitingForStopBeforeRestart = false;
 
-    protected AbstractPersistenceSupervisor(@Nullable final BlockedNamespaces blockedNamespaces) {
-        this(null, null, blockedNamespaces);
+    protected AbstractPersistenceSupervisor(@Nullable final BlockedNamespaces blockedNamespaces,
+            final Duration defaultLocalAskTimeout) {
+        this(null, null, blockedNamespaces, defaultLocalAskTimeout);
     }
 
     protected AbstractPersistenceSupervisor(@Nullable final ActorRef persistenceActorChild,
             @Nullable final ActorRef enforcerChild,
-            @Nullable final BlockedNamespaces blockedNamespaces) {
+            @Nullable final BlockedNamespaces blockedNamespaces,
+            final Duration defaultLocalAskTimeout) {
 
         this.persistenceActorChild = persistenceActorChild;
         this.enforcerChild = enforcerChild;
         this.blockedNamespaces = blockedNamespaces;
+        this.defaultLocalAskTimeout = defaultLocalAskTimeout;
         preEnforcer = PreEnforcerProvider.get(getContext().getSystem());
         exponentialBackOffConfig = getExponentialBackOffConfig();
         backOff = ExponentialBackOff.initial(exponentialBackOffConfig);
@@ -339,7 +344,7 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
                     new TargetActorWithMessage(
                             persistenceActorChild,
                             message,
-                            shouldSendResponse ? DEFAULT_LOCAL_ASK_TIMEOUT : Duration.ZERO,
+                            shouldSendResponse ? defaultLocalAskTimeout : Duration.ZERO,
                             Function.identity()
                     ));
         } else {

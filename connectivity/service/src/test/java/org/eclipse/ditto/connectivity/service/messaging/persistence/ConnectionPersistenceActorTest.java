@@ -99,6 +99,7 @@ import akka.cluster.pubsub.DistributedPubSubMediator;
 import akka.serialization.Serialization;
 import akka.testkit.TestProbe;
 import scala.PartialFunction;
+import scala.concurrent.duration.Duration;
 import scala.concurrent.duration.FiniteDuration;
 
 /**
@@ -299,7 +300,8 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
 
         sendClientActorStartingCommand(underTest, testProbe, testConnection, actorSystemResource1, null, null);
 
-        testProbe.expectMsg(TestConnectionResponse.success(connectionId, "mock", testConnection.getDittoHeaders()));
+        testProbe.expectMsg(Duration.create(65, TimeUnit.SECONDS),
+                TestConnectionResponse.success(connectionId, "mock", testConnection.getDittoHeaders()));
     }
 
     @Test
