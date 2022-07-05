@@ -15,6 +15,13 @@ package org.eclipse.ditto.connectivity.model;
 
 import java.util.Arrays;
 
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
+
+
 /**
  * Possible Aliases for Address used by connections of type 'Hono'
  */
@@ -46,6 +53,8 @@ public enum HonoAddressAlias {
 
     private final String name;
 
+    private static final Map<String, HonoAddressAlias> HONO_ADDRESS_ALIAS_MAP;
+
     HonoAddressAlias(String name) {
         this.name = name;
     }
@@ -59,6 +68,7 @@ public enum HonoAddressAlias {
         return name;
     }
 
+    
     /**
      * Gets the alias enum that have the given name.
      *
