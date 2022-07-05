@@ -87,7 +87,7 @@ public interface HonoConfig extends Extension {
         /**
          * validateCertificates boolean property
          */
-        VALIDATE_CERTIFICATES("validateCertificates", false),
+        VALIDATE_CERTIFICATES("validate-certificates", false),
 
         /**
          * SASL mechanism for connections of type Hono
@@ -95,34 +95,9 @@ public interface HonoConfig extends Extension {
         SASL_MECHANISM("sasl-mechanism", "plain"),
 
         /**
-         * Kafka Group ID property
-         */
-        GROUP_ID("groupId", ""),
-
-        /**
          * Bootstrap servers, comma separated
          */
         BOOTSTRAP_SERVERS("bootstrap-servers", ""),
-
-        /**
-         * Telemetry address alias
-         */
-        TELEMETRY_ADDRESS("telemetry", ""),
-
-        /**
-         * Event address alias
-         */
-        EVENT_ADDRESS("event", ""),
-
-        /**
-         * Command and control address alias
-         */
-        COMMAND_AND_CONTROL_ADDRESS("commandAndControl", ""),
-
-        /**
-         * Command response address alias
-         */
-        COMMAND_RESPONSE_ADDRESS("commandResponse", ""),
 
         /**
          * Username

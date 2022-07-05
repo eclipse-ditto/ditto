@@ -21,9 +21,11 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.connectivity.api.HonoConfig;
 import org.eclipse.ditto.connectivity.model.Connection;
+import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.connectivity.model.ConnectionType;
 import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
 import org.eclipse.ditto.connectivity.model.HonoAddressAlias;
+import org.eclipse.ditto.connectivity.model.ReplyTarget;
 import org.eclipse.ditto.connectivity.model.Source;
 import org.eclipse.ditto.connectivity.model.Target;
 import org.eclipse.ditto.connectivity.service.messaging.amqp.AmqpClientActor;
@@ -35,6 +37,7 @@ import org.eclipse.ditto.connectivity.service.messaging.rabbitmq.RabbitMQClientA
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonValue;
 
 import com.typesafe.config.Config;
@@ -112,6 +115,7 @@ public final class DefaultClientActorPropsFactory implements ClientActorPropsFac
 
     private Connection getEnrichedConnection(final ActorSystem actorSystem, final Connection connection) {
         var honoConfig = HonoConfig.get(actorSystem);
+        final ConnectionId connectionId = connection.getId();
         return ConnectivityModelFactory.newConnectionBuilder(
                         connection.getId(),
                         connection.getConnectionType(),
@@ -120,38 +124,78 @@ public final class DefaultClientActorPropsFactory implements ClientActorPropsFac
                 .validateCertificate(honoConfig.getValidateCertificates())
                 .specificConfig(Map.of(
                         "saslMechanism", honoConfig.getSaslMechanism().getValue(),
-                        "bootstrapServers", honoConfig.getBootstrapServers()))
-                .credentials(honoConfig.getCredentials(connection.getId()))
+                        "bootstrapServers", honoConfig.getBootstrapServers(),
+                        "groupId", honoConfig.getTenantId(connectionId) + "_" + connectionId))
+                .credentials(honoConfig.getCredentials(connectionId))
                 .sources(connection.getSources()
                         .stream()
                         .map(source -> ConnectivityModelFactory.sourceFromJson(
-                                resolveSourceAliases(source, honoConfig.getTenantId(connection.getId())), 1))
+                                resolveSourceAliases2(source, honoConfig.getTenantId(connectionId)), 1))
                         .toList())
                 .targets(connection.getTargets()
                         .stream()
                         .map(target -> ConnectivityModelFactory.targetFromJson(
-                                resolveTargetAlias(target, honoConfig.getTenantId(connection.getId()))))
+                                resolveTargetAlias(target, honoConfig.getTenantId(connectionId))))
                         .toList())
                 .build();
     }
 
     private JsonObject resolveSourceAliases(final Source source, String tenantId) {
-        return JsonFactory.newObjectBuilder(source.toJson())
-                .set(Source.JsonFields.REPLY_TARGET, )
+        JsonObjectBuilder sourceBuilder = JsonFactory.newObjectBuilder(source.toJson())
                 .set(Source.JsonFields.ADDRESSES, JsonArray.of(source.getAddresses().stream()
-                        .map(a -> HonoAddressAlias.fromName(a) + "/" + tenantId)
+                        .map(address -> HonoAddressAlias.resolve(address, tenantId))
                         .map(JsonValue::of)
-                        .toList()))
-                .build();
+                        .toList()));
+        source.getReplyTarget().ifPresent(replyTarget ->
+                Optional.of(replyTarget.getAddress()).ifPresent(address -> {
+                    final JsonObjectBuilder replyTargetBuilder = JsonFactory.newObjectBuilder(replyTarget.toJson())
+                            .set(ReplyTarget.JsonFields.ADDRESS, HonoAddressAlias.resolve(address, tenantId, true));
+                    Optional.of(replyTarget.getHeaderMapping()).ifPresent(mapping -> {
+                        Map<String, String> newMapping = mapping.getMapping();
+                        switch (HonoAddressAlias.fromName(address)) {
+                            case COMMAND -> {
+                                newMapping.put("device_id", "{{ thing:id }}");
+                                newMapping.put("subject",
+                                        "{{ header:subject | fn:default(topic:action-subject) | fn:default(topic:criterion) }}-response");
+                            }
+                            case COMMAND_RESPONSE -> newMapping.put("status", "{{ header:status }}");
+                        }
+                        newMapping.put("correlation-id", "{{ header:correlation-id }}");
+                        replyTargetBuilder.set(ReplyTarget.JsonFields.HEADER_MAPPING,
+                                ConnectivityModelFactory.newHeaderMapping(newMapping).toJson());
+                    });
+                    sourceBuilder.set(Source.JsonFields.REPLY_TARGET, replyTargetBuilder.build());
+                }));
+        return sourceBuilder.build();
+    }
+
+    private JsonObject resolveSourceAliases2(final Source source, String tenantId) {
+        JsonObjectBuilder sourceBuilder = JsonFactory.newObjectBuilder(source.toJson())
+                .set(Source.JsonFields.ADDRESSES, JsonArray.of(source.getAddresses().stream()
+                        .map(address -> HonoAddressAlias.resolve(address, tenantId))
+                        .map(JsonValue::of)
+                        .toList()));
+        source.getReplyTarget().ifPresent(replyTarget -> {
+            sourceBuilder.set("replyTarget/address", HonoAddressAlias.resolve(replyTarget.getAddress(), tenantId, true));
+            switch (HonoAddressAlias.fromName(replyTarget.getAddress())) {
+                case COMMAND -> {
+                    sourceBuilder.set("replyTarget/headerMapping/device_id", "{{ thing:id }}");
+                    sourceBuilder.set("replyTarget/headerMapping/subject",
+                            "{{ header:subject | fn:default(topic:action-subject) | fn:default(topic:criterion) }}-response");
+                }
+                case COMMAND_RESPONSE -> sourceBuilder.set("replyTarget/headerMapping/status", "{{ header:status }}");
+            }
+            sourceBuilder.set("replyTarget/headerMapping/correlation-id", "{{ header:correlation-id }}");
+        });
+        return sourceBuilder.build();
     }
 
     private JsonObject resolveTargetAlias(final Target target, String tenantId) {
-        return JsonFactory.newObjectBuilder(target.toJson())
+        JsonObjectBuilder targetBuilder = JsonFactory.newObjectBuilder(target.toJson())
                 .set(Target.JsonFields.ADDRESS, Optional.of(target.getAddress())
-                        .map(a -> HonoAddressAlias.fromName(a) + "/" + tenantId)
-                        .orElse("")
-                )
-                .build();
+                        .map(address -> HonoAddressAlias.resolve(address, tenantId, true))
+                        .orElse(null), jsonField -> !target.getAddress().isEmpty());
+        return targetBuilder.build();
     }
 
 }

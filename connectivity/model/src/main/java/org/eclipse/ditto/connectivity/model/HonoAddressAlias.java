@@ -32,12 +32,17 @@ public enum HonoAddressAlias {
     /**
      * command&control address alias
      */
-    COMMAND("commandAndControl"),
+    COMMAND("command"),
 
     /**
      * command response address alias
      */
-    COMMAND_RESPONSE("commandResponse");
+    COMMAND_RESPONSE("command_response"),
+
+    /**
+     * unknown alias
+     */
+    UNKNOWN("");
 
     private final String name;
 
@@ -55,14 +60,44 @@ public enum HonoAddressAlias {
     }
 
     /**
-     * @return the Enum representation for the given string.
-     * @throws IllegalArgumentException if unknown string.
+     * Gets the alias enum that have the given name.
+     *
+     * @param alias the alias name to get
+     * @return {@link HonoAddressAlias}
      */
-    public static HonoAddressAlias fromName(String s) throws IllegalArgumentException {
+    public static HonoAddressAlias fromName(String alias) {
         return Arrays.stream(HonoAddressAlias.values())
-                .filter(v -> v.name.equals(s))
+                .filter(v -> v.name.equals(alias))
                 .findFirst()
-                .orElseThrow(() -> new IllegalArgumentException("Unknown Address Alias value: " + s));
+                .orElse(UNKNOWN);
+    }
+
+    /**
+     * Resolves the input as a potential address alias or returns the same value if not an existing alias.
+     *
+     * @param alias the alias name to resolve
+     * @param tenantId the tenantId - used in the resolve pattern
+     * @param thingSuffix if true, adds '/{{thing:id}}' suffix on resolve - needed for replyTarget addresses
+     *                    if false - does not add suffix
+     * @return the resolved alias or the same value if not an alias
+     */
+    public static String resolve(String alias, String tenantId, boolean thingSuffix) throws IllegalArgumentException {
+        return Arrays.stream(HonoAddressAlias.values())
+                .filter(v -> v.name.equals(alias))
+                .findFirst()
+                .map(found -> "hono." + found + "." + tenantId + (thingSuffix ? "/{{thing:id}}" : ""))
+                .orElse(alias);
+    }
+
+    /**
+     * Resolves the input as a potential address alias or returns the same value if not an existing alias.
+     *
+     * @param alias the alias name to resolve
+     * @param tenantId the tenantId - used in the resolve pattern
+     * @return the resolved alias or the same value if not an alias
+     */
+    public static String resolve(String alias, String tenantId) throws IllegalArgumentException {
+        return resolve(alias, tenantId, false);
     }
 
 }
