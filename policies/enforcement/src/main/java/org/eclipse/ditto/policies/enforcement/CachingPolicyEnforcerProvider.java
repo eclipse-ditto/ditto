@@ -32,7 +32,6 @@ import org.slf4j.Logger;
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
 import akka.actor.ActorRefFactory;
-import akka.actor.ActorSystem;
 import akka.actor.Props;
 import akka.cluster.ddata.ORSet;
 import akka.cluster.ddata.Replicator;
@@ -53,6 +52,7 @@ final class CachingPolicyEnforcerProvider implements PolicyEnforcerProvider {
             final PolicyEnforcerProvider delegate,
             @Nullable final BlockedNamespaces blockedNamespaces,
             final ActorRef pubSubMediator) {
+
         this.cachingPolicyEnforcerProviderActor = actorRefFactory.actorOf(
                 CachingPolicyEnforcerProviderActor.props(policyEnforcerCache, delegate, blockedNamespaces,
                         pubSubMediator));
@@ -115,6 +115,7 @@ final class CachingPolicyEnforcerProvider implements PolicyEnforcerProvider {
                 final PolicyEnforcerProvider delegate,
                 @Nullable final BlockedNamespaces blockedNamespaces,
                 final ActorRef pubSubMediator) {
+
             return Props.create(CachingPolicyEnforcerProviderActor.class,
                     () -> new CachingPolicyEnforcerProviderActor(policyEnforcerCache, delegate, blockedNamespaces,
                             pubSubMediator));

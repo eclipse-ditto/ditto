@@ -61,7 +61,6 @@ import org.eclipse.ditto.rql.parser.RqlPredicateParser;
 import org.eclipse.ditto.rql.query.things.FieldNamesPredicateVisitor;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingConstants;
-import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommand;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommandResponse;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.LiveChannelConditionNotAllowedException;
@@ -70,7 +69,6 @@ import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingCommandTo
 import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingConditionFailedException;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingConditionInvalidException;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingNotAccessibleException;
-import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingNotModifiableException;
 import org.eclipse.ditto.things.model.signals.commands.modify.CreateThing;
 import org.eclipse.ditto.things.model.signals.commands.modify.MergeThing;
 import org.eclipse.ditto.things.model.signals.commands.modify.ThingModifyCommand;
@@ -366,6 +364,7 @@ final class ThingCommandEnforcement
     private CompletionStage<Done> handleFailedCreateThing(
             final CreateThing createThing,
             final PolicyEnforcer policyEnforcer) {
+
         if (shouldDeletePolicy(createThing)) {
             return deletePolicy(policyEnforcer.getPolicy().flatMap(Policy::getEntityId).orElseThrow(), createThing);
         }

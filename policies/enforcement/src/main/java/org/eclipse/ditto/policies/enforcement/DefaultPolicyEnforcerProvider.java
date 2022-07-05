@@ -127,7 +127,8 @@ public final class DefaultPolicyEnforcerProvider implements PolicyEnforcerProvid
                         .exceptionally(error -> Optional.empty());
             } catch (final Exception e) {
                 LOGGER.warn(
-                        "Got exception when trying to load the policy enforcer via cache loader. This is unexpected"
+                        "Got exception when trying to load the policy enforcer via cache loader. This is " +
+                                "unexpected", e
                 );
                 return CompletableFuture.completedStage(Optional.empty());
             }
@@ -137,7 +138,7 @@ public final class DefaultPolicyEnforcerProvider implements PolicyEnforcerProvid
     private PolicyEnforcerProvider withCaching(final ActorSystem actorSystem) {
         final var dispatchers = actorSystem.dispatchers();
         final var cacheConfig = DefaultCacheConfig.of(actorSystem.settings().config(), "ditto.policies-enforcer-cache");
-        final var cacheDispatcher = dispatchers.lookup("enforcement-cache-dispatcher");
+        final var cacheDispatcher = dispatchers.lookup(PolicyEnforcerCacheLoader.ENFORCEMENT_CACHE_DISPATCHER);
         final var policyEnforcerCache =
                 CacheFactory.<PolicyId, Entry<PolicyEnforcer>>createCache(cacheConfig, "policy_enforcer_cache",
                         cacheDispatcher);

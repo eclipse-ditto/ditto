@@ -209,6 +209,7 @@ public final class ThingEnforcerActor
 
     private CompletionStage<Policy> getCopiedPolicy(final String policyIdOrPlaceholder,
             final DittoHeaders dittoHeaders, final PolicyId policyIdForCopiedPolicy) {
+
         return ReferencePlaceholder.fromCharSequence(policyIdOrPlaceholder)
                 .map(referencePlaceholder -> {
                     log.withCorrelationId(dittoHeaders)
@@ -231,6 +232,7 @@ public final class ThingEnforcerActor
 
     private CompletionStage<Policy> retrievePolicyWithEnforcement(final DittoHeaders dittoHeaders,
             final PolicyId policyId) {
+
         final var adjustedHeaders = dittoHeaders.toBuilder()
                 .removePreconditionHeaders()
                 .responseRequired(true)
