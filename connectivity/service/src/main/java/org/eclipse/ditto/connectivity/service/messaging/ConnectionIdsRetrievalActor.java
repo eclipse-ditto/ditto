@@ -36,6 +36,7 @@ import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveAllCo
 import org.eclipse.ditto.connectivity.model.signals.events.ConnectionDeleted;
 import org.eclipse.ditto.connectivity.service.config.ConnectionIdsRetrievalConfig;
 import org.eclipse.ditto.connectivity.service.messaging.persistence.ConnectionPersistenceActor;
+import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.MongoReadJournal;
@@ -45,7 +46,6 @@ import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.cluster.pubsub.DistributedPubSub;
-import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.pf.ReceiveBuilder;
 import akka.pattern.Patterns;
 import akka.stream.Materializer;
@@ -64,7 +64,7 @@ public final class ConnectionIdsRetrievalActor extends AbstractActor {
 
     private static final String PERSISTENCE_ID_FIELD = "_id";
 
-    private final DiagnosticLoggingAdapter log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
+    private final DittoDiagnosticLoggingAdapter log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
 
     private final Supplier<Source<Document, NotUsed>> persistenceIdsFromJournalSourceSupplier;
     private final Supplier<Source<Document, NotUsed>> persistenceIdsFromSnapshotSourceSupplier;
@@ -134,6 +134,8 @@ public final class ConnectionIdsRetrievalActor extends AbstractActor {
     private void getConnectionIDsByTag(final SudoRetrieveConnectionIdsByTag sudoRetrieveConnectionIdsByTag) {
         final String tag = sudoRetrieveConnectionIdsByTag.getTag();
         final DittoHeaders dittoHeaders = sudoRetrieveConnectionIdsByTag.getDittoHeaders();
+        log.withCorrelationId(dittoHeaders)
+                .info("Retrieving connection IDs by tag <{}>: {}", tag, sudoRetrieveConnectionIdsByTag);
         try {
             final ActorRef sender = sender();
             final CompletionStage<SudoRetrieveConnectionIdsByTagResponse>
@@ -154,6 +156,8 @@ public final class ConnectionIdsRetrievalActor extends AbstractActor {
     }
 
     private void getAllConnectionIDs(final WithDittoHeaders cmd) {
+        log.withCorrelationId(cmd)
+                .info("Retrieving all connection IDs ...");
         try {
             final Source<String, NotUsed> idsFromSnapshots = getIdsFromSnapshotsSource();
             final Source<String, NotUsed> idsFromJournal = persistenceIdsFromJournalSourceSupplier.get()
