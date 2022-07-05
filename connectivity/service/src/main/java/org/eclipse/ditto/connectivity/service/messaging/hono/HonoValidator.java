@@ -20,8 +20,8 @@ import static org.eclipse.ditto.connectivity.api.placeholders.ConnectivityPlaceh
 import java.text.MessageFormat;
 import java.util.function.Supplier;
 
-import javax.annotation.concurrent.Immutable;
 import javax.annotation.Nullable;
+import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.connectivity.model.Connection;
@@ -42,7 +42,7 @@ public final class HonoValidator extends AbstractProtocolValidator {
             " It should be one of the defined {1} aliases.";
     private static final String INVALID_TARGET_ADDRESS_ALIAS_FORMAT = "The provided target address is not" +
             "valid: {0}. It should be 'command' alias.";
-      private static final String NOT_EMPTY_FORMAT = "The provided {0} in your target address may not be empty.";
+    private static final String NOT_EMPTY_FORMAT = "The provided {0} in your target address may not be empty.";
 
     @Nullable private static HonoValidator instance;
 
@@ -118,8 +118,8 @@ public final class HonoValidator extends AbstractProtocolValidator {
             throwEmptyException(dittoHeaders);
         }
 
-       HonoAddressAlias.fromName(address).filter(alias -> alias == HonoAddressAlias.COMMAND)
-               .orElseThrow(() -> buildInvalidTargetAddressException(address, dittoHeaders));
+        HonoAddressAlias.fromName(address).filter(alias -> alias == HonoAddressAlias.COMMAND)
+                .orElseThrow(() -> buildInvalidTargetAddressException(address, dittoHeaders));
     }
 
     private static void validateSourceAddress(final String address, final DittoHeaders dittoHeaders) {

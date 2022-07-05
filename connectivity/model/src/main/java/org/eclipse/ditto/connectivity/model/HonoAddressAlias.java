@@ -13,8 +13,7 @@
 
 package org.eclipse.ditto.connectivity.model;
 
-import java.util.Arrays;
-
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -47,7 +46,7 @@ public enum HonoAddressAlias {
     COMMAND_RESPONSE("command_response"),
 
     /**
-     * unknown alias
+     * unrecognized address alias
      */
     UNKNOWN("");
 
@@ -68,43 +67,58 @@ public enum HonoAddressAlias {
         return name;
     }
 
-    
-    /**
-     * Gets the alias enum that have the given name.
-     *
-     * @param alias the alias name to get
-     * @return {@link HonoAddressAlias}
-     */
-    public static HonoAddressAlias fromName(String alias) {
-        return Arrays.stream(HonoAddressAlias.values())
-                .filter(v -> v.name.equals(alias))
-                .findFirst()
-                .orElse(UNKNOWN);
+    static {
+        Map<String, HonoAddressAlias> map = new ConcurrentHashMap<>();
+        for (HonoAddressAlias alias : HonoAddressAlias.values()) {
+            map.put(alias.getName(), alias);
+        }
+        HONO_ADDRESS_ALIAS_MAP = Collections.unmodifiableMap(map);
     }
 
     /**
-     * Resolves the input as a potential address alias or returns the same value if not an existing alias.
+     * Returns all defined HonoAddressAlias names
+     *
+     * @return A list with HonoAddressAlias names
+     */
+    public static List<String> names() {
+        return new ArrayList<>(HONO_ADDRESS_ALIAS_MAP.keySet());
+    }
+
+    /**
+     * Returns the HonoAddressAlias to which the given name is mapped
+     *
+     * @param name of HonoAddressAlias
+     * @return the HonoAddressAlias to which the given name is mapped
+     */
+    public static Optional<HonoAddressAlias> fromName(String name) {
+        try {
+            return Optional.of(HONO_ADDRESS_ALIAS_MAP.get(name));
+        } catch (NullPointerException | ClassCastException ex) {
+            return Optional.empty();
+        }
+    }
+
+    /**
+     * Resolves the input as a potential address alias or returns empty string if not an existing alias.
      *
      * @param alias the alias name to resolve
      * @param tenantId the tenantId - used in the resolve pattern
      * @param thingSuffix if true, adds '/{{thing:id}}' suffix on resolve - needed for replyTarget addresses
-     *                    if false - does not add suffix
-     * @return the resolved alias or the same value if not an alias
+     * if false - does not add suffix
+     * @return the resolved alias or empty if not an alias
      */
-    public static String resolve(String alias, String tenantId, boolean thingSuffix) throws IllegalArgumentException {
-        return Arrays.stream(HonoAddressAlias.values())
-                .filter(v -> v.name.equals(alias))
-                .findFirst()
+    public static String resolve(String alias, String tenantId, boolean thingSuffix) {
+        return fromName(alias)
                 .map(found -> "hono." + found + "." + tenantId + (thingSuffix ? "/{{thing:id}}" : ""))
-                .orElse(alias);
+                .orElse("");
     }
 
     /**
-     * Resolves the input as a potential address alias or returns the same value if not an existing alias.
+     * Resolves the input as a potential address alias or returns empty string if not an existing aliass.
      *
      * @param alias the alias name to resolve
      * @param tenantId the tenantId - used in the resolve pattern
-     * @return the resolved alias or the same value if not an alias
+     * @return the resolved alias or empty if not an alias
      */
     public static String resolve(String alias, String tenantId) throws IllegalArgumentException {
         return resolve(alias, tenantId, false);

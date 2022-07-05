@@ -25,7 +25,6 @@ import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.connectivity.model.ConnectionType;
 import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
 import org.eclipse.ditto.connectivity.model.HonoAddressAlias;
-import org.eclipse.ditto.connectivity.model.ReplyTarget;
 import org.eclipse.ditto.connectivity.model.Source;
 import org.eclipse.ditto.connectivity.model.Target;
 import org.eclipse.ditto.connectivity.service.messaging.amqp.AmqpClientActor;
@@ -130,7 +129,7 @@ public final class DefaultClientActorPropsFactory implements ClientActorPropsFac
                 .sources(connection.getSources()
                         .stream()
                         .map(source -> ConnectivityModelFactory.sourceFromJson(
-                                resolveSourceAliases2(source, honoConfig.getTenantId(connectionId)), 1))
+                                resolveSourceAliases(source, honoConfig.getTenantId(connectionId)), 1))
                         .toList())
                 .targets(connection.getTargets()
                         .stream()
@@ -146,38 +145,9 @@ public final class DefaultClientActorPropsFactory implements ClientActorPropsFac
                         .map(address -> HonoAddressAlias.resolve(address, tenantId))
                         .map(JsonValue::of)
                         .toList()));
-        source.getReplyTarget().ifPresent(replyTarget ->
-                Optional.of(replyTarget.getAddress()).ifPresent(address -> {
-                    final JsonObjectBuilder replyTargetBuilder = JsonFactory.newObjectBuilder(replyTarget.toJson())
-                            .set(ReplyTarget.JsonFields.ADDRESS, HonoAddressAlias.resolve(address, tenantId, true));
-                    Optional.of(replyTarget.getHeaderMapping()).ifPresent(mapping -> {
-                        Map<String, String> newMapping = mapping.getMapping();
-                        switch (HonoAddressAlias.fromName(address)) {
-                            case COMMAND -> {
-                                newMapping.put("device_id", "{{ thing:id }}");
-                                newMapping.put("subject",
-                                        "{{ header:subject | fn:default(topic:action-subject) | fn:default(topic:criterion) }}-response");
-                            }
-                            case COMMAND_RESPONSE -> newMapping.put("status", "{{ header:status }}");
-                        }
-                        newMapping.put("correlation-id", "{{ header:correlation-id }}");
-                        replyTargetBuilder.set(ReplyTarget.JsonFields.HEADER_MAPPING,
-                                ConnectivityModelFactory.newHeaderMapping(newMapping).toJson());
-                    });
-                    sourceBuilder.set(Source.JsonFields.REPLY_TARGET, replyTargetBuilder.build());
-                }));
-        return sourceBuilder.build();
-    }
-
-    private JsonObject resolveSourceAliases2(final Source source, String tenantId) {
-        JsonObjectBuilder sourceBuilder = JsonFactory.newObjectBuilder(source.toJson())
-                .set(Source.JsonFields.ADDRESSES, JsonArray.of(source.getAddresses().stream()
-                        .map(address -> HonoAddressAlias.resolve(address, tenantId))
-                        .map(JsonValue::of)
-                        .toList()));
         source.getReplyTarget().ifPresent(replyTarget -> {
             sourceBuilder.set("replyTarget/address", HonoAddressAlias.resolve(replyTarget.getAddress(), tenantId, true));
-            switch (HonoAddressAlias.fromName(replyTarget.getAddress())) {
+            switch (HonoAddressAlias.fromName(replyTarget.getAddress()).orElse(HonoAddressAlias.UNKNOWN)) {
                 case COMMAND -> {
                     sourceBuilder.set("replyTarget/headerMapping/device_id", "{{ thing:id }}");
                     sourceBuilder.set("replyTarget/headerMapping/subject",
