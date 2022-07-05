@@ -141,7 +141,6 @@ import akka.actor.Status;
 import akka.actor.SupervisorStrategy;
 import akka.actor.Terminated;
 import akka.cluster.pubsub.DistributedPubSub;
-import akka.http.javadsl.ConnectionContext;
 import akka.japi.Pair;
 import akka.japi.pf.DeciderBuilder;
 import akka.japi.pf.FSMStateFunctionBuilder;
@@ -165,7 +164,6 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     protected final ThreadSafeDittoLoggingAdapter logger;
     protected static final Status.Success DONE = new Status.Success(Done.getInstance());
 
-    protected ConnectionContext connectionContext;
     protected final ConnectionLogger connectionLogger;
     protected final ConnectivityStatusResolver connectivityStatusResolver;
 
@@ -654,6 +652,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         if (to == CONNECTED || to == DISCONNECTED || to == INITIALIZED) {
             cancelStateTimeout();
         }
+        maintainResubscribeTimer(to);
     }
 
     private void publishConnectionOpenedAnnouncement() {
@@ -737,7 +736,8 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
                 .event(CloseConnectionAndShutdown.class, this::closeConnectionAndShutdown)
                 .event(SshTunnelActor.TunnelClosed.class, this::tunnelClosed)
                 .event(OpenConnection.class, this::connectionAlreadyOpen)
-                .event(ConnectionFailure.class, this::connectedConnectionFailed);
+                .event(ConnectionFailure.class, this::connectedConnectionFailed)
+                .eventEquals(Control.RESUBSCRIBE, this::resubscribe);
     }
 
     @Nullable
@@ -1183,7 +1183,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
 
         return publisherReady
                 .thenCompose(unused -> consumersReady)
-                .thenCompose(unused -> subscribeAndDeclareAcknowledgementLabels(dryRun))
+                .thenCompose(unused -> subscribeAndDeclareAcknowledgementLabels(dryRun, false))
                 .thenApply(unused -> InitializationResult.success())
                 .exceptionally(InitializationResult::failed);
     }
@@ -1852,6 +1852,12 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         return stay();
     }
 
+    private FSM.State<BaseClientState, BaseClientData> resubscribe(final Control trigger, final BaseClientData data) {
+        subscribeAndDeclareAcknowledgementLabels(dryRun, true);
+        startSubscriptionRefreshTimer();
+        return stay();
+    }
+
     protected boolean isDryRun() {
         return dryRun;
     }
@@ -1953,27 +1959,29 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
      * Subscribe for signals. NOT thread-safe due to querying actor state.
      *
      * @param isDryRun whether this is a dry run
+     * @param resubscribe whether this is a resubscription
      * @return a future that completes when subscription and ack label declaration succeed and fails when either fails.
      */
-    private CompletionStage<Void> subscribeAndDeclareAcknowledgementLabels(final boolean isDryRun) {
+    private CompletionStage<Void> subscribeAndDeclareAcknowledgementLabels(final boolean isDryRun,
+            final boolean resubscribe) {
         if (isDryRun) {
             // no point writing to the distributed data in a dry run - this actor will stop right away
             return CompletableFuture.completedFuture(null);
         } else {
             final String group = getPubsubGroup();
-            final CompletionStage<Void> subscribe = subscribeToStreamingTypes(group);
+            final CompletionStage<Boolean> subscribe = subscribeToStreamingTypes(group, resubscribe);
             final CompletionStage<Void> declare =
                     dittoProtocolSub.declareAcknowledgementLabels(getDeclaredAcks(), getSelf(), group);
-            return declare.thenCompose(unused -> subscribe);
+            return subscribe.thenCompose(unused -> declare);
         }
     }
 
-    private CompletionStage<Void> subscribeToStreamingTypes(final String pubSubGroup) {
+    private CompletionStage<Boolean> subscribeToStreamingTypes(final String pubSubGroup, final boolean resubscribe) {
         final Set<StreamingType> streamingTypes = getUniqueStreamingTypes();
         if (streamingTypes.isEmpty()) {
             return CompletableFuture.completedFuture(null);
         }
-        return dittoProtocolSub.subscribe(streamingTypes, getTargetAuthSubjects(), getSelf(), pubSubGroup);
+        return dittoProtocolSub.subscribe(streamingTypes, getTargetAuthSubjects(), getSelf(), pubSubGroup, resubscribe);
     }
 
     private Set<AcknowledgementLabel> getDeclaredAcks() {
@@ -2001,6 +2009,20 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
                 .filter(Optional::isPresent)
                 .map(Optional::get)
                 .collect(Collectors.toSet());
+    }
+
+    private void maintainResubscribeTimer(final BaseClientState nextState) {
+        if (nextState == CONNECTED) {
+            startSubscriptionRefreshTimer();
+        } else {
+            cancelTimer(Control.RESUBSCRIBE.name());
+        }
+    }
+
+    private void startSubscriptionRefreshTimer() {
+        final var delay = connectivityConfig.getClientConfig().getSubscriptionRefreshDelay();
+        final var randomizedDelay = delay.plus(Duration.ofMillis((long) (delay.toMillis() * Math.random())));
+        startSingleTimer(Control.RESUBSCRIBE.name(), Control.RESUBSCRIBE, randomizedDelay);
     }
 
     private static Optional<StreamingType> toStreamingTypes(final Topic topic) {
@@ -2221,7 +2243,8 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     private enum Control {
         INIT_COMPLETE,
         CONNECT_AFTER_TUNNEL_ESTABLISHED,
-        GOTO_CONNECTED_AFTER_INITIALIZATION
+        GOTO_CONNECTED_AFTER_INITIALIZATION,
+        RESUBSCRIBE
     }
 
     private static final Object SEND_DISCONNECT_ANNOUNCEMENT = new Object();

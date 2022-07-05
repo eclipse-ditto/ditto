@@ -15,6 +15,7 @@ package org.eclipse.ditto.internal.utils.pubsub;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumSet;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
@@ -25,11 +26,14 @@ import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.base.model.acks.AcknowledgementLabel;
+import org.eclipse.ditto.internal.utils.pubsub.api.SubAck;
+import org.eclipse.ditto.internal.utils.pubsub.api.Subscribe;
 
 import akka.actor.AbstractExtensionId;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.ExtendedActorSystem;
+import akka.cluster.ddata.Replicator;
 
 /**
  * Default implementation of {@link DittoProtocolSub}.
@@ -62,20 +66,23 @@ final class DittoProtocolSubImpl implements DittoProtocolSub {
     }
 
     @Override
-    public CompletionStage<Void> subscribe(final Collection<StreamingType> types,
+    public CompletionStage<Boolean> subscribe(final Collection<StreamingType> types,
             final Collection<String> topics,
             final ActorRef subscriber,
-            @Nullable final String group) {
-        final CompletionStage<?> nop = CompletableFuture.completedFuture(null);
+            @Nullable final String group,
+            final boolean resubscribe) {
+        final CompletionStage<SubAck> nop = CompletableFuture.completedFuture(null);
         return partitionByStreamingTypes(types,
                 liveTypes -> !liveTypes.isEmpty()
-                        ? liveSignalSub.subscribeWithFilterAndGroup(topics, subscriber, toFilter(liveTypes), group)
+                        ? liveSignalSub.subscribeWithFilterAndGroup(topics, subscriber, toFilter(liveTypes), group,
+                        resubscribe)
                         : nop,
                 hasTwinEvents -> hasTwinEvents
-                        ? twinEventSub.subscribeWithFilterAndGroup(topics, subscriber, null, group)
+                        ? twinEventSub.subscribeWithFilterAndGroup(topics, subscriber, null, group, resubscribe)
                         : nop,
                 hasPolicyAnnouncements -> hasPolicyAnnouncements
-                        ? policyAnnouncementSub.subscribeWithFilterAndGroup(topics, subscriber, null, group)
+                        ? policyAnnouncementSub.subscribeWithFilterAndGroup(topics, subscriber, null, group,
+                        resubscribe)
                         : nop
         );
     }
@@ -95,11 +102,12 @@ final class DittoProtocolSubImpl implements DittoProtocolSub {
 
         return partitionByStreamingTypes(types,
                 liveTypes -> !liveTypes.isEmpty()
-                        ? liveSignalSub.subscribeWithFilterAndGroup(topics, subscriber, toFilter(liveTypes), null)
+                        ? liveSignalSub.subscribeWithFilterAndGroup(topics, subscriber, toFilter(liveTypes), null,
+                        false)
                         : liveSignalSub.unsubscribeWithAck(topics, subscriber),
                 hasTwinEvents -> CompletableFuture.completedStage(null),
                 hasPolicyAnnouncements -> CompletableFuture.completedStage(null)
-        );
+        ).thenApply(consistent -> null);
     }
 
     @Override
@@ -146,10 +154,10 @@ final class DittoProtocolSubImpl implements DittoProtocolSub {
         distributedAcks.removeAcknowledgementLabelDeclaration(subscriber);
     }
 
-    private CompletionStage<Void> partitionByStreamingTypes(final Collection<StreamingType> types,
-            final Function<Set<StreamingType>, CompletionStage<?>> onLiveSignals,
-            final Function<Boolean, CompletionStage<?>> onTwinEvents,
-            final Function<Boolean, CompletionStage<?>> onPolicyAnnouncement) {
+    private CompletionStage<Boolean> partitionByStreamingTypes(final Collection<StreamingType> types,
+            final Function<Set<StreamingType>, CompletionStage<SubAck>> onLiveSignals,
+            final Function<Boolean, CompletionStage<SubAck>> onTwinEvents,
+            final Function<Boolean, CompletionStage<SubAck>> onPolicyAnnouncement) {
         final Set<StreamingType> liveTypes;
         final boolean hasTwinEvents;
         final boolean hasPolicyAnnouncements;
@@ -162,11 +170,18 @@ final class DittoProtocolSubImpl implements DittoProtocolSub {
             hasTwinEvents = liveTypes.remove(StreamingType.EVENTS);
             hasPolicyAnnouncements = liveTypes.remove(StreamingType.POLICY_ANNOUNCEMENTS);
         }
-        final CompletableFuture<?> liveStage = onLiveSignals.apply(liveTypes).toCompletableFuture();
-        final CompletableFuture<?> twinStage = onTwinEvents.apply(hasTwinEvents).toCompletableFuture();
-        final CompletableFuture<?> policyAnnouncementStage =
-                onPolicyAnnouncement.apply(hasPolicyAnnouncements).toCompletableFuture();
-        return CompletableFuture.allOf(liveStage, twinStage, policyAnnouncementStage);
+        final var liveStage = onLiveSignals.apply(liveTypes).thenApply(this::isConsistent);
+        final var twinStage = onTwinEvents.apply(hasTwinEvents).thenApply(this::isConsistent);
+        final var policyAnnouncementStage =
+                onPolicyAnnouncement.apply(hasPolicyAnnouncements).thenApply(this::isConsistent);
+        return liveStage.thenCompose(liveConsistent ->
+                twinStage.thenCompose(twinConsistent ->
+                        policyAnnouncementStage.thenApply(policyConsistent ->
+                                liveConsistent && twinConsistent && policyConsistent)));
+    }
+
+    private boolean isConsistent(@Nullable final SubAck ack) {
+        return ack == null || ack.isConsistent();
     }
 
     private static Predicate<Collection<String>> toFilter(final Collection<StreamingType> streamingTypes) {

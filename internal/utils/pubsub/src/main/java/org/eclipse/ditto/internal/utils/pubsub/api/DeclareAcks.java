@@ -28,9 +28,7 @@ public final class DeclareAcks implements AckRequest {
     @Nullable private final String group;
     private final Set<String> ackLabels;
 
-    private DeclareAcks(final ActorRef subscriber,
-            @Nullable final String group,
-            final Set<String> ackLabels) {
+    private DeclareAcks(final ActorRef subscriber, @Nullable final String group, final Set<String> ackLabels) {
         this.subscriber = subscriber;
         this.group = group;
         this.ackLabels = ackLabels;
@@ -44,9 +42,7 @@ public final class DeclareAcks implements AckRequest {
      * @param ackLabels the set of acknowledgement labels being declared - may be empty.
      * @return the request.
      */
-    public static AckRequest of(final ActorRef subscriber,
-            @Nullable final String group,
-            final Set<String> ackLabels) {
+    public static AckRequest of(final ActorRef subscriber, @Nullable final String group, final Set<String> ackLabels) {
         return new DeclareAcks(subscriber, group, ackLabels);
     }
 
