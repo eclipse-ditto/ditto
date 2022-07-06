@@ -20,7 +20,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
-
 /**
  * Possible Aliases for Address used by connections of type 'Hono'
  */
@@ -43,16 +42,19 @@ public enum HonoAddressAlias {
     /**
      * command response address alias
      */
-    COMMAND_RESPONSE("command_response"),
-
-    /**
-     * unrecognized address alias
-     */
-    UNKNOWN("");
+    COMMAND_RESPONSE("command_response");
 
     private final String name;
 
     private static final Map<String, HonoAddressAlias> HONO_ADDRESS_ALIAS_MAP;
+
+    static {
+        Map<String, HonoAddressAlias> map = new ConcurrentHashMap<>();
+        for (HonoAddressAlias alias : HonoAddressAlias.values()) {
+            map.put(alias.getName(), alias);
+        }
+        HONO_ADDRESS_ALIAS_MAP = Collections.unmodifiableMap(map);
+    }
 
     HonoAddressAlias(String name) {
         this.name = name;
@@ -65,14 +67,6 @@ public enum HonoAddressAlias {
      */
     public String getName() {
         return name;
-    }
-
-    static {
-        Map<String, HonoAddressAlias> map = new ConcurrentHashMap<>();
-        for (HonoAddressAlias alias : HonoAddressAlias.values()) {
-            map.put(alias.getName(), alias);
-        }
-        HONO_ADDRESS_ALIAS_MAP = Collections.unmodifiableMap(map);
     }
 
     /**
@@ -109,8 +103,8 @@ public enum HonoAddressAlias {
      */
     public static String resolve(String alias, String tenantId, boolean thingSuffix) {
         return fromName(alias)
-                .map(found -> "hono." + found + "." + tenantId + (thingSuffix ? "/{{thing:id}}" : ""))
-                .orElse("");
+                .map(found -> "hono." + found.getName() + "." + tenantId + (thingSuffix ? "/{{thing:id}}" : ""))
+                .orElse(alias);
     }
 
     /**

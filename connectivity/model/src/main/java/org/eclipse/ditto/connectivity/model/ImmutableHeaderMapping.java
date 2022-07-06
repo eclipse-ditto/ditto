@@ -22,16 +22,16 @@ import java.util.stream.Collectors;
 
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 
 /**
  * Immutable implementation of a {@link HeaderMapping}.
  */
 @Immutable
-final class ImmutableHeaderMapping implements HeaderMapping {
+public final class ImmutableHeaderMapping implements HeaderMapping {
 
     private final Map<String, String> mapping;
 
@@ -52,7 +52,7 @@ final class ImmutableHeaderMapping implements HeaderMapping {
      * @throws NullPointerException if {@code jsonObject} is {@code null}.
      * @throws org.eclipse.ditto.json.JsonParseException if {@code jsonObject} is not an appropriate JSON object.
      */
-    static HeaderMapping fromJson(final JsonObject jsonObject) {
+    public static HeaderMapping fromJson(final JsonObject jsonObject) {
         return new ImmutableHeaderMapping(jsonObject.stream()
                 .filter(f -> f.getValue().isString())
                 .collect(Collectors.toMap(JsonField::getKeyName, jsonField -> jsonField.getValue().asString())));

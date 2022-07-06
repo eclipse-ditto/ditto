@@ -25,8 +25,10 @@ import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.connectivity.model.ConnectionType;
 import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
 import org.eclipse.ditto.connectivity.model.HonoAddressAlias;
+import org.eclipse.ditto.connectivity.model.ImmutableHeaderMapping;
 import org.eclipse.ditto.connectivity.model.Source;
 import org.eclipse.ditto.connectivity.model.Target;
+import org.eclipse.ditto.connectivity.model.Topic;
 import org.eclipse.ditto.connectivity.service.messaging.amqp.AmqpClientActor;
 import org.eclipse.ditto.connectivity.service.messaging.httppush.HttpPushClientActor;
 import org.eclipse.ditto.connectivity.service.messaging.kafka.KafkaClientActor;
@@ -146,17 +148,24 @@ public final class DefaultClientActorPropsFactory implements ClientActorPropsFac
                         .map(JsonValue::of)
                         .toList()));
         source.getReplyTarget().ifPresent(replyTarget -> {
-            sourceBuilder.set("replyTarget/address", HonoAddressAlias.resolve(replyTarget.getAddress(), tenantId, true));
-            switch (HonoAddressAlias.fromName(replyTarget.getAddress()).orElse(HonoAddressAlias.UNKNOWN)) {
-                case COMMAND -> {
-                    sourceBuilder.set("replyTarget/headerMapping/device_id", "{{ thing:id }}");
-                    sourceBuilder.set("replyTarget/headerMapping/subject",
-                            "{{ header:subject | fn:default(topic:action-subject) | fn:default(topic:criterion) }}-response");
-                }
-                case COMMAND_RESPONSE -> sourceBuilder.set("replyTarget/headerMapping/status", "{{ header:status }}");
+            var headerMapping = replyTarget.getHeaderMapping().toJson()
+                    .setValue("correlation-id", "{{ header:correlation-id }}");
+            if (HonoAddressAlias.COMMAND.getName().equals(replyTarget.getAddress())) {
+                headerMapping = headerMapping
+                        .setValue("device_id", "{{ thing:id }}")
+                        .setValue("subject",
+                                "{{ header:subject | fn:default(topic:action-subject) | fn:default(topic:criterion) }}-response");
             }
-            sourceBuilder.set("replyTarget/headerMapping/correlation-id", "{{ header:correlation-id }}");
+            sourceBuilder.set("replyTarget", replyTarget.toBuilder()
+                    .address(HonoAddressAlias.resolve(replyTarget.getAddress(), tenantId, true))
+                    .headerMapping(ImmutableHeaderMapping.fromJson(headerMapping))
+                    .build().toJson());
         });
+        if (source.getAddresses().contains(HonoAddressAlias.COMMAND_RESPONSE.getName())) {
+            sourceBuilder.set("headerMapping", source.getHeaderMapping().toJson()
+                    .setValue("correlation-id", "{{ header:correlation-id }}")
+                    .setValue("status", "{{ header:status }}"));
+        }
         return sourceBuilder.build();
     }
 
@@ -164,7 +173,16 @@ public final class DefaultClientActorPropsFactory implements ClientActorPropsFac
         JsonObjectBuilder targetBuilder = JsonFactory.newObjectBuilder(target.toJson())
                 .set(Target.JsonFields.ADDRESS, Optional.of(target.getAddress())
                         .map(address -> HonoAddressAlias.resolve(address, tenantId, true))
-                        .orElse(null), jsonField -> !target.getAddress().isEmpty());
+                        .orElse(null), jsonField -> !jsonField.getValue().asString().isEmpty());
+        var headerMapping = target.getHeaderMapping().toJson()
+                .setValue("device_id", "{{ thing:id }}")
+                .setValue("correlation-id", "{{ header:correlation-id }}")
+                .setValue("subject", "{{ header:subject | fn:default(topic:action-subject) }}");
+        if (target.getTopics().stream()
+                .anyMatch(topic -> topic.getTopic() == Topic.LIVE_MESSAGES || topic.getTopic() == Topic.LIVE_COMMANDS)) {
+            headerMapping.setValue("response-required", "{{ header:response-required }}");
+        }
+        targetBuilder.set("headerMapping", headerMapping);
         return targetBuilder.build();
     }
 

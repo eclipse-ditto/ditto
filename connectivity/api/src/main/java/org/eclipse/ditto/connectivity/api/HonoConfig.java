@@ -42,9 +42,10 @@ public interface HonoConfig extends Extension {
      */
     String getBaseUri();
 
-    /*
-
-
+    /**
+     * Gets validateCertificates boolean property
+     *
+      * @return validateCertificates boolean property
      */
     Boolean getValidateCertificates();
     /**
@@ -70,10 +71,10 @@ public interface HonoConfig extends Extension {
     Credentials getCredentials(ConnectionId connectionId);
 
     /**
-     * Gets the Kafka GroupId property
+     * Gets Hub tenant_id property
      *
      * @param connectionId The connection ID of the connection
-     * @return GroupId
+     * @return hubTenantId
      */
     String getTenantId(ConnectionId connectionId);
 

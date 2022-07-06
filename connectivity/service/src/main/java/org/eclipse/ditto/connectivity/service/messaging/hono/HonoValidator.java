@@ -35,6 +35,7 @@ import org.eclipse.ditto.connectivity.service.messaging.validation.AbstractProto
 import org.eclipse.ditto.placeholders.PlaceholderFactory;
 
 import akka.actor.ActorSystem;
+
 @Immutable
 public final class HonoValidator extends AbstractProtocolValidator {
 
@@ -137,7 +138,6 @@ public final class HonoValidator extends AbstractProtocolValidator {
                             .toString();
                     return buildInvalidSourceAddressException(address, dittoHeaders, aliases);
                 });
-
     }
 
     private static void throwEmptyException(final DittoHeaders dittoHeaders) {
@@ -149,7 +149,7 @@ public final class HonoValidator extends AbstractProtocolValidator {
 
     private static ConnectionConfigurationInvalidException buildInvalidTargetAddressException(String address,
             final DittoHeaders dittoHeaders) {
-        final String message = MessageFormat.format(INVALID_TARGET_ADDRESS_ALIAS_FORMAT,  address);
+        final String message = MessageFormat.format(INVALID_TARGET_ADDRESS_ALIAS_FORMAT, address);
         throw ConnectionConfigurationInvalidException.newBuilder(message)
                 .dittoHeaders(dittoHeaders)
                 .build();
