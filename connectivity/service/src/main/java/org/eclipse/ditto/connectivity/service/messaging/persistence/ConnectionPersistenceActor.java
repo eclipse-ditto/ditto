@@ -1177,6 +1177,9 @@ public final class ConnectionPersistenceActor
                                 if (optionalResponse.isPresent()) {
                                     final var response = optionalResponse.get();
                                     if (response.getHttpStatus().isSuccess()) {
+                                        log.info("Adjusting encoding of connection with ID: {}. The connection URI " +
+                                                        "will now be single encoded.",
+                                                connectionWithSingleEncodedPassword.getId());
                                         final var modifyConnection =
                                                 ModifyConnection.of(connectionWithSingleEncodedPassword,
                                                         response.getDittoHeaders());
