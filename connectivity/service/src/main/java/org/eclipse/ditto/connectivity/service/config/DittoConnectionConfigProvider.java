@@ -34,21 +34,20 @@ import akka.actor.ActorSystem;
  */
 public class DittoConnectionConfigProvider implements ConnectionConfigProvider {
 
-    private final ActorSystem actorSystem;
-
     public DittoConnectionConfigProvider(final ActorSystem actorSystem) {
-        this.actorSystem = actorSystem;
     }
 
     @Override
     public CompletionStage<Config> getConnectivityConfigOverwrites(final ConnectionId connectionId,
             @Nullable final DittoHeaders dittoHeaders) {
+
         return CompletableFuture.completedFuture(ConfigFactory.empty());
     }
 
     @Override
     public CompletionStage<Void> registerForConnectivityConfigChanges(final ConnectionId connectionId,
             @Nullable final DittoHeaders dittoHeaders, final ActorRef subscriber) {
+
         // nothing to do, config changes are not supported by the default implementation
         return CompletableFuture.completedStage(null);
     }

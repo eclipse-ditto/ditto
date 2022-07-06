@@ -26,7 +26,7 @@ public interface ConnectivitySudoQueryCommandResponse<T extends ConnectivitySudo
         SudoQueryCommandResponse<T> {
 
     /**
-     * Type Prefix of thing sudo command responses.
+     * Type Prefix of Connectivity sudo command responses.
      */
     String TYPE_PREFIX = "connectivity." + SUDO_TYPE_QUALIFIER;
 
@@ -42,7 +42,7 @@ public interface ConnectivitySudoQueryCommandResponse<T extends ConnectivitySudo
     T setDittoHeaders(DittoHeaders dittoHeaders);
 
     /**
-     * An enumeration of the known {@link org.eclipse.ditto.json.JsonField}s of a Sudo Thing command response.
+     * An enumeration of the known {@link org.eclipse.ditto.json.JsonField}s of a Sudo Connectivity command response.
      */
     class JsonFields extends CommandResponse.JsonFields {
 

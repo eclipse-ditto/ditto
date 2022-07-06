@@ -90,6 +90,7 @@ public final class ConnectionSupervisorActor
     @SuppressWarnings("unused")
     private ConnectionSupervisorActor(final ActorRef commandForwarderActor, final ActorRef pubSubMediator,
             final ConnectionEnforcerActorPropsFactory enforcerActorPropsFactory) {
+
         super(null, CONNECTIVITY_DEFAULT_LOCAL_ASK_TIMEOUT);
         this.commandForwarderActor = commandForwarderActor;
         this.pubSubMediator = pubSubMediator;

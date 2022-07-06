@@ -382,7 +382,6 @@ public final class MongoReadJournal {
         return getNewestSnapshotsAbove(lowerBoundPid, batchSize, false, mat, snapshotFields);
     }
 
-
     /**
      * Retrieve all latest snapshots with unique PIDs in snapshot store above a lower bound.
      * Does not limit database access in any way.
