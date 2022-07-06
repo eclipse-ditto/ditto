@@ -113,7 +113,7 @@ public final class HonoValidatorTest {
     public void testInvalidTargetAddress() {
         verifyConnectionConfigurationInvalidExceptionIsThrownAndMessage(getConnectionWithTarget(""), "empty");
         verifyConnectionConfigurationInvalidExceptionIsThrownAndMessage(getConnectionWithTarget("event"), "command");
-        verifyConnectionConfigurationInvalidExceptionIsThrownAndMessage(getConnectionWithTarget("telemtry"), "command");
+        verifyConnectionConfigurationInvalidExceptionIsThrownAndMessage(getConnectionWithTarget("telemetry"), "command");
         verifyConnectionConfigurationInvalidExceptionIsThrownAndMessage(getConnectionWithTarget("command_response"),
                 "command");
         verifyConnectionConfigurationInvalidExceptionIsThrownAndMessage(

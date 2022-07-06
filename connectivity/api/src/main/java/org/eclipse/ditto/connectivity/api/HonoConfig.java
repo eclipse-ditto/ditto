@@ -15,7 +15,7 @@ package org.eclipse.ditto.connectivity.api;
 import java.util.List;
 
 import org.eclipse.ditto.connectivity.model.ConnectionId;
-import org.eclipse.ditto.connectivity.model.Credentials;
+import org.eclipse.ditto.connectivity.model.UserPasswordCredentials;
 import org.eclipse.ditto.internal.utils.akka.AkkaClassLoader;
 import org.eclipse.ditto.internal.utils.config.KnownConfigValue;
 
@@ -68,7 +68,7 @@ public interface HonoConfig extends Extension {
      * @param connectionId The connection ID of the connection
      * @return The credentials of the connection
      */
-    Credentials getCredentials(ConnectionId connectionId);
+    UserPasswordCredentials getCredentials(ConnectionId connectionId);
 
     /**
      * Gets Hub tenant_id property
@@ -76,12 +76,14 @@ public interface HonoConfig extends Extension {
      * @param connectionId The connection ID of the connection
      * @return hubTenantId
      */
-    String getTenantId(ConnectionId connectionId);
+    default String getTenantId(ConnectionId connectionId) {
+        return "";
+    }
 
-    enum ConfigValues implements KnownConfigValue {
+    enum HonoConfigValue implements KnownConfigValue {
 
         /**
-         * Base URI, including port number (without protocol prefix)
+         * Base URI, including port number
          */
         BASE_URI("base-uri", ""),
 
@@ -113,7 +115,7 @@ public interface HonoConfig extends Extension {
         private final String path;
         private final Object defaultValue;
 
-        ConfigValues(final String thePath, final Object theDefaultValue) {
+        HonoConfigValue(final String thePath, final Object theDefaultValue) {
             path = thePath;
             defaultValue = theDefaultValue;
         }

@@ -12,9 +12,10 @@
  */
 package org.eclipse.ditto.connectivity.api;
 
+import java.util.Objects;
+
 import org.eclipse.ditto.base.model.common.ConditionChecker;
 import org.eclipse.ditto.connectivity.model.ConnectionId;
-import org.eclipse.ditto.connectivity.model.Credentials;
 import org.eclipse.ditto.connectivity.model.UserPasswordCredentials;
 
 import com.typesafe.config.Config;
@@ -31,50 +32,92 @@ public final class DefaultHonoConfig implements HonoConfig {
     private final SaslMechanism saslMechanism;
     private final String bootstrapServers;
 
-    private final Credentials credentials;
+    private final UserPasswordCredentials credentials;
 
     public DefaultHonoConfig(final ActorSystem actorSystem) {
         ConditionChecker.checkNotNull(actorSystem, "actorSystem");
         final Config config = actorSystem.settings().config().getConfig(PREFIX);
 
-        this.baseUri = config.getString(ConfigValues.BASE_URI.getConfigPath());
-        this.validateCertificates = config.getBoolean(ConfigValues.VALIDATE_CERTIFICATES.getConfigPath());
-        this.saslMechanism = config.getEnum(SaslMechanism.class, ConfigValues.SASL_MECHANISM.getConfigPath());
-        this.bootstrapServers = config.getString(ConfigValues.BOOTSTRAP_SERVERS.getConfigPath());
+        this.baseUri = config.getString(HonoConfigValue.BASE_URI.getConfigPath());
+        this.validateCertificates = config.getBoolean(HonoConfigValue.VALIDATE_CERTIFICATES.getConfigPath());
+        this.saslMechanism = config.getEnum(SaslMechanism.class, HonoConfigValue.SASL_MECHANISM.getConfigPath());
+        this.bootstrapServers = config.getString(HonoConfigValue.BOOTSTRAP_SERVERS.getConfigPath());
 
         this.credentials = UserPasswordCredentials.newInstance(
-                config.getString(ConfigValues.USERNAME.getConfigPath()),
-                config.getString(ConfigValues.PASSWORD.getConfigPath()));
+                config.getString(HonoConfigValue.USERNAME.getConfigPath()),
+                config.getString(HonoConfigValue.PASSWORD.getConfigPath()));
     }
 
+    /**
+     * @return Base URI, including port number
+     */
     @Override
     public String getBaseUri() {
         return baseUri;
     }
 
+    /**
+     * @return validateCertificates boolean property
+     */
     @Override
     public Boolean getValidateCertificates() {
         return validateCertificates;
     }
 
+    /**
+     * @return SASL mechanism property
+     */
     @Override
     public SaslMechanism getSaslMechanism() {
         return saslMechanism;
     }
 
+    /**
+     * @return Bootstrap servers address(es)
+     */
     @Override
     public String getBootstrapServers() {
         return bootstrapServers;
     }
 
+    /**
+     * Gets credentials for hono messaging
+     * @param connectionId The connection ID of the connection
+     * @return {@link org.eclipse.ditto.connectivity.model.UserPasswordCredentials} for hub messaging
+     */
     @Override
-    public Credentials getCredentials(final ConnectionId connectionId) {
+    public UserPasswordCredentials getCredentials(final ConnectionId connectionId) {
         return credentials;
     }
 
     @Override
-    public String getTenantId(ConnectionId connectionId) {
-        return connectionId.toString();
+    public boolean equals(final Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        final DefaultHonoConfig that = (DefaultHonoConfig) o;
+        return Objects.equals(baseUri, that.baseUri)
+                && Objects.equals(validateCertificates, that.validateCertificates)
+                && Objects.equals(saslMechanism, that.saslMechanism)
+                && Objects.equals(bootstrapServers, that.bootstrapServers);
+
+    }
+    @Override
+    public int hashCode() {
+        return Objects.hash(baseUri, validateCertificates, saslMechanism, bootstrapServers);
+    }
+
+    @Override
+    public String toString() {
+        return getClass().getSimpleName() + " [" +
+                "baseUri=" + baseUri +
+                ", validateCertificates=" + validateCertificates +
+                ", saslMechanism=" + saslMechanism +
+                ", bootstrapServers=" + bootstrapServers +
+                "]";
     }
 
 }

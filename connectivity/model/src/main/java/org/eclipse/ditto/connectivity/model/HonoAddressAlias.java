@@ -21,7 +21,7 @@ import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Possible Aliases for Address used by connections of type 'Hono'
+ * Possible address aliases used by connections of type 'Hono'
  */
 public enum HonoAddressAlias {
     /**
