@@ -460,7 +460,7 @@ public abstract class AbstractPersistenceActor<
         log.debug("Handling by strategy: <{}>", command);
 
         final StartedTrace trace = DittoTracing
-                .trace(command, command.getType())
+                .trace(command, "apply_command_strategy")
                 .start();
         final T tracedCommand = DittoTracing.propagateContext(trace.getContext(), command);
 
@@ -527,7 +527,7 @@ public abstract class AbstractPersistenceActor<
         final DittoDiagnosticLoggingAdapter l = log.withCorrelationId(event);
         l.debug("Persisting Event <{}>.", event.getType());
 
-        final StartedTrace persistTrace = DittoTracing.trace(event, "persist.event")
+        final StartedTrace persistTrace = DittoTracing.trace(event, "persist_event")
                 .tag(TracingTags.SIGNAL_TYPE, event.getType())
                 .start();
         final E tracedEvent = DittoTracing.propagateContext(persistTrace.getContext(), event);

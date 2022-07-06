@@ -352,8 +352,9 @@ final class AmqpConsumerActor extends LegacyBaseConsumerActor
             }
             headers = extractHeadersMapFromJmsMessage(message);
             correlationId = headers.get(DittoHeaderDefinition.CORRELATION_ID.getKey());
-            trace = DittoTracing.trace(DittoTracing.extractTraceContext(headers), "amqp.consume")
+            trace = DittoTracing.trace(DittoTracing.extractTraceContext(headers), "amqp_consume")
                     .correlationId(correlationId)
+                    .connectionId(connectionId)
                     .start();
             headers = trace.propagateContext(headers);
             final ExternalMessageBuilder builder = ExternalMessageFactory.newExternalMessageBuilder(headers);
