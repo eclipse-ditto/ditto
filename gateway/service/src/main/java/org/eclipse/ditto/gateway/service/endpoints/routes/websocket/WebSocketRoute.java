@@ -52,16 +52,16 @@ import org.eclipse.ditto.gateway.api.GatewayInternalErrorException;
 import org.eclipse.ditto.gateway.api.GatewayWebsocketSessionClosedException;
 import org.eclipse.ditto.gateway.api.GatewayWebsocketSessionExpiredException;
 import org.eclipse.ditto.gateway.service.endpoints.routes.AbstractRoute;
-import org.eclipse.ditto.gateway.service.streaming.StreamingAuthorizationEnforcer;
 import org.eclipse.ditto.gateway.service.endpoints.utils.GatewaySignalEnrichmentProvider;
 import org.eclipse.ditto.gateway.service.security.HttpHeader;
+import org.eclipse.ditto.gateway.service.streaming.StreamingAuthorizationEnforcer;
+import org.eclipse.ditto.gateway.service.streaming.actors.SessionedJsonifiable;
+import org.eclipse.ditto.gateway.service.streaming.actors.StreamingActor;
+import org.eclipse.ditto.gateway.service.streaming.actors.SupervisedStream;
 import org.eclipse.ditto.gateway.service.streaming.signals.Connect;
 import org.eclipse.ditto.gateway.service.streaming.signals.IncomingSignal;
 import org.eclipse.ditto.gateway.service.streaming.signals.StreamControlMessage;
 import org.eclipse.ditto.gateway.service.streaming.signals.StreamingAck;
-import org.eclipse.ditto.gateway.service.streaming.actors.SessionedJsonifiable;
-import org.eclipse.ditto.gateway.service.streaming.actors.StreamingActor;
-import org.eclipse.ditto.gateway.service.streaming.actors.SupervisedStream;
 import org.eclipse.ditto.gateway.service.util.config.streaming.StreamingConfig;
 import org.eclipse.ditto.gateway.service.util.config.streaming.WebsocketConfig;
 import org.eclipse.ditto.internal.models.signalenrichment.SignalEnrichmentFacade;
@@ -477,7 +477,7 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
                                     adapter,
                                     headerTranslator,
                                     logger);
-                            final StartedTrace trace = DittoTracing.trace(signal, "gw.streaming.in.signal")
+                            final StartedTrace trace = DittoTracing.trace(signal, "gw_streaming_in_signal")
                                     .tag(TracingTags.SIGNAL_TYPE, signal.getType())
                                     .start();
                             final Signal<?> tracedSignal = DittoTracing.propagateContext(trace.getContext(), signal);

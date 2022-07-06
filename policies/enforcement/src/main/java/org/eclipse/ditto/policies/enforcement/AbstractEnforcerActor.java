@@ -29,6 +29,8 @@ import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
 import org.eclipse.ditto.internal.utils.akka.actors.AbstractActorWithStashWithTimers;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
+import org.eclipse.ditto.internal.utils.tracing.DittoTracing;
+import org.eclipse.ditto.internal.utils.tracing.instruments.trace.StartedTrace;
 import org.eclipse.ditto.policies.model.PolicyId;
 
 import akka.actor.ActorRef;
@@ -116,30 +118,43 @@ public abstract class AbstractEnforcerActor<I extends EntityId, S extends Signal
     }
 
     private void doEnforceSignal(final S signal, final ActorRef sender) {
+
+        final StartedTrace trace = DittoTracing
+                .trace(signal, "enforce")
+                .start();
+        final S tracedSignal = DittoTracing.propagateContext(trace.getContext(), signal);
         final ActorRef self = getSelf();
+
         try {
-            loadPolicyEnforcer(signal)
-                    .thenCompose(optionalPolicyEnforcer -> optionalPolicyEnforcer
-                            .map(policyEnforcer -> enforcement.authorizeSignal(signal, policyEnforcer))
-                            .orElseGet(() -> enforcement.authorizeSignalWithMissingEnforcer(signal))
+            loadPolicyEnforcer(tracedSignal)
+                    .thenCompose(optionalPolicyEnforcer -> {
+                                trace.mark("enforcer_loaded");
+                                return optionalPolicyEnforcer
+                                        .map(policyEnforcer -> enforcement.authorizeSignal(tracedSignal, policyEnforcer))
+                                        .orElseGet(() -> enforcement.authorizeSignalWithMissingEnforcer(tracedSignal));
+                            }
                     )
                     .whenComplete((authorizedSignal, throwable) -> {
                         if (null != authorizedSignal) {
+                            trace.mark("enforce_success").finish();
                             log.withCorrelationId(authorizedSignal)
                                     .info("Completed enforcement of message type <{}> with outcome 'success'",
                                             authorizedSignal.getType());
                             sender.tell(authorizedSignal, self);
                         } else if (null != throwable) {
-                            handleAuthorizationFailure(signal, throwable, sender);
+                            trace.mark("enforce_failed").fail(throwable).finish();
+                            handleAuthorizationFailure(tracedSignal, throwable, sender);
                         } else {
-                            log.withCorrelationId(signal)
+                            trace.mark("enforce_error").fail("unknown-outcome").finish();
+                            log.withCorrelationId(tracedSignal)
                                     .warning(
                                             "Neither authorizedSignal nor throwable were present during enforcement of signal: " +
-                                                    "<{}>", signal);
+                                                    "<{}>", tracedSignal);
                         }
                     });
         } catch (final DittoRuntimeException dittoRuntimeException) {
-            handleAuthorizationFailure(signal, dittoRuntimeException, sender);
+            trace.mark("enforce_failed").fail(dittoRuntimeException).finish();
+            handleAuthorizationFailure(tracedSignal, dittoRuntimeException, sender);
         }
     }
 

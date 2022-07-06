@@ -83,7 +83,7 @@ public interface SessionedJsonifiable {
      */
     static SessionedJsonifiable signal(final Signal<?> signal, final DittoHeaders sessionHeaders,
             final StreamingSession session) {
-        final StartedTrace trace = DittoTracing.trace(signal, "gw.streaming.out.signal")
+        final StartedTrace trace = DittoTracing.trace(signal, "gw_streaming_out_signal")
                 .tag(TracingTags.SIGNAL_TYPE, signal.getType())
                 .start();
         final Signal<?> tracedSignal = DittoTracing.propagateContext(trace.getContext(), signal);
@@ -97,7 +97,7 @@ public interface SessionedJsonifiable {
      * @return the sessioned Jsonifiable.
      */
     static SessionedJsonifiable error(final DittoRuntimeException error) {
-        final StartedTrace trace = DittoTracing.trace(error, "gw.streaming.out.error")
+        final StartedTrace trace = DittoTracing.trace(error, "gw_streaming_out_error")
                 .start();
         trace.fail(error);
         final DittoRuntimeException tracedError = DittoTracing.propagateContext(trace.getContext(), error);
@@ -111,7 +111,7 @@ public interface SessionedJsonifiable {
      * @return the sessioned Jsonifiable.
      */
     static SessionedJsonifiable response(final CommandResponse<?> response) {
-        final StartedTrace trace = DittoTracing.trace(response, "gw.streaming.out.response")
+        final StartedTrace trace = DittoTracing.trace(response, "gw_streaming_out_response")
                 .tag(TracingTags.SIGNAL_TYPE, response.getType())
                 .start();
         final CommandResponse<?> tracedResponse = DittoTracing.propagateContext(trace.getContext(), response);

@@ -39,6 +39,7 @@ import org.apache.kafka.common.header.internals.RecordHeaders;
 import org.eclipse.ditto.base.model.common.ByteBufferUtils;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.connectivity.api.ExternalMessage;
+import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
 import org.eclipse.ditto.connectivity.model.Enforcement;
 import org.eclipse.ditto.connectivity.model.EnforcementFilterFactory;
@@ -68,7 +69,8 @@ public final class KafkaMessageTransformerTest {
         final EnforcementFilterFactory<Map<String, String>, Signal<?>> enforcementFilterFactory =
                 newEnforcementFilterFactory(enforcement, newHeadersPlaceholder());
         inboundMonitor = mock(ConnectionMonitor.class);
-        underTest = new KafkaMessageTransformer(source, sourceAddress, enforcementFilterFactory, inboundMonitor);
+        underTest = new KafkaMessageTransformer(ConnectionId.of("foo"),
+                source, sourceAddress, enforcementFilterFactory, inboundMonitor);
     }
 
     @Test

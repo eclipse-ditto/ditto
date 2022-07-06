@@ -44,6 +44,8 @@ import org.eclipse.ditto.internal.utils.metrics.instruments.counter.Counter;
 import org.eclipse.ditto.internal.utils.metrics.instruments.timer.PreparedTimer;
 import org.eclipse.ditto.internal.utils.metrics.instruments.timer.StartedTimer;
 import org.eclipse.ditto.internal.utils.namespaces.BlockedNamespaces;
+import org.eclipse.ditto.internal.utils.tracing.DittoTracing;
+import org.eclipse.ditto.internal.utils.tracing.instruments.trace.StartedTrace;
 import org.eclipse.ditto.policies.enforcement.pre.PreEnforcerProvider;
 
 import akka.actor.ActorRef;
@@ -642,10 +644,15 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
     protected CompletionStage<Object> enforceSignalAndForwardToTargetActor(final S signal, final ActorRef sender) {
 
         if (null != enforcerChild) {
-            final StartedTimer rootTimer = createTimer(signal);
+            final StartedTrace trace = DittoTracing
+                    .trace(signal, signal.getType())
+                    .correlationId(signal.getDittoHeaders().getCorrelationId().orElse(null))
+                    .start();
+            final S tracedSignal = DittoTracing.propagateContext(trace.getContext(), signal);
+            final StartedTimer rootTimer = createTimer(tracedSignal);
             final StartedTimer preEnforcementTimer = rootTimer.startNewSegment(
                     ENFORCEMENT_TIMER_SEGMENT_PRE_ENFORCEMENT);
-            return preEnforcer.apply(signal).thenCompose(preEnforcedSignal -> {
+            return preEnforcer.apply(tracedSignal).thenCompose(preEnforcedSignal -> {
                         if (preEnforcedSignal instanceof Command<?> command) {
                             // update category which could have been changed by preEnforcer
                             final String category = command.getCategory().name().toLowerCase();
@@ -654,6 +661,7 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
                         }
                         preEnforcementTimer.tag(ENFORCEMENT_TIMER_TAG_OUTCOME, ENFORCEMENT_TIMER_TAG_OUTCOME_SUCCESS)
                                 .stop();
+                        trace.mark("pre_enforced");
                         final StartedTimer enforcementTimer = rootTimer.startNewSegment(
                                 ENFORCEMENT_TIMER_SEGMENT_ENFORCEMENT);
                         return askEnforcerChild(preEnforcedSignal)
@@ -661,18 +669,24 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
                                 .thenCompose(enforcedCommand -> enforcerResponseToTargetActor(
                                         rootTimer.startNewSegment(ENFORCEMENT_TIMER_SEGMENT_PROCESSING),
                                         enforcementTimer,
+                                        trace,
                                         preEnforcedSignal.getDittoHeaders(),
                                         enforcedCommand,
                                         sender
                                 ))
                                 .thenCompose(targetActorResponse ->
-                                        filterTargetActorResponseViaEnforcer(targetActorResponse, rootTimer)
+                                        filterTargetActorResponseViaEnforcer(targetActorResponse, rootTimer, trace)
                                 )
-                                .whenComplete((result, error) -> rootTimer
-                                        .tag(ENFORCEMENT_TIMER_TAG_OUTCOME, error != null ?
-                                                ENFORCEMENT_TIMER_TAG_OUTCOME_FAIL :
-                                                ENFORCEMENT_TIMER_TAG_OUTCOME_SUCCESS)
-                                        .stop()
+                                .whenComplete((result, error) -> {
+                                            rootTimer.tag(ENFORCEMENT_TIMER_TAG_OUTCOME, error != null ?
+                                                            ENFORCEMENT_TIMER_TAG_OUTCOME_FAIL :
+                                                            ENFORCEMENT_TIMER_TAG_OUTCOME_SUCCESS)
+                                                    .stop();
+                                            if (null != error) {
+                                                trace.fail(error);
+                                            }
+                                            trace.finish();
+                                        }
                                 );
                     }
             );
@@ -701,17 +715,20 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
     private CompletionStage<EnforcedSignalAndTargetActorResponse> enforcerResponseToTargetActor(
             final StartedTimer processingTimer,
             final StartedTimer enforcementTimer,
+            final StartedTrace trace,
             final DittoHeaders dittoHeaders,
             @Nullable final Object enforcerResponse,
             final ActorRef sender) {
 
         if (null == persistenceActorChild) {
             enforcementTimer.tag(ENFORCEMENT_TIMER_TAG_OUTCOME, ENFORCEMENT_TIMER_TAG_OUTCOME_FAIL).stop();
+            trace.fail("unavailable");
             throw getUnavailableExceptionBuilder(entityId)
                     .dittoHeaders(dittoHeaders)
                     .build();
         } else if (enforcerResponse instanceof Signal<?> enforcedSignal) {
             enforcementTimer.tag(ENFORCEMENT_TIMER_TAG_OUTCOME, ENFORCEMENT_TIMER_TAG_OUTCOME_SUCCESS).stop();
+            trace.mark("enforced");
             log.withCorrelationId(enforcedSignal)
                     .debug("Received enforcedSignal from enforcerChild, forwarding to target actor: {}",
                             enforcedSignal);
@@ -723,6 +740,7 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
                     );
         } else if (enforcerResponse instanceof DistributedPubWithMessage distributedPubWithMessage) {
             enforcementTimer.tag(ENFORCEMENT_TIMER_TAG_OUTCOME, ENFORCEMENT_TIMER_TAG_OUTCOME_SUCCESS).stop();
+            trace.mark("enforced");
             return askTargetActor(distributedPubWithMessage,
                     distributedPubWithMessage.signal().getDittoHeaders().isResponseRequired(), sender
             )
@@ -734,11 +752,13 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
                     );
         } else if (enforcerResponse instanceof DittoRuntimeException dre) {
             enforcementTimer.tag(ENFORCEMENT_TIMER_TAG_OUTCOME, ENFORCEMENT_TIMER_TAG_OUTCOME_FAIL).stop();
+            trace.fail(dre);
             log.withCorrelationId(dittoHeaders)
                     .debug("Received DittoRuntimeException as response from enforcerChild: {}", dre);
             throw dre;
         } else {
             enforcementTimer.tag(ENFORCEMENT_TIMER_TAG_OUTCOME, ENFORCEMENT_TIMER_TAG_OUTCOME_FAIL).stop();
+            trace.fail("unknown_response");
             return CompletableFuture.completedStage(
                     new EnforcedSignalAndTargetActorResponse(null, null, processingTimer)
             );
@@ -756,12 +776,15 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
     }
 
     protected CompletionStage<Object> filterTargetActorResponseViaEnforcer(
-            final EnforcedSignalAndTargetActorResponse targetActorResponse, final StartedTimer rootTimer) {
+            final EnforcedSignalAndTargetActorResponse targetActorResponse,
+            final StartedTimer rootTimer,
+            final StartedTrace trace) {
 
         if (targetActorResponse.response() instanceof CommandResponse<?> commandResponse) {
             targetActorResponse.processingTimer()
                     .tag(ENFORCEMENT_TIMER_TAG_OUTCOME, ENFORCEMENT_TIMER_TAG_OUTCOME_SUCCESS)
                     .stop();
+            trace.mark("processed");
             final StartedTimer responseFilterTimer = rootTimer.startNewSegment(
                     ENFORCEMENT_TIMER_SEGMENT_RESPONSE_FILTER);
 
@@ -769,11 +792,16 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
                     .debug("Received CommandResponse from target actor, " +
                             "telling enforcerChild to apply response filtering: {}", commandResponse);
             return askEnforcerChild(commandResponse)
-                    .whenComplete((result, error) ->
-                            responseFilterTimer
-                                    .tag(ENFORCEMENT_TIMER_TAG_OUTCOME, error != null ?
-                                            ENFORCEMENT_TIMER_TAG_OUTCOME_FAIL : ENFORCEMENT_TIMER_TAG_OUTCOME_SUCCESS)
-                                    .stop()
+                    .whenComplete((result, error) -> {
+                                responseFilterTimer
+                                        .tag(ENFORCEMENT_TIMER_TAG_OUTCOME, error != null ?
+                                                ENFORCEMENT_TIMER_TAG_OUTCOME_FAIL : ENFORCEMENT_TIMER_TAG_OUTCOME_SUCCESS)
+                                        .stop();
+                                if (null != error) {
+                                    trace.fail(error);
+                                }
+                                trace.mark("response_filtered");
+                            }
                     );
         } else if (targetActorResponse.response() instanceof DittoRuntimeException dre) {
             log.withCorrelationId(targetActorResponse.enforcedSignal())
@@ -781,6 +809,7 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
             targetActorResponse.processingTimer()
                     .tag(ENFORCEMENT_TIMER_TAG_OUTCOME, ENFORCEMENT_TIMER_TAG_OUTCOME_FAIL)
                     .stop();
+            trace.fail(dre).mark("processed");
             throw dre;
         } else if (targetActorResponse.response() instanceof Status.Success success) {
             log.withCorrelationId(targetActorResponse.enforcedSignal())
@@ -788,6 +817,7 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
             targetActorResponse.processingTimer()
                     .tag(ENFORCEMENT_TIMER_TAG_OUTCOME, ENFORCEMENT_TIMER_TAG_OUTCOME_FAIL)
                     .stop();
+            trace.mark("processed");
             return CompletableFuture.completedStage(success);
         } else if (targetActorResponse.response() instanceof AskTimeoutException askTimeoutException) {
             log.withCorrelationId(targetActorResponse.enforcedSignal())
@@ -795,11 +825,13 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
             targetActorResponse.processingTimer()
                     .tag(ENFORCEMENT_TIMER_TAG_OUTCOME, ENFORCEMENT_TIMER_TAG_OUTCOME_FAIL)
                     .stop();
+            trace.fail(askTimeoutException).mark("processed");
             return CompletableFuture.completedStage(null);
         } else if (targetActorResponse.response() instanceof Throwable throwable) {
             targetActorResponse.processingTimer()
                     .tag(ENFORCEMENT_TIMER_TAG_OUTCOME, ENFORCEMENT_TIMER_TAG_OUTCOME_FAIL)
                     .stop();
+            trace.fail(throwable).mark("processed");
             return CompletableFuture.failedFuture(throwable);
         } else {
             log.withCorrelationId(targetActorResponse.enforcedSignal())
@@ -807,6 +839,7 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
             targetActorResponse.processingTimer()
                     .tag(ENFORCEMENT_TIMER_TAG_OUTCOME, ENFORCEMENT_TIMER_TAG_OUTCOME_FAIL)
                     .stop();
+            trace.fail("unknown_response").mark("processed");
             return CompletableFuture.completedStage(null);
         }
     }
