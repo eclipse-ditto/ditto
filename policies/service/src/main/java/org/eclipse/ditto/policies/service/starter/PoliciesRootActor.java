@@ -15,12 +15,14 @@ package org.eclipse.ditto.policies.service.starter;
 import static org.eclipse.ditto.policies.api.PoliciesMessagingConstants.CLUSTER_ROLE;
 
 import org.eclipse.ditto.base.api.devops.signals.commands.RetrieveStatisticsDetails;
+import org.eclipse.ditto.base.service.RootChildActorStarter;
 import org.eclipse.ditto.base.service.actors.DittoRootActor;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.cluster.ClusterUtil;
 import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.internal.utils.cluster.RetrieveStatisticsDetailsResponseSupplier;
 import org.eclipse.ditto.internal.utils.cluster.ShardRegionExtractor;
+import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import org.eclipse.ditto.internal.utils.health.DefaultHealthCheckingActorFactory;
 import org.eclipse.ditto.internal.utils.health.HealthCheckingActorOptions;
 import org.eclipse.ditto.internal.utils.namespaces.BlockedNamespaces;
@@ -132,6 +134,9 @@ public final class PoliciesRootActor extends DittoRootActor {
         final ActorRef healthCheckingActor =
                 startChildActor(DefaultHealthCheckingActorFactory.ACTOR_NAME, healthCheckingActorProps);
         bindHttpStatusRoute(policiesConfig.getHttpConfig(), healthCheckingActor);
+
+        final var rawServiceConfig = ScopedConfig.getOrEmpty(actorSystem.settings().config(), "ditto.policies");
+        RootChildActorStarter.get(actorSystem, rawServiceConfig).execute(getContext());
     }
 
     private static Props getPolicySupervisorActorProps(final SnapshotAdapter<Policy> snapshotAdapter,

@@ -18,6 +18,7 @@ import java.time.Duration;
 import javax.annotation.concurrent.Immutable;
 
 import com.typesafe.config.Config;
+import com.typesafe.config.ConfigFactory;
 
 /**
  * This extension of {@link com.typesafe.config.Config} knows the path which led to itself.
@@ -61,8 +62,8 @@ import com.typesafe.config.Config;
  * </pre>
  * A call to method {@link #getConfigPath()} would return {@code "ditto.caches"}.
  * <p>
- *   All get methods will throw a {@link DittoConfigError} if the config at the particular path is missing the value or
- *   if the value has a wrong type.
+ * All get methods will throw a {@link DittoConfigError} if the config at the particular path is missing the value or
+ * if the value has a wrong type.
  * </p>
  */
 @Immutable
@@ -72,6 +73,10 @@ public interface ScopedConfig extends Config, WithConfigPath {
      * The {@code ditto} "root" scope used in most of the configurations in Eclipse Ditto.
      */
     String DITTO_SCOPE = "ditto";
+
+    static Config getOrEmpty(final Config config, final String path) {
+        return config.hasPath(path) ? config.getConfig(path) : ConfigFactory.empty();
+    }
 
     /**
      * Same as {@link #getDuration(String)} but with the guarantee that the returned Duration is positive.

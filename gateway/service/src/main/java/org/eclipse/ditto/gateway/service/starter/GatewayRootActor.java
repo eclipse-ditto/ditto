@@ -64,6 +64,7 @@ import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.internal.utils.cluster.ShardRegionProxyActorFactory;
 import org.eclipse.ditto.internal.utils.cluster.config.ClusterConfig;
 import org.eclipse.ditto.internal.utils.config.LocalHostAddressSupplier;
+import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import org.eclipse.ditto.internal.utils.health.DefaultHealthCheckingActorFactory;
 import org.eclipse.ditto.internal.utils.health.HealthCheckingActorOptions;
 import org.eclipse.ditto.internal.utils.health.cluster.ClusterStatus;
@@ -72,6 +73,8 @@ import org.eclipse.ditto.internal.utils.http.DefaultHttpClientFacade;
 import org.eclipse.ditto.internal.utils.http.HttpClientFacade;
 import org.eclipse.ditto.internal.utils.protocol.ProtocolAdapterProvider;
 import org.eclipse.ditto.internal.utils.pubsubthings.DittoProtocolSub;
+
+import com.typesafe.config.Config;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorRefFactory;
@@ -105,6 +108,7 @@ public final class GatewayRootActor extends DittoRootActor {
     private GatewayRootActor(final GatewayConfig gatewayConfig, final ActorRef pubSubMediator) {
 
         final ActorSystem actorSystem = context().system();
+        final Config config = actorSystem.settings().config();
         final var clusterConfig = gatewayConfig.getClusterConfig();
         final int numberOfShards = clusterConfig.getNumberOfShards();
         final AuthenticationConfig authenticationConfig = gatewayConfig.getAuthenticationConfig();
@@ -150,7 +154,8 @@ public final class GatewayRootActor extends DittoRootActor {
                         pubSubMediator,
                         edgeCommandForwarder));
 
-        RootChildActorStarter.get(actorSystem).execute(getContext());
+        final var gatewayRawConfig = ScopedConfig.getOrEmpty(config, "ditto.gateway");
+        RootChildActorStarter.get(actorSystem, gatewayRawConfig).execute(getContext());
 
         final ActorRef healthCheckActor = createHealthCheckActor(healthCheckConfig);
         final var hostname = getHostname(httpConfig);

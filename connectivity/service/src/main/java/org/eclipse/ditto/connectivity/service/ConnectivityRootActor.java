@@ -33,6 +33,7 @@ import org.eclipse.ditto.internal.utils.cluster.ClusterUtil;
 import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.internal.utils.cluster.ShardRegionExtractor;
 import org.eclipse.ditto.internal.utils.cluster.config.ClusterConfig;
+import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import org.eclipse.ditto.internal.utils.health.DefaultHealthCheckingActorFactory;
 import org.eclipse.ditto.internal.utils.health.HealthCheckingActorOptions;
 import org.eclipse.ditto.internal.utils.health.config.HealthCheckConfig;
@@ -42,6 +43,8 @@ import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.MongoReadJou
 import org.eclipse.ditto.internal.utils.persistentactors.PersistencePingActor;
 import org.eclipse.ditto.internal.utils.persistentactors.cleanup.PersistenceCleanupActor;
 import org.eclipse.ditto.internal.utils.pubsubthings.DittoProtocolSub;
+
+import com.typesafe.config.Config;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
@@ -97,7 +100,7 @@ public final class ConnectivityRootActor extends DittoRootActor {
                         startConnectionShardRegion(actorSystem, connectionSupervisorProps, clusterConfig),
                         connectivityConfig.getPingConfig(), mongoReadJournal),
                 PersistencePingActor.ACTOR_NAME);
-
+        final Config config = actorSystem.settings().config();
         final ConnectionIdsRetrievalConfig connectionIdsRetrievalConfig =
                 connectivityConfig.getConnectionIdsRetrievalConfig();
         final ActorRef connectionIdsRetrievalActor = startChildActor(
@@ -105,9 +108,11 @@ public final class ConnectivityRootActor extends DittoRootActor {
                 ConnectionIdsRetrievalActor.props(mongoReadJournal, connectionIdsRetrievalConfig));
         startChildActor(ConnectionPersistenceOperationsActor.ACTOR_NAME,
                 ConnectionPersistenceOperationsActor.props(pubSubMediator, connectivityConfig.getMongoDbConfig(),
-                        actorSystem.settings().config(), connectivityConfig.getPersistenceOperationsConfig()));
+                        config, connectivityConfig.getPersistenceOperationsConfig()));
 
-        RootChildActorStarter.get(actorSystem).execute(getContext());
+        final var connectivityRawConfig = ScopedConfig.getOrEmpty(config, "ditto.connectivity");
+        RootChildActorStarter.get(actorSystem, connectivityRawConfig).execute(getContext());
+
 
         final var cleanupConfig = connectivityConfig.getConnectionConfig().getCleanupConfig();
         final var cleanupActorProps = PersistenceCleanupActor.props(cleanupConfig, mongoReadJournal, CLUSTER_ROLE);

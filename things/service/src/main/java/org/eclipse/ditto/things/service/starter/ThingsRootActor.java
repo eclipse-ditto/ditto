@@ -15,6 +15,7 @@ package org.eclipse.ditto.things.service.starter;
 import static org.eclipse.ditto.things.api.ThingsMessagingConstants.CLUSTER_ROLE;
 
 import org.eclipse.ditto.base.api.devops.signals.commands.RetrieveStatisticsDetails;
+import org.eclipse.ditto.base.service.RootChildActorStarter;
 import org.eclipse.ditto.base.service.actors.DittoRootActor;
 import org.eclipse.ditto.internal.utils.aggregator.DefaultThingsAggregatorConfig;
 import org.eclipse.ditto.internal.utils.aggregator.ThingsAggregatorActor;
@@ -25,6 +26,7 @@ import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.internal.utils.cluster.RetrieveStatisticsDetailsResponseSupplier;
 import org.eclipse.ditto.internal.utils.cluster.ShardRegionExtractor;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
+import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import org.eclipse.ditto.internal.utils.health.DefaultHealthCheckingActorFactory;
 import org.eclipse.ditto.internal.utils.health.HealthCheckingActorOptions;
 import org.eclipse.ditto.internal.utils.namespaces.BlockedNamespaces;
@@ -145,6 +147,10 @@ public final class ThingsRootActor extends DittoRootActor {
         pubSubMediator.tell(DistPubSubAccess.put(snapshotStreamingActor), getSelf());
 
         bindHttpStatusRoute(thingsConfig.getHttpConfig(), healthCheckingActor);
+
+        final var rawServiceConfig = ScopedConfig.getOrEmpty(actorSystem.settings().config(), "ditto.things");
+        RootChildActorStarter.get(actorSystem, rawServiceConfig).execute(getContext());
+
     }
 
     /**

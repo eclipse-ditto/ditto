@@ -14,6 +14,9 @@ package org.eclipse.ditto.base.service;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
+import com.typesafe.config.Config;
+import com.typesafe.config.ConfigFactory;
+
 import akka.actor.ActorContext;
 import akka.actor.ActorSystem;
 
@@ -36,21 +39,33 @@ public interface RootChildActorStarter extends DittoExtensionPoint {
      * {@code ActorSystem}.
      *
      * @param actorSystem the actorSystem in which the {@code RootChildActorStarter} should be loaded.
+     * @param config the config the extension is configured.
      * @return the {@code RootChildActorStarter} implementation.
      * @throws NullPointerException if {@code actorSystem} is {@code null}.
      */
-    static RootChildActorStarter get(final ActorSystem actorSystem) {
+    static RootChildActorStarter get(final ActorSystem actorSystem, final Config config) {
         checkNotNull(actorSystem, "actorSystem");
-        return ExtensionId.INSTANCE.get(actorSystem);
+        checkNotNull(config, "config");
+        final var extensionIdConfig = ExtensionId.computeConfig(config);
+        return DittoExtensionIds.get(actorSystem)
+                .computeIfAbsent(extensionIdConfig, ExtensionId::new)
+                .get(actorSystem);
     }
 
     final class ExtensionId extends DittoExtensionPoint.ExtensionId<RootChildActorStarter> {
 
-        private static final String CONFIG_PATH = "ditto.root-child-actor-starter";
-        private static final ExtensionId INSTANCE = new ExtensionId(RootChildActorStarter.class);
+        private static final String CONFIG_KEY = "root-child-actor-starter";
+        private static final String CONFIG_PATH = "ditto.extensions." + CONFIG_KEY;
 
-        private ExtensionId(final Class<RootChildActorStarter> parentClass) {
-            super(parentClass);
+        private ExtensionId(final ExtensionIdConfig<RootChildActorStarter> extensionIdConfig) {
+            super(extensionIdConfig);
+        }
+
+        static ExtensionIdConfig<RootChildActorStarter> computeConfig(final Config config) {
+            return ExtensionIdConfig.of(
+                    RootChildActorStarter.class,
+                    config.hasPath(CONFIG_KEY) ? config.getConfig(CONFIG_KEY) : ConfigFactory.empty()
+            );
         }
 
         @Override

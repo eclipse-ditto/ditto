@@ -22,6 +22,7 @@ import org.eclipse.ditto.base.service.actors.DittoRootActor;
 import org.eclipse.ditto.base.service.config.limits.LimitsConfig;
 import org.eclipse.ditto.internal.utils.akka.streaming.TimestampPersistence;
 import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
+import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.DittoMongoClient;
 import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.MongoTimestampPersistence;
 import org.eclipse.ditto.json.JsonFieldDefinition;
@@ -69,8 +70,8 @@ public final class SearchRootActor extends DittoRootActor {
         final var monitoringConfig = mongoDbConfig.getMonitoringConfig();
 
         final DittoMongoClient mongoDbClient = MongoClientExtension.get(actorSystem).getSearchClient();
-
-        RootChildActorStarter.get(actorSystem).execute(getContext());
+        final var searchRawConfig = ScopedConfig.getOrEmpty(actorSystem.settings().config(), "ditto.search");
+        RootChildActorStarter.get(actorSystem, searchRawConfig).execute(getContext());
 
         final var thingsSearchPersistence = getThingsSearchPersistence(searchConfig, mongoDbClient);
         final ActorRef searchActor = initializeSearchActor(searchConfig.getLimitsConfig(), thingsSearchPersistence);
