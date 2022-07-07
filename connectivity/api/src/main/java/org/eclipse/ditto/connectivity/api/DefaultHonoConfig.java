@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.connectivity.api;
 
+import java.net.URI;
+import java.util.Arrays;
 import java.util.Objects;
 
 import org.eclipse.ditto.base.model.common.ConditionChecker;
@@ -27,8 +29,8 @@ import akka.actor.ActorSystem;
  */
 public final class DefaultHonoConfig implements HonoConfig {
 
-    private final String baseUri;
-    private final Boolean validateCertificates;
+    private final URI baseUri;
+    private final boolean validateCertificates;
     private final SaslMechanism saslMechanism;
     private final String bootstrapServers;
 
@@ -38,10 +40,12 @@ public final class DefaultHonoConfig implements HonoConfig {
         ConditionChecker.checkNotNull(actorSystem, "actorSystem");
         final Config config = actorSystem.settings().config().getConfig(PREFIX);
 
-        this.baseUri = config.getString(HonoConfigValue.BASE_URI.getConfigPath());
+        this.baseUri = HonoConfig.getUri(HonoConfigValue.BASE_URI.getConfigPath());
         this.validateCertificates = config.getBoolean(HonoConfigValue.VALIDATE_CERTIFICATES.getConfigPath());
         this.saslMechanism = config.getEnum(SaslMechanism.class, HonoConfigValue.SASL_MECHANISM.getConfigPath());
         this.bootstrapServers = config.getString(HonoConfigValue.BOOTSTRAP_SERVERS.getConfigPath());
+        // Validate bootstrap servers
+        Arrays.stream(this.bootstrapServers.split(",")).forEach(HonoConfig::getUri);
 
         this.credentials = UserPasswordCredentials.newInstance(
                 config.getString(HonoConfigValue.USERNAME.getConfigPath()),
@@ -52,7 +56,7 @@ public final class DefaultHonoConfig implements HonoConfig {
      * @return Base URI, including port number
      */
     @Override
-    public String getBaseUri() {
+    public URI getBaseUri() {
         return baseUri;
     }
 
@@ -60,7 +64,7 @@ public final class DefaultHonoConfig implements HonoConfig {
      * @return validateCertificates boolean property
      */
     @Override
-    public Boolean getValidateCertificates() {
+    public boolean isValidateCertificates() {
         return validateCertificates;
     }
 
@@ -102,12 +106,13 @@ public final class DefaultHonoConfig implements HonoConfig {
         return Objects.equals(baseUri, that.baseUri)
                 && Objects.equals(validateCertificates, that.validateCertificates)
                 && Objects.equals(saslMechanism, that.saslMechanism)
-                && Objects.equals(bootstrapServers, that.bootstrapServers);
+                && Objects.equals(bootstrapServers, that.bootstrapServers)
+                && Objects.equals(credentials, that.credentials);
 
     }
     @Override
     public int hashCode() {
-        return Objects.hash(baseUri, validateCertificates, saslMechanism, bootstrapServers);
+        return Objects.hash(baseUri, validateCertificates, saslMechanism, bootstrapServers, credentials);
     }
 
     @Override

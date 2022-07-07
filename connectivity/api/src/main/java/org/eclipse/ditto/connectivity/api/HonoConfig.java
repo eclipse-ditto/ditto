@@ -12,11 +12,15 @@
  */
 package org.eclipse.ditto.connectivity.api;
 
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.List;
 
+import org.eclipse.ditto.base.model.common.ConditionChecker;
 import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.connectivity.model.UserPasswordCredentials;
 import org.eclipse.ditto.internal.utils.akka.AkkaClassLoader;
+import org.eclipse.ditto.internal.utils.config.DittoConfigError;
 import org.eclipse.ditto.internal.utils.config.KnownConfigValue;
 
 import akka.actor.AbstractExtensionId;
@@ -33,21 +37,22 @@ public interface HonoConfig extends Extension {
     /**
      * Prefix in .conf files
      */
-    String PREFIX = "ditto.connectivity.hono-connection";
+    String PREFIX = "ditto.connectivity.hono";
 
     /**
      * Gets the Base URI configuration value
      *
      * @return the connection URI
      */
-    String getBaseUri();
+    URI getBaseUri();
 
     /**
      * Gets validateCertificates boolean property
      *
-      * @return validateCertificates boolean property
+     * @return validateCertificates boolean property
      */
-    Boolean getValidateCertificates();
+    boolean isValidateCertificates();
+
     /**
      * Gets the SASL mechanism of Hono-connection (Kafka specific property)
      *
@@ -76,7 +81,7 @@ public interface HonoConfig extends Extension {
      * @param connectionId The connection ID of the connection
      * @return hubTenantId
      */
-    default String getTenantId(ConnectionId connectionId) {
+    default String getTenantId(final ConnectionId connectionId) {
         return "";
     }
 
@@ -94,7 +99,7 @@ public interface HonoConfig extends Extension {
 
         /**
          * SASL mechanism for connections of type Hono
-          */
+         */
         SASL_MECHANISM("sasl-mechanism", "plain"),
 
         /**
@@ -139,7 +144,23 @@ public interface HonoConfig extends Extension {
      * @return the {@code HonoConfig}.
      */
     static HonoConfig get(final ActorSystem actorSystem) {
+        ConditionChecker.checkNotNull(actorSystem, "actorSystem");
         return HonoConfig.ExtensionId.INSTANCE.get(actorSystem);
+    }
+
+    /**
+     * Validates and gets URI from a string
+     *
+     * @param uri A {@link String} to be validated
+     * @return New {@link URI} from specified string
+     * @throws DittoConfigError if given string is not a valid URI
+     */
+    static URI getUri(final String uri) throws DittoConfigError {
+        try {
+            return new URI(uri);
+        } catch (URISyntaxException e) {
+            throw new DittoConfigError(e);
+        }
     }
 
     /**
@@ -166,7 +187,7 @@ public interface HonoConfig extends Extension {
 
         PLAIN("plain");
 
-        final String value;
+        private final String value;
 
         SaslMechanism(String value) {
             this.value = value;

@@ -35,7 +35,7 @@ public enum HonoAddressAlias {
     EVENT("event"),
 
     /**
-     * command&control address alias
+     * command&#038;control address alias
      */
     COMMAND("command"),
 
