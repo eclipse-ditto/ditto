@@ -121,8 +121,8 @@ public final class DefaultClientActorPropsFactory implements ClientActorPropsFac
                         connection.getId(),
                         connection.getConnectionType(),
                         connection.getConnectionStatus(),
-                        honoConfig.getBaseUri())
-                .validateCertificate(honoConfig.getValidateCertificates())
+                        honoConfig.getBaseUri().toString())
+                .validateCertificate(honoConfig.isValidateCertificates())
                 .specificConfig(Map.of(
                         "saslMechanism", honoConfig.getSaslMechanism().getValue(),
                         "bootstrapServers", honoConfig.getBootstrapServers(),
