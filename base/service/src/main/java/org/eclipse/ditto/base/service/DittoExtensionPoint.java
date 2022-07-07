@@ -14,7 +14,12 @@ package org.eclipse.ditto.base.service;
 
 import java.util.List;
 
+import javax.annotation.Nullable;
+
 import org.eclipse.ditto.internal.utils.akka.AkkaClassLoader;
+
+import com.typesafe.config.Config;
+import com.typesafe.config.ConfigFactory;
 
 import akka.actor.AbstractExtensionId;
 import akka.actor.ActorSystem;
@@ -34,30 +39,59 @@ public interface DittoExtensionPoint extends Extension {
      */
     abstract class ExtensionId<T extends Extension> extends AbstractExtensionId<T> {
 
-        private final Class<T> parentClass;
+        private final ExtensionIdConfig<T> extensionIdConfig;
 
         /**
          * Returns the {@code ExtensionId} for the implementation that should be loaded.
          *
          * @param parentClass the class of the extensions for which an implementation should be loaded.
+         * @param extensionIdConfig configuration for the extension ID.
          */
-        public ExtensionId(final Class<T> parentClass) {
-            this.parentClass = parentClass;
+        protected ExtensionId(final ExtensionIdConfig<T> extensionIdConfig) {
+            this.extensionIdConfig = extensionIdConfig;
         }
 
         @Override
         public T createExtension(final ExtendedActorSystem system) {
-            return AkkaClassLoader.instantiate(system, parentClass,
+            return AkkaClassLoader.instantiate(system, extensionIdConfig.parentClass,
                     getImplementation(system),
-                    List.of(ActorSystem.class),
-                    List.of(system));
+                    List.of(ActorSystem.class, Config.class),
+                    List.of(system, extensionIdConfig.extensionConfig));
         }
 
         protected String getImplementation(final ExtendedActorSystem actorSystem) {
-            return actorSystem.settings().config().getString(getConfigPath());
+            if (extensionIdConfig.extensionClass == null) {
+                return actorSystem.settings().config().getString(getConfigPath());
+            } else {
+                return extensionIdConfig.extensionClass;
+            }
         }
 
         protected abstract String getConfigPath();
+
+        public record ExtensionIdConfig<T extends Extension>(Class<T> parentClass,
+                                                             @Nullable String extensionClass,
+                                                             Config extensionConfig) {
+
+            public static <T extends Extension> ExtensionIdConfig<T> of(
+                    final Class<T> parentClass,
+                    final Config config) {
+
+                @Nullable final String extensionClass;
+                final Config extensionConfig;
+                if (config.hasPath("extension-class")) {
+                    extensionClass = config.getString("extension-class");
+                } else {
+                    extensionClass = null;
+                }
+                if (config.hasPath("extension-config")) {
+                    extensionConfig = config.getConfig("extension-config");
+                } else {
+                    extensionConfig = ConfigFactory.empty();
+                }
+                return new ExtensionIdConfig<>(parentClass, extensionClass, extensionConfig);
+            }
+        }
 
     }
 
