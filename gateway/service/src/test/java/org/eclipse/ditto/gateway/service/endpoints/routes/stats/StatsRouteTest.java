@@ -62,7 +62,7 @@ public final class StatsRouteTest extends EndpointTestBase {
                 JwtAuthenticationFactory.newInstance(devOpsConfig.getOAuthConfig(), cacheConfig, httpClientFacade,
                         actorSystem);
         final var jwtAuthenticationProvider = JwtAuthenticationProvider.newInstance(
-                devopsJwtAuthenticationFactory.newJwtAuthenticationResultProvider(),
+                devopsJwtAuthenticationFactory.newJwtAuthenticationResultProvider("ditto.extensions"),
                 devopsJwtAuthenticationFactory.getJwtValidator());
         final var routeBaseProperties = RouteBaseProperties.newBuilder(this.routeBaseProperties)
                 .proxyActor(proxyActor)

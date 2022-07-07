@@ -17,8 +17,12 @@ import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 import java.util.List;
 
 import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
+import org.eclipse.ditto.base.service.DittoExtensionIds;
 import org.eclipse.ditto.base.service.DittoExtensionPoint;
 import org.eclipse.ditto.jwt.model.JsonWebToken;
+
+import com.typesafe.config.Config;
+import com.typesafe.config.ConfigFactory;
 
 import akka.actor.ActorSystem;
 
@@ -44,19 +48,30 @@ public interface JwtAuthorizationSubjectsProvider extends DittoExtensionPoint {
      * @throws NullPointerException if {@code actorSystem} is {@code null}.
      * @since 3.0.0
      */
-    static JwtAuthorizationSubjectsProvider get(final ActorSystem actorSystem) {
+    static JwtAuthorizationSubjectsProvider get(final ActorSystem actorSystem, final Config config) {
         checkNotNull(actorSystem, "actorSystem");
-        return ExtensionId.INSTANCE.get(actorSystem);
+        checkNotNull(config, "config");
+        final var extensionIdConfig = ExtensionId.computeConfig(config);
+        return DittoExtensionIds.get(actorSystem)
+                .computeIfAbsent(extensionIdConfig, ExtensionId::new)
+                .get(actorSystem);
     }
 
     final class ExtensionId extends DittoExtensionPoint.ExtensionId<JwtAuthorizationSubjectsProvider> {
 
-        private static final String CONFIG_PATH =
-                "ditto.gateway.authentication.oauth.jwt-authorization-subjects-provider";
-        private static final ExtensionId INSTANCE = new ExtensionId(JwtAuthorizationSubjectsProvider.class);
+        private static final String CONFIG_KEY = "jwt-authorization-subjects-provider";
+        private static final String CONFIG_PATH = "ditto.extensions." + CONFIG_KEY;
 
-        private ExtensionId(final Class<JwtAuthorizationSubjectsProvider> parentClass) {
-            super(parentClass);
+        private ExtensionId(final ExtensionIdConfig<JwtAuthorizationSubjectsProvider> extensionIdConfig) {
+            super(extensionIdConfig);
+        }
+
+        static ExtensionIdConfig<JwtAuthorizationSubjectsProvider> computeConfig(final Config config) {
+
+            return ExtensionIdConfig.of(
+                    JwtAuthorizationSubjectsProvider.class,
+                    config.hasPath(CONFIG_KEY) ? config.getConfig(CONFIG_KEY) : ConfigFactory.empty()
+            );
         }
 
         @Override

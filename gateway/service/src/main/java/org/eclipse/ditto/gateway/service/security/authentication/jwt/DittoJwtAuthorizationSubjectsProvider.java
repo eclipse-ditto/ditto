@@ -31,6 +31,8 @@ import org.eclipse.ditto.placeholders.PipelineElement;
 import org.eclipse.ditto.placeholders.PlaceholderFactory;
 import org.eclipse.ditto.policies.model.SubjectId;
 
+import com.typesafe.config.Config;
+
 import akka.actor.ActorSystem;
 
 /**
@@ -42,19 +44,21 @@ public final class DittoJwtAuthorizationSubjectsProvider implements JwtAuthoriza
     private final JwtSubjectIssuersConfig jwtSubjectIssuersConfig;
 
     @SuppressWarnings("unused") //Loaded via reflection by AkkaExtension.
-    public DittoJwtAuthorizationSubjectsProvider(final ActorSystem actorSystem) {
-        final DefaultScopedConfig dittoScoped =
-                DefaultScopedConfig.dittoScoped(actorSystem.settings().config());
+    public DittoJwtAuthorizationSubjectsProvider(final ActorSystem actorSystem, final Config extensionConfig) {
+        this(jwtSubjectIssuersConfig(actorSystem));
+    }
+
+    private DittoJwtAuthorizationSubjectsProvider(final JwtSubjectIssuersConfig jwtSubjectIssuersConfig) {
+
+        this.jwtSubjectIssuersConfig = checkNotNull(jwtSubjectIssuersConfig);
+    }
+
+    private static JwtSubjectIssuersConfig jwtSubjectIssuersConfig(final ActorSystem actorSystem) {
+        final DefaultScopedConfig dittoScoped = DefaultScopedConfig.dittoScoped(actorSystem.settings().config());
         final OAuthConfig oAuthConfig = DittoGatewayConfig.of(dittoScoped)
                 .getAuthenticationConfig()
                 .getOAuthConfig();
-        jwtSubjectIssuersConfig = JwtSubjectIssuersConfig.fromOAuthConfig(oAuthConfig);
-    }
-
-    private DittoJwtAuthorizationSubjectsProvider(final ActorSystem actorSystem,
-            final JwtSubjectIssuersConfig jwtSubjectIssuersConfig) {
-
-        this.jwtSubjectIssuersConfig = checkNotNull(jwtSubjectIssuersConfig);
+        return JwtSubjectIssuersConfig.fromOAuthConfig(oAuthConfig);
     }
 
     /**
@@ -70,7 +74,7 @@ public final class DittoJwtAuthorizationSubjectsProvider implements JwtAuthoriza
 
         checkNotNull(actorSystem);
         checkNotNull(jwtSubjectIssuersConfig);
-        return new DittoJwtAuthorizationSubjectsProvider(actorSystem, jwtSubjectIssuersConfig);
+        return new DittoJwtAuthorizationSubjectsProvider(jwtSubjectIssuersConfig);
     }
 
     @Override

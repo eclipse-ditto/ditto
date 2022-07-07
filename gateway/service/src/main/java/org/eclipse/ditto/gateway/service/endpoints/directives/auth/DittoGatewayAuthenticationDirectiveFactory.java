@@ -59,7 +59,9 @@ public final class DittoGatewayAuthenticationDirectiveFactory implements Gateway
 
         if (null == gatewayHttpAuthenticationDirective) {
             final JwtAuthenticationProvider jwtHttpAuthenticationProvider =
-                    JwtAuthenticationProvider.newInstance(jwtAuthenticationFactory.newJwtAuthenticationResultProvider(),
+                    JwtAuthenticationProvider.newInstance(jwtAuthenticationFactory.newJwtAuthenticationResultProvider(
+                                    "ditto.gateway.authentication.oauth"
+                            ),
                             jwtAuthenticationFactory.getJwtValidator());
             gatewayHttpAuthenticationDirective =
                     generateGatewayAuthenticationDirective(authConfig, jwtHttpAuthenticationProvider,
@@ -75,7 +77,9 @@ public final class DittoGatewayAuthenticationDirectiveFactory implements Gateway
         if (null == gatewayWsAuthenticationDirective) {
             final JwtAuthenticationProvider jwtWsAuthenticationProvider =
                     JwtAuthenticationProvider.newWsInstance(
-                            jwtAuthenticationFactory.newJwtAuthenticationResultProvider(),
+                            jwtAuthenticationFactory.newJwtAuthenticationResultProvider(
+                                    "ditto.gateway.authentication.oauth"
+                            ),
                             jwtAuthenticationFactory.getJwtValidator());
             gatewayWsAuthenticationDirective =
                     generateGatewayAuthenticationDirective(authConfig, jwtWsAuthenticationProvider,

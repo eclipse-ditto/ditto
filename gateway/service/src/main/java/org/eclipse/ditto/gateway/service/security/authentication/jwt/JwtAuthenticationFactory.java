@@ -18,6 +18,7 @@ import javax.annotation.Nullable;
 
 import org.eclipse.ditto.gateway.service.util.config.security.OAuthConfig;
 import org.eclipse.ditto.internal.utils.cache.config.CacheConfig;
+import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import org.eclipse.ditto.internal.utils.http.HttpClientFacade;
 
 import akka.actor.ActorSystem;
@@ -94,8 +95,11 @@ public final class JwtAuthenticationFactory {
         return jwtSubjectIssuersConfig;
     }
 
-    public JwtAuthenticationResultProvider newJwtAuthenticationResultProvider() {
-        return JwtAuthenticationResultProvider.get(actorSystem);
+    public JwtAuthenticationResultProvider newJwtAuthenticationResultProvider(final String configLevel) {
+        return JwtAuthenticationResultProvider.get(
+                actorSystem,
+                ScopedConfig.getOrEmpty(actorSystem.settings().config(), configLevel)
+        );
     }
 
 }

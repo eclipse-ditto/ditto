@@ -145,7 +145,7 @@ public abstract class EndpointTestBase extends JUnitRouteTest {
         httpClientFacade =
                 DefaultHttpClientFacade.getInstance(actorSystem,
                         DefaultHttpProxyConfig.ofProxy(DefaultScopedConfig.empty("/")));
-        authorizationSubjectsProvider = JwtAuthorizationSubjectsProvider.get(actorSystem);
+        authorizationSubjectsProvider = JwtAuthorizationSubjectsProvider.get(actorSystem, ConfigFactory.empty());
         jwtAuthenticationFactory = JwtAuthenticationFactory.newInstance(authConfig.getOAuthConfig(),
                 cacheConfig,
                 httpClientFacade,

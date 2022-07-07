@@ -134,7 +134,7 @@ public final class GatewayRootActor extends DittoRootActor {
                 JwtAuthenticationFactory.newInstance(oAuthConfig, publicKeysConfig, httpClient, actorSystem);
 
         final JwtAuthenticationResultProvider jwtAuthenticationResultProvider =
-                JwtAuthenticationResultProvider.get(actorSystem);
+                jwtAuthenticationFactory.newJwtAuthenticationResultProvider("ditto.gateway.authentication.oauth");
 
         final DevOpsConfig devOpsConfig = authenticationConfig.getDevOpsConfig();
         final DevopsAuthenticationDirectiveFactory devopsAuthenticationDirectiveFactory =

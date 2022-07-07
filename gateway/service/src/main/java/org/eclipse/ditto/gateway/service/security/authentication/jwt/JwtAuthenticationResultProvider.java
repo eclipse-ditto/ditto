@@ -17,8 +17,12 @@ import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 import java.util.concurrent.CompletionStage;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.service.DittoExtensionIds;
 import org.eclipse.ditto.base.service.DittoExtensionPoint;
 import org.eclipse.ditto.jwt.model.JsonWebToken;
+
+import com.typesafe.config.Config;
+import com.typesafe.config.ConfigFactory;
 
 import akka.actor.ActorSystem;
 
@@ -43,23 +47,34 @@ public interface JwtAuthenticationResultProvider extends DittoExtensionPoint {
      * Loads the implementation of {@code JwtAuthenticationResultProvider} which is configured for the {@code ActorSystem}.
      *
      * @param actorSystem the actorSystem in which the {@code JwtAuthenticationResultProvider} should be loaded.
+     * @param configLevel the level where the configuration is configured.
      * @return the {@code JwtAuthenticationResultProvider} implementation.
      * @throws NullPointerException if {@code actorSystem} is {@code null}.
      * @since 3.0.0
      */
-    static JwtAuthenticationResultProvider get(final ActorSystem actorSystem) {
+    static JwtAuthenticationResultProvider get(final ActorSystem actorSystem, final Config config) {
         checkNotNull(actorSystem, "actorSystem");
-        return ExtensionId.INSTANCE.get(actorSystem);
+        checkNotNull(config, "config");
+        final var extensionIdConfig = ExtensionId.computeConfig(config);
+        return DittoExtensionIds.get(actorSystem)
+                .computeIfAbsent(extensionIdConfig, ExtensionId::new)
+                .get(actorSystem);
     }
 
     final class ExtensionId extends DittoExtensionPoint.ExtensionId<JwtAuthenticationResultProvider> {
 
-        private static final String CONFIG_PATH =
-                "ditto.gateway.authentication.oauth.jwt-authentication-result-provider";
-        private static final ExtensionId INSTANCE = new ExtensionId(JwtAuthenticationResultProvider.class);
+        private static final String CONFIG_KEY = "jwt-authentication-result-provider";
+        private static final String CONFIG_PATH = "ditto.extensions." + CONFIG_KEY;
 
-        private ExtensionId(final Class<JwtAuthenticationResultProvider> parentClass) {
-            super(parentClass);
+        private ExtensionId(final ExtensionIdConfig<JwtAuthenticationResultProvider> extensionIdConfig) {
+            super(extensionIdConfig);
+        }
+
+        static ExtensionIdConfig<JwtAuthenticationResultProvider> computeConfig(final Config config) {
+            return ExtensionIdConfig.of(
+                    JwtAuthenticationResultProvider.class,
+                    config.hasPath(CONFIG_KEY) ? config.getConfig(CONFIG_KEY) : ConfigFactory.empty()
+            );
         }
 
         @Override

@@ -24,6 +24,8 @@ import org.eclipse.ditto.base.model.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.jwt.model.JsonWebToken;
 
+import com.typesafe.config.Config;
+
 import akka.actor.ActorSystem;
 
 /**
@@ -32,17 +34,16 @@ import akka.actor.ActorSystem;
 @Immutable
 public final class DefaultJwtAuthenticationResultProvider implements JwtAuthenticationResultProvider {
 
-    private final ActorSystem actorSystem;
+    private final JwtAuthorizationSubjectsProvider authSubjectsProvider;
 
-    public DefaultJwtAuthenticationResultProvider(final ActorSystem actorSystem) {
-        this.actorSystem = actorSystem;
+    public DefaultJwtAuthenticationResultProvider(final ActorSystem actorSystem, final Config extensionConfig) {
+        authSubjectsProvider = JwtAuthorizationSubjectsProvider.get(actorSystem, extensionConfig);
     }
 
     @Override
     public CompletionStage<JwtAuthenticationResult> getAuthenticationResult(final JsonWebToken jwt,
             final DittoHeaders dittoHeaders) {
 
-        final var authSubjectsProvider = JwtAuthorizationSubjectsProvider.get(actorSystem);
         final List<AuthorizationSubject> authSubjects = authSubjectsProvider.getAuthorizationSubjects(jwt);
         return CompletableFuture.completedStage(JwtAuthenticationResult.successful(dittoHeaders,
                 AuthorizationModelFactory.newAuthContext(DittoAuthorizationContextType.JWT, authSubjects),

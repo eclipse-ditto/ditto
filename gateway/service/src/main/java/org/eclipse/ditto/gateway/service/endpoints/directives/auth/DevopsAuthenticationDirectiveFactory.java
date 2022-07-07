@@ -32,7 +32,9 @@ public final class DevopsAuthenticationDirectiveFactory {
             final JwtAuthenticationFactory jwtAuthenticationFactory, final DevOpsConfig devOpsConfig) {
 
         final JwtAuthenticationProvider jwtAuthenticationProvider = JwtAuthenticationProvider.newInstance(
-                jwtAuthenticationFactory.newJwtAuthenticationResultProvider(),
+                jwtAuthenticationFactory.newJwtAuthenticationResultProvider(
+                        "ditto.gateway.authentication.devops.oauth"
+                ),
                 jwtAuthenticationFactory.getJwtValidator());
         return new DevopsAuthenticationDirectiveFactory(jwtAuthenticationProvider, devOpsConfig);
     }

@@ -50,7 +50,8 @@ public final class DefaultJwtAuthenticationResultProviderTest {
 
     @Test
     public void getAuthorizationContext() {
-        final JwtAuthenticationResultProvider underTest = JwtAuthenticationResultProvider.get(ACTOR_SYSTEM);
+        final JwtAuthenticationResultProvider underTest =
+                JwtAuthenticationResultProvider.get(ACTOR_SYSTEM, ConfigFactory.empty());
         final JsonWebToken jsonWebToken = ImmutableJsonWebToken.fromToken(JwtTestConstants.VALID_JWT_TOKEN);
         final AuthorizationSubject myTestSubj = AuthorizationSubject.newInstance("example:myTestSubj");
 
