@@ -291,7 +291,7 @@ public interface Enforcer {
         if (isAuthorizationSubjectRelevant) {
             final JsonObject inputJsonObject = JsonFactory.newObject(jsonFields);
             final JsonObject allowedJsonView = inputJsonObject.get(allowlist);
-            return JsonFactory.newObject(enforcedJsonView, allowedJsonView);
+            return JsonFactory.newObject(allowedJsonView, enforcedJsonView); // TODO TJ in which way to merge??
         } else {
             return enforcedJsonView;
         }
