@@ -14,8 +14,8 @@ package org.eclipse.ditto.connectivity.service.messaging.persistence.strategies.
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.connectivity.model.Connection;
-import org.eclipse.ditto.connectivity.model.signals.commands.ConnectivityCommand;
 import org.eclipse.ditto.connectivity.model.signals.commands.exceptions.ConnectionNotAccessibleException;
 import org.eclipse.ditto.connectivity.model.signals.events.ConnectivityEvent;
 import org.eclipse.ditto.connectivity.service.messaging.persistence.stages.ConnectionState;
@@ -27,13 +27,13 @@ import org.eclipse.ditto.internal.utils.persistentactors.results.ResultFactory;
  * Strategies to handle signals as a nonexistent connection.
  */
 public final class ConnectionDeletedStrategies
-        extends AbstractCommandStrategies<ConnectivityCommand<?>, Connection, ConnectionState, ConnectivityEvent<?>>
+        extends AbstractCommandStrategies<Command<?>, Connection, ConnectionState, ConnectivityEvent<?>>
         implements ConnectivityCommandStrategies {
 
     private static final ConnectionDeletedStrategies DELETED_STRATEGIES = newDeletedStrategies();
 
     private ConnectionDeletedStrategies() {
-        super(ConnectivityCommand.class);
+        super(Command.class);
     }
 
     /**
@@ -55,7 +55,7 @@ public final class ConnectionDeletedStrategies
     public Result<ConnectivityEvent<?>> unhandled(final Context<ConnectionState> context,
             @Nullable final Connection entity,
             final long nextRevision,
-            final ConnectivityCommand<?> command) {
+            final Command<?> command) {
 
         context.getLog().withCorrelationId(command)
                 .warning("Received command for deleted connection, rejecting: <{}>", command);
@@ -65,7 +65,7 @@ public final class ConnectionDeletedStrategies
     }
 
     @Override
-    public boolean isDefined(final ConnectivityCommand<?> command) {
+    public boolean isDefined(final Command<?> command) {
         // always defined so as to log ignored signals on debug level.
         return true;
     }

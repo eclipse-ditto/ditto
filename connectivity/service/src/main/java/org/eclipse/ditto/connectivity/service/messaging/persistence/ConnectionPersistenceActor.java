@@ -53,7 +53,6 @@ import org.eclipse.ditto.connectivity.model.ConnectionMetrics;
 import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
 import org.eclipse.ditto.connectivity.model.ConnectivityStatus;
 import org.eclipse.ditto.connectivity.model.LogEntry;
-import org.eclipse.ditto.connectivity.model.signals.commands.ConnectivityCommand;
 import org.eclipse.ditto.connectivity.model.signals.commands.ConnectivityCommandInterceptor;
 import org.eclipse.ditto.connectivity.model.signals.commands.exceptions.ConnectionFailedException;
 import org.eclipse.ditto.connectivity.model.signals.commands.exceptions.ConnectionNotAccessibleException;
@@ -146,7 +145,7 @@ import akka.routing.Pool;
  * remote server is delegated to a child actor that uses a specific client (AMQP 1.0 or 0.9.1).
  */
 public final class ConnectionPersistenceActor
-        extends AbstractPersistenceActor<ConnectivityCommand<?>, Connection, ConnectionId, ConnectionState,
+        extends AbstractPersistenceActor<Command<?>, Connection, ConnectionId, ConnectionState,
         ConnectivityEvent<?>> {
 
     /**

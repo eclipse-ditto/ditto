@@ -14,26 +14,26 @@ package org.eclipse.ditto.connectivity.service.messaging.persistence.strategies.
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.connectivity.model.Connection;
+import org.eclipse.ditto.connectivity.model.signals.commands.exceptions.ConnectionNotAccessibleException;
+import org.eclipse.ditto.connectivity.model.signals.events.ConnectivityEvent;
 import org.eclipse.ditto.connectivity.service.messaging.persistence.stages.ConnectionState;
 import org.eclipse.ditto.internal.utils.persistentactors.commands.AbstractCommandStrategies;
 import org.eclipse.ditto.internal.utils.persistentactors.results.Result;
 import org.eclipse.ditto.internal.utils.persistentactors.results.ResultFactory;
-import org.eclipse.ditto.connectivity.model.signals.commands.ConnectivityCommand;
-import org.eclipse.ditto.connectivity.model.signals.commands.exceptions.ConnectionNotAccessibleException;
-import org.eclipse.ditto.connectivity.model.signals.events.ConnectivityEvent;
 
 /**
  * Strategies to handle signals as an existing connection.
  */
 public final class ConnectionCreatedStrategies
-        extends AbstractCommandStrategies<ConnectivityCommand<?>, Connection, ConnectionState, ConnectivityEvent<?>>
+        extends AbstractCommandStrategies<Command<?>, Connection, ConnectionState, ConnectivityEvent<?>>
         implements ConnectivityCommandStrategies {
 
     private static final ConnectionCreatedStrategies CREATED_STRATEGIES = newCreatedStrategies();
 
     private ConnectionCreatedStrategies() {
-        super(ConnectivityCommand.class);
+        super(Command.class);
     }
 
     /**
@@ -60,11 +60,12 @@ public final class ConnectionCreatedStrategies
         strategies.addStrategy(new RetrieveConnectionStatusStrategy());
         strategies.addStrategy(new RetrieveConnectionMetricsStrategy());
         strategies.addStrategy(new LoggingExpiredStrategy());
+        strategies.addStrategy(new SudoRetrieveConnectionTagsStrategy());
         return strategies;
     }
 
     @Override
-    public boolean isDefined(final ConnectivityCommand<?> command) {
+    public boolean isDefined(final Command<?> command) {
         // always defined so as to forward signals.
         return true;
     }
@@ -73,7 +74,7 @@ public final class ConnectionCreatedStrategies
     public Result<ConnectivityEvent<?>> unhandled(final Context<ConnectionState> context,
             @Nullable final Connection entity,
             final long nextRevision,
-            final ConnectivityCommand<?> command) {
+            final Command<?> command) {
 
         return ResultFactory.newErrorResult(ConnectionNotAccessibleException
                 .newBuilder(context.getState().id())
