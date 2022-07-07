@@ -21,6 +21,7 @@ import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.signals.commands.Command;
+import org.eclipse.ditto.connectivity.api.commands.sudo.ConnectivitySudoCommand;
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.connectivity.model.signals.commands.ConnectivityCommand;
@@ -44,7 +45,7 @@ abstract class AbstractConnectivityCommandStrategy<C extends Command<?>>
 
     @Override
     public boolean isDefined(final C command) {
-        return true;
+        return command instanceof ConnectivityCommand || command instanceof ConnectivitySudoCommand;
     }
 
     @Override

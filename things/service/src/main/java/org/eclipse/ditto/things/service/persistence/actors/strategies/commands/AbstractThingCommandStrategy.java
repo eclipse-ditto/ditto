@@ -27,6 +27,7 @@ import org.eclipse.ditto.internal.utils.persistentactors.etags.AbstractCondition
 import org.eclipse.ditto.internal.utils.persistentactors.results.Result;
 import org.eclipse.ditto.internal.utils.persistentactors.results.ResultFactory;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.things.api.commands.sudo.ThingSudoCommand;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommand;
@@ -98,7 +99,7 @@ abstract class AbstractThingCommandStrategy<C extends Command<C>>
     @Override
     protected Optional<Metadata> calculateRelativeMetadata(@Nullable final Thing entity, final C command) {
 
-        if (command instanceof WithOptionalEntity) {
+        if (command instanceof WithOptionalEntity withOptionalEntity) {
             final Metadata existingRelativeMetadata = Optional.ofNullable(entity)
                     .flatMap(Thing::getMetadata)
                     .flatMap(m -> m.getValue(command.getResourcePath()))
@@ -107,7 +108,7 @@ abstract class AbstractThingCommandStrategy<C extends Command<C>>
                     .map(Metadata::newMetadata)
                     .orElse(null);
             final MetadataFromSignal relativeMetadata =
-                    MetadataFromSignal.of(command, (WithOptionalEntity) command, existingRelativeMetadata);
+                    MetadataFromSignal.of(command, withOptionalEntity, existingRelativeMetadata);
             return Optional.ofNullable(relativeMetadata.get());
         }
         return Optional.empty();
@@ -115,6 +116,6 @@ abstract class AbstractThingCommandStrategy<C extends Command<C>>
 
     @Override
     public boolean isDefined(final C command) {
-        return command instanceof ThingCommand;
+        return command instanceof ThingCommand || command instanceof ThingSudoCommand;
     }
 }
