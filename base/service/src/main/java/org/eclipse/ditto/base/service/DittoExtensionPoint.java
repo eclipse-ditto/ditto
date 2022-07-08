@@ -66,22 +66,25 @@ public interface DittoExtensionPoint extends Extension {
                     List.of(system, extensionIdConfig.extensionConfig()));
         }
 
+        protected ExtensionIdConfig<T> globalConfig (final ActorSystem actorSystem) {
+            return ExtensionIdConfig.of(
+                    extensionIdConfig.parentClass(),
+                    actorSystem.settings().config(),
+                    getConfigPath()
+            );
+        }
+
         protected String getImplementation(final ExtendedActorSystem actorSystem) {
             final String extensionClass;
             if (extensionIdConfig.extensionClass() == null) {
                 // Resolve from default extension config
                 //TODO: Yannic make getConfigPath returning just the config key and define the constant "ditto.extensions." just one time in this class.
-                final String configPath = getConfigPath();
-                final ExtensionIdConfig<T> defaultExtensionIdConfig = ExtensionIdConfig.of(
-                        extensionIdConfig.parentClass(),
-                        actorSystem.settings().config(),
-                        configPath
-                );
-                extensionClass = defaultExtensionIdConfig.extensionClass();
+                final ExtensionIdConfig<T> globalConfig = globalConfig(actorSystem);
+                extensionClass = globalConfig.extensionClass();
                 if (extensionClass == null) {
                     throw new DittoConfigError(MessageFormat.format(
                             "Could not resolve default extension class at config key <{0}>.",
-                            configPath
+                            getConfigPath()
                     ));
                 }
             } else {
