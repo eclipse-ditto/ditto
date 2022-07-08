@@ -22,6 +22,7 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
+import org.eclipse.ditto.base.model.exceptions.DittoInternalErrorException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
@@ -159,16 +160,29 @@ final class ThingCommandEnforcement
             authorizedCommand =
                     CompletableFuture.completedStage(prepareThingCommandBeforeSendingToPersistence(command));
         } else {
-            try {
-                authorizedCommand = authorizeByPolicyOrThrow(policyEnforcer.getEnforcer(), command,
-                        enforcementDispatcher)
-                        .thenApply(commandWithReadSubjects -> {
+            authorizedCommand = authorizeByPolicyOrThrow(policyEnforcer.getEnforcer(), command,
+                    enforcementDispatcher)
+                    .handle((commandWithReadSubjects, e) -> {
+                        if (null != e) {
+                            if (command instanceof CreateThing createThing &&
+                                    !Signal.isChannelLive(createThing)) {
+                                handleFailedCreateThing(createThing, policyEnforcer);
+                            }
+                            throw DittoRuntimeException.asDittoRuntimeException(e, t ->
+                                    DittoInternalErrorException.newBuilder()
+                                            .message(e.getClass() + ": " + e.getMessage())
+                                            .dittoHeaders(command.getDittoHeaders())
+                                            .cause(t)
+                                            .build());
+                        } else {
                             final ThingCommand<?> result;
                             if (commandWithReadSubjects instanceof ThingQueryCommand<?> thingQueryCommand) {
                                 result = prepareThingCommandBeforeSendingToPersistence(
                                         ensureTwinChannel(thingQueryCommand)
                                 );
-                            } else if (commandWithReadSubjects.getDittoHeaders().getLiveChannelCondition().isPresent()) {
+                            } else if (commandWithReadSubjects.getDittoHeaders()
+                                    .getLiveChannelCondition()
+                                    .isPresent()) {
                                 throw LiveChannelConditionNotAllowedException.newBuilder()
                                         .dittoHeaders(commandWithReadSubjects.getDittoHeaders())
                                         .build();
@@ -176,14 +190,8 @@ final class ThingCommandEnforcement
                                 result = prepareThingCommandBeforeSendingToPersistence(commandWithReadSubjects);
                             }
                             return result;
-                        });
-            } catch (final Exception error) {
-                if (command instanceof CreateThing createThing && !Signal.isChannelLive(createThing)) {
-                    return handleFailedCreateThing(createThing, policyEnforcer)
-                            .thenCompose(done -> CompletableFuture.failedStage(error));
-                }
-                return CompletableFuture.failedStage(error);
-            }
+                        }
+                    });
         }
         return authorizedCommand;
     }
@@ -357,26 +365,27 @@ final class ThingCommandEnforcement
                             Permission.READ), dispatcher);
         }
 
+        final CompletionStage<Void> intermediate;
         final var condition = dittoHeaders.getCondition();
         if (!(command instanceof CreateThing) && condition.isPresent()) {
-            enforceReadPermissionOnCondition(condition.get(), enforcer, dittoHeaders, () ->
+            intermediate = enforceReadPermissionOnCondition(condition.get(), enforcer, dittoHeaders, () ->
                             ThingConditionFailedException.newBuilderForInsufficientPermission(dittoHeaders).build(),
                     dispatcher);
-        }
-        final var liveChannelCondition = dittoHeaders.getLiveChannelCondition();
-        if ((command instanceof ThingQueryCommand) && liveChannelCondition.isPresent()) {
-            enforceReadPermissionOnCondition(liveChannelCondition.get(), enforcer, dittoHeaders, () ->
+        } else if ((command instanceof ThingQueryCommand) && dittoHeaders.getLiveChannelCondition().isPresent()) {
+            intermediate = enforceReadPermissionOnCondition(dittoHeaders.getLiveChannelCondition().get(), enforcer, dittoHeaders, () ->
                             ThingConditionFailedException.newBuilderForInsufficientLiveChannelPermission(dittoHeaders).build(),
                     dispatcher);
+        } else {
+            intermediate = CompletableFuture.completedStage(null);
         }
 
-        return commandAuthorized.thenCompose(hasPermission -> {
+        return intermediate.thenCompose(voidValue -> commandAuthorized.thenCompose(hasPermission -> {
             if (Boolean.TRUE.equals(hasPermission)) {
                 return addEffectedReadSubjectsToThingSignal(command, enforcer, dispatcher);
             } else {
                 throw errorForThingCommand(command);
             }
-        });
+        }));
     }
 
     private CompletionStage<Done> handleFailedCreateThing(
@@ -456,7 +465,7 @@ final class ThingCommandEnforcement
         });
     }
 
-    private static void enforceReadPermissionOnCondition(final String condition,
+    private static CompletionStage<Void> enforceReadPermissionOnCondition(final String condition,
             final Enforcer enforcer,
             final DittoHeaders dittoHeaders,
             final Supplier<DittoRuntimeException> exceptionSupplier,
@@ -465,9 +474,11 @@ final class ThingCommandEnforcement
         final var authorizationContext = dittoHeaders.getAuthorizationContext();
         final var rootNode = tryParseRqlCondition(condition, dittoHeaders);
         final var resourceKeys = determineResourceKeys(rootNode, dittoHeaders);
-        CompletableFuture.supplyAsync(() -> !enforcer.hasUnrestrictedPermissions(resourceKeys, authorizationContext,
+        return CompletableFuture.supplyAsync(() -> enforcer.hasUnrestrictedPermissions(resourceKeys,
+                authorizationContext,
                 Permission.READ), dispatcher).thenAccept(hasPermission -> {
-            if (Boolean.TRUE.equals(hasPermission)) {
+
+            if (Boolean.FALSE.equals(hasPermission)) {
                 throw exceptionSupplier.get();
             }
         });

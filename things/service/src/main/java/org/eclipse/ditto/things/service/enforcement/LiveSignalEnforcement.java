@@ -171,15 +171,15 @@ final class LiveSignalEnforcement
             case LIVE_EVENTS:
                 return enforceLiveEvent(liveSignal, enforcer.getEnforcer());
             case LIVE_COMMANDS:
-                ThingCommandEnforcement.authorizeByPolicyOrThrow(enforcer.getEnforcer(), (ThingCommand<?>) liveSignal,
-                        enforcementDispatcher);
-
-                return addEffectedReadSubjectsToThingLiveSignal((ThingCommand<?>) liveSignal,
-                        enforcer.getEnforcer()).thenApply(withReadSubjects -> {
-                    LOGGER.withCorrelationId(withReadSubjects)
-                            .info("Live Command was authorized: <{}>", withReadSubjects.getType());
-                    return withReadSubjects;
-                });
+                return ThingCommandEnforcement.authorizeByPolicyOrThrow(enforcer.getEnforcer(),
+                        (ThingCommand<?>) liveSignal,
+                        enforcementDispatcher).thenCompose(s ->
+                        addEffectedReadSubjectsToThingLiveSignal((ThingCommand<?>) liveSignal,
+                                enforcer.getEnforcer()).thenApply(withReadSubjects -> {
+                            LOGGER.withCorrelationId(withReadSubjects)
+                                    .info("Live Command was authorized: <{}>", withReadSubjects.getType());
+                            return withReadSubjects;
+                        }));
             default:
                 LOGGER.withCorrelationId(liveSignal)
                         .warn("Ignoring unsupported command signal: <{}>", liveSignal);
