@@ -17,6 +17,8 @@ import javax.annotation.Nullable;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.Metadata;
 
+import com.typesafe.config.Config;
+
 import akka.actor.ActorSystem;
 
 /**
@@ -24,7 +26,7 @@ import akka.actor.ActorSystem;
  */
 public class DefaultSearchUpdateObserver implements SearchUpdateObserver {
 
-    public DefaultSearchUpdateObserver(final ActorSystem system) {
+    public DefaultSearchUpdateObserver(final ActorSystem system, final Config config) {
         // nothing to do
     }
 

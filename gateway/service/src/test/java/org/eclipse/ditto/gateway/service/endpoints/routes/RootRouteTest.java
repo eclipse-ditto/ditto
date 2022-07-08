@@ -128,7 +128,7 @@ public final class RootRouteTest extends EndpointTestBase {
                 httpClientFacade,
                 ACTOR_SYSTEM);
         final GatewayAuthenticationDirectiveFactory authenticationDirectiveFactory =
-                new DittoGatewayAuthenticationDirectiveFactory(routeBaseProperties.getActorSystem());
+                new DittoGatewayAuthenticationDirectiveFactory(routeBaseProperties.getActorSystem(), ConfigFactory.empty());
 
         final Supplier<ClusterStatus> clusterStatusSupplier = createClusterStatusSupplierMock();
         final var statusAndHealthProvider = DittoStatusAndHealthProviderFactory.of(routeBaseProperties.getActorSystem(),

@@ -18,6 +18,8 @@ import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.signals.commands.ConnectivityCommand;
 import org.eclipse.ditto.connectivity.model.signals.commands.ConnectivityCommandInterceptor;
 
+import com.typesafe.config.Config;
+
 import akka.actor.ActorSystem;
 
 public class NoOpConnectivityCommandInterceptorProvider implements CustomConnectivityCommandInterceptorProvider{
@@ -25,7 +27,7 @@ public class NoOpConnectivityCommandInterceptorProvider implements CustomConnect
     /**
      * @param actorSystem the actor system in which to load the extension.
      */
-    protected NoOpConnectivityCommandInterceptorProvider(final ActorSystem actorSystem) {
+    protected NoOpConnectivityCommandInterceptorProvider(final ActorSystem actorSystem, final Config config) {
     }
 
     @Override

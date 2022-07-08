@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.base.service;
 
+import com.typesafe.config.Config;
+
 import akka.actor.ActorSystem;
 
 /**
@@ -22,7 +24,7 @@ public final class NoOpRootActorStarter implements RootActorStarter {
     /**
      * @param actorSystem the actor system in which to load the extension.
      */
-    public NoOpRootActorStarter(final ActorSystem actorSystem) {
+    public NoOpRootActorStarter(final ActorSystem actorSystem, final Config config) {
         //No-Op because extensions need a constructor accepting an actorSystem
     }
 

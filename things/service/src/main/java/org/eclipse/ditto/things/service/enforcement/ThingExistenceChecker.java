@@ -29,6 +29,7 @@ import org.eclipse.ditto.policies.enforcement.pre.ExistenceChecker;
 import org.eclipse.ditto.things.api.ThingsMessagingConstants;
 
 import com.github.benmanes.caffeine.cache.AsyncCacheLoader;
+import com.typesafe.config.Config;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
@@ -43,7 +44,7 @@ public final class ThingExistenceChecker implements ExistenceChecker {
     private final AsyncCacheLoader<EnforcementCacheKey, Entry<EnforcementCacheKey>> thingIdLoader;
     private final ActorSystem actorSystem;
 
-    public ThingExistenceChecker(final ActorSystem actorSystem) {
+    public ThingExistenceChecker(final ActorSystem actorSystem, final Config config) {
         this.actorSystem = actorSystem;
         final var enforcementConfig = DefaultEnforcementConfig.of(
                 DefaultScopedConfig.dittoScoped(actorSystem.settings().config()));

@@ -31,6 +31,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.mongodb.lang.Nullable;
+import com.typesafe.config.Config;
 
 import akka.actor.ActorSystem;
 
@@ -47,7 +48,7 @@ public final class DittoGatewayAuthenticationDirectiveFactory implements Gateway
     @Nullable private GatewayAuthenticationDirective gatewayHttpAuthenticationDirective;
     @Nullable private GatewayAuthenticationDirective gatewayWsAuthenticationDirective;
 
-    public DittoGatewayAuthenticationDirectiveFactory(final ActorSystem actorSystem) {
+    public DittoGatewayAuthenticationDirectiveFactory(final ActorSystem actorSystem, final Config config) {
         authConfig = DittoGatewayConfig.of(DefaultScopedConfig.dittoScoped(actorSystem.settings().config()))
                 .getAuthenticationConfig();
         authenticationDispatcher = actorSystem.dispatchers().lookup(AUTHENTICATION_DISPATCHER_NAME);

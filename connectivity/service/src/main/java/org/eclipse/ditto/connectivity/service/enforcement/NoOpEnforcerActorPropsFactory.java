@@ -15,6 +15,8 @@ package org.eclipse.ditto.connectivity.service.enforcement;
 import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.connectivity.service.enforcement.ConnectionEnforcerActorPropsFactory;
 
+import com.typesafe.config.Config;
+
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
@@ -22,7 +24,7 @@ import akka.actor.Props;
 
 public final class NoOpEnforcerActorPropsFactory implements ConnectionEnforcerActorPropsFactory {
 
-    NoOpEnforcerActorPropsFactory(final ActorSystem actorSystem) {
+    NoOpEnforcerActorPropsFactory(final ActorSystem actorSystem, final Config config) {
         //NoOp Constructor to match extension initialization
     }
 

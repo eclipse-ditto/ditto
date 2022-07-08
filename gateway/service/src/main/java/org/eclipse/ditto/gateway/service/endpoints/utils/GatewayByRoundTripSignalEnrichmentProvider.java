@@ -21,6 +21,8 @@ import org.eclipse.ditto.gateway.service.util.config.streaming.GatewaySignalEnri
 import org.eclipse.ditto.internal.models.signalenrichment.ByRoundTripSignalEnrichmentFacade;
 import org.eclipse.ditto.internal.models.signalenrichment.SignalEnrichmentFacade;
 
+import com.typesafe.config.Config;
+
 import akka.actor.ActorSelection;
 import akka.actor.ActorSystem;
 import akka.http.javadsl.model.HttpRequest;
@@ -39,7 +41,7 @@ public final class GatewayByRoundTripSignalEnrichmentProvider implements Gateway
      *
      * @param actorSystem The actor system for which this provider is instantiated.
      */
-    public GatewayByRoundTripSignalEnrichmentProvider(final ActorSystem actorSystem) {
+    public GatewayByRoundTripSignalEnrichmentProvider(final ActorSystem actorSystem, final Config config) {
         final ActorSelection commandHandler = actorSystem.actorSelection(CONCIERGE_FORWARDER);
         final GatewaySignalEnrichmentConfig signalEnrichmentConfig = getSignalEnrichmentConfig(actorSystem);
         final Duration askTimeout = signalEnrichmentConfig.getAskTimeout();

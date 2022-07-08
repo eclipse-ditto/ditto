@@ -15,6 +15,8 @@ package org.eclipse.ditto.gateway.service.endpoints.routes.websocket;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.gateway.service.streaming.actors.SupervisedStream;
 
+import com.typesafe.config.Config;
+
 import akka.actor.ActorSystem;
 
 /**
@@ -25,7 +27,7 @@ public final class NoOpWebSocketSupervisor implements WebSocketSupervisor {
     /**
      * @param actorSystem the actor system in which to load the extension.
      */
-    public NoOpWebSocketSupervisor(final ActorSystem actorSystem) {
+    public NoOpWebSocketSupervisor(final ActorSystem actorSystem, final Config config) {
         //No-Op because extensions need a constructor accepting an actorSystem
     }
 

@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.gateway.service.endpoints.routes;
 
+import com.typesafe.config.Config;
+
 import akka.NotUsed;
 import akka.actor.ActorSystem;
 import akka.event.Logging;
@@ -33,7 +35,7 @@ public final class LoggingHttpBindFlowProvider implements HttpBindFlowProvider {
     /**
      * @param actorSystem the actor system in which to load the extension.
      */
-    public LoggingHttpBindFlowProvider(final ActorSystem actorSystem) {
+    public LoggingHttpBindFlowProvider(final ActorSystem actorSystem, final Config config) {
         this.actorSystem = actorSystem;
     }
 

@@ -17,6 +17,8 @@ import java.util.concurrent.CompletionStage;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 
+import com.typesafe.config.Config;
+
 import akka.actor.ActorSystem;
 import akka.http.javadsl.server.RequestContext;
 
@@ -28,7 +30,7 @@ public final class NoOpAuthorizationEnforcer implements StreamingAuthorizationEn
     /**
      * @param actorSystem the actor system in which to load the extension.
      */
-    public NoOpAuthorizationEnforcer(final ActorSystem actorSystem) {
+    public NoOpAuthorizationEnforcer(final ActorSystem actorSystem, final Config config) {
         //No-Op because extensions need a constructor accepting an actorSystem
     }
 

@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.gateway.service.endpoints.routes.websocket;
 
+import com.typesafe.config.Config;
+
 import akka.NotUsed;
 import akka.actor.ActorSystem;
 import akka.http.javadsl.model.HttpRequest;
@@ -23,7 +25,7 @@ import akka.stream.javadsl.Sink;
  */
 public final class NoOpOutgoingWebSocketEventSniffer implements OutgoingWebSocketEventSniffer {
 
-    public NoOpOutgoingWebSocketEventSniffer(final ActorSystem actorSystem) {
+    public NoOpOutgoingWebSocketEventSniffer(final ActorSystem actorSystem, final Config config) {
         //No-Op because extensions need a constructor accepting an actorSystem
     }
 

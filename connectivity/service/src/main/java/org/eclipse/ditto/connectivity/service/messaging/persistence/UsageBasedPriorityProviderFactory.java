@@ -14,6 +14,8 @@ package org.eclipse.ditto.connectivity.service.messaging.persistence;
 
 import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 
+import com.typesafe.config.Config;
+
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 
@@ -22,7 +24,7 @@ public class UsageBasedPriorityProviderFactory implements ConnectionPriorityProv
     /**
      * @param actorSystem the actor system in which to load the extension.
      */
-    protected UsageBasedPriorityProviderFactory(final ActorSystem actorSystem) {
+    protected UsageBasedPriorityProviderFactory(final ActorSystem actorSystem, final Config config) {
     }
 
     @Override

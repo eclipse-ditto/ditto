@@ -29,7 +29,7 @@ public final class FaultyClientActorPropsFactory implements ClientActorPropsFact
     /**
      * @param actorSystem the actor system in which to load the extension.
      */
-    protected FaultyClientActorPropsFactory(final ActorSystem actorSystem) {
+    protected FaultyClientActorPropsFactory(final ActorSystem actorSystem, final Config config) {
         allowFirstCreateCommand = actorSystem.settings().config().getBoolean("allowFirstCreateCommand");
         allowCloseCommands = actorSystem.settings().config().getBoolean("allowCloseCommands");
     }

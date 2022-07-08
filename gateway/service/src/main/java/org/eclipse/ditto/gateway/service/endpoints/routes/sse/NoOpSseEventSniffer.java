@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.gateway.service.endpoints.routes.sse;
 
+import com.typesafe.config.Config;
+
 import akka.NotUsed;
 import akka.actor.ActorSystem;
 import akka.http.javadsl.model.HttpRequest;
@@ -23,7 +25,7 @@ import akka.stream.javadsl.Flow;
  */
 public final class NoOpSseEventSniffer implements SseEventSniffer {
 
-    public NoOpSseEventSniffer(final ActorSystem actorSystem) {
+    public NoOpSseEventSniffer(final ActorSystem actorSystem, final Config config) {
         //No-Op because extensions need a constructor accepting an actorSystem
     }
 

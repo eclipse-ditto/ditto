@@ -13,6 +13,7 @@
 package org.eclipse.ditto.base.service;
 
 import java.util.List;
+import java.util.Map;
 
 import javax.annotation.Nullable;
 
@@ -51,6 +52,10 @@ public interface DittoExtensionPoint extends Extension {
             this.extensionIdConfig = extensionIdConfig;
         }
 
+        protected ExtensionId(final Class<T> parentClass) {
+            this(new ExtensionIdConfig<>(parentClass, null, ConfigFactory.empty()));
+        }
+
         @Override
         public T createExtension(final ExtendedActorSystem system) {
             return AkkaClassLoader.instantiate(system, extensionIdConfig.parentClass,
@@ -61,7 +66,12 @@ public interface DittoExtensionPoint extends Extension {
 
         protected String getImplementation(final ExtendedActorSystem actorSystem) {
             if (extensionIdConfig.extensionClass == null) {
-                return actorSystem.settings().config().getString(getConfigPath());
+                final Object anyRef = actorSystem.settings().config().getAnyRef(getConfigPath());
+                if (anyRef instanceof Map<?, ?> map) {
+                    return map.get("extension-class").toString();
+                } else {
+                    return anyRef.toString();
+                }
             } else {
                 return extensionIdConfig.extensionClass;
             }

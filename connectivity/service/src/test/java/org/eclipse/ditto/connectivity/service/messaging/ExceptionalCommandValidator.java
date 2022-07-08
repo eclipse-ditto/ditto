@@ -20,6 +20,8 @@ import org.eclipse.ditto.connectivity.model.signals.commands.ConnectivityCommand
 import org.eclipse.ditto.connectivity.model.signals.commands.exceptions.ConnectionUnavailableException;
 import org.eclipse.ditto.connectivity.service.messaging.validation.CustomConnectivityCommandInterceptorProvider;
 
+import com.typesafe.config.Config;
+
 import akka.actor.ActorSystem;
 
 public class ExceptionalCommandValidator implements CustomConnectivityCommandInterceptorProvider {
@@ -27,7 +29,7 @@ public class ExceptionalCommandValidator implements CustomConnectivityCommandInt
     /**
      * @param actorSystem the actor system in which to load the extension.
      */
-    protected ExceptionalCommandValidator(final ActorSystem actorSystem) {
+    protected ExceptionalCommandValidator(final ActorSystem actorSystem, final Config config) {
     }
 
     @Override

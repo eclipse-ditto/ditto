@@ -37,7 +37,7 @@ public final class SearchForwardingClientActorPropsFactory implements ClientActo
     /**
      * @param actorSystem the actor system in which to load the extension.
      */
-    public SearchForwardingClientActorPropsFactory(final ActorSystem actorSystem) {
+    public SearchForwardingClientActorPropsFactory(final ActorSystem actorSystem, final Config config) {
     }
 
     @Override

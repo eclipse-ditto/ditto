@@ -37,7 +37,7 @@ import akka.actor.Props;
 @Immutable
 public final class DefaultClientActorPropsFactory implements ClientActorPropsFactory {
 
-    public DefaultClientActorPropsFactory(final ActorSystem actorSystem) {
+    public DefaultClientActorPropsFactory(final ActorSystem actorSystem, final Config config) {
     }
 
     @Override

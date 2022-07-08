@@ -15,6 +15,8 @@ package org.eclipse.ditto.gateway.service.endpoints.routes.websocket;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.gateway.service.util.config.streaming.WebsocketConfig;
 
+import com.typesafe.config.Config;
+
 import akka.actor.ActorSystem;
 
 /**
@@ -26,7 +28,7 @@ public final class NoOpWebSocketConfigProvider implements WebSocketConfigProvide
      * @param actorSystem the actor system in which to load the extension.
      */
     @SuppressWarnings("unused")
-    public NoOpWebSocketConfigProvider(final ActorSystem actorSystem) {
+    public NoOpWebSocketConfigProvider(final ActorSystem actorSystem, final Config config) {
         //No-Op because extensions need a constructor accepting an actorSystem
     }
 

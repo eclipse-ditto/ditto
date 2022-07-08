@@ -34,7 +34,7 @@ public final class FailingActorProvider implements ClientActorPropsFactory {
     private final int retriesUntilSuccess;
     private int current = 0;
 
-    public FailingActorProvider(final ActorSystem actorSystem) {
+    public FailingActorProvider(final ActorSystem actorSystem, final Config config) {
         retriesUntilSuccess = actorSystem.settings().config().getInt("failingRetries");
     }
 

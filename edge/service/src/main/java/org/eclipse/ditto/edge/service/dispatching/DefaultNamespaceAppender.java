@@ -31,6 +31,8 @@ import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.commands.modify.CreateThing;
 
+import com.typesafe.config.Config;
+
 import akka.actor.ActorSystem;
 import akka.japi.pf.PFBuilder;
 import scala.PartialFunction;
@@ -49,7 +51,7 @@ public final class DefaultNamespaceAppender implements SignalTransformer {
      *
      * @param actorSystem the actor system in which to load the extension.
      */
-    public DefaultNamespaceAppender(final ActorSystem actorSystem) {
+    public DefaultNamespaceAppender(final ActorSystem actorSystem, final Config config) {
         final EntityCreationConfig entityCreationConfig = DefaultEntityCreationConfig.of(
                 DefaultScopedConfig.dittoScoped(actorSystem.settings().config())
         );

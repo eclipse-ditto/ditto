@@ -17,6 +17,8 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 
+import com.typesafe.config.Config;
+
 import akka.actor.ActorSystem;
 import akka.http.javadsl.server.Directives;
 import akka.http.javadsl.server.Route;
@@ -26,7 +28,7 @@ public final class NoopCustomApiRoutesProvider implements CustomApiRoutesProvide
 
     private static final Route EMPTY_ROUTE = Directives.reject();
 
-    public NoopCustomApiRoutesProvider(final ActorSystem actorSystem) {
+    public NoopCustomApiRoutesProvider(final ActorSystem actorSystem, final Config config) {
         // No-Op because Extensions need to have constructor accepting the actorSystem.
     }
 

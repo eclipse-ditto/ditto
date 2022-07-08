@@ -14,6 +14,8 @@ package org.eclipse.ditto.edge.service.dispatching;
 
 import javax.annotation.concurrent.Immutable;
 
+import com.typesafe.config.Config;
+
 import akka.actor.AbstractActor.Receive;
 import akka.actor.ActorContext;
 import akka.actor.ActorSystem;
@@ -30,7 +32,7 @@ public final class NoOpEdgeCommandForwarderExtension implements EdgeCommandForwa
      *
      * @param actorSystem the actor system in which to load the extension.
      */
-    public NoOpEdgeCommandForwarderExtension(final ActorSystem actorSystem) {
+    public NoOpEdgeCommandForwarderExtension(final ActorSystem actorSystem, final Config config) {
         // no-op
     }
 

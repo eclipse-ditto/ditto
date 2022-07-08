@@ -19,6 +19,8 @@ import java.util.concurrent.Executor;
 import org.eclipse.ditto.internal.models.signalenrichment.CachingSignalEnrichmentFacadeProvider;
 import org.eclipse.ditto.internal.models.signalenrichment.SignalEnrichmentFacade;
 
+import com.typesafe.config.Config;
+
 import akka.actor.ActorSystem;
 import akka.http.javadsl.model.HttpRequest;
 
@@ -37,9 +39,10 @@ public final class GatewayCachingSignalEnrichmentProvider implements GatewaySign
      *
      * @param actorSystem The actor system for which this provider is instantiated.
      */
-    public GatewayCachingSignalEnrichmentProvider(final ActorSystem actorSystem) {
+    public GatewayCachingSignalEnrichmentProvider(final ActorSystem actorSystem, final Config config) {
+        //TODO: Yannic initialize via extension mechanism via extension config
         final GatewayByRoundTripSignalEnrichmentProvider cacheLoaderProvider =
-                new GatewayByRoundTripSignalEnrichmentProvider(actorSystem);
+                new GatewayByRoundTripSignalEnrichmentProvider(actorSystem, config);
         final Executor cacheLoaderExecutor = actorSystem.dispatchers().lookup(CACHE_LOADER_DISPATCHER);
         final var cachingSignalEnrichmentFacadeProvider = CachingSignalEnrichmentFacadeProvider.get(actorSystem);
         cachingSignalEnrichmentFacade = cachingSignalEnrichmentFacadeProvider.getSignalEnrichmentFacade(

@@ -28,6 +28,7 @@ import org.eclipse.ditto.policies.enforcement.config.DefaultEnforcementConfig;
 import org.eclipse.ditto.policies.enforcement.config.EnforcementConfig;
 
 import com.github.benmanes.caffeine.cache.AsyncCacheLoader;
+import com.typesafe.config.Config;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
@@ -47,7 +48,7 @@ public final class PolicyExistenceChecker implements ExistenceChecker {
      *
      * @param actorSystem the actor system in which to load the extension.
      */
-    public PolicyExistenceChecker(final ActorSystem actorSystem) {
+    public PolicyExistenceChecker(final ActorSystem actorSystem, final Config config) {
         this.actorSystem = actorSystem;
         final var enforcementConfig = DefaultEnforcementConfig.of(
                 DefaultScopedConfig.dittoScoped(actorSystem.settings().config()));

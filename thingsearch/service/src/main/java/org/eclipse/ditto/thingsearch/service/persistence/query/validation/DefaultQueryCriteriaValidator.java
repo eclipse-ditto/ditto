@@ -17,6 +17,8 @@ import java.util.concurrent.CompletionStage;
 
 import org.eclipse.ditto.thingsearch.model.signals.commands.query.ThingSearchQueryCommand;
 
+import com.typesafe.config.Config;
+
 import akka.actor.ActorSystem;
 
 /**
@@ -28,7 +30,7 @@ public final class DefaultQueryCriteriaValidator implements QueryCriteriaValidat
     /**
      * Instantiate this provider. Called by reflection.
      */
-    public DefaultQueryCriteriaValidator(final ActorSystem actorSystem) {
+    public DefaultQueryCriteriaValidator(final ActorSystem actorSystem, final Config config) {
         // Nothing to initialize.
     }
 

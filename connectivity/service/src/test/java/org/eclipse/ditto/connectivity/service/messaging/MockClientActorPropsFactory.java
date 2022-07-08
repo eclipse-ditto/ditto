@@ -53,7 +53,7 @@ public final class MockClientActorPropsFactory implements ClientActorPropsFactor
     /**
      * @param actorSystem the actor system in which to load the extension.
      */
-    public MockClientActorPropsFactory(final ActorSystem actorSystem) {
+    public MockClientActorPropsFactory(final ActorSystem actorSystem, final Config config) {
     }
 
     @Override

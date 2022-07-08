@@ -28,6 +28,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.junit.MockitoJUnitRunner;
 
+import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
 import akka.actor.ActorSystem;
@@ -45,7 +46,7 @@ public final class DefaultJwtAuthenticationResultProviderTest {
     public void assertImmutability() {
         assertInstancesOf(DefaultJwtAuthenticationResultProvider.class,
                 areImmutable(),
-                provided(ActorSystem.class).isAlsoImmutable());
+                provided(JwtAuthorizationSubjectsProvider.class).isAlsoImmutable());
     }
 
     @Test
