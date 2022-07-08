@@ -193,14 +193,14 @@ public abstract class AbstractGraphActor<T, M> extends AbstractActor {
 
     private void handleMatched(final SourceQueue<T> sourceQueue, final M match) {
         final ThreadSafeDittoLoggingAdapter loggerWithCID;
-        if (match instanceof WithDittoHeaders) {
-            loggerWithCID = logger.withCorrelationId((WithDittoHeaders) match);
+        if (match instanceof final WithDittoHeaders withDittoHeaders) {
+            loggerWithCID = logger.withCorrelationId(withDittoHeaders);
         } else {
             loggerWithCID = logger;
         }
-        if (match instanceof WithEntityId) {
+        if (match instanceof final WithEntityId withEntityId) {
             loggerWithCID.debug("Received <{}> with ID <{}>.", match.getClass().getSimpleName(),
-                    ((WithEntityId) match).getEntityId());
+                    withEntityId.getEntityId());
         } else {
             loggerWithCID.debug("Received match: <{}>.", match);
         }
