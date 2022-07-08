@@ -30,7 +30,6 @@ import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.signals.commands.AbstractCommandResponse;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponseHttpStatusValidator;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponseJsonDeserializer;
-import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
@@ -39,66 +38,66 @@ import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonValue;
 
 /**
- * Response to a {@link SudoRetrieveConnectionIdsByTag} command.
+ * Response to a {@link SudoRetrieveConnectionTags} command.
  *
  * @since 3.0.0
  */
 @Immutable
-@JsonParsableCommandResponse(type = SudoRetrieveConnectionIdsByTagResponse.TYPE)
-public final class SudoRetrieveConnectionIdsByTagResponse
-        extends AbstractCommandResponse<SudoRetrieveConnectionIdsByTagResponse>
-        implements ConnectivitySudoQueryCommandResponse<SudoRetrieveConnectionIdsByTagResponse> {
+@JsonParsableCommandResponse(type = SudoRetrieveConnectionTagsResponse.TYPE)
+public final class SudoRetrieveConnectionTagsResponse
+        extends AbstractCommandResponse<SudoRetrieveConnectionTagsResponse>
+        implements ConnectivitySudoQueryCommandResponse<SudoRetrieveConnectionTagsResponse> {
 
     /**
      * Type of this response.
      */
-    public static final String TYPE = TYPE_PREFIX + SudoRetrieveConnectionIdsByTag.NAME;
+    public static final String TYPE = TYPE_PREFIX + SudoRetrieveConnectionTags.NAME;
 
-    static final JsonFieldDefinition<JsonArray> CONNECTION_IDS =
-            JsonFieldDefinition.ofJsonArray("connectionIds", FieldType.REGULAR, JsonSchemaVersion.V_2);
+    static final JsonFieldDefinition<JsonArray> CONNECTION_TAGS =
+            JsonFieldDefinition.ofJsonArray("connectionTags", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
     private static final HttpStatus HTTP_STATUS = HttpStatus.OK;
 
-    private static final CommandResponseJsonDeserializer<SudoRetrieveConnectionIdsByTagResponse> JSON_DESERIALIZER =
+    private static final CommandResponseJsonDeserializer<SudoRetrieveConnectionTagsResponse> JSON_DESERIALIZER =
             CommandResponseJsonDeserializer.newInstance(TYPE,
                     context -> {
                         final JsonObject jsonObject = context.getJsonObject();
-                        return new SudoRetrieveConnectionIdsByTagResponse(
-                                fromArray(jsonObject.getValueOrThrow(CONNECTION_IDS)),
+                        return new SudoRetrieveConnectionTagsResponse(
+                                fromArray(jsonObject.getValueOrThrow(CONNECTION_TAGS)),
                                 context.getDeserializedHttpStatus(),
                                 context.getDittoHeaders());
                     });
 
-    private final Set<ConnectionId> connectionIds;
+    private final Set<String> connectionTags;
 
-    private SudoRetrieveConnectionIdsByTagResponse(final Set<ConnectionId> connectionIds,
+    private SudoRetrieveConnectionTagsResponse(final Set<String> connectionTags,
             final HttpStatus httpStatus,
             final DittoHeaders dittoHeaders) {
 
         super(TYPE,
                 CommandResponseHttpStatusValidator.validateHttpStatus(httpStatus,
                         Collections.singleton(HTTP_STATUS),
-                        SudoRetrieveConnectionIdsByTagResponse.class),
+                        SudoRetrieveConnectionTagsResponse.class),
                 dittoHeaders);
-        this.connectionIds = Collections.unmodifiableSet(new LinkedHashSet<>(connectionIds));
+        this.connectionTags = Collections.unmodifiableSet(new LinkedHashSet<>(connectionTags));
     }
 
     /**
-     * Returns a new instance of {@code SudoRetrieveConnectionIdsByTagResponse}.
+     * Returns a new instance of {@code SudoRetrieveConnectionTagsResponse}.
      *
      * @param dittoHeaders the headers of the request.
-     * @param connectionIds the connection ids.
-     * @return a new SudoRetrieveConnectionIdsByTagResponse response.
+     * @param connectionTags the connection tags.
+     * @return a new SudoRetrieveConnectionTagsResponse response.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static SudoRetrieveConnectionIdsByTagResponse of(final Set<ConnectionId> connectionIds,
+    public static SudoRetrieveConnectionTagsResponse of(final Set<String> connectionTags,
             final DittoHeaders dittoHeaders) {
 
-        return new SudoRetrieveConnectionIdsByTagResponse(connectionIds, HTTP_STATUS, dittoHeaders);
+        return new SudoRetrieveConnectionTagsResponse(connectionTags, HTTP_STATUS, dittoHeaders);
     }
 
     /**
-     * Creates a new {@code SudoRetrieveConnectionIdsByTagResponse} from a JSON string.
+     * Creates a new {@code SudoRetrieveConnectionTagsResponse} from a JSON string.
      *
      * @param jsonString the JSON string of which the response is to be retrieved.
      * @param dittoHeaders the headers of the response.
@@ -108,13 +107,13 @@ public final class SudoRetrieveConnectionIdsByTagResponse
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonString} was not in the expected
      * format.
      */
-    public static SudoRetrieveConnectionIdsByTagResponse fromJson(final String jsonString,
+    public static SudoRetrieveConnectionTagsResponse fromJson(final String jsonString,
             final DittoHeaders dittoHeaders) {
         return fromJson(JsonObject.of(jsonString), dittoHeaders);
     }
 
     /**
-     * Creates a new {@code SudoRetrieveConnectionIdsByTagResponse} from a JSON object.
+     * Creates a new {@code SudoRetrieveConnectionTagsResponse} from a JSON object.
      *
      * @param jsonObject the JSON object of which the response is to be created.
      * @param dittoHeaders the headers of the response.
@@ -123,7 +122,7 @@ public final class SudoRetrieveConnectionIdsByTagResponse
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
      * format.
      */
-    public static SudoRetrieveConnectionIdsByTagResponse fromJson(final JsonObject jsonObject,
+    public static SudoRetrieveConnectionTagsResponse fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
 
         return JSON_DESERIALIZER.deserialize(jsonObject, dittoHeaders);
@@ -135,39 +134,38 @@ public final class SudoRetrieveConnectionIdsByTagResponse
             final Predicate<JsonField> thePredicate) {
 
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(CONNECTION_IDS, JsonArray.of(connectionIds), predicate);
+        jsonObjectBuilder.set(CONNECTION_TAGS, JsonArray.of(connectionTags), predicate);
     }
 
-    public Set<ConnectionId> getConnectionIds() {
-        return connectionIds;
+    public Set<String> getConnectionTags() {
+        return connectionTags;
     }
 
     @Override
-    public SudoRetrieveConnectionIdsByTagResponse setEntity(final JsonValue entity) {
+    public SudoRetrieveConnectionTagsResponse setEntity(final JsonValue entity) {
         return of(fromArray(entity.asArray()), getDittoHeaders());
     }
 
-    private static Set<ConnectionId> fromArray(final JsonArray array) {
+    private static Set<String> fromArray(final JsonArray array) {
         return array.stream()
                 .filter(JsonValue::isString)
                 .map(JsonValue::asString)
-                .map(ConnectionId::of)
                 .collect(Collectors.toCollection(LinkedHashSet::new));
     }
 
     @Override
     public JsonValue getEntity(final JsonSchemaVersion schemaVersion) {
-        return JsonArray.of(connectionIds);
+        return JsonArray.of(connectionTags);
     }
 
     @Override
-    public SudoRetrieveConnectionIdsByTagResponse setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return of(connectionIds, dittoHeaders);
+    public SudoRetrieveConnectionTagsResponse setDittoHeaders(final DittoHeaders dittoHeaders) {
+        return of(connectionTags, dittoHeaders);
     }
 
     @Override
     protected boolean canEqual(@Nullable final Object other) {
-        return other instanceof SudoRetrieveConnectionIdsByTagResponse;
+        return other instanceof SudoRetrieveConnectionTagsResponse;
     }
 
     @Override
@@ -181,20 +179,20 @@ public final class SudoRetrieveConnectionIdsByTagResponse
         if (!super.equals(o)) {
             return false;
         }
-        final SudoRetrieveConnectionIdsByTagResponse that = (SudoRetrieveConnectionIdsByTagResponse) o;
-        return Objects.equals(connectionIds, that.connectionIds);
+        final SudoRetrieveConnectionTagsResponse that = (SudoRetrieveConnectionTagsResponse) o;
+        return Objects.equals(connectionTags, that.connectionTags);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(super.hashCode(), connectionIds);
+        return Objects.hash(super.hashCode(), connectionTags);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
                 super.toString() +
-                ", connectionIds=" + connectionIds +
+                ", connectionTags=" + connectionTags +
                 "]";
     }
 

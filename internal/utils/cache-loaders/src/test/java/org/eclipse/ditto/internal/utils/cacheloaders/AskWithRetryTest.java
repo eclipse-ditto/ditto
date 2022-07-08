@@ -353,7 +353,7 @@ public final class AskWithRetryTest {
             expectNoMessage(DEFAULT_NO_MESSAGE_EXPECTATION_DURATION);
 
             assertThat(retryStage)
-                    .succeedsWithin(Duration.ofMillis(10))
+                    .succeedsWithin(Duration.ofMillis(50))
                     .isEqualTo(ASK_MESSAGE_SUCCESS_RESPONSE);
         }};
     }

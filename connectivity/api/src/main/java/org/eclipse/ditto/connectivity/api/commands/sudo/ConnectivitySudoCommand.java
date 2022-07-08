@@ -14,7 +14,11 @@ package org.eclipse.ditto.connectivity.api.commands.sudo;
 
 import org.eclipse.ditto.base.api.commands.sudo.SudoCommand;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.json.FieldType;
+import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.signals.commands.Command;
+import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonFieldDefinition;
 
 /**
  * Aggregates all connectivity sudo commands.
@@ -54,6 +58,13 @@ public interface ConnectivitySudoCommand<T extends ConnectivitySudoCommand<T>> e
         private JsonFields() {
             throw new AssertionError();
         }
+
+        /**
+         * JSON field containing the ConnectivitySudoCommand's connectionId.
+         */
+        public static final JsonFieldDefinition<String> JSON_CONNECTION_ID =
+                JsonFactory.newStringFieldDefinition("connectionId", FieldType.REGULAR,
+                        JsonSchemaVersion.V_2);
     }
 
 }

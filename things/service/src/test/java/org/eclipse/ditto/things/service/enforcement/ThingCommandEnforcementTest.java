@@ -307,7 +307,13 @@ public final class ThingCommandEnforcementTest extends AbstractThingEnforcementT
 
             expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
 
-            final JsonObject jsonObjectWithoutAttr = thingWithPolicy.remove(attributePointer);
+            final JsonObject jsonObjectWithoutAttr = JsonObject.newBuilder()
+                    .set("thingId", "thing:id") // this is re-added as first field being a "special" field always visible after enforcement
+                    .set("_revision", 1)
+                    .set("_namespace", "thing")
+                    .set("policyId","policy:id")
+                    .set("attributes",JsonObject.empty())
+                    .build();
             final RetrieveThingResponse retrieveThingResponseWithoutAttr =
                     RetrieveThingResponse.of(THING_ID, jsonObjectWithoutAttr, headers());
             expectMsg(retrieveThingResponseWithoutAttr);
