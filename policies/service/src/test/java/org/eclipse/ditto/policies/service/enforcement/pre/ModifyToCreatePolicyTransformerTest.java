@@ -22,13 +22,11 @@ import java.util.concurrent.CompletableFuture;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.signals.Signal;
-import org.eclipse.ditto.policies.enforcement.pre.ExistenceChecker;
 import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.signals.commands.modify.CreatePolicy;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicy;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicy;
-import org.eclipse.ditto.policies.service.enforcement.pre.ModifyToCreatePolicyTransformer;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -39,7 +37,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 public final class ModifyToCreatePolicyTransformerTest {
 
     @Mock
-    public ExistenceChecker existenceChecker;
+    public PolicyExistenceChecker existenceChecker;
     private ModifyToCreatePolicyTransformer underTest;
 
     @Before

@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.things.service.enforcement;
+package org.eclipse.ditto.things.service.enforcement.pre;
 
 import java.util.Optional;
 import java.util.concurrent.CompletionStage;
@@ -25,26 +25,24 @@ import org.eclipse.ditto.internal.utils.cluster.config.DefaultClusterConfig;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.policies.enforcement.config.DefaultEnforcementConfig;
 import org.eclipse.ditto.policies.enforcement.config.EnforcementConfig;
-import org.eclipse.ditto.policies.enforcement.pre.ExistenceChecker;
 import org.eclipse.ditto.things.api.ThingsMessagingConstants;
 
 import com.github.benmanes.caffeine.cache.AsyncCacheLoader;
-import com.typesafe.config.Config;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 
 /**
- * Thing specific implementation of {@link ExistenceChecker} checking for the existence of things.
+ * checks for the existence of things.
  */
-public final class ThingExistenceChecker implements ExistenceChecker {
+final class ThingExistenceChecker {
 
     public static final String ENFORCEMENT_CACHE_DISPATCHER = "enforcement-cache-dispatcher";
 
     private final AsyncCacheLoader<EnforcementCacheKey, Entry<EnforcementCacheKey>> thingIdLoader;
     private final ActorSystem actorSystem;
 
-    public ThingExistenceChecker(final ActorSystem actorSystem, final Config config) {
+    ThingExistenceChecker(final ActorSystem actorSystem) {
         this.actorSystem = actorSystem;
         final var enforcementConfig = DefaultEnforcementConfig.of(
                 DefaultScopedConfig.dittoScoped(actorSystem.settings().config()));
@@ -66,7 +64,6 @@ public final class ThingExistenceChecker implements ExistenceChecker {
                 thingsShardRegion);
     }
 
-    @Override
     public CompletionStage<Boolean> checkExistence(final Signal<?> signal) {
         final Optional<EntityId> entityIdOptional = WithEntityId.getEntityIdOfType(EntityId.class, signal);
 

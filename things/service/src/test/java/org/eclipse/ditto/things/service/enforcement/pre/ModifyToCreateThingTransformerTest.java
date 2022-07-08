@@ -22,13 +22,11 @@ import java.util.concurrent.CompletableFuture;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.signals.Signal;
-import org.eclipse.ditto.policies.enforcement.pre.ExistenceChecker;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.commands.modify.CreateThing;
 import org.eclipse.ditto.things.model.signals.commands.modify.ModifyThing;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThing;
-import org.eclipse.ditto.things.service.enforcement.pre.ModifyToCreateThingTransformer;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -39,7 +37,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 public final class ModifyToCreateThingTransformerTest {
 
     @Mock
-    public ExistenceChecker existenceChecker;
+    public ThingExistenceChecker existenceChecker;
     private ModifyToCreateThingTransformer underTest;
 
     @Before
