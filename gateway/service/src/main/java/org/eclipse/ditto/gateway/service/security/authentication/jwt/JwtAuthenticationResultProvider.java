@@ -47,7 +47,7 @@ public interface JwtAuthenticationResultProvider extends DittoExtensionPoint {
      * Loads the implementation of {@code JwtAuthenticationResultProvider} which is configured for the {@code ActorSystem}.
      *
      * @param actorSystem the actorSystem in which the {@code JwtAuthenticationResultProvider} should be loaded.
-     * @param configLevel the level where the configuration is configured.
+     * @param config the configuration for this extension.
      * @return the {@code JwtAuthenticationResultProvider} implementation.
      * @throws NullPointerException if {@code actorSystem} is {@code null}.
      * @since 3.0.0
