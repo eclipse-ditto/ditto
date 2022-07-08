@@ -38,8 +38,9 @@ public final class ThingEnforcement extends AbstractEnforcementReloaded<Signal<?
     public ThingEnforcement(final ActorRef policiesShardRegion, final ActorSystem actorSystem,
             final EnforcementConfig enforcementConfig) {
 
+        super(actorSystem);
         enforcementStrategies = List.of(
-                new LiveSignalEnforcement(),
+                new LiveSignalEnforcement(actorSystem),
                 new ThingCommandEnforcement(actorSystem, policiesShardRegion, enforcementConfig)
         );
     }

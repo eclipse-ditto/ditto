@@ -142,7 +142,6 @@ public final class PolicyCommandEnforcementTest {
 
     private TestProbe policyPersistenceActorProbe;
     private ActorRef supervisor;
-    private MockPolicyPersistenceSupervisor mockPolicyPersistenceSupervisor;
 
     @Before
     public void init() {
@@ -150,10 +149,7 @@ public final class PolicyCommandEnforcementTest {
 
         pubSubMediatorProbe = createPubSubMediatorProbe();
         policyPersistenceActorProbe = createPolicyPersistenceActorProbe();
-        final TestActorRef<MockPolicyPersistenceSupervisor> policyPersistenceSupervisorTestActorRef =
-                createPolicyPersistenceSupervisor();
-        supervisor = policyPersistenceSupervisorTestActorRef;
-        mockPolicyPersistenceSupervisor = policyPersistenceSupervisorTestActorRef.underlyingActor();
+        supervisor = createPolicyPersistenceSupervisor();
     }
 
     @After
@@ -790,17 +786,15 @@ public final class PolicyCommandEnforcementTest {
 
     private TestActorRef<MockPolicyPersistenceSupervisor> createPolicyPersistenceSupervisor() {
         return new TestActorRef<>(system, Props.create(
-                MockPolicyPersistenceSupervisor.class,
-                pubSubMediatorProbe.ref(),
-                policyPersistenceActorProbe.ref()
-        ), system.guardian(), MockPolicyPersistenceSupervisor.ACTOR_NAME);
+                MockPolicyPersistenceSupervisor.class, () -> new MockPolicyPersistenceSupervisor(pubSubMediatorProbe.ref(),
+                        policyPersistenceActorProbe.ref())), system.guardian(), MockPolicyPersistenceSupervisor.ACTOR_NAME);
     }
 
     private static String createUniqueName(final String prefix) {
         return prefix + UUID.randomUUID();
     }
 
-    private static class MockPolicyPersistenceSupervisor
+    private class MockPolicyPersistenceSupervisor
             extends AbstractPersistenceSupervisor<PolicyId, PolicyCommand<?>> {
 
         static final String ACTOR_NAME = "mockPolicyPersistenceSupervisor";
@@ -810,10 +804,6 @@ public final class PolicyCommandEnforcementTest {
         private MockPolicyPersistenceSupervisor(final ActorRef pubSubMediator, final ActorRef policyPersistenceActor) {
             super(policyPersistenceActor, null, null, Duration.ofSeconds(5));
             this.pubSubMediator = pubSubMediator;
-        }
-
-        ActorRef getEnforcerChild() {
-            return enforcerChild;
         }
 
         @Override
@@ -828,7 +818,7 @@ public final class PolicyCommandEnforcementTest {
 
         @Override
         protected Props getPersistenceEnforcerProps(final PolicyId entityId) {
-            return PolicyEnforcerActor.props(entityId, new PolicyCommandEnforcement());
+            return PolicyEnforcerActor.props(entityId, new PolicyCommandEnforcement(system));
         }
 
         @Override
