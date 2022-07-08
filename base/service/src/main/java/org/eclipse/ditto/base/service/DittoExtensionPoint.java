@@ -45,7 +45,6 @@ public interface DittoExtensionPoint extends Extension {
         /**
          * Returns the {@code ExtensionId} for the implementation that should be loaded.
          *
-         * @param parentClass the class of the extensions for which an implementation should be loaded.
          * @param extensionIdConfig configuration for the extension ID.
          */
         protected ExtensionId(final ExtensionIdConfig<T> extensionIdConfig) {
