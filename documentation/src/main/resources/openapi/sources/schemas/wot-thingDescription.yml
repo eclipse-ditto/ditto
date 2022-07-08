@@ -9,7 +9,7 @@
 #
 # SPDX-License-Identifier: EPL-2.0
 type: object
-desciption: A WoT Thing Description version 1.1
+description: A WoT Thing Description version 1.1
 properties:
   '@context':
      oneOf:

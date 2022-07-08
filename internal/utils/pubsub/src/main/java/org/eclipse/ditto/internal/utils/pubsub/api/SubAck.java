@@ -24,11 +24,13 @@ public final class SubAck {
     private final Request request;
     private final ActorRef sender;
     private final int seqNr;
+    private final boolean consistent;
 
-    private SubAck(final Request request, final ActorRef sender, final int seqNr) {
+    private SubAck(final Request request, final ActorRef sender, final int seqNr, final boolean consistent) {
         this.request = request;
         this.sender = sender;
         this.seqNr = seqNr;
+        this.consistent = consistent;
     }
 
     /**
@@ -39,8 +41,8 @@ public final class SubAck {
      * @param seqNr the sequence number increased for each subscription request.
      * @return the created instance of SubAck.
      */
-    public static SubAck of(final Request request, final ActorRef sender, final int seqNr) {
-        return new SubAck(request, sender, seqNr);
+    public static SubAck of(final Request request, final ActorRef sender, final int seqNr, final boolean consistent) {
+        return new SubAck(request, sender, seqNr, consistent);
     }
 
     /**
@@ -64,6 +66,13 @@ public final class SubAck {
         return seqNr;
     }
 
+    /**
+     * @return whether the consistency test of resubscription is successful.
+     */
+    public boolean isConsistent() {
+        return consistent;
+    }
+
     @Override
     public boolean equals(final Object o) {
         if (this == o) {
@@ -74,6 +83,7 @@ public final class SubAck {
         }
         final SubAck subAck = (SubAck) o;
         return seqNr == subAck.seqNr &&
+                consistent == subAck.consistent &&
                 Objects.equals(request, subAck.request) &&
                 Objects.equals(sender, subAck.sender);
     }

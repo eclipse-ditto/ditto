@@ -85,7 +85,7 @@ final class ClientActorRefsAggregationActor extends AbstractFSM<AggregationState
     }
 
     @Override
-    public void preStart() throws Exception {
+    public void preStart() {
         when(AGGREGATED, inAggregatedState());
         when(AGGREGATING, inAggregatingState());
 

@@ -132,9 +132,8 @@ public final class ThingsSearchCursorTest {
 
             final var command =
                     ThingsSearchCursor.adjust(Optional.of(underTest), QueryThings.of(DittoHeaders.empty()));
-            final var limitsConfig =
-                    DittoSearchConfig.of(DefaultScopedConfig.dittoScoped(config)).getLimitsConfig();
-            final var parser = SearchRootActor.getQueryParser(limitsConfig, actorSystem);
+            final var searchConfig = DittoSearchConfig.of(DefaultScopedConfig.dittoScoped(config));
+            final var parser = SearchRootActor.getQueryParser(searchConfig, actorSystem);
             final Query query = parser.parse(command).toCompletableFuture().join();
             final Query result = ThingsSearchCursor.adjust(Optional.of(underTest), query, parser.getCriteriaFactory());
             final var bson = CreateBsonVisitor.sudoApply(result.getCriteria())
