@@ -59,10 +59,7 @@ public interface RootActorStarter extends DittoExtensionPoint {
         }
 
         static ExtensionIdConfig<RootActorStarter> computeConfig(final Config config) {
-            return ExtensionIdConfig.of(
-                    RootActorStarter.class,
-                    config.hasPath(CONFIG_KEY) ? config.getConfig(CONFIG_KEY) : ConfigFactory.empty()
-            );
+            return ExtensionIdConfig.of(RootActorStarter.class, config, CONFIG_KEY);
         }
 
         @Override
