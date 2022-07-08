@@ -402,7 +402,8 @@ public abstract class DittoService<C extends ServiceSpecificConfig> {
             injectSystemPropertiesLimits(serviceSpecificConfig);
 
             startMainRootActor(actorSystem, getMainRootActorProps(serviceSpecificConfig, pubSubMediator));
-            RootActorStarter.get(actorSystem).execute();
+            RootActorStarter.get(actorSystem, ScopedConfig.getOrEmpty(actorSystem.settings().config(), "ditto"))
+                    .execute();
         });
     }
 
