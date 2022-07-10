@@ -298,6 +298,9 @@ public final class MongoClientWrapper implements DittoMongoClient {
             final MongoDbConfig.ConnectionPoolConfig connectionPoolConfig = mongoDbConfig.getConnectionPoolConfig();
             builder.connectionPoolMinSize(connectionPoolConfig.getMinSize());
             builder.connectionPoolMaxSize(connectionPoolConfig.getMaxSize());
+            if (!connectionPoolConfig.getMaxIdleTime().isNegative()) {
+                builder.connectionPoolMaxIdleTime(connectionPoolConfig.getMaxIdleTime());
+            }
             builder.connectionPoolMaxWaitTime(connectionPoolConfig.getMaxWaitTime());
             builder.enableJmxListener(connectionPoolConfig.isJmxListenerEnabled());
 
@@ -357,6 +360,12 @@ public final class MongoClientWrapper implements DittoMongoClient {
         @Override
         public MongoClientWrapperBuilder connectionPoolMaxSize(final int maxSize) {
             mongoClientSettingsBuilder.applyToConnectionPoolSettings(builder -> builder.maxSize(maxSize));
+            return this;
+        }
+
+        @Override
+        public MongoClientWrapperBuilder connectionPoolMaxIdleTime(final Duration maxConnectionIdleTime) {
+            mongoClientSettingsBuilder.applyToConnectionPoolSettings(builder -> builder.maxConnectionIdleTime(maxConnectionIdleTime.toMillis(), TimeUnit.MILLISECONDS));
             return this;
         }
 
