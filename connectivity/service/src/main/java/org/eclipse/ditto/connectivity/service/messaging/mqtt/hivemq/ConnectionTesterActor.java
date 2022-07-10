@@ -88,6 +88,7 @@ final class ConnectionTesterActor extends AbstractActor {
     private final ConnectivityStatusResolver connectivityStatusResolver;
     private final ThreadSafeDittoLoggingAdapter logger;
     private final ChildActorNanny childActorNanny;
+    private final Function<HiveMqttClientProperties, GenericMqttClient> testClientFactory;
 
     @SuppressWarnings("java:S1144")
     private ConnectionTesterActor(
@@ -95,13 +96,14 @@ final class ConnectionTesterActor extends AbstractActor {
             final Supplier<SshTunnelState> sshTunnelStateSupplier,
             final ConnectionLogger connectionLogger,
             final UUID actorUuid,
-            final ConnectivityStatusResolver connectivityStatusResolver
-    ) {
+            final ConnectivityStatusResolver connectivityStatusResolver,
+            final Function<HiveMqttClientProperties, GenericMqttClient> testClientFactory) {
         this.connectivityConfig = connectivityConfig;
         this.sshTunnelStateSupplier = sshTunnelStateSupplier;
         this.connectionLogger = connectionLogger;
         this.actorUuid = actorUuid;
         this.connectivityStatusResolver = connectivityStatusResolver;
+        this.testClientFactory = testClientFactory;
 
         logger = DittoLoggerFactory.getThreadSafeDittoLoggingAdapter(this);
         childActorNanny = ChildActorNanny.newInstance(getContext(), logger);
@@ -115,13 +117,15 @@ final class ConnectionTesterActor extends AbstractActor {
      * @param connectionLogger logs the result of connection testing for end users.
      * @param parentActorUuid UUID of the parent actor.
      * @param connectivityStatusResolver resolves occurred exceptions to a connectivity status.
+     * @param testClientFactory factory with which to create the test MQTT client.
      * @throws NullPointerException if any argument is {@code null}.
      */
     static Props props(final ConnectivityConfig connectivityConfig,
             final Supplier<SshTunnelState> sshTunnelStateSupplier,
             final ConnectionLogger connectionLogger,
             final UUID parentActorUuid,
-            final ConnectivityStatusResolver connectivityStatusResolver) {
+            final ConnectivityStatusResolver connectivityStatusResolver,
+            final Function<HiveMqttClientProperties, GenericMqttClient> testClientFactory) {
 
         return Props.create(
                 ConnectionTesterActor.class,
@@ -129,7 +133,8 @@ final class ConnectionTesterActor extends AbstractActor {
                 checkNotNull(sshTunnelStateSupplier, "sshTunnelStateSupplier"),
                 checkNotNull(connectionLogger, "connectionLogger"),
                 checkNotNull(parentActorUuid, "parentActorUuid"),
-                checkNotNull(connectivityStatusResolver, "connectivityStatusResolver")
+                checkNotNull(connectivityStatusResolver, "connectivityStatusResolver"),
+                checkNotNull(testClientFactory, "testClientFactory")
         );
     }
 
@@ -189,8 +194,7 @@ final class ConnectionTesterActor extends AbstractActor {
 
     private ClientContext getClientContext(final ClientPropertiesContext context) {
         try {
-            return new ClientContext(context,
-                    GenericMqttClientFactory.getGenericMqttClientForConnectionTesting(context.clientProperties()));
+            return new ClientContext(context, testClientFactory.apply(context.clientProperties()));
         } catch (final Exception e) {
             logger.withCorrelationId(context.correlationId())
                     .withMdcEntry(ConnectivityMdcEntryKey.CONNECTION_ID, context.connectionId())

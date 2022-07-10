@@ -48,6 +48,7 @@ import org.eclipse.ditto.connectivity.model.Topic;
 import org.eclipse.ditto.connectivity.model.signals.commands.exceptions.ConnectionFailedException;
 import org.eclipse.ditto.connectivity.model.signals.commands.modify.CloseConnection;
 import org.eclipse.ditto.connectivity.model.signals.commands.modify.OpenConnection;
+import org.eclipse.ditto.connectivity.model.signals.commands.modify.TestConnection;
 import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConnectionMetrics;
 import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConnectionMetricsResponse;
 import org.eclipse.ditto.connectivity.service.messaging.AbstractBaseClientActorTest;
@@ -57,6 +58,7 @@ import org.eclipse.ditto.connectivity.service.messaging.mqtt.MqttServerRule;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.client.GenericMqttClient;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.client.GenericMqttClientFactory;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.client.GenericMqttPublishResult;
+import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.client.MqttClientConnectException;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.client.MqttSubscribeException;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.message.publish.GenericMqttPublish;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.message.subscribe.GenericMqttSubAck;
@@ -175,7 +177,8 @@ public final class MqttClientActorTest extends AbstractBaseClientActorTest {
     private void enableGenericMqttClientFactoryMethodStubbing() {
         genericMqttClientFactory.when(() -> GenericMqttClientFactory.getProductiveGenericMqttClient(Mockito.any()))
                 .thenReturn(genericMqttClient);
-        genericMqttClientFactory.when(() -> GenericMqttClientFactory.getGenericMqttClientForConnectionTesting(Mockito.any()))
+        genericMqttClientFactory.when(
+                        () -> GenericMqttClientFactory.getGenericMqttClientForConnectionTesting(Mockito.any()))
                 .thenReturn(genericMqttClient);
     }
 
@@ -200,7 +203,8 @@ public final class MqttClientActorTest extends AbstractBaseClientActorTest {
                 proxyActor,
                 connectionActor.getRef(),
                 DittoHeaders.empty(),
-                ConfigFactory.empty());
+                ConfigFactory.empty(),
+                properties -> genericMqttClient);
     }
 
     @Override
@@ -284,6 +288,52 @@ public final class MqttClientActorTest extends AbstractBaseClientActorTest {
         underTest.tell(RetrieveConnectionMetrics.of(CONNECTION_ID, dittoHeadersWithCorrelationId), testKit.getRef());
 
         testKit.expectMsgClass(RetrieveConnectionMetricsResponse.class);
+    }
+
+    @Test
+    public void testConnectionIsSuccessful() {
+        final var connection = ConnectivityModelFactory.newConnectionBuilder(getConnection(false))
+                .connectionStatus(ConnectivityStatus.CLOSED)
+                .build();
+        Mockito.when(genericMqttClient.connect(Mockito.any())).thenReturn(CompletableFuture.completedStage(null));
+        final var testKit = actorSystemResource.newTestKit();
+        final var underTest = testKit.watch(TestActorRef.apply(
+                createClientActor(proxyActor.getRef(), connection),
+                actorSystemResource.getActorSystem()
+        ));
+
+        underTest.tell(TestConnection.of(connection, getDittoHeadersWithCorrelationId()), testKit.getRef());
+
+        testKit.expectMsg(new Status.Success("successfully connected + initialized mapper"));
+        Mockito.verify(genericMqttClient).disconnect();
+        testKit.expectTerminated(Duration.ofSeconds(5L), underTest);
+        Mockito.verify(genericMqttClient).disconnect();
+    }
+
+    @Test
+    public void testConnectionFails() {
+        final var mqttClientConnectException = new MqttClientConnectException("Failed to connect.", null);
+        Mockito.when(genericMqttClient.connect(Mockito.any())).thenThrow(mqttClientConnectException);
+        final var connection = ConnectivityModelFactory.newConnectionBuilder(getConnection(false))
+                .connectionStatus(ConnectivityStatus.CLOSED)
+                .build();
+        final var testKit = actorSystemResource.newTestKit();
+        final var underTest = testKit.watch(TestActorRef.apply(
+                createClientActor(proxyActor.getRef(), connection),
+                actorSystemResource.getActorSystem()
+        ));
+
+        underTest.tell(TestConnection.of(connection, getDittoHeadersWithCorrelationId()), testKit.getRef());
+
+        final var failure = testKit.expectMsgClass(Duration.ofSeconds(10L), Status.Failure.class);
+        assertThat(failure.cause())
+                .isInstanceOfSatisfying(ConnectionFailedException.class, connectionFailedException -> {
+                    assertThat(connectionFailedException.getDescription())
+                            .hasValue("Cause: " + mqttClientConnectException.getMessage());
+                    assertThat(connectionFailedException).hasCause(mqttClientConnectException);
+                });
+        testKit.expectTerminated(Duration.ofSeconds(5L), underTest);
+        Mockito.verify(genericMqttClient, Mockito.never()).disconnect();
     }
 
     private String getSerializedModifyThingCommand(final Object... correlationIdSuffixes) {

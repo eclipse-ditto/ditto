@@ -21,6 +21,7 @@ import java.util.concurrent.CompletionException;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Function;
 import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
@@ -79,15 +80,18 @@ public final class MqttClientActor extends BaseClientActor {
     private final AtomicBoolean automaticReconnect;
     @Nullable private ActorRef publishingActorRef;
     private final List<ActorRef> mqttConsumerActorRefs;
+    private final Function<HiveMqttClientProperties, GenericMqttClient> testClientFactory;
 
     @SuppressWarnings("java:S1144")
     private MqttClientActor(final Connection connection,
             final ActorRef proxyActor,
             final ActorRef connectionActor,
             final DittoHeaders dittoHeaders,
-            final Config connectivityConfigOverwrites) {
+            final Config connectivityConfigOverwrites,
+            final Function<HiveMqttClientProperties, GenericMqttClient> testClientFactory) {
 
         super(connection, proxyActor, connectionActor, dittoHeaders, connectivityConfigOverwrites);
+        this.testClientFactory = testClientFactory;
 
         final var connectivityConfig = connectivityConfig();
         final var connectionConfig = connectivityConfig.getConnectionConfig();
@@ -118,12 +122,24 @@ public final class MqttClientActor extends BaseClientActor {
             final DittoHeaders dittoHeaders,
             final Config connectivityConfigOverwrites) {
 
+        return props(mqttConnection, proxyActor, connectionActor, dittoHeaders, connectivityConfigOverwrites,
+                GenericMqttClientFactory::getGenericMqttClientForConnectionTesting);
+    }
+
+    static Props props(final Connection mqttConnection,
+            final ActorRef proxyActor,
+            final ActorRef connectionActor,
+            final DittoHeaders dittoHeaders,
+            final Config connectivityConfigOverwrites,
+            final Function<HiveMqttClientProperties, GenericMqttClient> testClientFactory) {
+
         return Props.create(MqttClientActor.class,
                 ConditionChecker.checkNotNull(mqttConnection, "mqttConnection"),
                 ConditionChecker.checkNotNull(proxyActor, "proxyActor"),
                 ConditionChecker.checkNotNull(connectionActor, "connectionActor"),
                 ConditionChecker.checkNotNull(dittoHeaders, "dittoHeaders"),
-                ConditionChecker.checkNotNull(connectivityConfigOverwrites, "connectivityConfigOverwrites"));
+                ConditionChecker.checkNotNull(connectivityConfigOverwrites, "connectivityConfigOverwrites"),
+                ConditionChecker.checkNotNull(testClientFactory, "testClientFactory"));
     }
 
     @Override
@@ -190,7 +206,8 @@ public final class MqttClientActor extends BaseClientActor {
                         this::getSshTunnelState,
                         connectionLogger,
                         actorUuid,
-                        connectivityStatusResolver)
+                        connectivityStatusResolver,
+                        testClientFactory)
         );
         return Patterns.ask(connectionTesterActorRef, testConnectionCmd, ConnectionTesterActor.ASK_TIMEOUT)
                 .handle((response, throwable) -> {
