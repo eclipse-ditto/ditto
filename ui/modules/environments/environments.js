@@ -39,6 +39,7 @@ let dom = {
   inputEnvironmentName: null,
   inputApiUri: null,
   tbodyEnvironments: null,
+  collapseConnections: null,
 };
 
 let observers = [];
@@ -105,14 +106,10 @@ export function ready() {
     settingsEditor.renderer.updateFull();
   });
 
-  // Ensure to togle right Ditto user for rest or dev ops api
-  document.querySelectorAll('.mainUser,.devOpsUser').forEach((menuTab) => {
-    menuTab.addEventListener('click', (event) => {
-      API.setAuthHeader(event.target.parentNode.classList.contains('devOpsUser'));
-    });
-  });
-
-  document.getElementById('environmentSelector').onchange = notifyAll;
+  document.getElementById('environmentSelector').onchange = () => {
+    API.setAuthHeader(dom.collapseConnections.classList.contains('show'));
+    notifyAll();
+  };
 
   environmentsJsonChanged();
 }
@@ -157,6 +154,6 @@ function updateEnvEditors() {
 function updateEnvTable() {
   dom.tbodyEnvironments.innerHTML = '';
   Object.keys(environments).forEach((key) => {
-    Utils.addTableRow(dom.tbodyEnvironments, key, null, key === dom.inputEnvironmentName.value);
+    Utils.addTableRow(dom.tbodyEnvironments, key, key === dom.inputEnvironmentName.value);
   });
 }

@@ -216,11 +216,11 @@ export function setTheThing(thingJson) {
 
   // Update fields of Thing table
   dom.thingDetails.innerHTML = '';
-  Utils.addTableRow(dom.thingDetails, 'thingId', theThing.thingId, null, true);
-  Utils.addTableRow(dom.thingDetails, 'policyId', theThing._policy.policyId, null, true);
-  Utils.addTableRow(dom.thingDetails, 'revision', theThing._revision, null, true);
-  Utils.addTableRow(dom.thingDetails, 'created', theThing._created, null, true);
-  Utils.addTableRow(dom.thingDetails, 'modified', theThing._modified, null, true);
+  Utils.addTableRow(dom.thingDetails, 'thingId', false, true, theThing.thingId);
+  Utils.addTableRow(dom.thingDetails, 'policyId', false, true, theThing._policy.policyId);
+  Utils.addTableRow(dom.thingDetails, 'revision', false, true, theThing._revision);
+  Utils.addTableRow(dom.thingDetails, 'created', false, true, theThing._created);
+  Utils.addTableRow(dom.thingDetails, 'modified', false, true, theThing._modified);
 
   // Update edit thing area
   dom.thingId.value = theThing.thingId;

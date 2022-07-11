@@ -1,0 +1,209 @@
+{
+  "AMQP 0.9.1": {
+    "name": "AMQP 0.9.1",
+    "connectionType": "amqp-091",
+    "connectionStatus": "closed",
+    "failoverEnabled": true,
+    "uri": "amqp://user:password@localhost:5672/vhost",
+    "sources": [
+      {
+        "addresses": [
+          "queueName"
+        ],
+        "authorizationContext": [
+          "ditto:inbound-auth-subject",
+          "..."
+        ]
+      }
+    ],
+    "targets": [
+      {
+        "address": "exchangeName/routingKey",
+        "topics": [
+          "_/_/things/twin/events",
+          "_/_/things/live/messages"
+        ],
+        "authorizationContext": [
+          "ditto:outbound-auth-subject",
+          "..."
+        ]
+      }
+    ]
+  },
+  "AMQP 1.0": {
+    "name": "AMQP 1.0",
+    "connectionType": "amqp-10",
+    "connectionStatus": "closed",
+    "failoverEnabled": true,
+    "uri": "amqps://user:password@hono.eclipse.org:5671",
+    "sources": [
+      {
+        "addresses": [
+          "telemetry/FOO"
+        ],
+        "authorizationContext": [
+          "ditto:inbound-auth-subject"
+        ]
+      }
+    ],
+    "targets": [
+      {
+        "address": "events/twin",
+        "topics": [
+          "_/_/things/twin/events"
+        ],
+        "authorizationContext": [
+          "ditto:outbound-auth-subject"
+        ]
+      }
+    ]
+  },
+  "MQTT 3.1.1": {
+    "name": "MQTT 3.1.1",
+    "connectionType": "mqtt",
+    "connectionStatus": "closed",
+    "failoverEnabled": true,
+    "uri": "tcp://test.mosquitto.org:1883",
+    "sources": [
+      {
+        "addresses": [
+          "eclipse-ditto-sandbox/#"
+        ],
+        "authorizationContext": [
+          "ditto:inbound-auth-subject"
+        ],
+        "qos": 0,
+        "filters": []
+      }
+    ],
+    "targets": [
+      {
+        "address": "eclipse-ditto-sandbox/{{ thing:id }}",
+        "topics": [
+          "_/_/things/twin/events"
+        ],
+        "authorizationContext": [
+          "ditto:outbound-auth-subject"
+        ],
+        "qos": 0
+      }
+    ]
+  },
+  "MQTT 5": {
+    "name": "MQTT 5",
+    "connectionType": "mqtt-5",
+    "connectionStatus": "closed",
+    "failoverEnabled": true,
+    "uri": "tcp://test.mosquitto.org:1883",
+    "sources": [
+      {
+        "addresses": [
+          "eclipse-ditto-sandbox/#"
+        ],
+        "authorizationContext": [
+          "ditto:inbound-auth-subject"
+        ],
+        "qos": 0,
+        "filters": []
+      }
+    ],
+    "targets": [
+      {
+        "address": "eclipse-ditto-sandbox/{{ thing:id }}",
+        "topics": [
+          "_/_/things/twin/events"
+        ],
+        "authorizationContext": [
+          "ditto:outbound-auth-subject"
+        ],
+        "qos": 0
+      }
+    ]
+  },
+  "HTTP 1.1": {
+    "name": "HTTP 1.1",
+    "connectionType": "http-push",
+    "connectionStatus": "closed",
+    "failoverEnabled": true,
+    "uri": "http://user:password@localhost:80",
+    "specificConfig": {
+      "parallelism": "2"
+    },
+    "sources": [],
+    "targets": [
+      {
+        "address": "PUT:/api/2/some-entity/{{ thing:id }}",
+        "topics": [
+          "_/_/things/twin/events"
+        ],
+        "authorizationContext": [
+          "ditto:outbound-auth-subject",
+          "..."
+        ],
+        "headerMapping": {
+          "content-type": "{{ header:content-type }}",
+          "api-key": "this-is-a-secret-api-key-to-send-along"
+        }
+      }
+    ]
+  },
+  "Kafka 2.x": {
+    "name": "Kafka 2.x",
+    "connectionType": "kafka",
+    "connectionStatus": "closed",
+    "failoverEnabled": true,
+    "uri": "tcp://user:password@localhost:9092",
+    "specificConfig": {
+      "bootstrapServers": "localhost:9092,other.host:9092",
+      "saslMechanism": "plain"
+    },
+    "sources": [
+      {
+        "addresses": [
+          "theTopic"
+        ],
+        "consumerCount": 1,
+        "qos": 1,
+        "authorizationContext": [
+          "ditto:inbound-auth-subject"
+        ],
+        "enforcement": {
+          "input": "{{ header:device_id }}",
+          "filters": [
+            "{{ entity:id }}"
+          ]
+        },
+        "headerMapping": {},
+        "payloadMapping": [
+          "Ditto"
+        ],
+        "replyTarget": {
+          "enabled": true,
+          "address": "theReplyTopic",
+          "headerMapping": {},
+          "expectedResponseTypes": [
+            "response",
+            "error",
+            "nack"
+          ]
+        },
+        "acknowledgementRequests": {
+          "includes": []
+        },
+        "declaredAcks": []
+      }
+    ],
+    "targets": [
+      {
+        "address": "topic/key",
+        "topics": [
+          "_/_/things/twin/events",
+          "_/_/things/live/messages"
+        ],
+        "authorizationContext": [
+          "ditto:outbound-auth-subject"
+        ]
+      }
+    ]
+  }
+}

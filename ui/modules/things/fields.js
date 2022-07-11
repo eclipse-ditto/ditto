@@ -85,13 +85,10 @@ export async function ready() {
         .map((field) => field.path)
         .includes(dom.fieldPath.value), 'Field path already exists', dom.fieldPath);
 
-    if (!dom.fieldLabel.value) {
-      dom.fieldLabel.value = dom.fieldPath.value.split('/').slice(-1)[0];
-    }
     Environments.current().fieldList.push({
       active: true,
       path: dom.fieldPath.value,
-      label: dom.fieldLabel.value,
+      label: dom.fieldPath.value.split('/').slice(-1)[0],
     });
     Environments.environmentsJsonChanged();
   };
@@ -169,10 +166,12 @@ function updateFieldList() {
     if (fieldSelected) {
       theFieldIndex = i;
       row.classList.add('table-active');
+      dom.fieldLabel.value = field.label;
     }
   });
   if (theFieldIndex < 0) {
     dom.fieldPath.value = null;
+    dom.fieldLabel.value = null;
   }
 };
 

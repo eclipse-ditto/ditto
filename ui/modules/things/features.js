@@ -181,7 +181,7 @@ function onThingChanged(thing) {
         refreshFeature(thing, key);
         thingHasFeature = true;
       };
-      Utils.addTableRow(dom.featuresTable, key, null, key === dom.theFeatureId.value);
+      Utils.addTableRow(dom.featuresTable, key, key === dom.theFeatureId.value);
       count++;
     };
   }

@@ -16,18 +16,18 @@
 /**
  * Adds a table to a table element
  * @param {HTMLElement} table tbody element the row is added to
- * @param {String} key first column text of the row
- * @param {String} value second column text of the row
+ * @param {String} key first column text of the row. Acts as id of the row
  * @param {boolean} selected if true, the new row will be marked as selected
- * @param {boolean} withClipBoardCopy add a clipboard button at the lase column of the row
+ * @param {boolean} withClipBoardCopy add a clipboard button at the last column of the row
+ * @param {array} columnValues texts for additional columns of the row
  */
-export const addTableRow = function(table, key, value, selected, withClipBoardCopy) {
+export const addTableRow = function(table, key, selected, withClipBoardCopy, ...columnValues) {
   const row = table.insertRow();
   row.id = key;
   row.insertCell(0).innerHTML = key;
-  if (value) {
-    row.insertCell(1).innerHTML = value;
-  }
+  columnValues.forEach((value) => {
+    row.insertCell().innerHTML = value;
+  });
   if (selected) {
     row.classList.add('table-active');
   }
