@@ -165,7 +165,8 @@ public final class ConnectivityRootActor extends DittoRootActor {
     }
 
     private ActorRef getCommandForwarder(final ClusterConfig clusterConfig, final ActorRef pubSubMediator) {
-        final SignalTransformer signalTransformer = SignalTransformer.get(getContext().system());
+        final ActorSystem system = getContext().system();
+        final SignalTransformer signalTransformer = SignalTransformer.get(system, system.settings().config());
         return startChildActor(EdgeCommandForwarderActor.ACTOR_NAME,
                 EdgeCommandForwarderActor.props(pubSubMediator,
                         ShardRegions.of(getContext().getSystem(), clusterConfig), signalTransformer));

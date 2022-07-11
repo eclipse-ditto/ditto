@@ -18,7 +18,10 @@ import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
 
 import org.eclipse.ditto.base.model.signals.Signal;
+import org.eclipse.ditto.base.service.DittoExtensionIds;
 import org.eclipse.ditto.base.service.DittoExtensionPoint;
+
+import com.typesafe.config.Config;
 
 import akka.actor.ActorSystem;
 
@@ -34,21 +37,30 @@ public interface SignalTransformer extends Function<Signal<?>, CompletionStage<S
      * {@code ActorSystem}.
      *
      * @param actorSystem the actorSystem in which the {@code SignalTransformer} should be loaded.
+     * @param config the configuration of this extension.
      * @return the {@code SignalTransformer} implementation.
      * @throws NullPointerException if {@code actorSystem} is {@code null}.
      */
-    static SignalTransformer get(final ActorSystem actorSystem) {
+    static SignalTransformer get(final ActorSystem actorSystem, final Config config) {
         checkNotNull(actorSystem, "actorSystem");
-        return ExtensionId.INSTANCE.get(actorSystem);
+        checkNotNull(config, "config");
+        final var extensionIdConfig = ExtensionId.computeConfig(config);
+        return DittoExtensionIds.get(actorSystem)
+                .computeIfAbsent(extensionIdConfig, ExtensionId::new)
+                .get(actorSystem);
     }
 
     final class ExtensionId extends DittoExtensionPoint.ExtensionId<SignalTransformer> {
 
-        private static final String CONFIG_PATH = "ditto.signal-transformer";
-        private static final ExtensionId INSTANCE = new ExtensionId(SignalTransformer.class);
+        private static final String CONFIG_KEY = "signal-transformer";
+        private static final String CONFIG_PATH = "ditto.extensions." + CONFIG_KEY;
 
-        private ExtensionId(final Class<SignalTransformer> parentClass) {
-            super(parentClass);
+        private ExtensionId(final ExtensionIdConfig<SignalTransformer> extensionIdConfig) {
+            super(extensionIdConfig);
+        }
+
+        static ExtensionIdConfig<SignalTransformer> computeConfig(final Config config) {
+            return ExtensionIdConfig.of(SignalTransformer.class, config, CONFIG_KEY);
         }
 
         @Override
