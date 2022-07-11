@@ -14,8 +14,11 @@ package org.eclipse.ditto.connectivity.service.messaging.persistence;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
+import org.eclipse.ditto.base.service.DittoExtensionIds;
 import org.eclipse.ditto.base.service.DittoExtensionPoint;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
+
+import com.typesafe.config.Config;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
@@ -40,21 +43,30 @@ public interface ConnectionPriorityProviderFactory extends DittoExtensionPoint {
      * {@code ActorSystem}.
      *
      * @param actorSystem the actorSystem in which the {@code ConnectionPriorityProviderFactory} should be loaded.
+     * @param config the configuration of this extension.
      * @return the {@code ConnectionPriorityProviderFactory} implementation.
      * @throws NullPointerException if {@code actorSystem} is {@code null}.
      */
-    static ConnectionPriorityProviderFactory get(final ActorSystem actorSystem) {
+    static ConnectionPriorityProviderFactory get(final ActorSystem actorSystem, final Config config) {
         checkNotNull(actorSystem, "actorSystem");
-        return ExtensionId.INSTANCE.get(actorSystem);
+        checkNotNull(config, "config");
+        final var extensionIdConfig = ExtensionId.computeConfig(config);
+        return DittoExtensionIds.get(actorSystem)
+                .computeIfAbsent(extensionIdConfig, ExtensionId::new)
+                .get(actorSystem);
     }
 
     final class ExtensionId extends DittoExtensionPoint.ExtensionId<ConnectionPriorityProviderFactory> {
 
-        private static final String CONFIG_PATH = "ditto.connectivity.connection.connection-priority-provider-factory";
-        private static final ExtensionId INSTANCE = new ExtensionId(ConnectionPriorityProviderFactory.class);
+        private static final String CONFIG_KEY = "connection-priority-provider-factory";
+        private static final String CONFIG_PATH = "ditto.extensions." + CONFIG_KEY;
 
-        private ExtensionId(final Class<ConnectionPriorityProviderFactory> parentClass) {
-            super(parentClass);
+        private ExtensionId(final ExtensionIdConfig<ConnectionPriorityProviderFactory> extensionIdConfig) {
+            super(extensionIdConfig);
+        }
+
+        static ExtensionIdConfig<ConnectionPriorityProviderFactory> computeConfig(final Config config) {
+            return ExtensionIdConfig.of(ConnectionPriorityProviderFactory.class, config, CONFIG_KEY);
         }
 
         @Override

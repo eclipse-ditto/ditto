@@ -110,6 +110,7 @@ import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapt
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.internal.utils.config.InstanceIdentifierSupplier;
+import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.ActivityCheckConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.SnapshotConfig;
@@ -211,7 +212,9 @@ public final class ConnectionPersistenceActor
         commandValidator = getCommandValidator();
         final ConnectionConfig connectionConfig = connectivityConfig.getConnectionConfig();
         this.allClientActorsOnOneNode = allClientActorsOnOneNode.orElse(connectionConfig.areAllClientActorsOnOneNode());
-        connectionPriorityProvider = ConnectionPriorityProviderFactory.get(actorSystem).newProvider(self(), log);
+        final Config dittoExtensionsConfig = ScopedConfig.dittoExtension(actorSystem.settings().config());
+        connectionPriorityProvider = ConnectionPriorityProviderFactory.get(actorSystem, dittoExtensionsConfig)
+                .newProvider(self(), log);
         clientActorAskTimeout = connectionConfig.getClientActorAskTimeout();
         final MonitoringConfig monitoringConfig = connectivityConfig.getMonitoringConfig();
         connectionLoggerRegistry = ConnectionLoggerRegistry.fromConfig(monitoringConfig.logger());
@@ -1188,7 +1191,8 @@ public final class ConnectionPersistenceActor
                         HttpPushValidator.newInstance(connectivityConfig.getConnectionConfig().getHttpPushConfig()));
 
         final DittoConnectivityCommandValidator dittoCommandValidator =
-                new DittoConnectivityCommandValidator(propsFactory, commandForwarderActor, getSelf(), connectionValidator,
+                new DittoConnectivityCommandValidator(propsFactory, commandForwarderActor, getSelf(),
+                        connectionValidator,
                         actorSystem);
 
         final var customCommandValidator =
