@@ -18,6 +18,8 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.function.UnaryOperator;
 
+import javax.annotation.Nullable;
+
 import org.eclipse.ditto.base.model.entity.id.WithEntityId;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
@@ -93,12 +95,13 @@ public abstract class AbstractGraphActor<T, M> extends AbstractActor {
     protected abstract T mapMessage(M message);
 
     /**
-     * called when a message is dropped as result of backpressure strategy.
+     * Called when a message is dropped as result of backpressure strategy.
+     * Provides the possibility to add custom handling of dropped messages by implementations of AbstractGraphActor.
      *
      * @param message the dropped message.
      */
     protected void messageDiscarded(M message, QueueOfferResult result) {
-        logger.error("Discarded message as a result of backpressure strategy! - message: {}, result: {} ", message, result);
+        // do nothing by default
     }
 
     /**
@@ -214,7 +217,7 @@ public abstract class AbstractGraphActor<T, M> extends AbstractActor {
                 });
     }
 
-    private Void incrementEnqueueCounters(final QueueOfferResult result, final Throwable error) {
+    private void incrementEnqueueCounters(@Nullable final QueueOfferResult result, @Nullable final Throwable error) {
         if (QueueOfferResult.enqueued().equals(result)) {
             enqueueSuccessCounter.increment();
         } else if (QueueOfferResult.dropped().equals(result)) {
@@ -225,10 +228,13 @@ public abstract class AbstractGraphActor<T, M> extends AbstractActor {
             logger.error(failure.cause(), "Enqueue failed!");
             enqueueFailureCounter.increment();
         } else {
-            logger.error(error, "Enqueue failed without acknowledgement!");
             enqueueFailureCounter.increment();
+            if (error == null) {
+                logger.error("Enqueue failed - result was: {}", result);
+            } else {
+                logger.error(error, "Enqueue failed without acknowledgement!");
+            }
         }
-        return null;
     }
 
     private void handleUnknownThrowable(final Throwable unknownThrowable) {
