@@ -111,7 +111,7 @@ public final class MergeThingCommandEnforcementTest {
     public void acceptByPolicy(final TestArgument arg) {
         final TrieBasedPolicyEnforcer policyEnforcer = TrieBasedPolicyEnforcer.newInstance(arg.getPolicy());
         final MergeThing authorizedMergeThing =
-                ThingCommandEnforcement.authorizeByPolicyOrThrow(policyEnforcer, arg.getMergeThing(), DISPATCHER).toCompletableFuture()
+                ThingCommandEnforcement.authorizeByPolicyOrThrow(policyEnforcer, arg.getMergeThing()).toCompletableFuture()
                         .join();
         assertThat(authorizedMergeThing.getDittoHeaders().getAuthorizationContext()).isNotNull();
     }
@@ -122,7 +122,7 @@ public final class MergeThingCommandEnforcementTest {
     public void rejectByPolicy(final TestArgument arg) {
         final TrieBasedPolicyEnforcer policyEnforcer = TrieBasedPolicyEnforcer.newInstance(arg.getPolicy());
         assertThingNotModifiableExceptionIsThrown(ThingCommandEnforcement.authorizeByPolicyOrThrow(policyEnforcer,
-                arg.getMergeThing(), DISPATCHER));
+                arg.getMergeThing()));
     }
 
     private void assertThingNotModifiableExceptionIsThrown(CompletionStage<MergeThing> result) {

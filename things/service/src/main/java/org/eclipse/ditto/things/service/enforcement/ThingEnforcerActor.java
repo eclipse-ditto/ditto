@@ -79,6 +79,7 @@ import akka.pattern.Patterns;
 public final class ThingEnforcerActor
         extends AbstractPolicyLoadingEnforcerActor<ThingId, Signal<?>, CommandResponse<?>, ThingEnforcement> {
 
+    private static final String ENFORCEMENT_DISPATCHER = "enforcement-dispatcher";
     /**
      * Label of default policy entry in default policy.
      */
@@ -122,7 +123,7 @@ public final class ThingEnforcerActor
             final PolicyEnforcerProvider policyEnforcerProvider) {
 
         return Props.create(ThingEnforcerActor.class, thingId, thingEnforcement, askWithRetryConfig,
-                policiesShardRegion, thingsShardRegion, policyEnforcerProvider);
+                policiesShardRegion, thingsShardRegion, policyEnforcerProvider).withDispatcher(ENFORCEMENT_DISPATCHER);
     }
 
     @Override

@@ -49,8 +49,6 @@ import org.eclipse.ditto.policies.model.signals.commands.modify.CreatePolicy;
 import org.eclipse.ditto.policies.model.signals.commands.modify.PolicyModifyCommand;
 import org.eclipse.ditto.policies.model.signals.commands.query.PolicyQueryCommandResponse;
 
-import akka.actor.ActorSystem;
-
 /**
  * Authorizes {@link PolicyCommand}s and filters {@link PolicyCommandResponse}s.
  */
@@ -62,10 +60,6 @@ public final class PolicyCommandEnforcement
      */
     private static final JsonFieldSelector POLICY_QUERY_COMMAND_RESPONSE_ALLOWLIST =
             JsonFactory.newFieldSelector(Policy.JsonFields.ID);
-
-    public PolicyCommandEnforcement(final ActorSystem actorSystem) {
-        super(actorSystem);
-    }
 
     @Override
     public CompletionStage<PolicyCommand<?>> authorizeSignal(final PolicyCommand<?> command,
@@ -100,7 +94,7 @@ public final class PolicyCommandEnforcement
             final String permission = Permission.READ;
             authorizedCommand = CompletableFuture.supplyAsync(() -> enforcer.hasPartialPermissions(policyResourceKey,
                     authorizationContext,
-                    permission), enforcementDispatcher).thenApply(hasPermission -> {
+                    permission)).thenApply(hasPermission -> {
                 if (Boolean.TRUE.equals(hasPermission)) {
                     return command;
                 } else {
@@ -176,7 +170,7 @@ public final class PolicyCommandEnforcement
                 authorizationContext,
                 Permission.EXECUTE)
                 ? Optional.of(command)
-                : Optional.empty(), enforcementDispatcher);
+                : Optional.empty());
     }
 
     private <T extends PolicyCommand<?>> CompletionStage<Optional<T>> authorizeTopLevelAction(
@@ -216,7 +210,7 @@ public final class PolicyCommandEnforcement
         return labels.stream().map(labelStage ->
                 labelStage.thenCompose(label -> CompletableFuture.supplyAsync(
                         () -> enforcer.hasUnrestrictedPermissions(asResourceKey(label, command), authorizationContext,
-                                Permission.EXECUTE), enforcementDispatcher).thenApply(result -> {
+                                Permission.EXECUTE)).thenApply(result -> {
                     if (Boolean.TRUE.equals(result)) {
                         return label;
                     } else {
@@ -247,7 +241,7 @@ public final class PolicyCommandEnforcement
             final AuthorizationContext authorizationContext) {
         return CompletableFuture.supplyAsync(() -> enforcer.hasUnrestrictedPermissions(policyResourceKey,
                 authorizationContext,
-                Permission.WRITE), enforcementDispatcher);
+                Permission.WRITE));
     }
 
     /**
@@ -282,8 +276,7 @@ public final class PolicyCommandEnforcement
 
         return CompletableFuture.supplyAsync(() -> enforcer.buildJsonView(resourceKey, responseEntity,
                         authorizationContext,
-                        POLICY_QUERY_COMMAND_RESPONSE_ALLOWLIST, Permissions.newInstance(Permission.READ)),
-                enforcementDispatcher);
+                        POLICY_QUERY_COMMAND_RESPONSE_ALLOWLIST, Permissions.newInstance(Permission.READ)));
     }
 
     /**

@@ -22,9 +22,6 @@ import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLogger;
 
-import akka.actor.ActorSystem;
-import akka.dispatch.MessageDispatcher;
-
 /**
  * Abstract implementation of {@link EnforcementReloaded} providing common functionality of all entity specific
  * enforcement implementations.
@@ -37,14 +34,6 @@ public abstract class AbstractEnforcementReloaded<S extends Signal<?>, R extends
 
     protected static final ThreadSafeDittoLogger LOGGER =
             DittoLoggerFactory.getThreadSafeLogger(AbstractEnforcementReloaded.class);
-
-    private static final String ENFORCEMENT_DISPATCHER = "enforcement-dispatcher";
-
-    protected final MessageDispatcher enforcementDispatcher;
-
-    protected AbstractEnforcementReloaded(final ActorSystem actorSystem) {
-        enforcementDispatcher = actorSystem.dispatchers().lookup(ENFORCEMENT_DISPATCHER);
-    }
 
     /**
      * Reports an error differently based on type of the error. If the error is of type

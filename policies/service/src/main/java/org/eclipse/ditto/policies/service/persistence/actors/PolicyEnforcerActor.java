@@ -43,6 +43,8 @@ import akka.pattern.Patterns;
 public final class PolicyEnforcerActor
         extends AbstractEnforcerActor<PolicyId, PolicyCommand<?>, PolicyCommandResponse<?>, PolicyCommandEnforcement> {
 
+    private static final String ENFORCEMENT_DISPATCHER = "enforcement-dispatcher";
+
     private final PolicyEnforcerProvider policyEnforcerProvider = policyId -> {
         if (null == policyId) {
             return CompletableFuture.completedStage(Optional.empty());
@@ -69,7 +71,8 @@ public final class PolicyEnforcerActor
      * @return the {@link Props} to create this actor.
      */
     public static Props props(final PolicyId policyId, final PolicyCommandEnforcement policyCommandEnforcement) {
-        return Props.create(PolicyEnforcerActor.class, policyId, policyCommandEnforcement);
+        return Props.create(PolicyEnforcerActor.class, policyId, policyCommandEnforcement)
+                .withDispatcher(ENFORCEMENT_DISPATCHER);
     }
 
     @Override

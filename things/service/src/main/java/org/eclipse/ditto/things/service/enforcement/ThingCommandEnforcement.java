@@ -81,7 +81,6 @@ import org.eclipse.ditto.things.model.signals.commands.query.ThingQueryCommandRe
 import akka.Done;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
-import akka.dispatch.MessageDispatcher;
 
 /**
  * Authorizes {@link ThingCommand}s and filters {@link ThingCommandResponse}s.
@@ -114,7 +113,6 @@ final class ThingCommandEnforcement
             final ActorRef policiesShardRegion,
             final EnforcementConfig enforcementConfig) {
 
-        super(actorSystem);
         this.actorSystem = actorSystem;
         this.policiesShardRegion = policiesShardRegion;
         this.askWithRetryConfig = enforcementConfig.getAskWithRetryConfig();
@@ -160,8 +158,7 @@ final class ThingCommandEnforcement
             authorizedCommand =
                     CompletableFuture.completedStage(prepareThingCommandBeforeSendingToPersistence(command));
         } else {
-            authorizedCommand = authorizeByPolicyOrThrow(policyEnforcer.getEnforcer(), command,
-                    enforcementDispatcher)
+            authorizedCommand = authorizeByPolicyOrThrow(policyEnforcer.getEnforcer(), command)
                     .handle((commandWithReadSubjects, e) -> {
                         if (null != e) {
                             if (command instanceof CreateThing createThing &&
@@ -261,8 +258,7 @@ final class ThingCommandEnforcement
 
         final JsonValue entity = response.getEntity();
         if (entity.isObject()) {
-            return getJsonViewForCommandResponse(entity.asObject(), response, enforcer,
-                    enforcementDispatcher).thenApply(response::setEntity);
+            return getJsonViewForCommandResponse(entity.asObject(), response, enforcer).thenApply(response::setEntity);
         } else {
             return (CompletionStage<T>) CompletableFuture.completedStage(response);
         }
@@ -307,16 +303,14 @@ final class ThingCommandEnforcement
      */
     static CompletionStage<JsonObject> getJsonViewForCommandResponse(final JsonObject responseEntity,
             final CommandResponse<?> response,
-            final Enforcer enforcer,
-            final MessageDispatcher dispatcher) {
+            final Enforcer enforcer) {
 
         final var resourceKey = ResourceKey.newInstance(ThingConstants.ENTITY_TYPE, response.getResourcePath());
         final var authorizationContext = response.getDittoHeaders().getAuthorizationContext();
 
         return CompletableFuture.supplyAsync(() -> enforcer.buildJsonView(resourceKey, responseEntity,
                         authorizationContext,
-                        THING_QUERY_COMMAND_RESPONSE_ALLOWLIST, Permissions.newInstance(Permission.READ)),
-                dispatcher);
+                        THING_QUERY_COMMAND_RESPONSE_ALLOWLIST, Permissions.newInstance(Permission.READ)));
     }
 
     /**
@@ -343,7 +337,7 @@ final class ThingCommandEnforcement
      * @return optionally the authorized command extended by read subjects.
      */
     static <T extends ThingCommand<T>> CompletionStage<T> authorizeByPolicyOrThrow(final Enforcer enforcer,
-            final ThingCommand<T> command, final MessageDispatcher dispatcher) {
+            final ThingCommand<T> command) {
 
         final var thingResourceKey = PoliciesResourceType.thingResource(command.getResourcePath());
         final var dittoHeaders = command.getDittoHeaders();
@@ -352,36 +346,34 @@ final class ThingCommandEnforcement
         final CompletionStage<Boolean> commandAuthorized;
         if (command instanceof MergeThing mergeThing) {
             commandAuthorized =
-                    enforceMergeThingCommand(enforcer, mergeThing, thingResourceKey, authorizationContext, dispatcher);
+                    enforceMergeThingCommand(enforcer, mergeThing, thingResourceKey, authorizationContext);
         } else if (command instanceof ThingModifyCommand) {
             commandAuthorized =
                     CompletableFuture.supplyAsync(() -> enforcer.hasUnrestrictedPermissions(thingResourceKey,
                             authorizationContext,
-                            Permission.WRITE), dispatcher);
+                            Permission.WRITE));
         } else {
             commandAuthorized =
                     CompletableFuture.supplyAsync(() -> enforcer.hasPartialPermissions(thingResourceKey,
                             authorizationContext,
-                            Permission.READ), dispatcher);
+                            Permission.READ));
         }
 
         final CompletionStage<Void> intermediate;
         final var condition = dittoHeaders.getCondition();
         if (!(command instanceof CreateThing) && condition.isPresent()) {
             intermediate = enforceReadPermissionOnCondition(condition.get(), enforcer, dittoHeaders, () ->
-                            ThingConditionFailedException.newBuilderForInsufficientPermission(dittoHeaders).build(),
-                    dispatcher);
+                            ThingConditionFailedException.newBuilderForInsufficientPermission(dittoHeaders).build());
         } else if ((command instanceof ThingQueryCommand) && dittoHeaders.getLiveChannelCondition().isPresent()) {
             intermediate = enforceReadPermissionOnCondition(dittoHeaders.getLiveChannelCondition().get(), enforcer, dittoHeaders, () ->
-                            ThingConditionFailedException.newBuilderForInsufficientLiveChannelPermission(dittoHeaders).build(),
-                    dispatcher);
+                            ThingConditionFailedException.newBuilderForInsufficientLiveChannelPermission(dittoHeaders).build());
         } else {
             intermediate = CompletableFuture.completedStage(null);
         }
 
         return intermediate.thenCompose(voidValue -> commandAuthorized.thenCompose(hasPermission -> {
             if (Boolean.TRUE.equals(hasPermission)) {
-                return addEffectedReadSubjectsToThingSignal(command, enforcer, dispatcher);
+                return addEffectedReadSubjectsToThingSignal(command, enforcer);
             } else {
                 throw errorForThingCommand(command);
             }
@@ -452,11 +444,11 @@ final class ThingCommandEnforcement
      * @return a {@code CompletionStage} containing the extended signal.
      */
     static <T extends Signal<T>> CompletionStage<T> addEffectedReadSubjectsToThingSignal(final Signal<T> signal,
-            final Enforcer enforcer, final MessageDispatcher dispatcher) {
+            final Enforcer enforcer) {
 
         final var resourceKey = ResourceKey.newInstance(ThingConstants.ENTITY_TYPE, signal.getResourcePath());
         return CompletableFuture.supplyAsync(() -> enforcer.getSubjectsWithUnrestrictedPermission(resourceKey,
-                Permission.READ), dispatcher).thenApply(authorizationSubjects -> {
+                Permission.READ)).thenApply(authorizationSubjects -> {
             final var newHeaders = DittoHeaders.newBuilder(signal.getDittoHeaders())
                     .readGrantedSubjects(authorizationSubjects)
                     .build();
@@ -468,15 +460,14 @@ final class ThingCommandEnforcement
     private static CompletionStage<Void> enforceReadPermissionOnCondition(final String condition,
             final Enforcer enforcer,
             final DittoHeaders dittoHeaders,
-            final Supplier<DittoRuntimeException> exceptionSupplier,
-            final MessageDispatcher dispatcher) {
+            final Supplier<DittoRuntimeException> exceptionSupplier) {
 
         final var authorizationContext = dittoHeaders.getAuthorizationContext();
         final var rootNode = tryParseRqlCondition(condition, dittoHeaders);
         final var resourceKeys = determineResourceKeys(rootNode, dittoHeaders);
         return CompletableFuture.supplyAsync(() -> enforcer.hasUnrestrictedPermissions(resourceKeys,
                 authorizationContext,
-                Permission.READ), dispatcher).thenAccept(hasPermission -> {
+                Permission.READ)).thenAccept(hasPermission -> {
 
             if (Boolean.FALSE.equals(hasPermission)) {
                 throw exceptionSupplier.get();
@@ -517,26 +508,25 @@ final class ThingCommandEnforcement
     private static CompletionStage<Boolean> enforceMergeThingCommand(final Enforcer enforcer,
             final MergeThing command,
             final ResourceKey thingResourceKey,
-            final AuthorizationContext authorizationContext,
-            final MessageDispatcher dispatcher) {
+            final AuthorizationContext authorizationContext) {
 
         return CompletableFuture.supplyAsync(() -> enforcer.hasUnrestrictedPermissions(thingResourceKey,
                 authorizationContext,
-                Permission.WRITE), dispatcher).thenCompose(hasPermission -> {
+                Permission.WRITE)).thenCompose(hasPermission -> {
                     if (Boolean.TRUE.equals(hasPermission)) {
                         // unrestricted permissions at thingResourceKey level
                         return CompletableFuture.completedStage(Boolean.TRUE);
                     } else {
                         return CompletableFuture.supplyAsync(() -> enforcer.hasPartialPermissions(thingResourceKey,
                                 authorizationContext,
-                                Permission.WRITE), dispatcher).thenCompose(hasPartialPermission -> {
+                                Permission.WRITE)).thenCompose(hasPartialPermission -> {
                             if (Boolean.TRUE.equals(hasPartialPermission)) {
                                 // in case of partial permissions at thingResourceKey level check all leaves of merge patch for
                                 // unrestricted permissions
                                 final Set<ResourceKey> resourceKeys = calculateLeaves(command.getPath(), command.getValue());
                                 return CompletableFuture.supplyAsync(
                                         () -> enforcer.hasUnrestrictedPermissions(resourceKeys, authorizationContext,
-                                                Permission.WRITE), dispatcher);
+                                                Permission.WRITE));
                             } else {
                                 // not even partial permission
                                 return CompletableFuture.completedStage(Boolean.FALSE);

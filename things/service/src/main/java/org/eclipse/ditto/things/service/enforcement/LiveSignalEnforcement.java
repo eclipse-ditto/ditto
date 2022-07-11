@@ -47,18 +47,12 @@ import org.eclipse.ditto.things.model.signals.commands.exceptions.EventSendNotAl
 import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingNotAccessibleException;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 
-import akka.actor.ActorSystem;
-
 /**
  * Enforces live commands (including message commands) and live events.
  */
 final class LiveSignalEnforcement
         extends AbstractEnforcementReloaded<Signal<?>, CommandResponse<?>>
         implements ThingEnforcementStrategy {
-
-    LiveSignalEnforcement(final ActorSystem actorSystem) {
-        super(actorSystem);
-    }
 
     @Override
     public boolean isApplicable(final Signal<?> signal) {
@@ -144,7 +138,7 @@ final class LiveSignalEnforcement
             try {
                 if (withEntity.getEntity().isObject()) {
                     result = ThingCommandEnforcement.getJsonViewForCommandResponse(withEntity.getEntity().asObject(),
-                                    commandResponse, policyEnforcer.getEnforcer(), enforcementDispatcher)
+                                    commandResponse, policyEnforcer.getEnforcer())
                             .thenApply(jsonViewForCommandResponse -> {
                                 final WithEntity<?> commandResponseWithEntity =
                                         withEntity.setEntity(jsonViewForCommandResponse);
@@ -172,8 +166,7 @@ final class LiveSignalEnforcement
                 return enforceLiveEvent(liveSignal, enforcer.getEnforcer());
             case LIVE_COMMANDS:
                 return ThingCommandEnforcement.authorizeByPolicyOrThrow(enforcer.getEnforcer(),
-                        (ThingCommand<?>) liveSignal,
-                        enforcementDispatcher).thenCompose(s ->
+                        (ThingCommand<?>) liveSignal).thenCompose(s ->
                         addEffectedReadSubjectsToThingLiveSignal((ThingCommand<?>) liveSignal,
                                 enforcer.getEnforcer()).thenApply(withReadSubjects -> {
                             LOGGER.withCorrelationId(withReadSubjects)
@@ -202,17 +195,17 @@ final class LiveSignalEnforcement
             final Enforcer enforcer) {
 
         final var resourceKey = ResourceKey.newInstance(ThingConstants.ENTITY_TYPE, signal.getResourcePath());
-        return CompletableFuture.supplyAsync(() -> enforcer.getSubjectsWithPermission(resourceKey, Permission.READ),
-                enforcementDispatcher).thenApply(subjects -> {
+        return CompletableFuture.supplyAsync(() -> enforcer.getSubjectsWithPermission(resourceKey, Permission.READ))
+                .thenApply(subjects -> {
 
-            final var newHeaders = signal.getDittoHeaders()
-                    .toBuilder()
-                    .readGrantedSubjects(subjects.getGranted())
-                    .readRevokedSubjects(subjects.getRevoked())
-                    .build();
+                    final var newHeaders = signal.getDittoHeaders()
+                            .toBuilder()
+                            .readGrantedSubjects(subjects.getGranted())
+                            .readRevokedSubjects(subjects.getRevoked())
+                            .build();
 
-            return signal.setDittoHeaders(newHeaders);
-        });
+                    return signal.setDittoHeaders(newHeaders);
+                });
     }
 
     private CompletionStage<Signal<?>> enforceLiveEvent(final Signal<?> liveSignal,
@@ -220,13 +213,13 @@ final class LiveSignalEnforcement
 
         return CompletableFuture.supplyAsync(() -> enforcer.hasUnrestrictedPermissions(
                         PoliciesResourceType.thingResource(liveSignal.getResourcePath()),
-                        liveSignal.getDittoHeaders().getAuthorizationContext(), WRITE), enforcementDispatcher)
+                        liveSignal.getDittoHeaders().getAuthorizationContext(), WRITE))
                 .thenCompose(authorized -> {
                     if (Boolean.TRUE.equals(authorized)) {
                         LOGGER.withCorrelationId(liveSignal)
                                 .info("Live Event was authorized: <{}>", liveSignal);
                         return ThingCommandEnforcement.addEffectedReadSubjectsToThingSignal((ThingEvent<?>) liveSignal,
-                                enforcer, enforcementDispatcher).thenApply(s -> s);
+                                enforcer).thenApply(s -> s);
                     } else {
                         LOGGER.withCorrelationId(liveSignal)
                                 .info("Live Event was NOT authorized: <{}>", liveSignal);
@@ -254,15 +247,15 @@ final class LiveSignalEnforcement
 
         final ResourceKey resourceKey =
                 ResourceKey.newInstance(MessageCommand.RESOURCE_TYPE, command.getResourcePath());
-        return CompletableFuture.supplyAsync(() -> enforcer.getSubjectsWithPermission(resourceKey, Permission.READ),
-                enforcementDispatcher).thenApply(effectedSubjects -> {
-            final var headersWithReadSubjects = command.getDittoHeaders()
-                    .toBuilder()
-                    .readGrantedSubjects(effectedSubjects.getGranted())
-                    .readRevokedSubjects(effectedSubjects.getRevoked())
-                    .build();
-            return command.setDittoHeaders(headersWithReadSubjects);
-        });
+        return CompletableFuture.supplyAsync(() -> enforcer.getSubjectsWithPermission(resourceKey, Permission.READ))
+                .thenApply(effectedSubjects -> {
+                    final var headersWithReadSubjects = command.getDittoHeaders()
+                            .toBuilder()
+                            .readGrantedSubjects(effectedSubjects.getGranted())
+                            .readRevokedSubjects(effectedSubjects.getRevoked())
+                            .build();
+                    return command.setDittoHeaders(headersWithReadSubjects);
+                });
     }
 
     private MessageSendNotAllowedException rejectMessageCommand(final MessageCommand<?, ?> command) {
@@ -283,7 +276,7 @@ final class LiveSignalEnforcement
     private CompletionStage<Boolean> isAuthorized(final MessageCommand<?, ?> command, final Enforcer enforcer) {
         return CompletableFuture.supplyAsync(
                 () -> enforcer.hasUnrestrictedPermissions(extractMessageResourceKey(command),
-                        command.getDittoHeaders().getAuthorizationContext(), WRITE), enforcementDispatcher);
+                        command.getDittoHeaders().getAuthorizationContext(), WRITE));
     }
 
     private static ResourceKey extractMessageResourceKey(final MessageCommand<?, ?> command) {

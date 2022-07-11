@@ -818,7 +818,7 @@ public final class PolicyCommandEnforcementTest {
 
         @Override
         protected Props getPersistenceEnforcerProps(final PolicyId entityId) {
-            return PolicyEnforcerActor.props(entityId, new PolicyCommandEnforcement(system));
+            return PolicyEnforcerActor.props(entityId, new PolicyCommandEnforcement());
         }
 
         @Override
