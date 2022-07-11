@@ -20,7 +20,10 @@ import org.eclipse.ditto.utils.jsr305.annotations.AllParametersAndReturnValuesAr
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.typesafe.config.Config;
+
 import akka.actor.ActorRef;
+import akka.actor.ActorSystem;
 import akka.actor.Props;
 
 /**
@@ -32,7 +35,7 @@ public final class GatewayService extends DittoService<GatewayConfig> {
     /**
      * Name for the Akka actor system of the Gateway service.
      */
-    static final String SERVICE_NAME = "gateway";
+    public static final String SERVICE_NAME = "gateway";
 
     private static final Logger LOGGER = LoggerFactory.getLogger(GatewayService.class);
 
@@ -56,7 +59,10 @@ public final class GatewayService extends DittoService<GatewayConfig> {
     }
 
     @Override
-    protected Props getMainRootActorProps(final GatewayConfig gatewayConfig, final ActorRef pubSubMediator) {
+    protected Props getMainRootActorProps(final GatewayConfig gatewayConfig,
+            final Config rawConfig,
+            final ActorRef pubSubMediator,
+            final ActorSystem actorSystem) {
 
         return GatewayRootActor.props(gatewayConfig, pubSubMediator);
     }

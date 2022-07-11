@@ -16,6 +16,7 @@ import static java.util.Objects.requireNonNull;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -160,7 +161,8 @@ public abstract class PersistenceActorTestBase {
         requireNonNull(customConfig, "Consider to use ConfigFactory.empty()");
         final Config config = customConfig.withFallback(ConfigFactory.load("test"));
 
-        actorSystem = ActorSystem.create("AkkaTestSystem", config);
+        actorSystem = ActorSystem.create("AkkaTestSystem", ConfigFactory.parseMap(
+                Map.of("akka.actor.provider", "cluster")).withFallback(config));
         pubSubTestProbe = TestProbe.apply("mock-pubSub-mediator", actorSystem);
         pubSubMediator = pubSubTestProbe.ref();
         policiesShardRegionTestProbe = TestProbe.apply("mock-policiesShardRegion", actorSystem);
@@ -185,8 +187,7 @@ public abstract class PersistenceActorTestBase {
     }
 
     private Props getPropsOfThingPersistenceActor(final ThingId thingId, final DistributedPub<ThingEvent<?>> pub) {
-
-        return ThingPersistenceActor.props(thingId, pub, pubSubMediator);
+        return ThingPersistenceActor.props(thingId, pub, actorSystem);
     }
 
     protected ActorRef createSupervisorActorFor(final ThingId thingId) {

@@ -16,8 +16,9 @@ import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.base.service.DittoExtensionIds;
-import org.eclipse.ditto.base.service.DittoExtensionPoint;
+import org.eclipse.ditto.internal.utils.extension.DittoExtensionPoint;
+import org.eclipse.ditto.internal.utils.extension.DittoExtensionIds;
+
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.Metadata;
 

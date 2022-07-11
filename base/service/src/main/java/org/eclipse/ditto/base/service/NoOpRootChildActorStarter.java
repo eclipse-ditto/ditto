@@ -23,8 +23,10 @@ import akka.actor.ActorSystem;
 public final class NoOpRootChildActorStarter implements RootChildActorStarter {
 
     /**
-     * @param actorSystem the actor system in which to load the extension.
+     * @param actorSystem the actor system in which to load the extension
+     * @param config the config of the extension.
      */
+    @SuppressWarnings("unused")
     public NoOpRootChildActorStarter(final ActorSystem actorSystem, final Config config) {
         //No-Op because extensions need a constructor accepting an actorSystem
     }

@@ -48,7 +48,6 @@ import org.eclipse.ditto.base.model.entity.Revision;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.internal.utils.cluster.ShardRegionExtractor;
-import org.eclipse.ditto.internal.utils.persistence.SnapshotAdapter;
 import org.eclipse.ditto.internal.utils.persistentactors.AbstractPersistenceActor;
 import org.eclipse.ditto.internal.utils.persistentactors.AbstractPersistenceSupervisor;
 import org.eclipse.ditto.internal.utils.pubsub.DistributedPub;
@@ -118,7 +117,6 @@ import org.eclipse.ditto.policies.model.signals.events.SubjectDeleted;
 import org.eclipse.ditto.policies.service.common.config.PolicyAnnouncementConfig;
 import org.eclipse.ditto.policies.service.persistence.TestConstants;
 import org.eclipse.ditto.policies.service.persistence.actors.announcements.PolicyAnnouncementManager;
-import org.eclipse.ditto.policies.service.persistence.serializer.PolicyMongoSnapshotAdapter;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
@@ -1383,8 +1381,8 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
                 final var box = new AtomicReference<ActorRef>();
                 final ActorRef announcementManager = createAnnouncementManager(policyId, box::get);
                 final Props props =
-                        PolicyPersistenceActor.propsForTests(policyId, new PolicyMongoSnapshotAdapter(), pubSubMediator,
-                                announcementManager);
+                        PolicyPersistenceActor.propsForTests(policyId, pubSubMediator, announcementManager,
+                                actorSystem);
                 final Cluster cluster = Cluster.get(actorSystem);
                 cluster.join(cluster.selfAddress());
                 final ActorRef underTest = ClusterSharding.get(actorSystem)
@@ -1634,8 +1632,8 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
                 final var box = new AtomicReference<ActorRef>();
                 final ActorRef announcementManager = createAnnouncementManager(policyId, box::get);
                 final Props persistentActorProps =
-                        PolicyPersistenceActor.propsForTests(policyId, new PolicyMongoSnapshotAdapter(), pubSubMediator,
-                                announcementManager);
+                        PolicyPersistenceActor.propsForTests(policyId, pubSubMediator,
+                                announcementManager, actorSystem);
 
                 final TestProbe errorsProbe = TestProbe.apply(actorSystem);
 
@@ -1651,7 +1649,7 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
                         return new OneForOneStrategy(true,
                                 DeciderBuilder.matchAny(throwable -> {
                                     errorsProbe.ref().tell(throwable, getSelf());
-                                    return (SupervisorStrategy.Directive) SupervisorStrategy.restart();
+                                    return SupervisorStrategy.restart();
                                 }).build());
                     }
 
@@ -1749,10 +1747,9 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
 
     private ActorRef createPersistenceActorFor(final TestKit testKit, final PolicyId policyId) {
         final var box = new AtomicReference<ActorRef>();
-        final SnapshotAdapter<Policy> snapshotAdapter = new PolicyMongoSnapshotAdapter();
         final ActorRef announcementManager = createAnnouncementManager(policyId, box::get);
-        final Props props = PolicyPersistenceActor.propsForTests(policyId, snapshotAdapter, pubSubMediator,
-                announcementManager);
+        final Props props = PolicyPersistenceActor.propsForTests(policyId, pubSubMediator,
+                announcementManager, actorSystem);
         final var persistenceActor = testKit.watch(testKit.childActorOf(props));
         box.set(persistenceActor);
         return persistenceActor;

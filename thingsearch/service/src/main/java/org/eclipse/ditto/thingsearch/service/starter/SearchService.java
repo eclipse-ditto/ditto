@@ -13,14 +13,17 @@
 package org.eclipse.ditto.thingsearch.service.starter;
 
 import org.eclipse.ditto.base.service.DittoService;
+import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import org.eclipse.ditto.thingsearch.service.common.config.DittoSearchConfig;
 import org.eclipse.ditto.thingsearch.service.common.config.SearchConfig;
 import org.eclipse.ditto.thingsearch.service.starter.actors.SearchRootActor;
-import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.typesafe.config.Config;
+
 import akka.actor.ActorRef;
+import akka.actor.ActorSystem;
 import akka.actor.Props;
 
 /**
@@ -55,7 +58,10 @@ public class SearchService extends DittoService<SearchConfig> {
     }
 
     @Override
-    protected Props getMainRootActorProps(final SearchConfig searchConfig, final ActorRef pubSubMediator) {
+    protected Props getMainRootActorProps(final SearchConfig searchConfig,
+            final Config rawConfig,
+            final ActorRef pubSubMediator,
+            final ActorSystem actorSystem) {
 
         return SearchRootActor.props(searchConfig, pubSubMediator);
     }

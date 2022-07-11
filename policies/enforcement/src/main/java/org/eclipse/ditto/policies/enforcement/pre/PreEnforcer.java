@@ -25,9 +25,9 @@ import org.eclipse.ditto.base.model.entity.id.WithEntityId;
 import org.eclipse.ditto.base.model.exceptions.DittoInternalErrorException;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.signals.Signal;
-import org.eclipse.ditto.base.service.DittoExtensionPoint;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLogger;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
+import org.eclipse.ditto.internal.utils.extension.DittoExtensionPoint;
 
 /**
  * A Pre-Enforcer is a function converting a {@link Signal} to a CompletionStage of a Signal, potentially throwing an

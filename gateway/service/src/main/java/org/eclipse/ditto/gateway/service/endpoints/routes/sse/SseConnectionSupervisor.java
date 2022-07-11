@@ -14,10 +14,9 @@ package org.eclipse.ditto.gateway.service.endpoints.routes.sse;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
-import org.eclipse.ditto.base.service.DittoExtensionIds;
-import org.eclipse.ditto.base.service.DittoExtensionPoint;
-import org.eclipse.ditto.base.service.RootChildActorStarter;
 import org.eclipse.ditto.gateway.service.streaming.actors.StreamSupervisor;
+import org.eclipse.ditto.internal.utils.extension.DittoExtensionPoint;
+import org.eclipse.ditto.internal.utils.extension.DittoExtensionIds;
 
 import com.typesafe.config.Config;
 

@@ -30,7 +30,6 @@ import org.eclipse.ditto.policies.model.signals.commands.modify.CreatePolicy;
 import org.eclipse.ditto.policies.model.signals.commands.modify.CreatePolicyResponse;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicy;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicyResponse;
-import org.eclipse.ditto.policies.service.persistence.serializer.PolicyMongoSnapshotAdapter;
 import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -119,8 +118,7 @@ public final class PolicyPersistenceOperationsActorIT extends MongoEventSourceIT
 
     @Override
     protected ActorRef startEntityActor(final ActorSystem system, final ActorRef pubSubMediator, final PolicyId id) {
-        final Props props = PolicySupervisorActor.props(pubSubMediator, new PolicyMongoSnapshotAdapter(),
-                Mockito.mock(DistributedPub.class), null);
+        final Props props = PolicySupervisorActor.props(pubSubMediator, Mockito.mock(DistributedPub.class), null);
 
         return system.actorOf(props, id.toString());
     }

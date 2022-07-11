@@ -17,9 +17,9 @@ import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 import java.util.function.BiFunction;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.base.service.DittoExtensionIds;
-import org.eclipse.ditto.base.service.DittoExtensionPoint;
 import org.eclipse.ditto.gateway.service.util.config.streaming.WebsocketConfig;
+import org.eclipse.ditto.internal.utils.extension.DittoExtensionPoint;
+import org.eclipse.ditto.internal.utils.extension.DittoExtensionIds;
 
 import com.typesafe.config.Config;
 

@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.base.service;
+package org.eclipse.ditto.internal.utils.extension;
 
 import java.text.MessageFormat;
 import java.util.List;
@@ -44,7 +44,7 @@ public interface DittoExtensionPoint extends Extension {
     /**
      * @param <T> the class of the extension for which an implementation should be loaded.
      */
-    abstract class ExtensionId<T extends Extension> extends AbstractExtensionId<T> {
+    abstract class ExtensionId<T extends akka.actor.Extension> extends AbstractExtensionId<T> {
 
         private final ExtensionIdConfig<T> extensionIdConfig;
 
@@ -112,7 +112,7 @@ public interface DittoExtensionPoint extends Extension {
              * @return the extension id config.
              * @throws com.typesafe.config.ConfigException.WrongType in case neither an object nor a string is configured at the config key of config.
              */
-            public static <T extends Extension> ExtensionIdConfig<T> of(
+            public static <T extends akka.actor.Extension> ExtensionIdConfig<T> of(
                     final Class<T> parentClass,
                     final Config config,
                     final String configKey) {

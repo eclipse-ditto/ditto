@@ -90,11 +90,8 @@ public final class PoliciesRootActor extends DittoRootActor {
         ClusterUtil.startSingleton(actorSystem, getContext(), PoliciesMessagingConstants.CLUSTER_ROLE,
                 BlockedNamespacesUpdater.ACTOR_NAME, blockedNamespacesUpdaterProps);
 
-        final var policySupervisorProps = getPolicySupervisorActorProps(snapshotAdapter,
-                pubSubMediator,
-                policyAnnouncementPub,
-                blockedNamespaces
-        );
+        final var policySupervisorProps = getPolicySupervisorActorProps(pubSubMediator,
+                policyAnnouncementPub, blockedNamespaces);
 
         final var clusterConfig = policiesConfig.getClusterConfig();
         final ShardRegionExtractor shardRegionExtractor = ShardRegionExtractor.of(clusterConfig.getNumberOfShards(),
@@ -141,12 +138,11 @@ public final class PoliciesRootActor extends DittoRootActor {
                 .execute(getContext());
     }
 
-    private static Props getPolicySupervisorActorProps(final SnapshotAdapter<Policy> snapshotAdapter,
-            final ActorRef pubSubMediator,
+    private static Props getPolicySupervisorActorProps(final ActorRef pubSubMediator,
             final DistributedPub<PolicyAnnouncement<?>> policyAnnouncementPub,
             final BlockedNamespaces blockedNamespaces) {
 
-        return PolicySupervisorActor.props(pubSubMediator, snapshotAdapter, policyAnnouncementPub, blockedNamespaces);
+        return PolicySupervisorActor.props(pubSubMediator, policyAnnouncementPub, blockedNamespaces);
     }
 
     /**

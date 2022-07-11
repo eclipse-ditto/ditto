@@ -668,6 +668,11 @@
             </dependency>
             <dependency>
                 <groupId>org.eclipse.ditto</groupId>
+                <artifactId>ditto-internal-utils-extension</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.ditto</groupId>
                 <artifactId>ditto-internal-utils-conditional-headers</artifactId>
                 <version>${project.version}</version>
             </dependency>

@@ -17,11 +17,11 @@ import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 import java.util.concurrent.CompletableFuture;
 
 import org.eclipse.ditto.base.model.headers.translator.HeaderTranslator;
-import org.eclipse.ditto.base.service.DittoExtensionIds;
-import org.eclipse.ditto.base.service.DittoExtensionPoint;
-import org.eclipse.ditto.base.service.RootChildActorStarter;
 import org.eclipse.ditto.gateway.service.util.config.endpoints.CommandConfig;
 import org.eclipse.ditto.gateway.service.util.config.endpoints.HttpConfig;
+import org.eclipse.ditto.internal.utils.extension.DittoExtensionPoint;
+import org.eclipse.ditto.internal.utils.extension.DittoExtensionIds;
+
 
 import com.typesafe.config.Config;
 

@@ -16,7 +16,7 @@ import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
 
 import org.eclipse.ditto.base.model.signals.Signal;
-import org.eclipse.ditto.base.service.DittoExtensionPoint;
+import org.eclipse.ditto.internal.utils.extension.DittoExtensionPoint;
 
 /**
  * Extension which transforms a received {@link Signal} (at the "edge") to a CompletionStage of a transformed Signal,

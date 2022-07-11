@@ -990,7 +990,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
         final var connectionActorProps = ConnectionPersistenceActor.props(TestConstants.createRandomConnectionId(),
                 commandForwarderActor,
                 pubSubMediator,
-                ConfigFactory.empty());
+                ConfigFactory.empty(), exceptionalClientProviderSystemResource.getActorSystem());
 
         // create another actor because this it is stopped and we want to test if the child is terminated
         final var parent = exceptionalClientProviderSystemResource.newTestKit();
@@ -1012,7 +1012,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
         final var connectionActorProps = ConnectionPersistenceActor.props(TestConstants.createRandomConnectionId(),
                 commandForwarderActor,
                 pubSubMediator,
-                ConfigFactory.empty());
+                ConfigFactory.empty(), exceptionalCommandValidatorSystemResource.getActorSystem());
 
         // create another actor because we want to test if the child is terminated
         final var parent = exceptionalCommandValidatorSystemResource.newTestKit();
@@ -1268,7 +1268,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
                         proxyActorProbe.ref(),
                         pubSubMediatorProbe.ref(),
                         Trilean.TRUE,
-                        ConfigFactory.empty()));
+                        ConfigFactory.empty(), searchForwardingSystemResource.getActorSystem()));
 
         // GIVEN: connection persistence actor created with 2 client actors that are allowed to start on same node
         final var underTest = searchForwardingSystemResource.newActor(connectionActorProps, myConnectionId.toString());
@@ -1327,7 +1327,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
                                 commandForwarderActor,
                                 pubSubMediator,
                                 Trilean.FALSE,
-                                ConfigFactory.empty())
+                                ConfigFactory.empty(), failingClientProviderSystemResource.getActorSystem())
                 )
         );
         final var testProbe = failingClientProviderSystemResource.newTestProbe();
@@ -1349,7 +1349,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
                                 commandForwarderActor,
                                 pubSubMediator,
                                 Trilean.FALSE,
-                                ConfigFactory.empty())
+                                ConfigFactory.empty(), tooManyFailingClientProviderSystemResource.getActorSystem())
                 )
         );
         final var testProbe = tooManyFailingClientProviderSystemResource.newTestProbe();

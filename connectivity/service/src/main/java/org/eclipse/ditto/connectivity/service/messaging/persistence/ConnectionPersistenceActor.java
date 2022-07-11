@@ -113,6 +113,7 @@ import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.internal.utils.config.InstanceIdentifierSupplier;
 import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
+import org.eclipse.ditto.internal.utils.persistence.SnapshotAdapter;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.ActivityCheckConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.SnapshotConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.MongoReadJournal;
@@ -127,6 +128,7 @@ import org.eclipse.ditto.thingsearch.model.signals.commands.subscription.CreateS
 import com.typesafe.config.Config;
 
 import akka.actor.ActorRef;
+import akka.actor.ActorSystem;
 import akka.actor.Props;
 import akka.actor.Status;
 import akka.actor.SupervisorStrategy;
@@ -201,10 +203,11 @@ public final class ConnectionPersistenceActor
             final ActorRef commandForwarderActor,
             final ActorRef pubSubMediator,
             final Trilean allClientActorsOnOneNode,
-            final Config connectivityConfigOverwrites) {
+            final Config connectivityConfigOverwrites,
+            final ActorSystem actorSystem) {
 
-        super(connectionId, new ConnectionMongoSnapshotAdapter());
-        final var actorSystem = getContext().getSystem();
+        super(connectionId, SnapshotAdapter.get(actorSystem, getConnectivityRawConfig(actorSystem)));
+
         cluster = Cluster.get(actorSystem);
         final Config dittoExtensionConfig = ScopedConfig.dittoExtension(actorSystem.settings().config());
         this.updatedConnectionTester = UpdatedConnectionTester.get(actorSystem,  dittoExtensionConfig);
@@ -229,6 +232,10 @@ public final class ConnectionPersistenceActor
         final Duration fuzzyPriorityUpdateInterval =
                 makeFuzzy(connectivityConfig.getConnectionConfig().getPriorityUpdateInterval());
         startUpdatePriorityPeriodically(fuzzyPriorityUpdateInterval);
+    }
+
+    private static Config getConnectivityRawConfig(final ActorSystem actorSystem) {
+        return ScopedConfig.getOrEmpty(actorSystem.settings().config(), "ditto.connectivity");
     }
 
     private ConnectivityConfig getConnectivityConfigWithOverwrites(final Config connectivityConfigOverwrites) {
@@ -269,10 +276,11 @@ public final class ConnectionPersistenceActor
     public static Props props(final ConnectionId connectionId,
             final ActorRef commandForwarderActor,
             final ActorRef pubSubMediator,
-            final Config connectivityConfigOverwrites
+            final Config connectivityConfigOverwrites,
+            final ActorSystem actorSystem
     ) {
-        return Props.create(ConnectionPersistenceActor.class, connectionId, commandForwarderActor, pubSubMediator,
-                Trilean.UNKNOWN, connectivityConfigOverwrites);
+        return Props.create(ConnectionPersistenceActor.class, () -> new ConnectionPersistenceActor(connectionId,
+                commandForwarderActor, pubSubMediator, Trilean.UNKNOWN, connectivityConfigOverwrites, actorSystem));
     }
 
     /**

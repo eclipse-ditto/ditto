@@ -17,10 +17,9 @@ import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 import java.util.concurrent.CompletionStage;
 
 import org.eclipse.ditto.base.model.signals.commands.Command;
-import org.eclipse.ditto.base.service.DittoExtensionIds;
-import org.eclipse.ditto.base.service.DittoExtensionPoint;
+import org.eclipse.ditto.internal.utils.extension.DittoExtensionPoint;
+import org.eclipse.ditto.internal.utils.extension.DittoExtensionIds;
 import org.eclipse.ditto.rql.query.Query;
-import org.eclipse.ditto.thingsearch.model.signals.commands.query.ThingSearchQueryCommand;
 
 import com.typesafe.config.Config;
 

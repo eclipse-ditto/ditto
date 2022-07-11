@@ -36,7 +36,6 @@ import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import org.eclipse.ditto.internal.utils.config.raw.RawConfigSupplier;
 import org.eclipse.ditto.internal.utils.health.status.StatusSupplierActor;
 import org.eclipse.ditto.internal.utils.metrics.prometheus.PrometheusReporterRoute;
-import org.eclipse.ditto.internal.utils.persistence.mongo.config.WithMongoDbConfig;
 import org.eclipse.ditto.internal.utils.tracing.DittoTracing;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -75,7 +74,8 @@ import kamon.prometheus.PrometheusReporter;
  * <li>{@link #startStatusSupplierActor(akka.actor.ActorSystem)},</li>
  * <li>{@link #startServiceRootActors(akka.actor.ActorSystem, org.eclipse.ditto.base.service.config.ServiceSpecificConfig)}.
  * <ol>
- * <li>{@link #getMainRootActorProps(org.eclipse.ditto.base.service.config.ServiceSpecificConfig, akka.actor.ActorRef)},</li>
+ * <li>{@link #getMainRootActorProps(org.eclipse.ditto.base.service.config.ServiceSpecificConfig,
+ * com.typesafe.config.Config, akka.actor.ActorRef, akka.actor.ActorSystem)},</li>
  * <li>{@link #startMainRootActor(akka.actor.ActorSystem, akka.actor.Props)},</li>
  * </ol>
  * </li>
@@ -95,6 +95,8 @@ public abstract class DittoService<C extends ServiceSpecificConfig> {
      * The config path expression which points to the supposed nested config with the Ditto settings.
      */
     public static final String DITTO_CONFIG_PATH = ScopedConfig.DITTO_SCOPE;
+
+    protected static final String MONGO_URI_CONFIG_PATH = "akka.contrib.persistence.mongodb.mongo.mongouri";
 
     private final Logger logger;
     private final String serviceName;
@@ -206,7 +208,8 @@ public abstract class DittoService<C extends ServiceSpecificConfig> {
      */
     protected ActorSystem doStart() {
         logRuntimeParameters();
-        final var actorSystemConfig = appendDittoInfo(appendAkkaPersistenceMongoUriToRawConfig());
+        final var actorSystemConfig =
+                appendDittoInfo(appendAkkaPersistenceMongoUriToRawConfig(rawConfig, serviceSpecificConfig));
         startKamon();
         final var actorSystem = createActorSystem(actorSystemConfig);
         initializeActorSystem(actorSystem);
@@ -214,18 +217,9 @@ public abstract class DittoService<C extends ServiceSpecificConfig> {
         return actorSystem;
     }
 
-    private Config appendAkkaPersistenceMongoUriToRawConfig() {
-        if (!isServiceWithMongoDbConfig()) {
-            return rawConfig;
-        }
-        final var configPath = "akka.contrib.persistence.mongodb.mongo.mongouri";
-        final var mongoDbConfig = ((WithMongoDbConfig) serviceSpecificConfig).getMongoDbConfig();
-        final String mongoDbUri = mongoDbConfig.getMongoDbUri();
-        return rawConfig.withValue(configPath, ConfigValueFactory.fromAnyRef(mongoDbUri));
-    }
-
-    private boolean isServiceWithMongoDbConfig() {
-        return serviceSpecificConfig instanceof WithMongoDbConfig;
+    @SuppressWarnings("unused")
+    protected Config appendAkkaPersistenceMongoUriToRawConfig(final Config rawConfig, final C serviceSpecificConfig) {
+        return rawConfig;
     }
 
     private void logRuntimeParameters() {
@@ -384,7 +378,8 @@ public abstract class DittoService<C extends ServiceSpecificConfig> {
      * is overridden, the following methods will not be called automatically:</em>
      * </p>
      * <ul>
-     * <li>{@link #getMainRootActorProps(org.eclipse.ditto.base.service.config.ServiceSpecificConfig, akka.actor.ActorRef)},</li>
+     * <li>{@link #getMainRootActorProps(org.eclipse.ditto.base.service.config.ServiceSpecificConfig,
+     * com.typesafe.config.Config, akka.actor.ActorRef, akka.actor.ActorSystem)},</li>
      * <li>{@link #startMainRootActor(akka.actor.ActorSystem, akka.actor.Props)},</li>
      * </ul>
      *
@@ -401,7 +396,8 @@ public abstract class DittoService<C extends ServiceSpecificConfig> {
 
             injectSystemPropertiesLimits(serviceSpecificConfig);
 
-            startMainRootActor(actorSystem, getMainRootActorProps(serviceSpecificConfig, pubSubMediator));
+            startMainRootActor(actorSystem,
+                    getMainRootActorProps(serviceSpecificConfig, rawConfig, pubSubMediator, actorSystem));
             RootActorStarter.get(actorSystem, ScopedConfig.dittoExtension(actorSystem.settings().config())).execute();
         });
     }
@@ -436,9 +432,13 @@ public abstract class DittoService<C extends ServiceSpecificConfig> {
      *
      * @param serviceSpecificConfig the configuration of this service.
      * @param pubSubMediator ActorRef of the distributed pub-sub-mediator.
+     * @param actorSystem the actorSystem of the service.
      * @return the Props.
      */
-    protected abstract Props getMainRootActorProps(C serviceSpecificConfig, ActorRef pubSubMediator);
+    protected abstract Props getMainRootActorProps(C serviceSpecificConfig,
+            final Config rawConfig,
+            final ActorRef pubSubMediator,
+            final ActorSystem actorSystem);
 
     /**
      * Starts the main root actor of this service. May be overridden to change the way of starting this service's root

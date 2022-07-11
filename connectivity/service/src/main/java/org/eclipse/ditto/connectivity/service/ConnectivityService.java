@@ -20,7 +20,11 @@ import org.eclipse.ditto.utils.jsr305.annotations.AllParametersAndReturnValuesAr
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.typesafe.config.Config;
+import com.typesafe.config.ConfigValueFactory;
+
 import akka.actor.ActorRef;
+import akka.actor.ActorSystem;
 import akka.actor.Props;
 
 /**
@@ -38,7 +42,7 @@ public final class ConnectivityService extends DittoService<ConnectivityConfig> 
     /**
      * Name for the Akka Actor System of the Connectivity service.
      */
-    private static final String SERVICE_NAME = "connectivity";
+    public static final String SERVICE_NAME = "connectivity";
 
     private ConnectivityService() {
         super(LOGGER, SERVICE_NAME, ConnectivityRootActor.ACTOR_NAME);
@@ -60,9 +64,21 @@ public final class ConnectivityService extends DittoService<ConnectivityConfig> 
     }
 
     @Override
-    protected Props getMainRootActorProps(final ConnectivityConfig connectivityConfig, final ActorRef pubSubMediator) {
+    protected Props getMainRootActorProps(final ConnectivityConfig connectivityConfig,
+            final Config rawConfig,
+            final ActorRef pubSubMediator,
+            final ActorSystem actorSystem) {
 
         return ConnectivityRootActor.props(connectivityConfig, pubSubMediator);
+    }
+
+    @Override
+    protected Config appendAkkaPersistenceMongoUriToRawConfig(final Config rawConfig,
+            final ConnectivityConfig serviceSpecificConfig) {
+
+        final var mongoDbConfig = serviceSpecificConfig.getMongoDbConfig();
+        final String mongoDbUri = mongoDbConfig.getMongoDbUri();
+        return rawConfig.withValue(MONGO_URI_CONFIG_PATH, ConfigValueFactory.fromAnyRef(mongoDbUri));
     }
 
 }

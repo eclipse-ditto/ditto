@@ -15,9 +15,9 @@ package org.eclipse.ditto.connectivity.service.messaging;
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.base.service.DittoExtensionIds;
-import org.eclipse.ditto.base.service.DittoExtensionPoint;
 import org.eclipse.ditto.connectivity.model.Connection;
+import org.eclipse.ditto.internal.utils.extension.DittoExtensionPoint;
+import org.eclipse.ditto.internal.utils.extension.DittoExtensionIds;
 
 import com.typesafe.config.Config;
 

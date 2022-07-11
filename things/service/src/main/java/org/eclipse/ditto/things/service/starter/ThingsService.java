@@ -13,13 +13,18 @@
 package org.eclipse.ditto.things.service.starter;
 
 import org.eclipse.ditto.base.service.DittoService;
+import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import org.eclipse.ditto.things.service.common.config.DittoThingsConfig;
 import org.eclipse.ditto.things.service.common.config.ThingsConfig;
-import org.eclipse.ditto.internal.utils.config.ScopedConfig;
+import org.eclipse.ditto.things.service.persistence.actors.ThingPersistenceActor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.typesafe.config.Config;
+import com.typesafe.config.ConfigValueFactory;
+
 import akka.actor.ActorRef;
+import akka.actor.ActorSystem;
 import akka.actor.Props;
 
 /**
@@ -59,10 +64,22 @@ public final class ThingsService extends DittoService<ThingsConfig> {
     }
 
     @Override
-    protected Props getMainRootActorProps(final ThingsConfig thingsConfig, final ActorRef pubSubMediator) {
+    protected Props getMainRootActorProps(final ThingsConfig thingsConfig,
+            final Config rawConfig,
+            final ActorRef pubSubMediator,
+            final ActorSystem actorSystem) {
 
         return ThingsRootActor.props(thingsConfig, pubSubMediator,
-                DefaultThingPersistenceActorPropsFactory.of(pubSubMediator));
+                (thingId, pub) -> ThingPersistenceActor.props(thingId, pub, actorSystem));
+    }
+
+    @Override
+    protected Config appendAkkaPersistenceMongoUriToRawConfig(final Config rawConfig,
+            final ThingsConfig serviceSpecificConfig) {
+
+        final var mongoDbConfig = serviceSpecificConfig.getMongoDbConfig();
+        final String mongoDbUri = mongoDbConfig.getMongoDbUri();
+        return rawConfig.withValue(MONGO_URI_CONFIG_PATH, ConfigValueFactory.fromAnyRef(mongoDbUri));
     }
 
 }

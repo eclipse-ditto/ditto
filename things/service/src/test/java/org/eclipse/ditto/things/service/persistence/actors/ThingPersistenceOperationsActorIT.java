@@ -142,7 +142,7 @@ public final class ThingPersistenceOperationsActorIT extends MongoEventSourceITA
                         },
                         liveSignalPub,
                         (thingId, distributedPub) -> ThingPersistenceActor.props(thingId, distributedPub,
-                                pubSubMediator),
+                                system),
                         null,
                         policyEnforcerProvider);
 

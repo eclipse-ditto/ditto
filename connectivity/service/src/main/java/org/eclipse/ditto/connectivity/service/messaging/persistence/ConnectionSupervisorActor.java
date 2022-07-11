@@ -169,7 +169,7 @@ public final class ConnectionSupervisorActor
     @Override
     protected Props getPersistenceActorProps(final ConnectionId entityId) {
         return ConnectionPersistenceActor.props(entityId, commandForwarderActor, pubSubMediator,
-                connectivityConfigOverwrites);
+                connectivityConfigOverwrites, getContext().getSystem());
     }
 
     @Override

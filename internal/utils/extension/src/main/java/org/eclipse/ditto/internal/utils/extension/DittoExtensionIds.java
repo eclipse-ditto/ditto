@@ -10,15 +10,15 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.base.service;
+package org.eclipse.ditto.internal.utils.extension;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
-import org.eclipse.ditto.base.service.DittoExtensionPoint.ExtensionId.ExtensionIdConfig;
 import org.eclipse.ditto.internal.utils.akka.AkkaClassLoader;
+import org.eclipse.ditto.internal.utils.extension.DittoExtensionPoint.ExtensionId.ExtensionIdConfig;
 
 import akka.actor.AbstractExtensionId;
 import akka.actor.ActorSystem;
@@ -28,11 +28,12 @@ import akka.actor.Extension;
 public final class DittoExtensionIds implements Extension {
 
     static final ExtensionId INSTANCE = new ExtensionId();
-    private final Map<ExtensionIdConfig<?>, DittoExtensionPoint.ExtensionId<?>> extensionIds = new HashMap<>();
+    private final Map<DittoExtensionPoint.ExtensionId.ExtensionIdConfig<?>, DittoExtensionPoint.ExtensionId<?>> extensionIds = new HashMap<>();
 
     public <T extends Extension> DittoExtensionPoint.ExtensionId<T> computeIfAbsent(
             final ExtensionIdConfig<T> extensionIdConfig,
             final Function<ExtensionIdConfig<T>, DittoExtensionPoint.ExtensionId<T>> extensionIdCreator) {
+
         final DittoExtensionPoint.ExtensionId<T> extensionId =
                 (DittoExtensionPoint.ExtensionId<T>) extensionIds.get(extensionIdConfig);
         if (extensionId == null) {

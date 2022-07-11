@@ -14,8 +14,8 @@ package org.eclipse.ditto.thingsearch.service.persistence.write.streaming;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
-import org.eclipse.ditto.base.service.DittoExtensionIds;
-import org.eclipse.ditto.base.service.DittoExtensionPoint;
+import org.eclipse.ditto.internal.utils.extension.DittoExtensionPoint;
+import org.eclipse.ditto.internal.utils.extension.DittoExtensionIds;
 import org.eclipse.ditto.internal.utils.metrics.instruments.timer.StartedTimer;
 import org.eclipse.ditto.internal.utils.persistence.mongo.DittoMongoClient;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.AbstractWriteModel;

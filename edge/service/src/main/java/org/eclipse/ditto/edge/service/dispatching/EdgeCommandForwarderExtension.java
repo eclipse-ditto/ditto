@@ -14,8 +14,8 @@ package org.eclipse.ditto.edge.service.dispatching;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
-import org.eclipse.ditto.base.service.DittoExtensionIds;
-import org.eclipse.ditto.base.service.DittoExtensionPoint;
+import org.eclipse.ditto.internal.utils.extension.DittoExtensionIds;
+import org.eclipse.ditto.internal.utils.extension.DittoExtensionPoint;
 
 import com.typesafe.config.Config;
 
