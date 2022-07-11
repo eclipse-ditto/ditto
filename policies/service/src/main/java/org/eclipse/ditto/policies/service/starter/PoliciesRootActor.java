@@ -135,8 +135,8 @@ public final class PoliciesRootActor extends DittoRootActor {
                 startChildActor(DefaultHealthCheckingActorFactory.ACTOR_NAME, healthCheckingActorProps);
         bindHttpStatusRoute(policiesConfig.getHttpConfig(), healthCheckingActor);
 
-        final var rawServiceConfig = ScopedConfig.getOrEmpty(actorSystem.settings().config(), "ditto.policies");
-        RootChildActorStarter.get(actorSystem, rawServiceConfig).execute(getContext());
+        RootChildActorStarter.get(actorSystem, ScopedConfig.dittoExtension(actorSystem.settings().config()))
+                .execute(getContext());
     }
 
     private static Props getPolicySupervisorActorProps(final SnapshotAdapter<Policy> snapshotAdapter,

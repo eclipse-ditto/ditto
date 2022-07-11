@@ -148,9 +148,8 @@ public final class ThingsRootActor extends DittoRootActor {
 
         bindHttpStatusRoute(thingsConfig.getHttpConfig(), healthCheckingActor);
 
-        final var rawServiceConfig = ScopedConfig.getOrEmpty(actorSystem.settings().config(), "ditto.things");
-        RootChildActorStarter.get(actorSystem, rawServiceConfig).execute(getContext());
-
+        RootChildActorStarter.get(actorSystem, ScopedConfig.dittoExtension(actorSystem.settings().config()))
+                .execute(getContext());
     }
 
     /**

@@ -154,8 +154,7 @@ public final class GatewayRootActor extends DittoRootActor {
                         pubSubMediator,
                         edgeCommandForwarder));
 
-        final var gatewayRawConfig = ScopedConfig.getOrEmpty(config, "ditto.gateway");
-        RootChildActorStarter.get(actorSystem, gatewayRawConfig).execute(getContext());
+        RootChildActorStarter.get(actorSystem, ScopedConfig.dittoExtension(config)).execute(getContext());
 
         final ActorRef healthCheckActor = createHealthCheckActor(healthCheckConfig);
         final var hostname = getHostname(httpConfig);

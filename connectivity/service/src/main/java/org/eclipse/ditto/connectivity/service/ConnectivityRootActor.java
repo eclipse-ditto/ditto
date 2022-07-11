@@ -110,8 +110,7 @@ public final class ConnectivityRootActor extends DittoRootActor {
                 ConnectionPersistenceOperationsActor.props(pubSubMediator, connectivityConfig.getMongoDbConfig(),
                         config, connectivityConfig.getPersistenceOperationsConfig()));
 
-        final var connectivityRawConfig = ScopedConfig.getOrEmpty(config, "ditto.connectivity");
-        RootChildActorStarter.get(actorSystem, connectivityRawConfig).execute(getContext());
+        RootChildActorStarter.get(actorSystem, ScopedConfig.dittoExtension(config)).execute(getContext());
 
 
         final var cleanupConfig = connectivityConfig.getConnectionConfig().getCleanupConfig();
