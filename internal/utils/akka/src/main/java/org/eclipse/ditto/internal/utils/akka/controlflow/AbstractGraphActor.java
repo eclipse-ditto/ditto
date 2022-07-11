@@ -93,6 +93,15 @@ public abstract class AbstractGraphActor<T, M> extends AbstractActor {
     protected abstract T mapMessage(M message);
 
     /**
+     * called when a message is dropped as result of backpressure strategy.
+     *
+     * @param message the dropped message.
+     */
+    protected void messageDiscarded(M message, QueueOfferResult result) {
+        logger.error("Discarded message as a result of backpressure strategy! - message: {}, result: {} ", message, result);
+    }
+
+    /**
      * Called before handling the actual message via the {@link #createSink()} in order to being able to enhance
      * the message.
      *
@@ -196,25 +205,31 @@ public abstract class AbstractGraphActor<T, M> extends AbstractActor {
             loggerWithCID.debug("Received match: <{}>.", match);
         }
         receiveCounter.increment();
-        sourceQueue.offer(mapMessage(match)).handle(this::incrementEnqueueCounters);
+        sourceQueue.offer(mapMessage(match))
+                .handle((result, error) -> incrementEnqueueCounters(match, result, error));
     }
 
-    private Void incrementEnqueueCounters(final QueueOfferResult result, final Throwable error) {
-        if (QueueOfferResult.enqueued().equals(result)) {
-            enqueueSuccessCounter.increment();
-        } else if (QueueOfferResult.dropped().equals(result)) {
-            enqueueDroppedCounter.increment();
-            logger.error("Dropped message as result of backpressure strategy! - result was: {} - adjust queue " +
-                    "size or scaling if this appears regularly", result);
-        } else if (result instanceof QueueOfferResult.Failure) {
-            final var failure = (QueueOfferResult.Failure) result;
-            logger.error(failure.cause(), "Enqueue failed!");
-            enqueueFailureCounter.increment();
-        } else {
-            logger.error(error, "Enqueue failed without acknowledgement!");
-            enqueueFailureCounter.increment();
+    private Void incrementEnqueueCounters(final M message, final QueueOfferResult result, final Throwable error) {
+        try {
+            if (QueueOfferResult.enqueued().equals(result)) {
+                enqueueSuccessCounter.increment();
+            } else if (QueueOfferResult.dropped().equals(result)) {
+                enqueueDroppedCounter.increment();
+                logger.error("Dropped message as result of backpressure strategy! - result was: {} - adjust queue " +
+                        "size or scaling if this appears regularly", result);
+            } else if (result instanceof final QueueOfferResult.Failure failure) {
+                logger.error(failure.cause(), "Enqueue failed!");
+                enqueueFailureCounter.increment();
+            } else {
+                logger.error(error, "Enqueue failed without acknowledgement!");
+                enqueueFailureCounter.increment();
+            }
+            return null;
+        } finally {
+            if (!result.isEnqueued()) {
+                messageDiscarded(message, result);
+            }
         }
-        return null;
     }
 
     private void handleUnknownThrowable(final Throwable unknownThrowable) {
