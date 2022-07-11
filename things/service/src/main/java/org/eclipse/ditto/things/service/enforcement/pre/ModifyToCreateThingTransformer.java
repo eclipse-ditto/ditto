@@ -17,7 +17,6 @@ import java.util.concurrent.CompletionStage;
 
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.policies.enforcement.pre.ExistenceChecker;
 import org.eclipse.ditto.policies.enforcement.pre.PreEnforcer;
 import org.eclipse.ditto.things.model.signals.commands.modify.CreateThing;
 import org.eclipse.ditto.things.model.signals.commands.modify.ModifyThing;
@@ -29,13 +28,13 @@ import akka.actor.ActorSystem;
  */
 public final class ModifyToCreateThingTransformer implements PreEnforcer {
 
-    private final ExistenceChecker existenceChecker;
+    private final ThingExistenceChecker existenceChecker;
 
     ModifyToCreateThingTransformer(final ActorSystem actorSystem) {
-        this(ExistenceChecker.get(actorSystem));
+        this(new ThingExistenceChecker(actorSystem));
     }
 
-    ModifyToCreateThingTransformer(final ExistenceChecker existenceChecker) {
+    ModifyToCreateThingTransformer(final ThingExistenceChecker existenceChecker) {
         this.existenceChecker = existenceChecker;
     }
 

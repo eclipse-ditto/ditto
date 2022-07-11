@@ -16,7 +16,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
 import org.eclipse.ditto.base.model.signals.Signal;
-import org.eclipse.ditto.policies.enforcement.pre.ExistenceChecker;
 import org.eclipse.ditto.policies.enforcement.pre.PreEnforcer;
 import org.eclipse.ditto.policies.model.signals.commands.modify.CreatePolicy;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicy;
@@ -28,13 +27,13 @@ import akka.actor.ActorSystem;
  */
 public final class ModifyToCreatePolicyTransformer implements PreEnforcer {
 
-    private final ExistenceChecker existenceChecker;
+    private final PolicyExistenceChecker existenceChecker;
 
     ModifyToCreatePolicyTransformer(final ActorSystem actorSystem) {
-        this(ExistenceChecker.get(actorSystem));
+        this(new PolicyExistenceChecker(actorSystem));
     }
 
-    ModifyToCreatePolicyTransformer(final ExistenceChecker existenceChecker) {
+    ModifyToCreatePolicyTransformer(final PolicyExistenceChecker existenceChecker) {
         this.existenceChecker = existenceChecker;
     }
 

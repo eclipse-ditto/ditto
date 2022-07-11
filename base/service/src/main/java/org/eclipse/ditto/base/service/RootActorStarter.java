@@ -14,6 +14,9 @@ package org.eclipse.ditto.base.service;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
+import com.typesafe.config.Config;
+import com.typesafe.config.ConfigFactory;
+
 import akka.actor.ActorSystem;
 
 /**
@@ -33,21 +36,30 @@ public interface RootActorStarter extends DittoExtensionPoint {
      * {@code ActorSystem}.
      *
      * @param actorSystem the actorSystem in which the {@code RootActorStarter} should be loaded.
+     * @param config the configuration of this extension.
      * @return the {@code RootActorStarter} implementation.
      * @throws NullPointerException if {@code actorSystem} is {@code null}.
      */
-    static RootActorStarter get(final ActorSystem actorSystem) {
+    static RootActorStarter get(final ActorSystem actorSystem, final Config config) {
         checkNotNull(actorSystem, "actorSystem");
-        return ExtensionId.INSTANCE.get(actorSystem);
+        checkNotNull(config, "config");
+        final var extensionIdConfig = ExtensionId.computeConfig(config);
+        return DittoExtensionIds.get(actorSystem)
+                .computeIfAbsent(extensionIdConfig, ExtensionId::new)
+                .get(actorSystem);
     }
 
     final class ExtensionId extends DittoExtensionPoint.ExtensionId<RootActorStarter> {
 
-        private static final String CONFIG_PATH = "ditto.root-actor-starter";
-        private static final ExtensionId INSTANCE = new ExtensionId(RootActorStarter.class);
+        private static final String CONFIG_KEY = "root-actor-starter";
+        private static final String CONFIG_PATH = "ditto.extensions." + CONFIG_KEY;
 
-        private ExtensionId(final Class<RootActorStarter> parentClass) {
-            super(parentClass);
+        private ExtensionId(final ExtensionIdConfig<RootActorStarter> extensionIdConfig) {
+            super(extensionIdConfig);
+        }
+
+        static ExtensionIdConfig<RootActorStarter> computeConfig(final Config config) {
+            return ExtensionIdConfig.of(RootActorStarter.class, config, CONFIG_KEY);
         }
 
         @Override

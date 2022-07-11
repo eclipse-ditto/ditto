@@ -71,10 +71,7 @@ public interface JwtAuthenticationResultProvider extends DittoExtensionPoint {
         }
 
         static ExtensionIdConfig<JwtAuthenticationResultProvider> computeConfig(final Config config) {
-            return ExtensionIdConfig.of(
-                    JwtAuthenticationResultProvider.class,
-                    config.hasPath(CONFIG_KEY) ? config.getConfig(CONFIG_KEY) : ConfigFactory.empty()
-            );
+            return ExtensionIdConfig.of(JwtAuthenticationResultProvider.class,config, CONFIG_KEY);
         }
 
         @Override

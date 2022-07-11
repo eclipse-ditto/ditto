@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.policies.enforcement.pre;
+package org.eclipse.ditto.policies.service.enforcement.pre;
 
 import java.util.Optional;
 import java.util.concurrent.CompletionStage;
@@ -28,15 +28,14 @@ import org.eclipse.ditto.policies.enforcement.config.DefaultEnforcementConfig;
 import org.eclipse.ditto.policies.enforcement.config.EnforcementConfig;
 
 import com.github.benmanes.caffeine.cache.AsyncCacheLoader;
-import com.typesafe.config.Config;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 
 /**
- * Thing specific implementation of {@link ExistenceChecker} checking for the existence of policies.
+ * checks for the existence of policies.
  */
-public final class PolicyExistenceChecker implements ExistenceChecker {
+final class PolicyExistenceChecker {
 
     public static final String ENFORCEMENT_CACHE_DISPATCHER = "enforcement-cache-dispatcher";
 
@@ -48,7 +47,7 @@ public final class PolicyExistenceChecker implements ExistenceChecker {
      *
      * @param actorSystem the actor system in which to load the extension.
      */
-    public PolicyExistenceChecker(final ActorSystem actorSystem, final Config config) {
+    PolicyExistenceChecker(final ActorSystem actorSystem) {
         this.actorSystem = actorSystem;
         final var enforcementConfig = DefaultEnforcementConfig.of(
                 DefaultScopedConfig.dittoScoped(actorSystem.settings().config()));
@@ -71,7 +70,6 @@ public final class PolicyExistenceChecker implements ExistenceChecker {
                 policiesShardRegion);
     }
 
-    @Override
     public CompletionStage<Boolean> checkExistence(final Signal<?> signal) {
         final Optional<EntityId> entityIdOptional = WithEntityId.getEntityIdOfType(EntityId.class, signal);
 
@@ -88,7 +86,8 @@ public final class PolicyExistenceChecker implements ExistenceChecker {
     private static IllegalArgumentException getWrongEntityException(final Signal<?> signal) {
 
         final String message =
-                String.format("ExistenceChecker: unknown entity type or empty ID for signal type <%s>", signal.getType());
+                String.format("ExistenceChecker: unknown entity type or empty ID for signal type <%s>",
+                        signal.getType());
         return new IllegalArgumentException(message);
     }
 
