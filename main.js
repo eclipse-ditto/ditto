@@ -24,6 +24,7 @@ let mainNavbar;
 
 document.addEventListener('DOMContentLoaded', async function() {
   document.getElementById('thingsHTML').innerHTML = await (await fetch('modules/things/things.html')).text();
+  document.getElementById('fieldsHTML').innerHTML = await (await fetch('modules/things/fields.html')).text();
   document.getElementById('featuresHTML').innerHTML = await (await fetch('modules/things/features.html')).text();
   document.getElementById('environmentsHTML').innerHTML =
       await (await fetch('modules/environments/environments.html')).text();
@@ -31,12 +32,19 @@ document.addEventListener('DOMContentLoaded', async function() {
       await (await fetch('modules/environments/authorization.html')).text();
 
   await Things.ready();
+  Attributes.ready();
   await Fields.ready();
   await SearchFilter.ready();
-  Attributes.ready();
   Features.ready();
   Authorization.ready();
   Environments.ready();
+
+  // make dropdowns not cutting off
+  new bootstrap.Dropdown(document.querySelector('.dropdown-toggle'), {
+    popperConfig: {
+      strategy: 'fixed',
+    },
+  });
 
   // make top navbar activating
   mainNavbar = document.getElementById('mainNavbar');
@@ -74,4 +82,6 @@ document.addEventListener('DOMContentLoaded', async function() {
       }
     });
   });
+
+  SearchFilter.performLastSearch();
 });

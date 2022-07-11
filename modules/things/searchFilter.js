@@ -15,17 +15,19 @@ import * as Environments from '../environments/environments.js';
 import * as Utils from '../utils.js';
 import * as Things from './things.js';
 
-// const filterExamples = [
-//   'eq(attributes/location,"kitchen")',
-//   'ge(thingId,"myThing1")',
-//   'gt(_created,"2020-08-05T12:17")',
-//   'exists(features/featureId)',
-//   'and(eq(attributes/location,"kitchen"),eq(attributes/color,"red"))',
-//   'or(eq(attributes/location,"kitchen"),eq(attributes/location,"living-room"))',
-//   'like(attributes/key1,"known-chars-at-start*")',
-// ];
+const filterExamples = [
+  'eq(attributes/location,"kitchen")',
+  'ge(thingId,"myThing1")',
+  'gt(_created,"2020-08-05T12:17")',
+  'exists(features/featureId)',
+  'and(eq(attributes/location,"kitchen"),eq(attributes/color,"red"))',
+  'or(eq(attributes/location,"kitchen"),eq(attributes/location,"living-room"))',
+  'like(attributes/key1,"known-chars-at-start*")',
+];
 
 let keyStrokeTimeout;
+
+let lastSearch = '';
 
 const dom = {
   filterList: null,
@@ -33,6 +35,8 @@ const dom = {
   searchFilterEdit: null,
   searchThings: null,
   searchFavourite: null,
+  tabThings: null,
+  pinnedThings: null,
 };
 
 /**
@@ -41,17 +45,10 @@ const dom = {
 export async function ready() {
   Environments.addChangeListener(onEnvironmentChanged);
 
-  Utils.addTab(
-      document.getElementById('thingsTabsItems'),
-      document.getElementById('thingsTabsContent'),
-      'Search Filter',
-      await( await fetch('modules/things/searchFilter.html')).text(),
-  );
-
   Utils.getAllElementsById(dom);
 
   dom.filterList.addEventListener('click', (event) => {
-    Things.setSearchFilterEdit(event.target.textContent);
+    dom.searchFilterEdit.value = event.target.textContent;
     checkIfFavourite();
     Things.searchThings(event.target.textContent);
   });
@@ -81,6 +78,8 @@ export async function ready() {
       event.target.select();
     };
   };
+
+  dom.pinnedThings.onclick = pinnedTriggered;
 };
 
 /**
@@ -89,6 +88,9 @@ export async function ready() {
 function onEnvironmentChanged() {
   if (!Environments.current()['filterList']) {
     Environments.current().filterList = [];
+  };
+  if (!Environments.current()['pinnedThings']) {
+    Environments.current().pinnedThings = [];
   };
   updateFilterList();
 
@@ -100,6 +102,7 @@ function onEnvironmentChanged() {
  * @param {String} filter search filter string containing an RQL or a thingId
  */
 function searchTriggered(filter) {
+  lastSearch = filter;
   const regex = /^(eq\(|ne\(|gt\(|ge\(|lt\(|le\(|in\(|like\(|exists\(|and\(|or\(|not\().*/;
   if (filter === '' || regex.test(filter)) {
     Things.searchThings(filter);
@@ -109,13 +112,35 @@ function searchTriggered(filter) {
 }
 
 /**
+ * Gets the list of pinned things
+ */
+function pinnedTriggered() {
+  lastSearch = 'pinned';
+  dom.searchFilterEdit.value = null;
+  Things.getThings(Environments.current()['pinnedThings']);
+}
+
+/**
+ * Performs the last search by the user using the last used filter.
+ * If the user used pinned things last time, the pinned things are reloaded
+ */
+export function performLastSearch() {
+  if (lastSearch === 'pinned') {
+    pinnedTriggered();
+  } else {
+    searchTriggered(lastSearch);
+  }
+}
+
+/**
  * Updates the UI filterList
  */
 function updateFilterList() {
   dom.filterList.innerHTML = '';
-  Environments.current().filterList.forEach((filter, i) => {
-    Utils.addTableRow(dom.filterList, filter);
-  });
+  Utils.addDropDownEntries(dom.filterList, ['Favourite search filters'], true);
+  Utils.addDropDownEntries(dom.filterList, Environments.current().filterList);
+  Utils.addDropDownEntries(dom.filterList, ['Example search filters'], true);
+  Utils.addDropDownEntries(dom.filterList, filterExamples);
 };
 
 /**

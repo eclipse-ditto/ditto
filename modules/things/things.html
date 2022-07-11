@@ -17,12 +17,17 @@
         <div class="row resizable_pane" style="height:300px;">
             <div class="col-md-6 resizable_flex_column">
                 <div class="input-group input-group-sm mb-1 mt-1">
-                    <button id="searchFavourite" class="btn btn-outline-secondary btn-sm" data-bs-toggle="tooltip"
-                        title="Toggle favourite for search filter">
-                        <i id="favIcon" class="bi bi-star"></i>
-                    </button>
+                    <div class="btn-group dropend">
+                        <button id="searchFavourite" class="btn btn-outline-secondary btn-sm" data-bs-toggle="tooltip"
+                            title="Toggle favourite for search filter">
+                            <i id="favIcon" class="bi bi-star"></i>
+                        </button>
+                        <button class="btn btn-outline-secondary btn-sm dropdown-toggle dropdown-toggle-split"
+                            data-bs-toggle="dropdown"></button>
+                        <ul id="filterList" class="dropdown-menu" style="position: fixed; top: auto;"></ul>
+                    </div>
                     <input type="text" class="form-control form-control-sm autocomplete" placeholder="Search things..."
-                        id="searchFilterEdit"></input>
+                        id="searchFilterEdit" autocomplete="off"></input>
                     <button id="searchThings" class="btn btn-outline-secondary btn-sm" data-bs-toggle="tooltip"
                         title="Search things by thingId or valid ditto search filter">
                         search
@@ -38,14 +43,22 @@
                     <button id="deleteThing" class="btn btn-outline-secondary btn-sm">
                         <i class="bi bi-trash3"></i>
                     </button>
+                    <button id="tableSettings" class="btn btn-outline-secondary btn-sm"
+                        data-bs-toggle="modal" data-bs-target="#fieldsModal">
+                        <span data-bs-toggle="tooltip" title="Adjust fields for things table">
+                            <i class="bi bi-gear"></i>
+                        </span>
+                    </button>
                 </div>
                 <div class="table-wrap mb-3">
                     <table class="table table-striped table-hover table-sm">
-                        <tbody id="thingsTable"></tbody>
+                        <thead>
+                            <tr id="thingsTableHead"></tr>
+                        </thead>
+                        <tbody id="thingsTableBody"></tbody>
                     </table>
                 </div>
             </div>
-
             <div class="col-md-6 resizable_flex_column" id="details">
                 <ul id="thingsTabsItems" class="nav nav-tabs">
                     <li class="nav-item">
@@ -79,11 +92,12 @@
         </div>
     </div>
 </div>
-<h5 data-bs-toggle="collapse" data-bs-target="#collapseAttributes">Attributes <span class="badge badge-info" id="attributeCount"></span></h5>
+<h5 data-bs-toggle="collapse" data-bs-target="#collapseAttributes">Attributes <span class="badge badge-info"
+        id="attributeCount"></span></h5>
 <hr />
 <div class="collapse" id="collapseAttributes">
     <div class="row">
-        <div class="col-md-4">
+        <div class="col-md-4" style="overflow-y:scroll;">
             <table class="table table-striped table-hover table-sm">
                 <tbody id="attributesTable"></tbody>
             </table>

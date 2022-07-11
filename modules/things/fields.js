@@ -13,12 +13,15 @@
 
 import * as Environments from '../environments/environments.js';
 import * as Utils from '../utils.js';
+import * as SearchFilter from './searchFilter.js';
 
 let theFieldIndex = -1;
 
 const dom = {
   fieldPath: null,
+  fieldLabel: null,
   fieldList: null,
+  fieldsModal: null,
 };
 
 /**
@@ -30,12 +33,19 @@ export function getQueryParameter() {
   return 'fields=thingId' + (fields !== '' ? ',' + fields : '');
 };
 
+
+let bsFieldsModal = null;
 /**
  * Set the fieldpath value
  * @param {String} fieldPath new value for the fieldpath
  */
-export function setFieldPath(fieldPath) {
+export function proposeNewField(fieldPath) {
   dom.fieldPath.value = fieldPath;
+  dom.fieldLabel.value = null;
+  if (!bsFieldsModal) {
+    bsFieldsModal = new bootstrap.Modal(dom.fieldsModal);
+  }
+  bsFieldsModal.show();
 }
 
 /**
@@ -44,48 +54,51 @@ export function setFieldPath(fieldPath) {
 export async function ready() {
   Environments.addChangeListener(onEnvironmentChanged);
 
-  Utils.addTab(
-      document.getElementById('thingsTabsItems'),
-      document.getElementById('thingsTabsContent'),
-      'Fields',
-      await( await fetch('modules/things/fields.html')).text(),
-  );
-
   Utils.getAllElementsById(dom);
 
   dom.fieldList.addEventListener('click', (event) => {
     if (event.target && event.target.tagName === 'TD') {
-      if (theFieldIndex === event.target.parentNode.rowIndex) {
-        theFieldIndex = -1;
-        dom.fieldPath.value = null;
-      } else {
-        theFieldIndex = event.target.parentNode.rowIndex;
-        dom.fieldPath.value = Environments.current().fieldList[theFieldIndex].path;
-      }
+      toggleFieldSelection(event.target.parentNode.rowIndex);
     }
   });
 
+  dom.fieldsModal.addEventListener('hide.bs.modal', () => {
+    SearchFilter.performLastSearch();
+  });
+
   document.getElementById('fieldUpdate').onclick = () => {
-    if (!dom.fieldPath.value) {
-      return;
-    };
-    const fieldExists = Environments.current().fieldList.map((field) => field.path).includes(dom.fieldPath.value);
-    if (theFieldIndex < 0 && !fieldExists) {
-      Environments.current().fieldList.push({
-        active: true,
-        path: dom.fieldPath.value,
-      });
-      theFieldIndex = Environments.current().fieldList.length - 1;
-    } else {
-      Environments.current().fieldList[theFieldIndex].path = dom.fieldPath.value;
+    Utils.assert(theFieldIndex >= 0, 'No field selected');
+    const selectedField = Environments.current().fieldList[theFieldIndex];
+    Utils.assert(!Environments.current().fieldList
+        .filter((elem, i) => i != theFieldIndex)
+        .map((field) => field.path)
+        .includes(selectedField.path), 'Changed field path already exists', dom.fieldPath);
+
+    selectedField.path = dom.fieldPath.value;
+    selectedField.label = dom.fieldLabel.value;
+    Environments.environmentsJsonChanged();
+  };
+
+  document.getElementById('fieldCreate').onclick = () => {
+    Utils.assert(dom.fieldPath.value, 'Field path must not be empty', dom.fieldPath);
+    Utils.assert(!Environments.current().fieldList
+        .map((field) => field.path)
+        .includes(dom.fieldPath.value), 'Field path already exists', dom.fieldPath);
+
+    if (!dom.fieldLabel.value) {
+      dom.fieldLabel.value = dom.fieldPath.value.split('/').slice(-1)[0];
     }
+    Environments.current().fieldList.push({
+      active: true,
+      path: dom.fieldPath.value,
+      label: dom.fieldLabel.value,
+    });
     Environments.environmentsJsonChanged();
   };
 
   document.getElementById('fieldDelete').onclick = () => {
-    if (theFieldIndex < 0) {
-      return;
-    }
+    Utils.assert(theFieldIndex >= 0, 'No field selected');
+
     Environments.current().fieldList.splice(theFieldIndex, 1);
     Environments.environmentsJsonChanged();
     theFieldIndex = -1;
@@ -115,6 +128,23 @@ export async function ready() {
 };
 
 /**
+ * Selects or de-selects the field for editing
+ * @param {integer} fieldIndex index in fieldlist of field to toggle
+ */
+function toggleFieldSelection(fieldIndex) {
+  if (theFieldIndex === fieldIndex) {
+    theFieldIndex = -1;
+    dom.fieldPath.value = null;
+    dom.fieldLabel.value = null;
+  } else {
+    theFieldIndex = fieldIndex;
+    const selectedField = Environments.current().fieldList[theFieldIndex];
+    dom.fieldPath.value = selectedField.path;
+    dom.fieldLabel.value = selectedField['label'] ? selectedField.label : null;
+  }
+}
+
+/**
  * Callback on environment change. Initializes all UI components for fields
  */
 function onEnvironmentChanged() {
@@ -135,7 +165,7 @@ function updateFieldList() {
     const row = dom.fieldList.insertRow();
     Utils.addCheckboxToRow(row, i, field.active, toggleFieldActiveEventHandler);
     row.insertCell(-1).innerHTML = field.path;
-    Utils.addClipboardCopyToRow(row);
+    row.insertCell(-1).innerHTML = field['label'] ? field.label : null;
     if (fieldSelected) {
       theFieldIndex = i;
       row.classList.add('table-active');

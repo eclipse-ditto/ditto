@@ -73,6 +73,17 @@ export function addClipboardCopyToRow(row) {
 }
 
 /**
+ * Adds a header cell to the given table row
+ * @param {HTMLTableRowElement} row target row
+ * @param {String} label label for the header cell
+ */
+export function insertHeaderCell(row, label) {
+  const th = document.createElement('th');
+  th.innerHTML = label;
+  row.appendChild(th);
+}
+
+/**
  * Create a radio button element
  * @param {HTMLElement} target target element
  * @param {String} groupName group for consecutive added radio buttons
@@ -82,13 +93,29 @@ export function addClipboardCopyToRow(row) {
 export function addRadioButton(target, groupName, value, checked) {
   const radio = document.createElement('div');
   radio.innerHTML = `<div class="form-check">
-    <input class="form-check-input" type="radio" id="${ value}" name="${ groupName}" value="${ value}"
+    <input class="form-check-input" type="radio" id="${value}" name="${groupName}" value="${value}"
         ${checked ? 'checked' : ''}>
-    <label class="form-check-label" for="${ value}">
-      ${ value}
+    <label class="form-check-label" for="${value}">
+      ${value}
     </label>
   </div>`;
   target.appendChild(radio);
+}
+
+/**
+ * Creates a drop down item or header
+ * @param {HTMLElement} target target element
+ * @param {array} items array of items for the drop down
+ * @param {boolean} isHeader (optional) true to add a header line
+ */
+export function addDropDownEntries(target, items, isHeader) {
+  items.forEach((value) => {
+    const li = document.createElement('li');
+    li.innerHTML = isHeader ?
+        `<h6 class="dropdown-header">${value}</h6>` :
+        `<a class="dropdown-item">${value}</a>`;
+    target.appendChild(li);
+  });
 }
 
 /**
@@ -157,10 +184,19 @@ function UserException(message) {
  * an error.
  * @param {boolean} condition If false, an error is shown to the user
  * @param {String} message Message to be shown to the user
+ * @param {HTMLElement} validatedElement Optional element that was validated
  */
-export function assert(condition, message) {
+export function assert(condition, message, validatedElement) {
+  if (validatedElement) {
+    validatedElement.classList.remove('is-invalid');
+  }
   if (!condition) {
-    showError(message, 'Error');
+    if (validatedElement) {
+      validatedElement.parentNode.getElementsByClassName('invalid-feedback')[0].innerHTML = message;
+      validatedElement.classList.add('is-invalid');
+    } else {
+      showError(message, 'Error');
+    }
     throw new UserException(message);
   }
 }
