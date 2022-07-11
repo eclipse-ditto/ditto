@@ -15,6 +15,7 @@ package org.eclipse.ditto.connectivity.service.messaging;
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.service.DittoExtensionIds;
 import org.eclipse.ditto.base.service.DittoExtensionPoint;
 import org.eclipse.ditto.connectivity.model.Connection;
 
@@ -51,21 +52,30 @@ public interface ClientActorPropsFactory extends DittoExtensionPoint {
      * {@code ActorSystem}.
      *
      * @param actorSystem the actorSystem in which the {@code ClientActorPropsFactory} should be loaded.
+     * @param config the configuration of this extension.
      * @return the {@code ClientActorPropsFactory} implementation.
      * @throws NullPointerException if {@code actorSystem} is {@code null}.
      */
-    static ClientActorPropsFactory get(final ActorSystem actorSystem) {
+    static ClientActorPropsFactory get(final ActorSystem actorSystem, final Config config) {
         checkNotNull(actorSystem, "actorSystem");
-        return ExtensionId.INSTANCE.get(actorSystem);
+        checkNotNull(config, "config");
+        final var extensionIdConfig = ExtensionId.computeConfig(config);
+        return DittoExtensionIds.get(actorSystem)
+                .computeIfAbsent(extensionIdConfig, ExtensionId::new)
+                .get(actorSystem);
     }
 
     final class ExtensionId extends DittoExtensionPoint.ExtensionId<ClientActorPropsFactory> {
 
-        private static final String CONFIG_PATH = "ditto.connectivity.connection.client-actor-props-factory";
-        private static final ExtensionId INSTANCE = new ExtensionId(ClientActorPropsFactory.class);
+        private static final String CONFIG_KEY = "client-actor-props-factory";
+        private static final String CONFIG_PATH = "ditto.extensions." + CONFIG_KEY;
 
-        private ExtensionId(final Class<ClientActorPropsFactory> parentClass) {
-            super(parentClass);
+        private ExtensionId(final ExtensionIdConfig<ClientActorPropsFactory> extensionIdConfig) {
+            super(extensionIdConfig);
+        }
+
+        static ExtensionIdConfig<ClientActorPropsFactory> computeConfig(final Config config) {
+            return ExtensionIdConfig.of(ClientActorPropsFactory.class, config, CONFIG_KEY);
         }
 
         @Override

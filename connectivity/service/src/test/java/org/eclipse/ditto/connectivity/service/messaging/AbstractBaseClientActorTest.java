@@ -44,6 +44,7 @@ import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConne
 import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConnectionStatus;
 import org.eclipse.ditto.connectivity.service.messaging.internal.ssl.SSLContextCreator;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.logs.ConnectionLogger;
+import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import org.junit.After;
 import org.junit.Test;
 
@@ -88,9 +89,9 @@ public abstract class AbstractBaseClientActorTest {
 
     protected static ConnectionBuilder getHttpConnectionBuilderToLocalBinding(final boolean isSecure, final int port) {
         return ConnectivityModelFactory.newConnectionBuilder(TestConstants.createRandomConnectionId(),
-                ConnectionType.HTTP_PUSH,
-                ConnectivityStatus.CLOSED,
-                (isSecure ? "https" : "http") + "://127.0.0.1:" + port)
+                        ConnectionType.HTTP_PUSH,
+                        ConnectivityStatus.CLOSED,
+                        (isSecure ? "https" : "http") + "://127.0.0.1:" + port)
                 .targets(singletonList(HTTP_TARGET))
                 .validateCertificate(isSecure);
     }
@@ -163,7 +164,8 @@ public abstract class AbstractBaseClientActorTest {
                     .failoverEnabled(false)
                     .build();
             final ActorRef underTest = watch(actorSystem.actorOf(
-                    ClientActorPropsFactory.get(actorSystem)
+                    ClientActorPropsFactory.get(actorSystem,
+                                    ScopedConfig.dittoExtension(actorSystem.settings().config()))
                             .getActorPropsForType(insecureConnection, getRef(), getRef(), actorSystem,
                                     DittoHeaders.empty(), ConfigFactory.empty())
             ));

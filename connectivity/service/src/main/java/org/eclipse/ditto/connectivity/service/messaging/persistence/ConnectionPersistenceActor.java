@@ -205,7 +205,8 @@ public final class ConnectionPersistenceActor
         final var actorSystem = getContext().getSystem();
         cluster = Cluster.get(actorSystem);
         this.commandForwarderActor = commandForwarderActor;
-        propsFactory = ClientActorPropsFactory.get(actorSystem);
+        propsFactory =
+                ClientActorPropsFactory.get(actorSystem, ScopedConfig.dittoExtension(actorSystem.settings().config()));
         this.pubSubMediator = pubSubMediator;
         this.connectivityConfigOverwrites = connectivityConfigOverwrites;
         connectivityConfig = getConnectivityConfigWithOverwrites(connectivityConfigOverwrites);

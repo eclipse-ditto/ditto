@@ -110,21 +110,21 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
     @Rule
     public final ActorSystemResource actorSystemResource1 = ActorSystemResource.newInstance(
             ConfigFactory.parseMap(Map.of(
-                        "ditto.connectivity.connection.client-actor-props-factory",
+                        "ditto.extensions.client-actor-props-factory",
                         "org.eclipse.ditto.connectivity.service.messaging.MockClientActorPropsFactory"
                     )).withFallback(TestConstants.CONFIG));
 
     @Rule
     public final ActorSystemResource actorSystemResource2 = ActorSystemResource.newInstance(
             ConfigFactory.parseMap(Map.of(
-                            "ditto.connectivity.connection.client-actor-props-factory",
+                            "ditto.extensions.client-actor-props-factory",
                             "org.eclipse.ditto.connectivity.service.messaging.MockClientActorPropsFactory"
                     )).withFallback(TestConstants.CONFIG));
 
     @Rule
     public final ActorSystemResource actorSystemResourceWithBlocklist = ActorSystemResource.newInstance(
             ConfigFactory.parseMap(Map.of(
-                            "ditto.connectivity.connection.client-actor-props-factory",
+                            "ditto.extensions.client-actor-props-factory",
                             "org.eclipse.ditto.connectivity.service.messaging.MockClientActorPropsFactory",
                             "ditto.connectivity.connection.blocked-hostnames",
                                 ConfigValueFactory.fromAnyRef("127.0.0.1")
@@ -135,14 +135,14 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
     @Rule
     public final ActorSystemResource exceptionalClientProviderSystemResource = ActorSystemResource.newInstance(
             ConfigFactory.parseMap(Map.of(
-                            "ditto.connectivity.connection.client-actor-props-factory",
+                            "ditto.extensions.client-actor-props-factory",
                             "org.eclipse.ditto.connectivity.service.messaging.ExceptionClientActorPropsFactory"
                     )).withFallback(TestConstants.CONFIG));
 
     @Rule
     public final ActorSystemResource exceptionalCommandValidatorSystemResource = ActorSystemResource.newInstance(
             ConfigFactory.parseMap(Map.of(
-                            "ditto.connectivity.connection.client-actor-props-factory",
+                            "ditto.extensions.client-actor-props-factory",
                             "org.eclipse.ditto.connectivity.service.messaging.MockClientActorPropsFactory",
                             "ditto.connectivity.connection.custom-command-interceptor-provider",
                             "org.eclipse.ditto.connectivity.service.messaging.ExceptionalCommandValidator"
@@ -151,7 +151,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
     @Rule
     public final ActorSystemResource failingClientProviderSystemResource = ActorSystemResource.newInstance(
             ConfigFactory.parseMap(Map.of(
-                            "ditto.connectivity.connection.client-actor-props-factory",
+                            "ditto.extensions.client-actor-props-factory",
                             "org.eclipse.ditto.connectivity.service.messaging.FailingActorProvider",
                             "failingRetries",
                             TestConstants.CONNECTION_CONFIG.getClientActorRestartsBeforeEscalation()
@@ -160,7 +160,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
     @Rule
     public final ActorSystemResource tooManyFailingClientProviderSystemResource = ActorSystemResource.newInstance(
             ConfigFactory.parseMap(Map.of(
-                            "ditto.connectivity.connection.client-actor-props-factory",
+                            "ditto.extensions.client-actor-props-factory",
                             "org.eclipse.ditto.connectivity.service.messaging.FailingActorProvider", "failingRetries",
                             1 + TestConstants.CONNECTION_CONFIG.getClientActorRestartsBeforeEscalation()
                     )).withFallback(TestConstants.CONFIG));
@@ -168,7 +168,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
     @Rule
     public final ActorSystemResource searchForwardingSystemResource = ActorSystemResource.newInstance(
             ConfigFactory.parseMap(Map.of(
-                                "ditto.connectivity.connection.client-actor-props-factory",
+                                "ditto.extensions.client-actor-props-factory",
                             "org.eclipse.ditto.connectivity.service.messaging.SearchForwardingClientActorPropsFactory"
                     )).withFallback(TestConstants.CONFIG));
 

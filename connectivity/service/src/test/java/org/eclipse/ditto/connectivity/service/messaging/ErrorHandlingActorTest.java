@@ -51,7 +51,7 @@ public class ErrorHandlingActorTest extends WithMockServers {
 
     public void setUp(final boolean allowFirstCreateCommand, final boolean allowCloseCommands) {
         actorSystem = ActorSystem.create("AkkaTestSystem", ConfigFactory.parseMap(
-                        Map.of("ditto.connectivity.connection.client-actor-props-factory",
+                        Map.of("ditto.extensions.client-actor-props-factory",
                                 "org.eclipse.ditto.connectivity.service.messaging.FaultyClientActorPropsFactory",
                                 "allowFirstCreateCommand", allowFirstCreateCommand, "allowCloseCommands",
                                 allowCloseCommands))
