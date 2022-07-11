@@ -16,8 +16,11 @@ import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.util.concurrent.CompletionStage;
 
+import org.eclipse.ditto.base.service.DittoExtensionIds;
 import org.eclipse.ditto.base.service.DittoExtensionPoint;
 import org.eclipse.ditto.thingsearch.model.signals.commands.query.ThingSearchQueryCommand;
+
+import com.typesafe.config.Config;
 
 import akka.actor.ActorSystem;
 
@@ -44,21 +47,30 @@ public interface QueryCriteriaValidator extends DittoExtensionPoint {
      * {@code ActorSystem}.
      *
      * @param actorSystem the actorSystem in which the {@code QueryCriteriaValidator} should be loaded.
+     * @param config the configuration of this extension.
      * @return the {@code QueryCriteriaValidator} implementation.
      * @throws NullPointerException if {@code actorSystem} is {@code null}.
      */
-    static QueryCriteriaValidator get(final ActorSystem actorSystem) {
+    static QueryCriteriaValidator get(final ActorSystem actorSystem, final Config config) {
         checkNotNull(actorSystem, "actorSystem");
-        return ExtensionId.INSTANCE.get(actorSystem);
+        checkNotNull(config, "config");
+        final var extensionIdConfig = ExtensionId.computeConfig(config);
+        return DittoExtensionIds.get(actorSystem)
+                .computeIfAbsent(extensionIdConfig, ExtensionId::new)
+                .get(actorSystem);
     }
 
     final class ExtensionId extends DittoExtensionPoint.ExtensionId<QueryCriteriaValidator> {
 
-        private static final String CONFIG_PATH = "ditto.search.query-criteria-validator.implementation";
-        private static final ExtensionId INSTANCE = new ExtensionId(QueryCriteriaValidator.class);
+        private static final String CONFIG_KEY = "query-criteria-validator";
+        private static final String CONFIG_PATH = "ditto.extensions." + CONFIG_KEY;
 
-        private ExtensionId(final Class<QueryCriteriaValidator> parentClass) {
-            super(parentClass);
+        private ExtensionId(final ExtensionIdConfig<QueryCriteriaValidator> extensionIdConfig) {
+            super(extensionIdConfig);
+        }
+
+        static ExtensionIdConfig<QueryCriteriaValidator> computeConfig(final Config config) {
+            return ExtensionIdConfig.of(QueryCriteriaValidator.class, config, CONFIG_KEY);
         }
 
         @Override

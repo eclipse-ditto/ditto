@@ -92,7 +92,8 @@ public final class SearchRootActor extends DittoRootActor {
     static QueryParser getQueryParser(final LimitsConfig limitsConfig, final ActorSystem actorSystem) {
         final var fieldExpressionFactory = getThingsFieldExpressionFactory();
         final QueryBuilderFactory queryBuilderFactory = new MongoQueryBuilderFactory(limitsConfig);
-        final var queryCriteriaValidator = QueryCriteriaValidator.get(actorSystem);
+        final var queryCriteriaValidator =
+                QueryCriteriaValidator.get(actorSystem, ScopedConfig.dittoExtension(actorSystem.settings().config()));
         return QueryParser.of(fieldExpressionFactory, queryBuilderFactory, queryCriteriaValidator);
     }
 
