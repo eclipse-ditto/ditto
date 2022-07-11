@@ -16,10 +16,8 @@ import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import org.eclipse.ditto.base.service.DittoExtensionIds;
 import org.eclipse.ditto.base.service.DittoExtensionPoint;
-import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 
 import com.typesafe.config.Config;
-import com.typesafe.config.ConfigFactory;
 
 import akka.actor.AbstractActor.Receive;
 import akka.actor.ActorContext;
@@ -36,12 +34,13 @@ public interface EdgeCommandForwarderExtension extends DittoExtensionPoint {
      * {@code ActorSystem}.
      *
      * @param actorSystem the actorSystem in which the {@code RootChildActorStarter} should be loaded.
+     * @param config the configuration for this extension.
      * @return the {@code RootChildActorStarter} implementation.
      * @throws NullPointerException if {@code actorSystem} is {@code null}.
      */
-    static EdgeCommandForwarderExtension get(final ActorSystem actorSystem) {
+    static EdgeCommandForwarderExtension get(final ActorSystem actorSystem, final Config config) {
         checkNotNull(actorSystem, "actorSystem");
-        final var extensionIdConfig = ExtensionId.computeConfig(actorSystem);
+        final var extensionIdConfig = ExtensionId.computeConfig(config);
         return DittoExtensionIds.get(actorSystem)
                 .computeIfAbsent(extensionIdConfig, ExtensionId::new)
                 .get(actorSystem);
@@ -66,9 +65,8 @@ public interface EdgeCommandForwarderExtension extends DittoExtensionPoint {
             super(extensionIdConfig);
         }
 
-        static ExtensionIdConfig<EdgeCommandForwarderExtension> computeConfig(final ActorSystem actorSystem) {
-            final Config extensions = ScopedConfig.getOrEmpty(actorSystem.settings().config(), "ditto.extensions");
-            return ExtensionIdConfig.of(EdgeCommandForwarderExtension.class, extensions, CONFIG_KEY);
+        static ExtensionIdConfig<EdgeCommandForwarderExtension> computeConfig(final Config config) {
+            return ExtensionIdConfig.of(EdgeCommandForwarderExtension.class, config, CONFIG_KEY);
         }
 
         @Override

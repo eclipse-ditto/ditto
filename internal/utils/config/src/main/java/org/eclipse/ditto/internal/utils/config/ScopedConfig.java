@@ -74,8 +74,14 @@ public interface ScopedConfig extends Config, WithConfigPath {
      */
     String DITTO_SCOPE = "ditto";
 
+    String DITTO_EXTENSIONS_SCOPE = "ditto.extensions";
+
     static Config getOrEmpty(final Config config, final String path) {
         return config.hasPath(path) ? config.getConfig(path) : ConfigFactory.empty();
+    }
+
+    static Config dittoExtension(final Config config) {
+        return getOrEmpty(config, DITTO_EXTENSIONS_SCOPE);
     }
 
     /**

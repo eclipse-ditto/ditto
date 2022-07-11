@@ -25,6 +25,7 @@ import org.eclipse.ditto.internal.utils.cacheloaders.config.AskWithRetryConfig;
 import org.eclipse.ditto.internal.utils.cacheloaders.config.DefaultAskWithRetryConfig;
 import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
+import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import org.eclipse.ditto.messages.model.signals.commands.MessageCommand;
 import org.eclipse.ditto.messages.model.signals.commands.MessageCommandResponse;
 import org.eclipse.ditto.policies.model.signals.commands.PolicyCommand;
@@ -37,7 +38,7 @@ import org.eclipse.ditto.thingsearch.api.ThingsSearchConstants;
 import org.eclipse.ditto.thingsearch.api.commands.sudo.ThingSearchSudoCommand;
 import org.eclipse.ditto.thingsearch.model.signals.commands.ThingSearchCommand;
 
-import com.typesafe.config.ConfigFactory;
+import com.typesafe.config.Config;
 
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
@@ -111,7 +112,9 @@ public class EdgeCommandForwarderActor extends AbstractActor {
 
     @Override
     public Receive createReceive() {
-        final Receive receiveExtension = EdgeCommandForwarderExtension.get(context().system())
+        final ActorSystem system = context().system();
+        final Config extensionsConfig = ScopedConfig.dittoExtension(system.settings().config());
+        final Receive receiveExtension = EdgeCommandForwarderExtension.get(system, extensionsConfig)
                 .getReceiveExtension(getContext());
 
         final Receive forwardingReceive = ReceiveBuilder.create()
