@@ -32,6 +32,7 @@ import org.eclipse.ditto.internal.utils.cache.entry.Entry;
 import org.eclipse.ditto.internal.utils.cacheloaders.EnforcementCacheKey;
 import org.eclipse.ditto.internal.utils.cacheloaders.config.AskWithRetryConfig;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
+import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonRuntimeException;
 import org.eclipse.ditto.policies.enforcement.PolicyCacheLoader;
@@ -93,7 +94,8 @@ final class EnforcementFlow {
         thingsFacade = createThingsFacade(actorSystem, thingsShardRegion, askWithRetryConfig.getAskTimeout(),
                 thingCacheConfig, thingCacheDispatcher);
         this.policyEnforcerCache = policyEnforcerCache;
-        searchUpdateObserver = SearchUpdateObserver.get(actorSystem);
+        searchUpdateObserver =
+                SearchUpdateObserver.get(actorSystem, ScopedConfig.dittoExtension(actorSystem.settings().config()));
         cacheRetryDelay = thingCacheConfig.getRetryDelay();
         final SearchConfig searchConfig =
                 DittoSearchConfig.of(DefaultScopedConfig.dittoScoped(actorSystem.settings().config()));

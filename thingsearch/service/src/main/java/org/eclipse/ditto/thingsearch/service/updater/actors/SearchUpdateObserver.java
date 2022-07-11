@@ -16,9 +16,12 @@ import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.base.service.DittoExtensionIds;
 import org.eclipse.ditto.base.service.DittoExtensionPoint;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.Metadata;
+
+import com.typesafe.config.Config;
 
 import akka.actor.ActorSystem;
 
@@ -47,18 +50,26 @@ public interface SearchUpdateObserver extends DittoExtensionPoint {
      * @return the {@code SearchUpdateObserver} implementation.
      * @throws NullPointerException if {@code actorSystem} is {@code null}.
      */
-    static SearchUpdateObserver get(final ActorSystem actorSystem) {
+    static SearchUpdateObserver get(final ActorSystem actorSystem, final Config config) {
         checkNotNull(actorSystem, "actorSystem");
-        return ExtensionId.INSTANCE.get(actorSystem);
+        checkNotNull(config, "config");
+        final var extensionIdConfig = ExtensionId.computeConfig(config);
+        return DittoExtensionIds.get(actorSystem)
+                .computeIfAbsent(extensionIdConfig, ExtensionId::new)
+                .get(actorSystem);
     }
 
     final class ExtensionId extends DittoExtensionPoint.ExtensionId<SearchUpdateObserver> {
 
-        private static final String CONFIG_PATH = "ditto.search.search-update-observer.implementation";
-        private static final ExtensionId INSTANCE = new ExtensionId(SearchUpdateObserver.class);
+        private static final String CONFIG_KEY = "search-update-observer";
+        private static final String CONFIG_PATH = "ditto.extensions." + CONFIG_KEY;
 
-        private ExtensionId(final Class<SearchUpdateObserver> parentClass) {
-            super(parentClass);
+        private ExtensionId(final ExtensionIdConfig<SearchUpdateObserver> extensionIdConfig) {
+            super(extensionIdConfig);
+        }
+
+        static ExtensionIdConfig<SearchUpdateObserver> computeConfig(final Config config) {
+            return ExtensionIdConfig.of(SearchUpdateObserver.class, config, CONFIG_KEY);
         }
 
         @Override

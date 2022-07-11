@@ -15,7 +15,6 @@ package org.eclipse.ditto.base.service;
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import com.typesafe.config.Config;
-import com.typesafe.config.ConfigFactory;
 
 import akka.actor.ActorContext;
 import akka.actor.ActorSystem;
