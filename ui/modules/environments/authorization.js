@@ -53,6 +53,6 @@ function onEnvironmentChanged() {
       ':';
   dom.devOpsUserName.value = usernamePassword.split(':')[0];
   dom.devOpsPassword.value = usernamePassword.split(':')[1];
-  dom.bearer.value = Environments.current().bearer;
+  dom.bearer.value = Environments.current().bearer ? Environments.current().bearer : '';
   API.setAuthHeader();
 };

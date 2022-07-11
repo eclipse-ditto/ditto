@@ -61,7 +61,11 @@ export function ready() {
   featurePropertiesEditor.session.setMode('ace/mode/json');
   featureDesiredPropertiesEditor.session.setMode('ace/mode/json');
 
-  featurePropertiesEditor.on('dblclick', function() {
+  featurePropertiesEditor.on('dblclick', (event) => {
+    if (!event.domEvent.shiftKey) {
+      return;
+    }
+
     setTimeout(() => {
       const token = featurePropertiesEditor.getSelectedText();
       if (token) {
@@ -71,7 +75,7 @@ export function ready() {
           path: path,
           resultType: 'pointer',
         });
-        Fields.setFieldPath('features/' + dom.theFeatureId.value + '/properties' + res);
+        Fields.proposeNewField('features/' + dom.theFeatureId.value + '/properties' + res);
       };
     }, 10);
   });
@@ -188,6 +192,9 @@ function onThingChanged(thing) {
   }
 }
 
+/**
+ * Calls Ditto to send a message with the parameters of the fields in the UI
+ */
 function messageFeature() {
   const subject = dom.messageFeatureSubject.value;
   const feature = dom.theFeatureId.value;

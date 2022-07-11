@@ -34,18 +34,18 @@
             <a class="navbar-brand">explorer</a>
             <div class="navbar-collapse collapse w-100 justify-content-center" id="mainNavbar">
                 <ul class="navbar-nav text-center">
-                    <li class="nav-item mainUser">
-                        <a class="nav-link active" data-bs-target="#collapseThings:not(.show)" data-bs-toggle="collapse" href="#">Things</a>
+                    <li class="nav-item mainUser" id="tabThings">
+                        <a class="nav-link active" data-bs-target="#collapseThings:not(.show)" data-bs-toggle="collapse">Things</a>
                     </li>
                     <li class="nav-item mainUser" id="tabEnvironments">
-                        <a class="nav-link" data-bs-target="#collapseSettings:not(.show)" data-bs-toggle="collapse" href="#">Environments</a>
+                        <a class="nav-link" data-bs-target="#collapseSettings:not(.show)" data-bs-toggle="collapse">Environments</a>
                     </li>
                 </ul>
             </div>
             <ul class="navbar-nav w-50">
                 <a class="nav-link active">Environment:</a>
                 <select class="form-select form-select-sm" id="environmentSelector" style="margin-top: auto; margin-bottom: auto;"></select>  
-                <button id="authorize" class="btn btn-outline-light btn-sm" style="margin-left:5px;" data-bs-toggle="modal" data-bs-target=".bd-example-modal-sm">Authorize</button>          
+                <button id="authorize" class="btn btn-outline-light btn-sm" style="margin-left:5px;" data-bs-toggle="modal" data-bs-target="#authorizationModal">Authorize</button>          
             </ul>
         </div>
     </nav>
@@ -75,6 +75,8 @@
             <div class="toast-body" id=successBody></div>
         </div>        
     </div>
+    <!-- Modals ------------------------------------------------------------------------------->
     <div id="authorizationHTML"></div>
+    <div id="fieldsHTML"></div>
 </body>
 </html>
