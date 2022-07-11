@@ -206,30 +206,29 @@ public abstract class AbstractGraphActor<T, M> extends AbstractActor {
         }
         receiveCounter.increment();
         sourceQueue.offer(mapMessage(match))
-                .handle((result, error) -> incrementEnqueueCounters(match, result, error));
+                .whenComplete(this::incrementEnqueueCounters)
+                .thenAccept(result -> {
+                    if (!result.isEnqueued()) {
+                        messageDiscarded(match, result);
+                    }
+                });
     }
 
-    private Void incrementEnqueueCounters(final M message, final QueueOfferResult result, final Throwable error) {
-        try {
-            if (QueueOfferResult.enqueued().equals(result)) {
-                enqueueSuccessCounter.increment();
-            } else if (QueueOfferResult.dropped().equals(result)) {
-                enqueueDroppedCounter.increment();
-                logger.error("Dropped message as result of backpressure strategy! - result was: {} - adjust queue " +
-                        "size or scaling if this appears regularly", result);
-            } else if (result instanceof final QueueOfferResult.Failure failure) {
-                logger.error(failure.cause(), "Enqueue failed!");
-                enqueueFailureCounter.increment();
-            } else {
-                logger.error(error, "Enqueue failed without acknowledgement!");
-                enqueueFailureCounter.increment();
-            }
-            return null;
-        } finally {
-            if (!result.isEnqueued()) {
-                messageDiscarded(message, result);
-            }
+    private Void incrementEnqueueCounters(final QueueOfferResult result, final Throwable error) {
+        if (QueueOfferResult.enqueued().equals(result)) {
+            enqueueSuccessCounter.increment();
+        } else if (QueueOfferResult.dropped().equals(result)) {
+            enqueueDroppedCounter.increment();
+            logger.error("Dropped message as result of backpressure strategy! - result was: {} - adjust queue " +
+                    "size or scaling if this appears regularly", result);
+        } else if (result instanceof final QueueOfferResult.Failure failure) {
+            logger.error(failure.cause(), "Enqueue failed!");
+            enqueueFailureCounter.increment();
+        } else {
+            logger.error(error, "Enqueue failed without acknowledgement!");
+            enqueueFailureCounter.increment();
         }
+        return null;
     }
 
     private void handleUnknownThrowable(final Throwable unknownThrowable) {
