@@ -69,6 +69,7 @@ import org.eclipse.ditto.internal.utils.akka.controlflow.Filter;
 import org.eclipse.ditto.internal.utils.akka.controlflow.LimitRateByRejection;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLogger;
+import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.internal.utils.metrics.instruments.counter.Counter;
 import org.eclipse.ditto.internal.utils.pubsub.StreamingType;
@@ -185,11 +186,12 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
         this.streamingActor = checkNotNull(streamingActor, "streamingActor");
         this.streamingConfig = streamingConfig;
 
+        final var dittoExtensionsConfig = ScopedConfig.dittoExtension(actorSystem.settings().config());
         incomingMessageSniffer = IncomingWebSocketEventSniffer.get(actorSystem);
         outgoingMessageSniffer = OutgoingWebSocketEventSniffer.get(actorSystem);
         authorizationEnforcer = StreamingAuthorizationEnforcer.ws(actorSystem);
         webSocketSupervisor = WebSocketSupervisor.get(actorSystem);
-        webSocketConfigProvider = WebSocketConfigProvider.get(actorSystem);
+        webSocketConfigProvider = WebSocketConfigProvider.get(actorSystem, dittoExtensionsConfig);
         signalEnrichmentProvider = null;
         headerTranslator = HeaderTranslator.empty();
         this.materializer = materializer;
