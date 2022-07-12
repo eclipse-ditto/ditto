@@ -14,9 +14,12 @@ package org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.client;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
+import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Supplier;
+
+import javax.annotation.Nullable;
 
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.ConnectionId;
@@ -38,9 +41,10 @@ public final class HiveMqttClientProperties {
     private final MqttSpecificConfig mqttSpecificConfig;
     private final Supplier<SshTunnelState> sshTunnelStateSupplier;
     private final ConnectionLogger connectionLogger;
+    private final UUID actorUuid;
     private final GenericMqttClientConnectedListener mqttClientConnectedListener;
     private final GenericMqttClientDisconnectedListener mqttClientDisconnectedListener;
-    private final UUID actorUuid;
+    private final boolean disableLastWillMessage;
 
     private HiveMqttClientProperties(final Builder builder) {
         mqttConnection = builder.mqttConnection;
@@ -49,9 +53,10 @@ public final class HiveMqttClientProperties {
         mqttSpecificConfig = builder.mqttSpecificConfig;
         sshTunnelStateSupplier = builder.sshTunnelStateSupplier;
         connectionLogger = builder.connectionLogger;
+        actorUuid = builder.actorUuid;
         mqttClientConnectedListener = builder.mqttClientConnectedListener;
         mqttClientDisconnectedListener = builder.mqttClientDisconnectedListener;
-        actorUuid = builder.actorUuid;
+        disableLastWillMessage = builder.disableLastWillMessage;
     }
 
     /**
@@ -96,6 +101,10 @@ public final class HiveMqttClientProperties {
         return mqttConnection;
     }
 
+    public ConnectivityConfig getConnectivityConfig() {
+        return connectivityConfig;
+    }
+
     public ConnectionId getConnectionId() {
         return mqttConnection.getId();
     }
@@ -112,8 +121,49 @@ public final class HiveMqttClientProperties {
         return mqttClientDisconnectedListener;
     }
 
-    public ConnectivityConfig getConnectivityConfig() {
-        return connectivityConfig;
+    /**
+     * Indicates whether the Last Will Message should be disabled while connection the client to the broker despite it
+     * was required via config.
+     *
+     * @return {@code true} if no Last Will Message should be set during client connection.
+     */
+    public boolean isDisableLastWillMessage() {
+        return disableLastWillMessage;
+    }
+
+    @Override
+    public boolean equals(@Nullable final Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        final var that = (HiveMqttClientProperties) o;
+        return disableLastWillMessage == that.disableLastWillMessage &&
+                Objects.equals(mqttConnection, that.mqttConnection) &&
+                Objects.equals(connectivityConfig, that.connectivityConfig) &&
+                Objects.equals(mqttConfig, that.mqttConfig) &&
+                Objects.equals(mqttSpecificConfig, that.mqttSpecificConfig) &&
+                Objects.equals(sshTunnelStateSupplier, that.sshTunnelStateSupplier) &&
+                Objects.equals(connectionLogger, that.connectionLogger) &&
+                Objects.equals(actorUuid, that.actorUuid) &&
+                Objects.equals(mqttClientConnectedListener, that.mqttClientConnectedListener) &&
+                Objects.equals(mqttClientDisconnectedListener, that.mqttClientDisconnectedListener);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(mqttConnection,
+                connectivityConfig,
+                mqttConfig,
+                mqttSpecificConfig,
+                sshTunnelStateSupplier,
+                connectionLogger,
+                actorUuid,
+                mqttClientConnectedListener,
+                mqttClientDisconnectedListener,
+                disableLastWillMessage);
     }
 
     private static final class Builder implements HiveMqttClientPropertiesStepBuilder.MqttConnectionStep,
@@ -129,9 +179,10 @@ public final class HiveMqttClientProperties {
         private MqttSpecificConfig mqttSpecificConfig;
         private Supplier<SshTunnelState> sshTunnelStateSupplier;
         private ConnectionLogger connectionLogger;
+        private UUID actorUuid;
         private GenericMqttClientConnectedListener mqttClientConnectedListener;
         private GenericMqttClientDisconnectedListener mqttClientDisconnectedListener;
-        private UUID actorUuid;
+        private boolean disableLastWillMessage;
 
         private Builder() {
             mqttConnection = null;
@@ -139,9 +190,10 @@ public final class HiveMqttClientProperties {
             mqttSpecificConfig = null;
             sshTunnelStateSupplier = null;
             connectionLogger = null;
+            actorUuid = null;
             mqttClientConnectedListener = (context, clientRole) -> {/* Do nothing.*/};
             mqttClientDisconnectedListener = (context, clientRole) -> {/* Do nothing.*/};
-            actorUuid = null;
+            disableLastWillMessage = false;
         }
 
         @Override
@@ -205,6 +257,12 @@ public final class HiveMqttClientProperties {
         ) {
             this.mqttClientDisconnectedListener =
                     checkNotNull(mqttClientDisconnectedListener, "mqttClientDisconnectedListener");
+            return this;
+        }
+
+        @Override
+        public HiveMqttClientPropertiesStepBuilder.BuildableStep disableLastWillMessage() {
+            disableLastWillMessage = true;
             return this;
         }
 

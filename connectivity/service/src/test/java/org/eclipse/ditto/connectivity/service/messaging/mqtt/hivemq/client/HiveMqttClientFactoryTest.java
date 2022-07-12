@@ -105,7 +105,6 @@ public final class HiveMqttClientFactoryTest {
         Assertions.assertThatNullPointerException()
                 .isThrownBy(() -> HiveMqttClientFactory.getMqtt3Client(null,
                         MQTT_CLIENT_IDENTIFIER,
-                        false,
                         ClientRole.CONSUMER_PUBLISHER))
                 .withMessage("The hiveMqttClientProperties must not be null!")
                 .withNoCause();
@@ -116,7 +115,6 @@ public final class HiveMqttClientFactoryTest {
         Assertions.assertThatNullPointerException()
                 .isThrownBy(() -> HiveMqttClientFactory.getMqtt3Client(Mockito.mock(HiveMqttClientProperties.class),
                         null,
-                        true,
                         ClientRole.CONSUMER_PUBLISHER))
                 .withMessage("The mqttClientIdentifier must not be null!")
                 .withNoCause();
@@ -127,7 +125,6 @@ public final class HiveMqttClientFactoryTest {
         Assertions.assertThatNullPointerException()
                 .isThrownBy(() -> HiveMqttClientFactory.getMqtt3Client(Mockito.mock(HiveMqttClientProperties.class),
                         MQTT_CLIENT_IDENTIFIER,
-                        true,
                         null))
                 .withMessage("The clientRole must not be null!")
                 .withNoCause();
@@ -148,7 +145,6 @@ public final class HiveMqttClientFactoryTest {
 
         final var underTest = HiveMqttClientFactory.getMqtt3Client(hiveMqttClientProperties,
                 MQTT_CLIENT_IDENTIFIER,
-                false,
                 ClientRole.CONSUMER_PUBLISHER);
 
         final var mqtt3ClientConfig = underTest.getConfig();
@@ -212,7 +208,6 @@ public final class HiveMqttClientFactoryTest {
 
         final var underTest = HiveMqttClientFactory.getMqtt3Client(hiveMqttClientProperties,
                 MQTT_CLIENT_IDENTIFIER,
-                true,
                 ClientRole.CONSUMER_PUBLISHER);
 
         final var mqtt3ClientConfig = underTest.getConfig();
@@ -250,7 +245,6 @@ public final class HiveMqttClientFactoryTest {
 
         final var underTest = HiveMqttClientFactory.getMqtt3Client(hiveMqttClientProperties,
                 MQTT_CLIENT_IDENTIFIER,
-                false,
                 ClientRole.CONSUMER_PUBLISHER);
 
         final var mqtt3ClientConfig = underTest.getConfig();
@@ -273,7 +267,6 @@ public final class HiveMqttClientFactoryTest {
         Assertions.assertThatNullPointerException()
                 .isThrownBy(() -> HiveMqttClientFactory.getMqtt5Client(Mockito.mock(HiveMqttClientProperties.class),
                         MQTT_CLIENT_IDENTIFIER,
-                        true,
                         null))
                 .withMessage("The clientRole must not be null!")
                 .withNoCause();
@@ -294,7 +287,6 @@ public final class HiveMqttClientFactoryTest {
 
         final var underTest = HiveMqttClientFactory.getMqtt5Client(hiveMqttClientProperties,
                 MQTT_CLIENT_IDENTIFIER,
-                false,
                 ClientRole.CONSUMER_PUBLISHER);
 
         final var mqtt5ClientConfig = underTest.getConfig();
@@ -358,7 +350,6 @@ public final class HiveMqttClientFactoryTest {
 
         final var underTest = HiveMqttClientFactory.getMqtt5Client(hiveMqttClientProperties,
                 MQTT_CLIENT_IDENTIFIER,
-                true,
                 ClientRole.CONSUMER_PUBLISHER);
 
         final var mqtt5ClientConfig = underTest.getConfig();
@@ -396,7 +387,6 @@ public final class HiveMqttClientFactoryTest {
 
         final var underTest = HiveMqttClientFactory.getMqtt5Client(hiveMqttClientProperties,
                 MQTT_CLIENT_IDENTIFIER,
-                false,
                 ClientRole.CONSUMER_PUBLISHER);
 
         final var mqtt5ClientConfig = underTest.getConfig();

@@ -26,7 +26,6 @@ import org.eclipse.ditto.base.model.common.ConditionChecker;
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.service.messaging.internal.ssl.DittoTrustManagerFactory;
 import org.eclipse.ditto.connectivity.service.messaging.internal.ssl.KeyManagerFactoryFactory;
-import org.eclipse.ditto.connectivity.service.messaging.mqtt.MqttSpecificConfig;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.message.publish.GenericMqttPublish;
 import org.eclipse.ditto.connectivity.service.messaging.tunnel.SshTunnelState;
 
@@ -59,28 +58,21 @@ final class HiveMqttClientFactory {
      *
      * @param hiveMqttClientProperties properties which are required for creating a HiveMQ MQTT client.
      * @param mqttClientIdentifier the identifier of the returned client.
-     * @param applyLastWillConfig determines whether the returned client has a last will publish.
      * @return the Mqtt3Client.
      * @throws NullPointerException if any argument is {@code null}.
      */
     static Mqtt3Client getMqtt3Client(final HiveMqttClientProperties hiveMqttClientProperties,
             final MqttClientIdentifier mqttClientIdentifier,
-            final boolean applyLastWillConfig,
             final ClientRole clientRole) {
 
         checkArguments(hiveMqttClientProperties, mqttClientIdentifier, clientRole);
 
-        final Optional<GenericMqttPublish> mqttLastWillMessage;
-        if (applyLastWillConfig) {
-            mqttLastWillMessage = getMqttLastWillMessage(hiveMqttClientProperties.getMqttSpecificConfig());
-        } else {
-            mqttLastWillMessage = Optional.empty();
-        }
-
         return getGenericMqttClientBuilder(hiveMqttClientProperties, mqttClientIdentifier, clientRole)
                 .useMqttVersion3()
                 .simpleAuth(getMqtt3SimpleAuth(hiveMqttClientProperties).orElse(null))
-                .willPublish(mqttLastWillMessage.map(GenericMqttPublish::getAsMqtt3Publish).orElse(null))
+                .willPublish(getMqttLastWillMessage(hiveMqttClientProperties)
+                        .map(GenericMqttPublish::getAsMqtt3Publish)
+                        .orElse(null))
                 .build();
     }
 
@@ -93,17 +85,26 @@ final class HiveMqttClientFactory {
         ConditionChecker.checkNotNull(clientRole, "clientRole");
     }
 
-    private static Optional<GenericMqttPublish> getMqttLastWillMessage(final MqttSpecificConfig mqttSpecificConfig) {
-        return mqttSpecificConfig.getMqttLastWillTopic()
-                .map(lastWillTopic ->
-                        GenericMqttPublish.builder(lastWillTopic, mqttSpecificConfig.getLastWillQosOrThrow())
-                                .retain(mqttSpecificConfig.getMqttWillRetain())
-                                .payload(mqttSpecificConfig.getMqttWillMessage()
-                                        .map(mqttWillMessage -> mqttWillMessage.getBytes(StandardCharsets.UTF_8))
-                                        .map(ByteBuffer::wrap)
-                                        .orElse(null))
-                                .build()
-                );
+    private static Optional<GenericMqttPublish> getMqttLastWillMessage(
+            final HiveMqttClientProperties hiveMqttClientProperties
+    ) {
+        final Optional<GenericMqttPublish> result;
+        if (hiveMqttClientProperties.isDisableLastWillMessage()) {
+            result = Optional.empty();
+        } else {
+            final var mqttSpecificConfig = hiveMqttClientProperties.getMqttSpecificConfig();
+            result = mqttSpecificConfig.getMqttLastWillTopic()
+                    .map(lastWillTopic ->
+                            GenericMqttPublish.builder(lastWillTopic, mqttSpecificConfig.getLastWillQosOrThrow())
+                                    .retain(mqttSpecificConfig.getMqttWillRetain())
+                                    .payload(mqttSpecificConfig.getMqttWillMessage()
+                                            .map(mqttWillMessage -> mqttWillMessage.getBytes(StandardCharsets.UTF_8))
+                                            .map(ByteBuffer::wrap)
+                                            .orElse(null))
+                                    .build()
+                    );
+        }
+        return result;
     }
 
     private static MqttClientBuilder getGenericMqttClientBuilder(
@@ -221,28 +222,21 @@ final class HiveMqttClientFactory {
      *
      * @param hiveMqttClientProperties properties which are required for creating a HiveMQ MQTT client.
      * @param mqttClientIdentifier the identifier of the returned client.
-     * @param applyLastWillConfig determines whether the returned client has a last will publish.
      * @return the Mqtt3Client.
      * @throws NullPointerException if any argument is {@code null}.
      */
     static Mqtt5Client getMqtt5Client(final HiveMqttClientProperties hiveMqttClientProperties,
             final MqttClientIdentifier mqttClientIdentifier,
-            final boolean applyLastWillConfig,
             final ClientRole clientRole) {
 
         checkArguments(hiveMqttClientProperties, mqttClientIdentifier, clientRole);
 
-        final Optional<GenericMqttPublish> mqttLastWillMessage;
-        if (applyLastWillConfig) {
-            mqttLastWillMessage = getMqttLastWillMessage(hiveMqttClientProperties.getMqttSpecificConfig());
-        } else {
-            mqttLastWillMessage = Optional.empty();
-        }
-
         return getGenericMqttClientBuilder(hiveMqttClientProperties, mqttClientIdentifier, clientRole)
                 .useMqttVersion5()
                 .simpleAuth(getMqtt5SimpleAuth(hiveMqttClientProperties).orElse(null))
-                .willPublish(mqttLastWillMessage.map(GenericMqttPublish::getAsMqtt5Publish).orElse(null))
+                .willPublish(getMqttLastWillMessage(hiveMqttClientProperties)
+                        .map(GenericMqttPublish::getAsMqtt5Publish)
+                        .orElse(null))
                 .build();
     }
 

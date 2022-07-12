@@ -102,7 +102,7 @@ public final class MqttSpecificConfig {
      * @return whether to use a separate client for publisher actors so that reconnect-for-redelivery
      * does not disrupt the publisher.
      */
-    public boolean separatePublisherClient() {
+    public boolean isSeparatePublisherClient() {
         return specificConfig.getBoolean(SEPARATE_PUBLISHER_CLIENT);
     }
 

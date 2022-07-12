@@ -21,6 +21,7 @@ import org.eclipse.ditto.connectivity.service.messaging.amqp.AmqpClientActor;
 import org.eclipse.ditto.connectivity.service.messaging.httppush.HttpPushClientActor;
 import org.eclipse.ditto.connectivity.service.messaging.kafka.KafkaClientActor;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.MqttClientActor;
+import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.client.GenericMqttClientFactory;
 import org.eclipse.ditto.connectivity.service.messaging.rabbitmq.RabbitMQClientActor;
 
 import com.typesafe.config.Config;
@@ -76,7 +77,8 @@ public final class DefaultClientActorPropsFactory implements ClientActorPropsFac
                     proxyActor,
                     connectionActor,
                     dittoHeaders,
-                    connectivityConfigOverwrites);
+                    connectivityConfigOverwrites,
+                    GenericMqttClientFactory.newInstance());
             case KAFKA -> KafkaClientActor.props(connection,
                     proxyActor,
                     connectionActor,

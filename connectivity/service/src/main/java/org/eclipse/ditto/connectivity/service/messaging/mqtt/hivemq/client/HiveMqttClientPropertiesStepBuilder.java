@@ -152,6 +152,14 @@ public interface HiveMqttClientPropertiesStepBuilder {
         BuildableStep withClientDisconnectedListener(GenericMqttClientDisconnectedListener listener);
 
         /**
+         * Determines that no Last Will Message is set when connecting the client to the broker.
+         * This overwrites the configuration and is intended for connection testing only.
+         *
+         * @return this builder instance.
+         */
+        BuildableStep disableLastWillMessage();
+
+        /**
          * Creates a new instance of {@code HiveMqttClientProperties} with the properties of this builder.
          *
          * @return the new {@code HiveMqttClientProperties}.

@@ -24,7 +24,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.CompletionStage;
 import java.util.function.BiFunction;
-import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -66,6 +65,7 @@ import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.Status;
 import akka.japi.pf.ReceiveBuilder;
+import akka.pattern.AskTimeoutException;
 import akka.pattern.Patterns;
 import akka.stream.javadsl.Keep;
 import akka.stream.javadsl.Sink;
@@ -88,22 +88,22 @@ final class ConnectionTesterActor extends AbstractActor {
     private final ConnectivityStatusResolver connectivityStatusResolver;
     private final ThreadSafeDittoLoggingAdapter logger;
     private final ChildActorNanny childActorNanny;
-    private final Function<HiveMqttClientProperties, GenericMqttClient> testClientFactory;
+    private final GenericMqttClientFactory genericMqttClientFactory;
 
     @SuppressWarnings("java:S1144")
-    private ConnectionTesterActor(
-            final ConnectivityConfig connectivityConfig,
+    private ConnectionTesterActor(final ConnectivityConfig connectivityConfig,
             final Supplier<SshTunnelState> sshTunnelStateSupplier,
             final ConnectionLogger connectionLogger,
             final UUID actorUuid,
             final ConnectivityStatusResolver connectivityStatusResolver,
-            final Function<HiveMqttClientProperties, GenericMqttClient> testClientFactory) {
+            final GenericMqttClientFactory genericMqttClientFactory) {
+
         this.connectivityConfig = connectivityConfig;
         this.sshTunnelStateSupplier = sshTunnelStateSupplier;
         this.connectionLogger = connectionLogger;
         this.actorUuid = actorUuid;
         this.connectivityStatusResolver = connectivityStatusResolver;
-        this.testClientFactory = testClientFactory;
+        this.genericMqttClientFactory = genericMqttClientFactory;
 
         logger = DittoLoggerFactory.getThreadSafeDittoLoggingAdapter(this);
         childActorNanny = ChildActorNanny.newInstance(getContext(), logger);
@@ -117,7 +117,7 @@ final class ConnectionTesterActor extends AbstractActor {
      * @param connectionLogger logs the result of connection testing for end users.
      * @param parentActorUuid UUID of the parent actor.
      * @param connectivityStatusResolver resolves occurred exceptions to a connectivity status.
-     * @param testClientFactory factory with which to create the test MQTT client.
+     * @param genericMqttClientFactory factory for creating the GenericMqttClient for connection testing.
      * @throws NullPointerException if any argument is {@code null}.
      */
     static Props props(final ConnectivityConfig connectivityConfig,
@@ -125,7 +125,7 @@ final class ConnectionTesterActor extends AbstractActor {
             final ConnectionLogger connectionLogger,
             final UUID parentActorUuid,
             final ConnectivityStatusResolver connectivityStatusResolver,
-            final Function<HiveMqttClientProperties, GenericMqttClient> testClientFactory) {
+            final GenericMqttClientFactory genericMqttClientFactory) {
 
         return Props.create(
                 ConnectionTesterActor.class,
@@ -134,7 +134,7 @@ final class ConnectionTesterActor extends AbstractActor {
                 checkNotNull(connectionLogger, "connectionLogger"),
                 checkNotNull(parentActorUuid, "parentActorUuid"),
                 checkNotNull(connectivityStatusResolver, "connectivityStatusResolver"),
-                checkNotNull(testClientFactory, "testClientFactory")
+                checkNotNull(genericMqttClientFactory, "genericMqttClientFactory")
         );
     }
 
@@ -155,7 +155,12 @@ final class ConnectionTesterActor extends AbstractActor {
                         .thenCompose(startPublisherActor())
                         .thenCombine(subscribe(clientContext), handleTotalSubscribeResult())
                         .thenCompose(getChildActorStatuses())
-                        .thenAccept(replyWithTotalStatus()))
+                        .whenComplete((childActorStatusesContext, error) -> {
+                            if (null == error) {
+                                replyWithTotalStatus(childActorStatusesContext);
+                            }
+                            disconnectMqttClient(clientContext);
+                        }))
                 .whenComplete((childActorStatusesContext, throwable) -> {
                     if (null != throwable) {
                         tellStatusToOriginalSender(logFailureAndGetStatus(throwable, testConnectionContext),
@@ -183,6 +188,7 @@ final class ConnectionTesterActor extends AbstractActor {
                     .withSshTunnelStateSupplier(sshTunnelStateSupplier)
                     .withConnectionLogger(connectionLogger)
                     .withActorUuid(actorUuid)
+                    .disableLastWillMessage() // no Last Will Message for connection testing
                     .build());
         } catch (final NoMqttConnectionException e) {
             logger.withCorrelationId(context.correlationId())
@@ -192,12 +198,12 @@ final class ConnectionTesterActor extends AbstractActor {
         }
     }
 
-    private ClientContext getClientContext(final ClientPropertiesContext context) {
+    private ClientContext getClientContext(final ClientPropertiesContext ctx) {
         try {
-            return new ClientContext(context, testClientFactory.apply(context.clientProperties()));
+            return new ClientContext(ctx, genericMqttClientFactory.getGenericMqttClient(ctx.clientProperties()));
         } catch (final Exception e) {
-            logger.withCorrelationId(context.correlationId())
-                    .withMdcEntry(ConnectivityMdcEntryKey.CONNECTION_ID, context.connectionId())
+            logger.withCorrelationId(ctx.correlationId())
+                    .withMdcEntry(ConnectivityMdcEntryKey.CONNECTION_ID, ctx.connectionId())
                     .info("Failed to create {}: {}", GenericMqttClient.class.getSimpleName(), e.getMessage());
             throw e;
         }
@@ -344,27 +350,49 @@ final class ConnectionTesterActor extends AbstractActor {
                         ));
                     }
                     return result;
+                })
+                .exceptionally(throwable -> {
+                    final Status.Status result;
+                    final var error = unwrapCauseIfCompletionException(throwable);
+                    if (error instanceof AskTimeoutException) {
+                        result = new Status.Failure(new IllegalStateException(
+                                MessageFormat.format("Actor <{0}> did not report its status within <{1}>.",
+                                        actorRef.path(),
+                                        ASK_TIMEOUT),
+                                error
+                        ));
+                    } else {
+                        result = new Status.Failure(error);
+                    }
+                    return result;
                 });
     }
 
-    private Consumer<ChildActorStatusesContext> replyWithTotalStatus() {
-        return childActorStatusesContext -> {
-            final Status.Status totalStatus;
-            final var failures = childActorStatusesContext.childActorFailures();
-            if (failures.isEmpty()) {
-                totalStatus = handleConnectionTestSuccess(childActorStatusesContext);
+    private static Throwable unwrapCauseIfCompletionException(final Throwable throwable) {
+        final Throwable result;
+        if (throwable instanceof CompletionException e) {
+            result = e.getCause();
+        } else {
+            result = throwable;
+        }
+        return result;
+    }
+
+    private void replyWithTotalStatus(final ChildActorStatusesContext childActorStatusesContext) {
+        final Status.Status totalStatus;
+        final var failures = childActorStatusesContext.childActorFailures();
+        if (failures.isEmpty()) {
+            totalStatus = handleConnectionTestSuccess(childActorStatusesContext);
+        } else {
+            if (1 == failures.size()) {
+                final var failure = failures.get(0);
+                totalStatus = logFailureAndGetStatus(failure.cause(), childActorStatusesContext);
             } else {
-                if (1 == failures.size()) {
-                    final var failure = failures.get(0);
-                    totalStatus = logFailureAndGetStatus(failure.cause(), childActorStatusesContext);
-                } else {
-                    totalStatus = logFailureAndGetStatus(getIllegalStateExceptionForMultipleFailures(failures),
-                            childActorStatusesContext);
-                }
+                totalStatus = logFailureAndGetStatus(getIllegalStateExceptionForMultipleFailures(failures),
+                        childActorStatusesContext);
             }
-            tellStatusToOriginalSender(totalStatus, childActorStatusesContext.originalSender());
-            disconnectMqttClient(childActorStatusesContext);
-        };
+        }
+        tellStatusToOriginalSender(totalStatus, childActorStatusesContext.originalSender());
 
         // Error handling is done at a higher stage.
     }
@@ -398,16 +426,6 @@ final class ConnectionTesterActor extends AbstractActor {
         connectionLogger.failure("Connection test failed: {0}", error.getMessage());
 
         return new Status.Failure(error);
-    }
-
-    private static Throwable unwrapCauseIfCompletionException(final Throwable throwable) {
-        final Throwable result;
-        if (throwable instanceof CompletionException e) {
-            result = e.getCause();
-        } else {
-            result = throwable;
-        }
-        return result;
     }
 
     private static IllegalStateException getIllegalStateExceptionForMultipleFailures(

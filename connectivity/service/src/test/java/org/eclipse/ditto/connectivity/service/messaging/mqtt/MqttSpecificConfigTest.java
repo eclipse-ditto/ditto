@@ -69,7 +69,7 @@ public final class MqttSpecificConfigTest {
 
         // THEN
         assertThat(specificConfig.reconnectForRedelivery()).isFalse();
-        assertThat(specificConfig.separatePublisherClient()).isFalse();
+        assertThat(specificConfig.isSeparatePublisherClient()).isFalse();
         assertThat(specificConfig.getMqttClientId()).contains("consumer-client-id");
         assertThat(specificConfig.getMqttPublisherId()).contains("publisher-client-id");
         assertThat(specificConfig.getReconnectForDeliveryDelay())
@@ -88,7 +88,7 @@ public final class MqttSpecificConfigTest {
         final var specificConfig = MqttSpecificConfig.fromConnection(connection, mqttConfig);
 
         assertThat(specificConfig.reconnectForRedelivery()).isFalse();
-        assertThat(specificConfig.separatePublisherClient()).isFalse();
+        assertThat(specificConfig.isSeparatePublisherClient()).isFalse();
         assertThat(specificConfig.getMqttClientId()).isEmpty();
         assertThat(specificConfig.getMqttPublisherId()).isEmpty();
         assertThat(specificConfig.getReconnectForDeliveryDelay())
