@@ -239,7 +239,8 @@ public final class GatewayRootActor extends DittoRootActor {
         final HttpConfig httpConfig = gatewayConfig.getHttpConfig();
 
         final var streamingConfig = gatewayConfig.getStreamingConfig();
-        final var signalEnrichmentProvider = GatewaySignalEnrichmentProvider.get(actorSystem);
+        final var dittoExtensionConfig = ScopedConfig.dittoExtension(actorSystem.settings().config());
+        final var signalEnrichmentProvider = GatewaySignalEnrichmentProvider.get(actorSystem, dittoExtensionConfig);
 
         final var commandConfig = gatewayConfig.getCommandConfig();
 

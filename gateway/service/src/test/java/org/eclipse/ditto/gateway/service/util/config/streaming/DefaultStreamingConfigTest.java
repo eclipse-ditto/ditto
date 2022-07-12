@@ -46,8 +46,7 @@ public final class DefaultStreamingConfigTest {
     @Test
     public void assertImmutability() {
         assertInstancesOf(DefaultStreamingConfig.class, areImmutable(),
-                provided(Config.class, WebsocketConfig.class, SseConfig.class, GatewaySignalEnrichmentConfig.class)
-                        .areAlsoImmutable());
+                provided(Config.class, WebsocketConfig.class, SseConfig.class).areAlsoImmutable());
     }
 
     @Test

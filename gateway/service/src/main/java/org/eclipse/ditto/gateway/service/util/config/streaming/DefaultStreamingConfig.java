@@ -36,17 +36,16 @@ public final class DefaultStreamingConfig implements StreamingConfig {
     private final Duration searchIdleTimeout;
     private final WebsocketConfig websocketConfig;
     private final SseConfig sseConfig;
-    private final GatewaySignalEnrichmentConfig signalEnrichmentConfig;
 
     private DefaultStreamingConfig(final ScopedConfig scopedConfig) {
         sessionCounterScrapeInterval =
-                scopedConfig.getNonNegativeAndNonZeroDurationOrThrow(StreamingConfigValue.SESSION_COUNTER_SCRAPE_INTERVAL);
+                scopedConfig.getNonNegativeAndNonZeroDurationOrThrow(
+                        StreamingConfigValue.SESSION_COUNTER_SCRAPE_INTERVAL);
         parallelism = scopedConfig.getPositiveIntOrThrow(StreamingConfigValue.PARALLELISM);
         acknowledgementConfig = DefaultAcknowledgementConfig.of(scopedConfig);
         searchIdleTimeout = scopedConfig.getNonNegativeDurationOrThrow(StreamingConfigValue.SEARCH_IDLE_TIMEOUT);
         websocketConfig = DefaultWebsocketConfig.of(scopedConfig);
         sseConfig = DefaultSseConfig.of(scopedConfig);
-        signalEnrichmentConfig = DefaultGatewaySignalEnrichmentConfig.of(scopedConfig);
     }
 
     /**
@@ -82,11 +81,6 @@ public final class DefaultStreamingConfig implements StreamingConfig {
     }
 
     @Override
-    public GatewaySignalEnrichmentConfig getSignalEnrichmentConfig() {
-        return signalEnrichmentConfig;
-    }
-
-    @Override
     public int getParallelism() {
         return parallelism;
     }
@@ -108,7 +102,6 @@ public final class DefaultStreamingConfig implements StreamingConfig {
         return parallelism == that.parallelism &&
                 Objects.equals(searchIdleTimeout, that.searchIdleTimeout) &&
                 Objects.equals(sessionCounterScrapeInterval, that.sessionCounterScrapeInterval) &&
-                Objects.equals(signalEnrichmentConfig, that.signalEnrichmentConfig) &&
                 Objects.equals(acknowledgementConfig, that.acknowledgementConfig) &&
                 Objects.equals(websocketConfig, that.websocketConfig) &&
                 Objects.equals(sseConfig, that.sseConfig);
@@ -116,8 +109,8 @@ public final class DefaultStreamingConfig implements StreamingConfig {
 
     @Override
     public int hashCode() {
-        return Objects.hash(parallelism, sessionCounterScrapeInterval, signalEnrichmentConfig, acknowledgementConfig,
-                websocketConfig, sseConfig, searchIdleTimeout);
+        return Objects.hash(parallelism, sessionCounterScrapeInterval, acknowledgementConfig, websocketConfig,
+                sseConfig, searchIdleTimeout);
     }
 
     @Override
@@ -126,7 +119,6 @@ public final class DefaultStreamingConfig implements StreamingConfig {
                 "sessionCounterScrapeInterval=" + sessionCounterScrapeInterval +
                 ", parallelism=" + parallelism +
                 ", searchIdleTimeout=" + searchIdleTimeout +
-                ", signalEnrichmentConfig=" + signalEnrichmentConfig +
                 ", acknowledgementConfig=" + acknowledgementConfig +
                 ", websocketConfig=" + websocketConfig +
                 ", sseConfig=" + sseConfig +
