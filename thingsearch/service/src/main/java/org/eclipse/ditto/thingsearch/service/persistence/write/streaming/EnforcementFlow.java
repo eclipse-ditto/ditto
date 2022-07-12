@@ -24,7 +24,6 @@ import java.util.concurrent.Executor;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.internal.models.signalenrichment.CachingSignalEnrichmentFacade;
-import org.eclipse.ditto.internal.models.signalenrichment.CachingSignalEnrichmentFacadeProvider;
 import org.eclipse.ditto.internal.utils.cache.Cache;
 import org.eclipse.ditto.internal.utils.cache.CacheFactory;
 import org.eclipse.ditto.internal.utils.cache.config.CacheConfig;
@@ -331,7 +330,9 @@ final class EnforcementFlow {
             final Executor thingCacheDispatcher) {
 
         final var sudoRetrieveThingFacade = SudoSignalEnrichmentFacade.of(thingsShardRegion, timeout);
-        final var cachingSignalEnrichmentFacadeProvider = CachingSignalEnrichmentFacadeProvider.get(actorSystem);
+        final var dittoExtensionsConfig = ScopedConfig.dittoExtension(actorSystem.settings().config());
+        final var cachingSignalEnrichmentFacadeProvider =
+                CachingSignalEnrichmentFacadeProvider.get(actorSystem, dittoExtensionsConfig);
         return cachingSignalEnrichmentFacadeProvider.getSignalEnrichmentFacade(actorSystem, sudoRetrieveThingFacade,
                 thingCacheConfig, thingCacheDispatcher, "things-search_enforcementflow_enforcer_cache_things");
     }

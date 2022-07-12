@@ -10,24 +10,29 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.internal.models.signalenrichment;
+package org.eclipse.ditto.thingsearch.service.persistence.write.streaming;
 
 import java.util.concurrent.Executor;
 
+import org.eclipse.ditto.internal.models.signalenrichment.CachingSignalEnrichmentFacade;
+import org.eclipse.ditto.internal.models.signalenrichment.DittoCachingSignalEnrichmentFacade;
+import org.eclipse.ditto.internal.models.signalenrichment.SignalEnrichmentFacade;
 import org.eclipse.ditto.internal.utils.cache.config.CacheConfig;
+
+import com.typesafe.config.Config;
 
 import akka.actor.ActorSystem;
 
 /**
- * Default {@link CachingSignalEnrichmentFacadeProvider} who provides a {@link DittoCachingSignalEnrichmentFacade}.
+ * Default {@link CachingSignalEnrichmentFacadeProvider} who provides a {@link org.eclipse.ditto.internal.models.signalenrichment.DittoCachingSignalEnrichmentFacade}.
  */
-public final class DittoCachingSignalEnrichmentFacadeProvider extends CachingSignalEnrichmentFacadeProvider {
+public final class DittoCachingSignalEnrichmentFacadeProvider implements CachingSignalEnrichmentFacadeProvider {
 
     /**
      * Instantiate this provider. Called by reflection.
      */
-    public DittoCachingSignalEnrichmentFacadeProvider(final ActorSystem actorSystem) {
-        super(actorSystem);
+    public DittoCachingSignalEnrichmentFacadeProvider(final ActorSystem actorSystem, final Config config) {
+        // No-Op but required for extension initialisation
     }
 
     @Override
