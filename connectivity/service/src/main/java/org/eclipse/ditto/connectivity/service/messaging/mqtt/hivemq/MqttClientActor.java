@@ -81,24 +81,12 @@ public final class MqttClientActor extends BaseClientActor {
     @Nullable private ActorRef publishingActorRef;
     private final List<ActorRef> mqttConsumerActorRefs;
 
-    @SuppressWarnings("unused") // called by reflection
+    @SuppressWarnings("java:S1144") // called by reflection
     private MqttClientActor(final Connection connection,
             final ActorRef proxyActor,
             final ActorRef connectionActor,
             final DittoHeaders dittoHeaders,
             final Config connectivityConfigOverwrites) {
-
-        this(connection, proxyActor, connectionActor, dittoHeaders, connectivityConfigOverwrites,
-                GenericMqttClientFactory.newInstance());
-    }
-
-    @SuppressWarnings("java:S1144")
-    private MqttClientActor(final Connection connection,
-            final ActorRef proxyActor,
-            final ActorRef connectionActor,
-            final DittoHeaders dittoHeaders,
-            final Config connectivityConfigOverwrites,
-            final GenericMqttClientFactory genericMqttClientFactory) {
 
         super(connection, proxyActor, connectionActor, dittoHeaders, connectivityConfigOverwrites);
 
@@ -108,7 +96,7 @@ public final class MqttClientActor extends BaseClientActor {
 
         mqttSpecificConfig = MqttSpecificConfig.fromConnection(connection, mqttConfig);
 
-        this.genericMqttClientFactory = genericMqttClientFactory;
+        genericMqttClientFactory = GenericMqttClientFactory.newInstance();
         genericMqttClient = null;
         automaticReconnect = new AtomicBoolean(true);
         publishingActorRef = null;
