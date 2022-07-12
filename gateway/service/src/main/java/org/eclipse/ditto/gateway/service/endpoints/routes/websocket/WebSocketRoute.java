@@ -190,7 +190,7 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
 
         final var config = actorSystem.settings().config();
         final var dittoExtensionsConfig = ScopedConfig.dittoExtension(config);
-        incomingMessageSniffer = IncomingWebSocketEventSniffer.get(actorSystem);
+        incomingMessageSniffer = IncomingWebSocketEventSniffer.get(actorSystem, dittoExtensionsConfig);
         outgoingMessageSniffer = OutgoingWebSocketEventSniffer.get(actorSystem);
         final var websocketConfig = ScopedConfig.getOrEmpty(config, "ditto.gateway.streaming.websocket");
         authorizationEnforcer = StreamingAuthorizationEnforcer.get(actorSystem, websocketConfig);

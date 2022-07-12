@@ -14,7 +14,10 @@ package org.eclipse.ditto.gateway.service.endpoints.routes.websocket;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
+import org.eclipse.ditto.base.service.DittoExtensionIds;
 import org.eclipse.ditto.base.service.DittoExtensionPoint;
+
+import com.typesafe.config.Config;
 
 import akka.NotUsed;
 import akka.actor.ActorSystem;
@@ -39,22 +42,31 @@ public interface IncomingWebSocketEventSniffer extends DittoExtensionPoint {
      * {@code ActorSystem}.
      *
      * @param actorSystem the actorSystem in which the {@code IncomingWebSocketEventSniffer} should be loaded.
+     * @param config the configuration for this extension.
      * @return the {@code IncomingWebSocketEventSniffer} implementation.
      * @throws NullPointerException if {@code actorSystem} is {@code null}.
      * @since 3.0.0
      */
-    static IncomingWebSocketEventSniffer get(final ActorSystem actorSystem) {
+    static IncomingWebSocketEventSniffer get(final ActorSystem actorSystem, final Config config) {
         checkNotNull(actorSystem, "actorSystem");
-        return ExtensionId.INSTANCE.get(actorSystem);
+        checkNotNull(config, "config");
+        final var extensionIdConfig = ExtensionId.computeConfig(config);
+        return DittoExtensionIds.get(actorSystem)
+                .computeIfAbsent(extensionIdConfig, ExtensionId::new)
+                .get(actorSystem);
     }
 
     final class ExtensionId extends DittoExtensionPoint.ExtensionId<IncomingWebSocketEventSniffer> {
 
-        private static final String CONFIG_PATH = "ditto.gateway.streaming.websocket.incoming-event-sniffer";
-        private static final ExtensionId INSTANCE = new ExtensionId(IncomingWebSocketEventSniffer.class);
+        private static final String CONFIG_KEY = "incoming-websocket-event-sniffer";
+        private static final String CONFIG_PATH = "ditto.extensions." + CONFIG_KEY;
 
-        private ExtensionId(final Class<IncomingWebSocketEventSniffer> parentClass) {
-            super(parentClass);
+        private ExtensionId(final ExtensionIdConfig<IncomingWebSocketEventSniffer> extensionIdConfig) {
+            super(extensionIdConfig);
+        }
+
+        static ExtensionIdConfig<IncomingWebSocketEventSniffer> computeConfig(final Config config) {
+            return ExtensionIdConfig.of(IncomingWebSocketEventSniffer.class, config, CONFIG_KEY);
         }
 
         @Override
