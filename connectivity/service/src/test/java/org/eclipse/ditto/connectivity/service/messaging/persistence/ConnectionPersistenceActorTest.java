@@ -144,7 +144,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
             ConfigFactory.parseMap(Map.of(
                             "ditto.extensions.client-actor-props-factory",
                             "org.eclipse.ditto.connectivity.service.messaging.MockClientActorPropsFactory",
-                            "ditto.connectivity.connection.custom-command-interceptor-provider",
+                            "ditto.extensions.custom-connectivity-command-interceptor-provider",
                             "org.eclipse.ditto.connectivity.service.messaging.ExceptionalCommandValidator"
                     )).withFallback(TestConstants.CONFIG));
 

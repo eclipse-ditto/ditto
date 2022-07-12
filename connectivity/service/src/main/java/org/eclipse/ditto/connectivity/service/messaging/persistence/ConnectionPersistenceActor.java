@@ -1196,8 +1196,10 @@ public final class ConnectionPersistenceActor
                         connectionValidator,
                         actorSystem);
 
+        final Config dittoExtensionsConfig = ScopedConfig.dittoExtension(actorSystem.settings().config());
         final var customCommandValidator =
-                CustomConnectivityCommandInterceptorProvider.get(actorSystem).getCommandInterceptor();
+                CustomConnectivityCommandInterceptorProvider.get(actorSystem, dittoExtensionsConfig)
+                        .getCommandInterceptor();
         return new CompoundConnectivityCommandInterceptor(dittoCommandValidator, customCommandValidator);
     }
 

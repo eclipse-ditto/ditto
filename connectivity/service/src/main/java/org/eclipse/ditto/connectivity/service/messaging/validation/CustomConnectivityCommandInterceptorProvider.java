@@ -14,8 +14,11 @@ package org.eclipse.ditto.connectivity.service.messaging.validation;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
+import org.eclipse.ditto.base.service.DittoExtensionIds;
 import org.eclipse.ditto.base.service.DittoExtensionPoint;
 import org.eclipse.ditto.connectivity.model.signals.commands.ConnectivityCommandInterceptor;
+
+import com.typesafe.config.Config;
 
 import akka.actor.ActorSystem;
 
@@ -28,21 +31,30 @@ public interface CustomConnectivityCommandInterceptorProvider extends DittoExten
      * {@code ActorSystem}.
      *
      * @param actorSystem the actorSystem in which the {@code CustomConnectivityCommandInterceptorProvider} should be loaded.
+     * @param config the configuration of this extension.
      * @return the {@code CustomConnectivityCommandInterceptorProvider} implementation.
      * @throws NullPointerException if {@code actorSystem} is {@code null}.
      */
-    static CustomConnectivityCommandInterceptorProvider get(final ActorSystem actorSystem) {
+    static CustomConnectivityCommandInterceptorProvider get(final ActorSystem actorSystem, final Config config) {
         checkNotNull(actorSystem, "actorSystem");
-        return ExtensionId.INSTANCE.get(actorSystem);
+        checkNotNull(config, "config");
+        final var extensionIdConfig = ExtensionId.computeConfig(config);
+        return DittoExtensionIds.get(actorSystem)
+                .computeIfAbsent(extensionIdConfig, ExtensionId::new)
+                .get(actorSystem);
     }
 
     final class ExtensionId extends DittoExtensionPoint.ExtensionId<CustomConnectivityCommandInterceptorProvider> {
 
-        private static final String CONFIG_PATH = "ditto.connectivity.connection.custom-command-interceptor-provider";
-        private static final ExtensionId INSTANCE = new ExtensionId(CustomConnectivityCommandInterceptorProvider.class);
+        private static final String CONFIG_KEY = "custom-connectivity-command-interceptor-provider";
+        private static final String CONFIG_PATH = "ditto.extensions." + CONFIG_KEY;
 
-        private ExtensionId(final Class<CustomConnectivityCommandInterceptorProvider> parentClass) {
-            super(parentClass);
+        private ExtensionId(final ExtensionIdConfig<CustomConnectivityCommandInterceptorProvider> extensionIdConfig) {
+            super(extensionIdConfig);
+        }
+
+        static ExtensionIdConfig<CustomConnectivityCommandInterceptorProvider> computeConfig(final Config config) {
+            return ExtensionIdConfig.of(CustomConnectivityCommandInterceptorProvider.class, config, CONFIG_KEY);
         }
 
         @Override
