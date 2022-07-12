@@ -46,7 +46,7 @@ final class DefaultExceptionToAcknowledgementConverter extends ExceptionToAcknow
     }
 
     @Override
-    protected HttpStatus getHttpStatusForGenericException(final Exception exception) {
+    protected HttpStatus getHttpStatusForGenericException(final Throwable exception) {
         return HttpStatus.INTERNAL_SERVER_ERROR;
     }
 

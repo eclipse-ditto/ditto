@@ -93,7 +93,7 @@ public final class ExceptionalConnectionLogger implements ConnectionLogger {
     }
 
     @Override
-    public void exception(final ConnectionMonitor.InfoProvider infoProvider, @Nullable final Exception exception) {
+    public void exception(final ConnectionMonitor.InfoProvider infoProvider, @Nullable final Throwable exception) {
         logTraceWithCorrelationId(infoProvider.getCorrelationId(),
                 "Not logging exception <{}> since logger is exceptional.",
                 exception);

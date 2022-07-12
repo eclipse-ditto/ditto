@@ -123,7 +123,6 @@ public final class HttpPublisherActorTest extends AbstractPublisherActorTest {
     protected Props getPublisherActorProps() {
         return HttpPublisherActor.props(TestConstants.createConnection(),
                 httpPushFactory,
-                "clientId",
                 mock(ConnectivityStatusResolver.class),
                 ConnectivityConfig.of(actorSystem.settings().config()));
     }
@@ -740,8 +739,10 @@ public final class HttpPublisherActorTest extends AbstractPublisherActorTest {
                     .toBuilder()
                     .credentials(hmacCredentials)
                     .build();
-            final var props = HttpPublisherActor.props(connection, httpPushFactory, "clientId",
-                    mock(ConnectivityStatusResolver.class), ConnectivityConfig.of(actorSystem.settings().config()));
+            final var props = HttpPublisherActor.props(connection,
+                    httpPushFactory,
+                    mock(ConnectivityStatusResolver.class),
+                    ConnectivityConfig.of(actorSystem.settings().config()));
             final var publisherActor = childActorOf(props);
             publisherCreated(this, publisherActor);
 
@@ -807,8 +808,10 @@ public final class HttpPublisherActorTest extends AbstractPublisherActorTest {
                     .toBuilder()
                     .credentials(hmacCredentials)
                     .build();
-            final var props = HttpPublisherActor.props(connection, httpPushFactory, "clientId",
-                    mock(ConnectivityStatusResolver.class), ConnectivityConfig.of(actorSystem.settings().config()));
+            final var props = HttpPublisherActor.props(connection,
+                    httpPushFactory,
+                    mock(ConnectivityStatusResolver.class),
+                    ConnectivityConfig.of(actorSystem.settings().config()));
             final var publisherActor = childActorOf(props);
             publisherCreated(this, publisherActor);
 
@@ -932,7 +935,8 @@ public final class HttpPublisherActorTest extends AbstractPublisherActorTest {
 
             final Connection connection =
                     TestConstants.createConnection().toBuilder().specificConfig(specificConfig).build();
-            final Props props = HttpPublisherActor.props(connection, httpPushFactory, "clientId",
+            final Props props = HttpPublisherActor.props(connection,
+                    httpPushFactory,
                     mock(ConnectivityStatusResolver.class),
                     ConnectivityConfig.of(actorSystem.settings().config()));
             final ActorRef publisherActor = childActorOf(props);

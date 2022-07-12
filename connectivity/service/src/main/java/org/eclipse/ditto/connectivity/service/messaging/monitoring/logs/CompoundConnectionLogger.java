@@ -66,7 +66,7 @@ final class CompoundConnectionLogger implements ConnectionLogger, MuteableConnec
     }
 
     @Override
-    public void exception(final ConnectionMonitor.InfoProvider infoProvider, @Nullable final Exception exception) {
+    public void exception(final ConnectionMonitor.InfoProvider infoProvider, @Nullable final Throwable exception) {
         connectionLoggers.forEach(logger -> logger.exception(infoProvider, exception));
     }
 

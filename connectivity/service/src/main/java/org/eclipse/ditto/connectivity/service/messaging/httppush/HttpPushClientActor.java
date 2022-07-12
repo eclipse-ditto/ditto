@@ -155,7 +155,6 @@ public final class HttpPushClientActor extends BaseClientActor {
         stopPublisherActor();
         final Props props = HttpPublisherActor.props(connection(),
                 factory,
-                getDefaultClientId(),
                 connectivityStatusResolver,
                 connectivityConfig());
         httpPublisherActor = startChildActorConflictFree(HttpPublisherActor.ACTOR_NAME, props);
