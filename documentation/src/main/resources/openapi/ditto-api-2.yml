@@ -106,6 +106,7 @@ paths:
         - $ref: '#/components/parameters/TimeoutParam'
         - $ref: '#/components/parameters/ResponseRequiredParam'
         - $ref: '#/components/parameters/AllowPolicyLockoutParam'
+        - $ref: '#/components/parameters/Namespace'
       responses:
         '201':
           description: The thing was successfully created.
@@ -6935,6 +6936,14 @@ components:
       required: false
       schema:
         type: integer
+    Namespace:
+      name: namespace
+      in: query
+      description: Defines a custom namespace for the thing while generating a new thing ID.
+      required: false
+      schema:
+        type: string
+        example: com.example.namespace
     NamespacesFilter:
       name: namespaces
       in: query
@@ -7547,7 +7556,7 @@ components:
       description: An auth subject that can be used to provide access for a caller (e.g. in subject entries of policies).
     WotThingDescription:
       type: object
-      desciption: A WoT Thing Description version 1.1
+      description: A WoT Thing Description version 1.1
       properties:
         '@context':
           oneOf:

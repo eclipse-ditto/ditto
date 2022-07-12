@@ -15,6 +15,7 @@ package org.eclipse.ditto.things.model;
 import java.util.UUID;
 import java.util.function.Supplier;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.model.entity.id.AbstractNamespacedEntityId;
@@ -89,9 +90,23 @@ public final class ThingId extends AbstractNamespacedEntityId {
      * @return the generated thing ID.
      */
     public static ThingId generateRandom() {
-        return wrapInThingIdInvalidException(() -> new ThingId(DEFAULT_NAMESPACE, UUID.randomUUID().toString(), true));
+        return generateRandom(null);
     }
 
+    /**
+     * Generates a new thing ID with the specified namespace placeholder or a default namespace if null is passed along with a unique name
+     *
+     * @param namespace the specified namespace
+     *
+     * @return the generated thing ID
+     */
+    public static ThingId generateRandom(@Nullable final String namespace) {
+        if (namespace == null) {
+            return wrapInThingIdInvalidException(() -> new ThingId(DEFAULT_NAMESPACE, UUID.randomUUID().toString(), true));
+        } else {
+            return wrapInThingIdInvalidException(() -> new ThingId(namespace, UUID.randomUUID().toString(), true));
+        }
+    }
     private static <T> T wrapInThingIdInvalidException(final Supplier<T> supplier) {
         try {
             return supplier.get();

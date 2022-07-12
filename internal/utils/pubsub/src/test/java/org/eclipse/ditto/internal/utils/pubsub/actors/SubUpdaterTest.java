@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.internal.utils.pubsub.actors;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.eclipse.ditto.internal.utils.pubsub.actors.ClusterMemberRemovedAware.writeLocal;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -119,6 +120,53 @@ public final class SubUpdaterTest {
             Thread.sleep(3000);
             Mockito.verify(ddata.getWriter(), Mockito.times(1)).put(any(), any(), any());
             Mockito.verify(ddata.getWriter(), Mockito.never()).removeAddress(any(), any());
+        }};
+    }
+
+    @Test
+    public void consistencyCheckSucceeds() {
+        new TestKit(system) {{
+            // GIVEN: local subscriptions are not empty
+            final var subscriberRef = TestProbe.apply(system).ref();
+            final var config = PubSubConfig.of(system);
+            final var addressMap = Map.of(subscriberRef, "unknown-value");
+            final CompressedDData ddata = mockDistributedData(addressMap);
+            final ActorRef underTest = system.actorOf(SubUpdater.props(config, subscriberRef, ddata));
+            final var subscribe = Subscribe.of(List.of("topic"), subscriberRef, writeLocal(), true, null);
+            underTest.tell(subscribe, getRef());
+            expectMsgClass(SubAck.class);
+
+            // WHEN: SubUpdater is requested to resubscribe
+            final var writer = ddata.getWriter();
+            Mockito.when(writer.reset(any(), any(), any())).thenReturn(CompletableFuture.completedStage(null));
+            final var resubscribe = Subscribe.of(List.of("topic"), subscriberRef, writeLocal(), true, null, null, true);
+            underTest.tell(resubscribe, getRef());
+
+            // THEN: SubAck confirms consistency.
+            final var ack = expectMsgClass(SubAck.class);
+            assertThat(ack.isConsistent()).isTrue();
+        }};
+    }
+
+    @Test
+    public void consistencyCheckFails() {
+        new TestKit(system) {{
+            // GIVEN: local subscriptions are empty
+            final var subscriberRef = TestProbe.apply(system).ref();
+            final var config = PubSubConfig.of(system);
+            final var addressMap = Map.of(subscriberRef, "unknown-value");
+            final CompressedDData ddata = mockDistributedData(addressMap);
+            final ActorRef underTest = system.actorOf(SubUpdater.props(config, subscriberRef, ddata));
+
+            // WHEN: SubUpdater is requested to resubscribe
+            final var writer = ddata.getWriter();
+            Mockito.when(writer.reset(any(), any(), any())).thenReturn(CompletableFuture.completedStage(null));
+            final var resubscribe = Subscribe.of(List.of("topic"), subscriberRef, writeLocal(), true, null, null, true);
+            underTest.tell(resubscribe, getRef());
+
+            // THEN: SubAck denies consistency.
+            final var ack = expectMsgClass(SubAck.class);
+            assertThat(ack.isConsistent()).isFalse();
         }};
     }
 

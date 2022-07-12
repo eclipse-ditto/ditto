@@ -234,7 +234,8 @@ public abstract class AbstractRoute extends AllDirectives {
 
         // optional step: transform the response entity:
         if (responseValueTransformFunction != null) {
-            final CompletableFuture<HttpResponse> transformedResponse = httpResponseFuture.thenApply(response -> {
+            final CompletionStage<HttpResponse> strictResponseFuture = httpResponseFuture.thenCompose(this::toStrict);
+            final CompletionStage<HttpResponse> transformedResponse = strictResponseFuture.thenApply(response -> {
                 final boolean isSuccessfulResponse = response.status().isSuccess();
                 // we have to check if response is empty, because otherwise we'll get an IOException when trying to
                 // read it
@@ -353,6 +354,11 @@ public abstract class AbstractRoute extends AllDirectives {
         }
 
         return increaseHttpRequestTimeout(inner, customRequestTimeout);
+    }
+
+    private CompletionStage<HttpResponse> toStrict(final HttpResponse response) {
+        final var timeoutMillis = routeBaseProperties.getHttpConfig().getRequestTimeout().toMillis();
+        return response.toStrict(timeoutMillis, routeBaseProperties.getActorSystem()).thenApply(x -> x);
     }
 
     private Route increaseHttpRequestTimeout(final java.util.function.Function<Duration, Route> inner,

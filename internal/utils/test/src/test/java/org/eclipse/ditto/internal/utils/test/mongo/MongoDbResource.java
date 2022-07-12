@@ -12,6 +12,9 @@
  */
 package org.eclipse.ditto.internal.utils.test.mongo;
 
+import java.io.Closeable;
+import java.io.IOException;
+
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
@@ -30,7 +33,16 @@ public final class MongoDbResource extends ExternalResource {
     private static final String HOSTING_ENVIRONMENT_ENV_VARIABLE_NAME = "HOSTING_ENVIRONMENT";
     private static final String IDE_HOSTING_ENVIRONMENT = "IDE";
 
+    private final MongoContainerFactory mongoContainerFactory;
     @Nullable private DockerContainer mongoContainer;
+
+    public MongoDbResource() {
+        this.mongoContainerFactory = MongoContainerFactory.getInstance();
+    }
+
+    public MongoDbResource(final String mongoVersion) {
+        this.mongoContainerFactory = MongoContainerFactory.of(mongoVersion);
+    }
 
     @Override
     protected void before() {
@@ -38,7 +50,7 @@ public final class MongoDbResource extends ExternalResource {
             throw new IllegalStateException(MONGO_CONTAINER_ALREADY_STARTED);
         }
         if (!IDE_HOSTING_ENVIRONMENT.equals(System.getenv(HOSTING_ENVIRONMENT_ENV_VARIABLE_NAME))) {
-            mongoContainer = MongoContainerFactory.getInstance().createMongoContainer();
+            mongoContainer = mongoContainerFactory.createMongoContainer();
             mongoContainer.start();
         }
     }
@@ -49,6 +61,11 @@ public final class MongoDbResource extends ExternalResource {
             mongoContainer.stop();
             mongoContainer.remove();
             mongoContainer = null;
+        }
+        try {
+            mongoContainerFactory.close();
+        } catch (final IOException e) {
+            throw new AssertionError(e);
         }
     }
 

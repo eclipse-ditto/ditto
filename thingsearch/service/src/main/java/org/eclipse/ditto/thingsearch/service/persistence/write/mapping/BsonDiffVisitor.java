@@ -35,9 +35,11 @@ final class BsonDiffVisitor implements BsonValueVisitor<Function<BsonValue, Bson
 
     private final BsonSizeVisitor bsonSizeVisitor = new BsonSizeVisitor();
     private final boolean recurseIntoArrays;
+    private final int maxWireVersion;
 
-    BsonDiffVisitor(final boolean recurseIntoArrays) {
+    BsonDiffVisitor(final boolean recurseIntoArrays, final int maxWireVersion) {
         this.recurseIntoArrays = recurseIntoArrays;
+        this.maxWireVersion = maxWireVersion;
     }
 
     @Override
@@ -66,7 +68,7 @@ final class BsonDiffVisitor implements BsonValueVisitor<Function<BsonValue, Bson
             if (value.equals(oldValue)) {
                 return BsonDiff.empty(replacementSize);
             } else if (oldValue.isArray()) {
-                final var bsonArrayDiff = BsonArrayDiff.diff(key, value, oldValue.asArray());
+                final var bsonArrayDiff = BsonArrayDiff.diff(key, value, oldValue.asArray(), maxWireVersion);
                 final var diffSize = key.length() + bsonSizeVisitor.eval(bsonArrayDiff);
                 if (diffSize <= replacementSize) {
                     return BsonDiff.set(replacementSize, diffSize, key, bsonArrayDiff);
