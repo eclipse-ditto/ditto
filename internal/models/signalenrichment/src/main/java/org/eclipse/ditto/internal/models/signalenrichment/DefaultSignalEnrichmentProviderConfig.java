@@ -24,32 +24,32 @@ import org.eclipse.ditto.internal.utils.config.ConfigWithFallback;
 import com.typesafe.config.Config;
 
 /**
- * Default implementation of {@link CachingSignalEnrichmentFacadeConfig}.
+ * Default implementation of {@link SignalEnrichmentProviderConfig}.
  */
 @Immutable
-public final class DefaultCachingSignalEnrichmentFacadeConfig implements CachingSignalEnrichmentFacadeConfig {
+public final class DefaultSignalEnrichmentProviderConfig implements SignalEnrichmentProviderConfig {
 
     private static final String CACHE_CONFIG_PATH = "cache";
 
     private final Duration askTimeout;
     private final CacheConfig cacheConfig;
+    private final boolean cachingEnabled;
 
-    private DefaultCachingSignalEnrichmentFacadeConfig(final ConfigWithFallback configWithFallback) {
-        this.askTimeout = configWithFallback.getDuration(
-                CachingSignalEnrichmentFacadeConfigValue.ASK_TIMEOUT.getConfigPath());
+    private DefaultSignalEnrichmentProviderConfig(final ConfigWithFallback configWithFallback) {
+        askTimeout = configWithFallback.getDuration(ConfigValue.ASK_TIMEOUT.getConfigPath());
         cacheConfig = DefaultCacheConfig.of(configWithFallback, CACHE_CONFIG_PATH);
+        cachingEnabled = configWithFallback.getBoolean(ConfigValue.CACHE_ENABLED.getConfigPath());
     }
 
     /**
      * Returns an instance of {@code DefaultConnectionEnrichmentConfig} based on the settings of the specified Config.
      *
-     * @param config is supposed to provide the settings of the provider specific config at {@value #CONFIG_PATH}.
+     * @param config is supposed to provide the settings of the provider specific config.
      * @return the instance.
      * @throws org.eclipse.ditto.internal.utils.config.DittoConfigError if {@code config} is invalid.
      */
-    public static DefaultCachingSignalEnrichmentFacadeConfig of(final Config config) {
-        return new DefaultCachingSignalEnrichmentFacadeConfig(ConfigWithFallback.newInstance(config,
-                CachingSignalEnrichmentFacadeConfigValue.values()));
+    public static DefaultSignalEnrichmentProviderConfig of(final Config config) {
+        return new DefaultSignalEnrichmentProviderConfig(ConfigWithFallback.newInstance(config, ConfigValue.values()));
     }
 
     @Override
@@ -63,6 +63,11 @@ public final class DefaultCachingSignalEnrichmentFacadeConfig implements Caching
     }
 
     @Override
+    public boolean isCachingEnabled() {
+        return cachingEnabled;
+    }
+
+    @Override
     public boolean equals(final Object o) {
         if (this == o) {
             return true;
@@ -70,7 +75,7 @@ public final class DefaultCachingSignalEnrichmentFacadeConfig implements Caching
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        final DefaultCachingSignalEnrichmentFacadeConfig that = (DefaultCachingSignalEnrichmentFacadeConfig) o;
+        final DefaultSignalEnrichmentProviderConfig that = (DefaultSignalEnrichmentProviderConfig) o;
         return Objects.equals(askTimeout, that.askTimeout) &&
                 Objects.equals(cacheConfig, that.cacheConfig);
     }

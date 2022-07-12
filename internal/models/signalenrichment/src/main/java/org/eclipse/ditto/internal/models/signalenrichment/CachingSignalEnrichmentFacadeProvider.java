@@ -29,7 +29,7 @@ import akka.actor.Extension;
  * Implementations MUST have a public constructor taking an actorSystem as argument.
  */
 public abstract class CachingSignalEnrichmentFacadeProvider implements Extension {
-
+//TODO: Yannic should be a DittoExtensionPoint
     private static final ExtensionId EXTENSION_ID = new ExtensionId();
 
     protected final ActorSystem actorSystem;

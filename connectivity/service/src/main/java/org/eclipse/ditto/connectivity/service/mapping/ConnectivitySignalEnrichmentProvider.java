@@ -12,17 +12,16 @@
  */
 package org.eclipse.ditto.connectivity.service.mapping;
 
-import java.util.List;
+import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
+import org.eclipse.ditto.base.service.DittoExtensionIds;
 import org.eclipse.ditto.base.service.DittoExtensionPoint;
 import org.eclipse.ditto.connectivity.model.ConnectionId;
-import org.eclipse.ditto.internal.models.signalenrichment.DefaultSignalEnrichmentConfig;
-import org.eclipse.ditto.internal.models.signalenrichment.SignalEnrichmentConfig;
 import org.eclipse.ditto.internal.models.signalenrichment.SignalEnrichmentFacade;
-import org.eclipse.ditto.internal.utils.akka.AkkaClassLoader;
+
+import com.typesafe.config.Config;
 
 import akka.actor.ActorSystem;
-import akka.actor.ExtendedActorSystem;
 
 /**
  * Provider of {@link SignalEnrichmentFacade} to be loaded by reflection.
@@ -49,8 +48,13 @@ public interface ConnectivitySignalEnrichmentProvider extends DittoExtensionPoin
      * @param actorSystem The actor system in which to load the facade provider class.
      * @return The configured facade provider.
      */
-    static ConnectivitySignalEnrichmentProvider get(final ActorSystem actorSystem) {
-        return ExtensionId.INSTANCE.get(actorSystem);
+    static ConnectivitySignalEnrichmentProvider get(final ActorSystem actorSystem, final Config config) {
+        checkNotNull(actorSystem, "actorSystem");
+        checkNotNull(config, "config");
+        final var extensionIdConfig = ExtensionId.computeConfig(config);
+        return DittoExtensionIds.get(actorSystem)
+                .computeIfAbsent(extensionIdConfig, ExtensionId::new)
+                .get(actorSystem);
     }
 
     /**
@@ -58,34 +62,15 @@ public interface ConnectivitySignalEnrichmentProvider extends DittoExtensionPoin
      */
     final class ExtensionId extends DittoExtensionPoint.ExtensionId<ConnectivitySignalEnrichmentProvider> {
 
-        private static final String SIGNAL_ENRICHMENT_CONFIG_PATH = "ditto.connectivity";
-        private static final String CONFIG_PATH = "ditto.connectivity.signal-enrichment.provider";
+        private static final String CONFIG_KEY = "signal-enrichment-provider";
+        private static final String CONFIG_PATH = "ditto.extensions." + CONFIG_KEY;
 
-        private static final ExtensionId INSTANCE = new ExtensionId(ConnectivitySignalEnrichmentProvider.class);
-
-        /**
-         * Returns the {@code ExtensionId} for the implementation that should be loaded.
-         *
-         * @param parentClass the class of the extensions for which an implementation should be loaded.
-         */
-        public ExtensionId(final Class<ConnectivitySignalEnrichmentProvider> parentClass) {
-            super(parentClass);
+        private ExtensionId(final ExtensionIdConfig<ConnectivitySignalEnrichmentProvider> extensionIdConfig) {
+            super(extensionIdConfig);
         }
 
-        @Override
-        public ConnectivitySignalEnrichmentProvider createExtension(final ExtendedActorSystem system) {
-            final SignalEnrichmentConfig signalEnrichmentConfig =
-                    DefaultSignalEnrichmentConfig.of(
-                            system.settings().config().getConfig(SIGNAL_ENRICHMENT_CONFIG_PATH));
-
-            return AkkaClassLoader.instantiate(system, ConnectivitySignalEnrichmentProvider.class,
-                    getImplementation(system),
-                    List.of(ActorSystem.class, SignalEnrichmentConfig.class),
-                    List.of(system, signalEnrichmentConfig));
-        }
-
-        protected String getImplementation(final ExtendedActorSystem actorSystem) {
-            return actorSystem.settings().config().getString(getConfigPath());
+        static ExtensionIdConfig<ConnectivitySignalEnrichmentProvider> computeConfig(final Config config) {
+            return ExtensionIdConfig.of(ConnectivitySignalEnrichmentProvider.class, config, CONFIG_KEY);
         }
 
         @Override

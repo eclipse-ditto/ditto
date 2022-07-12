@@ -16,40 +16,50 @@ import java.time.Duration;
 
 import javax.annotation.Nonnull;
 
+import org.eclipse.ditto.internal.utils.cache.config.CacheConfig;
 import org.eclipse.ditto.internal.utils.config.KnownConfigValue;
 
 /**
- * Retrieve fixed parts of things by asking an actor.
+ * Configuration for SignalEnrichmentProviders.
  */
-public interface SignalEnrichmentFacadeByRoundTripConfig {
+public interface SignalEnrichmentProviderConfig {
 
     /**
-     * Relative path of the provider config inside signal-enrichment config.
-     */
-    String CONFIG_PATH = "provider-config";
-
-    /**
-     * Returns the duration to wait for retrievals by roundtrip.
+     * Returns the duration to wait for cache retrievals.
      *
      * @return the internal ask timeout duration.
      */
     Duration getAskTimeout();
 
     /**
-     * An enumeration of the known config path expressions and their associated default values for
-     * {@code SignalEnrichmentFacadeByRoundTripConfig}.
+     * Returns the cache config to apply for each connection scoped signal enrichment cache.
+     *
+     * @return the cache config to apply.
      */
-    enum SignalEnrichmentFacadeByRoundTripConfigValue implements KnownConfigValue {
+    CacheConfig getCacheConfig();
+
+    /**
+     * @return indicates whether caching is enabled or not.
+     */
+    boolean isCachingEnabled();
+
+    /**
+     * An enumeration of the known config path expressions and their associated default values for
+     * {@code CachingSignalEnrichmentFacadeConfig}.
+     */
+    enum ConfigValue implements KnownConfigValue {
 
         /**
-         * The ask timeout duration: the duration to wait for retrievals by roundtrip.
+         * The ask timeout duration: the duration to wait for cache retrievals.
          */
-        ASK_TIMEOUT("ask-timeout", Duration.ofSeconds(10));
+        ASK_TIMEOUT("ask-timeout", Duration.ofSeconds(10)),
+
+        CACHE_ENABLED("cache.enabled", true);
 
         private final String path;
         private final Object defaultValue;
 
-        SignalEnrichmentFacadeByRoundTripConfigValue(final String thePath, final Object theDefaultValue) {
+        ConfigValue(final String thePath, final Object theDefaultValue) {
             path = thePath;
             defaultValue = theDefaultValue;
         }

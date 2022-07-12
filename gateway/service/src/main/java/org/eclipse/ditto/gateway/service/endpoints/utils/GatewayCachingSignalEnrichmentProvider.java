@@ -17,6 +17,7 @@ import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Executor;
 
 import org.eclipse.ditto.internal.models.signalenrichment.CachingSignalEnrichmentFacadeProvider;
+import org.eclipse.ditto.internal.models.signalenrichment.DittoCachingSignalEnrichmentFacade;
 import org.eclipse.ditto.internal.models.signalenrichment.SignalEnrichmentFacade;
 
 import com.typesafe.config.Config;
@@ -44,14 +45,11 @@ public final class GatewayCachingSignalEnrichmentProvider implements GatewaySign
         final GatewayByRoundTripSignalEnrichmentProvider cacheLoaderProvider =
                 new GatewayByRoundTripSignalEnrichmentProvider(actorSystem, config);
         final Executor cacheLoaderExecutor = actorSystem.dispatchers().lookup(CACHE_LOADER_DISPATCHER);
-        final var cachingSignalEnrichmentFacadeProvider = CachingSignalEnrichmentFacadeProvider.get(actorSystem);
-        cachingSignalEnrichmentFacade = cachingSignalEnrichmentFacadeProvider.getSignalEnrichmentFacade(
-                actorSystem,
+        cachingSignalEnrichmentFacade = DittoCachingSignalEnrichmentFacade.newInstance(
                 cacheLoaderProvider.getByRoundTripSignalEnrichmentFacade(),
                 getSignalEnrichmentConfig(actorSystem).getCacheConfig(),
                 cacheLoaderExecutor,
-                "gateway"
-        );
+                "gateway");
     }
 
     @Override

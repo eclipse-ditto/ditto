@@ -74,6 +74,7 @@ import org.eclipse.ditto.connectivity.service.util.ConnectivityMdcEntryKey;
 import org.eclipse.ditto.internal.models.signalenrichment.SignalEnrichmentFacade;
 import org.eclipse.ditto.internal.utils.akka.controlflow.AbstractGraphActor;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
+import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import org.eclipse.ditto.internal.utils.pubsub.StreamingType;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
@@ -103,6 +104,7 @@ import akka.Done;
 import akka.NotUsed;
 import akka.actor.ActorRef;
 import akka.actor.ActorSelection;
+import akka.actor.ActorSystem;
 import akka.actor.Props;
 import akka.actor.Status;
 import akka.japi.Pair;
@@ -156,7 +158,7 @@ public final class OutboundMappingProcessorActor
         super(OutboundSignal.class, logger ->
                 logger.withMdcEntry(ConnectivityMdcEntryKey.CONNECTION_ID, connection.getId())
         );
-
+        final ActorSystem system = context().system();
         this.clientActor = clientActor;
         this.outboundMappingProcessors = checkNotEmpty(outboundMappingProcessors, "outboundMappingProcessors");
         this.connection = connection;
@@ -169,8 +171,9 @@ public final class OutboundMappingProcessorActor
         responseDispatchedMonitor = connectionMonitorRegistry.forResponseDispatched(this.connection);
         responseDroppedMonitor = connectionMonitorRegistry.forResponseDropped(this.connection);
         responseMappedMonitor = connectionMonitorRegistry.forResponseMapped(this.connection);
-        signalEnrichmentFacade =
-                ConnectivitySignalEnrichmentProvider.get(getContext().getSystem()).getFacade(this.connection.getId());
+        signalEnrichmentFacade = ConnectivitySignalEnrichmentProvider.get(system,
+                        ScopedConfig.dittoExtension(system.settings().config()))
+                .getFacade(this.connection.getId());
         this.processorPoolSize = determinePoolSize(processorPoolSize, mappingConfig.getMaxPoolSize());
         toErrorResponseFunction = DittoRuntimeExceptionToErrorResponseFunction.of(limitsConfig.getHeadersMaxSize());
     }
@@ -701,7 +704,7 @@ public final class OutboundMappingProcessorActor
                                 .toList();
                         final Predicate<AcknowledgementLabel> willPublish =
                                 ConnectionValidator.getTargetIssuedAcknowledgementLabels(connection.getId(),
-                                        targetsToPublishAt)
+                                                targetsToPublishAt)
                                         .collect(Collectors.toSet())::contains;
                         final var signalsWithoutEnrichmentFailures =
                                 filterFailedEnrichments(outboundSignals, willPublish, context, logger);

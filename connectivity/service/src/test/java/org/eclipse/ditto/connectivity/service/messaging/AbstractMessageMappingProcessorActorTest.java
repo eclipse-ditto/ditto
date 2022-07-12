@@ -54,7 +54,7 @@ import org.eclipse.ditto.connectivity.model.PayloadMappingDefinition;
 import org.eclipse.ditto.connectivity.model.SourceBuilder;
 import org.eclipse.ditto.connectivity.model.Target;
 import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
-import org.eclipse.ditto.connectivity.service.mapping.ConnectivityCachingSignalEnrichmentProvider;
+import org.eclipse.ditto.connectivity.service.mapping.DefaultConnectivitySignalEnrichmentProvider;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.internal.utils.protocol.ProtocolAdapterProvider;
 import org.eclipse.ditto.json.JsonObject;
@@ -169,7 +169,7 @@ public abstract class AbstractMessageMappingProcessorActorTest {
                 TestConstants.CONFIG
                         .withValue("ditto.connectivity.signal-enrichment.provider",
                                 ConfigValueFactory.fromAnyRef(
-                                        ConnectivityCachingSignalEnrichmentProvider.class.getCanonicalName())
+                                        DefaultConnectivitySignalEnrichmentProvider.class.getCanonicalName())
                         )
         );
         final TestProbe probe = TestProbe.apply(actorSystem);
