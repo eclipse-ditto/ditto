@@ -216,11 +216,12 @@ public final class GatewayRootActor extends DittoRootActor {
             final ProtocolAdapterProvider protocolAdapterProvider,
             final HeaderTranslator headerTranslator) {
 
+        final var dittoExtensionConfig = ScopedConfig.dittoExtension(actorSystem.settings().config());
         final AuthenticationConfig authConfig = gatewayConfig.getAuthenticationConfig();
         final Materializer materializer = SystemMaterializer.get(actorSystem).materializer();
 
         final GatewayAuthenticationDirectiveFactory authenticationDirectiveFactory =
-                GatewayAuthenticationDirectiveFactory.get(actorSystem);
+                GatewayAuthenticationDirectiveFactory.get(actorSystem, dittoExtensionConfig);
 
         final DevopsAuthenticationDirective devopsAuthenticationDirective =
                 devopsAuthenticationDirectiveFactory.devops();
@@ -238,7 +239,6 @@ public final class GatewayRootActor extends DittoRootActor {
         final HttpConfig httpConfig = gatewayConfig.getHttpConfig();
 
         final var streamingConfig = gatewayConfig.getStreamingConfig();
-        final var dittoExtensionConfig = ScopedConfig.dittoExtension(actorSystem.settings().config());
         final var signalEnrichmentProvider = GatewaySignalEnrichmentProvider.get(actorSystem, dittoExtensionConfig);
 
         final var commandConfig = gatewayConfig.getCommandConfig();

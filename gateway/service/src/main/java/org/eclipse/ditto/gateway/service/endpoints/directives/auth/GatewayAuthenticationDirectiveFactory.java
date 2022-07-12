@@ -14,8 +14,12 @@ package org.eclipse.ditto.gateway.service.endpoints.directives.auth;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
+import org.eclipse.ditto.base.service.DittoExtensionIds;
 import org.eclipse.ditto.base.service.DittoExtensionPoint;
+import org.eclipse.ditto.base.service.RootChildActorStarter;
 import org.eclipse.ditto.gateway.service.security.authentication.jwt.JwtAuthenticationFactory;
+
+import com.typesafe.config.Config;
 
 import akka.actor.ActorSystem;
 
@@ -43,23 +47,31 @@ public interface GatewayAuthenticationDirectiveFactory extends DittoExtensionPoi
      * {@code ActorSystem}.
      *
      * @param actorSystem the actorSystem in which the {@code GatewayAuthenticationDirectiveFactory} should be loaded.
+     * @param config the configuration for this extension.
      * @return the {@code GatewayAuthenticationDirectiveFactory} implementation.
      * @throws NullPointerException if {@code actorSystem} is {@code null}.
      * @since 3.0.0
      */
-    static GatewayAuthenticationDirectiveFactory get(final ActorSystem actorSystem) {
+    static GatewayAuthenticationDirectiveFactory get(final ActorSystem actorSystem, final Config config) {
         checkNotNull(actorSystem, "actorSystem");
-        return ExtensionId.INSTANCE.get(actorSystem);
+        checkNotNull(config, "config");
+        final var extensionIdConfig = ExtensionId.computeConfig(config);
+        return DittoExtensionIds.get(actorSystem)
+                .computeIfAbsent(extensionIdConfig, ExtensionId::new)
+                .get(actorSystem);
     }
 
     final class ExtensionId extends DittoExtensionPoint.ExtensionId<GatewayAuthenticationDirectiveFactory> {
 
-        private static final String CONFIG_PATH =
-                "ditto.gateway.authentication.gateway-authentication-directive-factory";
-        private static final ExtensionId INSTANCE = new ExtensionId(GatewayAuthenticationDirectiveFactory.class);
+        private static final String CONFIG_KEY = "gateway-authentication-directive-factory";
+        private static final String CONFIG_PATH = "ditto.extensions." + CONFIG_KEY;
 
-        private ExtensionId(final Class<GatewayAuthenticationDirectiveFactory> parentClass) {
-            super(parentClass);
+        private ExtensionId(final ExtensionIdConfig<GatewayAuthenticationDirectiveFactory> extensionIdConfig) {
+            super(extensionIdConfig);
+        }
+
+        static ExtensionIdConfig<GatewayAuthenticationDirectiveFactory> computeConfig(final Config config) {
+            return ExtensionIdConfig.of(GatewayAuthenticationDirectiveFactory.class, config, CONFIG_KEY);
         }
 
         @Override
