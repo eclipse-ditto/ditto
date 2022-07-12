@@ -76,6 +76,8 @@ import org.eclipse.ditto.things.model.ThingFieldSelector;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 
+import com.typesafe.config.Config;
+
 import akka.NotUsed;
 import akka.actor.ActorRef;
 import akka.actor.ActorSelection;
@@ -151,9 +153,11 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
         this.streamingConfig = streamingConfig;
         this.queryFilterCriteriaFactory = queryFilterCriteriaFactory;
         this.pubSubMediator = pubSubMediator;
-        final var dittoExtensionsConfig = ScopedConfig.dittoExtension(actorSystem.settings().config());
+        final Config config = actorSystem.settings().config();
+        final var dittoExtensionsConfig = ScopedConfig.dittoExtension(config);
         eventSniffer = SseEventSniffer.get(actorSystem, dittoExtensionsConfig);
-        sseAuthorizationEnforcer = StreamingAuthorizationEnforcer.sse(actorSystem);
+        final var sseConfig = ScopedConfig.getOrEmpty(config, "ditto.gateway.streaming.sse");
+        sseAuthorizationEnforcer = StreamingAuthorizationEnforcer.get(actorSystem, sseConfig);
         sseConnectionSupervisor = SseConnectionSupervisor.get(actorSystem);
     }
 
