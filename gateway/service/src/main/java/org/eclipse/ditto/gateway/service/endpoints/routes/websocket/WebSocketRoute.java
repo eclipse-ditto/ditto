@@ -96,8 +96,6 @@ import org.eclipse.ditto.thingsearch.model.ThingSearchException;
 import org.eclipse.ditto.thingsearch.model.signals.commands.SearchErrorResponse;
 import org.slf4j.Logger;
 
-import com.typesafe.config.Config;
-
 import akka.NotUsed;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
@@ -191,7 +189,7 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
         final var config = actorSystem.settings().config();
         final var dittoExtensionsConfig = ScopedConfig.dittoExtension(config);
         incomingMessageSniffer = IncomingWebSocketEventSniffer.get(actorSystem, dittoExtensionsConfig);
-        outgoingMessageSniffer = OutgoingWebSocketEventSniffer.get(actorSystem);
+        outgoingMessageSniffer = OutgoingWebSocketEventSniffer.get(actorSystem, dittoExtensionsConfig);
         final var websocketConfig = ScopedConfig.getOrEmpty(config, "ditto.gateway.streaming.websocket");
         authorizationEnforcer = StreamingAuthorizationEnforcer.get(actorSystem, websocketConfig);
         webSocketSupervisor = WebSocketSupervisor.get(actorSystem);
