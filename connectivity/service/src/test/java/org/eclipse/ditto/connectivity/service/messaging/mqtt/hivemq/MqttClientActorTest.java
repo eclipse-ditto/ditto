@@ -75,6 +75,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
+import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 
@@ -87,6 +88,7 @@ import akka.actor.ActorSystem;
 import akka.actor.Props;
 import akka.actor.Status;
 import akka.http.javadsl.model.Uri;
+import akka.testkit.TestActorRef;
 import akka.testkit.javadsl.TestKit;
 import io.reactivex.Flowable;
 import io.reactivex.Single;
@@ -94,6 +96,10 @@ import io.reactivex.Single;
 /**
  * Unit test for {@link MqttClientActor}.
  */
+// It is crucial to use `TestActorRef` for the GenericMqttClientActor.
+// This ensures that the actor runs in the same thread as the tests.
+// The same thread is necessary because otherwise Mockito's static mocking
+// of `GenericMqttClientFactory` would not work.
 @RunWith(MockitoJUnitRunner.class)
 public final class MqttClientActorTest extends AbstractBaseClientActorTest {
 
@@ -123,6 +129,7 @@ public final class MqttClientActorTest extends AbstractBaseClientActorTest {
     private static final Status.Success DISCONNECTED_SUCCESS = new Status.Success(BaseClientState.DISCONNECTED);
 
     private static Supplier<ConnectionType> mqttConnectionTypeSupplier;
+    @Mock private static MockedStatic<GenericMqttClientFactory> genericMqttClientFactoryMock;
 
     @Rule public final ActorSystemResource actorSystemResource = ActorSystemResource.newInstance(TestConstants.CONFIG);
     @Rule public final TestNameCorrelationId testNameCorrelationId = TestNameCorrelationId.newInstance();
@@ -170,6 +177,8 @@ public final class MqttClientActorTest extends AbstractBaseClientActorTest {
 
     private void enableGenericMqttClientFactoryMethodStubbing() {
         Mockito.when(genericMqttClientFactory.getGenericMqttClient(Mockito.any())).thenReturn(genericMqttClient);
+        genericMqttClientFactoryMock.when(() -> GenericMqttClientFactory.newInstance())
+                .thenReturn(genericMqttClientFactory);
     }
 
     @Override
@@ -193,8 +202,7 @@ public final class MqttClientActorTest extends AbstractBaseClientActorTest {
                 proxyActor,
                 connectionActor.getRef(),
                 DittoHeaders.empty(),
-                ConfigFactory.empty(),
-                genericMqttClientFactory);
+                ConfigFactory.empty());
     }
 
     @Override
@@ -204,11 +212,12 @@ public final class MqttClientActorTest extends AbstractBaseClientActorTest {
 
     @Test
     public void openAndCloseConnection() {
-        final var underTest = actorSystemResource.newActor(createClientActor(proxyActor.getRef(),
-                ConnectivityModelFactory.newConnectionBuilder(getConnection(false))
-                        .connectionStatus(ConnectivityStatus.CLOSED)
-                        .specificConfig(Map.of("separatePublisherClient", "false"))
-                        .build()));
+        final var underTest = TestActorRef.apply(createClientActor(proxyActor.getRef(),
+                        ConnectivityModelFactory.newConnectionBuilder(getConnection(false))
+                                .connectionStatus(ConnectivityStatus.CLOSED)
+                                .specificConfig(Map.of("separatePublisherClient", "false"))
+                                .build()),
+                actorSystemResource.getActorSystem());
 
         final var dittoHeaders = getDittoHeadersWithCorrelationId();
         final var testKit = actorSystemResource.newTestKit();
@@ -230,10 +239,13 @@ public final class MqttClientActorTest extends AbstractBaseClientActorTest {
     public void subscribeFails() {
         final var mqttSubscribeException = new MqttSubscribeException("Quisquam omnis in quia hic et libero.", null);
         Mockito.when(genericMqttClient.subscribe(Mockito.any())).thenReturn(Single.error(mqttSubscribeException));
-        final var underTest = actorSystemResource.newActor(createClientActor(proxyActor.getRef(),
-                ConnectivityModelFactory.newConnectionBuilder(getConnection(false))
-                        .connectionStatus(ConnectivityStatus.CLOSED)
-                        .build()));
+        final var underTest = TestActorRef.apply(
+                createClientActor(proxyActor.getRef(),
+                        ConnectivityModelFactory.newConnectionBuilder(getConnection(false))
+                                .connectionStatus(ConnectivityStatus.CLOSED)
+                                .build()),
+                actorSystemResource.getActorSystem()
+        );
         final var testKit = actorSystemResource.newTestKit();
 
         underTest.tell(OpenConnection.of(CONNECTION_ID, getDittoHeadersWithCorrelationId()), testKit.getRef());
@@ -247,19 +259,22 @@ public final class MqttClientActorTest extends AbstractBaseClientActorTest {
     @Test
     public void consumeFromTopicAndRetrieveConnectionMetrics() {
         enableSubscribingAndConsumingMethodStubbing(getMqttPublish(SOURCE_ADDRESS, getSerializedModifyThingCommand()));
-        final var underTest = actorSystemResource.newActor(createClientActor(
-                proxyActor.getRef(),
-                ConnectivityModelFactory.newConnectionBuilder(getConnection(false))
-                        .sources(List.of(ConnectivityModelFactory.newSourceBuilder()
-                                .authorizationContext(TestConstants.Authorization.AUTHORIZATION_CONTEXT)
-                                .index(2)
-                                .consumerCount(1)
-                                .address("topic1")
-                                .address("topic2")
-                                .qos(1)
-                                .build()))
-                        .build()
-        ));
+        final var underTest = TestActorRef.apply(
+                createClientActor(
+                        proxyActor.getRef(),
+                        ConnectivityModelFactory.newConnectionBuilder(getConnection(false))
+                                .sources(List.of(ConnectivityModelFactory.newSourceBuilder()
+                                        .authorizationContext(TestConstants.Authorization.AUTHORIZATION_CONTEXT)
+                                        .index(2)
+                                        .consumerCount(1)
+                                        .address("topic1")
+                                        .address("topic2")
+                                        .qos(1)
+                                        .build()))
+                                .build()
+                ),
+                actorSystemResource.getActorSystem()
+        );
         final var dittoHeadersWithCorrelationId = getDittoHeadersWithCorrelationId();
         final var testKit = actorSystemResource.newTestKit();
 
@@ -280,8 +295,8 @@ public final class MqttClientActorTest extends AbstractBaseClientActorTest {
                 .build();
         Mockito.when(genericMqttClient.connect(Mockito.any())).thenReturn(CompletableFuture.completedStage(null));
         final var testKit = actorSystemResource.newTestKit();
-        final var underTest =
-                testKit.watch(actorSystemResource.newActor(createClientActor(proxyActor.getRef(), connection)));
+        final var underTest = TestActorRef.apply(createClientActor(proxyActor.getRef(), connection),
+                actorSystemResource.getActorSystem());
 
         underTest.tell(TestConnection.of(connection, getDittoHeadersWithCorrelationId()), testKit.getRef());
 
@@ -299,8 +314,10 @@ public final class MqttClientActorTest extends AbstractBaseClientActorTest {
                 .connectionStatus(ConnectivityStatus.CLOSED)
                 .build();
         final var testKit = actorSystemResource.newTestKit();
-        final var underTest =
-                testKit.watch(actorSystemResource.newActor(createClientActor(proxyActor.getRef(), connection)));
+        final var underTest = testKit.watch(TestActorRef.apply(
+                createClientActor(proxyActor.getRef(), connection),
+                actorSystemResource.getActorSystem()
+        ));
 
         underTest.tell(TestConnection.of(connection, getDittoHeadersWithCorrelationId()), testKit.getRef());
 
@@ -370,17 +387,19 @@ public final class MqttClientActorTest extends AbstractBaseClientActorTest {
                 "custom.qos", getHeaderPlaceholder(MqttHeader.MQTT_QOS.getName()),
                 "custom.retain", getHeaderPlaceholder(MqttHeader.MQTT_RETAIN.getName())
         ));
-        actorSystemResource.newActor(createClientActor(
-                proxyActor.getRef(),
-                ConnectivityModelFactory.newConnectionBuilder(connection)
-                        .setSources(connection.getSources()
-                                .stream()
-                                .map(ConnectivityModelFactory::newSourceBuilder)
-                                .map(sourceBuilder -> sourceBuilder.headerMapping(headerMapping))
-                                .map(SourceBuilder::build)
-                                .collect(Collectors.toList()))
-                        .build()
-        ));
+        TestActorRef.apply(
+                createClientActor(
+                        proxyActor.getRef(),
+                        ConnectivityModelFactory.newConnectionBuilder(connection)
+                                .setSources(connection.getSources()
+                                        .stream()
+                                        .map(ConnectivityModelFactory::newSourceBuilder)
+                                        .map(sourceBuilder -> sourceBuilder.headerMapping(headerMapping))
+                                        .map(SourceBuilder::build)
+                                        .collect(Collectors.toList()))
+                                .build()),
+                actorSystemResource.getActorSystem()
+        );
 
         final var modifyThing = proxyActor.expectMsgClass(ModifyThing.class);
         assertThat(modifyThing.getDittoHeaders())
@@ -402,21 +421,23 @@ public final class MqttClientActorTest extends AbstractBaseClientActorTest {
     public void consumeFromTopicWithIdEnforcement() {
         enableSubscribingAndConsumingMethodStubbing(getMqttPublish("eclipse/ditto/thing",
                 getSerializedModifyThingCommand()));
-        actorSystemResource.newActor(createClientActor(
-                proxyActor.getRef(),
-                ConnectivityModelFactory.newConnectionBuilder(getConnection(false))
-                        .setSources(List.of(ConnectivityModelFactory.newSourceBuilder()
-                                .addresses(Set.of("eclipse/+/+"))
-                                .authorizationContext(TestConstants.Authorization.AUTHORIZATION_CONTEXT)
-                                .consumerCount(1)
-                                .enforcement(ConnectivityModelFactory.newSourceAddressEnforcement(
-                                        "eclipse/{{ thing:namespace }}/{{ thing:name }}"
-                                ))
-                                .replyTarget(ReplyTarget.newBuilder().address("{{ header:reply-to }}").build())
-                                .qos(1)
-                                .build()))
-                        .build()
-        ));
+        TestActorRef.apply(
+                createClientActor(
+                        proxyActor.getRef(),
+                        ConnectivityModelFactory.newConnectionBuilder(getConnection(false))
+                                .setSources(List.of(ConnectivityModelFactory.newSourceBuilder()
+                                        .addresses(Set.of("eclipse/+/+"))
+                                        .authorizationContext(TestConstants.Authorization.AUTHORIZATION_CONTEXT)
+                                        .consumerCount(1)
+                                        .enforcement(ConnectivityModelFactory.newSourceAddressEnforcement(
+                                                "eclipse/{{ thing:namespace }}/{{ thing:name }}"
+                                        ))
+                                        .replyTarget(ReplyTarget.newBuilder().address("{{ header:reply-to }}").build())
+                                        .qos(1)
+                                        .build()))
+                                .build()
+                ),
+                actorSystemResource.getActorSystem());
 
         proxyActor.expectMsgClass(ModifyThing.class);
     }
@@ -425,21 +446,24 @@ public final class MqttClientActorTest extends AbstractBaseClientActorTest {
     public void consumeFromTopicWithIdEnforcementExpectErrorResponse() {
         enableSubscribingAndConsumingMethodStubbing(getMqttPublish("eclipse/invalid/address",
                 getSerializedModifyThingCommand()));
-        actorSystemResource.newActor(createClientActor(
-                proxyActor.getRef(),
-                ConnectivityModelFactory.newConnectionBuilder(getConnection(false))
-                        .setSources(List.of(ConnectivityModelFactory.newSourceBuilder()
-                                .addresses(Set.of("eclipse/+/+"))
-                                .authorizationContext(TestConstants.Authorization.AUTHORIZATION_CONTEXT)
-                                .consumerCount(1)
-                                .enforcement(ConnectivityModelFactory.newSourceAddressEnforcement(
-                                        "eclipse/{{ thing:namespace }}/{{ thing:name }}"
-                                ))
-                                .replyTarget(ReplyTarget.newBuilder().address("{{ header:reply-to }}").build())
-                                .qos(1)
-                                .build()))
-                        .build()
-        ));
+        TestActorRef.apply(
+                createClientActor(
+                        proxyActor.getRef(),
+                        ConnectivityModelFactory.newConnectionBuilder(getConnection(false))
+                                .setSources(List.of(ConnectivityModelFactory.newSourceBuilder()
+                                        .addresses(Set.of("eclipse/+/+"))
+                                        .authorizationContext(TestConstants.Authorization.AUTHORIZATION_CONTEXT)
+                                        .consumerCount(1)
+                                        .enforcement(ConnectivityModelFactory.newSourceAddressEnforcement(
+                                                "eclipse/{{ thing:namespace }}/{{ thing:name }}"
+                                        ))
+                                        .replyTarget(ReplyTarget.newBuilder().address("{{ header:reply-to }}").build())
+                                        .qos(1)
+                                        .build()))
+                                .build()
+                ),
+                actorSystemResource.getActorSystem()
+        );
 
         final var genericMqttPublish = proxyActor.expectMsgClass(GenericMqttPublish.class);
         assertThat(genericMqttPublish.getPayloadAsHumanReadable())
@@ -480,37 +504,40 @@ public final class MqttClientActorTest extends AbstractBaseClientActorTest {
                 MqttHeader.MQTT_TOPIC.getName(), getHeaderPlaceholder(MqttHeader.MQTT_TOPIC.getName()),
                 "custom.topic", getHeaderPlaceholder(MqttHeader.MQTT_TOPIC.getName())
         ));
-        actorSystemResource.newActor(createClientActor(
-                proxyActor.getRef(),
-                ConnectivityModelFactory.newConnectionBuilder(getConnection(false))
-                        .sources(List.of(
-                                ConnectivityModelFactory.newSourceBuilder()
-                                        .authorizationContext(TestConstants.Authorization.AUTHORIZATION_CONTEXT)
-                                        .index(1)
-                                        .consumerCount(3)
-                                        .addresses(Set.of(topicA1))
-                                        .headerMapping(headerMapping)
-                                        .qos(1)
-                                        .build(),
-                                ConnectivityModelFactory.newSourceBuilder()
-                                        .authorizationContext(TestConstants.Authorization.AUTHORIZATION_CONTEXT)
-                                        .index(2)
-                                        .consumerCount(3)
-                                        .addresses(Set.of(topicB1, topicB2))
-                                        .headerMapping(headerMapping)
-                                        .qos(1)
-                                        .build(),
-                                ConnectivityModelFactory.newSourceBuilder()
-                                        .authorizationContext(TestConstants.Authorization.AUTHORIZATION_CONTEXT)
-                                        .index(3)
-                                        .consumerCount(1)
-                                        .addresses(Set.of(topicC1, topicC2, topicC3))
-                                        .headerMapping(headerMapping)
-                                        .qos(1)
-                                        .build()
-                        ))
-                        .build()
-        ));
+        TestActorRef.apply(
+                createClientActor(
+                        proxyActor.getRef(),
+                        ConnectivityModelFactory.newConnectionBuilder(getConnection(false))
+                                .sources(List.of(
+                                        ConnectivityModelFactory.newSourceBuilder()
+                                                .authorizationContext(TestConstants.Authorization.AUTHORIZATION_CONTEXT)
+                                                .index(1)
+                                                .consumerCount(3)
+                                                .addresses(Set.of(topicA1))
+                                                .headerMapping(headerMapping)
+                                                .qos(1)
+                                                .build(),
+                                        ConnectivityModelFactory.newSourceBuilder()
+                                                .authorizationContext(TestConstants.Authorization.AUTHORIZATION_CONTEXT)
+                                                .index(2)
+                                                .consumerCount(3)
+                                                .addresses(Set.of(topicB1, topicB2))
+                                                .headerMapping(headerMapping)
+                                                .qos(1)
+                                                .build(),
+                                        ConnectivityModelFactory.newSourceBuilder()
+                                                .authorizationContext(TestConstants.Authorization.AUTHORIZATION_CONTEXT)
+                                                .index(3)
+                                                .consumerCount(1)
+                                                .addresses(Set.of(topicC1, topicC2, topicC3))
+                                                .headerMapping(headerMapping)
+                                                .qos(1)
+                                                .build()
+                                ))
+                                .build()
+                ),
+                actorSystemResource.getActorSystem()
+        );
 
         final var receivedTopicsCounts = IntStream.range(0, genericMqttPublishesForRelevantTopics.size())
                 .mapToObj(i -> proxyActor.expectMsgClass(ModifyThing.class))
@@ -524,8 +551,8 @@ public final class MqttClientActorTest extends AbstractBaseClientActorTest {
     @Test
     public void reconnectAndConsumeFromTopic() {
         enableSubscribingAndConsumingMethodStubbing(getMqttPublish(SOURCE_ADDRESS, getSerializedModifyThingCommand()));
-        final var underTest =
-                actorSystemResource.newActor(createClientActor(proxyActor.getRef(), getConnection(false)));
+        final var underTest = TestActorRef.apply(createClientActor(proxyActor.getRef(), getConnection(false)),
+                actorSystemResource.getActorSystem());
         final var dittoHeadersWithCorrelationId = getDittoHeadersWithCorrelationId();
         final var testKit = actorSystemResource.newTestKit();
 
@@ -551,12 +578,15 @@ public final class MqttClientActorTest extends AbstractBaseClientActorTest {
     public void publishToTopic() {
         final var authorizationContext = MQTT_TARGET.getAuthorizationContext();
         final var thingModifiedEvent = TestConstants.thingModified(authorizationContext.getAuthorizationSubjects());
-        final var underTest = actorSystemResource.newActor(createClientActor(
-                proxyActor.getRef(),
-                ConnectivityModelFactory.newConnectionBuilder(getConnection(false))
-                        .connectionStatus(ConnectivityStatus.CLOSED)
-                        .build()
-        ));
+        final var underTest = TestActorRef.apply(
+                createClientActor(
+                        proxyActor.getRef(),
+                        ConnectivityModelFactory.newConnectionBuilder(getConnection(false))
+                                .connectionStatus(ConnectivityStatus.CLOSED)
+                                .build()
+                ),
+                actorSystemResource.getActorSystem()
+        );
         final var dittoHeadersWithCorrelationId = getDittoHeadersWithCorrelationId();
         final var testKit = actorSystemResource.newTestKit();
 
@@ -578,13 +608,16 @@ public final class MqttClientActorTest extends AbstractBaseClientActorTest {
 
     @Test
     public void publishToReplyTarget() {
-        final var underTest = actorSystemResource.newActor(createClientActor(
-                proxyActor.getRef(),
-                ConnectivityModelFactory.newConnectionBuilder(getConnection(false))
-                        .connectionStatus(ConnectivityStatus.CLOSED)
-                        .setSources(TestConstants.Sources.SOURCES_WITH_AUTH_CONTEXT)
-                        .build()
-        ));
+        final var underTest = TestActorRef.apply(
+                createClientActor(
+                        proxyActor.getRef(),
+                        ConnectivityModelFactory.newConnectionBuilder(getConnection(false))
+                                .connectionStatus(ConnectivityStatus.CLOSED)
+                                .setSources(TestConstants.Sources.SOURCES_WITH_AUTH_CONTEXT)
+                                .build()
+                ),
+                actorSystemResource.getActorSystem()
+        );
         final var dittoHeadersWithCorrelationId = getDittoHeadersWithCorrelationId();
         final var testKit = actorSystemResource.newTestKit();
         final var thingId = ThingId.generateRandom();
