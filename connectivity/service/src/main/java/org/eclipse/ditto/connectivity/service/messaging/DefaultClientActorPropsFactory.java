@@ -77,8 +77,7 @@ public final class DefaultClientActorPropsFactory implements ClientActorPropsFac
                     proxyActor,
                     connectionActor,
                     dittoHeaders,
-                    connectivityConfigOverwrites,
-                    GenericMqttClientFactory.newInstance());
+                    connectivityConfigOverwrites);
             case KAFKA -> KafkaClientActor.props(connection,
                     proxyActor,
                     connectionActor,
