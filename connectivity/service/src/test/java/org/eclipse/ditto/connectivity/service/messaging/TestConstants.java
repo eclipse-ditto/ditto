@@ -109,6 +109,7 @@ import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
+import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import org.eclipse.ditto.internal.utils.persistentactors.config.PingConfig;
 import org.eclipse.ditto.internal.utils.protocol.config.ProtocolConfig;
 import org.eclipse.ditto.internal.utils.pubsub.StreamingType;
@@ -917,9 +918,11 @@ public final class TestConstants {
             final ActorSystem actorSystem,
             final ActorRef commandForwarderActor,
             final ActorRef pubSubMediator) {
-
-        final var enforcerActorPropsFactory = ConnectionEnforcerActorPropsFactory.get(actorSystem);
-        final Props props = ConnectionSupervisorActor.props(commandForwarderActor, pubSubMediator, enforcerActorPropsFactory);
+        final var dittoExtensionsConfig = ScopedConfig.dittoExtension(actorSystem.settings().config());
+        final var enforcerActorPropsFactory =
+                ConnectionEnforcerActorPropsFactory.get(actorSystem, dittoExtensionsConfig);
+        final Props props =
+                ConnectionSupervisorActor.props(commandForwarderActor, pubSubMediator, enforcerActorPropsFactory);
 
         final Props shardRegionMockProps = Props.create(ShardRegionMockActor.class, props, connectionId.toString());
 

@@ -79,7 +79,9 @@ public final class ConnectivityRootActor extends DittoRootActor {
 
         final ActorRef commandForwarder = getCommandForwarder(clusterConfig, pubSubMediator);
 
-        final var enforcerActorPropsFactory = ConnectionEnforcerActorPropsFactory.get(actorSystem);
+        final var dittoExtensionsConfig = ScopedConfig.dittoExtension(actorSystem.settings().config());
+        final var enforcerActorPropsFactory =
+                ConnectionEnforcerActorPropsFactory.get(actorSystem, dittoExtensionsConfig);
         final var connectionSupervisorProps =
                 ConnectionSupervisorActor.props(commandForwarder, pubSubMediator, enforcerActorPropsFactory);
         // Create persistence streaming actor (with no cache) and make it known to pubSubMediator.

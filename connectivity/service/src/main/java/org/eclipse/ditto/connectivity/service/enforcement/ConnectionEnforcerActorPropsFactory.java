@@ -14,8 +14,11 @@ package org.eclipse.ditto.connectivity.service.enforcement;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
+import org.eclipse.ditto.base.service.DittoExtensionIds;
 import org.eclipse.ditto.base.service.DittoExtensionPoint;
 import org.eclipse.ditto.connectivity.model.ConnectionId;
+
+import com.typesafe.config.Config;
 
 import akka.actor.ActorSystem;
 import akka.actor.Props;
@@ -31,18 +34,26 @@ public interface ConnectionEnforcerActorPropsFactory extends DittoExtensionPoint
      */
     Props get(ConnectionId connectionId);
 
-    static ConnectionEnforcerActorPropsFactory get(final ActorSystem actorSystem) {
+    static ConnectionEnforcerActorPropsFactory get(final ActorSystem actorSystem, final Config config) {
         checkNotNull(actorSystem, "actorSystem");
-        return ExtensionId.INSTANCE.get(actorSystem);
+        checkNotNull(config, "config");
+        final var extensionIdConfig = ExtensionId.computeConfig(config);
+        return DittoExtensionIds.get(actorSystem)
+                .computeIfAbsent(extensionIdConfig, ExtensionId::new)
+                .get(actorSystem);
     }
 
     final class ExtensionId extends DittoExtensionPoint.ExtensionId<ConnectionEnforcerActorPropsFactory> {
 
-        private static final String CONFIG_PATH = "ditto.connectivity.connection.enforcer-actor-props-factory";
-        private static final ExtensionId INSTANCE = new ExtensionId(ConnectionEnforcerActorPropsFactory.class);
+        private static final String CONFIG_KEY = "connection-enforcer-actor-props-factory";
+        private static final String CONFIG_PATH = "ditto.extensions." + CONFIG_KEY;
 
-        private ExtensionId(final Class<ConnectionEnforcerActorPropsFactory> parentClass) {
-            super(parentClass);
+        private ExtensionId(final ExtensionIdConfig<ConnectionEnforcerActorPropsFactory> extensionIdConfig) {
+            super(extensionIdConfig);
+        }
+
+        static ExtensionIdConfig<ConnectionEnforcerActorPropsFactory> computeConfig(final Config config) {
+            return ExtensionIdConfig.of(ConnectionEnforcerActorPropsFactory.class, config, CONFIG_KEY);
         }
 
         @Override

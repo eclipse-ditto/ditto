@@ -32,6 +32,7 @@ import org.eclipse.ditto.connectivity.model.signals.commands.modify.CreateConnec
 import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConnection;
 import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConnectionResponse;
 import org.eclipse.ditto.connectivity.service.enforcement.ConnectionEnforcerActorPropsFactory;
+import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.ops.eventsource.MongoEventSourceITAssertions;
 import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
 import org.junit.Test;
@@ -124,7 +125,8 @@ public final class ConnectionPersistenceOperationsActorIT extends MongoEventSour
 
         // essentially never restart
         final TestProbe proxyActorProbe = new TestProbe(system, "proxyActor");
-        final var enforcerActorPropsFactory = ConnectionEnforcerActorPropsFactory.get(system);
+        final var dittoExtensionsConfig = ScopedConfig.dittoExtension(system.settings().config());
+        final var enforcerActorPropsFactory = ConnectionEnforcerActorPropsFactory.get(system, dittoExtensionsConfig);
         final Props props =
                 ConnectionSupervisorActor.props(proxyActorProbe.ref(), pubSubMediator, enforcerActorPropsFactory);
 
