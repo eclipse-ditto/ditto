@@ -1,7 +1,7 @@
 ---
 title: "Reactive MQTT Connectivity"
 published: true
-permalink: 2022-07-12-reactive-mqtt
+permalink: 2022-07-12-reactive-mqtt.html
 layout: post
 author: juergen_fickel
 tags: [blog]
