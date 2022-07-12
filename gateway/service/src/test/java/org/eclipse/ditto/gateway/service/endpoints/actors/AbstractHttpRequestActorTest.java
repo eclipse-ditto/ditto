@@ -66,7 +66,6 @@ import akka.http.javadsl.model.ResponseEntity;
 import akka.http.javadsl.model.StatusCode;
 import akka.http.javadsl.model.StatusCodes;
 import akka.http.javadsl.model.headers.RawHeader;
-import akka.testkit.TestProbe;
 import akka.util.ByteString;
 
 /**
@@ -82,7 +81,6 @@ public abstract class AbstractHttpRequestActorTest {
             MessageHeaderDefinition.values());
 
     protected static GatewayConfig gatewayConfig;
-    protected static TestProbe connectivityShardRegionProxy;
 
     @Rule
     public final TestNameCorrelationId testNameCorrelationId = TestNameCorrelationId.newInstance();
@@ -90,7 +88,6 @@ public abstract class AbstractHttpRequestActorTest {
     @BeforeClass
     public static void beforeClass() {
         gatewayConfig = DittoGatewayConfig.of(DefaultScopedConfig.dittoScoped(ConfigFactory.load("test.conf")));
-        connectivityShardRegionProxy = ACTOR_SYSTEM_RESOURCE.newTestProbe();
     }
 
     void testThingModifyCommand(final ThingId thingId,

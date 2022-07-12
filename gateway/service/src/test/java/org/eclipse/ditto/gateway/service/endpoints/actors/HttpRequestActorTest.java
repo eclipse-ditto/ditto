@@ -485,7 +485,7 @@ public final class HttpRequestActorTest extends AbstractHttpRequestActorTest {
         commandHandler.expectNoMessage();
 
         // Assert expected log entry for invalid response.
-        final var addConnectionLogEntry = connectivityShardRegionProxy.expectMsgClass(SudoAddConnectionLogEntry.class);
+        final var addConnectionLogEntry = proxyActorTestProbe.expectMsgClass(SudoAddConnectionLogEntry.class);
         softly.assertThat((Object) addConnectionLogEntry.getEntityId()).as("connection ID").isEqualTo(connectionId);
         softly.assertThat(addConnectionLogEntry.getLogEntry())
                 .as("log entry")
@@ -546,7 +546,7 @@ public final class HttpRequestActorTest extends AbstractHttpRequestActorTest {
         );
 
         commandHandler.expectNoMessage();
-        connectivityShardRegionProxy.expectNoMessage();
+        proxyActorTestProbe.expectNoMessage();
 
         final var futureCompletionTimeout = httpConfig.getRequestTimeout().plusSeconds(1L);
         final var httpResponse = httpResponseFuture.get(futureCompletionTimeout.toMillis(), TimeUnit.MILLISECONDS);
@@ -599,7 +599,7 @@ public final class HttpRequestActorTest extends AbstractHttpRequestActorTest {
         commandHandler.expectNoMessage();
 
         // Assert expected log entry for invalid response.
-        final var addConnectionLogEntry = connectivityShardRegionProxy.expectMsgClass(SudoAddConnectionLogEntry.class);
+        final var addConnectionLogEntry = proxyActorTestProbe.expectMsgClass(SudoAddConnectionLogEntry.class);
         softly.assertThat((Object) addConnectionLogEntry.getEntityId()).as("connection ID").isEqualTo(connectionId);
         softly.assertThat(addConnectionLogEntry.getLogEntry())
                 .as("log entry")
