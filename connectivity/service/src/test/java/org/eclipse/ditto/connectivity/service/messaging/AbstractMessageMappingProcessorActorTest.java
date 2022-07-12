@@ -75,6 +75,7 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.mockito.Mockito;
 
+import com.typesafe.config.ConfigFactory;
 import com.typesafe.config.ConfigValueFactory;
 
 import akka.actor.ActorRef;
@@ -167,10 +168,10 @@ public abstract class AbstractMessageMappingProcessorActorTest {
         TestKit.shutdownActorSystem(actorSystem);
         actorSystem = ActorSystem.create("AkkaTestSystemWithCachingSignalEnrichmentProvider",
                 TestConstants.CONFIG
-                        .withValue("ditto.connectivity.signal-enrichment.provider",
-                                ConfigValueFactory.fromAnyRef(
-                                        DefaultConnectivitySignalEnrichmentProvider.class.getCanonicalName())
-                        )
+                        .withValue("ditto.extensions.signal-enrichment-provider.extension-class",
+                                ConfigValueFactory.fromAnyRef(DefaultConnectivitySignalEnrichmentProvider.class.getCanonicalName()))
+                        .withValue("ditto.extensions.signal-enrichment-provider.extension-config.cache.enabled",
+                                ConfigValueFactory.fromAnyRef(true))
         );
         final TestProbe probe = TestProbe.apply(actorSystem);
         MockCommandForwarder.create(actorSystem, probe.ref());
