@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Contributors to the Eclipse Foundation
+ * Copyright (c) 2022 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.connectivity.api.messaging.monitoring.logs;
+package org.eclipse.ditto.connectivity.api.commands.sudo;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
@@ -45,9 +45,9 @@ import org.junit.Test;
 import nl.jqno.equalsverifier.EqualsVerifier;
 
 /**
- * Unit test for {@link AddConnectionLogEntry}.
+ * Unit test for {@link SudoAddConnectionLogEntry}.
  */
-public final class AddConnectionLogEntryTest {
+public final class SudoAddConnectionLogEntryTest {
 
     private static final ConnectionId CONNECTION_ID = ConnectionId.generateRandom();
     
@@ -72,12 +72,12 @@ public final class AddConnectionLogEntryTest {
 
     @Test
     public void assertImmutability() {
-        assertInstancesOf(AddConnectionLogEntry.class, areImmutable(), provided(LogEntry.class).isAlsoImmutable());
+        assertInstancesOf(SudoAddConnectionLogEntry.class, areImmutable(), provided(LogEntry.class).isAlsoImmutable());
     }
 
     @Test
     public void testHashCodeAndEquals() {
-        EqualsVerifier.forClass(AddConnectionLogEntry.class)
+        EqualsVerifier.forClass(SudoAddConnectionLogEntry.class)
                 .usingGetClass()
                 .verify();
     }
@@ -85,7 +85,7 @@ public final class AddConnectionLogEntryTest {
     @Test
     public void getInstanceWithNullLogEntryThrowsException() {
         assertThatNullPointerException()
-                .isThrownBy(() -> AddConnectionLogEntry.newInstance(CONNECTION_ID, null, DITTO_HEADERS))
+                .isThrownBy(() -> SudoAddConnectionLogEntry.newInstance(CONNECTION_ID, null, DITTO_HEADERS))
                 .withMessage("The logEntry must not be null!")
                 .withNoCause();
     }
@@ -93,28 +93,28 @@ public final class AddConnectionLogEntryTest {
     @Test
     public void getInstanceWithNullConnectionIdThrowsException() {
         assertThatNullPointerException()
-                .isThrownBy(() -> AddConnectionLogEntry.newInstance(null, logEntry, DITTO_HEADERS))
+                .isThrownBy(() -> SudoAddConnectionLogEntry.newInstance(null, logEntry, DITTO_HEADERS))
                 .withMessage("The connectionId must not be null!")
                 .withNoCause();
     }
 
     @Test
     public void getInstanceReturnsNotNull() {
-        final var instance = AddConnectionLogEntry.newInstance(CONNECTION_ID, logEntry, DITTO_HEADERS);
+        final var instance = SudoAddConnectionLogEntry.newInstance(CONNECTION_ID, logEntry, DITTO_HEADERS);
 
         assertThat(instance).isNotNull();
     }
 
     @Test
     public void getConnectionIdReturnsExpected() {
-        final var underTest = AddConnectionLogEntry.newInstance(CONNECTION_ID, logEntry, DITTO_HEADERS);
+        final var underTest = SudoAddConnectionLogEntry.newInstance(CONNECTION_ID, logEntry, DITTO_HEADERS);
 
         assertThat((CharSequence) underTest.getEntityId()).isEqualTo(CONNECTION_ID);
     }
 
     @Test
     public void getLogEntryReturnsExpected() {
-        final var underTest = AddConnectionLogEntry.newInstance(CONNECTION_ID, logEntry, DITTO_HEADERS);
+        final var underTest = SudoAddConnectionLogEntry.newInstance(CONNECTION_ID, logEntry, DITTO_HEADERS);
 
         assertThat(underTest.getLogEntry()).isEqualTo(logEntry);
     }
@@ -122,12 +122,12 @@ public final class AddConnectionLogEntryTest {
     @Test
     public void toJsonReturnsExpected() {
         final var jsonObject = JsonObject.newBuilder()
-                .set(Command.JsonFields.TYPE, AddConnectionLogEntry.TYPE)
+                .set(Command.JsonFields.TYPE, SudoAddConnectionLogEntry.TYPE)
                 .set(ConnectivityCommand.JsonFields.JSON_CONNECTION_ID, CONNECTION_ID.toString())
-                .set(AddConnectionLogEntry.JsonFields.LOG_ENTRY, logEntry.toJson())
+                .set(SudoAddConnectionLogEntry.JsonFields.LOG_ENTRY, logEntry.toJson())
                 .build();
 
-        final var underTest = AddConnectionLogEntry.newInstance(CONNECTION_ID, logEntry, DITTO_HEADERS);
+        final var underTest = SudoAddConnectionLogEntry.newInstance(CONNECTION_ID, logEntry, DITTO_HEADERS);
 
         assertThat(underTest.toJson()).isEqualTo(jsonObject);
     }
@@ -135,26 +135,26 @@ public final class AddConnectionLogEntryTest {
     @Test
     public void fromJsonWithNullJsonObjectThrowsException() {
         assertThatNullPointerException()
-                .isThrownBy(() -> AddConnectionLogEntry.fromJson(null, DITTO_HEADERS))
+                .isThrownBy(() -> SudoAddConnectionLogEntry.fromJson(null, DITTO_HEADERS))
                 .withNoCause();
     }
 
     @Test
     public void fromJsonWithValidJsonObjectReturnsExpected() {
-        final var addConnectionLogEntry = AddConnectionLogEntry.newInstance(CONNECTION_ID, logEntry, DITTO_HEADERS);
+        final var addConnectionLogEntry = SudoAddConnectionLogEntry.newInstance(CONNECTION_ID, logEntry, DITTO_HEADERS);
 
-        assertThat(AddConnectionLogEntry.fromJson(addConnectionLogEntry.toJson(), DITTO_HEADERS)).isEqualTo(addConnectionLogEntry);
+        assertThat(SudoAddConnectionLogEntry.fromJson(addConnectionLogEntry.toJson(), DITTO_HEADERS)).isEqualTo(addConnectionLogEntry);
     }
 
     @Test
     public void fromJsonWithMissingConnectionIdJsonFieldThrowsException() {
         final var invalidAddConnectionLogEntryJsonObject = JsonObject.newBuilder()
-                .set(Command.JsonFields.TYPE, AddConnectionLogEntry.TYPE)
-                .set(AddConnectionLogEntry.JsonFields.LOG_ENTRY, logEntry.toJson())
+                .set(Command.JsonFields.TYPE, SudoAddConnectionLogEntry.TYPE)
+                .set(SudoAddConnectionLogEntry.JsonFields.LOG_ENTRY, logEntry.toJson())
                 .build();
 
         assertThatExceptionOfType(JsonMissingFieldException.class)
-                .isThrownBy(() -> AddConnectionLogEntry.fromJson(invalidAddConnectionLogEntryJsonObject, DITTO_HEADERS))
+                .isThrownBy(() -> SudoAddConnectionLogEntry.fromJson(invalidAddConnectionLogEntryJsonObject, DITTO_HEADERS))
                 .withMessageStartingWith("JSON did not include required <%s>",
                         ConnectivityCommand.JsonFields.JSON_CONNECTION_ID.getPointer());
     }
@@ -162,54 +162,54 @@ public final class AddConnectionLogEntryTest {
     @Test
     public void fromJsonWithMissingLogEntryJsonFieldThrowsException() {
         final var invalidAddConnectionLogEntryJsonObject = JsonObject.newBuilder()
-                .set(Command.JsonFields.TYPE, AddConnectionLogEntry.TYPE)
+                .set(Command.JsonFields.TYPE, SudoAddConnectionLogEntry.TYPE)
                 .set(ConnectivityCommand.JsonFields.JSON_CONNECTION_ID, CONNECTION_ID.toString())
                 .build();
 
         assertThatExceptionOfType(JsonParseException.class)
-                .isThrownBy(() -> AddConnectionLogEntry.fromJson(invalidAddConnectionLogEntryJsonObject, DITTO_HEADERS))
+                .isThrownBy(() -> SudoAddConnectionLogEntry.fromJson(invalidAddConnectionLogEntryJsonObject, DITTO_HEADERS))
                 .withMessageStartingWith("Failed to deserialize value of key <%s>",
-                        AddConnectionLogEntry.JsonFields.LOG_ENTRY.getPointer());
+                        SudoAddConnectionLogEntry.JsonFields.LOG_ENTRY.getPointer());
     }
 
     @Test
     public void fromJsonWithInvalidConnectionIdValueTypeThrowsException() {
         final var connectionIdFieldDefinition = ConnectivityCommand.JsonFields.JSON_CONNECTION_ID;
-        final var addConnectionLogEntry = AddConnectionLogEntry.newInstance(CONNECTION_ID, logEntry, DITTO_HEADERS);
+        final var addConnectionLogEntry = SudoAddConnectionLogEntry.newInstance(CONNECTION_ID, logEntry, DITTO_HEADERS);
         final var invalidAddConnectionLogEntryJsonObject =
                 JsonFactory.newObjectBuilder(addConnectionLogEntry.toJson())
                         .set(connectionIdFieldDefinition.getPointer(), JsonValue.of(42))
                         .build();
 
         assertThatExceptionOfType(JsonParseException.class)
-                .isThrownBy(() -> AddConnectionLogEntry.fromJson(invalidAddConnectionLogEntryJsonObject, DITTO_HEADERS));
+                .isThrownBy(() -> SudoAddConnectionLogEntry.fromJson(invalidAddConnectionLogEntryJsonObject, DITTO_HEADERS));
     }
 
     @Test
     public void fromJsonWithCorruptedConnectionIdValueTypeThrowsException() {
         final var connectionIdFieldDefinition = ConnectivityCommand.JsonFields.JSON_CONNECTION_ID;
-        final var addConnectionLogEntry = AddConnectionLogEntry.newInstance(CONNECTION_ID, logEntry, DITTO_HEADERS);
+        final var addConnectionLogEntry = SudoAddConnectionLogEntry.newInstance(CONNECTION_ID, logEntry, DITTO_HEADERS);
         final String connectionId = "%myInvalidConnectionId%";
         final var invalidAddConnectionLogEntryJsonObject = JsonFactory.newObjectBuilder(addConnectionLogEntry.toJson())
                 .set(connectionIdFieldDefinition.getPointer(), connectionId)
                 .build();
 
         assertThatExceptionOfType(ConnectionIdInvalidException.class)
-                .isThrownBy(() -> AddConnectionLogEntry.fromJson(invalidAddConnectionLogEntryJsonObject, DITTO_HEADERS))
+                .isThrownBy(() -> SudoAddConnectionLogEntry.fromJson(invalidAddConnectionLogEntryJsonObject, DITTO_HEADERS))
                 .withMessageStartingWith("The Connection ID '%s' is not valid",
                         connectionId);
     }
 
     @Test
     public void fromJsonWithInvalidLogEntryValueTypeThrowsException() {
-        final var logEntryFieldDefinition = AddConnectionLogEntry.JsonFields.LOG_ENTRY;
-        final var addConnectionLogEntry = AddConnectionLogEntry.newInstance(CONNECTION_ID, logEntry, DITTO_HEADERS);
+        final var logEntryFieldDefinition = SudoAddConnectionLogEntry.JsonFields.LOG_ENTRY;
+        final var addConnectionLogEntry = SudoAddConnectionLogEntry.newInstance(CONNECTION_ID, logEntry, DITTO_HEADERS);
         final var invalidAddConnectionLogEntryJsonObject = JsonFactory.newObjectBuilder(addConnectionLogEntry.toJson())
                 .set(logEntryFieldDefinition.getPointer(), "foo")
                 .build();
 
         assertThatExceptionOfType(JsonParseException.class)
-                .isThrownBy(() -> AddConnectionLogEntry.fromJson(invalidAddConnectionLogEntryJsonObject, DITTO_HEADERS))
+                .isThrownBy(() -> SudoAddConnectionLogEntry.fromJson(invalidAddConnectionLogEntryJsonObject, DITTO_HEADERS))
                 .withMessageStartingWith("Failed to deserialize value of key <%s> as %s:",
                         logEntryFieldDefinition.getPointer(),
                         LogEntry.class.getName())
@@ -218,18 +218,18 @@ public final class AddConnectionLogEntryTest {
 
     @Test
     public void fromJsonWithCorruptedLogEntryValueThrowsException() {
-        final var logEntryFieldDefinition = AddConnectionLogEntry.JsonFields.LOG_ENTRY;
+        final var logEntryFieldDefinition = SudoAddConnectionLogEntry.JsonFields.LOG_ENTRY;
         final var invalidLogEntryJsonObject = JsonFactory.newObjectBuilder(logEntry.toJson())
                 .set(LogEntry.JsonFields.LEVEL, "foo")
                 .build();
         final var invalidAddConnectionLogEntryJsonObject = JsonObject.newBuilder()
-                .set(Command.JsonFields.TYPE, AddConnectionLogEntry.TYPE)
+                .set(Command.JsonFields.TYPE, SudoAddConnectionLogEntry.TYPE)
                 .set(ConnectivityCommand.JsonFields.JSON_CONNECTION_ID, CONNECTION_ID.toString())
                 .set(logEntryFieldDefinition, invalidLogEntryJsonObject)
                 .build();
 
         assertThatExceptionOfType(JsonParseException.class)
-                .isThrownBy(() -> AddConnectionLogEntry.fromJson(invalidAddConnectionLogEntryJsonObject, DITTO_HEADERS))
+                .isThrownBy(() -> SudoAddConnectionLogEntry.fromJson(invalidAddConnectionLogEntryJsonObject, DITTO_HEADERS))
                 .withMessageStartingWith("Failed to deserialize value of key <%s>",
                         logEntryFieldDefinition.getPointer());
     }

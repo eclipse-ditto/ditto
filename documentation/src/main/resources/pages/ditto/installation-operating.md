@@ -923,7 +923,7 @@ for a particular thing by a DevOp-command and bring the entry up-to-date immedia
     "is-grouped-topic": true
   },
   "piggybackCommand": {
-    "type": "thing-search.commands:updateThing",
+    "type": "thing-search.sudo.commands:sudoUpdateThing",
     "thingId": "<THING-ID>"
   }
 }

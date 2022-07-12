@@ -45,14 +45,12 @@ import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.signals.SignalWithEntityId;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.connectivity.api.BaseClientState;
-import org.eclipse.ditto.connectivity.api.messaging.monitoring.logs.AddConnectionLogEntry;
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.connectivity.model.ConnectionLifecycle;
 import org.eclipse.ditto.connectivity.model.ConnectionMetrics;
 import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
 import org.eclipse.ditto.connectivity.model.ConnectivityStatus;
-import org.eclipse.ditto.connectivity.model.LogEntry;
 import org.eclipse.ditto.connectivity.model.signals.commands.ConnectivityCommandInterceptor;
 import org.eclipse.ditto.connectivity.model.signals.commands.exceptions.ConnectionFailedException;
 import org.eclipse.ditto.connectivity.model.signals.commands.exceptions.ConnectionNotAccessibleException;
@@ -305,7 +303,8 @@ public final class ConnectionPersistenceActor
 
     @Override
     protected CommandStrategy.Context<ConnectionState> getStrategyContext() {
-        return DefaultContext.getInstance(ConnectionState.of(entityId, connectionLogger, commandValidator), log);
+        return DefaultContext.getInstance(
+                ConnectionState.of(entityId, connectionLoggerRegistry, connectionLogger, commandValidator), log);
     }
 
     @Override
@@ -677,23 +676,8 @@ public final class ConnectionPersistenceActor
                 .match(ClientActorRefs.class, this::syncClientActorRefs)
                 .match(ActorRef.class, this::addClientActor)
                 .match(Terminated.class, this::removeClientActor)
-                .match(AddConnectionLogEntry.class, this::handleAddConnectionLogEntry)
                 .build()
                 .orElse(super.matchAnyAfterInitialization());
-    }
-
-    private void handleAddConnectionLogEntry(final AddConnectionLogEntry addConnectionLogEntry) {
-        final var logEntry = addConnectionLogEntry.getLogEntry();
-        log.withCorrelationId(logEntry.getCorrelationId()).debug("Handling <{}>.", addConnectionLogEntry);
-        final var logger = getAppropriateLogger(addConnectionLogEntry.getEntityId(), logEntry);
-        logger.logEntry(logEntry);
-    }
-
-    private ConnectionLogger getAppropriateLogger(final ConnectionId connectionId, final LogEntry logEntry) {
-        return connectionLoggerRegistry.getLogger(connectionId,
-                logEntry.getLogCategory(),
-                logEntry.getLogType(),
-                logEntry.getAddress().orElse(null));
     }
 
     @Override

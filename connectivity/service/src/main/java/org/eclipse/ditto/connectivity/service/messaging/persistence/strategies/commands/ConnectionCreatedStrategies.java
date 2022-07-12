@@ -63,6 +63,7 @@ public final class ConnectionCreatedStrategies
         strategies.addStrategy(new RetrieveConnectionMetricsStrategy());
         strategies.addStrategy(new LoggingExpiredStrategy());
         strategies.addStrategy(new SudoRetrieveConnectionTagsStrategy());
+        strategies.addStrategy(new SudoAddConnectionLogEntryStrategy());
         return strategies;
     }
 

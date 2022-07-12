@@ -36,7 +36,6 @@ public final class RouteBaseProperties {
     private final HttpConfig httpConfig;
     private final CommandConfig commandConfig;
     private final HeaderTranslator headerTranslator;
-    private final ActorRef connectivityShardRegionProxy;
 
     private RouteBaseProperties(final Builder builder) {
         proxyActor = ConditionChecker.checkNotNull(builder.proxyActor, "builder.proxyActor");
@@ -44,8 +43,6 @@ public final class RouteBaseProperties {
         httpConfig = ConditionChecker.checkNotNull(builder.httpConfig, "builder.httpConfig");
         commandConfig = ConditionChecker.checkNotNull(builder.commandConfig, "builder.commandConfig");
         headerTranslator = ConditionChecker.checkNotNull(builder.headerTranslator, "builder.headerTranslator");
-        connectivityShardRegionProxy = ConditionChecker.checkNotNull(builder.connectivityShardRegionProxy,
-                "builder.connectivityShardRegionProxy");
     }
 
     /**
@@ -71,8 +68,7 @@ public final class RouteBaseProperties {
                 .actorSystem(routeBaseProperties.getActorSystem())
                 .httpConfig(routeBaseProperties.getHttpConfig())
                 .commandConfig(routeBaseProperties.getCommandConfig())
-                .headerTranslator(routeBaseProperties.getHeaderTranslator())
-                .connectivityShardRegionProxy(routeBaseProperties.getConnectivityShardRegionProxy());
+                .headerTranslator(routeBaseProperties.getHeaderTranslator());
     }
 
     /**
@@ -120,15 +116,6 @@ public final class RouteBaseProperties {
         return headerTranslator;
     }
 
-    /**
-     * Returns the connectivity shard region actor proxy reference.
-     *
-     * @return the connectivity shard region actor proxy reference.
-     */
-    public ActorRef getConnectivityShardRegionProxy() {
-        return connectivityShardRegionProxy;
-    }
-
     @Override
     public boolean equals(@Nullable final Object o) {
         if (this == o) {
@@ -142,8 +129,7 @@ public final class RouteBaseProperties {
                 Objects.equals(actorSystem, that.actorSystem) &&
                 Objects.equals(httpConfig, that.httpConfig) &&
                 Objects.equals(commandConfig, that.commandConfig) &&
-                Objects.equals(headerTranslator, that.headerTranslator) &&
-                Objects.equals(connectivityShardRegionProxy, that.connectivityShardRegionProxy);
+                Objects.equals(headerTranslator, that.headerTranslator);
     }
 
     @Override
@@ -152,8 +138,7 @@ public final class RouteBaseProperties {
                 actorSystem,
                 httpConfig,
                 commandConfig,
-                headerTranslator,
-                connectivityShardRegionProxy);
+                headerTranslator);
     }
 
     @NotThreadSafe
@@ -164,7 +149,6 @@ public final class RouteBaseProperties {
         private HttpConfig httpConfig;
         private CommandConfig commandConfig;
         private HeaderTranslator headerTranslator;
-        private ActorRef connectivityShardRegionProxy;
 
         private Builder() {
             proxyActor = null;
@@ -172,7 +156,6 @@ public final class RouteBaseProperties {
             httpConfig = null;
             commandConfig = null;
             headerTranslator = null;
-            connectivityShardRegionProxy = null;
         }
 
         /**
@@ -232,19 +215,6 @@ public final class RouteBaseProperties {
          */
         public Builder headerTranslator(final HeaderTranslator headerTranslator) {
             this.headerTranslator = ConditionChecker.checkNotNull(headerTranslator, "headerTranslator");
-            return this;
-        }
-
-        /**
-         * Sets the specified connectivity shard region actor proxy reference.
-         *
-         * @param connectivityShardRegionProxy the actor reference to be set.
-         * @return this builder to allow method chaining.
-         * @throws NullPointerException if {@code connectivityShardRegionProxy} is {@code null}.
-         */
-        public Builder connectivityShardRegionProxy(final ActorRef connectivityShardRegionProxy) {
-            this.connectivityShardRegionProxy =
-                    ConditionChecker.checkNotNull(connectivityShardRegionProxy, "connectivityShardRegionProxy");
             return this;
         }
 

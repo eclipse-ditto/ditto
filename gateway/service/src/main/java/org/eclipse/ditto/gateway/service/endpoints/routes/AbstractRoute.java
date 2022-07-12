@@ -119,10 +119,10 @@ public abstract class AbstractRoute extends AllDirectives {
 
     private static Attributes createSupervisionStrategy() {
         return ActorAttributes.withSupervisionStrategy(exc -> {
-            if (exc instanceof DittoRuntimeException) {
-                LOGGER.withCorrelationId((DittoRuntimeException) exc)
+            if (exc instanceof DittoRuntimeException dre) {
+                LOGGER.withCorrelationId(dre)
                         .debug("DittoRuntimeException during materialization of HTTP request: [{}] {}",
-                                exc.getClass().getSimpleName(), exc.getMessage());
+                                dre.getClass().getSimpleName(), dre.getMessage());
             } else {
                 LOGGER.warn("Exception during materialization of HTTP request: {}", exc.getMessage(), exc);
             }
@@ -285,8 +285,7 @@ public abstract class AbstractRoute extends AllDirectives {
                 ctx.getRequest(),
                 httpResponseFuture,
                 routeBaseProperties.getHttpConfig(),
-                routeBaseProperties.getCommandConfig(),
-                routeBaseProperties.getConnectivityShardRegionProxy());
+                routeBaseProperties.getCommandConfig());
 
         final var actorSystem = routeBaseProperties.getActorSystem();
         return actorSystem.actorOf(props);

@@ -36,16 +36,14 @@ public final class HttpRequestActor extends AbstractHttpRequestActor {
             final HttpRequest request,
             final CompletableFuture<HttpResponse> httpResponseFuture,
             final HttpConfig httpConfig,
-            final CommandConfig commandConfig,
-            final ActorRef connectivityShardRegionProxy) {
+            final CommandConfig commandConfig) {
 
         super(proxyActor,
                 headerTranslator,
                 request,
                 httpResponseFuture,
                 httpConfig,
-                commandConfig,
-                connectivityShardRegionProxy);
+                commandConfig);
     }
 
     /**
@@ -59,7 +57,6 @@ public final class HttpRequestActor extends AbstractHttpRequestActor {
      * @param httpResponseFuture the completable future which is completed with a HTTP response.
      * @param httpConfig the configuration settings of the Gateway service's HTTP endpoint.
      * @param commandConfig the configuration settings for incoming commands (via HTTP requests) in the gateway.
-     * @param connectivityShardRegionProxy proxy actor reference for Connectivity's cluster shard region.
      * @return the configuration object.
      */
     public static Props props(final ActorRef proxyActor,
@@ -67,8 +64,7 @@ public final class HttpRequestActor extends AbstractHttpRequestActor {
             final HttpRequest request,
             final CompletableFuture<HttpResponse> httpResponseFuture,
             final HttpConfig httpConfig,
-            final CommandConfig commandConfig,
-            final ActorRef connectivityShardRegionProxy) {
+            final CommandConfig commandConfig) {
 
         return Props.create(HttpRequestActor.class,
                 proxyActor,
@@ -76,8 +72,7 @@ public final class HttpRequestActor extends AbstractHttpRequestActor {
                 request,
                 httpResponseFuture,
                 httpConfig,
-                commandConfig,
-                connectivityShardRegionProxy);
+                commandConfig);
     }
 
 }

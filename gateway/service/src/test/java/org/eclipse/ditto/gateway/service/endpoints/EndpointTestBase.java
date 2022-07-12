@@ -165,7 +165,6 @@ public abstract class EndpointTestBase extends JUnitRouteTest {
                 .httpConfig(httpConfig)
                 .commandConfig(commandConfig)
                 .headerTranslator(httpHeaderTranslator)
-                .connectivityShardRegionProxy(connectivityShardRegionProxyActor.ref())
                 .build();
         dittoHeaders = DittoHeaders.newBuilder().correlationId(testNameCorrelationId.getCorrelationId()).build();
     }

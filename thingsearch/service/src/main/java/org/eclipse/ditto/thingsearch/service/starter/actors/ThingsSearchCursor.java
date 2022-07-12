@@ -32,6 +32,12 @@ import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.base.model.exceptions.DittoRuntimeExceptionBuilder;
+import org.eclipse.ditto.base.model.exceptions.InvalidRqlExpressionException;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
+import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.json.JsonFactory;
@@ -40,18 +46,14 @@ import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
-import org.eclipse.ditto.base.model.exceptions.DittoRuntimeExceptionBuilder;
-import org.eclipse.ditto.base.model.exceptions.InvalidRqlExpressionException;
-import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
+import org.eclipse.ditto.rql.model.ParserException;
+import org.eclipse.ditto.rql.parser.thingsearch.RqlOptionParser;
 import org.eclipse.ditto.rql.query.Query;
 import org.eclipse.ditto.rql.query.SortDirection;
 import org.eclipse.ditto.rql.query.criteria.Criteria;
 import org.eclipse.ditto.rql.query.criteria.CriteriaFactory;
-import org.eclipse.ditto.rql.model.ParserException;
 import org.eclipse.ditto.things.model.Thing;
-import org.eclipse.ditto.things.model.ThingId;
+import org.eclipse.ditto.thingsearch.api.commands.sudo.SudoStreamThings;
 import org.eclipse.ditto.thingsearch.model.CursorOption;
 import org.eclipse.ditto.thingsearch.model.LimitOption;
 import org.eclipse.ditto.thingsearch.model.Option;
@@ -60,14 +62,10 @@ import org.eclipse.ditto.thingsearch.model.SearchResultBuilder;
 import org.eclipse.ditto.thingsearch.model.SizeOption;
 import org.eclipse.ditto.thingsearch.model.SortOption;
 import org.eclipse.ditto.thingsearch.model.SortOptionEntry;
-import org.eclipse.ditto.rql.parser.thingsearch.RqlOptionParser;
-import org.eclipse.ditto.thingsearch.service.common.model.ResultList;
-import org.eclipse.ditto.thingsearch.service.common.model.TimestampedThingId;
-import org.eclipse.ditto.thingsearch.service.persistence.write.mapping.JsonToBson;
-import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.thingsearch.model.signals.commands.exceptions.InvalidOptionException;
 import org.eclipse.ditto.thingsearch.model.signals.commands.query.QueryThings;
-import org.eclipse.ditto.thingsearch.model.signals.commands.query.StreamThings;
+import org.eclipse.ditto.thingsearch.service.common.model.ResultList;
+import org.eclipse.ditto.thingsearch.service.persistence.write.mapping.JsonToBson;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -158,8 +156,7 @@ final class ThingsSearchCursor {
 
     @Override
     public boolean equals(final Object that) {
-        if (that instanceof ThingsSearchCursor) {
-            final ThingsSearchCursor c = (ThingsSearchCursor) that;
+        if (that instanceof ThingsSearchCursor c) {
             return Arrays.asList(filter, namespaces, correlationId, sortOption, values)
                     .equals(Arrays.asList(c.filter, c.namespaces, c.correlationId, c.sortOption, c.values));
         } else {
@@ -405,23 +402,23 @@ final class ThingsSearchCursor {
         });
     }
 
-    static Source<Optional<ThingsSearchCursor>, NotUsed> extractCursor(final StreamThings streamThings) {
-        return catchExceptions(streamThings.getDittoHeaders(), () -> {
-            final Optional<JsonArray> sortValuesOptional = streamThings.getSortValues();
+    static Source<Optional<ThingsSearchCursor>, NotUsed> extractCursor(final SudoStreamThings sudoStreamThings) {
+        return catchExceptions(sudoStreamThings.getDittoHeaders(), () -> {
+            final Optional<JsonArray> sortValuesOptional = sudoStreamThings.getSortValues();
             if (sortValuesOptional.isEmpty()) {
                 return Source.single(Optional.empty());
             }
             final JsonArray sortValues = sortValuesOptional.get();
-            final List<Option> options = streamThings.getSort().map(RqlOptionParser::parseOptions).orElseGet(List::of);
+            final List<Option> options = sudoStreamThings.getSort().map(RqlOptionParser::parseOptions).orElseGet(List::of);
             final SortOption sortOption = findUniqueSortOption(options);
             if (sortValues.getSize() != sortOption.getSize()) {
                 return Source.failed(
-                        invalidCursor("sort option and sort values have different dimensions", streamThings));
+                        invalidCursor("sort option and sort values have different dimensions", sudoStreamThings));
             }
-            final ThingsSearchCursor cursor = new ThingsSearchCursor(streamThings.getNamespaces().orElse(null),
-                    streamThings.getDittoHeaders().getCorrelationId().orElse(null),
+            final ThingsSearchCursor cursor = new ThingsSearchCursor(sudoStreamThings.getNamespaces().orElse(null),
+                    sudoStreamThings.getDittoHeaders().getCorrelationId().orElse(null),
                     sortOption,
-                    streamThings.getFilter().orElse(null),
+                    sudoStreamThings.getFilter().orElse(null),
                     sortValues
             );
             return Source.single(Optional.of(cursor));

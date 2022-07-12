@@ -17,6 +17,7 @@ import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
 import org.eclipse.ditto.base.model.signals.events.Event;
+import org.eclipse.ditto.connectivity.api.commands.sudo.ConnectivitySudoCommand;
 import org.eclipse.ditto.connectivity.model.signals.commands.ConnectivityCommand;
 import org.eclipse.ditto.internal.utils.aggregator.ThingsAggregatorProxyActor;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
@@ -122,11 +123,17 @@ public class EdgeCommandForwarderActor extends AbstractActor {
                 .match(MessageCommandResponse.class, this::forwardToThings)
                 .match(ThingCommand.class, this::forwardToThings)
                 .match(ThingCommandResponse.class, CommandResponse::isLiveCommandResponse, this::forwardToThings)
+                .match(ThingCommandResponse.class, twinCommandResponse -> log.withCorrelationId(twinCommandResponse)
+                        .warning("Ignoring ThingCommandResponse received on 'twin' channel: <{}>", twinCommandResponse))
                 .match(ThingEvent.class, Event::isLiveEvent, this::forwardToThings)
+                .match(ThingEvent.class, twinEvent -> log.withCorrelationId(twinEvent)
+                        .warning("Ignoring ThingEvent received on 'twin' channel: <{}>", twinEvent)
+                )
                 .match(RetrieveThings.class, this::forwardToThingsAggregatorProxy)
                 .match(SudoRetrieveThings.class, this::forwardToThingsAggregatorProxy)
                 .match(PolicyCommand.class, this::forwardToPolicies)
                 .match(ConnectivityCommand.class, this::forwardToConnectivity)
+                .match(ConnectivitySudoCommand.class, this::forwardToConnectivity)
                 .match(ThingSearchCommand.class, this::forwardToThingSearch)
                 .match(ThingSearchSudoCommand.class, this::forwardToThingSearch)
                 .match(Signal.class, this::handleUnknownSignal)
@@ -189,13 +196,12 @@ public class EdgeCommandForwarderActor extends AbstractActor {
 
     }
 
-    private void forwardToConnectivity(final ConnectivityCommand<?> connectivityCommand) {
+    private void forwardToConnectivity(final Command<?> connectivityCommand) {
         if (connectivityCommand instanceof WithEntityId withEntityId) {
             final ActorRef sender = getSender();
             signalTransformer.apply(connectivityCommand)
                     .thenAccept(transformed -> {
-                        final ConnectivityCommand<?> transformedConnectivityCommand =
-                                (ConnectivityCommand<?>) transformed;
+                        final Command<?> transformedConnectivityCommand = (Command<?>) transformed;
                         log.withCorrelationId(transformedConnectivityCommand)
                                 .info("Forwarding connectivity command with ID <{}> and type <{}> to 'connections' " +
                                                 "shard region", withEntityId.getEntityId(),

@@ -34,12 +34,12 @@ import org.eclipse.ditto.rql.parser.thingsearch.RqlOptionParser;
 import org.eclipse.ditto.rql.query.expression.ThingsFieldExpressionFactory;
 import org.eclipse.ditto.rql.query.things.ModelBasedThingsFieldExpressionFactory;
 import org.eclipse.ditto.things.model.Thing;
+import org.eclipse.ditto.thingsearch.api.commands.sudo.SudoStreamThings;
 import org.eclipse.ditto.thingsearch.model.Option;
 import org.eclipse.ditto.thingsearch.model.SizeOption;
 import org.eclipse.ditto.thingsearch.model.SortOption;
 import org.eclipse.ditto.thingsearch.model.SortOptionEntry;
 import org.eclipse.ditto.thingsearch.model.signals.commands.exceptions.InvalidOptionException;
-import org.eclipse.ditto.thingsearch.model.signals.commands.query.StreamThings;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSelection;
@@ -78,7 +78,7 @@ public final class SearchSourceBuilder {
      * invalid.
      */
     public SearchSource build() {
-        final StreamThings streamThings = constructStreamThings();
+        final SudoStreamThings sudoStreamThings = constructStreamThings();
         return new SearchSource(
                 checkNotNull(pubSubMediator, "pubSubMediator"),
                 checkNotNull(commandForwarder, "commandForwarder"),
@@ -86,7 +86,7 @@ public final class SearchSourceBuilder {
                 searchAskTimeout,
                 fields,
                 sortFields,
-                streamThings,
+                sudoStreamThings,
                 lastThingId);
     }
 
@@ -316,8 +316,8 @@ public final class SearchSourceBuilder {
         }
         checkForUnsupportedOptions(parsedOptions);
         final List<SortOption> sortOptions = parsedOptions.stream()
-                .flatMap(option -> option instanceof SortOption
-                        ? Stream.of((SortOption) option)
+                .flatMap(option -> option instanceof SortOption sortOption
+                        ? Stream.of(sortOption)
                         : Stream.empty()
                 )
                 .toList();
@@ -333,8 +333,8 @@ public final class SearchSourceBuilder {
         }
     }
 
-    private StreamThings constructStreamThings() {
-        return StreamThings.of(filter, namespaces, sort, sortValues, checkNotNull(dittoHeaders, "dittoHeaders"));
+    private SudoStreamThings constructStreamThings() {
+        return SudoStreamThings.of(filter, namespaces, sort, sortValues, checkNotNull(dittoHeaders, "dittoHeaders"));
     }
 
     @Nullable

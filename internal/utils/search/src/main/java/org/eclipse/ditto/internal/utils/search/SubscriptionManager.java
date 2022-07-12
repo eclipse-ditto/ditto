@@ -93,7 +93,7 @@ public final class SubscriptionManager extends AbstractActor {
      *
      * @param idleTimeout lifetime of an idle SubscriptionActor.
      * @param pubSubMediator pub-sub mediator for reporting of out-of-sync things.
-     * @param proxyActor recipient of thing and StreamThings commands.
+     * @param proxyActor recipient of thing and SudoStreamThings commands.
      * @param materializer materializer for the search streams.
      * @return Props of the actor.
      */
@@ -115,8 +115,8 @@ public final class SubscriptionManager extends AbstractActor {
         } else {
             final int pageSize = RqlOptionParser.parseOptions(optionString)
                     .stream()
-                    .flatMap(option -> option instanceof SizeOption
-                            ? Stream.of(((SizeOption) option).getSize())
+                    .flatMap(option -> option instanceof SizeOption sizeOption
+                            ? Stream.of(sizeOption.getSize())
                             : Stream.empty())
                     .findFirst()
                     .orElse(defaultPageSize);
@@ -216,7 +216,7 @@ public final class SubscriptionManager extends AbstractActor {
      * @return the lazified source.
      */
     private static <T> Source<T, ?> lazify(final Source<T, ?> upstream) {
-        return Source.lazily(() -> upstream);
+        return Source.lazySource(() -> upstream);
     }
 
 }

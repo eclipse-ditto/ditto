@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Contributors to the Eclipse Foundation
+ * Copyright (c) 2022 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.connectivity.api.messaging.monitoring.logs;
+package org.eclipse.ditto.connectivity.api.commands.sudo;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
@@ -45,14 +45,14 @@ import org.eclipse.ditto.json.JsonRuntimeException;
  * @since 2.3.0
  */
 @Immutable
-@JsonParsableCommand(typePrefix = ConnectivityCommand.TYPE_PREFIX, name = AddConnectionLogEntry.NAME)
-public final class AddConnectionLogEntry extends AbstractCommand<AddConnectionLogEntry>
-        implements ConnectivityCommand<AddConnectionLogEntry>, WithConnectionId {
+@JsonParsableCommand(typePrefix = ConnectivitySudoCommand.TYPE_PREFIX, name = SudoAddConnectionLogEntry.NAME)
+public final class SudoAddConnectionLogEntry extends AbstractCommand<SudoAddConnectionLogEntry>
+        implements ConnectivitySudoCommand<SudoAddConnectionLogEntry>, WithConnectionId {
 
     /**
      * Name of this command.
      */
-    public static final String NAME = "addConnectionLogEntry";
+    public static final String NAME = "sudoAddConnectionLogEntry";
 
     /**
      * Type of this command.
@@ -62,7 +62,7 @@ public final class AddConnectionLogEntry extends AbstractCommand<AddConnectionLo
     private final ConnectionId connectionId;
     private final LogEntry logEntry;
 
-    private AddConnectionLogEntry(final ConnectionId connectionId, final LogEntry logEntry,
+    private SudoAddConnectionLogEntry(final ConnectionId connectionId, final LogEntry logEntry,
             final DittoHeaders dittoHeaders) {
         super(TYPE, dittoHeaders);
         this.connectionId = checkNotNull(connectionId, "connectionId");
@@ -70,7 +70,7 @@ public final class AddConnectionLogEntry extends AbstractCommand<AddConnectionLo
     }
 
     /**
-     * Returns a new instance of {@code AddConnectionLogEntry} for the specified {@code ConnectionId} and
+     * Returns a new instance of {@code SudoAddConnectionLogEntry} for the specified {@code ConnectionId} and
      * {@code LogEntry} argument.
      *
      * @param connectionId ID of the connection to add the log entry for.
@@ -79,26 +79,26 @@ public final class AddConnectionLogEntry extends AbstractCommand<AddConnectionLo
      * @return the instance.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static AddConnectionLogEntry newInstance(final ConnectionId connectionId,
+    public static SudoAddConnectionLogEntry newInstance(final ConnectionId connectionId,
             final LogEntry connectionLogEntry, final DittoHeaders dittoHeaders) {
 
-        return new AddConnectionLogEntry(connectionId, connectionLogEntry, dittoHeaders);
+        return new SudoAddConnectionLogEntry(connectionId, connectionLogEntry, dittoHeaders);
     }
 
     /**
-     * Deserializes an instance of {@code AddConnectionLogEntry} from the specified {@code JsonObject} argument.
+     * Deserializes an instance of {@code SudoAddConnectionLogEntry} from the specified {@code JsonObject} argument.
      *
      * @param jsonObject the JSON object to be deserialized.
      * @param dittoHeaders the headers of the command.
-     * @return the deserialized {@code AddConnectionLogEntry}.
+     * @return the deserialized {@code SudoAddConnectionLogEntry}.
      * @throws NullPointerException if {@code jsonObject} is {@code null}.
      * @throws org.eclipse.ditto.json.JsonMissingFieldException if {@code jsonObject} does not contain all required
      * fields.
      * @throws org.eclipse.ditto.json.JsonParseException if {@code jsonObject} cannot be deserialized because of
      * invalid data.
      */
-    public static AddConnectionLogEntry fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new CommandJsonDeserializer<AddConnectionLogEntry>(TYPE, jsonObject).deserialize(() -> {
+    public static SudoAddConnectionLogEntry fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
+        return new CommandJsonDeserializer<SudoAddConnectionLogEntry>(TYPE, jsonObject).deserialize(() -> {
             final String readConnectionId = jsonObject.getValueOrThrow(ConnectivityCommand.JsonFields.JSON_CONNECTION_ID);
             final ConnectionId connectionId = ConnectionId.of(readConnectionId);
             final LogEntry logEntry = deserializeLogEntryOrThrow(jsonObject);
@@ -149,7 +149,7 @@ public final class AddConnectionLogEntry extends AbstractCommand<AddConnectionLo
     }
 
     @Override
-    public AddConnectionLogEntry setDittoHeaders(final DittoHeaders dittoHeaders) {
+    public SudoAddConnectionLogEntry setDittoHeaders(final DittoHeaders dittoHeaders) {
         return newInstance(connectionId, logEntry, dittoHeaders);
     }
 
@@ -164,7 +164,7 @@ public final class AddConnectionLogEntry extends AbstractCommand<AddConnectionLo
 
     @Override
     protected boolean canEqual(@Nullable final Object other) {
-        return (other instanceof AddConnectionLogEntry);
+        return (other instanceof SudoAddConnectionLogEntry);
     }
 
     @Override
@@ -176,7 +176,7 @@ public final class AddConnectionLogEntry extends AbstractCommand<AddConnectionLo
             return false;}
         if (!super.equals(o)) {return false;
         }
-        final AddConnectionLogEntry that = (AddConnectionLogEntry) o;
+        final SudoAddConnectionLogEntry that = (SudoAddConnectionLogEntry) o;
         return Objects.equals(connectionId, that.connectionId) &&
                 Objects.equals(logEntry, that.logEntry);
     }
@@ -196,7 +196,7 @@ public final class AddConnectionLogEntry extends AbstractCommand<AddConnectionLo
     }
 
     /**
-     * Definitions of the fields an {@code AddConnectionLogEntry} JSON object representation.
+     * Definitions of the fields an {@code SudoAddConnectionLogEntry} JSON object representation.
      */
     @Immutable
     public static final class JsonFields {

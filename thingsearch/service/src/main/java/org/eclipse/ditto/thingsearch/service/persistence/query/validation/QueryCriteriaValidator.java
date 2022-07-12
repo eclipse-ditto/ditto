@@ -16,9 +16,9 @@ import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.util.concurrent.CompletionStage;
 
+import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.base.service.DittoExtensionIds;
 import org.eclipse.ditto.base.service.DittoExtensionPoint;
-import org.eclipse.ditto.thingsearch.model.signals.commands.query.ThingSearchQueryCommand;
 
 import com.typesafe.config.Config;
 
@@ -40,7 +40,7 @@ public interface QueryCriteriaValidator extends DittoExtensionPoint {
      * @param command the command to validate.
      * @return the validated command in a future if it is valid, or a failed future if it is not.
      */
-    CompletionStage<ThingSearchQueryCommand<?>> validateCommand(final ThingSearchQueryCommand<?> command);
+    CompletionStage<Command<?>> validateCommand(Command<?> command);
 
     /**
      * Loads the implementation of {@code QueryCriteriaValidator} which is configured for the

@@ -40,7 +40,6 @@ public interface HttpRequestActorPropsFactory extends DittoExtensionPoint {
      * @param httpResponseFuture promise of an HTTP response to be fulfilled by the actor.
      * @param httpConfig the configuration settings of the Gateway service's HTTP endpoint.
      * @param commandConfig the configuration settings for incoming commands (via HTTP requests) in the gateway.
-     * @param connectivityShardRegionProxy proxy actor reference for Connectivity's cluster shard region.
      * @return Props of the actor.
      */
     Props props(ActorRef proxyActor,
@@ -48,8 +47,7 @@ public interface HttpRequestActorPropsFactory extends DittoExtensionPoint {
             HttpRequest httpRequest,
             CompletableFuture<HttpResponse> httpResponseFuture,
             HttpConfig httpConfig,
-            CommandConfig commandConfig,
-            ActorRef connectivityShardRegionProxy);
+            CommandConfig commandConfig);
 
     static HttpRequestActorPropsFactory get(final ActorSystem actorSystem) {
         return ExtensionId.INSTANCE.get(actorSystem);

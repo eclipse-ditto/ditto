@@ -44,20 +44,14 @@ import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
  */
 @Immutable
 @AllValuesAreNonnullByDefault
-@JsonParsableCommand(typePrefix = UpdateThing.TYPE_PREFIX, name = UpdateThing.NAME)
-// When making this a ThingSearchCommand, beware that it is WithId but actually yes.
-public final class UpdateThing extends AbstractCommand<UpdateThing> implements SignalWithEntityId<UpdateThing>,
-        WithThingId {
-
-    /**
-     * Prefix for the type of this command.
-     */
-    public static final String TYPE_PREFIX = ThingSearchCommand.TYPE_PREFIX;
+@JsonParsableCommand(typePrefix = ThingSearchSudoCommand.TYPE_PREFIX, name = SudoUpdateThing.NAME)
+public final class SudoUpdateThing extends AbstractCommand<SudoUpdateThing>
+        implements ThingSearchSudoCommand<SudoUpdateThing>, SignalWithEntityId<SudoUpdateThing>, WithThingId {
 
     /**
      * Name of this command.
      */
-    public static final String NAME = "updateThing";
+    public static final String NAME = "sudoUpdateThing";
 
     /**
      * Type of this command.
@@ -78,7 +72,7 @@ public final class UpdateThing extends AbstractCommand<UpdateThing> implements S
     private final boolean invalidatePolicy;
     private final UpdateReason updateReason;
 
-    private UpdateThing(final ThingId thingId,
+    private SudoUpdateThing(final ThingId thingId,
             final boolean invalidateThing,
             final boolean invalidatePolicy,
             final UpdateReason updateReason,
@@ -92,38 +86,37 @@ public final class UpdateThing extends AbstractCommand<UpdateThing> implements S
     }
 
     /**
-     * Create an UpdateThing command.
+     * Create an SudoUpdateThing command.
      *
      * @param thingId the ID of the thing whose search index should be updated.
      * @param dittoHeaders Ditto headers of the command.
      * @return the command.
      */
-    public static UpdateThing of(final ThingId thingId,
+    public static SudoUpdateThing of(final ThingId thingId,
             final UpdateReason updateReason,
             final DittoHeaders dittoHeaders) {
-        return new UpdateThing(thingId, true, true, updateReason, dittoHeaders);
+        return new SudoUpdateThing(thingId, true, true, updateReason, dittoHeaders);
     }
 
     /**
-     * Create an UpdateThing command.
+     * Create an SudoUpdateThing command.
      *
      * @param thingId the ID of the thing whose search index should be updated.
      * @param invalidateThing whether the cached thing should be invalidated.
      * @param invalidatePolicy whether the cached policy should be invalidated.
      * @param dittoHeaders Ditto headers of the command.
      * @return the command.
-     * @since 2.1.0
      */
-    public static UpdateThing of(final ThingId thingId,
+    public static SudoUpdateThing of(final ThingId thingId,
             final boolean invalidateThing,
             final boolean invalidatePolicy,
             final UpdateReason updateReason,
             final DittoHeaders dittoHeaders) {
-        return new UpdateThing(thingId, invalidateThing, invalidatePolicy, updateReason, dittoHeaders);
+        return new SudoUpdateThing(thingId, invalidateThing, invalidatePolicy, updateReason, dittoHeaders);
     }
 
     /**
-     * Creates a new {@code UpdateThing} from a JSON object.
+     * Creates a new {@code SudoUpdateThing} from a JSON object.
      *
      * @param jsonObject the JSON object of which the command is to be created.
      * @param dittoHeaders the headers of the command.
@@ -132,7 +125,7 @@ public final class UpdateThing extends AbstractCommand<UpdateThing> implements S
      * @throws org.eclipse.ditto.json.JsonMissingFieldException if {@code jsonObject} did not contain a value for
      * "thingId".
      */
-    public static UpdateThing fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
+    public static SudoUpdateThing fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return of(
                 ThingId.of(jsonObject.getValueOrThrow(JSON_THING_ID)),
                 jsonObject.getValueOrThrow(JSON_INVALIDATE_THING),
@@ -162,8 +155,8 @@ public final class UpdateThing extends AbstractCommand<UpdateThing> implements S
     }
 
     @Override
-    public UpdateThing setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return new UpdateThing(thingId, invalidateThing, invalidatePolicy, updateReason, dittoHeaders);
+    public SudoUpdateThing setDittoHeaders(final DittoHeaders dittoHeaders) {
+        return new SudoUpdateThing(thingId, invalidateThing, invalidatePolicy, updateReason, dittoHeaders);
     }
 
     @Override
@@ -175,7 +168,6 @@ public final class UpdateThing extends AbstractCommand<UpdateThing> implements S
      * Return whether to invalidate the cached thing.
      *
      * @return whether to invalidate the cached thing.
-     * @since 2.1.0
      */
     public boolean shouldInvalidateThing() {
         return invalidateThing;
@@ -185,7 +177,6 @@ public final class UpdateThing extends AbstractCommand<UpdateThing> implements S
      * Return whether to invalidate the cached policy.
      *
      * @return whether to invalidate the cached policy.
-     * @since 2.1.0
      */
     public boolean shouldInvalidatePolicy() {
         return invalidatePolicy;
@@ -195,7 +186,6 @@ public final class UpdateThing extends AbstractCommand<UpdateThing> implements S
      * Return the update reason.
      *
      * @return the update reason.
-     * @since 2.3.0
      */
     public UpdateReason getUpdateReason() {
         return updateReason;
@@ -213,10 +203,10 @@ public final class UpdateThing extends AbstractCommand<UpdateThing> implements S
 
     @Override
     public boolean equals(final Object o) {
-        if (!(o instanceof UpdateThing)) {
+        if (!(o instanceof SudoUpdateThing)) {
             return false;
         } else {
-            final UpdateThing that = (UpdateThing) o;
+            final SudoUpdateThing that = (SudoUpdateThing) o;
             return Objects.equals(thingId, that.thingId) &&
                     invalidateThing == that.invalidateThing &&
                     invalidatePolicy == that.invalidatePolicy &&
@@ -232,12 +222,12 @@ public final class UpdateThing extends AbstractCommand<UpdateThing> implements S
 
     @Override
     public String toString() {
-        return getClass().getSimpleName() +
-                "[" + super.toString() +
-                ",thingId=" + thingId +
-                ",invalidateThing=" + invalidateThing +
-                ",invalidatePolicy=" + invalidatePolicy +
-                ",updateReason=" + updateReason +
+        return getClass().getSimpleName() + " [" +
+                super.toString() +
+                ", thingId=" + thingId +
+                ", invalidateThing=" + invalidateThing +
+                ", invalidatePolicy=" + invalidatePolicy +
+                ", updateReason=" + updateReason +
                 "]";
     }
 

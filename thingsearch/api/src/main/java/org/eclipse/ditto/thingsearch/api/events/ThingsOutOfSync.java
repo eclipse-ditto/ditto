@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Contributors to the Eclipse Foundation
+ * Copyright (c) 2022 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.thingsearch.model.signals.events;
+package org.eclipse.ditto.thingsearch.api.events;
 
 import java.time.Instant;
 import java.util.Collection;
@@ -40,7 +40,7 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.things.model.ThingId;
 
 /**
- * Event to report out-of-sync things in the search index.
+ * Internal Event to report out-of-sync things in the search index.
  */
 @Immutable
 @JsonParsableEvent(name = ThingsOutOfSync.NAME, typePrefix = ThingsOutOfSync.TYPE_PREFIX)

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Contributors to the Eclipse Foundation
+ * Copyright (c) 2022 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -10,33 +10,32 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.thingsearch.model.signals.commands.query;
+package org.eclipse.ditto.thingsearch.api.commands.sudo;
 
-import static org.eclipse.ditto.base.model.signals.commands.assertions.CommandAssertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
-import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.junit.Ignore;
+import org.eclipse.ditto.json.JsonArray;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
 
 /**
- * Tests {@link StreamThings}.
+ * Tests {@link SudoStreamThings}.
  */
-public final class StreamThingsTest {
+public final class SudoStreamThingsTest {
 
     @Test
     public void assertImmutability() {
-        assertInstancesOf(StreamThings.class, areImmutable(), provided(JsonArray.class).isAlsoImmutable());
+        assertInstancesOf(SudoStreamThings.class, areImmutable(), provided(JsonArray.class).isAlsoImmutable());
     }
 
     @Test
     public void testHashCodeAndEquals() {
-        EqualsVerifier.forClass(StreamThings.class)
+        EqualsVerifier.forClass(SudoStreamThings.class)
                 .withRedefinedSuperclass()
                 .verify();
     }
@@ -44,22 +43,22 @@ public final class StreamThingsTest {
     @Test
     public void serializeAllOptionalFields() {
         final DittoHeaders dittoHeaders = DittoHeaders.newBuilder().randomCorrelationId().build();
-        final StreamThings underTest = StreamThings.of("eq(thingId,\"thing:id\")",
+        final SudoStreamThings underTest = SudoStreamThings.of("eq(thingId,\"thing:id\")",
                 JsonArray.of("thing", "namespace"),
                 "sort(+thingId,-attributes/counter,+feature/acceleration/properties/z)",
                 JsonArray.of("thing:hd", 53, 0.975),
                 dittoHeaders
         );
 
-        final StreamThings deserialized = StreamThings.fromJson(underTest.toJson(), dittoHeaders);
+        final SudoStreamThings deserialized = SudoStreamThings.fromJson(underTest.toJson(), dittoHeaders);
         assertThat(deserialized).isEqualTo(underTest);
     }
 
     @Test
     public void serializeNoOptionalField() {
         final DittoHeaders dittoHeaders = DittoHeaders.newBuilder().randomCorrelationId().build();
-        final StreamThings underTest = StreamThings.of(null, null, null, null, dittoHeaders);
-        final StreamThings deserialized = StreamThings.fromJson(underTest.toJson(), dittoHeaders);
+        final SudoStreamThings underTest = SudoStreamThings.of(null, null, null, null, dittoHeaders);
+        final SudoStreamThings deserialized = SudoStreamThings.fromJson(underTest.toJson(), dittoHeaders);
         assertThat(deserialized).isEqualTo(underTest);
     }
 }

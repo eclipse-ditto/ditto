@@ -32,11 +32,11 @@ import org.eclipse.ditto.json.JsonFieldMarker;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.thingsearch.model.signals.commands.ThingSearchCommand;
-import org.eclipse.ditto.thingsearch.model.signals.commands.ThingSearchCommandResponse;
 import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
 
 /**
@@ -45,15 +45,15 @@ import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
  */
 @Immutable
 @AllValuesAreNonnullByDefault
-@JsonParsableCommandResponse(type = UpdateThingResponse.TYPE)
+@JsonParsableCommandResponse(type = SudoUpdateThingResponse.TYPE)
 // When making this a ThingSearchCommand, beware that it is WithId but actually yes.
-public final class UpdateThingResponse extends AbstractCommandResponse<UpdateThingResponse>
-        implements SignalWithEntityId<UpdateThingResponse> {
+public final class SudoUpdateThingResponse extends AbstractCommandResponse<SudoUpdateThingResponse>
+        implements ThingSearchSudoCommandResponse<SudoUpdateThingResponse>, SignalWithEntityId<SudoUpdateThingResponse> {
 
     /**
      * Type of this command.
      */
-    public static final String TYPE = ThingSearchCommandResponse.TYPE_PREFIX + UpdateThing.NAME;
+    public static final String TYPE = TYPE_PREFIX + SudoUpdateThing.NAME;
 
     private final ThingId thingId;
     private final long thingRevision;
@@ -61,7 +61,7 @@ public final class UpdateThingResponse extends AbstractCommandResponse<UpdateThi
     @Nullable private final Long policyRevision;
     private final boolean success;
 
-    private UpdateThingResponse(final ThingId thingId,
+    private SudoUpdateThingResponse(final ThingId thingId,
             final long thingRevision,
             final boolean success,
             @Nullable final PolicyId policyId,
@@ -77,7 +77,7 @@ public final class UpdateThingResponse extends AbstractCommandResponse<UpdateThi
     }
 
     /**
-     * Create an UpdateThing command.
+     * Create an SudoUpdateThing command.
      *
      * @param thingId the ID of the thing whose search index should be updated.
      * @param thingRevision revision of the requested update.
@@ -87,18 +87,18 @@ public final class UpdateThingResponse extends AbstractCommandResponse<UpdateThi
      * @param dittoHeaders Ditto headers of the command.
      * @return the command.
      */
-    public static UpdateThingResponse of(final ThingId thingId,
+    public static SudoUpdateThingResponse of(final ThingId thingId,
             final long thingRevision,
             @Nullable final PolicyId policyId,
             @Nullable final Long policyRevision,
             final boolean success,
             final DittoHeaders dittoHeaders) {
 
-        return new UpdateThingResponse(thingId, thingRevision, success, policyId, policyRevision, dittoHeaders);
+        return new SudoUpdateThingResponse(thingId, thingRevision, success, policyId, policyRevision, dittoHeaders);
     }
 
     /**
-     * Creates a new {@code UpdateThing} from a JSON object.
+     * Creates a new {@code SudoUpdateThing} from a JSON object.
      *
      * @param jsonObject the JSON object of which the command is to be created.
      * @param dittoHeaders the headers of the command.
@@ -107,7 +107,7 @@ public final class UpdateThingResponse extends AbstractCommandResponse<UpdateThi
      * @throws org.eclipse.ditto.json.JsonMissingFieldException if {@code jsonObject} did not contain a value for
      * "thingId".
      */
-    public static UpdateThingResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
+    public static SudoUpdateThingResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         final ThingId thingId = ThingId.of(jsonObject.getValueOrThrow(JsonFields.THING_ID));
         final long thingRevision = jsonObject.getValueOrThrow(JsonFields.THING_REVISION);
         final PolicyId policyId = jsonObject.getValue(JsonFields.POLICY_ID).map(PolicyId::of).orElse(null);
@@ -132,8 +132,8 @@ public final class UpdateThingResponse extends AbstractCommandResponse<UpdateThi
     }
 
     @Override
-    public UpdateThingResponse setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return new UpdateThingResponse(thingId, thingRevision, success, policyId, policyRevision, dittoHeaders);
+    public SudoUpdateThingResponse setDittoHeaders(final DittoHeaders dittoHeaders) {
+        return new SudoUpdateThingResponse(thingId, thingRevision, success, policyId, policyRevision, dittoHeaders);
     }
 
     @Override
@@ -197,11 +197,21 @@ public final class UpdateThingResponse extends AbstractCommandResponse<UpdateThi
     }
 
     @Override
+    public SudoUpdateThingResponse setEntity(final JsonValue entity) {
+        return fromJson(entity.asObject(), DittoHeaders.empty());
+    }
+
+    @Override
+    public JsonValue getEntity(final JsonSchemaVersion schemaVersion) {
+        return toJson(schemaVersion);
+    }
+
+    @Override
     public boolean equals(final Object o) {
-        if (!(o instanceof UpdateThingResponse)) {
+        if (!(o instanceof SudoUpdateThingResponse)) {
             return false;
         } else {
-            final UpdateThingResponse that = (UpdateThingResponse) o;
+            final SudoUpdateThingResponse that = (SudoUpdateThingResponse) o;
             return Objects.equals(thingId, that.thingId) &&
                     thingRevision == that.thingRevision &&
                     Objects.equals(policyId, that.policyId) &&
@@ -218,12 +228,13 @@ public final class UpdateThingResponse extends AbstractCommandResponse<UpdateThi
 
     @Override
     public String toString() {
-        return getClass().getSimpleName() + "[" + super.toString() +
-                ",thingId=" + thingId +
-                ",thingRevision=" + thingRevision +
-                ",policyId=" + policyId +
-                ",policyRevision=" + policyRevision +
-                ",success=" + success +
+        return getClass().getSimpleName() + " [" +
+                super.toString() +
+                ", thingId=" + thingId +
+                ", thingRevision=" + thingRevision +
+                ", policyId=" + policyId +
+                ", policyRevision=" + policyRevision +
+                ", success=" + success +
                 "]";
     }
 

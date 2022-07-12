@@ -140,6 +140,7 @@ public final class InboundDispatchingSink
     private final AcknowledgementAggregatorActorStarter ackregatorStarter;
     private final AcknowledgementConfig acknowledgementConfig;
 
+    @SuppressWarnings("ununsed")
     private InboundDispatchingSink(final Connection connection,
             final HeaderTranslator headerTranslator,
             final ActorSelection proxyActor,
@@ -569,7 +570,9 @@ public final class InboundDispatchingSink
                         })
                         .thenAccept(response -> sender.tell(response, ActorRef.noSender()))
                         .exceptionally(throwable -> {
-                            logger.warn("Error during dispatching incoming signal <{}>", incomingSignal, throwable);
+                            logger.withCorrelationId(incomingSignal.signal)
+                                    .warn("Error during dispatching incoming signal <{}>: <{}: {}>", incomingSignal,
+                                            throwable.getClass().getSimpleName(), throwable.getMessage());
                             return null;
                         });
             } else {

@@ -75,7 +75,7 @@ public final class AcknowledgementAggregatorActor extends AbstractActorWithTimer
     private final PartialFunction<Signal<?>, Acknowledgement> responseAcknowledgementFunction;
     private Function<Acknowledgements, DittoRuntimeException> getAsTimeoutError;
 
-    @SuppressWarnings("java:S1144")
+    @SuppressWarnings("unused")
     private AcknowledgementAggregatorActor(final EntityId entityId,
             final Signal<?> originatingSignal,
             @Nullable final Duration timeoutOverride,

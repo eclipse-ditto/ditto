@@ -32,7 +32,7 @@ import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
-import org.eclipse.ditto.connectivity.api.messaging.monitoring.logs.AddConnectionLogEntry;
+import org.eclipse.ditto.connectivity.api.commands.sudo.SudoAddConnectionLogEntry;
 import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.connectivity.model.LogLevel;
 import org.eclipse.ditto.connectivity.model.LogType;
@@ -418,8 +418,7 @@ public final class HttpRequestActorTest extends AbstractHttpRequestActorTest {
                 getHttpRequest(modifyAttribute),
                 httpResponseFuture,
                 gatewayConfig.getHttpConfig(),
-                gatewayConfig.getCommandConfig(),
-                connectivityShardRegionProxy.ref()));
+                gatewayConfig.getCommandConfig()));
         final var testKit = ACTOR_SYSTEM_RESOURCE.newTestKit();
 
         underTest.tell(modifyAttribute, testKit.getRef());
@@ -466,8 +465,7 @@ public final class HttpRequestActorTest extends AbstractHttpRequestActorTest {
                 getHttpRequest(modifyAttribute),
                 httpResponseFuture,
                 httpConfig,
-                gatewayConfig.getCommandConfig(),
-                connectivityShardRegionProxy.ref()));
+                gatewayConfig.getCommandConfig()));
         final var commandHandler = ACTOR_SYSTEM_RESOURCE.newTestProbe();
 
         underTest.tell(modifyAttribute, commandHandler.ref());
@@ -487,7 +485,7 @@ public final class HttpRequestActorTest extends AbstractHttpRequestActorTest {
         commandHandler.expectNoMessage();
 
         // Assert expected log entry for invalid response.
-        final var addConnectionLogEntry = connectivityShardRegionProxy.expectMsgClass(AddConnectionLogEntry.class);
+        final var addConnectionLogEntry = connectivityShardRegionProxy.expectMsgClass(SudoAddConnectionLogEntry.class);
         softly.assertThat((Object) addConnectionLogEntry.getEntityId()).as("connection ID").isEqualTo(connectionId);
         softly.assertThat(addConnectionLogEntry.getLogEntry())
                 .as("log entry")
@@ -531,8 +529,7 @@ public final class HttpRequestActorTest extends AbstractHttpRequestActorTest {
                 getHttpRequest(modifyAttribute),
                 httpResponseFuture,
                 httpConfig,
-                gatewayConfig.getCommandConfig(),
-                connectivityShardRegionProxy.ref()));
+                gatewayConfig.getCommandConfig()));
         final var commandHandler = ACTOR_SYSTEM_RESOURCE.newTestProbe();
 
         underTest.tell(modifyAttribute, commandHandler.ref());
@@ -582,8 +579,7 @@ public final class HttpRequestActorTest extends AbstractHttpRequestActorTest {
                 getHttpRequest(modifyAttribute),
                 httpResponseFuture,
                 httpConfig,
-                gatewayConfig.getCommandConfig(),
-                connectivityShardRegionProxy.ref()));
+                gatewayConfig.getCommandConfig()));
         final var commandHandler = ACTOR_SYSTEM_RESOURCE.newTestProbe();
 
         underTest.tell(modifyAttribute, commandHandler.ref());
@@ -603,7 +599,7 @@ public final class HttpRequestActorTest extends AbstractHttpRequestActorTest {
         commandHandler.expectNoMessage();
 
         // Assert expected log entry for invalid response.
-        final var addConnectionLogEntry = connectivityShardRegionProxy.expectMsgClass(AddConnectionLogEntry.class);
+        final var addConnectionLogEntry = connectivityShardRegionProxy.expectMsgClass(SudoAddConnectionLogEntry.class);
         softly.assertThat((Object) addConnectionLogEntry.getEntityId()).as("connection ID").isEqualTo(connectionId);
         softly.assertThat(addConnectionLogEntry.getLogEntry())
                 .as("log entry")

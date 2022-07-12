@@ -48,13 +48,13 @@ import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.thingsearch.api.ThingsSearchConstants;
 import org.eclipse.ditto.thingsearch.api.commands.sudo.SudoCountThings;
 import org.eclipse.ditto.thingsearch.api.commands.sudo.SudoRetrieveNamespaceReport;
+import org.eclipse.ditto.thingsearch.api.commands.sudo.SudoStreamThings;
 import org.eclipse.ditto.thingsearch.model.SearchModelFactory;
 import org.eclipse.ditto.thingsearch.model.signals.commands.ThingSearchCommand;
 import org.eclipse.ditto.thingsearch.model.signals.commands.query.CountThings;
 import org.eclipse.ditto.thingsearch.model.signals.commands.query.CountThingsResponse;
 import org.eclipse.ditto.thingsearch.model.signals.commands.query.QueryThings;
 import org.eclipse.ditto.thingsearch.model.signals.commands.query.QueryThingsResponse;
-import org.eclipse.ditto.thingsearch.model.signals.commands.query.StreamThings;
 import org.eclipse.ditto.thingsearch.model.signals.commands.query.ThingSearchQueryCommand;
 import org.eclipse.ditto.thingsearch.service.common.model.ResultList;
 import org.eclipse.ditto.thingsearch.service.common.model.TimestampedThingId;
@@ -156,7 +156,7 @@ public final class SearchActor extends AbstractActor {
                 .match(SudoCountThings.class, this::sudoCount)
                 .match(QueryThings.class, this::query)
                 .match(SudoRetrieveNamespaceReport.class, this::namespaceReport)
-                .match(StreamThings.class, this::stream)
+                .match(SudoStreamThings.class, this::stream)
                 .matchAny(any -> log.warning("Got unknown message '{}'", any))
                 .build();
     }
@@ -235,34 +235,33 @@ public final class SearchActor extends AbstractActor {
         ).to(sender);
     }
 
-    private void stream(final StreamThings streamThings) {
+    private void stream(final SudoStreamThings sudoStreamThings) {
         final var sender = getSender();
-        final ThreadSafeDittoLoggingAdapter l = log.withCorrelationId(streamThings);
-        l.info("Processing StreamThings command: {}", streamThings);
-        preEnforcer.apply(streamThings).thenAccept(stream -> performStream((StreamThings) stream, sender, l));
-
+        final ThreadSafeDittoLoggingAdapter l = log.withCorrelationId(sudoStreamThings);
+        l.info("Processing SudoStreamThings command: {}", sudoStreamThings);
+        preEnforcer.apply(sudoStreamThings).thenAccept(stream -> performStream((SudoStreamThings) stream, sender, l));
     }
 
-    private void performStream(final StreamThings streamThings, final ActorRef sender,
+    private void performStream(final SudoStreamThings sudoStreamThings, final ActorRef sender,
             final ThreadSafeDittoLoggingAdapter l) {
 
-        final JsonSchemaVersion version = streamThings.getImplementedSchemaVersion();
+        final JsonSchemaVersion version = sudoStreamThings.getImplementedSchemaVersion();
         final var queryType = "query"; // same as queryThings
-        final StartedTimer searchTimer = startNewTimer(version, queryType, streamThings);
+        final StartedTimer searchTimer = startNewTimer(version, queryType, sudoStreamThings);
         final StartedTimer queryParsingTimer = searchTimer.startNewSegment(QUERY_PARSING_SEGMENT_NAME);
-        final Set<String> namespaces = streamThings.getNamespaces().orElse(null);
+        final Set<String> namespaces = sudoStreamThings.getNamespaces().orElse(null);
 
         final Source<SourceRef<String>, NotUsed> thingIdSourceRefSource =
-                ThingsSearchCursor.extractCursor(streamThings).flatMapConcat(cursor -> {
+                ThingsSearchCursor.extractCursor(sudoStreamThings).flatMapConcat(cursor -> {
                     cursor.ifPresent(c -> c.logCursorCorrelationId(l));
-                    return createQuerySource(queryParser::parse, streamThings).map(parsedQuery -> {
+                    return createQuerySource(queryParser::parse, sudoStreamThings).map(parsedQuery -> {
                         final var query =
                                 ThingsSearchCursor.adjust(cursor, parsedQuery, queryParser.getCriteriaFactory());
                         stopTimer(queryParsingTimer);
                         searchTimer.startNewSegment(
                                 DATABASE_ACCESS_SEGMENT_NAME); // segment stopped by stopTimerAndHandleError
                         final List<String> subjectIds =
-                                streamThings.getDittoHeaders().getAuthorizationContext().getAuthorizationSubjectIds();
+                                sudoStreamThings.getDittoHeaders().getAuthorizationContext().getAuthorizationSubjectIds();
                         return searchPersistence.findAllUnlimited(query, subjectIds, namespaces)
                                 .map(ThingId::toString) // for serialization???
                                 .runWith(StreamRefs.sourceRef(), SystemMaterializer.get(getSystem()).materializer());
@@ -270,7 +269,7 @@ public final class SearchActor extends AbstractActor {
                 });
 
         final Source<Object, NotUsed> replySourceWithErrorHandling =
-                thingIdSourceRefSource.via(stopTimerAndHandleError(searchTimer, streamThings));
+                thingIdSourceRefSource.via(stopTimerAndHandleError(searchTimer, sudoStreamThings));
 
         Patterns.pipe(
                 replySourceWithErrorHandling.runWith(Sink.head(), SystemMaterializer.get(getSystem()).materializer()),

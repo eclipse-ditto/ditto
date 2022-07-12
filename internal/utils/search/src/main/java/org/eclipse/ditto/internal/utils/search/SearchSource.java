@@ -39,8 +39,8 @@ import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingNotAccessibleException;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThing;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThingResponse;
-import org.eclipse.ditto.thingsearch.model.signals.commands.query.StreamThings;
-import org.eclipse.ditto.thingsearch.model.signals.events.ThingsOutOfSync;
+import org.eclipse.ditto.thingsearch.api.commands.sudo.SudoStreamThings;
+import org.eclipse.ditto.thingsearch.api.events.ThingsOutOfSync;
 
 import akka.NotUsed;
 import akka.actor.ActorRef;
@@ -68,7 +68,7 @@ public final class SearchSource {
     private final Duration searchAskTimeout;
     @Nullable private final JsonFieldSelector fields;
     private final JsonFieldSelector sortFields;
-    private final StreamThings streamThings;
+    private final SudoStreamThings sudoStreamThings;
     private final boolean thingIdOnly;
     private final String lastThingId;
 
@@ -78,7 +78,7 @@ public final class SearchSource {
             final Duration searchAskTimeout,
             @Nullable final JsonFieldSelector fields,
             final JsonFieldSelector sortFields,
-            final StreamThings streamThings,
+            final SudoStreamThings sudoStreamThings,
             final String lastThingId) {
         this.pubSubMediator = pubSubMediator;
         this.commandForwarder = commandForwarder;
@@ -86,7 +86,7 @@ public final class SearchSource {
         this.searchAskTimeout = searchAskTimeout;
         this.fields = fields;
         this.sortFields = sortFields;
-        this.streamThings = streamThings;
+        this.sudoStreamThings = sudoStreamThings;
         this.thingIdOnly = fields != null && fields.getSize() == 1 &&
                 fields.getPointers().contains(Thing.JsonFields.ID.getPointer());
         this.lastThingId = lastThingId;
@@ -142,11 +142,11 @@ public final class SearchSource {
      */
     private Optional<Throwable> mapError(final Throwable error) {
         if (error instanceof RemoteStreamRefActorTerminatedException) {
-            LOGGER.withCorrelationId(streamThings).info("Resuming from: {}", error.toString());
+            LOGGER.withCorrelationId(sudoStreamThings).info("Resuming from: {}", error.toString());
             return Optional.empty();
         } else {
             return Optional.of(DittoRuntimeException.asDittoRuntimeException(error, e -> {
-                LOGGER.withCorrelationId(streamThings).error("Unexpected error", e);
+                LOGGER.withCorrelationId(sudoStreamThings).error("Unexpected error", e);
                 return DittoInternalErrorException.newBuilder().build();
             }));
         }
@@ -166,11 +166,11 @@ public final class SearchSource {
                 : finalElements.get(finalElements.size() - 1).first();
     }
 
-    private Source<StreamThings, NotUsed> streamThingsFrom(final String lastThingId) {
+    private Source<SudoStreamThings, NotUsed> streamThingsFrom(final String lastThingId) {
         if (lastThingId.isEmpty()) {
-            return Source.single(streamThings);
+            return Source.single(sudoStreamThings);
         } else {
-            return retrieveSortValues(lastThingId).map(streamThings::setSortValues);
+            return retrieveSortValues(lastThingId).map(sudoStreamThings::setSortValues);
         }
     }
 
@@ -223,7 +223,7 @@ public final class SearchSource {
     }
 
     private DittoHeaders getDittoHeaders() {
-        return streamThings.getDittoHeaders();
+        return sudoStreamThings.getDittoHeaders();
     }
 
     private <T> Flow<Object, T, NotUsed> expectMsgClass(final Class<T> clazz) {
@@ -231,8 +231,8 @@ public final class SearchSource {
                 .flatMapConcat(element -> {
                     if (clazz.isInstance(element)) {
                         return Source.single(clazz.cast(element));
-                    } else if (element instanceof Throwable) {
-                        return Source.failed((Throwable) element);
+                    } else if (element instanceof Throwable throwable) {
+                        return Source.failed(throwable);
                     } else {
                         final String message =
                                 String.format("Expect <%s>, got <%s>", clazz.getCanonicalName(), element);

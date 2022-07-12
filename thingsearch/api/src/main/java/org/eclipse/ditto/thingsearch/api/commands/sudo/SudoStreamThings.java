@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Contributors to the Eclipse Foundation
+ * Copyright (c) 2022 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.thingsearch.model.signals.commands.query;
+package org.eclipse.ditto.thingsearch.api.commands.sudo;
 
 
 import java.util.Collection;
@@ -23,6 +23,11 @@ import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.json.JsonParsableCommand;
+import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
+import org.eclipse.ditto.base.model.signals.commands.AbstractCommand;
+import org.eclipse.ditto.base.model.signals.commands.CommandJsonDeserializer;
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.json.JsonFactory;
@@ -31,25 +36,20 @@ import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.base.model.json.JsonParsableCommand;
-import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
-import org.eclipse.ditto.base.model.signals.commands.AbstractCommand;
-import org.eclipse.ditto.base.model.signals.commands.CommandJsonDeserializer;
-import org.eclipse.ditto.thingsearch.model.signals.commands.ThingSearchCommand;
 
 /**
  * Ditto-internal command to start or resume a search request for a stream of thing IDs.
  * @since 1.1.0
  */
 @Immutable
-@JsonParsableCommand(typePrefix = ThingSearchCommand.TYPE_PREFIX, name = StreamThings.NAME)
-public final class StreamThings extends AbstractCommand<StreamThings> implements ThingSearchQueryCommand<StreamThings> {
+@JsonParsableCommand(typePrefix = ThingSearchSudoCommand.TYPE_PREFIX, name = SudoStreamThings.NAME)
+public final class SudoStreamThings
+        extends AbstractCommand<SudoStreamThings> implements ThingSearchSudoCommand<SudoStreamThings> {
 
     /**
      * Name of the command.
      */
-    public static final String NAME = "streamThings";
+    public static final String NAME = "sudoStreamThings";
 
     /**
      * Type of this command.
@@ -61,7 +61,7 @@ public final class StreamThings extends AbstractCommand<StreamThings> implements
     @Nullable private final String sort;
     @Nullable private final JsonArray sortValues;
 
-    private StreamThings(@Nullable final String filter,
+    private SudoStreamThings(@Nullable final String filter,
             @Nullable final JsonArray namespaces,
             @Nullable final String sort,
             @Nullable final JsonArray sortValues,
@@ -75,7 +75,7 @@ public final class StreamThings extends AbstractCommand<StreamThings> implements
     }
 
     /**
-     * Returns a new instance of {@code StreamThings}.
+     * Returns a new instance of {@code SudoStreamThings}.
      *
      * @param filter the optional query filter string.
      * @param namespaces namespaces to search, or null to search all namespaces.
@@ -84,16 +84,16 @@ public final class StreamThings extends AbstractCommand<StreamThings> implements
      * @param dittoHeaders the headers of the command.
      * @return a new command for streaming search results.
      */
-    public static StreamThings of(@Nullable final String filter,
+    public static SudoStreamThings of(@Nullable final String filter,
             @Nullable final JsonArray namespaces,
             @Nullable final String sort,
             @Nullable final JsonArray sortValues,
             final DittoHeaders dittoHeaders) {
-        return new StreamThings(filter, namespaces, sort, sortValues, dittoHeaders);
+        return new SudoStreamThings(filter, namespaces, sort, sortValues, dittoHeaders);
     }
 
     /**
-     * Creates a new {@code StreamThings} from a JSON object.
+     * Creates a new {@code SudoStreamThings} from a JSON object.
      *
      * @param jsonObject the JSON object of which the command is to be created.
      * @param dittoHeaders the headers of the command.
@@ -102,22 +102,30 @@ public final class StreamThings extends AbstractCommand<StreamThings> implements
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
      * format.
      */
-    public static StreamThings fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new CommandJsonDeserializer<StreamThings>(TYPE, jsonObject).deserialize(() -> {
+    public static SudoStreamThings fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
+        return new CommandJsonDeserializer<SudoStreamThings>(TYPE, jsonObject).deserialize(() -> {
             final String filter = jsonObject.getValue(JsonFields.FILTER).orElse(null);
             final JsonArray namespaces = jsonObject.getValue(JsonFields.NAMESPACES).orElse(null);
             final String sort = jsonObject.getValue(JsonFields.SORT).orElse(null);
             final JsonArray sortValues = jsonObject.getValue(JsonFields.SORT_VALUES).orElse(null);
-            return new StreamThings(filter, namespaces, sort, sortValues, dittoHeaders);
+            return new SudoStreamThings(filter, namespaces, sort, sortValues, dittoHeaders);
         });
     }
 
-    @Override
+    /**
+     * Get the optional filter string.
+     *
+     * @return the optional filter string.
+     */
     public Optional<String> getFilter() {
         return Optional.ofNullable(filter);
     }
 
-    @Override
+    /**
+     * Get the optional set of namespaces.
+     *
+     * @return the optional set of namespaces.
+     */
     public Optional<Set<String>> getNamespaces() {
         return Optional.ofNullable(namespaces)
                 .map(array -> array.stream().map(JsonValue::asString).collect(Collectors.toSet()));
@@ -150,15 +158,20 @@ public final class StreamThings extends AbstractCommand<StreamThings> implements
         return Optional.ofNullable(sortValues);
     }
 
-    @Override
-    public StreamThings setNamespaces(@Nullable final Collection<String> namespaces) {
+    /**
+     * Sets the given namespaces on a copy of this command and returns it.
+     *
+     * @param namespaces the namespaces.
+     * @return the created command.
+     */
+    public SudoStreamThings setNamespaces(@Nullable final Collection<String> namespaces) {
         if (namespaces == null){
-            return new StreamThings(filter, JsonArray.empty(), sort, sortValues, getDittoHeaders());
+            return new SudoStreamThings(filter, JsonArray.empty(), sort, sortValues, getDittoHeaders());
         }else {
             final JsonArray namespacesJson = namespaces.stream()
                     .map(JsonValue::of)
                     .collect(JsonCollectors.valuesToArray());
-            return new StreamThings(filter, namespacesJson, sort, sortValues, getDittoHeaders());
+            return new SudoStreamThings(filter, namespacesJson, sort, sortValues, getDittoHeaders());
         }
     }
 
@@ -185,24 +198,29 @@ public final class StreamThings extends AbstractCommand<StreamThings> implements
      * @param sortValues the new sort values.
      * @return the new command.
      */
-    public StreamThings setSortValues(final JsonArray sortValues) {
-        return new StreamThings(filter, namespaces, sort, sortValues, getDittoHeaders());
+    public SudoStreamThings setSortValues(final JsonArray sortValues) {
+        return new SudoStreamThings(filter, namespaces, sort, sortValues, getDittoHeaders());
     }
 
     @Override
-    public StreamThings setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return new StreamThings(filter, namespaces, sort, sortValues, dittoHeaders);
+    public Category getCategory() {
+        return Category.QUERY;
+    }
+
+    @Override
+    public SudoStreamThings setDittoHeaders(final DittoHeaders dittoHeaders) {
+        return new SudoStreamThings(filter, namespaces, sort, sortValues, dittoHeaders);
     }
 
     @Override
     public boolean equals(@Nullable final Object o) {
         if (this == o)
             return true;
-        if (!(o instanceof StreamThings))
+        if (!(o instanceof SudoStreamThings))
             return false;
         if (!super.equals(o))
             return false;
-        final StreamThings that = (StreamThings) o;
+        final SudoStreamThings that = (SudoStreamThings) o;
         return Objects.equals(filter, that.filter) &&
                 Objects.equals(namespaces, that.namespaces) &&
                 Objects.equals(sort, that.sort) &&
@@ -216,7 +234,7 @@ public final class StreamThings extends AbstractCommand<StreamThings> implements
 
     @Override
     public String toString() {
-        return getClass().getSimpleName() + "[" +
+        return getClass().getSimpleName() + " [" +
                 super.toString() +
                 ", filter=" + filter +
                 ", namespaces=" + namespaces +

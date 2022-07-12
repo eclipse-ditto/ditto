@@ -39,8 +39,8 @@ import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 import org.eclipse.ditto.thingsearch.api.PolicyReferenceTag;
 import org.eclipse.ditto.thingsearch.api.UpdateReason;
-import org.eclipse.ditto.thingsearch.api.commands.sudo.UpdateThing;
-import org.eclipse.ditto.thingsearch.model.signals.events.ThingsOutOfSync;
+import org.eclipse.ditto.thingsearch.api.commands.sudo.SudoUpdateThing;
+import org.eclipse.ditto.thingsearch.api.events.ThingsOutOfSync;
 import org.eclipse.ditto.thingsearch.service.common.config.UpdaterConfig;
 
 import akka.actor.AbstractActorWithTimers;
@@ -105,7 +105,7 @@ final class ThingsUpdater extends AbstractActorWithTimers {
      * @param thingUpdaterShardRegion shard region of thing-updaters
      * @param updaterConfig configuration for updaters.
      * @param blockedNamespaces cache of namespaces to block.
-     * @param pubSubMediator the pubsub mediator for subscription for UpdateThing commands, or null if
+     * @param pubSubMediator the pubsub mediator for subscription for SudoUpdateThing commands, or null if
      * the subscription is not wanted.
      * @return the Akka configuration Props object
      */
@@ -130,7 +130,7 @@ final class ThingsUpdater extends AbstractActorWithTimers {
                 .matchEquals(Clock.REBALANCE_TICK, this::retrieveShardIds)
                 .match(ShardRegion.ShardRegionStats.class, this::updateSubscriptions)
                 .match(ThingsOutOfSync.class, this::updateThings)
-                .match(UpdateThing.class, this::updateThing)
+                .match(SudoUpdateThing.class, this::updateThing)
                 .match(DistributedPubSubMediator.SubscribeAck.class, subscribeAck ->
                         log.debug("Got <{}>", subscribeAck))
                 .matchAny(m -> {
@@ -167,19 +167,19 @@ final class ThingsUpdater extends AbstractActorWithTimers {
                 .info("Out-of-sync things are reported: <{}>", updateThings);
         updateThings.getThingIds().forEach(thingId ->
                 forwardToShardRegion(
-                        UpdateThing.of(ThingId.of(thingId), UpdateReason.BACKGROUND_SYNC,
+                        SudoUpdateThing.of(ThingId.of(thingId), UpdateReason.BACKGROUND_SYNC,
                                 updateThings.getDittoHeaders()),
-                        UpdateThing::getEntityId,
-                        UpdateThing::getType,
-                        UpdateThing::toJson,
-                        UpdateThing::getDittoHeaders
+                        SudoUpdateThing::getEntityId,
+                        SudoUpdateThing::getType,
+                        SudoUpdateThing::toJson,
+                        SudoUpdateThing::getDittoHeaders
                 )
         );
     }
 
-    private void updateThing(final UpdateThing updateThing) {
-        forwardToShardRegion(updateThing, UpdateThing::getEntityId, UpdateThing::getType, UpdateThing::toJson,
-                UpdateThing::getDittoHeaders);
+    private void updateThing(final SudoUpdateThing sudoUpdateThing) {
+        forwardToShardRegion(sudoUpdateThing, SudoUpdateThing::getEntityId, SudoUpdateThing::getType, SudoUpdateThing::toJson,
+                SudoUpdateThing::getDittoHeaders);
     }
 
     private void processPolicyReferenceTag(final PolicyReferenceTag policyReferenceTag) {

@@ -245,8 +245,7 @@ public abstract class AbstractHttpRequestActorTest {
                         request,
                         response,
                         gatewayConfig.getHttpConfig(),
-                        gatewayConfig.getCommandConfig(),
-                        connectivityShardRegionProxy.ref()
+                        gatewayConfig.getCommandConfig()
                 )
         );
     }

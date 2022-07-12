@@ -48,7 +48,7 @@ import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
 import org.eclipse.ditto.base.model.signals.commands.ErrorResponse;
 import org.eclipse.ditto.base.model.signals.commands.WithEntity;
 import org.eclipse.ditto.base.model.signals.commands.exceptions.CommandTimeoutException;
-import org.eclipse.ditto.connectivity.api.messaging.monitoring.logs.AddConnectionLogEntry;
+import org.eclipse.ditto.connectivity.api.commands.sudo.SudoAddConnectionLogEntry;
 import org.eclipse.ditto.connectivity.api.messaging.monitoring.logs.LogEntryFactory;
 import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.gateway.api.GatewayServiceUnavailableException;
@@ -124,8 +124,7 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
             final HttpRequest request,
             final CompletableFuture<HttpResponse> httpResponseFuture,
             final HttpConfig httpConfig,
-            final CommandConfig commandConfig,
-            final ActorRef connectivityShardRegionProxy) {
+            final CommandConfig commandConfig) {
 
         this.proxyActor = proxyActor;
         this.headerTranslator = headerTranslator;
@@ -135,7 +134,7 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
         ackregatorStarter = AcknowledgementAggregatorActorStarter.of(getContext(),
                 HttpAcknowledgementConfig.of(httpConfig),
                 headerTranslator,
-                getResponseValidationFailureConsumer(connectivityShardRegionProxy),
+                getResponseValidationFailureConsumer(),
                 List.of(
                         ThingModifyCommandAckRequestSetter.getInstance(),
                         ThingLiveCommandAckRequestSetter.getInstance(),
@@ -153,12 +152,10 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
         setReceiveTimeout(httpConfig.getRequestTimeout());
     }
 
-    private Consumer<MatchingValidationResult.Failure> getResponseValidationFailureConsumer(
-            final ActorRef connectivityShardRegionProxy
-    ) {
+    private Consumer<MatchingValidationResult.Failure> getResponseValidationFailureConsumer() {
         return failure -> {
-            final Consumer<AddConnectionLogEntry> addConnectionLogEntry =
-                    msg -> connectivityShardRegionProxy.tell(msg, ActorRef.noSender());
+            final Consumer<SudoAddConnectionLogEntry> addConnectionLogEntry =
+                    msg -> proxyActor.tell(msg, ActorRef.noSender());
             final Runnable logMissingConnectionId =
                     () -> logger.withCorrelationId(failure.getCommand())
                             .warning("Discarding invalid response as connection ID of sender could not be determined.");
@@ -168,14 +165,14 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
         };
     }
 
-    private static AddConnectionLogEntry getAddConnectionLogEntry(final ConnectionId connectionId,
+    private static SudoAddConnectionLogEntry getAddConnectionLogEntry(final ConnectionId connectionId,
             final MatchingValidationResult.Failure failure) {
 
         final var logEntry = LogEntryFactory.getLogEntryForFailedCommandResponseRoundTrip(failure.getCommand(),
                 failure.getCommandResponse(),
                 failure.getDetailMessage());
 
-        return AddConnectionLogEntry.newInstance(connectionId, logEntry, failure.getCommand().getDittoHeaders());
+        return SudoAddConnectionLogEntry.newInstance(connectionId, logEntry, failure.getCommand().getDittoHeaders());
     }
 
     private void setReceiveTimeout(final Duration receiveTimeout) {

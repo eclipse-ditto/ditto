@@ -40,7 +40,7 @@ import org.eclipse.ditto.things.model.signals.events.AttributeModified;
 import org.eclipse.ditto.things.model.signals.events.ThingDeleted;
 import org.eclipse.ditto.thingsearch.api.PolicyReferenceTag;
 import org.eclipse.ditto.thingsearch.api.UpdateReason;
-import org.eclipse.ditto.thingsearch.api.commands.sudo.UpdateThing;
+import org.eclipse.ditto.thingsearch.api.commands.sudo.SudoUpdateThing;
 import org.eclipse.ditto.thingsearch.service.common.config.DittoSearchConfig;
 import org.eclipse.ditto.thingsearch.service.common.config.SearchConfig;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.Metadata;
@@ -465,7 +465,7 @@ public final class ThingUpdaterTest {
                     ThingUpdater.props(flow, id -> Source.single(getThingWriteModel()), SEARCH_CONFIG, getTestActor());
             final ActorRef underTest = watch(childActorOf(props, ACTOR_NAME));
 
-            final var command = UpdateThing.of(THING_ID, UpdateReason.MANUAL_REINDEXING, DittoHeaders.empty());
+            final var command = SudoUpdateThing.of(THING_ID, UpdateReason.MANUAL_REINDEXING, DittoHeaders.empty());
             underTest.tell(command, ActorRef.noSender());
 
             inletProbe.ensureSubscription();
@@ -485,7 +485,7 @@ public final class ThingUpdaterTest {
             final var expectedMetadata = Metadata.of(THING_ID, REVISION, null, null, null);
             final ActorRef underTest = watch(childActorOf(props, ACTOR_NAME));
 
-            final var command = UpdateThing.of(THING_ID, UpdateReason.MANUAL_REINDEXING, DittoHeaders.newBuilder()
+            final var command = SudoUpdateThing.of(THING_ID, UpdateReason.MANUAL_REINDEXING, DittoHeaders.newBuilder()
                     .putHeader("force-update", "true")
                     .build());
             underTest.tell(command, ActorRef.noSender());

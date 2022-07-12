@@ -47,7 +47,7 @@ import org.eclipse.ditto.things.model.signals.events.ThingDeleted;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 import org.eclipse.ditto.thingsearch.api.PolicyReferenceTag;
 import org.eclipse.ditto.thingsearch.api.UpdateReason;
-import org.eclipse.ditto.thingsearch.api.commands.sudo.UpdateThing;
+import org.eclipse.ditto.thingsearch.api.commands.sudo.SudoUpdateThing;
 import org.eclipse.ditto.thingsearch.service.common.config.SearchConfig;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.AbstractWriteModel;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.Metadata;
@@ -244,7 +244,7 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
         return matchEvent(ThingEvent.class, this::onThingEvent)
                 .event(Metadata.class, this::onEventMetadata)
                 .event(PolicyReferenceTag.class, this::onPolicyReferenceTag)
-                .event(UpdateThing.class, this::updateThing)
+                .event(SudoUpdateThing.class, this::updateThing)
                 .eventEquals(Control.TICK, this::tick)
                 .event(ShutdownTrigger.class, this::shutdown)
                 .event(SHUTDOWN_CLASS, this::shutdownNow)
@@ -400,21 +400,21 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
         return !metadata.equals(lastMetadata.export()) || lastMetadata.getThingRevision() <= 0;
     }
 
-    private FSM.State<State, Data> updateThing(final UpdateThing updateThing, final Data data) {
-        log.withCorrelationId(updateThing)
-                .info("Requested to update search index <{}> by <{}>", updateThing, getSender());
+    private FSM.State<State, Data> updateThing(final SudoUpdateThing sudoUpdateThing, final Data data) {
+        log.withCorrelationId(sudoUpdateThing)
+                .info("Requested to update search index <{}> by <{}>", sudoUpdateThing, getSender());
         final AbstractWriteModel lastWriteModel;
-        if (updateThing.getDittoHeaders().containsKey(FORCE_UPDATE)) {
+        if (sudoUpdateThing.getDittoHeaders().containsKey(FORCE_UPDATE)) {
             lastWriteModel = ThingDeleteModel.of(data.metadata());
         } else {
             lastWriteModel = data.lastWriteModel();
         }
         final Metadata metadata = data.metadata()
-                .invalidateCaches(updateThing.shouldInvalidateThing(), updateThing.shouldInvalidatePolicy())
-                .withUpdateReason(updateThing.getUpdateReason());
+                .invalidateCaches(sudoUpdateThing.shouldInvalidateThing(), sudoUpdateThing.shouldInvalidatePolicy())
+                .withUpdateReason(sudoUpdateThing.getUpdateReason());
         final Metadata nextMetadata =
-                updateThing.getDittoHeaders().getAcknowledgementRequests().contains(SEARCH_PERSISTED_REQUEST)
-                        ? metadata.withAckRecipient(getAckRecipient(updateThing.getDittoHeaders()))
+                sudoUpdateThing.getDittoHeaders().getAcknowledgementRequests().contains(SEARCH_PERSISTED_REQUEST)
+                        ? metadata.withAckRecipient(getAckRecipient(sudoUpdateThing.getDittoHeaders()))
                         : metadata;
         return stay().using(new Data(nextMetadata, lastWriteModel));
     }
@@ -597,12 +597,18 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
             final String ackregatorAddress = dittoHeaders.get(DittoHeaderDefinition.DITTO_ACKREGATOR_ADDRESS.getKey());
             if (null != ackregatorAddress) {
                 return getContext().actorSelection(ackregatorAddress);
-            } else {
+            } else if (dittoHeaders.isResponseRequired() &&
+                    dittoHeaders.getAcknowledgementRequests().stream()
+                            .anyMatch(ackRequest ->
+                                    ackRequest.getLabel().equals(DittoAcknowledgementLabel.SEARCH_PERSISTED))) {
                 log.withCorrelationId(dittoHeaders)
                         .error("Processed Event did not contain header of acknowledgement aggregator address: {}",
                                 dittoHeaders);
                 // fallback to sender:
                 return getContext().actorSelection(getSender().path());
+            } else {
+                // ignore
+                return getContext().actorSelection(getContext().getSystem().deadLetters().path());
             }
         } else {
             // return self as sender to prevent acknowledgements being sent to original sender

@@ -20,7 +20,6 @@ import org.eclipse.ditto.base.model.headers.translator.HeaderTranslator;
 import org.eclipse.ditto.base.service.RootChildActorStarter;
 import org.eclipse.ditto.base.service.actors.DittoRootActor;
 import org.eclipse.ditto.base.service.config.limits.LimitsConfig;
-import org.eclipse.ditto.connectivity.api.ConnectivityMessagingConstants;
 import org.eclipse.ditto.edge.service.dispatching.EdgeCommandForwarderActor;
 import org.eclipse.ditto.edge.service.dispatching.ShardRegions;
 import org.eclipse.ditto.edge.service.dispatching.SignalTransformer;
@@ -61,8 +60,6 @@ import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.cache.config.CacheConfig;
 import org.eclipse.ditto.internal.utils.cluster.ClusterStatusSupplier;
 import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
-import org.eclipse.ditto.internal.utils.cluster.ShardRegionProxyActorFactory;
-import org.eclipse.ditto.internal.utils.cluster.config.ClusterConfig;
 import org.eclipse.ditto.internal.utils.config.LocalHostAddressSupplier;
 import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import org.eclipse.ditto.internal.utils.health.DefaultHealthCheckingActorFactory;
@@ -246,16 +243,12 @@ public final class GatewayRootActor extends DittoRootActor {
 
         final var commandConfig = gatewayConfig.getCommandConfig();
 
-        final var connectivityShardRegionProxyActor =
-                getConnectivityShardRegionProxyActor(actorSystem, gatewayConfig.getClusterConfig());
-
         final var routeBaseProperties = RouteBaseProperties.newBuilder()
                 .actorSystem(actorSystem)
                 .proxyActor(proxyActor)
                 .httpConfig(httpConfig)
                 .commandConfig(commandConfig)
                 .headerTranslator(headerTranslator)
-                .connectivityShardRegionProxy(connectivityShardRegionProxyActor)
                 .build();
 
         final var customApiRoutesProvider = CustomApiRoutesProvider.get(actorSystem);
@@ -303,14 +296,6 @@ public final class GatewayRootActor extends DittoRootActor {
 
         return startChildActor(DefaultHealthCheckingActorFactory.ACTOR_NAME,
                 DefaultHealthCheckingActorFactory.props(healthCheckingActorOptions, null));
-    }
-
-    private static ActorRef getConnectivityShardRegionProxyActor(final ActorSystem actorSystem,
-            final ClusterConfig clusterConfig) {
-
-        final var shardRegionProxyActorFactory = ShardRegionProxyActorFactory.newInstance(actorSystem, clusterConfig);
-        return shardRegionProxyActorFactory.getShardRegionProxyActor(ConnectivityMessagingConstants.CLUSTER_ROLE,
-                ConnectivityMessagingConstants.SHARD_REGION);
     }
 
     private ActorRef startProxyActor(final ActorRefFactory actorSystem, final ActorRef pubSubMediator,

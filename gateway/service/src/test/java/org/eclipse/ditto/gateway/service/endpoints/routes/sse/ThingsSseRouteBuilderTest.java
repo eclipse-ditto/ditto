@@ -28,9 +28,9 @@ import org.eclipse.ditto.base.model.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.gateway.api.GatewayServiceUnavailableException;
 import org.eclipse.ditto.gateway.service.endpoints.EndpointTestBase;
+import org.eclipse.ditto.gateway.service.streaming.actors.SessionedJsonifiable;
 import org.eclipse.ditto.gateway.service.streaming.signals.Connect;
 import org.eclipse.ditto.gateway.service.streaming.signals.StartStreaming;
-import org.eclipse.ditto.gateway.service.streaming.actors.SessionedJsonifiable;
 import org.eclipse.ditto.internal.utils.pubsub.StreamingType;
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonFieldSelector;
@@ -40,7 +40,7 @@ import org.eclipse.ditto.things.model.ThingFieldSelector;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThing;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThingResponse;
-import org.eclipse.ditto.thingsearch.model.signals.commands.query.StreamThings;
+import org.eclipse.ditto.thingsearch.api.commands.sudo.SudoStreamThings;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -161,7 +161,7 @@ public final class ThingsSseRouteBuilderTest extends EndpointTestBase {
                     routeResult.assertMediaType(MediaTypes.TEXT_EVENT_STREAM);
                     routeResult.assertStatusCode(StatusCodes.OK);
                 });
-        proxyActor.expectMsgClass(StreamThings.class);
+        proxyActor.expectMsgClass(SudoStreamThings.class);
         replySourceRef(proxyActor, Source.lazily(Source::empty));
         assertions.join();
     }
@@ -178,13 +178,13 @@ public final class ThingsSseRouteBuilderTest extends EndpointTestBase {
                     routeResult.assertMediaType(MediaTypes.TEXT_EVENT_STREAM);
                     routeResult.assertStatusCode(StatusCodes.OK);
                 });
-        final StreamThings streamThings = proxyActor.expectMsgClass(StreamThings.class);
+        final SudoStreamThings sudoStreamThings = proxyActor.expectMsgClass(SudoStreamThings.class);
         replySourceRef(proxyActor, Source.lazily(Source::empty));
         assertions.join();
-        assertThat(streamThings.getFilter()).contains(filter);
-        assertThat(streamThings.getNamespaces()).contains(Set.of("a", "b", "c"));
+        assertThat(sudoStreamThings.getFilter()).contains(filter);
+        assertThat(sudoStreamThings.getNamespaces()).contains(Set.of("a", "b", "c"));
         // sort options are parsed and appended with +/thingId
-        assertThat(streamThings.getSort()).contains("sort(-/policyId,+/thingId)");
+        assertThat(sudoStreamThings.getSort()).contains("sort(-/policyId,+/thingId)");
     }
 
     @Test
@@ -209,10 +209,10 @@ public final class ThingsSseRouteBuilderTest extends EndpointTestBase {
                 null,
                 retrieveThing.getDittoHeaders()
         ));
-        final StreamThings streamThings = proxyActor.expectMsgClass(StreamThings.class);
+        final SudoStreamThings sudoStreamThings = proxyActor.expectMsgClass(SudoStreamThings.class);
         replySourceRef(proxyActor, Source.lazily(Source::empty));
         assertions.join();
-        assertThat(streamThings.getSortValues()).contains(JsonArray.of(JsonValue.of(lastEventId)));
+        assertThat(sudoStreamThings.getSortValues()).contains(JsonArray.of(JsonValue.of(lastEventId)));
     }
 
     @Test
