@@ -153,12 +153,14 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
         this.streamingConfig = streamingConfig;
         this.queryFilterCriteriaFactory = queryFilterCriteriaFactory;
         this.pubSubMediator = pubSubMediator;
+
         final Config config = actorSystem.settings().config();
         final var dittoExtensionsConfig = ScopedConfig.dittoExtension(config);
         eventSniffer = SseEventSniffer.get(actorSystem, dittoExtensionsConfig);
+        sseConnectionSupervisor = SseConnectionSupervisor.get(actorSystem, dittoExtensionsConfig);
+
         final var sseConfig = ScopedConfig.getOrEmpty(config, "ditto.gateway.streaming.sse");
         sseAuthorizationEnforcer = StreamingAuthorizationEnforcer.get(actorSystem, sseConfig);
-        sseConnectionSupervisor = SseConnectionSupervisor.get(actorSystem);
     }
 
     /**

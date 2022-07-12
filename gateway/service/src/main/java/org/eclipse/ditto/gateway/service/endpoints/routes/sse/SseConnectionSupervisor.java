@@ -14,8 +14,12 @@ package org.eclipse.ditto.gateway.service.endpoints.routes.sse;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
+import org.eclipse.ditto.base.service.DittoExtensionIds;
 import org.eclipse.ditto.base.service.DittoExtensionPoint;
+import org.eclipse.ditto.base.service.RootChildActorStarter;
 import org.eclipse.ditto.gateway.service.streaming.actors.StreamSupervisor;
+
+import com.typesafe.config.Config;
 
 import akka.actor.ActorSystem;
 
@@ -33,18 +37,26 @@ public interface SseConnectionSupervisor extends DittoExtensionPoint, StreamSupe
      * @throws NullPointerException if {@code actorSystem} is {@code null}.
      * @since 3.0.0
      */
-    static SseConnectionSupervisor get(final ActorSystem actorSystem) {
+    static SseConnectionSupervisor get(final ActorSystem actorSystem, final Config config) {
         checkNotNull(actorSystem, "actorSystem");
-        return ExtensionId.INSTANCE.get(actorSystem);
+        checkNotNull(config, "config");
+        final var extensionIdConfig = ExtensionId.computeConfig(config);
+        return DittoExtensionIds.get(actorSystem)
+                .computeIfAbsent(extensionIdConfig, ExtensionId::new)
+                .get(actorSystem);
     }
 
     final class ExtensionId extends DittoExtensionPoint.ExtensionId<SseConnectionSupervisor> {
 
-        private static final String CONFIG_PATH = "ditto.gateway.streaming.sse.connection-supervisor";
-        private static final ExtensionId INSTANCE = new ExtensionId(SseConnectionSupervisor.class);
+        private static final String CONFIG_KEY = "sse-connection-supervisor";
+        private static final String CONFIG_PATH = "ditto.extensions." + CONFIG_KEY;
 
-        private ExtensionId(final Class<SseConnectionSupervisor> parentClass) {
-            super(parentClass);
+        private ExtensionId(final ExtensionIdConfig<SseConnectionSupervisor> extensionIdConfig) {
+            super(extensionIdConfig);
+        }
+
+        static ExtensionIdConfig<SseConnectionSupervisor> computeConfig(final Config config) {
+            return ExtensionIdConfig.of(SseConnectionSupervisor.class, config, CONFIG_KEY);
         }
 
         @Override
