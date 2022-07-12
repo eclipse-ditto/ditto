@@ -14,8 +14,11 @@ package org.eclipse.ditto.gateway.service.endpoints.routes.websocket;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
+import org.eclipse.ditto.base.service.DittoExtensionIds;
 import org.eclipse.ditto.base.service.DittoExtensionPoint;
 import org.eclipse.ditto.gateway.service.streaming.actors.StreamSupervisor;
+
+import com.typesafe.config.Config;
 
 import akka.actor.ActorSystem;
 
@@ -33,18 +36,26 @@ public interface WebSocketSupervisor extends DittoExtensionPoint, StreamSupervis
      * @throws NullPointerException if {@code actorSystem} is {@code null}.
      * @since 3.0.0
      */
-    static WebSocketSupervisor get(final ActorSystem actorSystem) {
+    static WebSocketSupervisor get(final ActorSystem actorSystem, final Config config) {
         checkNotNull(actorSystem, "actorSystem");
-        return ExtensionId.INSTANCE.get(actorSystem);
+        checkNotNull(config, "config");
+        final var extensionIdConfig = ExtensionId.computeConfig(config);
+        return DittoExtensionIds.get(actorSystem)
+                .computeIfAbsent(extensionIdConfig, ExtensionId::new)
+                .get(actorSystem);
     }
 
     final class ExtensionId extends DittoExtensionPoint.ExtensionId<WebSocketSupervisor> {
 
-        private static final String CONFIG_PATH = "ditto.gateway.streaming.websocket.connection-supervisor";
-        private static final ExtensionId INSTANCE = new ExtensionId(WebSocketSupervisor.class);
+        private static final String CONFIG_KEY = "websocket-connection-supervisor";
+        private static final String CONFIG_PATH = "ditto.extensions." + CONFIG_KEY;
 
-        private ExtensionId(final Class<WebSocketSupervisor> parentClass) {
-            super(parentClass);
+        private ExtensionId(final ExtensionIdConfig<WebSocketSupervisor> extensionIdConfig) {
+            super(extensionIdConfig);
+        }
+
+        static ExtensionIdConfig<WebSocketSupervisor> computeConfig(final Config config) {
+            return ExtensionIdConfig.of(WebSocketSupervisor.class, config, CONFIG_KEY);
         }
 
         @Override

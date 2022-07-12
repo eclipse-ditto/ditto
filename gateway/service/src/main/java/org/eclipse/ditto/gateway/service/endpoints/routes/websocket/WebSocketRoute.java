@@ -192,7 +192,7 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
         outgoingMessageSniffer = OutgoingWebSocketEventSniffer.get(actorSystem, dittoExtensionsConfig);
         final var websocketConfig = ScopedConfig.getOrEmpty(config, "ditto.gateway.streaming.websocket");
         authorizationEnforcer = StreamingAuthorizationEnforcer.get(actorSystem, websocketConfig);
-        webSocketSupervisor = WebSocketSupervisor.get(actorSystem);
+        webSocketSupervisor = WebSocketSupervisor.get(actorSystem, dittoExtensionsConfig);
         webSocketConfigProvider = WebSocketConfigProvider.get(actorSystem, dittoExtensionsConfig);
         signalEnrichmentProvider = null;
         headerTranslator = HeaderTranslator.empty();
