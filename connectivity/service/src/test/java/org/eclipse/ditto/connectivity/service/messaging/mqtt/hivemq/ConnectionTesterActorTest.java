@@ -55,6 +55,7 @@ import org.eclipse.ditto.internal.utils.health.RetrieveHealth;
 import org.eclipse.ditto.internal.utils.health.RetrieveHealthResponse;
 import org.eclipse.ditto.internal.utils.health.StatusInfo;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -75,6 +76,7 @@ import akka.testkit.TestActorRef;
  * Unit test for {@link ConnectionTesterActor}.
  */
 @RunWith(MockitoJUnitRunner.class)
+@Ignore
 public final class ConnectionTesterActorTest {
 
     private static final ConnectionId CONNECTION_ID = ConnectionId.generateRandom();
