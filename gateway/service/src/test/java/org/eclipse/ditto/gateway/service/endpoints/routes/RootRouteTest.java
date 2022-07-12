@@ -53,6 +53,7 @@ import org.eclipse.ditto.gateway.service.endpoints.routes.whoami.WhoamiRoute;
 import org.eclipse.ditto.gateway.service.health.DittoStatusAndHealthProviderFactory;
 import org.eclipse.ditto.gateway.service.security.HttpHeader;
 import org.eclipse.ditto.gateway.service.security.authentication.jwt.JwtAuthenticationFactory;
+import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import org.eclipse.ditto.internal.utils.health.cluster.ClusterStatus;
 import org.eclipse.ditto.internal.utils.health.routes.StatusRoute;
 import org.eclipse.ditto.internal.utils.http.HttpClientFacade;
@@ -128,7 +129,8 @@ public final class RootRouteTest extends EndpointTestBase {
                 httpClientFacade,
                 ACTOR_SYSTEM);
         final GatewayAuthenticationDirectiveFactory authenticationDirectiveFactory =
-                new DittoGatewayAuthenticationDirectiveFactory(routeBaseProperties.getActorSystem(), ConfigFactory.empty());
+                new DittoGatewayAuthenticationDirectiveFactory(routeBaseProperties.getActorSystem(),
+                        ConfigFactory.empty());
 
         final Supplier<ClusterStatus> clusterStatusSupplier = createClusterStatusSupplierMock();
         final var statusAndHealthProvider = DittoStatusAndHealthProviderFactory.of(routeBaseProperties.getActorSystem(),
@@ -138,7 +140,8 @@ public final class RootRouteTest extends EndpointTestBase {
                 DevopsAuthenticationDirectiveFactory.newInstance(jwtAuthenticationFactory,
                         authConfig.getDevOpsConfig());
         final var devOpsAuthenticationDirective = devopsAuthenticationDirectiveFactory.devops();
-
+        final var dittoExtensionConfig =
+                ScopedConfig.dittoExtension(routeBaseProperties.getActorSystem().settings().config());
         final var rootRoute = RootRoute.getBuilder(httpConfig)
                 .statsRoute(new StatsRoute(routeBaseProperties, devOpsAuthenticationDirective))
                 .statusRoute(new StatusRoute(clusterStatusSupplier,
@@ -172,7 +175,8 @@ public final class RootRouteTest extends EndpointTestBase {
                 .wsAuthenticationDirective(
                         authenticationDirectiveFactory.buildWsAuthentication(jwtAuthenticationFactory))
                 .dittoHeadersSizeChecker(DittoHeadersSizeChecker.of(4096, 20))
-                .customApiRoutesProvider(CustomApiRoutesProvider.get(routeBaseProperties.getActorSystem()),
+                .customApiRoutesProvider(
+                        CustomApiRoutesProvider.get(routeBaseProperties.getActorSystem(), dittoExtensionConfig),
                         routeBaseProperties)
                 .build();
 

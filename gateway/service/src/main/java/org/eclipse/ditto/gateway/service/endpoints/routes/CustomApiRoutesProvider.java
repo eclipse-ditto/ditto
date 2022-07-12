@@ -16,7 +16,11 @@ import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
+import org.eclipse.ditto.base.service.DittoExtensionIds;
 import org.eclipse.ditto.base.service.DittoExtensionPoint;
+import org.eclipse.ditto.base.service.RootChildActorStarter;
+
+import com.typesafe.config.Config;
 
 import akka.actor.ActorSystem;
 import akka.http.javadsl.server.Route;
@@ -50,22 +54,31 @@ public interface CustomApiRoutesProvider extends DittoExtensionPoint {
      * Loads the implementation of {@code CustomApiRoutesProvider} which is configured for the {@code ActorSystem}.
      *
      * @param actorSystem the actorSystem in which the {@code CustomApiRoutesProvider} should be loaded.
+     * @param config the configuration for this extension.
      * @return the {@code CustomApiRoutesProvider} implementation.
      * @throws NullPointerException if {@code actorSystem} is {@code null}.
      * @since 3.0.0
      */
-    static CustomApiRoutesProvider get(final ActorSystem actorSystem) {
+    static CustomApiRoutesProvider get(final ActorSystem actorSystem, final Config config) {
         checkNotNull(actorSystem, "actorSystem");
-        return ExtensionId.INSTANCE.get(actorSystem);
+        checkNotNull(config, "config");
+        final var extensionIdConfig = ExtensionId.computeConfig(config);
+        return DittoExtensionIds.get(actorSystem)
+                .computeIfAbsent(extensionIdConfig, ExtensionId::new)
+                .get(actorSystem);
     }
 
     final class ExtensionId extends DittoExtensionPoint.ExtensionId<CustomApiRoutesProvider> {
 
-        private static final String CONFIG_PATH = "ditto.gateway.http.custom-api-routes-provider";
-        private static final ExtensionId INSTANCE = new ExtensionId(CustomApiRoutesProvider.class);
+        private static final String CONFIG_KEY = "custom-api-routes-provider";
+        private static final String CONFIG_PATH = "ditto.extensions." + CONFIG_KEY;
 
-        private ExtensionId(final Class<CustomApiRoutesProvider> parentClass) {
-            super(parentClass);
+        private ExtensionId(final ExtensionIdConfig<CustomApiRoutesProvider> extensionIdConfig) {
+            super(extensionIdConfig);
+        }
+
+        static ExtensionIdConfig<CustomApiRoutesProvider> computeConfig(final Config config) {
+            return ExtensionIdConfig.of(CustomApiRoutesProvider.class, config, CONFIG_KEY);
         }
 
         @Override

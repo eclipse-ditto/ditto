@@ -251,7 +251,7 @@ public final class GatewayRootActor extends DittoRootActor {
                 .headerTranslator(headerTranslator)
                 .build();
 
-        final var customApiRoutesProvider = CustomApiRoutesProvider.get(actorSystem);
+        final var customApiRoutesProvider = CustomApiRoutesProvider.get(actorSystem, dittoExtensionConfig);
 
         return RootRoute.getBuilder(httpConfig)
                 .statsRoute(new StatsRoute(routeBaseProperties, devopsAuthenticationDirective))
