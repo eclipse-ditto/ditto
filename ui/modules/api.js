@@ -32,13 +32,13 @@ const config = {
     createConnection: {
       path: '/api/2/solutions/{{solutionId}}/connections',
       method: 'POST',
-      body: '{{param}}',
+      body: null,
       unwrapJsonPath: null,
     },
     modifyConnection: {
       path: '/api/2/solutions/{{solutionId}}/connections/{{connectionId}}',
       method: 'PUT',
-      body: '{{param}}',
+      body: null,
       unwrapJsonPath: null,
     },
     deleteConnection: {
@@ -181,8 +181,18 @@ const config = {
     retrieveConnectionMetrics: {
       path: '/devops/piggyback/connectivity',
       method: 'POST',
-      body: null,
-      unwrapJsonPath: null,
+      body: {
+        'targetActorSelection': '/system/sharding/connection',
+        'headers': {
+          'aggregate': false,
+          'is-group-topic': true,
+        },
+        'piggybackCommand': {
+          'type': 'connectivity.commands:retrieveConnectionMetrics',
+          'connectionId': '{{connectionId}}',
+        },
+      },
+      unwrapJsonPath: '?.?',
     },
     connectionCommand: {
       path: '/devops/piggyback/connectivity',
@@ -284,7 +294,8 @@ export async function callConnectionsAPI(operation, successCallback, connectionI
       },
       body: params.body ?
           JSON.stringify(params.body)
-              .replace('{{connectionId}}', connectionId) :
+              .replace('{{connectionId}}', connectionId)
+              .replace('{{param}}', param) :
           param,
     });
     if (!response.ok) {

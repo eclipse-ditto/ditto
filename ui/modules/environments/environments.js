@@ -39,7 +39,6 @@ let dom = {
   inputEnvironmentName: null,
   inputApiUri: null,
   tbodyEnvironments: null,
-  collapseConnections: null,
 };
 
 let observers = [];
@@ -107,7 +106,6 @@ export function ready() {
   });
 
   document.getElementById('environmentSelector').onchange = () => {
-    API.setAuthHeader(dom.collapseConnections.classList.contains('show'));
     notifyAll();
   };
 

@@ -58,7 +58,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     e.addEventListener('click', (event) => {
       mainNavbar.querySelectorAll('.nav-link,.active').forEach((n) => n.classList.remove('active'));
       event.currentTarget.classList.add('active');
-      API.setAuthHeader(dom.collapseConnections.classList.contains('show'));
+      API.setAuthHeader(event.currentTarget.parentNode.id === 'tabConnections');
     });
   });
 
