@@ -77,12 +77,13 @@ public final class DefaultSignalEnrichmentProviderConfig implements SignalEnrich
         }
         final DefaultSignalEnrichmentProviderConfig that = (DefaultSignalEnrichmentProviderConfig) o;
         return Objects.equals(askTimeout, that.askTimeout) &&
-                Objects.equals(cacheConfig, that.cacheConfig);
+                Objects.equals(cacheConfig, that.cacheConfig) &&
+                cachingEnabled == that.cachingEnabled;
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(askTimeout, cacheConfig);
+        return Objects.hash(askTimeout, cacheConfig, cachingEnabled);
     }
 
     @Override
@@ -90,6 +91,7 @@ public final class DefaultSignalEnrichmentProviderConfig implements SignalEnrich
         return getClass().getSimpleName() + " [" +
                 "askTimeout=" + askTimeout +
                 ", cacheConfig=" + cacheConfig +
+                ", cachingEnabled=" + cachingEnabled +
                 "]";
     }
 }
