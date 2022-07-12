@@ -1080,6 +1080,17 @@ public final class TestConstants {
         public int getPort() {
             return port;
         }
+
+        /**
+         * Returns the port number as String.
+         *
+         * @return the port number as String.
+         */
+        @Override
+        public String toString() {
+            return String.valueOf(getPort());
+        }
+
     }
 
 }

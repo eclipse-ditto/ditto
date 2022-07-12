@@ -87,8 +87,8 @@ public final class SearchRootActor extends DittoRootActor {
             final DittoMongoClient mongoDbClient) {
 
         final ActorContext context = getContext();
-        final var persistence =
-                new MongoThingsSearchPersistence(mongoDbClient, context.getSystem());
+        final var persistenceConfig = searchConfig.getQueryPersistenceConfig();
+        final var persistence = new MongoThingsSearchPersistence(mongoDbClient, context.getSystem(), persistenceConfig);
 
         final var indexInitializationConfig = searchConfig.getIndexInitializationConfig();
         if (indexInitializationConfig.isIndexInitializationConfigEnabled()) {

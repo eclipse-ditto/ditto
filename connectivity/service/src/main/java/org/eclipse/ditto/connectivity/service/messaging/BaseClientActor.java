@@ -190,15 +190,13 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     private final ClientActorRefs clientActorRefs;
     private final DittoProtocolSub dittoProtocolSub;
     private final int subscriptionIdPrefixLength;
-    private final String actorUUID;
+    protected final UUID actorUuid;
     private final ProtocolAdapter protocolAdapter;
     protected final ConnectivityCounterRegistry connectionCounterRegistry;
     protected final ConnectionLoggerRegistry connectionLoggerRegistry;
+    protected final ChildActorNanny childActorNanny;
     private final boolean dryRun;
     private final ActorRef proxyActor;
-
-    // counter for all child actors ever started to disambiguate between them
-    private int childActorCount = 0;
 
     private Sink<Object, NotUsed> inboundMappingSink;
     private ActorRef outboundDispatchingActor;
@@ -223,13 +221,15 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         //  as all constructor arguments need to be serializable as the BaseClientActor is started behind a cluster
         //  router
         dittoProtocolSub = DittoProtocolSub.get(system);
-        actorUUID = UUID.randomUUID().toString();
+        actorUuid = UUID.randomUUID();
 
         final var connectionId = connection.getId();
         logger = DittoLoggerFactory.getThreadSafeDittoLoggingAdapter(this)
                 .withMdcEntry(ConnectivityMdcEntryKey.CONNECTION_ID, connection.getId());
         // log the default client ID for tracing
         logger.info("Using default client ID <{}>", getDefaultClientId());
+
+        childActorNanny = ChildActorNanny.newInstance(getContext(), logger);
 
         proxyActorSelection = getLocalActorOfSamePath(proxyActor);
 
@@ -323,8 +323,8 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         subscriptionManager = startSubscriptionManager(proxyActorSelection, connectivityConfig().getClientConfig());
 
         if (connection.getSshTunnel().map(SshTunnel::isEnabled).orElse(false)) {
-            tunnelActor = startChildActor(SshTunnelActor.ACTOR_NAME, SshTunnelActor.props(connection,
-                    connectivityStatusResolver, connectionLogger));
+            tunnelActor = childActorNanny.startChildActor(SshTunnelActor.ACTOR_NAME,
+                    SshTunnelActor.props(connection, connectivityStatusResolver, connectionLogger));
         } else {
             tunnelActor = null;
         }
@@ -380,7 +380,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         if (connection.getClientCount() == 1) {
             return prefix.toString();
         } else {
-            return prefix + "_" + actorUUID;
+            return prefix + "_" + actorUuid;
         }
     }
 
@@ -559,27 +559,14 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     }
 
     /**
-     * Starts a child actor.
-     *
-     * @param name the Actor's name
-     * @param props the Props
-     * @return the created ActorRef
-     */
-    private ActorRef startChildActor(final String name, final Props props) {
-        logger.debug("Starting child actor <{}>.", name);
-        final String nameEscaped = escapeActorName(name);
-        return getContext().actorOf(props, nameEscaped);
-    }
-
-    /**
      * Start a child actor whose name is guaranteed to be different from all other child actors started by this method.
      *
      * @param prefix prefix of the child actor name.
      * @param props props of the child actor.
      * @return the created ActorRef.
      */
-    protected final ActorRef startChildActorConflictFree(final String prefix, final Props props) {
-        return startChildActor(nextChildActorName(prefix), props);
+    protected final ActorRef startChildActorConflictFree(final CharSequence prefix, final Props props) {
+        return childActorNanny.startChildActorConflictFree(prefix, props);
     }
 
     /**
@@ -588,9 +575,8 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
      * @param actor the ActorRef
      */
     protected final void stopChildActor(@Nullable final ActorRef actor) {
-        if (actor != null) {
-            logger.debug("Stopping child actor <{}>.", actor.path());
-            getContext().stop(actor);
+        if (null != actor) {
+            childActorNanny.stopChildActor(actor);
         }
     }
 
@@ -1743,8 +1729,8 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
                 OutboundMappingProcessorActor.props(getSelf(), outboundMappingProcessors, connection,
                         connectivityConfig, processorPoolSize);
 
-        final ActorRef processorActor =
-                getContext().actorOf(outboundMappingProcessorActorProps, OutboundMappingProcessorActor.ACTOR_NAME);
+        final ActorRef processorActor = childActorNanny.startChildActor(OutboundMappingProcessorActor.ACTOR_NAME,
+                outboundMappingProcessorActorProps);
 
         final Props outboundDispatchingProcessorActorProps = OutboundDispatchingActor.props(settings, processorActor);
         final ActorRef dispatchingActor =
@@ -1862,10 +1848,6 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         return dryRun;
     }
 
-    private String nextChildActorName(final String prefix) {
-        return prefix + ++childActorCount;
-    }
-
     private BaseClientData setSession(final BaseClientData data, @Nullable final ActorRef sender,
             final DittoHeaders headers) {
 
@@ -1891,23 +1873,22 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
      * @return status with meaningful message.
      */
     private Status.Status getStatusToReport(final Status.Status status, final DittoHeaders dittoHeaders) {
-        final Status.Status answerToPublish;
-        if (status instanceof Status.Failure) {
-            final var failure = (Status.Failure) status;
-            if (!(failure.cause() instanceof DittoRuntimeException)) {
-                final DittoRuntimeException error = ConnectionFailedException.newBuilder(connectionId())
-                        .description(describeEventualCause(failure.cause()))
-                        .dittoHeaders(dittoHeaders)
-                        .cause(failure.cause())
-                        .build();
-                answerToPublish = new Status.Failure(error);
+        final Status.Status result;
+        if (status instanceof Status.Failure failure) {
+            final var failureCause = failure.cause();
+            if (failureCause instanceof DittoRuntimeException) {
+                result = status;
             } else {
-                answerToPublish = status;
+                result = new Status.Failure(ConnectionFailedException.newBuilder(connectionId())
+                        .description(describeEventualCause(failureCause))
+                        .dittoHeaders(dittoHeaders)
+                        .cause(failureCause)
+                        .build());
             }
         } else {
-            answerToPublish = status;
+            result = status;
         }
-        return answerToPublish;
+        return result;
     }
 
     private ActorSelection getLocalActorOfSamePath(@Nullable final ActorRef exampleActor) {

@@ -236,7 +236,6 @@ public final class KafkaClientActorTest extends AbstractBaseClientActorTest {
                     public Props props(final Connection c,
                             final SendProducerFactory producerFactory,
                             final boolean dryRun,
-                            final String clientId,
                             final ConnectivityStatusResolver connectivityStatusResolver,
                             final ConnectivityConfig connectivityConfig) {
 
