@@ -14,7 +14,11 @@ package org.eclipse.ditto.gateway.service.endpoints.routes.sse;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
+import org.eclipse.ditto.base.service.DittoExtensionIds;
 import org.eclipse.ditto.base.service.DittoExtensionPoint;
+import org.eclipse.ditto.base.service.RootChildActorStarter;
+
+import com.typesafe.config.Config;
 
 import akka.NotUsed;
 import akka.actor.ActorSystem;
@@ -44,18 +48,26 @@ public interface SseEventSniffer extends DittoExtensionPoint {
      * @throws NullPointerException if {@code actorSystem} is {@code null}.
      * @since 3.0.0
      */
-    static SseEventSniffer get(final ActorSystem actorSystem) {
+    static SseEventSniffer get(final ActorSystem actorSystem, final Config config) {
         checkNotNull(actorSystem, "actorSystem");
-        return ExtensionId.INSTANCE.get(actorSystem);
+        checkNotNull(config, "config");
+        final var extensionIdConfig = ExtensionId.computeConfig(config);
+        return DittoExtensionIds.get(actorSystem)
+                .computeIfAbsent(extensionIdConfig, ExtensionId::new)
+                .get(actorSystem);
     }
 
     final class ExtensionId extends DittoExtensionPoint.ExtensionId<SseEventSniffer> {
 
-        private static final String CONFIG_PATH = "ditto.gateway.streaming.sse.event-sniffer";
-        private static final ExtensionId INSTANCE = new ExtensionId(SseEventSniffer.class);
+        private static final String CONFIG_KEY = "sse-event-sniffer";
+        private static final String CONFIG_PATH = "ditto.extensions." + CONFIG_KEY;
 
-        private ExtensionId(final Class<SseEventSniffer> parentClass) {
-            super(parentClass);
+        private ExtensionId(final ExtensionIdConfig<SseEventSniffer> extensionIdConfig) {
+            super(extensionIdConfig);
+        }
+
+        static ExtensionIdConfig<SseEventSniffer> computeConfig(final Config config) {
+            return ExtensionIdConfig.of(SseEventSniffer.class, config, CONFIG_KEY);
         }
 
         @Override
