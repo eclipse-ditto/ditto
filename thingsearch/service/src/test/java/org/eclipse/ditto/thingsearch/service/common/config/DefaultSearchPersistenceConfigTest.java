@@ -20,7 +20,6 @@ import org.assertj.core.api.JUnitSoftAssertions;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.ReadConcern;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.ReadPreference;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 
@@ -30,9 +29,9 @@ import com.typesafe.config.ConfigFactory;
 import nl.jqno.equalsverifier.EqualsVerifier;
 
 /**
- * Unit tests for {@link DefaultUpdaterPersistenceConfig}.
+ * Unit tests for {@link DefaultSearchPersistenceConfig}.
  */
-public final class DefaultUpdaterPersistenceConfigTest {
+public final class DefaultSearchPersistenceConfigTest {
 
 
     private static Config config;
@@ -47,45 +46,45 @@ public final class DefaultUpdaterPersistenceConfigTest {
 
     @Test
     public void assertImmutability() {
-        assertInstancesOf(DefaultUpdaterPersistenceConfig.class,
+        assertInstancesOf(DefaultSearchPersistenceConfig.class,
                 areImmutable(),
                 provided(ReadPreference.class).isAlsoImmutable());
     }
 
     @Test
     public void testHashCodeAndEquals() {
-        EqualsVerifier.forClass(DefaultUpdaterPersistenceConfig.class)
+        EqualsVerifier.forClass(DefaultSearchPersistenceConfig.class)
                 .usingGetClass()
                 .verify();
     }
 
     @Test
     public void underTestReturnsDefaultValuesIfBaseConfigWasEmpty() {
-        final UpdaterPersistenceConfig underTest = DefaultUpdaterPersistenceConfig.of(ConfigFactory.empty());
+        final SearchPersistenceConfig underTest = DefaultSearchPersistenceConfig.of(ConfigFactory.empty());
 
         softly.assertThat(underTest.readConcern())
-                .as(UpdaterPersistenceConfig.ConfigValue.READ_CONCERN.getConfigPath())
+                .as(SearchPersistenceConfig.ConfigValue.READ_CONCERN.getConfigPath())
                 .isEqualTo(ReadConcern.ofReadConcern(
-                        (String) UpdaterPersistenceConfig.ConfigValue.READ_CONCERN.getDefaultValue())
+                        (String) SearchPersistenceConfig.ConfigValue.READ_CONCERN.getDefaultValue())
                         .orElseThrow());
 
         softly.assertThat(underTest.readPreference())
-                .as(UpdaterPersistenceConfig.ConfigValue.READ_PREFERENCE.getConfigPath())
+                .as(SearchPersistenceConfig.ConfigValue.READ_PREFERENCE.getConfigPath())
                 .isEqualTo(ReadPreference.ofReadPreference(
-                        (String) UpdaterPersistenceConfig.ConfigValue.READ_PREFERENCE.getDefaultValue())
+                        (String) SearchPersistenceConfig.ConfigValue.READ_PREFERENCE.getDefaultValue())
                         .orElseThrow());
     }
 
     @Test
     public void underTestReturnsValuesOfConfigFile() {
-        final UpdaterPersistenceConfig underTest = DefaultUpdaterPersistenceConfig.of(config);
+        final SearchPersistenceConfig underTest = DefaultSearchPersistenceConfig.of(config);
 
         softly.assertThat(underTest.readConcern())
-                .as(UpdaterPersistenceConfig.ConfigValue.READ_CONCERN.getConfigPath())
+                .as(SearchPersistenceConfig.ConfigValue.READ_CONCERN.getConfigPath())
                 .isEqualTo(ReadConcern.AVAILABLE);
 
         softly.assertThat(underTest.readPreference())
-                .as(UpdaterPersistenceConfig.ConfigValue.READ_PREFERENCE.getConfigPath())
+                .as(SearchPersistenceConfig.ConfigValue.READ_PREFERENCE.getConfigPath())
                 .isEqualTo(ReadPreference.SECONDARY_PREFERRED);
     }
 

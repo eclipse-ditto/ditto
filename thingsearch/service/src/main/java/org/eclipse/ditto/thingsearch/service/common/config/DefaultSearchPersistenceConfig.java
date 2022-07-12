@@ -26,10 +26,10 @@ import org.eclipse.ditto.internal.utils.persistence.mongo.config.ReadPreference;
 import com.typesafe.config.Config;
 
 /**
- * This class is the default implementation of {@link UpdaterPersistenceConfig}.
+ * This class is the default implementation of {@link SearchPersistenceConfig}.
  */
 @Immutable
-public final class DefaultUpdaterPersistenceConfig implements UpdaterPersistenceConfig {
+public final class DefaultSearchPersistenceConfig implements SearchPersistenceConfig {
 
     private static final String CONFIG_PATH = "persistence";
 
@@ -37,7 +37,7 @@ public final class DefaultUpdaterPersistenceConfig implements UpdaterPersistence
     private final ReadConcern readConcern;
 
 
-    private DefaultUpdaterPersistenceConfig(final ConfigWithFallback config) {
+    private DefaultSearchPersistenceConfig(final ConfigWithFallback config) {
         final var readPreferenceString =
                 config.getString(MongoDbConfig.OptionsConfig.OptionsConfigValue.READ_PREFERENCE.getConfigPath());
         readPreference = ReadPreference.ofReadPreference(readPreferenceString)
@@ -65,8 +65,8 @@ public final class DefaultUpdaterPersistenceConfig implements UpdaterPersistence
      * @return the instance.
      * @throws DittoConfigError if {@code config} is invalid.
      */
-    public static DefaultUpdaterPersistenceConfig of(final Config config) {
-        return new DefaultUpdaterPersistenceConfig(ConfigWithFallback.newInstance(config, CONFIG_PATH, ConfigValue.values()));
+    public static DefaultSearchPersistenceConfig of(final Config config) {
+        return new DefaultSearchPersistenceConfig(ConfigWithFallback.newInstance(config, CONFIG_PATH, ConfigValue.values()));
     }
 
 
@@ -88,7 +88,7 @@ public final class DefaultUpdaterPersistenceConfig implements UpdaterPersistence
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        final DefaultUpdaterPersistenceConfig that = (DefaultUpdaterPersistenceConfig) o;
+        final DefaultSearchPersistenceConfig that = (DefaultSearchPersistenceConfig) o;
         return readPreference == that.readPreference && readConcern == that.readConcern;
     }
 
