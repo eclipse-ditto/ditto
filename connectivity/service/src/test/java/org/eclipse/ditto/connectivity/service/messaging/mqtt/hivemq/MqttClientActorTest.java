@@ -295,8 +295,10 @@ public final class MqttClientActorTest extends AbstractBaseClientActorTest {
                 .build();
         Mockito.when(genericMqttClient.connect(Mockito.any())).thenReturn(CompletableFuture.completedStage(null));
         final var testKit = actorSystemResource.newTestKit();
-        final var underTest = TestActorRef.apply(createClientActor(proxyActor.getRef(), connection),
-                actorSystemResource.getActorSystem());
+        final var underTest = testKit.watch(TestActorRef.apply(
+                createClientActor(proxyActor.getRef(), connection),
+                actorSystemResource.getActorSystem()
+        ));
 
         underTest.tell(TestConnection.of(connection, getDittoHeadersWithCorrelationId()), testKit.getRef());
 
