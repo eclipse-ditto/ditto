@@ -155,7 +155,8 @@ public final class GatewayRootActor extends DittoRootActor {
                         pubSubMediator,
                         edgeCommandForwarder));
 
-        RootChildActorStarter.get(actorSystem, ScopedConfig.dittoExtension(config)).execute(getContext());
+        final var dittoExtensionConfig = ScopedConfig.dittoExtension(config);
+        RootChildActorStarter.get(actorSystem, dittoExtensionConfig).execute(getContext());
 
         final ActorRef healthCheckActor = createHealthCheckActor(healthCheckConfig);
         final var hostname = getHostname(httpConfig);
@@ -164,9 +165,10 @@ public final class GatewayRootActor extends DittoRootActor {
                 healthCheckActor, pubSubMediator, healthCheckConfig, jwtAuthenticationFactory,
                 devopsAuthenticationDirectiveFactory, protocolAdapterProvider, headerTranslator);
 
+
         httpBinding = Http.get(actorSystem)
                 .newServerAt(hostname, httpConfig.getPort())
-                .bindFlow(HttpBindFlowProvider.get(actorSystem).getFlow(rootRoute))
+                .bindFlow(HttpBindFlowProvider.get(actorSystem, dittoExtensionConfig).getFlow(rootRoute))
                 .thenApply(theBinding -> {
                     log.info("Serving HTTP requests on port <{}> ...", theBinding.localAddress().getPort());
                     return theBinding.addToCoordinatedShutdown(httpConfig.getCoordinatedShutdownTimeout(), actorSystem);

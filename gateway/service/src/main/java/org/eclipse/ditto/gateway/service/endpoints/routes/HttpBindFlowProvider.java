@@ -14,7 +14,10 @@ package org.eclipse.ditto.gateway.service.endpoints.routes;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
+import org.eclipse.ditto.base.service.DittoExtensionIds;
 import org.eclipse.ditto.base.service.DittoExtensionPoint;
+
+import com.typesafe.config.Config;
 
 import akka.NotUsed;
 import akka.actor.ActorSystem;
@@ -42,21 +45,30 @@ public interface HttpBindFlowProvider extends DittoExtensionPoint {
      * {@code ActorSystem}.
      *
      * @param actorSystem the actorSystem in which the {@code HttpBindFlowProvider} should be loaded.
+     * @param config the configuration for this extension.
      * @return the {@code HttpBindFlowProvider} implementation.
      * @throws NullPointerException if {@code actorSystem} is {@code null}.
      */
-    static HttpBindFlowProvider get(final ActorSystem actorSystem) {
+    static HttpBindFlowProvider get(final ActorSystem actorSystem, final Config config) {
         checkNotNull(actorSystem, "actorSystem");
-        return ExtensionId.INSTANCE.get(actorSystem);
+        checkNotNull(config, "config");
+        final var extensionIdConfig = ExtensionId.computeConfig(config);
+        return DittoExtensionIds.get(actorSystem)
+                .computeIfAbsent(extensionIdConfig, ExtensionId::new)
+                .get(actorSystem);
     }
 
     final class ExtensionId extends DittoExtensionPoint.ExtensionId<HttpBindFlowProvider> {
 
-        private static final String CONFIG_PATH = "ditto.gateway.http.bind-flow-provider";
-        private static final ExtensionId INSTANCE = new ExtensionId(HttpBindFlowProvider.class);
+        private static final String CONFIG_KEY = "http-bind-flow-provider";
+        private static final String CONFIG_PATH = "ditto.extensions." + CONFIG_KEY;
 
-        private ExtensionId(final Class<HttpBindFlowProvider> parentClass) {
-            super(parentClass);
+        private ExtensionId(final ExtensionIdConfig<HttpBindFlowProvider> extensionIdConfig) {
+            super(extensionIdConfig);
+        }
+
+        static ExtensionIdConfig<HttpBindFlowProvider> computeConfig(final Config config) {
+            return ExtensionIdConfig.of(HttpBindFlowProvider.class, config, CONFIG_KEY);
         }
 
         @Override
