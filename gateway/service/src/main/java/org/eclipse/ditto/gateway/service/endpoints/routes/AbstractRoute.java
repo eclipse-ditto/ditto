@@ -43,6 +43,7 @@ import org.eclipse.ditto.gateway.service.endpoints.directives.ContentTypeValidat
 import org.eclipse.ditto.gateway.service.util.config.endpoints.CommandConfig;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLogger;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
+import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonParseException;
@@ -111,8 +112,10 @@ public abstract class AbstractRoute extends AllDirectives {
         mediaTypeJsonWithFallbacks = Stream.concat(jsonMediaType, fallbackMediaTypes).collect(Collectors.toSet());
 
         LOGGER.debug("Using headerTranslator <{}>.", routeBaseProperties.getHeaderTranslator());
-
-        httpRequestActorPropsFactory = HttpRequestActorPropsFactory.get(routeBaseProperties.getActorSystem());
+        final var dittoExtensionsConfig =
+                ScopedConfig.dittoExtension(routeBaseProperties.getActorSystem().settings().config());
+        httpRequestActorPropsFactory =
+                HttpRequestActorPropsFactory.get(routeBaseProperties.getActorSystem(), dittoExtensionsConfig);
 
         supervisionStrategy = createSupervisionStrategy();
     }

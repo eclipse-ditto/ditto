@@ -12,12 +12,18 @@
  */
 package org.eclipse.ditto.gateway.service.endpoints.actors;
 
+import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
+
 import java.util.concurrent.CompletableFuture;
 
 import org.eclipse.ditto.base.model.headers.translator.HeaderTranslator;
+import org.eclipse.ditto.base.service.DittoExtensionIds;
 import org.eclipse.ditto.base.service.DittoExtensionPoint;
+import org.eclipse.ditto.base.service.RootChildActorStarter;
 import org.eclipse.ditto.gateway.service.util.config.endpoints.CommandConfig;
 import org.eclipse.ditto.gateway.service.util.config.endpoints.HttpConfig;
+
+import com.typesafe.config.Config;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
@@ -49,23 +55,27 @@ public interface HttpRequestActorPropsFactory extends DittoExtensionPoint {
             HttpConfig httpConfig,
             CommandConfig commandConfig);
 
-    static HttpRequestActorPropsFactory get(final ActorSystem actorSystem) {
-        return ExtensionId.INSTANCE.get(actorSystem);
+    static HttpRequestActorPropsFactory get(final ActorSystem actorSystem, final Config config) {
+        checkNotNull(actorSystem, "actorSystem");
+        checkNotNull(config, "config");
+        final var extensionIdConfig = ExtensionId.computeConfig(config);
+        return DittoExtensionIds.get(actorSystem)
+                .computeIfAbsent(extensionIdConfig, ExtensionId::new)
+                .get(actorSystem);
     }
 
 
     final class ExtensionId extends DittoExtensionPoint.ExtensionId<HttpRequestActorPropsFactory> {
 
-        private static final String CONFIG_PATH = "ditto.gateway.http.actor-props-factory";
-        private static final ExtensionId INSTANCE = new ExtensionId(HttpRequestActorPropsFactory.class);
+        private static final String CONFIG_KEY = "http-request-actor-props-factory";
+        private static final String CONFIG_PATH = "ditto.extensions." + CONFIG_KEY;
 
-        /**
-         * Returns the {@code ExtensionId} for the implementation that should be loaded.
-         *
-         * @param parentClass the class of the extensions for which an implementation should be loaded.
-         */
-        private ExtensionId(final Class<HttpRequestActorPropsFactory> parentClass) {
-            super(parentClass);
+        private ExtensionId(final ExtensionIdConfig<HttpRequestActorPropsFactory> extensionIdConfig) {
+            super(extensionIdConfig);
+        }
+
+        static ExtensionIdConfig<HttpRequestActorPropsFactory> computeConfig(final Config config) {
+            return ExtensionIdConfig.of(HttpRequestActorPropsFactory.class, config, CONFIG_KEY);
         }
 
         @Override
