@@ -597,8 +597,7 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
             final String ackregatorAddress = dittoHeaders.get(DittoHeaderDefinition.DITTO_ACKREGATOR_ADDRESS.getKey());
             if (null != ackregatorAddress) {
                 return getContext().actorSelection(ackregatorAddress);
-            } else if (dittoHeaders.isResponseRequired() &&
-                    dittoHeaders.getAcknowledgementRequests().stream()
+            } else if (dittoHeaders.getAcknowledgementRequests().stream()
                             .anyMatch(ackRequest ->
                                     ackRequest.getLabel().equals(DittoAcknowledgementLabel.SEARCH_PERSISTED))) {
                 log.withCorrelationId(dittoHeaders)
