@@ -232,6 +232,13 @@ public interface MongoDbConfig {
         int getMaxSize();
 
         /**
+         * Returns the maximum amount of time a pooled connection is allowed to idle before closing the connection.
+         *
+         * @return the maximum amount of time a pooled connection is allowed to idle.
+         */
+        Duration getMaxIdleTime();
+
+        /**
          * Returns the maximum time to wait for a connection to become available.
          *
          * @return the maximum wait time.
@@ -260,6 +267,12 @@ public interface MongoDbConfig {
              * The maximum number of connections in the connection pool.
              */
             MAX_SIZE("maxSize", 100),
+
+            /**
+             * The maximum amount of time a pooled connection is allowed to idle before closing the connection.
+             * Set to negative value to ignore and use Mongo Client default or value provided with URI.
+             */
+            MAX_IDLE_TIME("maxIdleTime", Duration.ofSeconds(-1)),
 
             /**
              * The maximum time to wait for a connection to become available.

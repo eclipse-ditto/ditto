@@ -67,7 +67,7 @@ The following message mappers are included in the Ditto codebase:
 | [ConnectionStatus](#connectionstatus-mapper) | This mapper handles messages containing `creation-time` and `ttd` headers by updating a feature of the targeted thing with [definition](basic-feature.html#feature-definition) [ConnectionStatus](https://github.com/eclipse/vorto/tree/development/models/org.eclipse.ditto-ConnectionStatus-1.0.0.fbmodel). | ✓ |  |
 | [RawMessage](#rawmessage-mapper) | For outgoing message commands and responses, this mapper extracts the payload for publishing directly into the channel. For incoming messages, this mapper wraps them in a configured message command or response envelope. | ✓ | ✓ |
 | [ImplicitThingCreation](#implicitthingcreation-mapper) | This mapper handles messages for which a Thing should be created automatically based on a defined template. | ✓ |  |
-| [UpdateTwinWithLiveResponse](#updatetwinwithliveresponse-mapper) | This mapper creates a [merge Thing command](protocol-specification-things-merge.html) when a [retrieve command](protocol-specification-things-retrieve.html) was received via the [live channel](protocol-twinlive.html#live) patching exactly the retrieved "live" data into the twin. | ✓ |  |
+| [UpdateTwinWithLiveResponse](#updatetwinwithliveresponse-mapper) | This mapper creates a [merge Thing command](protocol-specification-things-merge.html) when an indiviudal [retrieve command](protocol-specification-things-retrieve.html) for an single Thing was received via the [live channel](protocol-twinlive.html#live) patching exactly the retrieved "live" data into the twin. | ✓ |  |
 
 ### Ditto mapper
 

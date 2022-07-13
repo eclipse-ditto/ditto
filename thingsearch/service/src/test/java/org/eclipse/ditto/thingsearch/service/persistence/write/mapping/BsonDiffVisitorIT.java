@@ -15,6 +15,8 @@ package org.eclipse.ditto.thingsearch.service.persistence.write.mapping;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.eclipse.ditto.policies.model.PoliciesResourceType.THING;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 
 import org.bson.BsonDocument;
@@ -37,6 +39,8 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 import org.reactivestreams.Publisher;
 
 import com.mongodb.reactivestreams.client.MongoCollection;
@@ -49,10 +53,7 @@ import akka.testkit.javadsl.TestKit;
 /**
  * Tests incremental update.
  */
-public final class BsonDiffVisitorIT {
-
-    @ClassRule
-    public static final MongoDbResource MONGO_RESOURCE = new MongoDbResource();
+abstract class BsonDiffVisitorIT {
 
     private DittoMongoClient client;
     private MongoCollection<Document> collection;
@@ -60,10 +61,12 @@ public final class BsonDiffVisitorIT {
     private Policy policy;
     private Policy policy2;
 
+    protected abstract MongoDbResource getMongoDbResource();
+
     @Before
     public void init() {
         client = MongoClientWrapper.getBuilder()
-                .hostnameAndPort(MONGO_RESOURCE.getBindIp(), MONGO_RESOURCE.getPort())
+                .hostnameAndPort(getMongoDbResource().getBindIp(), getMongoDbResource().getPort())
                 .defaultDatabaseName("test")
                 .build();
 
@@ -115,7 +118,7 @@ public final class BsonDiffVisitorIT {
         final BsonDocument nextThingDoc =
                 EnforcedThingMapper.toBsonDocument(nextThing, policy, metadata);
 
-        final BsonDiff diff = BsonDiff.minusThingDocs(nextThingDoc, prevThingDoc);
+        final BsonDiff diff = BsonDiff.minusThingDocs(nextThingDoc, prevThingDoc, 13);
 
         final List<BsonDocument> updateDoc = diff.consumeAndExport();
 
@@ -149,7 +152,7 @@ public final class BsonDiffVisitorIT {
         final BsonDocument nextThingDoc =
                 EnforcedThingMapper.toBsonDocument(nextThing, policy2, metadata);
 
-        final BsonDiff diff = BsonDiff.minusThingDocs(nextThingDoc, prevThingDoc);
+        final BsonDiff diff = BsonDiff.minusThingDocs(nextThingDoc, prevThingDoc, 13);
 
         final List<BsonDocument> updateDoc = diff.consumeAndExport();
 
@@ -183,7 +186,7 @@ public final class BsonDiffVisitorIT {
         final BsonDocument nextThingDoc =
                 EnforcedThingMapper.toBsonDocument(nextThing, policy2, metadata);
 
-        final BsonDiff diff = BsonDiff.minusThingDocs(nextThingDoc, prevThingDoc);
+        final BsonDiff diff = BsonDiff.minusThingDocs(nextThingDoc, prevThingDoc, 13);
 
         final List<BsonDocument> updateDoc = diff.consumeAndExport();
 
@@ -202,14 +205,14 @@ public final class BsonDiffVisitorIT {
     }
 
     @Test
-    public void testArrayDiff() {
+    public void testArrayDiffPropertyDeleted() {
         final var collection = client.getCollection("test");
 
         final Metadata metadata =
                 Metadata.of(ThingId.of("solar.system:pluto"), 23L, PolicyId.of("solar.system:pluto"), 45L, null, null);
 
         final JsonObject prevThing = getThing1();
-        final JsonObject nextThing = getThing3(); // identical to Thing1 with fields rearranged and slightly edited
+        final JsonObject nextThing = getThing6(); // identical to Thing1 with property deleted
 
         final BsonDocument prevThingDoc =
                 EnforcedThingMapper.toBsonDocument(prevThing, policy, metadata);
@@ -219,7 +222,7 @@ public final class BsonDiffVisitorIT {
 
         assertThat(prevThingDoc).isNotEqualTo(nextThingDoc);
 
-        final BsonDiff diff = BsonDiff.minusThingDocs(nextThingDoc, prevThingDoc);
+        final BsonDiff diff = BsonDiff.minusThingDocs(nextThingDoc, prevThingDoc, client.getMaxWireVersion());
 
         final List<BsonDocument> updateDoc = diff.consumeAndExport();
 
@@ -255,7 +258,7 @@ public final class BsonDiffVisitorIT {
 
         assertThat(prevThingDoc).isNotEqualTo(nextThingDoc);
 
-        final BsonDiff diff = BsonDiff.minusThingDocs(nextThingDoc, prevThingDoc);
+        final BsonDiff diff = BsonDiff.minusThingDocs(nextThingDoc, prevThingDoc, 13);
 
         final List<BsonDocument> updateDoc = diff.consumeAndExport();
 
@@ -289,7 +292,7 @@ public final class BsonDiffVisitorIT {
         final BsonDocument nextThingDoc =
                 EnforcedThingMapper.toBsonDocument(nextThing, policy, metadata);
 
-        final BsonDiff diff = BsonDiff.minusThingDocs(nextThingDoc, prevThingDoc);
+        final BsonDiff diff = BsonDiff.minusThingDocs(nextThingDoc, prevThingDoc, 13);
 
         final List<BsonDocument> updateDoc = diff.consumeAndExport();
 
@@ -413,6 +416,24 @@ public final class BsonDiffVisitorIT {
                     "e": {
                       "f": "g",
                       "h": "$lorem ipsum dolor sit amet."
+                    },
+                    "j": true,
+                    "k": 6.0,
+                    "l": 123456789012
+                  }
+                }""");
+    }
+
+    private static JsonObject getThing6() {
+        return JsonFactory.newObject("""
+                {
+                  "thingId":"solar.system:pluto",
+                  "_namespace":"solar.system",
+                  "a": [ {"b": "ABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZ"}, true ],
+                  "d": {
+                    "e": {
+                      "f": "g",
+                      "h": "lorem ipsum dolor sit amet"
                     },
                     "j": true,
                     "k": 6.0,

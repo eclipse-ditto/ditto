@@ -22,6 +22,12 @@ An ever growing list of [adopters](https://iot.eclipse.org/adopters/?#iot.ditto)
 
 Find the documentation on the project site: [https://eclipse.org/ditto/](https://eclipse.org/ditto)
 
+## Eclipse Ditto™ explorer UI
+
+Find a live version of the latest explorer UI: [https://eclipse.github.io/ditto/](https://eclipse.github.io/ditto/)
+
+You should be able to work with your locally running default using the `local_ditto` environment - and you can add additional environments to also work with e.g. with a deployed installation of Ditto.
+
 ## Getting started
 
 In order to start up Ditto via *Docker Compose*, you'll need:

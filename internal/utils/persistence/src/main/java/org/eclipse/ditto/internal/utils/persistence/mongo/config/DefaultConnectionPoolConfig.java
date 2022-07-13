@@ -32,12 +32,14 @@ public final class DefaultConnectionPoolConfig implements MongoDbConfig.Connecti
 
     private final int minSize;
     private final int maxSize;
+    private final Duration maxIdleTime;
     private final Duration maxWaitTime;
     private final boolean jmxListenerEnabled;
 
     private DefaultConnectionPoolConfig(final ScopedConfig config) {
         minSize = config.getNonNegativeIntOrThrow(ConnectionPoolConfigValue.MIN_SIZE);
         maxSize = config.getNonNegativeIntOrThrow(ConnectionPoolConfigValue.MAX_SIZE);
+        maxIdleTime = config.getDuration(ConnectionPoolConfigValue.MAX_IDLE_TIME.getConfigPath());
         maxWaitTime = config.getNonNegativeDurationOrThrow(ConnectionPoolConfigValue.MAX_WAIT_TIME);
         jmxListenerEnabled = config.getBoolean(ConnectionPoolConfigValue.JMX_LISTENER_ENABLED.getConfigPath());
     }
@@ -65,6 +67,11 @@ public final class DefaultConnectionPoolConfig implements MongoDbConfig.Connecti
     }
 
     @Override
+    public Duration getMaxIdleTime() {
+        return maxIdleTime;
+    }
+
+    @Override
     public Duration getMaxWaitTime() {
         return maxWaitTime;
     }
@@ -86,12 +93,13 @@ public final class DefaultConnectionPoolConfig implements MongoDbConfig.Connecti
         return minSize == that.minSize &&
                 maxSize == that.maxSize &&
                 jmxListenerEnabled == that.jmxListenerEnabled &&
+                Objects.equals(maxIdleTime, that.maxIdleTime) &&
                 Objects.equals(maxWaitTime, that.maxWaitTime);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(minSize, maxSize, maxWaitTime, jmxListenerEnabled);
+        return Objects.hash(minSize, maxSize, maxWaitTime, maxIdleTime, jmxListenerEnabled);
     }
 
     @Override
@@ -100,6 +108,7 @@ public final class DefaultConnectionPoolConfig implements MongoDbConfig.Connecti
                 "minSize=" + minSize +
                 ", maxSize=" + maxSize +
                 ", maxWaitTime=" + maxWaitTime +
+                ", maxIdleTime=" + maxIdleTime +
                 ", jmxListenerEnabled=" + jmxListenerEnabled +
                 "]";
     }

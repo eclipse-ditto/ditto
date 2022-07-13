@@ -79,6 +79,14 @@ public abstract class AbstractDDataHandler<K, S, T extends DDataUpdate<S>>
     }
 
     @Override
+    public CompletionStage<Void> reset(final K ownSubscriber, final T topics,
+            final Replicator.WriteConsistency writeConsistency) {
+
+        return update(getKey(selfUniqueAddress.uniqueAddress().address()), writeConsistency,
+                mmap -> mmap.put(selfUniqueAddress, ownSubscriber, topics.getInserts()));
+    }
+
+    @Override
     public CompletionStage<Void> removeSubscriber(final K subscriber,
             final Replicator.WriteConsistency writeConsistency) {
         return update(getKey(selfUniqueAddress.uniqueAddress().address()), writeConsistency, mmap -> mmap.remove(selfUniqueAddress, subscriber));

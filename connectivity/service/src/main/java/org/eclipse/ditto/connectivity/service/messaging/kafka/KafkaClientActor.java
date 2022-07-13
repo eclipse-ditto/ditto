@@ -217,7 +217,6 @@ public final class KafkaClientActor extends BaseClientActor {
         final Props publisherActorProps = publisherActorFactory.props(connection(),
                 producerFactory,
                 dryRun,
-                getDefaultClientId(),
                 connectivityStatusResolver,
                 connectivityConfig());
         kafkaPublisherActor = startChildActorConflictFree(publisherActorFactory.getActorName(), publisherActorProps);

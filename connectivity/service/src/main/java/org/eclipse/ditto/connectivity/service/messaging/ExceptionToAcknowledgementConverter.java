@@ -57,7 +57,7 @@ public abstract class ExceptionToAcknowledgementConverter {
      * @param dittoHeaders the DittoHeaders of the sending context.
      * @return the acknowledgement.
      */
-    public final Acknowledgement convertException(final Exception exception,
+    public final Acknowledgement convertException(final Throwable exception,
             final AcknowledgementLabel label,
             final EntityId entityId,
             final DittoHeaders dittoHeaders) {
@@ -111,7 +111,7 @@ public abstract class ExceptionToAcknowledgementConverter {
      * @param dittoHeaders the DittoHeaders of the sending context.
      * @return acknowledgement for the generic exception.
      */
-    private Acknowledgement convertGenericException(final Exception exception,
+    private Acknowledgement convertGenericException(final Throwable exception,
             final AcknowledgementLabel label,
             final EntityId entityId,
             final DittoHeaders dittoHeaders) {
@@ -128,16 +128,16 @@ public abstract class ExceptionToAcknowledgementConverter {
      * @param exception the generic exception (non-DittoRuntimeException).
      * @return the HTTP status of the converted acknowledgement.
      */
-    protected abstract HttpStatus getHttpStatusForGenericException(Exception exception);
+    protected abstract HttpStatus getHttpStatusForGenericException(Throwable exception);
 
-    private static JsonObject getPayload(final Exception exception) {
+    private static JsonObject getPayload(final Throwable exception) {
         return JsonObject.newBuilder()
                 .set(DittoRuntimeException.JsonFields.MESSAGE, getMessageForGenericException(exception))
                 .set(DittoRuntimeException.JsonFields.DESCRIPTION, getDescriptionForGenericException(exception))
                 .build();
     }
 
-    private static String getMessageForGenericException(final Exception exception) {
+    private static String getMessageForGenericException(final Throwable exception) {
         return MessageFormat.format("Encountered <{0}>.", exception.getClass().getSimpleName());
     }
 
@@ -147,12 +147,12 @@ public abstract class ExceptionToAcknowledgementConverter {
      * @param exception the generic exception (non-DittoRuntimeException).
      * @return the description in the payload of the converted acknowledgement.
      */
-    private static String getDescriptionForGenericException(final Exception exception) {
-        String message = exception.getMessage();
+    private static String getDescriptionForGenericException(final Throwable exception) {
+        var message = exception.getMessage();
         if (null == message) {
             message = "Unknown error.";
         }
-        final Throwable cause = exception.getCause();
+        final var cause = exception.getCause();
         final String result;
         if (null != cause) {
             result = MessageFormat.format("{0} - Caused by <{1}>.", message, cause.getClass().getSimpleName());

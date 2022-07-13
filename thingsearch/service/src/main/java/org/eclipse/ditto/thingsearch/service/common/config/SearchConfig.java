@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.thingsearch.service.common.config;
 
+import java.util.Map;
 import java.util.Optional;
 
 import javax.annotation.Nullable;
@@ -23,6 +24,8 @@ import org.eclipse.ditto.internal.utils.health.config.WithHealthCheckConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.WithIndexInitializationConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.WithMongoDbConfig;
 import org.eclipse.ditto.internal.utils.persistence.operations.WithPersistenceOperationsConfig;
+
+import com.typesafe.config.ConfigValueFactory;
 
 /**
  * Provides the configuration settings of the Search service.
@@ -67,6 +70,21 @@ public interface SearchConfig extends ServiceSpecificConfig, WithHealthCheckConf
     UpdaterConfig getUpdaterConfig();
 
     /**
+     * Returns the query persistence config.
+     *
+     * @return the config.
+     */
+    SearchPersistenceConfig getQueryPersistenceConfig();
+
+    /**
+     * Returns how simple fields are mapped during query parsing.
+     *
+     * @return the simple field mapping.
+     * @since 2.5.0
+     */
+    Map<String, String> getSimpleFieldMappings();
+
+    /**
      * An enumeration of the known config path expressions and their associated default values for SearchConfig.
      */
     enum SearchConfigValue implements KnownConfigValue {
@@ -99,7 +117,22 @@ public interface SearchConfig extends ServiceSpecificConfig, WithHealthCheckConf
          * @since 2.3.0
          */
         SEARCH_UPDATE_OBSERVER("search-update-observer.implementation",
-                "org.eclipse.ditto.thingsearch.service.updater.actors.DefaultSearchUpdateObserver");
+                "org.eclipse.ditto.thingsearch.service.updater.actors.DefaultSearchUpdateObserver"),
+
+        /**
+         * How simple fields are mapped during query parsing.
+         *
+         * @since 2.5.0
+         */
+        SIMPLE_FIELD_MAPPINGS("simple-field-mappings", ConfigValueFactory.fromMap(Map.of(
+                "thingId", "_id",
+                "namespace", "_namespace",
+                "policyId", "/policyId",
+                "_revision", "/_revision",
+                "_modified", "/_modified",
+                "_created", "/_created",
+                "definition", "/definition"
+        )));
 
         private final String path;
         private final Object defaultValue;

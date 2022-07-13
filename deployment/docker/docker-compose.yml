@@ -240,6 +240,7 @@ services:
        - ./nginx-cors.conf:/etc/nginx/nginx-cors.conf:ro
        - ./index.html:/etc/nginx/html/index.html:ro
        - ../../documentation/src/main/resources/images:/etc/nginx/html/images:ro
+       - ../../ui:/etc/nginx/html/ui:ro
     ports:
       - "${DITTO_EXTERNAL_PORT:-8080}:80"
     depends_on:

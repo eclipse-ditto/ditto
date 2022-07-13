@@ -90,8 +90,7 @@ public final class MessageMappingProcessorActorHeaderInteractionTest extends Abs
             final boolean settleImmediately = modifyThing.getDittoHeaders().getAcknowledgementRequests().isEmpty();
 
             inboundMappingProcessorActor.tell(
-                    new InboundMappingSink.ExternalMessageWithSender(toExternalMessage(modifyThing),
-                            collectorProbe.ref()),
+                    new ExternalMessageWithSender(toExternalMessage(modifyThing), collectorProbe.ref()),
                     ActorRef.noSender()
             );
 
