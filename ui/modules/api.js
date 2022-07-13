@@ -112,7 +112,7 @@ const config = {
         },
         'piggybackCommand': {
           'type': 'connectivity.commands:createConnection',
-          'connection': '{{param}}',
+          'connection': '{{connectionJson}}',
         },
       },
       unwrapJsonPath: '?.?.connection',
@@ -127,7 +127,7 @@ const config = {
         },
         'piggybackCommand': {
           'type': 'connectivity.commands:modifyConnection',
-          'connection': '{{param}}',
+          'connection': '{{connectionJson}}',
         },
       },
       unwrapJsonPath: null,
@@ -204,7 +204,7 @@ const config = {
           'is-group-topic': true,
         },
         'piggybackCommand': {
-          'type': '{{param}}',
+          'type': '{{command}}',
           'connectionId': '{{connectionId}}',
         },
       },
@@ -278,12 +278,16 @@ export async function callDittoREST(method, path, body) {
  * @param {*} operation connections api operation
  * @param {*} successCallback callback on success
  * @param {*} connectionId connectionId
- * @param {*} param command
+ * @param {*} connectionJson optional json of connection configuration
+ * @param {*} command optional command
  * @return {*} promise to the result
  */
-export async function callConnectionsAPI(operation, successCallback, connectionId, param) {
+export async function callConnectionsAPI(operation, successCallback, connectionId, connectionJson, command) {
   Utils.assert((env() !== 'things' || Environments.current().solutionId), 'No solutionId configured in environment');
   const params = config[env()][operation];
+  // if (param && param.charAt(0) === '"' && param.charAt(str.length -1) === '"') {
+  //   param = param.substr(1, param.length -2);
+  // };
   try {
     const response = await fetch(Environments.current().api_uri + params.path.replace('{{solutionId}}',
         Environments.current().solutionId).replace('{{connectionId}}', connectionId), {
@@ -295,8 +299,9 @@ export async function callConnectionsAPI(operation, successCallback, connectionI
       body: params.body ?
           JSON.stringify(params.body)
               .replace('{{connectionId}}', connectionId)
-              .replace('{{param}}', param) :
-          param,
+              .replace('"{{connectionJson}}"', JSON.stringify(connectionJson))
+              .replace('{{command}}', command) :
+          connectionJson ? JSON.stringify(connectionJson) : command,
     });
     if (!response.ok) {
       Utils.showError('Error calling connections API', response.statusText, response.status);
@@ -320,6 +325,7 @@ export async function callConnectionsAPI(operation, successCallback, connectionI
         }
       }).catch((error) => {
         Utils.showError('Error calling connections API', error);
+        throw error;
       }).finally(() => {
         document.body.style.cursor = 'default';
       });

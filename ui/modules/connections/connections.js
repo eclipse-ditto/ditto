@@ -56,14 +56,13 @@ export function ready() {
   dom.tabConnections.onclick = loadConnections;
 
   dom.buttonCreateConnection.onclick = () => {
-    const selectedTemplate = document.querySelector('input[name=connectionTemplate]:checked').value;
-    setConnection(connectionTemplates[selectedTemplate]);
-    if (API.env() === 'things') {
-      delete theConnection['id'];
-    } else {
-      theConnection.id = Math.random().toString(36).replace('0.', '');
+    const newConnection = JSON.parse(JSON.stringify(
+        connectionTemplates[document.querySelector('input[name=connectionTemplate]:checked').value]));
+    if (API.env() !== 'things') {
+      newConnection.id = Math.random().toString(36).replace('0.', '');
     }
-    API.callConnectionsAPI('createConnection', loadConnections, null, JSON.stringify(theConnection));
+    setConnection(newConnection);
+    API.callConnectionsAPI('createConnection', loadConnections, null, newConnection);
   };
 
   dom.tbodyConnections.addEventListener('click', (event) => {
@@ -90,7 +89,7 @@ export function ready() {
 
   dom.buttonModifyConnection.onclick = () => {
     Utils.assert(dom.inputConnectionId.value, 'Please selected a connection');
-    API.callConnectionsAPI('modifyConnection', loadConnections, dom.inputConnectionId.value, JSON.stringify(theConnection));
+    API.callConnectionsAPI('modifyConnection', loadConnections, dom.inputConnectionId.value, theConnection);
   };
 
   dom.buttonDeleteConnection.onclick = () => {
@@ -109,12 +108,12 @@ export function ready() {
 
   dom.buttonEnableConnectionLogs.onclick = () => {
     Utils.assert(dom.inputConnectionId.value, 'Please selected a connection');
-    API.callConnectionsAPI('connectionCommand', null, dom.inputConnectionId.value, 'connectivity.commands:enableConnectionLogs');
+    API.callConnectionsAPI('connectionCommand', null, dom.inputConnectionId.value, null, 'connectivity.commands:enableConnectionLogs');
   };
 
   dom.buttonResetConnectionLogs.onclick = () => {
     Utils.assert(dom.inputConnectionId.value, 'Please selected a connection');
-    API.callConnectionsAPI('connectionCommand', null, dom.inputConnectionId.value, 'connectivity.commands:resetConnectionLogs');
+    API.callConnectionsAPI('connectionCommand', null, dom.inputConnectionId.value, null, 'connectivity.commands:resetConnectionLogs');
   };
 
   dom.buttonRetrieveConnectionLogs.onclick = () => {
@@ -134,18 +133,20 @@ export function ready() {
     Utils.assert(dom.inputConnectionId.value, 'Please selected a connection');
     dom.tbodyConnectionMetrics.innerHTML = '';
     API.callConnectionsAPI('retrieveConnectionMetrics', (response) => {
-      Object.keys(response.connectionMetrics.outbound).forEach((type) => {
-        let entry = response.connectionMetrics.outbound[type];
-        Utils.addTableRow(dom.tbodyConnectionMetrics, type, false, false, 'success', entry.success.PT1M, entry.success.PT1H, entry.success.PT24H);
-        Utils.addTableRow(dom.tbodyConnectionMetrics, type, false, false, 'failure', entry.failure.PT1M, entry.failure.PT1H, entry.failure.PT24H);
-      });
+      if (response.connectionMetrics.outbound) {
+        Object.keys(response.connectionMetrics.outbound).forEach((type) => {
+          let entry = response.connectionMetrics.outbound[type];
+          Utils.addTableRow(dom.tbodyConnectionMetrics, type, false, false, 'success', entry.success.PT1M, entry.success.PT1H, entry.success.PT24H);
+          Utils.addTableRow(dom.tbodyConnectionMetrics, type, false, false, 'failure', entry.failure.PT1M, entry.failure.PT1H, entry.failure.PT24H);
+        });
+      }
     },
     dom.inputConnectionId.value);
   };
 
   dom.buttonResetConnectionMetrics.onclick = () => {
     Utils.assert(dom.inputConnectionId.value, 'Please selected a connection');
-    API.callConnectionsAPI('connectionCommand', null, dom.inputConnectionId.value, 'connectivity.commands:resetConnectionMetrics');
+    API.callConnectionsAPI('connectionCommand', null, dom.inputConnectionId.value, null, 'connectivity.commands:resetConnectionMetrics');
   };
 }
 
@@ -167,8 +168,8 @@ function setConnection(connection) {
 }
 
 function loadConnections() {
+  dom.tbodyConnections.innerHTML = '';
   API.callConnectionsAPI('listConnections', (connections) => {
-    dom.tbodyConnections.innerHTML = '';
     connections.forEach((connection) => {
       const id = API.env() === 'things' ? connection.id : connection;
       const row = dom.tbodyConnections.insertRow();
@@ -186,6 +187,9 @@ function loadConnections() {
         row.insertCell(-1).innerHTML = status.recoveryStatus;
       },
       id);
+      if (theConnection && id === theConnection.id) {
+        row.classList.add('table-active');
+      }
     });
   });
 };

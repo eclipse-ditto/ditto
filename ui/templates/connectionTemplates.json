@@ -127,7 +127,7 @@
     "failoverEnabled": true,
     "uri": "http://user:password@localhost:80",
     "specificConfig": {
-      "parallelism": "2"
+      "parallelism": "1"
     },
     "sources": [],
     "targets": [
@@ -137,8 +137,7 @@
           "_/_/things/twin/events"
         ],
         "authorizationContext": [
-          "ditto:outbound-auth-subject",
-          "..."
+          "ditto:outbound-auth-subject"
         ],
         "headerMapping": {
           "content-type": "{{ header:content-type }}",
