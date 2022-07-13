@@ -17,6 +17,7 @@ import org.eclipse.ditto.base.service.actors.StartChildActor;
 import org.eclipse.ditto.internal.utils.akka.streaming.TimestampPersistence;
 import org.eclipse.ditto.internal.utils.cluster.ClusterUtil;
 import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
+import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import org.eclipse.ditto.internal.utils.health.RetrieveHealth;
 import org.eclipse.ditto.internal.utils.namespaces.BlockedNamespaces;
 import org.eclipse.ditto.internal.utils.persistence.mongo.DittoMongoClient;
@@ -90,7 +91,8 @@ public final class SearchUpdaterRootActor extends AbstractActor {
 
         final ActorRef thingsShard = shardRegionFactory.getThingsShardRegion(numberOfShards);
         final ActorRef policiesShard = shardRegionFactory.getPoliciesShardRegion(numberOfShards);
-        final var searchUpdateMapper = SearchUpdateMapper.get(actorSystem);
+        final var dittoExtensionsConfig = ScopedConfig.dittoExtension(actorSystem.settings().config());
+        final var searchUpdateMapper = SearchUpdateMapper.get(actorSystem, dittoExtensionsConfig);
         final SearchUpdaterStream searchUpdaterStream =
                 SearchUpdaterStream.of(updaterConfig, actorSystem, thingsShard, policiesShard,
                         dittoMongoClient.getDefaultDatabase(), blockedNamespaces,

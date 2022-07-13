@@ -23,21 +23,22 @@ import java.util.concurrent.CompletionStage;
 import javax.annotation.Nullable;
 
 import org.bson.Document;
+import org.eclipse.ditto.base.service.config.limits.DefaultLimitsConfig;
+import org.eclipse.ditto.internal.utils.config.ScopedConfig;
+import org.eclipse.ditto.internal.utils.persistence.mongo.DittoMongoClient;
+import org.eclipse.ditto.internal.utils.persistence.mongo.MongoClientWrapper;
+import org.eclipse.ditto.internal.utils.test.mongo.MongoDbResource;
 import org.eclipse.ditto.rql.query.Query;
 import org.eclipse.ditto.rql.query.QueryBuilderFactory;
 import org.eclipse.ditto.rql.query.criteria.CriteriaFactory;
 import org.eclipse.ditto.rql.query.expression.FieldExpressionUtil;
 import org.eclipse.ditto.rql.query.expression.ThingsFieldExpressionFactory;
 import org.eclipse.ditto.things.model.ThingId;
-import org.eclipse.ditto.base.service.config.limits.DefaultLimitsConfig;
 import org.eclipse.ditto.thingsearch.service.common.model.ResultList;
 import org.eclipse.ditto.thingsearch.service.persistence.read.MongoThingsSearchPersistence;
 import org.eclipse.ditto.thingsearch.service.persistence.read.query.MongoQueryBuilderFactory;
 import org.eclipse.ditto.thingsearch.service.persistence.write.streaming.SearchUpdateMapper;
 import org.eclipse.ditto.thingsearch.service.persistence.write.streaming.TestSearchUpdaterStream;
-import org.eclipse.ditto.internal.utils.persistence.mongo.DittoMongoClient;
-import org.eclipse.ditto.internal.utils.persistence.mongo.MongoClientWrapper;
-import org.eclipse.ditto.internal.utils.test.mongo.MongoDbResource;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -115,7 +116,9 @@ public abstract class AbstractThingSearchPersistenceITBase {
     }
 
     private TestSearchUpdaterStream provideWritePersistence() {
-        return TestSearchUpdaterStream.of(mongoClient.getDefaultDatabase(), SearchUpdateMapper.get(actorSystem));
+        final var dittoExtensionsConfig = ScopedConfig.dittoExtension(actorSystem.settings().config());
+        return TestSearchUpdaterStream.of(mongoClient.getDefaultDatabase(),
+                SearchUpdateMapper.get(actorSystem, dittoExtensionsConfig));
     }
 
     private static DittoMongoClient provideClientWrapper() {

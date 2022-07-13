@@ -12,19 +12,19 @@
  */
 package org.eclipse.ditto.thingsearch.service.persistence.write.streaming;
 
-import java.util.List;
+import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
+import org.eclipse.ditto.base.service.DittoExtensionIds;
 import org.eclipse.ditto.base.service.DittoExtensionPoint;
-import org.eclipse.ditto.internal.utils.akka.AkkaClassLoader;
 import org.eclipse.ditto.internal.utils.metrics.instruments.timer.StartedTimer;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.AbstractWriteModel;
 import org.eclipse.ditto.thingsearch.service.updater.actors.MongoWriteModel;
 import org.slf4j.Logger;
 
+import com.typesafe.config.Config;
+
 import akka.NotUsed;
-import akka.actor.AbstractExtensionId;
 import akka.actor.ActorSystem;
-import akka.actor.ExtendedActorSystem;
 import akka.stream.javadsl.Source;
 
 /**
@@ -36,11 +36,8 @@ import akka.stream.javadsl.Source;
  */
 public abstract class SearchUpdateMapper implements DittoExtensionPoint {
 
-    private static final ExtensionId EXTENSION_ID = new ExtensionId();
-    protected final ActorSystem actorSystem;
-
-    protected SearchUpdateMapper(final ActorSystem actorSystem) {
-        this.actorSystem = actorSystem;
+    protected SearchUpdateMapper(final ActorSystem actorSystem, final Config config) {
+        //No-Op
     }
 
     /**
@@ -59,8 +56,13 @@ public abstract class SearchUpdateMapper implements DittoExtensionPoint {
      * @param actorSystem The actor system in which to load the listener.
      * @return The listener.
      */
-    public static SearchUpdateMapper get(final ActorSystem actorSystem) {
-        return EXTENSION_ID.get(actorSystem);
+    public static SearchUpdateMapper get(final ActorSystem actorSystem, final Config config) {
+        checkNotNull(actorSystem, "actorSystem");
+        checkNotNull(config, "config");
+        final var extensionIdConfig = ExtensionId.computeConfig(config);
+        return DittoExtensionIds.get(actorSystem)
+                .computeIfAbsent(extensionIdConfig, ExtensionId::new)
+                .get(actorSystem);
     }
 
     /**
@@ -85,8 +87,7 @@ public abstract class SearchUpdateMapper implements DittoExtensionPoint {
                 logger.debug("MongoWriteModel={}", result);
                 return Source.single(result);
             }
-        }
-        catch (final Exception error) {
+        } catch (final Exception error) {
             logger.error("Failed to compute write model " + model, error);
             try {
                 model.getMetadata().getTimers().forEach(StartedTimer::stop);
@@ -100,16 +101,24 @@ public abstract class SearchUpdateMapper implements DittoExtensionPoint {
     /**
      * ID of the actor system extension to validate the {@code SearchUpdateListener}.
      */
-    private static final class ExtensionId extends AbstractExtensionId<SearchUpdateMapper> {
-        private static final String CONFIG_PATH = "ditto.search.search-update-mapper.implementation";
-        @Override
-        public SearchUpdateMapper createExtension(final ExtendedActorSystem system) {
-            final String implementation = system.settings().config().getString(CONFIG_PATH);
-            return AkkaClassLoader.instantiate(system, SearchUpdateMapper.class,
-                    implementation,
-                    List.of(ActorSystem.class),
-                    List.of(system));
+    private static final class ExtensionId extends DittoExtensionPoint.ExtensionId<SearchUpdateMapper> {
+
+        private static final String CONFIG_KEY = "search-update-mapper";
+        private static final String CONFIG_PATH = "ditto.extensions." + CONFIG_KEY;
+
+        private ExtensionId(final ExtensionIdConfig<SearchUpdateMapper> extensionIdConfig) {
+            super(extensionIdConfig);
         }
+
+        static ExtensionIdConfig<SearchUpdateMapper> computeConfig(final Config config) {
+            return ExtensionIdConfig.of(SearchUpdateMapper.class, config, CONFIG_KEY);
+        }
+
+        @Override
+        protected String getConfigPath() {
+            return CONFIG_PATH;
+        }
+
     }
 
 }

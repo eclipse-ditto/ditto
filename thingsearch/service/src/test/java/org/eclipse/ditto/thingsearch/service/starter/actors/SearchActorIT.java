@@ -31,6 +31,7 @@ import org.eclipse.ditto.base.model.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.base.service.config.limits.DefaultLimitsConfig;
+import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.DittoMongoClient;
 import org.eclipse.ditto.internal.utils.persistence.mongo.MongoClientWrapper;
 import org.eclipse.ditto.internal.utils.test.mongo.MongoDbResource;
@@ -130,7 +131,9 @@ public final class SearchActorIT {
     }
 
     private static TestSearchUpdaterStream provideWritePersistence(final ActorSystem system) {
-        return TestSearchUpdaterStream.of(mongoClient.getDefaultDatabase(), SearchUpdateMapper.get(system));
+        final var dittoExtensionsConfig = ScopedConfig.dittoExtension(system.settings().config());
+        return TestSearchUpdaterStream.of(mongoClient.getDefaultDatabase(),
+                SearchUpdateMapper.get(system, dittoExtensionsConfig));
     }
 
     private static DittoMongoClient provideClientWrapper() {
