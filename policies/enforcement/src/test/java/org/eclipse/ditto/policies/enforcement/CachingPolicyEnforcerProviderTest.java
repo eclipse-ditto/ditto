@@ -254,7 +254,7 @@ public final class CachingPolicyEnforcerProviderTest {
             final PolicyId policyId = PolicyId.generateRandom();
             cachingActor.tell(PolicyTag.of(policyId, 1234L), ActorRef.noSender());
 
-            verify(cache).invalidate(policyId);
+            verify(cache, timeout(3000)).invalidate(policyId);
             verifyNoMoreInteractions(cache);
         }};
 
