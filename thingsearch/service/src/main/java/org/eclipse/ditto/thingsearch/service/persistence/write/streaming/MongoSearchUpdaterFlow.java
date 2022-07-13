@@ -61,7 +61,9 @@ final class MongoSearchUpdaterFlow {
     private MongoSearchUpdaterFlow(final MongoCollection<BsonDocument> collection,
             final PersistenceStreamConfig persistenceConfig) {
 
-        this.collection = collection.withWriteConcern(persistenceConfig.getWithAcknowledgementsWriteConcern());
+        final var writeConcern = persistenceConfig.getWithAcknowledgementsWriteConcern();
+        LOGGER.info("Update writeConcern=<{}>", writeConcern);
+        this.collection = collection.withWriteConcern(writeConcern);
     }
 
     /**

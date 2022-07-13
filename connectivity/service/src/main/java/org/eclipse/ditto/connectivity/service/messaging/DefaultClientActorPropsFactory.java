@@ -17,12 +17,11 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.connectivity.model.Connection;
-import org.eclipse.ditto.connectivity.model.ConnectionType;
 import org.eclipse.ditto.connectivity.service.messaging.amqp.AmqpClientActor;
 import org.eclipse.ditto.connectivity.service.messaging.httppush.HttpPushClientActor;
 import org.eclipse.ditto.connectivity.service.messaging.kafka.KafkaClientActor;
-import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.HiveMqtt3ClientActor;
-import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.HiveMqtt5ClientActor;
+import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.MqttClientActor;
+import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.client.GenericMqttClientFactory;
 import org.eclipse.ditto.connectivity.service.messaging.rabbitmq.RabbitMQClientActor;
 
 import com.typesafe.config.Config;
@@ -55,43 +54,41 @@ public final class DefaultClientActorPropsFactory implements ClientActorPropsFac
     }
 
     @Override
-    public Props getActorPropsForType(final Connection connection, final ActorRef proxyActor,
+    public Props getActorPropsForType(final Connection connection,
+            final ActorRef proxyActor,
             final ActorRef connectionActor,
             final ActorSystem actorSystem,
             final DittoHeaders dittoHeaders,
             final Config connectivityConfigOverwrites) {
 
-        final ConnectionType connectionType = connection.getConnectionType();
-        final Props result;
-        switch (connectionType) {
-            case AMQP_091:
-                result = RabbitMQClientActor.props(connection, proxyActor, connectionActor, dittoHeaders,
-                        connectivityConfigOverwrites);
-                break;
-            case AMQP_10:
-                result = AmqpClientActor.props(connection, proxyActor, connectionActor, connectivityConfigOverwrites,
-                        actorSystem, dittoHeaders);
-                break;
-            case MQTT:
-                result = HiveMqtt3ClientActor.props(connection, proxyActor, connectionActor, dittoHeaders,
-                        connectivityConfigOverwrites);
-                break;
-            case MQTT_5:
-                result = HiveMqtt5ClientActor.props(connection, proxyActor, connectionActor, dittoHeaders,
-                        connectivityConfigOverwrites);
-                break;
-            case KAFKA:
-                result = KafkaClientActor.props(connection, proxyActor, connectionActor, dittoHeaders,
-                        connectivityConfigOverwrites);
-                break;
-            case HTTP_PUSH:
-                result = HttpPushClientActor.props(connection, proxyActor, connectionActor, dittoHeaders,
-                        connectivityConfigOverwrites);
-                break;
-            default:
-                throw new IllegalArgumentException("ConnectionType <" + connectionType + "> is not supported.");
-        }
-        return result;
+        return switch (connection.getConnectionType()) {
+            case AMQP_091 -> RabbitMQClientActor.props(connection,
+                    proxyActor,
+                    connectionActor,
+                    dittoHeaders,
+                    connectivityConfigOverwrites);
+            case AMQP_10 -> AmqpClientActor.props(connection,
+                    proxyActor,
+                    connectionActor,
+                    connectivityConfigOverwrites,
+                    actorSystem,
+                    dittoHeaders);
+            case MQTT, MQTT_5 -> MqttClientActor.props(connection,
+                    proxyActor,
+                    connectionActor,
+                    dittoHeaders,
+                    connectivityConfigOverwrites);
+            case KAFKA -> KafkaClientActor.props(connection,
+                    proxyActor,
+                    connectionActor,
+                    dittoHeaders,
+                    connectivityConfigOverwrites);
+            case HTTP_PUSH -> HttpPushClientActor.props(connection,
+                    proxyActor,
+                    connectionActor,
+                    dittoHeaders,
+                    connectivityConfigOverwrites);
+        };
     }
 
 }

@@ -30,7 +30,6 @@ import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgements;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
 import org.eclipse.ditto.connectivity.api.ExternalMessage;
-import org.eclipse.ditto.connectivity.api.ExternalMessageBuilder;
 import org.eclipse.ditto.connectivity.api.ExternalMessageFactory;
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.ConnectionId;
@@ -40,7 +39,6 @@ import org.eclipse.ditto.connectivity.model.ConnectivityStatus;
 import org.eclipse.ditto.connectivity.model.ResourceStatus;
 import org.eclipse.ditto.connectivity.model.Source;
 import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
-import org.eclipse.ditto.connectivity.service.messaging.InboundMappingSink.ExternalMessageWithSender;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.ConnectionMonitor;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.DefaultConnectionMonitorRegistry;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.metrics.CounterKey;
@@ -49,7 +47,6 @@ import org.eclipse.ditto.internal.models.acks.config.AcknowledgementConfig;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.internal.utils.config.InstanceIdentifierSupplier;
 import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
-import org.eclipse.ditto.internal.utils.metrics.instruments.timer.StartedTimer;
 import org.eclipse.ditto.internal.utils.tracing.DittoTracing;
 import org.eclipse.ditto.internal.utils.tracing.TracingTags;
 
@@ -100,12 +97,14 @@ public abstract class BaseConsumerActor extends AbstractActorWithTimers {
         this.connectivityConfig = connectivityConfig;
         acknowledgementConfig = connectivityConfig.getAcknowledgementConfig();
 
-        inboundMonitor = DefaultConnectionMonitorRegistry.fromConfig(connectivityConfig)
-                .forInboundConsumed(connection, sourceAddress);
+        final var connectionMonitorRegistry = DefaultConnectionMonitorRegistry.fromConfig(connectivityConfig);
+        inboundMonitor = connectionMonitorRegistry.forInboundConsumed(connection, sourceAddress);
+        inboundAcknowledgedMonitor = connectionMonitorRegistry.forInboundAcknowledged(connection, sourceAddress);
+    }
 
-        inboundAcknowledgedMonitor =
-                DefaultConnectionMonitorRegistry.fromConfig(connectivityConfig)
-                        .forInboundAcknowledged(connection, sourceAddress);
+    protected void resetResourceStatus() {
+        resourceStatus = ConnectivityModelFactory.newSourceStatus(getInstanceIdentifier(),
+                ConnectivityStatus.OPEN, sourceAddress, "Consumer started.", Instant.now());
     }
 
     /**
@@ -125,8 +124,7 @@ public abstract class BaseConsumerActor extends AbstractActorWithTimers {
         final ActorRef responseCollector = getContext().actorOf(ResponseCollectorActor.props(collectorLifetime));
         prepareResponseHandler(acknowledgeableMessage, responseCollector);
 
-        final ExternalMessage messageWithSourceAndReplyTarget =
-                addSourceAndReplyTarget(acknowledgeableMessage.getMessage());
+        final var messageWithSourceAndReplyTarget = addSourceAndReplyTarget(acknowledgeableMessage.getMessage());
         log().debug("Forwarding incoming message for mapping. ResponseCollector=<{}>", responseCollector);
         return new ExternalMessageWithSender(messageWithSourceAndReplyTarget, responseCollector);
     }
@@ -134,27 +132,29 @@ public abstract class BaseConsumerActor extends AbstractActorWithTimers {
     private void prepareResponseHandler(final AcknowledgeableMessage acknowledgeableMessage,
             final ActorRef responseCollector) {
 
-        final StartedTimer ackTimer = DittoMetrics.timer(TIMER_ACK_HANDLING)
+        final var ackTimer = DittoMetrics.timer(TIMER_ACK_HANDLING)
                 .tag(TracingTags.CONNECTION_ID, connectionId.toString())
                 .tag(TracingTags.CONNECTION_TYPE, connectionType.getName())
                 .start();
-        final var ackCounter = MetricAlertRegistry.getMetricsAlertGaugeOrDefault(
-                CounterKey.of(connectionId, sourceAddress), MetricAlertRegistry.COUNTER_ACK_HANDLING,
-                connectionType, connectivityConfig)
-                .tag(TracingTags.CONNECTION_ID, connectionId.toString())
-                .tag(TracingTags.CONNECTION_TYPE, connectionType.toString())
-                .increment();
+        final var ackCounter =
+                MetricAlertRegistry.getMetricsAlertGaugeOrDefault(CounterKey.of(connectionId, sourceAddress),
+                                MetricAlertRegistry.COUNTER_ACK_HANDLING,
+                                connectionType,
+                                connectivityConfig)
+                        .tag(TracingTags.CONNECTION_ID, connectionId.toString())
+                        .tag(TracingTags.CONNECTION_TYPE, connectionType.toString())
+                        .increment();
         final Context traceContext = DittoTracing.extractTraceContext(acknowledgeableMessage.getMessage().getHeaders());
         DittoTracing.wrapTimer(traceContext, ackTimer);
 
         final Duration askTimeout = acknowledgementConfig.getCollectorFallbackAskTimeout();
         // Ask response collector actor to get the collected responses in a future
         Patterns.ask(responseCollector, ResponseCollectorActor.query(), askTimeout).thenCompose(output -> {
-            if (output instanceof ResponseCollectorActor.Output responseCollectorActorOutput) {
-                return CompletableFuture.completedFuture(responseCollectorActorOutput);
-            } else if (output instanceof Throwable throwable) {
+            if (output instanceof ResponseCollectorActor.Output o) {
+                return CompletableFuture.completedFuture(o);
+            } else if (output instanceof Throwable t) {
                 log().debug("Patterns.ask failed. ResponseCollector=<{}>", responseCollector);
-                return CompletableFuture.failedFuture(throwable);
+                return CompletableFuture.failedFuture(t);
             } else {
                 log().error("Expect ResponseCollectorActor.Output, got: <{}>. ResponseCollector=<{}>", output,
                         responseCollector);
@@ -184,18 +184,18 @@ public abstract class BaseConsumerActor extends AbstractActorWithTimers {
             } else {
                 // don't count this as "failure" in the "source consumed" metric as the consumption
                 // itself was successful
-                final DittoRuntimeException dittoRuntimeException =
-                        DittoRuntimeException.asDittoRuntimeException(error, rootCause -> {
-                            // Redeliver and pray this unexpected error goes away
-                            log().debug("Rejecting [redeliver=true] due to error <{}>. " +
-                                    "ResponseCollector=<{}>", rootCause, responseCollector);
-                            ackTimer.tag(TracingTags.ACK_SUCCESS, false)
-                                    .tag(TracingTags.ACK_REDELIVER, true)
-                                    .stop();
-                            ackCounter.decrement();
-                            acknowledgeableMessage.reject(true);
-                            return null;
-                        });
+                final var dittoRuntimeException = DittoRuntimeException.asDittoRuntimeException(error, rootCause -> {
+
+                    // Redeliver and pray this unexpected error goes away
+                    log().debug("Rejecting [redeliver=true] due to error <{}>. " +
+                            "ResponseCollector=<{}>", rootCause, responseCollector);
+                    ackTimer.tag(TracingTags.ACK_SUCCESS, false)
+                            .tag(TracingTags.ACK_REDELIVER, true)
+                            .stop();
+                    ackCounter.decrement();
+                    acknowledgeableMessage.reject(true);
+                    return null;
+                });
                 if (dittoRuntimeException != null) {
                     if (isConsideredSuccess(dittoRuntimeException)) {
                         ackTimer.tag(TracingTags.ACK_SUCCESS, true).stop();
@@ -215,10 +215,16 @@ public abstract class BaseConsumerActor extends AbstractActorWithTimers {
             }
             return null;
         }).exceptionally(e -> {
-            log().error(e, "Unexpected error during manual acknowledgement. ResponseCollector=<{}>",
-                    responseCollector);
+            log().error(e, "Unexpected error during manual acknowledgement. ResponseCollector=<{}>", responseCollector);
             return null;
         });
+    }
+
+    private ExternalMessage addSourceAndReplyTarget(final ExternalMessage message) {
+        return ExternalMessageFactory.newExternalMessageBuilder(message)
+                .withSource(source)
+                .withInternalHeaders(enrichHeadersWithReplyInformation(message.getInternalHeaders()))
+                .build();
     }
 
     /**
@@ -226,17 +232,15 @@ public abstract class BaseConsumerActor extends AbstractActorWithTimers {
      */
     protected final Sink<DittoRuntimeException, ?> getDittoRuntimeExceptionSink() {
         return Flow.<DittoRuntimeException, DittoRuntimeException>fromFunction(
-                message -> message.setDittoHeaders(enrichHeadersWithReplyInformation(message.getDittoHeaders())))
-                .via(Flow.<DittoRuntimeException, Object>fromFunction(value -> {
-                    inboundMonitor.failure(value.getDittoHeaders(), value);
-                    return value;
+                        dittoRuntimeException -> dittoRuntimeException.setDittoHeaders(
+                                enrichHeadersWithReplyInformation(dittoRuntimeException.getDittoHeaders())
+                        )
+                )
+                .via(Flow.<DittoRuntimeException, Object>fromFunction(dittoRuntimeException -> {
+                    inboundMonitor.failure(dittoRuntimeException.getDittoHeaders(), dittoRuntimeException);
+                    return dittoRuntimeException;
                 }))
                 .to(inboundMappingSink);
-    }
-
-    protected void resetResourceStatus() {
-        resourceStatus = ConnectivityModelFactory.newSourceStatus(getInstanceIdentifier(),
-                ConnectivityStatus.OPEN, sourceAddress, "Consumer started.", Instant.now());
     }
 
     protected ResourceStatus getCurrentSourceStatus() {
@@ -257,14 +261,6 @@ public abstract class BaseConsumerActor extends AbstractActorWithTimers {
         } else {
             this.resourceStatus = resourceStatus;
         }
-    }
-
-    private ExternalMessage addSourceAndReplyTarget(final ExternalMessage message) {
-        final ExternalMessageBuilder externalMessageBuilder =
-                ExternalMessageFactory.newExternalMessageBuilder(message)
-                        .withSource(source);
-        externalMessageBuilder.withInternalHeaders(enrichHeadersWithReplyInformation(message.getInternalHeaders()));
-        return externalMessageBuilder.build();
     }
 
     private DittoHeaders enrichHeadersWithReplyInformation(final DittoHeaders headers) {

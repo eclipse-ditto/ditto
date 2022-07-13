@@ -243,7 +243,6 @@ public class AmqpPublisherActorTest extends AbstractPublisherActorTest {
                                     TestConstants.Targets.TWIN_TARGET.withAddress(ANOTHER_ADDRESS)))
                             .build(),
                     session,
-                    "clientId",
                     connectivityStatusResolver,
                     loadConnectivityConfig());
             final ActorRef publisherActor = actorSystem.actorOf(props);
@@ -305,7 +304,6 @@ public class AmqpPublisherActorTest extends AbstractPublisherActorTest {
                                     TestConstants.Targets.TWIN_TARGET.withAddress(getOutboundAddress())))
                             .build(),
                     session,
-                    "clientId",
                     connectivityStatusResolver,
                     loadConnectivityConfig());
             final ActorRef publisherActor = actorSystem.actorOf(props);
@@ -343,7 +341,6 @@ public class AmqpPublisherActorTest extends AbstractPublisherActorTest {
                                                         getOutboundAddress() + "/{{ thing:id }}")))
                                 .build(),
                         session,
-                        "clientId",
                         connectivityStatusResolver,
                         loadConnectivityConfig());
                 final ActorRef publisherActor = actorSystem.actorOf(props);
@@ -398,7 +395,6 @@ public class AmqpPublisherActorTest extends AbstractPublisherActorTest {
                                             TestConstants.Targets.TWIN_TARGET.withAddress(getOutboundAddress())))
                             .build(),
                     session,
-                    "clientId",
                     connectivityStatusResolver,
                     loadConnectivityConfig());
 
@@ -471,8 +467,10 @@ public class AmqpPublisherActorTest extends AbstractPublisherActorTest {
 
     @Override
     protected Props getPublisherActorProps() {
-        return AmqpPublisherActor.props(TestConstants.createConnection(), session, "clientId",
-                connectivityStatusResolver, loadConnectivityConfig());
+        return AmqpPublisherActor.props(TestConstants.createConnection(),
+                session,
+                connectivityStatusResolver,
+                loadConnectivityConfig());
     }
 
     @Override

@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.connectivity.service.messaging.mqtt;
 
-import java.time.Duration;
+import java.text.MessageFormat;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -23,7 +23,10 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.service.config.MqttConfig;
+import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.common.InvalidMqttQosCodeException;
 
+import com.hivemq.client.mqtt.datatypes.MqttQos;
+import com.hivemq.client.mqtt.datatypes.MqttTopic;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigException;
 import com.typesafe.config.ConfigFactory;
@@ -34,6 +37,11 @@ import com.typesafe.config.ConfigFactory;
 @Immutable
 public final class MqttSpecificConfig {
 
+    static final String LAST_WILL_TOPIC = "lastWillTopic";
+    static final String LAST_WILL_QOS = "lastWillQos";
+    static final String LAST_WILL_RETAIN = "lastWillRetain";
+    static final String LAST_WILL_MESSAGE = "lastWillMessage";
+
     private static final String CLEAN_SESSION = "cleanSession";
     private static final String RECONNECT_FOR_REDELIVERY = "reconnectForRedelivery";
     private static final String RECONNECT_FOR_REDELIVERY_DELAY = "reconnectForRedeliveryDelay";
@@ -42,13 +50,8 @@ public final class MqttSpecificConfig {
     private static final String PUBLISHER_ID = "publisherId";
     private static final String KEEP_ALIVE_INTERVAL = "keepAlive";
 
-    static final String LAST_WILL_TOPIC = "lastWillTopic";
-    static final String LAST_WILL_QOS = "lastWillQos";
-    static final String LAST_WILL_RETAIN = "lastWillRetain";
-    static final String LAST_WILL_MESSAGE = "lastWillMessage";
-
     private static final boolean DEFAULT_LAST_WILL_RETAIN = false;
-    private static final int DEFAULT_LAST_WILL_QOS = 0;
+    static final MqttQos DEFAULT_LAST_WILL_QOS = MqttQos.AT_MOST_ONCE;
 
     private final Config specificConfig;
 
@@ -99,15 +102,17 @@ public final class MqttSpecificConfig {
      * @return whether to use a separate client for publisher actors so that reconnect-for-redelivery
      * does not disrupt the publisher.
      */
-    public boolean separatePublisherClient() {
+    public boolean isSeparatePublisherClient() {
         return specificConfig.getBoolean(SEPARATE_PUBLISHER_CLIENT);
     }
 
     /**
-     * @return how long to wait before reconnect a consumer client for redelivery.
+     * Returns the delay how long to wait before reconnecting a consumer client for redelivery.
+     *
+     * @return the reconnect delay which is at least {@link ReconnectDelay#LOWER_BOUNDARY}.
      */
-    public Duration getReconnectForDeliveryDelay() {
-        return specificConfig.getDuration(RECONNECT_FOR_REDELIVERY_DELAY);
+    public ReconnectDelay getReconnectForDeliveryDelay() {
+        return ReconnectDelay.ofOrLowerBoundary(specificConfig.getDuration(RECONNECT_FOR_REDELIVERY_DELAY));
     }
 
     /**
@@ -126,17 +131,31 @@ public final class MqttSpecificConfig {
 
 
     /**
-     * @return the optional topic which should be used on Last Will message.
+     * Returns the optional MQTT topic where the Last Will message should be sent to.
+     *
+     * @return the optional MQTT topic of the Last Will message.
+     * @throws IllegalArgumentException if the configuration value at {@value #LAST_WILL_TOPIC} is not a valid
+     * MQTT topic.
      */
-    public Optional<String> getMqttWillTopic() {
-        return getStringOptional(LAST_WILL_TOPIC);
+    public Optional<MqttTopic> getMqttLastWillTopic() {
+        return getStringOptional(LAST_WILL_TOPIC).map(MqttTopic::of);
     }
 
     /**
-     * @return the Qos which should be used on Last Will message.
+     * Returns the QoS of the MQTT Last Will message.
+     *
+     * @return the configured QoS of the MQTT Last Will message or {@link #DEFAULT_LAST_WILL_QOS} if no Last Will QoS is
+     * configured at all.
+     * @throws InvalidMqttQosCodeException if the configured QoS is not a valid {@link MqttQos}.
      */
-    public int getMqttWillQos() {
-        return getSafely(() -> specificConfig.getInt(LAST_WILL_QOS), DEFAULT_LAST_WILL_QOS);
+    public MqttQos getLastWillQosOrThrow() {
+        final int mqttQosCode = getSafely(() -> specificConfig.getInt(LAST_WILL_QOS), DEFAULT_LAST_WILL_QOS.getCode());
+        final var mqttQos = MqttQos.fromCode(mqttQosCode);
+        if (null != mqttQos) {
+            return mqttQos;
+        } else {
+            throw new InvalidMqttQosCodeException(mqttQosCode);
+        }
     }
 
     /**
@@ -154,10 +173,31 @@ public final class MqttSpecificConfig {
     }
 
     /**
-     * @return the interval between keep alive pings.
+     * Returns the keep-alive interval, i.e. the number of seconds that the broker permits between when a client
+     * finishes sending one MQTT packet and starts to send the next.
+     *
+     * @return a keep-alive interval with the configured seconds or {@link KeepAliveInterval#defaultKeepAlive()} if
+     * configuration key {@value #KEEP_ALIVE_INTERVAL} has no value at all.
+     * @throws IllegalKeepAliveIntervalSecondsException if the configured value for {@value #KEEP_ALIVE_INTERVAL} either
+     * <ul>
+     *     <li>is not a duration or</li>
+     *     <li>it exceeds the allowed range or a Keep Alive Interval.</li>
+     * </ul>
+     * @see KeepAliveInterval#defaultKeepAlive()
      */
-    public Optional<Duration> getKeepAliveInterval() {
-        return getDurationOptional(KEEP_ALIVE_INTERVAL);
+    public KeepAliveInterval getKeepAliveIntervalOrDefault() throws IllegalKeepAliveIntervalSecondsException {
+        KeepAliveInterval result;
+        try {
+            result = KeepAliveInterval.of(specificConfig.getDuration(KEEP_ALIVE_INTERVAL));
+        } catch (final ConfigException.Missing e) {
+            result = KeepAliveInterval.defaultKeepAlive();
+        } catch (final ConfigException.WrongType e) {
+            throw new IllegalKeepAliveIntervalSecondsException(
+                    MessageFormat.format("Configured value for Keep Alive Interval is invalid: {0}", e.getMessage()),
+                    e
+            );
+        }
+        return result;
     }
 
     @Override
@@ -168,7 +208,7 @@ public final class MqttSpecificConfig {
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        final MqttSpecificConfig that = (MqttSpecificConfig) o;
+        final var that = (MqttSpecificConfig) o;
         return Objects.equals(specificConfig, that.specificConfig);
     }
 
@@ -192,15 +232,7 @@ public final class MqttSpecificConfig {
         }
     }
 
-    private Optional<Duration> getDurationOptional(final String key) {
-        if (specificConfig.hasPath(key)) {
-            return Optional.of(specificConfig.getDuration(key));
-        } else {
-            return Optional.empty();
-        }
-    }
-
-    private static <T> T getSafely(Supplier<T> supplier, final T defaultValue) {
+    private static <T> T getSafely(final Supplier<T> supplier, final T defaultValue) {
         try {
             return supplier.get();
         } catch (final ConfigException e) {

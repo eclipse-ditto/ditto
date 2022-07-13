@@ -210,7 +210,7 @@ public abstract class AbstractMessageMappingProcessorActorTest {
 
             TestProbe collectorProbe = TestProbe.apply("collector", actorSystem);
             inboundMappingProcessorActor.tell(
-                    new InboundMappingSink.ExternalMessageWithSender(externalMessage, collectorProbe.ref()),
+                    new ExternalMessageWithSender(externalMessage, collectorProbe.ref()),
                     ActorRef.noSender());
 
             if (expectSuccess) {
@@ -283,7 +283,7 @@ public abstract class AbstractMessageMappingProcessorActorTest {
 
             final TestProbe collectorProbe = TestProbe.apply("collector", actorSystem);
             inboundMappingProcessorActor.tell(
-                    new InboundMappingSink.ExternalMessageWithSender(externalMessage, collectorProbe.ref()),
+                    new ExternalMessageWithSender(externalMessage, collectorProbe.ref()),
                     ActorRef.noSender());
 
             final T received = expectMsgClass(expectedMessageClass);
@@ -317,7 +317,7 @@ public abstract class AbstractMessageMappingProcessorActorTest {
 
             final TestProbe collectorProbe = TestProbe.apply("collector", actorSystem);
             inboundMappingProcessorActor.tell(
-                    new InboundMappingSink.ExternalMessageWithSender(externalMessage, collectorProbe.ref()),
+                    new ExternalMessageWithSender(externalMessage, collectorProbe.ref()),
                     ActorRef.noSender());
 
             final T received = expectMsgClass(expectedMessageClass);

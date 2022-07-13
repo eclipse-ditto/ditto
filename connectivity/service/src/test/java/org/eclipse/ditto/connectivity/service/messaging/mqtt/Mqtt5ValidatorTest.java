@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.connectivity.service.messaging.mqtt;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.eclipse.ditto.connectivity.model.ConnectivityModelFactory.newEnforcement;
 import static org.eclipse.ditto.connectivity.model.ConnectivityModelFactory.newSourceAddressEnforcement;
 import static org.eclipse.ditto.connectivity.service.messaging.TestConstants.Authorization.AUTHORIZATION_CONTEXT;
@@ -209,15 +210,20 @@ public final class Mqtt5ValidatorTest extends AbstractMqttValidatorTest {
 
     @Test
     public void testInvalidLastWillQos() {
+        final var invalidQosCode = 5;
         final Connection connection = connectionWithSource("ditto/#").toBuilder()
                 .specificConfig(Map.of(
                         MqttSpecificConfig.LAST_WILL_TOPIC, "topic",
-                        MqttSpecificConfig.LAST_WILL_QOS, "5"
+                        MqttSpecificConfig.LAST_WILL_QOS, String.valueOf(invalidQosCode)
                 ))
                 .build();
 
+
         verifyConnectionConfigurationInvalidExceptionIsThrown(connection)
-                .withMessageContaining(MqttSpecificConfig.LAST_WILL_QOS);
+                .withMessage("<%d> is not a valid MQTT QoS code.", invalidQosCode)
+                .satisfies(dittoRuntimeException -> assertThat(dittoRuntimeException.getDescription())
+                        .hasValue(String.format("Please provide a valid MQTT QoS code for config key <%s>.",
+                                MqttSpecificConfig.LAST_WILL_QOS)));
     }
 
     @Override

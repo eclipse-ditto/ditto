@@ -94,11 +94,10 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
     private KafkaPublisherActor(final Connection connection,
             final SendProducerFactory producerFactory,
             final boolean dryRun,
-            final String clientId,
             final ConnectivityStatusResolver connectivityStatusResolver,
             final ConnectivityConfig connectivityConfig) {
 
-        super(connection, clientId, connectivityStatusResolver, connectivityConfig);
+        super(connection, connectivityStatusResolver, connectivityConfig);
         this.dryRun = dryRun;
         final var connectionConfig = connectivityConfig.getConnectionConfig();
         final var kafkaConfig = connectionConfig.getKafkaConfig();
@@ -113,7 +112,6 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
      * @param connection the connection this publisher belongs to.
      * @param producerFactory factory to create kafka SendProducer.
      * @param dryRun whether this publisher is only created for a test or not.
-     * @param clientId identifier of the client actor.
      * @param connectivityStatusResolver connectivity status resolver to resolve occurred exceptions to a connectivity
      * status.
      * @param connectivityConfig the config of the connectivity service with potential overwrites.
@@ -122,7 +120,6 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
     static Props props(final Connection connection,
             final SendProducerFactory producerFactory,
             final boolean dryRun,
-            final String clientId,
             final ConnectivityStatusResolver connectivityStatusResolver,
             final ConnectivityConfig connectivityConfig) {
 
@@ -130,7 +127,6 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
                 connection,
                 producerFactory,
                 dryRun,
-                clientId,
                 connectivityStatusResolver,
                 connectivityConfig);
     }
@@ -306,7 +302,7 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
         private KafkaExceptionConverter() {}
 
         @Override
-        protected HttpStatus getHttpStatusForGenericException(final Exception exception) {
+        protected HttpStatus getHttpStatusForGenericException(final Throwable exception) {
             // return 500 for retryable exceptions -> sender will retry
             // return 400 for non-retryable exceptions -> sender will give up
             return exception instanceof RetriableException

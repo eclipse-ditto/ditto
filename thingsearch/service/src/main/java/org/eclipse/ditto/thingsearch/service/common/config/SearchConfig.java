@@ -25,7 +25,6 @@ import org.eclipse.ditto.internal.utils.persistence.mongo.config.WithIndexInitia
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.WithMongoDbConfig;
 import org.eclipse.ditto.internal.utils.persistence.operations.WithPersistenceOperationsConfig;
 
-import com.typesafe.config.ConfigFactory;
 import com.typesafe.config.ConfigValueFactory;
 
 /**
@@ -69,6 +68,13 @@ public interface SearchConfig extends ServiceSpecificConfig, WithHealthCheckConf
      * @return the config.
      */
     UpdaterConfig getUpdaterConfig();
+
+    /**
+     * Returns the query persistence config.
+     *
+     * @return the config.
+     */
+    SearchPersistenceConfig getQueryPersistenceConfig();
 
     /**
      * Returns how simple fields are mapped during query parsing.

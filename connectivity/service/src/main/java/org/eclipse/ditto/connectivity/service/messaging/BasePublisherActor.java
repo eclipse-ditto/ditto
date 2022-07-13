@@ -117,15 +117,12 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
     private final ConnectionMonitorRegistry<ConnectionMonitor> connectionMonitorRegistry;
     private final List<Optional<ReplyTarget>> replyTargets;
     private final int acknowledgementSizeBudget;
-    private final String clientId;
 
     protected BasePublisherActor(final Connection connection,
-            final String clientId,
             final ConnectivityStatusResolver connectivityStatusResolver,
             final ConnectivityConfig connectivityConfig) {
 
         this.connection = checkNotNull(connection, "connection");
-        this.clientId = checkNotNull(clientId, "clientId");
         resourceStatusMap = new HashMap<>();
         final List<Target> targets = connection.getTargets();
         targets.forEach(target -> resourceStatusMap.put(target, getTargetResourceStatus(target)));
@@ -591,15 +588,6 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
         return Optional.ofNullable(target)
                 .flatMap(Target::getIssuedAcknowledgementLabel)
                 .flatMap(ackLbl -> ConnectionValidator.resolveConnectionIdPlaceholder(connectionIdResolver, ackLbl));
-    }
-
-    /**
-     * Get the default client ID identifying the client actor should client count be more than 1.
-     *
-     * @return the client identifier.
-     */
-    protected String getClientId() {
-        return clientId;
     }
 
     /**
