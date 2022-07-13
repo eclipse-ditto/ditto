@@ -10,8 +10,8 @@ sidebar: false
 toc: true
 ---
 
-Eclipse Ditto version 3.0.0 ships a major refactoring of the MQTT connectivity
-module.  
+The upcoming Eclipse Ditto version 3.0.0 will ship with a major refactoring of the MQTT
+connectivity module.  
 In this post we want to highlight what's new and why this could be interesting for you.
 
 ## Backpressure via throttling
