@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.connectivity.api.commands.sudo;
 
+import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.Objects;
@@ -70,7 +71,7 @@ public final class SudoRetrieveConnectionTagsResponse
 
     private final Set<String> connectionTags;
 
-    private SudoRetrieveConnectionTagsResponse(final Set<String> connectionTags,
+    private SudoRetrieveConnectionTagsResponse(final Collection<String> connectionTags,
             final HttpStatus httpStatus,
             final DittoHeaders dittoHeaders) {
 
@@ -90,7 +91,7 @@ public final class SudoRetrieveConnectionTagsResponse
      * @return a new SudoRetrieveConnectionTagsResponse response.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static SudoRetrieveConnectionTagsResponse of(final Set<String> connectionTags,
+    public static SudoRetrieveConnectionTagsResponse of(final Collection<String> connectionTags,
             final DittoHeaders dittoHeaders) {
 
         return new SudoRetrieveConnectionTagsResponse(connectionTags, HTTP_STATUS, dittoHeaders);

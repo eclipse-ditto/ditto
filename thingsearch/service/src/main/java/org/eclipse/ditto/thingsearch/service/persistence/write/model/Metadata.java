@@ -33,7 +33,6 @@ import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 import org.eclipse.ditto.thingsearch.api.UpdateReason;
-import org.eclipse.ditto.thingsearch.api.commands.sudo.SudoUpdateThingResponse;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSelection;
@@ -184,20 +183,6 @@ public final class Metadata {
      */
     public static Metadata ofDeleted(final ThingId thingId) {
         return Metadata.of(thingId, -1, null, null, null);
-    }
-
-    /**
-     * Recover the metadata from an SudoUpdateThingResponse.
-     * TODO TJ check if still required to use
-     *
-     * @param sudoUpdateThingResponse the response.
-     * @return the metadata.
-     */
-    public static Metadata fromResponse(final SudoUpdateThingResponse sudoUpdateThingResponse) {
-        return of(sudoUpdateThingResponse.getThingId(), sudoUpdateThingResponse.getThingRevision(),
-                sudoUpdateThingResponse.getPolicyId().orElse(null),
-                sudoUpdateThingResponse.getPolicyRevision().orElse(null),
-                null);
     }
 
     /**
