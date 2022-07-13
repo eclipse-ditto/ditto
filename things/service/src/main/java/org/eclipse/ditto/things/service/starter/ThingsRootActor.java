@@ -21,7 +21,6 @@ import org.eclipse.ditto.internal.utils.aggregator.DefaultThingsAggregatorConfig
 import org.eclipse.ditto.internal.utils.aggregator.ThingsAggregatorActor;
 import org.eclipse.ditto.internal.utils.aggregator.ThingsAggregatorConfig;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
-import org.eclipse.ditto.internal.utils.cluster.ClusterUtil;
 import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.internal.utils.cluster.RetrieveStatisticsDetailsResponseSupplier;
 import org.eclipse.ditto.internal.utils.cluster.ShardRegionExtractor;
@@ -30,7 +29,6 @@ import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import org.eclipse.ditto.internal.utils.health.DefaultHealthCheckingActorFactory;
 import org.eclipse.ditto.internal.utils.health.HealthCheckingActorOptions;
 import org.eclipse.ditto.internal.utils.namespaces.BlockedNamespaces;
-import org.eclipse.ditto.internal.utils.namespaces.BlockedNamespacesUpdater;
 import org.eclipse.ditto.internal.utils.persistence.mongo.MongoClientWrapper;
 import org.eclipse.ditto.internal.utils.persistence.mongo.MongoHealthChecker;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.MongoDbConfig;
@@ -40,8 +38,8 @@ import org.eclipse.ditto.internal.utils.pubsub.DistributedAcks;
 import org.eclipse.ditto.internal.utils.pubsub.DistributedPub;
 import org.eclipse.ditto.internal.utils.pubsubthings.LiveSignalPub;
 import org.eclipse.ditto.internal.utils.pubsubthings.ThingEventPubSubFactory;
-import org.eclipse.ditto.policies.enforcement.PolicyEnforcerProvider;
 import org.eclipse.ditto.policies.enforcement.DefaultPolicyEnforcerProvider;
+import org.eclipse.ditto.policies.enforcement.PolicyEnforcerProvider;
 import org.eclipse.ditto.things.api.ThingsMessagingConstants;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 import org.eclipse.ditto.things.service.common.config.ThingsConfig;
@@ -90,10 +88,6 @@ public final class ThingsRootActor extends DittoRootActor {
         final LiveSignalPub liveSignalPub = LiveSignalPub.of(getContext(), distributedAcks);
 
         final BlockedNamespaces blockedNamespaces = BlockedNamespaces.of(actorSystem);
-        // start cluster singleton that writes to the distributed cache of blocked namespaces
-        final Props blockedNamespacesUpdaterProps = BlockedNamespacesUpdater.props(blockedNamespaces, pubSubMediator);
-        ClusterUtil.startSingleton(actorSystem, getContext(), CLUSTER_ROLE,
-                BlockedNamespacesUpdater.ACTOR_NAME, blockedNamespacesUpdaterProps);
         final PolicyEnforcerProvider policyEnforcerProvider = DefaultPolicyEnforcerProvider.getInstance(actorSystem);
         final Props thingSupervisorActorProps = getThingSupervisorActorProps(pubSubMediator,
                 distributedPubThingEventsForTwin,

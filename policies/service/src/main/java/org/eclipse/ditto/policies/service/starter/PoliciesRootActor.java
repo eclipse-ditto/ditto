@@ -84,6 +84,8 @@ public final class PoliciesRootActor extends DittoRootActor {
 
         final BlockedNamespaces blockedNamespaces = BlockedNamespaces.of(actorSystem);
         // start cluster singleton that writes to the distributed cache of blocked namespaces
+        //  this must only be started for one service in the cluster - which "policies" was chosen for ...
+        //  this BlockedNamespacesUpdater updates the DData "BlockedNamespaces" data structure
         final Props blockedNamespacesUpdaterProps = BlockedNamespacesUpdater.props(blockedNamespaces, pubSubMediator);
         ClusterUtil.startSingleton(actorSystem, getContext(), PoliciesMessagingConstants.CLUSTER_ROLE,
                 BlockedNamespacesUpdater.ACTOR_NAME, blockedNamespacesUpdaterProps);
