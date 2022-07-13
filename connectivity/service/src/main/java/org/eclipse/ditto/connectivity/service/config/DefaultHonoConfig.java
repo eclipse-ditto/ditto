@@ -10,13 +10,14 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.connectivity.api;
+package org.eclipse.ditto.connectivity.service.config;
 
 import java.net.URI;
 import java.util.Arrays;
 import java.util.Objects;
 
 import org.eclipse.ditto.base.model.common.ConditionChecker;
+import org.eclipse.ditto.connectivity.api.HonoConfig;
 import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.connectivity.model.UserPasswordCredentials;
 
@@ -40,7 +41,7 @@ public final class DefaultHonoConfig implements HonoConfig {
         ConditionChecker.checkNotNull(actorSystem, "actorSystem");
         final Config config = actorSystem.settings().config().getConfig(PREFIX);
 
-        this.baseUri = HonoConfig.getUri(HonoConfigValue.BASE_URI.getConfigPath());
+        this.baseUri = HonoConfig.getUri(config.getString(HonoConfigValue.BASE_URI.getConfigPath()));
         this.validateCertificates = config.getBoolean(HonoConfigValue.VALIDATE_CERTIFICATES.getConfigPath());
         this.saslMechanism = config.getEnum(SaslMechanism.class, HonoConfigValue.SASL_MECHANISM.getConfigPath());
         this.bootstrapServers = config.getString(HonoConfigValue.BOOTSTRAP_SERVERS.getConfigPath());
