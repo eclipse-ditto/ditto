@@ -81,7 +81,6 @@ public final class PreEnforcerProvider implements DittoExtensionPoint {
     private static final class ExtensionId extends DittoExtensionPoint.ExtensionId<PreEnforcerProvider> {
 
         private static final String CONFIG_KEY = "pre-enforcer-provider";
-        private static final String CONFIG_PATH = "ditto.extensions." + CONFIG_KEY;
 
         private ExtensionId(final ExtensionIdConfig<PreEnforcerProvider> extensionIdConfig) {
             super(extensionIdConfig);
@@ -92,8 +91,8 @@ public final class PreEnforcerProvider implements DittoExtensionPoint {
         }
 
         @Override
-        protected String getConfigPath() {
-            return CONFIG_PATH;
+        protected String getConfigKey() {
+            return CONFIG_KEY;
         }
 
     }
@@ -105,9 +104,10 @@ public final class PreEnforcerProvider implements DittoExtensionPoint {
         }
 
         @Override
-        protected String getConfigPath() {
-            throw new UnsupportedOperationException("PreEnforcers do not support an individual config path. " +
-                    "They should be configured in the ditto.extensions.pre-enforcers list.");
+        protected String getConfigKey() {
+            throw new UnsupportedOperationException("PreEnforcers do not support an individual config key. " +
+                    "They should be configured in the ditto.extensions.pre-enforcer-provider.extension-config " +
+                    "pre-enforcers list.");
         }
 
     }

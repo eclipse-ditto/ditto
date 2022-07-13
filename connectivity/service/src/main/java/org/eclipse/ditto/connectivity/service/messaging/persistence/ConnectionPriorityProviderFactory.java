@@ -59,7 +59,6 @@ public interface ConnectionPriorityProviderFactory extends DittoExtensionPoint {
     final class ExtensionId extends DittoExtensionPoint.ExtensionId<ConnectionPriorityProviderFactory> {
 
         private static final String CONFIG_KEY = "connection-priority-provider-factory";
-        private static final String CONFIG_PATH = "ditto.extensions." + CONFIG_KEY;
 
         private ExtensionId(final ExtensionIdConfig<ConnectionPriorityProviderFactory> extensionIdConfig) {
             super(extensionIdConfig);
@@ -70,8 +69,8 @@ public interface ConnectionPriorityProviderFactory extends DittoExtensionPoint {
         }
 
         @Override
-        protected String getConfigPath() {
-            return CONFIG_PATH;
+        protected String getConfigKey() {
+            return CONFIG_KEY;
         }
 
     }

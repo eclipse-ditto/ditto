@@ -60,7 +60,6 @@ public interface JwtAuthorizationSubjectsProvider extends DittoExtensionPoint {
     final class ExtensionId extends DittoExtensionPoint.ExtensionId<JwtAuthorizationSubjectsProvider> {
 
         private static final String CONFIG_KEY = "jwt-authorization-subjects-provider";
-        private static final String CONFIG_PATH = "ditto.extensions." + CONFIG_KEY;
 
         private ExtensionId(final ExtensionIdConfig<JwtAuthorizationSubjectsProvider> extensionIdConfig) {
             super(extensionIdConfig);
@@ -72,8 +71,8 @@ public interface JwtAuthorizationSubjectsProvider extends DittoExtensionPoint {
         }
 
         @Override
-        protected String getConfigPath() {
-            return CONFIG_PATH;
+        protected String getConfigKey() {
+            return CONFIG_KEY;
         }
 
     }

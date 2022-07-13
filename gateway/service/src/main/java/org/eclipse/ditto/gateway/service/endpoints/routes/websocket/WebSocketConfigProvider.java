@@ -53,7 +53,6 @@ public interface WebSocketConfigProvider
     final class ExtensionId extends DittoExtensionPoint.ExtensionId<WebSocketConfigProvider> {
 
         private static final String CONFIG_KEY = "websocket-config-provider";
-        private static final String CONFIG_PATH = "ditto.extensions." + CONFIG_KEY;
 
         private ExtensionId(final ExtensionIdConfig<WebSocketConfigProvider> extensionIdConfig) {
             super(extensionIdConfig);
@@ -64,8 +63,8 @@ public interface WebSocketConfigProvider
         }
 
         @Override
-        protected String getConfigPath() {
-            return CONFIG_PATH;
+        protected String getConfigKey() {
+            return CONFIG_KEY;
         }
 
     }

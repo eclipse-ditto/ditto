@@ -70,7 +70,6 @@ public interface CachingSignalEnrichmentFacadeProvider extends DittoExtensionPoi
 
     final class ExtensionId extends DittoExtensionPoint.ExtensionId<CachingSignalEnrichmentFacadeProvider> {
         private static final String CONFIG_KEY = "caching-signal-enrichment-facade-provider";
-        private static final String CONFIG_PATH = "ditto.extensions." + CONFIG_KEY;
 
         private ExtensionId(final ExtensionIdConfig<CachingSignalEnrichmentFacadeProvider> extensionIdConfig) {
             super(extensionIdConfig);
@@ -81,8 +80,8 @@ public interface CachingSignalEnrichmentFacadeProvider extends DittoExtensionPoi
         }
 
         @Override
-        protected String getConfigPath() {
-            return CONFIG_PATH;
+        protected String getConfigKey() {
+            return CONFIG_KEY;
         }
 
     }

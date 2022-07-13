@@ -104,7 +104,6 @@ public abstract class SearchUpdateMapper implements DittoExtensionPoint {
     private static final class ExtensionId extends DittoExtensionPoint.ExtensionId<SearchUpdateMapper> {
 
         private static final String CONFIG_KEY = "search-update-mapper";
-        private static final String CONFIG_PATH = "ditto.extensions." + CONFIG_KEY;
 
         private ExtensionId(final ExtensionIdConfig<SearchUpdateMapper> extensionIdConfig) {
             super(extensionIdConfig);
@@ -115,8 +114,8 @@ public abstract class SearchUpdateMapper implements DittoExtensionPoint {
         }
 
         @Override
-        protected String getConfigPath() {
-            return CONFIG_PATH;
+        protected String getConfigKey() {
+            return CONFIG_KEY;
         }
 
     }

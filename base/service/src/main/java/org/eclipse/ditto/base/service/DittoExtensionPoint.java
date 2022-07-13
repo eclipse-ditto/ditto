@@ -21,6 +21,7 @@ import javax.annotation.Nullable;
 
 import org.eclipse.ditto.internal.utils.akka.AkkaClassLoader;
 import org.eclipse.ditto.internal.utils.config.DittoConfigError;
+import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
@@ -76,7 +77,6 @@ public interface DittoExtensionPoint extends Extension {
             final String extensionClass;
             if (extensionIdConfig.extensionClass() == null) {
                 // Resolve from default extension config
-                //TODO: Yannic make getConfigPath returning just the config key and define the constant "ditto.extensions." just one time in this class.
                 final ExtensionIdConfig<T> globalConfig = globalConfig(actorSystem);
                 extensionClass = globalConfig.extensionClass();
                 if (extensionClass == null) {
@@ -91,7 +91,11 @@ public interface DittoExtensionPoint extends Extension {
             return extensionClass;
         }
 
-        protected abstract String getConfigPath();
+        private String getConfigPath() {
+            return ScopedConfig.DITTO_EXTENSIONS_SCOPE + "." + getConfigKey();
+        }
+
+        protected abstract String getConfigKey();
 
         public record ExtensionIdConfig<T extends Extension>(Class<T> parentClass,
                                                              @Nullable String extensionClass,

@@ -51,7 +51,6 @@ public interface RootActorStarter extends DittoExtensionPoint {
     final class ExtensionId extends DittoExtensionPoint.ExtensionId<RootActorStarter> {
 
         private static final String CONFIG_KEY = "root-actor-starter";
-        private static final String CONFIG_PATH = "ditto.extensions." + CONFIG_KEY;
 
         private ExtensionId(final ExtensionIdConfig<RootActorStarter> extensionIdConfig) {
             super(extensionIdConfig);
@@ -62,8 +61,8 @@ public interface RootActorStarter extends DittoExtensionPoint {
         }
 
         @Override
-        protected String getConfigPath() {
-            return CONFIG_PATH;
+        protected String getConfigKey() {
+            return CONFIG_KEY;
         }
 
     }

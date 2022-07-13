@@ -64,7 +64,6 @@ public interface StreamingAuthorizationEnforcer extends DittoExtensionPoint {
     final class ExtensionId extends DittoExtensionPoint.ExtensionId<StreamingAuthorizationEnforcer> {
 
         private static final String CONFIG_KEY = "streaming-authorization-enforcer";
-        private static final String CONFIG_PATH = "ditto.extensions." + CONFIG_KEY;
 
         private ExtensionId(final ExtensionIdConfig<StreamingAuthorizationEnforcer> extensionIdConfig) {
             super(extensionIdConfig);
@@ -75,8 +74,8 @@ public interface StreamingAuthorizationEnforcer extends DittoExtensionPoint {
         }
 
         @Override
-        protected String getConfigPath() {
-            return CONFIG_PATH;
+        protected String getConfigKey() {
+            return CONFIG_KEY;
         }
 
     }

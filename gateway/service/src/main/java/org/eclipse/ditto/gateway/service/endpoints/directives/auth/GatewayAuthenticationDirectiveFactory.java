@@ -64,7 +64,6 @@ public interface GatewayAuthenticationDirectiveFactory extends DittoExtensionPoi
     final class ExtensionId extends DittoExtensionPoint.ExtensionId<GatewayAuthenticationDirectiveFactory> {
 
         private static final String CONFIG_KEY = "gateway-authentication-directive-factory";
-        private static final String CONFIG_PATH = "ditto.extensions." + CONFIG_KEY;
 
         private ExtensionId(final ExtensionIdConfig<GatewayAuthenticationDirectiveFactory> extensionIdConfig) {
             super(extensionIdConfig);
@@ -75,8 +74,8 @@ public interface GatewayAuthenticationDirectiveFactory extends DittoExtensionPoi
         }
 
         @Override
-        protected String getConfigPath() {
-            return CONFIG_PATH;
+        protected String getConfigKey() {
+            return CONFIG_KEY;
         }
 
     }

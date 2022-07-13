@@ -71,7 +71,6 @@ public interface CustomApiRoutesProvider extends DittoExtensionPoint {
     final class ExtensionId extends DittoExtensionPoint.ExtensionId<CustomApiRoutesProvider> {
 
         private static final String CONFIG_KEY = "custom-api-routes-provider";
-        private static final String CONFIG_PATH = "ditto.extensions." + CONFIG_KEY;
 
         private ExtensionId(final ExtensionIdConfig<CustomApiRoutesProvider> extensionIdConfig) {
             super(extensionIdConfig);
@@ -82,8 +81,8 @@ public interface CustomApiRoutesProvider extends DittoExtensionPoint {
         }
 
         @Override
-        protected String getConfigPath() {
-            return CONFIG_PATH;
+        protected String getConfigKey() {
+            return CONFIG_KEY;
         }
 
     }

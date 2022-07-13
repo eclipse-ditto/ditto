@@ -59,7 +59,6 @@ public interface OutgoingWebSocketEventSniffer extends DittoExtensionPoint {
     final class ExtensionId extends DittoExtensionPoint.ExtensionId<OutgoingWebSocketEventSniffer> {
 
         private static final String CONFIG_KEY = "outgoing-websocket-event-sniffer";
-        private static final String CONFIG_PATH = "ditto.extensions." + CONFIG_KEY;
 
         private ExtensionId(final ExtensionIdConfig<OutgoingWebSocketEventSniffer> extensionIdConfig) {
             super(extensionIdConfig);
@@ -70,8 +69,8 @@ public interface OutgoingWebSocketEventSniffer extends DittoExtensionPoint {
         }
 
         @Override
-        protected String getConfigPath() {
-            return CONFIG_PATH;
+        protected String getConfigKey() {
+            return CONFIG_KEY;
         }
 
     }

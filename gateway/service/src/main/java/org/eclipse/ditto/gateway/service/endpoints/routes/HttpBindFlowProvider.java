@@ -61,7 +61,6 @@ public interface HttpBindFlowProvider extends DittoExtensionPoint {
     final class ExtensionId extends DittoExtensionPoint.ExtensionId<HttpBindFlowProvider> {
 
         private static final String CONFIG_KEY = "http-bind-flow-provider";
-        private static final String CONFIG_PATH = "ditto.extensions." + CONFIG_KEY;
 
         private ExtensionId(final ExtensionIdConfig<HttpBindFlowProvider> extensionIdConfig) {
             super(extensionIdConfig);
@@ -72,8 +71,8 @@ public interface HttpBindFlowProvider extends DittoExtensionPoint {
         }
 
         @Override
-        protected String getConfigPath() {
-            return CONFIG_PATH;
+        protected String getConfigKey() {
+            return CONFIG_KEY;
         }
 
     }

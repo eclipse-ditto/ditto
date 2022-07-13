@@ -59,7 +59,6 @@ public interface EdgeCommandForwarderExtension extends DittoExtensionPoint {
     final class ExtensionId extends DittoExtensionPoint.ExtensionId<EdgeCommandForwarderExtension> {
 
         private static final String CONFIG_KEY = "edge-command-forwarder-extension";
-        private static final String CONFIG_PATH = "ditto.extensions." + CONFIG_KEY;
 
         private ExtensionId(final ExtensionIdConfig<EdgeCommandForwarderExtension> extensionIdConfig) {
             super(extensionIdConfig);
@@ -70,8 +69,8 @@ public interface EdgeCommandForwarderExtension extends DittoExtensionPoint {
         }
 
         @Override
-        protected String getConfigPath() {
-            return CONFIG_PATH;
+        protected String getConfigKey() {
+            return CONFIG_KEY;
         }
 
     }

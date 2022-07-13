@@ -62,7 +62,6 @@ public interface SearchUpdateObserver extends DittoExtensionPoint {
     final class ExtensionId extends DittoExtensionPoint.ExtensionId<SearchUpdateObserver> {
 
         private static final String CONFIG_KEY = "search-update-observer";
-        private static final String CONFIG_PATH = "ditto.extensions." + CONFIG_KEY;
 
         private ExtensionId(final ExtensionIdConfig<SearchUpdateObserver> extensionIdConfig) {
             super(extensionIdConfig);
@@ -73,8 +72,8 @@ public interface SearchUpdateObserver extends DittoExtensionPoint {
         }
 
         @Override
-        protected String getConfigPath() {
-            return CONFIG_PATH;
+        protected String getConfigKey() {
+            return CONFIG_KEY;
         }
 
     }

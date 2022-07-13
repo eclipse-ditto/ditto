@@ -63,7 +63,6 @@ public interface QueryCriteriaValidator extends DittoExtensionPoint {
     final class ExtensionId extends DittoExtensionPoint.ExtensionId<QueryCriteriaValidator> {
 
         private static final String CONFIG_KEY = "query-criteria-validator";
-        private static final String CONFIG_PATH = "ditto.extensions." + CONFIG_KEY;
 
         private ExtensionId(final ExtensionIdConfig<QueryCriteriaValidator> extensionIdConfig) {
             super(extensionIdConfig);
@@ -74,8 +73,8 @@ public interface QueryCriteriaValidator extends DittoExtensionPoint {
         }
 
         @Override
-        protected String getConfigPath() {
-            return CONFIG_PATH;
+        protected String getConfigKey() {
+            return CONFIG_KEY;
         }
 
     }

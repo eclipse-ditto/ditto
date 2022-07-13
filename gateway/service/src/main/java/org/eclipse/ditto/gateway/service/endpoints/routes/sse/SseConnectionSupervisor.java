@@ -49,7 +49,6 @@ public interface SseConnectionSupervisor extends DittoExtensionPoint, StreamSupe
     final class ExtensionId extends DittoExtensionPoint.ExtensionId<SseConnectionSupervisor> {
 
         private static final String CONFIG_KEY = "sse-connection-supervisor";
-        private static final String CONFIG_PATH = "ditto.extensions." + CONFIG_KEY;
 
         private ExtensionId(final ExtensionIdConfig<SseConnectionSupervisor> extensionIdConfig) {
             super(extensionIdConfig);
@@ -60,8 +59,8 @@ public interface SseConnectionSupervisor extends DittoExtensionPoint, StreamSupe
         }
 
         @Override
-        protected String getConfigPath() {
-            return CONFIG_PATH;
+        protected String getConfigKey() {
+            return CONFIG_KEY;
         }
 
     }

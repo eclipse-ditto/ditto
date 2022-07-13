@@ -46,7 +46,6 @@ public interface ConnectionEnforcerActorPropsFactory extends DittoExtensionPoint
     final class ExtensionId extends DittoExtensionPoint.ExtensionId<ConnectionEnforcerActorPropsFactory> {
 
         private static final String CONFIG_KEY = "connection-enforcer-actor-props-factory";
-        private static final String CONFIG_PATH = "ditto.extensions." + CONFIG_KEY;
 
         private ExtensionId(final ExtensionIdConfig<ConnectionEnforcerActorPropsFactory> extensionIdConfig) {
             super(extensionIdConfig);
@@ -57,8 +56,8 @@ public interface ConnectionEnforcerActorPropsFactory extends DittoExtensionPoint
         }
 
         @Override
-        protected String getConfigPath() {
-            return CONFIG_PATH;
+        protected String getConfigKey() {
+            return CONFIG_KEY;
         }
 
     }

@@ -48,7 +48,6 @@ public interface WebSocketSupervisor extends DittoExtensionPoint, StreamSupervis
     final class ExtensionId extends DittoExtensionPoint.ExtensionId<WebSocketSupervisor> {
 
         private static final String CONFIG_KEY = "websocket-connection-supervisor";
-        private static final String CONFIG_PATH = "ditto.extensions." + CONFIG_KEY;
 
         private ExtensionId(final ExtensionIdConfig<WebSocketSupervisor> extensionIdConfig) {
             super(extensionIdConfig);
@@ -59,8 +58,8 @@ public interface WebSocketSupervisor extends DittoExtensionPoint, StreamSupervis
         }
 
         @Override
-        protected String getConfigPath() {
-            return CONFIG_PATH;
+        protected String getConfigKey() {
+            return CONFIG_KEY;
         }
 
     }

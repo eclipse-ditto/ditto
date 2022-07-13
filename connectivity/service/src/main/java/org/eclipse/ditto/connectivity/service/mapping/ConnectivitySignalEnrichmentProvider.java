@@ -63,7 +63,6 @@ public interface ConnectivitySignalEnrichmentProvider extends DittoExtensionPoin
     final class ExtensionId extends DittoExtensionPoint.ExtensionId<ConnectivitySignalEnrichmentProvider> {
 
         private static final String CONFIG_KEY = "signal-enrichment-provider";
-        private static final String CONFIG_PATH = "ditto.extensions." + CONFIG_KEY;
 
         private ExtensionId(final ExtensionIdConfig<ConnectivitySignalEnrichmentProvider> extensionIdConfig) {
             super(extensionIdConfig);
@@ -74,8 +73,8 @@ public interface ConnectivitySignalEnrichmentProvider extends DittoExtensionPoin
         }
 
         @Override
-        protected String getConfigPath() {
-            return CONFIG_PATH;
+        protected String getConfigKey() {
+            return CONFIG_KEY;
         }
 
     }
