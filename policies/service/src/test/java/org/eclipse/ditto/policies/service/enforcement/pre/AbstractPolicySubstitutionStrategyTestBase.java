@@ -28,6 +28,8 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 
+import com.typesafe.config.ConfigFactory;
+
 import akka.actor.ActorSystem;
 
 /**
@@ -58,7 +60,8 @@ abstract class AbstractPolicySubstitutionStrategyTestBase {
 
     @Before
     public void init() {
-        substitution = new PoliciesPlaceholderSubstitutionPreEnforcer(Mockito.mock(ActorSystem.class));
+        substitution =
+                new PoliciesPlaceholderSubstitutionPreEnforcer(Mockito.mock(ActorSystem.class), ConfigFactory.empty());
     }
 
     @Test

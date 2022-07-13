@@ -28,10 +28,11 @@ import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLogger;
-import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.policies.enforcement.config.CreationRestrictionConfig;
 import org.eclipse.ditto.policies.enforcement.config.DefaultEntityCreationConfig;
 import org.eclipse.ditto.policies.enforcement.config.EntityCreationConfig;
+
+import com.typesafe.config.Config;
 
 import akka.actor.ActorSystem;
 
@@ -52,8 +53,8 @@ public final class CreationRestrictionPreEnforcer implements PreEnforcer {
      * @param actorSystem the actor system in which to load the extension.
      */
     @SuppressWarnings("unused")
-    public CreationRestrictionPreEnforcer(final ActorSystem actorSystem) {
-        config = DefaultEntityCreationConfig.of(DefaultScopedConfig.dittoScoped(actorSystem.settings().config()));
+    public CreationRestrictionPreEnforcer(final ActorSystem actorSystem, final Config config) {
+        this.config = DefaultEntityCreationConfig.of(config);
     }
 
     boolean canCreate(final Context context) {

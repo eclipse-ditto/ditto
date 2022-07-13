@@ -32,6 +32,7 @@ import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLogger;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
+import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.internal.utils.metrics.instruments.timer.StartedTimer;
 import org.eclipse.ditto.internal.utils.tracing.DittoTracing;
@@ -60,6 +61,8 @@ import org.eclipse.ditto.thingsearch.service.common.model.ResultList;
 import org.eclipse.ditto.thingsearch.service.common.model.TimestampedThingId;
 import org.eclipse.ditto.thingsearch.service.persistence.query.QueryParser;
 import org.eclipse.ditto.thingsearch.service.persistence.read.ThingsSearchPersistence;
+
+import com.typesafe.config.Config;
 
 import akka.NotUsed;
 import akka.actor.AbstractActor;
@@ -121,10 +124,11 @@ public final class SearchActor extends AbstractActor {
 
         this.queryParser = queryParser;
         this.searchPersistence = searchPersistence;
-        preEnforcer = PreEnforcerProvider.get(getSystem());
-
-        final DefaultScopedConfig dittoScopedConfig =
-                DefaultScopedConfig.dittoScoped(getSystem().settings().config());
+        final var system = getContext().getSystem();
+        final Config config = system.settings().config();
+        final var dittoExtensionsConfig = ScopedConfig.dittoExtension(config);
+        preEnforcer = PreEnforcerProvider.get(system, dittoExtensionsConfig);
+        final var dittoScopedConfig = DefaultScopedConfig.dittoScoped(getSystem().settings().config());
 
         final EnforcementConfig enforcementConfig = DefaultEnforcementConfig.of(dittoScopedConfig);
         enforcementConfig.getSpecialLoggingInspectedNamespaces()
@@ -261,7 +265,9 @@ public final class SearchActor extends AbstractActor {
                         searchTimer.startNewSegment(
                                 DATABASE_ACCESS_SEGMENT_NAME); // segment stopped by stopTimerAndHandleError
                         final List<String> subjectIds =
-                                sudoStreamThings.getDittoHeaders().getAuthorizationContext().getAuthorizationSubjectIds();
+                                sudoStreamThings.getDittoHeaders()
+                                        .getAuthorizationContext()
+                                        .getAuthorizationSubjectIds();
                         return searchPersistence.findAllUnlimited(query, subjectIds, namespaces)
                                 .map(ThingId::toString) // for serialization???
                                 .runWith(StreamRefs.sourceRef(), SystemMaterializer.get(getSystem()).materializer());

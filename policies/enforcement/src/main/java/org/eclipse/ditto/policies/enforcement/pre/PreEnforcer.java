@@ -13,7 +13,6 @@
 package org.eclipse.ditto.policies.enforcement.pre;
 
 import java.text.MessageFormat;
-import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
@@ -27,18 +26,14 @@ import org.eclipse.ditto.base.model.exceptions.DittoInternalErrorException;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.service.DittoExtensionPoint;
-import org.eclipse.ditto.internal.utils.akka.AkkaClassLoader;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLogger;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
-
-import akka.actor.AbstractExtensionId;
-import akka.actor.ActorSystem;
-import akka.actor.ExtendedActorSystem;
 
 /**
  * A Pre-Enforcer is a function converting a {@link Signal} to a CompletionStage of a Signal, potentially throwing an
  * exception if something was "forbidden" by the enforcer implementation.
  * Can also modify the signal, e.g. by enriching headers.
+ * All implementations need to have a constructor which accepts two parameters: ActorSystem and Config.
  */
 public interface PreEnforcer extends Function<Signal<?>, CompletionStage<Signal<?>>>, DittoExtensionPoint {
 
@@ -95,25 +90,4 @@ public interface PreEnforcer extends Function<Signal<?>, CompletionStage<Signal<
         return WithEntityId.getEntityIdOfType(EntityId.class, signal);
     }
 
-    final class ExtensionId extends AbstractExtensionId<PreEnforcer> {
-
-        private final String implementation;
-
-        ExtensionId(final String implementation) {
-            this.implementation = implementation;
-        }
-
-        static ExtensionId get(final String implementation, final ActorSystem actorSystem) {
-            return PreEnforcerExtensionIds.INSTANCE.get(actorSystem).get(implementation);
-        }
-
-        @Override
-        public PreEnforcer createExtension(final ExtendedActorSystem system) {
-
-            return AkkaClassLoader.instantiate(system, PreEnforcer.class,
-                    implementation,
-                    List.of(ActorSystem.class),
-                    List.of(system));
-        }
-    }
 }

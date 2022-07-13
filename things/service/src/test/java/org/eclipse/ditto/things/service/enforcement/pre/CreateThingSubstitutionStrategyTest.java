@@ -43,13 +43,15 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 
+import com.typesafe.config.ConfigFactory;
+
 import akka.actor.ActorSystem;
 
 /**
  * Tests {@link CreateThingSubstitutionStrategy} in context of
  * {@link org.eclipse.ditto.policies.enforcement.placeholders.AbstractPlaceholderSubstitutionPreEnforcer}.
  */
-public class CreateThingSubstitutionStrategyTest  {
+public class CreateThingSubstitutionStrategyTest {
 
     private static final String SUBJECT_ID_PLACEHOLDER = "{{ request:subjectId }}";
 
@@ -75,7 +77,8 @@ public class CreateThingSubstitutionStrategyTest  {
 
     @Before
     public void init() {
-        substitution = new ThingsPlaceholderSubstitutionPreEnforcer(Mockito.mock(ActorSystem.class));
+        substitution =
+                new ThingsPlaceholderSubstitutionPreEnforcer(Mockito.mock(ActorSystem.class), ConfigFactory.empty());
     }
 
     @Test
@@ -108,7 +111,8 @@ public class CreateThingSubstitutionStrategyTest  {
     @Test
     public void applyReturnsTheSameCommandInstanceWhenEmptyInlinePolicyIsSpecified() {
         final CreateThing commandWithoutInlinePolicy =
-                CreateThing.of(THING, JsonObject.newBuilder().set("entries", JsonObject.empty()).build(), DITTO_HEADERS);
+                CreateThing.of(THING, JsonObject.newBuilder().set("entries", JsonObject.empty()).build(),
+                        DITTO_HEADERS);
 
         final WithDittoHeaders response = applyBlocking(commandWithoutInlinePolicy);
 

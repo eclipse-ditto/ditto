@@ -24,6 +24,8 @@ import org.eclipse.ditto.internal.utils.config.DittoConfigError;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
+import com.typesafe.config.ConfigValue;
+import com.typesafe.config.ConfigValueType;
 
 import akka.actor.AbstractExtensionId;
 import akka.actor.ActorSystem;
@@ -54,10 +56,6 @@ public interface DittoExtensionPoint extends Extension {
             this.extensionIdConfig = extensionIdConfig;
         }
 
-        protected ExtensionId(final Class<T> parentClass) {
-            this(new ExtensionIdConfig<>(parentClass, null, ConfigFactory.empty()));
-        }
-
         @Override
         public T createExtension(final ExtendedActorSystem system) {
             return AkkaClassLoader.instantiate(system, extensionIdConfig.parentClass(),
@@ -66,7 +64,7 @@ public interface DittoExtensionPoint extends Extension {
                     List.of(system, extensionIdConfig.extensionConfig()));
         }
 
-        protected ExtensionIdConfig<T> globalConfig (final ActorSystem actorSystem) {
+        protected ExtensionIdConfig<T> globalConfig(final ActorSystem actorSystem) {
             return ExtensionIdConfig.of(
                     extensionIdConfig.parentClass(),
                     actorSystem.settings().config(),
@@ -96,8 +94,8 @@ public interface DittoExtensionPoint extends Extension {
         protected abstract String getConfigPath();
 
         public record ExtensionIdConfig<T extends Extension>(Class<T> parentClass,
-                                                                @Nullable String extensionClass,
-                                                                Config extensionConfig) {
+                                                             @Nullable String extensionClass,
+                                                             Config extensionConfig) {
 
             private static final String EXTENSION_CLASS = "extension-class";
             private static final String EXTENSION_CONFIG = "extension-config";
@@ -116,16 +114,24 @@ public interface DittoExtensionPoint extends Extension {
                     final String configKey) {
 
                 if (config.hasPath(configKey)) {
-                    final Object anyRef = config.getAnyRef(configKey);
-                    if (anyRef instanceof Map) {
-                        // means that the entry is a config object
-                        return ofObjectConfig(parentClass, config.getConfig(configKey));
-                    } else {
-                        // Allows shorthand configuration by just defining the fqcn if no extension config is desired.
-                        return ofStringConfig(parentClass, config.getString(configKey));
-                    }
+                    final var configValue = config.getValue(configKey);
+                    return of(parentClass, configValue);
                 }
                 return new ExtensionIdConfig<>(parentClass, null, ConfigFactory.empty());
+            }
+
+            @SuppressWarnings("unchecked")
+            public static <T extends Extension> ExtensionIdConfig<T> of(final Class<T> parentClass,
+                    final ConfigValue configValue) {
+                final var valueType = configValue.valueType();
+                final Object unwrappedValue = configValue.unwrapped();
+                if (valueType == ConfigValueType.OBJECT) {
+                    // means that the entry is a Map which can be used to create config object from
+                    return ofObjectConfig(parentClass, ConfigFactory.parseMap((Map<String, ?>) unwrappedValue));
+                } else {
+                    // Allows shorthand configuration by just defining the fqcn if no extension config is desired.
+                    return ofStringConfig(parentClass, (String) unwrappedValue);
+                }
             }
 
             private static <T extends Extension> ExtensionIdConfig<T> ofStringConfig(

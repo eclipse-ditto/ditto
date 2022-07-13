@@ -18,6 +18,8 @@ import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.internal.utils.namespaces.BlockNamespaceBehavior;
 import org.eclipse.ditto.internal.utils.namespaces.BlockedNamespaces;
 
+import com.typesafe.config.Config;
+
 import akka.actor.ActorSystem;
 
 /**
@@ -33,7 +35,7 @@ public final class BlockedNamespacePreEnforcer implements PreEnforcer {
      * @param actorSystem the actor system in which to load the extension.
      */
     @SuppressWarnings("unused")
-    public BlockedNamespacePreEnforcer(final ActorSystem actorSystem) {
+    public BlockedNamespacePreEnforcer(final ActorSystem actorSystem, final Config config) {
         blockNamespaceBehavior = BlockNamespaceBehavior.of(BlockedNamespaces.of(actorSystem));
     }
 

@@ -38,7 +38,8 @@ public final class CommandWithOptionalEntityPreEnforcerTest {
         final JsonValue jsonValue = JsonValue.of(NULL_CHARACTER);
 
         assertThatExceptionOfType(DittoRuntimeException.class)
-                .isThrownBy(() -> CommandWithOptionalEntityPreEnforcer.createInstance().apply(createTestCommand(jsonValue)));
+                .isThrownBy(
+                        () -> new CommandWithOptionalEntityPreEnforcer(null, null).apply(createTestCommand(jsonValue)));
     }
 
     private Signal<?> createTestCommand(final JsonValue jsonValue) {

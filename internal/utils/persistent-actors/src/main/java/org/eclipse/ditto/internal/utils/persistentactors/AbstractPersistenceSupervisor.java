@@ -40,6 +40,7 @@ import org.eclipse.ditto.base.service.config.supervision.ExponentialBackOffConfi
 import org.eclipse.ditto.internal.utils.akka.actors.AbstractActorWithStashWithTimers;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
+import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.internal.utils.metrics.instruments.counter.Counter;
 import org.eclipse.ditto.internal.utils.metrics.instruments.timer.PreparedTimer;
@@ -49,7 +50,10 @@ import org.eclipse.ditto.internal.utils.tracing.DittoTracing;
 import org.eclipse.ditto.internal.utils.tracing.instruments.trace.StartedTrace;
 import org.eclipse.ditto.policies.enforcement.pre.PreEnforcerProvider;
 
+import com.typesafe.config.Config;
+
 import akka.actor.ActorRef;
+import akka.actor.ActorSystem;
 import akka.actor.PoisonPill;
 import akka.actor.Props;
 import akka.actor.ReceiveTimeout;
@@ -128,7 +132,9 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
         this.enforcerChild = enforcerChild;
         this.blockedNamespaces = blockedNamespaces;
         this.defaultLocalAskTimeout = defaultLocalAskTimeout;
-        preEnforcer = PreEnforcerProvider.get(getContext().getSystem());
+        final var system = getContext().getSystem();
+        final var dittoExtensionsConfig = ScopedConfig.dittoExtension(system.settings().config());
+        preEnforcer = PreEnforcerProvider.get(system, dittoExtensionsConfig);
         exponentialBackOffConfig = getExponentialBackOffConfig();
         backOff = ExponentialBackOff.initial(exponentialBackOffConfig);
     }

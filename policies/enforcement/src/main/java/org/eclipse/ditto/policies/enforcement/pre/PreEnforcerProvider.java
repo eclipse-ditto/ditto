@@ -19,29 +19,34 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
 import org.eclipse.ditto.base.model.signals.Signal;
+import org.eclipse.ditto.base.service.DittoExtensionIds;
 import org.eclipse.ditto.base.service.DittoExtensionPoint;
-import org.eclipse.ditto.internal.utils.akka.AkkaClassLoader;
+import org.eclipse.ditto.base.service.DittoExtensionPoint.ExtensionId.ExtensionIdConfig;
 
-import akka.actor.AbstractExtensionId;
+import com.typesafe.config.Config;
+
 import akka.actor.ActorSystem;
-import akka.actor.ExtendedActorSystem;
 
 /**
  * Extension to provide the Pre-Enforcers for a service.
  */
 public final class PreEnforcerProvider implements DittoExtensionPoint {
 
-    private static final String CONFIG_PATH = "ditto.pre-enforcers";
+    private static final String PRE_ENFORCERS = "pre-enforcers";
     private final List<PreEnforcer> preEnforcers;
 
     @SuppressWarnings("unused")
-    private PreEnforcerProvider(final ActorSystem actorSystem) {
-        preEnforcers = actorSystem.settings().config().getStringList(CONFIG_PATH)
+    private PreEnforcerProvider(final ActorSystem actorSystem, final Config config) {
+        final DittoExtensionIds dittoExtensionIds = DittoExtensionIds.get(actorSystem);
+        preEnforcers = config.getList(PRE_ENFORCERS)
                 .stream()
-                .map(path -> PreEnforcer.ExtensionId.get(path, actorSystem))
+                .map(configValue -> ExtensionIdConfig.of(PreEnforcer.class, configValue))
+                .map(extensionIdConfig -> dittoExtensionIds.computeIfAbsent(extensionIdConfig,
+                        PreEnforcerExtensionId::new))
                 .map(extensionId -> extensionId.get(actorSystem))
                 .toList();
     }
+
 
     /**
      * Applies the pre-enforcement to the signal.
@@ -51,7 +56,7 @@ public final class PreEnforcerProvider implements DittoExtensionPoint {
     public CompletionStage<Signal<?>> apply(final Signal<?> signal) {
         CompletionStage<Signal<?>> prior = CompletableFuture.completedStage(signal);
         for (final PreEnforcer preEnforcer : preEnforcers) {
-           prior = prior.thenCompose(preEnforcer);
+            prior = prior.thenCompose(preEnforcer);
         }
         return prior;
     }
@@ -64,23 +69,47 @@ public final class PreEnforcerProvider implements DittoExtensionPoint {
      * @return the {@code PreEnforcerProvider} implementation.
      * @throws NullPointerException if {@code actorSystem} is {@code null}.
      */
-    public static PreEnforcerProvider get(final ActorSystem actorSystem) {
+    public static PreEnforcerProvider get(final ActorSystem actorSystem, final Config config) {
         checkNotNull(actorSystem, "actorSystem");
-        return ExtensionId.INSTANCE.get(actorSystem);
+        checkNotNull(config, "config");
+        final var extensionIdConfig = ExtensionId.computeConfig(config);
+        return DittoExtensionIds.get(actorSystem)
+                .computeIfAbsent(extensionIdConfig, ExtensionId::new)
+                .get(actorSystem);
     }
 
-    private static final class ExtensionId extends AbstractExtensionId<PreEnforcerProvider> {
+    private static final class ExtensionId extends DittoExtensionPoint.ExtensionId<PreEnforcerProvider> {
 
-        private static final ExtensionId INSTANCE = new ExtensionId();
+        private static final String CONFIG_KEY = "pre-enforcer-provider";
+        private static final String CONFIG_PATH = "ditto.extensions." + CONFIG_KEY;
+
+        private ExtensionId(final ExtensionIdConfig<PreEnforcerProvider> extensionIdConfig) {
+            super(extensionIdConfig);
+        }
+
+        static ExtensionIdConfig<PreEnforcerProvider> computeConfig(final Config config) {
+            return ExtensionIdConfig.of(PreEnforcerProvider.class, config, CONFIG_KEY);
+        }
 
         @Override
-        public PreEnforcerProvider createExtension(final ExtendedActorSystem system) {
-
-            return AkkaClassLoader.instantiate(system, PreEnforcerProvider.class,
-                    PreEnforcerProvider.class.getCanonicalName(),
-                    List.of(ActorSystem.class),
-                    List.of(system));
+        protected String getConfigPath() {
+            return CONFIG_PATH;
         }
 
     }
+
+    private static final class PreEnforcerExtensionId extends DittoExtensionPoint.ExtensionId<PreEnforcer> {
+
+        PreEnforcerExtensionId(final ExtensionIdConfig<PreEnforcer> extensionIdConfig) {
+            super(extensionIdConfig);
+        }
+
+        @Override
+        protected String getConfigPath() {
+            throw new UnsupportedOperationException("PreEnforcers do not support an individual config path. " +
+                    "They should be configured in the ditto.extensions.pre-enforcers list.");
+        }
+
+    }
+
 }

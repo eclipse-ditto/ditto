@@ -40,6 +40,8 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 
+import com.typesafe.config.ConfigFactory;
+
 import akka.actor.ActorSystem;
 
 /**
@@ -64,7 +66,8 @@ public final class PoliciesPlaceholderSubstitutionPreEnforcerTest {
 
     @Before
     public void init() {
-        underTest = new PoliciesPlaceholderSubstitutionPreEnforcer(Mockito.mock(ActorSystem.class));
+        underTest =
+                new PoliciesPlaceholderSubstitutionPreEnforcer(Mockito.mock(ActorSystem.class), ConfigFactory.empty());
     }
 
     @Test
@@ -85,15 +88,17 @@ public final class PoliciesPlaceholderSubstitutionPreEnforcerTest {
                 Collections.singletonMap(customPlaceholderKey,
                         dittoHeaders -> dittoHeaders.get(CUSTOM_HEADER_KEY));
         final PoliciesPlaceholderSubstitutionPreEnforcer extendedPlaceholderSubstitution =
-                new PoliciesPlaceholderSubstitutionPreEnforcer(Mockito.mock(ActorSystem.class)) {
-            @Override
-            protected Map<String, Function<DittoHeaders, String>> createReplacementDefinitions() {
-                final Map<String, Function<DittoHeaders, String>> definitions = super.createReplacementDefinitions();
-                final Map<String, Function<DittoHeaders, String>> mergedDefinitions = new HashMap<>(definitions);
-                mergedDefinitions.putAll(additionalReplacementDefinitions);
-                return mergedDefinitions;
-            }
-        };
+                new PoliciesPlaceholderSubstitutionPreEnforcer(Mockito.mock(ActorSystem.class), ConfigFactory.empty()) {
+                    @Override
+                    protected Map<String, Function<DittoHeaders, String>> createReplacementDefinitions() {
+                        final Map<String, Function<DittoHeaders, String>> definitions =
+                                super.createReplacementDefinitions();
+                        final Map<String, Function<DittoHeaders, String>> mergedDefinitions =
+                                new HashMap<>(definitions);
+                        mergedDefinitions.putAll(additionalReplacementDefinitions);
+                        return mergedDefinitions;
+                    }
+                };
         final ModifySubject commandWithoutPlaceholders = ModifySubject.of(PolicyId.of("org.eclipse.ditto:my-policy"),
                 Label.of("my-label"), Subject.newInstance("{{ " + customPlaceholderKey + " }}",
                         SubjectType.GENERATED), DITTO_HEADERS);
@@ -125,7 +130,8 @@ public final class PoliciesPlaceholderSubstitutionPreEnforcerTest {
         return applyBlocking(input, underTest);
     }
 
-    private Signal<?> applyBlocking(final Signal<?> input, final PoliciesPlaceholderSubstitutionPreEnforcer substitution) {
+    private Signal<?> applyBlocking(final Signal<?> input,
+            final PoliciesPlaceholderSubstitutionPreEnforcer substitution) {
         final CompletionStage<Signal<?>> responseFuture = substitution.apply(input);
         try {
             return responseFuture.toCompletableFuture().get();

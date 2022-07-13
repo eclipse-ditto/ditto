@@ -20,6 +20,8 @@ import org.eclipse.ditto.policies.enforcement.pre.PreEnforcer;
 import org.eclipse.ditto.policies.model.signals.commands.modify.CreatePolicy;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicy;
 
+import com.typesafe.config.Config;
+
 import akka.actor.ActorSystem;
 
 /**
@@ -29,7 +31,7 @@ public final class ModifyToCreatePolicyTransformer implements PreEnforcer {
 
     private final PolicyExistenceChecker existenceChecker;
 
-    ModifyToCreatePolicyTransformer(final ActorSystem actorSystem) {
+    ModifyToCreatePolicyTransformer(final ActorSystem actorSystem, final Config config) {
         this(new PolicyExistenceChecker(actorSystem));
     }
 

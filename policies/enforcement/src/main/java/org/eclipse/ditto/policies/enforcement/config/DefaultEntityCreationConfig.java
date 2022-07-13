@@ -30,12 +30,10 @@ public final class DefaultEntityCreationConfig implements EntityCreationConfig {
 
     private static final String CONFIG_PATH = "entity-creation";
 
-    private final String defaultNamespace;
     private final List<CreationRestrictionConfig> grant;
     private final List<CreationRestrictionConfig> revoke;
 
     private DefaultEntityCreationConfig(final ScopedConfig config) {
-        defaultNamespace = config.getString(ConfigValue.DEFAULT_NAMESPACE.getConfigPath());
         grant = config.getConfigList(ConfigValue.GRANT.getConfigPath()).stream()
                 .map(DefaultCreationRestrictionConfig::of)
                 .toList();
@@ -53,12 +51,8 @@ public final class DefaultEntityCreationConfig implements EntityCreationConfig {
      */
     public static DefaultEntityCreationConfig of(final Config config) {
         return new DefaultEntityCreationConfig(
-                ConfigWithFallback.newInstance(config, CONFIG_PATH, EntityCreationConfig.ConfigValue.values()));
-    }
-
-    @Override
-    public String getDefaultNamespace() {
-        return defaultNamespace;
+                ConfigWithFallback.newInstance(config, CONFIG_PATH, EntityCreationConfig.ConfigValue.values())
+        );
     }
 
     @Override
@@ -80,19 +74,18 @@ public final class DefaultEntityCreationConfig implements EntityCreationConfig {
             return false;
         }
         final DefaultEntityCreationConfig that = (DefaultEntityCreationConfig) o;
-        return defaultNamespace.equals(that.defaultNamespace) && grant.equals(that.grant) && revoke.equals(that.revoke);
+        return grant.equals(that.grant) && revoke.equals(that.revoke);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(defaultNamespace, grant, revoke);
+        return Objects.hash(grant, revoke);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
-                "defaultNamespace=" + defaultNamespace +
-                ", grant=" + grant +
+                "grant=" + grant +
                 ", revoke=" + revoke +
                 "]";
     }

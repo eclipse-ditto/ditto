@@ -26,6 +26,8 @@ import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonParseException;
 import org.eclipse.ditto.json.JsonValue;
 
+import com.typesafe.config.Config;
+
 import akka.actor.ActorSystem;
 
 /**
@@ -39,12 +41,8 @@ public final class CommandWithOptionalEntityPreEnforcer implements PreEnforcer {
      * @param actorSystem the actor system in which to load the extension.
      */
     @SuppressWarnings("unused")
-    public CommandWithOptionalEntityPreEnforcer(final ActorSystem actorSystem) {
+    public CommandWithOptionalEntityPreEnforcer(final ActorSystem actorSystem, final Config config) {
         // no-op
-    }
-
-    static CommandWithOptionalEntityPreEnforcer createInstance() {
-        return new CommandWithOptionalEntityPreEnforcer(null);
     }
 
     @Override

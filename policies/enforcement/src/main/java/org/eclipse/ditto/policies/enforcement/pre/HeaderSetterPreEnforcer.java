@@ -24,6 +24,8 @@ import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.DittoHeadersSettable;
 import org.eclipse.ditto.base.model.signals.Signal;
 
+import com.typesafe.config.Config;
+
 import akka.actor.ActorSystem;
 
 /**
@@ -38,7 +40,7 @@ public final class HeaderSetterPreEnforcer implements PreEnforcer {
      * @param actorSystem the actor system in which to load the extension.
      */
     @SuppressWarnings("unused")
-    public HeaderSetterPreEnforcer(final ActorSystem actorSystem) {
+    public HeaderSetterPreEnforcer(final ActorSystem actorSystem, final Config config) {
         // no-op
     }
 

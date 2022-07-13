@@ -36,7 +36,7 @@ public final class CreationRestrictionPreEnforcerTest {
         var config = ConfigFactory.load(basename);
         final ActorSystem actorSystem = ActorSystem.create(CreationRestrictionPreEnforcerTest.class.getSimpleName(),
                 config);
-        return new CreationRestrictionPreEnforcer(actorSystem);
+        return new CreationRestrictionPreEnforcer(actorSystem, config);
     }
 
     private static DittoHeaders identity(final String... subjects) {

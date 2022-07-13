@@ -27,13 +27,6 @@ import org.eclipse.ditto.internal.utils.config.KnownConfigValue;
 public interface EntityCreationConfig {
 
     /**
-     * Returns the default namespace which is used for creating entities, when no namespace is provided.
-     *
-     * @return the default namespace.
-     */
-    String getDefaultNamespace();
-
-    /**
      * Returns the list of creation config entries which would allow the creation.
      *
      * An empty list would <strong>not</strong> allow any entity to be created. You must have at least one
@@ -55,11 +48,6 @@ public interface EntityCreationConfig {
      * {@code EntityCreationConfig}.
      */
     enum ConfigValue implements KnownConfigValue {
-
-        /**
-         * The default namespace to use for creating entities without specified namespace.
-         */
-        DEFAULT_NAMESPACE("default-namespace", "org.eclipse.ditto"),
 
         /**
          * The list of creation config entries which would allow the creation.

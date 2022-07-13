@@ -21,6 +21,8 @@ import org.eclipse.ditto.policies.enforcement.pre.PreEnforcer;
 import org.eclipse.ditto.things.model.signals.commands.modify.CreateThing;
 import org.eclipse.ditto.things.model.signals.commands.modify.ModifyThing;
 
+import com.typesafe.config.Config;
+
 import akka.actor.ActorSystem;
 
 /**
@@ -30,7 +32,7 @@ public final class ModifyToCreateThingTransformer implements PreEnforcer {
 
     private final ThingExistenceChecker existenceChecker;
 
-    ModifyToCreateThingTransformer(final ActorSystem actorSystem) {
+    ModifyToCreateThingTransformer(final ActorSystem actorSystem, final Config config) {
         this(new ThingExistenceChecker(actorSystem));
     }
 

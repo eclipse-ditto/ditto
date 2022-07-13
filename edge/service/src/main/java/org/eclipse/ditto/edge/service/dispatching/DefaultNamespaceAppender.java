@@ -20,10 +20,7 @@ import javax.annotation.Nullable;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.signals.Signal;
-import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.policies.enforcement.config.DefaultEntityCreationConfig;
-import org.eclipse.ditto.policies.enforcement.config.EntityCreationConfig;
 import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.signals.commands.modify.CreatePolicy;
@@ -38,11 +35,13 @@ import akka.japi.pf.PFBuilder;
 import scala.PartialFunction;
 
 /**
- * Appends the globally configured {@link EntityCreationConfig#getDefaultNamespace() Default namespace} to creation
+ * Appends the globally configured {@link #DEFAULT_NAMESPACE_CONFIG_KEY Default namespace} to creation
  * commands which do not include an explicit namespace.
  */
 public final class DefaultNamespaceAppender implements SignalTransformer {
 
+    private static final String DEFAULT_NAMESPACE_CONFIG_KEY = "default-namespace";
+    private static final String FALLBACK_DEFAULT_NAMESPACE = "org.eclipse.ditto";
     private final String defaultNamespace;
     private final PartialFunction<Signal<?>, Signal<?>> signalTransformer;
 
@@ -52,10 +51,9 @@ public final class DefaultNamespaceAppender implements SignalTransformer {
      * @param actorSystem the actor system in which to load the extension.
      */
     public DefaultNamespaceAppender(final ActorSystem actorSystem, final Config config) {
-        final EntityCreationConfig entityCreationConfig = DefaultEntityCreationConfig.of(
-                DefaultScopedConfig.dittoScoped(actorSystem.settings().config())
-        );
-        defaultNamespace = entityCreationConfig.getDefaultNamespace();
+        defaultNamespace = config.hasPath(DEFAULT_NAMESPACE_CONFIG_KEY) ?
+                config.getString(DEFAULT_NAMESPACE_CONFIG_KEY) :
+                FALLBACK_DEFAULT_NAMESPACE;
         signalTransformer = new PFBuilder<Signal<?>, Signal<?>>()
                 .match(CreateThing.class, this::handleCreateThing)
                 .match(CreatePolicy.class, this::handleCreatePolicy)

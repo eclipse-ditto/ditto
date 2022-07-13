@@ -15,6 +15,8 @@ package org.eclipse.ditto.policies.service.enforcement.pre;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.policies.enforcement.placeholders.AbstractPlaceholderSubstitutionPreEnforcer;
 
+import com.typesafe.config.Config;
+
 import akka.actor.ActorSystem;
 
 /**
@@ -32,7 +34,7 @@ public class PoliciesPlaceholderSubstitutionPreEnforcer extends AbstractPlacehol
      * @param actorSystem the actor system in which to load the extension.
      */
     @SuppressWarnings("unused")
-    public PoliciesPlaceholderSubstitutionPreEnforcer(final ActorSystem actorSystem) {
+    public PoliciesPlaceholderSubstitutionPreEnforcer(final ActorSystem actorSystem, final Config config) {
         super(PolicySubstitutionStrategyRegistry.newInstance());
     }
 
