@@ -121,7 +121,7 @@ public final class AcknowledgementForwarderActorTest {
 
             final Optional<ActorRef> underTest =
                     AcknowledgementForwarderActor.startAcknowledgementForwarderForTest(actorSystem,
-                            getRef(), entityId, signal,
+                            getRef(), actorSystem.actorSelection(getRef().path()), entityId, signal,
                             acknowledgementConfig);
 
             softly.assertThat(underTest).isPresent();

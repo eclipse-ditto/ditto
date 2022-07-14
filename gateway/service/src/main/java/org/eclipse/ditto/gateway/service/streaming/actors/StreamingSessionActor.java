@@ -106,7 +106,7 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
     private final String type;
     private final DittoProtocolSub dittoProtocolSub;
     private final SourceQueueWithComplete<SessionedJsonifiable> eventAndResponsePublisher;
-    private final ActorRef commandRouter;
+    private final ActorRef commandForwarder;
     private final AcknowledgementConfig acknowledgementConfig;
     private final ActorRef subscriptionManager;
     private final Set<StreamingType> outstandingSubscriptionAcks;
@@ -122,7 +122,7 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
     @SuppressWarnings("unused")
     private StreamingSessionActor(final Connect connect,
             final DittoProtocolSub dittoProtocolSub,
-            final ActorRef commandRouter,
+            final ActorRef commandForwarder,
             final AcknowledgementConfig acknowledgementConfig,
             final HeaderTranslator headerTranslator,
             final Props subscriptionManagerProps,
@@ -134,7 +134,7 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
         type = connect.getType();
         this.dittoProtocolSub = dittoProtocolSub;
         eventAndResponsePublisher = connect.getEventAndResponsePublisher();
-        this.commandRouter = commandRouter;
+        this.commandForwarder = commandForwarder;
         this.acknowledgementConfig = acknowledgementConfig;
         this.jwtValidator = jwtValidator;
         this.jwtAuthenticationResultProvider = jwtAuthenticationResultProvider;
@@ -166,7 +166,7 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
      *
      * @param connect the command to start a streaming session.
      * @param dittoProtocolSub manager of subscriptions.
-     * @param commandRouter the actor who distributes incoming commands in the Ditto cluster.
+     * @param commandForwarder the actor who distributes incoming commands in the Ditto cluster.
      * @param acknowledgementConfig the config to apply for Acknowledgements.
      * @param headerTranslator translates headers from external sources or to external sources.
      * @param subscriptionManagerProps Props of the subscription manager for search protocol.
@@ -176,7 +176,7 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
      */
     static Props props(final Connect connect,
             final DittoProtocolSub dittoProtocolSub,
-            final ActorRef commandRouter,
+            final ActorRef commandForwarder,
             final AcknowledgementConfig acknowledgementConfig,
             final HeaderTranslator headerTranslator,
             final Props subscriptionManagerProps,
@@ -186,7 +186,7 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
         return Props.create(StreamingSessionActor.class,
                 connect,
                 dittoProtocolSub,
-                commandRouter,
+                commandForwarder,
                 acknowledgementConfig,
                 headerTranslator,
                 subscriptionManagerProps,
@@ -231,12 +231,12 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
                 .match(Acknowledgement.class, this::hasUndeclaredAckLabel, this::ackLabelNotDeclared)
                 .match(Acknowledgement.class, this::forwardAcknowledgementOrLiveCommandResponse)
                 .match(CommandResponse.class, CommandResponse::isLiveCommandResponse, liveCommandResponse ->
-                        commandRouter.forward(liveCommandResponse, getContext()))
+                        commandForwarder.forward(liveCommandResponse, getContext()))
                 .match(CommandResponse.class, this::forwardAcknowledgementOrLiveCommandResponse)
                 .match(ThingSearchCommand.class, this::forwardSearchCommand)
                 .match(Signal.class, signal ->
                         // forward signals for which no reply is expected with self return address for downstream errors
-                        commandRouter.tell(signal, getReturnAddress(signal)))
+                        commandForwarder.tell(signal, getReturnAddress(signal)))
                 .matchEquals(Done.getInstance(), done -> {})
                 .build();
 
@@ -450,7 +450,7 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
                                 .orElseGet(() -> ackregatorStarter.doStart(entityIdOptional.get(),
                                         s, null, this::publishResponseOrError,
                                         (ackregator, adjustedSignal) -> {
-                                            commandRouter.tell(adjustedSignal, ackregator);
+                                            commandForwarder.tell(adjustedSignal, ackregator);
                                             return Done.getInstance();
                                         }
                                 ));
@@ -472,7 +472,8 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
         if (entityIdOptional.isPresent()) {
             final var entityIdWithType = entityIdOptional.get();
             return AcknowledgementForwarderActor.startAcknowledgementForwarder(getContext(),
-                    self(),
+                    getSelf(),
+                    getContext().actorSelection(commandForwarder.path()),
                     entityIdWithType,
                     signal,
                     acknowledgementConfig,
@@ -514,7 +515,7 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
                                 } else {
                                     logger.withCorrelationId(response).info(template, response.getType());
                                 }
-                                commandRouter.tell(response, ActorRef.noSender());
+                                commandForwarder.tell(response, ActorRef.noSender());
                             }
                     );
         } catch (final DittoRuntimeException e) {

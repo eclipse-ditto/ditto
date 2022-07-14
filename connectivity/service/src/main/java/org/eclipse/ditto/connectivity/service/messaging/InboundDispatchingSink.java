@@ -504,10 +504,9 @@ public final class InboundDispatchingSink
                                 forwardAcknowledgement(ack, declaredAckLabels, outcomes))
                         .match(Acknowledgements.class, acks ->
                                 forwardAcknowledgements(acks, declaredAckLabels, outcomes))
-                        .match(CommandResponse.class, ProtocolAdapter::isLiveSignal, liveResponse -> {
-                                proxyActor.tell(liveResponse, ActorRef.noSender());
-                                return Stream.empty();
-                        })
+                        .match(CommandResponse.class, ProtocolAdapter::isLiveSignal, liveResponse ->
+                                forwardToClientActor(liveResponse, ActorRef.noSender())
+                        )
                         .match(CreateSubscription.class, cmd -> forwardToConnectionActor(cmd, sender))
                         .match(WithSubscriptionId.class, cmd -> forwardToClientActor(cmd, sender))
                         .matchAny(baseSignal -> ackregatorStarter.preprocess(baseSignal,
@@ -642,6 +641,7 @@ public final class InboundDispatchingSink
      * Only special Signals must be forwarded to the {@code ClientActor}:
      * <ul>
      * <li>{@code Acknowledgement}s which were received via an incoming connection source</li>
+     * <li>live {@code CommandResponse}s which were received via an incoming connection source</li>
      * <li>{@code SearchCommand}s which were received via an incoming connection source</li>
      * </ul>
      *

@@ -58,13 +58,16 @@ public final class AcknowledgementForwarderActor extends AbstractActor {
      */
     static final String ACTOR_NAME_PREFIX = "ackForwarder-";
 
+    private final ActorSelection commandForwarder;
     private final String correlationId;
     @Nullable private final String ackgregatorAddressFallback;
     private final DittoDiagnosticLoggingAdapter log;
 
     @SuppressWarnings("unused")
-    private AcknowledgementForwarderActor(final DittoHeaders dittoHeaders, final Duration defaultTimeout) {
+    private AcknowledgementForwarderActor(final ActorSelection commandForwarder, final DittoHeaders dittoHeaders,
+            final Duration defaultTimeout) {
 
+        this.commandForwarder = commandForwarder;
         correlationId = dittoHeaders.getCorrelationId()
                 .orElseGet(() ->
                         // fall back using the actor name which also contains the correlation-id
@@ -79,12 +82,14 @@ public final class AcknowledgementForwarderActor extends AbstractActor {
     /**
      * Creates Akka configuration object Props for this AcknowledgementForwarderActor.
      *
+     * @param commandForwarder the actor ref of the edge command forwarder actor.
      * @param dittoHeaders the DittoHeaders of the Signal which contained the request for Acknowledgements.
      * @param defaultTimeout the default timeout to apply when {@code dittoHeaders} did not contain a specific timeout.
      * @return the Akka configuration Props object.
      */
-    static Props props(final DittoHeaders dittoHeaders, final Duration defaultTimeout) {
-        return Props.create(AcknowledgementForwarderActor.class, dittoHeaders, defaultTimeout);
+    static Props props(final ActorSelection commandForwarder, final DittoHeaders dittoHeaders,
+            final Duration defaultTimeout) {
+        return Props.create(AcknowledgementForwarderActor.class, commandForwarder, dittoHeaders, defaultTimeout);
     }
 
     @Override
@@ -100,17 +105,17 @@ public final class AcknowledgementForwarderActor extends AbstractActor {
         final DittoHeaders dittoHeaders = acknowledgementOrResponse.getDittoHeaders();
         final String ackregatorAddress = dittoHeaders.getOrDefault(
                 DittoHeaderDefinition.DITTO_ACKREGATOR_ADDRESS.getKey(), ackgregatorAddressFallback);
-        if (null != ackregatorAddress) {
+        if (null != ackregatorAddress && acknowledgementOrResponse instanceof Acknowledgement acknowledgement) {
             final ActorSelection acknowledgementRequester = getContext().actorSelection(ackregatorAddress);
-            log.withCorrelationId(acknowledgementOrResponse)
+            log.withCorrelationId(acknowledgement)
                     .debug("Received Acknowledgement / live CommandResponse, forwarding to acknowledgement " +
-                            "aggregator <{}>: " + "<{}>", acknowledgementRequester, acknowledgementOrResponse);
-            acknowledgementRequester.tell(acknowledgementOrResponse, getSender());
+                            "aggregator <{}>: " + "<{}>", acknowledgementRequester, acknowledgement);
+            acknowledgementRequester.tell(acknowledgement, getSender());
         } else {
             log.withCorrelationId(acknowledgementOrResponse)
-                    .error("Received Acknowledgement / live CommandResponse <{}> did not contain header of " +
-                            "acknowledgement aggregator address: {}",
+                    .debug("Received live CommandResponse <{}>, forwarding to command forwarder: {}",
                             acknowledgementOrResponse.getClass().getSimpleName(), dittoHeaders);
+            commandForwarder.tell(acknowledgementOrResponse, ActorRef.noSender());
         }
     }
 
@@ -141,12 +146,13 @@ public final class AcknowledgementForwarderActor extends AbstractActor {
 
     static Optional<ActorRef> startAcknowledgementForwarderForTest(final ActorRefFactory actorRefFactory,
             final ActorRef parent,
+            final ActorSelection commandForwarder,
             final EntityId entityId,
             final Signal<?> signal,
             final AcknowledgementConfig acknowledgementConfig) {
 
         final AcknowledgementForwarderActorStarter starter = AcknowledgementForwarderActorStarter
-                .getInstance(actorRefFactory, parent, entityId, signal, acknowledgementConfig,
+                .getInstance(actorRefFactory, parent, commandForwarder, entityId, signal, acknowledgementConfig,
                         label -> true);
         return starter.get();
     }
@@ -160,6 +166,7 @@ public final class AcknowledgementForwarderActor extends AbstractActor {
      *
      * @param actorRefFactory the factory to start the forwarder actor in.
      * @param parent the parent of the forwarder actor.
+     * @param commandForwarder the actor ref of the edge command forwarder actor.
      * @param entityId the entityId of the {@code Signal} which requested the Acknowledgements.
      * @param signal the signal for which acknowledgements are expected.
      * @param acknowledgementConfig the AcknowledgementConfig to use for looking up config values.
@@ -169,12 +176,13 @@ public final class AcknowledgementForwarderActor extends AbstractActor {
      */
     public static Signal<?> startAcknowledgementForwarder(final ActorRefFactory actorRefFactory,
             final ActorRef parent,
+            final ActorSelection commandForwarder,
             final EntityId entityId,
             final Signal<?> signal,
             final AcknowledgementConfig acknowledgementConfig,
             final Predicate<AcknowledgementLabel> isAckLabelAllowed) {
         final AcknowledgementForwarderActorStarter starter =
-                AcknowledgementForwarderActorStarter.getInstance(actorRefFactory, parent, entityId,
+                AcknowledgementForwarderActorStarter.getInstance(actorRefFactory, parent, commandForwarder, entityId,
                         signal, acknowledgementConfig, isAckLabelAllowed);
         final DittoHeadersBuilder<?, ?> dittoHeadersBuilder = signal.getDittoHeaders().toBuilder();
         starter.getConflictFree().ifPresent(dittoHeadersBuilder::correlationId);

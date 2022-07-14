@@ -39,6 +39,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 import com.typesafe.config.ConfigFactory;
 
+import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.testkit.TestProbe;
 import akka.testkit.javadsl.TestKit;
@@ -138,7 +139,8 @@ public final class AcknowledgementForwarderActorStarterTest {
     }
 
     private AcknowledgementForwarderActorStarter getActorStarter(final DittoHeaders dittoHeaders) {
-        return AcknowledgementForwarderActorStarter.getInstance(actorSystem, TestProbe.apply(actorSystem).ref(),
+        final ActorRef ref = TestProbe.apply(actorSystem).ref();
+        return AcknowledgementForwarderActorStarter.getInstance(actorSystem, ref, actorSystem.actorSelection(ref.path()),
                 KNOWN_ENTITY_ID,
                 ThingDeleted.of(KNOWN_ENTITY_ID, 1L, Instant.EPOCH, dittoHeaders, null),
                 acknowledgementConfig, label -> true);

@@ -62,6 +62,7 @@ final class AcknowledgementForwarderActorStarter implements Supplier<Optional<Ac
 
     private final ActorRefFactory actorRefFactory;
     private final ActorRef parent;
+    private final ActorSelection commandForwarder;
     private final EntityId entityId;
     private final Signal<?> signal;
     private final DittoHeaders dittoHeaders;
@@ -70,13 +71,15 @@ final class AcknowledgementForwarderActorStarter implements Supplier<Optional<Ac
 
     private AcknowledgementForwarderActorStarter(final ActorRefFactory actorRefFactory,
             final ActorRef parent,
+            final ActorSelection commandForwarder,
             final EntityId entityId,
             final Signal<?> signal,
             final AcknowledgementConfig acknowledgementConfig,
             final Predicate<AcknowledgementLabel> isAckLabelAllowed) {
 
         this.actorRefFactory = checkNotNull(actorRefFactory, "actorRefFactory");
-        this.parent = parent;
+        this.parent = checkNotNull(parent, "parent");
+        this.commandForwarder = checkNotNull(commandForwarder, "commandForwarder");
         this.entityId = checkNotNull(entityId, "entityId");
         this.signal = checkNotNull(signal, "signal");
         dittoHeaders = signal.getDittoHeaders();
@@ -92,6 +95,7 @@ final class AcknowledgementForwarderActorStarter implements Supplier<Optional<Ac
      *
      * @param actorRefFactory the factory to start the forwarder actor in.
      * @param parent the parent of the forwarder actor.
+     * @param commandForwarder the actor ref of the edge command forwarder actor.
      * @param entityId is used for the NACKs if the forwarder actor cannot be started.
      * @param signal the signal for which the forwarder actor is to start.
      * @param acknowledgementConfig provides configuration setting regarding acknowledgement handling.
@@ -102,12 +106,13 @@ final class AcknowledgementForwarderActorStarter implements Supplier<Optional<Ac
      */
     static AcknowledgementForwarderActorStarter getInstance(final ActorRefFactory actorRefFactory,
             final ActorRef parent,
+            final ActorSelection commandForwarder,
             final EntityId entityId,
             final Signal<?> signal,
             final AcknowledgementConfig acknowledgementConfig,
             final Predicate<AcknowledgementLabel> isAckLabelAllowed) {
 
-        return new AcknowledgementForwarderActorStarter(actorRefFactory, parent, entityId, signal,
+        return new AcknowledgementForwarderActorStarter(actorRefFactory, parent, commandForwarder, entityId, signal,
                 acknowledgementConfig,
                 // live-response is always allowed
                 isAckLabelAllowed.or(DittoAcknowledgementLabel.LIVE_RESPONSE::equals));
@@ -192,7 +197,7 @@ final class AcknowledgementForwarderActorStarter implements Supplier<Optional<Ac
     }
 
     private ActorRef startAckForwarderActor(final DittoHeaders dittoHeaders) {
-        final Props props = AcknowledgementForwarderActor.props(dittoHeaders,
+        final Props props = AcknowledgementForwarderActor.props(commandForwarder, dittoHeaders,
                 acknowledgementConfig.getForwarderFallbackTimeout());
         return actorRefFactory.actorOf(props, AcknowledgementForwarderActor.determineActorName(dittoHeaders));
     }
