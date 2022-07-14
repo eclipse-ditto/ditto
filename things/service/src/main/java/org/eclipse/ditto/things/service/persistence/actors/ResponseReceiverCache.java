@@ -64,11 +64,14 @@ public final class ResponseReceiverCache implements Extension {
     private static final ExtensionId EXTENSION_ID = new ExtensionId();
     private static final Duration DEFAULT_ENTRY_EXPIRY = Duration.ofMinutes(2L);
 
+    private final ActorSystem actorSystem;
     private final Duration fallBackEntryExpiry;
     private final Cache<CorrelationIdKey, ResponseReceiverCacheEntry> cache;
 
-    private ResponseReceiverCache(final Duration fallBackEntryExpiry,
+    private ResponseReceiverCache(final ActorSystem actorSystem,
+            final Duration fallBackEntryExpiry,
             final Cache<CorrelationIdKey, ResponseReceiverCacheEntry> cache) {
+        this.actorSystem = actorSystem;
         this.fallBackEntryExpiry = fallBackEntryExpiry;
         this.cache = cache;
     }
@@ -87,26 +90,28 @@ public final class ResponseReceiverCache implements Extension {
     /**
      * Returns a new instance of {@code ResponseReceiverCache} with a hard-coded fall-back entry expiry.
      *
+     * @param actorSystem the ActorSystem.
      * @return the instance.
      */
-    static ResponseReceiverCache newInstance() {
-        return newInstance(DEFAULT_ENTRY_EXPIRY);
+    static ResponseReceiverCache newInstance(final ActorSystem actorSystem) {
+        return newInstance(actorSystem, DEFAULT_ENTRY_EXPIRY);
     }
 
     /**
      * Returns a new instance of {@code ResponseReceiverCache} with the specified fall-back entry expiry.
      *
+     * @param actorSystem the ActorSystem.
      * @param fallBackEntryExpiry the expiry to be used for cache entries of commands without a timeout.
      * @return the instance.
      * @throws NullPointerException if {@code fallBackEntryExpiry} is {@code null}.
      * @throws IllegalArgumentException if {@code fallBackEntryExpiry} is not positive.
      */
-    static ResponseReceiverCache newInstance(final Duration fallBackEntryExpiry) {
+    static ResponseReceiverCache newInstance(final ActorSystem actorSystem, final Duration fallBackEntryExpiry) {
         ConditionChecker.checkArgument(checkNotNull(fallBackEntryExpiry, "fallBackEntryExpiry"),
                 Predicate.not(Duration::isZero).and(Predicate.not(Duration::isNegative)),
                 () -> "The fallBackEntryExpiry must be positive.");
 
-        return new ResponseReceiverCache(fallBackEntryExpiry, createCache(fallBackEntryExpiry));
+        return new ResponseReceiverCache(actorSystem, fallBackEntryExpiry, createCache(fallBackEntryExpiry));
     }
 
     private static Cache<CorrelationIdKey, ResponseReceiverCacheEntry> createCache(final Duration fallBackEntryExpiry) {
@@ -169,7 +174,7 @@ public final class ResponseReceiverCache implements Extension {
      * @throws NullPointerException if {@code correlationId} is {@code null}.
      * @throws IllegalArgumentException if {@code correlationId} is empty or blank.
      */
-    public void invalidate(final CharSequence correlationId) {
+    private void invalidate(final CharSequence correlationId) {
         final var correlationIdString = checkNotNull(correlationId, "correlationId").toString();
         ConditionChecker.checkArgument(correlationIdString,
                 Predicate.not(String::isBlank),
@@ -191,6 +196,13 @@ public final class ResponseReceiverCache implements Extension {
             final Function<S, ActorRef> receiverCreator,
             final BiFunction<S, ActorRef, T> responseHandler) {
 
+        signal.getDittoHeaders().getCorrelationId().ifPresent(correlationId ->
+                actorSystem.getScheduler().scheduleOnce(
+                        signal.getDittoHeaders().getTimeout().orElse(fallBackEntryExpiry),
+                        () -> invalidate(correlationId),
+                        actorSystem.dispatcher()
+                )
+        );
         return insertResponseReceiverConflictFreeWithFuture(signal,
                 receiverCreator,
                 responseHandler.andThen(CompletableFuture::completedStage));
@@ -301,7 +313,7 @@ public final class ResponseReceiverCache implements Extension {
 
         @Override
         public ResponseReceiverCache createExtension(final ExtendedActorSystem system) {
-            return newInstance();
+            return newInstance(system);
         }
 
     }

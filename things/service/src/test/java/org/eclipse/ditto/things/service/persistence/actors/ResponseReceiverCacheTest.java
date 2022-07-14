@@ -34,11 +34,16 @@ import org.eclipse.ditto.base.model.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.base.model.correlationid.TestNameCorrelationId;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.signals.commands.Command;
+import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.mockito.Mockito;
 
+import com.typesafe.config.Config;
+import com.typesafe.config.ConfigFactory;
+
 import akka.actor.ActorRef;
+import akka.actor.ActorSystem;
 
 /**
  * Unit test for {@link ResponseReceiverCache}.
@@ -47,16 +52,25 @@ public final class ResponseReceiverCacheTest {
 
     public static final AuthorizationContext AUTHORIZATION_CONTEXT = AuthorizationContext.newInstance(
             DittoAuthorizationContextType.UNSPECIFIED, AuthorizationSubject.newInstance("foo:bar"));
+
+    private static ActorSystem actorSystem;
+
     @Rule
     public final TestNameCorrelationId testNameCorrelationId = TestNameCorrelationId.newInstance();
 
     @Rule
     public final JUnitSoftAssertions softly = new JUnitSoftAssertions();
 
+    @BeforeClass
+    public static void setupTest() {
+        final Config config = ConfigFactory.load("test");
+        actorSystem = ActorSystem.create("AkkaTestSystem", config);
+    }
+
     @Test
     public void newInstanceWithNullDurationThrowsException() {
         assertThatNullPointerException()
-                .isThrownBy(() -> ResponseReceiverCache.newInstance(null))
+                .isThrownBy(() -> ResponseReceiverCache.newInstance(actorSystem, null))
                 .withMessage("The fallBackEntryExpiry must not be null!")
                 .withNoCause();
     }
@@ -64,7 +78,7 @@ public final class ResponseReceiverCacheTest {
     @Test
     public void newInstanceWithNegativeDurationThrowsException() {
         assertThatIllegalArgumentException()
-                .isThrownBy(() -> ResponseReceiverCache.newInstance(Duration.ofSeconds(-1)))
+                .isThrownBy(() -> ResponseReceiverCache.newInstance(actorSystem, Duration.ofSeconds(-1)))
                 .withMessage("The fallBackEntryExpiry must be positive.")
                 .withNoCause();
     }
@@ -72,14 +86,14 @@ public final class ResponseReceiverCacheTest {
     @Test
     public void newInstanceWithZeroDurationThrowsException() {
         assertThatIllegalArgumentException()
-                .isThrownBy(() -> ResponseReceiverCache.newInstance(Duration.ZERO))
+                .isThrownBy(() -> ResponseReceiverCache.newInstance(actorSystem, Duration.ZERO))
                 .withMessage("The fallBackEntryExpiry must be positive.")
                 .withNoCause();
     }
 
     @Test
     public void cacheNullSignalThrowsException() {
-        final var underTest = ResponseReceiverCache.newInstance();
+        final var underTest = ResponseReceiverCache.newInstance(actorSystem);
 
         assertThatNullPointerException()
                 .isThrownBy(() -> underTest.cacheSignalResponseReceiver(null, null))
@@ -89,7 +103,7 @@ public final class ResponseReceiverCacheTest {
 
     @Test
     public void cacheNullResponseReceiverThrowsException() {
-        final var underTest = ResponseReceiverCache.newInstance();
+        final var underTest = ResponseReceiverCache.newInstance(actorSystem);
         final var command = Mockito.mock(Command.class);
         Mockito.when(command.getDittoHeaders())
                 .thenReturn(DittoHeaders.newBuilder().correlationId(testNameCorrelationId.getCorrelationId()).build());
@@ -102,7 +116,7 @@ public final class ResponseReceiverCacheTest {
 
     @Test
     public void getWithNullCorrelationIdThrowsException() {
-        final var underTest = ResponseReceiverCache.newInstance();
+        final var underTest = ResponseReceiverCache.newInstance(actorSystem);
 
         assertThatNullPointerException()
                 .isThrownBy(() -> underTest.get(null))
@@ -112,7 +126,7 @@ public final class ResponseReceiverCacheTest {
 
     @Test
     public void getWithEmptyCorrelationIdThrowsException() {
-        final var underTest = ResponseReceiverCache.newInstance();
+        final var underTest = ResponseReceiverCache.newInstance(actorSystem);
 
         assertThatIllegalArgumentException()
                 .isThrownBy(() -> underTest.get(""))
@@ -122,7 +136,7 @@ public final class ResponseReceiverCacheTest {
 
     @Test
     public void getWithBlankCorrelationIdThrowsException() {
-        final var underTest = ResponseReceiverCache.newInstance();
+        final var underTest = ResponseReceiverCache.newInstance(actorSystem);
 
         assertThatIllegalArgumentException()
                 .isThrownBy(() -> underTest.get(" "))
@@ -137,7 +151,7 @@ public final class ResponseReceiverCacheTest {
         final var correlationId = testNameCorrelationId.getCorrelationId();
         Mockito.when(command.getDittoHeaders())
                 .thenReturn(getDittoHeadersWithCorrelationIdAndTimeout(correlationId, expiry));
-        final var underTest = ResponseReceiverCache.newInstance();
+        final var underTest = ResponseReceiverCache.newInstance(actorSystem);
 
         final var mockReceiver = Mockito.mock(ActorRef.class);
         underTest.cacheSignalResponseReceiver(command, mockReceiver);
@@ -155,7 +169,7 @@ public final class ResponseReceiverCacheTest {
         final var correlationId = testNameCorrelationId.getCorrelationId();
         Mockito.when(command.getDittoHeaders())
                 .thenReturn(getDittoHeadersWithCorrelationIdAndTimeout(correlationId, expiry));
-        final var underTest = ResponseReceiverCache.newInstance();
+        final var underTest = ResponseReceiverCache.newInstance(actorSystem);
 
         underTest.cacheSignalResponseReceiver(command, Mockito.mock(ActorRef.class));
 
@@ -170,7 +184,7 @@ public final class ResponseReceiverCacheTest {
     public void getEntryFromEmptyCacheReturnsEmptyOptional()
             throws ExecutionException, InterruptedException, TimeoutException {
 
-        final var underTest = ResponseReceiverCache.newInstance();
+        final var underTest = ResponseReceiverCache.newInstance(actorSystem);
 
         final var cacheEntryFuture = underTest.get(testNameCorrelationId.getCorrelationId());
 
@@ -202,7 +216,7 @@ public final class ResponseReceiverCacheTest {
                         Mockito.mock(ActorRef.class), AUTHORIZATION_CONTEXT))
                 .collect(Collectors.toList());
 
-        final var underTest = ResponseReceiverCache.newInstance();
+        final var underTest = ResponseReceiverCache.newInstance(actorSystem);
         IntStream.range(0, expirySequence.size())
                 .forEach(index -> underTest.cacheSignalResponseReceiver(commands.get(index), responseReceivers.get(index).sender()));
 

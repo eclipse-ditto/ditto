@@ -248,7 +248,6 @@ final class SupervisorLiveChannelDispatching {
                                 Duration.ZERO, // ZERO duration means that no "ask" is used, but "tell" - not expecting an answer
                                 Function.identity()
                         );
-                        responseReceiverCache.invalidate(correlationId);
                     } else {
                         log.withCorrelationId(liveResponse)
                                 .warning("Got <{}> with unknown correlation ID: <{}>", liveResponse.getType(),

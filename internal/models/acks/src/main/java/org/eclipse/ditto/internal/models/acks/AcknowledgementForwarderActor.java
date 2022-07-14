@@ -32,6 +32,7 @@ import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
 import org.eclipse.ditto.base.model.signals.acks.AcknowledgementCorrelationIdMissingException;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
+import org.eclipse.ditto.base.model.signals.commands.ErrorResponse;
 import org.eclipse.ditto.internal.models.acks.config.AcknowledgementConfig;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
@@ -105,12 +106,14 @@ public final class AcknowledgementForwarderActor extends AbstractActor {
         final DittoHeaders dittoHeaders = acknowledgementOrResponse.getDittoHeaders();
         final String ackregatorAddress = dittoHeaders.getOrDefault(
                 DittoHeaderDefinition.DITTO_ACKREGATOR_ADDRESS.getKey(), ackgregatorAddressFallback);
-        if (null != ackregatorAddress && acknowledgementOrResponse instanceof Acknowledgement acknowledgement) {
+        if (null != ackregatorAddress &&
+                (acknowledgementOrResponse instanceof Acknowledgement ||
+                        acknowledgementOrResponse instanceof ErrorResponse)) {
             final ActorSelection acknowledgementRequester = getContext().actorSelection(ackregatorAddress);
-            log.withCorrelationId(acknowledgement)
-                    .debug("Received Acknowledgement / live CommandResponse, forwarding to acknowledgement " +
-                            "aggregator <{}>: " + "<{}>", acknowledgementRequester, acknowledgement);
-            acknowledgementRequester.tell(acknowledgement, getSender());
+            log.withCorrelationId(acknowledgementOrResponse)
+                    .debug("Received Acknowledgement / ErrorResponse, forwarding to acknowledgement " +
+                            "aggregator <{}>: " + "<{}>", acknowledgementRequester, acknowledgementOrResponse);
+            acknowledgementRequester.tell(acknowledgementOrResponse, getSender());
         } else {
             log.withCorrelationId(acknowledgementOrResponse)
                     .debug("Received live CommandResponse <{}>, forwarding to command forwarder: {}",
