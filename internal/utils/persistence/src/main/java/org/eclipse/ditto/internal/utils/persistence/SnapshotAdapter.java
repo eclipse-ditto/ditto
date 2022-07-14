@@ -81,23 +81,24 @@ public interface SnapshotAdapter<T> extends DittoExtensionPoint {
                 .get(actorSystem);
     }
 
+    /**
+     * ID of the actor system extension to provide signal enrichment for connectivity.
+     */
     final class ExtensionId extends DittoExtensionPoint.ExtensionId<SnapshotAdapter> {
 
         private static final String CONFIG_KEY = "snapshot-adapter";
-        private static final String CONFIG_PATH = "ditto.extensions." + CONFIG_KEY;
 
-        private ExtensionId (final ExtensionIdConfig<SnapshotAdapter> extensionIdConfig) {
+        private ExtensionId(final ExtensionIdConfig<SnapshotAdapter> extensionIdConfig) {
             super(extensionIdConfig);
         }
 
         static ExtensionIdConfig<SnapshotAdapter> computeConfig(final Config config) {
-            return ExtensionIdConfig.of(SnapshotAdapter.class, config,
-                    CONFIG_KEY);
+            return ExtensionIdConfig.of(SnapshotAdapter.class, config, CONFIG_KEY);
         }
 
         @Override
-        protected String getConfigPath() {
-            return CONFIG_PATH;
+        protected String getConfigKey() {
+            return CONFIG_KEY;
         }
 
     }

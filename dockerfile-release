@@ -39,7 +39,6 @@ RUN set -x \
     && mkdir -p $DITTO_LOGS \
     && cd $DITTO_HOME \
     && wget -q --show-progress -O ${SERVICE_STARTER}-${SERVICE_VERSION}-allinone.jar "${MAVEN_REPO}?r=ditto&g=org.eclipse.ditto&a=${SERVICE_STARTER}&v=${SERVICE_VERSION}&c=allinone" \
-    && ln -s ${SERVICE_STARTER}-${SERVICE_VERSION}-allinone.jar starter.jar \
     && chown -R ditto:ditto $DITTO_HOME \
     && cd $DITTO_LOGS \
     && chown -R ditto:ditto $DITTO_LOGS \

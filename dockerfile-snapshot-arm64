@@ -36,7 +36,6 @@ RUN set -x \
     && mkdir -p $DITTO_HOME \
     && mkdir -p $DITTO_LOGS \
     && cd $DITTO_HOME \
-    && ln -s ${SERVICE_STARTER}-${SERVICE_VERSION}-allinone.jar starter.jar \
     && chown -R ditto:ditto $DITTO_HOME \
     && cd $DITTO_LOGS \
     && chown -R ditto:ditto $DITTO_LOGS
