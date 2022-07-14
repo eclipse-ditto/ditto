@@ -1734,7 +1734,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
                 getContext().actorOf(outboundMappingProcessorActorProps, OutboundMappingProcessorActor.ACTOR_NAME);
 
         final Props outboundDispatchingProcessorActorProps = OutboundDispatchingActor.props(
-                commandForwarderActorSelection, settings, processorActor);
+                settings, processorActor);
         final ActorRef dispatchingActor =
                 getContext().actorOf(outboundDispatchingProcessorActorProps, OutboundDispatchingActor.ACTOR_NAME);
 

@@ -59,22 +59,18 @@ final class OutboundDispatchingActor extends AbstractActor {
 
     private final OutboundMappingSettings settings;
     private final ActorRef outboundMappingProcessorActor;
-    private final ActorSelection commandForwarder;
 
     @SuppressWarnings("unused")
-    private OutboundDispatchingActor(final ActorSelection commandForwarder,
-            final OutboundMappingSettings settings,
+    private OutboundDispatchingActor(final OutboundMappingSettings settings,
             final ActorRef outboundMappingProcessorActor) {
 
-        this.commandForwarder = commandForwarder;
         this.settings = settings;
         this.outboundMappingProcessorActor = outboundMappingProcessorActor;
     }
 
-    static Props props(final ActorSelection commandForwarder, final OutboundMappingSettings settings,
-            final ActorRef outboundMappingProcessorActor) {
+    static Props props(final OutboundMappingSettings settings, final ActorRef outboundMappingProcessorActor) {
 
-        return Props.create(OutboundDispatchingActor.class, commandForwarder, settings, outboundMappingProcessorActor);
+        return Props.create(OutboundDispatchingActor.class, settings, outboundMappingProcessorActor);
     }
 
     @Override
@@ -161,7 +157,7 @@ final class OutboundDispatchingActor extends AbstractActor {
             // start ackregator for source declared acks
             return AcknowledgementForwarderActor.startAcknowledgementForwarder(getContext(),
                     self(),
-                    commandForwarder,
+                    settings.getProxyActor(),
                     entityId,
                     signal,
                     settings.getAcknowledgementConfig(),
