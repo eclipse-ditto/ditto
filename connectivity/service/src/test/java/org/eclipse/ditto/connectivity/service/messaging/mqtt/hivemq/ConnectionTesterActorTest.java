@@ -76,7 +76,6 @@ import akka.testkit.TestActorRef;
  * Unit test for {@link ConnectionTesterActor}.
  */
 @RunWith(MockitoJUnitRunner.class)
-@Ignore
 public final class ConnectionTesterActorTest {
 
     private static final ConnectionId CONNECTION_ID = ConnectionId.generateRandom();
