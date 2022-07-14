@@ -24,7 +24,6 @@ import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
 import org.eclipse.ditto.base.model.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
-import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.signals.events.Event;
 import org.eclipse.ditto.internal.utils.pubsub.StreamingType;
@@ -39,7 +38,6 @@ import org.eclipse.ditto.messages.model.MessageSendNotAllowedException;
 import org.eclipse.ditto.messages.model.signals.commands.MessageCommand;
 import org.eclipse.ditto.messages.model.signals.commands.SendFeatureMessage;
 import org.eclipse.ditto.messages.model.signals.commands.SendThingMessage;
-import org.eclipse.ditto.policies.api.commands.sudo.SudoRetrievePolicyResponse;
 import org.eclipse.ditto.policies.enforcement.PolicyEnforcer;
 import org.eclipse.ditto.policies.model.Permissions;
 import org.eclipse.ditto.policies.model.PoliciesModelFactory;
@@ -248,20 +246,32 @@ public final class LiveSignalEnforcementTest extends AbstractThingEnforcementTes
             assertThat(retrieveThingResponse.getDittoHeaders().getCorrelationId()).isEqualTo(
                     read.getDittoHeaders().getCorrelationId());
 
-            supervisor.tell(read, getRef());
+            final DittoHeaders headers2 = headers.toBuilder()
+                    .correlationId(headers.getCorrelationId().get() + "2")
+                    .build();
+            final ThingCommand<?> read2 = getRetrieveThingCommand(headers2);
+            final var responseHeaders2 = headers2.toBuilder()
+                    .authorizationContext(AuthorizationContext.newInstance(
+                            DittoAuthorizationContextType.PRE_AUTHENTICATED_CONNECTION,
+                            AuthorizationSubject.newInstance("myIssuer:mySubject")))
+                    .build();
+
+            final ThingCommandResponse<?> readResponse2 = getRetrieveThingResponse(responseHeaders2);
+
+            supervisor.tell(read2, getRef());
 
             expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
 
-            expectPubsubLiveCommandPublish("publish live read command", read.getEntityId());
+            expectPubsubLiveCommandPublish("publish live read command", read2.getEntityId());
 
-            supervisor.tell(readResponse, getRef());
+            supervisor.tell(readResponse2, getRef());
 
             expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
             expectAndAnswerSudoRetrieveThing(sudoRetrieveThingResponse);
 
             final RetrieveThingResponse retrieveThingResponse2 = expectMsgClass(RetrieveThingResponse.class);
             assertThat(retrieveThingResponse2.getDittoHeaders().getCorrelationId()).isEqualTo(
-                    read.getDittoHeaders().getCorrelationId());
+                    read2.getDittoHeaders().getCorrelationId());
         }};
     }
 
