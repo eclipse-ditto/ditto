@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.policies.service.enforcement;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
@@ -73,52 +72,43 @@ public final class PolicyCommandEnforcement
         final Enforcer enforcer = policyEnforcer.getEnforcer();
         final var policyResourceKey = PoliciesResourceType.policyResource(command.getResourcePath());
         final var authorizationContext = command.getDittoHeaders().getAuthorizationContext();
-        final CompletionStage<PolicyCommand<?>> authorizedCommand;
+        final PolicyCommand<?> authorizedCommand;
         if (command instanceof CreatePolicy createPolicy) {
             authorizedCommand = authorizeCreatePolicy(enforcer, createPolicy, policyResourceKey, authorizationContext);
         } else if (command instanceof PolicyActionCommand) {
             authorizedCommand = authorizeActionCommand(policyEnforcer, command, policyResourceKey,
-                    authorizationContext).thenApply(
-                    optional -> optional.orElseThrow(() -> errorForPolicyCommand(command)));
+                    authorizationContext).orElseThrow(() -> errorForPolicyCommand(command));
         } else if (command instanceof PolicyModifyCommand) {
-            authorizedCommand =
-                    hasUnrestrictedWritePermission(enforcer, policyResourceKey, authorizationContext).thenApply(
-                            hasPermission -> {
-                                if (Boolean.TRUE.equals(hasPermission)) {
-                                    return command;
-                                } else {
-                                    throw errorForPolicyCommand(command);
-                                }
-                            });
+            if (hasUnrestrictedWritePermission(enforcer, policyResourceKey, authorizationContext)) {
+                authorizedCommand = command;
+            } else {
+                throw errorForPolicyCommand(command);
+            }
         } else {
             final String permission = Permission.READ;
-            authorizedCommand = CompletableFuture.supplyAsync(() -> enforcer.hasPartialPermissions(policyResourceKey,
+            if (enforcer.hasPartialPermissions(policyResourceKey,
                     authorizationContext,
-                    permission)).thenApply(hasPermission -> {
-                if (Boolean.TRUE.equals(hasPermission)) {
-                    return command;
-                } else {
-                    throw errorForPolicyCommand(command);
-                }
-            });
+                    permission)) {
+                authorizedCommand = command;
+            } else {
+                throw errorForPolicyCommand(command);
+            }
         }
 
-        return authorizedCommand;
+        return CompletableFuture.completedStage(authorizedCommand);
     }
 
-    private CompletionStage<PolicyCommand<?>> authorizeCreatePolicy(final Enforcer enforcer,
+    private PolicyCommand<?> authorizeCreatePolicy(final Enforcer enforcer,
             final CreatePolicy createPolicy,
             final ResourceKey policyResourceKey,
             final AuthorizationContext authorizationContext) {
 
-        return hasUnrestrictedWritePermission(enforcer, policyResourceKey, authorizationContext).thenApply(hasPermission -> {
-            if (Boolean.TRUE.equals(hasPermission) || createPolicy.getDittoHeaders().isAllowPolicyLockout()) {
-                return createPolicy;
-            } else {
-                throw errorForPolicyCommand(createPolicy);
-            }
-        });
-
+        if (hasUnrestrictedWritePermission(enforcer, policyResourceKey, authorizationContext) ||
+                createPolicy.getDittoHeaders().isAllowPolicyLockout()) {
+            return createPolicy;
+        } else {
+            throw errorForPolicyCommand(createPolicy);
+        }
     }
 
     @Override
@@ -137,111 +127,72 @@ public final class PolicyCommandEnforcement
     public CompletionStage<PolicyCommandResponse<?>> filterResponse(final PolicyCommandResponse<?> commandResponse,
             final PolicyEnforcer policyEnforcer) {
 
-        final CompletionStage<PolicyCommandResponse<?>> result;
+        final PolicyCommandResponse<?> result;
         if (commandResponse instanceof PolicyQueryCommandResponse<?> policyQueryCommandResponse) {
             try {
                 result = buildJsonViewForPolicyQueryCommandResponse(policyQueryCommandResponse,
-                        policyEnforcer.getEnforcer()).thenApply(cr -> cr);
+                        policyEnforcer.getEnforcer());
             } catch (final RuntimeException e) {
                 throw reportError("Error after building JsonView", e, commandResponse.getDittoHeaders());
             }
         } else {
             // no filtering required for non PolicyQueryCommandResponses:
-            result = CompletableFuture.completedStage(commandResponse);
+            result = commandResponse;
         }
-        return result;
+        return CompletableFuture.completedStage(result);
     }
 
-    private <T extends PolicyCommand<?>> CompletionStage<Optional<T>> authorizeActionCommand(
+    @SuppressWarnings("unchecked")
+    private <T extends PolicyCommand<?>> Optional<T> authorizeActionCommand(
             final PolicyEnforcer enforcer,
             final T command, final ResourceKey resourceKey, final AuthorizationContext authorizationContext) {
 
         if (command instanceof TopLevelPolicyActionCommand topLevelPolicyActionCommand) {
-            return authorizeTopLevelAction(enforcer, topLevelPolicyActionCommand,
-                    authorizationContext);
+            return (Optional<T>) authorizeTopLevelAction(enforcer, topLevelPolicyActionCommand, authorizationContext);
         } else {
             return authorizeEntryLevelAction(enforcer.getEnforcer(), command, resourceKey, authorizationContext);
         }
     }
 
-    private <T extends PolicyCommand<?>> CompletionStage<Optional<T>> authorizeEntryLevelAction(final Enforcer enforcer,
+    private <T extends PolicyCommand<?>> Optional<T> authorizeEntryLevelAction(final Enforcer enforcer,
             final T command, final ResourceKey resourceKey, final AuthorizationContext authorizationContext) {
-        return CompletableFuture.supplyAsync(() -> enforcer.hasUnrestrictedPermissions(resourceKey,
-                authorizationContext,
-                Permission.EXECUTE)
-                ? Optional.of(command)
-                : Optional.empty());
+        return enforcer.hasUnrestrictedPermissions(resourceKey, authorizationContext, Permission.EXECUTE) ?
+                Optional.of(command) : Optional.empty();
     }
 
-    private <T extends PolicyCommand<?>> CompletionStage<Optional<T>> authorizeTopLevelAction(
+    private Optional<TopLevelPolicyActionCommand> authorizeTopLevelAction(
             final PolicyEnforcer policyEnforcer,
-            final TopLevelPolicyActionCommand command, final AuthorizationContext authorizationContext) {
-
-        final var enforcer = policyEnforcer.getEnforcer();
-
-        final List<CompletionStage<Label>> labels = getLabelsFromPolicyEnforcer(policyEnforcer);
-        final var enforcedLabels = enforcePolicyLabels(labels, enforcer, command, authorizationContext);
-        final var authorizedLabels = filterAuthorizedLabels(enforcedLabels);
-
-        return authorizedLabels.thenApply(labelList -> {
-            if (labelList.isEmpty()) {
-                return Optional.empty();
-            } else {
-                final var adjustedCommand =
-                        TopLevelPolicyActionCommand.of(command.getPolicyActionCommand(), labelList);
-                return (Optional<T>) Optional.of(adjustedCommand);
-            }
-        });
-    }
-
-    private static List<CompletionStage<Label>> getLabelsFromPolicyEnforcer(final PolicyEnforcer policyEnforcer) {
-        return policyEnforcer.getPolicy()
-                .map(policy -> policy.getEntriesSet().stream()
-                        .map(PolicyEntry::getLabel)
-                        .map(CompletableFuture::completedStage)
-                        .toList()).orElse(List.of());
-    }
-
-    private List<CompletionStage<Label>> enforcePolicyLabels(final List<CompletionStage<Label>> labels,
-            final Enforcer enforcer,
             final TopLevelPolicyActionCommand command,
             final AuthorizationContext authorizationContext) {
 
-        return labels.stream().map(labelStage ->
-                labelStage.thenCompose(label -> CompletableFuture.supplyAsync(
-                        () -> enforcer.hasUnrestrictedPermissions(asResourceKey(label, command), authorizationContext,
-                                Permission.EXECUTE)).thenApply(result -> {
-                    if (Boolean.TRUE.equals(result)) {
-                        return label;
-                    } else {
-                        return null;
-                    }
-                }))).toList();
+        final var enforcer = policyEnforcer.getEnforcer();
+
+        final List<Label> labels = getLabelsFromPolicyEnforcer(policyEnforcer);
+        final var authorizedLabels = labels.stream()
+                .filter(label -> enforcer.hasUnrestrictedPermissions(asResourceKey(label, command),
+                        authorizationContext, Permission.EXECUTE))
+                .toList();
+
+        if (authorizedLabels.isEmpty()) {
+            return Optional.empty();
+        } else {
+            final var adjustedCommand =
+                    TopLevelPolicyActionCommand.of(command.getPolicyActionCommand(), authorizedLabels);
+            return Optional.of(adjustedCommand);
+        }
     }
 
-    private CompletableFuture<List<Label>> filterAuthorizedLabels(final List<CompletionStage<Label>> enforcedLabels) {
-        // Wait for all labels to finish enforced.
-        return CompletableFuture.allOf(enforcedLabels.toArray(new CompletableFuture[0]))
-                .thenCompose(voidValue -> {
-                    final CompletionStage<List<Label>> labelList = CompletableFuture.completedStage(new ArrayList<>());
-                    for (final CompletionStage<Label> l : enforcedLabels) {
-                        l.thenCompose(label -> labelList.thenApply(list -> {
-                            if (null != label) {
-                                list.add(label);
-                            }
-                            return list;
-                        }));
-                    }
-                    return labelList;
-                });
+    private static List<Label> getLabelsFromPolicyEnforcer(final PolicyEnforcer policyEnforcer) {
+        return policyEnforcer.getPolicy()
+                .map(policy -> policy.getEntriesSet().stream()
+                        .map(PolicyEntry::getLabel)
+                        .toList()).orElse(List.of());
     }
 
-    private CompletionStage<Boolean> hasUnrestrictedWritePermission(final Enforcer enforcer,
+    private boolean hasUnrestrictedWritePermission(final Enforcer enforcer,
             final ResourceKey policyResourceKey,
             final AuthorizationContext authorizationContext) {
-        return CompletableFuture.supplyAsync(() -> enforcer.hasUnrestrictedPermissions(policyResourceKey,
-                authorizationContext,
-                Permission.WRITE));
+        return enforcer.hasUnrestrictedPermissions(policyResourceKey, authorizationContext, Permission.WRITE);
     }
 
     /**
@@ -251,32 +202,31 @@ public final class PolicyCommandEnforcement
      * @param enforcer the enforcer.
      * @return a {@code CompletionStage} containing the response with view on entity restricted by enforcer.
      */
-    public <T extends PolicyQueryCommandResponse<T>> CompletionStage<T> buildJsonViewForPolicyQueryCommandResponse(
+    public <T extends PolicyQueryCommandResponse<T>> T buildJsonViewForPolicyQueryCommandResponse(
             final PolicyQueryCommandResponse<T> response,
             final Enforcer enforcer) {
 
         final JsonValue entity = response.getEntity();
-        final CompletionStage<T> result;
+        final T result;
         if (entity.isObject()) {
-            final CompletionStage<JsonObject> filteredView =
+            final JsonObject filteredView =
                     getJsonViewForPolicyQueryCommandResponse(entity.asObject(), response, enforcer);
-            result = filteredView.thenApply(response::setEntity);
+            result = response.setEntity(filteredView);
         } else {
-            result = CompletableFuture.completedStage(response.setEntity(entity));
+            result = response.setEntity(entity);
         }
         return result;
     }
 
-    private CompletableFuture<JsonObject> getJsonViewForPolicyQueryCommandResponse(final JsonObject responseEntity,
+    private JsonObject getJsonViewForPolicyQueryCommandResponse(final JsonObject responseEntity,
             final PolicyQueryCommandResponse<?> response,
             final Enforcer enforcer) {
 
         final var resourceKey = ResourceKey.newInstance(PolicyCommand.RESOURCE_TYPE, response.getResourcePath());
         final var authorizationContext = response.getDittoHeaders().getAuthorizationContext();
 
-        return CompletableFuture.supplyAsync(() -> enforcer.buildJsonView(resourceKey, responseEntity,
-                        authorizationContext,
-                        POLICY_QUERY_COMMAND_RESPONSE_ALLOWLIST, Permissions.newInstance(Permission.READ)));
+        return enforcer.buildJsonView(resourceKey, responseEntity, authorizationContext,
+                POLICY_QUERY_COMMAND_RESPONSE_ALLOWLIST, Permissions.newInstance(Permission.READ));
     }
 
     /**

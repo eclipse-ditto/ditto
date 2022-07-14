@@ -14,6 +14,7 @@ package org.eclipse.ditto.things.service.enforcement;
 
 import static java.util.stream.Collectors.toSet;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.eclipse.ditto.policies.model.PoliciesResourceType.thingResource;
 import static org.eclipse.ditto.policies.model.SubjectIssuer.GOOGLE;
 import static org.eclipse.ditto.things.service.enforcement.MergeThingCommandEnforcementTest.TestArgument.GRANT;
@@ -22,8 +23,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.CompletionException;
-import java.util.concurrent.CompletionStage;
 import java.util.stream.Stream;
 
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
@@ -111,8 +110,7 @@ public final class MergeThingCommandEnforcementTest {
     public void acceptByPolicy(final TestArgument arg) {
         final TrieBasedPolicyEnforcer policyEnforcer = TrieBasedPolicyEnforcer.newInstance(arg.getPolicy());
         final MergeThing authorizedMergeThing =
-                ThingCommandEnforcement.authorizeByPolicyOrThrow(policyEnforcer, arg.getMergeThing()).toCompletableFuture()
-                        .join();
+                ThingCommandEnforcement.authorizeByPolicyOrThrow(policyEnforcer, arg.getMergeThing());
         assertThat(authorizedMergeThing.getDittoHeaders().getAuthorizationContext()).isNotNull();
     }
 
@@ -121,16 +119,8 @@ public final class MergeThingCommandEnforcementTest {
     @ArgumentsSource(SubFieldRevokedProvider.class)
     public void rejectByPolicy(final TestArgument arg) {
         final TrieBasedPolicyEnforcer policyEnforcer = TrieBasedPolicyEnforcer.newInstance(arg.getPolicy());
-        assertThingNotModifiableExceptionIsThrown(ThingCommandEnforcement.authorizeByPolicyOrThrow(policyEnforcer,
-                arg.getMergeThing()));
-    }
-
-    private void assertThingNotModifiableExceptionIsThrown(CompletionStage<MergeThing> result) {
-        result.whenComplete((r, t) -> {
-            assertThat(r).isNull();
-            assertThat(t).isInstanceOf(CompletionException.class);
-            assertThat(t.getCause()).isInstanceOf(ThingNotModifiableException.class);
-        });
+        assertThatExceptionOfType(ThingNotModifiableException.class).isThrownBy(
+                () -> ThingCommandEnforcement.authorizeByPolicyOrThrow(policyEnforcer, arg.getMergeThing()));
     }
 
     /**
@@ -261,8 +251,10 @@ public final class MergeThingCommandEnforcementTest {
         private static DittoHeaders headers() {
             return DittoHeaders.newBuilder()
                     .authorizationContext(
-                            AuthorizationContext.newInstance(DittoAuthorizationContextType.UNSPECIFIED, TestSetup.SUBJECT,
-                                    AuthorizationSubject.newInstance(String.format("%s:%s", GOOGLE, TestSetup.SUBJECT_ID))))
+                            AuthorizationContext.newInstance(DittoAuthorizationContextType.UNSPECIFIED,
+                                    TestSetup.SUBJECT,
+                                    AuthorizationSubject.newInstance(
+                                            String.format("%s:%s", GOOGLE, TestSetup.SUBJECT_ID))))
                     .correlationId(UUID.randomUUID().toString())
                     .build();
         }

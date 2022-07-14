@@ -22,7 +22,6 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
-import org.eclipse.ditto.base.model.exceptions.DittoInternalErrorException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
@@ -149,48 +148,38 @@ final class ThingCommandEnforcement
             return CompletableFuture.completedStage(null);
         }
 
-        final CompletionStage<ThingCommand<?>> authorizedCommand;
+        final ThingCommand<?> authorizedCommand;
         if (isWotTdRequestingThingQueryCommand(command)) {
             // authorization is not necessary for WoT TD requesting thing query command, this is treated as public
             // information:
             FeatureToggle.checkWotIntegrationFeatureEnabled(command.getType(), command.getDittoHeaders());
             // for retrieving the WoT TD, assume that full TD gets returned unfiltered:
-            authorizedCommand =
-                    CompletableFuture.completedStage(prepareThingCommandBeforeSendingToPersistence(command));
+            authorizedCommand = prepareThingCommandBeforeSendingToPersistence(command);
         } else {
-            authorizedCommand = authorizeByPolicyOrThrow(policyEnforcer.getEnforcer(), command)
-                    .handle((commandWithReadSubjects, e) -> {
-                        if (null != e) {
-                            if (command instanceof CreateThing createThing &&
-                                    !Signal.isChannelLive(createThing)) {
-                                handleFailedCreateThing(createThing, policyEnforcer);
-                            }
-                            throw DittoRuntimeException.asDittoRuntimeException(e, t ->
-                                    DittoInternalErrorException.newBuilder()
-                                            .message(e.getClass() + ": " + e.getMessage())
-                                            .dittoHeaders(command.getDittoHeaders())
-                                            .cause(t)
-                                            .build());
-                        } else {
-                            final ThingCommand<?> result;
-                            if (commandWithReadSubjects instanceof ThingQueryCommand<?> thingQueryCommand) {
-                                result = prepareThingCommandBeforeSendingToPersistence(
-                                        ensureTwinChannel(thingQueryCommand)
-                                );
-                            } else if (commandWithReadSubjects.getDittoHeaders()
-                                    .getLiveChannelCondition()
-                                    .isPresent()) {
-                                throw LiveChannelConditionNotAllowedException.newBuilder()
-                                        .dittoHeaders(commandWithReadSubjects.getDittoHeaders())
-                                        .build();
-                            } else {
-                                result = prepareThingCommandBeforeSendingToPersistence(commandWithReadSubjects);
-                            }
-                            return result;
-                        }
-                    });
+            try {
+                final var commandWithReadSubjects = authorizeByPolicyOrThrow(policyEnforcer.getEnforcer(), command);
+                if (commandWithReadSubjects instanceof ThingQueryCommand<?> thingQueryCommand) {
+                    authorizedCommand = prepareThingCommandBeforeSendingToPersistence(
+                            ensureTwinChannel(thingQueryCommand)
+                    );
+                } else if (commandWithReadSubjects.getDittoHeaders()
+                        .getLiveChannelCondition()
+                        .isPresent()) {
+                    throw LiveChannelConditionNotAllowedException.newBuilder()
+                            .dittoHeaders(commandWithReadSubjects.getDittoHeaders())
+                            .build();
+                } else {
+                    authorizedCommand = prepareThingCommandBeforeSendingToPersistence(commandWithReadSubjects);
+                }
+            } catch (final Throwable error) {
+                if (command instanceof CreateThing createThing && !Signal.isChannelLive(createThing)) {
+                    return handleFailedCreateThing(createThing, policyEnforcer)
+                            .thenCompose(done -> CompletableFuture.failedStage(error));
+                }
+                return CompletableFuture.failedStage(error);
+            }
         }
-        return authorizedCommand;
+        return CompletableFuture.completedStage(authorizedCommand);
     }
 
     private static ThingQueryCommand<?> ensureTwinChannel(final ThingQueryCommand<?> command) {
@@ -223,9 +212,10 @@ final class ThingCommandEnforcement
 
         if (commandResponse instanceof ThingQueryCommandResponse<?> thingQueryCommandResponse) {
             try {
-                return buildJsonViewForThingQueryCommandResponse(thingQueryCommandResponse,
-                        policyEnforcer.getEnforcer())
-                        .thenApply(response -> response);
+                final ThingQueryCommandResponse<?> filteredResponse =
+                        buildJsonViewForThingQueryCommandResponse(thingQueryCommandResponse,
+                                policyEnforcer.getEnforcer());
+                return CompletableFuture.completedStage(filteredResponse);
             } catch (final RuntimeException e) {
                 throw reportError("Error after building JsonView", e, commandResponse.getDittoHeaders());
             }
@@ -253,14 +243,15 @@ final class ThingCommandEnforcement
      * @return response with view on entity restricted by enforcer.
      */
     @SuppressWarnings("unchecked")
-    <T extends ThingQueryCommandResponse<T>> CompletionStage<T> buildJsonViewForThingQueryCommandResponse(
+    <T extends ThingQueryCommandResponse<T>> T buildJsonViewForThingQueryCommandResponse(
             final ThingQueryCommandResponse<T> response, final Enforcer enforcer) {
 
         final JsonValue entity = response.getEntity();
         if (entity.isObject()) {
-            return getJsonViewForCommandResponse(entity.asObject(), response, enforcer).thenApply(response::setEntity);
+            final var filteredView = getJsonViewForCommandResponse(entity.asObject(), response, enforcer);
+            return response.setEntity(filteredView);
         } else {
-            return (CompletionStage<T>) CompletableFuture.completedStage(response);
+            return (T) response;
         }
     }
 
@@ -301,16 +292,15 @@ final class ThingCommandEnforcement
      * @param enforcer the enforcer.
      * @return JSON object with view restricted by enforcer.
      */
-    static CompletionStage<JsonObject> getJsonViewForCommandResponse(final JsonObject responseEntity,
+    static JsonObject getJsonViewForCommandResponse(final JsonObject responseEntity,
             final CommandResponse<?> response,
             final Enforcer enforcer) {
 
         final var resourceKey = ResourceKey.newInstance(ThingConstants.ENTITY_TYPE, response.getResourcePath());
         final var authorizationContext = response.getDittoHeaders().getAuthorizationContext();
 
-        return CompletableFuture.supplyAsync(() -> enforcer.buildJsonView(resourceKey, responseEntity,
-                        authorizationContext,
-                        THING_QUERY_COMMAND_RESPONSE_ALLOWLIST, Permissions.newInstance(Permission.READ)));
+        return enforcer.buildJsonView(resourceKey, responseEntity, authorizationContext,
+                THING_QUERY_COMMAND_RESPONSE_ALLOWLIST, Permissions.newInstance(Permission.READ));
     }
 
     /**
@@ -336,48 +326,40 @@ final class ThingCommandEnforcement
      * @param command the command to authorize.
      * @return optionally the authorized command extended by read subjects.
      */
-    static <T extends ThingCommand<T>> CompletionStage<T> authorizeByPolicyOrThrow(final Enforcer enforcer,
+    static <T extends ThingCommand<T>> T authorizeByPolicyOrThrow(final Enforcer enforcer,
             final ThingCommand<T> command) {
 
         final var thingResourceKey = PoliciesResourceType.thingResource(command.getResourcePath());
         final var dittoHeaders = command.getDittoHeaders();
         final var authorizationContext = dittoHeaders.getAuthorizationContext();
 
-        final CompletionStage<Boolean> commandAuthorized;
+        final boolean commandAuthorized;
         if (command instanceof MergeThing mergeThing) {
-            commandAuthorized =
-                    enforceMergeThingCommand(enforcer, mergeThing, thingResourceKey, authorizationContext);
+            commandAuthorized = enforceMergeThingCommand(enforcer, mergeThing, thingResourceKey, authorizationContext);
         } else if (command instanceof ThingModifyCommand) {
             commandAuthorized =
-                    CompletableFuture.supplyAsync(() -> enforcer.hasUnrestrictedPermissions(thingResourceKey,
-                            authorizationContext,
-                            Permission.WRITE));
+                    enforcer.hasUnrestrictedPermissions(thingResourceKey, authorizationContext, Permission.WRITE);
         } else {
-            commandAuthorized =
-                    CompletableFuture.supplyAsync(() -> enforcer.hasPartialPermissions(thingResourceKey,
-                            authorizationContext,
-                            Permission.READ));
+            commandAuthorized = enforcer.hasPartialPermissions(thingResourceKey, authorizationContext, Permission.READ);
         }
 
-        final CompletionStage<Void> intermediate;
         final var condition = dittoHeaders.getCondition();
         if (!(command instanceof CreateThing) && condition.isPresent()) {
-            intermediate = enforceReadPermissionOnCondition(condition.get(), enforcer, dittoHeaders, () ->
-                            ThingConditionFailedException.newBuilderForInsufficientPermission(dittoHeaders).build());
-        } else if ((command instanceof ThingQueryCommand) && dittoHeaders.getLiveChannelCondition().isPresent()) {
-            intermediate = enforceReadPermissionOnCondition(dittoHeaders.getLiveChannelCondition().get(), enforcer, dittoHeaders, () ->
-                            ThingConditionFailedException.newBuilderForInsufficientLiveChannelPermission(dittoHeaders).build());
-        } else {
-            intermediate = CompletableFuture.completedStage(null);
+            enforceReadPermissionOnCondition(condition.get(), enforcer, dittoHeaders,
+                    () -> ThingConditionFailedException.newBuilderForInsufficientPermission(dittoHeaders).build());
+        } else if ((command instanceof ThingQueryCommand)) {
+            dittoHeaders.getLiveChannelCondition()
+                    .ifPresent(liveChannelCondition -> enforceReadPermissionOnCondition(liveChannelCondition, enforcer,
+                            dittoHeaders,
+                            () -> ThingConditionFailedException.newBuilderForInsufficientLiveChannelPermission(
+                                    dittoHeaders).build()));
         }
 
-        return intermediate.thenCompose(voidValue -> commandAuthorized.thenCompose(hasPermission -> {
-            if (Boolean.TRUE.equals(hasPermission)) {
-                return addEffectedReadSubjectsToThingSignal(command, enforcer);
-            } else {
-                throw errorForThingCommand(command);
-            }
-        }));
+        if (commandAuthorized) {
+            return addEffectedReadSubjectsToThingSignal(command, enforcer);
+        } else {
+            throw errorForThingCommand(command);
+        }
     }
 
     private CompletionStage<Done> handleFailedCreateThing(
@@ -441,23 +423,21 @@ final class ThingCommandEnforcement
      *
      * @param signal the signal to extend.
      * @param enforcer the enforcer.
-     * @return a {@code CompletionStage} containing the extended signal.
+     * @return the extended signal.
      */
-    static <T extends Signal<T>> CompletionStage<T> addEffectedReadSubjectsToThingSignal(final Signal<T> signal,
+    static <T extends Signal<T>> T addEffectedReadSubjectsToThingSignal(final Signal<T> signal,
             final Enforcer enforcer) {
 
         final var resourceKey = ResourceKey.newInstance(ThingConstants.ENTITY_TYPE, signal.getResourcePath());
-        return CompletableFuture.supplyAsync(() -> enforcer.getSubjectsWithUnrestrictedPermission(resourceKey,
-                Permission.READ)).thenApply(authorizationSubjects -> {
-            final var newHeaders = DittoHeaders.newBuilder(signal.getDittoHeaders())
-                    .readGrantedSubjects(authorizationSubjects)
-                    .build();
+        final var authorizationSubjects = enforcer.getSubjectsWithUnrestrictedPermission(resourceKey, Permission.READ);
+        final var newHeaders = DittoHeaders.newBuilder(signal.getDittoHeaders())
+                .readGrantedSubjects(authorizationSubjects)
+                .build();
 
-            return signal.setDittoHeaders(newHeaders);
-        });
+        return signal.setDittoHeaders(newHeaders);
     }
 
-    private static CompletionStage<Void> enforceReadPermissionOnCondition(final String condition,
+    private static void enforceReadPermissionOnCondition(final String condition,
             final Enforcer enforcer,
             final DittoHeaders dittoHeaders,
             final Supplier<DittoRuntimeException> exceptionSupplier) {
@@ -465,14 +445,10 @@ final class ThingCommandEnforcement
         final var authorizationContext = dittoHeaders.getAuthorizationContext();
         final var rootNode = tryParseRqlCondition(condition, dittoHeaders);
         final var resourceKeys = determineResourceKeys(rootNode, dittoHeaders);
-        return CompletableFuture.supplyAsync(() -> enforcer.hasUnrestrictedPermissions(resourceKeys,
-                authorizationContext,
-                Permission.READ)).thenAccept(hasPermission -> {
 
-            if (Boolean.FALSE.equals(hasPermission)) {
-                throw exceptionSupplier.get();
-            }
-        });
+        if (!enforcer.hasUnrestrictedPermissions(resourceKeys, authorizationContext, Permission.READ)) {
+            throw exceptionSupplier.get();
+        }
     }
 
     private static RootNode tryParseRqlCondition(final String condition, final DittoHeaders dittoHeaders) {
@@ -505,36 +481,23 @@ final class ThingCommandEnforcement
         }
     }
 
-    private static CompletionStage<Boolean> enforceMergeThingCommand(final Enforcer enforcer,
+    private static boolean enforceMergeThingCommand(final Enforcer enforcer,
             final MergeThing command,
             final ResourceKey thingResourceKey,
             final AuthorizationContext authorizationContext) {
 
-        return CompletableFuture.supplyAsync(() -> enforcer.hasUnrestrictedPermissions(thingResourceKey,
-                authorizationContext,
-                Permission.WRITE)).thenCompose(hasPermission -> {
-                    if (Boolean.TRUE.equals(hasPermission)) {
-                        // unrestricted permissions at thingResourceKey level
-                        return CompletableFuture.completedStage(Boolean.TRUE);
-                    } else {
-                        return CompletableFuture.supplyAsync(() -> enforcer.hasPartialPermissions(thingResourceKey,
-                                authorizationContext,
-                                Permission.WRITE)).thenCompose(hasPartialPermission -> {
-                            if (Boolean.TRUE.equals(hasPartialPermission)) {
-                                // in case of partial permissions at thingResourceKey level check all leaves of merge patch for
-                                // unrestricted permissions
-                                final Set<ResourceKey> resourceKeys = calculateLeaves(command.getPath(), command.getValue());
-                                return CompletableFuture.supplyAsync(
-                                        () -> enforcer.hasUnrestrictedPermissions(resourceKeys, authorizationContext,
-                                                Permission.WRITE));
-                            } else {
-                                // not even partial permission
-                                return CompletableFuture.completedStage(Boolean.FALSE);
-                            }
-                        });
-                    }
-                }
-        );
+        if (enforcer.hasUnrestrictedPermissions(thingResourceKey, authorizationContext, Permission.WRITE)) {
+            // unrestricted permissions at thingResourceKey level
+            return true;
+        } else if (enforcer.hasPartialPermissions(thingResourceKey, authorizationContext, Permission.WRITE)) {
+            // in case of partial permissions at thingResourceKey level check all leaves of merge patch for
+            // unrestricted permissions
+            final Set<ResourceKey> resourceKeys = calculateLeaves(command.getPath(), command.getValue());
+            return enforcer.hasUnrestrictedPermissions(resourceKeys, authorizationContext, Permission.WRITE);
+        } else {
+            // not even partial permission
+            return false;
+        }
     }
 
     private static Set<ResourceKey> calculateLeaves(final JsonPointer path, final JsonValue value) {
