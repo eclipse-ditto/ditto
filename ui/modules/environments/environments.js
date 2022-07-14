@@ -11,10 +11,10 @@
  * SPDX-License-Identifier: EPL-2.0
  */
 
-import * as API from '../api.js';
 /* eslint-disable arrow-parens */
 /* eslint-disable prefer-const */
 /* eslint-disable require-jsdoc */
+import * as Authorization from '../environments/authorization.js';
 import * as Utils from '../utils.js';
 
 let environments = {
@@ -52,6 +52,9 @@ export function addChangeListener(observer) {
 }
 
 function notifyAll() {
+  // Notify Authorization first to set right auth header
+  Authorization.onEnvironmentChanged();
+  // Notify others
   observers.forEach(observer => observer.call());
 }
 
@@ -118,6 +121,7 @@ export function environmentsJsonChanged() {
   updateEnvSelector();
   updateEnvEditors();
   updateEnvTable();
+
   notifyAll();
 }
 

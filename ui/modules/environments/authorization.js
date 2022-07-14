@@ -27,8 +27,6 @@ let dom = {
 };
 
 export function ready() {
-  Environments.addChangeListener(onEnvironmentChanged);
-
   Utils.getAllElementsById(dom);
 
   document.getElementById('authorizeBearer').onclick = () => {
@@ -45,7 +43,7 @@ export function ready() {
   };
 };
 
-function onEnvironmentChanged() {
+export function onEnvironmentChanged() {
   let usernamePassword = Environments.current().usernamePassword ? Environments.current().usernamePassword : ':';
   dom.userName.value = usernamePassword.split(':')[0];
   dom.password.value = usernamePassword.split(':')[1];

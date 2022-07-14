@@ -14,7 +14,7 @@ let dom = {
   tbodyConnectionMetrics: null,
   buttonLoadConnections: null,
   buttonCreateConnection: null,
-  buttonModifyConnection: null,
+  buttonSaveConnection: null,
   buttonDeleteConnection: null,
   buttonRetrieveConnectionStatus: null,
   buttonRetrieveConnectionLogs: null,
@@ -87,19 +87,25 @@ export function ready() {
     theConnection = JSON.parse(connectionEditor.getValue());
   });
 
-  dom.buttonModifyConnection.onclick = () => {
-    Utils.assert(dom.inputConnectionId.value, 'Please selected a connection');
-    API.callConnectionsAPI('modifyConnection', loadConnections, dom.inputConnectionId.value, theConnection);
+  dom.buttonSaveConnection.onclick = () => {
+    if (dom.inputConnectionId.value) {
+      API.callConnectionsAPI('modifyConnection', loadConnections, dom.inputConnectionId.value, theConnection);
+    } else {
+      if (API.env() === 'things') {
+        delete theConnection.id;
+      }
+      API.callConnectionsAPI('createConnection', loadConnections, null, theConnection);
+    }
   };
 
   dom.buttonDeleteConnection.onclick = () => {
-    Utils.assert(dom.inputConnectionId.value, 'Please selected a connection');
+    Utils.assert(dom.inputConnectionId.value, 'Please select a connection');
     API.callConnectionsAPI('deleteConnection', loadConnections, dom.inputConnectionId.value);
     setConnection(null);
   };
 
   dom.buttonRetrieveConnectionStatus.onclick = () => {
-    Utils.assert(dom.inputConnectionId.value, 'Please selected a connection');
+    Utils.assert(dom.inputConnectionId.value, 'Please select a connection');
     API.callConnectionsAPI('retrieveStatus', (connectionStatus) => {
       dom.textareaConnectionStatusDetail.value = JSON.stringify(connectionStatus, null, 2);
     },
@@ -107,17 +113,17 @@ export function ready() {
   };
 
   dom.buttonEnableConnectionLogs.onclick = () => {
-    Utils.assert(dom.inputConnectionId.value, 'Please selected a connection');
+    Utils.assert(dom.inputConnectionId.value, 'Please select a connection');
     API.callConnectionsAPI('connectionCommand', null, dom.inputConnectionId.value, null, 'connectivity.commands:enableConnectionLogs');
   };
 
   dom.buttonResetConnectionLogs.onclick = () => {
-    Utils.assert(dom.inputConnectionId.value, 'Please selected a connection');
+    Utils.assert(dom.inputConnectionId.value, 'Please select a connection');
     API.callConnectionsAPI('connectionCommand', null, dom.inputConnectionId.value, null, 'connectivity.commands:resetConnectionLogs');
   };
 
   dom.buttonRetrieveConnectionLogs.onclick = () => {
-    Utils.assert(dom.inputConnectionId.value, 'Please selected a connection');
+    Utils.assert(dom.inputConnectionId.value, 'Please select a connection');
     dom.tbodyConnectionLogs.innerHTML = '';
     dom.textareaConnectionLogDetail.value = null;
     API.callConnectionsAPI('retrieveConnectionLogs', (response) => {
@@ -130,7 +136,7 @@ export function ready() {
   };
 
   dom.buttonRetrieveConnectionMetrics.onclick = () => {
-    Utils.assert(dom.inputConnectionId.value, 'Please selected a connection');
+    Utils.assert(dom.inputConnectionId.value, 'Please select a connection');
     dom.tbodyConnectionMetrics.innerHTML = '';
     API.callConnectionsAPI('retrieveConnectionMetrics', (response) => {
       if (response.connectionMetrics.outbound) {
@@ -145,14 +151,14 @@ export function ready() {
   };
 
   dom.buttonResetConnectionMetrics.onclick = () => {
-    Utils.assert(dom.inputConnectionId.value, 'Please selected a connection');
+    Utils.assert(dom.inputConnectionId.value, 'Please select a connection');
     API.callConnectionsAPI('connectionCommand', null, dom.inputConnectionId.value, null, 'connectivity.commands:resetConnectionMetrics');
   };
 }
 
 function setConnection(connection) {
   theConnection = connection;
-  dom.inputConnectionId.value = theConnection ? theConnection.id : '';
+  dom.inputConnectionId.value = (theConnection && theConnection.id) ? theConnection.id : null;
   connectionEditor.setValue(theConnection ? JSON.stringify(theConnection, null, 2) : '');
   const withJavaScript = theConnection && theConnection.mappingDefinitions && theConnection.mappingDefinitions.javascript;
   incomingEditor.setValue(withJavaScript ?
@@ -169,6 +175,7 @@ function setConnection(connection) {
 
 function loadConnections() {
   dom.tbodyConnections.innerHTML = '';
+  let connectionSelected = false;
   API.callConnectionsAPI('listConnections', (connections) => {
     connections.forEach((connection) => {
       const id = API.env() === 'things' ? connection.id : connection;
@@ -189,8 +196,12 @@ function loadConnections() {
       id);
       if (theConnection && id === theConnection.id) {
         row.classList.add('table-active');
+        connectionSelected = true;
       }
     });
+    if (!connectionSelected) {
+      setConnection(null);
+    }
   });
 };
 

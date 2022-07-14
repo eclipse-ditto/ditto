@@ -304,14 +304,21 @@ export async function callConnectionsAPI(operation, successCallback, connectionI
           connectionJson ? JSON.stringify(connectionJson) : command,
     });
     if (!response.ok) {
-      Utils.showError('Error calling connections API', response.statusText, response.status);
+      response.json()
+          .then((dittoErr) => {
+            Utils.showError(dittoErr.description, dittoErr.message, dittoErr.status);
+          })
+          .catch((err) => {
+            Utils.showError('No error details from Ditto', response.statusText, response.status);
+          });
       throw new Error('An error occured: ' + response.status);
     }
-    if (operation !== 'connectionCommand') {
+    if (operation !== 'connectionCommand' && response.status !== 204) {
       document.body.style.cursor = 'progress';
       response.json().then((data) => {
         if (data && data['?'] && data['?']['?'].status >= 400) {
-          Utils.showError(JSON.stringify(data['?']['?'].payload, data['?']['?'].status));
+          const dittoErr = data['?']['?'];
+          Utils.showError(dittoErr.description, dittoErr.message, dittoErr.status);
         } else {
           if (params.unwrapJsonPath) {
             params.unwrapJsonPath.split('.').forEach(function(node) {
