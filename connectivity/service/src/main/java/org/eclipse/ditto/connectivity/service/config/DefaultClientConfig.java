@@ -42,6 +42,7 @@ public final class DefaultClientConfig implements ClientConfig {
     private final Duration minBackoff;
     private final Duration maxBackoff;
     private final Duration clientActorRefsNotificationDelay;
+    private final Duration subscriptionRefreshDelay;
 
     private DefaultClientConfig(final ScopedConfig config) {
         initTimeout = config.getNonNegativeDurationOrThrow(ClientConfigValue.INIT_TIMEOUT);
@@ -59,6 +60,7 @@ public final class DefaultClientConfig implements ClientConfig {
         maxBackoff = config.getNonNegativeAndNonZeroDurationOrThrow(ClientConfigValue.MAX_BACKOFF);
         clientActorRefsNotificationDelay =
                 config.getNonNegativeDurationOrThrow(ClientConfigValue.CLIENT_ACTOR_REFS_NOTIFICATION_DELAY);
+        subscriptionRefreshDelay = config.getNonNegativeDurationOrThrow(ClientConfigValue.SUBSCRIPTION_REFRESH_DELAY);
     }
 
     /**
@@ -113,6 +115,11 @@ public final class DefaultClientConfig implements ClientConfig {
     }
 
     @Override
+    public Duration getSubscriptionRefreshDelay() {
+        return subscriptionRefreshDelay;
+    }
+
+    @Override
     public Duration getMinBackoff() {
         return minBackoff;
     }
@@ -141,14 +148,15 @@ public final class DefaultClientConfig implements ClientConfig {
                 Objects.equals(minBackoff, that.minBackoff) &&
                 Objects.equals(maxBackoff, that.maxBackoff) &&
                 Objects.equals(subscriptionManagerTimeout, that.subscriptionManagerTimeout) &&
-                Objects.equals(clientActorRefsNotificationDelay, that.clientActorRefsNotificationDelay);
+                Objects.equals(clientActorRefsNotificationDelay, that.clientActorRefsNotificationDelay) &&
+                Objects.equals(subscriptionRefreshDelay, that.subscriptionRefreshDelay);
     }
 
     @Override
     public int hashCode() {
         return Objects.hash(initTimeout, connectingMinTimeout, connectingMaxTimeout, disconnectingMaxTimeout,
                 disconnectAnnouncementTimeout, connectingMaxTries, testingTimeout, minBackoff, maxBackoff,
-                subscriptionManagerTimeout, clientActorRefsNotificationDelay);
+                subscriptionManagerTimeout, clientActorRefsNotificationDelay, subscriptionRefreshDelay);
     }
 
     @Override
@@ -165,6 +173,7 @@ public final class DefaultClientConfig implements ClientConfig {
                 ", maxBackoff=" + maxBackoff +
                 ", subscriptionManagerTimeout=" + subscriptionManagerTimeout +
                 ", clientActorRefsNotificationDelay=" + clientActorRefsNotificationDelay +
+                ", subscriptionRefreshDelay=" + subscriptionRefreshDelay +
                 "]";
     }
 

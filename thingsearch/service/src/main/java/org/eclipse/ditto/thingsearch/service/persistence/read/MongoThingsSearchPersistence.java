@@ -43,6 +43,7 @@ import org.eclipse.ditto.rql.query.SortOption;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.thingsearch.api.SearchNamespaceReportResult;
 import org.eclipse.ditto.thingsearch.api.SearchNamespaceResultEntry;
+import org.eclipse.ditto.thingsearch.service.common.config.SearchPersistenceConfig;
 import org.eclipse.ditto.thingsearch.service.common.model.ResultList;
 import org.eclipse.ditto.thingsearch.service.common.model.ResultListImpl;
 import org.eclipse.ditto.thingsearch.service.common.model.TimestampedThingId;
@@ -95,13 +96,19 @@ public final class MongoThingsSearchPersistence implements ThingsSearchPersisten
      * @param mongoClient the mongoDB persistence wrapper.
      * @param actorSystem the Akka ActorSystem.
      */
-    public MongoThingsSearchPersistence(final DittoMongoClient mongoClient, final ActorSystem actorSystem) {
+    public MongoThingsSearchPersistence(final DittoMongoClient mongoClient, final ActorSystem actorSystem,
+            final SearchPersistenceConfig persistenceConfig) {
         final MongoDatabase database = mongoClient.getDefaultDatabase();
-        collection = database.getCollection(PersistenceConstants.THINGS_COLLECTION_NAME);
+        final var readConcern = persistenceConfig.readConcern();
+        final var readPreference = persistenceConfig.readPreference().getMongoReadPreference();
+        collection = database.getCollection(PersistenceConstants.THINGS_COLLECTION_NAME)
+                .withReadConcern(readConcern.getMongoReadConcern())
+                .withReadPreference(readPreference);
         log = Logging.getLogger(actorSystem, getClass());
         indexInitializer = IndexInitializer.of(database, SystemMaterializer.get(actorSystem).materializer());
         maxQueryTime = mongoClient.getDittoSettings().getMaxQueryTime();
         hints = MongoHints.empty();
+        log.info("Query readConcern=<{}> readPreference=<{}>", readConcern, readPreference);
     }
 
     private MongoThingsSearchPersistence(

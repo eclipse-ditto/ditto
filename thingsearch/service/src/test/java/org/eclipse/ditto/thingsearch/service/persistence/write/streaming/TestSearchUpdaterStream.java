@@ -77,7 +77,7 @@ public final class TestSearchUpdaterStream {
                 null, -1);
         final var mongoWriteModel =
                 writeModel.toIncrementalMongo(
-                        ThingDeleteModel.of(Metadata.ofDeleted(thing.getEntityId().orElseThrow()))).orElseThrow();
+                        ThingDeleteModel.of(Metadata.ofDeleted(thing.getEntityId().orElseThrow())), 13).orElseThrow();
 
         return Source.single(mongoWriteModel)
                 .via(mongoSearchUpdaterFlow.create())
@@ -106,7 +106,7 @@ public final class TestSearchUpdaterStream {
      */
     private Source<WriteResultAndErrors, NotUsed> delete(final Metadata metadata) {
         final AbstractWriteModel writeModel = ThingDeleteModel.of(metadata);
-        return Source.single(writeModel.toIncrementalMongo(writeModel).orElseThrow())
+        return Source.single(writeModel.toIncrementalMongo(writeModel, 13).orElseThrow())
                 .via(mongoSearchUpdaterFlow.create())
                 .map(ThingUpdater.Result::resultAndErrors);
     }

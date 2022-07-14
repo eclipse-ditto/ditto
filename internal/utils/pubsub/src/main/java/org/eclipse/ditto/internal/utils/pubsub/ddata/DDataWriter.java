@@ -36,6 +36,16 @@ public interface DDataWriter<K, T extends DDataUpdate<?>> {
     CompletionStage<Void> put(K ownSubscriber, T topicUpdates, Replicator.WriteConsistency writeConsistency);
 
     /**
+     * Reset the topics associated with a subscriber. Previous associations are deleted.
+     *
+     * @param ownSubscriber the subscriber.
+     * @param topics the topics to
+     * @param writeConsistency write consistency for the operation.
+     * @return future that completes or fails according to the result of the operation.
+     */
+    CompletionStage<Void> reset(K ownSubscriber, T topics, Replicator.WriteConsistency writeConsistency);
+
+    /**
      * Remove a subscriber outright.
      *
      * @param subscriber the subscriber key to remove.

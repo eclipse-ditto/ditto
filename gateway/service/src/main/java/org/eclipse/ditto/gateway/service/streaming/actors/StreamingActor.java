@@ -143,7 +143,7 @@ public final class StreamingActor extends AbstractActorWithTimers implements Ret
                     final String sessionActorName = getUniqueChildActorName(connect.getConnectionCorrelationId());
                     final ActorRef streamingSessionActor = getContext().actorOf(
                             StreamingSessionActor.props(connect, dittoProtocolSub,
-                                    commandRouter, streamingConfig.getAcknowledgementConfig(), headerTranslator,
+                                    commandRouter, streamingConfig, headerTranslator,
                                     subscriptionManagerProps, jwtValidator, jwtAuthenticationResultProvider),
                             sessionActorName);
                     getSender().tell(streamingSessionActor, ActorRef.noSender());

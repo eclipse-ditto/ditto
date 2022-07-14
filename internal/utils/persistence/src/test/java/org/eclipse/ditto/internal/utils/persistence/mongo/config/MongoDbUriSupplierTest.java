@@ -39,7 +39,7 @@ public final class MongoDbUriSupplierTest {
 
     private static final String SOURCE_URI = "mongodb://user-name-1234-5678-abcdefg:password12345@" +
             "first.hostname.com:10000,second.hostname.com:20000,third.hostname.com:30000,fourth.hostname" +
-            "fifth.hostname.com:50000,sixth.hostname.com:60000,seventh:hostname.com:70000" +
+            "fifth.hostname.com:50000,sixth.hostname.com:60000,seventh.hostname.com:65000" +
             "/database-name?replicaSet=streched-0003&maxIdleTimeMS=240000&w=majority" +
             "&readPreference=primaryPreferred&ssl=true&sslInvalidHostNameAllowed=true";
 

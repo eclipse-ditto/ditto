@@ -26,7 +26,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Queue;
-import java.util.UUID;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
@@ -110,7 +109,6 @@ public class KafkaPublisherActorTest extends AbstractPublisherActorTest {
         return KafkaPublisherActor.props(TestConstants.createConnection(),
                 mockSendProducerFactory,
                 false,
-                UUID.randomUUID().toString(),
                 mock(ConnectivityStatusResolver.class),
                 connectivityConfig);
     }
@@ -119,7 +117,6 @@ public class KafkaPublisherActorTest extends AbstractPublisherActorTest {
         return KafkaPublisherActor.props(TestConstants.createConnectionWithDebugEnabled(),
                 mockSendProducerFactory,
                 false,
-                UUID.randomUUID().toString(),
                 mock(ConnectivityStatusResolver.class),
                 connectivityConfig);
     }

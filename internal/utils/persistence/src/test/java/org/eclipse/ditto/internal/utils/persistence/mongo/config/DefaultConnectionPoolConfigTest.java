@@ -59,9 +59,15 @@ public final class DefaultConnectionPoolConfigTest {
     public void underTestReturnsDefaultValuesWhenBaseConfigWasEmpty() {
         final DefaultConnectionPoolConfig underTest = DefaultConnectionPoolConfig.of(ConfigFactory.empty());
 
+        softly.assertThat(underTest.getMinSize())
+                .as(MongoDbConfig.ConnectionPoolConfig.ConnectionPoolConfigValue.MIN_SIZE.getConfigPath())
+                .isEqualTo(MongoDbConfig.ConnectionPoolConfig.ConnectionPoolConfigValue.MIN_SIZE.getDefaultValue());
         softly.assertThat(underTest.getMaxSize())
                 .as(MongoDbConfig.ConnectionPoolConfig.ConnectionPoolConfigValue.MAX_SIZE.getConfigPath())
                 .isEqualTo(MongoDbConfig.ConnectionPoolConfig.ConnectionPoolConfigValue.MAX_SIZE.getDefaultValue());
+        softly.assertThat(underTest.getMaxIdleTime())
+                .as(MongoDbConfig.ConnectionPoolConfig.ConnectionPoolConfigValue.MAX_IDLE_TIME.getConfigPath())
+                .isEqualTo(MongoDbConfig.ConnectionPoolConfig.ConnectionPoolConfigValue.MAX_IDLE_TIME.getDefaultValue());
         softly.assertThat(underTest.getMaxWaitTime())
                 .as(MongoDbConfig.ConnectionPoolConfig.ConnectionPoolConfigValue.MAX_WAIT_TIME.getConfigPath())
                 .isEqualTo(MongoDbConfig.ConnectionPoolConfig.ConnectionPoolConfigValue.MAX_WAIT_TIME.getDefaultValue());
@@ -74,9 +80,15 @@ public final class DefaultConnectionPoolConfigTest {
     public void underTestReturnsValuesOfBaseConfig() {
         final DefaultConnectionPoolConfig underTest = DefaultConnectionPoolConfig.of(connectionPoolTestConfig);
 
+        softly.assertThat(underTest.getMinSize())
+                .as(MongoDbConfig.ConnectionPoolConfig.ConnectionPoolConfigValue.MIN_SIZE.getConfigPath())
+                .isEqualTo(10);
         softly.assertThat(underTest.getMaxSize())
                 .as(MongoDbConfig.ConnectionPoolConfig.ConnectionPoolConfigValue.MAX_SIZE.getConfigPath())
                 .isEqualTo(1_000);
+        softly.assertThat(underTest.getMaxIdleTime())
+                .as(MongoDbConfig.ConnectionPoolConfig.ConnectionPoolConfigValue.MAX_IDLE_TIME.getConfigPath())
+                .isEqualTo(Duration.ofMinutes(5L));
         softly.assertThat(underTest.getMaxWaitTime())
                 .as(MongoDbConfig.ConnectionPoolConfig.ConnectionPoolConfigValue.MAX_WAIT_TIME.getConfigPath())
                 .isEqualTo(Duration.ofSeconds(42L));

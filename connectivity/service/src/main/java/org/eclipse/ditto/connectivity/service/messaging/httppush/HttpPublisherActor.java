@@ -139,11 +139,10 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
     @SuppressWarnings("unused")
     private HttpPublisherActor(final Connection connection,
             final HttpPushFactory factory,
-            final String clientId,
             final ConnectivityStatusResolver connectivityStatusResolver,
             final ConnectivityConfig connectivityConfig) {
 
-        super(connection, clientId, connectivityStatusResolver, connectivityConfig);
+        super(connection, connectivityStatusResolver, connectivityConfig);
         this.factory = factory;
         materializer = Materializer.createMaterializer(this::getContext);
         final var config = connectionConfig.getHttpPushConfig();
@@ -174,7 +173,6 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
      *
      * @param connection the connection.
      * @param factory the http push factory to use.
-     * @param clientId the client ID.
      * @param connectivityStatusResolver connectivity status resolver to resolve occurred exceptions to a connectivity
      * status.
      * @param connectivityConfig the config of the connectivity service with potential overwrites.
@@ -182,14 +180,12 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
      */
     static Props props(final Connection connection,
             final HttpPushFactory factory,
-            final String clientId,
             final ConnectivityStatusResolver connectivityStatusResolver,
             final ConnectivityConfig connectivityConfig) {
 
         return Props.create(HttpPublisherActor.class,
                 connection,
                 factory,
-                clientId,
                 connectivityStatusResolver,
                 connectivityConfig);
     }

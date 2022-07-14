@@ -35,10 +35,12 @@ public interface DistributedSub {
      * @param subscriber who is subscribing.
      * @param filter a local topic filter.
      * @param group the subscriber's group, if any.
+     * @param resubscribe whether this is a resubscription.
      * @return a future that completes after subscription becomes effective on all nodes.
      */
     CompletionStage<SubAck> subscribeWithFilterAndGroup(Collection<String> topics,
-            ActorRef subscriber, @Nullable Predicate<Collection<String>> filter, @Nullable String group);
+            ActorRef subscriber, @Nullable Predicate<Collection<String>> filter, @Nullable String group,
+            final boolean resubscribe);
 
     /**
      * Unsubscribe for a collection of topics.

@@ -104,6 +104,14 @@ public interface ClientConfig {
     Duration getClientActorRefsNotificationDelay();
 
     /**
+     * Min delay to refresh each client actor's knowledge of other client actors when client count of the connection
+     * is above 1. The actual delay is random between 1x and 2x this value.
+     *
+     * @return the subscription refresh interval.
+     */
+    Duration getSubscriptionRefreshDelay();
+
+    /**
      * An enumeration of the known config path expressions and their associated default values for {@code ClientConfig}.
      */
     enum ClientConfigValue implements KnownConfigValue {
@@ -161,7 +169,12 @@ public interface ClientConfig {
         /**
          * See documentation on {@link ClientConfig#getClientActorRefsNotificationDelay()}.
          */
-        CLIENT_ACTOR_REFS_NOTIFICATION_DELAY("client-actor-refs-notification-delay", Duration.ofMinutes(5L));
+        CLIENT_ACTOR_REFS_NOTIFICATION_DELAY("client-actor-refs-notification-delay", Duration.ofMinutes(5L)),
+
+        /**
+         * See documentation on {@link ClientConfig#getSubscriptionRefreshDelay()}.
+         */
+        SUBSCRIPTION_REFRESH_DELAY("subscription-refresh-delay", Duration.ofMinutes(5L));
 
         private final String path;
         private final Object defaultValue;

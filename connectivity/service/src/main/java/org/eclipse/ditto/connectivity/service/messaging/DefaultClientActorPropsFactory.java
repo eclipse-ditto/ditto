@@ -22,7 +22,6 @@ import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.connectivity.api.HonoConfig;
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.ConnectionId;
-import org.eclipse.ditto.connectivity.model.ConnectionType;
 import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
 import org.eclipse.ditto.connectivity.model.HonoAddressAlias;
 import org.eclipse.ditto.connectivity.model.ImmutableHeaderMapping;
@@ -32,8 +31,7 @@ import org.eclipse.ditto.connectivity.model.Topic;
 import org.eclipse.ditto.connectivity.service.messaging.amqp.AmqpClientActor;
 import org.eclipse.ditto.connectivity.service.messaging.httppush.HttpPushClientActor;
 import org.eclipse.ditto.connectivity.service.messaging.kafka.KafkaClientActor;
-import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.HiveMqtt3ClientActor;
-import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.HiveMqtt5ClientActor;
+import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.MqttClientActor;
 import org.eclipse.ditto.connectivity.service.messaging.rabbitmq.RabbitMQClientActor;
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonFactory;
@@ -77,41 +75,37 @@ public final class DefaultClientActorPropsFactory implements ClientActorPropsFac
             final DittoHeaders dittoHeaders,
             final Config connectivityConfigOverwrites) {
 
-        final ConnectionType connectionType = connection.getConnectionType();
-        final Props result;
-        switch (connectionType) {
-            case AMQP_091:
-                result = RabbitMQClientActor.props(connection, proxyActor, connectionActor, dittoHeaders,
-                        connectivityConfigOverwrites);
-                break;
-            case AMQP_10:
-                result = AmqpClientActor.props(connection, proxyActor, connectionActor, connectivityConfigOverwrites,
-                        actorSystem, dittoHeaders);
-                break;
-            case MQTT:
-                result = HiveMqtt3ClientActor.props(connection, proxyActor, connectionActor, dittoHeaders,
-                        connectivityConfigOverwrites);
-                break;
-            case MQTT_5:
-                result = HiveMqtt5ClientActor.props(connection, proxyActor, connectionActor, dittoHeaders,
-                        connectivityConfigOverwrites);
-                break;
-            case KAFKA:
-                result = KafkaClientActor.props(connection, proxyActor, connectionActor, dittoHeaders,
-                        connectivityConfigOverwrites);
-                break;
-            case HONO:
-                result = KafkaClientActor.props(getEnrichedConnection(actorSystem, connection),
+        return switch (connection.getConnectionType()) {
+            case AMQP_091 -> RabbitMQClientActor.props(connection,
+                    proxyActor,
+                    connectionActor,
+                    dittoHeaders,
+                    connectivityConfigOverwrites);
+            case AMQP_10 -> AmqpClientActor.props(connection,
+                    proxyActor,
+                    connectionActor,
+                    connectivityConfigOverwrites,
+                    actorSystem,
+                    dittoHeaders);
+            case MQTT, MQTT_5 -> MqttClientActor.props(connection,
+                    proxyActor,
+                    connectionActor,
+                    dittoHeaders,
+                    connectivityConfigOverwrites);
+            case KAFKA -> KafkaClientActor.props(connection,
+                    proxyActor,
+                    connectionActor,
+                    dittoHeaders,
+                    connectivityConfigOverwrites);
+            case HTTP_PUSH -> HttpPushClientActor.props(connection,
+                    proxyActor,
+                    connectionActor,
+                    dittoHeaders,
+                    connectivityConfigOverwrites);
+            case HONO ->
+                KafkaClientActor.props(getEnrichedConnection(actorSystem, connection),
                         proxyActor, connectionActor, dittoHeaders, connectivityConfigOverwrites);
-                break;
-            case HTTP_PUSH:
-                result = HttpPushClientActor.props(connection, proxyActor, connectionActor, dittoHeaders,
-                        connectivityConfigOverwrites);
-                break;
-            default:
-                throw new IllegalArgumentException("ConnectionType <" + connectionType + "> is not supported.");
-        }
-        return result;
+        };
     }
 
     private Connection getEnrichedConnection(final ActorSystem actorSystem, final Connection connection) {

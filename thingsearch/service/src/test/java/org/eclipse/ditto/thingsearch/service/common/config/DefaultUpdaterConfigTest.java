@@ -19,7 +19,6 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 import org.assertj.core.api.JUnitSoftAssertions;
 import org.eclipse.ditto.thingsearch.service.common.config.UpdaterConfig.UpdaterConfigValue;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 
@@ -46,7 +45,7 @@ public final class DefaultUpdaterConfigTest {
     @Test
     public void assertImmutability() {
         assertInstancesOf(DefaultUpdaterConfig.class, areImmutable(),
-                provided(BackgroundSyncConfig.class, DefaultStreamConfig.class, DefaultUpdaterPersistenceConfig.class)
+                provided(BackgroundSyncConfig.class, DefaultStreamConfig.class, DefaultSearchPersistenceConfig.class)
                         .isAlsoImmutable());
     }
 

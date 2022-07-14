@@ -60,4 +60,11 @@ public interface DittoMongoClient extends MongoClient {
      */
     MongoClientSettings getClientSettings();
 
+    /**
+     * Returns the max wire version of the MongoDB server, or 0 if the client is disconnected.
+     *
+     * @return the max wire version.
+     */
+    int getMaxWireVersion();
+
 }
