@@ -689,7 +689,8 @@ public final class MessageMappingProcessorActorTest extends AbstractMessageMappi
                             sender.ref()),
                     ActorRef.noSender()
             );
-            final DeleteThingResponse receivedResponse = expectMsgClass(DeleteThingResponse.class);
+            final DeleteThingResponse receivedResponse =
+                    (DeleteThingResponse) expectMsgClass(InboundSignal.class).getSignal();
             assertThat(receivedResponse.getDittoHeaders().getChannel()).contains(TopicPath.Channel.LIVE.getName());
             assertThat(receivedResponse.getDittoHeaders().get(DittoHeaderDefinition.CONNECTION_ID.getKey()))
                     .isEqualTo(CONNECTION_ID.toString());
