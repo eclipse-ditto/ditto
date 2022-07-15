@@ -27,6 +27,7 @@ import org.eclipse.ditto.base.api.devops.signals.commands.ExecutePiggybackComman
 import org.eclipse.ditto.base.api.devops.signals.commands.RetrieveLoggerConfig;
 import org.eclipse.ditto.base.model.exceptions.DittoJsonException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.base.service.devops.DevOpsCommandsActor;
 import org.eclipse.ditto.gateway.service.endpoints.directives.auth.DevOpsOAuth2AuthenticationDirective;
 import org.eclipse.ditto.gateway.service.endpoints.directives.auth.DevopsAuthenticationDirective;
@@ -216,6 +217,7 @@ public final class DevOpsRoute extends AbstractRoute {
                                 piggybackCommandJson -> {
                                     JsonObject parsedJson = DittoJsonException.wrapJsonRuntimeException(() ->
                                             JsonFactory.readFrom(piggybackCommandJson).asObject());
+                                    parsedJson = parsedJson.set(Command.JsonFields.TYPE, ExecutePiggybackCommand.TYPE);
 
                                     // serviceName and instance from URL are preferred
                                     if (null != serviceName) {
