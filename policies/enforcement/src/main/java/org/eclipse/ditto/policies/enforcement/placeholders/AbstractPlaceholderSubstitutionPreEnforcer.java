@@ -56,15 +56,15 @@ public abstract class AbstractPlaceholderSubstitutionPreEnforcer implements PreE
 
         final Optional<SubstitutionStrategy<? extends Signal<?>>> firstMatchingStrategyOpt =
                 substitutionStrategyRegistry.getMatchingStrategy(signal);
+        final Signal<?> result;
         if (firstMatchingStrategyOpt.isPresent()) {
             final SubstitutionStrategy<Signal<?>> firstMatchingStrategy =
                     (SubstitutionStrategy<Signal<?>>) firstMatchingStrategyOpt.get();
-            return CompletableFuture.supplyAsync(() ->
-                    firstMatchingStrategy.apply(signal, substitutionAlgorithm)
-            ).thenApply(Function.identity());
+            result = firstMatchingStrategy.apply(signal, substitutionAlgorithm);
         } else {
-            return CompletableFuture.completedFuture(signal);
+            result = signal;
         }
+        return CompletableFuture.completedStage(result);
     }
 
     /**
