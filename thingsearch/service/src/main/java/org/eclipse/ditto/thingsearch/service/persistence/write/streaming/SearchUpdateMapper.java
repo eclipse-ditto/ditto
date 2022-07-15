@@ -17,7 +17,9 @@ import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 import org.eclipse.ditto.base.service.DittoExtensionIds;
 import org.eclipse.ditto.base.service.DittoExtensionPoint;
 import org.eclipse.ditto.internal.utils.metrics.instruments.timer.StartedTimer;
+import org.eclipse.ditto.internal.utils.persistence.mongo.DittoMongoClient;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.AbstractWriteModel;
+import org.eclipse.ditto.thingsearch.service.starter.actors.MongoClientExtension;
 import org.eclipse.ditto.thingsearch.service.updater.actors.MongoWriteModel;
 import org.slf4j.Logger;
 
@@ -40,13 +42,17 @@ public abstract class SearchUpdateMapper implements DittoExtensionPoint {
     protected final int maxWireVersion;
 
     protected SearchUpdateMapper(final ActorSystem actorSystem, final Config config) {
-        //TODO: Yannic make config contain this.
-        this(actorSystem, config.getInt("max-wire-version"));
+        this(actorSystem, getMaxWireVersion(actorSystem));
     }
 
     protected SearchUpdateMapper(final ActorSystem actorSystem, final Integer maxWireVersion) {
         this.actorSystem = actorSystem;
         this.maxWireVersion = maxWireVersion;
+    }
+
+    private static int getMaxWireVersion(final ActorSystem system) {
+        final DittoMongoClient client = MongoClientExtension.get(system).getUpdaterClient();
+        return client.getMaxWireVersion();
     }
 
     /**
