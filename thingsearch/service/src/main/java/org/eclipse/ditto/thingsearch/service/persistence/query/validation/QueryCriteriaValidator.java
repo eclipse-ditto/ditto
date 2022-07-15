@@ -19,6 +19,8 @@ import java.util.concurrent.CompletionStage;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.base.service.DittoExtensionIds;
 import org.eclipse.ditto.base.service.DittoExtensionPoint;
+import org.eclipse.ditto.rql.query.Query;
+import org.eclipse.ditto.thingsearch.model.signals.commands.query.ThingSearchQueryCommand;
 
 import com.typesafe.config.Config;
 
@@ -32,15 +34,13 @@ import akka.actor.ActorSystem;
 public interface QueryCriteriaValidator extends DittoExtensionPoint {
 
     /**
-     * Gets the criteria of a {@link org.eclipse.ditto.thingsearch.model.signals.commands.query.ThingSearchQueryCommand} and
-     * validates it.
-     * <p>
-     * May throw an exception depending on the implementation in the used QueryCriteriaValidator.
+     * Validate a parsed query of a
+     * {@link org.eclipse.ditto.thingsearch.model.signals.commands.query.ThingSearchQueryCommand}.
      *
-     * @param command the command to validate.
-     * @return the validated command in a future if it is valid, or a failed future if it is not.
+     * @param query The query.
+     * @return The validated query in a future if it is valid, or a failed future if it is not.
      */
-    CompletionStage<Command<?>> validateCommand(Command<?> command);
+    CompletionStage<Query> validateQuery(final Command<?> command, final Query query);
 
     /**
      * Loads the implementation of {@code QueryCriteriaValidator} which is configured for the

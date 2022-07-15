@@ -192,8 +192,8 @@ public final class BackgroundSyncStream {
                             );
             return Source.completionStageSource(askFuture);
         } else {
-            // policy ID does not exist: entry should be updated in search index
-            return Source.single(persisted);
+            // policy ID does not exist: entry should not be updated in search index
+            return Source.empty();
         }
     }
 

@@ -34,6 +34,7 @@ public final class DefaultStreamingConfig implements StreamingConfig {
     private final int parallelism;
     private final AcknowledgementConfig acknowledgementConfig;
     private final Duration searchIdleTimeout;
+    private final Duration subscriptionRefreshDelay;
     private final WebsocketConfig websocketConfig;
     private final SseConfig sseConfig;
 
@@ -44,6 +45,8 @@ public final class DefaultStreamingConfig implements StreamingConfig {
         parallelism = scopedConfig.getPositiveIntOrThrow(StreamingConfigValue.PARALLELISM);
         acknowledgementConfig = DefaultAcknowledgementConfig.of(scopedConfig);
         searchIdleTimeout = scopedConfig.getNonNegativeDurationOrThrow(StreamingConfigValue.SEARCH_IDLE_TIMEOUT);
+        subscriptionRefreshDelay =
+                scopedConfig.getNonNegativeDurationOrThrow(StreamingConfigValue.SUBSCRIPTION_REFRESH_DELAY);
         websocketConfig = DefaultWebsocketConfig.of(scopedConfig);
         sseConfig = DefaultSseConfig.of(scopedConfig);
     }
@@ -91,6 +94,11 @@ public final class DefaultStreamingConfig implements StreamingConfig {
     }
 
     @Override
+    public Duration getSubscriptionRefreshDelay() {
+        return subscriptionRefreshDelay;
+    }
+
+    @Override
     public boolean equals(final Object o) {
         if (this == o) {
             return true;
@@ -101,6 +109,7 @@ public final class DefaultStreamingConfig implements StreamingConfig {
         final DefaultStreamingConfig that = (DefaultStreamingConfig) o;
         return parallelism == that.parallelism &&
                 Objects.equals(searchIdleTimeout, that.searchIdleTimeout) &&
+                Objects.equals(subscriptionRefreshDelay, that.subscriptionRefreshDelay) &&
                 Objects.equals(sessionCounterScrapeInterval, that.sessionCounterScrapeInterval) &&
                 Objects.equals(acknowledgementConfig, that.acknowledgementConfig) &&
                 Objects.equals(websocketConfig, that.websocketConfig) &&
@@ -110,7 +119,7 @@ public final class DefaultStreamingConfig implements StreamingConfig {
     @Override
     public int hashCode() {
         return Objects.hash(parallelism, sessionCounterScrapeInterval, acknowledgementConfig, websocketConfig,
-                sseConfig, searchIdleTimeout);
+                sseConfig, searchIdleTimeout, subscriptionRefreshDelay);
     }
 
     @Override
@@ -119,6 +128,7 @@ public final class DefaultStreamingConfig implements StreamingConfig {
                 "sessionCounterScrapeInterval=" + sessionCounterScrapeInterval +
                 ", parallelism=" + parallelism +
                 ", searchIdleTimeout=" + searchIdleTimeout +
+                ", subscriptionRefreshDelay=" + subscriptionRefreshDelay +
                 ", acknowledgementConfig=" + acknowledgementConfig +
                 ", websocketConfig=" + websocketConfig +
                 ", sseConfig=" + sseConfig +

@@ -69,6 +69,9 @@ public final class DefaultStreamingConfigTest {
         softly.assertThat(underTest.getSearchIdleTimeout())
                 .as(StreamingConfig.StreamingConfigValue.SEARCH_IDLE_TIMEOUT.getConfigPath())
                 .isEqualTo(StreamingConfig.StreamingConfigValue.SEARCH_IDLE_TIMEOUT.getDefaultValue());
+        softly.assertThat(underTest.getSubscriptionRefreshDelay())
+                .as(StreamingConfig.StreamingConfigValue.SUBSCRIPTION_REFRESH_DELAY.getConfigPath())
+                .isEqualTo(StreamingConfig.StreamingConfigValue.SUBSCRIPTION_REFRESH_DELAY.getDefaultValue());
     }
 
     @Test
@@ -84,6 +87,9 @@ public final class DefaultStreamingConfigTest {
         softly.assertThat(underTest.getSearchIdleTimeout())
                 .as(StreamingConfig.StreamingConfigValue.SEARCH_IDLE_TIMEOUT.getConfigPath())
                 .isEqualTo(Duration.ofHours(7L));
+        softly.assertThat(underTest.getSubscriptionRefreshDelay())
+                .as(StreamingConfig.StreamingConfigValue.SUBSCRIPTION_REFRESH_DELAY.getConfigPath())
+                .isEqualTo(Duration.ofHours(8));
         softly.assertThat(underTest.getWebsocketConfig().getThrottlingConfig().getInterval())
                 .as("websocket.throttling.interval")
                 .isEqualTo(Duration.ofSeconds(8L));

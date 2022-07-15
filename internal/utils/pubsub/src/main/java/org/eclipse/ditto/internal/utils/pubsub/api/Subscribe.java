@@ -28,16 +28,19 @@ public final class Subscribe extends AbstractRequest {
 
     @Nullable private final Predicate<Collection<String>> filter;
     @Nullable private final String group;
+    private final boolean resubscribe;
 
     private Subscribe(final Collection<String> topics,
             final ActorRef subscriber,
             final Replicator.WriteConsistency writeConsistency,
             final boolean acknowledge,
             @Nullable final Predicate<Collection<String>> filter,
-            @Nullable final String group) {
+            @Nullable final String group,
+            final boolean resubscribe) {
         super(topics, subscriber, writeConsistency, acknowledge);
         this.filter = filter;
         this.group = group;
+        this.resubscribe = resubscribe;
     }
 
     /**
@@ -55,7 +58,7 @@ public final class Subscribe extends AbstractRequest {
             final Replicator.WriteConsistency writeConsistency,
             final boolean acknowledge,
             @Nullable final String group) {
-        return new Subscribe(topics, subscriber, writeConsistency, acknowledge, null, group);
+        return new Subscribe(topics, subscriber, writeConsistency, acknowledge, null, group, false);
     }
 
     /**
@@ -74,8 +77,9 @@ public final class Subscribe extends AbstractRequest {
             final Replicator.WriteConsistency writeConsistency,
             final boolean acknowledge,
             @Nullable final Predicate<Collection<String>> filter,
-            @Nullable final String group) {
-        return new Subscribe(topics, subscriber, writeConsistency, acknowledge, filter, group);
+            @Nullable final String group,
+            final boolean resubscribe) {
+        return new Subscribe(topics, subscriber, writeConsistency, acknowledge, filter, group, resubscribe);
     }
 
     /**
@@ -91,6 +95,13 @@ public final class Subscribe extends AbstractRequest {
      */
     public Optional<String> getGroup() {
         return Optional.ofNullable(group);
+    }
+
+    /**
+     * @return Whether this is a resubscribe request.
+     */
+    public boolean isResubscribe() {
+        return resubscribe;
     }
 
 }

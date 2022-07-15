@@ -38,6 +38,7 @@ import com.mongodb.ReadPreference;
 import com.mongodb.ServerAddress;
 import com.mongodb.WriteConcern;
 import com.mongodb.connection.ClusterDescription;
+import com.mongodb.connection.ServerDescription;
 import com.mongodb.connection.netty.NettyStreamFactoryFactory;
 import com.mongodb.event.CommandListener;
 import com.mongodb.event.ConnectionPoolListener;
@@ -224,6 +225,16 @@ public final class MongoClientWrapper implements DittoMongoClient {
     }
 
     @Override
+    public int getMaxWireVersion() {
+        return mongoClient.getClusterDescription()
+                .getServerDescriptions()
+                .stream()
+                .mapToInt(ServerDescription::getMaxWireVersion)
+                .max()
+                .orElse(0);
+    }
+
+    @Override
     public ClusterDescription getClusterDescription() {
         return mongoClient.getClusterDescription();
     }
@@ -287,6 +298,9 @@ public final class MongoClientWrapper implements DittoMongoClient {
             final MongoDbConfig.ConnectionPoolConfig connectionPoolConfig = mongoDbConfig.getConnectionPoolConfig();
             builder.connectionPoolMinSize(connectionPoolConfig.getMinSize());
             builder.connectionPoolMaxSize(connectionPoolConfig.getMaxSize());
+            if (!connectionPoolConfig.getMaxIdleTime().isNegative()) {
+                builder.connectionPoolMaxIdleTime(connectionPoolConfig.getMaxIdleTime());
+            }
             builder.connectionPoolMaxWaitTime(connectionPoolConfig.getMaxWaitTime());
             builder.enableJmxListener(connectionPoolConfig.isJmxListenerEnabled());
 
@@ -346,6 +360,12 @@ public final class MongoClientWrapper implements DittoMongoClient {
         @Override
         public MongoClientWrapperBuilder connectionPoolMaxSize(final int maxSize) {
             mongoClientSettingsBuilder.applyToConnectionPoolSettings(builder -> builder.maxSize(maxSize));
+            return this;
+        }
+
+        @Override
+        public MongoClientWrapperBuilder connectionPoolMaxIdleTime(final Duration maxConnectionIdleTime) {
+            mongoClientSettingsBuilder.applyToConnectionPoolSettings(builder -> builder.maxConnectionIdleTime(maxConnectionIdleTime.toMillis(), TimeUnit.MILLISECONDS));
             return this;
         }
 

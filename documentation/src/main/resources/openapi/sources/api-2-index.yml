@@ -210,6 +210,8 @@ components:
       $ref: "./parameters/messageSubjectPathParam.yml"
     MessageTimeoutParam:
       $ref: "./parameters/messageTimeoutParam.yml"
+    Namespace:
+      $ref: "./parameters/namespaceParameter.yml"
     NamespacesFilter:
       $ref: "./parameters/namespacesFilter.yml"
     PolicyIdPathParam:

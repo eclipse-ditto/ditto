@@ -39,6 +39,7 @@ import org.eclipse.ditto.json.JsonValue;
 
 /**
  * Ditto-internal command to start or resume a search request for a stream of thing IDs.
+ *
  * @since 1.1.0
  */
 @Immutable
@@ -54,7 +55,7 @@ public final class SudoStreamThings
     /**
      * Type of this command.
      */
-    public static final String TYPE = TYPE_PREFIX + NAME;
+    public static final String TYPE = ThingSearchSudoCommand.TYPE_PREFIX + NAME;
 
     @Nullable private final String filter;
     @Nullable private final JsonArray namespaces;
@@ -165,9 +166,9 @@ public final class SudoStreamThings
      * @return the created command.
      */
     public SudoStreamThings setNamespaces(@Nullable final Collection<String> namespaces) {
-        if (namespaces == null){
+        if (namespaces == null) {
             return new SudoStreamThings(filter, JsonArray.empty(), sort, sortValues, getDittoHeaders());
-        }else {
+        } else {
             final JsonArray namespacesJson = namespaces.stream()
                     .map(JsonValue::of)
                     .collect(JsonCollectors.valuesToArray());

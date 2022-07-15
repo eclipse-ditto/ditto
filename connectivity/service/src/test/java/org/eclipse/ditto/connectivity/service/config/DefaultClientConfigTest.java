@@ -89,6 +89,9 @@ public final class DefaultClientConfigTest {
         softly.assertThat(underTest.getClientActorRefsNotificationDelay())
                 .as(ClientConfig.ClientConfigValue.CLIENT_ACTOR_REFS_NOTIFICATION_DELAY.getConfigPath())
                 .isEqualTo(ClientConfig.ClientConfigValue.CLIENT_ACTOR_REFS_NOTIFICATION_DELAY.getDefaultValue());
+        softly.assertThat(underTest.getSubscriptionRefreshDelay())
+                .as(ClientConfig.ClientConfigValue.SUBSCRIPTION_REFRESH_DELAY.getConfigPath())
+                .isEqualTo(ClientConfig.ClientConfigValue.SUBSCRIPTION_REFRESH_DELAY.getDefaultValue());
     }
 
     @Test
@@ -122,6 +125,9 @@ public final class DefaultClientConfigTest {
         softly.assertThat(underTest.getClientActorRefsNotificationDelay())
                 .as(ClientConfig.ClientConfigValue.CLIENT_ACTOR_REFS_NOTIFICATION_DELAY.getConfigPath())
                 .isEqualTo(Duration.ofMinutes(8L));
+        softly.assertThat(underTest.getSubscriptionRefreshDelay())
+                .as(ClientConfig.ClientConfigValue.SUBSCRIPTION_REFRESH_DELAY.getConfigPath())
+                .isEqualTo(Duration.ofMinutes(9L));
     }
 
 }

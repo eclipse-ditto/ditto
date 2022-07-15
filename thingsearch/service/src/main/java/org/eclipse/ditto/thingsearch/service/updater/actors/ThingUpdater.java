@@ -31,7 +31,6 @@ import org.eclipse.ditto.base.model.acks.AcknowledgementRequest;
 import org.eclipse.ditto.base.model.acks.DittoAcknowledgementLabel;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
 import org.eclipse.ditto.base.service.actors.ShutdownBehaviour;
 import org.eclipse.ditto.base.service.config.supervision.ExponentialBackOff;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
@@ -106,7 +105,6 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
     private final Materializer materializer;
     private final Duration writeInterval;
     private final Duration thingDeletionTimeout;
-    private final boolean sendingAcksEnabled;
     private ExponentialBackOff backOff;
     private boolean shuttingDown = false;
     @Nullable private UniqueKillSwitch killSwitch;
@@ -166,7 +164,6 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
         backOff = ExponentialBackOff.initial(
                 config.getUpdaterConfig().getStreamConfig().getPersistenceConfig().getExponentialBackOffConfig());
         thingDeletionTimeout = config.getUpdaterConfig().getStreamConfig().getThingDeletionTimeout();
-        sendingAcksEnabled = config.getUpdaterConfig().getStreamConfig().isSendingAcksEnabled();
 
         startSingleTimer(ShutdownTrigger.IDLE.name(), ShutdownTrigger.IDLE, config.getUpdaterConfig().getMaxIdleTime());
 
@@ -218,10 +215,7 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
     }
 
     private FSMStateFunctionBuilder<State, Data> unhandled() {
-        return matchEvent(Acknowledgement.class, (message, data) -> {
-            log.debug("Received redirected Acknowledgement: <{}>", message);
-            return stay();
-        }).anyEvent((message, data) -> {
+        return matchAnyEvent((message, data) -> {
             log.warning("Unknown message in <{}>: <{}>", stateName(), message);
             return stay();
         });
@@ -351,7 +345,14 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
         killSwitch = null;
         final var nextMetadata = data.metadata().export();
         log.debug("Update skipped: <{}>", nextMetadata);
-        return goTo(State.READY).using(new Data(nextMetadata, data.lastWriteModel().setMetadata(nextMetadata)));
+
+        // initial update was skipped, stop updater to avoid endless skipped updates
+        if (data.metadata().getThingRevision() <= 0 && data.lastWriteModel().getMetadata().getThingRevision() <= 0) {
+            log.info("Initial update was skipped - stopping thing updater for <{}>.", thingId);
+            return stop();
+        } else {
+            return goTo(State.READY).using(new Data(nextMetadata, data.lastWriteModel().setMetadata(nextMetadata)));
+        }
     }
 
     private FSM.State<State, Data> tick(final Control tick, final Data data) {
@@ -416,7 +417,7 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
                 sudoUpdateThing.getDittoHeaders().getAcknowledgementRequests().contains(SEARCH_PERSISTED_REQUEST)
                         ? metadata.withAckRecipient(getAckRecipient(sudoUpdateThing.getDittoHeaders()))
                         : metadata;
-        return stay().using(new Data(nextMetadata, lastWriteModel));
+        return stay().using(new Data(data.metadata().append(nextMetadata), lastWriteModel));
     }
 
     private FSM.State<State, Data> onPolicyReferenceTag(final PolicyReferenceTag policyReferenceTag, final Data data) {
@@ -593,26 +594,20 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
     }
 
     private ActorSelection getAckRecipient(final DittoHeaders dittoHeaders) {
-        if (sendingAcksEnabled) {
-            final String ackregatorAddress = dittoHeaders.get(DittoHeaderDefinition.DITTO_ACKREGATOR_ADDRESS.getKey());
-            if (null != ackregatorAddress) {
-                return getContext().actorSelection(ackregatorAddress);
-            } else if (dittoHeaders.getAcknowledgementRequests().stream()
-                            .anyMatch(ackRequest ->
-                                    ackRequest.getLabel().equals(DittoAcknowledgementLabel.SEARCH_PERSISTED))) {
-                log.withCorrelationId(dittoHeaders)
-                        .error("Processed Event did not contain header of acknowledgement aggregator address: {}",
-                                dittoHeaders);
-                // fallback to sender:
-                return getContext().actorSelection(getSender().path());
-            } else {
-                // ignore
-                return getContext().actorSelection(getContext().getSystem().deadLetters().path());
-            }
+        final String ackregatorAddress = dittoHeaders.get(DittoHeaderDefinition.DITTO_ACKREGATOR_ADDRESS.getKey());
+        if (null != ackregatorAddress) {
+            return getContext().actorSelection(ackregatorAddress);
+        } else if (dittoHeaders.getAcknowledgementRequests().stream()
+                .anyMatch(ackRequest ->
+                        ackRequest.getLabel().equals(DittoAcknowledgementLabel.SEARCH_PERSISTED))) {
+            log.withCorrelationId(dittoHeaders)
+                    .error("Processed Event did not contain header of acknowledgement aggregator address: {}",
+                            dittoHeaders);
+            // fallback to sender:
+            return getContext().actorSelection(getSender().path());
         } else {
-            // return self as sender to prevent acknowledgements being sent to original sender
-            // this actor just write a log statement when receiving an acknowledgement
-            return getContext().actorSelection(getSelf().path());
+            // ignore
+            return getContext().actorSelection(getContext().getSystem().deadLetters().path());
         }
     }
 }

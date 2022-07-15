@@ -36,8 +36,17 @@ import akka.stream.javadsl.Source;
  */
 public abstract class SearchUpdateMapper implements DittoExtensionPoint {
 
+    protected final ActorSystem actorSystem;
+    protected final int maxWireVersion;
+
     protected SearchUpdateMapper(final ActorSystem actorSystem, final Config config) {
-        //No-Op
+        //TODO: Yannic make config contain this.
+        this(actorSystem, config.getInt("max-wire-version"));
+    }
+
+    protected SearchUpdateMapper(final ActorSystem actorSystem, final Integer maxWireVersion) {
+        this.actorSystem = actorSystem;
+        this.maxWireVersion = maxWireVersion;
     }
 
     /**
@@ -73,10 +82,10 @@ public abstract class SearchUpdateMapper implements DittoExtensionPoint {
      * @return a singleton list of write model together with its update document, or an empty list if there is no
      * change.
      */
-    protected static Source<MongoWriteModel, NotUsed>
+    protected Source<MongoWriteModel, NotUsed>
     toIncrementalMongo(final AbstractWriteModel model, final AbstractWriteModel lastWriteModel, final Logger logger) {
         try {
-            final var mongoWriteModelOpt = model.toIncrementalMongo(lastWriteModel);
+            final var mongoWriteModelOpt = model.toIncrementalMongo(lastWriteModel, maxWireVersion);
             if (mongoWriteModelOpt.isEmpty()) {
                 logger.debug("Write model is unchanged, skipping update: <{}>", model);
                 model.getMetadata().sendWeakAck(null);

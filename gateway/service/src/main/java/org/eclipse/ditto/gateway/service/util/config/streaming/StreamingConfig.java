@@ -76,6 +76,13 @@ public interface StreamingConfig {
     Duration getSearchIdleTimeout();
 
     /**
+     * Returns the minimum delay before refreshing the Ditto pubsub subscriptions of a stream.
+     *
+     * @return the minimum delay.
+     */
+    Duration getSubscriptionRefreshDelay();
+
+    /**
      * Render this object into a Config object from which a copy of this object can be constructed.
      *
      * @return a config representation.
@@ -86,6 +93,7 @@ public interface StreamingConfig {
                 getSessionCounterScrapeInterval().toMillis() + "ms");
         map.put(StreamingConfigValue.PARALLELISM.getConfigPath(), getParallelism());
         map.put(StreamingConfigValue.SEARCH_IDLE_TIMEOUT.getConfigPath(), getSearchIdleTimeout());
+        map.put(StreamingConfigValue.SUBSCRIPTION_REFRESH_DELAY.getConfigPath(), getSubscriptionRefreshDelay());
         return ConfigFactory.parseMap(map)
                 .withFallback(getWebsocketConfig().render())
                 .atKey(CONFIG_PATH);
@@ -110,7 +118,12 @@ public interface StreamingConfig {
         /**
          * How long to wait before closing an idle search stream.
          */
-        SEARCH_IDLE_TIMEOUT("search-idle-timeout", Duration.ofSeconds(45));
+        SEARCH_IDLE_TIMEOUT("search-idle-timeout", Duration.ofSeconds(45)),
+
+        /**
+         * Minimum delay before refreshing the Ditto pubsub subscriptions of a stream.
+         */
+        SUBSCRIPTION_REFRESH_DELAY("subscription-refresh-delay", Duration.ofMinutes(5));
 
         private final String path;
         private final Object defaultValue;

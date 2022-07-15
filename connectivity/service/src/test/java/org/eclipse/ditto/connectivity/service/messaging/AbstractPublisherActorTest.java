@@ -59,6 +59,8 @@ public abstract class AbstractPublisherActorTest {
 
     protected static final Config CONFIG = ConfigFactory.load("test");
     protected static final ThingId THING_ID = ThingId.of("thing", "id");
+    protected static final String DEVICE_ID = "ditto:thing";
+
     protected ActorSystem actorSystem;
     protected TestProbe proxyActorTestProbe;
     protected ActorRef proxyActor;
@@ -195,7 +197,7 @@ public abstract class AbstractPublisherActorTest {
 
         final DittoHeadersBuilder<?, ?> headersBuilder = DittoHeaders.newBuilder()
                 .correlationId(TestConstants.CORRELATION_ID)
-                .putHeader("device_id", "ditto:thing");
+                .putHeader("device_id", DEVICE_ID);
         for (int i = 0; 2 * i + 1 < extraHeaders.length; ++i) {
             headersBuilder.putHeader(extraHeaders[2 * i], extraHeaders[2 * i + 1]);
         }

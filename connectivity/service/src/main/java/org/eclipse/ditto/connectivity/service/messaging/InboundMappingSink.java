@@ -23,7 +23,6 @@ import javax.annotation.Nullable;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.service.config.ThrottlingConfig;
-import org.eclipse.ditto.connectivity.api.ExternalMessage;
 import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.connectivity.service.config.mapping.MappingConfig;
 import org.eclipse.ditto.connectivity.service.messaging.mappingoutcome.MappingOutcome;
@@ -32,7 +31,6 @@ import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLogger;
 
 import akka.NotUsed;
-import akka.actor.ActorRef;
 import akka.actor.Status;
 import akka.dispatch.MessageDispatcher;
 import akka.stream.javadsl.Flow;
@@ -169,38 +167,27 @@ public final class InboundMappingSink {
 
     private InboundMappingOutcomes mapInboundMessage(final ExternalMessageWithSender withSender,
             final InboundMappingProcessor inboundMappingProcessor) {
-        final var externalMessage = withSender.externalMessage;
-        final String correlationId =
-                externalMessage.getHeaders().get(DittoHeaderDefinition.CORRELATION_ID.getKey());
+
+        final var externalMessage = withSender.externalMessage();
+        @Nullable final var correlationId =
+                externalMessage.findHeaderIgnoreCase(DittoHeaderDefinition.CORRELATION_ID.getKey()).orElse(null);
         logger.withCorrelationId(correlationId)
                 .debug("Handling ExternalMessage: {}", externalMessage);
         try {
-            return mapExternalMessageToSignal(withSender, externalMessage, inboundMappingProcessor);
+            return mapExternalMessageToSignal(withSender, inboundMappingProcessor);
         } catch (final Exception e) {
-            final var outcomes =
-                    InboundMappingOutcomes.of(withSender.externalMessage, e, withSender.sender);
             logger.withCorrelationId(correlationId)
                     .error("Handling exception when mapping external message: {}", e.getMessage());
-            return outcomes;
+            return InboundMappingOutcomes.of(withSender.externalMessage(), e, withSender.sender());
         }
     }
 
-    private InboundMappingOutcomes mapExternalMessageToSignal(final ExternalMessageWithSender withSender,
-            final ExternalMessage externalMessage, final InboundMappingProcessor inboundMappingProcessor) {
-        return InboundMappingOutcomes.of(inboundMappingProcessor.process(withSender.externalMessage),
-                externalMessage, withSender.sender);
-    }
+    private static InboundMappingOutcomes mapExternalMessageToSignal(final ExternalMessageWithSender withSender,
+            final InboundMappingProcessor inboundMappingProcessor) {
 
-    static final class ExternalMessageWithSender {
-
-        private final ExternalMessage externalMessage;
-        private final ActorRef sender;
-
-        ExternalMessageWithSender(final ExternalMessage externalMessage, final ActorRef sender) {
-            this.externalMessage = externalMessage;
-            this.sender = sender;
-        }
-
+        return InboundMappingOutcomes.of(inboundMappingProcessor.process(withSender.externalMessage()),
+                withSender.externalMessage(),
+                withSender.sender());
     }
 
 }

@@ -109,6 +109,7 @@ import akka.actor.Props;
 import akka.actor.Status;
 import akka.japi.Pair;
 import akka.japi.pf.PFBuilder;
+import akka.stream.QueueOfferResult;
 import akka.stream.javadsl.Flow;
 import akka.stream.javadsl.Sink;
 import akka.stream.javadsl.Source;
@@ -343,6 +344,17 @@ public final class OutboundMappingProcessorActor
             return outboundSignalWithSender;
         } else {
             return OutboundSignalWithSender.of(message, getSender());
+        }
+    }
+
+    @Override
+    protected void messageDiscarded(OutboundSignal message,  QueueOfferResult result) {
+        if (QueueOfferResult.dropped().equals(result)) {
+            responseDispatchedMonitor.failure(message.getSource(), "Message is dropped as a result of backpressure strategy!");
+        } else if (result instanceof final QueueOfferResult.Failure failure) {
+            responseDispatchedMonitor.failure(message.getSource(), "Enqueue failed! - failure: {}", failure.cause());
+        } else {
+            responseDispatchedMonitor.failure(message.getSource(), "Enqueue failed without acknowledgement!");
         }
     }
 

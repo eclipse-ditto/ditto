@@ -148,7 +148,7 @@ public final class PubSubFactoryTest {
 
             // WHEN: actor subscribes to a topic with acknowledgement
             final SubAck subAck =
-                    sub.subscribeWithFilterAndGroup(singleton("hello"), subscriber.ref(), null, null).toCompletableFuture().join();
+                    sub.subscribeWithFilterAndGroup(singleton("hello"), subscriber.ref(), null, null, false).toCompletableFuture().join();
 
             // THEN: subscription is acknowledged
             assertThat(subAck.getRequest()).isInstanceOf(Subscribe.class);
@@ -175,7 +175,7 @@ public final class PubSubFactoryTest {
             subscriber.expectNoMessage();
 
             // WHEN: actor subscribes to the topic again
-            sub.subscribeWithFilterAndGroup(singleton("hello"), subscriber.ref(), null, null)
+            sub.subscribeWithFilterAndGroup(singleton("hello"), subscriber.ref(), null, null, false)
                     .toCompletableFuture()
                     .join();
             // THEN: it receives published message again
@@ -197,10 +197,12 @@ public final class PubSubFactoryTest {
             final TestProbe subscriber4 = TestProbe.apply(system2);
 
             // GIVEN: subscribers of different topics exist on both actor systems
-            await(sub1.subscribeWithFilterAndGroup(asList("he", "av'n", "has", "no", "rage", "nor"), subscriber1.ref(), null, null));
-            await(sub2.subscribeWithFilterAndGroup(asList("hell", "a", "fury"), subscriber2.ref(), null, null));
-            await(sub1.subscribeWithFilterAndGroup(asList("like", "a", "woman", "scorn'd"), subscriber3.ref(), null, null));
-            await(sub2.subscribeWithFilterAndGroup(asList("exeunt", "omnes"), subscriber4.ref(), null, null).toCompletableFuture());
+            await(sub1.subscribeWithFilterAndGroup(asList("he", "av'n", "has", "no", "rage", "nor"), subscriber1.ref(), null, null,
+                    false));
+            await(sub2.subscribeWithFilterAndGroup(asList("hell", "a", "fury"), subscriber2.ref(), null, null, false));
+            await(sub1.subscribeWithFilterAndGroup(asList("like", "a", "woman", "scorn'd"), subscriber3.ref(), null, null,
+                    false));
+            await(sub2.subscribeWithFilterAndGroup(asList("exeunt", "omnes"), subscriber4.ref(), null, null, false).toCompletableFuture());
 
             // WHEN: many messages are published
             final int messages = 100;
@@ -228,7 +230,7 @@ public final class PubSubFactoryTest {
             watch(subscriber.ref());
 
             // GIVEN: a pub-sub channel is set up
-            sub.subscribeWithFilterAndGroup(singleton("hello"), subscriber.ref(), null, null).toCompletableFuture().join();
+            sub.subscribeWithFilterAndGroup(singleton("hello"), subscriber.ref(), null, null, false).toCompletableFuture().join();
             pub.publish(signal("hello"), publisher.ref());
             subscriber.expectMsg(signal("hello"));
 
@@ -258,7 +260,7 @@ public final class PubSubFactoryTest {
             expectMsgClass(ClusterEvent.CurrentClusterState.class);
 
             // GIVEN: a pub-sub channel is set up
-            sub.subscribeWithFilterAndGroup(singleton("hello"), subscriber.ref(), null, null).toCompletableFuture().join();
+            sub.subscribeWithFilterAndGroup(singleton("hello"), subscriber.ref(), null, null, false).toCompletableFuture().join();
             pub.publish(signal("hello"), publisher.ref());
             subscriber.expectMsg(signal("hello"));
 
@@ -295,7 +297,7 @@ public final class PubSubFactoryTest {
 
             // THEN: they fulfill their function.
             final SubAck subAck =
-                    sub.subscribeWithFilterAndGroup(singleton("hello"), subscriber.ref(), null, null).toCompletableFuture().join();
+                    sub.subscribeWithFilterAndGroup(singleton("hello"), subscriber.ref(), null, null, false).toCompletableFuture().join();
             assertThat(subAck.getRequest()).isInstanceOf(Subscribe.class);
             assertThat(subAck.getRequest().getTopics()).containsExactlyInAnyOrder("hello");
 
@@ -369,7 +371,7 @@ public final class PubSubFactoryTest {
 
             // GIVEN: subscriber declares the requested acknowledgement
             await(factory2.getDistributedAcks().declareAcknowledgementLabels(acks("ack"), subscriber.ref()));
-            await(sub.subscribeWithFilterAndGroup(List.of("subscriber-topic"), subscriber.ref(), null, null));
+            await(sub.subscribeWithFilterAndGroup(List.of("subscriber-topic"), subscriber.ref(), null, null, false));
 
             // ensure ddata is replicated to publisher
             waitForHeartBeats(system2, factory2);
@@ -416,7 +418,7 @@ public final class PubSubFactoryTest {
             // GIVEN: different subscribers declare the requested acknowledgement and subscribe for the publisher topic
             final String publisherTopic = "publisher-topic";
             await(factory2.getDistributedAcks().declareAcknowledgementLabels(acks("ack"), subscriber1.ref()));
-            await(sub.subscribeWithFilterAndGroup(List.of(publisherTopic), subscriber2.ref(), null, null));
+            await(sub.subscribeWithFilterAndGroup(List.of(publisherTopic), subscriber2.ref(), null, null, false));
 
             // ensure ddata is replicated to publisher
             waitForHeartBeats(system2, factory2);
@@ -570,12 +572,12 @@ public final class PubSubFactoryTest {
 
             // GIVEN: subscribers subscribe to the same topic as a group
             final String topic = "topic";
-            await(sub1.subscribeWithFilterAndGroup(List.of(topic), subscriber1.ref(), null, "group"));
-            await(sub2.subscribeWithFilterAndGroup(List.of(topic), subscriber2.ref(), null, "group"));
-            await(sub1.subscribeWithFilterAndGroup(List.of(topic), subscriber3.ref(), null, "group"));
-            await(sub2.subscribeWithFilterAndGroup(List.of(topic), subscriber4.ref(), null, "group"));
-            await(sub3.subscribeWithFilterAndGroup(List.of(topic), subscriber5.ref(), null, "group"));
-            await(sub3.subscribeWithFilterAndGroup(List.of(topic), subscriber6.ref(), null, "group"));
+            await(sub1.subscribeWithFilterAndGroup(List.of(topic), subscriber1.ref(), null, "group", false));
+            await(sub2.subscribeWithFilterAndGroup(List.of(topic), subscriber2.ref(), null, "group", false));
+            await(sub1.subscribeWithFilterAndGroup(List.of(topic), subscriber3.ref(), null, "group", false));
+            await(sub2.subscribeWithFilterAndGroup(List.of(topic), subscriber4.ref(), null, "group", false));
+            await(sub3.subscribeWithFilterAndGroup(List.of(topic), subscriber5.ref(), null, "group", false));
+            await(sub3.subscribeWithFilterAndGroup(List.of(topic), subscriber6.ref(), null, "group", false));
 
             // WHEN: signals are published with different entity IDs differing by 1 in the last byte
             pub1.publish(signal(topic, 0), publisher.ref());
@@ -621,10 +623,10 @@ public final class PubSubFactoryTest {
             final String topic = "topic";
             await(distributedAcks1.declareAcknowledgementLabels(acks("ack"), subscriber1.ref(), "group"));
             await(distributedAcks2.declareAcknowledgementLabels(acks("ack"), subscriber2.ref(), "group"));
-            await(sub1.subscribeWithFilterAndGroup(List.of(topic), subscriber1.ref(), null, "group"));
-            await(sub2.subscribeWithFilterAndGroup(List.of(topic), subscriber2.ref(), null, "group"));
-            await(sub1.subscribeWithFilterAndGroup(List.of(topic), subscriber3.ref(), null, null));
-            await(sub2.subscribeWithFilterAndGroup(List.of(topic), subscriber4.ref(), null, null));
+            await(sub1.subscribeWithFilterAndGroup(List.of(topic), subscriber1.ref(), null, "group", false));
+            await(sub2.subscribeWithFilterAndGroup(List.of(topic), subscriber2.ref(), null, "group", false));
+            await(sub1.subscribeWithFilterAndGroup(List.of(topic), subscriber3.ref(), null, null, false));
+            await(sub2.subscribeWithFilterAndGroup(List.of(topic), subscriber4.ref(), null, null, false));
 
             // WHEN: signals are published with different entity IDs differing by 1 in the last byte
             final EntityId thingId = EntityId.of(EntityType.of("thing"), "thing:id");
@@ -660,7 +662,7 @@ public final class PubSubFactoryTest {
 
             // GIVEN: subscriber declares ack labels and subscribe for a topic
             await(distributedAcks1.declareAcknowledgementLabels(acks("ack"), subscriber.ref(), "group"));
-            await(sub.subscribeWithFilterAndGroup(List.of("topic"), subscriber.ref(), null, "group"));
+            await(sub.subscribeWithFilterAndGroup(List.of("topic"), subscriber.ref(), null, "group", false));
 
             // WHEN: children of SubSupervisor terminate
             sub.subSupervisor.tell(ActorEvent.DEBUG_KILL_CHILDREN, getRef());
@@ -671,7 +673,7 @@ public final class PubSubFactoryTest {
             // THEN: distributed pubsub recovers after restart
             TimeUnit.MILLISECONDS.sleep(PubSubConfig.of(system1).getRestartDelay().multipliedBy(3L).toMillis());
             await(distributedAcks1.declareAcknowledgementLabels(acks("ack"), subscriber.ref(), "group"));
-            await(sub.subscribeWithFilterAndGroup(List.of("topic"), subscriber.ref(), null, "group"));
+            await(sub.subscribeWithFilterAndGroup(List.of("topic"), subscriber.ref(), null, "group", false));
         }};
     }
 
@@ -683,7 +685,7 @@ public final class PubSubFactoryTest {
 
             // GIVEN: subscriber declares ack labels and subscribe for a topic
             await(distributedAcks1.declareAcknowledgementLabels(acks("ack"), subscriber.ref(), "group"));
-            await(sub.subscribeWithFilterAndGroup(List.of("topic"), subscriber.ref(), null, "group"));
+            await(sub.subscribeWithFilterAndGroup(List.of("topic"), subscriber.ref(), null, "group", false));
 
             // WHEN: ackUpdater terminates
             final TestProbe localUpdateProbe = TestProbe.apply("localUpdate", system1);
@@ -697,7 +699,7 @@ public final class PubSubFactoryTest {
             // THEN: distributed pubsub recovers after restart
             TimeUnit.MILLISECONDS.sleep(PubSubConfig.of(system1).getRestartDelay().multipliedBy(3L).toMillis());
             await(distributedAcks1.declareAcknowledgementLabels(acks("ack"), subscriber.ref(), "group"));
-            await(sub.subscribeWithFilterAndGroup(List.of("topic"), subscriber.ref(), null, "group"));
+            await(sub.subscribeWithFilterAndGroup(List.of("topic"), subscriber.ref(), null, "group", false));
         }};
     }
 

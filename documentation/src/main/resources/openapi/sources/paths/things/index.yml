@@ -82,6 +82,7 @@ post:
     - $ref: '../../parameters/timeoutParam.yml'
     - $ref: '../../parameters/responseRequiredParam.yml'
     - $ref: '../../parameters/allowPolicyLockoutParam.yml'
+    - $ref: '../../parameters/namespaceParameter.yml'
   responses:
     '201':
       description: The thing was successfully created.

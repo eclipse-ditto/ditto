@@ -32,7 +32,7 @@ import org.eclipse.ditto.policies.api.PolicyTag;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.thingsearch.api.PolicyReferenceTag;
-import org.eclipse.ditto.thingsearch.service.common.config.UpdaterPersistenceConfig;
+import org.eclipse.ditto.thingsearch.service.common.config.SearchPersistenceConfig;
 import org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants;
 import org.eclipse.ditto.thingsearch.service.persistence.write.ThingsSearchUpdaterPersistence;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.AbstractWriteModel;
@@ -56,7 +56,7 @@ public final class MongoThingsSearchUpdaterPersistence implements ThingsSearchUp
     private final MongoCollection<Document> collection;
 
     private MongoThingsSearchUpdaterPersistence(final MongoDatabase database,
-            final UpdaterPersistenceConfig updaterPersistenceConfig) {
+            final SearchPersistenceConfig updaterPersistenceConfig) {
 
         collection = database.getCollection(PersistenceConstants.THINGS_COLLECTION_NAME)
                 .withReadConcern(updaterPersistenceConfig.readConcern().getMongoReadConcern())
@@ -70,7 +70,7 @@ public final class MongoThingsSearchUpdaterPersistence implements ThingsSearchUp
      * @param updaterPersistenceConfig the updater persistence config to use.
      */
     public static ThingsSearchUpdaterPersistence of(final MongoDatabase database,
-            final UpdaterPersistenceConfig updaterPersistenceConfig) {
+            final SearchPersistenceConfig updaterPersistenceConfig) {
         return new MongoThingsSearchUpdaterPersistence(database, updaterPersistenceConfig);
     }
 

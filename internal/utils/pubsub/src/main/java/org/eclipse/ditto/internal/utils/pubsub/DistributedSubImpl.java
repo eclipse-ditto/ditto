@@ -56,11 +56,12 @@ final class DistributedSubImpl implements DistributedSub {
     public CompletionStage<SubAck> subscribeWithFilterAndGroup(final Collection<String> topics,
             final ActorRef subscriber,
             @Nullable final Predicate<Collection<String>> filter,
-            @Nullable final String group) {
+            @Nullable final String group,
+            final boolean resubscribe) {
         if (group != null) {
             checkNotEmpty(group, "group");
         }
-        final Subscribe subscribe = Subscribe.of(topics, subscriber, writeConsistency, true, filter, group);
+        final Subscribe subscribe = Subscribe.of(topics, subscriber, writeConsistency, true, filter, group, resubscribe);
         final CompletionStage<SubAck> subAckFuture = askSubSupervisor(subscribe);
 
         if (ddataDelayInMillis <= 0) {

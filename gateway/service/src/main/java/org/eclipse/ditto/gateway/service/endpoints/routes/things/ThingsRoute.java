@@ -91,6 +91,7 @@ public final class ThingsRoute extends AbstractRoute {
     private static final String PATH_POLICY_ID = "policyId";
     private static final String PATH_ATTRIBUTES = "attributes";
     private static final String PATH_THING_DEFINITION = "definition";
+    private static final String NAMESPACE_PARAMETER = "namespace";
 
     private final FeaturesRoute featuresRoute;
     private final MessagesRoute messagesRoute;
@@ -289,14 +290,16 @@ public final class ThingsRoute extends AbstractRoute {
             if (isLiveChannel(channelOpt, dittoHeaders)) {
                 throw ThingNotCreatableException.forLiveChannel(dittoHeaders);
             }
-
-            return ensureMediaTypeJsonWithFallbacksThenExtractDataBytes(ctx, dittoHeaders,
-                    payloadSource ->
-                            handlePerRequest(ctx, dittoHeaders, payloadSource,
-                                    thingJson -> CreateThing.of(createThingForPost(thingJson),
-                                            createInlinePolicyJson(thingJson),
-                                            getCopyPolicyFrom(thingJson),
-                                            dittoHeaders)));
+            return parameterOptional(NAMESPACE_PARAMETER, namespaceOpt ->
+                    ensureMediaTypeJsonWithFallbacksThenExtractDataBytes(ctx, dittoHeaders,
+                            payloadSource ->
+                                    handlePerRequest(ctx, dittoHeaders, payloadSource,
+                                            thingJson -> CreateThing.of(
+                                                    createThingForPost(thingJson, namespaceOpt.orElse(null)),
+                                                    createInlinePolicyJson(thingJson),
+                                                    getCopyPolicyFrom(thingJson),
+                                                    dittoHeaders)))
+            );
         });
     }
 
@@ -308,14 +311,14 @@ public final class ThingsRoute extends AbstractRoute {
         return isLiveChannelQueryParameter || isLiveChannelHeader;
     }
 
-    private static Thing createThingForPost(final String jsonString) {
+    private static Thing createThingForPost(final String jsonString, @Nullable final String namespace) {
         final var inputJson = wrapJsonRuntimeException(() -> JsonFactory.newObject(jsonString));
         if (inputJson.contains(Thing.JsonFields.ID.getPointer())) {
             throw ThingIdNotExplicitlySettableException.forPostMethod().build();
         }
 
         return ThingsModelFactory.newThingBuilder(inputJson)
-                .setId(ThingBuilder.generateRandomTypedThingId())
+                .setId(ThingBuilder.generateRandomTypedThingId(namespace))
                 .build();
     }
 

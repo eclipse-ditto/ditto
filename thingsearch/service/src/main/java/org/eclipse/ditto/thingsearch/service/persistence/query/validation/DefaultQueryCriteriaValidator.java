@@ -16,6 +16,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
 import org.eclipse.ditto.base.model.signals.commands.Command;
+import org.eclipse.ditto.rql.query.Query;
 
 import com.typesafe.config.Config;
 
@@ -35,7 +36,7 @@ public final class DefaultQueryCriteriaValidator implements QueryCriteriaValidat
     }
 
     @Override
-    public CompletionStage<Command<?>> validateCommand(final Command<?> command) {
-        return CompletableFuture.completedStage(command);
+    public CompletionStage<Query> validateQuery(final Command<?> command, final Query query) {
+        return CompletableFuture.completedStage(query);
     }
 }

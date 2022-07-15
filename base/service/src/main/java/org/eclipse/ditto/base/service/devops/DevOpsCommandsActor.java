@@ -62,6 +62,7 @@ import com.typesafe.config.Config;
 
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
+import akka.actor.PoisonPill;
 import akka.actor.Props;
 import akka.actor.ReceiveTimeout;
 import akka.cluster.Cluster;
@@ -85,6 +86,11 @@ public final class DevOpsCommandsActor extends AbstractActor implements Retrieve
      * Ditto header to turn aggregation on and off.
      */
     public static final String AGGREGATE_HEADER = "aggregate";
+
+    /**
+     * Name of the poison pill "command".
+     */
+    private static final String POISON_PILL_NAME = "poison-pill";
 
     private static final Duration DEFAULT_RECEIVE_TIMEOUT = Duration.ofMillis(10_000);
     private static final String UNKNOWN_MESSAGE_TEMPLATE = "Unknown message: {}";
@@ -374,29 +380,34 @@ public final class DevOpsCommandsActor extends AbstractActor implements Retrieve
     }
 
     private void deserializePiggybackCommand(final ExecutePiggybackCommand command,
-            final Consumer<Jsonifiable<?>> onSuccess, final Consumer<DittoRuntimeException> onError) {
+            final Consumer<Object> onSuccess, final Consumer<DittoRuntimeException> onError) {
 
         final JsonObject piggybackCommandJson = command.getPiggybackCommand();
         @Nullable final String piggybackCommandType = piggybackCommandJson.getValue(Command.JsonFields.TYPE)
                 .orElse(null);
-        final Consumer<JsonParsable<Jsonifiable<?>>> action = mappingStrategy -> {
-            try {
-                onSuccess.accept(mappingStrategy.parse(piggybackCommandJson, command.getDittoHeaders()));
-            } catch (final DittoRuntimeException e) {
-                logger.withCorrelationId(command)
-                        .warning("Got DittoRuntimeException while parsing PiggybackCommand <{}>: {}!",
-                                piggybackCommandType, e);
-                onError.accept(e);
-            }
-        };
-        final Runnable emptyAction = () -> {
-            final String msgPattern = "ExecutePiggybackCommand with PiggybackCommand <%s> cannot be executed by this"
-                    + " service as there is no mapping strategy for it!";
-            final String message = String.format(msgPattern, piggybackCommandType);
-            logger.withCorrelationId(command).warning(message);
-            onError.accept(JsonTypeNotParsableException.fromMessage(message, command.getDittoHeaders()));
-        };
-        serviceMappingStrategy.getMappingStrategy(piggybackCommandType).ifPresentOrElse(action, emptyAction);
+        if (POISON_PILL_NAME.equals(piggybackCommandType)) {
+            onSuccess.accept(PoisonPill.getInstance());
+        } else {
+            final Consumer<JsonParsable<Jsonifiable<?>>> action = mappingStrategy -> {
+                try {
+                    onSuccess.accept(mappingStrategy.parse(piggybackCommandJson, command.getDittoHeaders()));
+                } catch (final DittoRuntimeException e) {
+                    logger.withCorrelationId(command)
+                            .warning("Got DittoRuntimeException while parsing PiggybackCommand <{}>: {}!",
+                                    piggybackCommandType, e);
+                    onError.accept(e);
+                }
+            };
+            final Runnable emptyAction = () -> {
+                final String msgPattern =
+                        "ExecutePiggybackCommand with PiggybackCommand <%s> cannot be executed by this"
+                                + " service as there is no mapping strategy for it!";
+                final String message = String.format(msgPattern, piggybackCommandType);
+                logger.withCorrelationId(command).warning(message);
+                onError.accept(JsonTypeNotParsableException.fromMessage(message, command.getDittoHeaders()));
+            };
+            serviceMappingStrategy.getMappingStrategy(piggybackCommandType).ifPresentOrElse(action, emptyAction);
+        }
     }
 
     private DevOpsErrorResponse getErrorResponse(final DevOpsCommand<?> command, final JsonObject error) {
@@ -603,6 +614,7 @@ public final class DevOpsCommandsActor extends AbstractActor implements Retrieve
 
         @Override
         public void preStart() throws Exception {
+            super.preStart();
             final var context = getContext();
             context.setReceiveTimeout(getReceiveTimeout());
         }

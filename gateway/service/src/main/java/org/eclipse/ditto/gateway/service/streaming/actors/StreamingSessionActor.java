@@ -55,9 +55,9 @@ import org.eclipse.ditto.gateway.service.streaming.signals.Jwt;
 import org.eclipse.ditto.gateway.service.streaming.signals.RefreshSession;
 import org.eclipse.ditto.gateway.service.streaming.signals.StartStreaming;
 import org.eclipse.ditto.gateway.service.streaming.signals.StopStreaming;
+import org.eclipse.ditto.gateway.service.util.config.streaming.StreamingConfig;
 import org.eclipse.ditto.internal.models.acks.AcknowledgementAggregatorActorStarter;
 import org.eclipse.ditto.internal.models.acks.AcknowledgementForwarderActor;
-import org.eclipse.ditto.internal.models.acks.config.AcknowledgementConfig;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.internal.utils.pubsub.StreamingType;
@@ -107,7 +107,7 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
     private final DittoProtocolSub dittoProtocolSub;
     private final SourceQueueWithComplete<SessionedJsonifiable> eventAndResponsePublisher;
     private final ActorRef commandForwarder;
-    private final AcknowledgementConfig acknowledgementConfig;
+    private final StreamingConfig streamingConfig;
     private final ActorRef subscriptionManager;
     private final Set<StreamingType> outstandingSubscriptionAcks;
     private final Map<StreamingType, StreamingSession> streamingSessions;
@@ -123,7 +123,7 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
     private StreamingSessionActor(final Connect connect,
             final DittoProtocolSub dittoProtocolSub,
             final ActorRef commandForwarder,
-            final AcknowledgementConfig acknowledgementConfig,
+            final StreamingConfig streamingConfig,
             final HeaderTranslator headerTranslator,
             final Props subscriptionManagerProps,
             final JwtValidator jwtValidator,
@@ -135,14 +135,14 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
         this.dittoProtocolSub = dittoProtocolSub;
         eventAndResponsePublisher = connect.getEventAndResponsePublisher();
         this.commandForwarder = commandForwarder;
-        this.acknowledgementConfig = acknowledgementConfig;
+        this.streamingConfig = streamingConfig;
         this.jwtValidator = jwtValidator;
         this.jwtAuthenticationResultProvider = jwtAuthenticationResultProvider;
         outstandingSubscriptionAcks = EnumSet.noneOf(StreamingType.class);
         authorizationContext = connect.getConnectionAuthContext();
         streamingSessions = new EnumMap<>(StreamingType.class);
         ackregatorStarter = AcknowledgementAggregatorActorStarter.of(getContext(),
-                acknowledgementConfig,
+                streamingConfig.getAcknowledgementConfig(),
                 headerTranslator,
                 null,
                 List.of(
@@ -159,6 +159,7 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
         connect.getSessionExpirationTime().ifPresent(this::startSessionTimeout);
         subscriptionManager = getContext().actorOf(subscriptionManagerProps, SubscriptionManager.ACTOR_NAME);
         declaredAcks = connect.getDeclaredAcknowledgementLabels();
+        startSubscriptionRefreshTimer();
     }
 
     /**
@@ -167,7 +168,7 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
      * @param connect the command to start a streaming session.
      * @param dittoProtocolSub manager of subscriptions.
      * @param commandForwarder the actor who distributes incoming commands in the Ditto cluster.
-     * @param acknowledgementConfig the config to apply for Acknowledgements.
+     * @param streamingConfig the config to apply for the streaming session.
      * @param headerTranslator translates headers from external sources or to external sources.
      * @param subscriptionManagerProps Props of the subscription manager for search protocol.
      * @param jwtValidator validator of JWT tokens.
@@ -177,7 +178,7 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
     static Props props(final Connect connect,
             final DittoProtocolSub dittoProtocolSub,
             final ActorRef commandForwarder,
-            final AcknowledgementConfig acknowledgementConfig,
+            final StreamingConfig streamingConfig,
             final HeaderTranslator headerTranslator,
             final Props subscriptionManagerProps,
             final JwtValidator jwtValidator,
@@ -187,7 +188,7 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
                 connect,
                 dittoProtocolSub,
                 commandForwarder,
-                acknowledgementConfig,
+                streamingConfig,
                 headerTranslator,
                 subscriptionManagerProps,
                 jwtValidator,
@@ -366,6 +367,7 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
                 })
                 .match(ConfirmSubscription.class, msg -> confirmSubscription(msg.getStreamingType()))
                 .match(ConfirmUnsubscription.class, msg -> confirmUnsubscription(msg.getStreamingType()))
+                .matchEquals(Control.RESUBSCRIBE, this::resubscribe)
                 .build();
     }
 
@@ -476,7 +478,7 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
                     getContext().actorSelection(commandForwarder.path()),
                     entityIdWithType,
                     signal,
-                    acknowledgementConfig,
+                    streamingConfig.getAcknowledgementConfig(),
                     declaredAcks::contains);
         } else {
             return signal;
@@ -647,7 +649,9 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
                     .exceptionally(error -> {
                         final var dittoRuntimeException =
                                 DittoRuntimeException.asDittoRuntimeException(error,
-                                        cause -> AcknowledgementLabelNotUniqueException.newBuilder().cause(cause).build());
+                                        cause -> AcknowledgementLabelNotUniqueException.newBuilder()
+                                                .cause(cause)
+                                                .build());
                         logger.info("Acknowledgement label declaration failed for labels: <{}> - cause: {} {}",
                                 acknowledgementLabels, error.getClass().getSimpleName(), error.getMessage());
                         self.tell(dittoRuntimeException, ActorRef.noSender());
@@ -706,6 +710,20 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
         logger.debug("Unsubscribed from Cluster <{}> in <{}> session.", streamingType, type);
     }
 
+    private void startSubscriptionRefreshTimer() {
+        final var delay = streamingConfig.getSubscriptionRefreshDelay();
+        final var randomizedDelay = delay.plus(Duration.ofMillis((long) (delay.toMillis() * Math.random())));
+        timers().startSingleTimer(Control.RESUBSCRIBE, Control.RESUBSCRIBE, randomizedDelay);
+    }
+
+    private void resubscribe(final Control trigger) {
+        if (!streamingSessions.isEmpty() && outstandingSubscriptionAcks.isEmpty()) {
+            dittoProtocolSub.subscribe(streamingSessions.keySet(), authorizationContext.getAuthorizationSubjectIds(),
+                    getSelf(), null, true);
+        }
+        startSubscriptionRefreshTimer();
+    }
+
     private static Optional<DittoHeaderInvalidException> checkForAcksWithoutResponse(final Signal<?> signal) {
         final var dittoHeaders = signal.getDittoHeaders();
         if (!dittoHeaders.isResponseRequired() && !dittoHeaders.getAcknowledgementRequests().isEmpty()) {
@@ -762,7 +780,8 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
 
     private enum Control {
         TERMINATED,
-        SESSION_TERMINATION
+        SESSION_TERMINATION,
+        RESUBSCRIBE
     }
 
 }

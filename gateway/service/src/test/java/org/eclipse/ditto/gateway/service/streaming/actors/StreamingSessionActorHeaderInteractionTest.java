@@ -40,8 +40,8 @@ import org.eclipse.ditto.gateway.service.security.authentication.jwt.JwtAuthenti
 import org.eclipse.ditto.gateway.service.security.authentication.jwt.JwtValidator;
 import org.eclipse.ditto.gateway.service.streaming.signals.Connect;
 import org.eclipse.ditto.gateway.service.streaming.signals.IncomingSignal;
+import org.eclipse.ditto.gateway.service.util.config.streaming.DefaultStreamingConfig;
 import org.eclipse.ditto.internal.models.acks.AcknowledgementAggregatorActorStarter;
-import org.eclipse.ditto.internal.models.acks.config.DefaultAcknowledgementConfig;
 import org.eclipse.ditto.internal.utils.pubsubthings.DittoProtocolSub;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingId;
@@ -191,7 +191,7 @@ public final class StreamingSessionActorHeaderInteractionTest {
                 new Connect(sourceQueue, "connectionCorrelationId", "ws",
                         JsonSchemaVersion.V_2, null, Set.of(), AuthorizationModelFactory.emptyAuthContext());
         final Props props = StreamingSessionActor.props(connect, dittoProtocolSub, commandRouterProbe.ref(),
-                DefaultAcknowledgementConfig.of(ConfigFactory.empty()), HeaderTranslator.empty(),
+                DefaultStreamingConfig.of(ConfigFactory.empty()), HeaderTranslator.empty(),
                 Props.create(TestProbeForwarder.class, subscriptionManagerProbe), Mockito.mock(JwtValidator.class),
                 Mockito.mock(JwtAuthenticationResultProvider.class));
         final ActorRef createdActor = actorSystem.actorOf(props);

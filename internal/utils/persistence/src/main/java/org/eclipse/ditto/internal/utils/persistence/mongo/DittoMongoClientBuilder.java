@@ -119,6 +119,15 @@ public interface DittoMongoClientBuilder {
         GeneralPropertiesStep connectionPoolMaxSize(int maxSize);
 
         /**
+         * Sets the maximum amount of time a pooled connection is allowed to idle before closing the connection.
+         * Default is {@code 0}ms (no upper bound).
+         *
+         * @param maxConnectionIdleTime maximum allowed time for a connection to idle.
+         * @return this builder instance to allow method chaining.
+         */
+        GeneralPropertiesStep connectionPoolMaxIdleTime(Duration maxConnectionIdleTime);
+
+        /**
          * Sets the maximum time that a thread may wait for a connection to become available.
          * Default is {@code 2} minutes.
          * A value of {@code 0} means that it will not wait.

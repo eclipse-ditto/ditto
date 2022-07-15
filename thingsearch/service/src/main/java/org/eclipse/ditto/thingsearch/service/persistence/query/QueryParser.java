@@ -79,26 +79,26 @@ public final class QueryParser {
     /**
      * Parses a search command into a query.
      *
-     * @param commandToValidate the search command.
+     * @param command the search command.
      * @return the query.
      */
-    public CompletionStage<Query> parse(final Command<?> commandToValidate) {
-        final Criteria criteria = parseCriteria(commandToValidate);
-        return queryCriteriaValidator.validateCommand(commandToValidate).thenApply(command -> {
-            if (command instanceof QueryThings queryThings) {
-                final QueryBuilder queryBuilder = queryBuilderFactory.newBuilder(criteria);
-                queryThings.getOptions()
-                        .map(optionStrings -> String.join(",", optionStrings))
-                        .ifPresent(options -> setOptions(options, queryBuilder, command.getDittoHeaders()));
-                return queryBuilder.build();
-            } else if (command instanceof SudoStreamThings sudoStreamThings) {
-                final QueryBuilder queryBuilder = queryBuilderFactory.newUnlimitedBuilder(criteria);
-                sudoStreamThings.getSort().ifPresent(sort -> setOptions(sort, queryBuilder, command.getDittoHeaders()));
-                return queryBuilder.build();
-            } else {
-                return queryBuilderFactory.newUnlimitedBuilder(criteria).build();
-            }
-        });
+    public CompletionStage<Query> parse(final Command<?> command) {
+        final Criteria criteria = parseCriteria(command);
+        final Query query;
+        if (command instanceof final QueryThings queryThings) {
+            final QueryBuilder queryBuilder = queryBuilderFactory.newBuilder(criteria);
+            queryThings.getOptions()
+                    .map(optionStrings -> String.join(",", optionStrings))
+                    .ifPresent(options -> setOptions(options, queryBuilder, command.getDittoHeaders()));
+            query = queryBuilder.build();
+        } else if (command instanceof final SudoStreamThings sudoStreamThings) {
+            final QueryBuilder queryBuilder = queryBuilderFactory.newUnlimitedBuilder(criteria);
+            sudoStreamThings.getSort().ifPresent(sort -> setOptions(sort, queryBuilder, command.getDittoHeaders()));
+            query = queryBuilder.build();
+        } else {
+            query = queryBuilderFactory.newUnlimitedBuilder(criteria).build();
+        }
+        return queryCriteriaValidator.validateQuery(command, query);
     }
 
     private Criteria parseCriteria(final Command<?> command) {
