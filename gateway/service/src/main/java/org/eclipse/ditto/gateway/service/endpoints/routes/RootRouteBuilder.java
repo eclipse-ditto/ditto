@@ -19,6 +19,7 @@ import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.edge.service.headers.DittoHeadersValidator;
 import org.eclipse.ditto.gateway.service.endpoints.directives.auth.GatewayAuthenticationDirective;
 import org.eclipse.ditto.gateway.service.endpoints.routes.cloudevents.CloudEventsRoute;
+import org.eclipse.ditto.gateway.service.endpoints.routes.connections.ConnectionsRoute;
 import org.eclipse.ditto.gateway.service.endpoints.routes.devops.DevOpsRoute;
 import org.eclipse.ditto.gateway.service.endpoints.routes.health.CachingHealthRoute;
 import org.eclipse.ditto.gateway.service.endpoints.routes.policies.PoliciesRoute;
@@ -104,6 +105,14 @@ public interface RootRouteBuilder {
      * @return the Builder to allow method chaining.
      */
     RootRouteBuilder thingSearchRoute(ThingSearchRoute route);
+
+    /**
+     * Sets the connections sub-route.
+     *
+     * @param route the route to set.
+     * @return the Builder to allow method chaining.
+     */
+    RootRouteBuilder connectionsRoute(ConnectionsRoute route);
 
     /**
      * Sets the websocket sub-route.
