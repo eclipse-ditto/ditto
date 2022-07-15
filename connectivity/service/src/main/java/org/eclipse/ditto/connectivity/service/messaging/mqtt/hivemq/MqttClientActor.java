@@ -83,12 +83,12 @@ public final class MqttClientActor extends BaseClientActor {
 
     @SuppressWarnings("java:S1144") // called by reflection
     private MqttClientActor(final Connection connection,
-            final ActorRef proxyActor,
+            final ActorRef commandForwarder,
             final ActorRef connectionActor,
             final DittoHeaders dittoHeaders,
             final Config connectivityConfigOverwrites) {
 
-        super(connection, proxyActor, connectionActor, dittoHeaders, connectivityConfigOverwrites);
+        super(connection, commandForwarder, connectionActor, dittoHeaders, connectivityConfigOverwrites);
 
         final var connectivityConfig = connectivityConfig();
         final var connectionConfig = connectivityConfig.getConnectionConfig();
@@ -107,7 +107,7 @@ public final class MqttClientActor extends BaseClientActor {
      * Returns the {@code Props} for creating a {@code GenericMqttClientActor} with the specified arguments.
      *
      * @param mqttConnection the MQTT connection.
-     * @param proxyActor the actor used to send signals into the Ditto cluster.
+     * @param commandForwarder the actor used to send signals into the Ditto cluster.
      * @param connectionActor the connection persistence actor which creates the returned client actor.
      * @param dittoHeaders headers of the command that caused the returned client actor to be created.
      * @param connectivityConfigOverwrites the overwrites of the connectivity config for the given connection.
@@ -115,14 +115,14 @@ public final class MqttClientActor extends BaseClientActor {
      * @throws NullPointerException if any argument is {@code null}.
      */
     public static Props props(final Connection mqttConnection,
-            final ActorRef proxyActor,
+            final ActorRef commandForwarder,
             final ActorRef connectionActor,
             final DittoHeaders dittoHeaders,
             final Config connectivityConfigOverwrites) {
 
         return Props.create(MqttClientActor.class,
                 ConditionChecker.checkNotNull(mqttConnection, "mqttConnection"),
-                ConditionChecker.checkNotNull(proxyActor, "proxyActor"),
+                ConditionChecker.checkNotNull(commandForwarder, "commandForwarder"),
                 ConditionChecker.checkNotNull(connectionActor, "connectionActor"),
                 ConditionChecker.checkNotNull(dittoHeaders, "dittoHeaders"),
                 ConditionChecker.checkNotNull(connectivityConfigOverwrites, "connectivityConfigOverwrites"));
