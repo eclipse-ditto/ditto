@@ -123,6 +123,7 @@ public abstract class AbstractEnforcerActor<I extends EntityId, S extends Signal
         doEnforceSignal(signal, getSender());
     }
 
+    @SuppressWarnings("unchecked")
     private void doEnforceSignal(final S signal, final ActorRef sender) {
 
         final StartedTrace trace = DittoTracing
@@ -132,18 +133,20 @@ public abstract class AbstractEnforcerActor<I extends EntityId, S extends Signal
         final ActorRef self = getSelf();
 
         try {
-            preEnforcer.apply(signal)
+            preEnforcer.apply(tracedSignal)
+                    .thenApply(preEnforcedSignal -> (S) preEnforcedSignal)
                     .thenCompose(preEnforcedSignal -> {
                         trace.mark("pre_enforced");
-                        return loadPolicyEnforcer(tracedSignal);
+                        return loadPolicyEnforcer(preEnforcedSignal).thenCompose(optionalPolicyEnforcer -> {
+                                    trace.mark("enforcer_loaded");
+                                    return optionalPolicyEnforcer
+                                            .map(policyEnforcer -> enforcement.authorizeSignal(preEnforcedSignal,
+                                                    policyEnforcer))
+                                            .orElseGet(() -> enforcement.authorizeSignalWithMissingEnforcer(
+                                                    preEnforcedSignal));
+                                }
+                        );
                     })
-                    .thenCompose(optionalPolicyEnforcer -> {
-                                trace.mark("enforcer_loaded");
-                                return optionalPolicyEnforcer
-                                        .map(policyEnforcer -> enforcement.authorizeSignal(tracedSignal, policyEnforcer))
-                                        .orElseGet(() -> enforcement.authorizeSignalWithMissingEnforcer(tracedSignal));
-                            }
-                    )
                     .whenComplete((authorizedSignal, throwable) -> {
                         if (null != authorizedSignal) {
                             trace.mark("enforce_success").finish();

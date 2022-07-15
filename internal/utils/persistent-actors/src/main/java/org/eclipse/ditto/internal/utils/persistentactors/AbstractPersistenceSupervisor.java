@@ -657,7 +657,13 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
                     .thenCompose(enforcedCommand -> {
                         final StartedTimer processingTimer =
                                 rootTimer.startNewSegment(ENFORCEMENT_TIMER_SEGMENT_PROCESSING);
-                        return enforcerResponseToTargetActor(tracedSignal.getDittoHeaders(), enforcedCommand, sender)
+                        final DittoHeaders dittoHeaders;
+                        if (enforcedCommand instanceof WithDittoHeaders withDittoHeaders) {
+                            dittoHeaders = withDittoHeaders.getDittoHeaders();
+                        } else {
+                            dittoHeaders = tracedSignal.getDittoHeaders();
+                        }
+                        return enforcerResponseToTargetActor(dittoHeaders, enforcedCommand, sender)
                                 .whenComplete((result, error) -> {
                                     trace.mark("processed");
                                     stopTimer(processingTimer).accept(result, error);
