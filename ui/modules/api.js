@@ -336,6 +336,8 @@ export async function callConnectionsAPI(operation, successCallback, connectionI
       }).finally(() => {
         document.body.style.cursor = 'default';
       });
+    } else {
+      successCallback && successCallback();
     }
   } catch (err) {
     Utils.showError(err);

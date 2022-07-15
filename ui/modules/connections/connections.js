@@ -100,8 +100,11 @@ export function ready() {
 
   dom.buttonDeleteConnection.onclick = () => {
     Utils.assert(dom.inputConnectionId.value, 'Please select a connection');
-    API.callConnectionsAPI('deleteConnection', loadConnections, dom.inputConnectionId.value);
-    setConnection(null);
+    API.callConnectionsAPI('deleteConnection', () => {
+      setConnection(null);
+      loadConnections();
+    },
+    dom.inputConnectionId.value);
   };
 
   dom.buttonRetrieveConnectionStatus.onclick = () => {
