@@ -204,21 +204,19 @@ public final class ConnectionPersistenceActor
             final Config connectivityConfigOverwrites) {
 
         super(connectionId, new ConnectionMongoSnapshotAdapter());
-
-        this.updatedConnectionTester = UpdatedConnectionTester.getInstance(context().system());
         final var actorSystem = getContext().getSystem();
         cluster = Cluster.get(actorSystem);
+        final Config dittoExtensionConfig = ScopedConfig.dittoExtension(actorSystem.settings().config());
+        this.updatedConnectionTester = UpdatedConnectionTester.get(actorSystem,  dittoExtensionConfig);
         this.commandForwarderActor = commandForwarderActor;
-        propsFactory =
-                ClientActorPropsFactory.get(actorSystem, ScopedConfig.dittoExtension(actorSystem.settings().config()));
+        propsFactory = ClientActorPropsFactory.get(actorSystem, dittoExtensionConfig);
         this.pubSubMediator = pubSubMediator;
         this.connectivityConfigOverwrites = connectivityConfigOverwrites;
         connectivityConfig = getConnectivityConfigWithOverwrites(connectivityConfigOverwrites);
         commandValidator = getCommandValidator();
         final ConnectionConfig connectionConfig = connectivityConfig.getConnectionConfig();
         this.allClientActorsOnOneNode = allClientActorsOnOneNode.orElse(connectionConfig.areAllClientActorsOnOneNode());
-        final Config dittoExtensionsConfig = ScopedConfig.dittoExtension(actorSystem.settings().config());
-        connectionPriorityProvider = ConnectionPriorityProviderFactory.get(actorSystem, dittoExtensionsConfig)
+        connectionPriorityProvider = ConnectionPriorityProviderFactory.get(actorSystem, dittoExtensionConfig)
                 .newProvider(self(), log);
         clientActorAskTimeout = connectionConfig.getClientActorAskTimeout();
         final MonitoringConfig monitoringConfig = connectivityConfig.getMonitoringConfig();

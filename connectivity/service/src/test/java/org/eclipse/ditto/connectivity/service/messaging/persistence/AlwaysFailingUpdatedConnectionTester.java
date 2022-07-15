@@ -20,11 +20,13 @@ import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.signals.commands.modify.TestConnectionResponse;
 
+import com.typesafe.config.Config;
+
 import akka.actor.ActorSystem;
 
 public final class AlwaysFailingUpdatedConnectionTester implements UpdatedConnectionTester{
 
-    private AlwaysFailingUpdatedConnectionTester(final ActorSystem actorSystem) {}
+    private AlwaysFailingUpdatedConnectionTester(final ActorSystem actorSystem, final Config config) {}
 
     @Override
     public CompletionStage<Optional<TestConnectionResponse>> testConnection(final Connection updatedConnection,
