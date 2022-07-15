@@ -17,11 +17,18 @@ import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.function.BiConsumer;
 
+import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.signals.Signal;
+import org.eclipse.ditto.base.model.signals.WithResource;
+import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.base.service.DittoExtensionIds;
 import org.eclipse.ditto.base.service.DittoExtensionPoint;
 import org.eclipse.ditto.base.service.DittoExtensionPoint.ExtensionId.ExtensionIdConfig;
+import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
+import org.eclipse.ditto.internal.utils.metrics.instruments.timer.PreparedTimer;
+import org.eclipse.ditto.internal.utils.metrics.instruments.timer.StartedTimer;
 
 import com.typesafe.config.Config;
 
@@ -32,6 +39,13 @@ import akka.actor.ActorSystem;
  */
 public final class PreEnforcerProvider implements DittoExtensionPoint {
 
+    private static final String PRE_ENFORCEMENT_TIMER = "pre_enforcement";
+    private static final String ENFORCEMENT_TIMER_TAG_CHANNEL = "channel";
+    private static final String ENFORCEMENT_TIMER_TAG_RESOURCE = "resource";
+    private static final String ENFORCEMENT_TIMER_TAG_CATEGORY = "category";
+    private static final String ENFORCEMENT_TIMER_TAG_OUTCOME = "outcome";
+    private static final String ENFORCEMENT_TIMER_TAG_OUTCOME_FAIL = "fail";
+    private static final String ENFORCEMENT_TIMER_TAG_OUTCOME_SUCCESS = "success";
     private static final String PRE_ENFORCERS = "pre-enforcers";
     private final List<PreEnforcer> preEnforcers;
 
@@ -54,11 +68,17 @@ public final class PreEnforcerProvider implements DittoExtensionPoint {
      * @param signal the signal the pre-enforcement is executed for.
      */
     public CompletionStage<Signal<?>> apply(final Signal<?> signal) {
+        final StartedTimer timer = createTimer(signal);
         CompletionStage<Signal<?>> prior = CompletableFuture.completedStage(signal);
         for (final PreEnforcer preEnforcer : preEnforcers) {
             prior = prior.thenCompose(preEnforcer);
         }
-        return prior;
+        return prior.whenComplete((result, error) -> {
+            if (result instanceof Command<?> command) {
+                timer.tag(ENFORCEMENT_TIMER_TAG_CATEGORY, command.getCategory().name().toLowerCase());
+            }
+            stopTimer(timer).accept(result, error);
+        });
     }
 
     /**
@@ -76,6 +96,33 @@ public final class PreEnforcerProvider implements DittoExtensionPoint {
         return DittoExtensionIds.get(actorSystem)
                 .computeIfAbsent(extensionIdConfig, ExtensionId::new)
                 .get(actorSystem);
+    }
+
+    private StartedTimer createTimer(final WithDittoHeaders withDittoHeaders) {
+        final PreparedTimer expiringTimer = DittoMetrics.timer(PRE_ENFORCEMENT_TIMER);
+
+        withDittoHeaders.getDittoHeaders().getChannel().ifPresent(channel ->
+                expiringTimer.tag(ENFORCEMENT_TIMER_TAG_CHANNEL, channel)
+        );
+        if (withDittoHeaders instanceof WithResource withResource) {
+            expiringTimer.tag(ENFORCEMENT_TIMER_TAG_RESOURCE, withResource.getResourceType());
+        }
+        if (withDittoHeaders instanceof Command<?> command) {
+            expiringTimer.tag(ENFORCEMENT_TIMER_TAG_CATEGORY, command.getCategory().name().toLowerCase());
+        }
+        return expiringTimer.start();
+    }
+
+    private BiConsumer<Object, Throwable> stopTimer(final StartedTimer timerToStop) {
+        return (result, error) -> {
+            final String outcome = error != null ?
+                    ENFORCEMENT_TIMER_TAG_OUTCOME_FAIL :
+                    ENFORCEMENT_TIMER_TAG_OUTCOME_SUCCESS;
+            if (timerToStop.isRunning()) {
+                timerToStop.tag(ENFORCEMENT_TIMER_TAG_OUTCOME, outcome)
+                        .stop();
+            }
+        };
     }
 
     private static final class ExtensionId extends DittoExtensionPoint.ExtensionId<PreEnforcerProvider> {

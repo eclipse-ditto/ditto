@@ -40,7 +40,6 @@ import org.eclipse.ditto.base.service.config.supervision.ExponentialBackOffConfi
 import org.eclipse.ditto.internal.utils.akka.actors.AbstractActorWithStashWithTimers;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
-import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.internal.utils.metrics.instruments.counter.Counter;
 import org.eclipse.ditto.internal.utils.metrics.instruments.timer.PreparedTimer;
@@ -48,7 +47,6 @@ import org.eclipse.ditto.internal.utils.metrics.instruments.timer.StartedTimer;
 import org.eclipse.ditto.internal.utils.namespaces.BlockedNamespaces;
 import org.eclipse.ditto.internal.utils.tracing.DittoTracing;
 import org.eclipse.ditto.internal.utils.tracing.instruments.trace.StartedTrace;
-import org.eclipse.ditto.policies.enforcement.pre.PreEnforcerProvider;
 
 import akka.actor.ActorRef;
 import akka.actor.PoisonPill;
@@ -84,7 +82,6 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
     protected static final Duration DEFAULT_LOCAL_ASK_TIMEOUT = Duration.ofSeconds(5);
 
     private static final String ENFORCEMENT_TIMER = "enforcement";
-    private static final String ENFORCEMENT_TIMER_SEGMENT_PRE_ENFORCEMENT = "pre_enf";
     private static final String ENFORCEMENT_TIMER_SEGMENT_ENFORCEMENT = "enf";
     private static final String ENFORCEMENT_TIMER_SEGMENT_PROCESSING = "process";
     private static final String ENFORCEMENT_TIMER_SEGMENT_RESPONSE_FILTER = "resp_filter";
@@ -110,7 +107,6 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
 
     private final Duration defaultLocalAskTimeout;
 
-    private final PreEnforcerProvider preEnforcer;
     private final ExponentialBackOffConfig exponentialBackOffConfig;
     private ExponentialBackOff backOff;
     private boolean waitingForStopBeforeRestart = false;
@@ -129,9 +125,6 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
         this.enforcerChild = enforcerChild;
         this.blockedNamespaces = blockedNamespaces;
         this.defaultLocalAskTimeout = defaultLocalAskTimeout;
-        final var system = getContext().getSystem();
-        final var dittoExtensionsConfig = ScopedConfig.dittoExtension(system.settings().config());
-        preEnforcer = PreEnforcerProvider.get(system, dittoExtensionsConfig);
         exponentialBackOffConfig = getExponentialBackOffConfig();
         backOff = ExponentialBackOff.initial(exponentialBackOffConfig);
     }
@@ -654,51 +647,34 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
                     .start();
             final S tracedSignal = DittoTracing.propagateContext(trace.getContext(), signal);
             final StartedTimer rootTimer = createTimer(tracedSignal);
-            final StartedTimer preEnforcementTimer =
-                    rootTimer.startNewSegment(ENFORCEMENT_TIMER_SEGMENT_PRE_ENFORCEMENT);
-            return preEnforcer.apply(tracedSignal)
+            final StartedTimer enforcementTimer = rootTimer.startNewSegment(ENFORCEMENT_TIMER_SEGMENT_ENFORCEMENT);
+            return askEnforcerChild(tracedSignal)
+                    .thenCompose(this::modifyEnforcerActorEnforcedSignalResponse)
                     .whenComplete((result, error) -> {
-                        trace.mark("pre_enforced");
-                        if (result instanceof Command<?> command) {
-                            // update category which could have been changed by preEnforcer
-                            final String category = command.getCategory().name().toLowerCase();
-                            rootTimer.tag(ENFORCEMENT_TIMER_TAG_CATEGORY, category);
-                            preEnforcementTimer.tag(ENFORCEMENT_TIMER_TAG_CATEGORY, category);
-                        }
-                        stopTimer(preEnforcementTimer).accept(result, error);
+                        trace.mark("enforced");
+                        stopTimer(enforcementTimer).accept(result, error);
                     })
-                    .thenCompose(preEnforcedSignal -> {
-                        final StartedTimer enforcementTimer = rootTimer
-                                .startNewSegment(ENFORCEMENT_TIMER_SEGMENT_ENFORCEMENT);
-                        return askEnforcerChild(preEnforcedSignal)
-                                .thenCompose(this::modifyEnforcerActorEnforcedSignalResponse)
+                    .thenCompose(enforcedCommand -> {
+                        final StartedTimer processingTimer =
+                                rootTimer.startNewSegment(ENFORCEMENT_TIMER_SEGMENT_PROCESSING);
+                        return enforcerResponseToTargetActor(tracedSignal.getDittoHeaders(), enforcedCommand, sender)
                                 .whenComplete((result, error) -> {
-                                    trace.mark("enforced");
-                                    stopTimer(enforcementTimer).accept(result, error);
-                                })
-                                .thenCompose(enforcedCommand -> {
-                                    final StartedTimer processingTimer =
-                                            rootTimer.startNewSegment(ENFORCEMENT_TIMER_SEGMENT_PROCESSING);
-                                    return enforcerResponseToTargetActor(preEnforcedSignal.getDittoHeaders(),
-                                            enforcedCommand, sender)
-                                            .whenComplete((result, error) -> {
-                                                trace.mark("processed");
-                                                stopTimer(processingTimer).accept(result, error);
-                                            });
-                                })
-                                .thenCompose(targetActorResponse -> {
-                                    final StartedTimer responseFilterTimer =
-                                            rootTimer.startNewSegment(ENFORCEMENT_TIMER_SEGMENT_RESPONSE_FILTER);
-                                    return filterTargetActorResponseViaEnforcer(targetActorResponse)
-                                            .whenComplete((result, error) -> {
-                                                trace.mark("response_filtered");
-                                                responseFilterTimer.tag(ENFORCEMENT_TIMER_TAG_OUTCOME,
-                                                        error != null ? ENFORCEMENT_TIMER_TAG_OUTCOME_FAIL :
-                                                                ENFORCEMENT_TIMER_TAG_OUTCOME_SUCCESS).stop();
-                                                if (null != error) {
-                                                    trace.fail(error);
-                                                }
-                                            });
+                                    trace.mark("processed");
+                                    stopTimer(processingTimer).accept(result, error);
+                                });
+                    })
+                    .thenCompose(targetActorResponse -> {
+                        final StartedTimer responseFilterTimer =
+                                rootTimer.startNewSegment(ENFORCEMENT_TIMER_SEGMENT_RESPONSE_FILTER);
+                        return filterTargetActorResponseViaEnforcer(targetActorResponse)
+                                .whenComplete((result, error) -> {
+                                    trace.mark("response_filtered");
+                                    responseFilterTimer.tag(ENFORCEMENT_TIMER_TAG_OUTCOME,
+                                            error != null ? ENFORCEMENT_TIMER_TAG_OUTCOME_FAIL :
+                                                    ENFORCEMENT_TIMER_TAG_OUTCOME_SUCCESS).stop();
+                                    if (null != error) {
+                                        trace.fail(error);
+                                    }
                                 });
                     }).whenComplete((result, error) -> {
                         if (null != error) {

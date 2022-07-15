@@ -29,8 +29,10 @@ import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
 import org.eclipse.ditto.internal.utils.akka.actors.AbstractActorWithStashWithTimers;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
+import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import org.eclipse.ditto.internal.utils.tracing.DittoTracing;
 import org.eclipse.ditto.internal.utils.tracing.instruments.trace.StartedTrace;
+import org.eclipse.ditto.policies.enforcement.pre.PreEnforcerProvider;
 import org.eclipse.ditto.policies.model.PolicyId;
 
 import akka.actor.ActorRef;
@@ -59,10 +61,14 @@ public abstract class AbstractEnforcerActor<I extends EntityId, S extends Signal
 
     protected final I entityId;
     protected final E enforcement;
+    protected final PreEnforcerProvider preEnforcer;
 
     protected AbstractEnforcerActor(final I entityId, final E enforcement) {
         this.entityId = entityId;
         this.enforcement = enforcement;
+        final var system = getContext().getSystem();
+        final var dittoExtensionsConfig = ScopedConfig.dittoExtension(system.settings().config());
+        preEnforcer = PreEnforcerProvider.get(system, dittoExtensionsConfig);
     }
 
     /**
@@ -126,7 +132,11 @@ public abstract class AbstractEnforcerActor<I extends EntityId, S extends Signal
         final ActorRef self = getSelf();
 
         try {
-            loadPolicyEnforcer(tracedSignal)
+            preEnforcer.apply(signal)
+                    .thenCompose(preEnforcedSignal -> {
+                        trace.mark("pre_enforced");
+                        return loadPolicyEnforcer(tracedSignal);
+                    })
                     .thenCompose(optionalPolicyEnforcer -> {
                                 trace.mark("enforcer_loaded");
                                 return optionalPolicyEnforcer
