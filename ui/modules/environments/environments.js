@@ -51,11 +51,11 @@ export function addChangeListener(observer) {
   observers.push(observer);
 }
 
-function notifyAll() {
+function notifyAll(modifiedField) {
   // Notify Authorization first to set right auth header
-  Authorization.onEnvironmentChanged();
+  Authorization.onEnvironmentChanged(modifiedField);
   // Notify others
-  observers.forEach(observer => observer.call());
+  observers.forEach(observer => observer.call(null, modifiedField));
 }
 
 export function ready() {
@@ -115,30 +115,37 @@ export function ready() {
   environmentsJsonChanged();
 }
 
-export function environmentsJsonChanged() {
+export function environmentsJsonChanged(modifiedField) {
   localStorage.setItem('ditto-ui-env', JSON.stringify(environments));
 
   updateEnvSelector();
   updateEnvEditors();
   updateEnvTable();
 
-  notifyAll();
-}
+  notifyAll(modifiedField);
 
-function updateEnvSelector() {
-  let activeEnvironment = dom.environmentSelector.value;
-  if (!activeEnvironment || !environments[activeEnvironment]) {
-    activeEnvironment = Object.keys(environments)[0];
-  };
+  function updateEnvSelector() {
+    let activeEnvironment = dom.environmentSelector.value;
+    if (!activeEnvironment || !environments[activeEnvironment]) {
+      activeEnvironment = Object.keys(environments)[0];
+    };
 
-  dom.environmentSelector.innerHTML = '';
-  Object.keys(environments).forEach((key) => {
-    let option = document.createElement('option');
-    option.text = key;
-    dom.environmentSelector.add(option);
-  });
+    dom.environmentSelector.innerHTML = '';
+    Object.keys(environments).forEach((key) => {
+      let option = document.createElement('option');
+      option.text = key;
+      dom.environmentSelector.add(option);
+    });
 
-  dom.environmentSelector.value = activeEnvironment;
+    dom.environmentSelector.value = activeEnvironment;
+  }
+
+  function updateEnvTable() {
+    dom.tbodyEnvironments.innerHTML = '';
+    Object.keys(environments).forEach((key) => {
+      Utils.addTableRow(dom.tbodyEnvironments, key, key === dom.inputEnvironmentName.value);
+    });
+  }
 }
 
 function updateEnvEditors() {
@@ -153,9 +160,3 @@ function updateEnvEditors() {
   }
 }
 
-function updateEnvTable() {
-  dom.tbodyEnvironments.innerHTML = '';
-  Object.keys(environments).forEach((key) => {
-    Utils.addTableRow(dom.tbodyEnvironments, key, key === dom.inputEnvironmentName.value);
-  });
-}

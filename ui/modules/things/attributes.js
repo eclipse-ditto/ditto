@@ -69,7 +69,7 @@ function updateAttributesTable() {
   dom.attributesTable.innerHTML = '';
   let count = 0;
   let thingHasAttribute = false;
-  if (Things.theThing.attributes) {
+  if (Things.theThing && Things.theThing.attributes) {
     Object.keys(Things.theThing.attributes).forEach((path) => {
       if (path === dom.attributePath.value) {
         dom.attributeValue.value = attributeToString(Things.theThing.attributes[path]);

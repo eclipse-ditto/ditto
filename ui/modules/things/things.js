@@ -18,6 +18,7 @@ import {JSONPath} from 'https://cdn.jsdelivr.net/npm/jsonpath-plus@5.0.3/dist/in
 import * as API from '../api.js';
 
 import * as Environments from '../environments/environments.js';
+import * as SearchFilter from './searchFilter.js';
 import * as Utils from '../utils.js';
 import * as Fields from './fields.js';
 
@@ -35,6 +36,8 @@ const dom = {
   thingId: null,
   tabModifyThing: null,
   searchFilterEdit: null,
+  collapseThings: null,
+  tabThings: null,
 };
 
 /**
@@ -49,6 +52,8 @@ export function addChangeListener(observer) {
  * Initializes components. Should be called after DOMContentLoaded event
  */
 export async function ready() {
+  Environments.addChangeListener(onEnvironmentChanged);
+
   Utils.getAllElementsById(dom);
 
   thingJsonEditor = ace.edit('thingJsonEditor');
@@ -83,6 +88,8 @@ export async function ready() {
   document.querySelector('a[data-bs-target="#tabModifyThing"]').addEventListener('shown.bs.tab', (event) => {
     thingJsonEditor.renderer.updateFull();
   });
+
+  dom.tabThings.onclick = onTabActivated;
 
   dom.searchFilterEdit.focus();
 };
@@ -141,13 +148,6 @@ function fillThingsTable(thingsList) {
  * @param {String} cursor (optional) cursor returned from things search for additional pages
  */
 export function searchThings(filter, cursor) {
-  if (cursor) {
-    removeMoreFromThingList();
-  } else {
-    theSearchCursor = null;
-    dom.thingsTableBody.innerHTML = '';
-  }
-
   document.body.style.cursor = 'progress';
 
   API.callDittoREST('GET',
@@ -157,10 +157,17 @@ export function searchThings(filter, cursor) {
       // ',size(3)' +
       (cursor ? ',cursor(' + cursor + ')' : ''),
   ).then((searchResult) => {
+    if (cursor) {
+      removeMoreFromThingList();
+    } else {
+      theSearchCursor = null;
+      dom.thingsTableBody.innerHTML = '';
+    }
     fillThingsTable(searchResult.items);
     checkMorePages(searchResult);
   }).catch((error) => {
-    // nothing to do if search failed
+    theSearchCursor = null;
+    dom.thingsTableBody.innerHTML = '';
   }).finally(() => {
     document.body.style.cursor = 'default';
   });
@@ -204,7 +211,8 @@ function clickModifyThing(method) {
 export function refreshThing(thingId) {
   API.callDittoREST('GET',
       `/things/${thingId}?fields=thingId%2Cattributes%2Cfeatures%2C_created%2C_modified%2C_revision%2C_policy`)
-      .then((thing) => setTheThing(thing));
+      .then((thing) => setTheThing(thing))
+      .catch(() => setTheThing(null));
 };
 
 /**
@@ -214,25 +222,37 @@ export function refreshThing(thingId) {
 export function setTheThing(thingJson) {
   theThing = thingJson;
 
-  // Update fields of Thing table
-  dom.thingDetails.innerHTML = '';
-  Utils.addTableRow(dom.thingDetails, 'thingId', false, true, theThing.thingId);
-  Utils.addTableRow(dom.thingDetails, 'policyId', false, true, theThing._policy.policyId);
-  Utils.addTableRow(dom.thingDetails, 'revision', false, true, theThing._revision);
-  Utils.addTableRow(dom.thingDetails, 'created', false, true, theThing._created);
-  Utils.addTableRow(dom.thingDetails, 'modified', false, true, theThing._modified);
-
-  // Update edit thing area
-  dom.thingId.value = theThing.thingId;
-  const thingCopy = JSON.parse(JSON.stringify(theThing));
-  delete thingCopy['_revision'];
-  delete thingCopy['_created'];
-  delete thingCopy['_modified'];
-  delete thingCopy['_policy'];
-  thingCopy.policyId = theThing._policy.policyId;
-  thingJsonEditor.setValue(JSON.stringify(thingCopy, null, 2));
+  updateThingDetailsTable();
+  updateThingJsonEditor();
 
   observers.forEach((observer) => observer.call(null, theThing));
+
+  function updateThingDetailsTable() {
+    dom.thingDetails.innerHTML = '';
+    if (theThing) {
+      Utils.addTableRow(dom.thingDetails, 'thingId', false, true, theThing.thingId);
+      Utils.addTableRow(dom.thingDetails, 'policyId', false, true, theThing._policy.policyId);
+      Utils.addTableRow(dom.thingDetails, 'revision', false, true, theThing._revision);
+      Utils.addTableRow(dom.thingDetails, 'created', false, true, theThing._created);
+      Utils.addTableRow(dom.thingDetails, 'modified', false, true, theThing._modified);
+    }
+  }
+
+  function updateThingJsonEditor() {
+    if (theThing) {
+      dom.thingId.value = theThing.thingId;
+      const thingCopy = JSON.parse(JSON.stringify(theThing));
+      delete thingCopy['_revision'];
+      delete thingCopy['_created'];
+      delete thingCopy['_modified'];
+      delete thingCopy['_policy'];
+      thingCopy.policyId = theThing._policy.policyId;
+      thingJsonEditor.setValue(JSON.stringify(thingCopy, null, 2));
+    } else {
+      dom.thingId.value = null;
+      thingJsonEditor.setValue('');
+    }
+  }
 }
 
 /**
@@ -281,7 +301,33 @@ function togglePinnedThing(evt) {
       Environments.current().pinnedThings.splice(index, 1);
     };
   };
-  Environments.environmentsJsonChanged();
+  Environments.environmentsJsonChanged('pinnedThings');
 };
+
+let viewDirty = false;
+
+function onTabActivated() {
+  if (viewDirty) {
+    refreshView();
+    viewDirty = false;
+  }
+}
+
+function onEnvironmentChanged(modifiedField) {
+  if (dom.collapseThings.classList.contains('show')) {
+    if (!['pinnedThings', 'filterList'].includes(modifiedField)) {
+      refreshView();
+    }
+  } else {
+    viewDirty = true;
+  }
+}
+
+function refreshView() {
+  SearchFilter.performLastSearch();
+  if (theThing) {
+    refreshThing(theThing.thingId);
+  }
+}
 
 

@@ -13,7 +13,6 @@
 
 import * as Environments from '../environments/environments.js';
 import * as Utils from '../utils.js';
-import * as SearchFilter from './searchFilter.js';
 
 let theFieldIndex = -1;
 
@@ -63,7 +62,7 @@ export async function ready() {
   });
 
   dom.fieldsModal.addEventListener('hide.bs.modal', () => {
-    SearchFilter.performLastSearch();
+    Environments.environmentsJsonChanged();
   });
 
   document.getElementById('fieldUpdate').onclick = () => {
@@ -76,7 +75,7 @@ export async function ready() {
 
     selectedField.path = dom.fieldPath.value;
     selectedField.label = dom.fieldLabel.value;
-    Environments.environmentsJsonChanged();
+    updateFieldList();
   };
 
   document.getElementById('fieldCreate').onclick = () => {
@@ -90,14 +89,14 @@ export async function ready() {
       path: dom.fieldPath.value,
       label: dom.fieldPath.value.split('/').slice(-1)[0],
     });
-    Environments.environmentsJsonChanged();
+    updateFieldList();
   };
 
   document.getElementById('fieldDelete').onclick = () => {
     Utils.assert(theFieldIndex >= 0, 'No field selected');
 
     Environments.current().fieldList.splice(theFieldIndex, 1);
-    Environments.environmentsJsonChanged();
+    updateFieldList();
     theFieldIndex = -1;
   };
 
@@ -109,7 +108,7 @@ export async function ready() {
     Environments.current().fieldList.splice(theFieldIndex, 1);
     theFieldIndex--;
     Environments.current().fieldList.splice(theFieldIndex, 0, movedItem);
-    Environments.environmentsJsonChanged();
+    updateFieldList();
   };
 
   document.getElementById('fieldDown').onclick = () => {
@@ -120,7 +119,7 @@ export async function ready() {
     Environments.current().fieldList.splice(theFieldIndex, 1);
     theFieldIndex++;
     Environments.current().fieldList.splice(theFieldIndex, 0, movedItem);
-    Environments.environmentsJsonChanged();
+    updateFieldList();
   };
 };
 
@@ -181,6 +180,6 @@ function updateFieldList() {
  */
 function toggleFieldActiveEventHandler(evt) {
   Environments.current().fieldList[evt.target.id].active = evt.target.checked;
-  Environments.environmentsJsonChanged();
+  updateFieldList();
 };
 

@@ -89,6 +89,4 @@ document.addEventListener('DOMContentLoaded', async function() {
       }
     });
   });
-
-  SearchFilter.performLastSearch();
 });

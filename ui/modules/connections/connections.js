@@ -66,7 +66,7 @@ export function ready() {
   loadConnectionTemplates();
 
   dom.buttonLoadConnections.onclick = loadConnections;
-  dom.tabConnections.onclick = loadConnections;
+  dom.tabConnections.onclick = onTabActivated;
 
   dom.buttonCreateConnection.onclick = () => {
     const newConnection = JSON.parse(JSON.stringify(
@@ -145,8 +145,10 @@ export function ready() {
     API.callConnectionsAPI('retrieveConnectionLogs', (response) => {
       connectionLogs = response.connectionLogs;
       response.connectionLogs.forEach((entry) => {
-        Utils.addTableRow(dom.tbodyConnectionLogs, entry.timestamp, false, false, entry.type, entry.level);
+        const timestampDisplay = entry.timestamp.replace('T', ' ').replace('Z', '').replace('.', ' ');
+        Utils.addTableRow(dom.tbodyConnectionLogs, timestampDisplay, false, false, entry.type, entry.level);
       });
+      dom.tbodyConnectionLogs.scrollTop = dom.tbodyConnectionLogs.scrollHeight - dom.tbodyConnectionLogs.clientHeight;
     },
     dom.inputConnectionId.value);
   };
@@ -221,12 +223,6 @@ function loadConnections() {
   });
 };
 
-function onEnvironmentChanged() {
-  if (dom.collapseConnections.classList.contains('show')) {
-    loadConnections();
-  }
-}
-
 function loadConnectionTemplates() {
   fetch('templates/connectionTemplates.json')
       .then((response) => {
@@ -239,4 +235,20 @@ function loadConnectionTemplates() {
       });
 }
 
+let viewDirty = false;
+
+function onTabActivated() {
+  if (viewDirty) {
+    loadConnections();
+    viewDirty = false;
+  }
+}
+
+function onEnvironmentChanged() {
+  if (dom.collapseConnections.classList.contains('show')) {
+    loadConnections();
+  } else {
+    viewDirty = true;
+  }
+}
 
