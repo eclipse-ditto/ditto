@@ -22,14 +22,13 @@ import org.eclipse.ditto.json.JsonObject;
 /**
  * Abstract implementation of {@link SecurityScheme}.
  */
-abstract class AbstractSecurityScheme implements SecurityScheme {
+abstract class AbstractSecurityScheme extends AbstractTypedJsonObject<SecurityScheme> implements SecurityScheme {
 
     private final String securitySchemeName;
-    protected final JsonObject wrappedObject;
 
     AbstractSecurityScheme(final String securitySchemeName, final JsonObject wrappedObject) {
+        super(wrappedObject);
         this.securitySchemeName = securitySchemeName;
-        this.wrappedObject = wrappedObject;
     }
 
     @Override
@@ -70,9 +69,7 @@ abstract class AbstractSecurityScheme implements SecurityScheme {
     @Override
     public SecuritySchemeScheme getScheme() {
         final String schemeStr = wrappedObject.getValueOrThrow(SecuritySchemeJsonFields.SCHEME);
-        return SecuritySchemeScheme.forName(schemeStr)
-                .orElseThrow(() -> new IllegalArgumentException("Unknown scheme: " + schemeStr));
-
+        return SecuritySchemeScheme.of(schemeStr);
     }
 
     @Override
@@ -93,6 +90,7 @@ abstract class AbstractSecurityScheme implements SecurityScheme {
                 Objects.equals(wrappedObject, that.wrappedObject);
     }
 
+    @Override
     protected boolean canEqual(@Nullable final Object other) {
         return other instanceof AbstractSecurityScheme;
     }
@@ -104,8 +102,8 @@ abstract class AbstractSecurityScheme implements SecurityScheme {
 
     @Override
     public String toString() {
-        return "securitySchemeName=" + securitySchemeName +
-                ", wrappedObject=" + wrappedObject;
+        return super.toString() +
+                ", securitySchemeName=" + securitySchemeName;
     }
 
 }

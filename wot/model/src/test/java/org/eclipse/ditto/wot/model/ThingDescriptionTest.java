@@ -22,8 +22,12 @@ import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.stream.Stream;
@@ -65,7 +69,8 @@ public final class ThingDescriptionTest {
         assertThat(thingDescription.getAtContext()).isEqualTo(MultipleAtContext.of(
                 Arrays.asList(
                         SingleUriAtContext.W3ORG_2022_WOT_TD_V11,
-                        SinglePrefixedAtContext.of("ditto", SingleUriAtContext.of("https://www.eclipse.org/ditto/ctx"))
+                        SinglePrefixedAtContext.of("ditto", SingleUriAtContext.of("https://www.eclipse.org/ditto/ctx")),
+                        SinglePrefixedAtContext.of("ace", SingleUriAtContext.of("http://www.example.org/ace-security#"))
                 )
         ));
         assertThat(thingDescription.getBase())
@@ -75,6 +80,11 @@ public final class ThingDescriptionTest {
         final Map<String, SecurityScheme> expectedSecurityDefinitions = new HashMap<>();
         expectedSecurityDefinitions.put("basic_sc", BasicSecurityScheme.newBuilder("basic_sc")
                 .setIn("header")
+                .build()
+        );
+        expectedSecurityDefinitions.put("ace_sc", AdditionalSecurityScheme.newBuilder("ace_sc", "ace:ACESecurityScheme")
+                .setDescription(Description.of("Here be dragons"))
+                .set("ace:custom", "foobar!")
                 .build()
         );
         assertThat(thingDescription.getSecurityDefinitions())
@@ -123,26 +133,43 @@ public final class ThingDescriptionTest {
         );
         assertThat(thingDescription.getEvents())
                 .contains(Events.of(expectedEvents));
+
+        final List<BaseLink<?>> expectedLinks = new ArrayList<>();
+        expectedLinks.add(Link.newBuilder()
+                .setRel("service-doc")
+                .setHref(IRI.of("https://eclipse.org/ditto/some-pdf.pdf"))
+                .setType("application/pdf")
+                .setHreflang(Hreflang.newSingleHreflang("de-CH-1996"))
+                .build()
+        );
+        assertThat(thingDescription.getLinks())
+                .contains(Links.of(expectedLinks));
     }
 
     @Test
     public void testBuildingThingDescriptionWithBuilder() {
+        final Map<String, SecurityScheme> securityDefinitionsMap = new LinkedHashMap<>();
+        securityDefinitionsMap.put("basic_sc", BasicSecurityScheme.newBuilder("basic_sc")
+                .setIn("header")
+                .build());
+        securityDefinitionsMap.put("ace_sc", SecurityScheme.newAdditionalSecurityBuilder("ace_sc", "ace:ACESecurityScheme")
+                .setDescription(Description.of("Here be dragons"))
+                .set("ace:custom", "foobar!")
+                .build());
         final ThingDescription thingDescription = ThingDescription.newBuilder()
                 .setAtContext(MultipleAtContext.of(
                         Arrays.asList(
                                 SingleUriAtContext.W3ORG_2022_WOT_TD_V11,
                                 SinglePrefixedAtContext.of("ditto",
-                                        SingleUriAtContext.of("https://www.eclipse.org/ditto/ctx"))
+                                        SingleUriAtContext.of("https://www.eclipse.org/ditto/ctx")),
+                                SinglePrefixedAtContext.of("ace",
+                                        SingleUriAtContext.of("http://www.example.org/ace-security#"))
                         )
                 ))
                 .setId(IRI.of("urn:org.eclipse.ditto:333-WoTLamp-1234"))
                 .setTitle(Title.of("MyLampThing"))
                 .setTitles(Titles.of(singletonMap(Locale.GERMAN, Title.of("Mein Lampen Ding"))))
-                .setSecurityDefinitions(SecurityDefinitions.of(singletonMap("basic_sc",
-                        BasicSecurityScheme.newBuilder("basic_sc")
-                                .setIn("header")
-                                .build()))
-                )
+                .setSecurityDefinitions(SecurityDefinitions.of(securityDefinitionsMap))
                 .setSecurity(SingleSecurity.of("basic_sc"))
                 .setBase(IRI.of("https://ditto.eclipseprojects.io/api/2/things/org.eclipse.ditto:333-WoTLamp-1234"))
                 .setProperties(Properties.of(singletonMap("status", Property.newBuilder("status")
@@ -172,6 +199,13 @@ public final class ThingDescriptionTest {
                                 .setSubprotocol("sse")
                                 .build()
                         )))
+                        .build()
+                )))
+                .setLinks(Links.of(Collections.singletonList(Link.newBuilder()
+                        .setRel("service-doc")
+                        .setHref(IRI.of("https://eclipse.org/ditto/some-pdf.pdf"))
+                        .setType("application/pdf")
+                        .setHreflang(Hreflang.newSingleHreflang("de-CH-1996"))
                         .build()
                 )))
                 .build();

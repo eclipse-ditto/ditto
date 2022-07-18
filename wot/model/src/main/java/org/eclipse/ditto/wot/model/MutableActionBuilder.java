@@ -71,6 +71,16 @@ final class MutableActionBuilder
     }
 
     @Override
+    public Action.Builder setSynchronous(@Nullable final Boolean synchronous) {
+        if (synchronous != null) {
+            putValue(Action.JsonFields.SYNCHRONOUS, synchronous);
+        } else {
+            remove(Action.JsonFields.SYNCHRONOUS);
+        }
+        return myself;
+    }
+
+    @Override
     public Action build() {
         return new ImmutableAction(actionName, wrappedObjectBuilder.build());
     }

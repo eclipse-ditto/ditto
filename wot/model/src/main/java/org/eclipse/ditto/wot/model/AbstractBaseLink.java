@@ -51,6 +51,19 @@ abstract class AbstractBaseLink<L extends BaseLink<L>>
     }
 
     @Override
+    public Optional<Hreflang> getHreflang() {
+        return Optional.ofNullable(
+                TdHelpers.getValueIgnoringWrongType(wrappedObject, BaseLinkJsonFields.HREFLANG_MULTIPLE)
+                        .map(MultipleHreflang::fromJson)
+                        .map(Hreflang.class::cast)
+                        .orElseGet(() -> wrappedObject.getValue(BaseLinkJsonFields.HREFLANG)
+                                .map(SingleHreflang::of)
+                                .orElse(null)
+                        )
+        );
+    }
+
+    @Override
     public JsonObject toJson() {
         return wrappedObject;
     }

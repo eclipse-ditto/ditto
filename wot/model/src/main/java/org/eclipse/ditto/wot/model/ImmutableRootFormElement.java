@@ -12,8 +12,6 @@
  */
 package org.eclipse.ditto.wot.model;
 
-import java.util.Optional;
-
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
@@ -31,14 +29,16 @@ final class ImmutableRootFormElement extends AbstractFormElement<RootFormElement
 
     @Override
     @SuppressWarnings("unchecked")
-    public Optional<RootFormElementOp<SingleRootFormElementOp>> getOp() {
-        return Optional.ofNullable(TdHelpers.getValueIgnoringWrongType(wrappedObject, JsonFields.OP_MULTIPLE)
+    public RootFormElementOp<SingleRootFormElementOp> getOp() {
+        return TdHelpers.getValueIgnoringWrongType(wrappedObject, JsonFields.OP_MULTIPLE)
                 .map(MultipleRootFormElementOp::fromJson)
                 .map(RootFormElementOp.class::cast)
                 .orElseGet(() -> wrappedObject.getValue(JsonFields.OP)
                         .flatMap(SingleRootFormElementOp::forName)
-                        .orElse(null))
-        );
+                        .orElseThrow(() -> WotValidationException
+                                .newBuilder("The WoT TM/TD contained a root form element without 'op' member.")
+                                .build())
+                );
     }
 
     @Override

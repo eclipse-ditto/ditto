@@ -24,6 +24,7 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonCollectors;
+import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
 
@@ -60,8 +61,23 @@ final class ImmutableMultipleAtContext implements MultipleAtContext {
                         throw new IllegalArgumentException("Unsupported @context: " +
                                 singleAtContext.getClass().getSimpleName());
                     }
-                })
-                .collect(JsonCollectors.valuesToArray());
+                }).reduce(JsonArray.empty(), (array, value) -> {
+                    if (value.isObject()) {
+                        final JsonArray newArray = ((JsonArray) array).stream()
+                                .filter(v -> !v.isObject())
+                                .collect(JsonCollectors.valuesToArray());
+                        return newArray.add(((JsonArray) array)
+                                .stream()
+                                .filter(JsonValue::isObject)
+                                .map(JsonValue::asObject)
+                                .findFirst()
+                                .map(object -> JsonFactory.mergeJsonValues(object, value.asObject()))
+                                .orElse(value.asObject())
+                        );
+                    } else {
+                        return ((JsonArray) array).add(value);
+                    }
+                }).asArray();
     }
 
     @Override

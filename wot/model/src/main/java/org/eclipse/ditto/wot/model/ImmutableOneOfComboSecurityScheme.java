@@ -41,6 +41,11 @@ final class ImmutableOneOfComboSecurityScheme extends AbstractSecurityScheme imp
     }
 
     @Override
+    protected SecurityScheme createInstance(final JsonObject newWrapped) {
+        return new ImmutableOneOfComboSecurityScheme(getSecuritySchemeName(), newWrapped);
+    }
+
+    @Override
     protected boolean canEqual(@Nullable final Object other) {
         return other instanceof ImmutableOneOfComboSecurityScheme;
     }
