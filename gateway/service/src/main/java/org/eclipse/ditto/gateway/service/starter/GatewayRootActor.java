@@ -115,8 +115,8 @@ public final class GatewayRootActor extends DittoRootActor {
         final HttpConfig httpConfig = gatewayConfig.getHttpConfig();
 
         final ShardRegions shardRegions = ShardRegions.of(actorSystem, clusterConfig);
-        final SignalTransformer signalTransformer =
-                SignalTransformers.get(actorSystem, ScopedConfig.dittoExtension(actorSystem.settings().config()));
+        final var dittoExtensionConfig = ScopedConfig.dittoExtension(config);
+        final SignalTransformer signalTransformer = SignalTransformers.get(actorSystem, dittoExtensionConfig);
         final var edgeCommandForwarder = startChildActor(EdgeCommandForwarderActor.ACTOR_NAME,
                 EdgeCommandForwarderActor.props(pubSubMediator, shardRegions, signalTransformer));
         final var proxyActor = startProxyActor(actorSystem, pubSubMediator, edgeCommandForwarder);
@@ -153,7 +153,6 @@ public final class GatewayRootActor extends DittoRootActor {
                         pubSubMediator,
                         edgeCommandForwarder));
 
-        final var dittoExtensionConfig = ScopedConfig.dittoExtension(config);
         RootChildActorStarter.get(actorSystem, dittoExtensionConfig).execute(getContext());
 
         final ActorRef healthCheckActor = createHealthCheckActor(healthCheckConfig);
