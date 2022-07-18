@@ -588,7 +588,8 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
      */
     protected boolean shouldBecomeTwinSignalProcessingAwaiting(final Signal<?> signal) {
         return !Signal.isChannelLive(signal) && !Signal.isChannelSmart(signal) &&
-                signal.getDittoHeaders().isResponseRequired();
+                signal instanceof Command<?> command &&
+                Command.Category.isEntityModifyingCommand(command.getCategory());
     }
 
     private void handleSignalEnforcementResponse(@Nullable final Object response,
