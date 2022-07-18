@@ -587,9 +587,7 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
      * @return whether the supervisor should become signal processing awaiting for the passed signal.
      */
     protected boolean shouldBecomeTwinSignalProcessingAwaiting(final Signal<?> signal) {
-        return !Signal.isChannelLive(signal) && !Signal.isChannelSmart(signal) &&
-                signal instanceof Command<?> command &&
-                Command.Category.isEntityModifyingCommand(command.getCategory());
+        return !Signal.isChannelLive(signal) && !Signal.isChannelSmart(signal);
     }
 
     private void handleSignalEnforcementResponse(@Nullable final Object response,
