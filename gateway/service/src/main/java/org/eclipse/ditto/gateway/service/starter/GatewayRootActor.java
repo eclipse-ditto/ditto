@@ -23,6 +23,7 @@ import org.eclipse.ditto.base.service.config.limits.LimitsConfig;
 import org.eclipse.ditto.edge.service.dispatching.EdgeCommandForwarderActor;
 import org.eclipse.ditto.edge.service.dispatching.ShardRegions;
 import org.eclipse.ditto.edge.service.dispatching.SignalTransformer;
+import org.eclipse.ditto.edge.service.dispatching.SignalTransformers;
 import org.eclipse.ditto.gateway.service.endpoints.directives.auth.DevopsAuthenticationDirective;
 import org.eclipse.ditto.gateway.service.endpoints.directives.auth.DevopsAuthenticationDirectiveFactory;
 import org.eclipse.ditto.gateway.service.endpoints.directives.auth.GatewayAuthenticationDirectiveFactory;
@@ -115,7 +116,7 @@ public final class GatewayRootActor extends DittoRootActor {
 
         final ShardRegions shardRegions = ShardRegions.of(actorSystem, clusterConfig);
         final SignalTransformer signalTransformer =
-                SignalTransformer.get(actorSystem, ScopedConfig.dittoExtension(actorSystem.settings().config()));
+                SignalTransformers.get(actorSystem, ScopedConfig.dittoExtension(actorSystem.settings().config()));
         final var edgeCommandForwarder = startChildActor(EdgeCommandForwarderActor.ACTOR_NAME,
                 EdgeCommandForwarderActor.props(pubSubMediator, shardRegions, signalTransformer));
         final var proxyActor = startProxyActor(actorSystem, pubSubMediator, edgeCommandForwarder);

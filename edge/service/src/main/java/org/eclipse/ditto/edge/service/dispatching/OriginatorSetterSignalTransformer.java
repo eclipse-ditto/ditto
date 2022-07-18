@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.policies.enforcement.pre;
+package org.eclipse.ditto.edge.service.dispatching;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
@@ -32,7 +32,7 @@ import akka.actor.ActorSystem;
  * Pre-Enforcer which sets additional headers to a signal.
  */
 @Immutable
-public final class HeaderSetterPreEnforcer implements PreEnforcer {
+public final class OriginatorSetterSignalTransformer implements SignalTransformer {
 
     /**
      * Constructs a new instance of HeaderSetterPreEnforcer extension.
@@ -40,7 +40,7 @@ public final class HeaderSetterPreEnforcer implements PreEnforcer {
      * @param actorSystem the actor system in which to load the extension.
      */
     @SuppressWarnings("unused")
-    public HeaderSetterPreEnforcer(final ActorSystem actorSystem, final Config config) {
+    public OriginatorSetterSignalTransformer(final ActorSystem actorSystem, final Config config) {
         // no-op
     }
 
