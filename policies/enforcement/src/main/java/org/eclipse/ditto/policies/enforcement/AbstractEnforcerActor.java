@@ -100,8 +100,7 @@ public abstract class AbstractEnforcerActor<I extends EntityId, S extends Signal
                 .match(SudoCommand.class, sudoCommand -> log.withCorrelationId(sudoCommand)
                         .error("Received SudoCommand in enforcer which should never happen: <{}>", sudoCommand)
                 )
-                .match(CommandResponse.class, Signal::isChannelLive, r -> filterLiveResponse((R) r))
-                .match(CommandResponse.class, r -> filterTwinResponse((R) r))
+                .match(CommandResponse.class, r -> replyWithFilteredCommandResponse((R) r))
                 .match(Signal.class, s -> enforceSignal((S) s))
                 .matchAny(message ->
                         log.withCorrelationId(
@@ -193,13 +192,6 @@ public abstract class AbstractEnforcerActor<I extends EntityId, S extends Signal
         sender.tell(dittoRuntimeException, getSelf());
     }
 
-    private void filterLiveResponse(final R liveResponse) {
-        Patterns.pipe(preEnforcer.apply(liveResponse)
-                        .thenApply(preEnforced -> (R) preEnforced)
-                        .thenCompose(this::filterResponse), getContext().dispatcher())
-                .to(sender());
-    }
-
     /**
      * Filters the response payload of the passed {@code commandResponse} using the {@code enforcement} of this actor.
      * Filtered command responses are sent back to the {@code getSender()} - which is our dear parent, the Supervisor.
@@ -207,7 +199,7 @@ public abstract class AbstractEnforcerActor<I extends EntityId, S extends Signal
      *
      * @param commandResponse the {@code CommandResponse} to filter based in the {@code policyEnforcer}.
      */
-    private void filterTwinResponse(final R commandResponse) {
+    private void replyWithFilteredCommandResponse(final R commandResponse) {
         final ActorRef sender = getSender();
         final ActorRef parent = getContext().parent();
         if (enforcement.shouldFilterCommandResponse(commandResponse)) {
@@ -219,10 +211,9 @@ public abstract class AbstractEnforcerActor<I extends EntityId, S extends Signal
 
     /**
      * Filters the response payload of the passed {@code commandResponse} using the {@code enforcement} of this actor.
-     * Filtered command responses are sent back to the {@code getSender()} - which is our dear parent, the Supervisor.
-     * Our parent is responsible for then forwarding the command response to the original sender.
      *
      * @param commandResponse the {@code CommandResponse} to filter based in the {@code policyEnforcer}.
+     * @return a completion stage holding the filtered command response.
      */
     private CompletionStage<R> filterResponse(final R commandResponse) {
         if (enforcement.shouldFilterCommandResponse(commandResponse)) {
