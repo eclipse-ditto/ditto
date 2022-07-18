@@ -202,8 +202,6 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
                 underTest.tell(retrieveThing, getRef());
                 final DittoHeaders expectedHeaders = dittoHeadersV2.toBuilder()
                         .readGrantedSubjects(List.of(AUTHORIZED_SUBJECT))
-                        .putHeader(DittoHeaderDefinition.ORIGINATOR.getKey(),
-                                AUTHORIZED_SUBJECT.getId()) //pre-enforcement
                         .build();
                 expectMsgEquals(ETagTestUtils.retrieveThingResponse(thing, null, expectedHeaders));
 

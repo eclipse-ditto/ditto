@@ -24,6 +24,7 @@ import org.eclipse.ditto.base.service.DittoExtensionPoint;
 import org.eclipse.ditto.base.service.DittoExtensionPoint.ExtensionId.ExtensionIdConfig;
 
 import com.typesafe.config.Config;
+import com.typesafe.config.ConfigValue;
 
 import akka.actor.ActorSystem;
 
@@ -35,7 +36,9 @@ public final class SignalTransformers implements DittoExtensionPoint, SignalTran
     @SuppressWarnings("unused")
     private SignalTransformers(final ActorSystem actorSystem, final Config config) {
         final DittoExtensionIds dittoExtensionIds = DittoExtensionIds.get(actorSystem);
-        transformers = config.getList(SIGNAL_TRANSFORMERS)
+        final List<ConfigValue> configuredTransformers =
+                config.hasPath(SIGNAL_TRANSFORMERS) ? config.getList(SIGNAL_TRANSFORMERS) : List.of();
+        transformers = configuredTransformers
                 .stream()
                 .map(configValue -> ExtensionIdConfig.of(SignalTransformer.class, configValue))
                 .map(extensionIdConfig -> dittoExtensionIds.computeIfAbsent(extensionIdConfig,
