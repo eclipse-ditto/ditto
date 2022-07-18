@@ -23,6 +23,7 @@ import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.DittoHeadersSettable;
 import org.eclipse.ditto.base.model.signals.Signal;
+import org.eclipse.ditto.base.service.signaltransformer.SignalTransformer;
 
 import com.typesafe.config.Config;
 

@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.edge.service.dispatching.signaltransformer;
+package org.eclipse.ditto.base.service.signaltransformer;
 
 import java.util.concurrent.CompletionStage;
 import java.util.function.Function;

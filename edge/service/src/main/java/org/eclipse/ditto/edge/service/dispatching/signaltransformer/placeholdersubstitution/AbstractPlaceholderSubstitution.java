@@ -26,7 +26,7 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.signals.Signal;
-import org.eclipse.ditto.edge.service.dispatching.signaltransformer.SignalTransformer;
+import org.eclipse.ditto.base.service.signaltransformer.SignalTransformer;
 
 /**
  * Abstract SignalTransformer which applies substitution of placeholders on a command (subtype of {@link Signal}) based on
