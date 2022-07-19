@@ -12,16 +12,17 @@
  */
 package org.eclipse.ditto.connectivity.service.messaging;
 
+import java.net.URI;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.connectivity.api.HonoConfig;
+import org.eclipse.ditto.connectivity.service.config.HonoConfig;
 import org.eclipse.ditto.connectivity.model.Connection;
-import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
 import org.eclipse.ditto.connectivity.model.HonoAddressAlias;
 import org.eclipse.ditto.connectivity.model.ImmutableHeaderMapping;
@@ -36,7 +37,6 @@ import org.eclipse.ditto.connectivity.service.messaging.rabbitmq.RabbitMQClientA
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonValue;
 
 import com.typesafe.config.Config;
@@ -54,7 +54,9 @@ public final class DefaultClientActorPropsFactory implements ClientActorPropsFac
 
     @Nullable private static DefaultClientActorPropsFactory instance;
 
-    private DefaultClientActorPropsFactory() {}
+    private DefaultClientActorPropsFactory() {
+        super();
+    }
 
     /**
      * Returns an instance of {@code DefaultClientActorPropsFactory}. Creates a new one if not already done.
@@ -69,7 +71,8 @@ public final class DefaultClientActorPropsFactory implements ClientActorPropsFac
     }
 
     @Override
-    public Props getActorPropsForType(final Connection connection, final ActorRef proxyActor,
+    public Props getActorPropsForType(final Connection connection,
+            final ActorRef proxyActor,
             final ActorRef connectionActor,
             final ActorSystem actorSystem,
             final DittoHeaders dittoHeaders,
@@ -102,41 +105,50 @@ public final class DefaultClientActorPropsFactory implements ClientActorPropsFac
                     connectionActor,
                     dittoHeaders,
                     connectivityConfigOverwrites);
-            case HONO ->
-                KafkaClientActor.props(getEnrichedConnection(actorSystem, connection),
-                        proxyActor, connectionActor, dittoHeaders, connectivityConfigOverwrites);
+            case HONO -> KafkaClientActor.props(getEnrichedConnection(actorSystem, connection),
+                    proxyActor,
+                    connectionActor,
+                    dittoHeaders,
+                    connectivityConfigOverwrites);
         };
     }
 
-    private Connection getEnrichedConnection(final ActorSystem actorSystem, final Connection connection) {
-        var honoConfig = HonoConfig.get(actorSystem);
-        final ConnectionId connectionId = connection.getId();
-        return ConnectivityModelFactory.newConnectionBuilder(
-                        connection.getId(),
+    private static Connection getEnrichedConnection(final ActorSystem actorSystem, final Connection connection) {
+        final var honoConfig = HonoConfig.get(actorSystem);
+        final var connectionId = connection.getId();
+        final var tenantId = honoConfig.getTenantId(connectionId);
+        return ConnectivityModelFactory.newConnectionBuilder(connection.getId(),
                         connection.getConnectionType(),
                         connection.getConnectionStatus(),
                         honoConfig.getBaseUri().toString())
                 .validateCertificate(honoConfig.isValidateCertificates())
                 .specificConfig(Map.of(
-                        "saslMechanism", honoConfig.getSaslMechanism().getValue(),
-                        "bootstrapServers", honoConfig.getBootstrapServers(),
-                        "groupId", honoConfig.getTenantId(connectionId) + "_" + connectionId))
-                .credentials(honoConfig.getCredentials(connectionId))
+                        "saslMechanism", honoConfig.getSaslMechanism().toString(),
+                        "bootstrapServers", getBootstrapServerUrisAsCommaSeparatedListString(honoConfig),
+                        "groupId", tenantId + "_" + connectionId)
+                )
+                .credentials(honoConfig.getUserPasswordCredentials(connectionId))
                 .sources(connection.getSources()
                         .stream()
                         .map(source -> ConnectivityModelFactory.sourceFromJson(
-                                resolveSourceAliases(source, honoConfig.getTenantId(connectionId)), 1))
+                                resolveSourceAliases(source, tenantId), 1))
                         .toList())
                 .targets(connection.getTargets()
                         .stream()
-                        .map(target -> ConnectivityModelFactory.targetFromJson(
-                                resolveTargetAlias(target, honoConfig.getTenantId(connectionId))))
+                        .map(target -> ConnectivityModelFactory.targetFromJson(resolveTargetAlias(target, tenantId)))
                         .toList())
                 .build();
     }
 
-    private JsonObject resolveSourceAliases(final Source source, String tenantId) {
-        JsonObjectBuilder sourceBuilder = JsonFactory.newObjectBuilder(source.toJson())
+    private static String getBootstrapServerUrisAsCommaSeparatedListString(final HonoConfig honoConfig) {
+        return honoConfig.getBootstrapServerUris()
+                .stream()
+                .map(URI::toString)
+                .collect(Collectors.joining(","));
+    }
+
+    private static JsonObject resolveSourceAliases(final Source source, final String tenantId) {
+        final var sourceBuilder = JsonFactory.newObjectBuilder(source.toJson())
                 .set(Source.JsonFields.ADDRESSES, JsonArray.of(source.getAddresses().stream()
                         .map(address -> HonoAddressAlias.resolve(address, tenantId))
                         .map(JsonValue::of)
@@ -163,17 +175,18 @@ public final class DefaultClientActorPropsFactory implements ClientActorPropsFac
         return sourceBuilder.build();
     }
 
-    private JsonObject resolveTargetAlias(final Target target, String tenantId) {
-        JsonObjectBuilder targetBuilder = JsonFactory.newObjectBuilder(target.toJson())
+    private static JsonObject resolveTargetAlias(final Target target, final String tenantId) {
+        final var targetBuilder = JsonFactory.newObjectBuilder(target.toJson())
                 .set(Target.JsonFields.ADDRESS, Optional.of(target.getAddress())
                         .map(address -> HonoAddressAlias.resolve(address, tenantId, true))
                         .orElse(null), jsonField -> !jsonField.getValue().asString().isEmpty());
-        var headerMapping = target.getHeaderMapping().toJson()
+        final var headerMapping = target.getHeaderMapping().toJson()
                 .setValue("device_id", "{{ thing:id }}")
                 .setValue("correlation-id", "{{ header:correlation-id }}")
                 .setValue("subject", "{{ header:subject | fn:default(topic:action-subject) }}");
         if (target.getTopics().stream()
-                .anyMatch(topic -> topic.getTopic() == Topic.LIVE_MESSAGES || topic.getTopic() == Topic.LIVE_COMMANDS)) {
+                .anyMatch(topic -> topic.getTopic() == Topic.LIVE_MESSAGES ||
+                        topic.getTopic() == Topic.LIVE_COMMANDS)) {
             headerMapping.setValue("response-required", "{{ header:response-required }}");
         }
         targetBuilder.set("headerMapping", headerMapping);

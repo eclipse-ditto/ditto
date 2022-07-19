@@ -10,11 +10,12 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.connectivity.api;
+package org.eclipse.ditto.connectivity.service.config;
 
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.List;
+import java.util.Set;
 
 import org.eclipse.ditto.base.model.common.ConditionChecker;
 import org.eclipse.ditto.connectivity.model.ConnectionId;
@@ -29,8 +30,8 @@ import akka.actor.ExtendedActorSystem;
 import akka.actor.Extension;
 
 /**
- * Configuration interface for connection type 'Hono' parameters
- * Via actor system extension, it enables different implementations per service type (Ditto/Things)
+ * This interface provides access to the configuration properties Hono connections.
+ * The actual configuration can be obtained via actor system extension.
  */
 public interface HonoConfig extends Extension {
 
@@ -40,47 +41,51 @@ public interface HonoConfig extends Extension {
     String PREFIX = "ditto.connectivity.hono";
 
     /**
-     * Gets the Base URI configuration value
+     * Gets the Base URI configuration value.
      *
-     * @return the connection URI
+     * @return the connection base URI.
      */
     URI getBaseUri();
 
     /**
-     * Gets validateCertificates boolean property
+     * Indicates whether the certificates should be validated.
      *
-     * @return validateCertificates boolean property
+     * @return {@code true} if the certificates should be validated, {@code false} else.
      */
     boolean isValidateCertificates();
 
     /**
-     * Gets the SASL mechanism of Hono-connection (Kafka specific property)
+     * Gets the SASL mechanism of Hono-connection (Kafka specific property).
      *
-     * @return {@link SaslMechanism}
+     * @return the configured SaslMechanism.
      */
     SaslMechanism getSaslMechanism();
 
     /**
-     * Gets bootstrap servers
+     * Returns the URIs of bootstrap servers.
      *
-     * @return {@link String} containing comma separated bootstrap server list
+     * @return an unmodifiable unsorted Set containing the URIs of bootstrap servers.
      */
-    String getBootstrapServers();
+    Set<URI> getBootstrapServerUris();
 
     /**
-     * Gets the credentials for specified Hono-connection
+     * Gets the credentials for the specified Hono connection.
      *
-     * @param connectionId The connection ID of the connection
-     * @return The credentials of the connection
+     * @param connectionId the ID of the connection.
+     * @return the credentials of the connection.
+     * @throws NullPointerException if {@code connectionId} is {@code null}.
      */
-    UserPasswordCredentials getCredentials(ConnectionId connectionId);
+    // TODO jff delete connection ID parameter because for Ditto it does not make sense.
+    UserPasswordCredentials getUserPasswordCredentials(ConnectionId connectionId);
 
     /**
-     * Gets Hub tenant_id property
+     * Gets the Hub tenant ID property for the specified Hono connection.
      *
-     * @param connectionId The connection ID of the connection
-     * @return hubTenantId
+     * @param connectionId the ID of the connection.
+     * @return the Hub tenant ID, {@code ""} by default.
+     * @throws NullPointerException if {@code connectionId} is {@code null}.
      */
+    // TODO jff delete method after obtaining the tenant ID is moved to another place.
     default String getTenantId(final ConnectionId connectionId) {
         return "";
     }
@@ -88,39 +93,39 @@ public interface HonoConfig extends Extension {
     enum HonoConfigValue implements KnownConfigValue {
 
         /**
-         * Base URI, including port number
+         * Base URL, including port number.
          */
-        BASE_URI("base-uri", ""),
+        BASE_URI("base-uri", "tcp://localhost:30092"),
 
         /**
-         * validateCertificates boolean property
+         * validateCertificates boolean property.
          */
         VALIDATE_CERTIFICATES("validate-certificates", false),
 
         /**
-         * SASL mechanism for connections of type Hono
+         * SASL mechanism for connections of type Hono.
          */
-        SASL_MECHANISM("sasl-mechanism", "plain"),
+        SASL_MECHANISM("sasl-mechanism", SaslMechanism.PLAIN.name()),
 
         /**
-         * Bootstrap servers, comma separated
+         * Bootstrap servers, comma separated.
          */
-        BOOTSTRAP_SERVERS("bootstrap-servers", ""),
+        BOOTSTRAP_SERVERS("bootstrap-servers", "bootstrap.server:9999"),
 
         /**
-         * Username
+         * The Hono credentials username.
          */
         USERNAME("username", ""),
 
         /**
-         * Password
+         * The Hono credentials password.
          */
         PASSWORD("password", "");
 
         private final String path;
         private final Object defaultValue;
 
-        HonoConfigValue(final String thePath, final Object theDefaultValue) {
+        private HonoConfigValue(final String thePath, final Object theDefaultValue) {
             path = thePath;
             defaultValue = theDefaultValue;
         }
@@ -144,8 +149,7 @@ public interface HonoConfig extends Extension {
      * @return the {@code HonoConfig}.
      */
     static HonoConfig get(final ActorSystem actorSystem) {
-        ConditionChecker.checkNotNull(actorSystem, "actorSystem");
-        return HonoConfig.ExtensionId.INSTANCE.get(actorSystem);
+        return HonoConfig.ExtensionId.INSTANCE.get(ConditionChecker.checkNotNull(actorSystem, "actorSystem"));
     }
 
     /**
@@ -158,7 +162,7 @@ public interface HonoConfig extends Extension {
     static URI getUri(final String uri) throws DittoConfigError {
         try {
             return new URI(uri);
-        } catch (URISyntaxException e) {
+        } catch (final URISyntaxException e) {
             throw new DittoConfigError(e);
         }
     }
@@ -174,13 +178,14 @@ public interface HonoConfig extends Extension {
 
         @Override
         public HonoConfig createExtension(final ExtendedActorSystem system) {
-
-            final String implementation = system.settings().config().getString(CONFIG_PATH);
-            return AkkaClassLoader.instantiate(system, HonoConfig.class,
-                    implementation,
+            ConditionChecker.checkNotNull(system, "system");
+            return AkkaClassLoader.instantiate(system,
+                    HonoConfig.class,
+                    system.settings().config().getString(CONFIG_PATH),
                     List.of(ActorSystem.class),
                     List.of(system));
         }
+
     }
 
     enum SaslMechanism {
@@ -189,12 +194,20 @@ public interface HonoConfig extends Extension {
 
         private final String value;
 
-        SaslMechanism(String value) {
+        private SaslMechanism(final String value) {
             this.value = value;
         }
 
-        public String getValue() {
+        /**
+         * Returns the value of this SaslMechanism.
+         *
+         * @return the value.
+         */
+        @Override
+        public String toString() {
             return value;
         }
+
     }
+
 }

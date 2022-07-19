@@ -12,86 +12,126 @@
  */
 package org.eclipse.ditto.connectivity.service.config;
 
-import java.net.URI;
-import java.util.Arrays;
-import java.util.Objects;
+import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
-import org.eclipse.ditto.base.model.common.ConditionChecker;
-import org.eclipse.ditto.connectivity.api.HonoConfig;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.text.MessageFormat;
+import java.util.Collections;
+import java.util.LinkedHashSet;
+import java.util.Objects;
+import java.util.Set;
+import java.util.function.BiFunction;
+
+import javax.annotation.concurrent.Immutable;
+
 import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.connectivity.model.UserPasswordCredentials;
+import org.eclipse.ditto.internal.utils.config.ConfigWithFallback;
+import org.eclipse.ditto.internal.utils.config.DittoConfigError;
+import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 
 import com.typesafe.config.Config;
 
 import akka.actor.ActorSystem;
 
 /**
- * Configuration class providing parameters for connection type 'Hono' in Ditto from static configuration
+ * Default implementation for {@link HonoConfig}.
  */
+@Immutable
 public final class DefaultHonoConfig implements HonoConfig {
 
     private final URI baseUri;
     private final boolean validateCertificates;
     private final SaslMechanism saslMechanism;
-    private final String bootstrapServers;
-
+    private final Set<URI> bootstrapServerUris;
     private final UserPasswordCredentials credentials;
 
+    /**
+     * Constructs a {@code DefaultHonoConfig} for the specified ActorSystem.
+     *
+     * @param actorSystem the actor system that provides the overall core config.
+     * @throws NullPointerException if {@code actorSystem} is {@code null}.
+     */
     public DefaultHonoConfig(final ActorSystem actorSystem) {
-        ConditionChecker.checkNotNull(actorSystem, "actorSystem");
-        final Config config = actorSystem.settings().config().getConfig(PREFIX);
-
-        this.baseUri = HonoConfig.getUri(config.getString(HonoConfigValue.BASE_URI.getConfigPath()));
-        this.validateCertificates = config.getBoolean(HonoConfigValue.VALIDATE_CERTIFICATES.getConfigPath());
-        this.saslMechanism = config.getEnum(SaslMechanism.class, HonoConfigValue.SASL_MECHANISM.getConfigPath());
-        this.bootstrapServers = config.getString(HonoConfigValue.BOOTSTRAP_SERVERS.getConfigPath());
-        // Validate bootstrap servers
-        Arrays.stream(this.bootstrapServers.split(",")).forEach(HonoConfig::getUri);
-
-        this.credentials = UserPasswordCredentials.newInstance(
-                config.getString(HonoConfigValue.USERNAME.getConfigPath()),
-                config.getString(HonoConfigValue.PASSWORD.getConfigPath()));
+        this(ConfigWithFallback.newInstance(checkNotNull(actorSystem, "actorSystem").settings().config(),
+                PREFIX,
+                HonoConfigValue.values()));
     }
 
-    /**
-     * @return Base URI, including port number
-     */
+    private DefaultHonoConfig(final ScopedConfig scopedConfig) {
+        baseUri = getBaseUriOrThrow(scopedConfig);
+        validateCertificates = scopedConfig.getBoolean(HonoConfigValue.VALIDATE_CERTIFICATES.getConfigPath());
+        saslMechanism = scopedConfig.getEnum(SaslMechanism.class, HonoConfigValue.SASL_MECHANISM.getConfigPath());
+        bootstrapServerUris = Collections.unmodifiableSet(getBootstrapServerUrisOrThrow(scopedConfig));
+        credentials = UserPasswordCredentials.newInstance(
+                scopedConfig.getString(HonoConfigValue.USERNAME.getConfigPath()),
+                scopedConfig.getString(HonoConfigValue.PASSWORD.getConfigPath())
+        );
+    }
+
+    private static URI getBaseUriOrThrow(final Config scopedConfig) {
+        final var configPath = HonoConfigValue.BASE_URI.getConfigPath();
+        try {
+            return new URI(scopedConfig.getString(configPath));
+        } catch (final URISyntaxException e) {
+            throw new DittoConfigError(
+                    MessageFormat.format("The string value at <{0}> is not a {1}: {2}",
+                            configPath,
+                            URI.class.getSimpleName(),
+                            e.getMessage()),
+                    e
+            );
+        }
+    }
+
+    private static Set<URI> getBootstrapServerUrisOrThrow(final Config scopedConfig) {
+        final var configPath = HonoConfigValue.BOOTSTRAP_SERVERS.getConfigPath();
+        final BiFunction<Integer, String, URI> getUriOrThrow = (index, uriString) -> {
+            try {
+                return new URI(uriString.trim());
+            } catch (final URISyntaxException e) {
+                throw new DittoConfigError(
+                        MessageFormat.format("The string at index <{0}> for key <{1}> is not a valid URI: {2}",
+                                index,
+                                configPath,
+                                e.getMessage()),
+                        e
+                );
+            }
+        };
+
+        final var bootstrapServersString = scopedConfig.getString(configPath);
+        final var bootstrapServerUriStrings = bootstrapServersString.split(",");
+        final Set<URI> result = new LinkedHashSet<>(bootstrapServerUriStrings.length);
+        for (var i = 0; i < bootstrapServerUriStrings.length; i++) {
+            result.add(getUriOrThrow.apply(i, bootstrapServerUriStrings[i]));
+        }
+        return result;
+    }
+
     @Override
     public URI getBaseUri() {
         return baseUri;
     }
 
-    /**
-     * @return validateCertificates boolean property
-     */
     @Override
     public boolean isValidateCertificates() {
         return validateCertificates;
     }
 
-    /**
-     * @return SASL mechanism property
-     */
     @Override
     public SaslMechanism getSaslMechanism() {
         return saslMechanism;
     }
 
-    /**
-     * @return Bootstrap servers address(es)
-     */
     @Override
-    public String getBootstrapServers() {
-        return bootstrapServers;
+    public Set<URI> getBootstrapServerUris() {
+        return bootstrapServerUris;
     }
 
-    /**
-     * Gets credentials for hono messaging
-     * @param connectionId The connection ID of the connection
-     * @return {@link org.eclipse.ditto.connectivity.model.UserPasswordCredentials} for hub messaging
-     */
     @Override
-    public UserPasswordCredentials getCredentials(final ConnectionId connectionId) {
+    public UserPasswordCredentials getUserPasswordCredentials(final ConnectionId connectionId) {
         return credentials;
     }
 
@@ -103,17 +143,18 @@ public final class DefaultHonoConfig implements HonoConfig {
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        final DefaultHonoConfig that = (DefaultHonoConfig) o;
+        final var that = (DefaultHonoConfig) o;
         return Objects.equals(baseUri, that.baseUri)
                 && Objects.equals(validateCertificates, that.validateCertificates)
                 && Objects.equals(saslMechanism, that.saslMechanism)
-                && Objects.equals(bootstrapServers, that.bootstrapServers)
+                && Objects.equals(bootstrapServerUris, that.bootstrapServerUris)
                 && Objects.equals(credentials, that.credentials);
 
     }
+
     @Override
     public int hashCode() {
-        return Objects.hash(baseUri, validateCertificates, saslMechanism, bootstrapServers, credentials);
+        return Objects.hash(baseUri, validateCertificates, saslMechanism, bootstrapServerUris, credentials);
     }
 
     @Override
@@ -122,7 +163,7 @@ public final class DefaultHonoConfig implements HonoConfig {
                 "baseUri=" + baseUri +
                 ", validateCertificates=" + validateCertificates +
                 ", saslMechanism=" + saslMechanism +
-                ", bootstrapServers=" + bootstrapServers +
+                ", bootstrapServers=" + bootstrapServerUris +
                 "]";
     }
 
