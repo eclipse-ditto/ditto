@@ -51,7 +51,8 @@ public final class SignalTransformers implements DittoExtensionPoint, SignalTran
                 .toList();
         final String loadedSignalTransformersAsCommaSeparatedList =
                 transformers.stream().map(Object::getClass).map(Class::getName).collect(Collectors.joining(","));
-        LOGGER.info("Instantiated the following signal transformers: {}.", loadedSignalTransformersAsCommaSeparatedList);
+        LOGGER.info("Instantiated the following signal transformers: {}.",
+                loadedSignalTransformersAsCommaSeparatedList);
     }
 
     @Override
@@ -61,10 +62,8 @@ public final class SignalTransformers implements DittoExtensionPoint, SignalTran
             prior = prior.thenCompose(signalTransformer);
         }
         return prior.whenComplete((result, error) -> {
-            if(error != null) {
-                LOGGER.warn("Error happened during signal transforming. This should not happen. If the signal" +
-                        "transformer is designed to throw an exception in case of an invalid signal it should" +
-                        "most likely be a PreEnforcer instead.");
+            if (error != null) {
+                LOGGER.debug("Error happened during signal transforming.", error);
             } else {
                 LOGGER.debug("Signal transforming of <{}> resulted in <{}>.", signal, result);
             }

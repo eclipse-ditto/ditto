@@ -12,18 +12,22 @@
  */
 package org.eclipse.ditto.edge.service.dispatching;
 
+import java.util.concurrent.CompletionStage;
+
 import org.eclipse.ditto.base.model.entity.id.WithEntityId;
+import org.eclipse.ditto.base.model.exceptions.DittoInternalErrorException;
+import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
 import org.eclipse.ditto.base.model.signals.events.Event;
+import org.eclipse.ditto.base.service.signaltransformer.SignalTransformer;
+import org.eclipse.ditto.base.service.signaltransformer.SignalTransformers;
 import org.eclipse.ditto.connectivity.api.commands.sudo.ConnectivitySudoCommand;
 import org.eclipse.ditto.connectivity.model.signals.commands.ConnectivityCommand;
-import org.eclipse.ditto.base.service.signaltransformer.SignalTransformer;
 import org.eclipse.ditto.internal.utils.aggregator.ThingsAggregatorProxyActor;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
-import org.eclipse.ditto.internal.utils.cacheloaders.config.AskWithRetryConfig;
 import org.eclipse.ditto.internal.utils.cacheloaders.config.DefaultAskWithRetryConfig;
 import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
@@ -70,16 +74,16 @@ public class EdgeCommandForwarderActor extends AbstractActor {
     private final ActorRef aggregatorProxyActor;
 
     @SuppressWarnings("unused")
-    private EdgeCommandForwarderActor(final ActorRef pubSubMediator, final ShardRegions shardRegions,
-            final SignalTransformer signalTransformer) {
+    private EdgeCommandForwarderActor(final ActorRef pubSubMediator, final ShardRegions shardRegions) {
 
         this.pubSubMediator = pubSubMediator;
         this.shardRegions = shardRegions;
-        this.signalTransformer = signalTransformer;
-        final AskWithRetryConfig askWithRetryConfig = DefaultAskWithRetryConfig.of(
-                DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config()),
-                "ask-with-retry");
-        final ActorSystem actorSystem = getContext().getSystem();
+        final var actorSystem = getContext().getSystem();
+        final Config config = actorSystem.settings().config();
+        final var dittoScoped = DefaultScopedConfig.dittoScoped(config);
+        final var dittoExtensionsConfig = ScopedConfig.dittoExtension(config);
+        final var askWithRetryConfig = DefaultAskWithRetryConfig.of(dittoScoped, "ask-with-retry");
+        this.signalTransformer = SignalTransformers.get(actorSystem, dittoExtensionsConfig);
         askWithRetryCommandForwarder = AskWithRetryCommandForwarder.get(actorSystem);
         aggregatorProxyActor = getContext().actorOf(ThingsAggregatorProxyActor.props(pubSubMediator),
                 ThingsAggregatorProxyActor.ACTOR_NAME);
@@ -90,13 +94,11 @@ public class EdgeCommandForwarderActor extends AbstractActor {
      *
      * @param pubSubMediator the PubSub mediator Actor.
      * @param shardRegions shard regions to use in order to dispatch different entity Signals to.
-     * @param signalTransformer Used to transform signals before forwarding them to the responsible service.
      * @return the Akka configuration Props object.
      */
-    public static Props props(final ActorRef pubSubMediator, final ShardRegions shardRegions,
-            final SignalTransformer signalTransformer) {
+    public static Props props(final ActorRef pubSubMediator, final ShardRegions shardRegions) {
 
-        return Props.create(EdgeCommandForwarderActor.class, pubSubMediator, shardRegions, signalTransformer);
+        return Props.create(EdgeCommandForwarderActor.class, pubSubMediator, shardRegions);
     }
 
     /**
@@ -150,7 +152,7 @@ public class EdgeCommandForwarderActor extends AbstractActor {
 
     private void forwardToThings(final Signal<?> thingSignal) {
         final ActorRef sender = getSender();
-        signalTransformer.apply(thingSignal)
+        applySignalTransformation(thingSignal, sender)
                 .thenAccept(transformed -> {
                     log.withCorrelationId(transformed)
                             .info("Forwarding thing signal with ID <{}> and type <{}> to 'things' shard region",
@@ -171,15 +173,29 @@ public class EdgeCommandForwarderActor extends AbstractActor {
                 });
     }
 
+    private CompletionStage<Signal<?>> applySignalTransformation(final Signal<?> signal, final ActorRef sender) {
+        return signalTransformer.apply(signal)
+                .whenComplete((transformed, error) -> {
+                    if (error != null) {
+                        final var dre = DittoRuntimeException.asDittoRuntimeException(error,
+                                reason -> DittoInternalErrorException.newBuilder()
+                                        .dittoHeaders(signal.getDittoHeaders())
+                                        .cause(reason)
+                                        .build());
+                        sender.tell(dre, ActorRef.noSender());
+                    }
+                });
+    }
+
     private void forwardToThingsAggregatorProxy(final Command<?> command) {
         final ActorRef sender = getSender();
-        signalTransformer.apply(command)
+        applySignalTransformation(command, sender)
                 .thenAccept(transformed -> aggregatorProxyActor.tell(transformed, sender));
     }
 
     private void forwardToPolicies(final PolicyCommand<?> policyCommand) {
         final ActorRef sender = getSender();
-        signalTransformer.apply(policyCommand)
+        applySignalTransformation(policyCommand, sender)
                 .thenAccept(transformed -> {
                     final PolicyCommand<?> transformedPolicyCommand = (PolicyCommand<?>) transformed;
                     log.withCorrelationId(transformedPolicyCommand)
@@ -200,7 +216,7 @@ public class EdgeCommandForwarderActor extends AbstractActor {
     private void forwardToConnectivity(final Command<?> connectivityCommand) {
         if (connectivityCommand instanceof WithEntityId withEntityId) {
             final ActorRef sender = getSender();
-            signalTransformer.apply(connectivityCommand)
+            applySignalTransformation(connectivityCommand, sender)
                     .thenAccept(transformed -> {
                         final Command<?> transformedConnectivityCommand = (Command<?>) transformed;
                         log.withCorrelationId(transformedConnectivityCommand)
@@ -227,7 +243,7 @@ public class EdgeCommandForwarderActor extends AbstractActor {
     }
 
     private void handleUnknownSignal(final Signal<?> signal) {
-        signalTransformer.apply(signal)
+        applySignalTransformation(signal, sender())
                 .thenAccept(transformedSignal -> {
                     final String signalType = transformedSignal.getType();
                     final DittoDiagnosticLoggingAdapter l = log.withCorrelationId(transformedSignal);

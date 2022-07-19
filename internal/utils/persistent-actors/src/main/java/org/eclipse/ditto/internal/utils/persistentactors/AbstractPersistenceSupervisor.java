@@ -566,6 +566,18 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
                     becomeTwinSignalProcessingAwaiting();
                 }
                 final CompletionStage<Control> syncCs = signalTransformer.apply(signal)
+                        .whenComplete((result, error) -> {
+                            if (error != null) {
+                                log.withCorrelationId(signal)
+                                        .info("Got error during signal transformation: <{}>", error);
+                                final var dre = DittoRuntimeException.asDittoRuntimeException(error,
+                                        reason -> DittoInternalErrorException.newBuilder()
+                                                .dittoHeaders(signal.getDittoHeaders())
+                                                .cause(reason)
+                                                .build());
+                                sender.tell(dre, ActorRef.noSender());
+                            }
+                        })
                         .thenCompose(transformed -> enforceSignalAndForwardToTargetActor((S) transformed, sender)
                                 .handle((response, throwable) -> {
                                     handleSignalEnforcementResponse(response, throwable, transformed, sender);
