@@ -32,7 +32,8 @@ import org.eclipse.ditto.internal.utils.extension.DittoExtensionPoint;
 /**
  * A Pre-Enforcer is a function converting a {@link Signal} to a CompletionStage of a Signal, potentially throwing an
  * exception if something was "forbidden" by the enforcer implementation.
- * Can also modify the signal, e.g. by enriching headers.
+ * Implementations should apply some access validation. In case you want to only modify a signal modify the signal use
+ * {@link org.eclipse.ditto.base.service.signaltransformer.SignalTransformer} instead.
  * All implementations need to have a constructor which accepts two parameters: ActorSystem and Config.
  */
 public interface PreEnforcer extends Function<Signal<?>, CompletionStage<Signal<?>>>, DittoExtensionPoint {
