@@ -115,6 +115,14 @@
             <groupId>io.kamon</groupId>
             <artifactId>kamon-opentelemetry_${scala.version}</artifactId>
         </dependency>
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-placeholders</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-policies-model</artifactId>
+        </dependency>
 
         <!-- test scope -->
         <dependency>
