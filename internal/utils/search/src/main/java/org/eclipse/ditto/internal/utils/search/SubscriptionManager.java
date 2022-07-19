@@ -93,7 +93,7 @@ public final class SubscriptionManager extends AbstractActor {
      *
      * @param idleTimeout lifetime of an idle SubscriptionActor.
      * @param pubSubMediator pub-sub mediator for reporting of out-of-sync things.
-     * @param proxyActor recipient of thing and SudoStreamThings commands.
+     * @param proxyActor recipient of thing and StreamThings commands.
      * @param materializer materializer for the search streams.
      * @return Props of the actor.
      */

@@ -24,18 +24,18 @@ import org.junit.Test;
 import nl.jqno.equalsverifier.EqualsVerifier;
 
 /**
- * Tests {@link SudoStreamThings}.
+ * Tests {@link StreamThings}.
  */
-public final class SudoStreamThingsTest {
+public final class StreamThingsTest {
 
     @Test
     public void assertImmutability() {
-        assertInstancesOf(SudoStreamThings.class, areImmutable(), provided(JsonArray.class).isAlsoImmutable());
+        assertInstancesOf(StreamThings.class, areImmutable(), provided(JsonArray.class).isAlsoImmutable());
     }
 
     @Test
     public void testHashCodeAndEquals() {
-        EqualsVerifier.forClass(SudoStreamThings.class)
+        EqualsVerifier.forClass(StreamThings.class)
                 .withRedefinedSuperclass()
                 .verify();
     }
@@ -43,22 +43,22 @@ public final class SudoStreamThingsTest {
     @Test
     public void serializeAllOptionalFields() {
         final DittoHeaders dittoHeaders = DittoHeaders.newBuilder().randomCorrelationId().build();
-        final SudoStreamThings underTest = SudoStreamThings.of("eq(thingId,\"thing:id\")",
+        final StreamThings underTest = StreamThings.of("eq(thingId,\"thing:id\")",
                 JsonArray.of("thing", "namespace"),
                 "sort(+thingId,-attributes/counter,+feature/acceleration/properties/z)",
                 JsonArray.of("thing:hd", 53, 0.975),
                 dittoHeaders
         );
 
-        final SudoStreamThings deserialized = SudoStreamThings.fromJson(underTest.toJson(), dittoHeaders);
+        final StreamThings deserialized = StreamThings.fromJson(underTest.toJson(), dittoHeaders);
         assertThat(deserialized).isEqualTo(underTest);
     }
 
     @Test
     public void serializeNoOptionalField() {
         final DittoHeaders dittoHeaders = DittoHeaders.newBuilder().randomCorrelationId().build();
-        final SudoStreamThings underTest = SudoStreamThings.of(null, null, null, null, dittoHeaders);
-        final SudoStreamThings deserialized = SudoStreamThings.fromJson(underTest.toJson(), dittoHeaders);
+        final StreamThings underTest = StreamThings.of(null, null, null, null, dittoHeaders);
+        final StreamThings deserialized = StreamThings.fromJson(underTest.toJson(), dittoHeaders);
         assertThat(deserialized).isEqualTo(underTest);
     }
 }

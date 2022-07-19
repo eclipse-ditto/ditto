@@ -34,7 +34,7 @@ import org.eclipse.ditto.rql.parser.thingsearch.RqlOptionParser;
 import org.eclipse.ditto.rql.query.expression.ThingsFieldExpressionFactory;
 import org.eclipse.ditto.rql.query.things.ModelBasedThingsFieldExpressionFactory;
 import org.eclipse.ditto.things.model.Thing;
-import org.eclipse.ditto.thingsearch.api.commands.sudo.SudoStreamThings;
+import org.eclipse.ditto.thingsearch.api.commands.sudo.StreamThings;
 import org.eclipse.ditto.thingsearch.model.Option;
 import org.eclipse.ditto.thingsearch.model.SizeOption;
 import org.eclipse.ditto.thingsearch.model.SortOption;
@@ -78,7 +78,7 @@ public final class SearchSourceBuilder {
      * invalid.
      */
     public SearchSource build() {
-        final SudoStreamThings sudoStreamThings = constructStreamThings();
+        final StreamThings streamThings = constructStreamThings();
         return new SearchSource(
                 checkNotNull(pubSubMediator, "pubSubMediator"),
                 checkNotNull(commandForwarder, "commandForwarder"),
@@ -86,7 +86,7 @@ public final class SearchSourceBuilder {
                 searchAskTimeout,
                 fields,
                 sortFields,
-                sudoStreamThings,
+                streamThings,
                 lastThingId);
     }
 
@@ -333,8 +333,8 @@ public final class SearchSourceBuilder {
         }
     }
 
-    private SudoStreamThings constructStreamThings() {
-        return SudoStreamThings.of(filter, namespaces, sort, sortValues, checkNotNull(dittoHeaders, "dittoHeaders"));
+    private StreamThings constructStreamThings() {
+        return StreamThings.of(filter, namespaces, sort, sortValues, checkNotNull(dittoHeaders, "dittoHeaders"));
     }
 
     @Nullable

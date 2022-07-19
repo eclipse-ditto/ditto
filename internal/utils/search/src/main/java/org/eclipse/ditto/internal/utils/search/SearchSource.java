@@ -39,7 +39,7 @@ import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingNotAccessibleException;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThing;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThingResponse;
-import org.eclipse.ditto.thingsearch.api.commands.sudo.SudoStreamThings;
+import org.eclipse.ditto.thingsearch.api.commands.sudo.StreamThings;
 import org.eclipse.ditto.thingsearch.api.events.ThingsOutOfSync;
 
 import akka.NotUsed;
@@ -68,7 +68,7 @@ public final class SearchSource {
     private final Duration searchAskTimeout;
     @Nullable private final JsonFieldSelector fields;
     private final JsonFieldSelector sortFields;
-    private final SudoStreamThings sudoStreamThings;
+    private final StreamThings streamThings;
     private final boolean thingIdOnly;
     private final String lastThingId;
 
@@ -78,7 +78,7 @@ public final class SearchSource {
             final Duration searchAskTimeout,
             @Nullable final JsonFieldSelector fields,
             final JsonFieldSelector sortFields,
-            final SudoStreamThings sudoStreamThings,
+            final StreamThings streamThings,
             final String lastThingId) {
         this.pubSubMediator = pubSubMediator;
         this.commandForwarder = commandForwarder;
@@ -86,7 +86,7 @@ public final class SearchSource {
         this.searchAskTimeout = searchAskTimeout;
         this.fields = fields;
         this.sortFields = sortFields;
-        this.sudoStreamThings = sudoStreamThings;
+        this.streamThings = streamThings;
         this.thingIdOnly = fields != null && fields.getSize() == 1 &&
                 fields.getPointers().contains(Thing.JsonFields.ID.getPointer());
         this.lastThingId = lastThingId;
@@ -142,11 +142,11 @@ public final class SearchSource {
      */
     private Optional<Throwable> mapError(final Throwable error) {
         if (error instanceof RemoteStreamRefActorTerminatedException) {
-            LOGGER.withCorrelationId(sudoStreamThings).info("Resuming from: {}", error.toString());
+            LOGGER.withCorrelationId(streamThings).info("Resuming from: {}", error.toString());
             return Optional.empty();
         } else {
             return Optional.of(DittoRuntimeException.asDittoRuntimeException(error, e -> {
-                LOGGER.withCorrelationId(sudoStreamThings).error("Unexpected error", e);
+                LOGGER.withCorrelationId(streamThings).error("Unexpected error", e);
                 return DittoInternalErrorException.newBuilder().build();
             }));
         }
@@ -166,11 +166,11 @@ public final class SearchSource {
                 : finalElements.get(finalElements.size() - 1).first();
     }
 
-    private Source<SudoStreamThings, NotUsed> streamThingsFrom(final String lastThingId) {
+    private Source<StreamThings, NotUsed> streamThingsFrom(final String lastThingId) {
         if (lastThingId.isEmpty()) {
-            return Source.single(sudoStreamThings);
+            return Source.single(streamThings);
         } else {
-            return retrieveSortValues(lastThingId).map(sudoStreamThings::setSortValues);
+            return retrieveSortValues(lastThingId).map(streamThings::setSortValues);
         }
     }
 
@@ -223,7 +223,7 @@ public final class SearchSource {
     }
 
     private DittoHeaders getDittoHeaders() {
-        return sudoStreamThings.getDittoHeaders();
+        return streamThings.getDittoHeaders();
     }
 
     private <T> Flow<Object, T, NotUsed> expectMsgClass(final Class<T> clazz) {

@@ -29,7 +29,7 @@ import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingNotAccessibleException;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThing;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThingResponse;
-import org.eclipse.ditto.thingsearch.api.commands.sudo.SudoStreamThings;
+import org.eclipse.ditto.thingsearch.api.commands.sudo.StreamThings;
 import org.eclipse.ditto.thingsearch.api.events.ThingsOutOfSync;
 import org.junit.After;
 import org.junit.Before;
@@ -205,8 +205,8 @@ public final class SearchSourceTest {
         return materializedValues.second();
     }
 
-    private SudoStreamThings streamThings(@Nullable final JsonArray sortValues) {
-        return SudoStreamThings.of(null, null, SORT, sortValues, dittoHeaders);
+    private StreamThings streamThings(@Nullable final JsonArray sortValues) {
+        return StreamThings.of(null, null, SORT, sortValues, dittoHeaders);
     }
 
     private void startTestSearchSource(@Nullable final JsonFieldSelector fields,

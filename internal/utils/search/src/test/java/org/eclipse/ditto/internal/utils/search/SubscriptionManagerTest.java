@@ -25,7 +25,7 @@ import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.things.model.Thing;
-import org.eclipse.ditto.thingsearch.api.commands.sudo.SudoStreamThings;
+import org.eclipse.ditto.thingsearch.api.commands.sudo.StreamThings;
 import org.eclipse.ditto.thingsearch.model.signals.commands.subscription.CancelSubscription;
 import org.eclipse.ditto.thingsearch.model.signals.commands.subscription.CreateSubscription;
 import org.eclipse.ditto.thingsearch.model.signals.commands.subscription.RequestFromSubscription;
@@ -149,9 +149,9 @@ public final class SubscriptionManagerTest {
 
         // there should be no upstream request until downstream requests.
         for (int i = 0; i < 4; ++i) {
-            final SudoStreamThings sudoStreamThings = edgeCommandForwarderProbe.expectMsgClass(SudoStreamThings.class);
+            final StreamThings streamThings = edgeCommandForwarderProbe.expectMsgClass(StreamThings.class);
             final ActorRef sender = edgeCommandForwarderProbe.sender();
-            final Object source = sources.get(getTag(sudoStreamThings) - 1);
+            final Object source = sources.get(getTag(streamThings) - 1);
             if (source instanceof Source) {
                 final SourceRef<?> sourceRef = ((Source<?, ?>) source).runWith(StreamRefs.sourceRef(), materializer);
                 sender.tell(sourceRef, ActorRef.noSender());
@@ -194,8 +194,8 @@ public final class SubscriptionManagerTest {
         return RequestFromSubscription.of(subscriptionId, 1L, DittoHeaders.empty());
     }
 
-    private int getTag(final SudoStreamThings sudoStreamThings) {
-        return sudoStreamThings.getFilter()
+    private int getTag(final StreamThings streamThings) {
+        return streamThings.getFilter()
                 .map(filter -> {
                     int i = "exists(attributes/tag".length();
                     return filter.substring(i, i + 1);
