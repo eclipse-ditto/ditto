@@ -17,7 +17,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.rql.model.ParserException;
 import org.eclipse.ditto.rql.model.predicates.PredicateParser;
 import org.eclipse.ditto.rql.parser.RqlPredicateParser;
@@ -29,8 +28,8 @@ import org.eclipse.ditto.rql.query.criteria.Criteria;
 import org.eclipse.ditto.rql.query.criteria.CriteriaFactory;
 import org.eclipse.ditto.rql.query.expression.ThingsFieldExpressionFactory;
 import org.eclipse.ditto.rql.query.filter.QueryFilterCriteriaFactory;
-import org.eclipse.ditto.thingsearch.api.commands.sudo.SudoCountThings;
 import org.eclipse.ditto.thingsearch.api.commands.sudo.StreamThings;
+import org.eclipse.ditto.thingsearch.api.commands.sudo.SudoCountThings;
 import org.eclipse.ditto.thingsearch.api.query.filter.ParameterOptionVisitor;
 import org.eclipse.ditto.thingsearch.model.signals.commands.exceptions.InvalidOptionException;
 import org.eclipse.ditto.thingsearch.model.signals.commands.query.QueryThings;
@@ -82,7 +81,7 @@ public final class QueryParser {
      * @param command the search command.
      * @return the query.
      */
-    public CompletionStage<Query> parse(final Command<?> command) {
+    public CompletionStage<Query> parse(final ThingSearchQueryCommand<?> command) {
         final Criteria criteria = parseCriteria(command);
         final Query query;
         if (command instanceof final QueryThings queryThings) {
@@ -101,21 +100,11 @@ public final class QueryParser {
         return queryCriteriaValidator.validateQuery(command, query);
     }
 
-    private Criteria parseCriteria(final Command<?> command) {
+    private Criteria parseCriteria(final ThingSearchQueryCommand<?> command) {
 
         final DittoHeaders headers = command.getDittoHeaders();
-        final Set<String> namespaces;
-        final String filter;
-        if (command instanceof ThingSearchQueryCommand<?> thingSearchQueryCommand) {
-            namespaces = thingSearchQueryCommand.getNamespaces().orElse(null);
-            filter = thingSearchQueryCommand.getFilter().orElse(null);
-        } else if (command instanceof StreamThings streamThings) {
-            namespaces = streamThings.getNamespaces().orElse(null);
-            filter = streamThings.getFilter().orElse(null);
-        } else {
-            namespaces = null;
-            filter = null;
-        }
+        final Set<String> namespaces = command.getNamespaces().orElse(null);
+        final String filter = command.getFilter().orElse(null);
 
         if (namespaces == null) {
             return queryFilterCriteriaFactory.filterCriteria(filter, command.getDittoHeaders());
