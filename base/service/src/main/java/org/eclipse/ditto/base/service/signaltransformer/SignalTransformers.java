@@ -17,11 +17,14 @@ import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.stream.Collectors;
 
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.internal.utils.extension.DittoExtensionIds;
 import org.eclipse.ditto.internal.utils.extension.DittoExtensionPoint;
 import org.eclipse.ditto.internal.utils.extension.DittoExtensionPoint.ExtensionId.ExtensionIdConfig;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigValue;
@@ -30,6 +33,7 @@ import akka.actor.ActorSystem;
 
 public final class SignalTransformers implements DittoExtensionPoint, SignalTransformer {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(SignalTransformers.class);
     private static final String SIGNAL_TRANSFORMERS = "signal-transformers";
     private final List<SignalTransformer> transformers;
 
@@ -45,6 +49,9 @@ public final class SignalTransformers implements DittoExtensionPoint, SignalTran
                         SignalTransformerExtensionId::new))
                 .map(extensionId -> extensionId.get(actorSystem))
                 .toList();
+        final String loadedSignalTransformersAsCommaSeparatedList =
+                transformers.stream().map(Object::getClass).map(Class::getName).collect(Collectors.joining(","));
+        LOGGER.info("Instantiated the following signal transformers: {}.", loadedSignalTransformersAsCommaSeparatedList);
     }
 
     @Override
@@ -53,7 +60,15 @@ public final class SignalTransformers implements DittoExtensionPoint, SignalTran
         for (final SignalTransformer signalTransformer : transformers) {
             prior = prior.thenCompose(signalTransformer);
         }
-        return prior;
+        return prior.whenComplete((result, error) -> {
+            if(error != null) {
+                LOGGER.warn("Error happened during signal transforming. This should not happen. If the signal" +
+                        "transformer is designed to throw an exception in case of an invalid signal it should" +
+                        "most likely be a PreEnforcer instead.");
+            } else {
+                LOGGER.debug("Signal transforming of <{}> resulted in <{}>.", signal, result);
+            }
+        });
     }
 
     /**
