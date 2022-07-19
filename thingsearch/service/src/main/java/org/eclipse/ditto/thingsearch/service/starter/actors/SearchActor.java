@@ -28,6 +28,8 @@ import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.signals.commands.Command;
+import org.eclipse.ditto.base.service.signaltransformer.SignalTransformer;
+import org.eclipse.ditto.base.service.signaltransformer.SignalTransformers;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLogger;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
@@ -117,6 +119,7 @@ public final class SearchActor extends AbstractActor {
     private final QueryParser queryParser;
     private final ThingsSearchPersistence searchPersistence;
     private final PreEnforcerProvider preEnforcer;
+    private final SignalTransformer signalTransformer;
 
     @SuppressWarnings("unused")
     private SearchActor(final QueryParser queryParser,
@@ -128,6 +131,7 @@ public final class SearchActor extends AbstractActor {
         final Config config = system.settings().config();
         final var dittoExtensionsConfig = ScopedConfig.dittoExtension(config);
         preEnforcer = PreEnforcerProvider.get(system, dittoExtensionsConfig);
+        signalTransformer = SignalTransformers.get(system, dittoExtensionsConfig);
         final var dittoScopedConfig = DefaultScopedConfig.dittoScoped(getSystem().settings().config());
 
         final EnforcementConfig enforcementConfig = DefaultEnforcementConfig.of(dittoScopedConfig);
@@ -185,8 +189,9 @@ public final class SearchActor extends AbstractActor {
         l.info("Processing CountThings command with namespaces <{}> and filter: <{}>",
                 countThings.getNamespaces(), countThings.getFilter());
         l.debug("Processing CountThings command: <{}>", countThings);
-        preEnforcer.apply(countThings).thenAccept(signal -> executeCount((CountThings) signal, queryParser::parse,
-                false, sender));
+        signalTransformer.apply(countThings)
+                .thenCompose(preEnforcer::apply)
+                .thenAccept(signal -> executeCount((CountThings) signal, queryParser::parse, false, sender));
     }
 
     private void sudoCount(final SudoCountThings sudoCountThings) {
@@ -194,7 +199,9 @@ public final class SearchActor extends AbstractActor {
         final ThreadSafeDittoLoggingAdapter l = log.withCorrelationId(sudoCountThings);
         l.info("Processing SudoCountThings command with filter: <{}>", sudoCountThings.getFilter());
         l.debug("Processing SudoCountThings command: <{}>", sudoCountThings);
-        executeCount(sudoCountThings, queryParser::parseSudoCountThings, true, sender);
+        signalTransformer.apply(sudoCountThings)
+                .thenAccept(signal -> executeCount((SudoCountThings) signal, queryParser::parseSudoCountThings, true,
+                        sender));
     }
 
     private <T extends Command<?>> void executeCount(final T countCommand,
@@ -243,7 +250,9 @@ public final class SearchActor extends AbstractActor {
         final var sender = getSender();
         final ThreadSafeDittoLoggingAdapter l = log.withCorrelationId(sudoStreamThings);
         l.info("Processing SudoStreamThings command: {}", sudoStreamThings);
-        preEnforcer.apply(sudoStreamThings).thenAccept(stream -> performStream((SudoStreamThings) stream, sender, l));
+        signalTransformer.apply(sudoStreamThings)
+                .thenCompose(preEnforcer::apply)
+                .thenAccept(stream -> performStream((SudoStreamThings) stream, sender, l));
     }
 
     private void performStream(final SudoStreamThings sudoStreamThings, final ActorRef sender,
@@ -289,7 +298,9 @@ public final class SearchActor extends AbstractActor {
 
         final ThreadSafeDittoLoggingAdapter l = log.withCorrelationId(queryThings);
         l.debug("Starting to process QueryThings command: {}", queryThings);
-        preEnforcer.apply(queryThings).thenAccept(query -> performQuery((QueryThings) query, sender));
+        signalTransformer.apply(queryThings)
+                .thenCompose(preEnforcer::apply)
+                .thenAccept(query -> performQuery((QueryThings) query, sender));
     }
 
     private void performQuery(final QueryThings queryThings, final ActorRef sender) {
