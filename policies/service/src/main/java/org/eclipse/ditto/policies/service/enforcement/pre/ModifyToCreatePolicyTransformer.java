@@ -16,7 +16,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
 import org.eclipse.ditto.base.model.signals.Signal;
-import org.eclipse.ditto.policies.enforcement.pre.PreEnforcer;
+import org.eclipse.ditto.base.service.signaltransformer.SignalTransformer;
 import org.eclipse.ditto.policies.model.signals.commands.modify.CreatePolicy;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicy;
 
@@ -27,7 +27,7 @@ import akka.actor.ActorSystem;
 /**
  * Transforms a ModifyPolicy into a CreatePolicy if the thing does not exist already.
  */
-public final class ModifyToCreatePolicyTransformer implements PreEnforcer {
+public final class ModifyToCreatePolicyTransformer implements SignalTransformer {
 
     private final PolicyExistenceChecker existenceChecker;
 
