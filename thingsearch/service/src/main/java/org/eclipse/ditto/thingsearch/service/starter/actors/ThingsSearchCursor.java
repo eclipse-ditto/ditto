@@ -53,7 +53,7 @@ import org.eclipse.ditto.rql.query.SortDirection;
 import org.eclipse.ditto.rql.query.criteria.Criteria;
 import org.eclipse.ditto.rql.query.criteria.CriteriaFactory;
 import org.eclipse.ditto.things.model.Thing;
-import org.eclipse.ditto.thingsearch.api.commands.sudo.SudoStreamThings;
+import org.eclipse.ditto.thingsearch.api.commands.sudo.StreamThings;
 import org.eclipse.ditto.thingsearch.model.CursorOption;
 import org.eclipse.ditto.thingsearch.model.LimitOption;
 import org.eclipse.ditto.thingsearch.model.Option;
@@ -402,23 +402,23 @@ final class ThingsSearchCursor {
         });
     }
 
-    static Source<Optional<ThingsSearchCursor>, NotUsed> extractCursor(final SudoStreamThings sudoStreamThings) {
-        return catchExceptions(sudoStreamThings.getDittoHeaders(), () -> {
-            final Optional<JsonArray> sortValuesOptional = sudoStreamThings.getSortValues();
+    static Source<Optional<ThingsSearchCursor>, NotUsed> extractCursor(final StreamThings streamThings) {
+        return catchExceptions(streamThings.getDittoHeaders(), () -> {
+            final Optional<JsonArray> sortValuesOptional = streamThings.getSortValues();
             if (sortValuesOptional.isEmpty()) {
                 return Source.single(Optional.empty());
             }
             final JsonArray sortValues = sortValuesOptional.get();
-            final List<Option> options = sudoStreamThings.getSort().map(RqlOptionParser::parseOptions).orElseGet(List::of);
+            final List<Option> options = streamThings.getSort().map(RqlOptionParser::parseOptions).orElseGet(List::of);
             final SortOption sortOption = findUniqueSortOption(options);
             if (sortValues.getSize() != sortOption.getSize()) {
                 return Source.failed(
-                        invalidCursor("sort option and sort values have different dimensions", sudoStreamThings));
+                        invalidCursor("sort option and sort values have different dimensions", streamThings));
             }
-            final ThingsSearchCursor cursor = new ThingsSearchCursor(sudoStreamThings.getNamespaces().orElse(null),
-                    sudoStreamThings.getDittoHeaders().getCorrelationId().orElse(null),
+            final ThingsSearchCursor cursor = new ThingsSearchCursor(streamThings.getNamespaces().orElse(null),
+                    streamThings.getDittoHeaders().getCorrelationId().orElse(null),
                     sortOption,
-                    sudoStreamThings.getFilter().orElse(null),
+                    streamThings.getFilter().orElse(null),
                     sortValues
             );
             return Source.single(Optional.of(cursor));

@@ -30,7 +30,7 @@ import org.eclipse.ditto.rql.query.criteria.CriteriaFactory;
 import org.eclipse.ditto.rql.query.expression.ThingsFieldExpressionFactory;
 import org.eclipse.ditto.rql.query.filter.QueryFilterCriteriaFactory;
 import org.eclipse.ditto.thingsearch.api.commands.sudo.SudoCountThings;
-import org.eclipse.ditto.thingsearch.api.commands.sudo.SudoStreamThings;
+import org.eclipse.ditto.thingsearch.api.commands.sudo.StreamThings;
 import org.eclipse.ditto.thingsearch.api.query.filter.ParameterOptionVisitor;
 import org.eclipse.ditto.thingsearch.model.signals.commands.exceptions.InvalidOptionException;
 import org.eclipse.ditto.thingsearch.model.signals.commands.query.QueryThings;
@@ -91,9 +91,9 @@ public final class QueryParser {
                     .map(optionStrings -> String.join(",", optionStrings))
                     .ifPresent(options -> setOptions(options, queryBuilder, command.getDittoHeaders()));
             query = queryBuilder.build();
-        } else if (command instanceof final SudoStreamThings sudoStreamThings) {
+        } else if (command instanceof final StreamThings streamThings) {
             final QueryBuilder queryBuilder = queryBuilderFactory.newUnlimitedBuilder(criteria);
-            sudoStreamThings.getSort().ifPresent(sort -> setOptions(sort, queryBuilder, command.getDittoHeaders()));
+            streamThings.getSort().ifPresent(sort -> setOptions(sort, queryBuilder, command.getDittoHeaders()));
             query = queryBuilder.build();
         } else {
             query = queryBuilderFactory.newUnlimitedBuilder(criteria).build();
@@ -109,9 +109,9 @@ public final class QueryParser {
         if (command instanceof ThingSearchQueryCommand<?> thingSearchQueryCommand) {
             namespaces = thingSearchQueryCommand.getNamespaces().orElse(null);
             filter = thingSearchQueryCommand.getFilter().orElse(null);
-        } else if (command instanceof SudoStreamThings sudoStreamThings) {
-            namespaces = sudoStreamThings.getNamespaces().orElse(null);
-            filter = sudoStreamThings.getFilter().orElse(null);
+        } else if (command instanceof StreamThings streamThings) {
+            namespaces = streamThings.getNamespaces().orElse(null);
+            filter = streamThings.getFilter().orElse(null);
         } else {
             namespaces = null;
             filter = null;

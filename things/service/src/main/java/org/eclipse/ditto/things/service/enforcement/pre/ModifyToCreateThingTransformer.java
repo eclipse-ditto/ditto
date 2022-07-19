@@ -16,8 +16,8 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
 import org.eclipse.ditto.base.model.signals.Signal;
+import org.eclipse.ditto.base.service.signaltransformer.SignalTransformer;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.policies.enforcement.pre.PreEnforcer;
 import org.eclipse.ditto.things.model.signals.commands.modify.CreateThing;
 import org.eclipse.ditto.things.model.signals.commands.modify.ModifyThing;
 
@@ -28,7 +28,7 @@ import akka.actor.ActorSystem;
 /**
  * Transforms a ModifyThing into a CreateThing if the thing does not exist already.
  */
-public final class ModifyToCreateThingTransformer implements PreEnforcer {
+public final class ModifyToCreateThingTransformer implements SignalTransformer {
 
     private final ThingExistenceChecker existenceChecker;
 

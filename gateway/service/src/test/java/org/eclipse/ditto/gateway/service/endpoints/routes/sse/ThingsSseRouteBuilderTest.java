@@ -40,7 +40,7 @@ import org.eclipse.ditto.things.model.ThingFieldSelector;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThing;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThingResponse;
-import org.eclipse.ditto.thingsearch.api.commands.sudo.SudoStreamThings;
+import org.eclipse.ditto.thingsearch.api.commands.sudo.StreamThings;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -161,7 +161,7 @@ public final class ThingsSseRouteBuilderTest extends EndpointTestBase {
                     routeResult.assertMediaType(MediaTypes.TEXT_EVENT_STREAM);
                     routeResult.assertStatusCode(StatusCodes.OK);
                 });
-        proxyActor.expectMsgClass(SudoStreamThings.class);
+        proxyActor.expectMsgClass(StreamThings.class);
         replySourceRef(proxyActor, Source.lazily(Source::empty));
         assertions.join();
     }
@@ -178,13 +178,13 @@ public final class ThingsSseRouteBuilderTest extends EndpointTestBase {
                     routeResult.assertMediaType(MediaTypes.TEXT_EVENT_STREAM);
                     routeResult.assertStatusCode(StatusCodes.OK);
                 });
-        final SudoStreamThings sudoStreamThings = proxyActor.expectMsgClass(SudoStreamThings.class);
+        final StreamThings streamThings = proxyActor.expectMsgClass(StreamThings.class);
         replySourceRef(proxyActor, Source.lazily(Source::empty));
         assertions.join();
-        assertThat(sudoStreamThings.getFilter()).contains(filter);
-        assertThat(sudoStreamThings.getNamespaces()).contains(Set.of("a", "b", "c"));
+        assertThat(streamThings.getFilter()).contains(filter);
+        assertThat(streamThings.getNamespaces()).contains(Set.of("a", "b", "c"));
         // sort options are parsed and appended with +/thingId
-        assertThat(sudoStreamThings.getSort()).contains("sort(-/policyId,+/thingId)");
+        assertThat(streamThings.getSort()).contains("sort(-/policyId,+/thingId)");
     }
 
     @Test
@@ -209,10 +209,10 @@ public final class ThingsSseRouteBuilderTest extends EndpointTestBase {
                 null,
                 retrieveThing.getDittoHeaders()
         ));
-        final SudoStreamThings sudoStreamThings = proxyActor.expectMsgClass(SudoStreamThings.class);
+        final StreamThings streamThings = proxyActor.expectMsgClass(StreamThings.class);
         replySourceRef(proxyActor, Source.lazily(Source::empty));
         assertions.join();
-        assertThat(sudoStreamThings.getSortValues()).contains(JsonArray.of(JsonValue.of(lastEventId)));
+        assertThat(streamThings.getSortValues()).contains(JsonArray.of(JsonValue.of(lastEventId)));
     }
 
     @Test

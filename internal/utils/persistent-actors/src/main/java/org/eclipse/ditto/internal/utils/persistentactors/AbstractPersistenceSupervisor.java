@@ -37,9 +37,12 @@ import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
 import org.eclipse.ditto.base.service.actors.ShutdownBehaviour;
 import org.eclipse.ditto.base.service.config.supervision.ExponentialBackOff;
 import org.eclipse.ditto.base.service.config.supervision.ExponentialBackOffConfig;
+import org.eclipse.ditto.base.service.signaltransformer.SignalTransformer;
+import org.eclipse.ditto.base.service.signaltransformer.SignalTransformers;
 import org.eclipse.ditto.internal.utils.akka.actors.AbstractActorWithStashWithTimers;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
+import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.internal.utils.metrics.instruments.counter.Counter;
 import org.eclipse.ditto.internal.utils.metrics.instruments.timer.PreparedTimer;
@@ -48,7 +51,10 @@ import org.eclipse.ditto.internal.utils.namespaces.BlockedNamespaces;
 import org.eclipse.ditto.internal.utils.tracing.DittoTracing;
 import org.eclipse.ditto.internal.utils.tracing.instruments.trace.StartedTrace;
 
+import com.typesafe.config.Config;
+
 import akka.actor.ActorRef;
+import akka.actor.ActorSystem;
 import akka.actor.PoisonPill;
 import akka.actor.Props;
 import akka.actor.ReceiveTimeout;
@@ -108,6 +114,7 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
     private final Duration defaultLocalAskTimeout;
 
     private final ExponentialBackOffConfig exponentialBackOffConfig;
+    private final SignalTransformer signalTransformer;
     private ExponentialBackOff backOff;
     private boolean waitingForStopBeforeRestart = false;
 
@@ -121,6 +128,9 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
             @Nullable final BlockedNamespaces blockedNamespaces,
             final Duration defaultLocalAskTimeout) {
 
+        final ActorSystem system = context().system();
+        final Config dittoExtensionsConfig = ScopedConfig.dittoExtension(system.settings().config());
+        this.signalTransformer = SignalTransformers.get(system, dittoExtensionsConfig);
         this.persistenceActorChild = persistenceActorChild;
         this.enforcerChild = enforcerChild;
         this.blockedNamespaces = blockedNamespaces;
@@ -555,15 +565,13 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
                 if (shouldBecomeTwinSignalProcessingAwaiting(signal)) {
                     becomeTwinSignalProcessingAwaiting();
                 }
-
-                Patterns.pipe(
-                        enforceSignalAndForwardToTargetActor((S) signal, sender)
+                final CompletionStage<Control> syncCs = signalTransformer.apply(signal)
+                        .thenCompose(transformed -> enforceSignalAndForwardToTargetActor((S) transformed, sender)
                                 .handle((response, throwable) -> {
-                                    handleSignalEnforcementResponse(response, throwable, signal, sender);
+                                    handleSignalEnforcementResponse(response, throwable, transformed, sender);
                                     return Control.PROCESS_NEXT_TWIN_MESSAGE;
-                                }),
-                        getContext().getDispatcher()
-                ).pipeTo(getSelf(), getSelf());
+                                }));
+                Patterns.pipe(syncCs, getContext().getDispatcher()).pipeTo(getSelf(), getSelf());
             }
         } else if (null != persistenceActorChild) {
             if (persistenceActorChild.equals(sender)) {

@@ -52,7 +52,7 @@ import org.eclipse.ditto.policies.model.SubjectType;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.ThingsModelFactory;
-import org.eclipse.ditto.thingsearch.api.commands.sudo.SudoStreamThings;
+import org.eclipse.ditto.thingsearch.api.commands.sudo.StreamThings;
 import org.eclipse.ditto.thingsearch.model.signals.commands.query.QueryThings;
 import org.eclipse.ditto.thingsearch.model.signals.commands.query.QueryThingsResponse;
 import org.eclipse.ditto.thingsearch.service.common.config.DefaultSearchPersistenceConfig;
@@ -258,7 +258,7 @@ public final class SearchActorIT {
         if (size != null) {
             return QueryThings.of(filter, options, null, null, dittoHeaders);
         } else {
-            return SudoStreamThings.of(filter, null, sort, null, dittoHeaders);
+            return StreamThings.of(filter, null, sort, null, dittoHeaders);
         }
     }
 
