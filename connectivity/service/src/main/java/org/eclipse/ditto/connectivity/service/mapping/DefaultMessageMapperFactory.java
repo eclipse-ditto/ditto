@@ -16,14 +16,12 @@ import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.util.AbstractMap.SimpleImmutableEntry;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
@@ -38,6 +36,7 @@ import org.eclipse.ditto.connectivity.model.PayloadMappingDefinition;
 import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLogger;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
+import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import org.eclipse.ditto.json.JsonObject;
 
 import akka.actor.ActorSystem;
@@ -76,10 +75,7 @@ public final class DefaultMessageMapperFactory implements MessageMapperFactory {
     /**
      * The factory function that creates instances of {@link MessageMapper}.
      */
-    private final List<MessageMapperExtension> messageMapperExtensions;
-    private static final List<Class<? extends MessageMapperExtension>> MESSAGE_MAPPER_EXTENSION_CLASSES =
-            loadMessageMapperExtensionClasses();
-
+    private final MessageMapperExtension messageMapperExtension;
     private static final Map<String, Class<?>> REGISTERED_MAPPERS = tryToLoadPayloadMappers();
 
     private final LoggingAdapter log;
@@ -87,14 +83,19 @@ public final class DefaultMessageMapperFactory implements MessageMapperFactory {
     private DefaultMessageMapperFactory(final Connection connection,
             final ConnectivityConfig connectivityConfig,
             final ExtendedActorSystem actorSystem,
-            final List<MessageMapperExtension> messageMapperExtensions,
             final LoggingAdapter log) {
 
         this.connection = checkNotNull(connection, "connection");
         this.connectivityConfig = checkNotNull(connectivityConfig, "connectivityConfig");
         this.actorSystem = checkNotNull(actorSystem);
-        this.messageMapperExtensions = checkNotNull(messageMapperExtensions);
         this.log = checkNotNull(log);
+
+        messageMapperExtension = loadMessageMapperExtension(actorSystem);
+    }
+
+    private static MessageMapperExtension loadMessageMapperExtension(final ActorSystem actorSystem) {
+        final var extensionsConfig = ScopedConfig.dittoExtension(actorSystem.settings().config());
+        return MessageMapperExtension.get(actorSystem, extensionsConfig);
     }
 
     /**
@@ -113,10 +114,7 @@ public final class DefaultMessageMapperFactory implements MessageMapperFactory {
             final LoggingAdapter log) {
 
         final ExtendedActorSystem extendedActorSystem = (ExtendedActorSystem) actorSystem;
-        final List<MessageMapperExtension> messageMapperExtensions =
-                tryToLoadMessageMappersExtensions(extendedActorSystem);
-        return new DefaultMessageMapperFactory(connection, connectivityConfig, extendedActorSystem,
-                messageMapperExtensions, log);
+        return new DefaultMessageMapperFactory(connection, connectivityConfig, extendedActorSystem, log);
     }
 
     @Override
@@ -224,51 +222,28 @@ public final class DefaultMessageMapperFactory implements MessageMapperFactory {
         }
     }
 
-    private static List<MessageMapperExtension> tryToLoadMessageMappersExtensions(
-            final ExtendedActorSystem actorSystem) {
-        try {
-            return loadMessageMapperExtensions(actorSystem.dynamicAccess());
-        } catch (final Exception e) {
-            final String message = e.getClass().getCanonicalName() + ": " + e.getMessage();
-            throw MessageMapperConfigurationFailedException.newBuilder(message).build();
-        }
-    }
-
-    private static List<MessageMapperExtension> loadMessageMapperExtensions(final DynamicAccess dynamicAccess) {
-        return MESSAGE_MAPPER_EXTENSION_CLASSES.stream().map(clazz -> {
-            final ClassTag<MessageMapperExtension> tag =
-                    scala.reflect.ClassTag$.MODULE$.apply(MessageMapperExtension.class);
-            return dynamicAccess.createInstanceFor(clazz, List$.MODULE$.empty(), tag).get();
-        }).toList();
-    }
-
-    private static List<Class<? extends MessageMapperExtension>> loadMessageMapperExtensionClasses() {
-        return StreamSupport.stream(ClassIndex.getSubclasses(MessageMapperExtension.class).spliterator(), false)
-                .toList();
-    }
-
     /**
      * Instantiates a mapper for the specified mapping context.
      *
      * @return the instantiated mapper if it can be instantiated from the configured factory class.
      */
     Optional<MessageMapper> createMessageMapperInstance(final String mappingEngine) {
+        final Optional<MessageMapper> result;
         final var connectionId = connection.getId();
         if (REGISTERED_MAPPERS.containsKey(mappingEngine)) {
             final Class<?> messageMapperClass = REGISTERED_MAPPERS.get(mappingEngine);
-            MessageMapper result = createAnyMessageMapper(messageMapperClass,
+            final MessageMapper mapper = createAnyMessageMapper(messageMapperClass,
                     actorSystem.dynamicAccess());
-            for (final MessageMapperExtension extension : messageMapperExtensions) {
-                if (null == result) {
-                    return Optional.empty();
-                }
-                result = extension.apply(connectionId, result, actorSystem);
+            if (null == mapper) {
+                result = Optional.empty();
+            } else {
+                result = Optional.ofNullable(messageMapperExtension.apply(connectionId, mapper));
             }
-            return Optional.ofNullable(result);
         } else {
             log.info("Mapper {} not found in {}.", mappingEngine, REGISTERED_MAPPERS);
-            return Optional.empty();
+            result = Optional.empty();
         }
+        return result;
     }
 
     @Nullable
@@ -324,13 +299,13 @@ public final class DefaultMessageMapperFactory implements MessageMapperFactory {
         return Objects.equals(connection, that.connection) &&
                 Objects.equals(connectivityConfig, that.connectivityConfig) &&
                 Objects.equals(actorSystem, that.actorSystem) &&
-                Objects.equals(messageMapperExtensions, that.messageMapperExtensions) &&
+                Objects.equals(messageMapperExtension, that.messageMapperExtension) &&
                 Objects.equals(log, that.log);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(connection, connectivityConfig, actorSystem, messageMapperExtensions, log);
+        return Objects.hash(connection, connectivityConfig, actorSystem, messageMapperExtension, log);
     }
 
 }
