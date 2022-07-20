@@ -74,8 +74,7 @@ import kamon.prometheus.PrometheusReporter;
  * <li>{@link #startStatusSupplierActor(akka.actor.ActorSystem)},</li>
  * <li>{@link #startServiceRootActors(akka.actor.ActorSystem, org.eclipse.ditto.base.service.config.ServiceSpecificConfig)}.
  * <ol>
- * <li>{@link #getMainRootActorProps(org.eclipse.ditto.base.service.config.ServiceSpecificConfig,
- * com.typesafe.config.Config, akka.actor.ActorRef, akka.actor.ActorSystem)},</li>
+ * <li>{@link #getMainRootActorProps(org.eclipse.ditto.base.service.config.ServiceSpecificConfig, akka.actor.ActorRef)},</li>
  * <li>{@link #startMainRootActor(akka.actor.ActorSystem, akka.actor.Props)},</li>
  * </ol>
  * </li>
