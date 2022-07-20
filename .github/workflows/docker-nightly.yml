@@ -141,7 +141,7 @@ jobs:
         uses: docker/build-push-action@v3
         with:
           context: ./ui
-          file: Dockerfile
+          file: ui/Dockerfile
           platforms: linux/amd64,linux/arm64
           pull: true
           push: true
