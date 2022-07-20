@@ -98,11 +98,11 @@ public abstract class DittoService<C extends ServiceSpecificConfig> {
 
     protected static final String MONGO_URI_CONFIG_PATH = "akka.contrib.persistence.mongodb.mongo.mongouri";
 
+    protected final Config rawConfig;
+    protected final C serviceSpecificConfig;
     private final Logger logger;
     private final String serviceName;
     private final String rootActorName;
-    private final Config rawConfig;
-    private final C serviceSpecificConfig;
 
     @Nullable
     private PrometheusReporter prometheusReporter;
@@ -130,11 +130,20 @@ public abstract class DittoService<C extends ServiceSpecificConfig> {
     }
 
     /**
+     * Starts this service. Any thrown {@code Throwable}s will be logged and re-thrown.
+     *
+     * @return the created ActorSystem during startup
+     */
+    public ActorSystem start() {
+        return MainMethodExceptionHandler.getInstance(logger).call(this::doStart);
+    }
+
+    /**
      * Determines the {@link com.typesafe.config.Config} of this service. May be overridden to change the way how the config is determined.
      *
      * @return the config of this service.
      */
-    protected Config determineRawConfig() {
+    private Config determineRawConfig() {
         final var loadedConfig = RawConfigSupplier.of(serviceName).get();
 
         if (logger.isDebugEnabled()) {
@@ -189,15 +198,6 @@ public abstract class DittoService<C extends ServiceSpecificConfig> {
     protected abstract C getServiceSpecificConfig(ScopedConfig dittoConfig);
 
     /**
-     * Starts this service. Any thrown {@code Throwable}s will be logged and re-thrown.
-     *
-     * @return the created ActorSystem during startup
-     */
-    public ActorSystem start() {
-        return MainMethodExceptionHandler.getInstance(logger).call(this::doStart);
-    }
-
-    /**
      * Starts this service.
      * <p>
      * May be overridden to <em>completely</em> change the way how this service is started.
@@ -206,10 +206,9 @@ public abstract class DittoService<C extends ServiceSpecificConfig> {
      *
      * @return the created ActorSystem during startup
      */
-    protected ActorSystem doStart() {
+    private ActorSystem doStart() {
         logRuntimeParameters();
-        final var actorSystemConfig =
-                appendDittoInfo(appendAkkaPersistenceMongoUriToRawConfig(rawConfig, serviceSpecificConfig));
+        final var actorSystemConfig = appendDittoInfo(appendAkkaPersistenceMongoUriToRawConfig());
         startKamon();
         final var actorSystem = createActorSystem(actorSystemConfig);
         initializeActorSystem(actorSystem);
@@ -217,8 +216,7 @@ public abstract class DittoService<C extends ServiceSpecificConfig> {
         return actorSystem;
     }
 
-    @SuppressWarnings("unused")
-    protected Config appendAkkaPersistenceMongoUriToRawConfig(final Config rawConfig, final C serviceSpecificConfig) {
+    protected Config appendAkkaPersistenceMongoUriToRawConfig() {
         return rawConfig;
     }
 
@@ -272,7 +270,7 @@ public abstract class DittoService<C extends ServiceSpecificConfig> {
      *
      * @param actorSystem the Akka ActorSystem to be initialized.
      */
-    protected void initializeActorSystem(final ActorSystem actorSystem) {
+    private void initializeActorSystem(final ActorSystem actorSystem) {
         startAkkaManagement(actorSystem);
         startClusterBootstrap(actorSystem);
 
@@ -318,7 +316,7 @@ public abstract class DittoService<C extends ServiceSpecificConfig> {
      * @param config the configuration settings of this service.
      * @return the actor system.
      */
-    protected ActorSystem createActorSystem(final Config config) {
+    private ActorSystem createActorSystem(final Config config) {
         return ActorSystem.create(CLUSTER_NAME, config);
     }
 
@@ -347,7 +345,7 @@ public abstract class DittoService<C extends ServiceSpecificConfig> {
      *
      * @param actorSystem Akka actor system for starting actors.
      */
-    protected void startStatusSupplierActor(final ActorSystem actorSystem) {
+    private void startStatusSupplierActor(final ActorSystem actorSystem) {
         startActor(actorSystem, StatusSupplierActor.props(rootActorName), StatusSupplierActor.ACTOR_NAME);
     }
 
@@ -366,7 +364,7 @@ public abstract class DittoService<C extends ServiceSpecificConfig> {
      *
      * @param actorSystem Akka actor system for starting actors.
      */
-    protected void startDevOpsCommandsActor(final ActorSystem actorSystem) {
+    private void startDevOpsCommandsActor(final ActorSystem actorSystem) {
         startActor(actorSystem, DevOpsCommandsActor.props(LogbackLoggingFacade.newInstance(), serviceName,
                 InstanceIdentifierSupplier.getInstance().get()), DevOpsCommandsActor.ACTOR_NAME);
     }
@@ -386,7 +384,7 @@ public abstract class DittoService<C extends ServiceSpecificConfig> {
      * @param actorSystem Akka actor system for starting actors.
      * @param serviceSpecificConfig the configuration settings of this service.
      */
-    protected void startServiceRootActors(final ActorSystem actorSystem, final C serviceSpecificConfig) {
+    private void startServiceRootActors(final ActorSystem actorSystem, final C serviceSpecificConfig) {
         logger.info("Waiting for member to be up before proceeding with further initialisation.");
 
         Cluster.get(actorSystem).registerOnMemberUp(() -> {
@@ -411,7 +409,7 @@ public abstract class DittoService<C extends ServiceSpecificConfig> {
      *
      * @param serviceSpecificConfig the Ditto serviceSpecificConfig providing the limits from configuration
      */
-    protected void injectSystemPropertiesLimits(final C serviceSpecificConfig) {
+    private void injectSystemPropertiesLimits(final C serviceSpecificConfig) {
         final var limitsConfig = serviceSpecificConfig.getLimitsConfig();
         System.setProperty(DittoSystemProperties.DITTO_LIMITS_THINGS_MAX_SIZE_BYTES,
                 Long.toString(limitsConfig.getThingsMaxSize()));
@@ -447,7 +445,7 @@ public abstract class DittoService<C extends ServiceSpecificConfig> {
      * @param actorSystem Akka actor system for starting actors.
      * @param mainRootActorProps the Props of the main root actor.
      */
-    protected ActorRef startMainRootActor(final ActorSystem actorSystem, final Props mainRootActorProps) {
+    private ActorRef startMainRootActor(final ActorSystem actorSystem, final Props mainRootActorProps) {
         return startActor(actorSystem, mainRootActorProps, rootActorName);
     }
 

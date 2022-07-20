@@ -70,9 +70,7 @@ public final class PoliciesService extends DittoService<PoliciesConfig> {
     }
 
     @Override
-    protected Config appendAkkaPersistenceMongoUriToRawConfig(final Config rawConfig,
-            final PoliciesConfig serviceSpecificConfig) {
-
+    protected Config appendAkkaPersistenceMongoUriToRawConfig() {
         final var mongoDbConfig = serviceSpecificConfig.getMongoDbConfig();
         final String mongoDbUri = mongoDbConfig.getMongoDbUri();
         return rawConfig.withValue(MONGO_URI_CONFIG_PATH, ConfigValueFactory.fromAnyRef(mongoDbUri));

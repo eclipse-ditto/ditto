@@ -74,9 +74,7 @@ public final class ThingsService extends DittoService<ThingsConfig> {
     }
 
     @Override
-    protected Config appendAkkaPersistenceMongoUriToRawConfig(final Config rawConfig,
-            final ThingsConfig serviceSpecificConfig) {
-
+    protected Config appendAkkaPersistenceMongoUriToRawConfig() {
         final var mongoDbConfig = serviceSpecificConfig.getMongoDbConfig();
         final String mongoDbUri = mongoDbConfig.getMongoDbUri();
         return rawConfig.withValue(MONGO_URI_CONFIG_PATH, ConfigValueFactory.fromAnyRef(mongoDbUri));
