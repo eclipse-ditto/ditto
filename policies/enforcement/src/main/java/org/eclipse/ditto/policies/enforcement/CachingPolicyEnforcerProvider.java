@@ -19,42 +19,72 @@ import java.util.concurrent.CompletionStage;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.base.model.entity.id.NamespacedEntityId;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.cache.Cache;
+import org.eclipse.ditto.internal.utils.cache.CacheFactory;
+import org.eclipse.ditto.internal.utils.cache.config.DefaultCacheConfig;
 import org.eclipse.ditto.internal.utils.cache.entry.Entry;
+import org.eclipse.ditto.internal.utils.cacheloaders.EnforcementCacheKey;
 import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.internal.utils.namespaces.BlockedNamespaces;
 import org.eclipse.ditto.policies.api.PolicyTag;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.slf4j.Logger;
 
+import com.github.benmanes.caffeine.cache.AsyncCacheLoader;
+
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
-import akka.actor.ActorRefFactory;
+import akka.actor.ActorSystem;
 import akka.actor.Props;
 import akka.cluster.ddata.ORSet;
 import akka.cluster.ddata.Replicator;
+import akka.cluster.pubsub.DistributedPubSub;
 import akka.cluster.pubsub.DistributedPubSubMediator;
+import akka.dispatch.MessageDispatcher;
 import akka.japi.pf.ReceiveBuilder;
 import akka.pattern.Patterns;
 
 /**
  * Transparent caching layer for {@link org.eclipse.ditto.policies.enforcement.PolicyEnforcerProvider}
  */
-final class CachingPolicyEnforcerProvider implements PolicyEnforcerProvider {
+final class CachingPolicyEnforcerProvider extends AbstractPolicyEnforcerProvider {
 
     private static final Logger LOGGER = DittoLoggerFactory.getThreadSafeLogger(CachingPolicyEnforcerProvider.class);
+    private static final Duration LOCAL_POLICY_RETRIEVAL_TIMEOUT = Duration.ofSeconds(60);
+
     private final ActorRef cachingPolicyEnforcerProviderActor;
 
-    CachingPolicyEnforcerProvider(final ActorRefFactory actorRefFactory,
-            final Cache<PolicyId, Entry<PolicyEnforcer>> policyEnforcerCache,
-            final PolicyEnforcerProvider delegate,
-            @Nullable final BlockedNamespaces blockedNamespaces,
+    CachingPolicyEnforcerProvider(final ActorSystem actorSystem) {
+        this(actorSystem, policyEnforcerCacheLoader(actorSystem), enforcementCacheDispatcher(actorSystem));
+    }
+
+    private CachingPolicyEnforcerProvider(final ActorSystem actorSystem,
+            final AsyncCacheLoader<EnforcementCacheKey, Entry<PolicyEnforcer>> policyEnforcerCacheLoader,
+            final MessageDispatcher cacheDispatcher) {
+
+        this(actorSystem,
+                CacheFactory.createCache(
+                        policyEnforcerCacheLoader,
+                        DefaultCacheConfig.of(actorSystem.settings().config(),
+                                PolicyEnforcerProvider.ENFORCER_CACHE_CONFIG_KEY),
+                        "policy_enforcer_cache",
+                        cacheDispatcher
+                ),
+                BlockedNamespaces.of(actorSystem),
+                DistributedPubSub.get(actorSystem).mediator()
+        );
+    }
+
+    CachingPolicyEnforcerProvider(final ActorSystem actorSystem,
+            final Cache<EnforcementCacheKey, Entry<PolicyEnforcer>> policyEnforcerCache,
+            final BlockedNamespaces blockedNamespaces,
             final ActorRef pubSubMediator) {
 
-        this.cachingPolicyEnforcerProviderActor = actorRefFactory.actorOf(
-                CachingPolicyEnforcerProviderActor.props(policyEnforcerCache, delegate, blockedNamespaces,
+        this.cachingPolicyEnforcerProviderActor = actorSystem.actorOf(
+                CachingPolicyEnforcerProviderActor.props(policyEnforcerCache, blockedNamespaces,
                         pubSubMediator));
     }
 
@@ -63,7 +93,7 @@ final class CachingPolicyEnforcerProvider implements PolicyEnforcerProvider {
         if (policyId == null) {
             return CompletableFuture.completedStage(Optional.empty());
         }
-        return Patterns.ask(cachingPolicyEnforcerProviderActor, policyId, Duration.ofSeconds(60))
+        return Patterns.ask(cachingPolicyEnforcerProviderActor, policyId, LOCAL_POLICY_RETRIEVAL_TIMEOUT)
                 .thenApply(response -> {
                     final Optional<PolicyEnforcer> result;
                     if (response instanceof Optional<?> optional) {
@@ -91,16 +121,13 @@ final class CachingPolicyEnforcerProvider implements PolicyEnforcerProvider {
     private static final class CachingPolicyEnforcerProviderActor extends AbstractActor {
 
         private final DittoDiagnosticLoggingAdapter log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
-        private final Cache<PolicyId, Entry<PolicyEnforcer>> policyEnforcerCache;
-        private final PolicyEnforcerProvider delegate;
+        private final Cache<EnforcementCacheKey, Entry<PolicyEnforcer>> policyEnforcerCache;
 
-        CachingPolicyEnforcerProviderActor(final Cache<PolicyId, Entry<PolicyEnforcer>> policyEnforcerCache,
-                final PolicyEnforcerProvider delegate,
+        CachingPolicyEnforcerProviderActor(final Cache<EnforcementCacheKey, Entry<PolicyEnforcer>> policyEnforcerCache,
                 @Nullable final BlockedNamespaces blockedNamespaces,
                 final ActorRef pubSubMediator) {
 
             this.policyEnforcerCache = policyEnforcerCache;
-            this.delegate = delegate;
 
             if (blockedNamespaces != null) {
                 blockedNamespaces.subscribeForChanges(getSelf());
@@ -111,14 +138,12 @@ final class CachingPolicyEnforcerProvider implements PolicyEnforcerProvider {
                     getSelf());
         }
 
-        private static Props props(final Cache<PolicyId, Entry<PolicyEnforcer>> policyEnforcerCache,
-                final PolicyEnforcerProvider delegate,
+        private static Props props(final Cache<EnforcementCacheKey, Entry<PolicyEnforcer>> policyEnforcerCache,
                 @Nullable final BlockedNamespaces blockedNamespaces,
                 final ActorRef pubSubMediator) {
 
-            return Props.create(CachingPolicyEnforcerProviderActor.class,
-                    () -> new CachingPolicyEnforcerProviderActor(policyEnforcerCache, delegate, blockedNamespaces,
-                            pubSubMediator));
+            return Props.create(CachingPolicyEnforcerProviderActor.class, policyEnforcerCache, blockedNamespaces,
+                    pubSubMediator);
         }
 
         @Override
@@ -126,31 +151,18 @@ final class CachingPolicyEnforcerProvider implements PolicyEnforcerProvider {
             return ReceiveBuilder.create()
                     .match(PolicyId.class, this::doGetPolicyEnforcer)
                     .match(DistributedPubSubMediator.SubscribeAck.class, s -> log.debug("Got subscribeAck <{}>.", s))
-                    .match(PolicyTag.class, policyTag -> policyEnforcerCache.invalidate(policyTag.getEntityId()))
+                    .match(PolicyTag.class, policyTag ->
+                            policyEnforcerCache.invalidate(EnforcementCacheKey.of(policyTag.getEntityId()))
+                    )
                     .match(Replicator.Changed.class, this::handleChangedBlockedNamespaces)
                     .build();
         }
 
         private void doGetPolicyEnforcer(final PolicyId policyId) {
-            final ActorRef sender = sender();
-            final CompletableFuture<Optional<PolicyEnforcer>> policyEnforcerCS = policyEnforcerCache.get(policyId)
-                    .thenCompose(optionalEntry -> {
-                        if (optionalEntry.isPresent()) {
-                            //Value is already cached. Return potentially unavailable value as optional.
-                            final Entry<PolicyEnforcer> policyEnforcerEntry = optionalEntry.get();
-                            return CompletableFuture.completedStage(policyEnforcerEntry.get());
-                        } else {
-                            // Value is not yet cached. Try to load it and put it into cache.
-                            return delegate.getPolicyEnforcer(policyId)
-                                    .thenApply(optionalEnforcer -> {
-                                        final Entry<PolicyEnforcer> policyEnforcerEntry =
-                                                optionalEnforcer.map(enforcer -> Entry.of(0L, enforcer))
-                                                        .orElseGet(Entry::nonexistent);
-                                        policyEnforcerCache.put(policyId, policyEnforcerEntry);
-                                        return optionalEnforcer;
-                                    });
-                        }
-                    });
+            final ActorRef sender = getSender();
+            final CompletableFuture<Optional<PolicyEnforcer>> policyEnforcerCS =
+                    policyEnforcerCache.get(EnforcementCacheKey.of(policyId))
+                            .thenApply(optionalEntry -> optionalEntry.flatMap(Entry::get));
             Patterns.pipe(policyEnforcerCS, getContext().dispatcher()).to(sender);
         }
 
@@ -160,8 +172,8 @@ final class CachingPolicyEnforcerProvider implements PolicyEnforcerProvider {
                 final ORSet<String> namespaces = (ORSet<String>) orSet;
                 logNamespaces("Received", namespaces);
                 policyEnforcerCache.asMap().keySet().stream()
-                        .filter(policyId -> {
-                            final String cachedNamespace = policyId.getNamespace();
+                        .filter(cacheKey -> {
+                            final String cachedNamespace = ((NamespacedEntityId) cacheKey.getId()).getNamespace();
                             return namespaces.contains(cachedNamespace);
                         })
                         .forEach(policyEnforcerCache::invalidate);
