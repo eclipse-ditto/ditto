@@ -41,6 +41,9 @@ public final class ThingsFieldExpressionFactoryImplTest {
             "features/" + KNOWN_FEATURE_ID + "/properties/" + KNOWN_STRING;
 
     private static final String KNOWN_FEATURE_DESIRED_PROPERTY_WITH_ID =
+            "features/" + KNOWN_FEATURE_ID + "/desiredProperties/" + KNOWN_STRING + "_desired";
+
+    private static final String KNOWN_FEATURE_DEFINITION_WITH_ID =
             "features/" + KNOWN_FEATURE_ID + "/definition";
 
     private static final String KNOWN_METADATA = "_metadata/" + KNOWN_FEATURE_PROPERTY_WITH_ID;
@@ -83,7 +86,7 @@ public final class ThingsFieldExpressionFactoryImplTest {
 
     @Test
     public void filterByWithFeatureDefinitionWithId() {
-        final FieldExpression fieldExpression = ef.filterBy(KNOWN_FEATURE_DESIRED_PROPERTY_WITH_ID);
+        final FieldExpression fieldExpression = ef.filterBy(KNOWN_FEATURE_DEFINITION_WITH_ID);
         final FilterFieldExpression expected = new FeatureDefinitionExpressionImpl(KNOWN_FEATURE_ID);
         assertThat(fieldExpression).isEqualTo(expected);
     }
