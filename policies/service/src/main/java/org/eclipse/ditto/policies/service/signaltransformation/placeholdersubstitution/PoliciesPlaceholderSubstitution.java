@@ -32,6 +32,7 @@ public class PoliciesPlaceholderSubstitution extends AbstractPlaceholderSubstitu
      * Constructs a new instance of PoliciesPlaceholderSubstitutionPreEnforcer extension.
      *
      * @param actorSystem the actor system in which to load the extension.
+     * @param config the configuration for this extension.
      */
     @SuppressWarnings("unused")
     public PoliciesPlaceholderSubstitution(final ActorSystem actorSystem, final Config config) {

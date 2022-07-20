@@ -26,6 +26,7 @@ public class NoOpConnectivityCommandInterceptorProvider implements CustomConnect
 
     /**
      * @param actorSystem the actor system in which to load the extension.
+     * @param config the config the extension is configured.
      */
     protected NoOpConnectivityCommandInterceptorProvider(final ActorSystem actorSystem, final Config config) {
     }

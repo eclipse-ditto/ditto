@@ -33,7 +33,7 @@ import akka.http.javadsl.model.HttpRequest;
  */
 public final class DefaultGatewaySignalEnrichmentProvider implements GatewaySignalEnrichmentProvider {
 
-    private static final String CONCIERGE_FORWARDER = "/user/gatewayRoot/" + EdgeCommandForwarderActor.ACTOR_NAME;
+    private static final String COMMAND_FORWARDER = "/user/gatewayRoot/" + EdgeCommandForwarderActor.ACTOR_NAME;
     private static final String CACHE_LOADER_DISPATCHER = "signal-enrichment-cache-dispatcher";
 
     private final SignalEnrichmentFacade facade;
@@ -42,9 +42,10 @@ public final class DefaultGatewaySignalEnrichmentProvider implements GatewaySign
      * Instantiate this provider. Called by reflection.
      *
      * @param actorSystem The actor system for which this provider is instantiated.
+     * @param config the config the extension is configured.
      */
     public DefaultGatewaySignalEnrichmentProvider(final ActorSystem actorSystem, final Config config) {
-        final var commandHandler = actorSystem.actorSelection(CONCIERGE_FORWARDER);
+        final var commandHandler = actorSystem.actorSelection(COMMAND_FORWARDER);
         final var providerConfig = DefaultSignalEnrichmentProviderConfig.of(config);
         final var delegate = ByRoundTripSignalEnrichmentFacade.of(commandHandler, providerConfig.getAskTimeout());
         if (providerConfig.isCachingEnabled()) {

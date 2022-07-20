@@ -32,6 +32,7 @@ public interface SseConnectionSupervisor extends DittoExtensionPoint, StreamSupe
      * {@code ActorSystem}.
      *
      * @param actorSystem the actorSystem in which the {@code SseConnectionSupervisor} should be loaded.
+     * @param config the config the extension is configured.
      * @return the {@code SseConnectionSupervisor} implementation.
      * @throws NullPointerException if {@code actorSystem} is {@code null}.
      * @since 3.0.0

@@ -50,7 +50,9 @@ public final class DefaultNamespaceAppender implements SignalTransformer {
      * Constructs a new instance of DefaultNamespaceAppender extension.
      *
      * @param actorSystem the actor system in which to load the extension.
+     * @param config the config the extension is configured.
      */
+    @SuppressWarnings("unused")
     public DefaultNamespaceAppender(final ActorSystem actorSystem, final Config config) {
         defaultNamespace = config.hasPath(DEFAULT_NAMESPACE_CONFIG_KEY) ?
                 config.getString(DEFAULT_NAMESPACE_CONFIG_KEY) :

@@ -25,6 +25,7 @@ import akka.stream.javadsl.Flow;
  */
 public final class NoOpSseEventSniffer implements SseEventSniffer {
 
+    @SuppressWarnings("unused")
     public NoOpSseEventSniffer(final ActorSystem actorSystem, final Config config) {
         //No-Op because extensions need a constructor accepting an actorSystem
     }

@@ -49,7 +49,6 @@ public final class DittoJwtAuthorizationSubjectsProvider implements JwtAuthoriza
     }
 
     private DittoJwtAuthorizationSubjectsProvider(final JwtSubjectIssuersConfig jwtSubjectIssuersConfig) {
-
         this.jwtSubjectIssuersConfig = checkNotNull(jwtSubjectIssuersConfig);
     }
 

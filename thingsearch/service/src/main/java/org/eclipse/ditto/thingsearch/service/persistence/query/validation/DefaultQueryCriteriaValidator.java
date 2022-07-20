@@ -30,7 +30,10 @@ public final class DefaultQueryCriteriaValidator implements QueryCriteriaValidat
 
     /**
      * Instantiate this provider. Called by reflection.
+     * @param actorSystem the actor system in which to load the extension.
+     * @param config the configuration for this extension.
      */
+    @SuppressWarnings("unused")
     public DefaultQueryCriteriaValidator(final ActorSystem actorSystem, final Config config) {
         // Nothing to initialize.
     }

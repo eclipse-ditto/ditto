@@ -31,7 +31,9 @@ public final class NoOpEdgeCommandForwarderExtension implements EdgeCommandForwa
      * Constructs a new instance of NoOpEdgeCommandForwarderExtension.
      *
      * @param actorSystem the actor system in which to load the extension.
+     * @param config the config the extension is configured.
      */
+    @SuppressWarnings("unused")
     public NoOpEdgeCommandForwarderExtension(final ActorSystem actorSystem, final Config config) {
         // no-op
     }

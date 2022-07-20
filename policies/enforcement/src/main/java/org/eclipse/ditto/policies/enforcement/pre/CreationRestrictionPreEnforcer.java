@@ -51,6 +51,7 @@ public final class CreationRestrictionPreEnforcer implements PreEnforcer {
      * Constructs a new instance of CreationRestrictionPreEnforcer extension.
      *
      * @param actorSystem the actor system in which to load the extension.
+     * @param config the configuration for this extension.
      */
     @SuppressWarnings("unused")
     public CreationRestrictionPreEnforcer(final ActorSystem actorSystem, final Config config) {

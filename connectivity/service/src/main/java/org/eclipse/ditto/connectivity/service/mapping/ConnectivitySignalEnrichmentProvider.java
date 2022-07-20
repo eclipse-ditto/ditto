@@ -46,6 +46,7 @@ public interface ConnectivitySignalEnrichmentProvider extends DittoExtensionPoin
      * Load a {@code ConnectivitySignalEnrichmentProvider} dynamically according to the streaming configuration.
      *
      * @param actorSystem The actor system in which to load the facade provider class.
+     * @param config the config the extension is configured.
      * @return The configured facade provider.
      */
     static ConnectivitySignalEnrichmentProvider get(final ActorSystem actorSystem, final Config config) {

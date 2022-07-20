@@ -26,6 +26,7 @@ public final class NoOpWebSocketConfigProvider implements WebSocketConfigProvide
 
     /**
      * @param actorSystem the actor system in which to load the extension.
+     * @param config the config the extension is configured.
      */
     @SuppressWarnings("unused")
     public NoOpWebSocketConfigProvider(final ActorSystem actorSystem, final Config config) {

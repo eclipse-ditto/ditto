@@ -21,6 +21,7 @@ import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
 
+@SuppressWarnings("unused")
 public final class FaultyClientActorPropsFactory implements ClientActorPropsFactory {
 
     private final boolean allowFirstCreateCommand;
@@ -28,8 +29,10 @@ public final class FaultyClientActorPropsFactory implements ClientActorPropsFact
 
     /**
      * @param actorSystem the actor system in which to load the extension.
+     * @param config the config the extension is configured.
      */
-    protected FaultyClientActorPropsFactory(final ActorSystem actorSystem, final Config config) {
+    @SuppressWarnings("unused")
+    private FaultyClientActorPropsFactory(final ActorSystem actorSystem, final Config config) {
         allowFirstCreateCommand = actorSystem.settings().config().getBoolean("allowFirstCreateCommand");
         allowCloseCommands = actorSystem.settings().config().getBoolean("allowCloseCommands");
     }

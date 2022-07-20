@@ -110,7 +110,8 @@ public interface DittoExtensionPoint extends Extension {
              * @param configKey the configuration key on root level of the given config.
              * @param <T> The type of the extension that should be initialized.
              * @return the extension id config.
-             * @throws com.typesafe.config.ConfigException.WrongType in case neither an object nor a string is configured at the config key of config.
+             * @throws com.typesafe.config.ConfigException.WrongType in case neither an object nor a string is
+             * configured at the config key of config.
              */
             public static <T extends akka.actor.Extension> ExtensionIdConfig<T> of(
                     final Class<T> parentClass,
@@ -127,6 +128,7 @@ public interface DittoExtensionPoint extends Extension {
             @SuppressWarnings("unchecked")
             public static <T extends Extension> ExtensionIdConfig<T> of(final Class<T> parentClass,
                     final ConfigValue configValue) {
+
                 final var valueType = configValue.valueType();
                 final Object unwrappedValue = configValue.unwrapped();
                 if (valueType == ConfigValueType.OBJECT) {
@@ -148,6 +150,7 @@ public interface DittoExtensionPoint extends Extension {
             private static <T extends Extension> ExtensionIdConfig<T> ofObjectConfig(
                     final Class<T> parentClass,
                     final Config config) {
+
                 @Nullable final String extensionClass;
                 final Config extensionConfig;
                 if (config.hasPath(EXTENSION_CLASS)) {

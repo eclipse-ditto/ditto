@@ -66,7 +66,6 @@ public interface JwtAuthorizationSubjectsProvider extends DittoExtensionPoint {
         }
 
         static ExtensionIdConfig<JwtAuthorizationSubjectsProvider> computeConfig(final Config config) {
-
             return ExtensionIdConfig.of(JwtAuthorizationSubjectsProvider.class, config, CONFIG_KEY);
         }
 

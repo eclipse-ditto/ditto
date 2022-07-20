@@ -32,6 +32,8 @@ public final class DefaultSearchUpdateMapper extends SearchUpdateMapper {
 
     /**
      * Instantiate this provider. Called by reflection.
+     * @param actorSystem the actor system in which to load the extension.
+     * @param config the configuration for this extension.
      */
     @SuppressWarnings("unused")
     private DefaultSearchUpdateMapper(final ActorSystem actorSystem, final Config config) {

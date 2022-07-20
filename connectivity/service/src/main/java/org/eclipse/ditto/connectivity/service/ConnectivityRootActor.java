@@ -75,6 +75,7 @@ public final class ConnectivityRootActor extends DittoRootActor {
 
         final ClusterConfig clusterConfig = connectivityConfig.getClusterConfig();
         final ActorSystem actorSystem = getContext().system();
+        final Config config = actorSystem.settings().config();
 
         final ActorRef commandForwarder = getCommandForwarder(clusterConfig, pubSubMediator);
 
@@ -101,7 +102,6 @@ public final class ConnectivityRootActor extends DittoRootActor {
                         startConnectionShardRegion(actorSystem, connectionSupervisorProps, clusterConfig),
                         connectivityConfig.getPingConfig(), mongoReadJournal),
                 PersistencePingActor.ACTOR_NAME);
-        final Config config = actorSystem.settings().config();
         final ConnectionIdsRetrievalConfig connectionIdsRetrievalConfig =
                 connectivityConfig.getConnectionIdsRetrievalConfig();
         final ActorRef connectionIdsRetrievalActor = startChildActor(

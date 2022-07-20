@@ -69,6 +69,7 @@ public abstract class SearchUpdateMapper implements DittoExtensionPoint {
      * Load a {@code SearchUpdateListener} dynamically according to the search configuration.
      *
      * @param actorSystem The actor system in which to load the listener.
+     * @param config the configuration for this extension.
      * @return The listener.
      */
     public static SearchUpdateMapper get(final ActorSystem actorSystem, final Config config) {

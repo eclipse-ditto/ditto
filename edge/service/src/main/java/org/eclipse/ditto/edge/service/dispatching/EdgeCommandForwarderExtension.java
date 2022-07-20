@@ -30,12 +30,12 @@ import akka.actor.ActorSystem;
 public interface EdgeCommandForwarderExtension extends DittoExtensionPoint {
 
     /**
-     * Loads the implementation of {@code RootChildActorStarter} which is configured for the
+     * Loads the implementation of {@code EdgeCommandForwarderExtension} which is configured for the
      * {@code ActorSystem}.
      *
-     * @param actorSystem the actorSystem in which the {@code RootChildActorStarter} should be loaded.
+     * @param actorSystem the actorSystem in which the {@code EdgeCommandForwarderExtension} should be loaded.
      * @param config the configuration for this extension.
-     * @return the {@code RootChildActorStarter} implementation.
+     * @return the {@code EdgeCommandForwarderExtension} implementation.
      * @throws NullPointerException if {@code actorSystem} is {@code null}.
      */
     static EdgeCommandForwarderExtension get(final ActorSystem actorSystem, final Config config) {

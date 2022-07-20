@@ -30,7 +30,10 @@ public final class DittoCachingSignalEnrichmentFacadeProvider implements Caching
 
     /**
      * Instantiate this provider. Called by reflection.
+     * @param actorSystem the actor system in which to load the extension.
+     * @param config the configuration for this extension.
      */
+    @SuppressWarnings("unused")
     public DittoCachingSignalEnrichmentFacadeProvider(final ActorSystem actorSystem, final Config config) {
         // No-Op but required for extension initialisation
     }

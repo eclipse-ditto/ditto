@@ -43,6 +43,7 @@ public interface SseEventSniffer extends DittoExtensionPoint {
      * {@code ActorSystem}.
      *
      * @param actorSystem the actorSystem in which the {@code SseEventSniffer} should be loaded.
+     * @param config the config the extension is configured.
      * @return the {@code SseEventSniffer} implementation.
      * @throws NullPointerException if {@code actorSystem} is {@code null}.
      * @since 3.0.0

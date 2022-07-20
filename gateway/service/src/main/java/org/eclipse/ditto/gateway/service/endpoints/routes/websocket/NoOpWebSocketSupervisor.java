@@ -26,7 +26,9 @@ public final class NoOpWebSocketSupervisor implements WebSocketSupervisor {
 
     /**
      * @param actorSystem the actor system in which to load the extension.
+     * @param config the config the extension is configured.
      */
+    @SuppressWarnings("unused")
     public NoOpWebSocketSupervisor(final ActorSystem actorSystem, final Config config) {
         //No-Op because extensions need a constructor accepting an actorSystem
     }

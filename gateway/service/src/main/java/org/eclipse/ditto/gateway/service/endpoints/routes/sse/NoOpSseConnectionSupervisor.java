@@ -26,7 +26,9 @@ public final class NoOpSseConnectionSupervisor implements SseConnectionSuperviso
 
     /**
      * @param actorSystem the actor system in which to load the extension.
+     * @param config the config the extension is configured.
      */
+    @SuppressWarnings("unused")
     public NoOpSseConnectionSupervisor(final ActorSystem actorSystem, final Config config) {
         //No-Op because extensions need a constructor accepting an actorSystem
     }

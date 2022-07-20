@@ -48,6 +48,7 @@ public interface SearchUpdateObserver extends DittoExtensionPoint {
      * {@code ActorSystem}.
      *
      * @param actorSystem the actorSystem in which the {@code SearchUpdateObserver} should be loaded.
+     * @param config the configuration for this extension.
      * @return the {@code SearchUpdateObserver} implementation.
      * @throws NullPointerException if {@code actorSystem} is {@code null}.
      */

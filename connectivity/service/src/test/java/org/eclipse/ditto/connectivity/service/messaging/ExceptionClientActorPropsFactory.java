@@ -22,11 +22,14 @@ import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
 
-public class ExceptionClientActorPropsFactory implements ClientActorPropsFactory{
+@SuppressWarnings("unused")
+public class ExceptionClientActorPropsFactory implements ClientActorPropsFactory {
 
     /**
      * @param actorSystem the actor system in which to load the extension.
+     * @param config the config the extension is configured.
      */
+    @SuppressWarnings("unused")
     protected ExceptionClientActorPropsFactory(final ActorSystem actorSystem, final Config config) {
 
     }

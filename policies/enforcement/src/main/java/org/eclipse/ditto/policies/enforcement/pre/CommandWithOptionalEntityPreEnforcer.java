@@ -39,6 +39,7 @@ public final class CommandWithOptionalEntityPreEnforcer implements PreEnforcer {
      * Constructs a new instance of CommandWithOptionalEntityPreEnforcer extension.
      *
      * @param actorSystem the actor system in which to load the extension.
+     * @param config the configuration for this extension.
      */
     @SuppressWarnings("unused")
     public CommandWithOptionalEntityPreEnforcer(final ActorSystem actorSystem, final Config config) {

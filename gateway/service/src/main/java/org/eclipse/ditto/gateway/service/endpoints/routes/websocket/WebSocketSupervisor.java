@@ -32,6 +32,7 @@ public interface WebSocketSupervisor extends DittoExtensionPoint, StreamSupervis
      * {@code ActorSystem}.
      *
      * @param actorSystem the actorSystem in which the {@code WebSocketSupervisor} should be loaded.
+     * @param config the config the extension is configured.
      * @return the {@code WebSocketSupervisor} implementation.
      * @throws NullPointerException if {@code actorSystem} is {@code null}.
      * @since 3.0.0

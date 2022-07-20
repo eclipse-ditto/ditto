@@ -161,7 +161,6 @@ public final class GatewayRootActor extends DittoRootActor {
                 healthCheckActor, pubSubMediator, healthCheckConfig, jwtAuthenticationFactory,
                 devopsAuthenticationDirectiveFactory, protocolAdapterProvider, headerTranslator);
 
-
         httpBinding = Http.get(actorSystem)
                 .newServerAt(hostname, httpConfig.getPort())
                 .bindFlow(HttpBindFlowProvider.get(actorSystem, dittoExtensionConfig).getFlow(rootRoute))

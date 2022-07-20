@@ -23,6 +23,7 @@ public class UsageBasedPriorityProviderFactory implements ConnectionPriorityProv
 
     /**
      * @param actorSystem the actor system in which to load the extension.
+     * @param config the config the extension is configured.
      */
     protected UsageBasedPriorityProviderFactory(final ActorSystem actorSystem, final Config config) {
     }

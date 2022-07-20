@@ -43,11 +43,12 @@ public interface StreamingAuthorizationEnforcer extends DittoExtensionPoint {
     CompletionStage<DittoHeaders> checkAuthorization(RequestContext requestContext, DittoHeaders dittoHeaders);
 
     /**
-     * Loads the implementation of {@code WebSocketAuthorizationEnforcer} which is configured for the
+     * Loads the implementation of {@code StreamingAuthorizationEnforcer} which is configured for the
      * {@code ActorSystem}.
      *
-     * @param actorSystem the actorSystem in which the {@code WebSocketAuthorizationEnforcer} should be loaded.
-     * @return the {@code WebSocketAuthorizationEnforcer} implementation.
+     * @param actorSystem the actorSystem in which the {@code StreamingAuthorizationEnforcer} should be loaded.
+     * @param config the configuration for this extension.
+     * @return the {@code StreamingAuthorizationEnforcer} implementation.
      * @throws NullPointerException if {@code actorSystem} is {@code null}.
      * @since 3.0.0
      */

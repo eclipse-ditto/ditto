@@ -61,7 +61,6 @@ public final class PreEnforcerProvider implements DittoExtensionPoint {
                 .toList();
     }
 
-
     /**
      * Applies the pre-enforcement to the signal.
      *
@@ -86,6 +85,7 @@ public final class PreEnforcerProvider implements DittoExtensionPoint {
      * {@code ActorSystem}.
      *
      * @param actorSystem the actorSystem in which the {@code PreEnforcerProvider} should be loaded.
+     * @param config the configuration for this extension.
      * @return the {@code PreEnforcerProvider} implementation.
      * @throws NullPointerException if {@code actorSystem} is {@code null}.
      */
