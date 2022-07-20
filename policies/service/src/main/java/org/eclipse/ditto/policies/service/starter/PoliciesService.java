@@ -14,8 +14,6 @@ package org.eclipse.ditto.policies.service.starter;
 
 import org.eclipse.ditto.base.service.DittoService;
 import org.eclipse.ditto.internal.utils.config.ScopedConfig;
-import org.eclipse.ditto.internal.utils.persistence.SnapshotAdapter;
-import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.service.common.config.DittoPoliciesConfig;
 import org.eclipse.ditto.policies.service.common.config.PoliciesConfig;
 import org.slf4j.Logger;
@@ -25,7 +23,6 @@ import com.typesafe.config.Config;
 import com.typesafe.config.ConfigValueFactory;
 
 import akka.actor.ActorRef;
-import akka.actor.ActorSystem;
 import akka.actor.Props;
 
 /**
@@ -60,9 +57,7 @@ public final class PoliciesService extends DittoService<PoliciesConfig> {
     }
 
     @Override
-    protected Props getMainRootActorProps(final PoliciesConfig policiesConfig, final Config rawConfig,
-            final ActorRef pubSubMediator) {
-
+    protected Props getMainRootActorProps(final PoliciesConfig policiesConfig, final ActorRef pubSubMediator) {
         return PoliciesRootActor.props(policiesConfig, pubSubMediator);
     }
 

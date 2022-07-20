@@ -86,8 +86,8 @@ public final class PoliciesRootActor extends DittoRootActor {
         ClusterUtil.startSingleton(actorSystem, getContext(), PoliciesMessagingConstants.CLUSTER_ROLE,
                 BlockedNamespacesUpdater.ACTOR_NAME, blockedNamespacesUpdaterProps);
 
-        final var policySupervisorProps = getPolicySupervisorActorProps(pubSubMediator,
-                policyAnnouncementPub, blockedNamespaces);
+        final var policySupervisorProps =
+                getPolicySupervisorActorProps(pubSubMediator, policyAnnouncementPub, blockedNamespaces);
 
         final var clusterConfig = policiesConfig.getClusterConfig();
         final ShardRegionExtractor shardRegionExtractor = ShardRegionExtractor.of(clusterConfig.getNumberOfShards(),

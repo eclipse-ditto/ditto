@@ -112,16 +112,14 @@ public final class PolicyPersistenceActor
             final ActorRef announcementManager,
             final PolicyConfig policyConfig) {
 
-        return Props.create(PolicyPersistenceActor.class, () -> new PolicyPersistenceActor(policyId, pubSubMediator,
-                announcementManager, policyConfig));
+        return Props.create(PolicyPersistenceActor.class, policyId, pubSubMediator, announcementManager, policyConfig);
     }
 
     static Props propsForTests(final PolicyId policyId,
             final ActorRef pubSubMediator,
             final ActorRef announcementManager) {
 
-        return Props.create(PolicyPersistenceActor.class, () -> new PolicyPersistenceActor(policyId, pubSubMediator,
-                announcementManager));
+        return Props.create(PolicyPersistenceActor.class, policyId, pubSubMediator, announcementManager);
     }
 
     @Override

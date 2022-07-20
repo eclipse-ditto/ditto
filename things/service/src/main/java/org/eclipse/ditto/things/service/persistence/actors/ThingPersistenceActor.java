@@ -93,10 +93,6 @@ public final class ThingPersistenceActor
         this.distributedPub = distributedPub;
     }
 
-    private static Config getThingsRawConfig(final ActorSystem actorSystem) {
-        return ScopedConfig.getOrEmpty(actorSystem.settings().config(), "ditto.things");
-    }
-
     /**
      * Creates Akka configuration object {@link Props} for this ThingPersistenceActor.
      *
@@ -107,7 +103,7 @@ public final class ThingPersistenceActor
     public static Props props(final ThingId thingId,
             final DistributedPub<ThingEvent<?>> distributedPub) {
 
-        return Props.create(ThingPersistenceActor.class, () -> new ThingPersistenceActor(thingId, distributedPub));
+        return Props.create(ThingPersistenceActor.class, thingId, distributedPub);
     }
 
     @Override

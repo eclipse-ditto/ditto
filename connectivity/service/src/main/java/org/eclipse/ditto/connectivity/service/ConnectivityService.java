@@ -63,8 +63,7 @@ public final class ConnectivityService extends DittoService<ConnectivityConfig> 
     }
 
     @Override
-    protected Props getMainRootActorProps(final ConnectivityConfig connectivityConfig, final Config rawConfig,
-            final ActorRef pubSubMediator) {
+    protected Props getMainRootActorProps(final ConnectivityConfig connectivityConfig, final ActorRef pubSubMediator) {
         return ConnectivityRootActor.props(connectivityConfig, pubSubMediator);
     }
 

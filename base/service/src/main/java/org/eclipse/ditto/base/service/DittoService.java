@@ -376,8 +376,7 @@ public abstract class DittoService<C extends ServiceSpecificConfig> {
      * is overridden, the following methods will not be called automatically:</em>
      * </p>
      * <ul>
-     * <li>{@link #getMainRootActorProps(org.eclipse.ditto.base.service.config.ServiceSpecificConfig,
-     * com.typesafe.config.Config, akka.actor.ActorRef, akka.actor.ActorSystem)},</li>
+     * <li>{@link #getMainRootActorProps(org.eclipse.ditto.base.service.config.ServiceSpecificConfig, akka.actor.ActorRef)},</li>
      * <li>{@link #startMainRootActor(akka.actor.ActorSystem, akka.actor.Props)},</li>
      * </ul>
      *
@@ -394,7 +393,7 @@ public abstract class DittoService<C extends ServiceSpecificConfig> {
 
             injectSystemPropertiesLimits(serviceSpecificConfig);
 
-            startMainRootActor(actorSystem, getMainRootActorProps(serviceSpecificConfig, rawConfig, pubSubMediator));
+            startMainRootActor(actorSystem, getMainRootActorProps(serviceSpecificConfig, pubSubMediator));
             RootActorStarter.get(actorSystem, ScopedConfig.dittoExtension(actorSystem.settings().config())).execute();
         });
     }
@@ -431,9 +430,7 @@ public abstract class DittoService<C extends ServiceSpecificConfig> {
      * @param pubSubMediator ActorRef of the distributed pub-sub-mediator.
      * @return the Props.
      */
-    protected abstract Props getMainRootActorProps(C serviceSpecificConfig,
-            final Config rawConfig,
-            final ActorRef pubSubMediator);
+    protected abstract Props getMainRootActorProps(C serviceSpecificConfig, final ActorRef pubSubMediator);
 
     /**
      * Starts the main root actor of this service. May be overridden to change the way of starting this service's root

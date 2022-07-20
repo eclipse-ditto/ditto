@@ -272,8 +272,8 @@ public final class ConnectionPersistenceActor
             final ActorRef pubSubMediator,
             final Config connectivityConfigOverwrites
     ) {
-        return Props.create(ConnectionPersistenceActor.class, () -> new ConnectionPersistenceActor(connectionId,
-                commandForwarderActor, pubSubMediator, Trilean.UNKNOWN, connectivityConfigOverwrites));
+        return Props.create(ConnectionPersistenceActor.class, connectionId,
+                commandForwarderActor, pubSubMediator, Trilean.UNKNOWN, connectivityConfigOverwrites);
     }
 
     /**
