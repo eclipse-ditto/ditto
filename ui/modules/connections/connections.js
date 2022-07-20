@@ -35,8 +35,6 @@ let dom = {
   buttonResetConnectionLogs: null,
   buttonRetrieveConnectionMetrics: null,
   buttonResetConnectionMetrics: null,
-  textareaConnectionLogDetail: null,
-  textareaConnectionStatusDetail: null,
   tabConnections: null,
   collapseConnections: null,
 };
@@ -44,6 +42,8 @@ let dom = {
 let connectionEditor;
 let incomingEditor;
 let outgoingEditor;
+let connectionLogDetail;
+let connectionStatusDetail;
 
 let theConnection;
 let connectionLogs;
@@ -55,13 +55,11 @@ export function ready() {
 
   Utils.getAllElementsById(dom);
 
-  connectionEditor = ace.edit('connectionEditor');
-  incomingEditor = ace.edit('connectionIncomingScript');
-  outgoingEditor = ace.edit('connectionOutgoingScript');
-
-  connectionEditor.session.setMode('ace/mode/json');
-  incomingEditor.session.setMode('ace/mode/javascript');
-  outgoingEditor.session.setMode('ace/mode/javascript');
+  connectionEditor = Utils.createAceEditor('connectionEditor', 'ace/mode/json');
+  incomingEditor = Utils.createAceEditor('connectionIncomingScript', 'ace/mode/javascript');
+  outgoingEditor = Utils.createAceEditor('connectionOutgoingScript', 'ace/mode/javascript');
+  connectionLogDetail = Utils.createAceEditor('connectionLogDetail', 'ace/mode/json', true);
+  connectionStatusDetail = Utils.createAceEditor('connectionStatusDetail', 'ace/mode/json', true);
 
   loadConnectionTemplates();
 
@@ -85,16 +83,16 @@ export function ready() {
   });
 
   dom.tbodyConnectionLogs.addEventListener('click', (event) => {
-    dom.textareaConnectionLogDetail.value = JSON.stringify(connectionLogs[event.target.parentNode.rowIndex], null, 2);
+    connectionLogDetail.setValue(JSON.stringify(connectionLogs[event.target.parentNode.rowIndex - 1], null, 2), -1);
   });
 
   incomingEditor.on('blur', function() {
     theConnection.mappingDefinitions.javascript.options.incomingScript = incomingEditor.getValue();
-    connectionEditor.setValue(JSON.stringify(theConnection, null, 2));
+    connectionEditor.setValue(JSON.stringify(theConnection, null, 2), -1);
   });
   outgoingEditor.on('blur', function() {
     theConnection.mappingDefinitions.javascript.options.outgoingScript = outgoingEditor.getValue();
-    connectionEditor.setValue(JSON.stringify(theConnection, null, 2));
+    connectionEditor.setValue(JSON.stringify(theConnection, null, 2), -1);
   });
   connectionEditor.on('blur', function() {
     theConnection = JSON.parse(connectionEditor.getValue());
@@ -123,7 +121,7 @@ export function ready() {
   dom.buttonRetrieveConnectionStatus.onclick = () => {
     Utils.assert(dom.inputConnectionId.value, 'Please select a connection');
     API.callConnectionsAPI('retrieveStatus', (connectionStatus) => {
-      dom.textareaConnectionStatusDetail.value = JSON.stringify(connectionStatus, null, 2);
+      connectionStatusDetail.setValue(JSON.stringify(connectionStatus, null, 2), -1);
     },
     dom.inputConnectionId.value);
   };
@@ -141,7 +139,7 @@ export function ready() {
   dom.buttonRetrieveConnectionLogs.onclick = () => {
     Utils.assert(dom.inputConnectionId.value, 'Please select a connection');
     dom.tbodyConnectionLogs.innerHTML = '';
-    dom.textareaConnectionLogDetail.value = null;
+    connectionLogDetail.setValue('');
     API.callConnectionsAPI('retrieveConnectionLogs', (response) => {
       connectionLogs = response.connectionLogs;
       response.connectionLogs.forEach((entry) => {
@@ -177,7 +175,7 @@ export function ready() {
 function setConnection(connection) {
   theConnection = connection;
   dom.inputConnectionId.value = (theConnection && theConnection.id) ? theConnection.id : null;
-  connectionEditor.setValue(theConnection ? JSON.stringify(theConnection, null, 2) : '');
+  connectionEditor.setValue(theConnection ? JSON.stringify(theConnection, null, 2) : '', -1);
   const withJavaScript = theConnection && theConnection.mappingDefinitions && theConnection.mappingDefinitions.javascript;
   incomingEditor.setValue(withJavaScript ?
     theConnection.mappingDefinitions.javascript.options.incomingScript :
@@ -185,10 +183,10 @@ function setConnection(connection) {
   outgoingEditor.setValue(withJavaScript ?
     theConnection.mappingDefinitions.javascript.options.outgoingScript :
     '', -1);
-  dom.textareaConnectionStatusDetail.value = null;
+  connectionStatusDetail.setValue('');
+  connectionLogDetail.setValue('');
   dom.tbodyConnectionMetrics.innerHTML = '';
   dom.tbodyConnectionLogs.innerHTML = '';
-  dom.textareaConnectionLogDetail.value = null;
 }
 
 function loadConnections() {

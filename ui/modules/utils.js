@@ -200,3 +200,22 @@ export function assert(condition, message, validatedElement) {
     throw new UserException(message);
   }
 }
+
+/**
+ * Creates and configures an ace editor
+ * @param {String} domId id of the dom element for the ace editor
+ * @param {*} sessionMode session mode of the ace editor
+ * @param {*} readOnly sets the editor to read only and removes the line numbers
+ * @return {*} created ace editor
+ */
+export function createAceEditor(domId, sessionMode, readOnly) {
+  const result = ace.edit(domId);
+
+  result.session.setMode(sessionMode);
+  if (readOnly) {
+    result.setReadOnly(true);
+    result.renderer.setShowGutter(false);
+  }
+
+  return result;
+}
