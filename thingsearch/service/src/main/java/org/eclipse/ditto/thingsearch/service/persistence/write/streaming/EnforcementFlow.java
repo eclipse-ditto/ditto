@@ -50,6 +50,7 @@ import org.eclipse.ditto.thingsearch.service.persistence.write.mapping.EnforcedT
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.AbstractWriteModel;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.Metadata;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.ThingDeleteModel;
+import org.eclipse.ditto.thingsearch.service.persistence.write.model.ThingWriteModel;
 import org.eclipse.ditto.thingsearch.service.updater.actors.MongoWriteModel;
 import org.eclipse.ditto.thingsearch.service.updater.actors.SearchUpdateObserver;
 import org.eclipse.ditto.thingsearch.service.updater.actors.ThingUpdater;
@@ -264,15 +265,15 @@ final class EnforcementFlow {
                             } catch (final JsonRuntimeException e) {
                                 log.error(e.getMessage(), e);
                                 log.info(
-                                        "Computed - due to <{}: {}> - ThingDeleteModel for metadata <{}> and thing <{}>",
+                                        "Computed - due to <{}: {}> - 'emptied out' ThingWriteModel for metadata <{}> and thing <{}>",
                                         e.getClass().getSimpleName(), e.getMessage(), metadata, thing);
-                                return ThingDeleteModel.of(metadata);
+                                return ThingWriteModel.ofEmptiedOut(metadata);
                             }
                         } else {
-                            // no enforcer; delete thing from search index
-                            log.info("Computed - due to missing enforcer - ThingDeleteModel for metadata <{}> " +
+                            // no enforcer; "empty out" thing in search index
+                            log.info("Computed - due to missing enforcer - 'emptied out' ThingWriteModel for metadata <{}> " +
                                     "and thing <{}>", metadata, thing);
-                            return ThingDeleteModel.of(metadata);
+                            return ThingWriteModel.ofEmptiedOut(metadata);
                         }
                     });
         }

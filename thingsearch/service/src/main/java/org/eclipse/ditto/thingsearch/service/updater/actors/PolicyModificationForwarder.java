@@ -135,7 +135,7 @@ final class PolicyModificationForwarder extends AbstractActor {
     }
 
     private void updatePolicyRevision(final LocalWrappedPolicyTag wrappedPolicyTag) {
-        final PolicyTag policyTag = wrappedPolicyTag.delegate;
+        final PolicyTag policyTag = wrappedPolicyTag.delegate();
         final PolicyId policyId = policyTag.getEntityId();
         final long revision = policyTag.getRevision();
         policyRevisions.merge(policyId, revision, Long::max);
@@ -225,11 +225,5 @@ final class PolicyModificationForwarder extends AbstractActor {
         STREAM_COMPLETED
     }
 
-    private static final class LocalWrappedPolicyTag {
-        private final PolicyTag delegate;
-
-        private LocalWrappedPolicyTag(final PolicyTag delegate) {
-            this.delegate = delegate;
-        }
-    }
+    private record LocalWrappedPolicyTag(PolicyTag delegate) {}
 }
