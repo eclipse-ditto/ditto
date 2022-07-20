@@ -97,6 +97,14 @@ public final class ExistsThingPredicateVisitor implements ExistsFieldExpressionV
     }
 
     @Override
+    public Predicate<Thing> visitFeatureDefinition(final String featureId) {
+        return thing -> thing.getFeatures()
+                .flatMap(features -> features.getFeature(featureId))
+                .map(feature -> feature.getDefinition().isPresent())
+                .orElse(false);
+    }
+
+    @Override
     public Predicate<Thing> visitFeatureProperties(final CharSequence featureId) {
         return thing -> thing.getFeatures()
                 .flatMap(features -> features.getFeature(featureId.toString()))
