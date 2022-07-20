@@ -19,12 +19,15 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 import java.lang.ref.SoftReference;
 import java.text.MessageFormat;
 
+import org.eclipse.ditto.base.model.entity.metadata.Metadata;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.base.model.signals.commands.GlobalCommandRegistry;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.ThingTooLargeException;
@@ -119,6 +122,28 @@ public final class CreateThingTest {
         final Thing thing = Thing.newBuilder()
                 .setId(ThingId.of("foo", "bar"))
                 .setAttributes(largeAttributes)
+                .build();
+
+        softly.assertThatThrownBy(() -> CreateThing.of(thing, null, DittoHeaders.empty()))
+                .isInstanceOf(ThingTooLargeException.class);
+    }
+
+    @Test
+    public void createTooLargeMetadata() {
+        final StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < TestConstants.THING_SIZE_LIMIT_BYTES; i++) {
+            sb.append('a');
+        }
+        final Thing thing = ThingsModelFactory.newThingBuilder()
+                .setLifecycle(TestConstants.Thing.LIFECYCLE)
+                .setPolicyId(TestConstants.Thing.POLICY_ID)
+                .setId(ThingId.of("test.ns", "foo-bar"))
+                .setAttribute(JsonPointer.of("foo"), JsonValue.of("bar"))
+                .setMetadata(Metadata.newBuilder()
+                        .set("attributes/foo/meta", JsonObject.newBuilder()
+                                .set("description", sb.toString())
+                                .build())
+                        .build())
                 .build();
 
         softly.assertThatThrownBy(() -> CreateThing.of(thing, null, DittoHeaders.empty()))

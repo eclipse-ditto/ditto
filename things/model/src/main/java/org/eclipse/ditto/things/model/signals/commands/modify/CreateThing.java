@@ -101,7 +101,8 @@ public final class CreateThing extends AbstractCommand<CreateThing> implements T
         this.initialPolicy = initialPolicy;
         this.policyIdOrPlaceholder = null;
 
-        final JsonObject thingJsonObject = thing.toJson();
+        final JsonObject thingJsonObject = thing.toJson(FieldType.notHidden()
+                .or(jsonField -> Objects.equals(Thing.JsonFields.METADATA.getPointer(), jsonField.getKey().asPointer())));
 
         ThingCommandSizeValidator.getInstance().ensureValidSize(
                 thingJsonObject::getUpperBoundForStringSize,
@@ -118,7 +119,8 @@ public final class CreateThing extends AbstractCommand<CreateThing> implements T
             PolicyId.of(policyIdOrPlaceholder); //validates
         }
 
-        final JsonObject thingJsonObject = thing.toJson();
+        final JsonObject thingJsonObject = thing.toJson(FieldType.notHidden()
+                .or(jsonField -> Objects.equals(Thing.JsonFields.METADATA.getPointer(), jsonField.getKey().asPointer())));
 
         ThingCommandSizeValidator.getInstance().ensureValidSize(
                 thingJsonObject::getUpperBoundForStringSize,
