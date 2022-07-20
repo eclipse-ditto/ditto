@@ -67,13 +67,16 @@ export function ready() {
   dom.tabConnections.onclick = onTabActivated;
 
   dom.buttonCreateConnection.onclick = () => {
+    const templateConnection = {};
+    if (API.env() !== 'things') {
+      templateConnection.id = Math.random().toString(36).replace('0.', '');
+    }
     const newConnection = JSON.parse(JSON.stringify(
         connectionTemplates[document.querySelector('input[name=connectionTemplate]:checked').value]));
-    if (API.env() !== 'things') {
-      newConnection.id = Math.random().toString(36).replace('0.', '');
-    }
-    setConnection(newConnection);
-    API.callConnectionsAPI('createConnection', loadConnections, null, newConnection);
+
+    const mergedConnection = {...templateConnection, ...newConnection};
+    setConnection(mergedConnection);
+    API.callConnectionsAPI('createConnection', loadConnections, null, mergedConnection);
   };
 
   dom.tbodyConnections.addEventListener('click', (event) => {
