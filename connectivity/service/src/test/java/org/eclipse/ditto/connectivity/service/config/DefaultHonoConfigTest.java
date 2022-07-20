@@ -15,7 +15,6 @@ package org.eclipse.ditto.connectivity.service.config;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
-import static org.eclipse.ditto.connectivity.model.ConnectionId.generateRandom;
 import static org.mutabilitydetector.unittesting.AllowedReason.assumingFields;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
@@ -199,7 +198,7 @@ public final class DefaultHonoConfigTest {
     public void getCredentialsReturnsDefaultValueIfNotContainedInConfig() {
         final var defaultHonoConfig = new DefaultHonoConfig(getActorSystem(ConfigFactory.empty()));
 
-        assertThat(defaultHonoConfig.getUserPasswordCredentials(generateRandom()))
+        assertThat(defaultHonoConfig.getUserPasswordCredentials())
                 .isEqualTo(UserPasswordCredentials.newInstance("", ""));
     }
 
@@ -212,16 +211,8 @@ public final class DefaultHonoConfigTest {
                 getFullQualifiedConfigKey(HonoConfig.HonoConfigValue.PASSWORD), password
         ))));
 
-        assertThat(defaultHonoConfig.getUserPasswordCredentials(null))
+        assertThat(defaultHonoConfig.getUserPasswordCredentials())
                 .isEqualTo(UserPasswordCredentials.newInstance(username, password));
-    }
-
-    @Test
-    public void getTenantIdReturnsEmptyString() {
-        final var defaultHonoConfig = new DefaultHonoConfig(getActorSystem(ConfigFactory.empty()));
-
-        assertThat(defaultHonoConfig.getTenantId(null)).isEmpty();
-        assertThat(defaultHonoConfig.getTenantId(generateRandom())).isEmpty();
     }
 
     private static String getFullQualifiedConfigKey(final WithConfigPath withConfigPath) {

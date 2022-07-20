@@ -25,7 +25,6 @@ import java.util.function.BiFunction;
 
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.connectivity.model.UserPasswordCredentials;
 import org.eclipse.ditto.internal.utils.config.ConfigWithFallback;
 import org.eclipse.ditto.internal.utils.config.DittoConfigError;
@@ -46,6 +45,7 @@ public final class DefaultHonoConfig implements HonoConfig {
     private final SaslMechanism saslMechanism;
     private final Set<URI> bootstrapServerUris;
     private final UserPasswordCredentials credentials;
+
 
     /**
      * Constructs a {@code DefaultHonoConfig} for the specified ActorSystem.
@@ -131,7 +131,7 @@ public final class DefaultHonoConfig implements HonoConfig {
     }
 
     @Override
-    public UserPasswordCredentials getUserPasswordCredentials(final ConnectionId connectionId) {
+    public UserPasswordCredentials getUserPasswordCredentials() {
         return credentials;
     }
 

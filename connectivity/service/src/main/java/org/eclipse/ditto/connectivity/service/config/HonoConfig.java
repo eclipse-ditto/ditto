@@ -14,19 +14,12 @@ package org.eclipse.ditto.connectivity.service.config;
 
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.List;
 import java.util.Set;
 
-import org.eclipse.ditto.base.model.common.ConditionChecker;
-import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.connectivity.model.UserPasswordCredentials;
-import org.eclipse.ditto.internal.utils.akka.AkkaClassLoader;
 import org.eclipse.ditto.internal.utils.config.DittoConfigError;
 import org.eclipse.ditto.internal.utils.config.KnownConfigValue;
 
-import akka.actor.AbstractExtensionId;
-import akka.actor.ActorSystem;
-import akka.actor.ExtendedActorSystem;
 import akka.actor.Extension;
 
 /**
@@ -71,24 +64,10 @@ public interface HonoConfig extends Extension {
     /**
      * Gets the credentials for the specified Hono connection.
      *
-     * @param connectionId the ID of the connection.
      * @return the credentials of the connection.
      * @throws NullPointerException if {@code connectionId} is {@code null}.
      */
-    // TODO jff delete connection ID parameter because for Ditto it does not make sense.
-    UserPasswordCredentials getUserPasswordCredentials(ConnectionId connectionId);
-
-    /**
-     * Gets the Hub tenant ID property for the specified Hono connection.
-     *
-     * @param connectionId the ID of the connection.
-     * @return the Hub tenant ID, {@code ""} by default.
-     * @throws NullPointerException if {@code connectionId} is {@code null}.
-     */
-    // TODO jff delete method after obtaining the tenant ID is moved to another place.
-    default String getTenantId(final ConnectionId connectionId) {
-        return "";
-    }
+    UserPasswordCredentials getUserPasswordCredentials();
 
     enum HonoConfigValue implements KnownConfigValue {
 
@@ -125,7 +104,7 @@ public interface HonoConfig extends Extension {
         private final String path;
         private final Object defaultValue;
 
-        private HonoConfigValue(final String thePath, final Object theDefaultValue) {
+        HonoConfigValue(final String thePath, final Object theDefaultValue) {
             path = thePath;
             defaultValue = theDefaultValue;
         }
@@ -143,16 +122,6 @@ public interface HonoConfig extends Extension {
     }
 
     /**
-     * Load the {@code HonoConfig} extension.
-     *
-     * @param actorSystem The actor system in which to load the configuration.
-     * @return the {@code HonoConfig}.
-     */
-    static HonoConfig get(final ActorSystem actorSystem) {
-        return HonoConfig.ExtensionId.INSTANCE.get(ConditionChecker.checkNotNull(actorSystem, "actorSystem"));
-    }
-
-    /**
      * Validates and gets URI from a string
      *
      * @param uri A {@link String} to be validated
@@ -167,34 +136,13 @@ public interface HonoConfig extends Extension {
         }
     }
 
-    /**
-     * ID of the actor system extension to provide a Hono-connections configuration.
-     */
-    final class ExtensionId extends AbstractExtensionId<HonoConfig> {
-
-        private static final String CONFIG_PATH = PREFIX + ".config-provider";
-
-        private static final ExtensionId INSTANCE = new ExtensionId();
-
-        @Override
-        public HonoConfig createExtension(final ExtendedActorSystem system) {
-            ConditionChecker.checkNotNull(system, "system");
-            return AkkaClassLoader.instantiate(system,
-                    HonoConfig.class,
-                    system.settings().config().getString(CONFIG_PATH),
-                    List.of(ActorSystem.class),
-                    List.of(system));
-        }
-
-    }
-
     enum SaslMechanism {
 
         PLAIN("plain");
 
         private final String value;
 
-        private SaslMechanism(final String value) {
+        SaslMechanism(final String value) {
             this.value = value;
         }
 

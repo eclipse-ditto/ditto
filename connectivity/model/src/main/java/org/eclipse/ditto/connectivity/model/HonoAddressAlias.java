@@ -102,8 +102,9 @@ public enum HonoAddressAlias {
      * @return the resolved alias or empty if not an alias
      */
     public static String resolve(String alias, String tenantId, boolean thingSuffix) {
+        String suffix = thingSuffix ? "/{{thing:id}}" : "";
         return fromName(alias)
-                .map(found -> "hono." + found.getName() + "." + tenantId + (thingSuffix ? "/{{thing:id}}" : ""))
+                .map(found -> "hono." + found.getName() + (tenantId.isEmpty() ? "" : "." + tenantId) + suffix)
                 .orElse(alias);
     }
 
