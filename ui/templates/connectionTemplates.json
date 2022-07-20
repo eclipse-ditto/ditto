@@ -34,7 +34,7 @@
     "connectionType": "amqp-10",
     "connectionStatus": "closed",
     "failoverEnabled": true,
-    "uri": "amqps://user:password@hono.eclipse.org:5671",
+    "uri": "amqps://user:password@hono.eclipseprojects.io:5671",
     "sources": [
       {
         "addresses": [
@@ -124,7 +124,7 @@
     "connectionType": "http-push",
     "connectionStatus": "closed",
     "failoverEnabled": true,
-    "uri": "http://user:password@localhost:80",
+    "uri": "https://webhook.site/<YOUR-WEBHOOK-ID>",
     "specificConfig": {
       "parallelism": "1"
     },

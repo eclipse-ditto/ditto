@@ -90,10 +90,12 @@ export function ready() {
   });
 
   incomingEditor.on('blur', function() {
+    initializeMappings(theConnection);
     theConnection.mappingDefinitions.javascript.options.incomingScript = incomingEditor.getValue();
     connectionEditor.setValue(JSON.stringify(theConnection, null, 2), -1);
   });
   outgoingEditor.on('blur', function() {
+    initializeMappings(theConnection);
     theConnection.mappingDefinitions.javascript.options.outgoingScript = outgoingEditor.getValue();
     connectionEditor.setValue(JSON.stringify(theConnection, null, 2), -1);
   });
@@ -136,23 +138,10 @@ export function ready() {
 
   dom.buttonResetConnectionLogs.onclick = () => {
     Utils.assert(dom.inputConnectionId.value, 'Please select a connection');
-    API.callConnectionsAPI('connectionCommand', null, dom.inputConnectionId.value, null, 'connectivity.commands:resetConnectionLogs');
+    API.callConnectionsAPI('connectionCommand', retrieveConnectionLogs, dom.inputConnectionId.value, null, 'connectivity.commands:resetConnectionLogs');
   };
 
-  dom.buttonRetrieveConnectionLogs.onclick = () => {
-    Utils.assert(dom.inputConnectionId.value, 'Please select a connection');
-    dom.tbodyConnectionLogs.innerHTML = '';
-    connectionLogDetail.setValue('');
-    API.callConnectionsAPI('retrieveConnectionLogs', (response) => {
-      connectionLogs = response.connectionLogs;
-      response.connectionLogs.forEach((entry) => {
-        const timestampDisplay = entry.timestamp.replace('T', ' ').replace('Z', '').replace('.', ' ');
-        Utils.addTableRow(dom.tbodyConnectionLogs, timestampDisplay, false, false, entry.type, entry.level);
-      });
-      dom.tbodyConnectionLogs.scrollTop = dom.tbodyConnectionLogs.scrollHeight - dom.tbodyConnectionLogs.clientHeight;
-    },
-    dom.inputConnectionId.value);
-  };
+  dom.buttonRetrieveConnectionLogs.onclick = retrieveConnectionLogs;
 
   dom.buttonRetrieveConnectionMetrics.onclick = () => {
     Utils.assert(dom.inputConnectionId.value, 'Please select a connection');
@@ -173,6 +162,21 @@ export function ready() {
     Utils.assert(dom.inputConnectionId.value, 'Please select a connection');
     API.callConnectionsAPI('connectionCommand', null, dom.inputConnectionId.value, null, 'connectivity.commands:resetConnectionMetrics');
   };
+}
+
+function retrieveConnectionLogs() {
+  Utils.assert(dom.inputConnectionId.value, 'Please select a connection');
+  dom.tbodyConnectionLogs.innerHTML = '';
+  connectionLogDetail.setValue('');
+  API.callConnectionsAPI('retrieveConnectionLogs', (response) => {
+    connectionLogs = response.connectionLogs;
+    response.connectionLogs.forEach((entry) => {
+      const timestampDisplay = entry.timestamp.replace('T', ' ').replace('Z', '').replace('.', ' ');
+      Utils.addTableRow(dom.tbodyConnectionLogs, timestampDisplay, false, false, entry.type, entry.level);
+    });
+    dom.tbodyConnectionLogs.scrollTop = dom.tbodyConnectionLogs.scrollHeight - dom.tbodyConnectionLogs.clientHeight;
+  },
+  dom.inputConnectionId.value);
 }
 
 function setConnection(connection) {
@@ -250,6 +254,19 @@ function onEnvironmentChanged() {
     loadConnections();
   } else {
     viewDirty = true;
+  }
+}
+
+function initializeMappings(connection) {
+  if (!connection['mappingDefinitions']) {
+    connection.mappingDefinitions = {
+      javascript: {
+        options: {
+          incomingScript: '',
+          outgoingScript: '',
+        },
+      },
+    };
   }
 }
 
