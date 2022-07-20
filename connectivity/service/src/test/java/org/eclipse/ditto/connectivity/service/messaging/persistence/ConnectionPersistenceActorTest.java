@@ -110,16 +110,16 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
     @Rule
     public final ActorSystemResource actorSystemResource1 = ActorSystemResource.newInstance(
             ConfigFactory.parseMap(Map.of(
-                        "ditto.extensions.client-actor-props-factory",
-                        "org.eclipse.ditto.connectivity.service.messaging.MockClientActorPropsFactory"
-                    )).withFallback(TestConstants.CONFIG));
+                    "ditto.extensions.client-actor-props-factory",
+                    "org.eclipse.ditto.connectivity.service.messaging.MockClientActorPropsFactory"
+            )).withFallback(TestConstants.CONFIG));
 
     @Rule
     public final ActorSystemResource actorSystemResource2 = ActorSystemResource.newInstance(
             ConfigFactory.parseMap(Map.of(
-                            "ditto.extensions.client-actor-props-factory",
-                            "org.eclipse.ditto.connectivity.service.messaging.MockClientActorPropsFactory"
-                    )).withFallback(TestConstants.CONFIG));
+                    "ditto.extensions.client-actor-props-factory",
+                    "org.eclipse.ditto.connectivity.service.messaging.MockClientActorPropsFactory"
+            )).withFallback(TestConstants.CONFIG));
 
     @Rule
     public final ActorSystemResource actorSystemResourceWithBlocklist = ActorSystemResource.newInstance(
@@ -127,7 +127,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
                             "ditto.extensions.client-actor-props-factory",
                             "org.eclipse.ditto.connectivity.service.messaging.MockClientActorPropsFactory",
                             "ditto.connectivity.connection.blocked-hostnames",
-                                ConfigValueFactory.fromAnyRef("127.0.0.1")
+                            ConfigValueFactory.fromAnyRef("127.0.0.1")
                     ))
                     .withFallback(TestConstants.CONFIG)
     );
@@ -135,42 +135,42 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
     @Rule
     public final ActorSystemResource exceptionalClientProviderSystemResource = ActorSystemResource.newInstance(
             ConfigFactory.parseMap(Map.of(
-                            "ditto.extensions.client-actor-props-factory",
-                            "org.eclipse.ditto.connectivity.service.messaging.ExceptionClientActorPropsFactory"
-                    )).withFallback(TestConstants.CONFIG));
+                    "ditto.extensions.client-actor-props-factory",
+                    "org.eclipse.ditto.connectivity.service.messaging.ExceptionClientActorPropsFactory"
+            )).withFallback(TestConstants.CONFIG));
 
     @Rule
     public final ActorSystemResource exceptionalCommandValidatorSystemResource = ActorSystemResource.newInstance(
             ConfigFactory.parseMap(Map.of(
-                            "ditto.extensions.client-actor-props-factory",
-                            "org.eclipse.ditto.connectivity.service.messaging.MockClientActorPropsFactory",
-                            "ditto.extensions.custom-connectivity-command-interceptor-provider",
-                            "org.eclipse.ditto.connectivity.service.messaging.ExceptionalCommandValidator"
-                    )).withFallback(TestConstants.CONFIG));
+                    "ditto.extensions.client-actor-props-factory",
+                    "org.eclipse.ditto.connectivity.service.messaging.MockClientActorPropsFactory",
+                    "ditto.extensions.custom-connectivity-command-interceptor-provider",
+                    "org.eclipse.ditto.connectivity.service.messaging.ExceptionalCommandValidator"
+            )).withFallback(TestConstants.CONFIG));
 
     @Rule
     public final ActorSystemResource failingClientProviderSystemResource = ActorSystemResource.newInstance(
             ConfigFactory.parseMap(Map.of(
-                            "ditto.extensions.client-actor-props-factory",
-                            "org.eclipse.ditto.connectivity.service.messaging.FailingActorProvider",
-                            "failingRetries",
-                            TestConstants.CONNECTION_CONFIG.getClientActorRestartsBeforeEscalation()
-                    )).withFallback(TestConstants.CONFIG));
+                    "ditto.extensions.client-actor-props-factory",
+                    "org.eclipse.ditto.connectivity.service.messaging.FailingActorProvider",
+                    "failingRetries",
+                    TestConstants.CONNECTION_CONFIG.getClientActorRestartsBeforeEscalation()
+            )).withFallback(TestConstants.CONFIG));
 
     @Rule
     public final ActorSystemResource tooManyFailingClientProviderSystemResource = ActorSystemResource.newInstance(
             ConfigFactory.parseMap(Map.of(
-                            "ditto.extensions.client-actor-props-factory",
-                            "org.eclipse.ditto.connectivity.service.messaging.FailingActorProvider", "failingRetries",
-                            1 + TestConstants.CONNECTION_CONFIG.getClientActorRestartsBeforeEscalation()
-                    )).withFallback(TestConstants.CONFIG));
+                    "ditto.extensions.client-actor-props-factory",
+                    "org.eclipse.ditto.connectivity.service.messaging.FailingActorProvider", "failingRetries",
+                    1 + TestConstants.CONNECTION_CONFIG.getClientActorRestartsBeforeEscalation()
+            )).withFallback(TestConstants.CONFIG));
 
     @Rule
     public final ActorSystemResource searchForwardingSystemResource = ActorSystemResource.newInstance(
             ConfigFactory.parseMap(Map.of(
-                                "ditto.extensions.client-actor-props-factory",
-                            "org.eclipse.ditto.connectivity.service.messaging.SearchForwardingClientActorPropsFactory"
-                    )).withFallback(TestConstants.CONFIG));
+                    "ditto.extensions.client-actor-props-factory",
+                    "org.eclipse.ditto.connectivity.service.messaging.SearchForwardingClientActorPropsFactory"
+            )).withFallback(TestConstants.CONFIG));
 
     @Rule
     public final TestNameCorrelationId testNameCorrelationId = TestNameCorrelationId.newInstance();
@@ -987,10 +987,9 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
     @Test
     public void exceptionDuringClientActorPropsCreation() {
 
-        final var connectionActorProps = ConnectionPersistenceActor.props(TestConstants.createRandomConnectionId(),
-                commandForwarderActor,
-                pubSubMediator,
-                ConfigFactory.empty(), exceptionalClientProviderSystemResource.getActorSystem());
+        final var connectionActorProps = ConnectionPersistenceActor.props(
+                TestConstants.createRandomConnectionId(), commandForwarderActor, pubSubMediator, ConfigFactory.empty()
+        );
 
         // create another actor because this it is stopped and we want to test if the child is terminated
         final var parent = exceptionalClientProviderSystemResource.newTestKit();
@@ -1012,7 +1011,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
         final var connectionActorProps = ConnectionPersistenceActor.props(TestConstants.createRandomConnectionId(),
                 commandForwarderActor,
                 pubSubMediator,
-                ConfigFactory.empty(), exceptionalCommandValidatorSystemResource.getActorSystem());
+                ConfigFactory.empty());
 
         // create another actor because we want to test if the child is terminated
         final var parent = exceptionalCommandValidatorSystemResource.newTestKit();
@@ -1268,7 +1267,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
                         proxyActorProbe.ref(),
                         pubSubMediatorProbe.ref(),
                         Trilean.TRUE,
-                        ConfigFactory.empty(), searchForwardingSystemResource.getActorSystem()));
+                        ConfigFactory.empty()));
 
         // GIVEN: connection persistence actor created with 2 client actors that are allowed to start on same node
         final var underTest = searchForwardingSystemResource.newActor(connectionActorProps, myConnectionId.toString());
@@ -1327,7 +1326,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
                                 commandForwarderActor,
                                 pubSubMediator,
                                 Trilean.FALSE,
-                                ConfigFactory.empty(), failingClientProviderSystemResource.getActorSystem())
+                                ConfigFactory.empty())
                 )
         );
         final var testProbe = failingClientProviderSystemResource.newTestProbe();
@@ -1349,7 +1348,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
                                 commandForwarderActor,
                                 pubSubMediator,
                                 Trilean.FALSE,
-                                ConfigFactory.empty(), tooManyFailingClientProviderSystemResource.getActorSystem())
+                                ConfigFactory.empty())
                 )
         );
         final var testProbe = tooManyFailingClientProviderSystemResource.newTestProbe();

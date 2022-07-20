@@ -24,7 +24,6 @@ import com.typesafe.config.Config;
 import com.typesafe.config.ConfigValueFactory;
 
 import akka.actor.ActorRef;
-import akka.actor.ActorSystem;
 import akka.actor.Props;
 
 /**
@@ -64,13 +63,10 @@ public final class ThingsService extends DittoService<ThingsConfig> {
     }
 
     @Override
-    protected Props getMainRootActorProps(final ThingsConfig thingsConfig,
-            final Config rawConfig,
-            final ActorRef pubSubMediator,
-            final ActorSystem actorSystem) {
+    protected Props getMainRootActorProps(final ThingsConfig thingsConfig, final Config rawConfig,
+            final ActorRef pubSubMediator) {
 
-        return ThingsRootActor.props(thingsConfig, pubSubMediator,
-                (thingId, pub) -> ThingPersistenceActor.props(thingId, pub, actorSystem));
+        return ThingsRootActor.props(thingsConfig, pubSubMediator, ThingPersistenceActor::props);
     }
 
     @Override

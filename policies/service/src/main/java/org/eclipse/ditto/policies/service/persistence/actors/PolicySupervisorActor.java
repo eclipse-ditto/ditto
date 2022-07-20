@@ -99,8 +99,7 @@ public final class PolicySupervisorActor extends AbstractPersistenceSupervisor<P
 
     @Override
     protected Props getPersistenceActorProps(final PolicyId entityId) {
-        return PolicyPersistenceActor.props(entityId, pubSubMediator, announcementManager,
-                policyConfig, getContext().getSystem());
+        return PolicyPersistenceActor.props(entityId, pubSubMediator, announcementManager, policyConfig);
     }
 
     @Override

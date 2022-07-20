@@ -24,8 +24,6 @@ import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
-import org.eclipse.ditto.internal.utils.config.ScopedConfig;
-import org.eclipse.ditto.internal.utils.persistence.SnapshotAdapter;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.ActivityCheckConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.SnapshotConfig;
 import org.eclipse.ditto.internal.utils.persistentactors.AbstractPersistenceActor;
@@ -45,10 +43,7 @@ import org.eclipse.ditto.policies.service.common.config.PolicyConfig;
 import org.eclipse.ditto.policies.service.persistence.actors.strategies.commands.PolicyCommandStrategies;
 import org.eclipse.ditto.policies.service.persistence.actors.strategies.events.PolicyEventStrategies;
 
-import com.typesafe.config.Config;
-
 import akka.actor.ActorRef;
-import akka.actor.ActorSystem;
 import akka.actor.Props;
 import akka.persistence.RecoveryCompleted;
 
@@ -81,26 +76,20 @@ public final class PolicyPersistenceActor
     private PolicyPersistenceActor(final PolicyId policyId,
             final ActorRef pubSubMediator,
             final ActorRef announcementManager,
-            final PolicyConfig policyConfig,
-            final ActorSystem actorSystem) {
+            final PolicyConfig policyConfig) {
 
-        super(policyId, SnapshotAdapter.get(actorSystem, getPoliciesRawConfig(actorSystem)));
+        super(policyId);
         this.pubSubMediator = pubSubMediator;
         this.announcementManager = announcementManager;
         this.policyConfig = policyConfig;
     }
 
-    private static Config getPoliciesRawConfig(final ActorSystem actorSystem) {
-        return ScopedConfig.getOrEmpty(actorSystem.settings().config(), "ditto.policies");
-    }
-
     private PolicyPersistenceActor(final PolicyId policyId,
             final ActorRef pubSubMediator,
-            final ActorRef announcementManager,
-            final ActorSystem actorSystem) {
+            final ActorRef announcementManager) {
 
         // not possible to call other constructor because "getContext()" is not available as argument of "this()"
-        super(policyId, SnapshotAdapter.get(actorSystem, getPoliciesRawConfig(actorSystem)));
+        super(policyId);
         this.pubSubMediator = pubSubMediator;
         this.announcementManager = announcementManager;
         final DittoPoliciesConfig policiesConfig = DittoPoliciesConfig.of(
@@ -116,26 +105,23 @@ public final class PolicyPersistenceActor
      * @param pubSubMediator the PubSub mediator actor.
      * @param announcementManager manager of policy announcements.
      * @param policyConfig the policy config.
-     * @param actorSystem the actor-system.
      * @return the Akka configuration Props object
      */
     public static Props props(final PolicyId policyId,
             final ActorRef pubSubMediator,
             final ActorRef announcementManager,
-            final PolicyConfig policyConfig,
-            final ActorSystem actorSystem) {
+            final PolicyConfig policyConfig) {
 
         return Props.create(PolicyPersistenceActor.class, () -> new PolicyPersistenceActor(policyId, pubSubMediator,
-                announcementManager, policyConfig, actorSystem));
+                announcementManager, policyConfig));
     }
 
     static Props propsForTests(final PolicyId policyId,
             final ActorRef pubSubMediator,
-            final ActorRef announcementManager,
-            final ActorSystem actorSystem) {
+            final ActorRef announcementManager) {
 
         return Props.create(PolicyPersistenceActor.class, () -> new PolicyPersistenceActor(policyId, pubSubMediator,
-                announcementManager, actorSystem));
+                announcementManager));
     }
 
     @Override

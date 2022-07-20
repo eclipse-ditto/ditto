@@ -394,8 +394,7 @@ public abstract class DittoService<C extends ServiceSpecificConfig> {
 
             injectSystemPropertiesLimits(serviceSpecificConfig);
 
-            startMainRootActor(actorSystem,
-                    getMainRootActorProps(serviceSpecificConfig, rawConfig, pubSubMediator, actorSystem));
+            startMainRootActor(actorSystem, getMainRootActorProps(serviceSpecificConfig, rawConfig, pubSubMediator));
             RootActorStarter.get(actorSystem, ScopedConfig.dittoExtension(actorSystem.settings().config())).execute();
         });
     }
@@ -430,13 +429,11 @@ public abstract class DittoService<C extends ServiceSpecificConfig> {
      *
      * @param serviceSpecificConfig the configuration of this service.
      * @param pubSubMediator ActorRef of the distributed pub-sub-mediator.
-     * @param actorSystem the actorSystem of the service.
      * @return the Props.
      */
     protected abstract Props getMainRootActorProps(C serviceSpecificConfig,
             final Config rawConfig,
-            final ActorRef pubSubMediator,
-            final ActorSystem actorSystem);
+            final ActorRef pubSubMediator);
 
     /**
      * Starts the main root actor of this service. May be overridden to change the way of starting this service's root

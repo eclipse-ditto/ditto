@@ -1380,9 +1380,7 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
                         ClusterShardingSettings.apply(actorSystem).withRole("policies");
                 final var box = new AtomicReference<ActorRef>();
                 final ActorRef announcementManager = createAnnouncementManager(policyId, box::get);
-                final Props props =
-                        PolicyPersistenceActor.propsForTests(policyId, pubSubMediator, announcementManager,
-                                actorSystem);
+                final Props props = PolicyPersistenceActor.propsForTests(policyId, pubSubMediator, announcementManager);
                 final Cluster cluster = Cluster.get(actorSystem);
                 cluster.join(cluster.selfAddress());
                 final ActorRef underTest = ClusterSharding.get(actorSystem)
@@ -1632,8 +1630,7 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
                 final var box = new AtomicReference<ActorRef>();
                 final ActorRef announcementManager = createAnnouncementManager(policyId, box::get);
                 final Props persistentActorProps =
-                        PolicyPersistenceActor.propsForTests(policyId, pubSubMediator,
-                                announcementManager, actorSystem);
+                        PolicyPersistenceActor.propsForTests(policyId, pubSubMediator, announcementManager);
 
                 final TestProbe errorsProbe = TestProbe.apply(actorSystem);
 
@@ -1748,8 +1745,7 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
     private ActorRef createPersistenceActorFor(final TestKit testKit, final PolicyId policyId) {
         final var box = new AtomicReference<ActorRef>();
         final ActorRef announcementManager = createAnnouncementManager(policyId, box::get);
-        final Props props = PolicyPersistenceActor.propsForTests(policyId, pubSubMediator,
-                announcementManager, actorSystem);
+        final Props props = PolicyPersistenceActor.propsForTests(policyId, pubSubMediator, announcementManager);
         final var persistenceActor = testKit.watch(testKit.childActorOf(props));
         box.set(persistenceActor);
         return persistenceActor;

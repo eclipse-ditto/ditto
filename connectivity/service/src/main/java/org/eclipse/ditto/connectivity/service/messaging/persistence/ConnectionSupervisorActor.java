@@ -113,7 +113,8 @@ public final class ConnectionSupervisorActor
             final ActorRef pubSubMediator,
             final ConnectionEnforcerActorPropsFactory enforcerActorPropsFactory) {
 
-        return Props.create(ConnectionSupervisorActor.class, commandForwarder, pubSubMediator, enforcerActorPropsFactory);
+        return Props.create(ConnectionSupervisorActor.class, commandForwarder, pubSubMediator,
+                enforcerActorPropsFactory);
     }
 
     @Override
@@ -169,7 +170,7 @@ public final class ConnectionSupervisorActor
     @Override
     protected Props getPersistenceActorProps(final ConnectionId entityId) {
         return ConnectionPersistenceActor.props(entityId, commandForwarderActor, pubSubMediator,
-                connectivityConfigOverwrites, getContext().getSystem());
+                connectivityConfigOverwrites);
     }
 
     @Override
@@ -271,6 +272,7 @@ public final class ConnectionSupervisorActor
     }
 
     private static class CheckForOverwritesConfig {
+
         @Nullable private final DittoHeaders dittoHeaders;
 
         private CheckForOverwritesConfig(@Nullable final DittoHeaders dittoHeaders) {

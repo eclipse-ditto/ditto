@@ -30,6 +30,7 @@ import org.eclipse.ditto.base.model.signals.events.Event;
 import org.eclipse.ditto.internal.utils.akka.PingCommand;
 import org.eclipse.ditto.internal.utils.akka.PingCommandResponse;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
+import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import org.eclipse.ditto.internal.utils.persistence.SnapshotAdapter;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.ActivityCheckConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.SnapshotConfig;
@@ -98,12 +99,13 @@ public abstract class AbstractPersistenceActor<
      * Instantiate the actor.
      *
      * @param entityId the entity ID.
-     * @param snapshotAdapter the entity's snapshot adapter.
      */
     @SuppressWarnings("unchecked")
-    protected AbstractPersistenceActor(final I entityId, final SnapshotAdapter<S> snapshotAdapter) {
+    protected AbstractPersistenceActor(final I entityId) {
         this.entityId = entityId;
-        this.snapshotAdapter = snapshotAdapter;
+        final var actorSystem = context().system();
+        final var dittoExtensionsConfig = ScopedConfig.dittoExtension(actorSystem.settings().config());
+        this.snapshotAdapter = SnapshotAdapter.get(actorSystem, dittoExtensionsConfig);
         entity = null;
 
         lastSnapshotRevision = 0L;

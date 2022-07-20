@@ -21,7 +21,6 @@ import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.internal.utils.config.ScopedConfig;
-import org.eclipse.ditto.internal.utils.persistence.SnapshotAdapter;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.ActivityCheckConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.SnapshotConfig;
 import org.eclipse.ditto.internal.utils.persistentactors.AbstractPersistenceActor;
@@ -84,10 +83,9 @@ public final class ThingPersistenceActor
 
     @SuppressWarnings("unused")
     private ThingPersistenceActor(final ThingId thingId,
-            final DistributedPub<ThingEvent<?>> distributedPub,
-            final ActorSystem actorSystem) {
+            final DistributedPub<ThingEvent<?>> distributedPub) {
 
-        super(thingId, SnapshotAdapter.get(actorSystem, getThingsRawConfig(actorSystem)));
+        super(thingId);
         final DittoThingsConfig thingsConfig = DittoThingsConfig.of(
                 DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config())
         );
@@ -104,15 +102,12 @@ public final class ThingPersistenceActor
      *
      * @param thingId the Thing ID this Actor manages.
      * @param distributedPub the distributed-pub access to publish thing events.
-     * @param actorSystem the actor-system.
      * @return the Akka configuration Props object
      */
     public static Props props(final ThingId thingId,
-            final DistributedPub<ThingEvent<?>> distributedPub,
-            final ActorSystem actorSystem) {
+            final DistributedPub<ThingEvent<?>> distributedPub) {
 
-        return Props.create(ThingPersistenceActor.class, () -> new ThingPersistenceActor(thingId, distributedPub,
-                actorSystem));
+        return Props.create(ThingPersistenceActor.class, () -> new ThingPersistenceActor(thingId, distributedPub));
     }
 
     @Override

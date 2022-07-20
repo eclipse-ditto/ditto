@@ -27,7 +27,6 @@ import org.eclipse.ditto.internal.utils.health.DefaultHealthCheckingActorFactory
 import org.eclipse.ditto.internal.utils.health.HealthCheckingActorOptions;
 import org.eclipse.ditto.internal.utils.namespaces.BlockedNamespaces;
 import org.eclipse.ditto.internal.utils.namespaces.BlockedNamespacesUpdater;
-import org.eclipse.ditto.internal.utils.persistence.SnapshotAdapter;
 import org.eclipse.ditto.internal.utils.persistence.mongo.MongoHealthChecker;
 import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.MongoReadJournal;
 import org.eclipse.ditto.internal.utils.persistentactors.PersistencePingActor;
@@ -35,7 +34,6 @@ import org.eclipse.ditto.internal.utils.persistentactors.cleanup.PersistenceClea
 import org.eclipse.ditto.internal.utils.pubsub.DistributedPub;
 import org.eclipse.ditto.internal.utils.pubsubpolicies.PolicyAnnouncementPubSubFactory;
 import org.eclipse.ditto.policies.api.PoliciesMessagingConstants;
-import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.signals.announcements.PolicyAnnouncement;
 import org.eclipse.ditto.policies.service.common.config.PoliciesConfig;
 import org.eclipse.ditto.policies.service.persistence.actors.PoliciesPersistenceStreamingActorCreator;
@@ -65,9 +63,7 @@ public final class PoliciesRootActor extends DittoRootActor {
     private final RetrieveStatisticsDetailsResponseSupplier retrieveStatisticsDetailsResponseSupplier;
 
     @SuppressWarnings("unused")
-    private PoliciesRootActor(final PoliciesConfig policiesConfig,
-            final SnapshotAdapter<Policy> snapshotAdapter,
-            final ActorRef pubSubMediator) {
+    private PoliciesRootActor(final PoliciesConfig policiesConfig, final ActorRef pubSubMediator) {
 
         final var actorSystem = getContext().system();
         final ClusterShardingSettings shardingSettings =
@@ -149,15 +145,12 @@ public final class PoliciesRootActor extends DittoRootActor {
      * Creates Akka configuration object Props for this PoliciesRootActor.
      *
      * @param policiesConfig the configuration reader of this service.
-     * @param snapshotAdapter serializer and deserializer of the Policies snapshot store.
      * @param pubSubMediator the PubSub mediator Actor.
      * @return the Akka configuration Props object.
      */
-    public static Props props(final PoliciesConfig policiesConfig,
-            final SnapshotAdapter<Policy> snapshotAdapter,
-            final ActorRef pubSubMediator) {
+    public static Props props(final PoliciesConfig policiesConfig, final ActorRef pubSubMediator) {
 
-        return Props.create(PoliciesRootActor.class, policiesConfig, snapshotAdapter, pubSubMediator);
+        return Props.create(PoliciesRootActor.class, policiesConfig, pubSubMediator);
     }
 
     @Override

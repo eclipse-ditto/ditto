@@ -24,7 +24,6 @@ import com.typesafe.config.Config;
 import com.typesafe.config.ConfigValueFactory;
 
 import akka.actor.ActorRef;
-import akka.actor.ActorSystem;
 import akka.actor.Props;
 
 /**
@@ -64,11 +63,8 @@ public final class ConnectivityService extends DittoService<ConnectivityConfig> 
     }
 
     @Override
-    protected Props getMainRootActorProps(final ConnectivityConfig connectivityConfig,
-            final Config rawConfig,
-            final ActorRef pubSubMediator,
-            final ActorSystem actorSystem) {
-
+    protected Props getMainRootActorProps(final ConnectivityConfig connectivityConfig, final Config rawConfig,
+            final ActorRef pubSubMediator) {
         return ConnectivityRootActor.props(connectivityConfig, pubSubMediator);
     }
 

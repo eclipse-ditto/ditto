@@ -81,8 +81,9 @@ public final class ThingPersistenceOperationsActorIT extends MongoEventSourceITA
                 .setId(id)
                 .setPolicyId(PolicyId.of(id))
                 .build(), null, DittoHeaders.newBuilder()
-                    .putHeader(DittoHeaderDefinition.DITTO_SUDO.getKey(), "true") // required for a stable test - which does not try to load policies from the policiesShardRegion for enforcement
-                    .build());
+                .putHeader(DittoHeaderDefinition.DITTO_SUDO.getKey(),
+                        "true") // required for a stable test - which does not try to load policies from the policiesShardRegion for enforcement
+                .build());
     }
 
     @Override
@@ -93,7 +94,8 @@ public final class ThingPersistenceOperationsActorIT extends MongoEventSourceITA
     @Override
     protected Object getRetrieveEntityCommand(final ThingId id) {
         return RetrieveThing.of(id, DittoHeaders.newBuilder()
-                .putHeader(DittoHeaderDefinition.DITTO_SUDO.getKey(), "true") // required for a stable test - which does not try to load policies from the policiesShardRegion for enforcement
+                .putHeader(DittoHeaderDefinition.DITTO_SUDO.getKey(),
+                        "true") // required for a stable test - which does not try to load policies from the policiesShardRegion for enforcement
                 .build());
     }
 
@@ -124,27 +126,26 @@ public final class ThingPersistenceOperationsActorIT extends MongoEventSourceITA
         final Props props = ThingSupervisorActor.props(pubSubMediator,
                 new DistributedPub<>() {
 
-                            @Override
-                            public ActorRef getPublisher() {
-                                return pubSubMediator;
-                            }
+                    @Override
+                    public ActorRef getPublisher() {
+                        return pubSubMediator;
+                    }
 
-                            @Override
-                            public Object wrapForPublication(final ThingEvent<?> message) {
-                                return message;
-                            }
+                    @Override
+                    public Object wrapForPublication(final ThingEvent<?> message) {
+                        return message;
+                    }
 
-                            @Override
-                            public <S extends ThingEvent<?>> Object wrapForPublicationWithAcks(final S message,
-                                    final AckExtractor<S> ackExtractor) {
-                                return wrapForPublication(message);
-                            }
-                        },
-                        liveSignalPub,
-                        (thingId, distributedPub) -> ThingPersistenceActor.props(thingId, distributedPub,
-                                system),
-                        null,
-                        policyEnforcerProvider);
+                    @Override
+                    public <S extends ThingEvent<?>> Object wrapForPublicationWithAcks(final S message,
+                            final AckExtractor<S> ackExtractor) {
+                        return wrapForPublication(message);
+                    }
+                },
+                liveSignalPub,
+                ThingPersistenceActor::props,
+                null,
+                policyEnforcerProvider);
 
         return system.actorOf(props, id.toString());
     }

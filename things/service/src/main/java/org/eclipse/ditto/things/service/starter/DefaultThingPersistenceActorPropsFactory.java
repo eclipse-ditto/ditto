@@ -51,6 +51,6 @@ final class DefaultThingPersistenceActorPropsFactory implements ThingPersistence
     @Override
     public Props props(final ThingId thingId, final DistributedPub<ThingEvent<?>> distributedPub) {
         argumentNotEmpty(thingId);
-        return ThingPersistenceActor.props(thingId, distributedPub, actorSystem);
+        return ThingPersistenceActor.props(thingId, distributedPub);
     }
 }

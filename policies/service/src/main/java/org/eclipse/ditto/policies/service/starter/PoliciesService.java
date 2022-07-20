@@ -60,13 +60,10 @@ public final class PoliciesService extends DittoService<PoliciesConfig> {
     }
 
     @Override
-    protected Props getMainRootActorProps(final PoliciesConfig policiesConfig,
-            final Config rawConfig,
-            final ActorRef pubSubMediator,
-            final ActorSystem actorSystem) {
+    protected Props getMainRootActorProps(final PoliciesConfig policiesConfig, final Config rawConfig,
+            final ActorRef pubSubMediator) {
 
-        final SnapshotAdapter<Policy> snapshotAdapter = SnapshotAdapter.get(actorSystem, rawConfig);
-        return PoliciesRootActor.props(policiesConfig, snapshotAdapter, pubSubMediator);
+        return PoliciesRootActor.props(policiesConfig, pubSubMediator);
     }
 
     @Override
