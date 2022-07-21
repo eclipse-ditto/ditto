@@ -13,10 +13,8 @@
 package org.eclipse.ditto.thingsearch.service.common.config;
 
 import java.util.Map;
-import java.util.Map;
 import java.util.Optional;
 
-import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.service.config.ServiceSpecificConfig;
@@ -25,8 +23,6 @@ import org.eclipse.ditto.internal.utils.health.config.WithHealthCheckConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.WithIndexInitializationConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.WithMongoDbConfig;
 import org.eclipse.ditto.internal.utils.persistence.operations.WithPersistenceOperationsConfig;
-
-import com.typesafe.config.ConfigValueFactory;
 
 import com.typesafe.config.ConfigValueFactory;
 
@@ -57,7 +53,7 @@ public interface SearchConfig extends ServiceSpecificConfig, WithHealthCheckConf
      * Returns how simple fields are mapped during query parsing.
      *
      * @return the simple field mapping.
-     * @since 2.5.0
+     * @since 3.0.0
      */
     Map<String, String> getSimpleFieldMappings();
 
@@ -74,7 +70,7 @@ public interface SearchConfig extends ServiceSpecificConfig, WithHealthCheckConf
         /**
          * How simple fields are mapped during query parsing.
          *
-         * @since 2.5.0
+         * @since 3.0.0
          */
         SIMPLE_FIELD_MAPPINGS("simple-field-mappings", ConfigValueFactory.fromMap(Map.of(
                 "thingId", "_id",
