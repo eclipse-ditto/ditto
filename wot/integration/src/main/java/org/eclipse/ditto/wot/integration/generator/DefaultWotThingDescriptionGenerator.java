@@ -438,7 +438,7 @@ final class DefaultWotThingDescriptionGenerator implements WotThingDescriptionGe
                             .setAdditionalResponses(provideAdditionalResponses())
                             .build()
                     ))
-                    .collect(Collectors.toList())
+                    .toList()
             );
         } else {
             tdBuilder.setForms(List.of(
@@ -546,7 +546,7 @@ final class DefaultWotThingDescriptionGenerator implements WotThingDescriptionGe
                                                     .setAdditionalResponses(provideAdditionalResponses())
                                                     .build()
                                             )
-                                            .collect(Collectors.toList())
+                                            .toList()
                                     ))
                                     .build()
                             )
@@ -596,7 +596,7 @@ final class DefaultWotThingDescriptionGenerator implements WotThingDescriptionGe
                                     }
                             );
                 }))
-                .map(propertyStream -> propertyStream.collect(Collectors.toList()))
+                .map(Stream::toList)
                 .map(Properties::from)
                 .ifPresent(tdBuilder::setProperties);
     }
@@ -712,17 +712,19 @@ final class DefaultWotThingDescriptionGenerator implements WotThingDescriptionGe
                             DittoHeaderDefinition.RESPONSE_REQUIRED.getKey());
                     return action.getForms()
                             .map(actionFormElements -> action.toBuilder()
+                                    .setSynchronous(true)
                                     .setForms(ActionForms.of(actionFormElements.stream()
                                             .map(afe -> afe.toBuilder()
                                                     .setHref(IRI.of(actionHref))
                                                     .setAdditionalResponses(provideAdditionalResponses())
                                                     .build()
                                             )
-                                            .collect(Collectors.toList())
+                                            .toList()
                                     ))
                                     .build()
                             )
                             .orElseGet(() -> action.toBuilder()
+                                    .setSynchronous(true)
                                     .setForms(ActionForms.of(List.of(
                                             buildActionFormElement(SingleActionFormElementOp.INVOKEACTION,
                                                     actionHref + uriVariablesParams)
@@ -730,7 +732,7 @@ final class DefaultWotThingDescriptionGenerator implements WotThingDescriptionGe
                                     .build()
                             );
                 }))
-                .map(actionStream -> actionStream.collect(Collectors.toList()))
+                .map(Stream::toList)
                 .map(actionList -> Actions.fromJson(actionList.stream()
                         .map(a -> JsonField.newInstance(a.getActionName(), a.toJson()))
                         .collect(JsonCollectors.fieldsToObject()))
@@ -776,7 +778,7 @@ final class DefaultWotThingDescriptionGenerator implements WotThingDescriptionGe
                                                     .setAdditionalResponses(provideAdditionalResponses())
                                                     .build()
                                             )
-                                            .collect(Collectors.toList())
+                                            .toList()
                                     ))
                                     .build()
                             )
@@ -787,7 +789,7 @@ final class DefaultWotThingDescriptionGenerator implements WotThingDescriptionGe
                                     .build()
                             );
                 }))
-                .map(eventStream -> eventStream.collect(Collectors.toList()))
+                .map(Stream::toList)
                 .map(Events::from)
                 .ifPresent(tdBuilder::setEvents);
     }

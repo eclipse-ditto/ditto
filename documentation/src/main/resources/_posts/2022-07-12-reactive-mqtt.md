@@ -1,23 +1,23 @@
 ---
 title: "Reactive MQTT Connectivity"
 published: true
-permalink: 2022-06-25-reactive-mqtt
+permalink: 2022-07-12-reactive-mqtt.html
 layout: post
-author: jufickel-b
-tags: [blog, mqtt]
+author: juergen_fickel
+tags: [blog]
 hide_sidebar: true
 sidebar: false
 toc: true
 ---
 
-Eclipse Ditto version 3.0.0 ships a major refactoring of the MQTT connectivity
-module.
-In this post we want to shot what's new and why this could be interesting for you.
+The upcoming Eclipse Ditto version 3.0.0 will ship with a major refactoring of the MQTT
+connectivity module.  
+In this post we want to highlight what's new and why this could be interesting for you.
 
 ## Backpressure via throttling
 The most noteworthy innovation is that Ditto now consumes incoming publish messages
 by using the
-[reactive API flavour of the HiveMQ client](https://hivemq.github.io/hivemq-mqtt-client/docs/api-flavours/).
+[reactive API flavour of the HiveMQ client](https://hivemq.github.io/hivemq-mqtt-client/docs/api-flavours/).  
 This, together with throttling, effectively enables *backpressure* for inbound
 MQTT publishes for protocol version 3.x and 5:
 
@@ -42,20 +42,20 @@ throttling {
 …
 ```
 This kind of throttling applies to all in-flight messages – no matter what
-their QoS is set to.
+their QoS is set to.  
 Backpressure protects Ditto from congestion caused by a too high amount of
-incoming publishes.
+incoming publishes.  
 Of course the broker has to deal with backpressure as well when throttling in
 Ditto is enabled because the amount of unprocessed messages would pile up
 at the broker.
 
 ## Flow Control with Receive Maximum (MQTT 5)
 With MQTT 5 it is possible to specify a *Receive Maximum* when the client
-connects to the broker.
+connects to the broker.  
 For QoS 1 or 2 this value determines how many unacknowledged incoming messages
-the client accepts from the broker.
+the client accepts from the broker.  
 Apart from throttling this is an additional approach how Ditto can be protected
-from excessive load – at least for MQTT 5 connections.
+from excessive load – at least for MQTT 5 connections.  
 The (client) Receive Maximum can be set for Ditto either in configuration or
 via environment variable:
 
@@ -76,19 +76,19 @@ that covers just this topic.
 Under the hood, almost anything related to MQTT changed.
 With the previous implementation most of the logic was divided into a common
 base implementation and a concrete implementation for protocol version 3.1.1
-and 5.
-Obviously this worked.
+and 5.  
+Obviously this worked.  
 However, the algorithms were scattered over multiple classes which made it
 difficult to understand what is going on (hello, maintainability &#x1F609;).
 
 Now, the distinction between protocol version 3.x and 5 is made on the level
-of data structures.
+of data structures.  
 Luckily the evolution of the MQTT protocol from version 3.1.1 to version 5
-as well as the design of HiveMQ's client library made this very easy.
+as well as the design of HiveMQ's client library made this very easy.  
 For example, instead of dealing with a `Mqtt3Publish` and a `Mqtt5Publish` in
 parallel all the time we introduced  a `GenericMqttPublish` which can be
 converted from and to the specific types at the time when they come in
-contact with the client.
+contact with the client.  
 The rest of the time Ditto can work with the generic representation.
 
 {% include image.html file="ditto.svg" alt="Ditto" max-width=500 %}

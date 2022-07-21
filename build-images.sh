@@ -74,10 +74,27 @@ build_docker_image() {
   fi
 }
 
+build_ditto_ui_docker_image() {
+  image_tag=$(printf "${CONTAINER_REGISTRY}/ditto-ui")
+  printf "\nBuilding Docker image <%s> for Ditto-UI\n" \
+    "$image_tag"
+
+    $DOCKER_BIN build --pull -f $SCRIPTDIR/ui/Dockerfile \
+        --build-arg HTTP_PROXY="$HTTP_PROXY_LOCAL" \
+        --build-arg HTTPS_PROXY="$HTTPS_PROXY_LOCAL" \
+        -t "$image_tag":$IMAGE_VERSION \
+        "${SCRIPTDIR}/ui"
+
+    if [[ "$PUSH_CONTAINERS" == "true" ]]; then
+      $DOCKER_BIN push "$image_tag":$IMAGE_VERSION
+    fi
+}
+
 build_all_docker_images() {
   for i in "${SERVICES[@]}"; do
     build_docker_image "$i"
   done
+  build_ditto_ui_docker_image
 }
 
 set_proxies() {

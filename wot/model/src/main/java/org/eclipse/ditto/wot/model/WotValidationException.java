@@ -30,28 +30,28 @@ import org.eclipse.ditto.base.model.json.JsonParsableException;
 import org.eclipse.ditto.json.JsonObject;
 
 /**
- * Thrown if a downloaded WoT (Web of Things) ThingModel was invalid.
+ * Thrown if a WoT (Web of Things) ThingModel or ThingDescription was not valid.
  *
- * @since 2.4.0
+ * @since 3.0.0
  */
 @Immutable
-@JsonParsableException(errorCode = WotThingModelInvalidException.ERROR_CODE)
-public final class WotThingModelInvalidException extends DittoRuntimeException implements WotException {
+@JsonParsableException(errorCode = WotValidationException.ERROR_CODE)
+public final class WotValidationException extends DittoRuntimeException implements WotException {
 
     /**
      * Error code of this exception.
      */
-    public static final String ERROR_CODE = ERROR_CODE_PREFIX + "tm.invalid";
+    public static final String ERROR_CODE = ERROR_CODE_PREFIX + "validation.error";
 
     private static final String MESSAGE_TEMPLATE =
-            "The WoT ThingModel at URI ''{0}'' was not valid.";
+            "The WoT TM/TD at URI ''{0}'' contained an invalid element not following the specification.";
 
     private static final String DEFAULT_DESCRIPTION =
-            "Please ensure that the linked ThingModel is valid regarding to the WoT (Web of Things) specification.";
+            "Please ensure that the ThingModel or ThingDescription is valid regarding to the WoT (Web of Things) specification.";
 
-    private static final long serialVersionUID = 8284725003000331234L;
+    private static final long serialVersionUID = -986554434422221828L;
 
-    private WotThingModelInvalidException(final DittoHeaders dittoHeaders,
+    private WotValidationException(final DittoHeaders dittoHeaders,
             @Nullable final String message,
             @Nullable final String description,
             @Nullable final Throwable cause,
@@ -60,13 +60,13 @@ public final class WotThingModelInvalidException extends DittoRuntimeException i
     }
 
     /**
-     * Constructs a new {@code WotThingModelInvalidException} object.
+     * Constructs a new {@code WotValidationException} object.
      *
      * @param thingModelUrl the URL of the ThingModel which was not valid.
      * @param dittoHeaders the headers with which this Exception should be reported back to the user.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public WotThingModelInvalidException(final URL thingModelUrl, final DittoHeaders dittoHeaders) {
+    public WotValidationException(final URL thingModelUrl, final DittoHeaders dittoHeaders) {
         this(dittoHeaders, getMessage(thingModelUrl.toString()), DEFAULT_DESCRIPTION, null, null);
     }
 
@@ -76,7 +76,7 @@ public final class WotThingModelInvalidException extends DittoRuntimeException i
     }
 
     /**
-     * A mutable builder for a {@code WotThingModelInvalidException}.
+     * A mutable builder for a {@code WotValidationException}.
      *
      * @param thingModelIri the IRI of the ThingModel which was not valid.
      * @return the builder.
@@ -87,7 +87,7 @@ public final class WotThingModelInvalidException extends DittoRuntimeException i
     }
 
     /**
-     * A mutable builder for a {@code WotThingModelInvalidException}.
+     * A mutable builder for a {@code WotValidationException}.
      *
      * @param thingModelUrl the URL of the ThingModel which was not valid.
      * @return the builder.
@@ -98,7 +98,7 @@ public final class WotThingModelInvalidException extends DittoRuntimeException i
     }
 
     /**
-     * A mutable builder for a {@code WotThingModelInvalidException}.
+     * A mutable builder for a {@code WotValidationException}.
      *
      * @param errorMessage a specific error message indicating why the ThingModel was not valid.
      * @return the builder.
@@ -109,31 +109,31 @@ public final class WotThingModelInvalidException extends DittoRuntimeException i
     }
 
     /**
-     * Constructs a new {@code WotThingModelInvalidException} object with given message.
+     * Constructs a new {@code WotValidationException} object with given message.
      *
      * @param message detail message. This message can be later retrieved by the {@link #getMessage()} method.
      * @param dittoHeaders the headers of the command which resulted in this exception.
-     * @return the new WotThingModelInvalidException.
+     * @return the new WotValidationException.
      * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
      */
-    public static WotThingModelInvalidException fromMessage(@Nullable final String message,
+    public static WotValidationException fromMessage(@Nullable final String message,
             final DittoHeaders dittoHeaders) {
         return DittoRuntimeException.fromMessage(message, dittoHeaders, new Builder());
     }
 
     /**
-     * Constructs a new {@code WotThingModelInvalidException} object with the exception message extracted from the given
+     * Constructs a new {@code WotValidationException} object with the exception message extracted from the given
      * JSON object.
      *
      * @param jsonObject the JSON to read the {@link org.eclipse.ditto.base.model.exceptions.DittoRuntimeException.JsonFields#MESSAGE} field from.
      * @param dittoHeaders the headers of the command which resulted in this exception.
-     * @return the new WotThingModelInvalidException.
+     * @return the new WotValidationException.
      * @throws NullPointerException if any argument is {@code null}.
      * @throws org.eclipse.ditto.json.JsonMissingFieldException if this JsonObject did not contain an error message.
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
      * format.
      */
-    public static WotThingModelInvalidException fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
+    public static WotValidationException fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return DittoRuntimeException.fromJson(jsonObject, dittoHeaders, new Builder());
     }
 
@@ -149,10 +149,10 @@ public final class WotThingModelInvalidException extends DittoRuntimeException i
     }
 
     /**
-     * A mutable builder with a fluent API for a {@link WotThingModelInvalidException}.
+     * A mutable builder with a fluent API for a {@link org.eclipse.ditto.wot.model.WotValidationException}.
      */
     @NotThreadSafe
-    public static final class Builder extends DittoRuntimeExceptionBuilder<WotThingModelInvalidException> {
+    public static final class Builder extends DittoRuntimeExceptionBuilder<WotValidationException> {
 
         private Builder() {
             description(DEFAULT_DESCRIPTION);
@@ -160,12 +160,12 @@ public final class WotThingModelInvalidException extends DittoRuntimeException i
 
         private Builder(final IRI thingModelIri) {
             this();
-            message(WotThingModelInvalidException.getMessage(thingModelIri));
+            message(WotValidationException.getMessage(thingModelIri));
         }
 
         private Builder(final URL thingModelUrl) {
             this();
-            message(WotThingModelInvalidException.getMessage(thingModelUrl.toString()));
+            message(WotValidationException.getMessage(thingModelUrl.toString()));
         }
 
         private Builder(final String errorMessage) {
@@ -174,14 +174,13 @@ public final class WotThingModelInvalidException extends DittoRuntimeException i
         }
 
         @Override
-        protected WotThingModelInvalidException doBuild(final DittoHeaders dittoHeaders,
+        protected WotValidationException doBuild(final DittoHeaders dittoHeaders,
                 @Nullable final String message,
                 @Nullable final String description,
                 @Nullable final Throwable cause,
                 @Nullable final URI href) {
-            return new WotThingModelInvalidException(dittoHeaders, message, description, cause, href);
+            return new WotValidationException(dittoHeaders, message, description, cause, href);
         }
 
     }
-
 }

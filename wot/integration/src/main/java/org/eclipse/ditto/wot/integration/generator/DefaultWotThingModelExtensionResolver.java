@@ -18,7 +18,6 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Executor;
-import java.util.stream.Collectors;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.json.JsonCollectors;
@@ -58,12 +57,12 @@ final class DefaultWotThingModelExtensionResolver implements WotThingModelExtens
                                     .filter(baseLink -> baseLink.getRel().filter(TM_EXTENDS::equals).isPresent())
                                     .map(extendsLink -> thingModelFetcher.fetchThingModel(extendsLink.getHref(), dittoHeaders))
                                     .map(CompletionStage::toCompletableFuture)
-                                    .collect(Collectors.toList());
+                                    .toList();
                             final CompletableFuture<Void> allModelFuture =
                                     CompletableFuture.allOf(fetchedModelFutures.toArray(new CompletableFuture[0]));
                             return allModelFuture.thenApplyAsync(aVoid -> fetchedModelFutures.stream()
                                             .map(CompletableFuture::join) // joining does not block anything here as "allOf" already guaranteed that all futures are ready
-                                            .collect(Collectors.toList()), executor)
+                                            .toList(), executor)
                                     .join();
                         }
                 )

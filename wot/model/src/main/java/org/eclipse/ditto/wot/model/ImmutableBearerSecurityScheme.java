@@ -57,6 +57,11 @@ final class ImmutableBearerSecurityScheme extends AbstractSecurityScheme impleme
     }
 
     @Override
+    protected SecurityScheme createInstance(final JsonObject newWrapped) {
+        return new ImmutableBearerSecurityScheme(getSecuritySchemeName(), newWrapped);
+    }
+
+    @Override
     protected boolean canEqual(@Nullable final Object other) {
         return other instanceof ImmutableBearerSecurityScheme;
     }

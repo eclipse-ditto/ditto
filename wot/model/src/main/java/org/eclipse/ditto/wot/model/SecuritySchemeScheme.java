@@ -12,66 +12,37 @@
  */
 package org.eclipse.ditto.wot.model;
 
-import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
-
-import java.util.Arrays;
-import java.util.Optional;
-
 /**
- * SecuritySchemeScheme enlists all available {@link SecurityScheme} {@code "scheme"} values.
+ * SecuritySchemeScheme enlists all available {@link SecurityScheme} {@code "scheme"} values and can also be a custom
+ * scheme named via context extension.
  *
  * @since 2.4.0
  */
-public enum SecuritySchemeScheme implements CharSequence {
-    NOSEC("nosec"),
-    COMBO("combo"),
-    BASIC("basic"),
-    DIGEST("digest"),
-    APIKEY("apikey"),
-    BEARER("bearer"),
-    PSK("psk"),
-    OAUTH2("oauth2");
+public interface SecuritySchemeScheme extends CharSequence {
 
-    private final String name;
+    SecuritySchemeScheme NOSEC = of("nosec");
 
-    SecuritySchemeScheme(final String name) {
-        this.name = name;
+    SecuritySchemeScheme AUTO = of("auto");
+
+    SecuritySchemeScheme COMBO = of("combo");
+
+    SecuritySchemeScheme BASIC = of("basic");
+
+    SecuritySchemeScheme DIGEST = of("digest");
+
+    SecuritySchemeScheme APIKEY = of("apikey");
+
+    SecuritySchemeScheme BEARER = of("bearer");
+
+    SecuritySchemeScheme PSK = of("psk");
+
+    SecuritySchemeScheme OAUTH2 = of("oauth2");
+
+    static SecuritySchemeScheme of(final CharSequence charSequence) {
+        if (charSequence instanceof SecuritySchemeScheme) {
+            return (SecuritySchemeScheme) charSequence;
+        }
+        return new ImmutableSecuritySchemeScheme(charSequence);
     }
 
-    public String getName() {
-        return name;
-    }
-
-    /**
-     * Returns the {@code SecuritySchemeScheme} for the given {@code name} if it exists.
-     *
-     * @param name the name.
-     * @return the SecuritySchemeScheme or an empty optional.
-     */
-    public static Optional<SecuritySchemeScheme> forName(final CharSequence name) {
-        checkNotNull(name, "name");
-        return Arrays.stream(SecuritySchemeScheme.values())
-                .filter(c -> c.name.contentEquals(name))
-                .findFirst();
-    }
-
-    @Override
-    public int length() {
-        return name.length();
-    }
-
-    @Override
-    public char charAt(final int index) {
-        return name.charAt(index);
-    }
-
-    @Override
-    public CharSequence subSequence(final int start, final int end) {
-        return name.subSequence(start, end);
-    }
-
-    @Override
-    public String toString() {
-        return name;
-    }
 }

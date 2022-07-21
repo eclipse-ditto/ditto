@@ -35,6 +35,11 @@ final class ImmutablePskSecurityScheme extends AbstractSecurityScheme implements
     }
 
     @Override
+    protected SecurityScheme createInstance(final JsonObject newWrapped) {
+        return new ImmutablePskSecurityScheme(getSecuritySchemeName(), newWrapped);
+    }
+
+    @Override
     protected boolean canEqual(@Nullable final Object other) {
         return other instanceof ImmutablePskSecurityScheme;
     }

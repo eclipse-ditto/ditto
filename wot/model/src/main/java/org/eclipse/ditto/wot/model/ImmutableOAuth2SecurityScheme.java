@@ -67,6 +67,11 @@ final class ImmutableOAuth2SecurityScheme extends AbstractSecurityScheme impleme
     }
 
     @Override
+    protected SecurityScheme createInstance(final JsonObject newWrapped) {
+        return new ImmutableOAuth2SecurityScheme(getSecuritySchemeName(), newWrapped);
+    }
+
+    @Override
     protected boolean canEqual(@Nullable final Object other) {
         return other instanceof ImmutableOAuth2SecurityScheme;
     }
