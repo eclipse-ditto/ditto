@@ -10,113 +10,118 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-
 package org.eclipse.ditto.connectivity.model;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
+import java.util.Locale;
+import java.util.Objects;
 import java.util.Optional;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Stream;
+
+import javax.annotation.Nullable;
+
+import org.eclipse.ditto.base.model.common.ConditionChecker;
 
 /**
  * Possible address aliases used by connections of type 'Hono'
  */
 public enum HonoAddressAlias {
+
     /**
-     * telemetry address alias
+     * telemetry address alias.
      */
     TELEMETRY("telemetry"),
 
     /**
-     * event address alias
+     * event address alias.
      */
     EVENT("event"),
 
     /**
-     * command&#038;control address alias
+     * command&#038;control address alias.
      */
     COMMAND("command"),
 
     /**
-     * command response address alias
+     * command response address alias.
      */
     COMMAND_RESPONSE("command_response");
 
-    private final String name;
+    private final String value;
 
-    private static final Map<String, HonoAddressAlias> HONO_ADDRESS_ALIAS_MAP;
+    private HonoAddressAlias(final String value) {
+        this.value = value;
+    }
 
-    static {
-        Map<String, HonoAddressAlias> map = new ConcurrentHashMap<>();
-        for (HonoAddressAlias alias : HonoAddressAlias.values()) {
-            map.put(alias.getName(), alias);
+    /**
+     * Returns all defined HonoAddressAlias values.
+     *
+     * @return a stream with HonoAddressAlias values.
+     */
+    public static Stream<String> aliasValues() {
+        return Stream.of(values()).map(HonoAddressAlias::getAliasValue);
+    }
+
+    /**
+     * Returns the HonoAddressAlias to which the given alias value is mapped.
+     * This method is fault-tolerant for its parameter to some degree:
+     * <ul>
+     *     <li>it accepts {@code null},</li>
+     *     <li>it trims white spaces and</li>
+     *     <li>it converts the specified string to lower case.</li>
+     * </ul>
+     *
+     * @param aliasValue the aliasValue of the supposed HonoAddressAlias.
+     * @return an Optional containing the HonoAddressAlias which matches {@code aliasValue} or an empty Optional if none
+     * matches.
+     */
+    public static Optional<HonoAddressAlias> forAliasValue(@Nullable final String aliasValue) {
+        return Stream.of(values())
+                .filter(alias -> null != aliasValue &&
+                        Objects.equals(alias.getAliasValue(), aliasValue.trim().toLowerCase(Locale.ENGLISH)))
+                .findAny();
+    }
+
+    /**
+     * Gets the value of the alias.
+     *
+     * @return the value of the alias.
+     */
+    public String getAliasValue() {
+        return value;
+    }
+
+    /**
+     * Resolves the source or target address of this address alias for the specified tenant ID.
+     *
+     * @param tenantId the tenant ID to resolve the address of this alias for.
+     * @return the resolved address of this address alias for {@code tenantId}.
+     * @throws NullPointerException if {@code tenantId} is {@code null}.
+     */
+    public String resolveAddress(final CharSequence tenantId) {
+        ConditionChecker.checkNotNull(tenantId, "tenantId");
+
+        final String prefix = "hono.";
+        final String aliasValue = getAliasValue();
+        final int tenantIdLength = tenantId.length();
+        final StringBuilder sb = new StringBuilder(prefix.length() + aliasValue.length() + 1 + tenantIdLength);
+        sb.append(prefix).append(aliasValue);
+        if (0 < tenantIdLength) {
+            sb.append(".").append(tenantId);
         }
-        HONO_ADDRESS_ALIAS_MAP = Collections.unmodifiableMap(map);
-    }
-
-    HonoAddressAlias(String name) {
-        this.name = name;
+        return sb.toString();
     }
 
     /**
-     * Gets the name of the alias
+     * Resolves the source or target address of this address alias for the specified tenant ID and appends a suffix
+     * for thing ID.
+     * This is mainly needed for reply target addresses.
      *
-     * @return The name of the alias
+     * @param tenantId the tenant ID to resolve the address of this alias for.
+     * @return the resolved address of this address alias for {@code tenantId} with {@code "/{{thing:id}}"} appended.
+     * @throws NullPointerException if {@code tenantId} is {@code null}.
      */
-    public String getName() {
-        return name;
-    }
-
-    /**
-     * Returns all defined HonoAddressAlias names
-     *
-     * @return A list with HonoAddressAlias names
-     */
-    public static List<String> names() {
-        return new ArrayList<>(HONO_ADDRESS_ALIAS_MAP.keySet());
-    }
-
-    /**
-     * Returns the HonoAddressAlias to which the given name is mapped
-     *
-     * @param name of HonoAddressAlias
-     * @return the HonoAddressAlias to which the given name is mapped
-     */
-    public static Optional<HonoAddressAlias> fromName(String name) {
-        try {
-            return Optional.of(HONO_ADDRESS_ALIAS_MAP.get(name));
-        } catch (NullPointerException | ClassCastException ex) {
-            return Optional.empty();
-        }
-    }
-
-    /**
-     * Resolves the input as a potential address alias or returns empty string if not an existing alias.
-     *
-     * @param alias the alias name to resolve
-     * @param tenantId the tenantId - used in the resolve pattern
-     * @param thingSuffix if true, adds '/{{thing:id}}' suffix on resolve - needed for replyTarget addresses
-     * if false - does not add suffix
-     * @return the resolved alias or empty if not an alias
-     */
-    public static String resolve(String alias, String tenantId, boolean thingSuffix) {
-        String suffix = thingSuffix ? "/{{thing:id}}" : "";
-        return fromName(alias)
-                .map(found -> "hono." + found.getName() + (tenantId.isEmpty() ? "" : "." + tenantId) + suffix)
-                .orElse(alias);
-    }
-
-    /**
-     * Resolves the input as a potential address alias or returns empty string if not an existing aliass.
-     *
-     * @param alias the alias name to resolve
-     * @param tenantId the tenantId - used in the resolve pattern
-     * @return the resolved alias or empty if not an alias
-     */
-    public static String resolve(String alias, String tenantId) throws IllegalArgumentException {
-        return resolve(alias, tenantId, false);
+    public String resolveAddressWithThingIdSuffix(final CharSequence tenantId) {
+        return resolveAddress(tenantId) + "/{{thing:id}}";
     }
 
 }

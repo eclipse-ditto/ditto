@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Contributors to the Eclipse Foundation
+ * Copyright (c) 2022 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -119,7 +119,8 @@ public final class HonoValidator extends AbstractProtocolValidator {
             throwEmptyException(dittoHeaders);
         }
 
-        HonoAddressAlias.fromName(address).filter(alias -> alias == HonoAddressAlias.COMMAND)
+        HonoAddressAlias.forAliasValue(address)
+                .filter(HonoAddressAlias.COMMAND::equals)
                 .orElseThrow(() -> buildInvalidTargetAddressException(address, dittoHeaders));
     }
 
@@ -128,12 +129,11 @@ public final class HonoValidator extends AbstractProtocolValidator {
             throwEmptyException(dittoHeaders);
         }
 
-        var honoAddressAlias = HonoAddressAlias.fromName(address);
+        var honoAddressAlias = HonoAddressAlias.forAliasValue(address);
         honoAddressAlias.filter(alias -> alias != HonoAddressAlias.COMMAND)
                 .orElseThrow(() -> {
-                    String aliases = HonoAddressAlias.names()
-                            .stream()
-                            .filter(item -> !item.equalsIgnoreCase(HonoAddressAlias.COMMAND.getName()))
+                    String aliases = HonoAddressAlias.aliasValues()
+                            .filter(item -> !item.equalsIgnoreCase(HonoAddressAlias.COMMAND.getAliasValue()))
                             .toList()
                             .toString();
                     return buildInvalidSourceAddressException(address, dittoHeaders, aliases);
