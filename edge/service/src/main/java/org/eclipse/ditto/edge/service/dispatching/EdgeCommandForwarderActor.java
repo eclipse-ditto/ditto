@@ -97,7 +97,6 @@ public class EdgeCommandForwarderActor extends AbstractActor {
      * @return the Akka configuration Props object.
      */
     public static Props props(final ActorRef pubSubMediator, final ShardRegions shardRegions) {
-
         return Props.create(EdgeCommandForwarderActor.class, pubSubMediator, shardRegions);
     }
 
