@@ -75,8 +75,8 @@ function updateAttributesTable() {
         dom.attributeValue.value = attributeToString(Things.theThing.attributes[path]);
         thingHasAttribute = true;
       };
-      Utils.addTableRow(dom.attributesTable, path, path === dom.attributePath.value), false,
-      attributeToString(Things.theThing.attributes[path]);
+      Utils.addTableRow(dom.attributesTable, path, path === dom.attributePath.value, false,
+          attributeToString(Things.theThing.attributes[path]));
       count++;
     });
   };

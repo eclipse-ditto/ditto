@@ -64,7 +64,7 @@ export function addClipboardCopyToRow(row) {
   const button = document.createElement('button');
   button.classList.add('btn', 'btn-sm');
   button.style.padding = 0;
-  button.innerHTML = `<i class="bi bi-clipboard2-plus"></i>`;
+  button.innerHTML = `<i class="bi bi-clipboard"></i>`;
   button.onclick = (evt) => {
     const td = evt.currentTarget.parentNode.previousSibling;
     navigator.clipboard.writeText(td.innerText);
