@@ -28,7 +28,6 @@ import org.eclipse.ditto.internal.utils.cache.Cache;
 import org.eclipse.ditto.internal.utils.cache.CacheFactory;
 import org.eclipse.ditto.internal.utils.cache.config.CacheConfig;
 import org.eclipse.ditto.internal.utils.cache.entry.Entry;
-import org.eclipse.ditto.internal.utils.cacheloaders.EnforcementCacheKey;
 import org.eclipse.ditto.internal.utils.cacheloaders.config.AskWithRetryConfig;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.internal.utils.config.ScopedConfig;
@@ -79,14 +78,14 @@ final class EnforcementFlow {
 
     private final Logger log = LoggerFactory.getLogger(getClass());
     private final CachingSignalEnrichmentFacade thingsFacade;
-    private final Cache<EnforcementCacheKey, Entry<Policy>> policyEnforcerCache;
+    private final Cache<PolicyId, Entry<Policy>> policyEnforcerCache;
     private final Duration cacheRetryDelay;
     private final SearchUpdateObserver searchUpdateObserver;
     private final int maxArraySize;
 
     private EnforcementFlow(final ActorSystem actorSystem,
             final ActorRef thingsShardRegion,
-            final Cache<EnforcementCacheKey, Entry<Policy>> policyEnforcerCache,
+            final Cache<PolicyId, Entry<Policy>> policyEnforcerCache,
             final AskWithRetryConfig askWithRetryConfig,
             final StreamCacheConfig thingCacheConfig,
             final Executor thingCacheDispatcher) {
@@ -123,9 +122,9 @@ final class EnforcementFlow {
         final var policyCacheDispatcher = actorSystem.dispatchers()
                 .lookup(policyCacheConfig.getDispatcherName());
 
-        final AsyncCacheLoader<EnforcementCacheKey, Entry<Policy>> policyCacheLoader =
+        final AsyncCacheLoader<PolicyId, Entry<Policy>> policyCacheLoader =
                 new PolicyCacheLoader(askWithRetryConfig, scheduler, policiesShardRegion);
-        final Cache<EnforcementCacheKey, Entry<Policy>> policyEnforcerCache =
+        final Cache<PolicyId, Entry<Policy>> policyEnforcerCache =
                 CacheFactory.createCache(policyCacheLoader, policyCacheConfig,
                         "things-search_enforcementflow_enforcer_cache_policy", policyCacheDispatcher);
 
@@ -134,10 +133,6 @@ final class EnforcementFlow {
                 .lookup(thingCacheConfig.getDispatcherName());
         return new EnforcementFlow(actorSystem, thingsShardRegion, policyEnforcerCache, askWithRetryConfig,
                 thingCacheConfig, thingCacheDispatcher);
-    }
-
-    private static EnforcementCacheKey getPolicyCacheKey(final PolicyId policyId) {
-        return EnforcementCacheKey.of(policyId);
     }
 
     /**
@@ -271,8 +266,9 @@ final class EnforcementFlow {
                             }
                         } else {
                             // no enforcer; "empty out" thing in search index
-                            log.info("Computed - due to missing enforcer - 'emptied out' ThingWriteModel for metadata <{}> " +
-                                    "and thing <{}>", metadata, thing);
+                            log.info(
+                                    "Computed - due to missing enforcer - 'emptied out' ThingWriteModel for metadata <{}> " +
+                                            "and thing <{}>", metadata, thing);
                             return ThingWriteModel.ofEmptiedOut(metadata);
                         }
                     });
@@ -290,7 +286,7 @@ final class EnforcementFlow {
         try {
             return thing.getValue(Thing.JsonFields.POLICY_ID)
                     .map(PolicyId::of)
-                    .map(policyId -> readCachedEnforcer(metadata, getPolicyCacheKey(policyId), 0))
+                    .map(policyId -> readCachedEnforcer(metadata, policyId, 0))
                     .orElse(POLICY_NONEXISTENT);
         } catch (final PolicyIdInvalidException e) {
             return POLICY_NONEXISTENT;
@@ -298,7 +294,7 @@ final class EnforcementFlow {
     }
 
     private Source<Entry<Policy>, NotUsed> readCachedEnforcer(final Metadata metadata,
-            final EnforcementCacheKey policyId, final int iteration) {
+            final PolicyId policyId, final int iteration) {
 
         final Source<Entry<Policy>, ?> lazySource = Source.lazySource(() -> {
             final CompletionStage<Source<Entry<Policy>, NotUsed>> enforcerFuture = policyEnforcerCache.get(policyId)

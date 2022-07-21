@@ -16,15 +16,10 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.function.Supplier;
 
-import javax.annotation.Nullable;
-
-import org.eclipse.ditto.base.api.persistence.PersistenceLifecycle;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.internal.utils.cache.entry.Entry;
 import org.eclipse.ditto.internal.utils.cacheloaders.ActorAskCacheLoader;
-import org.eclipse.ditto.internal.utils.cacheloaders.EnforcementCacheKey;
-import org.eclipse.ditto.internal.utils.cacheloaders.EnforcementContext;
 import org.eclipse.ditto.internal.utils.cacheloaders.config.AskWithRetryConfig;
 import org.eclipse.ditto.policies.api.commands.sudo.SudoRetrievePolicy;
 import org.eclipse.ditto.policies.api.commands.sudo.SudoRetrievePolicyResponse;
@@ -41,10 +36,9 @@ import akka.actor.Scheduler;
 /**
  * Cache loader used for Policy existence check in pre-enforcement.
  */
-final class PreEnforcementPolicyIdCacheLoader implements
-        AsyncCacheLoader<EnforcementCacheKey, Entry<EnforcementCacheKey>> {
+final class PreEnforcementPolicyIdCacheLoader implements AsyncCacheLoader<PolicyId, Entry<PolicyId>> {
 
-    private final ActorAskCacheLoader<EnforcementCacheKey, Command<?>, EnforcementContext> delegate;
+    private final ActorAskCacheLoader<PolicyId, Command<?>, PolicyId> delegate;
 
     /**
      * Constructor.
@@ -61,30 +55,23 @@ final class PreEnforcementPolicyIdCacheLoader implements
                 scheduler,
                 PolicyConstants.ENTITY_TYPE,
                 shardRegionProxy,
-                (entityId, enforcementContext) -> SudoRetrievePolicy.of((PolicyId) entityId, DittoHeaders.empty()),
+                policyId -> SudoRetrievePolicy.of(policyId, DittoHeaders.empty()),
                 PreEnforcementPolicyIdCacheLoader::handleSudoRetrievePolicyResponse);
     }
 
     @Override
-    public CompletableFuture<Entry<EnforcementCacheKey>> asyncLoad(final EnforcementCacheKey key,
-            final Executor executor) {
-
+    public CompletableFuture<Entry<PolicyId>> asyncLoad(final PolicyId key, final Executor executor) {
         return delegate.asyncLoad(key, executor);
     }
 
-    private static Entry<EnforcementCacheKey> handleSudoRetrievePolicyResponse(final Object response,
-            @Nullable final EnforcementContext context) {
+    private static Entry<PolicyId> handleSudoRetrievePolicyResponse(final Object response) {
 
         if (response instanceof SudoRetrievePolicyResponse sudoRetrievePolicyResponse) {
             final var policy = sudoRetrievePolicyResponse.getPolicy();
             final long revision = policy.getRevision().map(PolicyRevision::toLong)
                     .orElseThrow(badPolicyResponse("no revision"));
             final var policyId = policy.getEntityId().orElseThrow(badPolicyResponse("no PolicyId"));
-            final PersistenceLifecycle persistenceLifecycle =
-                    policy.getLifecycle().map(Enum::name).flatMap(PersistenceLifecycle::forName).orElse(null);
-            final EnforcementContext newEnforcementContext = EnforcementContext.of(persistenceLifecycle);
-            final var resourceKey = EnforcementCacheKey.of(policyId, newEnforcementContext);
-            return Entry.of(revision, resourceKey);
+            return Entry.of(revision, policyId);
         } else if (response instanceof PolicyNotAccessibleException) {
             return Entry.nonexistent();
         } else {

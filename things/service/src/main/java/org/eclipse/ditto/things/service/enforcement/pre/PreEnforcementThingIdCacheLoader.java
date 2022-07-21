@@ -16,16 +16,12 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.function.Supplier;
 
-import javax.annotation.Nullable;
-
-import org.eclipse.ditto.base.api.persistence.PersistenceLifecycle;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.internal.utils.cache.entry.Entry;
 import org.eclipse.ditto.internal.utils.cacheloaders.ActorAskCacheLoader;
-import org.eclipse.ditto.internal.utils.cacheloaders.EnforcementCacheKey;
-import org.eclipse.ditto.internal.utils.cacheloaders.EnforcementContext;
 import org.eclipse.ditto.internal.utils.cacheloaders.config.AskWithRetryConfig;
+import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.things.api.commands.sudo.SudoRetrieveThing;
 import org.eclipse.ditto.things.api.commands.sudo.SudoRetrieveThingResponse;
 import org.eclipse.ditto.things.model.ThingConstants;
@@ -42,9 +38,9 @@ import akka.actor.Scheduler;
  * Cache loader used for Thing existence check in pre-enforcement.
  */
 final class PreEnforcementThingIdCacheLoader implements
-        AsyncCacheLoader<EnforcementCacheKey, Entry<EnforcementCacheKey>> {
+        AsyncCacheLoader<ThingId, Entry<PolicyId>> {
 
-    private final ActorAskCacheLoader<EnforcementCacheKey, Command<?>, EnforcementContext> delegate;
+    private final ActorAskCacheLoader<PolicyId, Command<?>, ThingId> delegate;
 
     /**
      * Constructor.
@@ -61,30 +57,23 @@ final class PreEnforcementThingIdCacheLoader implements
                 scheduler,
                 ThingConstants.ENTITY_TYPE,
                 shardRegionProxy,
-                (entityId, enforcementContext) -> SudoRetrieveThing.of((ThingId) entityId, DittoHeaders.empty()),
+                thingId -> SudoRetrieveThing.of(thingId, DittoHeaders.empty()),
                 PreEnforcementThingIdCacheLoader::handleSudoRetrieveThingResponse);
     }
 
     @Override
-    public CompletableFuture<Entry<EnforcementCacheKey>> asyncLoad(final EnforcementCacheKey key,
-            final Executor executor) {
-
+    public CompletableFuture<Entry<PolicyId>> asyncLoad(final ThingId key, final Executor executor) {
         return delegate.asyncLoad(key, executor);
     }
 
-    private static Entry<EnforcementCacheKey> handleSudoRetrieveThingResponse(final Object response,
-            @Nullable final EnforcementContext context) {
+    private static Entry<PolicyId> handleSudoRetrieveThingResponse(final Object response) {
 
         if (response instanceof SudoRetrieveThingResponse sudoRetrieveThingResponse) {
             final var thing = sudoRetrieveThingResponse.getThing();
             final long revision = thing.getRevision().map(ThingRevision::toLong)
                     .orElseThrow(badThingResponse("no revision"));
             final var policyId = thing.getPolicyId().orElseThrow(badThingResponse("no PolicyId"));
-            final PersistenceLifecycle persistenceLifecycle =
-                    thing.getLifecycle().map(Enum::name).flatMap(PersistenceLifecycle::forName).orElse(null);
-            final EnforcementContext newEnforcementContext = EnforcementContext.of(persistenceLifecycle);
-            final var resourceKey = EnforcementCacheKey.of(policyId, newEnforcementContext);
-            return Entry.of(revision, resourceKey);
+            return Entry.of(revision, policyId);
         } else if (response instanceof ThingNotAccessibleException) {
             return Entry.nonexistent();
         } else {

@@ -29,7 +29,6 @@ import org.eclipse.ditto.internal.utils.cache.Cache;
 import org.eclipse.ditto.internal.utils.cache.CacheFactory;
 import org.eclipse.ditto.internal.utils.cache.config.DefaultCacheConfig;
 import org.eclipse.ditto.internal.utils.cache.entry.Entry;
-import org.eclipse.ditto.internal.utils.cacheloaders.EnforcementCacheKey;
 import org.eclipse.ditto.internal.utils.namespaces.BlockedNamespaces;
 import org.eclipse.ditto.policies.api.PolicyTag;
 import org.eclipse.ditto.policies.model.PolicyId;
@@ -61,7 +60,7 @@ public final class CachingPolicyEnforcerProviderTest {
     private TestProbe pubSubMediatorProbe;
 
     @Mock
-    public Cache<EnforcementCacheKey, Entry<PolicyEnforcer>> cache;
+    public Cache<PolicyId, Entry<PolicyEnforcer>> cache;
 
     @Mock
     public BlockedNamespaces blockedNamespaces;
@@ -179,7 +178,7 @@ public final class CachingPolicyEnforcerProviderTest {
             final PolicyId policyId = PolicyId.generateRandom();
             final var enforcerResponseFromCache =
                     CompletableFuture.completedFuture(Optional.of(Entry.of(0L, enforcer)));
-            when(cache.get(EnforcementCacheKey.of(policyId))).thenReturn(enforcerResponseFromCache);
+            when(cache.get(policyId)).thenReturn(enforcerResponseFromCache);
 
             final var policyEnforcer = underTest.getPolicyEnforcer(policyId).toCompletableFuture();
             assertThat(policyEnforcer.join()).contains(enforcer);
@@ -190,9 +189,9 @@ public final class CachingPolicyEnforcerProviderTest {
     @Test
     public void getPolicyEnforcerFromCacheLoader() throws Exception {
 
-        final AsyncCacheLoader<EnforcementCacheKey, Entry<PolicyEnforcer>> cacheLoader = mock(AsyncCacheLoader.class);
+        final AsyncCacheLoader<PolicyId, Entry<PolicyEnforcer>> cacheLoader = mock(AsyncCacheLoader.class);
         final ExecutionContextExecutor executor = actorSystem.dispatcher();
-        final Cache<EnforcementCacheKey, Entry<PolicyEnforcer>> newCache = CacheFactory.createCache(
+        final Cache<PolicyId, Entry<PolicyEnforcer>> newCache = CacheFactory.createCache(
                 cacheLoader,
                 DefaultCacheConfig.of(actorSystem.settings().config(), "ditto.policies-enforcer-cache"),
                 "policy_enforcer_cache", executor
@@ -209,8 +208,7 @@ public final class CachingPolicyEnforcerProviderTest {
             final PolicyId policyId = PolicyId.generateRandom();
             final CompletableFuture future =
                     CompletableFuture.completedFuture(Entry.of(0L, enforcer));
-            when(cacheLoader.asyncLoad(EnforcementCacheKey.of(policyId), executor))
-                    .thenReturn(future);
+            when(cacheLoader.asyncLoad(policyId, executor)).thenReturn(future);
 
             final var policyEnforcer = underTest.getPolicyEnforcer(policyId).toCompletableFuture();
             assertThat(policyEnforcer.join()).contains(enforcer);
@@ -229,8 +227,7 @@ public final class CachingPolicyEnforcerProviderTest {
 
         new TestKit(actorSystem) {{
             final PolicyId policyId = PolicyId.generateRandom();
-            when(cache.get(EnforcementCacheKey.of(policyId)))
-                    .thenReturn(CompletableFuture.completedFuture(Optional.of(Entry.nonexistent())));
+            when(cache.get(policyId)).thenReturn(CompletableFuture.completedFuture(Optional.of(Entry.nonexistent())));
 
             final var policyEnforcer = underTest.getPolicyEnforcer(policyId).toCompletableFuture();
             assertThat(policyEnforcer.join()).isEmpty();
@@ -254,7 +251,7 @@ public final class CachingPolicyEnforcerProviderTest {
             final PolicyId policyId = PolicyId.generateRandom();
             cachingActor.tell(PolicyTag.of(policyId, 1234L), ActorRef.noSender());
 
-            verify(cache, timeout(3000)).invalidate(EnforcementCacheKey.of(policyId));
+            verify(cache, timeout(3000)).invalidate(policyId);
             verifyNoMoreInteractions(cache);
         }};
 
@@ -273,10 +270,10 @@ public final class CachingPolicyEnforcerProviderTest {
             pubSubMediatorProbe.expectMsgClass(DistributedPubSubMediator.Subscribe.class);
             final ActorRef cachingActor = pubSubMediatorProbe.lastSender();
             final PolicyEnforcer enforcer = mock(PolicyEnforcer.class);
-            final Map<EnforcementCacheKey, Entry<PolicyEnforcer>> cacheContent = Map.of(
-                    EnforcementCacheKey.of(PolicyId.of("namespace1", "foo")), Entry.of(0L, enforcer),
-                    EnforcementCacheKey.of(PolicyId.of("namespace3", "foo")), Entry.of(0L, enforcer),
-                    EnforcementCacheKey.of(PolicyId.of("namespace4", "foo")), Entry.of(0L, enforcer)
+            final Map<PolicyId, Entry<PolicyEnforcer>> cacheContent = Map.of(
+                    PolicyId.of("namespace1", "foo"), Entry.of(0L, enforcer),
+                    PolicyId.of("namespace3", "foo"), Entry.of(0L, enforcer),
+                    PolicyId.of("namespace4", "foo"), Entry.of(0L, enforcer)
             );
             when(cache.asMap()).thenReturn(new ConcurrentHashMap<>(cacheContent));
 
@@ -288,10 +285,8 @@ public final class CachingPolicyEnforcerProviderTest {
             when(changed.dataValue()).thenReturn(orSet);
             cachingActor.tell(changed, ActorRef.noSender());
             verify(cache, timeout(3000)).asMap();
-            verify(cache).invalidate(
-                    EnforcementCacheKey.of(PolicyId.of("namespace1", "foo")));
-            verify(cache).invalidate(
-                    EnforcementCacheKey.of(PolicyId.of("namespace4", "foo")));
+            verify(cache).invalidate(PolicyId.of("namespace1", "foo"));
+            verify(cache).invalidate(PolicyId.of("namespace4", "foo"));
             verifyNoMoreInteractions(cache);
         }};
 

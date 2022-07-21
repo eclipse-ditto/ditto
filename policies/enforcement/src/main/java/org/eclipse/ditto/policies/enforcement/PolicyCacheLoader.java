@@ -15,18 +15,16 @@ package org.eclipse.ditto.policies.enforcement;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 
-import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.internal.utils.cache.entry.Entry;
 import org.eclipse.ditto.internal.utils.cacheloaders.ActorAskCacheLoader;
-import org.eclipse.ditto.internal.utils.cacheloaders.EnforcementCacheKey;
-import org.eclipse.ditto.internal.utils.cacheloaders.EnforcementContext;
 import org.eclipse.ditto.internal.utils.cacheloaders.config.AskWithRetryConfig;
 import org.eclipse.ditto.policies.api.commands.sudo.SudoRetrievePolicyResponse;
 import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyConstants;
+import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.PolicyRevision;
 import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyNotAccessibleException;
 
@@ -39,9 +37,9 @@ import akka.actor.Scheduler;
  * Loads a policy by asking the policies shard-region-proxy.
  */
 @Immutable
-public final class PolicyCacheLoader implements AsyncCacheLoader<EnforcementCacheKey, Entry<Policy>> {
+public final class PolicyCacheLoader implements AsyncCacheLoader<PolicyId, Entry<Policy>> {
 
-    private final ActorAskCacheLoader<Policy, Command<?>, EnforcementContext> delegate;
+    private final ActorAskCacheLoader<Policy, Command<?>, PolicyId> delegate;
 
     /**
      * Constructor.
@@ -58,18 +56,16 @@ public final class PolicyCacheLoader implements AsyncCacheLoader<EnforcementCach
                 scheduler,
                 PolicyConstants.ENTITY_TYPE,
                 policiesShardRegionProxy,
-                (entityId, enforcementContext) -> PolicyCommandFactory.sudoRetrievePolicy(entityId),
+                PolicyCommandFactory::sudoRetrievePolicy,
                 PolicyCacheLoader::extractPolicy);
     }
 
     @Override
-    public CompletableFuture<Entry<Policy>> asyncLoad(final EnforcementCacheKey key,
-            final Executor executor) {
-        return delegate.asyncLoad(key, executor);
+    public CompletableFuture<Entry<Policy>> asyncLoad(final PolicyId policyId, final Executor executor) {
+        return delegate.asyncLoad(policyId, executor);
     }
 
-    private static Entry<Policy> extractPolicy(final Object response,
-            @Nullable final EnforcementContext cacheLookupContext) {
+    private static Entry<Policy> extractPolicy(final Object response) {
         if (response instanceof final SudoRetrievePolicyResponse sudoRetrievePolicyResponse) {
             final var policy = sudoRetrievePolicyResponse.getPolicy();
             final long revision = policy.getRevision().map(PolicyRevision::toLong)

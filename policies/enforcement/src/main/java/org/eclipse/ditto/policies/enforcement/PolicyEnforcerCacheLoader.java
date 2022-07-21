@@ -18,9 +18,9 @@ import java.util.concurrent.Executor;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.internal.utils.cache.entry.Entry;
-import org.eclipse.ditto.internal.utils.cacheloaders.EnforcementCacheKey;
 import org.eclipse.ditto.internal.utils.cacheloaders.config.AskWithRetryConfig;
 import org.eclipse.ditto.policies.model.Policy;
+import org.eclipse.ditto.policies.model.PolicyId;
 
 import com.github.benmanes.caffeine.cache.AsyncCacheLoader;
 
@@ -31,7 +31,7 @@ import akka.actor.Scheduler;
  * Loads a policy-enforcer by asking the policies shard-region-proxy.
  */
 @Immutable
-public final class PolicyEnforcerCacheLoader implements AsyncCacheLoader<EnforcementCacheKey, Entry<PolicyEnforcer>> {
+public final class PolicyEnforcerCacheLoader implements AsyncCacheLoader<PolicyId, Entry<PolicyEnforcer>> {
 
     public static final String ENFORCEMENT_CACHE_DISPATCHER = "enforcement-cache-dispatcher";
 
@@ -52,9 +52,9 @@ public final class PolicyEnforcerCacheLoader implements AsyncCacheLoader<Enforce
     }
 
     @Override
-    public CompletableFuture<Entry<PolicyEnforcer>> asyncLoad(final EnforcementCacheKey key,
+    public CompletableFuture<Entry<PolicyEnforcer>> asyncLoad(final PolicyId policyId,
             final Executor executor) {
-        return delegate.asyncLoad(key, executor).thenApply(PolicyEnforcerCacheLoader::evaluatePolicy);
+        return delegate.asyncLoad(policyId, executor).thenApply(PolicyEnforcerCacheLoader::evaluatePolicy);
     }
 
     private static Entry<PolicyEnforcer> evaluatePolicy(final Entry<Policy> entry) {

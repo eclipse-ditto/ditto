@@ -42,7 +42,7 @@ public final class ModifyToCreatePolicyTransformer implements SignalTransformer 
     @Override
     public CompletionStage<Signal<?>> apply(final Signal<?> signal) {
         if (signal instanceof ModifyPolicy modifyPolicy) {
-            return existenceChecker.checkExistence(signal)
+            return existenceChecker.checkExistence(modifyPolicy)
                     .thenApply(exists -> {
                         if (Boolean.FALSE.equals(exists)) {
                             return CreatePolicy.of(modifyPolicy.getPolicy(), modifyPolicy.getDittoHeaders());

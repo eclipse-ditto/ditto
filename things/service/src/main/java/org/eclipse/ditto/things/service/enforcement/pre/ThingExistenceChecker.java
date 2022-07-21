@@ -12,20 +12,18 @@
  */
 package org.eclipse.ditto.things.service.enforcement.pre;
 
-import java.util.Optional;
 import java.util.concurrent.CompletionStage;
 
-import org.eclipse.ditto.base.model.entity.id.EntityId;
-import org.eclipse.ditto.base.model.entity.id.WithEntityId;
-import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.internal.utils.cache.entry.Entry;
-import org.eclipse.ditto.internal.utils.cacheloaders.EnforcementCacheKey;
 import org.eclipse.ditto.internal.utils.cluster.ShardRegionProxyActorFactory;
 import org.eclipse.ditto.internal.utils.cluster.config.DefaultClusterConfig;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.policies.enforcement.config.DefaultEnforcementConfig;
 import org.eclipse.ditto.policies.enforcement.config.EnforcementConfig;
+import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.things.api.ThingsMessagingConstants;
+import org.eclipse.ditto.things.model.ThingId;
+import org.eclipse.ditto.things.model.signals.commands.modify.ModifyThing;
 
 import com.github.benmanes.caffeine.cache.AsyncCacheLoader;
 
@@ -39,7 +37,7 @@ final class ThingExistenceChecker {
 
     public static final String ENFORCEMENT_CACHE_DISPATCHER = "enforcement-cache-dispatcher";
 
-    private final AsyncCacheLoader<EnforcementCacheKey, Entry<EnforcementCacheKey>> thingIdLoader;
+    private final AsyncCacheLoader<ThingId, Entry<PolicyId>> thingIdLoader;
     private final ActorSystem actorSystem;
 
     ThingExistenceChecker(final ActorSystem actorSystem) {
@@ -49,7 +47,7 @@ final class ThingExistenceChecker {
         thingIdLoader = getThingIdLoader(actorSystem, enforcementConfig);
     }
 
-    private AsyncCacheLoader<EnforcementCacheKey, Entry<EnforcementCacheKey>> getThingIdLoader(
+    private AsyncCacheLoader<ThingId, Entry<PolicyId>> getThingIdLoader(
             final ActorSystem actorSystem,
             final EnforcementConfig enforcementConfig) {
 
@@ -64,23 +62,14 @@ final class ThingExistenceChecker {
                 thingsShardRegion);
     }
 
-    public CompletionStage<Boolean> checkExistence(final Signal<?> signal) {
-        final Optional<EntityId> entityIdOptional = WithEntityId.getEntityIdOfType(EntityId.class, signal);
-
+    public CompletionStage<Boolean> checkExistence(final ModifyThing signal) {
         try {
-            return thingIdLoader.asyncLoad(EnforcementCacheKey.of(
-                                    entityIdOptional.orElseThrow(() -> getWrongEntityException(signal))),
+            return thingIdLoader.asyncLoad(signal.getEntityId(),
                             actorSystem.dispatchers().lookup(ENFORCEMENT_CACHE_DISPATCHER))
                     .thenApply(Entry::exists);
         } catch (final Exception e) {
             throw new IllegalStateException("Could not load thing via thingIdCacheLoader", e);
         }
-    }
-
-    private static IllegalArgumentException getWrongEntityException(final Signal<?> signal) {
-
-        final String message = String.format("ExistenceChecker: empty ID for signal type <%s>", signal.getType());
-        return new IllegalArgumentException(message);
     }
 
 }

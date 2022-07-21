@@ -21,7 +21,6 @@ import javax.annotation.Nullable;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLogger;
 import org.eclipse.ditto.internal.utils.cache.entry.Entry;
-import org.eclipse.ditto.internal.utils.cacheloaders.EnforcementCacheKey;
 import org.eclipse.ditto.policies.model.PolicyId;
 
 import com.github.benmanes.caffeine.cache.AsyncCacheLoader;
@@ -38,7 +37,7 @@ final class DefaultPolicyEnforcerProvider extends AbstractPolicyEnforcerProvider
     private static final ThreadSafeDittoLogger LOGGER =
             DittoLoggerFactory.getThreadSafeLogger(DefaultPolicyEnforcerProvider.class);
 
-    private final AsyncCacheLoader<EnforcementCacheKey, Entry<PolicyEnforcer>> policyEnforcerCacheLoader;
+    private final AsyncCacheLoader<PolicyId, Entry<PolicyEnforcer>> policyEnforcerCacheLoader;
     private final MessageDispatcher cacheDispatcher;
 
     DefaultPolicyEnforcerProvider(final ActorSystem actorSystem) {
@@ -46,7 +45,7 @@ final class DefaultPolicyEnforcerProvider extends AbstractPolicyEnforcerProvider
     }
 
     DefaultPolicyEnforcerProvider(
-            final AsyncCacheLoader<EnforcementCacheKey, Entry<PolicyEnforcer>> policyEnforcerCacheLoader,
+            final AsyncCacheLoader<PolicyId, Entry<PolicyEnforcer>> policyEnforcerCacheLoader,
             final MessageDispatcher cacheDispatcher) {
 
         this.policyEnforcerCacheLoader = policyEnforcerCacheLoader;
@@ -59,7 +58,7 @@ final class DefaultPolicyEnforcerProvider extends AbstractPolicyEnforcerProvider
             return CompletableFuture.completedStage(Optional.empty());
         } else {
             try {
-                return policyEnforcerCacheLoader.asyncLoad(EnforcementCacheKey.of(policyId), cacheDispatcher)
+                return policyEnforcerCacheLoader.asyncLoad(policyId, cacheDispatcher)
                         .thenApply(Entry::get)
                         .exceptionally(error -> Optional.empty());
             } catch (final Exception e) {

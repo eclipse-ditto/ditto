@@ -43,7 +43,7 @@ public final class ModifyToCreateThingTransformer implements SignalTransformer {
     @Override
     public CompletionStage<Signal<?>> apply(final Signal<?> signal) {
         if (signal instanceof ModifyThing modifyThing) {
-            return existenceChecker.checkExistence(signal)
+            return existenceChecker.checkExistence(modifyThing)
                     .thenApply(exists -> {
                         if (Boolean.FALSE.equals(exists)) {
                             final JsonObject initialPolicy = modifyThing.getInitialPolicy().orElse(null);

@@ -12,20 +12,17 @@
  */
 package org.eclipse.ditto.policies.service.enforcement.pre;
 
-import java.util.Optional;
 import java.util.concurrent.CompletionStage;
 
-import org.eclipse.ditto.base.model.entity.id.EntityId;
-import org.eclipse.ditto.base.model.entity.id.WithEntityId;
-import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.internal.utils.cache.entry.Entry;
-import org.eclipse.ditto.internal.utils.cacheloaders.EnforcementCacheKey;
 import org.eclipse.ditto.internal.utils.cluster.ShardRegionProxyActorFactory;
 import org.eclipse.ditto.internal.utils.cluster.config.DefaultClusterConfig;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.policies.api.PoliciesMessagingConstants;
 import org.eclipse.ditto.policies.enforcement.config.DefaultEnforcementConfig;
 import org.eclipse.ditto.policies.enforcement.config.EnforcementConfig;
+import org.eclipse.ditto.policies.model.PolicyId;
+import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicy;
 
 import com.github.benmanes.caffeine.cache.AsyncCacheLoader;
 
@@ -39,7 +36,7 @@ final class PolicyExistenceChecker {
 
     public static final String ENFORCEMENT_CACHE_DISPATCHER = "enforcement-cache-dispatcher";
 
-    private final AsyncCacheLoader<EnforcementCacheKey, Entry<EnforcementCacheKey>> policyIdLoader;
+    private final AsyncCacheLoader<PolicyId, Entry<PolicyId>> policyIdLoader;
     private final ActorSystem actorSystem;
 
     /**
@@ -54,7 +51,7 @@ final class PolicyExistenceChecker {
         policyIdLoader = getPolicyIdLoader(actorSystem, enforcementConfig);
     }
 
-    private AsyncCacheLoader<EnforcementCacheKey, Entry<EnforcementCacheKey>> getPolicyIdLoader(
+    private AsyncCacheLoader<PolicyId, Entry<PolicyId>> getPolicyIdLoader(
             final ActorSystem actorSystem,
             final EnforcementConfig enforcementConfig) {
 
@@ -70,25 +67,15 @@ final class PolicyExistenceChecker {
                 policiesShardRegion);
     }
 
-    public CompletionStage<Boolean> checkExistence(final Signal<?> signal) {
-        final Optional<EntityId> entityIdOptional = WithEntityId.getEntityIdOfType(EntityId.class, signal);
+    public CompletionStage<Boolean> checkExistence(final ModifyPolicy signal) {
 
         try {
-            return policyIdLoader.asyncLoad(EnforcementCacheKey.of(
-                                    entityIdOptional.orElseThrow(() -> getWrongEntityException(signal))),
+            return policyIdLoader.asyncLoad(signal.getEntityId(),
                             actorSystem.dispatchers().lookup(ENFORCEMENT_CACHE_DISPATCHER))
                     .thenApply(Entry::exists);
         } catch (final Exception e) {
             throw new IllegalStateException("Could not load policyId via policyIdLoader", e);
         }
-    }
-
-    private static IllegalArgumentException getWrongEntityException(final Signal<?> signal) {
-
-        final String message =
-                String.format("ExistenceChecker: unknown entity type or empty ID for signal type <%s>",
-                        signal.getType());
-        return new IllegalArgumentException(message);
     }
 
 }

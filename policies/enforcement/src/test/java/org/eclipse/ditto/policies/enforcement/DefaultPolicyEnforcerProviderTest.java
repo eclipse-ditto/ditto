@@ -20,7 +20,6 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
 import org.eclipse.ditto.internal.utils.cache.entry.Entry;
-import org.eclipse.ditto.internal.utils.cacheloaders.EnforcementCacheKey;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.junit.Before;
 import org.junit.Test;
@@ -37,7 +36,7 @@ import akka.dispatch.MessageDispatcher;
 public final class DefaultPolicyEnforcerProviderTest {
 
     @Mock
-    public AsyncCacheLoader<EnforcementCacheKey, Entry<PolicyEnforcer>> cacheLoader;
+    public AsyncCacheLoader<PolicyId, Entry<PolicyEnforcer>> cacheLoader;
 
     @Mock
     public MessageDispatcher messageDispatcher;
@@ -55,7 +54,7 @@ public final class DefaultPolicyEnforcerProviderTest {
         final PolicyEnforcer policyEnforcer = Mockito.mock(PolicyEnforcer.class);
         final CompletableFuture entryCompletableFuture =
                 CompletableFuture.completedFuture(Entry.of(0, policyEnforcer));
-        when(cacheLoader.asyncLoad(EnforcementCacheKey.of(policyId), messageDispatcher))
+        when(cacheLoader.asyncLoad(policyId, messageDispatcher))
                 .thenReturn(entryCompletableFuture);
         final Optional<PolicyEnforcer> optionalPolicyEnforcer =
                 underTest.getPolicyEnforcer(policyId).toCompletableFuture().join();
@@ -75,7 +74,7 @@ public final class DefaultPolicyEnforcerProviderTest {
         final PolicyId policyId = PolicyId.generateRandom();
         final CompletableFuture entryCompletableFuture =
                 CompletableFuture.completedFuture(Entry.nonexistent());
-        when(cacheLoader.asyncLoad(EnforcementCacheKey.of(policyId), messageDispatcher))
+        when(cacheLoader.asyncLoad(policyId, messageDispatcher))
                 .thenReturn(entryCompletableFuture);
         final Optional<PolicyEnforcer> optionalPolicyEnforcer =
                 underTest.getPolicyEnforcer(policyId).toCompletableFuture().join();
@@ -85,7 +84,7 @@ public final class DefaultPolicyEnforcerProviderTest {
     @Test
     public void getPolicyEnforcerWhenCacheLoaderThrowsException() throws Exception {
         final PolicyId policyId = PolicyId.generateRandom();
-        when(cacheLoader.asyncLoad(EnforcementCacheKey.of(policyId), messageDispatcher))
+        when(cacheLoader.asyncLoad(policyId, messageDispatcher))
                 .thenThrow(new IllegalStateException("This is expected"));
         final Optional<PolicyEnforcer> optionalPolicyEnforcer =
                 underTest.getPolicyEnforcer(policyId).toCompletableFuture().join();
@@ -95,7 +94,7 @@ public final class DefaultPolicyEnforcerProviderTest {
     @Test
     public void getPolicyEnforcerWhenCacheLoaderReturnsFailedFuture() throws Exception {
         final PolicyId policyId = PolicyId.generateRandom();
-        when(cacheLoader.asyncLoad(EnforcementCacheKey.of(policyId), messageDispatcher))
+        when(cacheLoader.asyncLoad(policyId, messageDispatcher))
                 .thenReturn(CompletableFuture.failedFuture(new IllegalStateException("This is expected")));
         final Optional<PolicyEnforcer> optionalPolicyEnforcer =
                 underTest.getPolicyEnforcer(policyId).toCompletableFuture().join();
