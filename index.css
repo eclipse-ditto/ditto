@@ -103,6 +103,13 @@ textarea {
     border-top-left-radius: 0.2rem !important;
 }
 
+.button_round_both {
+    border-bottom-right-radius: 0.2rem !important;
+    border-top-right-radius: 0.2rem !important;
+    border-bottom-left-radius: 0.2rem !important;
+    border-top-left-radius: 0.2rem !important;
+}
+
 .resizable_pane {
     overflow: auto;
     resize: vertical;

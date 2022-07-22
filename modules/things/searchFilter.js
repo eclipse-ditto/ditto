@@ -158,7 +158,7 @@ function toggleFilterFavourite(filter) {
   } else {
     Environments.current().filterList.push(filter);
   }
-  Environments.environmentsJsonChanged();
+  Environments.environmentsJsonChanged('filterList');
   return true;
 };
 
