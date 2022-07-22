@@ -25,6 +25,7 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Executor;
+import java.util.function.Function;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -103,6 +104,19 @@ public final class DittoPublicKeyProvider implements PublicKeyProvider {
                 .removalListener(new CacheRemovalListener());
 
         publicKeyCache = CaffeineCache.of(caffeine, loader, cacheName);
+    }
+
+    DittoPublicKeyProvider(final JwtSubjectIssuersConfig jwtSubjectIssuersConfig,
+                           final HttpClientFacade httpClient,
+                           final OAuthConfig oAuthConfig,
+                           final Function<AsyncCacheLoader<PublicKeyIdWithIssuer, PublicKeyWithParser>,
+                                   Cache<PublicKeyIdWithIssuer, PublicKeyWithParser>> publicKeyCacheFactory) {
+
+        this.jwtSubjectIssuersConfig = argumentNotNull(jwtSubjectIssuersConfig);
+        this.httpClient = argumentNotNull(httpClient);
+        materializer = SystemMaterializer.get(httpClient::getActorSystem).materializer();
+        this.oAuthConfig = oAuthConfig;
+        publicKeyCache = publicKeyCacheFactory.apply(this::loadPublicKeyWithParser);
     }
 
     /**

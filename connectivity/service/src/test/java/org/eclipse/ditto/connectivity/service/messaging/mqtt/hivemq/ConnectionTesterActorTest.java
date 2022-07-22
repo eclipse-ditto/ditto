@@ -76,10 +76,10 @@ import akka.testkit.TestActorRef;
  * Unit test for {@link ConnectionTesterActor}.
  */
 @RunWith(MockitoJUnitRunner.class)
-@Ignore
 public final class ConnectionTesterActorTest {
 
     private static final ConnectionId CONNECTION_ID = ConnectionId.generateRandom();
+    private static final long CLIENT_DISCONNECT_TIMEOUT = 500L;
 
     @Rule
     public final ActorSystemResource actorSystemResource = ActorSystemResource.newInstance();
@@ -167,7 +167,7 @@ public final class ConnectionTesterActorTest {
         assertThat(failure.cause()).isEqualTo(error);
         Mockito.verify(connectionLogger)
                 .failure(Mockito.eq("Connection test failed: {0}"), Mockito.eq(error.getMessage()));
-        Mockito.verify(genericMqttClient).disconnect();
+        Mockito.verify(genericMqttClient, Mockito.timeout(CLIENT_DISCONNECT_TIMEOUT)).disconnect();
     }
 
     @Test
@@ -222,7 +222,7 @@ public final class ConnectionTesterActorTest {
             final var successMessage = "Connection test was successful.";
             assertThat(success.status()).isEqualTo(successMessage);
             Mockito.verify(connectionLogger).success(Mockito.eq(successMessage));
-            Mockito.verify(genericMqttClient).disconnect();
+            Mockito.verify(genericMqttClient, Mockito.timeout(CLIENT_DISCONNECT_TIMEOUT)).disconnect();
         }
     }
 
@@ -279,7 +279,7 @@ public final class ConnectionTesterActorTest {
                     .hasMessage(errorMessage)
                     .hasNoCause();
             Mockito.verify(connectionLogger).failure("Connection test failed: {0}", errorMessage);
-            Mockito.verify(genericMqttClient).disconnect();
+            Mockito.verify(genericMqttClient, Mockito.timeout(CLIENT_DISCONNECT_TIMEOUT)).disconnect();
         }
     }
 
@@ -342,7 +342,7 @@ public final class ConnectionTesterActorTest {
                     .hasMessage(errorMessage)
                     .hasNoCause();
             Mockito.verify(connectionLogger).failure("Connection test failed: {0}", errorMessage);
-            Mockito.verify(genericMqttClient).disconnect();
+            Mockito.verify(genericMqttClient, Mockito.timeout(CLIENT_DISCONNECT_TIMEOUT)).disconnect();
         }
     }
 
@@ -400,7 +400,7 @@ public final class ConnectionTesterActorTest {
                     .hasMessageEndingWith("did not report its status within <%s>.", ConnectionTesterActor.ASK_TIMEOUT)
                     .hasCauseInstanceOf(AskTimeoutException.class);
             Mockito.verify(connectionLogger).failure(Mockito.anyString(), Mockito.anyString());
-            Mockito.verify(genericMqttClient).disconnect();
+            Mockito.verify(genericMqttClient, Mockito.timeout(CLIENT_DISCONNECT_TIMEOUT)).disconnect();
         }
     }
 
@@ -459,7 +459,7 @@ public final class ConnectionTesterActorTest {
                     .hasMessageContaining("has status <%s>", StatusInfo.Status.DOWN)
                     .hasNoCause();
             Mockito.verify(connectionLogger).failure(Mockito.anyString(), Mockito.anyString());
-            Mockito.verify(genericMqttClient).disconnect();
+            Mockito.verify(genericMqttClient, Mockito.timeout(CLIENT_DISCONNECT_TIMEOUT)).disconnect();
         }
     }
 
