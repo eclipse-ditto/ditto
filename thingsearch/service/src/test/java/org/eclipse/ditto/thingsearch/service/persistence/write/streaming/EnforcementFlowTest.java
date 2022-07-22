@@ -596,9 +596,7 @@ public final class EnforcementFlowTest {
     }
 
     @Test
-    @Ignore("TODO")
     public void thereCanBeMultipleUpdatesPerBulk() {
-        Assume.assumeThat(System.getProperty("build.environment"), Matchers.not(Matchers.equalTo("Github")));
         new TestKit(system) {{
             final DittoHeaders headers = DittoHeaders.empty();
             final PolicyId policyId = PolicyId.of("policy:id");
@@ -619,15 +617,6 @@ public final class EnforcementFlowTest {
                     "stream.ask-with-retry.ask-timeout=30s"));
             final EnforcementFlow underTest = EnforcementFlow.of(system, streamConfig, thingsProbe.ref(),
                     policiesProbe.ref(), system.getScheduler());
-
-            materializeTestProbes(underTest, 16, 16);
-
-            sinkProbe.ensureSubscription();
-            sourceProbe.ensureSubscription();
-            sinkProbe.request(4);
-            assertThat(sourceProbe.expectRequest()).isEqualTo(16);
-            changeMaps.forEach(sourceProbe::sendNext);
-            sourceProbe.sendComplete();
 
             final var sudoRetrievePolicyResponse =
                     SudoRetrievePolicyResponse.of(policyId, policy, DittoHeaders.empty());
@@ -659,6 +648,14 @@ public final class EnforcementFlowTest {
                     return keepRunning();
                 }
             });
+
+            materializeTestProbes(underTest, 16, 16);
+            sinkProbe.ensureSubscription();
+            sourceProbe.ensureSubscription();
+            sinkProbe.request(4);
+            assertThat(sourceProbe.expectRequest()).isEqualTo(16);
+            changeMaps.forEach(sourceProbe::sendNext);
+            sourceProbe.sendComplete();
 
             final var list = sinkProbe.expectNext(FiniteDuration.apply(60, "s"));
             assertThat(list.size()).isEqualTo(changeMaps.get(0).size());

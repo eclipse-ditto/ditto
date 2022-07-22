@@ -24,6 +24,8 @@ public interface ExistsFieldExpressionVisitor<T> extends SortFieldExpressionVisi
 
     T visitFeature(String featureId);
 
+    T visitFeatureDefinition(String featureId);
+
     T visitFeatureProperties(CharSequence featureId);
 
     T visitFeatureDesiredProperties(CharSequence featureId);

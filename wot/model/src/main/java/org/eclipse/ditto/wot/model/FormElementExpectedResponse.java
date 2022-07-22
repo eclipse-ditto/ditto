@@ -27,7 +27,7 @@ import org.eclipse.ditto.json.JsonObject;
  * @see <a href="https://www.w3.org/TR/wot-thing-description11/#expectedresponse">WoT TD ExpectedResponse</a>
  * @since 2.4.0
  */
-public interface FormElementExpectedResponse extends Jsonifiable<JsonObject> {
+public interface FormElementExpectedResponse extends TypedJsonObject<FormElementExpectedResponse>, Jsonifiable<JsonObject> {
 
     static FormElementExpectedResponse fromJson(final JsonObject jsonObject) {
         return new ImmutableFormElementExpectedResponse(jsonObject);

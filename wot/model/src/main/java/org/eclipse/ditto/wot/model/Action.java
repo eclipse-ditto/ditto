@@ -58,6 +58,8 @@ public interface Action extends Interaction<Action, ActionFormElement, ActionFor
 
     boolean isIdempotent();
 
+    Optional<Boolean> isSynchronous();
+
     interface Builder extends Interaction.Builder<Builder, Action, ActionFormElement, ActionForms> {
 
         static Builder newBuilder(final CharSequence actionName) {
@@ -76,6 +78,8 @@ public interface Action extends Interaction<Action, ActionFormElement, ActionFor
         Builder setSafe(@Nullable Boolean safe);
 
         Builder setIdempotent(@Nullable Boolean idempotent);
+
+        Builder setSynchronous(@Nullable Boolean synchronous);
     }
 
     /**
@@ -95,6 +99,9 @@ public interface Action extends Interaction<Action, ActionFormElement, ActionFor
 
         public static final JsonFieldDefinition<Boolean> IDEMPOTENT = JsonFactory.newBooleanFieldDefinition(
                 "idempotent");
+
+        public static final JsonFieldDefinition<Boolean> SYNCHRONOUS = JsonFactory.newBooleanFieldDefinition(
+                "synchronous");
 
         private JsonFields() {
             throw new AssertionError();

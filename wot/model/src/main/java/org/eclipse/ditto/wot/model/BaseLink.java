@@ -18,6 +18,7 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.model.json.Jsonifiable;
+import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
@@ -60,6 +61,8 @@ public interface BaseLink<L extends BaseLink<L>> extends TypedJsonObject<L>, Jso
 
     Optional<IRI> getAnchor();
 
+    Optional<Hreflang> getHreflang();
+
 
     interface Builder<B extends Builder<B, L>, L extends BaseLink<L>> extends TypedJsonObjectBuilder<B, L> {
 
@@ -70,6 +73,8 @@ public interface BaseLink<L extends BaseLink<L>> extends TypedJsonObject<L>, Jso
         B setRel(@Nullable String rel);
 
         B setAnchor(@Nullable IRI anchor);
+
+        B setHreflang(@Nullable Hreflang hreflang);
 
     }
 
@@ -90,6 +95,12 @@ public interface BaseLink<L extends BaseLink<L>> extends TypedJsonObject<L>, Jso
 
         public static final JsonFieldDefinition<String> ANCHOR = JsonFactory.newStringFieldDefinition(
                 "anchor");
+
+        public static final JsonFieldDefinition<String> HREFLANG = JsonFactory.newStringFieldDefinition(
+                "hreflang");
+
+        public static final JsonFieldDefinition<JsonArray> HREFLANG_MULTIPLE = JsonFactory.newJsonArrayFieldDefinition(
+                "hreflang");
 
         private BaseLinkJsonFields() {
             throw new AssertionError();

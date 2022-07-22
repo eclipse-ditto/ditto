@@ -26,7 +26,9 @@ public enum SecuritySchemeIn implements CharSequence {
     HEADER("header"),
     QUERY("query"),
     BODY("body"),
-    COOKIE("cookie");
+    COOKIE("cookie"),
+    URI("uri"),
+    AUTO("auto");
 
     private final String name;
 

@@ -41,6 +41,11 @@ final class ImmutableApiKeySecurityScheme extends AbstractSecurityScheme impleme
     }
 
     @Override
+    protected SecurityScheme createInstance(final JsonObject newWrapped) {
+        return new ImmutableApiKeySecurityScheme(getSecuritySchemeName(), newWrapped);
+    }
+
+    @Override
     protected boolean canEqual(@Nullable final Object other) {
         return other instanceof ImmutableApiKeySecurityScheme;
     }

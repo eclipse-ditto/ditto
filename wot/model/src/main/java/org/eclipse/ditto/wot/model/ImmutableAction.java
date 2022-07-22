@@ -69,6 +69,11 @@ final class ImmutableAction extends AbstractInteraction<Action, ActionFormElemen
     }
 
     @Override
+    public Optional<Boolean> isSynchronous() {
+        return wrappedObject.getValue(JsonFields.SYNCHRONOUS);
+    }
+
+    @Override
     public Optional<ActionForms> getForms() {
         return wrappedObject.getValue(InteractionJsonFields.FORMS)
                 .map(ActionForms::fromJson);

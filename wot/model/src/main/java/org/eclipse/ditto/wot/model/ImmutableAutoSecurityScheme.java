@@ -12,47 +12,33 @@
  */
 package org.eclipse.ditto.wot.model;
 
-import java.util.Optional;
-
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonObject;
 
 /**
- * Immutable implementation of {@link FormElementExpectedResponse}.
+ * Immutable implementation of {@link AutoSecurityScheme}.
  */
 @Immutable
-final class ImmutableFormElementExpectedResponse extends AbstractTypedJsonObject<FormElementExpectedResponse>
-        implements FormElementExpectedResponse {
+final class ImmutableAutoSecurityScheme extends AbstractSecurityScheme implements AutoSecurityScheme {
 
-    ImmutableFormElementExpectedResponse(final JsonObject wrappedObject) {
-        super(wrappedObject);
+    ImmutableAutoSecurityScheme(final String securitySchemeName, final JsonObject wrappedObject) {
+        super(securitySchemeName, wrappedObject);
     }
 
     @Override
-    protected FormElementExpectedResponse createInstance(final JsonObject newWrapped) {
-        return new ImmutableFormElementExpectedResponse(newWrapped);
-    }
-
-    @Override
-    public JsonObject toJson() {
-        return wrappedObject;
-    }
-
-    @Override
-    public Optional<String> getContentType() {
-        return wrappedObject.getValue(JsonFields.CONTENT_TYPE);
+    protected SecurityScheme createInstance(final JsonObject newWrapped) {
+        return new ImmutableAutoSecurityScheme(getSecuritySchemeName(), newWrapped);
     }
 
     @Override
     protected boolean canEqual(@Nullable final Object other) {
-        return other instanceof ImmutableFormElementExpectedResponse;
+        return other instanceof ImmutableAutoSecurityScheme;
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + "[" + super.toString() + "]";
     }
-
 }
