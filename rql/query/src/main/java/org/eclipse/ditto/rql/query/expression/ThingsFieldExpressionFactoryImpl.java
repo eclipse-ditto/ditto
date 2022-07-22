@@ -41,16 +41,21 @@ final class ThingsFieldExpressionFactoryImpl implements ThingsFieldExpressionFac
 
         final Supplier<FilterFieldExpression> defaultSupplier = () -> (FilterFieldExpression) common(propertyName);
         return FieldExpressionUtil.parseFeatureField(requireNonNull(propertyName))
-                .<FilterFieldExpression>flatMap(f ->
-                        f.getProperty().isPresent()
-                                ? f.getProperty().flatMap(property ->
-                                // we have a feature id and a property path
-                                f.getFeatureId().map(id -> new FeatureIdPropertyExpressionImpl(id, property))
-                        )
-                                : f.getDesiredProperty().flatMap(desiredProperty ->
-                                f.getFeatureId()
-                                        .map(id -> new FeatureIdDesiredPropertyExpressionImpl(id, desiredProperty))
-                        )
+                .<FilterFieldExpression>flatMap(f -> {
+                            if (f.isDefinition()) {
+                                return f.getFeatureId().map(FeatureDefinitionExpressionImpl::new);
+                            } else {
+                                return f.getProperty().isPresent()
+                                        ? f.getProperty().flatMap(property ->
+                                        // we have a feature id and a property path
+                                        f.getFeatureId().map(id -> new FeatureIdPropertyExpressionImpl(id, property))
+                                )
+                                        : f.getDesiredProperty().flatMap(desiredProperty ->
+                                        f.getFeatureId()
+                                                .map(id -> new FeatureIdDesiredPropertyExpressionImpl(id, desiredProperty))
+                                );
+                            }
+                        }
                 )
                 .orElseGet(defaultSupplier);
     }
@@ -62,29 +67,23 @@ final class ThingsFieldExpressionFactoryImpl implements ThingsFieldExpressionFac
 
         return FieldExpressionUtil.parseFeatureField(propertyName)
                 .flatMap(f -> f.getFeatureId()
-                        .map(id ->
-                                f.getProperty().<ExistsFieldExpression>map(
-
-                                        // property
-                                        property -> new FeatureIdPropertyExpressionImpl(id, property))
-
+                        .map(id -> f.getProperty().<ExistsFieldExpression>map(
+                                                // property
+                                                property -> new FeatureIdPropertyExpressionImpl(id, property))
                                         // desiredProperty
-                                        .orElse(f.getDesiredProperty().<ExistsFieldExpression>map(
-                                                desiredProperty -> new FeatureIdDesiredPropertyExpressionImpl(id,
-                                                        desiredProperty))
+                                        .orElse(f.getDesiredProperty().<ExistsFieldExpression>map(desiredProperty -> new FeatureIdDesiredPropertyExpressionImpl(id, desiredProperty))
                                                 .orElseGet(() -> {
                                                     if (f.isProperties()) {
-
                                                         // we have a feature ID and the properties path,
                                                         // but no property
                                                         return new FeatureIdPropertiesExpressionImpl(id);
                                                     } else if (f.isDesiredProperties()) {
-
                                                         // we have a feature ID and the desired properties path,
                                                         // but no desired property
                                                         return new FeatureIdDesiredPropertiesExpressionImpl(id);
+                                                    } else if (f.isDefinition()) {
+                                                        return new FeatureDefinitionExpressionImpl(id);
                                                     } else {
-
                                                         // we have a feature ID but no property path
                                                         return new FeatureExpressionImpl(id);
                                                     }
