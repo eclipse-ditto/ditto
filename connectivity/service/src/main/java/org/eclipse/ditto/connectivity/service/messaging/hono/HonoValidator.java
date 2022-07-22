@@ -12,18 +12,20 @@
  */
 package org.eclipse.ditto.connectivity.service.messaging.hono;
 
-import static org.eclipse.ditto.connectivity.api.placeholders.ConnectivityPlaceholders.newEntityPlaceholder;
-import static org.eclipse.ditto.connectivity.api.placeholders.ConnectivityPlaceholders.newFeaturePlaceholder;
-import static org.eclipse.ditto.connectivity.api.placeholders.ConnectivityPlaceholders.newPolicyPlaceholder;
-import static org.eclipse.ditto.connectivity.api.placeholders.ConnectivityPlaceholders.newThingPlaceholder;
-
 import java.text.MessageFormat;
+import java.util.LinkedHashSet;
+import java.util.Objects;
+import java.util.Set;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.connectivity.api.placeholders.ConnectivityPlaceholders;
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.ConnectionConfigurationInvalidException;
 import org.eclipse.ditto.connectivity.model.ConnectionType;
@@ -39,16 +41,15 @@ import akka.actor.ActorSystem;
 @Immutable
 public final class HonoValidator extends AbstractProtocolValidator {
 
-    private static final String INVALID_SOURCE_ADDRESS_ALIAS_FORMAT = "The provided source address is not valid: {0}." +
-            " It should be one of the defined {1} aliases.";
-    private static final String INVALID_TARGET_ADDRESS_ALIAS_FORMAT = "The provided target address is not" +
-            "valid: {0}. It should be 'command' alias.";
-    private static final String NOT_EMPTY_FORMAT = "The provided {0} in your target address may not be empty.";
-
     @Nullable private static HonoValidator instance;
 
+    private final Set<String> allowedSourceAddressHonoAliasValues;
+
     private HonoValidator() {
-        super();
+        allowedSourceAddressHonoAliasValues = Stream.of(HonoAddressAlias.values())
+                .filter(honoAddressAlias -> HonoAddressAlias.COMMAND != honoAddressAlias)
+                .map(HonoAddressAlias::getAliasValue)
+                .collect(Collectors.toCollection(LinkedHashSet::new));
     }
 
     /**
@@ -57,7 +58,7 @@ public final class HonoValidator extends AbstractProtocolValidator {
      * @return the instance.
      */
     public static HonoValidator getInstance() {
-        HonoValidator result = instance;
+        var result = instance;
         if (null == result) {
             result = new HonoValidator();
             instance = result;
@@ -75,93 +76,111 @@ public final class HonoValidator extends AbstractProtocolValidator {
             final DittoHeaders dittoHeaders,
             final ActorSystem actorSystem,
             final ConnectivityConfig connectivityConfig) {
+
         validateSourceConfigs(connection, dittoHeaders);
         validateTargetConfigs(connection, dittoHeaders);
         validatePayloadMappings(connection, actorSystem, connectivityConfig, dittoHeaders);
     }
 
     @Override
-    protected void validateSource(final Source source, final DittoHeaders dittoHeaders,
+    protected void validateSource(final Source source,
+            final DittoHeaders dittoHeaders,
             final Supplier<String> sourceDescription) {
-        source.getEnforcement().ifPresent(enforcement -> {
-            validateTemplate(enforcement.getInput(), dittoHeaders, PlaceholderFactory.newHeadersPlaceholder());
-            enforcement.getFilters().forEach(filterTemplate ->
-                    validateTemplate(filterTemplate, dittoHeaders, newThingPlaceholder(), newPolicyPlaceholder(),
-                            newEntityPlaceholder(), newFeaturePlaceholder()));
-        });
-        source.getAddresses().forEach(
-                address -> validateSourceAddress(address, dittoHeaders));
+
+        validateSourceEnforcement(source, dittoHeaders);
+        validateSourceAddresses(source, dittoHeaders);
         validateSourceQos(source, dittoHeaders);
     }
 
+    private void validateSourceEnforcement(final Source source, final DittoHeaders dittoHeaders) {
+        final Consumer<String> validateInputTemplate =
+                inputTemplate -> validateTemplate(inputTemplate,
+                        dittoHeaders,
+                        PlaceholderFactory.newHeadersPlaceholder());
+
+        final Consumer<Set<String>> validateFilterTemplates =
+                filters -> filters.forEach(
+                        filterTemplate -> validateTemplate(filterTemplate,
+                                dittoHeaders,
+                                ConnectivityPlaceholders.newThingPlaceholder(),
+                                ConnectivityPlaceholders.newPolicyPlaceholder(),
+                                ConnectivityPlaceholders.newEntityPlaceholder(),
+                                ConnectivityPlaceholders.newFeaturePlaceholder())
+                );
+
+        source.getEnforcement()
+                .ifPresent(enforcement -> {
+                    validateInputTemplate.accept(enforcement.getInput());
+                    validateFilterTemplates.accept(enforcement.getFilters());
+                });
+    }
+
+    private void validateSourceAddresses(final Source source, final DittoHeaders dittoHeaders) {
+        final var sourceAddresses = source.getAddresses();
+        sourceAddresses.forEach(address -> validateSourceAddress(address, dittoHeaders));
+    }
+
+    private void validateSourceAddress(final String sourceAddress, final DittoHeaders dittoHeaders) {
+        if (sourceAddress.isEmpty()) {
+            throw newConnectionConfigurationInvalidException("The provided source address must not be empty.",
+                    dittoHeaders);
+        }
+
+        if (!allowedSourceAddressHonoAliasValues.contains(sourceAddress)) {
+            throw newConnectionConfigurationInvalidException(
+                    MessageFormat.format("The provided source address <{0}> is invalid." +
+                                    " It should be one of the defined aliases: {1}",
+                            sourceAddress,
+                            allowedSourceAddressHonoAliasValues),
+                    dittoHeaders
+            );
+        }
+    }
+
+    private static ConnectionConfigurationInvalidException newConnectionConfigurationInvalidException(
+            final String errorMessage,
+            final DittoHeaders dittoHeaders
+    ) {
+        return ConnectionConfigurationInvalidException.newBuilder(errorMessage).dittoHeaders(dittoHeaders).build();
+    }
+
+    private static void validateSourceQos(final Source source, final DittoHeaders dittoHeaders) {
+        source.getQos()
+                .filter(qos -> qos < 0 || qos > 1)
+                .ifPresent(qos -> {
+                    throw newConnectionConfigurationInvalidException(
+                            MessageFormat.format(
+                                    "Invalid source ''qos'' value <{0}>. Supported values are <0> and <1>.",
+                                    qos),
+                            dittoHeaders
+                    );
+                });
+    }
+
     @Override
-    protected void validateTarget(final Target target, final DittoHeaders dittoHeaders,
+    protected void validateTarget(final Target target,
+            final DittoHeaders dittoHeaders,
             final Supplier<String> targetDescription) {
+
         validateTargetAddress(target.getAddress(), dittoHeaders);
         validateExtraFields(target);
     }
 
-    private static void validateSourceQos(final Source source, final DittoHeaders dittoHeaders) {
-        source.getQos().ifPresent(qos -> {
-            if (qos < 0 || qos > 1) {
-                throw ConnectionConfigurationInvalidException
-                        .newBuilder("Invalid 'qos' value for Kafka source, supported are: <0> or <1>. " +
-                                "Configured 'qos' value was: <" + qos + ">"
-                        )
-                        .dittoHeaders(dittoHeaders)
-                        .build();
-            }
-        });
-    }
-
-    private static void validateTargetAddress(final String address, final DittoHeaders dittoHeaders) {
-        if (address.isEmpty()) {
-            throwEmptyException(dittoHeaders);
+    private static void validateTargetAddress(final String targetAddress, final DittoHeaders dittoHeaders) {
+        if (targetAddress.isEmpty()) {
+            throw newConnectionConfigurationInvalidException("The provided target address must not be empty.",
+                    dittoHeaders);
         }
 
-        HonoAddressAlias.forAliasValue(address)
-                .filter(HonoAddressAlias.COMMAND::equals)
-                .orElseThrow(() -> buildInvalidTargetAddressException(address, dittoHeaders));
-    }
-
-    private static void validateSourceAddress(final String address, final DittoHeaders dittoHeaders) {
-        if (address.isEmpty()) {
-            throwEmptyException(dittoHeaders);
+        final var allowedTargetAddressAliasValue = HonoAddressAlias.COMMAND.getAliasValue();
+        if (!Objects.equals(allowedTargetAddressAliasValue, targetAddress)) {
+            throw newConnectionConfigurationInvalidException(
+                    MessageFormat.format("The provided target address <{0}> is invalid. It should be <{1}>.",
+                            targetAddress,
+                            allowedTargetAddressAliasValue),
+                    dittoHeaders
+            );
         }
-
-        var honoAddressAlias = HonoAddressAlias.forAliasValue(address);
-        honoAddressAlias.filter(alias -> alias != HonoAddressAlias.COMMAND)
-                .orElseThrow(() -> {
-                    String aliases = HonoAddressAlias.aliasValues()
-                            .filter(item -> !item.equalsIgnoreCase(HonoAddressAlias.COMMAND.getAliasValue()))
-                            .toList()
-                            .toString();
-                    return buildInvalidSourceAddressException(address, dittoHeaders, aliases);
-                });
-    }
-
-    private static void throwEmptyException(final DittoHeaders dittoHeaders) {
-        final String message = MessageFormat.format(NOT_EMPTY_FORMAT, "address");
-        throw ConnectionConfigurationInvalidException.newBuilder(message)
-                .dittoHeaders(dittoHeaders)
-                .build();
-    }
-
-    private static ConnectionConfigurationInvalidException buildInvalidTargetAddressException(String address,
-            final DittoHeaders dittoHeaders) {
-        final String message = MessageFormat.format(INVALID_TARGET_ADDRESS_ALIAS_FORMAT, address);
-        throw ConnectionConfigurationInvalidException.newBuilder(message)
-                .dittoHeaders(dittoHeaders)
-                .build();
-    }
-
-    private static ConnectionConfigurationInvalidException buildInvalidSourceAddressException(String address,
-            final DittoHeaders dittoHeaders, String definedAliases) {
-        final String message = MessageFormat.format(INVALID_SOURCE_ADDRESS_ALIAS_FORMAT, address,
-                definedAliases);
-        throw ConnectionConfigurationInvalidException.newBuilder(message)
-                .dittoHeaders(dittoHeaders)
-                .build();
     }
 
 }
