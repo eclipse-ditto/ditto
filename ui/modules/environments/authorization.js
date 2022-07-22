@@ -23,11 +23,10 @@ let dom = {
   password: null,
   devOpsUserName: null,
   devOpsPassword: null,
+  collapseConnections: null,
 };
 
 export function ready() {
-  Environments.addChangeListener(onEnvironmentChanged);
-
   Utils.getAllElementsById(dom);
 
   document.getElementById('authorizeBearer').onclick = () => {
@@ -44,7 +43,7 @@ export function ready() {
   };
 };
 
-function onEnvironmentChanged() {
+export function onEnvironmentChanged() {
   let usernamePassword = Environments.current().usernamePassword ? Environments.current().usernamePassword : ':';
   dom.userName.value = usernamePassword.split(':')[0];
   dom.password.value = usernamePassword.split(':')[1];
@@ -54,5 +53,5 @@ function onEnvironmentChanged() {
   dom.devOpsUserName.value = usernamePassword.split(':')[0];
   dom.devOpsPassword.value = usernamePassword.split(':')[1];
   dom.bearer.value = Environments.current().bearer ? Environments.current().bearer : '';
-  API.setAuthHeader();
+  API.setAuthHeader(dom.collapseConnections.classList.contains('show'));
 };

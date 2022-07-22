@@ -175,13 +175,13 @@ function onThingChanged(thing) {
   dom.featuresTable.innerHTML = '';
   let count = 0;
   let thingHasFeature = false;
-  if (thing.features) {
+  if (thing && thing.features) {
     for (const key of Object.keys(thing.features)) {
       if (key === dom.theFeatureId.value) {
         refreshFeature(thing, key);
         thingHasFeature = true;
       };
-      Utils.addTableRow(dom.featuresTable, key, null, key === dom.theFeatureId.value);
+      Utils.addTableRow(dom.featuresTable, key, key === dom.theFeatureId.value);
       count++;
     };
   }
