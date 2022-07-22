@@ -149,6 +149,11 @@ final class Thing3ValuePredicateVisitor implements CriteriaVisitor<Function<Thin
         }
 
         @Override
+        public JsonPointer visitFeatureDefinition(final String featureId) {
+            return visitFeature(featureId).append(JsonPointer.of("definition"));
+        }
+
+        @Override
         public JsonPointer visitFeatureProperties(final CharSequence featureId) {
             return visitFeature(featureId.toString()).append(JsonPointer.of("properties"));
         }

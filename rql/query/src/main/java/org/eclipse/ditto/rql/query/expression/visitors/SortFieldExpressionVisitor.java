@@ -21,8 +21,9 @@ public interface SortFieldExpressionVisitor<T> {
 
     T visitFeatureIdProperty(String featureId, String property);
 
+    T visitFeatureDefinition(String featureId);
+
     T visitFeatureIdDesiredProperty(CharSequence featureId, CharSequence desiredProperty);
 
     T visitSimple(String fieldName);
-
 }
