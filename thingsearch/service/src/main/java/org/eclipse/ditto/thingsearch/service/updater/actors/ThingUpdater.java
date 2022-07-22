@@ -29,7 +29,6 @@ import org.bson.BsonDocument;
 import org.eclipse.ditto.base.api.common.ShutdownReasonType;
 import org.eclipse.ditto.base.model.acks.AcknowledgementRequest;
 import org.eclipse.ditto.base.model.acks.DittoAcknowledgementLabel;
-import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
 import org.eclipse.ditto.base.service.actors.ShutdownBehaviour;
 import org.eclipse.ditto.base.service.config.supervision.ExponentialBackOff;
 import org.eclipse.ditto.internal.models.streaming.IdentifiableStreamingMessage;
@@ -247,7 +246,6 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
     private FSMStateFunctionBuilder<State, Data> persisting() {
         return matchEvent(Result.class, this::onResult)
                 .event(Done.class, this::onDone)
-                .event(ThingEvent.class, this::onEventWhenPersisting)
                 .event(ShutdownTrigger.class, this::shutdown)
                 .event(SHUTDOWN_CLASS, this::shutdownNow)
                 .event(DistributedPubSubMediator.SubscribeAck.class, this::subscribeAck)
@@ -301,11 +299,6 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
                 default -> cancelTimer(Control.TICK.name());
             }
         }
-    }
-
-    private FSM.State<State, Data> onEventWhenPersisting(final ThingEvent<?> event, final Data data) {
-        computeEventMetadata(event, data).ifPresent(eventMetadata -> getSelf().tell(eventMetadata, getSelf()));
-        return stay();
     }
 
     private FSM.State<State, Data> onResult(final Result result, final Data data) {
