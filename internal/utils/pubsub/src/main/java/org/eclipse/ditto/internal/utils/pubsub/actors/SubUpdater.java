@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.internal.utils.pubsub.actors;
 
+import java.time.Duration;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -92,7 +93,7 @@ public final class SubUpdater extends akka.actor.AbstractActorWithTimers
     /**
      * Write consistency of the next message to the replicator.
      */
-    private Replicator.WriteConsistency nextWriteConsistency = writeLocal();
+    private Replicator.WriteConsistency nextWriteConsistency = defaultWriteConsistency();
 
     /**
      * Whether local subscriptions changed.
@@ -452,5 +453,9 @@ public final class SubUpdater extends akka.actor.AbstractActorWithTimers
             this.payload = payload;
             this.seqNr = seqNr;
         }
+    }
+
+    private static Replicator.WriteConsistency defaultWriteConsistency() {
+        return new Replicator.WriteAll(Duration.ofSeconds(25L));
     }
 }
