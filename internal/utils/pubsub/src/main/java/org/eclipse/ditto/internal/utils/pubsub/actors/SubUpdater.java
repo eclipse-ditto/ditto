@@ -202,6 +202,7 @@ public final class SubUpdater extends akka.actor.AbstractActorWithTimers
     }
 
     private void ddataOpSuccess(final DDataOpSuccess<SubscriptionsReader> opSuccess) {
+        log().debug("DDataOp success seqNr=<{}>", opSuccess.seqNr);
         errorCounter = 0;
         flushSubAcks(opSuccess.seqNr);
         // race condition possible -- some published messages may arrive before the acknowledgement
@@ -231,6 +232,8 @@ public final class SubUpdater extends akka.actor.AbstractActorWithTimers
             final Replicator.WriteConsistency writeConsistency) {
         final SubscriptionsReader snapshot = subscriptions.snapshot();
         final CompletionStage<Void> ddataOp;
+        log().debug("Tick seq=<{}> changed=<{}> empty=<{}> writeConsistency=<{}>", seqNr, localSubscriptionsChanged,
+                subscriptions.isEmpty(), nextWriteConsistency);
         if (resetProbability > 0 && Math.random() < resetProbability) {
             log().debug("Resetting ddata topics: <{}>", getSelf());
             ddataOp = ddata.getWriter().reset(subscriber, subscriptions.export(), writeConsistency);
@@ -245,6 +248,7 @@ public final class SubUpdater extends akka.actor.AbstractActorWithTimers
             final LiteralUpdate nextUpdate = subscriptions.export();
             // take snapshot to give to the subscriber; clear accumulated incremental changes.
             final var diff = nextUpdate.diff(previousUpdate);
+            log().debug("diff.isEmpty=<{}>", diff.isEmpty());
             if (!diff.isEmpty()) {
                 ddataOp = ddata.getWriter().put(subscriber, nextUpdate.diff(previousUpdate), writeConsistency);
             } else {
