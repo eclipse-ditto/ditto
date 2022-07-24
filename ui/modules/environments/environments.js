@@ -130,12 +130,7 @@ export function environmentsJsonChanged(modifiedField) {
       activeEnvironment = Object.keys(environments)[0];
     };
 
-    dom.environmentSelector.innerHTML = '';
-    Object.keys(environments).forEach((key) => {
-      let option = document.createElement('option');
-      option.text = key;
-      dom.environmentSelector.add(option);
-    });
+    Utils.setOptions(dom.environmentSelector, Object.keys(environments));
 
     dom.environmentSelector.value = activeEnvironment;
   }

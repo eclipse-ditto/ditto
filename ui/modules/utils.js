@@ -103,6 +103,20 @@ export function addRadioButton(target, groupName, value, checked) {
 }
 
 /**
+ * Create a list of option elements
+ * @param {HTMLElement} target target element (select)
+ * @param {array} options Array of strings to be filled as options
+ */
+export function setOptions(target, options) {
+  target.innerHTML = '';
+  options.forEach((key) => {
+    const option = document.createElement('option');
+    option.text = key;
+    target.appendChild(option);
+  });
+}
+
+/**
  * Creates a drop down item or header
  * @param {HTMLElement} target target element
  * @param {array} items array of items for the drop down
@@ -218,4 +232,30 @@ export function createAceEditor(domId, sessionMode, readOnly) {
   }
 
   return result;
+}
+
+/**
+ * Links the hidden input element for validation to the table
+ * @param {HTMLElement} tableElement tbody that is validated
+ * @param {HTMLElement} inputElement input element with validation
+ */
+export function addValidatorToTable(tableElement, inputElement) {
+  tableElement.addEventListener('click', () => {
+    inputElement.classList.remove('is-invalid');
+  });
+}
+
+/**
+ * Adjust selection of a table
+ * @param {HTMLElement} tbody table with the data
+ * @param {function} condition evaluate if table row should be selected or not
+ */
+export function tableAdjustSelection(tbody, condition) {
+  Array.from(tbody.rows).forEach((row) => {
+    if (condition(row)) {
+      row.classList.add('table-active');
+    } else {
+      row.classList.remove('table-active');
+    }
+  });
 }

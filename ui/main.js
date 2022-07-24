@@ -19,6 +19,7 @@ import * as Fields from './modules/things/fields.js';
 import * as SearchFilter from './modules/things/searchFilter.js';
 import * as Things from './modules/things/things.js';
 import * as Connections from './modules/connections/connections.js';
+import * as Policies from './modules/policies/policies.js';
 import * as API from './modules/api.js';
 
 
@@ -29,6 +30,7 @@ document.addEventListener('DOMContentLoaded', async function() {
   document.getElementById('thingsHTML').innerHTML = await (await fetch('modules/things/things.html')).text();
   document.getElementById('fieldsHTML').innerHTML = await (await fetch('modules/things/fields.html')).text();
   document.getElementById('featuresHTML').innerHTML = await (await fetch('modules/things/features.html')).text();
+  document.getElementById('policyHTML').innerHTML = await (await fetch('modules/policies/policies.html')).text();
   document.getElementById('connectionsHTML').innerHTML =
       await (await fetch('modules/connections/connections.html')).text();
   document.getElementById('environmentsHTML').innerHTML =
@@ -41,6 +43,7 @@ document.addEventListener('DOMContentLoaded', async function() {
   await Fields.ready();
   await SearchFilter.ready();
   Features.ready();
+  Policies.ready();
   Connections.ready();
   Authorization.ready();
   Environments.ready();
@@ -87,6 +90,23 @@ document.addEventListener('DOMContentLoaded', async function() {
         window.dispatchEvent(new Event('resize'));
         resized = false;
       }
+    });
+  });
+
+  // Make all input field remove invalid marker on change
+  const {get, set} = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value');
+  document.querySelectorAll('input').forEach((input) => {
+    input.addEventListener('change', (event) => {
+      event.target.classList.remove('is-invalid');
+    });
+    Object.defineProperty(input, 'value', {
+      get() {
+        return get.call(this);
+      },
+      set(newVal) {
+        input.classList.remove('is-invalid');
+        return set.call(this, newVal);
+      },
     });
   });
 });

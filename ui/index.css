@@ -81,12 +81,13 @@ textarea {
 
 .table-wrap {
     height: 100%;
-    flex-grow: 1;
-    overflow-y: scroll;    
+    overflow-y: scroll;
+    border: 1px solid #ced4da;
 }
 
 .ace_container {
     position: relative;
+    border: 1px solid #ced4da;
 }
 
 .button_round_right {
@@ -119,6 +120,12 @@ textarea {
     height: 100%;
     display: flex;
     flex-direction: column;
+}
+
+.flex_column_part {
+    flex-grow: 1;
+    flex-basis: 0;
+    overflow: hidden;
 }
 
 .script_editor {

@@ -68,6 +68,10 @@ export async function ready() {
   document.getElementById('fieldUpdate').onclick = () => {
     Utils.assert(theFieldIndex >= 0, 'No field selected');
     const selectedField = Environments.current().fieldList[theFieldIndex];
+    const otherFields = Environments.current().fieldList.filter((elem, i) => i != theFieldIndex);
+    const mapped = otherFields.map((field) => field.path);
+    const cond = mapped.includes(selectedField.path);
+    console.log(cond);
     Utils.assert(!Environments.current().fieldList
         .filter((elem, i) => i != theFieldIndex)
         .map((field) => field.path)

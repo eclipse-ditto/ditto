@@ -32,14 +32,14 @@ export function ready() {
   document.getElementById('authorizeBearer').onclick = () => {
     Environments.current().useBasicAuth = false;
     Environments.current().bearer = dom.bearer.value;
-    Environments.environmentsJsonChanged();
+    Environments.environmentsJsonChanged('authorization');
   };
 
   document.getElementById('authorizeBasic').onclick = () => {
     Environments.current().useBasicAuth = true;
     Environments.current().usernamePassword = dom.userName.value + ':' + dom.password.value;
     Environments.current().usernamePasswordDevOps = dom.devOpsUserName.value + ':' + dom.devOpsPassword.value;
-    Environments.environmentsJsonChanged();
+    Environments.environmentsJsonChanged('authorization');
   };
 };
 

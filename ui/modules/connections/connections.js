@@ -21,6 +21,7 @@ import * as Environments from '../environments/environments.js';
 
 let dom = {
   connectionTemplateRadios: null,
+  selectConnectionTemplate: null,
   inputConnectionId: null,
   tbodyConnections: null,
   tbodyConnectionLogs: null,
@@ -78,6 +79,25 @@ export function ready() {
     setConnection(mergedConnection);
     API.callConnectionsAPI('createConnection', loadConnections, null, mergedConnection);
   };
+
+  dom.selectConnectionTemplate.onchange = () => {
+    const templateConnection = {};
+    if (API.env() !== 'things') {
+      templateConnection.id = Math.random().toString(36).replace('0.', '');
+    }
+    const newConnection = JSON.parse(JSON.stringify(
+        connectionTemplates[dom.selectConnectionTemplate.value]));
+
+    const mergedConnection = {...templateConnection, ...newConnection};
+    setConnection(mergedConnection);
+    connectionEditor.session.getUndoManager().markClean();
+  };
+
+  connectionEditor.on('input', () => {
+    if (!connectionEditor.session.getUndoManager().isClean()) {
+      dom.selectConnectionTemplate.value = null;
+    }
+  });
 
   dom.tbodyConnections.addEventListener('click', (event) => {
     if (event.target && event.target.tagName === 'TD') {
@@ -233,9 +253,8 @@ function loadConnectionTemplates() {
       .then((response) => {
         response.json().then((loadedTemplates) => {
           connectionTemplates = loadedTemplates;
-          Object.keys(connectionTemplates).forEach((templateName, i) => {
-            Utils.addRadioButton(dom.connectionTemplateRadios, 'connectionTemplate', templateName, i == 0);
-          });
+          Utils.setOptions(dom.selectConnectionTemplate, Object.keys(connectionTemplates));
+          dom.selectConnectionTemplate.value = null;
         });
       });
 }

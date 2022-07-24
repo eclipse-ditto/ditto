@@ -1,0 +1,132 @@
+<div>
+    <h5>Policy</h5>
+    <hr />
+    <div class="row resizable_pane" style="height: 200px;">
+        <div class="col-md-4 resizable_flex_column">
+            <div class="input-group input-group-sm mb-1 mt-1 has-validation" role="group">
+                <input type="text" class="form-control form-control-sm" placeholder="policyId" id="inputPolicyId"></input>
+                <button id="buttonLoadPolicy" class="btn btn-outline-secondary btn-sm"
+                    title="Load policy with the given ID">
+                    load
+                </button>
+                <div class="invalid-feedback"></div>
+            </div>
+        </div>
+        <div class="col-md-4 resizable_flex_column">
+            <h6>Who am I</h6>
+            <div class="table-wrap">
+                <table class="table table-striped table-hover table-sm">
+                    <tbody id="tbodyWhoami"></tbody>
+                </table>
+            </div>
+        </div>
+        <div class="col-md-4 resizable_flex_column">
+            <h6>Subject Clipboard</h6>
+            <div class="table-wrap">
+                <table class="table table-striped table-hover table-sm" style="margin-bottom: 0;">
+                    <tbody id="tbodyClipboard"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    <h5>Policy Entries</h5>
+    <hr />
+    <div class="row resizable_pane" style="height: 400px;">
+        <div class="col-md-4 resizable_flex_column">
+            <div class="input-group input-group-sm mb-1 mt-1 has-validation">
+                <label class="input-group-text">Entry</label>
+                <input type="text" class="form-control form-control-sm" id="inputPolicyEntry"></input>
+                <button id="buttonCreatePolicyEntry" class="btn btn-outline-secondary btn-sm"
+                    title="Create a policy entry with the given name">
+                    <i class="bi bi-plus-circle"></i>
+                </button>
+                <button id="buttonDeletePolicyEntry" class="btn btn-outline-secondary btn-sm"
+                    title="Delete the selected policy entry">
+                    <i class="bi bi-trash3"></i>
+                </button>
+                <div class="invalid-feedback"></div>
+            </div>
+            <div class="input-group has-validation">
+                <input class="form-control" id="tableValidationEntries" hidden="true"></input>
+                <div class="invalid-feedback"></div>
+            </div>
+            <div class="table-wrap">
+                <table class="table table-striped table-hover table-sm">
+                    <tbody id="tbodyPolicyEntries"></tbody>
+                </table>
+            </div>
+        </div>
+        <div class="col-md-8 resizable_flex_column">
+            <h6>Subjects</h6>
+            <div class="row flex_column_part">
+                <div class="col-md-6 resizable_flex_column">
+                    <div class="input-group has-validation">
+                        <input class="form-control" id="tableValidationSubjects" hidden="true"></input>
+                        <div class="invalid-feedback"></div>
+                    </div>
+                    <div class="table-wrap">
+                        <table class="table table-striped table-hover table-sm">
+                            <tbody id="tbodyPolicySubjects"></tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="col-md-6 resizable_flex_column">
+                    <div class="input-group input-group-sm mb-1 mt-1 has-validation">
+                        <label class="input-group-text">Subject</label>
+                        <input type="text" class="form-control form-control-sm" id="inputSubjectId"></input>
+                        <button class="btn btn-outline-secondary btn-sm" id="buttonCreatePolicySubject">
+                            <i class="bi bi-plus-circle"></i>
+                        </button>
+                        <button class="btn btn-outline-secondary btn-sm" id="buttonSavePolicySubject">
+                            <i class="bi bi-save"></i>
+                        </button>
+                        <button class="btn btn-outline-secondary btn-sm" id="buttonDeletePolicySubject">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                        <div class="invalid-feedback"></div>
+                    </div>
+                    <div class="ace_container" style="flex-grow: 1;">
+                        <div class="script_editor" id="subjectEditor"></div>
+                    </div>        
+                </div>
+            </div>
+            <h6>Ressources</h6>
+            <div class="row flex_column_part" style="flex-grow: 2;">
+                <div class="col-md-6 resizable_flex_column">
+                    <div class="input-group has-validation">
+                        <input class="form-control" id="tableValidationResources" hidden="true"></input>
+                        <div class="invalid-feedback"></div>
+                    </div>
+                    <div class="table-wrap">
+                        <table class="table table-striped table-hover table-sm">
+                            <tbody id="tbodyPolicyResources"></tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="col-md-6 resizable_flex_column">
+                    <div class="input-group input-group-sm mb-1 mt-1 has-validation">
+                        <label class="input-group-text">Ressource</label>
+                        <input type="text" class="form-control form-control-sm" id="inputResourceId"></input>
+                        <button class="btn btn-outline-secondary btn-sm" id="buttonCreatePolicyResource">
+                            <i class="bi bi-plus-circle"></i>
+                        </button>
+                        <button class="btn btn-outline-secondary btn-sm" id="buttonSavePolicyResource">
+                            <i class="bi bi-save"></i>
+                        </button>
+                        <button class="btn btn-outline-secondary btn-sm" id="buttonDeletePolicyResource">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                        <div class="invalid-feedback"></div>
+                    </div>
+                    <div class="input-group input-group-sm mb-1">
+                        <label class="input-group-text">Template</label>
+                        <select type="text" class="form-select form-select-sm" id="selectResourceTemplates"></select>
+                    </div>
+                    <div class="ace_container" style="flex-grow: 1;">
+                        <div class="script_editor" id="resourceEditor"></div>
+                    </div>        
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

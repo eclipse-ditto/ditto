@@ -212,14 +212,14 @@ export function refreshThing(thingId) {
   API.callDittoREST('GET',
       `/things/${thingId}?fields=thingId%2Cattributes%2Cfeatures%2C_created%2C_modified%2C_revision%2C_policy`)
       .then((thing) => setTheThing(thing))
-      .catch(() => setTheThing(null));
+      .catch(() => setTheThing());
 };
 
 /**
  * Update all UI components for the given Thing
  * @param {Object} thingJson Thing json
  */
-export function setTheThing(thingJson) {
+function setTheThing(thingJson) {
   theThing = thingJson;
 
   updateThingDetailsTable();

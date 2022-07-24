@@ -59,6 +59,11 @@
                             Things
                         </a>
                     </li>
+                    <li class="nav-item" id="tabPolicies">
+                        <a class="nav-link" data-bs-target="#collapsePolicies:not(.show)" data-bs-toggle="collapse">
+                            Policies
+                        </a>
+                    </li>
                     <li class="nav-item" id="tabConnections">
                         <a class="nav-link" data-bs-target="#collapseConnections:not(.show)" data-bs-toggle="collapse">
                             Connections
@@ -84,6 +89,9 @@
         <div class="collapse show" id="collapseThings" data-bs-parent="#page-content">
             <div id="thingsHTML"></div>
             <div id="featuresHTML"></div>
+        </div>
+        <div class="collapse" id=collapsePolicies data-bs-parent="#page-content">
+            <div id="policyHTML"></div>
         </div>
         <div class="collapse" id=collapseConnections data-bs-parent="#page-content">
             <div id="connectionsHTML"></div>
