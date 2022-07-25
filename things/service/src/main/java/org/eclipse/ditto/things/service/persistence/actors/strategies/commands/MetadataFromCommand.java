@@ -20,6 +20,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.function.Consumer;
+import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -33,13 +34,16 @@ import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.metadata.MetadataHeader;
 import org.eclipse.ditto.base.model.headers.metadata.MetadataHeaderKey;
+import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.signals.WithOptionalEntity;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingsModelFactory;
+import org.eclipse.ditto.things.model.signals.commands.ThingCommandSizeValidator;
 import org.eclipse.ditto.things.model.signals.commands.modify.CreateThing;
 import org.eclipse.ditto.things.model.signals.commands.modify.MergeThing;
 
@@ -51,6 +55,9 @@ import org.eclipse.ditto.things.model.signals.commands.modify.MergeThing;
  */
 @Immutable
 final class MetadataFromCommand implements Supplier<Metadata> {
+
+    private static final Predicate<JsonField> FIELDS_NOT_HIDDEN_OR_METADATA = FieldType.notHidden()
+            .or(jsonField -> Objects.equals(Thing.JsonFields.METADATA.getPointer(), jsonField.getKey().asPointer()));
 
     private final Command<?> command;
     private final Thing mergedThing;
@@ -133,7 +140,20 @@ final class MetadataFromCommand implements Supplier<Metadata> {
                 final var expandedMetadataHeaders = metadataHeaders.stream()
                         .flatMap(this::expandWildcards)
                         .collect(Collectors.toCollection(LinkedHashSet::new));
-                return buildMetadata(optionalJsonValue.get(), expandedMetadataHeaders);
+
+                final var metadata = buildMetadata(optionalJsonValue.get(), expandedMetadataHeaders);
+
+                final var thingJsonObject = mergedThing.toBuilder()
+                        .setMetadata(metadata)
+                        .build()
+                        .toJson(FIELDS_NOT_HIDDEN_OR_METADATA);
+
+                ThingCommandSizeValidator.getInstance().ensureValidSize(
+                        thingJsonObject::getUpperBoundForStringSize,
+                        () -> thingJsonObject.toString().length(),
+                        command::getDittoHeaders);
+
+                return metadata;
             }
             return existingMetadata;
         });

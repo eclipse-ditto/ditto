@@ -13,6 +13,7 @@
 package org.eclipse.ditto.things.service.persistence.actors.strategies.commands;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
@@ -32,8 +33,13 @@ import org.eclipse.ditto.things.model.FeatureDefinition;
 import org.eclipse.ditto.things.model.FeatureProperties;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingId;
+import org.eclipse.ditto.things.model.ThingTooLargeException;
+import org.eclipse.ditto.things.model.ThingsModelFactory;
+import org.eclipse.ditto.things.model.signals.commands.TestConstants;
+import org.eclipse.ditto.things.model.signals.commands.modify.CreateThing;
 import org.eclipse.ditto.things.model.signals.commands.modify.MergeThing;
 import org.eclipse.ditto.things.model.signals.commands.modify.ModifyFeature;
+import org.eclipse.ditto.things.model.signals.commands.modify.ModifyThing;
 import org.eclipse.ditto.things.model.signals.commands.modify.ThingModifyCommand;
 
 import org.junit.Before;
@@ -232,6 +238,33 @@ public final class MetadataFromCommandTest {
         assertThat(underTest.get())
                 .isNotEmpty()
                 .doesNotContain(JsonField.newInstance("/properties/capacitorNr", JsonValue.of("unlimited")));
+    }
+
+    @Test
+    public void ensureMaxThingSizeWithMetadata() {
+        final StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < TestConstants.THING_SIZE_LIMIT_BYTES; i++) {
+            sb.append('a');
+        }
+        final var thingId = ThingId.of("test.ns", "foo-bar");
+        final var thing = ThingsModelFactory.newThingBuilder()
+                .setLifecycle(TestConstants.Thing.LIFECYCLE)
+                .setPolicyId(TestConstants.Thing.POLICY_ID)
+                .setId(thingId)
+                .setAttribute(JsonPointer.of("foo"), JsonValue.of("bar"))
+                .build();
+
+        final var dittoHeaders = DittoHeaders.newBuilder()
+                .putMetadata(MetadataHeaderKey.parse("attributes/foo/meta"), JsonObject.newBuilder()
+                        .set("description", sb.toString())
+                        .build())
+                .build();
+
+        final var modifyThing = ModifyThing.of(thingId, thing, null, dittoHeaders);
+
+        final var metadataFromCommand = MetadataFromCommand.of(modifyThing, null, null);
+
+        assertThatExceptionOfType(ThingTooLargeException.class).isThrownBy(metadataFromCommand::get);
     }
 
 }
