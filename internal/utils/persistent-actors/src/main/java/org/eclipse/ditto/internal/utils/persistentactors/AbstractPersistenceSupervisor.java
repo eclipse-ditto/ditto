@@ -522,8 +522,9 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
     }
 
     private void forwardDittoSudoToChildIfAvailable(final WithDittoHeaders withDittoHeaders) {
+        final var sender = sender();
         if (null != persistenceActorChild) {
-            if (persistenceActorChild.equals(getSender())) {
+            if (persistenceActorChild.equals(sender)) {
                 log.withCorrelationId(withDittoHeaders)
                         .warning("Received unhandled WithDittoHeaders from persistenceActorChild '{}': {}", entityId,
                                 withDittoHeaders);
@@ -536,10 +537,15 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
                 } else {
                     SUDO_COMMANDS_COUNTER.increment();
                 }
-                persistenceActorChild.forward(withDittoHeaders, getContext());
+                if (withDittoHeaders instanceof Signal<?> signal) {
+                    signalTransformer.apply(signal)
+                            .thenAccept(transformed -> persistenceActorChild.tell(transformed, sender));
+                } else {
+                    persistenceActorChild.tell(withDittoHeaders, sender);
+                }
             }
         } else {
-            replyUnavailableException(withDittoHeaders, getSender());
+            replyUnavailableException(withDittoHeaders, sender);
         }
     }
 
