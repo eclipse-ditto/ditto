@@ -305,7 +305,7 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
         killSwitch = null;
         final var writeResultAndErrors = result.resultAndErrors();
         final var pair = BulkWriteResultAckFlow.checkBulkWriteResult(writeResultAndErrors);
-        pair.second().forEach(log::info);
+        pair.second().forEach(log::debug);
         if (shuttingDown) {
             log.info("Shutting down after completing persistence operation");
             return stop();
