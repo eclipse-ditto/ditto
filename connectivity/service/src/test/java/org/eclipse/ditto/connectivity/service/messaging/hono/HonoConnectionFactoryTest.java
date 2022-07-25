@@ -12,7 +12,11 @@
  */
 package org.eclipse.ditto.connectivity.service.messaging.hono;
 
+import static org.junit.Assert.assertEquals;
+
+import java.io.IOException;
 import java.net.URI;
+import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -25,24 +29,91 @@ import org.eclipse.ditto.connectivity.model.Topic;
 import org.eclipse.ditto.connectivity.model.UserPasswordCredentials;
 import org.eclipse.ditto.connectivity.service.config.DefaultHonoConfig;
 import org.eclipse.ditto.connectivity.service.config.HonoConfig;
+import org.eclipse.ditto.internal.utils.akka.ActorSystemResource;
+import org.eclipse.ditto.json.JsonObject;
+import org.junit.Before;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.junit.MockitoJUnitRunner;
 
-import akka.actor.ActorSystem;
+import com.typesafe.config.ConfigFactory;
 
-public abstract class HonoConnectionFactory {
+@RunWith(MockitoJUnitRunner.class)
+public class HonoConnectionFactoryTest {
 
-    protected final ActorSystem actorSystem;
-    protected final Connection connection;
-    protected final HonoConfig honoConfig;
+    private static final String TEST_USERNAME = "test-username";
+    private static final String TEST_PASSWORD = "test-password";
+    private static final String TEST_TENANT_ID = "test-tenant-id";
+    @Rule
+    public final ActorSystemResource actorSystemResource=
+            ActorSystemResource.newInstance(ConfigFactory.load("test"));
+    private Connection testConnection;
 
-    protected HonoConnectionFactory(ActorSystem actorSystem, Connection connection) {
-        this.actorSystem = actorSystem;
-        this.connection = connection;
-        this.honoConfig = new DefaultHonoConfig(actorSystem);
+    private HonoConnectionFactory underTest;
+
+    @Before
+    public void setup() {
+        honoConfig = new DefaultHonoConfig(actorSystemResource.getActorSystem());
+        testConnection = ConnectivityModelFactory.connectionFromJson(getResource("test-connection.json"));
+    }
+    public final UserPasswordCredentials testCredentials =
+            UserPasswordCredentials.newInstance(TEST_USERNAME, TEST_PASSWORD);
+
+
+    private HonoConfig honoConfig;
+
+    @Test
+    public void testEnrichConnectionWithoutTenantId() {
+        verifyConnection(true);
     }
 
-    protected abstract UserPasswordCredentials getCredentials();
+    @Test
+    public void testEnrichConnectionWithTenantId() {
+        verifyConnection(false);
+    }
 
-    protected abstract String getTenantId();
+    private void verifyConnection(boolean withTenantId) {
+        underTest = getInstance(withTenantId);
+        var expected = enrichTestConnection();
+        assertEquals(expected, underTest.enrichConnection());
+    }
+
+    private HonoConnectionFactory getInstance(boolean withTenantId) {
+        if (withTenantId) {
+            return new HonoConnectionFactory(actorSystemResource.getActorSystem(), testConnection) {
+                @Override
+                protected UserPasswordCredentials getCredentials() {
+                    return testCredentials;
+                }
+
+                @Override
+                protected String getTenantId() {
+                    return TEST_TENANT_ID;
+                }
+            };
+        } else {
+            return new HonoConnectionFactory(actorSystemResource.getActorSystem(), testConnection) {
+                @Override
+                protected UserPasswordCredentials getCredentials() {
+                    return testCredentials;
+                }
+
+                @Override
+                protected String getTenantId() {
+                    return "";
+                }
+            };
+        }
+    }
+    private static JsonObject getResource(final String fileName) {
+        try (var resourceStream = HonoConnectionFactoryTest.class.getClassLoader().getResourceAsStream(fileName)) {
+            assert resourceStream != null;
+            return JsonObject.of(new String(resourceStream.readAllBytes(), StandardCharsets.UTF_8));
+        } catch (IOException e) {
+            throw new RuntimeException("Test resource not found: " + fileName);
+        }
+    }
 
     private static String getBootstrapServerUrisAsCommaSeparatedListString(final HonoConfig honoConfig) {
         return honoConfig.getBootstrapServerUris()
@@ -51,24 +122,24 @@ public abstract class HonoConnectionFactory {
                 .collect(Collectors.joining(","));
     }
 
-    public Connection enrichConnection() {
-        final var connectionId = connection.getId();
-        return ConnectivityModelFactory.newConnectionBuilder(connection)
+    public Connection enrichTestConnection() {
+        final var connectionId = testConnection.getId();
+        return ConnectivityModelFactory.newConnectionBuilder(testConnection)
                 .uri(honoConfig.getBaseUri().toString())
                 .validateCertificate(honoConfig.isValidateCertificates())
                 .specificConfig(Map.of(
                         "saslMechanism", honoConfig.getSaslMechanism().toString(),
                         "bootstrapServers", getBootstrapServerUrisAsCommaSeparatedListString(honoConfig),
-                        "groupId", (getTenantId().isEmpty() ? "" : getTenantId() + "_") + connectionId)
+                        "groupId", (underTest.getTenantId().isEmpty() ? "" : underTest.getTenantId() + "_") + connectionId)
                 )
-                .credentials(getCredentials())
-                .setSources(connection.getSources()
+                .credentials(underTest.getCredentials())
+                .setSources(testConnection.getSources()
                         .stream()
-                        .map(source -> resolveSourceAliases(source, getTenantId()))
+                        .map(source -> resolveSourceAliases(source, underTest.getTenantId()))
                         .toList())
-                .setTargets(connection.getTargets()
+                .setTargets(testConnection.getTargets()
                         .stream()
-                        .map(target -> resolveTargetAlias(target, getTenantId()))
+                        .map(target -> resolveTargetAlias(target, underTest.getTenantId()))
                         .toList())
                 .build();
     }

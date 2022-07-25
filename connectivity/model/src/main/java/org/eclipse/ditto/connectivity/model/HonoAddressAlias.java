@@ -105,7 +105,7 @@ public enum HonoAddressAlias {
         String suffix = thingSuffix ? "/{{thing:id}}" : "";
         return fromName(alias)
                 .map(found -> "hono." + found.getName() + (tenantId.isEmpty() ? "" : "." + tenantId) + suffix)
-                .orElse(alias);
+                .orElse("");
     }
 
     /**
