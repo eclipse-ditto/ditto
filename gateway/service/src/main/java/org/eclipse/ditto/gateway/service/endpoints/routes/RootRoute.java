@@ -225,22 +225,35 @@ public final class RootRoute extends AllDirectives {
             final Map<String, String> queryParameters) {
 
         return rawPathPrefix(PathMatchers.slash().concat(HTTP_PATH_API_PREFIX), () -> // /api
-                ensureSchemaVersion(apiVersion -> // /api/<apiVersion>
-                        customApiRoutesProvider.unauthorized(routeBaseProperties, apiVersion, correlationId).orElse(
-                                apiAuthentication(apiVersion, correlationId, auth -> {
-                                            final CompletionStage<DittoHeaders> dittoHeadersPromise =
-                                                    rootRouteHeadersStepBuilder
-                                                            .withInitialDittoHeadersBuilder(
-                                                                    auth.getDittoHeaders().toBuilder())
-                                                            .withRequestContext(ctx)
-                                                            .withQueryParameters(queryParameters)
-                                                            .build(CustomHeadersHandler.RequestType.API);
+                ensureSchemaVersion(apiVersion -> {// /api/<apiVersion>
+                    final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
+                            .schemaVersion(apiVersion)
+                            .correlationId(correlationId)
+                            .build();
+                    final CompletionStage<DittoHeaders> dittoHeadersPromise =
+                            rootRouteHeadersStepBuilder
+                                    .withInitialDittoHeadersBuilder(dittoHeaders.toBuilder())
+                                    .withRequestContext(ctx)
+                                    .withQueryParameters(queryParameters)
+                                    .build(CustomHeadersHandler.RequestType.API);
+                    return withDittoHeaders(dittoHeadersPromise, dh -> connectionsRoute.buildConnectionsRoute(ctx, dh))
+                            .orElse(customApiRoutesProvider.unauthorized(routeBaseProperties, apiVersion, correlationId).orElse(
+                                            apiAuthentication(apiVersion, correlationId, auth -> {
+                                                        final CompletionStage<DittoHeaders> dittoHeadersPromisee =
+                                                                rootRouteHeadersStepBuilder
+                                                                        .withInitialDittoHeadersBuilder(
+                                                                                auth.getDittoHeaders().toBuilder())
+                                                                        .withRequestContext(ctx)
+                                                                        .withQueryParameters(queryParameters)
+                                                                        .build(CustomHeadersHandler.RequestType.API);
 
-                                            return withDittoHeaders(dittoHeadersPromise,
-                                                    dittoHeaders -> buildApiSubRoutes(ctx, dittoHeaders, auth));
-                                        }
-                                )
-                        )
+                                                        return withDittoHeaders(dittoHeadersPromisee,
+                                                                dh -> buildApiSubRoutes(ctx, dh, auth));
+                                                    }
+                                            )
+                                    )
+                            );
+                        }
                 )
         );
     }

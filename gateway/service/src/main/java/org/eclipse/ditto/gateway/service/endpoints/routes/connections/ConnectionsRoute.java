@@ -1,16 +1,16 @@
 /*
- * Copyright Bosch Software Innovations GmbH 2017
+ * Copyright (c) 2022 Contributors to the Eclipse Foundation
  *
- * All rights reserved, also regarding any disposal, exploitation,
- * reproduction, editing, distribution, as well as in the event of
- * applications for industrial property rights.
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
  *
- * This software is the confidential and proprietary information
- * of Bosch Software Innovations GmbH. You shall not disclose
- * such Confidential Information and shall use it only in
- * accordance with the terms of the license agreement you
- * entered into with Bosch Software Innovations GmbH.
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
+ *
+ * SPDX-License-Identifier: EPL-2.0
  */
+
 package org.eclipse.ditto.gateway.service.endpoints.routes.connections;
 
 import static org.eclipse.ditto.base.model.exceptions.DittoJsonException.wrapJsonRuntimeException;
@@ -46,6 +46,8 @@ import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConne
 import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConnectionMetrics;
 import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConnectionStatus;
 import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConnections;
+import org.eclipse.ditto.gateway.service.endpoints.directives.auth.DevOpsOAuth2AuthenticationDirective;
+import org.eclipse.ditto.gateway.service.endpoints.directives.auth.DevopsAuthenticationDirective;
 import org.eclipse.ditto.gateway.service.endpoints.routes.AbstractRoute;
 import org.eclipse.ditto.gateway.service.endpoints.routes.RouteBaseProperties;
 import org.eclipse.ditto.json.JsonFactory;
@@ -73,6 +75,7 @@ public final class ConnectionsRoute extends AbstractRoute {
     private static final String PATH_LOGS = "logs";
 
     private final Set<String> mediaTypePlainTextWithFallbacks;
+    private DevopsAuthenticationDirective devopsAuthenticationDirective;
 
     /**
      * Constructs a {@code ConnectionsRoute} object.
@@ -80,8 +83,10 @@ public final class ConnectionsRoute extends AbstractRoute {
      * @param routeBaseProperties the base properties of the route.
      * @throws NullPointerException if {@code routeBaseProperties} is {@code null}.
      */
-    public ConnectionsRoute(final RouteBaseProperties routeBaseProperties) {
+    public ConnectionsRoute(final RouteBaseProperties routeBaseProperties,
+            final DevopsAuthenticationDirective devopsAuthenticationDirective) {
         super(routeBaseProperties);
+        this.devopsAuthenticationDirective = devopsAuthenticationDirective;
 
         final var httpConfig = routeBaseProperties.getHttpConfig();
         final var fallbackMediaTypes = httpConfig.getAdditionalAcceptedMediaTypes().stream();
@@ -96,7 +101,8 @@ public final class ConnectionsRoute extends AbstractRoute {
      * @return the {@code /connections} route.
      */
     public Route buildConnectionsRoute(final RequestContext ctx, final DittoHeaders dittoHeaders) {
-        return rawPathPrefix(PathMatchers.slash().concat(PATH_CONNECTIONS), () ->
+        return rawPathPrefix(PathMatchers.slash().concat(PATH_CONNECTIONS), () -> {// /connections
+            return devopsAuthenticationDirective.authenticateDevOps(DevOpsOAuth2AuthenticationDirective.REALM_DEVOPS,
                         concat(
                                 // /connections
                                 connections(ctx, dittoHeaders),
@@ -106,7 +112,8 @@ public final class ConnectionsRoute extends AbstractRoute {
                                                 ConnectionId.of(connectionId))
                                 )
                         )
-        );
+            );
+        });
     }
 
     private Route connectionRoute(final RequestContext ctx,

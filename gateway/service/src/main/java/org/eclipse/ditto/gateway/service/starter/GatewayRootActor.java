@@ -265,7 +265,7 @@ public final class GatewayRootActor extends DittoRootActor {
                 .thingsRoute(new ThingsRoute(routeBaseProperties,
                         gatewayConfig.getMessageConfig(),
                         gatewayConfig.getClaimMessageConfig()))
-                .connectionsRoute(new ConnectionsRoute(routeBaseProperties))
+                .connectionsRoute(new ConnectionsRoute(routeBaseProperties, devopsAuthenticationDirective))
                 .thingSearchRoute(new ThingSearchRoute(routeBaseProperties))
                 .whoamiRoute(new WhoamiRoute(routeBaseProperties))
                 .cloudEventsRoute(new CloudEventsRoute(routeBaseProperties, gatewayConfig.getCloudEventsConfig()))

@@ -1,16 +1,16 @@
 /*
- * Copyright Bosch.IO GmbH 2021
+ * Copyright (c) 2022 Contributors to the Eclipse Foundation
  *
- *  All rights reserved, also regarding any disposal, exploitation,
- *  reproduction, editing, distribution, as well as in the event of
- *  applications for industrial property rights.
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
  *
- *  This software is the confidential and proprietary information
- *  of Bosch.IO GmbH. You shall not disclose
- *  such Confidential Information and shall use it only in
- *  accordance with the terms of the license agreement you
- *  entered into with Bosch.IO GmbH.
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
+ *
+ * SPDX-License-Identifier: EPL-2.0
  */
+
 package org.eclipse.ditto.connectivity.model.signals.commands.exceptions;
 
 import java.net.URI;
