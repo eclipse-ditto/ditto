@@ -93,7 +93,7 @@ public final class SubUpdater extends akka.actor.AbstractActorWithTimers
     /**
      * Write consistency of the next message to the replicator.
      */
-    private Replicator.WriteConsistency nextWriteConsistency = defaultWriteConsistency();
+    private final Replicator.WriteConsistency writeConsistency;
 
     /**
      * Whether local subscriptions changed.
@@ -113,6 +113,7 @@ public final class SubUpdater extends akka.actor.AbstractActorWithTimers
         this.ddata = ddata;
         cluster = Cluster.get(getContext().getSystem());
         resetProbability = config.getResetProbability();
+        writeConsistency = ddata.getConfig().getSubscriptionWriteConsistency();
 
         // tag metrics by parent name + this name prefix
         // so that the tag is finite and distinct between twin and live topics and declared ack labels.
@@ -152,25 +153,6 @@ public final class SubUpdater extends akka.actor.AbstractActorWithTimers
                 .build()
                 .orElse(getClusterStateSyncBehavior())
                 .orElse(ReceiveBuilder.create().matchAny(this::logUnhandled).build());
-    }
-
-    private boolean isMoreConsistent(final Replicator.WriteConsistency a, final Replicator.WriteConsistency b) {
-        return rank(a) > rank(b);
-    }
-
-    // roughly rank write consistency from the most local to the most global.
-    private int rank(final Replicator.WriteConsistency a) {
-        if (writeLocal().equals(a)) {
-            return Integer.MIN_VALUE;
-        } else if (a instanceof Replicator.WriteAll) {
-            return Integer.MAX_VALUE;
-        } else if (a instanceof Replicator.WriteMajority) {
-            return ((Replicator.WriteMajority) a).minCap();
-        } else if (a instanceof Replicator.WriteTo) {
-            return ((Replicator.WriteTo) a).n();
-        } else {
-            return 0;
-        }
     }
 
     private void subscribe(final Subscribe subscribe) {
@@ -213,12 +195,11 @@ public final class SubUpdater extends akka.actor.AbstractActorWithTimers
         // reset changed flags if there are no more pending changes
         if (awaitSubAck.isEmpty() && awaitUpdate.isEmpty()) {
             localSubscriptionsChanged = false;
-            nextWriteConsistency = writeLocal();
         }
     }
 
     private void tick(final Clock tick) {
-        performDDataOp(localSubscriptionsChanged, nextWriteConsistency)
+        performDDataOp(localSubscriptionsChanged, writeConsistency)
                 .handle(handleDDataWriteResult(getSeqNr()));
         moveAwaitUpdateToAwaitAcknowledge();
     }
@@ -234,7 +215,7 @@ public final class SubUpdater extends akka.actor.AbstractActorWithTimers
         final SubscriptionsReader snapshot = subscriptions.snapshot();
         final CompletionStage<Void> ddataOp;
         log().debug("Tick seq=<{}> changed=<{}> empty=<{}> writeConsistency=<{}>", seqNr, localSubscriptionsChanged,
-                subscriptions.isEmpty(), nextWriteConsistency);
+                subscriptions.isEmpty(), writeConsistency);
         if (resetProbability > 0 && Math.random() < resetProbability) {
             log().debug("Resetting ddata topics: <{}>", getSelf());
             ddataOp = ddata.getWriter().reset(subscriber, subscriptions.export(), writeConsistency);
@@ -290,7 +271,6 @@ public final class SubUpdater extends akka.actor.AbstractActorWithTimers
     private void enqueueRequest(final Request request, final boolean changed, final ActorRef sender,
             final Collection<SubAck> queue, final Gauge queueSizeMetric, final boolean consistent) {
         localSubscriptionsChanged |= changed;
-        upgradeWriteConsistency(request.getWriteConsistency());
         if (request.shouldAcknowledge()) {
             final SubAck subAck = SubAck.of(request, sender, ++seqNr, consistent);
             queue.add(subAck);
@@ -391,15 +371,8 @@ public final class SubUpdater extends akka.actor.AbstractActorWithTimers
         subscriptions.clear();
         awaitUpdate.clear();
         awaitSubAck.clear();
-        nextWriteConsistency = writeLocal();
 
         // subscriber will recover from this error on its own.
-    }
-
-    private void upgradeWriteConsistency(final Replicator.WriteConsistency nextWriteConsistency) {
-        if (isMoreConsistent(nextWriteConsistency, this.nextWriteConsistency)) {
-            this.nextWriteConsistency = nextWriteConsistency;
-        }
     }
 
     @Override
