@@ -15,16 +15,25 @@ import org.eclipse.ditto.protocol.adapter.DittoProtocolAdapter;
 import org.eclipse.ditto.protocol.adapter.ProtocolAdapter;
 import org.eclipse.ditto.things.model.ThingId;
 import org.junit.Before;
-
+import org.junit.Test;
+import static org.junit.Assert.assertEquals;
 public class TestMapperTest {
 
     private static final ThingId THING_ID = ThingId.of("thing:id");
     private static final ProtocolAdapter ADAPTER = DittoProtocolAdapter.newInstance();
 
-    private MessageMapper underTest;
+    String payload = "{\"specversion\": \"1.0\", \"id\":\"3212e\", \"source\":\"http:somesite.com\",\"type\":\"com.site.com\"}";
+    private TestMapper underTest;
 
     @Before
     public void setUp() {
         underTest = new TestMapper();
+    }
+
+    @Test
+    public void validatePayload(){
+        Boolean expected = true;
+        Boolean actual = underTest.validatePayload(payload);
+        assertEquals(expected,actual);
     }
 }
