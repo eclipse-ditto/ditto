@@ -98,8 +98,8 @@ public final class TestMapper extends AbstractMessageMapper {
     final String SOURCE = "source";
     final String TYPE = "type";
 //    public static void main(String[] args) {
-//        String test ="{\"specversion\": \"1.0\", \"id\":\"3212e\", \"source\":\"http:somesite.com\",\"type\":\"com.site.com\"}";
-//        validatePayload(test);
+//        String test ="{\"specversion\": \"1.0\", \"id\":\"3212e\", \"source\":\"http:somesite.com\",\"type\":\"com.site.com\",\"data\":{\"topic\":\"org.eclipse.ditto/sensor/things/twin/commands/modify\",\"path\":\"/\",\"value\":53}}";
+//        extractData(test);
 //    }
     public boolean validatePayload(String payload){
         Map<String, Object> incomingMessagePayload = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
@@ -121,22 +121,47 @@ public final class TestMapper extends AbstractMessageMapper {
         }
 
     }
+
+    public static JsonifiableAdaptable extractData(final String message){
+        Map<String,String> payloadMap = new HashMap<>();
+        final JsonObject payloadJson = JsonFactory.newObject(message);
+        List<JsonKey> payloadKey = payloadJson.getKeys();
+        for(JsonKey key: payloadKey){
+            Object value = payloadJson.getValue(key).orElse(null);
+                if(value!=null){
+                    payloadMap.put(key.toString(),value.toString());
+                }
+        }
+        String data = payloadMap.get("data");
+        System.out.println(data);
+        final JsonifiableAdaptable jsonifiableAdaptable =DittoJsonException.wrapJsonRuntimeException(() ->
+                ProtocolFactory.jsonifiableAdaptableFromJson(JsonFactory.newObject(data))
+        );
+        return jsonifiableAdaptable;
+//        System.out.println(singletonList(
+//                ProtocolFactory.newAdaptableBuilder(jsonifiableAdaptable).build()));
+    }
     @Override
     public List<Adaptable> map(final ExternalMessage message) {
 
-
         final String payload = extractPayloadAsString(message);
-        System.out.println("TestMapper payload is" + payload);
-        final JsonifiableAdaptable jsonifiableAdaptable = DittoJsonException.wrapJsonRuntimeException(() ->
-                ProtocolFactory.jsonifiableAdaptableFromJson(JsonFactory.newObject(payload))
-        );
-        System.out.println("TestMapper jsonifiable Adaptable is" + jsonifiableAdaptable);
-        final DittoHeaders mergedHeaders = jsonifiableAdaptable.getDittoHeaders();
-        System.out.println("TestMapper mergedHeaders is" + mergedHeaders);
-        System.out.println("TestMapper map External message message returns" + singletonList(
-                ProtocolFactory.newAdaptableBuilder(jsonifiableAdaptable).withHeaders(mergedHeaders).build()));
-        return singletonList(
-                ProtocolFactory.newAdaptableBuilder(jsonifiableAdaptable).withHeaders(mergedHeaders).build());
+        if(validatePayload(payload)){
+            System.out.println("This is a CloudEvent");
+            JsonifiableAdaptable adaptable = extractData(payload);
+            System.out.println(singletonList(
+                    ProtocolFactory.newAdaptableBuilder(adaptable).build()));
+            return singletonList(
+                    ProtocolFactory.newAdaptableBuilder(adaptable).build());
+        }
+
+        else{
+            try {
+                throw new Exception("This isn't a CloudEvent");
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        }
+
     }
 
     @Override
