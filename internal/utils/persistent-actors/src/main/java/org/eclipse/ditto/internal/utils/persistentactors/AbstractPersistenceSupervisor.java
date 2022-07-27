@@ -539,6 +539,7 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
                 }
                 if (withDittoHeaders instanceof Signal<?> signal) {
                     signalTransformer.apply(signal)
+                            .whenComplete((result, error) -> handleOptionalTransformationException(signal, error, sender))
                             .thenAccept(transformed -> persistenceActorChild.tell(transformed, sender));
                 } else {
                     persistenceActorChild.tell(withDittoHeaders, sender);
@@ -546,6 +547,21 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
             }
         } else {
             replyUnavailableException(withDittoHeaders, sender);
+        }
+    }
+
+    private void handleOptionalTransformationException(final Signal<?> signal,
+            @Nullable final Throwable error, final ActorRef sender) {
+
+        if (error != null) {
+            log.withCorrelationId(signal)
+                    .info("Got error during signal transformation: <{}>", error);
+            final var dre = DittoRuntimeException.asDittoRuntimeException(error,
+                    reason -> DittoInternalErrorException.newBuilder()
+                            .dittoHeaders(signal.getDittoHeaders())
+                            .cause(reason)
+                            .build());
+            sender.tell(dre, ActorRef.noSender());
         }
     }
 
@@ -572,18 +588,7 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
                     becomeTwinSignalProcessingAwaiting();
                 }
                 final CompletionStage<Control> syncCs = signalTransformer.apply(signal)
-                        .whenComplete((result, error) -> {
-                            if (error != null) {
-                                log.withCorrelationId(signal)
-                                        .info("Got error during signal transformation: <{}>", error);
-                                final var dre = DittoRuntimeException.asDittoRuntimeException(error,
-                                        reason -> DittoInternalErrorException.newBuilder()
-                                                .dittoHeaders(signal.getDittoHeaders())
-                                                .cause(reason)
-                                                .build());
-                                sender.tell(dre, ActorRef.noSender());
-                            }
-                        })
+                        .whenComplete((result, error) -> handleOptionalTransformationException(signal, error, sender))
                         .thenCompose(transformed -> enforceSignalAndForwardToTargetActor((S) transformed, sender)
                                 .handle((response, throwable) -> {
                                     handleSignalEnforcementResponse(response, throwable, transformed, sender);
