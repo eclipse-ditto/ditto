@@ -159,6 +159,9 @@ entries:
           - title: Operating Ditto
             url: /installation-operating.html
             output: web
+          - title: Extending Ditto
+            url: /installation-extending.html
+            output: web
 
       - title: Basic concepts
         output: web
