@@ -13,25 +13,28 @@
 package org.eclipse.ditto.connectivity.service.messaging.hono;
 
 import java.net.URI;
+import java.util.Collection;
+import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
+import org.eclipse.ditto.connectivity.model.FilteredTopic;
+import org.eclipse.ditto.connectivity.model.HeaderMapping;
 import org.eclipse.ditto.connectivity.model.HonoAddressAlias;
-import org.eclipse.ditto.connectivity.model.ImmutableHeaderMapping;
+import org.eclipse.ditto.connectivity.model.ReplyTarget;
 import org.eclipse.ditto.connectivity.model.Source;
 import org.eclipse.ditto.connectivity.model.Target;
 import org.eclipse.ditto.connectivity.model.Topic;
 import org.eclipse.ditto.connectivity.model.UserPasswordCredentials;
 import org.eclipse.ditto.connectivity.service.config.DefaultHonoConfig;
 import org.eclipse.ditto.connectivity.service.config.HonoConfig;
-import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonValue;
 
 import akka.actor.ActorSystem;
 
@@ -45,16 +48,10 @@ public abstract class HonoConnectionFactory {
         honoConfig = new DefaultHonoConfig(actorSystem);
     }
 
-    protected abstract UserPasswordCredentials getCredentials();
-
-    protected abstract String getTenantId();
-
     public Connection enrichConnection() {
         final var tenantId = getTenantId();
-        return ConnectivityModelFactory.newConnectionBuilder(connection.getId(),
-                        connection.getConnectionType(),
-                        connection.getConnectionStatus(),
-                        honoConfig.getBaseUri().toString())
+        return ConnectivityModelFactory.newConnectionBuilder(connection)
+                .uri(honoConfig.getBaseUri().toString())
                 .validateCertificate(honoConfig.isValidateCertificates())
                 .specificConfig(Map.of(
                         "saslMechanism", honoConfig.getSaslMechanism().toString(),
@@ -62,17 +59,12 @@ public abstract class HonoConnectionFactory {
                         "groupId", (tenantId.isEmpty() ? "" : tenantId + "_") + connection.getId())
                 )
                 .credentials(getCredentials())
-                .sources(connection.getSources()
-                        .stream()
-                        .map(source -> ConnectivityModelFactory.sourceFromJson(
-                                resolveSourceAliases(source, tenantId), 1))
-                        .toList())
-                .targets(connection.getTargets()
-                        .stream()
-                        .map(target -> ConnectivityModelFactory.targetFromJson(resolveTargetAlias(target, tenantId)))
-                        .toList())
+                .setSources(getSources(connection.getSources(), tenantId))
+                .setTargets(getTargets(connection.getTargets(), tenantId))
                 .build();
     }
+
+    protected abstract String getTenantId();
 
     private static String getBootstrapServerUrisAsCommaSeparatedListString(final HonoConfig honoConfig) {
         return honoConfig.getBootstrapServerUris()
@@ -81,41 +73,54 @@ public abstract class HonoConnectionFactory {
                 .collect(Collectors.joining(","));
     }
 
-    private static JsonObject resolveSourceAliases(final Source source, final CharSequence tenantId) {
-        final var sourceBuilder = JsonFactory.newObjectBuilder(source.toJson())
-                .set(Source.JsonFields.ADDRESSES, resolveSourceAddresses(source.getAddresses(), tenantId)
-                        .map(JsonValue::of)
-                        .collect(JsonCollectors.valuesToArray()));
-        source.getReplyTarget().ifPresent(replyTarget -> {
-            var headerMapping = replyTarget.getHeaderMapping().toJson()
-                    .setValue("correlation-id", "{{ header:correlation-id }}");
-            if (HonoAddressAlias.COMMAND.getAliasValue().equals(replyTarget.getAddress())) {
-                headerMapping = headerMapping
-                        .setValue("device_id", "{{ thing:id }}")
-                        .setValue("subject",
-                                "{{ header:subject | fn:default(topic:action-subject) | fn:default(topic:criterion) }}-response");
-            }
-            sourceBuilder.set("replyTarget", replyTarget.toBuilder()
-                    .address(resolveTargetAddress(replyTarget.getAddress(), tenantId))
-                    .headerMapping(ImmutableHeaderMapping.fromJson(headerMapping))
-                    .build().toJson());
-        });
-        if (source.getAddresses().contains(HonoAddressAlias.COMMAND_RESPONSE.getAliasValue())) {
-            sourceBuilder.set("headerMapping", source.getHeaderMapping().toJson()
-                    .setValue("correlation-id", "{{ header:correlation-id }}")
-                    .setValue("status", "{{ header:status }}"));
-        }
-        return sourceBuilder.build();
+    protected abstract UserPasswordCredentials getCredentials();
+
+    private static List<Source> getSources(final Collection<Source> originalSources, final CharSequence tenantId) {
+        return originalSources.stream()
+                .map(originalSource -> resolveSourceAliases(originalSource, tenantId))
+                .collect(Collectors.toList());
     }
 
-    private static Stream<String> resolveSourceAddresses(
-            final Set<String> unresolvedSourceAddresses,
+    private static Source resolveSourceAliases(final Source source, final CharSequence tenantId) {
+        return ConnectivityModelFactory.newSourceBuilder(source)
+                .addresses(resolveSourceAddresses(source.getAddresses(), tenantId))
+                .replyTarget(getReplyTarget(source, tenantId).orElse(null))
+                .headerMapping(getSourceHeaderMapping(source))
+                .build();
+    }
+
+    private static Set<String> resolveSourceAddresses(
+            final Collection<String> unresolvedSourceAddresses,
             final CharSequence tenantId
     ) {
         return unresolvedSourceAddresses.stream()
                 .map(unresolvedSourceAddress -> HonoAddressAlias.forAliasValue(unresolvedSourceAddress)
                         .map(honoAddressAlias -> honoAddressAlias.resolveAddress(tenantId))
-                        .orElse(unresolvedSourceAddress));
+                        .orElse(unresolvedSourceAddress))
+                .collect(Collectors.toSet());
+    }
+
+    private static Optional<ReplyTarget> getReplyTarget(final Source source, final CharSequence tenantId) {
+        final Optional<ReplyTarget> result;
+        if (isApplyReplyTarget(source.getAddresses())) {
+            result = source.getReplyTarget()
+                    .map(replyTarget -> {
+                        final var replyTargetBuilder = replyTarget.toBuilder();
+                        replyTargetBuilder.address(resolveTargetAddress(replyTarget.getAddress(), tenantId));
+                        replyTargetBuilder.headerMapping(getReplyTargetHeaderMapping(replyTarget));
+                        return replyTargetBuilder.build();
+                    });
+        } else {
+            result = Optional.empty();
+        }
+        return result;
+    }
+
+    private static boolean isApplyReplyTarget(final Collection<String> sourceAddresses) {
+        final Predicate<String> isTelemetryHonoAddressAlias = HonoAddressAlias.TELEMETRY.getAliasValue()::equals;
+        final Predicate<String> isEventHonoAddressAlias = HonoAddressAlias.EVENT.getAliasValue()::equals;
+
+        return sourceAddresses.stream().anyMatch(isTelemetryHonoAddressAlias.or(isEventHonoAddressAlias));
     }
 
     private static String resolveTargetAddress(final String unresolvedTargetAddress, final CharSequence tenantId) {
@@ -124,20 +129,73 @@ public abstract class HonoConnectionFactory {
                 .orElse(unresolvedTargetAddress);
     }
 
-    private static JsonObject resolveTargetAlias(final Target target, final CharSequence tenantId) {
-        final var targetBuilder = JsonFactory.newObjectBuilder(target.toJson())
-                .set(Target.JsonFields.ADDRESS, resolveTargetAddress(target.getAddress(), tenantId));
-        var headerMapping = target.getHeaderMapping().toJson()
-                .setValue("device_id", "{{ thing:id }}")
-                .setValue("correlation-id", "{{ header:correlation-id }}")
-                .setValue("subject", "{{ header:subject | fn:default(topic:action-subject) }}");
-        if (target.getTopics().stream()
-                .anyMatch(topic -> topic.getTopic() == Topic.LIVE_MESSAGES ||
-                        topic.getTopic() == Topic.LIVE_COMMANDS)) {
-            headerMapping = headerMapping.setValue("response-required", "{{ header:response-required }}");
+    private static HeaderMapping getReplyTargetHeaderMapping(final ReplyTarget replyTarget) {
+        final var originalHeaderMapping = replyTarget.getHeaderMapping();
+        final var headerMappingBuilder = JsonFactory.newObjectBuilder(originalHeaderMapping.toJson())
+                .set("correlation-id", "{{ header:correlation-id }}");
+        if (isCommandHonoAddressAlias(replyTarget.getAddress())) {
+            headerMappingBuilder.set("device_id", "{{ thing:id }}");
+            headerMappingBuilder.set("subject",
+                    "{{ header:subject | fn:default(topic:action-subject) | fn:default(topic:criterion) }}-response");
         }
-        targetBuilder.set("headerMapping", headerMapping);
-        return targetBuilder.build();
+        return ConnectivityModelFactory.newHeaderMapping(headerMappingBuilder.build());
+    }
+
+    private static boolean isCommandHonoAddressAlias(final String replyTargetAddress) {
+        return Objects.equals(HonoAddressAlias.COMMAND.getAliasValue(), replyTargetAddress);
+    }
+
+    private static HeaderMapping getSourceHeaderMapping(final Source source) {
+        final HeaderMapping result;
+        final var originalHeaderMapping = source.getHeaderMapping();
+        if (isAdjustSourceHeaderMapping(source.getAddresses())) {
+            result = ConnectivityModelFactory.newHeaderMapping(
+                    JsonFactory.newObjectBuilder(originalHeaderMapping.toJson())
+                            .set("correlation-id", "{{ header:correlation-id }}")
+                            .set("status", "{{ header:status }}")
+                            .build()
+            );
+        } else {
+            result = originalHeaderMapping;
+        }
+        return result;
+    }
+
+    private static boolean isAdjustSourceHeaderMapping(final Collection<String> sourceAddresses) {
+        return sourceAddresses.contains(HonoAddressAlias.COMMAND_RESPONSE.getAliasValue());
+    }
+
+    private static List<Target> getTargets(final Collection<Target> originalTargets, final CharSequence tenantId) {
+        return originalTargets.stream()
+                .map(originalTarget -> resolveTargetAlias(originalTarget, tenantId))
+                .collect(Collectors.toList());
+    }
+
+    private static Target resolveTargetAlias(final Target target, final CharSequence tenantId) {
+        return ConnectivityModelFactory.newTargetBuilder(target)
+                .address(resolveTargetAddress(target.getAddress(), tenantId))
+                .headerMapping(getTargetHeaderMapping(target))
+                .build();
+    }
+
+    private static HeaderMapping getTargetHeaderMapping(final Target target) {
+        final var headerMappingBuilder = JsonFactory.newObjectBuilder(target.getHeaderMapping().toJson())
+                .set("device_id", "{{ thing:id }}")
+                .set("correlation-id", "{{ header:correlation-id }}")
+                .set("subject", "{{ header:subject | fn:default(topic:action-subject) }}");
+        if (isSetResponseRequiredHeader(target.getTopics())) {
+            headerMappingBuilder.set("response-required", "{{ header:response-required }}");
+        }
+        return ConnectivityModelFactory.newHeaderMapping(headerMappingBuilder.build());
+    }
+
+    private static boolean isSetResponseRequiredHeader(final Collection<FilteredTopic> targetTopics) {
+        final Predicate<Topic> isLiveMessages = topic -> Topic.LIVE_MESSAGES == topic;
+        final Predicate<Topic> isLiveCommands = topic -> Topic.LIVE_COMMANDS == topic;
+
+        return targetTopics.stream()
+                .map(FilteredTopic::getTopic)
+                .anyMatch(isLiveMessages.or(isLiveCommands));
     }
 
 }

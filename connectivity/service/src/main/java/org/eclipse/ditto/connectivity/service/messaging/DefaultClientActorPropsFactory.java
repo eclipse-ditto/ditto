@@ -39,7 +39,7 @@ public final class DefaultClientActorPropsFactory implements ClientActorPropsFac
 
     @Nullable private static DefaultClientActorPropsFactory instance;
 
-    public DefaultClientActorPropsFactory() {
+    private DefaultClientActorPropsFactory() {
         super();
     }
 

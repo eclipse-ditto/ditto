@@ -31,7 +31,7 @@ import org.eclipse.ditto.json.JsonObject;
  * Immutable implementation of a {@link HeaderMapping}.
  */
 @Immutable
-public final class ImmutableHeaderMapping implements HeaderMapping {
+final class ImmutableHeaderMapping implements HeaderMapping {
 
     private final Map<String, String> mapping;
 
@@ -52,7 +52,7 @@ public final class ImmutableHeaderMapping implements HeaderMapping {
      * @throws NullPointerException if {@code jsonObject} is {@code null}.
      * @throws org.eclipse.ditto.json.JsonParseException if {@code jsonObject} is not an appropriate JSON object.
      */
-    public static HeaderMapping fromJson(final JsonObject jsonObject) {
+    static HeaderMapping fromJson(final JsonObject jsonObject) {
         return new ImmutableHeaderMapping(jsonObject.stream()
                 .filter(f -> f.getValue().isString())
                 .collect(Collectors.toMap(JsonField::getKeyName, jsonField -> jsonField.getValue().asString())));
