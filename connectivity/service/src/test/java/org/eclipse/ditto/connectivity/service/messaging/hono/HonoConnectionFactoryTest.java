@@ -18,6 +18,7 @@ import java.io.IOException;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import org.eclipse.ditto.connectivity.model.Connection;
@@ -149,27 +150,30 @@ public class HonoConnectionFactoryTest {
         final var sourceBuilder = ConnectivityModelFactory.newSourceBuilder(source)
                 .addresses(source.getAddresses()
                         .stream()
-                        .map(address -> HonoAddressAlias.resolve(address, tenantId))
-                        .filter(address -> !address.isEmpty())
+                        .map(HonoAddressAlias::forAliasValue)
+                        .flatMap(Optional::stream)
+                        .map(honoAddressAlias -> honoAddressAlias.resolveAddress(tenantId))
                         .collect(Collectors.toSet()));
-        if (source.getAddresses().contains(HonoAddressAlias.TELEMETRY.getName())
-                || source.getAddresses().contains(HonoAddressAlias.EVENT.getName())) {
+        if (source.getAddresses().contains(HonoAddressAlias.TELEMETRY.getAliasValue())
+                || source.getAddresses().contains(HonoAddressAlias.EVENT.getAliasValue())) {
             source.getReplyTarget().ifPresent(replyTarget -> {
                 var headerMapping = replyTarget.getHeaderMapping().toJson()
                         .setValue("correlation-id", "{{ header:correlation-id }}");
-                if (HonoAddressAlias.COMMAND.getName().equals(replyTarget.getAddress())) {
+                if (HonoAddressAlias.COMMAND.getAliasValue().equals(replyTarget.getAddress())) {
                     headerMapping = headerMapping
                             .setValue("device_id", "{{ thing:id }}")
                             .setValue("subject",
                                     "{{ header:subject | fn:default(topic:action-subject) | fn:default(topic:criterion) }}-response");
                 }
                 sourceBuilder.replyTarget(replyTarget.toBuilder()
-                        .address(HonoAddressAlias.resolve(replyTarget.getAddress(), tenantId, true))
+                        .address(HonoAddressAlias.forAliasValue(replyTarget.getAddress())
+                                .map(honoAddressAlias -> honoAddressAlias.resolveAddressWithThingIdSuffix(tenantId))
+                                .orElseGet(replyTarget::getAddress))
                         .headerMapping(ConnectivityModelFactory.newHeaderMapping(headerMapping))
                         .build());
             });
         }
-        if (source.getAddresses().contains(HonoAddressAlias.COMMAND_RESPONSE.getName())) {
+        if (source.getAddresses().contains(HonoAddressAlias.COMMAND_RESPONSE.getAliasValue())) {
             sourceBuilder.headerMapping(ConnectivityModelFactory
                     .newHeaderMapping(source.getHeaderMapping().toJson()
                             .setValue("correlation-id", "{{ header:correlation-id }}")
@@ -179,7 +183,9 @@ public class HonoConnectionFactoryTest {
     }
 
     private static Target resolveTargetAlias(final Target target, final String tenantId) {
-        final var resolvedAddress = HonoAddressAlias.resolve(target.getAddress(), tenantId, true);
+        final var resolvedAddress = HonoAddressAlias.forAliasValue(target.getAddress())
+                .map(honoAddressAlias -> honoAddressAlias.resolveAddressWithThingIdSuffix(tenantId))
+                .orElseGet(target::getAddress);
         final var targetBuilder = ConnectivityModelFactory.newTargetBuilder(target);
         if (!resolvedAddress.isEmpty()) {
             targetBuilder.address(resolvedAddress);
