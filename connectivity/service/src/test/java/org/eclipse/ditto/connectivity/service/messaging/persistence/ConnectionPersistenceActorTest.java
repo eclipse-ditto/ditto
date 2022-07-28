@@ -476,12 +476,11 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
         testProbe.expectMsgClass(OpenConnectionResponse.class);
 
         // forward signal once
-        underTest.tell(CreateSubscription.of(DittoHeaders.newBuilder()
+        final CreateSubscription createSubscription = CreateSubscription.of(DittoHeaders.newBuilder()
                 .putHeader(DittoHeaderDefinition.DITTO_SUDO.getKey(), "true")
-                .build()), testProbe.ref());
-        clientActorProbe.fishForMessage(scala.concurrent.duration.Duration.apply(30, TimeUnit.SECONDS),
-                "CreateSubscription",
-                PartialFunction.fromFunction(CreateSubscription.class::isInstance));
+                .build());
+        underTest.tell(createSubscription, testProbe.ref());
+        clientActorProbe.expectMsgClass(CreateSubscription.class);
 
         // close connection: at least 1 client actor gets the command; the other may or may not be started.
         underTest.tell(closeConnection, testProbe.ref());

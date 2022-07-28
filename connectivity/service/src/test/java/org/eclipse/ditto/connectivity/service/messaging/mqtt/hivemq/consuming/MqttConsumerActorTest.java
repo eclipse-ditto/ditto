@@ -421,7 +421,7 @@ public final class MqttConsumerActorTest {
 
         inboundMappingSinkElementReceiver.expectMsg(onCompleteMessage);
         underTestWatcher.expectTerminated(underTest);
-        Mockito.verify(mqtt5Publish, Mockito.timeout(1_000L)).acknowledge();
+        Mockito.verify(mqtt5Publish, Mockito.timeout(5_000L)).acknowledge();
     }
 
     @Test
