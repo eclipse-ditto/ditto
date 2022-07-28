@@ -104,6 +104,7 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
     private final Materializer materializer;
     private final Duration writeInterval;
     private final Duration thingDeletionTimeout;
+    private final Duration maxIdleTime;
     private ExponentialBackOff backOff;
     private boolean shuttingDown = false;
     @Nullable private UniqueKillSwitch killSwitch;
@@ -162,8 +163,7 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
         backOff = ExponentialBackOff.initial(
                 config.getUpdaterConfig().getStreamConfig().getPersistenceConfig().getExponentialBackOffConfig());
         thingDeletionTimeout = config.getUpdaterConfig().getStreamConfig().getThingDeletionTimeout();
-
-        startSingleTimer(ShutdownTrigger.IDLE.name(), ShutdownTrigger.IDLE, config.getUpdaterConfig().getMaxIdleTime());
+        maxIdleTime = config.getUpdaterConfig().getMaxIdleTime();
 
         startWith(State.RECOVERING, getInitialData(thingId));
         when(State.RECOVERING, recovering());
@@ -178,6 +178,8 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
 
         // subscribe for Shutdown commands
         ShutdownBehaviour.fromId(thingId, pubSubMediator, getSelf());
+
+        refreshIdleShutdownTimer();
     }
 
     /**
@@ -447,6 +449,7 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
     }
 
     private FSM.State<State, Data> onThingEvent(final ThingEvent<?> thingEvent, final Data data) {
+        refreshIdleShutdownTimer();
         return computeEventMetadata(thingEvent, data).map(eventMetadata -> onEventMetadata(eventMetadata, data))
                 .orElseGet(this::stay);
     }
@@ -570,6 +573,10 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
         if (!getContext().system().deadLetters().equals(sender)) {
             sender.tell(StreamAck.success(message.asIdentifierString()), getSelf());
         }
+    }
+
+    private void refreshIdleShutdownTimer() {
+        startSingleTimer(ShutdownTrigger.IDLE.name(), ShutdownTrigger.IDLE, maxIdleTime);
     }
 
     private static Data getInitialData(final ThingId thingId) {
