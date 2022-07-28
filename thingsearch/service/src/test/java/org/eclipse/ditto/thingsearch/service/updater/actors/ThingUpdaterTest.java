@@ -225,19 +225,18 @@ public final class ThingUpdaterTest {
 
             expectMsgClass(DistributedPubSubMediator.Subscribe.class);
 
-            // WHEN: An event of the next revision arrives
+            // WHEN: An event of a previous revision arrives
             final var event = AttributeModified.of(THING_ID, JsonPointer.of("x"), JsonValue.of(6), REVISION - 1, null,
                     HEADERS_WITH_ACK, null);
             underTest.tell(event, getRef());
 
-            // THEN: no update is sent
+            // THEN: an update is sent for the recovered revision number 1234, which causes an empty update
+            // The update is necessary to dispatch weak acknowledgements at the correct time in the presence of
+            // concurrent updates.
             inletProbe.ensureSubscription();
             inletProbe.request(16);
-            inletProbe.expectNoMessage(Duration.ofSeconds(1));
-
-            final var acknowledgement = expectMsgClass(Acknowledgement.class);
-            assertThat(acknowledgement.isSuccess()).isTrue();
-            assertThat(acknowledgement.isWeak()).isTrue();
+            final var data = inletProbe.expectNext();
+            assertThat(data.metadata().export()).isEqualTo(getThingWriteModel().getMetadata().export());
         }};
     }
 
