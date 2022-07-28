@@ -288,14 +288,10 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
         if (previousState != nextState) {
             switch (nextState) {
                 case READY, RETRYING -> {
-                    final Duration delay;
-                    if (nextState == State.READY) {
-                        delay = writeInterval;
-                    } else {
+                    if (nextState == State.RETRYING) {
                         backOff = backOff.calculateNextBackOff();
-                        delay = backOff.getRestartDelay();
+                        resetTickTimer(backOff.getRestartDelay());
                     }
-                    startTimerWithFixedDelay(Control.TICK.name(), Control.TICK, delay);
                     unstashAll();
                 }
                 default -> cancelTimer(Control.TICK.name());
@@ -411,6 +407,7 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
                 updateThing.getDittoHeaders().getAcknowledgementRequests().contains(SEARCH_PERSISTED_REQUEST)
                         ? metadata.withSender(getSender())
                         : metadata;
+        ensureTickTimer();
         return stay().using(new Data(data.metadata().append(nextMetadata), lastWriteModel));
     }
 
@@ -497,6 +494,7 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
     }
 
     private FSM.State<State, Data> enqueue(final Metadata newMetadata, final Data data) {
+        ensureTickTimer();
         return stay().using(new Data(data.metadata().append(newMetadata), data.lastWriteModel()));
     }
 
@@ -577,6 +575,17 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
 
     private void refreshIdleShutdownTimer() {
         startSingleTimer(ShutdownTrigger.IDLE.name(), ShutdownTrigger.IDLE, maxIdleTime);
+    }
+
+    private void resetTickTimer(final Duration delay) {
+        startTimerWithFixedDelay(Control.TICK.name(), Control.TICK, delay);
+    }
+
+    private void ensureTickTimer() {
+        final var tickTimerName = Control.TICK.name();
+        if (!isTimerActive(tickTimerName)) {
+            resetTickTimer(writeInterval);
+        }
     }
 
     private static Data getInitialData(final ThingId thingId) {

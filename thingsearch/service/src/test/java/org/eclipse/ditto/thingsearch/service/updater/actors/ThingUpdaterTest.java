@@ -28,7 +28,6 @@ import org.eclipse.ditto.base.model.acks.AcknowledgementRequest;
 import org.eclipse.ditto.base.model.acks.DittoAcknowledgementLabel;
 import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
 import org.eclipse.ditto.internal.utils.akka.ActorSystemResource;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.json.JsonPointer;
@@ -88,6 +87,7 @@ public final class ThingUpdaterTest {
                       ditto {
                         search {
                             updater.stream.thing-deletion-timeout = 3s
+                            updater.stream.write-interval = 1ms
                         }
                         mongodb.uri = "mongodb://localhost:27017/test"
                       }
