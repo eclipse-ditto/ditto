@@ -198,10 +198,10 @@ This command returns the ids of all connections.
 
 ```json
 {
-  "targetActorSelection": "/user/connectivityRoot/connectionIdsRetrieval/singleton",
+  "targetActorSelection": "/user/connectivityRoot/connectionIdsRetrieval",
   "headers": {
     "aggregate": false,
-    "is-group-topic": true
+    "is-group-topic": false
   },
   "piggybackCommand": {
     "type": "connectivity.commands:retrieveAllConnectionIds"
