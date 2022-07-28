@@ -29,16 +29,19 @@ import org.eclipse.ditto.base.model.common.ConditionChecker;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.connectivity.api.BaseClientState;
 import org.eclipse.ditto.connectivity.model.Connection;
+import org.eclipse.ditto.connectivity.model.ConnectivityStatus;
 import org.eclipse.ditto.connectivity.model.signals.commands.modify.TestConnection;
 import org.eclipse.ditto.connectivity.service.config.MqttConfig;
 import org.eclipse.ditto.connectivity.service.messaging.BaseClientActor;
 import org.eclipse.ditto.connectivity.service.messaging.BaseClientData;
+import org.eclipse.ditto.connectivity.service.messaging.ReportConnectionStatus;
 import org.eclipse.ditto.connectivity.service.messaging.backoff.RetryTimeoutStrategy;
 import org.eclipse.ditto.connectivity.service.messaging.internal.ClientConnected;
 import org.eclipse.ditto.connectivity.service.messaging.internal.ClientDisconnected;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.MqttSpecificConfig;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.client.ClientRole;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.client.GenericMqttClient;
+import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.client.GenericMqttClientConnectedListener;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.client.GenericMqttClientDisconnectedListener;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.client.GenericMqttClientFactory;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.client.HiveMqttClientProperties;
@@ -250,8 +253,7 @@ public final class MqttClientActor extends BaseClientActor {
                     .withSshTunnelStateSupplier(this::getSshTunnelState)
                     .withConnectionLogger(connectionLogger)
                     .withActorUuid(actorUuid)
-                    .withClientConnectedListener((context, clientRole) -> logger.info("Connected client <{}>.",
-                            getClientId(clientRole, getMqttClientIdentifierOrNull(context.getClientConfig()))))
+                    .withClientConnectedListener(getClientConnectedListener())
                     .withClientDisconnectedListener(getClientDisconnectedListener())
                     .build();
         } catch (final NoMqttConnectionException e) {
@@ -259,6 +261,14 @@ public final class MqttClientActor extends BaseClientActor {
             // Let the supervisor strategy take care. Should not happen anyway.
             throw new IllegalArgumentException(e);
         }
+    }
+
+    private GenericMqttClientConnectedListener getClientConnectedListener() {
+        return (context, clientRole) -> {
+            logger.info("Connected client <{}>.",
+                    getClientId(clientRole, getMqttClientIdentifierOrNull(context.getClientConfig())));
+            getSelf().tell(new ReportConnectionStatus(ConnectivityStatus.OPEN), ActorRef.noSender());
+        };
     }
 
     @Nullable
@@ -303,6 +313,7 @@ public final class MqttClientActor extends BaseClientActor {
                             clientId,
                             retryTimeoutStrategy.getCurrentTries(),
                             reconnectDelay);
+                    getSelf().tell(new ReportConnectionStatus(connectivityStatusResolver.resolve(context.getCause())), ActorRef.noSender());
                 } else {
                     logger.info("Not reconnecting client <{}>.", clientId);
                 }

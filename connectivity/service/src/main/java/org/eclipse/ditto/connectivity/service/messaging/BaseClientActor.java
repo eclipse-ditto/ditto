@@ -698,7 +698,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
      *
      * @return an FSM function builder
      */
-    protected FSMStateFunctionBuilder<BaseClientState, BaseClientData> inConnectingState() {
+    protected FSMStateFunctionBuilder<BaseClientState, BaseClientData>  inConnectingState() {
         return matchEventEquals(StateTimeout(), (event, data) -> connectionTimedOut(data))
                 .event(ConnectionFailure.class, this::connectingConnectionFailed)
                 .event(ClientConnected.class, this::clientConnectedInConnectingState)
@@ -723,7 +723,15 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
                 .event(SshTunnelActor.TunnelClosed.class, this::tunnelClosed)
                 .event(OpenConnection.class, this::connectionAlreadyOpen)
                 .event(ConnectionFailure.class, this::connectedConnectionFailed)
+                .event(ReportConnectionStatus.class, this::updateConnectionStatusPartially)
                 .eventEquals(Control.RESUBSCRIBE, this::resubscribe);
+    }
+
+    private State<BaseClientState, BaseClientData> updateConnectionStatusPartially(
+            final ReportConnectionStatus reportConnectionStatus,
+            final BaseClientData baseClientData) {
+        BaseClientData nextClientData = baseClientData.setConnectionStatus(reportConnectionStatus.connectivityStatus());
+        return stay().using(nextClientData);
     }
 
     @Nullable
@@ -793,14 +801,14 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
 
     private State<BaseClientState, BaseClientData> onUnknownEvent(final Object event, final BaseClientData state) {
         Object message = event;
-        if (event instanceof Failure) {
-            message = ((Failure) event).cause();
-        } else if (event instanceof Status.Failure) {
-            message = ((Status.Failure) event).cause();
+        if (event instanceof Failure failure) {
+            message = failure.cause();
+        } else if (event instanceof Status.Failure statusFailure) {
+            message = statusFailure.cause();
         }
 
-        if (message instanceof Throwable) {
-            logger.error((Throwable) message, "received Exception {} in state {} - status: {} - sender: {}",
+        if (message instanceof Throwable throwable) {
+            logger.error(throwable, "received Exception {} in state {} - status: {} - sender: {}",
                     message,
                     stateName(),
                     state.getConnectionStatus() + ": " + state.getConnectionStatusDetails().orElse(""),
@@ -1566,8 +1574,8 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
 
     private DittoRuntimeException unhandledExceptionForSignalInState(final Object signal,
             final BaseClientState state) {
-        final DittoHeaders headers = signal instanceof WithDittoHeaders
-                ? ((WithDittoHeaders) signal).getDittoHeaders()
+        final DittoHeaders headers = signal instanceof WithDittoHeaders withDittoHeaders
+                ? withDittoHeaders.getDittoHeaders()
                 : DittoHeaders.empty();
         switch (state) {
             case CONNECTING:
@@ -1648,8 +1656,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     }
 
     private static Optional<EntityId> tryExtractEntityId(final Signal<?> signal) {
-        if (signal instanceof WithEntityId) {
-            final var withEntityId = (WithEntityId) signal;
+        if (signal instanceof final WithEntityId withEntityId) {
             return Optional.of(withEntityId.getEntityId());
         } else {
             return Optional.empty();
@@ -2007,20 +2014,14 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     }
 
     private static Optional<StreamingType> toStreamingTypes(final Topic topic) {
-        switch (topic) {
-            case POLICY_ANNOUNCEMENTS:
-                return Optional.of(StreamingType.POLICY_ANNOUNCEMENTS);
-            case LIVE_EVENTS:
-                return Optional.of(StreamingType.LIVE_EVENTS);
-            case LIVE_COMMANDS:
-                return Optional.of(StreamingType.LIVE_COMMANDS);
-            case LIVE_MESSAGES:
-                return Optional.of(StreamingType.MESSAGES);
-            case TWIN_EVENTS:
-                return Optional.of(StreamingType.EVENTS);
-            default:
-                return Optional.empty();
-        }
+        return switch (topic) {
+            case POLICY_ANNOUNCEMENTS -> Optional.of(StreamingType.POLICY_ANNOUNCEMENTS);
+            case LIVE_EVENTS -> Optional.of(StreamingType.LIVE_EVENTS);
+            case LIVE_COMMANDS -> Optional.of(StreamingType.LIVE_COMMANDS);
+            case LIVE_MESSAGES -> Optional.of(StreamingType.MESSAGES);
+            case TWIN_EVENTS -> Optional.of(StreamingType.EVENTS);
+            default -> Optional.empty();
+        };
     }
 
     private static Optional<Integer> parseHexString(final String hexString) {
@@ -2262,7 +2263,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
 
     public enum HealthSignal implements AkkaJacksonCborSerializable {
         PING,
-        PONG;
+        PONG
     }
 
 }
