@@ -25,6 +25,7 @@ import org.eclipse.ditto.base.model.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
+import org.eclipse.ditto.base.model.json.Jsonifiable;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.base.model.signals.events.Event;
 import org.eclipse.ditto.internal.utils.akka.PingCommand;
@@ -42,6 +43,7 @@ import org.eclipse.ditto.internal.utils.persistentactors.results.ResultVisitor;
 import org.eclipse.ditto.internal.utils.tracing.DittoTracing;
 import org.eclipse.ditto.internal.utils.tracing.TracingTags;
 import org.eclipse.ditto.internal.utils.tracing.instruments.trace.StartedTrace;
+import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonValue;
 
 import akka.actor.ActorRef;
@@ -65,7 +67,7 @@ import scala.Option;
  */
 public abstract class AbstractPersistenceActor<
         C extends Command<?>,
-        S,
+        S extends Jsonifiable.WithFieldSelectorAndPredicate<JsonField>,
         I extends EntityId,
         K,
         E extends Event<? extends E>> extends AbstractPersistentActorWithTimersAndCleanup implements ResultVisitor<E> {
@@ -187,9 +189,10 @@ public abstract class AbstractPersistenceActor<
     /**
      * Publish an event.
      *
-     * @param event the event.
+     * @param previousEntity the previous state of the entity before the event was applied.
+     * @param event the event which was applied.
      */
-    protected abstract void publishEvent(E event);
+    protected abstract void publishEvent(@Nullable S previousEntity, E event);
 
     /**
      * Get the implemented schema version of an entity.
@@ -577,8 +580,9 @@ public abstract class AbstractPersistenceActor<
     }
 
     private void applyEvent(final E event) {
+        final S previousEntity = entity;
         handleEvents.onMessage().apply(event);
-        publishEvent(event);
+        publishEvent(previousEntity, event);
     }
 
     private void notifySender(final WithDittoHeaders message) {

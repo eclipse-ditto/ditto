@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.things.service.persistence.actors;
 
+import javax.annotation.Nullable;
+
 import org.eclipse.ditto.base.model.acks.DittoAcknowledgementLabel;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
@@ -196,7 +198,7 @@ public final class ThingPersistenceActor
     }
 
     @Override
-    protected void publishEvent(final ThingEvent<?> event) {
+    protected void publishEvent(@Nullable final Thing previousEntity, final ThingEvent<?> event) {
         distributedPub.publishWithAcks(event, ACK_EXTRACTOR, getSelf());
     }
 

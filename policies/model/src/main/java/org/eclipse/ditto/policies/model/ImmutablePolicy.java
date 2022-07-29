@@ -22,6 +22,7 @@ import java.time.Instant;
 import java.time.format.DateTimeParseException;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -37,6 +38,11 @@ import java.util.stream.Stream;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.base.model.entity.metadata.Metadata;
+import org.eclipse.ditto.base.model.entity.metadata.MetadataModelFactory;
+import org.eclipse.ditto.base.model.exceptions.DittoJsonException;
+import org.eclipse.ditto.base.model.json.FieldType;
+import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
@@ -44,11 +50,6 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonParseException;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.base.model.entity.metadata.Metadata;
-import org.eclipse.ditto.base.model.entity.metadata.MetadataModelFactory;
-import org.eclipse.ditto.base.model.exceptions.DittoJsonException;
-import org.eclipse.ditto.base.model.json.FieldType;
-import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 
 /**
  * Immutable implementation of {@link Policy}.
@@ -434,6 +435,19 @@ final class ImmutablePolicy implements Policy {
     @Override
     public Stream<PolicyEntry> stream() {
         return entries.values().stream();
+    }
+
+    @Override
+    public boolean isSemanticallySameAs(final Collection<PolicyEntry> otherPolicyEntries) {
+        // wrapping the passed HashSets eliminates relevance of order:
+        final Iterator<PolicyEntry> others = new HashSet<>(otherPolicyEntries).iterator();
+        final Iterator<PolicyEntry> owns = new HashSet<>(entries.values()).iterator();
+        boolean semanticallyTheSame = true;
+        while(others.hasNext() && owns.hasNext()) {
+            semanticallyTheSame &= others.next().isSemanticallySameAs(owns.next());
+        }
+        semanticallyTheSame &= !others.hasNext() && !owns.hasNext();
+        return semanticallyTheSame;
     }
 
     @Override

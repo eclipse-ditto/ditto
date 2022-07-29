@@ -84,6 +84,7 @@ public final class PolicyPersistenceActor
         this.policyConfig = policyConfig;
     }
 
+    @SuppressWarnings("unused")
     private PolicyPersistenceActor(final PolicyId policyId,
             final ActorRef pubSubMediator,
             final ActorRef announcementManager) {
@@ -183,14 +184,37 @@ public final class PolicyPersistenceActor
     }
 
     @Override
-    protected void publishEvent(final PolicyEvent<?> event) {
+    protected void publishEvent(@Nullable final Policy previousEntity, final PolicyEvent<?> event) {
+
+        // always publish the PolicyEvent
         pubSubMediator.tell(DistPubSubAccess.publishViaGroup(PolicyEvent.TYPE_PREFIX, event), getSelf());
 
-        final PolicyTag policyTag = PolicyTag.of(entityId, event.getRevision());
-        pubSubMediator.tell(DistPubSubAccess.publishViaGroup(PolicyTag.PUB_SUB_TOPIC_MODIFIED, policyTag), getSelf());
+        if (null != previousEntity && null != entity) {
+            if (!previousEntity.isSemanticallySameAs(entity.getEntriesSet())) {
+                // however only publish the PolicyTag when the Policy semantically changed
+                // (e.g. not when only a "subject" payload changed but not the subjectId itself)
+                publishPolicyTag(event);
+            } else {
+                log.withCorrelationId(event)
+                        .info("NOT publishing PolicyTag in cluster for PolicyEvent as the Policy did not change " +
+                                "its semantics for applying enforcement.");
+            }
+        } else {
+            publishPolicyTag(event);
+        }
+    }
 
-        pubSubMediator.tell(DistPubSubAccess.publish(PolicyTag.PUB_SUB_TOPIC_INVALIDATE_ENFORCERS, policyTag),
-                getSelf());
+    private void publishPolicyTag(final PolicyEvent<?> event) {
+
+        final PolicyTag policyTag = PolicyTag.of(entityId, event.getRevision());
+        pubSubMediator.tell(
+                DistPubSubAccess.publishViaGroup(PolicyTag.PUB_SUB_TOPIC_MODIFIED, policyTag),
+                getSelf()
+        );
+        pubSubMediator.tell(
+                DistPubSubAccess.publish(PolicyTag.PUB_SUB_TOPIC_INVALIDATE_ENFORCERS, policyTag),
+                getSelf()
+        );
     }
 
     @Override

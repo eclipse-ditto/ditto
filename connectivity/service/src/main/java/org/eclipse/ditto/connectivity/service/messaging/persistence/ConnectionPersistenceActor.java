@@ -349,7 +349,7 @@ public final class ConnectionPersistenceActor
     }
 
     @Override
-    protected void publishEvent(final ConnectivityEvent<?> event) {
+    protected void publishEvent(@Nullable final Connection previousEntity, final ConnectivityEvent<?> event) {
         if (event instanceof ConnectionDeleted) {
             pubSubMediator.tell(DistPubSubAccess.publish(ConnectionDeleted.TYPE, event), getSelf());
         } else if (event instanceof ConnectionCreated) {
