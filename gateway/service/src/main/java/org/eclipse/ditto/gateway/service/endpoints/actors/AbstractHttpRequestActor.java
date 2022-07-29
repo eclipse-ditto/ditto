@@ -19,6 +19,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
@@ -54,6 +55,8 @@ import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.edge.service.acknowledgements.AcknowledgementAggregatorActorStarter;
 import org.eclipse.ditto.edge.service.acknowledgements.AcknowledgementConfig;
 import org.eclipse.ditto.edge.service.acknowledgements.message.MessageCommandAckRequestSetter;
+import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConnections;
+import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConnectionsResponse;
 import org.eclipse.ditto.edge.service.acknowledgements.message.MessageCommandResponseAcknowledgementProvider;
 import org.eclipse.ditto.edge.service.acknowledgements.things.ThingCommandResponseAcknowledgementProvider;
 import org.eclipse.ditto.edge.service.acknowledgements.things.ThingLiveCommandAckRequestSetter;
@@ -68,6 +71,7 @@ import org.eclipse.ditto.internal.models.signal.correlation.MatchingValidationRe
 import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.cluster.JsonValueSourceRef;
+import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonRuntimeException;
 import org.eclipse.ditto.messages.model.Message;
@@ -224,6 +228,19 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
         return HttpResponse.create().withStatus(statusCode);
     }
 
+        if (command instanceof RetrieveConnections) {
+            CompletionStage<ActorRef> actorSelection = getContext()
+                    .actorSelection("/user/connectivityRoot/retrieveAllConnectionIds")
+                    .resolveOne(Duration.ofSeconds(1));
+
+            // Send RetrieveConnection for each id
+
+            // Merge responses and send response to this.httpRequestActor
+
+            getContext().getSelf().tell(RetrieveConnectionsResponse.of(JsonArray.empty(), dittoHeaders), getSelf());
+        } else {
+            connectivityShardRegionProxy.tell(command, getSelf());
+        }
     private void handleCommand(final Command<?> command) {
         try {
             logger.setCorrelationId(command);
