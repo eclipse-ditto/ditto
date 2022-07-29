@@ -14,8 +14,6 @@
 
 package org.eclipse.ditto.connectivity.service.messaging;
 
-import org.eclipse.ditto.connectivity.model.ConnectivityStatus;
-
-public record ReportConnectionStatus(ConnectivityStatus connectivityStatus) {
-
+// A placeholder indicating ConnectivityStatus.OPEN
+public record ReportConnectionStatusSuccess() {
 }

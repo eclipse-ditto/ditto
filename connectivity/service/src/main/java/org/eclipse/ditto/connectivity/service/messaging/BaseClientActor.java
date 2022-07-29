@@ -167,6 +167,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     protected final ConnectionLogger connectionLogger;
     protected final ConnectivityStatusResolver connectivityStatusResolver;
 
+    private static final String CONNECTION_STATUS_DETAILS_CONNECTED = "CONNECTED";
     /**
      * The name of the dispatcher that will be used for async mapping.
      */
@@ -723,14 +724,28 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
                 .event(SshTunnelActor.TunnelClosed.class, this::tunnelClosed)
                 .event(OpenConnection.class, this::connectionAlreadyOpen)
                 .event(ConnectionFailure.class, this::connectedConnectionFailed)
-                .event(ReportConnectionStatus.class, this::updateConnectionStatusPartially)
+                .event(ReportConnectionStatusSuccess.class, this::updateConnectionStatusSuccess)
+                .event(ReportConnectionStatusError.class, this::updateConnectionStatusError)
                 .eventEquals(Control.RESUBSCRIBE, this::resubscribe);
     }
 
-    private State<BaseClientState, BaseClientData> updateConnectionStatusPartially(
-            final ReportConnectionStatus reportConnectionStatus,
+    private State<BaseClientState, BaseClientData> updateConnectionStatusSuccess(final ReportConnectionStatusSuccess reportConnectionStatusSuccess,
+            BaseClientData baseClientData) {
+        BaseClientData nextClientData = baseClientData.setConnectionStatus(ConnectivityStatus.OPEN)
+                .setRecoveryStatus(RecoveryStatus.SUCCEEDED)
+                .setConnectionStatusDetails(CONNECTION_STATUS_DETAILS_CONNECTED)
+                .setInConnectionStatusSince(Instant.now());
+        return stay().using(nextClientData);
+    }
+
+    private State<BaseClientState, BaseClientData> updateConnectionStatusError(
+            final ReportConnectionStatusError reportConnectionStatus,
             final BaseClientData baseClientData) {
-        BaseClientData nextClientData = baseClientData.setConnectionStatus(reportConnectionStatus.connectivityStatus());
+        BaseClientData nextClientData = baseClientData.setConnectionStatus(connectivityStatusResolver.resolve(reportConnectionStatus.cause()))
+                .setRecoveryStatus(RecoveryStatus.ONGOING)
+                .setConnectionStatusDetails(
+                        ConnectionFailure.determineFailureDescription(null, reportConnectionStatus.cause(), null))
+                .setInConnectionStatusSince(Instant.now());
         return stay().using(nextClientData);
     }
 
@@ -1204,7 +1219,8 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
                     .resetFailureCount()
                     .setConnectionStatus(ConnectivityStatus.OPEN)
                     .setRecoveryStatus(RecoveryStatus.SUCCEEDED)
-                    .setConnectionStatusDetails("Connected at " + Instant.now())
+                    .setConnectionStatusDetails(CONNECTION_STATUS_DETAILS_CONNECTED)
+                    .setInConnectionStatusSince(Instant.now())
             );
         } else {
             logger.info("Initialization of consumers, publisher and subscriptions successful, but failures were " +
@@ -1415,12 +1431,11 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         } else {
             retrieveAddressStatusFromChildren(command, sender, childrenToAsk);
         }
-
         final ResourceStatus clientStatus =
                 ConnectivityModelFactory.newClientStatus(getInstanceIdentifier(),
                         clientConnectionStatus,
                         data.getRecoveryStatus(),
-                        "[" + stateName().name() + "] " + data.getConnectionStatusDetails().orElse(""),
+                        data.getConnectionStatusDetails().orElse(""),
                         getInConnectionStatusSince());
         sender.tell(clientStatus, getSelf());
 

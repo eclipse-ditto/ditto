@@ -29,12 +29,12 @@ import org.eclipse.ditto.base.model.common.ConditionChecker;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.connectivity.api.BaseClientState;
 import org.eclipse.ditto.connectivity.model.Connection;
-import org.eclipse.ditto.connectivity.model.ConnectivityStatus;
 import org.eclipse.ditto.connectivity.model.signals.commands.modify.TestConnection;
 import org.eclipse.ditto.connectivity.service.config.MqttConfig;
 import org.eclipse.ditto.connectivity.service.messaging.BaseClientActor;
 import org.eclipse.ditto.connectivity.service.messaging.BaseClientData;
-import org.eclipse.ditto.connectivity.service.messaging.ReportConnectionStatus;
+import org.eclipse.ditto.connectivity.service.messaging.ReportConnectionStatusError;
+import org.eclipse.ditto.connectivity.service.messaging.ReportConnectionStatusSuccess;
 import org.eclipse.ditto.connectivity.service.messaging.backoff.RetryTimeoutStrategy;
 import org.eclipse.ditto.connectivity.service.messaging.internal.ClientConnected;
 import org.eclipse.ditto.connectivity.service.messaging.internal.ClientDisconnected;
@@ -267,7 +267,7 @@ public final class MqttClientActor extends BaseClientActor {
         return (context, clientRole) -> {
             logger.info("Connected client <{}>.",
                     getClientId(clientRole, getMqttClientIdentifierOrNull(context.getClientConfig())));
-            getSelf().tell(new ReportConnectionStatus(ConnectivityStatus.OPEN), ActorRef.noSender());
+            getSelf().tell(new ReportConnectionStatusSuccess(), ActorRef.noSender());
         };
     }
 
@@ -313,7 +313,8 @@ public final class MqttClientActor extends BaseClientActor {
                             clientId,
                             retryTimeoutStrategy.getCurrentTries(),
                             reconnectDelay);
-                    getSelf().tell(new ReportConnectionStatus(connectivityStatusResolver.resolve(context.getCause())), ActorRef.noSender());
+                    // This is sent because the status of the client isn't made explicit to the user.
+                    getSelf().tell(new ReportConnectionStatusError(context.getCause()), ActorRef.noSender());
                 } else {
                     logger.info("Not reconnecting client <{}>.", clientId);
                 }

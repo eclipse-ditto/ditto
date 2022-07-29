@@ -192,6 +192,10 @@ public final class BaseClientData {
         return BaseClientDataBuilder.from(this).setConnectionStatusDetails(connectionStatusDetails).build();
     }
 
+    public BaseClientData setInConnectionStatusSince(final Instant inConnectionStatusSince) {
+        return BaseClientDataBuilder.from(this).setInConnectionStatusSince(inConnectionStatusSince).build();
+    }
+
     /**
      * Adds the passed {@code origin} sender with the passed {@code dittoHeaders} to the managed {@code sessionSenders}
      * returning a new instance of BaseClientData.
