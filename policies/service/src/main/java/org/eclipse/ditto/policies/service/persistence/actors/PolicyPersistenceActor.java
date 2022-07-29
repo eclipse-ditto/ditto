@@ -84,7 +84,6 @@ public final class PolicyPersistenceActor
         this.policyConfig = policyConfig;
     }
 
-    @SuppressWarnings("unused")
     private PolicyPersistenceActor(final PolicyId policyId,
             final ActorRef pubSubMediator,
             final ActorRef announcementManager) {

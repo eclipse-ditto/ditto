@@ -23,12 +23,11 @@ import java.util.List;
 import java.util.NoSuchElementException;
 
 import org.eclipse.ditto.base.model.acks.AcknowledgementRequest;
+import org.eclipse.ditto.base.model.common.DittoDuration;
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.base.model.common.DittoDuration;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -42,12 +41,14 @@ public final class ImmutableSubjectAnnouncementTest {
     private static final String BEFORE_EXPIRY_STRING = BEFORE_EXPIRY.toString();
     private static final JsonArray REQUESTED_ACKS = JsonArray.of("[\"integration:connection\"]");
     private static final DittoDuration ACKS_TIMEOUT = DittoDuration.parseDuration("10s");
+    private static final DittoDuration RANDOMIZATION_INTERVAL = DittoDuration.parseDuration("5m");
 
     static final JsonObject KNOWN_JSON = JsonObject.newBuilder()
             .set(SubjectAnnouncement.JsonFields.BEFORE_EXPIRY, BEFORE_EXPIRY_STRING)
             .set(SubjectAnnouncement.JsonFields.WHEN_DELETED, true)
             .set(SubjectAnnouncement.JsonFields.REQUESTED_ACKS_LABELS, REQUESTED_ACKS)
             .set(SubjectAnnouncement.JsonFields.REQUESTED_ACKS_TIMEOUT, ACKS_TIMEOUT.toString())
+            .set(SubjectAnnouncement.JsonFields.RANDOMIZATION_INTERVAL, RANDOMIZATION_INTERVAL.toString())
             .build();
 
     @Test
@@ -66,7 +67,7 @@ public final class ImmutableSubjectAnnouncementTest {
         final List<AcknowledgementRequest> requestedAcks =
                 Collections.singletonList(AcknowledgementRequest.parseAcknowledgementRequest("integration:connection"));
         final SubjectAnnouncement underTest =
-                SubjectAnnouncement.of(BEFORE_EXPIRY, true, requestedAcks, ACKS_TIMEOUT);
+                SubjectAnnouncement.of(BEFORE_EXPIRY, true, requestedAcks, ACKS_TIMEOUT, RANDOMIZATION_INTERVAL);
 
         final JsonObject subjectAnnouncementJson = underTest.toJson();
         final SubjectAnnouncement deserialized = SubjectAnnouncement.fromJson(subjectAnnouncementJson);
@@ -76,7 +77,7 @@ public final class ImmutableSubjectAnnouncementTest {
     }
 
     @Test
-    public void testToAndFromSubjectAnnouncementWithoutExpiryAndNotWhenDeleted() {
+    public void testToAndFromSubjectAnnouncementWithoutExpiryAndNotWhenDeletedAndRandomization() {
         final SubjectAnnouncement underTest = SubjectAnnouncement.of(null, false);
         final JsonObject emptyJson = underTest.toJson();
         final SubjectAnnouncement emptyAnnouncement = SubjectAnnouncement.fromJson(emptyJson);
@@ -109,5 +110,34 @@ public final class ImmutableSubjectAnnouncementTest {
                         .build()
                 )
         );
+
+        assertThatExceptionOfType(SubjectAnnouncementInvalidException.class).isThrownBy(() ->
+                SubjectAnnouncement.fromJson(JsonObject.newBuilder()
+                        .set(SubjectAnnouncement.JsonFields.REQUESTED_ACKS_TIMEOUT, "PT5h")
+                        .build()
+                )
+        );
+
+        assertThatExceptionOfType(SubjectAnnouncementInvalidException.class).isThrownBy(() ->
+                SubjectAnnouncement.fromJson(JsonObject.newBuilder()
+                        .set(SubjectAnnouncement.JsonFields.REQUESTED_ACKS_TIMEOUT, "-2h")
+                        .build()
+                )
+        );
+
+        assertThatExceptionOfType(SubjectAnnouncementInvalidException.class).isThrownBy(() ->
+                SubjectAnnouncement.fromJson(JsonObject.newBuilder()
+                        .set(SubjectAnnouncement.JsonFields.RANDOMIZATION_INTERVAL, "PT5h")
+                        .build()
+                )
+        );
+
+        assertThatExceptionOfType(SubjectAnnouncementInvalidException.class).isThrownBy(() ->
+                SubjectAnnouncement.fromJson(JsonObject.newBuilder()
+                        .set(SubjectAnnouncement.JsonFields.RANDOMIZATION_INTERVAL, "-2h")
+                        .build()
+                )
+        );
+
     }
 }

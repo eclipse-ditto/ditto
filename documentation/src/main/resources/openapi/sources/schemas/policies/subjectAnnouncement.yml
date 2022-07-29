@@ -34,6 +34,10 @@ properties:
     example:
       labels: ["my-connection-id:my-issued-acknowledgement"]
       timeout: "5s"
+  randomizationInterval:
+    type: string
+    description: Interval in which the announcement can be sent earlier in effort to prevent announcement peaks.
 example:
   beforeExpiry: "5m"
   whenDeleted: true
+  randomizationInterval: "5m"
