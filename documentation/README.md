@@ -37,7 +37,8 @@ Watch all resources and start local server serving the Jekyll content at [http:/
 
 ```bash
 cd src/main/resources
-jekyll serve --verbose --unpublished
+bundle install
+bundle exec jekyll serve --verbose --unpublished
 ```
 
 Validate that the HTML does not contain dead links, etc.:
