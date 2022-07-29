@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.connectivity.service.messaging;
 
+import java.util.Optional;
 import java.util.function.Supplier;
 
 import org.eclipse.ditto.connectivity.model.Connection;
@@ -24,13 +25,13 @@ import com.typesafe.config.Config;
 
 import akka.actor.ActorSystem;
 
-public class ExceptionalCommandValidator implements CustomConnectivityCommandInterceptorProvider {
+public class MockCommandValidator implements CustomConnectivityCommandInterceptorProvider {
 
     /**
      * @param actorSystem the actor system in which to load the extension.
      * @param config the config the extension is configured.
      */
-    protected ExceptionalCommandValidator(final ActorSystem actorSystem, final Config config) {
+    protected MockCommandValidator(final ActorSystem actorSystem, final Config config) {
     }
 
     @Override
@@ -44,10 +45,16 @@ public class ExceptionalCommandValidator implements CustomConnectivityCommandInt
         public void accept(final ConnectivityCommand<?> connectivityCommand,
                 final Supplier<Connection> connectionSupplier) {
 
-            throw ConnectionUnavailableException.newBuilder(connectionSupplier.get().getId())
-                    .dittoHeaders(connectivityCommand.getDittoHeaders())
-                    .message("not valid")
-                    .build();
+            final Boolean shouldThrowException =
+                    Optional.ofNullable(connectivityCommand.getDittoHeaders().get("validator-should-throw-exception"))
+                            .map(Boolean::parseBoolean)
+                            .orElse(false);
+            if (shouldThrowException) {
+                throw ConnectionUnavailableException.newBuilder(connectionSupplier.get().getId())
+                        .dittoHeaders(connectivityCommand.getDittoHeaders())
+                        .message("not valid")
+                        .build();
+            }
         }
     }
 }

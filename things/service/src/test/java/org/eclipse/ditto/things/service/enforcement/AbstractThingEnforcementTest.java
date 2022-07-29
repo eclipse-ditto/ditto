@@ -24,7 +24,6 @@ import java.util.UUID;
 import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
 import org.eclipse.ditto.internal.utils.pubsub.DistributedPub;
 import org.eclipse.ditto.internal.utils.pubsub.extractors.AckExtractor;
-import org.eclipse.ditto.policies.api.commands.sudo.SudoRetrievePolicy;
 import org.eclipse.ditto.policies.enforcement.PolicyEnforcerProvider;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicy;
@@ -54,7 +53,6 @@ abstract class AbstractThingEnforcementTest {
     protected TestProbe thingPersistenceActorProbe;
     protected TestProbe policiesShardRegionProbe;
     protected ActorRef supervisor;
-    protected ThingSupervisorActor mockThingPersistenceSupervisor;
 
     protected PolicyEnforcerProvider policyEnforcerProvider;
 
@@ -67,10 +65,7 @@ abstract class AbstractThingEnforcementTest {
         pubSubMediatorProbe = createPubSubMediatorProbe();
         thingPersistenceActorProbe = createThingPersistenceActorProbe();
         policiesShardRegionProbe = getTestProbe(createUniqueName("policiesShardRegionProbe-"));
-        final TestActorRef<ThingSupervisorActor> thingPersistenceSupervisorTestActorRef =
-                createThingPersistenceSupervisor();
-        supervisor = thingPersistenceSupervisorTestActorRef;
-        mockThingPersistenceSupervisor = thingPersistenceSupervisorTestActorRef.underlyingActor();
+        supervisor = createThingPersistenceSupervisor();
     }
 
     @After
@@ -122,7 +117,8 @@ abstract class AbstractThingEnforcementTest {
                 thingPersistenceActorProbe.ref(),
                 null,
                 policyEnforcerProvider
-        ).withDispatcher("akka.actor.default-dispatcher"), system.guardian(), URLEncoder.encode(THING_ID.toString(), Charset.defaultCharset()));
+        ).withDispatcher("akka.actor.default-dispatcher"), system.guardian(),
+                URLEncoder.encode(THING_ID.toString(), Charset.defaultCharset()));
         // Actors using "stash()" require the above dispatcher to be configured, otherwise stash() and unstashAll() won't
         // work like in the "normal" actor!
     }
@@ -132,13 +128,6 @@ abstract class AbstractThingEnforcementTest {
                 thingPersistenceActorProbe.expectMsgClass(SudoRetrieveThing.class);
         assertThat((CharSequence) sudoRetrieveThing.getEntityId()).isEqualTo(THING_ID);
         thingPersistenceActorProbe.reply(sudoRetrieveThingResponse);
-    }
-
-    protected void expectAndAnswerSudoRetrievePolicy(final PolicyId policyId, final Object sudoRetrievePolicyResponse) {
-        final SudoRetrievePolicy sudoRetrievePolicy =
-                policiesShardRegionProbe.expectMsgClass(SudoRetrievePolicy.class);
-        assertThat((CharSequence) sudoRetrievePolicy.getEntityId()).isEqualTo(policyId);
-        policiesShardRegionProbe.reply(sudoRetrievePolicyResponse);
     }
 
     protected void expectAndAnswerRetrievePolicy(final PolicyId policyId, final Object retrievePolicyResponse) {

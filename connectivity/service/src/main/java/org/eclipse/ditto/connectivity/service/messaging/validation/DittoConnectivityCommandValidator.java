@@ -66,7 +66,7 @@ public final class DittoConnectivityCommandValidator implements ConnectivityComm
                             .ifPresentOrElse(connection -> {
                                         connectionValidator.validate(connection, command.getDittoHeaders(), actorSystem);
                                         propsFactory.getActorPropsForType(connection, proxyActor, connectionActor, actorSystem,
-                                                DittoHeaders.empty(), ConfigFactory.empty());
+                                                command.getDittoHeaders(), ConfigFactory.empty());
                                     },
                                     // should never happen
                                     handleNullConnection(command));

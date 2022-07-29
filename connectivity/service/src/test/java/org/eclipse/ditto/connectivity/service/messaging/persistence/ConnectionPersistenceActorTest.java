@@ -13,20 +13,16 @@
 package org.eclipse.ditto.connectivity.service.messaging.persistence;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.data.MapEntry.entry;
+import static org.eclipse.ditto.connectivity.service.messaging.MockClientActorPropsFactory.gossipProbe;
+import static org.eclipse.ditto.connectivity.service.messaging.MockClientActorPropsFactory.mockClientActorProbe;
 import static org.eclipse.ditto.connectivity.service.messaging.TestConstants.INSTANT;
 
 import java.time.Instant;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.Consumer;
-
-import javax.annotation.Nullable;
 
 import org.awaitility.Awaitility;
 import org.eclipse.ditto.base.api.persistence.cleanup.CleanupPersistence;
@@ -34,7 +30,6 @@ import org.eclipse.ditto.base.api.persistence.cleanup.CleanupPersistenceResponse
 import org.eclipse.ditto.base.model.correlationid.TestNameCorrelationId;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.connectivity.api.BaseClientState;
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.ConnectionConfigurationInvalidException;
@@ -43,7 +38,6 @@ import org.eclipse.ditto.connectivity.model.ConnectionIdInvalidException;
 import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
 import org.eclipse.ditto.connectivity.model.ConnectivityStatus;
 import org.eclipse.ditto.connectivity.model.RecoveryStatus;
-import org.eclipse.ditto.connectivity.model.signals.commands.ConnectivityCommand;
 import org.eclipse.ditto.connectivity.model.signals.commands.exceptions.ConnectionNotAccessibleException;
 import org.eclipse.ditto.connectivity.model.signals.commands.exceptions.ConnectionUnavailableException;
 import org.eclipse.ditto.connectivity.model.signals.commands.modify.CloseConnection;
@@ -75,12 +69,13 @@ import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConne
 import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConnectionStatusResponse;
 import org.eclipse.ditto.connectivity.model.signals.events.ConnectionDeleted;
 import org.eclipse.ditto.connectivity.service.messaging.MockClientActorPropsFactory;
+import org.eclipse.ditto.connectivity.service.messaging.MockCommandValidator;
 import org.eclipse.ditto.connectivity.service.messaging.TestConstants;
 import org.eclipse.ditto.connectivity.service.messaging.WithMockServers;
 import org.eclipse.ditto.internal.utils.akka.ActorSystemResource;
 import org.eclipse.ditto.internal.utils.akka.PingCommand;
 import org.eclipse.ditto.internal.utils.akka.controlflow.WithSender;
-import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
+import org.eclipse.ditto.internal.utils.persistentactors.AbstractPersistenceSupervisor;
 import org.eclipse.ditto.internal.utils.test.Retry;
 import org.eclipse.ditto.thingsearch.model.signals.commands.subscription.CreateSubscription;
 import org.junit.Before;
@@ -96,10 +91,9 @@ import akka.actor.Status;
 import akka.cluster.Cluster;
 import akka.cluster.pubsub.DistributedPubSub;
 import akka.cluster.pubsub.DistributedPubSubMediator;
-import akka.serialization.Serialization;
+import akka.testkit.TestActor;
 import akka.testkit.TestProbe;
 import scala.PartialFunction;
-import scala.concurrent.duration.Duration;
 import scala.concurrent.duration.FiniteDuration;
 
 /**
@@ -110,110 +104,55 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
     @Rule
     public final ActorSystemResource actorSystemResource1 = ActorSystemResource.newInstance(
             ConfigFactory.parseMap(Map.of(
-                    "ditto.extensions.client-actor-props-factory",
-                    "org.eclipse.ditto.connectivity.service.messaging.MockClientActorPropsFactory"
+                    "ditto.extensions.client-actor-props-factory.extension-class",
+                    MockClientActorPropsFactory.class.getName(),
+                    "ditto.connectivity.connection.allowed-hostnames",
+                    ConfigValueFactory.fromAnyRef("127.0.0.1"),
+                    "ditto.connectivity.connection.blocked-hostnames",
+                    ConfigValueFactory.fromAnyRef("127.0.0.2"),
+                    "ditto.extensions.custom-connectivity-command-interceptor-provider",
+                    MockCommandValidator.class.getName()
             )).withFallback(TestConstants.CONFIG));
 
     @Rule
     public final ActorSystemResource actorSystemResource2 = ActorSystemResource.newInstance(
             ConfigFactory.parseMap(Map.of(
-                    "ditto.extensions.client-actor-props-factory",
-                    "org.eclipse.ditto.connectivity.service.messaging.MockClientActorPropsFactory"
-            )).withFallback(TestConstants.CONFIG));
-
-    @Rule
-    public final ActorSystemResource actorSystemResourceWithBlocklist = ActorSystemResource.newInstance(
-            ConfigFactory.parseMap(Map.of(
-                            "ditto.extensions.client-actor-props-factory",
-                            "org.eclipse.ditto.connectivity.service.messaging.MockClientActorPropsFactory",
-                            "ditto.connectivity.connection.blocked-hostnames",
-                            ConfigValueFactory.fromAnyRef("127.0.0.1")
-                    ))
-                    .withFallback(TestConstants.CONFIG)
-    );
-
-    @Rule
-    public final ActorSystemResource exceptionalClientProviderSystemResource = ActorSystemResource.newInstance(
-            ConfigFactory.parseMap(Map.of(
-                    "ditto.extensions.client-actor-props-factory",
-                    "org.eclipse.ditto.connectivity.service.messaging.ExceptionClientActorPropsFactory"
-            )).withFallback(TestConstants.CONFIG));
-
-    @Rule
-    public final ActorSystemResource exceptionalCommandValidatorSystemResource = ActorSystemResource.newInstance(
-            ConfigFactory.parseMap(Map.of(
-                    "ditto.extensions.client-actor-props-factory",
-                    "org.eclipse.ditto.connectivity.service.messaging.MockClientActorPropsFactory",
+                    "ditto.extensions.client-actor-props-factory.extension-class",
+                    MockClientActorPropsFactory.class.getName(),
+                    "ditto.connectivity.connection.allowed-hostnames",
+                    ConfigValueFactory.fromAnyRef("127.0.0.1"),
+                    "ditto.connectivity.connection.blocked-hostnames",
+                    ConfigValueFactory.fromAnyRef("127.0.0.2"),
                     "ditto.extensions.custom-connectivity-command-interceptor-provider",
-                    "org.eclipse.ditto.connectivity.service.messaging.ExceptionalCommandValidator"
-            )).withFallback(TestConstants.CONFIG));
-
-    @Rule
-    public final ActorSystemResource failingClientProviderSystemResource = ActorSystemResource.newInstance(
-            ConfigFactory.parseMap(Map.of(
-                    "ditto.extensions.client-actor-props-factory",
-                    "org.eclipse.ditto.connectivity.service.messaging.FailingActorProvider",
-                    "failingRetries",
-                    TestConstants.CONNECTION_CONFIG.getClientActorRestartsBeforeEscalation()
-            )).withFallback(TestConstants.CONFIG));
-
-    @Rule
-    public final ActorSystemResource tooManyFailingClientProviderSystemResource = ActorSystemResource.newInstance(
-            ConfigFactory.parseMap(Map.of(
-                    "ditto.extensions.client-actor-props-factory",
-                    "org.eclipse.ditto.connectivity.service.messaging.FailingActorProvider", "failingRetries",
-                    1 + TestConstants.CONNECTION_CONFIG.getClientActorRestartsBeforeEscalation()
-            )).withFallback(TestConstants.CONFIG));
-
-    @Rule
-    public final ActorSystemResource searchForwardingSystemResource = ActorSystemResource.newInstance(
-            ConfigFactory.parseMap(Map.of(
-                    "ditto.extensions.client-actor-props-factory",
-                    "org.eclipse.ditto.connectivity.service.messaging.SearchForwardingClientActorPropsFactory"
+                    MockCommandValidator.class.getName()
             )).withFallback(TestConstants.CONFIG));
 
     @Rule
     public final TestNameCorrelationId testNameCorrelationId = TestNameCorrelationId.newInstance();
 
-    private ActorRef pubSubMediator;
+    private TestProbe pubSubMediatorProbe;
     private ActorRef commandForwarderActor;
     private DittoHeaders dittoHeadersWithCorrelationId;
     private ConnectionId connectionId;
-    private CreateConnection createConnection;
-    private CreateConnection createClosedConnectionWith2Clients;
-    private CreateConnection createClosedConnection;
-    private ModifyConnection modifyConnection;
-    private ModifyConnection modifyClosedConnection;
-    private DeleteConnection deleteConnection;
-    private TestConnection testConnection;
-    private TestConnection testConnectionCausingFailure;
-    private TestConnection testConnectionCausingException;
-    private CreateConnectionResponse createConnectionResponse;
-    private CreateConnectionResponse createClosedConnectionResponse;
-    private ModifyConnectionResponse modifyConnectionResponse;
-    private OpenConnection openConnection;
-    private CloseConnection closeConnection;
-    private CloseConnectionResponse closeConnectionResponse;
-    private DeleteConnectionResponse deleteConnectionResponse;
-    private RetrieveConnection retrieveConnection;
-    private RetrieveConnectionStatus retrieveConnectionStatus;
-    private ResetConnectionMetrics resetConnectionMetrics;
-    private RetrieveConnectionResponse retrieveModifiedConnectionResponse;
-    private RetrieveConnectionStatusResponse retrieveConnectionStatusOpenResponse;
-    private ConnectionNotAccessibleException connectionNotAccessibleException;
-    private EnableConnectionLogs enableConnectionLogs;
-    private EnableConnectionLogsResponse enableConnectionLogsResponse;
-
-    // second actor system to test multiple client actors
+    private Connection connection;
+    private Connection closedConnectionWith2Clients;
     private Connection closedConnection;
 
     @Before
     public void init() {
-        pubSubMediator = DistributedPubSub.get(actorSystemResource1.getActorSystem()).mediator();
+        final var pubSubMediator = DistributedPubSub.get(actorSystemResource1.getActorSystem()).mediator();
+        pubSubMediatorProbe = TestProbe.apply(actorSystemResource1.getActorSystem());
+        pubSubMediatorProbe.setAutoPilot(new TestActor.AutoPilot() {
+            @Override
+            public TestActor.AutoPilot run(final ActorRef sender, final Object msg) {
+                pubSubMediator.tell(msg, sender);
+                return keepRunning();
+            }
+        });
         commandForwarderActor = actorSystemResource1.newActor(TestConstants.ProxyActorMock.props());
         connectionId = TestConstants.createRandomConnectionId();
-        final var connection = TestConstants.createConnection(connectionId);
-        final var closedConnectionWith2Clients =
+        connection = TestConstants.createConnection(connectionId);
+        closedConnectionWith2Clients =
                 connection.toBuilder().clientCount(2).connectionStatus(ConnectivityStatus.CLOSED).build();
         closedConnection = TestConstants.createConnection(connectionId,
                 ConnectivityStatus.CLOSED,
@@ -221,258 +160,162 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
 
         dittoHeadersWithCorrelationId =
                 DittoHeaders.newBuilder().correlationId(testNameCorrelationId.getCorrelationId()).build();
-
-        createConnection = CreateConnection.of(connection, dittoHeadersWithCorrelationId);
-        createClosedConnectionWith2Clients =
-                CreateConnection.of(closedConnectionWith2Clients, dittoHeadersWithCorrelationId);
-        createClosedConnection = CreateConnection.of(closedConnection, dittoHeadersWithCorrelationId);
-        final var modifiedConnection = ConnectivityModelFactory.newConnectionBuilder(connection)
-                .failoverEnabled(false)
-                .targets(Collections.singletonList(TestConstants.Targets.MESSAGE_TARGET))
-                .build();
-        modifyConnection = ModifyConnection.of(modifiedConnection, dittoHeadersWithCorrelationId);
-        modifyClosedConnection = ModifyConnection.of(closedConnection, dittoHeadersWithCorrelationId);
-        deleteConnection = DeleteConnection.of(connectionId, dittoHeadersWithCorrelationId);
-        createConnectionResponse = CreateConnectionResponse.of(connection, dittoHeadersWithCorrelationId);
-        createClosedConnectionResponse = CreateConnectionResponse.of(closedConnection, dittoHeadersWithCorrelationId);
-        modifyConnectionResponse = ModifyConnectionResponse.of(connectionId, dittoHeadersWithCorrelationId);
-        openConnection = OpenConnection.of(connectionId, dittoHeadersWithCorrelationId);
-        closeConnection = CloseConnection.of(connectionId, dittoHeadersWithCorrelationId);
-        testConnection = TestConnection.of(connection, dittoHeadersWithCorrelationId);
-        testConnectionCausingFailure = TestConnection.of(connection,
-                DittoHeaders.newBuilder(dittoHeadersWithCorrelationId).putHeader("fail", "true").build());
-        testConnectionCausingException = TestConnection.of(connection,
-                DittoHeaders.newBuilder(dittoHeadersWithCorrelationId).putHeader("error", "true").build());
-        closeConnectionResponse = CloseConnectionResponse.of(connectionId, dittoHeadersWithCorrelationId);
-        deleteConnectionResponse = DeleteConnectionResponse.of(connectionId, dittoHeadersWithCorrelationId);
-        retrieveConnection = RetrieveConnection.of(connectionId, dittoHeadersWithCorrelationId);
-        retrieveConnectionStatus = RetrieveConnectionStatus.of(connectionId, dittoHeadersWithCorrelationId);
-        resetConnectionMetrics = ResetConnectionMetrics.of(connectionId, dittoHeadersWithCorrelationId);
-        retrieveModifiedConnectionResponse =
-                RetrieveConnectionResponse.of(modifiedConnection.toJson(), dittoHeadersWithCorrelationId);
-        retrieveConnectionStatusOpenResponse =
-                RetrieveConnectionStatusResponse.getBuilder(connectionId, dittoHeadersWithCorrelationId)
-                        .connectionStatus(ConnectivityStatus.OPEN)
-                        .liveStatus(ConnectivityStatus.OPEN)
-                        .recoveryStatus(RecoveryStatus.SUCCEEDED)
-                        .connectedSince(INSTANT)
-                        .clientStatus(List.of(ConnectivityModelFactory.newClientStatus("client1",
-                                ConnectivityStatus.OPEN,
-                                RecoveryStatus.SUCCEEDED,
-                                "connection is open",
-                                INSTANT)))
-                        .sourceStatus(List.of(ConnectivityModelFactory.newSourceStatus("client1",
-                                        ConnectivityStatus.OPEN,
-                                        "source1",
-                                        "consumer started"),
-                                ConnectivityModelFactory.newSourceStatus("client1",
-                                        ConnectivityStatus.OPEN,
-                                        "source2",
-                                        "consumer started")))
-                        .targetStatus(List.of(ConnectivityModelFactory.newTargetStatus("client1",
-                                        ConnectivityStatus.OPEN,
-                                        "target1",
-                                        "publisher started"),
-                                ConnectivityModelFactory.newTargetStatus("client1",
-                                        ConnectivityStatus.OPEN,
-                                        "target2",
-                                        "publisher started"),
-                                ConnectivityModelFactory.newTargetStatus("client1",
-                                        ConnectivityStatus.OPEN,
-                                        "target3",
-                                        "publisher started")))
-                        .sshTunnelStatus(List.of())
-                        .build();
-        connectionNotAccessibleException = ConnectionNotAccessibleException.newBuilder(connectionId).build();
-        enableConnectionLogs = EnableConnectionLogs.of(connectionId, DittoHeaders.empty());
-        enableConnectionLogsResponse = EnableConnectionLogsResponse.of(connectionId,
-                enableConnectionLogs.getDittoHeaders());
+        mockClientActorProbe = actorSystemResource1.newTestProbe();
+        gossipProbe = actorSystemResource1.newTestProbe();
     }
 
     @Test
     public void testConnection() {
+        //GIVEN
+        final var connection = TestConstants.createConnection(connectionId);
+        var testConnection = TestConnection.of(connection, dittoHeadersWithCorrelationId);
         final var testProbe = actorSystemResource1.newTestProbe();
+        final var connectionSupervisorActor = createSupervisor();
 
-        final var underTest = TestConstants.createConnectionSupervisorActor(connectionId,
-                actorSystemResource1.getActorSystem(),
-                commandForwarderActor,
-                pubSubMediator);
+        //WHEN
+        connectionSupervisorActor.tell(testConnection, testProbe.ref());
 
-        sendClientActorStartingCommand(underTest, testProbe, testConnection, actorSystemResource1, null, null);
-
-        testProbe.expectMsg(Duration.create(65, TimeUnit.SECONDS),
-                TestConnectionResponse.success(connectionId, "mock", testConnection.getDittoHeaders()));
+        //THEN
+        var testConnectionWithDryRunHeader = TestConnection.of(connection, dittoHeadersWithCorrelationId
+                .toBuilder()
+                .dryRun(true)
+                .build());
+        expectMockClientActorMessage(testConnectionWithDryRunHeader);
+        mockClientActorProbe.reply(new Status.Success("mock"));
+        testProbe.expectMsg(TestConnectionResponse.success(connectionId, "mock", testConnection.getDittoHeaders()));
     }
 
     @Test
     public void testConnectionCausingFailure() {
+        //GIVEN
+        final var connection = TestConstants.createConnection(connectionId);
+        var testConnection = TestConnection.of(connection, dittoHeadersWithCorrelationId);
         final var testProbe = actorSystemResource1.newTestProbe();
-        final var underTest = TestConstants.createConnectionSupervisorActor(connectionId,
-                actorSystemResource1.getActorSystem(),
-                commandForwarderActor,
-                pubSubMediator);
+        final var connectionSupervisorActor = createSupervisor();
 
-        sendClientActorStartingCommand(underTest, testProbe, testConnectionCausingFailure, actorSystemResource1, null,
-                null);
+        //WHEN
+        connectionSupervisorActor.tell(testConnection, testProbe.ref());
+
+        //THEN
+        var testConnectionWithDryRunHeader = TestConnection.of(connection, dittoHeadersWithCorrelationId
+                .toBuilder()
+                .dryRun(true)
+                .build());
+        expectMockClientActorMessage(testConnectionWithDryRunHeader);
+        mockClientActorProbe.reply(new Status.Failure(ConnectionIdInvalidException.newBuilder("invalid").build()));
 
         testProbe.expectMsg(ConnectionIdInvalidException.newBuilder("invalid")
-                .dittoHeaders(testConnectionCausingFailure.getDittoHeaders())
+                .dittoHeaders(testConnection.getDittoHeaders())
                 .build());
     }
 
     @Test
     public void testConnectionCausingException() {
-        final var underTest = TestConstants.createConnectionSupervisorActor(connectionId,
-                actorSystemResource1.getActorSystem(),
-                commandForwarderActor,
-                pubSubMediator);
+        //GIVEN
+        final var connection = TestConstants.createConnection(connectionId);
+        var testConnection = TestConnection.of(connection, dittoHeadersWithCorrelationId);
         final var testProbe = actorSystemResource1.newTestProbe();
+        final var connectionSupervisorActor = createSupervisor();
 
-        sendClientActorStartingCommand(underTest, testProbe, testConnectionCausingException, actorSystemResource1, null,
-                null);
+        //WHEN
+        connectionSupervisorActor.tell(testConnection, testProbe.ref());
+
+        //THEN
+        var testConnectionWithDryRunHeader = TestConnection.of(connection, dittoHeadersWithCorrelationId
+                .toBuilder()
+                .dryRun(true)
+                .build());
+        expectMockClientActorMessage(testConnectionWithDryRunHeader);
+        mockClientActorProbe.reply(ConnectionIdInvalidException.newBuilder("invalid").build());
 
         testProbe.expectMsg(ConnectionIdInvalidException.newBuilder("invalid")
-                .dittoHeaders(testConnectionCausingException.getDittoHeaders())
+                .dittoHeaders(testConnection.getDittoHeaders())
                 .build());
     }
 
     @Test
     public void tryToSendOtherCommandThanCreateDuringInitialization() {
         final var testProbe = actorSystemResource1.newTestProbe();
-        final var underTest = TestConstants.createConnectionSupervisorActor(connectionId,
-                actorSystemResource1.getActorSystem(),
-                commandForwarderActor,
-                pubSubMediator);
+        final var underTest = createSupervisor();
 
-        underTest.tell(deleteConnection, testProbe.ref());
+        underTest.tell(DeleteConnection.of(connectionId, dittoHeadersWithCorrelationId), testProbe.ref());
 
         testProbe.expectMsg(ConnectionNotAccessibleException.newBuilder(connectionId)
-                .dittoHeaders(deleteConnection.getDittoHeaders())
+                .dittoHeaders(dittoHeadersWithCorrelationId)
                 .build());
     }
 
     @Test
     public void manageConnection() {
-        final var clientActorTestProbe = actorSystemResource1.newTestProbe();
-        final var underTest = TestConstants.createConnectionSupervisorActor(connectionId,
-                actorSystemResource1.getActorSystem(),
-                commandForwarderActor,
-                pubSubMediator);
+        final var underTest = createSupervisor();
 
         final var testProbe = actorSystemResource1.newTestProbe();
         testProbe.watch(underTest);
 
         // create connection
-        sendClientActorStartingCommand(underTest, testProbe, createConnection, actorSystemResource1,
-                clientActorTestProbe.ref(),
-                null);
-        clientActorTestProbe.expectMsg(enableConnectionLogs);
-        clientActorTestProbe.expectMsg(openConnection);
-        testProbe.expectMsg(createConnectionResponse);
+        underTest.tell(createConnection(), testProbe.ref());
+        simulateSuccessfulOpenConnectionInClientActor();
+        testProbe.expectMsg(createConnectionResponse());
 
         // close connection
+        final CloseConnection closeConnection = CloseConnection.of(connectionId, dittoHeadersWithCorrelationId);
         underTest.tell(closeConnection, testProbe.ref());
-        clientActorTestProbe.expectMsg(closeConnection);
-        testProbe.expectMsg(closeConnectionResponse);
+        expectMockClientActorMessage(closeConnection);
+        mockClientActorProbe.reply(new Status.Success("mock"));
+        testProbe.expectMsg(CloseConnectionResponse.of(connectionId, dittoHeadersWithCorrelationId));
 
         // delete connection
-        underTest.tell(deleteConnection, testProbe.ref());
-        testProbe.expectMsg(deleteConnectionResponse);
-        clientActorTestProbe.expectNoMessage();
+        underTest.tell(DeleteConnection.of(connectionId, dittoHeadersWithCorrelationId), testProbe.ref());
+        testProbe.expectMsg(DeleteConnectionResponse.of(connectionId, dittoHeadersWithCorrelationId));
+        mockClientActorProbe.expectNoMessage();
         testProbe.expectTerminated(underTest, FiniteDuration.apply(3, TimeUnit.SECONDS));
-    }
-
-    private void sendClientActorStartingCommand(final ActorRef underTest,
-            final TestProbe testProbe,
-            @Nullable final Command<?> command,
-            final ActorSystemResource actorSystemResource,
-            @Nullable final ActorRef delegate,
-            @Nullable final ActorRef gossip) {
-
-        final var pubSubMediator = DistributedPubSub.get(actorSystemResource.getActorSystem()).mediator();
-        final var testProbe2 = actorSystemResource.newTestProbe();
-        final var subscriptionMessage =
-                DistPubSubAccess.subscribe("mockClientActor:subscribed", testProbe2.ref());
-        pubSubMediator.tell(subscriptionMessage, testProbe2.ref());
-        testProbe2.expectMsgClass(DistributedPubSubMediator.SubscribeAck.class);
-        if (null != command) {
-            underTest.tell(command, testProbe.ref());
-        }
-        testProbe2.expectMsgClass(FiniteDuration.apply(5, TimeUnit.SECONDS),
-                MockClientActorPropsFactory.MockClientActor.Subscribed.class);
-        publishChange(new MockClientActorPropsFactory.MockClientActor.ChangeActorRef(
-                delegate != null ? Serialization.serializedActorPath(delegate) : null,
-                gossip != null ? Serialization.serializedActorPath(gossip) : null), testProbe2.ref(), pubSubMediator);
-        testProbe2.fishForMessage(scala.concurrent.duration.Duration.apply(3, TimeUnit.SECONDS),
-                "ActorRefChanged",
-                PartialFunction.fromFunction(
-                        MockClientActorPropsFactory.MockClientActor.ActorRefChanged.class::isInstance));
-    }
-
-
-    private void publishChange(final MockClientActorPropsFactory.MockClientActor.ChangeActorRef changeActorRef,
-            final ActorRef testProbe,
-            final ActorRef pubSubMediator) {
-
-        final var publish = DistPubSubAccess.publish("mockClientActor:change", changeActorRef);
-        pubSubMediator.tell(publish, testProbe);
     }
 
     @Test
     public void deleteConnectionUpdatesSubscriptionsAndClosesConnection() {
-        final var clientActorTestProbe = actorSystemResource1.newTestProbe();
-        final var pubSubTestProbe = actorSystemResource1.newTestProbe("mock-pubSub-mediator");
-        final var underTest = TestConstants.createConnectionSupervisorActor(connectionId,
-                actorSystemResource1.getActorSystem(),
-                commandForwarderActor,
-                pubSubTestProbe.ref());
+        final var underTest = createSupervisor();
         final var testProbe = actorSystemResource1.newTestProbe();
         testProbe.watch(underTest);
 
         // create connection
-        sendClientActorStartingCommand(underTest, testProbe, createConnection, actorSystemResource1,
-                clientActorTestProbe.ref(),
-                null);
-        clientActorTestProbe.expectMsg(enableConnectionLogs);
-        clientActorTestProbe.expectMsg(openConnection);
-        testProbe.expectMsg(createConnectionResponse);
+        underTest.tell(createConnection(), testProbe.ref());
+        simulateSuccessfulOpenConnectionInClientActor();
+        testProbe.expectMsg(createConnectionResponse());
 
         // delete connection
-        underTest.tell(deleteConnection, testProbe.ref());
-        clientActorTestProbe.expectMsg(closeConnection);
-        testProbe.expectMsg(deleteConnectionResponse);
+        underTest.tell(DeleteConnection.of(connectionId, dittoHeadersWithCorrelationId), testProbe.ref());
+        expectMockClientActorMessage(CloseConnection.of(connectionId, dittoHeadersWithCorrelationId));
+        mockClientActorProbe.reply(new Status.Success("mock"));
+        testProbe.expectMsg(DeleteConnectionResponse.of(connectionId, dittoHeadersWithCorrelationId));
         testProbe.expectTerminated(underTest, FiniteDuration.apply(3, TimeUnit.SECONDS));
     }
 
     @Test
     public void manageConnectionWith2Clients() throws Exception {
         startSecondActorSystemAndJoinCluster();
-
-        final var clientActorProbe = actorSystemResource1.newTestProbe();
-        final var gossipProbe = actorSystemResource1.newTestProbe("gossip");
-        final var underTest = TestConstants.createConnectionSupervisorActor(connectionId,
-                actorSystemResource1.getActorSystem(),
-                commandForwarderActor,
-                pubSubMediator);
+        mockClientActorProbe.setAutoPilot(new TestActor.AutoPilot() {
+            @Override
+            public TestActor.AutoPilot run(final ActorRef sender, final Object msg) {
+                if (msg instanceof WithSender<?> withSender && withSender.getMessage() instanceof OpenConnection) {
+                    sender.tell(new Status.Success("connected"), mockClientActorProbe.ref());
+                }
+                return keepRunning();
+            }
+        });
+        final var underTest = createSupervisor();
         final var testProbe = actorSystemResource1.newTestProbe();
         testProbe.watch(underTest);
 
         // create closed connection
-        underTest.tell(createClosedConnectionWith2Clients, testProbe.ref());
+        underTest.tell(createConnection(closedConnectionWith2Clients), testProbe.ref());
         testProbe.expectMsgClass(CreateConnectionResponse.class);
 
         // open connection: only local client actor is asked for a response.
-        sendClientActorStartingCommand(underTest, testProbe, openConnection, actorSystemResource1,
-                clientActorProbe.ref(), gossipProbe.ref());
-        underTest.tell(gossipProbe.expectMsgClass(FiniteDuration.apply(5, TimeUnit.SECONDS), ActorRef.class),
-                ActorRef.noSender());
-        //sendClientActorStartingCommand(underTest, testProbe, null, actorSystemResource2, gossipProbe.ref(),
-        //        testProbe.ref());
+        underTest.tell(OpenConnection.of(connectionId, dittoHeadersWithCorrelationId), testProbe.ref());
+        gossipProbe.expectMsgClass(ActorRef.class);
+        gossipProbe.expectMsgClass(ActorRef.class);
 
-        // one client actor receives the command
-        clientActorProbe.expectMsg(enableConnectionLogs);
-        clientActorProbe.expectMsg(openConnection);
-        clientActorProbe.expectMsg(enableConnectionLogs);
+        // handled by autopilot and response is received by sender
         testProbe.expectMsgClass(OpenConnectionResponse.class);
 
         // forward signal once
@@ -480,16 +323,26 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
                 .putHeader(DittoHeaderDefinition.DITTO_SUDO.getKey(), "true")
                 .build());
         underTest.tell(createSubscription, testProbe.ref());
-        clientActorProbe.expectMsgClass(CreateSubscription.class);
+        mockClientActorProbe.fishForMessage(
+                FiniteDuration.apply(30, TimeUnit.SECONDS),
+                "WithSender",
+                PartialFunction.fromFunction(msg -> isMessageSenderInstanceOf(msg, CreateSubscription.class))
+        );
 
         // close connection: at least 1 client actor gets the command; the other may or may not be started.
+        final CloseConnection closeConnection = CloseConnection.of(connectionId, dittoHeadersWithCorrelationId);
         underTest.tell(closeConnection, testProbe.ref());
-        clientActorProbe.expectMsg(closeConnection);
-        testProbe.expectMsg(closeConnectionResponse);
+        mockClientActorProbe.fishForMessage(
+                FiniteDuration.apply(30, TimeUnit.SECONDS),
+                "WithSender",
+                PartialFunction.fromFunction(msg -> isMessageSenderInstanceOf(msg, CloseConnection.class))
+        );
+        mockClientActorProbe.reply(new Status.Success("mock"));
+        testProbe.expectMsg(CloseConnectionResponse.of(connectionId, dittoHeadersWithCorrelationId));
 
         // delete connection
-        underTest.tell(deleteConnection, testProbe.ref());
-        testProbe.expectMsg(deleteConnectionResponse);
+        underTest.tell(DeleteConnection.of(connectionId, dittoHeadersWithCorrelationId), testProbe.ref());
+        testProbe.expectMsg(DeleteConnectionResponse.of(connectionId, dittoHeadersWithCorrelationId));
         testProbe.expectTerminated(underTest, FiniteDuration.apply(5, TimeUnit.SECONDS));
     }
 
@@ -506,76 +359,61 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
 
     @Test
     public void createConnectionAfterDeleted() {
-        final var clientActorMock = actorSystemResource1.newTestProbe();
-        final var underTest = TestConstants.createConnectionSupervisorActor(connectionId,
-                actorSystemResource1.getActorSystem(),
-                commandForwarderActor,
-                pubSubMediator);
+        final var underTest = createSupervisor();
         final var testProbe = actorSystemResource1.newTestProbe();
         testProbe.watch(underTest);
 
         // create connection
-        sendClientActorStartingCommand(underTest, testProbe, createConnection, actorSystemResource1,
-                clientActorMock.ref(), null);
-        clientActorMock.expectMsg(enableConnectionLogs);
-        clientActorMock.expectMsg(openConnection);
-        testProbe.expectMsg(createConnectionResponse);
+        underTest.tell(createConnection(), testProbe.ref());
+        simulateSuccessfulOpenConnectionInClientActor();
+        testProbe.expectMsg(createConnectionResponse());
 
         // delete connection
-        underTest.tell(deleteConnection, testProbe.ref());
-        clientActorMock.expectMsg(closeConnection);
-        testProbe.expectMsg(deleteConnectionResponse);
+        underTest.tell(DeleteConnection.of(connectionId, dittoHeadersWithCorrelationId), testProbe.ref());
+        expectMockClientActorMessage(CloseConnection.of(connectionId, dittoHeadersWithCorrelationId));
+        mockClientActorProbe.reply(new Status.Success("mock"));
+        testProbe.expectMsg(DeleteConnectionResponse.of(connectionId, dittoHeadersWithCorrelationId));
 
         // create connection again (while ConnectionActor is in deleted state)
-        sendClientActorStartingCommand(underTest, testProbe, createConnection, actorSystemResource1,
-                clientActorMock.ref(), null);
-        testProbe.expectMsg(createConnectionResponse);
-        clientActorMock.expectMsg(enableConnectionLogs);
-        clientActorMock.expectMsg(openConnection);
+        underTest.tell(createConnection(), testProbe.ref());
+        simulateSuccessfulOpenConnectionInClientActor();
+        testProbe.expectMsg(createConnectionResponse());
     }
 
     @Test
     public void openConnectionAfterDeletedFails() {
-        final var clientActorMock = actorSystemResource1.newTestProbe();
-        final var underTest = TestConstants.createConnectionSupervisorActor(connectionId,
-                actorSystemResource1.getActorSystem(),
-                commandForwarderActor,
-                pubSubMediator);
+        final var underTest = createSupervisor();
         final var testProbe = actorSystemResource1.newTestProbe();
         testProbe.watch(underTest);
 
         // create connection
-        sendClientActorStartingCommand(underTest, testProbe, createConnection, actorSystemResource1,
-                clientActorMock.ref(), null);
-        clientActorMock.expectMsg(enableConnectionLogs);
-        clientActorMock.expectMsg(openConnection);
-        testProbe.expectMsg(createConnectionResponse);
+        underTest.tell(createConnection(), testProbe.ref());
+        simulateSuccessfulOpenConnectionInClientActor();
+        testProbe.expectMsg(createConnectionResponse());
 
         // delete connection
-        underTest.tell(deleteConnection, testProbe.ref());
-        testProbe.expectMsg(deleteConnectionResponse);
+        underTest.tell(DeleteConnection.of(connectionId, dittoHeadersWithCorrelationId), testProbe.ref());
+        expectMockClientActorMessage(CloseConnection.of(connectionId, dittoHeadersWithCorrelationId));
+        mockClientActorProbe.reply(new Status.Success("mock"));
+        testProbe.expectMsg(DeleteConnectionResponse.of(connectionId, dittoHeadersWithCorrelationId));
 
         // open connection should fail
-        underTest.tell(openConnection, testProbe.ref());
-        testProbe.expectMsg(connectionNotAccessibleException);
+        underTest.tell(OpenConnection.of(connectionId, dittoHeadersWithCorrelationId), testProbe.ref());
+        testProbe.expectMsg(ConnectionNotAccessibleException.newBuilder(connectionId).build());
     }
 
     @Test
     public void createConnectionInClosedState() {
-        final var clientActorProbe = actorSystemResource1.newTestProbe();
-        final var underTest = TestConstants.createConnectionSupervisorActor(connectionId,
-                actorSystemResource1.getActorSystem(),
-                commandForwarderActor,
-                pubSubMediator);
+        final var underTest = createSupervisor();
         final var testProbe = actorSystemResource1.newTestProbe();
         testProbe.watch(underTest);
 
         // create connection
-        underTest.tell(createClosedConnection, testProbe.ref());
-        testProbe.expectMsg(createClosedConnectionResponse);
+        underTest.tell(createConnection(closedConnection), testProbe.ref());
+        testProbe.expectMsg(createConnectionResponse(closedConnection));
 
         // assert that client actor is not called for closed connection
-        clientActorProbe.expectNoMessage();
+        mockClientActorProbe.expectNoMessage();
     }
 
     @Test
@@ -585,12 +423,20 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
                 dittoHeadersWithCorrelationId
         );
 
-        sendCommandWithEnabledBlocklist(
+        final var underTest = createSupervisor();
+        final var testProbe = actorSystemResource1.newTestProbe();
+        testProbe.watch(underTest);
 
-                false,
+        underTest.tell(createClosedConnectionWithUnknownHost, testProbe.ref());
+        final var connectionConfigurationInvalidException =
+                testProbe.expectMsgClass(ConnectionConfigurationInvalidException.class);
+        assertThat(connectionConfigurationInvalidException)
+                .hasMessageContaining("The configured host 'invalid' is invalid");
 
-                entry(createClosedConnectionWithUnknownHost, ConnectionPersistenceActorTest::assertHostInvalid));
+        // assert that client actor is not called for closed connection
+        mockClientActorProbe.expectNoMessage();
     }
+
 
     @Test
     public void testConnectionWithUnknownHost() {
@@ -599,16 +445,22 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
                 dittoHeadersWithCorrelationId
         );
 
-        sendCommandWithEnabledBlocklist(
+        final var underTest = createSupervisor();
+        final var testProbe = actorSystemResource1.newTestProbe();
+        testProbe.watch(underTest);
 
-                false,
+        underTest.tell(testConnectionWithUnknownHost, testProbe.ref());
+        final var connectionConfigurationInvalidException =
+                testProbe.expectMsgClass(ConnectionConfigurationInvalidException.class);
+        assertThat(connectionConfigurationInvalidException)
+                .hasMessageContaining("The configured host 'invalid' is invalid");
 
-                entry(testConnectionWithUnknownHost, ConnectionPersistenceActorTest::assertHostInvalid));
+        // assert that client actor is not called for closed connection
+        mockClientActorProbe.expectNoMessage();
     }
 
     @Test
     public void modifyClosedConnectionWithUnknownHost() {
-
         // connection is created with a valid host/IP
         final var createClosedConnectionWithValidHost = CreateConnection.of(
                 ConnectivityModelFactory.newConnectionBuilder(closedConnection).uri("amqp://8.8.8.8:1234").build(),
@@ -623,37 +475,62 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
                 dittoHeadersWithCorrelationId
         );
 
-        sendCommandWithEnabledBlocklist(
+        final var underTest = createSupervisor();
+        final var testProbe = actorSystemResource1.newTestProbe();
+        testProbe.watch(underTest);
 
-                false,
+        underTest.tell(createClosedConnectionWithValidHost, testProbe.ref());
+        testProbe.expectMsgClass(CreateConnectionResponse.class);
 
-                // create is successful
-                entry(createClosedConnectionWithValidHost, ConnectionPersistenceActorTest::assertConnectionCreated),
+        underTest.tell(modifyClosedConnectionWithInvalidHost, testProbe.ref());
+        final var connectionConfigurationInvalidException =
+                testProbe.expectMsgClass(ConnectionConfigurationInvalidException.class);
+        assertThat(connectionConfigurationInvalidException)
+                .hasMessageContaining("The configured host 'invalid' is invalid");
 
-                // modify fails because the new host is invalid
-                entry(modifyClosedConnectionWithInvalidHost, ConnectionPersistenceActorTest::assertHostInvalid)
-        );
+        // assert that client actor is not called for closed connection
+        mockClientActorProbe.expectNoMessage();
     }
 
     @Test
     public void createClosedConnectionWithBlockedHost() {
         final var createClosedConnectionWithBlockedHost = CreateConnection.of(
-                ConnectivityModelFactory.newConnectionBuilder(closedConnection).uri("amqp://localhost:1234").build(),
+                ConnectivityModelFactory.newConnectionBuilder(closedConnection).uri("amqp://127.0.0.2:1234").build(),
                 dittoHeadersWithCorrelationId
         );
 
-        sendCommandWithEnabledBlocklist(false,
-                entry(createClosedConnectionWithBlockedHost, ConnectionPersistenceActorTest::assertHostBlocked));
+        final var underTest = createSupervisor();
+        final var testProbe = actorSystemResource1.newTestProbe();
+        testProbe.watch(underTest);
+
+        underTest.tell(createClosedConnectionWithBlockedHost, testProbe.ref());
+        final var connectionConfigurationInvalidException =
+                testProbe.expectMsgClass(ConnectionConfigurationInvalidException.class);
+        assertThat(connectionConfigurationInvalidException)
+                .hasMessageContaining("The configured host '127.0.0.2' may not be used for the connection");
+
+        // assert that client actor is not called for closed connection
+        mockClientActorProbe.expectNoMessage();
     }
 
     @Test
     public void testConnectionWithBlockedHost() {
-        final var testConnectionWithUnknownHost = TestConnection.of(
-                ConnectivityModelFactory.newConnectionBuilder(closedConnection).uri("amqp://localhost:1234").build(),
+        final var testConnectionWithBlockedHost = TestConnection.of(
+                ConnectivityModelFactory.newConnectionBuilder(closedConnection).uri("amqp://127.0.0.2:1234").build(),
                 dittoHeadersWithCorrelationId);
 
-        sendCommandWithEnabledBlocklist(false,
-                entry(testConnectionWithUnknownHost, ConnectionPersistenceActorTest::assertHostBlocked));
+        final var underTest = createSupervisor();
+        final var testProbe = actorSystemResource1.newTestProbe();
+        testProbe.watch(underTest);
+
+        underTest.tell(testConnectionWithBlockedHost, testProbe.ref());
+        final var connectionConfigurationInvalidException =
+                testProbe.expectMsgClass(ConnectionConfigurationInvalidException.class);
+        assertThat(connectionConfigurationInvalidException)
+                .hasMessageContaining("The configured host '127.0.0.2' may not be used for the connection");
+
+        // assert that client actor is not called for closed connection
+        mockClientActorProbe.expectNoMessage();
     }
 
     @Test
@@ -668,116 +545,66 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
         // later modified with a blocked host
         final var modifyClosedConnectionWithBlockedHost = ModifyConnection.of(
                 ConnectivityModelFactory.newConnectionBuilder(createClosedConnectionWithValidHost.getConnection())
-                        .uri("amqp://localhost:1234")
+                        .uri("amqp://127.0.0.2:1234")
                         .build(),
                 dittoHeadersWithCorrelationId
         );
 
-        sendCommandWithEnabledBlocklist(
-
-                false,
-
-                // create is successful
-                entry(createClosedConnectionWithValidHost, ConnectionPersistenceActorTest::assertConnectionCreated),
-
-                // modify fails because the new host is invalid
-                entry(modifyClosedConnectionWithBlockedHost, ConnectionPersistenceActorTest::assertHostBlocked)
-        );
-    }
-
-    @SafeVarargs
-    private void sendCommandWithEnabledBlocklist(
-            final boolean firstCommandStartsClientActor,
-            final Map.Entry<ConnectivityCommand<?>, Consumer<Object>>... commands) {
-
-        final var pubSubMediator = DistributedPubSub.get(actorSystemResourceWithBlocklist.getActorSystem()).mediator();
-
-        final var clientActorProbe = actorSystemResourceWithBlocklist.newTestProbe();
-        final var underTest = TestConstants.createConnectionSupervisorActor(connectionId,
-                actorSystemResourceWithBlocklist.getActorSystem(),
-                pubSubMediator,
-                commandForwarderActor);
-        final var testProbe = actorSystemResourceWithBlocklist.newTestProbe();
+        final var underTest = createSupervisor();
+        final var testProbe = actorSystemResource1.newTestProbe();
         testProbe.watch(underTest);
 
-        for (final var command : commands) {
-            if (firstCommandStartsClientActor && command.equals(commands[0])) {
-                sendClientActorStartingCommand(underTest, testProbe, command.getKey(), actorSystemResourceWithBlocklist,
-                        clientActorProbe.ref(), null);
-            } else {
-                underTest.tell(command.getKey(), testProbe.ref());
-            }
-            final var commandValue = command.getValue();
+        underTest.tell(createClosedConnectionWithValidHost, testProbe.ref());
+        testProbe.expectMsgClass(CreateConnectionResponse.class);
 
-            commandValue.accept(testProbe.expectMsgClass(FiniteDuration.apply(30, TimeUnit.SECONDS), Object.class));
-        }
+        underTest.tell(modifyClosedConnectionWithBlockedHost, testProbe.ref());
+        final var connectionConfigurationInvalidException =
+                testProbe.expectMsgClass(ConnectionConfigurationInvalidException.class);
+        assertThat(connectionConfigurationInvalidException)
+                .hasMessageContaining("The configured host '127.0.0.2' may not be used for the connection");
 
         // assert that client actor is not called for closed connection
-        clientActorProbe.expectNoMessage();
-    }
-
-    private static void assertHostInvalid(final Object response) {
-        assertThat(response).isInstanceOfSatisfying(ConnectionConfigurationInvalidException.class,
-                exception -> assertThat(exception).hasMessageContaining("The configured host 'invalid' is invalid"));
-    }
-
-    private static void assertHostBlocked(final Object response) {
-        assertThat(response).isInstanceOfSatisfying(ConnectionConfigurationInvalidException.class,
-                exception -> assertThat(exception).hasMessageContaining(
-                        "The configured host 'localhost' may not be used for the connection"));
-    }
-
-    private static void assertConnectionCreated(final Object response) {
-        assertThat(response).isInstanceOf(CreateConnectionResponse.class);
+        mockClientActorProbe.expectNoMessage();
     }
 
     @Test
     public void modifyConnectionInClosedState() {
-        final var clientActorProbe = actorSystemResource1.newTestProbe();
-        final var underTest = TestConstants.createConnectionSupervisorActor(connectionId,
-                actorSystemResource1.getActorSystem(),
-                commandForwarderActor,
-                pubSubMediator);
+        final var underTest = createSupervisor();
         final var testProbe = actorSystemResource1.newTestProbe();
         testProbe.watch(underTest);
 
         // create connection
-        sendClientActorStartingCommand(underTest, testProbe, createConnection, actorSystemResource1,
-                clientActorProbe.ref(), null);
-        clientActorProbe.expectMsg(enableConnectionLogs);
-        clientActorProbe.expectMsg(openConnection);
-        testProbe.expectMsg(createConnectionResponse);
+        underTest.tell(createConnection(), testProbe.ref());
+        simulateSuccessfulOpenConnectionInClientActor();
+        testProbe.expectMsg(createConnectionResponse());
 
         // close connection
-        underTest.tell(closeConnection, testProbe.ref());
-        clientActorProbe.expectMsg(closeConnection);
-        testProbe.expectMsg(closeConnectionResponse);
+        underTest.tell(CloseConnection.of(connectionId, dittoHeadersWithCorrelationId), testProbe.ref());
+        expectMockClientActorMessage(CloseConnection.of(connectionId, dittoHeadersWithCorrelationId));
+        mockClientActorProbe.reply(new Status.Success("mock"));
+        testProbe.expectMsg(CloseConnectionResponse.of(connectionId, dittoHeadersWithCorrelationId));
 
         // modify connection
-        underTest.tell(modifyClosedConnection, testProbe.ref());
+        underTest.tell(ModifyConnection.of(closedConnection, dittoHeadersWithCorrelationId), testProbe.ref());
 
         // client actor is not informed about modification as it is not started
-        clientActorProbe.expectNoMessage();
-        testProbe.expectMsg(modifyConnectionResponse);
+        mockClientActorProbe.expectNoMessage(FiniteDuration.apply(3, TimeUnit.SECONDS));
+        testProbe.expectMsg(ModifyConnectionResponse.of(connectionId, dittoHeadersWithCorrelationId));
     }
 
     @Test
     public void retrieveMetricsInClosedStateDoesNotStartClientActor() {
-        final var clientActorProbe = actorSystemResource1.newTestProbe();
-        final var underTest = TestConstants.createConnectionSupervisorActor(connectionId,
-                actorSystemResource1.getActorSystem(),
-                commandForwarderActor,
-                pubSubMediator);
+        final var underTest = createSupervisor();
         final var testProbe = actorSystemResource1.newTestProbe();
 
         // create connection
-        underTest.tell(createClosedConnection, testProbe.ref());
-        testProbe.expectMsg(createClosedConnectionResponse);
-        clientActorProbe.expectNoMessage();
+        underTest.tell(createConnection(closedConnection), testProbe.ref());
+        testProbe.expectMsg(createConnectionResponse(closedConnection));
+        mockClientActorProbe.expectNoMessage();
 
         // retrieve metrics
         underTest.tell(RetrieveConnectionMetrics.of(connectionId, dittoHeadersWithCorrelationId), testProbe.ref());
-        clientActorProbe.expectNoMessage();
+        mockClientActorProbe.expectNoMessage();
 
         final var metricsResponse =
                 RetrieveConnectionMetricsResponse.getBuilder(connectionId, dittoHeadersWithCorrelationId)
@@ -790,154 +617,141 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
 
     @Test
     public void modifyConnectionClosesAndRestartsClientActor() {
-        final var mockClientProbe = actorSystemResource1.newTestProbe();
-        final var commandSender = actorSystemResource1.newTestProbe();
-        final var latestConnection = new AtomicReference<Connection>();
-        final var underTest = TestConstants.createConnectionSupervisorActor(connectionId,
-                actorSystemResource1.getActorSystem(),
-                commandForwarderActor,
-                pubSubMediator);
+        final var underTest = createSupervisor();
         final var testProbe = actorSystemResource1.newTestProbe();
 
         // create connection
-        sendClientActorStartingCommand(underTest, commandSender, createConnection, actorSystemResource1,
-                mockClientProbe.ref(),
-                null);
-        mockClientProbe.expectMsg(FiniteDuration.create(5, TimeUnit.SECONDS), enableConnectionLogs);
-        mockClientProbe.expectMsg(FiniteDuration.create(5, TimeUnit.SECONDS), openConnection);
-        commandSender.expectMsg(createConnectionResponse);
-
-        final var clientActor = testProbe.watch(mockClientProbe.sender());
+        underTest.tell(createConnection(), testProbe.ref());
+        simulateSuccessfulOpenConnectionInClientActor();
+        testProbe.expectMsg(createConnectionResponse());
 
         // modify connection | Implicitly validates the restart by waiting for pubsub subscribe from client actor.
-        sendClientActorStartingCommand(underTest, commandSender, modifyConnection, actorSystemResource1,
-                mockClientProbe.ref(),
-                null);
+        underTest.tell(ModifyConnection.of(connection, dittoHeadersWithCorrelationId), testProbe.ref());
         // modify triggers a CloseConnection
-        mockClientProbe.expectMsg(CloseConnection.of(connectionId, dittoHeadersWithCorrelationId));
-
-        // unsubscribe is called for topics of unmodified connection
-        testProbe.expectTerminated(clientActor, FiniteDuration.apply(3, TimeUnit.SECONDS));
+        expectMockClientActorMessage(CloseConnection.of(connectionId, dittoHeadersWithCorrelationId));
+        mockClientActorProbe.reply(new Status.Success("mock"));
 
         // and sends an open connection (if desired state is open). Since logging is enabled from creation
         // enabledConnectionLogs is also expected
-        mockClientProbe.expectMsg(enableConnectionLogs);
-        mockClientProbe.expectMsg(openConnection);
+        simulateSuccessfulOpenConnectionInClientActor();
 
         // eventually the response is sent
-        commandSender.expectMsg(modifyConnectionResponse);
+        testProbe.expectMsg(ModifyConnectionResponse.of(connectionId, dittoHeadersWithCorrelationId));
     }
 
     @Test
-    public void recoverOpenConnection() throws InterruptedException {
-        final var mockClientProbe = actorSystemResource1.newTestProbe();
-        var underTest = TestConstants.createConnectionSupervisorActor(connectionId,
-                actorSystemResource1.getActorSystem(),
-                commandForwarderActor,
-                pubSubMediator);
+    public void recoverOpenConnection() {
+        final var underTest = createSupervisor();
         final var testProbe = actorSystemResource1.newTestProbe();
         testProbe.watch(underTest);
 
         // create connection
-        sendClientActorStartingCommand(underTest, testProbe, createConnection, actorSystemResource1,
-                mockClientProbe.ref(), null);
-        testProbe.expectMsg(createConnectionResponse);
+        underTest.tell(createConnection(), testProbe.ref());
+        testProbe.expectMsg(createConnectionResponse());
 
         // wait for open connection of initial creation
-        mockClientProbe.expectMsg(enableConnectionLogs);
-        mockClientProbe.expectMsg(openConnection);
+        simulateSuccessfulOpenConnectionInClientActor();
 
         // stop actor
         actorSystemResource1.stopActor(underTest);
         testProbe.expectTerminated(underTest, FiniteDuration.apply(3, TimeUnit.SECONDS));
 
         // recover actor
-        final var recoveredMockClientProbe = actorSystemResource1.newTestProbe();
-        underTest = Retry.untilSuccess(() -> TestConstants.createConnectionSupervisorActor(connectionId,
-                actorSystemResource1.getActorSystem(),
-                commandForwarderActor,
-                pubSubMediator));
-        underTest.tell(PingCommand.of(connectionId, null, null), null);
+        final var recoveredActor = Retry.untilSuccess(this::createSupervisor);
+        recoveredActor.tell(PingCommand.of(connectionId, null, null), null);
+
+        expectMockClientActorMessage(OpenConnection.of(connectionId, DittoHeaders.empty()));
 
         Awaitility.await().untilAsserted(() -> {
-            publishChange(new MockClientActorPropsFactory.MockClientActor.ChangeActorRef(
-                            Serialization.serializedActorPath(recoveredMockClientProbe.ref()), null), testProbe.ref(),
-                    pubSubMediator);
-            testProbe.fishForMessage(scala.concurrent.duration.Duration.apply(3, TimeUnit.SECONDS),
-                    "ActorRefChanged",
-                    PartialFunction.fromFunction(
-                            MockClientActorPropsFactory.MockClientActor.ActorRefChanged.class::isInstance));
-        });
-        recoveredMockClientProbe.expectMsg(FiniteDuration.apply(5, TimeUnit.SECONDS),
-                openConnection.setDittoHeaders(DittoHeaders.empty()));
+            recoveredActor.tell(RetrieveConnectionStatus.of(connectionId, dittoHeadersWithCorrelationId),
+                    testProbe.ref());
+            expectMockClientActorMessage(RetrieveConnectionStatus.class);
+            final ActorRef lastSender = mockClientActorProbe.lastSender();
+            lastSender.tell(ConnectivityModelFactory.newClientStatus("client1",
+                            ConnectivityStatus.OPEN, RecoveryStatus.SUCCEEDED, "connection is open",
+                            TestConstants.INSTANT),
+                    mockClientActorProbe.ref());
 
-        final var recoveredActor = underTest;
-        Awaitility.await().untilAsserted(() -> {
-            recoveredActor.tell(retrieveConnectionStatus, testProbe.ref());
-            testProbe.expectMsg(retrieveConnectionStatusOpenResponse);
+            // simulate consumer and pusblisher actor response
+            lastSender.tell(ConnectivityModelFactory.newSourceStatus("client1",
+                            ConnectivityStatus.OPEN, "source1", "consumer started"),
+                    mockClientActorProbe.ref());
+            lastSender.tell(ConnectivityModelFactory.newSourceStatus("client1",
+                            ConnectivityStatus.OPEN, "source2", "consumer started"),
+                    mockClientActorProbe.ref());
+            lastSender.tell(ConnectivityModelFactory.newTargetStatus("client1",
+                            ConnectivityStatus.OPEN, "target1", "publisher started"),
+                    mockClientActorProbe.ref());
+            lastSender.tell(ConnectivityModelFactory.newTargetStatus("client1",
+                            ConnectivityStatus.OPEN, "target2", "publisher started"),
+                    mockClientActorProbe.ref());
+            lastSender.tell(ConnectivityModelFactory.newTargetStatus("client1",
+                            ConnectivityStatus.OPEN, "target3", "publisher started"),
+                    mockClientActorProbe.ref());
+            testProbe.expectMsg(retrieveConnectionStatusResponse());
         });
     }
 
     @Test
     public void recoverModifiedConnection() {
-        var underTest = TestConstants.createConnectionSupervisorActor(connectionId,
-                actorSystemResource1.getActorSystem(),
-                commandForwarderActor);
+        var underTest = createSupervisor();
         final var testProbe = actorSystemResource1.newTestProbe();
         testProbe.watch(underTest);
 
         // create connection
-        sendClientActorStartingCommand(underTest, testProbe, createConnection, actorSystemResource1, null, null);
-        testProbe.expectMsg(createConnectionResponse);
+        underTest.tell(createConnection(), testProbe.ref());
+        simulateSuccessfulOpenConnectionInClientActor();
+        testProbe.expectMsg(createConnectionResponse());
 
         // modify connection
-        sendClientActorStartingCommand(underTest, testProbe, modifyConnection, actorSystemResource1, null, null);
-        testProbe.expectMsg(modifyConnectionResponse);
+        final var modifiedConnection = ConnectivityModelFactory.newConnectionBuilder(connection)
+                .failoverEnabled(false)
+                .targets(Collections.singletonList(TestConstants.Targets.MESSAGE_TARGET))
+                .build();
+        underTest.tell(ModifyConnection.of(modifiedConnection, dittoHeadersWithCorrelationId), testProbe.ref());
+        expectMockClientActorMessage(CloseConnection.class);
+        mockClientActorProbe.reply(new Status.Success("mock"));
+        simulateSuccessfulOpenConnectionInClientActor();
+        testProbe.expectMsg(ModifyConnectionResponse.of(connectionId, dittoHeadersWithCorrelationId));
 
         // stop actor
         actorSystemResource1.stopActor(underTest);
         testProbe.expectTerminated(underTest, FiniteDuration.apply(3, TimeUnit.SECONDS));
 
         // recover actor
-        underTest = TestConstants.createConnectionSupervisorActor(connectionId,
-                actorSystemResource1.getActorSystem(),
-                commandForwarderActor,
-                pubSubMediator);
+        underTest = createSupervisor();
 
         // retrieve connection status
-        underTest.tell(retrieveConnection, testProbe.ref());
-        testProbe.expectMsg(retrieveModifiedConnectionResponse);
+        underTest.tell(RetrieveConnection.of(connectionId, dittoHeadersWithCorrelationId), testProbe.ref());
+        testProbe.expectMsg(RetrieveConnectionResponse.of(modifiedConnection.toJson(), dittoHeadersWithCorrelationId));
     }
 
     @Test
     public void recoverClosedConnection() {
-        var underTest = TestConstants.createConnectionSupervisorActor(connectionId,
-                actorSystemResource1.getActorSystem(),
-                commandForwarderActor,
-                pubSubMediator);
+        var underTest = createSupervisor();
         final var testProbe = actorSystemResource1.newTestProbe();
         testProbe.watch(underTest);
 
         // create connection
-        sendClientActorStartingCommand(underTest, testProbe, createConnection, actorSystemResource1, null, null);
-        testProbe.expectMsg(createConnectionResponse);
+        underTest.tell(createConnection(), testProbe.ref());
+        simulateSuccessfulOpenConnectionInClientActor();
+        testProbe.expectMsg(createConnectionResponse());
 
         // close connection
-        underTest.tell(closeConnection, testProbe.ref());
-        testProbe.expectMsg(closeConnectionResponse);
+        underTest.tell(CloseConnection.of(connectionId, dittoHeadersWithCorrelationId), testProbe.ref());
+        expectMockClientActorMessage(CloseConnection.class);
+        mockClientActorProbe.reply(new Status.Success("mock"));
+        testProbe.expectMsg(CloseConnectionResponse.of(connectionId, dittoHeadersWithCorrelationId));
 
         // stop actor
         actorSystemResource1.stopActor(underTest);
         testProbe.expectTerminated(underTest, FiniteDuration.apply(3, TimeUnit.SECONDS));
 
         // recover actor
-        underTest = Retry.untilSuccess(() -> TestConstants.createConnectionSupervisorActor(connectionId,
-                actorSystemResource1.getActorSystem(),
-                commandForwarderActor,
-                pubSubMediator));
+        underTest = Retry.untilSuccess(this::createSupervisor);
 
         // retrieve connection status
-        underTest.tell(retrieveConnectionStatus, testProbe.ref());
+        underTest.tell(RetrieveConnectionStatus.of(connectionId, dittoHeadersWithCorrelationId), testProbe.ref());
         final var response = testProbe.expectMsgClass(FiniteDuration.apply(20L, TimeUnit.SECONDS),
                 RetrieveConnectionStatusResponse.class);
 
@@ -956,51 +770,54 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
 
     @Test
     public void recoverDeletedConnection() {
-        var underTest = TestConstants.createConnectionSupervisorActor(connectionId,
-                actorSystemResource1.getActorSystem(),
-                commandForwarderActor,
-                pubSubMediator);
+        var underTest = createSupervisor();
         final var testProbe = actorSystemResource1.newTestProbe();
         testProbe.watch(underTest);
 
         // create connection
-        sendClientActorStartingCommand(underTest, testProbe, createConnection, actorSystemResource1, null, null);
-        testProbe.expectMsg(createConnectionResponse);
+        underTest.tell(createConnection(), testProbe.ref());
+        simulateSuccessfulOpenConnectionInClientActor();
+        testProbe.expectMsg(createConnectionResponse());
 
         // delete connection
-        underTest.tell(deleteConnection, testProbe.ref());
-        testProbe.expectMsg(deleteConnectionResponse);
+        underTest.tell(DeleteConnection.of(connectionId, dittoHeadersWithCorrelationId), testProbe.ref());
+        expectMockClientActorMessage(CloseConnection.class);
+        mockClientActorProbe.reply(new Status.Success("mock"));
+        testProbe.expectMsg(DeleteConnectionResponse.of(connectionId, dittoHeadersWithCorrelationId));
         testProbe.expectTerminated(underTest, FiniteDuration.apply(3, TimeUnit.SECONDS));
 
         // recover actor
-        underTest = Retry.untilSuccess(() -> TestConstants.createConnectionSupervisorActor(connectionId,
-                actorSystemResource1.getActorSystem(),
-                commandForwarderActor,
-                pubSubMediator));
+        underTest = Retry.untilSuccess(this::createSupervisor);
 
         // retrieve connection status
-        underTest.tell(retrieveConnectionStatus, testProbe.ref());
-        testProbe.expectMsg(connectionNotAccessibleException);
+        underTest.tell(RetrieveConnectionStatus.of(connectionId, dittoHeadersWithCorrelationId), testProbe.ref());
+        testProbe.expectMsg(ConnectionNotAccessibleException.newBuilder(connectionId).build());
     }
 
     @Test
     public void exceptionDuringClientActorPropsCreation() {
 
         final var connectionActorProps = ConnectionPersistenceActor.props(
-                TestConstants.createRandomConnectionId(), commandForwarderActor, pubSubMediator, ConfigFactory.empty()
+                TestConstants.createRandomConnectionId(), commandForwarderActor, pubSubMediatorProbe.ref(),
+                ConfigFactory.empty()
         );
 
-        // create another actor because this it is stopped and we want to test if the child is terminated
-        final var parent = exceptionalClientProviderSystemResource.newTestKit();
-        final var testProbe = exceptionalClientProviderSystemResource.newTestProbe();
-        final var connectionActorRef = testProbe.watch(parent.childActorOf(connectionActorProps));
+        final var testProbe = actorSystemResource1.newTestProbe();
+        final var supervisor = actorSystemResource1.newTestProbe();
+        final var connectionActorRef = supervisor.childActorOf(connectionActorProps);
 
         // create connection
-        connectionActorRef.tell(createConnection, parent.getRef());
+        final CreateConnection createConnection = createConnection();
+        final var headersIndicatingException = createConnection.getDittoHeaders().toBuilder()
+                .putHeader("should-throw-exception", "true")
+                .build();
+        connectionActorRef.tell(createConnection.setDittoHeaders(headersIndicatingException), testProbe.ref());
 
-        // expect ConnectionConfigurationInvalidException sent to parent
-        final Exception exception = parent.expectMsgClass(ConnectionConfigurationInvalidException.class);
+        // expect ConnectionConfigurationInvalidException as response
+        final Exception exception = testProbe.expectMsgClass(ConnectionConfigurationInvalidException.class);
         assertThat(exception).hasMessageContaining("validation failed...");
+        // supervisor gets passivate indicator because of internal failure
+        supervisor.expectMsg(AbstractPersistenceSupervisor.Control.PASSIVATE);
 
         // connection actor will stop after activity check.
     }
@@ -1009,63 +826,58 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
     public void exceptionDueToCustomValidator() {
         final var connectionActorProps = ConnectionPersistenceActor.props(TestConstants.createRandomConnectionId(),
                 commandForwarderActor,
-                pubSubMediator,
+                pubSubMediatorProbe.ref(),
                 ConfigFactory.empty());
 
-        // create another actor because we want to test if the child is terminated
-        final var parent = exceptionalCommandValidatorSystemResource.newTestKit();
-        final var testProbe = exceptionalCommandValidatorSystemResource.newTestProbe();
-        final var connectionActorRef = testProbe.watch(parent.childActorOf(connectionActorProps));
+        final var testProbe = actorSystemResource1.newTestProbe();
+        final var parent = actorSystemResource1.newTestProbe();
+        final var connectionActorRef = parent.childActorOf(connectionActorProps);
 
         // create connection
-        connectionActorRef.tell(createConnection, parent.getRef());
+        final CreateConnection createConnection = createConnection();
+        final var headersIndicatingException = createConnection.getDittoHeaders().toBuilder()
+                .putHeader("validator-should-throw-exception", "true")
+                .build();
+        connectionActorRef.tell(createConnection.setDittoHeaders(headersIndicatingException), testProbe.ref());
 
-        // expect ConnectionUnavailableException sent to parent
-        final var exception = parent.expectMsgClass(ConnectionUnavailableException.class);
+        // expect ConnectionUnavailableException as response
+        final var exception = testProbe.expectMsgClass(ConnectionUnavailableException.class);
         assertThat(exception).hasMessageContaining("not valid");
+        // supervisor gets passivate indicator because of internal failure
+        parent.expectMsg(AbstractPersistenceSupervisor.Control.PASSIVATE);
 
         // do not expect passivation; it only happens for graceful shutdown.
     }
 
     @Test
     public void testResetConnectionMetrics() {
-        final var clientActorProbe = actorSystemResource1.newTestProbe();
-        final var underTest = TestConstants.createConnectionSupervisorActor(connectionId,
-                actorSystemResource1.getActorSystem(),
-                commandForwarderActor,
-                pubSubMediator);
+        final var underTest = createSupervisor();
         final var testProbe = actorSystemResource1.newTestProbe();
         testProbe.watch(underTest);
 
         // create connection
-        sendClientActorStartingCommand(underTest, testProbe, createConnection, actorSystemResource1,
-                clientActorProbe.ref(), null);
-        clientActorProbe.expectMsg(enableConnectionLogs);
-        clientActorProbe.expectMsg(openConnection);
-        testProbe.expectMsg(createConnectionResponse);
+        underTest.tell(createConnection(), testProbe.ref());
+        simulateSuccessfulOpenConnectionInClientActor();
+        testProbe.expectMsg(createConnectionResponse());
 
         // reset metrics
+        final var resetConnectionMetrics = ResetConnectionMetrics.of(connectionId, dittoHeadersWithCorrelationId);
         underTest.tell(resetConnectionMetrics, testProbe.ref());
-        clientActorProbe.expectMsg(resetConnectionMetrics);
+        expectMockClientActorMessage(resetConnectionMetrics);
 
         testProbe.expectMsg(ResetConnectionMetricsResponse.of(connectionId, dittoHeadersWithCorrelationId));
     }
 
     @Test
     public void testConnectionActorRespondsToCleanupCommand() {
-        final var probe = actorSystemResource1.newTestProbe();
-        final var underTest = TestConstants.createConnectionSupervisorActor(connectionId,
-                actorSystemResource1.getActorSystem(),
-                commandForwarderActor,
-                pubSubMediator);
+        final var underTest = createSupervisor();
         final var testProbe = actorSystemResource1.newTestProbe();
         testProbe.watch(underTest);
 
         // create connection
-        sendClientActorStartingCommand(underTest, testProbe, createConnection, actorSystemResource1, probe.ref(), null);
-        probe.expectMsg(enableConnectionLogs);
-        probe.expectMsg(openConnection);
-        testProbe.expectMsg(createConnectionResponse);
+        underTest.tell(createConnection(), testProbe.ref());
+        simulateSuccessfulOpenConnectionInClientActor();
+        testProbe.expectMsg(createConnectionResponse());
 
         // send cleanup command
         underTest.tell(CleanupPersistence.of(connectionId, dittoHeadersWithCorrelationId), testProbe.ref());
@@ -1074,44 +886,36 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
 
     @Test
     public void enableConnectionLogs() {
-        final var clientActorProbe = actorSystemResource1.newTestProbe();
-        final var underTest = TestConstants.createConnectionSupervisorActor(connectionId,
-                actorSystemResource1.getActorSystem(),
-                commandForwarderActor,
-                pubSubMediator);
+        final var underTest = createSupervisor();
         final var testProbe = actorSystemResource1.newTestProbe();
         testProbe.watch(underTest);
 
         // create connection
-        sendClientActorStartingCommand(underTest, testProbe, createConnection, actorSystemResource1,
-                clientActorProbe.ref(), null);
-        clientActorProbe.expectMsg(enableConnectionLogs);
-        clientActorProbe.expectMsg(openConnection);
-        testProbe.expectMsg(createConnectionResponse);
+        underTest.tell(createConnection(), testProbe.ref());
+        simulateSuccessfulOpenConnectionInClientActor();
+        testProbe.expectMsg(createConnectionResponse());
 
         //Close logging which are automatically enabled via create connection
         underTest.tell(LoggingExpired.of(connectionId, dittoHeadersWithCorrelationId), testProbe.ref());
 
         // enable connection logs
+        final var enableConnectionLogs = EnableConnectionLogs.of(connectionId, dittoHeadersWithCorrelationId);
         underTest.tell(enableConnectionLogs, testProbe.ref());
-        clientActorProbe.expectMsg(enableConnectionLogs);
+        expectMockClientActorMessage(enableConnectionLogs);
 
-        testProbe.expectMsg(enableConnectionLogsResponse);
+        testProbe.expectMsg(EnableConnectionLogsResponse.of(connectionId, dittoHeadersWithCorrelationId));
     }
 
     @Test
     public void retrieveLogsInClosedStateDoesNotStartClientActor() {
         final var clientActorProbe = actorSystemResource1.newTestProbe();
-        final var underTest = TestConstants.createConnectionSupervisorActor(connectionId,
-                actorSystemResource1.getActorSystem(),
-                commandForwarderActor,
-                pubSubMediator);
+        final var underTest = createSupervisor();
         final var testProbe = actorSystemResource1.newTestProbe();
         testProbe.watch(underTest);
 
         // create connection
-        underTest.tell(createClosedConnection, testProbe.ref());
-        testProbe.expectMsg(createClosedConnectionResponse);
+        underTest.tell(createConnection(closedConnection), testProbe.ref());
+        testProbe.expectMsg(createConnectionResponse(closedConnection));
         clientActorProbe.expectNoMessage();
 
         // retrieve logs
@@ -1135,30 +939,24 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
                 now.plusSeconds(123),
                 dittoHeadersWithCorrelationId);
 
-        final var clientActorProbe = actorSystemResource1.newTestProbe();
-        final var underTest = TestConstants.createConnectionSupervisorActor(connectionId,
-                actorSystemResource1.getActorSystem(),
-                commandForwarderActor,
-                pubSubMediator);
+        final var underTest = createSupervisor();
         final var testProbe = actorSystemResource1.newTestProbe();
         testProbe.watch(underTest);
 
         // create connection
-        sendClientActorStartingCommand(underTest, testProbe, createConnection, actorSystemResource1,
-                clientActorProbe.ref(), null);
-        clientActorProbe.expectMsg(enableConnectionLogs);
-        clientActorProbe.expectMsg(openConnection);
-        testProbe.expectMsg(createConnectionResponse);
+        underTest.tell(createConnection(), testProbe.ref());
+        simulateSuccessfulOpenConnectionInClientActor();
+        testProbe.expectMsg(createConnectionResponse());
 
         // retrieve logs
         final var retrieveConnectionLogs = RetrieveConnectionLogs.of(connectionId, dittoHeadersWithCorrelationId);
         underTest.tell(retrieveConnectionLogs, testProbe.ref());
-        clientActorProbe.expectMsg(enableConnectionLogs);
-        clientActorProbe.expectMsg(retrieveConnectionLogs);
+        expectMockClientActorMessage(EnableConnectionLogs.of(connectionId, DittoHeaders.empty()));
+        expectMockClientActorMessage(retrieveConnectionLogs);
 
         // send answer to aggregator actor
-        final var aggregatorActor = clientActorProbe.sender();
-        clientActorProbe.send(aggregatorActor, innerResponse);
+        final var aggregatorActor = mockClientActorProbe.sender();
+        mockClientActorProbe.send(aggregatorActor, innerResponse);
         testProbe.expectMsg(innerResponse);
     }
 
@@ -1168,118 +966,99 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
         final var expectedResponse =
                 ResetConnectionLogsResponse.of(connectionId, resetConnectionLogs.getDittoHeaders());
 
-        final var clientActorProbe = actorSystemResource1.newTestProbe();
-        final var underTest = TestConstants.createConnectionSupervisorActor(connectionId,
-                actorSystemResource1.getActorSystem(),
-                commandForwarderActor,
-                pubSubMediator);
+        final var underTest = createSupervisor();
         final var testProbe = actorSystemResource1.newTestProbe();
         testProbe.watch(underTest);
 
         // create connection
-        sendClientActorStartingCommand(underTest, testProbe, createConnection, actorSystemResource1,
-                clientActorProbe.ref(), null);
-        clientActorProbe.expectMsg(enableConnectionLogs);
-        clientActorProbe.expectMsg(openConnection);
-        testProbe.expectMsg(createConnectionResponse);
+        underTest.tell(createConnection(), testProbe.ref());
+        simulateSuccessfulOpenConnectionInClientActor();
+        testProbe.expectMsg(createConnectionResponse());
 
         // reset logs
         underTest.tell(resetConnectionLogs, testProbe.ref());
-        clientActorProbe.expectMsg(resetConnectionLogs);
+        expectMockClientActorMessage(resetConnectionLogs);
         testProbe.expectMsg(expectedResponse);
     }
 
     @Test
     public void enabledConnectionLogsAreEnabledAgainAfterModify() {
-        final var clientActorProbe = actorSystemResource1.newTestProbe();
-        final var underTest = TestConstants.createConnectionSupervisorActor(connectionId,
-                actorSystemResource1.getActorSystem(),
-                commandForwarderActor,
-                pubSubMediator);
+        final var underTest = createSupervisor();
         final var testProbe = actorSystemResource1.newTestProbe();
         testProbe.watch(underTest);
 
         // create connection
-        sendClientActorStartingCommand(underTest, testProbe, createConnection, actorSystemResource1,
-                clientActorProbe.ref(), null);
-        clientActorProbe.expectMsg(enableConnectionLogs);
-        clientActorProbe.expectMsg(openConnection);
-        testProbe.expectMsg(createConnectionResponse);
+        underTest.tell(createConnection(), testProbe.ref());
+        simulateSuccessfulOpenConnectionInClientActor();
+        testProbe.expectMsg(createConnectionResponse());
 
         // Wait until connection is established
         // enable connection logs
+        final var enableConnectionLogs = EnableConnectionLogs.of(connectionId, DittoHeaders.empty());
         underTest.tell(enableConnectionLogs, testProbe.ref());
-        clientActorProbe.expectMsg(enableConnectionLogs);
-        testProbe.expectMsg(enableConnectionLogsResponse);
+        expectMockClientActorMessage(enableConnectionLogs);
+        testProbe.expectMsg(EnableConnectionLogsResponse.of(connectionId, enableConnectionLogs.getDittoHeaders()));
 
         // modify connection
-        sendClientActorStartingCommand(underTest, testProbe, modifyConnection, actorSystemResource1,
-                clientActorProbe.ref(), null);
-        clientActorProbe.expectMsg(closeConnection);
-        clientActorProbe.expectMsg(enableConnectionLogs);
-        clientActorProbe.expectMsg(openConnection);
-        testProbe.expectMsg(modifyConnectionResponse);
+        underTest.tell(ModifyConnection.of(connection, dittoHeadersWithCorrelationId), testProbe.ref());
+        expectMockClientActorMessage(CloseConnection.of(connectionId, dittoHeadersWithCorrelationId));
+        mockClientActorProbe.reply(new Status.Success("mock"));
+        simulateSuccessfulOpenConnectionInClientActor();
+        testProbe.expectMsg(ModifyConnectionResponse.of(connectionId, dittoHeadersWithCorrelationId));
 
         // expect the message twice, once for each client
-        clientActorProbe.expectMsg(enableConnectionLogs);
+        expectMockClientActorMessage(enableConnectionLogs);
     }
 
     @Test
     public void disabledConnectionLogsAreNotEnabledAfterModify() {
-        final var clientActorProbe = actorSystemResource1.newTestProbe();
-        final var underTest = TestConstants.createConnectionSupervisorActor(connectionId,
-                actorSystemResource1.getActorSystem(),
-                commandForwarderActor,
-                pubSubMediator);
+        final var underTest = createSupervisor();
         final var testProbe = actorSystemResource1.newTestProbe();
         testProbe.watch(underTest);
 
         // create connection
-        sendClientActorStartingCommand(underTest, testProbe, createConnection, actorSystemResource1,
-                clientActorProbe.ref(), null);
-        clientActorProbe.expectMsg(enableConnectionLogs);
-        clientActorProbe.expectMsg(openConnection);
-        testProbe.expectMsg(createConnectionResponse);
+        underTest.tell(createConnection(), testProbe.ref());
+        simulateSuccessfulOpenConnectionInClientActor();
+        testProbe.expectMsg(createConnectionResponse());
 
         //Close logging which are automatically enabled via create connection
         underTest.tell(LoggingExpired.of(connectionId, DittoHeaders.empty()), testProbe.ref());
 
         // modify connection
-        sendClientActorStartingCommand(underTest, testProbe, modifyConnection, actorSystemResource1,
-                clientActorProbe.ref(), null);
-        clientActorProbe.expectMsg(closeConnection);
-        clientActorProbe.expectMsg(openConnection);
-        testProbe.expectMsg(modifyConnectionResponse);
-        clientActorProbe.expectNoMsg();
+        underTest.tell(ModifyConnection.of(connection, dittoHeadersWithCorrelationId), testProbe.ref());
+        expectMockClientActorMessage(CloseConnection.of(connectionId, dittoHeadersWithCorrelationId));
+        mockClientActorProbe.reply(new Status.Success("mock"));
+        expectMockClientActorMessage(OpenConnection.of(connectionId, dittoHeadersWithCorrelationId));
+        mockClientActorProbe.reply(new Status.Success("mock"));
+        testProbe.expectMsg(ModifyConnectionResponse.of(connectionId, dittoHeadersWithCorrelationId));
+
+        mockClientActorProbe.expectNoMsg();
     }
 
     @Test
     public void forwardSearchCommands() {
-        final var myConnectionId = ConnectionId.of(UUID.randomUUID().toString());
-        final var gossipProbe = searchForwardingSystemResource.newTestProbe("gossip");
-        final var clientActorsProbe = searchForwardingSystemResource.newTestProbe("clientActors");
-        final var proxyActorProbe = searchForwardingSystemResource.newTestProbe("proxyActor");
-        final var pubSubMediatorProbe = searchForwardingSystemResource.newTestProbe("pubSubMediator");
-        final var testProbe = searchForwardingSystemResource.newTestProbe();
+        mockClientActorProbe.setAutoPilot(new TestActor.AutoPilot() {
+            @Override
+            public TestActor.AutoPilot run(final ActorRef sender, final Object msg) {
+                if (msg instanceof WithSender<?> withSender && withSender.getMessage() instanceof OpenConnection) {
+                    sender.tell(new Status.Success("connected"), mockClientActorProbe.ref());
+                }
+                return keepRunning();
+            }
+        });
+        final var testProbe = actorSystemResource1.newTestProbe();
         final var connectionActorProps = Props.create(ConnectionPersistenceActor.class,
-                () -> new ConnectionPersistenceActor(myConnectionId,
-                        proxyActorProbe.ref(),
+                () -> new ConnectionPersistenceActor(connectionId,
+                        commandForwarderActor,
                         pubSubMediatorProbe.ref(),
                         Trilean.TRUE,
                         ConfigFactory.empty()));
 
         // GIVEN: connection persistence actor created with 2 client actors that are allowed to start on same node
-        final var underTest = searchForwardingSystemResource.newActor(connectionActorProps, myConnectionId.toString());
-        underTest.tell(createClosedConnectionWith2Clients, testProbe.ref());
+        final var underTest = actorSystemResource1.newActor(connectionActorProps, connectionId.toString());
+        underTest.tell(createConnection(closedConnectionWith2Clients), testProbe.ref());
         testProbe.expectMsgClass(CreateConnectionResponse.class);
-        sendClientActorStartingCommand(underTest, testProbe, OpenConnection.of(myConnectionId, DittoHeaders.empty()),
-                searchForwardingSystemResource, clientActorsProbe.ref(), gossipProbe.ref());
-
-        clientActorsProbe.fishForMessage(FiniteDuration.apply(5, TimeUnit.SECONDS),
-                "CreateConnection",
-                PartialFunction.fromFunction(msg -> isMessageSenderInstanceOf(msg, OpenConnection.class)));
-        clientActorsProbe.reply(new Status.Success("connected"));
-        testProbe.expectMsgClass(OpenConnectionResponse.class);
+        underTest.tell(OpenConnection.of(connectionId, DittoHeaders.empty()), testProbe.ref());
 
         // wait until gossip protocol completes
         gossipProbe.expectMsgClass(ActorRef.class);
@@ -1289,12 +1068,12 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
         // THEN: The 2 commands land in different client actors
         underTest.tell(CreateSubscription.of(DittoHeaders.empty()), testProbe.ref());
         underTest.tell(CreateSubscription.of(DittoHeaders.empty()), testProbe.ref());
-        final var createSubscription1 = (WithSender<?>) clientActorsProbe.fishForMessage(
+        final var createSubscription1 = (WithSender<?>) mockClientActorProbe.fishForMessage(
                 FiniteDuration.apply(5, TimeUnit.SECONDS),
                 "WithSender",
                 PartialFunction.fromFunction(msg -> isMessageSenderInstanceOf(msg, CreateSubscription.class))
         );
-        final var createSubscription2 = (WithSender<?>) clientActorsProbe.fishForMessage(
+        final var createSubscription2 = (WithSender<?>) mockClientActorProbe.fishForMessage(
                 FiniteDuration.apply(5, TimeUnit.SECONDS),
                 "WithSender",
                 PartialFunction.fromFunction(msg -> isMessageSenderInstanceOf(msg, CreateSubscription.class))
@@ -1303,10 +1082,22 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
         assertThat(createSubscription1.getSender()).isNotEqualTo(createSubscription2.getSender());
     }
 
+    private static <T> WithSender<T> expectMockClientActorMessage(final Class<T> searchedClass) {
+        final WithSender<?> withSender = mockClientActorProbe.expectMsgClass(WithSender.class);
+        assertThat(withSender.getMessage()).isInstanceOf(searchedClass);
+        return (WithSender<T>) withSender;
+    }
+
+    private static <T> WithSender<T> expectMockClientActorMessage(final Object expectedMessage) {
+        final WithSender<?> withSender = mockClientActorProbe.expectMsgClass(WithSender.class);
+        assertThat(withSender.getMessage()).isEqualTo(expectedMessage);
+        return (WithSender<T>) withSender;
+    }
+
     private static boolean isMessageSenderInstanceOf(final Object message, final Class<?> searchedClass) {
         final boolean result;
-        if (message instanceof WithSender) {
-            final var m = ((WithSender<?>) message).getMessage();
+        if (message instanceof WithSender withSender) {
+            final var m = withSender.getMessage();
             result = searchedClass.isAssignableFrom(m.getClass());
         } else {
             result = false;
@@ -1316,75 +1107,142 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
 
     @Test
     public void retriesStartingClientActor() {
-
-        final var parent = failingClientProviderSystemResource.newTestKit();
+        final var parent = actorSystemResource1.newTestProbe();
         final var underTest = parent.childActorOf(
                 Props.create(
                         ConnectionPersistenceActor.class,
                         () -> new ConnectionPersistenceActor(connectionId,
                                 commandForwarderActor,
-                                pubSubMediator,
+                                pubSubMediatorProbe.ref(),
                                 Trilean.FALSE,
                                 ConfigFactory.empty())
                 )
         );
-        final var testProbe = failingClientProviderSystemResource.newTestProbe();
+        final var testProbe = actorSystemResource1.newTestProbe();
         testProbe.watch(underTest);
 
-        underTest.tell(createConnection, testProbe.ref());
-        testProbe.expectMsg(createConnectionResponse);
+        final CreateConnection createConnection = createConnection();
+        final DittoHeaders headersIndicatingFailingInstantiation = createConnection.getDittoHeaders().toBuilder()
+                .putHeader("number-of-instantiation-failures",
+                        String.valueOf(TestConstants.CONNECTION_CONFIG.getClientActorRestartsBeforeEscalation()))
+                .build();
+        underTest.tell(createConnection.setDittoHeaders(headersIndicatingFailingInstantiation), testProbe.ref());
+        testProbe.expectMsg(createConnectionResponse().setDittoHeaders(headersIndicatingFailingInstantiation));
 
         assertThat(underTest.isTerminated()).isFalse();
     }
 
     @Test
     public void escalatesWhenClientActorFailsTooOften() {
-        final var parent = tooManyFailingClientProviderSystemResource.newTestKit();
+        final var parent = actorSystemResource1.newTestKit();
         final var underTest = parent.childActorOf(
                 Props.create(
                         ConnectionPersistenceActor.class,
                         () -> new ConnectionPersistenceActor(connectionId,
                                 commandForwarderActor,
-                                pubSubMediator,
+                                pubSubMediatorProbe.ref(),
                                 Trilean.FALSE,
                                 ConfigFactory.empty())
                 )
         );
-        final var testProbe = tooManyFailingClientProviderSystemResource.newTestProbe();
+        final var testProbe = actorSystemResource1.newTestProbe();
         testProbe.watch(underTest);
 
-        underTest.tell(createConnection, testProbe.ref());
-        testProbe.expectMsg(createConnectionResponse);
+        final CreateConnection createConnection = createConnection();
+        final DittoHeaders headersIndicatingFailingInstantiation = createConnection.getDittoHeaders().toBuilder()
+                .putHeader("number-of-instantiation-failures",
+                        String.valueOf(TestConstants.CONNECTION_CONFIG.getClientActorRestartsBeforeEscalation() + 1))
+                .build();
+        underTest.tell(createConnection.setDittoHeaders(headersIndicatingFailingInstantiation), testProbe.ref());
+        testProbe.expectMsg(createConnectionResponse().setDittoHeaders(headersIndicatingFailingInstantiation));
 
         testProbe.expectTerminated(underTest, FiniteDuration.apply(3, TimeUnit.SECONDS));
     }
 
     @Test
     public void deleteConnectionCommandEmitsEvent() {
-        final var clientActorMock = actorSystemResource1.newTestProbe();
-        final var pubSubTestProbe = actorSystemResource1.newTestProbe("mock-pubSub-mediator");
-        final var underTest = TestConstants.createConnectionSupervisorActor(connectionId,
-                actorSystemResource1.getActorSystem(),
-                commandForwarderActor,
-                pubSubTestProbe.ref());
+        final var underTest = createSupervisor();
         final var testProbe = actorSystemResource1.newTestProbe();
         testProbe.watch(underTest);
 
         // create connection
-        sendClientActorStartingCommand(underTest, testProbe, createConnection, actorSystemResource1,
-                clientActorMock.ref(), null);
-        testProbe.expectMsg(createConnectionResponse);
-        pubSubTestProbe.expectMsgClass(DistributedPubSubMediator.Subscribe.class);
+        underTest.tell(createConnection(closedConnection), testProbe.ref());
+        testProbe.expectMsg(createConnectionResponse(closedConnection));
+        pubSubMediatorProbe.expectMsgClass(DistributedPubSubMediator.Subscribe.class);
 
         // delete connection
-        underTest.tell(deleteConnection, testProbe.ref());
-        testProbe.expectMsg(deleteConnectionResponse);
+        underTest.tell(DeleteConnection.of(connectionId, dittoHeadersWithCorrelationId), testProbe.ref());
+        testProbe.expectMsg(DeleteConnectionResponse.of(connectionId, dittoHeadersWithCorrelationId));
 
-        pubSubTestProbe.fishForMessage(FiniteDuration.apply(5, TimeUnit.SECONDS),
+        pubSubMediatorProbe.fishForMessage(FiniteDuration.apply(5, TimeUnit.SECONDS),
                 "connection deleted via pubSub",
                 PartialFunction.fromFunction(msg -> msg instanceof DistributedPubSubMediator.Publish publish &&
                         publish.topic().equals(ConnectionDeleted.TYPE)));
         testProbe.expectTerminated(underTest, FiniteDuration.apply(3, TimeUnit.SECONDS));
+    }
+
+    private ActorRef createSupervisor() {
+        return TestConstants.createConnectionSupervisorActor(connectionId,
+                actorSystemResource1.getActorSystem(),
+                commandForwarderActor,
+                pubSubMediatorProbe.ref());
+    }
+
+    private CreateConnection createConnection() {
+        return createConnection(connection);
+    }
+
+    private CreateConnection createConnection(final Connection connection) {
+        return CreateConnection.of(connection, dittoHeadersWithCorrelationId);
+    }
+
+    private CreateConnectionResponse createConnectionResponse() {
+        return createConnectionResponse(connection);
+    }
+
+    private CreateConnectionResponse createConnectionResponse(final Connection connection) {
+        return CreateConnectionResponse.of(connection, dittoHeadersWithCorrelationId);
+    }
+
+    private void simulateSuccessfulOpenConnectionInClientActor() {
+        expectMockClientActorMessage(EnableConnectionLogs.of(connectionId, DittoHeaders.empty()));
+        expectMockClientActorMessage(OpenConnection.of(connectionId, dittoHeadersWithCorrelationId));
+        mockClientActorProbe.reply(new Status.Success("mock"));
+    }
+
+    private RetrieveConnectionStatusResponse retrieveConnectionStatusResponse() {
+        return RetrieveConnectionStatusResponse.getBuilder(connectionId, dittoHeadersWithCorrelationId)
+                .connectionStatus(ConnectivityStatus.OPEN)
+                .liveStatus(ConnectivityStatus.OPEN)
+                .recoveryStatus(RecoveryStatus.SUCCEEDED)
+                .connectedSince(INSTANT)
+                .clientStatus(List.of(ConnectivityModelFactory.newClientStatus("client1",
+                        ConnectivityStatus.OPEN,
+                        RecoveryStatus.SUCCEEDED,
+                        "connection is open",
+                        INSTANT)))
+                .sourceStatus(List.of(ConnectivityModelFactory.newSourceStatus("client1",
+                                ConnectivityStatus.OPEN,
+                                "source1",
+                                "consumer started"),
+                        ConnectivityModelFactory.newSourceStatus("client1",
+                                ConnectivityStatus.OPEN,
+                                "source2",
+                                "consumer started")))
+                .targetStatus(List.of(ConnectivityModelFactory.newTargetStatus("client1",
+                                ConnectivityStatus.OPEN,
+                                "target1",
+                                "publisher started"),
+                        ConnectivityModelFactory.newTargetStatus("client1",
+                                ConnectivityStatus.OPEN,
+                                "target2",
+                                "publisher started"),
+                        ConnectivityModelFactory.newTargetStatus("client1",
+                                ConnectivityStatus.OPEN,
+                                "target3",
+                                "publisher started")))
+                .sshTunnelStatus(List.of())
+                .build();
     }
 
 }
