@@ -1161,7 +1161,9 @@ public final class ConnectionPersistenceActor
                 try {
                     uri = new URI(oldUri);
                 } catch (URISyntaxException e) {
-                    throw new RuntimeException(e);
+                    log.info("Got invalid URI when trying to adapt the connection automatically. Skipping adaption.");
+                    handleOpenConnectionError(retryOpenConnection);
+                    return;
                 }
                 final var oldUserNameAndPassword = uri.getRawUserInfo();
                 final var newUserNameAndPassword =
