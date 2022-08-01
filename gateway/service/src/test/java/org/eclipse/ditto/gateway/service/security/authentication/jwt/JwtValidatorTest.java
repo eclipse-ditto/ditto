@@ -170,7 +170,7 @@ public final class JwtValidatorTest {
         }
 
         private static JsonObject decodeJwtPart(final String jwtPart) {
-            final Base64.Decoder decoder = Base64.getDecoder();
+            final Base64.Decoder decoder = Base64.getUrlDecoder();
             return JsonFactory.newObject(new String(decoder.decode(jwtPart), StandardCharsets.UTF_8));
         }
 

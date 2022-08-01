@@ -162,6 +162,12 @@ public interface ConnectionConfig extends WithSupervisorConfig, WithActivityChec
     boolean doubleDecodingEnabled();
 
     /**
+     * @return whether connections that fail with single decoded passwords should be retried again with additional
+     * decoding and in case of success are automatically adapted.
+     */
+    boolean doubleDecodingMigrationEnabled();
+
+    /**
      * An enumeration of the known config path expressions and their associated default values for
      * {@code ConnectionConfig}.
      */
@@ -225,7 +231,13 @@ public interface ConnectionConfig extends WithSupervisorConfig, WithActivityChec
         /**
          * Whether double decoding of usernames and passwords in connection URIs is enabled.
          */
-        DOUBLE_DECODING_ENABLED("double-decoding-enabled", true);
+        DOUBLE_DECODING_ENABLED("double-decoding-enabled", true),
+
+        /**
+         * Indicates whether connections that fail with single decoded passwords should be retried again with additional
+         * decoding and in case of success are automatically adapted.
+         */
+        DOUBLE_DECODING_MIGRATION_ENABLED("double-decoding-migration.enabled", true);
 
         private final String path;
         private final Object defaultValue;

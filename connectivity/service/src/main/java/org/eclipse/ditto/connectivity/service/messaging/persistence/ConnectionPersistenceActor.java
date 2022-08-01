@@ -198,6 +198,8 @@ public final class ConnectionPersistenceActor
 
     private final UpdatedConnectionTester updatedConnectionTester;
 
+    private final boolean automaticConnectionDecodingMigrationEnabled;
+
     ConnectionPersistenceActor(final ConnectionId connectionId,
             final ActorRef commandForwarderActor,
             final ActorRef pubSubMediator,
@@ -216,6 +218,7 @@ public final class ConnectionPersistenceActor
         connectivityConfig = getConnectivityConfigWithOverwrites(connectivityConfigOverwrites);
         commandValidator = getCommandValidator();
         final ConnectionConfig connectionConfig = connectivityConfig.getConnectionConfig();
+        automaticConnectionDecodingMigrationEnabled = connectionConfig.doubleDecodingMigrationEnabled();
         this.allClientActorsOnOneNode = allClientActorsOnOneNode.orElse(connectionConfig.areAllClientActorsOnOneNode());
         connectionPriorityProvider = ConnectionPriorityProviderFactory.get(actorSystem, dittoExtensionConfig)
                 .newProvider(self(), log);
@@ -840,7 +843,7 @@ public final class ConnectionPersistenceActor
         startAndAskClientActors(openConnection, getClientCount())
                 .thenAccept(successConsumer)
                 .exceptionally(error -> {
-                    if (retry) {
+                    if (retry && automaticConnectionDecodingMigrationEnabled) {
                         self().tell(new RetryOpenConnection(openConnection, error, ignoreErrors, command.getSender()),
                                 ActorRef.noSender());
                     } else {
@@ -1196,7 +1199,9 @@ public final class ConnectionPersistenceActor
                 try {
                     uri = new URI(oldUri);
                 } catch (URISyntaxException e) {
-                    throw new RuntimeException(e);
+                    log.info("Got invalid URI when trying to adapt the connection automatically. Skipping adaption.");
+                    handleOpenConnectionError(retryOpenConnection);
+                    return;
                 }
                 final var oldUserNameAndPassword = uri.getRawUserInfo();
                 final var newUserNameAndPassword =
