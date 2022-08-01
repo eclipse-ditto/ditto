@@ -69,8 +69,17 @@ export async function ready() {
         });
   };
 
-  document.getElementById('putThing').onclick = clickModifyThing('PUT');
-  document.getElementById('deleteThing').onclick = clickModifyThing('DELETE');
+  document.getElementById('putThing').onclick = () => {
+    Utils.assert(dom.thingId.value, 'Thing ID is empty');
+    modifyThing('PUT');
+  };
+
+  document.getElementById('deleteThing').onclick = () => {
+    Utils.assert(dom.thingId.value, 'Thing ID is empty');
+    Utils.confirm(`Are you sure you want to delete thing<br>'${theThing.thingId}'?`, 'Delete', () => {
+      modifyThing('DELETE');
+    });
+  };
 
   dom.thingsTableBody.addEventListener('click', (event) => {
     if (event.target && event.target.nodeName === 'TD') {
@@ -189,19 +198,14 @@ export function getThings(thingIds) {
 /**
  * Returns a click handler for Update thing and delete thing
  * @param {String} method PUT or DELETE
- * @return {function} Click handler function
  */
-function clickModifyThing(method) {
-  return function() {
-    Utils.assert(dom.thingId.value, 'Thing ID is empty');
-    API.callDittoREST(method,
-        '/things/' + dom.thingId.value,
-        method === 'PUT' ? JSON.parse(thingJsonEditor.getValue()) : null,
-    ).then(() => {
-      // todo: perform last things table update
-      method === 'PUT' ? refreshThing(dom.thingId.value) : searchThings();
-    });
-  };
+function modifyThing(method) {
+  API.callDittoREST(method,
+      '/things/' + dom.thingId.value,
+      method === 'PUT' ? JSON.parse(thingJsonEditor.getValue()) : null,
+  ).then(() => {
+    method === 'PUT' ? refreshThing(dom.thingId.value) : searchThings();
+  });
 };
 
 /**

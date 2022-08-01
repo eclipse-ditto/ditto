@@ -13,6 +13,18 @@
 
 /* eslint-disable quotes */
 
+const dom = {
+  modalBodyConfirm: null,
+  buttonConfirmed: null,
+};
+
+/**
+ * Initializes components. Should be called after DOMContentLoaded event
+ */
+export function ready() {
+  getAllElementsById(dom);
+}
+
 /**
  * Adds a table to a table element
  * @param {HTMLElement} table tbody element the row is added to
@@ -199,6 +211,36 @@ export function assert(condition, message, validatedElement) {
     }
     throw new UserException(message);
   }
+}
+
+/**
+ * Simple Date format that makes UTC string more readable and cuts off the milliseconds
+ * @param {Date} date to format
+ * @param {boolean} withMilliseconds don t cut off milliseconds if true
+ * @return {String} formatted date
+ */
+export function formatDate(date, withMilliseconds) {
+  if (withMilliseconds) {
+    return date.replace('T', ' ').replace('Z', '').replace('.', ' ');
+  } else {
+    return date.split('.')[0].replace('T', ' ');
+  }
+}
+
+let modalConfirm;
+
+/**
+ * Like from bootbox or bootprompt
+ * @param {String} message confirm message
+ * @param {String} action button text
+ * @param {function} callback true if confirmed
+ */
+export function confirm(message, action, callback) {
+  modalConfirm = modalConfirm ?? new bootstrap.Modal('#modalConfirm');
+  dom.modalBodyConfirm.innerHTML = message;
+  dom.buttonConfirmed.innerText = action;
+  dom.buttonConfirmed.onclick = callback;
+  modalConfirm.show();
 }
 
 /**
