@@ -194,6 +194,8 @@ public final class ConnectionPersistenceActor
 
     private final UpdatedConnectionTester updatedConnectionTester;
 
+    private final boolean automaticConnectionDecodingMigrationEnabled;
+
     ConnectionPersistenceActor(final ConnectionId connectionId,
             final ActorRef proxyActor,
             final ActorRef pubSubMediator,
@@ -214,6 +216,7 @@ public final class ConnectionPersistenceActor
         connectivityConfig = getConnectivityConfigWithOverwrites(connectivityConfigOverwrites);
         this.commandValidator = getCommandValidator(customCommandValidator);
         final ConnectionConfig connectionConfig = this.connectivityConfig.getConnectionConfig();
+        automaticConnectionDecodingMigrationEnabled = connectionConfig.doubleDecodingMigrationEnabled();
         this.allClientActorsOnOneNode = allClientActorsOnOneNode.orElse(connectionConfig.areAllClientActorsOnOneNode());
         connectionPriorityProvider = connectionPriorityProviderFactory.newProvider(self(), log);
         clientActorAskTimeout = connectionConfig.getClientActorAskTimeout();
@@ -802,7 +805,7 @@ public final class ConnectionPersistenceActor
         startAndAskClientActors(openConnection, getClientCount())
                 .thenAccept(successConsumer)
                 .exceptionally(error -> {
-                    if (retry) {
+                    if (retry && automaticConnectionDecodingMigrationEnabled) {
                         self().tell(new RetryOpenConnection(openConnection, error, ignoreErrors, command.getSender()),
                                 ActorRef.noSender());
                     } else {
