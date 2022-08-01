@@ -68,6 +68,11 @@ public final class CompressedDData implements DData<ActorRef, String, LiteralUpd
         return handler;
     }
 
+    @Override
+    public DistributedDataConfig getConfig() {
+        return handler.getConfig();
+    }
+
     /**
      * Get the hash seeds of the compressed DData.
      *

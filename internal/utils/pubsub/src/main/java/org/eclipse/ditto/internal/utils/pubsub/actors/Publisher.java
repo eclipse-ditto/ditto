@@ -198,6 +198,7 @@ public final class Publisher extends AbstractActor {
     }
 
     private void topicSubscribersChanged(final Replicator.Changed<?> event) {
+        log.debug("Topics changed <{}>", event.key());
         final Map<ActorRef, scala.collection.immutable.Set<String>> mmap =
                 CollectionConverters.asJava(((ORMultiMap<ActorRef, String>) event.dataValue()).entries());
         final Map<ActorRef, List<Grouped<Long>>> deserializedMMap = mmap.entrySet()

@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.internal.utils.pubsub.ddata.literal;
 
+import org.eclipse.ditto.internal.utils.ddata.DistributedDataConfig;
 import org.eclipse.ditto.internal.utils.pubsub.ddata.DData;
 import org.eclipse.ditto.internal.utils.pubsub.ddata.DDataReader;
 import org.eclipse.ditto.internal.utils.pubsub.ddata.DDataWriter;
@@ -60,6 +61,11 @@ public final class LiteralDData implements DData<Address, String, LiteralUpdate>
     @Override
     public DDataWriter<Address, LiteralUpdate> getWriter() {
         return handler;
+    }
+
+    @Override
+    public DistributedDataConfig getConfig() {
+        return handler.getConfig();
     }
 
 }

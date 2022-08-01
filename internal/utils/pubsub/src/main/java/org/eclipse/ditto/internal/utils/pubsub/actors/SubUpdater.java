@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.internal.utils.pubsub.actors;
 
+import java.time.Duration;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -92,7 +93,7 @@ public final class SubUpdater extends akka.actor.AbstractActorWithTimers
     /**
      * Write consistency of the next message to the replicator.
      */
-    private Replicator.WriteConsistency nextWriteConsistency = writeLocal();
+    private final Replicator.WriteConsistency writeConsistency;
 
     /**
      * Whether local subscriptions changed.
@@ -112,6 +113,7 @@ public final class SubUpdater extends akka.actor.AbstractActorWithTimers
         this.ddata = ddata;
         cluster = Cluster.get(getContext().getSystem());
         resetProbability = config.getResetProbability();
+        writeConsistency = ddata.getConfig().getSubscriptionWriteConsistency();
 
         // tag metrics by parent name + this name prefix
         // so that the tag is finite and distinct between twin and live topics and declared ack labels.
@@ -153,25 +155,6 @@ public final class SubUpdater extends akka.actor.AbstractActorWithTimers
                 .orElse(ReceiveBuilder.create().matchAny(this::logUnhandled).build());
     }
 
-    private boolean isMoreConsistent(final Replicator.WriteConsistency a, final Replicator.WriteConsistency b) {
-        return rank(a) > rank(b);
-    }
-
-    // roughly rank write consistency from the most local to the most global.
-    private int rank(final Replicator.WriteConsistency a) {
-        if (writeLocal().equals(a)) {
-            return Integer.MIN_VALUE;
-        } else if (a instanceof Replicator.WriteAll) {
-            return Integer.MAX_VALUE;
-        } else if (a instanceof Replicator.WriteMajority) {
-            return ((Replicator.WriteMajority) a).minCap();
-        } else if (a instanceof Replicator.WriteTo) {
-            return ((Replicator.WriteTo) a).n();
-        } else {
-            return 0;
-        }
-    }
-
     private void subscribe(final Subscribe subscribe) {
         final boolean changed =
                 subscriptions.subscribe(subscribe.getSubscriber(), subscribe.getTopics(), subscribe.getFilter(),
@@ -202,6 +185,7 @@ public final class SubUpdater extends akka.actor.AbstractActorWithTimers
     }
 
     private void ddataOpSuccess(final DDataOpSuccess<SubscriptionsReader> opSuccess) {
+        log().debug("DDataOp success seqNr=<{}>", opSuccess.seqNr);
         errorCounter = 0;
         flushSubAcks(opSuccess.seqNr);
         // race condition possible -- some published messages may arrive before the acknowledgement
@@ -211,12 +195,11 @@ public final class SubUpdater extends akka.actor.AbstractActorWithTimers
         // reset changed flags if there are no more pending changes
         if (awaitSubAck.isEmpty() && awaitUpdate.isEmpty()) {
             localSubscriptionsChanged = false;
-            nextWriteConsistency = writeLocal();
         }
     }
 
     private void tick(final Clock tick) {
-        performDDataOp(localSubscriptionsChanged, nextWriteConsistency)
+        performDDataOp(localSubscriptionsChanged, writeConsistency)
                 .handle(handleDDataWriteResult(getSeqNr()));
         moveAwaitUpdateToAwaitAcknowledge();
     }
@@ -231,6 +214,8 @@ public final class SubUpdater extends akka.actor.AbstractActorWithTimers
             final Replicator.WriteConsistency writeConsistency) {
         final SubscriptionsReader snapshot = subscriptions.snapshot();
         final CompletionStage<Void> ddataOp;
+        log().debug("Tick seq=<{}> changed=<{}> empty=<{}> writeConsistency=<{}>", seqNr, localSubscriptionsChanged,
+                subscriptions.isEmpty(), writeConsistency);
         if (resetProbability > 0 && Math.random() < resetProbability) {
             log().debug("Resetting ddata topics: <{}>", getSelf());
             ddataOp = ddata.getWriter().reset(subscriber, subscriptions.export(), writeConsistency);
@@ -245,6 +230,7 @@ public final class SubUpdater extends akka.actor.AbstractActorWithTimers
             final LiteralUpdate nextUpdate = subscriptions.export();
             // take snapshot to give to the subscriber; clear accumulated incremental changes.
             final var diff = nextUpdate.diff(previousUpdate);
+            log().debug("diff.isEmpty=<{}>", diff.isEmpty());
             if (!diff.isEmpty()) {
                 ddataOp = ddata.getWriter().put(subscriber, nextUpdate.diff(previousUpdate), writeConsistency);
             } else {
@@ -285,7 +271,6 @@ public final class SubUpdater extends akka.actor.AbstractActorWithTimers
     private void enqueueRequest(final Request request, final boolean changed, final ActorRef sender,
             final Collection<SubAck> queue, final Gauge queueSizeMetric, final boolean consistent) {
         localSubscriptionsChanged |= changed;
-        upgradeWriteConsistency(request.getWriteConsistency());
         if (request.shouldAcknowledge()) {
             final SubAck subAck = SubAck.of(request, sender, ++seqNr, consistent);
             queue.add(subAck);
@@ -386,15 +371,8 @@ public final class SubUpdater extends akka.actor.AbstractActorWithTimers
         subscriptions.clear();
         awaitUpdate.clear();
         awaitSubAck.clear();
-        nextWriteConsistency = writeLocal();
 
         // subscriber will recover from this error on its own.
-    }
-
-    private void upgradeWriteConsistency(final Replicator.WriteConsistency nextWriteConsistency) {
-        if (isMoreConsistent(nextWriteConsistency, this.nextWriteConsistency)) {
-            this.nextWriteConsistency = nextWriteConsistency;
-        }
     }
 
     @Override
@@ -448,5 +426,9 @@ public final class SubUpdater extends akka.actor.AbstractActorWithTimers
             this.payload = payload;
             this.seqNr = seqNr;
         }
+    }
+
+    private static Replicator.WriteConsistency defaultWriteConsistency() {
+        return new Replicator.WriteAll(Duration.ofSeconds(25L));
     }
 }

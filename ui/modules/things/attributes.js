@@ -69,16 +69,14 @@ function updateAttributesTable() {
   dom.attributesTable.innerHTML = '';
   let count = 0;
   let thingHasAttribute = false;
-  if (Things.theThing.attributes) {
+  if (Things.theThing && Things.theThing.attributes) {
     Object.keys(Things.theThing.attributes).forEach((path) => {
       if (path === dom.attributePath.value) {
         dom.attributeValue.value = attributeToString(Things.theThing.attributes[path]);
         thingHasAttribute = true;
       };
-      Utils.addTableRow(dom.attributesTable,
-          path,
-          attributeToString(Things.theThing.attributes[path]),
-          path === dom.attributePath.value);
+      Utils.addTableRow(dom.attributesTable, path, path === dom.attributePath.value, false,
+          attributeToString(Things.theThing.attributes[path]));
       count++;
     });
   };
