@@ -25,17 +25,14 @@ abstract class AbstractRequest implements Request {
 
     private final Set<String> topics;
     private final ActorRef subscriber;
-    private final Replicator.WriteConsistency writeConsistency;
     private final boolean acknowledge;
 
     protected AbstractRequest(final Collection<String> topics,
             final ActorRef subscriber,
-            final Replicator.WriteConsistency writeConsistency,
             final boolean acknowledge) {
 
         this.topics = Set.copyOf(topics);
         this.subscriber = subscriber;
-        this.writeConsistency = writeConsistency;
         this.acknowledge = acknowledge;
     }
 
@@ -54,13 +51,6 @@ abstract class AbstractRequest implements Request {
     }
 
     /**
-     * @return write consistency for the request.
-     */
-    public Replicator.WriteConsistency getWriteConsistency() {
-        return writeConsistency;
-    }
-
-    /**
      * @return whether acknowledgement is expected.
      */
     public boolean shouldAcknowledge() {
@@ -72,7 +62,6 @@ abstract class AbstractRequest implements Request {
         return getClass().getSimpleName() + " [" +
                 "topics=" + topics +
                 ", subscriber=" + subscriber +
-                ", writeConsistency=" + writeConsistency +
                 ", acknowledge=" + acknowledge +
                 "]";
     }

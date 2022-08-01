@@ -27,11 +27,6 @@ public interface Request {
     Set<String> getTopics();
 
     /**
-     * @return write consistency for the request.
-     */
-    Replicator.WriteConsistency getWriteConsistency();
-
-    /**
      * @return whether acknowledgement is expected.
      */
     boolean shouldAcknowledge();
