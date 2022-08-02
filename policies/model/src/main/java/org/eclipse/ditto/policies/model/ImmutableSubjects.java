@@ -203,9 +203,7 @@ final class ImmutableSubjects implements Subjects {
 
     @Override
     public boolean isSemanticallySameAs(final Subjects otherSubjects) {
-        return subjects.keySet()
-                .equals(otherSubjects.stream().map(Subject::getId)
-                        .collect(Collectors.toCollection(LinkedHashSet::new)));
+        return subjects.keySet().equals(otherSubjects.stream().map(Subject::getId).collect(Collectors.toSet()));
     }
 
     @SuppressWarnings({"squid:MethodCyclomaticComplexity", "squid:S1067"})
