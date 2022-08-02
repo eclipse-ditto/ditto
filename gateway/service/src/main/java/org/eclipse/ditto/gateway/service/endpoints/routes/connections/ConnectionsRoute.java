@@ -75,7 +75,7 @@ public final class ConnectionsRoute extends AbstractRoute {
     private static final String PATH_LOGS = "logs";
 
     private final Set<String> mediaTypePlainTextWithFallbacks;
-    private DevopsAuthenticationDirective devopsAuthenticationDirective;
+    private final DevopsAuthenticationDirective devopsAuthenticationDirective;
 
     /**
      * Constructs a {@code ConnectionsRoute} object.
@@ -137,10 +137,12 @@ public final class ConnectionsRoute extends AbstractRoute {
     private Route connections(final RequestContext ctx, final DittoHeaders dittoHeaders) {
         return pathEndOrSingleSlash(() ->
                 concat(
-                        get(() -> // GET /connections
-                                handlePerRequest(ctx,
-                                        RetrieveConnections.newInstance(Collections.emptySet(), dittoHeaders)
-                                )
+                        get(() -> // GET /connections?idsOnly=false
+                                parameterOptional("idsOnly",  idsOnly -> handlePerRequest(ctx,
+                                        RetrieveConnections.newInstance(Collections.emptySet(),
+                                                idsOnly.map(Boolean::valueOf).orElse(false), dittoHeaders)
+                                ))
+
                         ),
                         post(() -> // POST /connections?dry-run=<dryRun>
                                 parameterOptional(ConnectionsParameter.DRY_RUN.toString(), dryRun ->

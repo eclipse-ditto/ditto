@@ -64,12 +64,16 @@ public final class RetrieveConnections extends AbstractCommand<RetrieveConnectio
     static final JsonFieldDefinition<JsonArray> JSON_CONNECTION_IDS =
             JsonFactory.newJsonArrayFieldDefinition("connectionIds", FieldType.REGULAR,
                     JsonSchemaVersion.V_2);
+    static final JsonFieldDefinition<Boolean> JSON_IDS_ONLY =
+            JsonFactory.newBooleanFieldDefinition("idsOnly", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
     private final Set<ConnectionId> connectionIds;
+    private final boolean idsOnly;
 
-    private RetrieveConnections(final Set<ConnectionId> connectionIds, final DittoHeaders dittoHeaders) {
+    private RetrieveConnections(final Set<ConnectionId> connectionIds, final boolean idsOnly, final DittoHeaders dittoHeaders) {
         super(TYPE, dittoHeaders);
         this.connectionIds = Collections.unmodifiableSet(connectionIds);
+        this.idsOnly = idsOnly;
     }
 
     /**
@@ -81,9 +85,9 @@ public final class RetrieveConnections extends AbstractCommand<RetrieveConnectio
      * @throws NullPointerException if any argument is {@code null}.
      */
     public static RetrieveConnections newInstance(final Collection<ConnectionId> connectionIds,
-            final DittoHeaders dittoHeaders) {
+            final boolean idsOnly, final DittoHeaders dittoHeaders) {
 
-        return new RetrieveConnections(new LinkedHashSet<>(checkNotNull(connectionIds, "connectionIds")), dittoHeaders);
+        return new RetrieveConnections(new LinkedHashSet<>(checkNotNull(connectionIds, "connectionIds")), idsOnly, dittoHeaders);
     }
 
     /**
@@ -117,12 +121,17 @@ public final class RetrieveConnections extends AbstractCommand<RetrieveConnectio
                 .map(JsonValue::asString)
                 .map(ConnectionId::of)
                 .collect(Collectors.toCollection(LinkedHashSet::new));
+        final boolean idsOnly = jsonObject.getValueOrThrow(JSON_IDS_ONLY);
 
-        return new RetrieveConnections(extractedConnectionIds, dittoHeaders);
+        return new RetrieveConnections(extractedConnectionIds, idsOnly, dittoHeaders);
     }
 
     public Set<ConnectionId> getConnectionIds() {
         return connectionIds;
+    }
+
+    public boolean idsOnly() {
+        return idsOnly;
     }
 
     @Override
@@ -132,7 +141,7 @@ public final class RetrieveConnections extends AbstractCommand<RetrieveConnectio
 
     @Override
     public RetrieveConnections setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return new RetrieveConnections(connectionIds, dittoHeaders);
+        return new RetrieveConnections(connectionIds, idsOnly, dittoHeaders);
     }
 
     @Override
@@ -146,6 +155,7 @@ public final class RetrieveConnections extends AbstractCommand<RetrieveConnectio
                 .collect(JsonCollectors.valuesToArray());
 
         jsonObjectBuilder.set(JSON_CONNECTION_IDS, connectionIdsArray, predicate);
+        jsonObjectBuilder.set(JSON_IDS_ONLY, idsOnly);
     }
 
     @Override
@@ -160,12 +170,13 @@ public final class RetrieveConnections extends AbstractCommand<RetrieveConnectio
             return false;
         }
         final RetrieveConnections that = (RetrieveConnections) o;
-        return Objects.equals(connectionIds, that.connectionIds);
+        return Objects.equals(connectionIds, that.connectionIds) &&
+                Objects.equals(idsOnly, that.idsOnly);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(super.hashCode(), connectionIds);
+        return Objects.hash(super.hashCode(), connectionIds, idsOnly);
     }
 
     @Override
@@ -173,6 +184,7 @@ public final class RetrieveConnections extends AbstractCommand<RetrieveConnectio
         return getClass().getSimpleName() + " [" +
                 super.toString() +
                 ", connectionIds=" + connectionIds +
+                ", idsOnly=" + idsOnly +
                 "]";
     }
 

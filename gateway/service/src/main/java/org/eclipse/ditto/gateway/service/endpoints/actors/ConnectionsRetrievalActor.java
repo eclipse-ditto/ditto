@@ -80,37 +80,53 @@ public class ConnectionsRetrievalActor extends AbstractActor {
     @Override
     public Receive createReceive() {
         return ReceiveBuilder.create()
-                .match(RetrieveConnections.class, cmd -> {
-                    initialCommand = cmd;
-                    retrieveConnectionsSender = getSender();
-                    ActorRef pubSubMediator = DistributedPubSub.get(getContext().getSystem()).mediator();
-                    DistributedPubSubMediator.Send send =
-                            DistPubSubAccess.send("/user/connectivityRoot/connectionIdsRetrievalProxy",
-                                    RetrieveAllConnectionIds.of(cmd.getDittoHeaders()));
-                    pubSubMediator.tell(send, getSelf());
-                }).match(RetrieveAllConnectionIdsResponse.class, msg -> retrieveConnections(msg.getAllConnectionIds()
-                                .stream()
-                                .limit(commandConfig.connectionsRetrieveLimit())
-                                .map(ConnectionId::of).collect(Collectors.toList()),
-                        initialCommand.getDittoHeaders())
-                        .thenAccept(retrieveConnectionsResponse -> {
-                            retrieveConnectionsSender.tell(retrieveConnectionsResponse, getSelf());
-                            stop();
-                        })
-                        .exceptionally(t -> {
-                            ConnectivityInternalErrorException exception =
-                                    ConnectivityInternalErrorException.newBuilder()
-                                            .dittoHeaders(initialCommand.getDittoHeaders())
-                                            .cause(t)
-                                            .build();
-                            ConnectivityErrorResponse response =
-                                    ConnectivityErrorResponse.of(exception, initialCommand.getDittoHeaders());
-                            retrieveConnectionsSender.tell(response, getSelf());
-                            stop();
-                            return null;
-                        }))
+                .match(RetrieveConnections.class, this::retreiveConnectionIds)
+                .match(RetrieveAllConnectionIdsResponse.class, this::retrieveConnectionsResponse)
                 .matchAny(msg -> LOGGER.warn("Unknown message: <{}>", msg))
                 .build();
+    }
+
+    private void retreiveConnectionIds(final RetrieveConnections cmd) {
+        initialCommand = cmd;
+        retrieveConnectionsSender = getSender();
+        ActorRef pubSubMediator = DistributedPubSub.get(getContext().getSystem()).mediator();
+        DistributedPubSubMediator.Send send =
+                DistPubSubAccess.send("/user/connectivityRoot/connectionIdsRetrievalProxy",
+                        RetrieveAllConnectionIds.of(cmd.getDittoHeaders()));
+        pubSubMediator.tell(send, getSelf());
+    }
+
+    private void retrieveConnectionsResponse(final RetrieveAllConnectionIdsResponse msg) {
+        if (initialCommand.idsOnly()) {
+            RetrieveConnectionsResponse response = RetrieveConnectionsResponse
+                    .of(JsonArray.of(msg.getAllConnectionIds()), initialCommand.getDittoHeaders());
+            retrieveConnectionsSender.tell(response, getSelf());
+            stop();
+        } else {
+            retrieveConnections(msg.getAllConnectionIds()
+                            .stream()
+                            .limit(commandConfig.connectionsRetrieveLimit())
+                            .map(ConnectionId::of).collect(Collectors.toList()),
+                    initialCommand.getDittoHeaders())
+                    .thenAccept(retrieveConnectionsResponse -> {
+                        retrieveConnectionsSender.tell(retrieveConnectionsResponse, getSelf());
+                        stop();
+                    })
+                    .exceptionally(t -> {
+                        ConnectivityInternalErrorException exception =
+                                ConnectivityInternalErrorException.newBuilder()
+                                        .dittoHeaders(initialCommand.getDittoHeaders())
+                                        .cause(t)
+                                        .build();
+                        ConnectivityErrorResponse response =
+                                ConnectivityErrorResponse.of(exception, initialCommand.getDittoHeaders());
+                        retrieveConnectionsSender.tell(response, getSelf());
+                        stop();
+                        return null;
+                    });
+        }
+
+
     }
 
     private CompletionStage<RetrieveConnectionsResponse> retrieveConnections(
