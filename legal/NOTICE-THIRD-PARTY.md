@@ -50,14 +50,14 @@
    * Maven sources: https://search.maven.org/remotecontent?filepath=com/fasterxml/jackson/core/jackson-core/2.13.2/jackson-core-2.13.2-sources.jar
 
 
-## jackson-databind (2.13.2)
+## jackson-databind (2.13.2.2)
 
-* Maven coordinates: `com.fasterxml.jackson.core:jackson-databind:2.13.2`
+* Maven coordinates: `com.fasterxml.jackson.core:jackson-databind:2.13.2.2`
 * License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
 * Project: http://github.com/FasterXML/jackson
 * Sources: 
    * declared as SCM: https://github.com/FasterXML/jackson-databind
-   * Maven sources: https://search.maven.org/remotecontent?filepath=com/fasterxml/jackson/core/jackson-databind/2.13.2/jackson-databind-2.13.2-sources.jar
+   * Maven sources: https://search.maven.org/remotecontent?filepath=com/fasterxml/jackson/core/jackson-databind/2.13.2.2/jackson-databind-2.13.2.2-sources.jar
 
 
 ## Jackson dataformat: CBOR (2.13.2)
@@ -300,7 +300,7 @@
    * Maven sources: https://search.maven.org/remotecontent?filepath=com/google/j2objc/j2objc-annotations/1.3/j2objc-annotations-1.3-sources.jar
 
 
-## Protocol Buffers Core (3.14.0)
+## Protocol Buffers [Core] (3.14.0)
 
 * Maven coordinates: `com.google.protobuf:protobuf-java:3.14.0`
 * License: [BSD-3-Clause](https://spdx.org/licenses/BSD-3-Clause.html)
@@ -750,24 +750,24 @@
    * Maven sources: https://search.maven.org/remotecontent?filepath=io/grpc/grpc-stub/1.35.0/grpc-stub-1.35.0-sources.jar
 
 
-## JJWT :: API (0.11.2)
+## JJWT :: API (0.11.5)
 
-* Maven coordinates: `io.jsonwebtoken:jjwt-api:0.11.2`
+* Maven coordinates: `io.jsonwebtoken:jjwt-api:0.11.5`
 * License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
 * Project: https://github.com/jwtk/jjwt/jjwt-api
 * Sources: 
    * declared as SCM: https://github.com/jwtk/jjwt/jjwt-api
-   * Maven sources: https://search.maven.org/remotecontent?filepath=io/jsonwebtoken/jjwt-api/0.11.2/jjwt-api-0.11.2-sources.jar
+   * Maven sources: https://search.maven.org/remotecontent?filepath=io/jsonwebtoken/jjwt-api/0.11.5/jjwt-api-0.11.5-sources.jar
 
 
-## JJWT :: Impl (0.11.2)
+## JJWT :: Impl (0.11.5)
 
-* Maven coordinates: `io.jsonwebtoken:jjwt-impl:0.11.2`
+* Maven coordinates: `io.jsonwebtoken:jjwt-impl:0.11.5`
 * License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
 * Project: https://github.com/jwtk/jjwt/jjwt-impl
 * Sources: 
    * declared as SCM: https://github.com/jwtk/jjwt/jjwt-impl
-   * Maven sources: https://search.maven.org/remotecontent?filepath=io/jsonwebtoken/jjwt-impl/0.11.2/jjwt-impl-0.11.2-sources.jar
+   * Maven sources: https://search.maven.org/remotecontent?filepath=io/jsonwebtoken/jjwt-impl/0.11.5/jjwt-impl-0.11.5-sources.jar
 
 
 ## kamon-core (2.5.0)
@@ -778,6 +778,26 @@
 * Sources: 
    * declared as SCM: https://github.com/kamon-io/Kamon
    * Maven sources: https://search.maven.org/remotecontent?filepath=io/kamon/kamon-core_2.13/2.5.0/kamon-core_2.13-2.5.0-sources.jar
+
+
+## kamon-executors (2.5.0)
+
+* Maven coordinates: `io.kamon:kamon-executors_2.13:2.5.0`
+* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
+* Project: http://kamon.io
+* Sources: 
+   * declared as SCM: https://github.com/kamon-io/Kamon
+   * Maven sources: https://search.maven.org/remotecontent?filepath=io/kamon/kamon-executors_2.13/2.5.0/kamon-executors_2.13-2.5.0-sources.jar
+
+
+## kamon-instrumentation-common (2.5.0)
+
+* Maven coordinates: `io.kamon:kamon-instrumentation-common_2.13:2.5.0`
+* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
+* Project: http://kamon.io
+* Sources: 
+   * declared as SCM: https://github.com/kamon-io/Kamon
+   * Maven sources: https://search.maven.org/remotecontent?filepath=io/kamon/kamon-instrumentation-common_2.13/2.5.0/kamon-instrumentation-common_2.13-2.5.0-sources.jar
 
 
 ## kamon-opentelemetry (2.5.0)
@@ -1210,7 +1230,7 @@
    * Maven sources: https://search.maven.org/remotecontent?filepath=org/jetbrains/annotations/16.0.3/annotations-16.0.3-sources.jar
 
 
-## fluency core (2.6.3)
+## fluency (2.6.3)
 
 * Maven coordinates: `org.komamitsu:fluency-core:2.6.3`
 * License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
@@ -1220,7 +1240,7 @@
    * Maven sources: https://search.maven.org/remotecontent?filepath=org/komamitsu/fluency-core/2.6.3/fluency-core-2.6.3-sources.jar
 
 
-## fluency fluentd (2.6.3)
+## fluency (2.6.3)
 
 * Maven coordinates: `org.komamitsu:fluency-fluentd:2.6.3`
 * License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
