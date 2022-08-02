@@ -200,6 +200,7 @@
                             <exclude>org.eclipse.ditto.protocol.adapter.DittoProtocolAdapter#getHeaderTranslator()</exclude>
                             <exclude>org.eclipse.ditto.protocol.adapter.DittoProtocolAdapter#headerTranslator()</exclude>
                             <exclude>org.eclipse.ditto.protocol.adapter.DittoProtocolAdapter#of(org.eclipse.ditto.protocol.HeaderTranslator)</exclude>
+                            <exclude>org.eclipse.ditto.protocol.adapter.AbstractErrorResponseAdapter#getTopicPathBuilder(org.eclipse.ditto.base.model.signals.commands.ErrorResponse)</exclude>
                         </excludes>
                     </parameter>
                 </configuration>

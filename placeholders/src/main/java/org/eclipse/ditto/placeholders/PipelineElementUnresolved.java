@@ -63,11 +63,6 @@ final class PipelineElementUnresolved implements PipelineElement {
     }
 
     @Override
-    public <T> T accept(final PipelineElementVisitor<T> visitor) {
-        return visitor.unresolved();
-    }
-
-    @Override
     public Iterator<String> iterator() {
         return Collections.emptyIterator();
     }

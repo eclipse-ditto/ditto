@@ -109,6 +109,7 @@
                             <!-- Don't add excludes here before checking with the whole Ditto team -->
                             <!--<exclude></exclude>-->
                             <exclude>org.eclipse.ditto.rql.query.LikeHelper</exclude>
+                            <exclude>org.eclipse.ditto.rql.query.things.ThingPredicateVisitor#apply(org.eclipse.ditto.rql.query.criteria.Criteria)</exclude>
                         </excludes>
                     </parameter>
                 </configuration>

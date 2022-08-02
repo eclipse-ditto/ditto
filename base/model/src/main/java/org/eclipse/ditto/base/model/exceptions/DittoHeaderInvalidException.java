@@ -113,18 +113,6 @@ public final class DittoHeaderInvalidException extends DittoRuntimeException imp
     }
 
     /**
-     * A mutable builder for a {@code DittoHeaderInvalidException} with a custom message.
-     *
-     * @param customMessage the custom message
-     * @return the builder.
-     * @deprecated as of Ditto 2.0 please use {@code newBuilder().message(String)}.
-     */
-    @Deprecated
-    public static DittoHeaderInvalidException.Builder newCustomMessageBuilder(final String customMessage) {
-        return new DittoHeaderInvalidException.Builder(customMessage);
-    }
-
-    /**
      * Returns a new mutable builder with a fluent API for creating a {@code DittoHeaderInvalidException}.
      * The returned builder is initialized with a default message and a default description.
      *
