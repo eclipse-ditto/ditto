@@ -144,6 +144,15 @@ public interface LogEntry extends Jsonifiable.WithFieldSelectorAndPredicate<Json
                         JsonSchemaVersion.V_2);
 
         /**
+         * JSON field containing the entity type.
+         * @since 3.0.0
+         */
+        public static final JsonFieldDefinition<String> ENTITY_TYPE =
+                JsonFactory.newStringFieldDefinition("entityType", FieldType.REGULAR,
+                        JsonSchemaVersion.V_2);
+
+
+        /**
          * JSON field containing the entity ID.
          * @since 2.1.0
          */

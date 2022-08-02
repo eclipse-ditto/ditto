@@ -260,6 +260,7 @@ public final class TestConstants {
                     .set(LogEntry.JsonFields.LEVEL, LEVEL.getLevel())
                     .set(LogEntry.JsonFields.ADDRESS, ADDRESS)
                     .set(LogEntry.JsonFields.ENTITY_ID, THING_ID.toString())
+                    .set(LogEntry.JsonFields.ENTITY_TYPE, THING_ID.getEntityType().toString())
                     .build();
             public static final JsonObject ENTRY_2_JSON = JsonFactory.newObjectBuilder()
                     .set(LogEntry.JsonFields.CORRELATION_ID, CORRELATION_ID)
@@ -270,6 +271,7 @@ public final class TestConstants {
                     .set(LogEntry.JsonFields.LEVEL, LEVEL.getLevel())
                     .set(LogEntry.JsonFields.ADDRESS, ADDRESS)
                     .set(LogEntry.JsonFields.ENTITY_ID, THING_ID.toString())
+                    .set(LogEntry.JsonFields.ENTITY_TYPE, THING_ID.getEntityType().toString())
                     .build();
 
             public static final JsonArray ENTRIES_JSON = JsonFactory.newArrayBuilder()

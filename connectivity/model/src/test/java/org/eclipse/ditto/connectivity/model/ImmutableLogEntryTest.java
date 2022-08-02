@@ -196,6 +196,7 @@ public class ImmutableLogEntryTest {
                 .set(LogEntry.JsonFields.LEVEL, LEVEL.getLevel())
                 .set(LogEntry.JsonFields.ADDRESS, ADDRESS)
                 .set(LogEntry.JsonFields.ENTITY_ID, THING_ID.toString())
+                .set(LogEntry.JsonFields.ENTITY_TYPE, THING_ID.getEntityType().toString())
                 .build();
     }
 
