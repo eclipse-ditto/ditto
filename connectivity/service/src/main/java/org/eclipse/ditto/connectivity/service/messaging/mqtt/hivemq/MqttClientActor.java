@@ -340,21 +340,21 @@ public final class MqttClientActor extends BaseClientActor {
 
     private Duration getReconnectDelay(final RetryTimeoutStrategy retryTimeoutStrategy,
             final MqttDisconnectSource mqttDisconnectSource) {
-
         final Duration result;
         final var retryTimeoutReconnectDelay = retryTimeoutStrategy.getNextTimeout();
         if (MqttDisconnectSource.SERVER == mqttDisconnectSource) {
+            // wait at least the configured duration for server initiated disconnect to not overload the server with reconnect attempts
             final var reconnectDelayForBrokerInitiatedDisconnect =
                     mqttConfig.getReconnectMinTimeoutForMqttBrokerInitiatedDisconnect();
-            if (0 <= retryTimeoutReconnectDelay.compareTo(reconnectDelayForBrokerInitiatedDisconnect)) {
-                result = retryTimeoutReconnectDelay;
-            } else {
-                result = reconnectDelayForBrokerInitiatedDisconnect;
-            }
+            result = max(retryTimeoutReconnectDelay, reconnectDelayForBrokerInitiatedDisconnect);
         } else {
             result = retryTimeoutReconnectDelay;
         }
         return result;
+    }
+
+    private static Duration max(Duration d1, Duration d2) {
+        return d1.compareTo(d2) >= 0 ? d1 : d2;
     }
 
     private void enableAutomaticReconnect() {
