@@ -104,9 +104,11 @@ public final class ConnectivityRootActor extends DittoRootActor {
                 PersistencePingActor.ACTOR_NAME);
         final ConnectionIdsRetrievalConfig connectionIdsRetrievalConfig =
                 connectivityConfig.getConnectionIdsRetrievalConfig();
-        final ActorRef connectionIdsRetrievalActor = startChildActor(
-                ConnectionIdsRetrievalActor.ACTOR_NAME,
+        ActorRef connectionIdsRetrievalActorRef = startClusterSingletonActorWithProxy(
+                ConnectionIdsRetrievalActor.props(mongoReadJournal, connectionIdsRetrievalConfig),
                 ConnectionIdsRetrievalActor.props(mongoReadJournal, connectionIdsRetrievalConfig));
+        pubSubMediator.tell(DistPubSubAccess.put(connectionIdsRetrievalActorRef), getSelf());
+
         startChildActor(ConnectionPersistenceOperationsActor.ACTOR_NAME,
                 ConnectionPersistenceOperationsActor.props(pubSubMediator, connectivityConfig.getMongoDbConfig(),
                         config, connectivityConfig.getPersistenceOperationsConfig()));
@@ -145,8 +147,13 @@ public final class ConnectivityRootActor extends DittoRootActor {
         }).build().orElse(super.getSupervisionDecider());
     }
 
-    private void startClusterSingletonActor(final Props props, final String name) {
-        ClusterUtil.startSingleton(getContext(), CLUSTER_ROLE, name, props);
+    private ActorRef startClusterSingletonActor(final Props props, final String name) {
+        return ClusterUtil.startSingleton(getContext(), CLUSTER_ROLE, name, props);
+    }
+
+    private ActorRef startClusterSingletonActorWithProxy(final Props props, final String actorName) {
+        final ActorRef actorRef = startClusterSingletonActor(props, actorName);
+        return ClusterUtil.startSingletonProxy(getContext(), CLUSTER_ROLE, actorRef);
     }
 
     private ActorRef getHealthCheckingActor(final ConnectivityConfig connectivityConfig) {

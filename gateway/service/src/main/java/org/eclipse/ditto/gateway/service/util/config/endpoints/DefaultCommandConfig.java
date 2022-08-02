@@ -35,12 +35,14 @@ public final class DefaultCommandConfig implements CommandConfig {
     private final Duration defaultTimeout;
     private final Duration maxTimeout;
     private final Duration smartChannelBuffer;
+    private final int connectionsRetrieveLimit;
 
     private DefaultCommandConfig(final ScopedConfig scopedConfig) {
         defaultTimeout = scopedConfig.getNonNegativeAndNonZeroDurationOrThrow(CommandConfigValue.DEFAULT_TIMEOUT);
         maxTimeout = scopedConfig.getNonNegativeAndNonZeroDurationOrThrow(CommandConfigValue.MAX_TIMEOUT);
         smartChannelBuffer =
                 scopedConfig.getNonNegativeAndNonZeroDurationOrThrow(CommandConfigValue.SMART_CHANNEL_BUFFER);
+        connectionsRetrieveLimit = scopedConfig.getNonNegativeIntOrThrow(CommandConfigValue.CONNECTIONS_RETRIEVE_LIMIT);
     }
 
     /**
@@ -71,6 +73,11 @@ public final class DefaultCommandConfig implements CommandConfig {
     }
 
     @Override
+    public Integer connectionsRetrieveLimit() {
+        return connectionsRetrieveLimit;
+    }
+
+    @Override
     public boolean equals(final Object o) {
         if (this == o) {
             return true;
@@ -81,12 +88,13 @@ public final class DefaultCommandConfig implements CommandConfig {
         final DefaultCommandConfig that = (DefaultCommandConfig) o;
         return Objects.equals(defaultTimeout, that.defaultTimeout) &&
                 Objects.equals(maxTimeout, that.maxTimeout) &&
-                Objects.equals(smartChannelBuffer, that.smartChannelBuffer);
+                Objects.equals(smartChannelBuffer, that.smartChannelBuffer) &&
+                Objects.equals(connectionsRetrieveLimit, that.connectionsRetrieveLimit);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(defaultTimeout, maxTimeout, smartChannelBuffer);
+        return Objects.hash(defaultTimeout, maxTimeout, smartChannelBuffer, connectionsRetrieveLimit);
     }
 
     @Override
@@ -95,6 +103,7 @@ public final class DefaultCommandConfig implements CommandConfig {
                 "defaultTimeout=" + defaultTimeout +
                 ", maxTimeout=" + maxTimeout +
                 ", smartChannelBuffer=" + smartChannelBuffer +
+                ", connectionsRetrieveLimit=" + connectionsRetrieveLimit +
                 "]";
     }
 
