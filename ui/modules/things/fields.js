@@ -28,6 +28,9 @@ const dom = {
  * @return {String} The fields query parameter for Ditto search
  */
 export function getQueryParameter() {
+  if (!Environments.current().fieldList) {
+    Environments.current().fieldList = [];
+  }
   const fields = Environments.current().fieldList.filter((f) => f.active).map((f) => f.path);
   return 'fields=thingId' + (fields !== '' ? ',' + fields : '');
 };

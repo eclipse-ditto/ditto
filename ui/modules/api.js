@@ -214,24 +214,31 @@ const config = {
   },
 };
 
-let authHeader;
+let authHeaderKey;
+let authHeaderValue;
 
 /**
  * Activates authorization header for api calls
  * @param {boolean} forDevOps if true, the credentials for the dev ops api will be used.
  */
 export function setAuthHeader(forDevOps) {
-  if (!Environments.current().bearer && !Environments.current().usernamePassword) {
+  if (!Environments.current().bearer && !Environments.current().usernamePassword &&
+      !Environments.current().useDittoPreAuthenticatedAuth) {
     return;
   }
-  if (Environments.current().useBasicAuth) {
-    if (forDevOps && Environments.current().usernamePasswordDevOps) {
-      authHeader = 'Basic ' + window.btoa(Environments.current().usernamePasswordDevOps);
-    } else {
-      authHeader = 'Basic ' + window.btoa(Environments.current().usernamePassword);
-    }
+
+  if (forDevOps && Environments.current().usernamePasswordDevOps) {
+    authHeaderKey = 'Authorization';
+    authHeaderValue = 'Basic ' + window.btoa(Environments.current().usernamePasswordDevOps);
+  } else if (Environments.current().useBasicAuth) {
+    authHeaderKey = 'Authorization';
+    authHeaderValue = 'Basic ' + window.btoa(Environments.current().usernamePassword);
+  } else if (Environments.current().useDittoPreAuthenticatedAuth) {
+    authHeaderKey = 'x-ditto-pre-authenticated';
+    authHeaderValue = Environments.current().dittoPreAuthenticatedUsername;
   } else {
-    authHeader ='Bearer ' + Environments.current().bearer;
+    authHeaderKey = 'Authorization';
+    authHeaderValue ='Bearer ' + Environments.current().bearer;
   }
 }
 
@@ -248,7 +255,7 @@ export async function callDittoREST(method, path, body) {
       method: method,
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': authHeader,
+        [authHeaderKey]: authHeaderValue,
       },
       body: JSON.stringify(body),
     });
@@ -294,7 +301,7 @@ export async function callConnectionsAPI(operation, successCallback, connectionI
       method: params.method,
       headers: {
         'Content-Type': operation === 'connectionCommand' ? 'text/plain' : 'application/json',
-        'Authorization': authHeader,
+        [authHeaderKey]: authHeaderValue,
       },
       body: params.body ?
           JSON.stringify(params.body)

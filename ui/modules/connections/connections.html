@@ -78,26 +78,21 @@
         <div class="modal-dialog dialog-sm">
             <div class="modal-content">
                 <div class="modal-header">
-                    Create Connection
+                    Select Connection Template
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <label>Select Connection Template</label>
-                    <hr />
                     <fieldset class="form-group">
                         <div class="row">
                             <label class="col-form-label col-sm-2 pt-0">Type</label>
                             <div class="col-sm-10" id="connectionTemplateRadios"></div>
                         </div>
                     </fieldset>
-                    <!-- <div class="input-group input-group-sm mb-1">
-                        <label class="input-group-text">Type</label>
-                        <select class="form-control form-control-sm" id="connectionTemplate"></select>
-                    </div> -->
-                    <div class="input-group input-group-sm" style="flex-direction: row-reverse;">
-                        <button class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal"
-                            id="buttonCreateConnection">Create</button>
-                    </div>
+                    Edit the template and click "Save" to finally create the connection
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal"
+                        id="buttonCreateConnection">Select Template</button>
                 </div>
             </div>
         </div>
@@ -176,9 +171,9 @@
             <h6>Connection Logs</h6>
             <div class="input-group input-group-sm mb-1">
                 <button class="btn btn-outline-secondary btn-sm button_round_left" id="buttonEnableConnectionLogs"
-                    data-bs-toggle="tooltip" title="Enable connection logs for the selected connection">
+                    data-bs-toggle="tooltip" title="Click to enable connection logs for the selected connection">
                     <i class="bi bi-toggle-off"></i>
-                    Enable
+                    <span>Disabled</span>
                 </button>
                 <button class="btn btn-outline-secondary btn-sm button_round_right" id="buttonResetConnectionLogs"
                     data-bs-toggle="tooltip" title="Reset connection logs for the selected connection">

@@ -19,7 +19,6 @@ import java.util.function.Predicate;
 import javax.annotation.Nullable;
 
 import akka.actor.ActorRef;
-import akka.cluster.ddata.Replicator;
 
 /**
  * Request to subscribe to topics.
@@ -32,12 +31,11 @@ public final class Subscribe extends AbstractRequest {
 
     private Subscribe(final Collection<String> topics,
             final ActorRef subscriber,
-            final Replicator.WriteConsistency writeConsistency,
             final boolean acknowledge,
             @Nullable final Predicate<Collection<String>> filter,
             @Nullable final String group,
             final boolean resubscribe) {
-        super(topics, subscriber, writeConsistency, acknowledge);
+        super(topics, subscriber, acknowledge);
         this.filter = filter;
         this.group = group;
         this.resubscribe = resubscribe;
@@ -48,17 +46,15 @@ public final class Subscribe extends AbstractRequest {
      *
      * @param topics the topics to subscribe to.
      * @param subscriber who is subscribing.
-     * @param writeConsistency with which write consistency should this subscription be updated.
      * @param acknowledge whether acknowledgement is desired.
      * @param group any group the subscriber belongs to, or null.
      * @return the request.
      */
     public static Subscribe of(final Collection<String> topics,
             final ActorRef subscriber,
-            final Replicator.WriteConsistency writeConsistency,
             final boolean acknowledge,
             @Nullable final String group) {
-        return new Subscribe(topics, subscriber, writeConsistency, acknowledge, null, group, false);
+        return new Subscribe(topics, subscriber, acknowledge, null, group, false);
     }
 
     /**
@@ -66,7 +62,6 @@ public final class Subscribe extends AbstractRequest {
      *
      * @param topics the topics to subscribe to.
      * @param subscriber who is subscribing.
-     * @param writeConsistency with which write consistency should this subscription be updated.
      * @param acknowledge whether acknowledgement is desired.
      * @param filter local filter for incoming messages.
      * @param group any group the subscriber belongs to, or null.
@@ -74,12 +69,11 @@ public final class Subscribe extends AbstractRequest {
      */
     public static Subscribe of(final Collection<String> topics,
             final ActorRef subscriber,
-            final Replicator.WriteConsistency writeConsistency,
             final boolean acknowledge,
             @Nullable final Predicate<Collection<String>> filter,
             @Nullable final String group,
             final boolean resubscribe) {
-        return new Subscribe(topics, subscriber, writeConsistency, acknowledge, filter, group, resubscribe);
+        return new Subscribe(topics, subscriber, acknowledge, filter, group, resubscribe);
     }
 
     /**

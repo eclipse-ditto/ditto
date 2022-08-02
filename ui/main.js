@@ -21,6 +21,7 @@ import * as Things from './modules/things/things.js';
 import * as Connections from './modules/connections/connections.js';
 import * as Policies from './modules/policies/policies.js';
 import * as API from './modules/api.js';
+import * as Utils from './modules/utils.js';
 
 
 let resized = false;
@@ -38,6 +39,7 @@ document.addEventListener('DOMContentLoaded', async function() {
   document.getElementById('authorizationHTML').innerHTML =
       await (await fetch('modules/environments/authorization.html')).text();
 
+  Utils.ready();
   await Things.ready();
   Attributes.ready();
   await Fields.ready();
