@@ -18,15 +18,25 @@ import java.util.concurrent.CompletionStage;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.base.model.acks.AcknowledgementLabel;
+import org.eclipse.ditto.internal.utils.ddata.DistributedData;
+import org.eclipse.ditto.internal.utils.ddata.DistributedDataConfig;
 import org.eclipse.ditto.internal.utils.pubsub.api.AcksDeclared;
 
 import akka.actor.ActorRef;
+import akka.actor.ActorSystem;
 
 /**
  * An implementation of {@link DistributedAcks}
  * for cluster members that do not participate in acknowledgement label declaration or lookup.
  */
 final class DistributedAcksEmptyImpl implements DistributedAcks {
+
+    private final DistributedDataConfig config;
+
+    DistributedAcksEmptyImpl(final ActorSystem system) {
+        // replicator name and role are placeholders because no distributed acks data is started on this node
+        config = DistributedData.createConfig(system, "dummyReplicator", "dummyRole");
+    }
 
     @Override
     public void receiveLocalDeclaredAcks(final ActorRef receiver) {
@@ -59,5 +69,10 @@ final class DistributedAcksEmptyImpl implements DistributedAcks {
     @Override
     public void removeAcknowledgementLabelDeclaration(final ActorRef subscriber) {
         throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public DistributedDataConfig getConfig() {
+        return config;
     }
 }

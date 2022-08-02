@@ -110,7 +110,7 @@ public final class SearchUpdaterRootActor extends AbstractActor {
         pubSubMediator.tell(DistPubSubAccess.put(getSelf()), getSelf());
 
         final var thingEventSub =
-                ThingEventPubSubFactory.shardIdOnly(getContext(), numberOfShards, DistributedAcks.empty())
+                ThingEventPubSubFactory.shardIdOnly(getContext(), numberOfShards, DistributedAcks.empty(actorSystem))
                         .startDistributedSub();
         final var thingsUpdaterProps =
                 ThingsUpdater.props(thingEventSub, updaterShard, updaterConfig, blockedNamespaces,

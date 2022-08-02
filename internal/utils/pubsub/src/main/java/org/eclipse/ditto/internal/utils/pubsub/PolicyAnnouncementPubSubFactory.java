@@ -31,7 +31,7 @@ public final class PolicyAnnouncementPubSubFactory extends AbstractPubSubFactory
     @SuppressWarnings({"unchecked"})
     private PolicyAnnouncementPubSubFactory(final ActorRefFactory actorRefFactory, final ActorSystem actorSystem) {
         super(actorRefFactory, actorSystem, (Class<PolicyAnnouncement<?>>) (Object) PolicyAnnouncement.class,
-                new PolicyAnnouncementTopicExtractor(), PROVIDER, ACK_EXTRACTOR, DistributedAcks.empty());
+                new PolicyAnnouncementTopicExtractor(), PROVIDER, ACK_EXTRACTOR, DistributedAcks.empty(actorSystem));
     }
 
     /**
