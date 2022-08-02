@@ -82,8 +82,7 @@ final class ImmutableLogEntry implements LogEntry {
         final String message = jsonObject.getValueOrThrow(JsonFields.MESSAGE);
         final String address = jsonObject.getValue(JsonFields.ADDRESS).orElse(null);
         final EntityId entityId = jsonObject.getValue(JsonFields.ENTITY_ID)
-                .map(eId -> EntityId.of(
-                        EntityType.of(jsonObject.getValue(JsonFields.ENTITY_TYPE).orElse("unknown")), eId))
+                .map(eId -> EntityId.of(EntityType.of("unknown"), eId))
                 .orElse(null);
 
         return getBuilder(correlationId, timestamp, category, type, level, message, address, entityId)
@@ -179,7 +178,6 @@ final class ImmutableLogEntry implements LogEntry {
             builder.set(JsonFields.ADDRESS, address);
         }
         if (null != entityId) {
-            builder.set(JsonFields.ENTITY_TYPE, entityId.getEntityType().toString());
             builder.set(JsonFields.ENTITY_ID, entityId.toString());
         }
         return builder.build();

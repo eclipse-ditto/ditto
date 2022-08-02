@@ -56,7 +56,7 @@ final class FluentPublishingConnectionLogger
     private static final String TAG_TYPE = toTag(LogEntry.JsonFields.TYPE);
     private static final String TAG_CORRELATION_ID = toTag(LogEntry.JsonFields.CORRELATION_ID);
     private static final String TAG_ADDRESS = toTag(LogEntry.JsonFields.ADDRESS);
-    private static final String TAG_ENTITY_TYPE = toTag(LogEntry.JsonFields.ENTITY_TYPE);
+    private static final String TAG_ENTITY_TYPE = "entityType";
     private static final String TAG_ENTITY_ID = toTag(LogEntry.JsonFields.ENTITY_ID);
     private static final String TAG_MESSAGE = toTag(LogEntry.JsonFields.MESSAGE);
     private static final String TAG_INSTANCE_ID = "instanceId";
