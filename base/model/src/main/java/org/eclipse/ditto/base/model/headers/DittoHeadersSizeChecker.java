@@ -16,7 +16,6 @@ import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.exceptions.DittoHeadersTooLargeException;
 
 /**
@@ -64,14 +63,8 @@ public final class DittoHeadersSizeChecker {
     }
 
     private void checkAuthorizationContext(final DittoHeaders dittoHeaders) {
-        final AuthorizationContext authorizationContext = dittoHeaders.getAuthorizationContext();
-        final int authSubjectsCount = authorizationContext.getSize();
-
-        /*
-         * Actual number of authorization subjects is half of the number of subjects in the header because subjects
-         * stripped of issuers are added to the authorization context.
-         */
-        if (authSubjectsCount > maxAuthSubjects * 2) {
+        final int authSubjectsCount = dittoHeaders.getAuthorizationContext().getSize();
+        if (authSubjectsCount > maxAuthSubjects) {
             throw DittoHeadersTooLargeException.newAuthSubjectsLimitBuilder(authSubjectsCount, maxAuthSubjects)
                     .dittoHeaders(dittoHeaders)
                     .build();

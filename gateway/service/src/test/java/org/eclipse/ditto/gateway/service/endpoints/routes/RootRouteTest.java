@@ -58,12 +58,6 @@ import org.eclipse.ditto.internal.utils.http.HttpClientFacade;
 import org.eclipse.ditto.internal.utils.protocol.ProtocolAdapterProvider;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.things.model.ThingIdInvalidException;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.mockito.Mock;
-import org.mockito.Mockito;
-import org.mockito.junit.MockitoJUnitRunner;
 
 import akka.http.javadsl.model.HttpRequest;
 import akka.http.javadsl.model.StatusCodes;
@@ -72,6 +66,12 @@ import akka.http.javadsl.model.headers.RawHeader;
 import akka.http.javadsl.testkit.TestRoute;
 import akka.http.javadsl.testkit.TestRouteResult;
 import akka.stream.SystemMaterializer;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.Mockito;
+import org.mockito.junit.MockitoJUnitRunner;
 
 /**
  * Tests {@link RootRoute}.
@@ -161,7 +161,7 @@ public final class RootRouteTest extends EndpointTestBase {
                 .headerTranslator(httpHeaderTranslator)
                 .httpAuthenticationDirective(authenticationDirectiveFactory.buildHttpAuthentication())
                 .wsAuthenticationDirective(authenticationDirectiveFactory.buildWsAuthentication())
-                .dittoHeadersSizeChecker(DittoHeadersSizeChecker.of(4096, 20))
+                .dittoHeadersSizeChecker(DittoHeadersSizeChecker.of(4096, 100))
                 .build();
 
         rootTestRoute = testRoute(rootRoute);
@@ -424,7 +424,7 @@ public final class RootRouteTest extends EndpointTestBase {
 
     @Test
     public void getExceptionDueToTooManyAuthSubjects() {
-        final String hugeSubjects = IntStream.range(0, 41)
+        final String hugeSubjects = IntStream.range(0, 101)
                 .mapToObj(i -> "i:foo" + i)
                 .collect(Collectors.joining(","));
         final HttpRequest request =
