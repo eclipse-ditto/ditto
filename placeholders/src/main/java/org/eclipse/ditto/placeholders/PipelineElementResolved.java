@@ -84,6 +84,14 @@ final class PipelineElementResolved implements PipelineElement {
     }
 
     @Override
+    public <T> T accept(final PipelineElementVisitor<T> visitor) {
+        return values.stream().findFirst()
+                .map(visitor::resolved)
+                .orElseThrow(() -> new IllegalStateException(
+                        "This can never happen, because we validate that values isn't empty."));
+    }
+
+    @Override
     public Iterator<String> iterator() {
         return values.iterator();
     }

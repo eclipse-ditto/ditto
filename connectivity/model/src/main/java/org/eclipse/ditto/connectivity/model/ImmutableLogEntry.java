@@ -33,6 +33,7 @@ import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonParseException;
+import org.eclipse.ditto.things.model.ThingId;
 
 /**
  * Immutable implementation of {@link LogEntry}.
@@ -81,9 +82,15 @@ final class ImmutableLogEntry implements LogEntry {
         final LogLevel level = getLogLevelOrThrow(jsonObject);
         final String message = jsonObject.getValueOrThrow(JsonFields.MESSAGE);
         final String address = jsonObject.getValue(JsonFields.ADDRESS).orElse(null);
-        final EntityId entityId = jsonObject.getValue(JsonFields.ENTITY_ID)
-                .map(eId -> EntityId.of(EntityType.of("unknown"), eId))
-                .orElse(null);
+        final ThingId thingId = jsonObject.getValue(JsonFields.THING_ID).map(ThingId::of).orElse(null);
+        final EntityId entityId;
+        if (null != thingId) {
+            entityId = thingId;
+        } else {
+            entityId = jsonObject.getValue(JsonFields.ENTITY_ID)
+                    .map(eId -> EntityId.of(EntityType.of("unknown"), eId))
+                    .orElse(null);
+        }
 
         return getBuilder(correlationId, timestamp, category, type, level, message, address, entityId)
                 .build();
@@ -178,6 +185,9 @@ final class ImmutableLogEntry implements LogEntry {
             builder.set(JsonFields.ADDRESS, address);
         }
         if (null != entityId) {
+            if (entityId instanceof ThingId) {
+                builder.set(JsonFields.THING_ID, entityId.toString());
+            }
             builder.set(JsonFields.ENTITY_ID, entityId.toString());
         }
         return builder.build();

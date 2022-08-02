@@ -34,7 +34,6 @@ import org.eclipse.ditto.base.model.json.JsonParsableCommand;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.signals.commands.AbstractCommand;
 import org.eclipse.ditto.base.model.signals.commands.WithNamespace;
-import org.eclipse.ditto.base.model.signals.commands.WithSelectedFields;
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.json.JsonFactory;
@@ -48,6 +47,7 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.things.model.ThingConstants;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommand;
+import org.eclipse.ditto.things.model.signals.commands.WithSelectedFields;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.MissingThingIdsException;
 
 /**

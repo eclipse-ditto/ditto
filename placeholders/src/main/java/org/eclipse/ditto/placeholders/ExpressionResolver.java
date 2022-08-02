@@ -21,6 +21,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.eclipse.ditto.base.model.common.Placeholders;
 
@@ -63,6 +64,30 @@ public interface ExpressionResolver {
      */
     default PipelineElement resolve(final String expressionTemplate) {
         return ExpressionResolver.substitute(expressionTemplate, this::resolveAsPipelineElement);
+    }
+
+    /**
+     * Resolves a complete expression template starting with a {@link Placeholder} followed by optional pipeline stages
+     * (e.g. functions). Keep unresolvable expressions as is.
+     *
+     * @param expressionTemplate the expressionTemplate to resolve {@link Placeholder}s and execute optional
+     * pipeline stages
+     * @param forbiddenUnresolvedExpressionPrefixes a collection of expression prefixes which must be resolved
+     * @return the stream of resolved strings.
+     * @throws PlaceholderFunctionTooComplexException thrown if the {@code expressionTemplate} contains a placeholder
+     * function chain which is too complex (e.g. too much chained function calls)
+     * @throws UnresolvedPlaceholderException if placeholders could not be resolved which contained prefixed in the
+     * provided {@code forbiddenUnresolvedExpressionPrefixes} list.
+     * @since 2.0.0
+     * @deprecated Since 2.4.0. Use {@link #resolvePartiallyAsPipelineElement(String, java.util.Collection)} instead.
+     * Using {@link PipelineElement#toStream()} on the return value allows to create multiple streams and therefore
+     * reuse the stream.
+     */
+    @Deprecated
+    default String resolvePartially(final String expressionTemplate,
+            final Collection<String> forbiddenUnresolvedExpressionPrefixes) {
+        return resolvePartiallyAsPipelineElement(expressionTemplate, forbiddenUnresolvedExpressionPrefixes).findFirst()
+                .orElseThrow(() -> UnresolvedPlaceholderException.newBuilder(expressionTemplate).build());
     }
 
     /**

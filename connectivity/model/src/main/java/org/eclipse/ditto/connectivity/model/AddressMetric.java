@@ -14,10 +14,14 @@ package org.eclipse.ditto.connectivity.model;
 
 import java.util.Set;
 
+import javax.annotation.concurrent.Immutable;
+
 import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.json.Jsonifiable;
+import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
+import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
 
@@ -46,4 +50,35 @@ public interface AddressMetric extends Jsonifiable.WithFieldSelectorAndPredicate
         return toJson(schemaVersion, FieldType.notHidden()).get(fieldSelector);
     }
 
+    /**
+     * An enumeration of the known {@code JsonField}s of an {@code AddressMetric}.
+     */
+    @Immutable
+    final class JsonFields {
+
+        /**
+         * JSON field containing the {@code JsonSchemaVersion}.
+         *
+         * @deprecated as of 2.3.0 this field definition is not used anymore.
+         */
+        @Deprecated
+        public static final JsonFieldDefinition<Integer> SCHEMA_VERSION = JsonFactory.newIntFieldDefinition(
+                JsonSchemaVersion.getJsonKey(),
+                FieldType.SPECIAL,
+                FieldType.HIDDEN,
+                JsonSchemaVersion.V_2
+        );
+
+        /**
+         * JSON field containing the timestamp when the last message was consumed/published.
+         */
+        public static final JsonFieldDefinition<String> LAST_MESSAGE_AT =
+                JsonFactory.newStringFieldDefinition("lastMessageAt", FieldType.REGULAR,
+                        JsonSchemaVersion.V_2);
+
+        private JsonFields() {
+            throw new AssertionError();
+        }
+
+    }
 }

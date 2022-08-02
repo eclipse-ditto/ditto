@@ -45,6 +45,7 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.json.assertions.DittoJsonAssertions;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.PolicyIdInvalidException;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -1108,6 +1109,7 @@ public final class ImmutableThingTest {
                 .contains(Thing.JsonFields.DEFINITION, JsonValue.of(DEFINITION.toString()));
         DittoJsonAssertions.assertThat(jsonObject)
                 .contains(Thing.JsonFields.FEATURES, FEATURES.toJson());
+        DittoJsonAssertions.assertThat(jsonObject).doesNotContain(Thing.JsonFields.SCHEMA_VERSION);
         DittoJsonAssertions.assertThat(jsonObject).doesNotContain(Thing.JsonFields.REVISION);
         DittoJsonAssertions.assertThat(jsonObject).doesNotContain(Thing.JsonFields.NAMESPACE);
         DittoJsonAssertions.assertThat(jsonObject).doesNotContain(Thing.JsonFields.LIFECYCLE);

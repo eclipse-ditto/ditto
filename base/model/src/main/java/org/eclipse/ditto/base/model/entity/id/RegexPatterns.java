@@ -70,11 +70,48 @@ public final class RegexPatterns {
             "[.-]" + ALLOWED_NAMESPACE_CHARACTERS_REGEX;
 
     /**
+     * @deprecated Use {@link #ALLOWED_NAMESPACE_CHARACTERS_REGEX_INNER}. The name of the variable actually described
+     * the content, which has now changed. The name new describes the purpose.
+     */
+    @Deprecated
+    public static final String ALLOWED_NAMESPACE_CHARACTERS_INCLUDING_DOT = ALLOWED_NAMESPACE_CHARACTERS_REGEX_INNER;
+
+    /**
      * The regex pattern for namespaces which validates that the namespace conforms the java package notation.
      */
     public static final String NAMESPACE_REGEX = "(?<" + NAMESPACE_GROUP_NAME + ">|(?:" +
             "(?:" + ALLOWED_NAMESPACE_CHARACTERS_REGEX + ")" +
             "(?:" + ALLOWED_NAMESPACE_CHARACTERS_REGEX_INNER + ")*+))";
+
+    /**
+     * Regex pattern that matches URL escapes. E.G. %3A for a colon (':').
+     * @deprecated since 2.4.0
+     */
+    @Deprecated
+    public static final String URL_ESCAPES = "%\\p{XDigit}{2}";
+
+    /**
+     * Adds the $ to allowed characters. Its defined as separate constant because names are not allowed to start
+     * with $.
+     * @deprecated since 2.4.0
+     */
+    @Deprecated
+    public static final String ALLOWED_CHARACTERS_IN_NAME_INCLUDING_DOLLAR = ALLOWED_CHARACTERS_IN_NAME + "$";
+
+    /**
+     * First part of an entity name.
+     * @deprecated since 2.4.0
+     */
+    @Deprecated
+    public static final String URI_PATH_SEGMENT = "(?:[" + ALLOWED_CHARACTERS_IN_NAME + "]|" + URL_ESCAPES + ")";
+
+    /**
+     * Second part of an entity name: This part allows the $ symbol.
+     * @deprecated since 2.4.0
+     */
+    @Deprecated
+    public static final String URI_PATH_SEGMENT_INCLUDING_DOLLAR =
+            "(?:[" + ALLOWED_CHARACTERS_IN_NAME_INCLUDING_DOLLAR + "]|" + URL_ESCAPES + ")";
 
     /**
      * The regex pattern for an Entity Name.

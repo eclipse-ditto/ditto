@@ -20,9 +20,12 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.json.JsonParsableCommandResponse;
+import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponseHttpStatusValidator;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponseJsonDeserializer;
+import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 
 /**
@@ -109,6 +112,7 @@ public final class PurgeNamespaceResponse extends AbstractNamespaceCommandRespon
      * <ul>
      *     <li>{@link NamespaceCommandResponse.JsonFields#NAMESPACE},</li>
      *     <li>{@link NamespaceCommandResponse.JsonFields#RESOURCE_TYPE} or</li>
+     *     <li>{@link PurgeNamespaceResponse.JsonFields#SUCCESSFUL}.</li>
      * </ul>
      */
     public static PurgeNamespaceResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
@@ -161,6 +165,32 @@ public final class PurgeNamespaceResponse extends AbstractNamespaceCommandRespon
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" + super.toString() + ", successful=" + isSuccessful() + "]";
+    }
+
+    /**
+     * This class contains definitions for all specific fields of a {@code PurgeNamespaceResponse}'s JSON
+     * representation.
+     *
+     * @deprecated as of 2.3.0 there are no additional JSON fields for {@code PurgeNamespaceResponse}.
+     */
+    @Deprecated
+    @Immutable
+    public static final class JsonFields extends NamespaceCommandResponse.JsonFields {
+
+        /**
+         * This JSON field indicates whether the namespace was purged successfully.
+         *
+         * @deprecated as of 2.3.0 this field is not used anymore as the success
+         * status is derived from HTTP status code.
+         */
+        @Deprecated
+        public static final JsonFieldDefinition<Boolean> SUCCESSFUL =
+                JsonFieldDefinition.ofBoolean("successful", FieldType.REGULAR, JsonSchemaVersion.V_2);
+
+        private JsonFields() {
+            throw new AssertionError();
+        }
+
     }
 
 }

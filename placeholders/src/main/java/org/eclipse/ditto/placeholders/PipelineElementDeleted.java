@@ -63,6 +63,11 @@ final class PipelineElementDeleted implements PipelineElement {
     }
 
     @Override
+    public <T> T accept(final PipelineElementVisitor<T> visitor) {
+        return visitor.deleted();
+    }
+
+    @Override
     public Iterator<String> iterator() {
         return Collections.emptyIterator();
     }

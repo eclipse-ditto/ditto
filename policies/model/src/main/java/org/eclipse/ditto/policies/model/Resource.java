@@ -12,10 +12,14 @@
  */
 package org.eclipse.ditto.policies.model;
 
+import javax.annotation.concurrent.Immutable;
+
 import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.json.Jsonifiable;
+import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
+import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
@@ -128,6 +132,31 @@ public interface Resource extends Jsonifiable.WithFieldSelectorAndPredicate<Json
     @Override
     default JsonObject toJson(final JsonSchemaVersion schemaVersion, final JsonFieldSelector fieldSelector) {
         return toJson(schemaVersion, FieldType.regularOrSpecial()).get(fieldSelector);
+    }
+
+    /**
+     * An enumeration of the known {@link JsonField}s of a Resource.
+     */
+    @Immutable
+    final class JsonFields {
+
+        /**
+         * JSON field containing the {@link JsonSchemaVersion}.
+         *
+         * @deprecated as of 2.3.0 this field definition is not used anymore.
+         */
+        @Deprecated
+        public static final JsonFieldDefinition<Integer> SCHEMA_VERSION = JsonFactory.newIntFieldDefinition(
+                JsonSchemaVersion.getJsonKey(),
+                FieldType.SPECIAL,
+                FieldType.HIDDEN,
+                JsonSchemaVersion.V_2
+        );
+
+        private JsonFields() {
+            throw new AssertionError();
+        }
+
     }
 
 }

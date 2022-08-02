@@ -104,6 +104,18 @@ public interface EffectedPermissions extends Jsonifiable.WithFieldSelectorAndPre
     final class JsonFields {
 
         /**
+         * JSON field containing the {@link JsonSchemaVersion}.
+         *
+         * @deprecated as of 2.3.0 this field definition is not used anymore.
+         */
+        @Deprecated
+        public static final JsonFieldDefinition<Integer> SCHEMA_VERSION =
+                JsonFactory.newIntFieldDefinition(JsonSchemaVersion.getJsonKey(),
+                        FieldType.SPECIAL,
+                        FieldType.HIDDEN,
+                        JsonSchemaVersion.V_2);
+
+        /**
          * JSON field containing the EffectedPermissions's {@code grant}ed Permissions.
          */
         public static final JsonFieldDefinition<JsonArray> GRANT =

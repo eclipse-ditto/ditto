@@ -430,6 +430,19 @@ public interface Feature extends Jsonifiable.WithFieldSelectorAndPredicate<JsonF
     final class JsonFields {
 
         /**
+         * JSON field definition for the Feature's {@link JsonSchemaVersion} as {@code int}.
+         *
+         * @deprecated as of 2.3.0 this field definition is not used anymore.
+         */
+        @Deprecated
+        public static final JsonFieldDefinition<Integer> SCHEMA_VERSION = JsonFactory.newIntFieldDefinition(
+                JsonSchemaVersion.getJsonKey(),
+                FieldType.SPECIAL,
+                FieldType.HIDDEN,
+                JsonSchemaVersion.V_2
+        );
+
+        /**
          * JSON field definition for the Feature's Definition as {@link org.eclipse.ditto.json.JsonArray}.
          */
         public static final JsonFieldDefinition<JsonArray> DEFINITION =
