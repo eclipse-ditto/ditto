@@ -187,10 +187,10 @@ public final class SubUpdater extends akka.actor.AbstractActorWithTimers
     private void ddataOpSuccess(final DDataOpSuccess<SubscriptionsReader> opSuccess) {
         log().debug("DDataOp success seqNr=<{}>", opSuccess.seqNr);
         errorCounter = 0;
-        flushSubAcks(opSuccess.seqNr);
         // race condition possible -- some published messages may arrive before the acknowledgement
         // could solve it by having pubSubSubscriber forward acknowledgements. probably not worth it.
         subscriber.tell(opSuccess.payload, getSelf());
+        flushSubAcks(opSuccess.seqNr);
 
         // reset changed flags if there are no more pending changes
         if (awaitSubAck.isEmpty() && awaitUpdate.isEmpty()) {
@@ -212,23 +212,27 @@ public final class SubUpdater extends akka.actor.AbstractActorWithTimers
 
     private CompletionStage<SubscriptionsReader> performDDataOp(final boolean localSubscriptionsChanged,
             final Replicator.WriteConsistency writeConsistency) {
-        final SubscriptionsReader snapshot = subscriptions.snapshot();
+        final SubscriptionsReader snapshot;
         final CompletionStage<Void> ddataOp;
         log().debug("Tick seq=<{}> changed=<{}> empty=<{}> writeConsistency=<{}>", seqNr, localSubscriptionsChanged,
                 subscriptions.isEmpty(), writeConsistency);
         if (resetProbability > 0 && Math.random() < resetProbability) {
             log().debug("Resetting ddata topics: <{}>", getSelf());
             ddataOp = ddata.getWriter().reset(subscriber, subscriptions.export(), writeConsistency);
-        } else if (!localSubscriptionsChanged) {
-            ddataOp = CompletableFuture.completedStage(null);
+            snapshot = subscriptions.snapshot();
+        // TODO client subscription delay
+        // } else if (!localSubscriptionsChanged) {
+        //    ddataOp = CompletableFuture.completedStage(null);
         } else if (subscriptions.isEmpty()) {
             ddataOp = ddata.getWriter().removeSubscriber(subscriber, writeConsistency);
+            snapshot = subscriptions.snapshot();
             previousUpdate = LiteralUpdate.empty();
             topicSizeMetric.set(0L);
         } else {
             // export before taking snapshot so that implementations may output incremental update.
             final LiteralUpdate nextUpdate = subscriptions.export();
             // take snapshot to give to the subscriber; clear accumulated incremental changes.
+            snapshot = subscriptions.snapshot();
             final var diff = nextUpdate.diff(previousUpdate);
             log().debug("diff.isEmpty=<{}>", diff.isEmpty());
             if (!diff.isEmpty()) {
