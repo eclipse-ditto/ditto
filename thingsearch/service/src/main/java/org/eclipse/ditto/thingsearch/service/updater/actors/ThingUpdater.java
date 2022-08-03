@@ -29,7 +29,6 @@ import org.bson.BsonDocument;
 import org.eclipse.ditto.base.api.common.ShutdownReasonType;
 import org.eclipse.ditto.base.model.acks.AcknowledgementRequest;
 import org.eclipse.ditto.base.model.acks.DittoAcknowledgementLabel;
-import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
 import org.eclipse.ditto.base.service.actors.ShutdownBehaviour;
 import org.eclipse.ditto.base.service.config.supervision.ExponentialBackOff;
 import org.eclipse.ditto.internal.models.streaming.IdentifiableStreamingMessage;
@@ -105,6 +104,7 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
     private final Materializer materializer;
     private final Duration writeInterval;
     private final Duration thingDeletionTimeout;
+    private final Duration maxIdleTime;
     private ExponentialBackOff backOff;
     private boolean shuttingDown = false;
     @Nullable private UniqueKillSwitch killSwitch;
@@ -163,8 +163,7 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
         backOff = ExponentialBackOff.initial(
                 config.getUpdaterConfig().getStreamConfig().getPersistenceConfig().getExponentialBackOffConfig());
         thingDeletionTimeout = config.getUpdaterConfig().getStreamConfig().getThingDeletionTimeout();
-
-        startSingleTimer(ShutdownTrigger.IDLE.name(), ShutdownTrigger.IDLE, config.getUpdaterConfig().getMaxIdleTime());
+        maxIdleTime = config.getUpdaterConfig().getMaxIdleTime();
 
         startWith(State.RECOVERING, getInitialData(thingId));
         when(State.RECOVERING, recovering());
@@ -179,6 +178,8 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
 
         // subscribe for Shutdown commands
         ShutdownBehaviour.fromId(thingId, pubSubMediator, getSelf());
+
+        refreshIdleShutdownTimer();
     }
 
     /**
@@ -247,7 +248,6 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
     private FSMStateFunctionBuilder<State, Data> persisting() {
         return matchEvent(Result.class, this::onResult)
                 .event(Done.class, this::onDone)
-                .event(ThingEvent.class, this::onEventWhenPersisting)
                 .event(ShutdownTrigger.class, this::shutdown)
                 .event(SHUTDOWN_CLASS, this::shutdownNow)
                 .event(DistributedPubSubMediator.SubscribeAck.class, this::subscribeAck)
@@ -288,14 +288,10 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
         if (previousState != nextState) {
             switch (nextState) {
                 case READY, RETRYING -> {
-                    final Duration delay;
-                    if (nextState == State.READY) {
-                        delay = writeInterval;
-                    } else {
+                    if (nextState == State.RETRYING) {
                         backOff = backOff.calculateNextBackOff();
-                        delay = backOff.getRestartDelay();
+                        resetTickTimer(backOff.getRestartDelay());
                     }
-                    startTimerWithFixedDelay(Control.TICK.name(), Control.TICK, delay);
                     unstashAll();
                 }
                 default -> cancelTimer(Control.TICK.name());
@@ -303,16 +299,11 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
         }
     }
 
-    private FSM.State<State, Data> onEventWhenPersisting(final ThingEvent<?> event, final Data data) {
-        computeEventMetadata(event, data).ifPresent(eventMetadata -> getSelf().tell(eventMetadata, getSelf()));
-        return stay();
-    }
-
     private FSM.State<State, Data> onResult(final Result result, final Data data) {
         killSwitch = null;
         final var writeResultAndErrors = result.resultAndErrors();
         final var pair = BulkWriteResultAckFlow.checkBulkWriteResult(writeResultAndErrors);
-        pair.second().forEach(log::info);
+        pair.second().forEach(log::debug);
         if (shuttingDown) {
             log.info("Shutting down after completing persistence operation");
             return stop();
@@ -416,6 +407,7 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
                 updateThing.getDittoHeaders().getAcknowledgementRequests().contains(SEARCH_PERSISTED_REQUEST)
                         ? metadata.withSender(getSender())
                         : metadata;
+        ensureTickTimer();
         return stay().using(new Data(data.metadata().append(nextMetadata), lastWriteModel));
     }
 
@@ -454,6 +446,7 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
     }
 
     private FSM.State<State, Data> onThingEvent(final ThingEvent<?> thingEvent, final Data data) {
+        refreshIdleShutdownTimer();
         return computeEventMetadata(thingEvent, data).map(eventMetadata -> onEventMetadata(eventMetadata, data))
                 .orElseGet(this::stay);
     }
@@ -470,13 +463,11 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
                             + "equal to the current sequence number <{}> of the update actor.", thingId,
                     thingEvent.getRevision(), data.metadata().getThingRevision());
             if (shouldAcknowledge) {
-                final String hint = String.format("Thing event with revision <%d> for thing <%s> dropped.",
-                        thingEvent.getRevision(),
-                        thingId);
-                exportMetadataWithSender(true, thingEvent, getSender(), null, data)
-                        .sendWeakAck(JsonValue.of(hint));
+                // add sender to pending acknowledgements
+                return Optional.of(data.metadata().export().withSender(getSender()));
+            } else {
+                return Optional.empty();
             }
-            return Optional.empty();
         }
 
         l.debug("Applying thing event <{}>.", thingEvent);
@@ -503,6 +494,7 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
     }
 
     private FSM.State<State, Data> enqueue(final Metadata newMetadata, final Data data) {
+        ensureTickTimer();
         return stay().using(new Data(data.metadata().append(newMetadata), data.lastWriteModel()));
     }
 
@@ -578,6 +570,21 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
         final ActorRef sender = getSender();
         if (!getContext().system().deadLetters().equals(sender)) {
             sender.tell(StreamAck.success(message.asIdentifierString()), getSelf());
+        }
+    }
+
+    private void refreshIdleShutdownTimer() {
+        startSingleTimer(ShutdownTrigger.IDLE.name(), ShutdownTrigger.IDLE, maxIdleTime);
+    }
+
+    private void resetTickTimer(final Duration delay) {
+        startTimerWithFixedDelay(Control.TICK.name(), Control.TICK, delay);
+    }
+
+    private void ensureTickTimer() {
+        final var tickTimerName = Control.TICK.name();
+        if (!isTimerActive(tickTimerName)) {
+            resetTickTimer(writeInterval);
         }
     }
 
