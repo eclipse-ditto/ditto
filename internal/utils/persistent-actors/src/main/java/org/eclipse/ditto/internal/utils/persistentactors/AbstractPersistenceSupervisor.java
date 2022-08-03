@@ -55,6 +55,7 @@ import com.typesafe.config.Config;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
+import akka.actor.OneForOneStrategy;
 import akka.actor.PoisonPill;
 import akka.actor.Props;
 import akka.actor.ReceiveTimeout;
@@ -62,6 +63,7 @@ import akka.actor.Status;
 import akka.actor.SupervisorStrategy;
 import akka.actor.Terminated;
 import akka.cluster.sharding.ShardRegion;
+import akka.japi.pf.DeciderBuilder;
 import akka.japi.pf.FI;
 import akka.japi.pf.ReceiveBuilder;
 import akka.pattern.AskTimeoutException;
@@ -105,6 +107,8 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
 
     protected final DittoDiagnosticLoggingAdapter log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
 
+    private final SupervisorStrategy supervisorStrategy;
+
     @Nullable protected final BlockedNamespaces blockedNamespaces;
     @Nullable protected E entityId;
     @Nullable protected ActorRef persistenceActorChild;
@@ -137,6 +141,13 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
         this.defaultLocalAskTimeout = defaultLocalAskTimeout;
         exponentialBackOffConfig = getExponentialBackOffConfig();
         backOff = ExponentialBackOff.initial(exponentialBackOffConfig);
+        supervisorStrategy = new OneForOneStrategy(
+                DeciderBuilder
+                        .matchAny(error -> {
+                            log.error(error, "Got error in child. Stopping child actor for entityID <{}>.", entityId);
+                            return SupervisorStrategy.stop();
+                        }).build()
+        );
     }
 
     /**
@@ -245,7 +256,7 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
      */
     @Override
     public SupervisorStrategy supervisorStrategy() {
-        return SupervisorStrategy.stoppingStrategy();
+        return supervisorStrategy;
     }
 
     @Override
@@ -539,7 +550,8 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
                 }
                 if (withDittoHeaders instanceof Signal<?> signal) {
                     signalTransformer.apply(signal)
-                            .whenComplete((result, error) -> handleOptionalTransformationException(signal, error, sender))
+                            .whenComplete(
+                                    (result, error) -> handleOptionalTransformationException(signal, error, sender))
                             .thenAccept(transformed -> persistenceActorChild.tell(transformed, sender));
                 } else {
                     persistenceActorChild.tell(withDittoHeaders, sender);
