@@ -18,6 +18,7 @@ import java.util.List;
 
 import org.eclipse.ditto.base.model.signals.SignalWithEntityId;
 import org.eclipse.ditto.internal.utils.pubsub.DistributedAcks;
+import org.eclipse.ditto.internal.utils.pubsub.PubSubFactory;
 import org.eclipse.ditto.internal.utils.pubsub.api.LocalAcksChanged;
 import org.eclipse.ditto.internal.utils.pubsub.api.PublishSignal;
 import org.eclipse.ditto.internal.utils.pubsub.config.PubSubConfig;
@@ -26,6 +27,7 @@ import org.eclipse.ditto.internal.utils.pubsub.extractors.AckExtractor;
 import org.eclipse.ditto.internal.utils.pubsub.extractors.PubSubTopicExtractor;
 
 import akka.actor.ActorRef;
+import akka.actor.ActorSelection;
 import akka.actor.OneForOneStrategy;
 import akka.actor.Props;
 import akka.actor.SupervisorStrategy;
@@ -72,6 +74,26 @@ public final class Subscriber<T extends SignalWithEntityId<?>> extends AbstractS
     public static <T> Props props(final Class<T> messageClass, final PubSubTopicExtractor<T> topicExtractor,
             final AckExtractor<T> ackExtractor, final DistributedAcks distributedAcks) {
         return Props.create(Subscriber.class, messageClass, topicExtractor, ackExtractor, distributedAcks);
+    }
+
+    /**
+     * Choose a subscriber from the subscriber pool based on the hash code of the entity ID of the published signal.
+     *
+     * @param parentSubscriber The parent subscriber from the distributed data.
+     * @param signal The signal to be published.
+     * @param poolSize The size of the subscriber pool.
+     * @return An actor selection containing the subscriber in the pool responsible for the signal.
+     */
+    static ActorSelection chooseSubscriber(final ActorRef parentSubscriber, final PublishSignal signal,
+            final int poolSize) {
+
+        if (poolSize > 1) {
+            final int index = PubSubFactory.hashForPubSub(signal.getSignal().getEntityId()) % poolSize;
+            if (index > 0) {
+                return ActorSelection.apply(parentSubscriber, String.valueOf(index));
+            }
+        }
+        return ActorSelection.apply(parentSubscriber, "");
     }
 
     @Override
