@@ -119,7 +119,7 @@ public final class SubUpdaterTest {
             Mockito.verify(ddata.getReader(), Mockito.timeout(5000))
                     .getAllShards(eq((Replicator.ReadConsistency) Replicator.readLocal()));
             Thread.sleep(3000);
-            Mockito.verify(ddata.getWriter(), Mockito.times(1)).put(any(), any(), any());
+            Mockito.verify(ddata.getWriter(), Mockito.times(1)).reset(any(), any(), any());
             Mockito.verify(ddata.getWriter(), Mockito.never()).removeAddress(any(), any());
         }};
     }
@@ -196,6 +196,7 @@ public final class SubUpdaterTest {
         Mockito.when(reader.get(any(), any())).thenReturn(CompletableFuture.completedStage(Optional.of(map)));
         Mockito.when(reader.getAllShards(any())).thenReturn(CompletableFuture.completedStage(List.of(map)));
         Mockito.when(writer.put(any(), any(), any())).thenReturn(CompletableFuture.completedStage(null));
+        Mockito.when(writer.reset(any(), any(), any())).thenReturn(CompletableFuture.completedStage(null));
         return mock;
     }
 
