@@ -66,17 +66,15 @@ abstract class DittoDiagnosticLoggingAdapter extends AbstractDiagnosticLoggingAd
    *
    * @param withDittoHeaders provides DittoHeaders which might contain the correlation ID to be put to the MDC.
    * @return this DittoLogger instance to allow method chaining.
-   * @throws NullPointerException if `withDittoHeaders` is `null`.
    */
-  def withCorrelationId(withDittoHeaders: WithDittoHeaders): DittoDiagnosticLoggingAdapter
+  def withCorrelationId(@Nullable withDittoHeaders: WithDittoHeaders): DittoDiagnosticLoggingAdapter
 
   /** Obtains the correlation ID from the given DittoHeaders for the subsequent log operation.
    *
    * @param dittoHeaders might contain the correlation ID to be put to the MDC.
    * @return this DittoLogger instance to allow method chaining.
-   * @throws NullPointerException if `dittoHeaders` is `null`.
    */
-  def withCorrelationId(dittoHeaders: DittoHeaders): DittoDiagnosticLoggingAdapter
+  def withCorrelationId(@Nullable dittoHeaders: DittoHeaders): DittoDiagnosticLoggingAdapter
 
   /** Sets the given correlation ID for all subsequent log operations until it gets manually discarded.
    *

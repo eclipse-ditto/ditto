@@ -66,7 +66,7 @@ public final class DittoGatewayConfig implements GatewayConfig, WithConfigPath {
 
     private DittoGatewayConfig(final ScopedConfig dittoScopedConfig) {
 
-        this.dittoServiceConfig = DittoServiceConfig.of(dittoScopedConfig, CONFIG_PATH);
+        dittoServiceConfig = DittoServiceConfig.of(dittoScopedConfig, CONFIG_PATH);
         protocolConfig = DefaultProtocolConfig.of(dittoScopedConfig);
         httpConfig = GatewayHttpConfig.of(dittoServiceConfig);
         cachesConfig = DefaultCachesConfig.of(dittoServiceConfig);
@@ -174,4 +174,5 @@ public final class DittoGatewayConfig implements GatewayConfig, WithConfigPath {
     public String getConfigPath() {
         return CONFIG_PATH;
     }
+
 }

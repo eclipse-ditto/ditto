@@ -15,7 +15,6 @@ package org.eclipse.ditto.thingsearch.service.common.config;
 import java.util.Map;
 import java.util.Optional;
 
-import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.service.config.ServiceSpecificConfig;
@@ -37,32 +36,6 @@ public interface SearchConfig extends ServiceSpecificConfig, WithHealthCheckConf
     Optional<String> getMongoHintsByNamespace();
 
     /**
-     * Returns the {@code QueryCriteriaValidator} to be used for validating and decoding
-     * {@link org.eclipse.ditto.rql.query.criteria.Criteria} of a
-     * {@link org.eclipse.ditto.thingsearch.model.signals.commands.query.ThingSearchQueryCommand}.
-     *
-     * @return the query validator implementation or {@code null}.
-     */
-    @Nullable
-    String getQueryValidatorImplementation();
-
-    /**
-     * Returns the {@code SearchUpdateMapper} to be used for additional processing of search updates.
-     *
-     * @return the search update mapper implementation or {@code null}.
-     */
-    @Nullable
-    String getSearchUpdateMapperImplementation();
-
-    /**
-     * Returns the {@code SearchUpdateObserver} to be used for additional processing of search updates.
-     *
-     * @return the name of the implementing class or {@code null}.
-     */
-    @Nullable
-    String getSearchUpdateObserverImplementation();
-
-    /**
      * Returns the configuration settings for the search updating functionality.
      *
      * @return the config.
@@ -80,7 +53,7 @@ public interface SearchConfig extends ServiceSpecificConfig, WithHealthCheckConf
      * Returns how simple fields are mapped during query parsing.
      *
      * @return the simple field mapping.
-     * @since 2.5.0
+     * @since 3.0.0
      */
     Map<String, String> getSimpleFieldMappings();
 
@@ -95,34 +68,9 @@ public interface SearchConfig extends ServiceSpecificConfig, WithHealthCheckConf
         MONGO_HINTS_BY_NAMESPACE("mongo-hints-by-namespace", null),
 
         /**
-         * The {@code QueryCriteriaValidator} used for decoding and validating {@link org.eclipse.ditto.rql.query.criteria.Criteria}
-         * of a {@link org.eclipse.ditto.thingsearch.model.signals.commands.query.ThingSearchQueryCommand}.
-         *
-         * @since 1.6.0
-         */
-        QUERY_CRITERIA_VALIDATOR("query-criteria-validator.implementation",
-                "org.eclipse.ditto.thingsearch.service.persistence.query.validation.DefaultQueryCriteriaValidator"),
-
-        /**
-         * The {@code SearchUpdateMapper} used for additional custom processing of search updates.
-         *
-         * @since 2.1.0
-         */
-        SEARCH_UPDATE_MAPPER("search-update-mapper.implementation",
-                "org.eclipse.ditto.thingsearch.service.persistence.write.streaming.DefaultSearchUpdateMapper"),
-
-        /**
-         * The {@code SearchUpdateObserver} used for additional custom processing of thing events.
-         *
-         * @since 2.3.0
-         */
-        SEARCH_UPDATE_OBSERVER("search-update-observer.implementation",
-                "org.eclipse.ditto.thingsearch.service.updater.actors.DefaultSearchUpdateObserver"),
-
-        /**
          * How simple fields are mapped during query parsing.
          *
-         * @since 2.5.0
+         * @since 3.0.0
          */
         SIMPLE_FIELD_MAPPINGS("simple-field-mappings", ConfigValueFactory.fromMap(Map.of(
                 "thingId", "_id",

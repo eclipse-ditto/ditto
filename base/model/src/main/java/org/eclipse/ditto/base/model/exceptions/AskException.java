@@ -28,12 +28,12 @@ import org.eclipse.ditto.json.JsonObject;
  */
 @Immutable
 @JsonParsableException(errorCode = AskException.ERROR_CODE)
-public final class AskException extends DittoRuntimeException {
+public final class AskException extends DittoRuntimeException implements GeneralException {
 
     /**
      * Error code of this exception.
      */
-    public static final String ERROR_CODE = "ask.error";
+    public static final String ERROR_CODE = ERROR_CODE_PREFIX + "ask.error";
 
     private static final String DEFAULT_MESSAGE = "There was an internal timeout.";
     private static final String DEFAULT_DESCRIPTION =

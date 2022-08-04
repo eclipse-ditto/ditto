@@ -34,6 +34,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonParseException;
 import org.eclipse.ditto.protocol.Adaptable;
+import org.eclipse.ditto.protocol.ProtocolAdapterException;
 import org.eclipse.ditto.protocol.ProtocolFactory;
 import org.eclipse.ditto.protocol.TopicPath;
 
@@ -44,12 +45,12 @@ import org.eclipse.ditto.protocol.TopicPath;
  * @since 2.3.0
  */
 @JsonParsableException(errorCode = IllegalAdaptableException.ERROR_CODE)
-public final class IllegalAdaptableException extends DittoRuntimeException {
+public final class IllegalAdaptableException extends DittoRuntimeException implements ProtocolAdapterException {
 
     /**
      * Error code of {@code IllegalAdaptableException}.
      */
-    public static final String ERROR_CODE = "things.protocol.adapter:adaptable.illegal";
+    public static final String ERROR_CODE = ERROR_CODE_PREFIX + "illegal.adaptable";
 
     /**
      * Generic default description of an {@code IllegalAdaptableException}.

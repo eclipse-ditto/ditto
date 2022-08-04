@@ -27,6 +27,7 @@ import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.correlationid.TestNameCorrelationId;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
+import org.eclipse.ditto.base.model.headers.translator.HeaderTranslator;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.json.Jsonifiable;
 import org.eclipse.ditto.base.model.signals.WithOptionalEntity;
@@ -36,9 +37,8 @@ import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
 import org.eclipse.ditto.base.service.config.http.DefaultHttpProxyConfig;
 import org.eclipse.ditto.gateway.service.endpoints.routes.RootRouteExceptionHandler;
 import org.eclipse.ditto.gateway.service.endpoints.routes.RouteBaseProperties;
-import org.eclipse.ditto.gateway.service.security.authentication.jwt.DittoJwtAuthorizationSubjectsProvider;
 import org.eclipse.ditto.gateway.service.security.authentication.jwt.JwtAuthenticationFactory;
-import org.eclipse.ditto.gateway.service.security.authentication.jwt.JwtAuthorizationSubjectsProviderFactory;
+import org.eclipse.ditto.gateway.service.security.authentication.jwt.JwtAuthorizationSubjectsProvider;
 import org.eclipse.ditto.gateway.service.util.config.endpoints.CloudEventsConfig;
 import org.eclipse.ditto.gateway.service.util.config.endpoints.CommandConfig;
 import org.eclipse.ditto.gateway.service.util.config.endpoints.DefaultClaimMessageConfig;
@@ -70,7 +70,6 @@ import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.protocol.HeaderTranslator;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommandResponse;
 import org.junit.Before;
@@ -117,7 +116,7 @@ public abstract class EndpointTestBase extends JUnitRouteTest {
     protected static CloudEventsConfig cloudEventsConfig;
     protected static JwtAuthenticationFactory jwtAuthenticationFactory;
     protected static HttpClientFacade httpClientFacade;
-    protected static JwtAuthorizationSubjectsProviderFactory authorizationSubjectsProviderFactory;
+    protected static JwtAuthorizationSubjectsProvider authorizationSubjectsProvider;
 
     @Rule
     public final TestNameCorrelationId testNameCorrelationId = TestNameCorrelationId.newInstance();
@@ -131,6 +130,7 @@ public abstract class EndpointTestBase extends JUnitRouteTest {
     public static void initTestFixture() {
         final var dittoScopedConfig = DefaultScopedConfig.dittoScoped(createTestConfig());
         final var gatewayScopedConfig = DefaultScopedConfig.newInstance(dittoScopedConfig, "gateway");
+        final var actorSystem = ActorSystem.create(EndpointTestBase.class.getSimpleName(), createTestConfig());
         httpConfig = GatewayHttpConfig.of(gatewayScopedConfig);
         healthCheckConfig = DefaultHealthCheckConfig.of(gatewayScopedConfig);
         commandConfig = DefaultCommandConfig.of(gatewayScopedConfig);
@@ -143,13 +143,13 @@ public abstract class EndpointTestBase extends JUnitRouteTest {
         protocolConfig = DefaultProtocolConfig.of(dittoScopedConfig);
         cloudEventsConfig = DefaultCloudEventsConfig.of(gatewayScopedConfig);
         httpClientFacade =
-                DefaultHttpClientFacade.getInstance(ActorSystem.create(EndpointTestBase.class.getSimpleName()),
+                DefaultHttpClientFacade.getInstance(actorSystem,
                         DefaultHttpProxyConfig.ofProxy(DefaultScopedConfig.empty("/")));
-        authorizationSubjectsProviderFactory = DittoJwtAuthorizationSubjectsProvider::of;
+        authorizationSubjectsProvider = JwtAuthorizationSubjectsProvider.get(actorSystem, ConfigFactory.empty());
         jwtAuthenticationFactory = JwtAuthenticationFactory.newInstance(authConfig.getOAuthConfig(),
                 cacheConfig,
                 httpClientFacade,
-                authorizationSubjectsProviderFactory);
+                actorSystem);
     }
 
     @Before
@@ -165,7 +165,6 @@ public abstract class EndpointTestBase extends JUnitRouteTest {
                 .httpConfig(httpConfig)
                 .commandConfig(commandConfig)
                 .headerTranslator(httpHeaderTranslator)
-                .connectivityShardRegionProxy(connectivityShardRegionProxyActor.ref())
                 .build();
         dittoHeaders = DittoHeaders.newBuilder().correlationId(testNameCorrelationId.getCorrelationId()).build();
     }

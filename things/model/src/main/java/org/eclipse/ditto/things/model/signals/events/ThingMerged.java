@@ -115,7 +115,7 @@ public final class ThingMerged extends AbstractThingEvent<ThingMerged> implement
     }
 
     @Override
-    protected void appendPayloadAndBuild(final JsonObjectBuilder jsonObjectBuilder,
+    protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder,
             final JsonSchemaVersion schemaVersion, final Predicate<JsonField> thePredicate) {
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         jsonObjectBuilder.set(ThingEvent.JsonFields.THING_ID, thingId.toString(), predicate);

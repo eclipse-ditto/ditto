@@ -18,8 +18,8 @@ import java.util.function.Consumer;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.base.model.entity.metadata.Metadata;
+import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.connectivity.model.Connection;
-import org.eclipse.ditto.connectivity.model.signals.commands.ConnectivityCommand;
 import org.eclipse.ditto.connectivity.model.signals.commands.exceptions.ConnectionNotAccessibleException;
 import org.eclipse.ditto.connectivity.model.signals.events.ConnectivityEvent;
 import org.eclipse.ditto.connectivity.service.messaging.persistence.stages.ConnectionState;
@@ -31,13 +31,13 @@ import org.eclipse.ditto.internal.utils.persistentactors.results.ResultFactory;
  * Strategies to handle signals as an uninitialized connection that stashes every command.
  */
 public final class ConnectionUninitializedStrategies
-        extends AbstractCommandStrategy<ConnectivityCommand<?>, Connection, ConnectionState, ConnectivityEvent<?>>
+        extends AbstractCommandStrategy<Command<?>, Connection, ConnectionState, ConnectivityEvent<?>>
         implements ConnectivityCommandStrategies {
 
-    private final Consumer<ConnectivityCommand<?>> action;
+    private final Consumer<Command<?>> action;
 
-    private ConnectionUninitializedStrategies(final Consumer<ConnectivityCommand<?>> action) {
-        super(ConnectivityCommand.class);
+    private ConnectionUninitializedStrategies(final Consumer<Command<?>> action) {
+        super(Command.class);
         this.action = action;
     }
 
@@ -47,25 +47,25 @@ public final class ConnectionUninitializedStrategies
      * @param action what to do on connectivity commands.
      * @return the empty result.
      */
-    public static ConnectionUninitializedStrategies of(final Consumer<ConnectivityCommand<?>> action) {
+    public static ConnectionUninitializedStrategies of(final Consumer<Command<?>> action) {
         return new ConnectionUninitializedStrategies(action);
     }
 
     @Override
-    public boolean isDefined(final ConnectivityCommand<?> command) {
+    public boolean isDefined(final Command<?> command) {
         return true;
     }
 
     @Override
     protected Optional<Metadata> calculateRelativeMetadata(@Nullable final Connection entity,
-            final ConnectivityCommand<?> command) {
+            final Command<?> command) {
         return Optional.empty();
     }
 
     @Override
     protected Result<ConnectivityEvent<?>> doApply(final Context<ConnectionState> context,
             @Nullable final Connection entity,
-            final long nextRevision, final ConnectivityCommand<?> command, @Nullable final Metadata metadata) {
+            final long nextRevision, final Command<?> command, @Nullable final Metadata metadata) {
         action.accept(command);
         return Result.empty();
     }
@@ -74,7 +74,7 @@ public final class ConnectionUninitializedStrategies
     public Result<ConnectivityEvent<?>> unhandled(final Context<ConnectionState> context,
             @Nullable final Connection entity,
             final long nextRevision,
-            final ConnectivityCommand<?> command) {
+            final Command<?> command) {
 
         return ResultFactory.newErrorResult(ConnectionNotAccessibleException
                 .newBuilder(context.getState().id())

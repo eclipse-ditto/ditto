@@ -150,7 +150,7 @@ public abstract class AbstractDittoRootActorTest {
                     failingChild
             ), getRef());
 
-            final ActorRef throwingActor = expectMsgClass(Duration.ofSeconds(10L), ActorRef.class);
+            final ActorRef throwingActor = expectMsgClass(Duration.ofSeconds(100L), ActorRef.class);
             throwingActor.tell(new UnknownException(), getRef());
 
             assertRestartSuccess(underTest, throwingActor, this);

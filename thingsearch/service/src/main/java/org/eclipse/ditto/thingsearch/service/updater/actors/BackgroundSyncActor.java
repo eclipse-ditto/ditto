@@ -33,7 +33,7 @@ import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.things.model.ThingConstants;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.thingsearch.api.UpdateReason;
-import org.eclipse.ditto.thingsearch.api.commands.sudo.UpdateThing;
+import org.eclipse.ditto.thingsearch.api.commands.sudo.SudoUpdateThing;
 import org.eclipse.ditto.thingsearch.service.common.config.BackgroundSyncConfig;
 import org.eclipse.ditto.thingsearch.service.common.config.DefaultBackgroundSyncConfig;
 import org.eclipse.ditto.thingsearch.service.persistence.read.ThingsSearchPersistence;
@@ -108,7 +108,7 @@ public final class BackgroundSyncActor
      * @param thingsSearchPersistence the search persistence to access the search index.
      * @param backgroundSyncPersistence persistence for bookmarks of background sync progress.
      * @param policiesShardRegion the policies shard region to query policy revisions.
-     * @param thingsUpdater the dispatcher of UpdateThing commands.
+     * @param thingsUpdater the dispatcher of SudoUpdateThing commands.
      * @return an actor to coordinate background sync.
      */
     public static Props props(final BackgroundSyncConfig config,
@@ -261,7 +261,7 @@ public final class BackgroundSyncActor
             }
 
             final var command =
-                    UpdateThing.of(thingId, forceInvalidateThing || metadata.shouldInvalidateThing(),
+                    SudoUpdateThing.of(thingId, forceInvalidateThing || metadata.shouldInvalidateThing(),
                             forceInvalidatePolicy || metadata.shouldInvalidatePolicy(),
                             UpdateReason.BACKGROUND_SYNC, headers);
             thingsUpdater.tell(command, ActorRef.noSender());

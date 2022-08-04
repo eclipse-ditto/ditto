@@ -76,13 +76,13 @@ final class ImmutableDittoLoggingAdapter extends ThreadSafeDittoLoggingAdapter {
     }
 
     @Override
-    public ImmutableDittoLoggingAdapter withCorrelationId(final WithDittoHeaders withDittoHeaders) {
-        return withCorrelationId(checkNotNull(withDittoHeaders, "withDittoHeaders").getDittoHeaders());
+    public ImmutableDittoLoggingAdapter withCorrelationId(@Nullable final WithDittoHeaders withDittoHeaders) {
+        return withCorrelationId(null != withDittoHeaders ? withDittoHeaders.getDittoHeaders() : null);
     }
 
     @Override
-    public ImmutableDittoLoggingAdapter withCorrelationId(final DittoHeaders dittoHeaders) {
-        return withCorrelationId(checkNotNull(dittoHeaders, "dittoHeaders").getCorrelationId().orElse(null));
+    public ImmutableDittoLoggingAdapter withCorrelationId(@Nullable final DittoHeaders dittoHeaders) {
+        return withCorrelationId(null != dittoHeaders ? dittoHeaders.getCorrelationId().orElse(null) : null);
     }
 
     @Override

@@ -23,22 +23,25 @@ import java.util.Objects;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.function.UnaryOperator;
 
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.base.model.entity.id.WithEntityId;
+import org.eclipse.ditto.base.model.exceptions.DittoInternalErrorException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.Jsonifiable;
+import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
 import org.eclipse.ditto.base.model.signals.commands.WithEntity;
-import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayInternalErrorException;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
-import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
-import org.eclipse.ditto.internal.utils.metrics.instruments.timer.StartedTimer;
+import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.internal.utils.tracing.DittoTracing;
+import org.eclipse.ditto.internal.utils.tracing.instruments.trace.StartedTrace;
+import org.eclipse.ditto.things.api.ThingsMessagingConstants;
 import org.eclipse.ditto.things.api.commands.sudo.SudoRetrieveThingResponse;
 import org.eclipse.ditto.things.api.commands.sudo.SudoRetrieveThings;
 import org.eclipse.ditto.things.api.commands.sudo.SudoRetrieveThingsResponse;
@@ -63,7 +66,7 @@ import akka.stream.javadsl.Sink;
 import akka.stream.javadsl.Source;
 
 /**
- * Acts as a client for {@code org.eclipse.ditto.concierge.service.starter.actors.ThingsAggregatorActor} which responds
+ * Acts as a client for {@code ThingsAggregatorActor} which responds
  * to a {@link RetrieveThings} command via a {@link SourceRef} which is a pointer in the cluster emitting the retrieved
  * {@link Thing}s one after one in a stream. That ensures that the cluster messages size must not be increased when
  * streaming a larger amount of Things in the cluster.
@@ -81,28 +84,24 @@ public final class ThingsAggregatorProxyActor extends AbstractActor {
 
     private final DittoDiagnosticLoggingAdapter log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
 
-    private final ActorRef targetActor;
+    private final ActorRef pubSubMediator;
     private final Materializer materializer;
 
     @SuppressWarnings("unused")
-    private ThingsAggregatorProxyActor(final ActorRef targetActor) {
-        this.targetActor = targetActor;
+    private ThingsAggregatorProxyActor(final ActorRef pubSubMediator) {
+        this.pubSubMediator = pubSubMediator;
         materializer = Materializer.createMaterializer(this::getContext);
     }
 
     /**
      * Creates Akka configuration object Props for this ThingsAggregatorProxyActor.
      *
-     * @param targetActor the Actor to delegate "asks" for the aggregation to.
+     * @param pubSubMediator the pub/sub mediator Actor ref to delegate "asks" for the aggregation to.
      * @return the Akka configuration Props object
      */
-    public static Props props(final ActorRef targetActor) {
+    public static Props props(final ActorRef pubSubMediator) {
 
-        return Props.create(ThingsAggregatorProxyActor.class, targetActor);
-    }
-
-    private static void stopTimer(final StartedTimer timer) {
-        timer.stop(); // stop timer
+        return Props.create(ThingsAggregatorProxyActor.class, pubSubMediator);
     }
 
     @Override
@@ -112,10 +111,10 @@ public final class ThingsAggregatorProxyActor extends AbstractActor {
                 .match(SudoRetrieveThings.class, srt -> handleSudoRetrieveThings(srt, srt))
                 .match(DistributedPubSubMediator.Send.class, send -> {
                     final Object msg = send.msg();
-                    if (msg instanceof RetrieveThings) {
-                        handleRetrieveThings((RetrieveThings) msg, send);
-                    } else if (msg instanceof SudoRetrieveThings) {
-                        handleSudoRetrieveThings((SudoRetrieveThings) msg, send);
+                    if (msg instanceof RetrieveThings retrieveThings) {
+                        handleRetrieveThings(retrieveThings, send);
+                    } else if (msg instanceof SudoRetrieveThings sudoRetrieveThings) {
+                        handleSudoRetrieveThings(sudoRetrieveThings, send);
                     } else {
                         log.warning("Got unknown message: {}", send);
                         unhandled(send);
@@ -150,30 +149,50 @@ public final class ThingsAggregatorProxyActor extends AbstractActor {
 
     private void askTargetActor(final Command<?> command, final List<ThingId> thingIds,
             final Object msgToAsk, final ActorRef sender) {
-        Patterns.ask(targetActor, msgToAsk, Duration.ofSeconds(ASK_TIMEOUT))
+
+        final StartedTrace trace;
+        final Object tracedMsgToAsk;
+        if (msgToAsk instanceof Signal<?> signal) {
+            trace = DittoTracing.trace(signal, TRACE_AGGREGATOR_RETRIEVE_THINGS)
+                    .tag("size", Integer.toString(thingIds.size()))
+                    .start();
+            tracedMsgToAsk = DittoTracing.propagateContext(trace.getContext(), signal);
+        } else {
+            trace = DittoTracing.trace(command, TRACE_AGGREGATOR_RETRIEVE_THINGS)
+                    .tag("size", Integer.toString(thingIds.size()))
+                    .start();
+            DittoTracing.propagateContext(trace.getContext());
+            tracedMsgToAsk = msgToAsk;
+        }
+
+        final DistributedPubSubMediator.Send pubSubMsg =
+                DistPubSubAccess.send(ThingsMessagingConstants.THINGS_AGGREGATOR_ACTOR_PATH, tracedMsgToAsk);
+        Patterns.ask(pubSubMediator, pubSubMsg, Duration.ofSeconds(ASK_TIMEOUT))
                 .thenAccept(response -> {
                     if (response instanceof SourceRef) {
-                        handleSourceRef((SourceRef<?>) response, thingIds, command, sender);
-                    } else if (response instanceof DittoRuntimeException) {
+                        handleSourceRef((SourceRef<?>) response, thingIds, command, sender, trace);
+                    } else if (response instanceof DittoRuntimeException dre) {
+                        trace.fail(dre).finish();
                         sender.tell(response, getSelf());
                     } else {
                         log.error("Unexpected non-DittoRuntimeException error - responding with " +
                                         "GatewayInternalErrorException. Cause: {} - {}",
                                 response.getClass().getSimpleName(), response);
-                        final GatewayInternalErrorException responseEx =
-                                GatewayInternalErrorException.newBuilder()
+                        final DittoInternalErrorException responseEx =
+                                DittoInternalErrorException.newBuilder()
                                         .dittoHeaders(command.getDittoHeaders())
                                         .build();
+                        trace.fail(responseEx).finish();
                         sender.tell(responseEx, getSelf());
                     }
                 });
     }
 
     private void handleSourceRef(final SourceRef<?> sourceRef, final List<ThingId> thingIds,
-            final Command<?> originatingCommand, final ActorRef originatingSender) {
+            final Command<?> originatingCommand, final ActorRef originatingSender, final StartedTrace trace) {
         final Function<Jsonifiable<?>, PlainJson> thingPlainJsonSupplier;
         final Function<List<PlainJson>, CommandResponse<?>> overallResponseSupplier;
-        final Function<List<PlainJson>, List<PlainJson>> plainJsonSorter = supplyPlainJsonSorter(thingIds);
+        final UnaryOperator<List<PlainJson>> plainJsonSorter = supplyPlainJsonSorter(thingIds);
 
         if (originatingCommand instanceof SudoRetrieveThings) {
             thingPlainJsonSupplier = supplyPlainJsonFromSudoRetrieveThingResponse();
@@ -183,11 +202,6 @@ public final class ThingsAggregatorProxyActor extends AbstractActor {
             final String namespace = ((RetrieveThings) originatingCommand).getNamespace().orElse(null);
             overallResponseSupplier = supplyRetrieveThingsResponse(originatingCommand.getDittoHeaders(), namespace);
         }
-
-        final StartedTimer timer = DittoMetrics.timer(TRACE_AGGREGATOR_RETRIEVE_THINGS)
-                .tag("size", Integer.toString(thingIds.size()))
-                .start();
-        DittoTracing.wrapTimer(DittoTracing.extractTraceContext(originatingCommand), timer);
 
         final Source<Jsonifiable<?>, NotUsed> thingNotAccessibleExceptionSource = Source.single(
                 ThingNotAccessibleException.fromMessage("Thing could not be accessed.", DittoHeaders.empty())
@@ -210,7 +224,7 @@ public final class ThingsAggregatorProxyActor extends AbstractActor {
                 .thenApply(plainJsonSorter)
                 .thenApply(overallResponseSupplier::apply)
                 .thenApply(list -> {
-                    stopTimer(timer);
+                    trace.finish();
                     return list;
                 });
 
@@ -219,8 +233,7 @@ public final class ThingsAggregatorProxyActor extends AbstractActor {
 
     private Function<Jsonifiable<?>, PlainJson> supplyPlainJsonFromRetrieveThingResponse() {
         return jsonifiable -> {
-            if (jsonifiable instanceof RetrieveThingResponse) {
-                final RetrieveThingResponse response = (RetrieveThingResponse) jsonifiable;
+            if (jsonifiable instanceof RetrieveThingResponse response) {
                 final String json = response.getEntityPlainString().orElseGet(() ->
                         response.getEntity(response.getImplementedSchemaVersion()).toString());
                 return PlainJson.of(response.getEntityId(), json);
@@ -236,8 +249,7 @@ public final class ThingsAggregatorProxyActor extends AbstractActor {
 
     private Function<Jsonifiable<?>, PlainJson> supplyPlainJsonFromSudoRetrieveThingResponse() {
         return jsonifiable -> {
-            if (jsonifiable instanceof SudoRetrieveThingResponse) {
-                final SudoRetrieveThingResponse response = (SudoRetrieveThingResponse) jsonifiable;
+            if (jsonifiable instanceof SudoRetrieveThingResponse response) {
                 final String json = response.getEntityPlainString().orElseGet(() ->
                         response.getEntity(response.getImplementedSchemaVersion()).toString());
                 return response.getThing().getEntityId()
@@ -249,7 +261,7 @@ public final class ThingsAggregatorProxyActor extends AbstractActor {
         };
     }
 
-    private Function<List<PlainJson>, List<PlainJson>> supplyPlainJsonSorter(final List<ThingId> thingIds) {
+    private UnaryOperator<List<PlainJson>> supplyPlainJsonSorter(final List<ThingId> thingIds) {
         return plainJsonThings -> {
             final Comparator<PlainJson> comparator = (pj1, pj2) -> {
                 if (!pj1.isEmpty() && !pj2.isEmpty()) {

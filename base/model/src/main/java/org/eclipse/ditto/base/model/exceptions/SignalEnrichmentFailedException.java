@@ -21,22 +21,22 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
 
-import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonParsableException;
+import org.eclipse.ditto.json.JsonObject;
 
 /**
  * Thrown when signal enrichment failed.
  */
 @Immutable
 @JsonParsableException(errorCode = SignalEnrichmentFailedException.ERROR_CODE)
-public final class SignalEnrichmentFailedException extends DittoRuntimeException {
+public final class SignalEnrichmentFailedException extends DittoRuntimeException implements GeneralException {
 
     /**
      * Error code of this exception.
      */
-    public static final String ERROR_CODE = "signal.enrichment.failed";
+    public static final String ERROR_CODE = ERROR_CODE_PREFIX + "signal.enrichment.failed";
 
     private static final HttpStatus DEFAULT_HTTP_STATUS = HttpStatus.INTERNAL_SERVER_ERROR;
 

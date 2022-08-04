@@ -54,7 +54,7 @@ import org.eclipse.ditto.connectivity.model.PayloadMappingDefinition;
 import org.eclipse.ditto.connectivity.model.SourceBuilder;
 import org.eclipse.ditto.connectivity.model.Target;
 import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
-import org.eclipse.ditto.connectivity.service.mapping.ConnectivityCachingSignalEnrichmentProvider;
+import org.eclipse.ditto.connectivity.service.mapping.DefaultConnectivitySignalEnrichmentProvider;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.internal.utils.protocol.ProtocolAdapterProvider;
 import org.eclipse.ditto.json.JsonObject;
@@ -75,6 +75,7 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.mockito.Mockito;
 
+import com.typesafe.config.ConfigFactory;
 import com.typesafe.config.ConfigValueFactory;
 
 import akka.actor.ActorRef;
@@ -132,7 +133,7 @@ public abstract class AbstractMessageMappingProcessorActorTest {
         actorSystem = ActorSystem.create("AkkaTestSystem", TestConstants.CONFIG);
         protocolAdapterProvider = ProtocolAdapterProvider.load(TestConstants.PROTOCOL_CONFIG, actorSystem);
         connectionActorProbe = TestProbe.apply("connectionActor", actorSystem);
-        MockProxyActor.create(actorSystem, connectionActorProbe.ref());
+        MockCommandForwarder.create(actorSystem, connectionActorProbe.ref());
         proxyActor = connectionActorProbe.expectMsgClass(ActorRef.class);
     }
 
@@ -167,13 +168,13 @@ public abstract class AbstractMessageMappingProcessorActorTest {
         TestKit.shutdownActorSystem(actorSystem);
         actorSystem = ActorSystem.create("AkkaTestSystemWithCachingSignalEnrichmentProvider",
                 TestConstants.CONFIG
-                        .withValue("ditto.connectivity.signal-enrichment.provider",
-                                ConfigValueFactory.fromAnyRef(
-                                        ConnectivityCachingSignalEnrichmentProvider.class.getCanonicalName())
-                        )
+                        .withValue("ditto.extensions.signal-enrichment-provider.extension-class",
+                                ConfigValueFactory.fromAnyRef(DefaultConnectivitySignalEnrichmentProvider.class.getCanonicalName()))
+                        .withValue("ditto.extensions.signal-enrichment-provider.extension-config.cache.enabled",
+                                ConfigValueFactory.fromAnyRef(true))
         );
         final TestProbe probe = TestProbe.apply(actorSystem);
-        MockProxyActor.create(actorSystem, probe.ref());
+        MockCommandForwarder.create(actorSystem, probe.ref());
         proxyActor = probe.expectMsgClass(ActorRef.class);
     }
 

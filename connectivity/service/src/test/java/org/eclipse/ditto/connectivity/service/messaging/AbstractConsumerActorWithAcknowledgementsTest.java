@@ -22,6 +22,8 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import javax.annotation.Nullable;
+
 import org.eclipse.ditto.base.model.acks.AcknowledgementLabel;
 import org.eclipse.ditto.base.model.acks.AcknowledgementRequest;
 import org.eclipse.ditto.base.model.common.HttpStatus;
@@ -94,7 +96,7 @@ public abstract class AbstractConsumerActorWithAcknowledgementsTest<M> extends A
                         Acknowledgement.of(AcknowledgementLabel.of("twin-persisted"), modifyThing.getEntityId(),
                                 HttpStatus.BAD_REQUEST, modifyThing.getDittoHeaders()),
                 TestConstants.MODIFY_THING_WITH_ACK,
-                publishMappedMessage -> {}
+                null
         );
     }
 
@@ -138,26 +140,28 @@ public abstract class AbstractConsumerActorWithAcknowledgementsTest<M> extends A
             final boolean shouldRedeliver,
             final Function<ModifyThing, Object> responseCreator,
             final String payload,
-            final Consumer<BaseClientActor.PublishMappedMessage> messageConsumer)
+            @Nullable final Consumer<BaseClientActor.PublishMappedMessage> messageConsumer)
             throws Exception {
 
         new TestKit(actorSystem) {{
             final TestProbe sender = TestProbe.apply(actorSystem);
-            final TestProbe concierge = TestProbe.apply(actorSystem);
+            final TestProbe proxy = TestProbe.apply(actorSystem);
             final TestProbe clientActor = TestProbe.apply(actorSystem);
 
             final Sink<Object, NotUsed> inboundMappingSink =
-                    setupInboundMappingSink(clientActor.ref(), concierge.ref());
+                    setupInboundMappingSink(clientActor.ref(), proxy.ref());
             final ActorRef underTest = childActorOf(getConsumerActorProps(inboundMappingSink, Collections.emptySet()));
 
             underTest.tell(getInboundMessage(payload, TestConstants.header("device_id", TestConstants.Things.THING_ID)),
                     sender.ref());
 
-            final ModifyThing modifyThing = concierge.expectMsgClass(ModifyThing.class);
+            final ModifyThing modifyThing = proxy.expectMsgClass(ModifyThing.class);
             assertThat((CharSequence) modifyThing.getEntityId()).isEqualTo(TestConstants.Things.THING_ID);
-            concierge.reply(responseCreator.apply(modifyThing));
+            proxy.reply(responseCreator.apply(modifyThing));
 
-            messageConsumer.accept(clientActor.expectMsgClass(BaseClientActor.PublishMappedMessage.class));
+            if (null != messageConsumer) {
+                messageConsumer.accept(clientActor.expectMsgClass(BaseClientActor.PublishMappedMessage.class));
+            }
             verifyMessageSettlement(this, isSuccessExpected, shouldRedeliver);
         }};
     }

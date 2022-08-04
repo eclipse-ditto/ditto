@@ -30,6 +30,7 @@
     <modules>
         <module>api</module>
         <module>model</module>
+        <module>enforcement</module>
         <module>service</module>
     </modules>
 

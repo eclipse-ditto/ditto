@@ -15,8 +15,8 @@ package org.eclipse.ditto.protocol.adapter.connectivity;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import org.eclipse.ditto.base.model.headers.translator.HeaderTranslator;
 import org.eclipse.ditto.protocol.Adaptable;
-import org.eclipse.ditto.protocol.HeaderTranslator;
 import org.eclipse.ditto.protocol.Payload;
 import org.eclipse.ditto.protocol.ProtocolFactory;
 import org.eclipse.ditto.protocol.TopicPath;

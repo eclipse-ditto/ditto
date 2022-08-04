@@ -19,13 +19,13 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
+import org.eclipse.ditto.base.model.exceptions.DittoInternalErrorException;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.things.model.Thing;
-import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayInternalErrorException;
-import org.eclipse.ditto.thingsearch.model.signals.commands.query.StreamThings;
+import org.eclipse.ditto.thingsearch.api.commands.sudo.StreamThings;
 import org.eclipse.ditto.thingsearch.model.signals.commands.subscription.CancelSubscription;
 import org.eclipse.ditto.thingsearch.model.signals.commands.subscription.CreateSubscription;
 import org.eclipse.ditto.thingsearch.model.signals.commands.subscription.RequestFromSubscription;
@@ -60,14 +60,14 @@ public final class SubscriptionManagerTest {
     private ActorSystem actorSystem;
     private Materializer materializer;
     private TestProbe pubSubMediatorProbe;
-    private TestProbe conciergeForwarderProbe;
+    private TestProbe edgeCommandForwarderProbe;
 
     @Before
     public void setUp() {
         actorSystem = ActorSystem.create();
         materializer = SystemMaterializer.get(actorSystem).materializer();
         pubSubMediatorProbe = TestProbe.apply("pubSubMediator", actorSystem);
-        conciergeForwarderProbe = TestProbe.apply("conciergeForwarder", actorSystem);
+        edgeCommandForwarderProbe = TestProbe.apply("edgeCommandForwarder", actorSystem);
     }
 
     @After
@@ -149,8 +149,8 @@ public final class SubscriptionManagerTest {
 
         // there should be no upstream request until downstream requests.
         for (int i = 0; i < 4; ++i) {
-            final StreamThings streamThings = conciergeForwarderProbe.expectMsgClass(StreamThings.class);
-            final ActorRef sender = conciergeForwarderProbe.sender();
+            final StreamThings streamThings = edgeCommandForwarderProbe.expectMsgClass(StreamThings.class);
+            final ActorRef sender = edgeCommandForwarderProbe.sender();
             final Object source = sources.get(getTag(streamThings) - 1);
             if (source instanceof Source) {
                 final SourceRef<?> sourceRef = ((Source<?, ?>) source).runWith(StreamRefs.sourceRef(), materializer);
@@ -170,7 +170,7 @@ public final class SubscriptionManagerTest {
         underTest.tell(CancelSubscription.of(sid3, DittoHeaders.empty()), probe3.ref());
 
         assertThat(probe4.expectMsgClass(SubscriptionFailed.class).getError())
-                .isInstanceOf(GatewayInternalErrorException.class);
+                .isInstanceOf(DittoInternalErrorException.class);
 
         CompletableFuture.allOf(
                 CompletableFuture.runAsync(
@@ -221,7 +221,7 @@ public final class SubscriptionManagerTest {
     private ActorRef createSubscriptionManager() {
         return actorSystem.actorOf(Props.create(SubscriptionManager.class, () ->
                 new SubscriptionManager(Duration.ofMinutes(5L), pubSubMediatorProbe.ref(),
-                        ActorSelection.apply(conciergeForwarderProbe.ref(), ""), materializer))
+                        ActorSelection.apply(edgeCommandForwarderProbe.ref(), ""), materializer))
         );
     }
 }

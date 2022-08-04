@@ -15,12 +15,15 @@ package org.eclipse.ditto.base.model.signals.events;
 import java.time.Instant;
 import java.util.Optional;
 
+import javax.annotation.Nullable;
+
 import org.atteo.classindex.IndexSubclasses;
 import org.eclipse.ditto.base.model.entity.metadata.Metadata;
 import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.WithOptionalEntity;
+import org.eclipse.ditto.base.model.signals.WithType;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
@@ -79,6 +82,41 @@ public interface Event<T extends Event<T>> extends Signal<T>, WithOptionalEntity
     @Override
     default JsonObject toJson() {
         return toJson(FieldType.notHidden());
+    }
+
+    /**
+     * Indicates whether the specified signal argument is a live event.
+     *
+     * @param signal the signal to be checked.
+     * @return {@code true} if {@code signal} is an instance of {@link Event} with channel
+     * {@value CHANNEL_LIVE} in its headers, {@code false} else.
+     * @since 3.0.0
+     */
+    static boolean isLiveEvent(@Nullable final Signal<?> signal) {
+        return Event.isEvent(signal) && Signal.isChannelLive(signal);
+    }
+
+    /**
+     * Indicates whether the specified signal argument is an instance of {@code Event}.
+     *
+     * @param signal the signal to be checked.
+     * @return {@code true} if {@code signal} is an instance of {@link Event}, {@code false} else.
+     * @since 3.0.0
+     */
+    static boolean isEvent(@Nullable final Signal<?> signal) {
+        return signal instanceof Event;
+    }
+
+    /**
+     * Indicates whether the specified signal argument is a {@code ThingEvent} without requiring a direct dependency
+     * to the things-model.
+     *
+     * @param signal the signal to be checked.
+     * @return {@code true} if {@code signal} is a {@code ThingEvent}, {@code false} else.
+     * @since 3.0.0
+     */
+    static boolean isThingEvent(@Nullable final WithType signal) {
+        return WithType.hasTypePrefix(signal, WithType.THINGS_EVENTS_PREFIX);
     }
 
     /**

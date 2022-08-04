@@ -25,6 +25,7 @@ import java.util.Optional;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.connectivity.api.ExternalMessage;
 import org.eclipse.ditto.connectivity.model.MessageMapperConfigurationFailedException;
 import org.eclipse.ditto.connectivity.service.config.javascript.JavaScriptConfig;
@@ -124,6 +125,11 @@ final class JavaScriptMessageMapperRhino extends AbstractMessageMapper {
     @Override
     public List<Adaptable> map(final ExternalMessage message) {
         return incomingMapping.apply(message);
+    }
+
+    @Override
+    public DittoHeaders getAdditionalInboundHeaders(final ExternalMessage message) {
+        return DittoHeaders.empty();
     }
 
     @Override

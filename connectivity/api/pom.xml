@@ -53,10 +53,6 @@
             <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-policies-api</artifactId>
         </dependency>
-        <dependency>
-            <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-edge-api</artifactId>
-        </dependency>
 
         <!-- Testing -->
         <dependency>

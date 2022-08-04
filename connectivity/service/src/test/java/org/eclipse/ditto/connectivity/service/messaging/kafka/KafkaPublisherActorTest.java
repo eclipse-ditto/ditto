@@ -183,7 +183,8 @@ public class KafkaPublisherActorTest extends AbstractPublisherActorTest {
             IntStream.range(0, kafkaConfig.getQueueSize() * 2)
                     .forEach(i -> {
                         final OutboundSignal.Mapped signal = getMockOutboundSignalWithAutoAck("aight",
-                                DittoHeaderDefinition.CORRELATION_ID.getKey(), "msg" + i);
+                                DittoHeaderDefinition.CORRELATION_ID.getKey(), "msg" + i,
+                                DittoHeaderDefinition.DITTO_ACKREGATOR_ADDRESS.getKey(), getRef().path().toSerializationFormat());
                         final OutboundSignal.MultiMapped multiMapped =
                                 OutboundSignalFactory.newMultiMappedOutboundSignal(List.of(
                                         signal), getRef());
@@ -224,7 +225,8 @@ public class KafkaPublisherActorTest extends AbstractPublisherActorTest {
             mockSendProducerFactory = MockSendProducerFactory.getSlowStartInstance(TARGET_TOPIC, published);
 
             final OutboundSignal.MultiMapped multiMapped =
-                    OutboundSignalFactory.newMultiMappedOutboundSignal(List.of(getMockOutboundSignalWithAutoAck("ack")),
+                    OutboundSignalFactory.newMultiMappedOutboundSignal(List.of(getMockOutboundSignalWithAutoAck("ack",
+                            DittoHeaderDefinition.DITTO_ACKREGATOR_ADDRESS.getKey(), getRef().path().toSerializationFormat())),
                             getRef());
 
             final Props props = getPublisherActorProps();
@@ -258,6 +260,7 @@ public class KafkaPublisherActorTest extends AbstractPublisherActorTest {
                         .correlationId(TestConstants.CORRELATION_ID)
                         .putHeader("device_id", "ditto:thing")
                         .acknowledgementRequest(AcknowledgementRequest.of(acknowledgementLabel))
+                        .putHeader(DittoHeaderDefinition.DITTO_ACKREGATOR_ADDRESS.getKey(), getRef().path().toSerializationFormat())
                         .build();
                 final Target target = ConnectivityModelFactory.newTargetBuilder()
                         .address(getOutboundAddress())
@@ -358,7 +361,8 @@ public class KafkaPublisherActorTest extends AbstractPublisherActorTest {
 
             final TestProbe senderProbe = TestProbe.apply("sender", actorSystem);
             final OutboundSignal.MultiMapped multiMapped = OutboundSignalFactory.newMultiMappedOutboundSignal(
-                    List.of(getMockOutboundSignalWithAutoAck(exception.getClass().getSimpleName())),
+                    List.of(getMockOutboundSignalWithAutoAck(exception.getClass().getSimpleName(),
+                            DittoHeaderDefinition.DITTO_ACKREGATOR_ADDRESS.getKey(), senderProbe.ref().path().toSerializationFormat())),
                     senderProbe.ref()
             );
             final ActorRef publisherActor = childActorOf(getPublisherActorProps());

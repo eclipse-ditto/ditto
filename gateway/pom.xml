@@ -28,6 +28,7 @@
     <name>Eclipse Ditto :: Gateway</name>
 
     <modules>
+        <module>api</module>
         <module>service</module>
     </modules>
 

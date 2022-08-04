@@ -29,6 +29,11 @@ import org.eclipse.ditto.base.model.entity.id.TypedEntityId;
 @TypedEntityId(type = "policy")
 public final class PolicyId extends AbstractNamespacedEntityId {
 
+    /**
+     * Will be resolved to the actual default namespace inside ditto.
+     */
+    private static final String DEFAULT_NAMESPACE = "";
+
     private PolicyId(final String namespace, final String policyName, final boolean shouldValidate) {
         super(PolicyConstants.ENTITY_TYPE, namespace, policyName, shouldValidate);
     }
@@ -74,9 +79,33 @@ public final class PolicyId extends AbstractNamespacedEntityId {
      *
      * @param namespace the namespace of the policy.
      * @return The generated unique policy ID.
+     * @throws PolicyIdInvalidException if for the given {@code namespace} a PolicyId cannot be derived.
      */
     public static PolicyId inNamespaceWithRandomName(final String namespace) {
         return of(namespace, UUID.randomUUID().toString());
+    }
+
+    /**
+     * Returns an instance of this class with default namespace placeholder.
+     *
+     * @param name the name of the policy.
+     * @return the created ID.
+     * @throws PolicyIdInvalidException if for the given {@code name} a PolicyId cannot be derived.
+     * @since 3.0.0
+     */
+    public static PolicyId inDefaultNamespace(final String name) {
+        return wrapInPolicyIdInvalidException(() -> new PolicyId(DEFAULT_NAMESPACE, name, true));
+    }
+
+    /**
+     * Generates a new policy ID with the default namespace placeholder and a unique name.
+     *
+     * @return the generated policy ID.
+     * @since 3.0.0
+     */
+    public static PolicyId generateRandom() {
+        return wrapInPolicyIdInvalidException(
+                () -> new PolicyId(DEFAULT_NAMESPACE, UUID.randomUUID().toString(), true));
     }
 
     private static <T> T wrapInPolicyIdInvalidException(final Supplier<T> supplier) {

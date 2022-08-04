@@ -20,6 +20,7 @@ import javax.annotation.Nullable;
 
 import org.eclipse.ditto.base.model.common.ConditionChecker;
 import org.eclipse.ditto.base.model.common.HttpStatus;
+import org.eclipse.ditto.base.model.entity.id.WithEntityId;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
@@ -27,7 +28,6 @@ import org.eclipse.ditto.connectivity.model.Target;
 import org.eclipse.ditto.connectivity.service.messaging.SendResult;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.message.publish.GenericMqttPublish;
 import org.eclipse.ditto.connectivity.service.messaging.validation.ConnectionValidator;
-import org.eclipse.ditto.internal.models.signal.SignalInformationPoint;
 import org.eclipse.ditto.placeholders.ExpressionResolver;
 
 /**
@@ -86,7 +86,7 @@ final class MqttPublishingContext {
         if (null != autoAckTarget) {
             result = autoAckTarget.getIssuedAcknowledgementLabel()
                     .flatMap(ackLbl -> ConnectionValidator.resolveConnectionIdPlaceholder(connectionIdResolver, ackLbl))
-                    .flatMap(ackLbl -> SignalInformationPoint.getEntityId(signal)
+                    .flatMap(ackLbl -> WithEntityId.getEntityId(signal)
                             .map(entityId -> Acknowledgement.of(ackLbl,
                                     entityId,
                                     HttpStatus.OK,

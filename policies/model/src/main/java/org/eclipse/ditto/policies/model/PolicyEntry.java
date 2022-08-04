@@ -76,6 +76,16 @@ public interface PolicyEntry extends Jsonifiable.WithFieldSelectorAndPredicate<J
     Resources getResources();
 
     /**
+     * Checks if the passed {@code otherPolicyEntry} is semantically the same as this entry.
+     * I.e. that it contains the same subject ids having the same resources.
+     *
+     * @param otherPolicyEntry the other policy entry to check against.
+     * @return {@code true} if the other policy entry is semantically the same as this one.
+     * @since 3.0.0
+     */
+    boolean isSemanticallySameAs(PolicyEntry otherPolicyEntry);
+
+    /**
      * Returns all non-hidden marked fields of this Policy entry.
      *
      * @return a JSON object representation of this Policy entry including only non-hidden marked fields.

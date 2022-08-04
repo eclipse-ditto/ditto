@@ -123,7 +123,7 @@ final class ModifyThingStrategy extends AbstractThingCommandStrategy<ModifyThing
                 .removeAllFeatures()
                 .removeDefinition();
 
-        thingWithModifications.getPolicyEntityId().ifPresent(builder::setPolicyId);
+        thingWithModifications.getPolicyId().ifPresent(builder::setPolicyId);
         thingWithModifications.getDefinition().ifPresent(builder::setDefinition);
         thingWithModifications.getAttributes().ifPresent(builder::setAttributes);
         thingWithModifications.getFeatures().ifPresent(builder::setFeatures);
@@ -132,12 +132,12 @@ final class ModifyThingStrategy extends AbstractThingCommandStrategy<ModifyThing
     }
 
     private static boolean containsPolicyId(final ModifyThing command) {
-        return command.getThing().getPolicyEntityId().isPresent();
+        return command.getThing().getPolicyId().isPresent();
     }
 
     private static Thing copyPolicyId(final CommandStrategy.Context<ThingId> ctx, final Thing from, final Thing to) {
         return to.toBuilder()
-                .setPolicyId(from.getPolicyEntityId().orElseGet(() -> {
+                .setPolicyId(from.getPolicyId().orElseGet(() -> {
                     ctx.getLog()
                             .error("Thing <{}> is schema version 2 and should therefore contain a policyId",
                                     ctx.getState());

@@ -70,6 +70,11 @@ public final class DittoMessageMapper extends AbstractMessageMapper {
     }
 
     @Override
+    public DittoHeaders getAdditionalInboundHeaders(final ExternalMessage message) {
+        return DittoHeaders.empty();
+    }
+
+    @Override
     public List<ExternalMessage> map(final Adaptable adaptable) {
         return List.of(ExternalMessageFactory.newExternalMessageBuilder(getExternalDittoHeaders(adaptable))
                 .withTopicPath(adaptable.getTopicPath())
