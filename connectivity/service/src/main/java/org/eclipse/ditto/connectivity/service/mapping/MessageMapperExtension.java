@@ -12,30 +12,69 @@
  */
 package org.eclipse.ditto.connectivity.service.mapping;
 
+import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
+
 import javax.annotation.Nullable;
 
-import org.atteo.classindex.IndexSubclasses;
 import org.eclipse.ditto.connectivity.model.ConnectionId;
+import org.eclipse.ditto.internal.utils.extension.DittoExtensionIds;
+import org.eclipse.ditto.internal.utils.extension.DittoExtensionPoint;
 
-import akka.actor.ExtendedActorSystem;
+import com.typesafe.config.Config;
+
+import akka.actor.ActorSystem;
 
 /**
  * Interface for wrapping an existing message mapper after creation.
  */
-@FunctionalInterface
-@IndexSubclasses
-public interface MessageMapperExtension {
+public interface MessageMapperExtension extends DittoExtensionPoint {
 
     /**
      * Instantiates a message mapper.
      *
      * @param connectionId ID of the connection.
      * @param mapper the mapper that can be extended or wrapped.
-     * @param actorSystem actor system in which the message mapper is created.
      * @return an instantiated message mapper according to the mapping context if instantiation is possible, or
      * {@code null} otherwise.
      */
     @Nullable
-    MessageMapper apply(ConnectionId connectionId, MessageMapper mapper, ExtendedActorSystem actorSystem);
+    MessageMapper apply(ConnectionId connectionId, MessageMapper mapper);
+
+    /**
+     * Loads the implementation of {@code MessageMapperExtension} which is configured for the {@code ActorSystem}.
+     *
+     * @param actorSystem the actorSystem in which the {@code MessageMapperExtension} should be loaded.
+     * @param config the configuration for this extension.
+     * @return the {@code MessageMapperExtension} implementation.
+     * @throws NullPointerException if {@code actorSystem} is {@code null}.
+     * @since 3.0.0
+     */
+    static MessageMapperExtension get(final ActorSystem actorSystem, final Config config) {
+        checkNotNull(actorSystem, "actorSystem");
+        checkNotNull(config, "config");
+        final var extensionIdConfig = ExtensionId.computeConfig(config);
+        return DittoExtensionIds.get(actorSystem)
+                .computeIfAbsent(extensionIdConfig, ExtensionId::new)
+                .get(actorSystem);
+    }
+
+    final class ExtensionId extends DittoExtensionPoint.ExtensionId<MessageMapperExtension> {
+
+        private static final String CONFIG_KEY = "message-mapper-extension";
+
+        private ExtensionId(final ExtensionIdConfig<MessageMapperExtension> extensionIdConfig) {
+            super(extensionIdConfig);
+        }
+
+        static ExtensionIdConfig<MessageMapperExtension> computeConfig(final Config config) {
+            return ExtensionIdConfig.of(MessageMapperExtension.class, config, CONFIG_KEY);
+        }
+
+        @Override
+        protected String getConfigKey() {
+            return CONFIG_KEY;
+        }
+
+    }
 
 }

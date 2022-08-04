@@ -12,8 +12,8 @@
  */
 package org.eclipse.ditto.connectivity.service.messaging.persistence.strategies.commands;
 
+import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.connectivity.model.Connection;
-import org.eclipse.ditto.connectivity.model.signals.commands.ConnectivityCommand;
 import org.eclipse.ditto.connectivity.model.signals.events.ConnectivityEvent;
 import org.eclipse.ditto.connectivity.service.messaging.persistence.stages.ConnectionState;
 import org.eclipse.ditto.internal.utils.persistentactors.commands.CommandStrategy;
@@ -22,5 +22,5 @@ import org.eclipse.ditto.internal.utils.persistentactors.commands.CommandStrateg
  * Strategies to handle signals as a connection.
  */
 public interface ConnectivityCommandStrategies
-        extends CommandStrategy<ConnectivityCommand<?>, Connection, ConnectionState, ConnectivityEvent<?>> {
+        extends CommandStrategy<Command<?>, Connection, ConnectionState, ConnectivityEvent<?>> {
 }

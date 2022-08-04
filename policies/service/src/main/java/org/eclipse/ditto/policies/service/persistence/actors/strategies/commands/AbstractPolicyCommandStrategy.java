@@ -34,6 +34,7 @@ import org.eclipse.ditto.internal.utils.headers.conditional.ConditionalHeadersVa
 import org.eclipse.ditto.internal.utils.persistentactors.etags.AbstractConditionHeaderCheckingCommandStrategy;
 import org.eclipse.ditto.internal.utils.persistentactors.results.Result;
 import org.eclipse.ditto.internal.utils.persistentactors.results.ResultFactory;
+import org.eclipse.ditto.policies.api.commands.sudo.PolicySudoCommand;
 import org.eclipse.ditto.policies.model.Label;
 import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyEntry;
@@ -44,6 +45,7 @@ import org.eclipse.ditto.policies.model.SubjectAnnouncement;
 import org.eclipse.ditto.policies.model.SubjectExpiry;
 import org.eclipse.ditto.policies.model.SubjectExpiryInvalidException;
 import org.eclipse.ditto.policies.model.Subjects;
+import org.eclipse.ditto.policies.model.signals.commands.PolicyCommand;
 import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyEntryModificationInvalidException;
 import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyEntryNotAccessibleException;
 import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyModificationInvalidException;
@@ -57,7 +59,7 @@ import org.eclipse.ditto.policies.service.common.config.PolicyConfig;
  * Abstract base class for {@link org.eclipse.ditto.policies.model.signals.commands.PolicyCommand} strategies.
  *
  * @param <C> the type of the handled command - of type {@code Command} as also
- * {@link org.eclipse.ditto.policies.api.commands.sudo.SudoCommand} are handled which are no PolicyCommands.
+ * {@link org.eclipse.ditto.policies.api.commands.sudo.PolicySudoCommand} are handled which are no PolicyCommands.
  * @param <E> the type of the emitted events
  */
 abstract class AbstractPolicyCommandStrategy<C extends Command<C>, E extends PolicyEvent<?>>
@@ -116,7 +118,7 @@ abstract class AbstractPolicyCommandStrategy<C extends Command<C>, E extends Pol
 
     @Override
     public boolean isDefined(final C command) {
-        return true;
+        return command instanceof PolicyCommand || command instanceof PolicySudoCommand;
     }
 
     @Override

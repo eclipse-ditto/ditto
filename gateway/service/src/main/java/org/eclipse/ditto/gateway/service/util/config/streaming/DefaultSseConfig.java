@@ -18,7 +18,6 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.service.config.ThrottlingConfig;
 import org.eclipse.ditto.internal.utils.config.ConfigWithFallback;
-import org.eclipse.ditto.internal.utils.config.KnownConfigValue;
 import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 
 import com.typesafe.config.Config;
@@ -43,7 +42,8 @@ final class DefaultSseConfig implements SseConfig {
      * @throws org.eclipse.ditto.internal.utils.config.DittoConfigError if {@code config} is invalid.
      */
     public static SseConfig of(final Config config) {
-        return new DefaultSseConfig(ConfigWithFallback.newInstance(config, CONFIG_PATH, new KnownConfigValue[0]));
+        return new DefaultSseConfig(
+                ConfigWithFallback.newInstance(config, CONFIG_PATH, SseConfig.SseConfigValue.values()));
     }
 
     @Override
@@ -53,8 +53,10 @@ final class DefaultSseConfig implements SseConfig {
 
     @Override
     public boolean equals(final Object o) {
-        return o instanceof DefaultSseConfig &&
-                Objects.equals(throttlingConfig, ((DefaultSseConfig) o).throttlingConfig);
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        final DefaultSseConfig that = (DefaultSseConfig) o;
+        return Objects.equals(throttlingConfig, that.throttlingConfig);
     }
 
     @Override

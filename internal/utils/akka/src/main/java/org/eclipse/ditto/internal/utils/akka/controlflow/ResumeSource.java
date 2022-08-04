@@ -14,6 +14,7 @@ package org.eclipse.ditto.internal.utils.akka.controlflow;
 
 import static akka.stream.Attributes.logLevelDebug;
 import static akka.stream.Attributes.logLevelInfo;
+import static akka.stream.Attributes.logLevelWarning;
 import static akka.stream.Attributes.logLevels;
 
 import java.time.Duration;
@@ -192,7 +193,7 @@ public final class ResumeSource {
             final int maxRestarts, final Duration recovery) {
         final Flow<E, E, NotUsed> neverCancelFlowWithErrorLogging = Flow.<E>create()
                 .log("resume-source-errors-flow")
-                .withAttributes(logLevels(logLevelInfo(), logLevelDebug(), logLevelInfo()))
+                .withAttributes(logLevels(logLevelInfo(), logLevelDebug(), logLevelWarning()))
                 .via(new NeverCancelFlow<>());
 
         final Flow<E, E, NotUsed> upstream = maxRestarts < 0

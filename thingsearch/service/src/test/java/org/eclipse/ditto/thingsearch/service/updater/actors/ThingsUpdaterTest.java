@@ -36,15 +36,15 @@ import org.eclipse.ditto.internal.utils.akka.streaming.StreamAck;
 import org.eclipse.ditto.internal.utils.ddata.DistributedData;
 import org.eclipse.ditto.internal.utils.namespaces.BlockedNamespaces;
 import org.eclipse.ditto.internal.utils.pubsub.DistributedSub;
-import org.eclipse.ditto.policies.api.PolicyReferenceTag;
 import org.eclipse.ditto.policies.api.PolicyTag;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.events.ThingDeleted;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
+import org.eclipse.ditto.thingsearch.api.PolicyReferenceTag;
 import org.eclipse.ditto.thingsearch.api.UpdateReason;
-import org.eclipse.ditto.thingsearch.api.commands.sudo.UpdateThing;
-import org.eclipse.ditto.thingsearch.model.signals.events.ThingsOutOfSync;
+import org.eclipse.ditto.thingsearch.api.commands.sudo.SudoUpdateThing;
+import org.eclipse.ditto.thingsearch.api.events.ThingsOutOfSync;
 import org.eclipse.ditto.thingsearch.service.common.config.DefaultUpdaterConfig;
 import org.eclipse.ditto.thingsearch.service.common.config.UpdaterConfig;
 import org.junit.After;
@@ -139,7 +139,8 @@ public final class ThingsUpdaterTest {
                 expectedIds.remove(envelopeId);
                 assertThat(envelope.getDittoHeaders()).isEqualTo(dittoHeaders);
                 assertThat(envelope.getMessage())
-                        .isEqualTo(UpdateThing.of(ThingId.of(envelopeId),  UpdateReason.BACKGROUND_SYNC, dittoHeaders).toJson());
+                        .isEqualTo(
+                                SudoUpdateThing.of(ThingId.of(envelopeId),  UpdateReason.BACKGROUND_SYNC, dittoHeaders).toJson());
             }
         }};
     }

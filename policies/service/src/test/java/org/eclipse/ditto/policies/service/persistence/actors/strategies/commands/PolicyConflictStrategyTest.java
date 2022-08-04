@@ -22,21 +22,20 @@ import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.headers.entitytag.EntityTagMatchers;
-import org.eclipse.ditto.policies.model.PoliciesModelFactory;
-import org.eclipse.ditto.policies.model.Policy;
-import org.eclipse.ditto.policies.model.PolicyId;
-import org.eclipse.ditto.policies.service.common.config.DefaultPolicyConfig;
+import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.internal.utils.persistentactors.commands.CommandStrategy;
 import org.eclipse.ditto.internal.utils.persistentactors.commands.DefaultContext;
 import org.eclipse.ditto.internal.utils.persistentactors.results.Result;
 import org.eclipse.ditto.internal.utils.persistentactors.results.ResultVisitor;
-import org.eclipse.ditto.base.model.signals.commands.Command;
+import org.eclipse.ditto.policies.model.PoliciesModelFactory;
+import org.eclipse.ditto.policies.model.Policy;
+import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyConflictException;
 import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyPreconditionFailedException;
 import org.eclipse.ditto.policies.model.signals.commands.modify.CreatePolicy;
 import org.eclipse.ditto.policies.model.signals.events.PolicyEvent;
-import org.junit.Ignore;
+import org.eclipse.ditto.policies.service.common.config.DefaultPolicyConfig;
 import org.junit.Test;
 import org.mockito.Mockito;
 
@@ -59,7 +58,8 @@ public final class PolicyConflictStrategyTest {
                 DefaultPolicyConfig.of(ConfigFactory.load("policy-test")));
         final PolicyId policyId = PolicyId.of("policy:id");
         final Policy policy = PoliciesModelFactory.newPolicyBuilder(policyId).setRevision(25L).build();
-        final CommandStrategy.Context<PolicyId> context = DefaultContext.getInstance(policyId, mockLoggingAdapter());
+        final CommandStrategy.Context<PolicyId> context = DefaultContext.getInstance(policyId,
+                mockLoggingAdapter());
         final CreatePolicy command = CreatePolicy.of(policy, DittoHeaders.empty());
         final Result<PolicyEvent<?>> result = underTest.apply(context, policy, 26L, command);
         result.accept(new ExpectErrorVisitor(PolicyConflictException.class));
@@ -71,7 +71,8 @@ public final class PolicyConflictStrategyTest {
                 DefaultPolicyConfig.of(ConfigFactory.load("policy-test")));
         final PolicyId policyId = PolicyId.of("policy:id");
         final Policy policy = PoliciesModelFactory.newPolicyBuilder(policyId).setRevision(25L).build();
-        final CommandStrategy.Context<PolicyId> context = DefaultContext.getInstance(policyId, mockLoggingAdapter());
+        final CommandStrategy.Context<PolicyId> context = DefaultContext.getInstance(policyId,
+                mockLoggingAdapter());
         final CreatePolicy command = CreatePolicy.of(policy, DittoHeaders.newBuilder()
                 .ifNoneMatch(EntityTagMatchers.fromStrings("*"))
                 .build());

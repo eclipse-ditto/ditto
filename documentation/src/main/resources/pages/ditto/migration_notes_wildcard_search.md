@@ -1,5 +1,5 @@
 ---
-title: Migration notes: wildcard search
+title: Migration notes - wildcard search
 tags: []
 published: true
 keywords: migration

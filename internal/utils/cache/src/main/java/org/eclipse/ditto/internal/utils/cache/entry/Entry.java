@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.internal.utils.cache.entry;
 
+import java.util.Optional;
+
 /**
  * Cache entry for authorization.
  *
@@ -49,5 +51,13 @@ public interface Entry<T> {
      * @see #exists()
      */
     T getValueOrThrow();
+
+    default Optional<T> get() {
+        if (exists()) {
+            return Optional.of(getValueOrThrow());
+        } else {
+            return Optional.empty();
+        }
+    }
 
 }

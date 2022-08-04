@@ -99,18 +99,16 @@ public interface DittoLogger extends Logger, WithMdcEntry<DittoLogger> {
      *
      * @param withDittoHeaders provides DittoHeaders which might contain the correlation ID to be put to the MDC.
      * @return this DittoLogger instance to allow method chaining.
-     * @throws NullPointerException if {@code withDittoHeaders} is {@code null}.
      */
-    DittoLogger withCorrelationId(WithDittoHeaders withDittoHeaders);
+    DittoLogger withCorrelationId(@Nullable WithDittoHeaders withDittoHeaders);
 
     /**
      * Obtains the correlation ID from the given DittoHeaders for the subsequent log operation.
      *
      * @param dittoHeaders might contain the correlation ID to be put to the MDC.
      * @return this DittoLogger instance to allow method chaining.
-     * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
      */
-    DittoLogger withCorrelationId(DittoHeaders dittoHeaders);
+    DittoLogger withCorrelationId(@Nullable DittoHeaders dittoHeaders);
 
     /**
      * Sets the given correlation ID for all subsequent log operations until it gets manually discarded.

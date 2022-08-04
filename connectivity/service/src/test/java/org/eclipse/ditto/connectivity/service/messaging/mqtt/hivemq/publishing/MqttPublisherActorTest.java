@@ -296,7 +296,9 @@ public final class MqttPublisherActorTest extends AbstractPublisherActorTest {
         final var testKit = new TestKit(actorSystem);
         final var underTest = testKit.childActorOf(getPublisherActorProps());
         final var outboundSignal = OutboundSignalFactory.newMultiMappedOutboundSignal(
-                List.of(getMockOutboundSignalWithAutoAck(AUTO_ACK_LABEL)),
+                List.of(getMockOutboundSignalWithAutoAck(AUTO_ACK_LABEL,
+                        DittoHeaderDefinition.DITTO_ACKREGATOR_ADDRESS.getKey(), testKit.getRef().path().toSerializationFormat()
+                )),
                 testKit.getRef()
         );
         publisherCreated(testKit, underTest);
@@ -348,7 +350,10 @@ public final class MqttPublisherActorTest extends AbstractPublisherActorTest {
         publisherCreated(testKit, underTest);
 
         final var outboundSignal = OutboundSignalFactory.newMultiMappedOutboundSignal(
-                List.of(getMockOutboundSignalWithAutoAck(AUTO_ACK_LABEL, "custom.topic", invalidMqttTopic)),
+                List.of(getMockOutboundSignalWithAutoAck(AUTO_ACK_LABEL,
+                        "custom.topic", invalidMqttTopic,
+                        DittoHeaderDefinition.DITTO_ACKREGATOR_ADDRESS.getKey(), testKit.getRef().path().toSerializationFormat()
+                )),
                 testKit.getRef()
         );
         underTest.tell(outboundSignal, testKit.getRef());

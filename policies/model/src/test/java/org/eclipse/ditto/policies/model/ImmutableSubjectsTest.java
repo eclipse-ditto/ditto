@@ -24,7 +24,6 @@ import java.util.Collection;
 import java.util.Collections;
 
 import org.eclipse.ditto.json.JsonObject;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -134,6 +133,16 @@ public final class ImmutableSubjectsTest {
 
         assertThat(underTest).containsOnly(SUBJECT_3_FOO);
         assertThat(subjects).containsOnly(SUBJECT_3_BAR);
+    }
+
+    @Test
+    public void setSubjectsWithDifferentTypeAreSemanticallyTheSame() {
+        final Collection<Subject> subjectList = Collections.singleton(SUBJECT_3_FOO);
+        final Subjects underTest = ImmutableSubjects.of(subjectList);
+
+        final Subjects subjects = underTest.setSubjects(Subjects.newInstance(SUBJECT_3_BAR));
+
+        assertThat(underTest.isSemanticallySameAs(subjects)).isTrue();
     }
 
     @Test

@@ -13,6 +13,7 @@
 package org.eclipse.ditto.connectivity.service.messaging;
 
 import java.time.Duration;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
@@ -28,9 +29,9 @@ import org.eclipse.ditto.connectivity.model.signals.commands.modify.DeleteConnec
 import org.eclipse.ditto.connectivity.model.signals.commands.modify.OpenConnection;
 import org.eclipse.ditto.connectivity.service.config.DittoConnectivityConfig;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
 import org.junit.Test;
+
+import com.typesafe.config.ConfigFactory;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
@@ -48,9 +49,13 @@ public class ErrorHandlingActorTest extends WithMockServers {
     private static Duration CONNECT_TIMEOUT;
     private static Duration DISCONNECT_TIMEOUT;
 
-    @BeforeClass
-    public static void setUp() {
-        actorSystem = ActorSystem.create("AkkaTestSystem", TestConstants.CONFIG);
+    public void setUp(final boolean allowFirstCreateCommand, final boolean allowCloseCommands) {
+        actorSystem = ActorSystem.create("AkkaTestSystem", ConfigFactory.parseMap(
+                        Map.of("ditto.extensions.client-actor-props-factory",
+                                "org.eclipse.ditto.connectivity.service.messaging.FaultyClientActorPropsFactory",
+                                "allowFirstCreateCommand", allowFirstCreateCommand, "allowCloseCommands",
+                                allowCloseCommands))
+                .withFallback(TestConstants.CONFIG));
         final DittoConnectivityConfig connectivityConfig =
                 DittoConnectivityConfig.of(DefaultScopedConfig.dittoScoped(actorSystem.settings().config()));
         CONNECT_TIMEOUT = connectivityConfig.getClientConfig().getConnectingMinTimeout();
@@ -60,8 +65,7 @@ public class ErrorHandlingActorTest extends WithMockServers {
         proxyActor = actorSystem.actorOf(TestConstants.ProxyActorMock.props());
     }
 
-    @AfterClass
-    public static void tearDown() {
+    public void tearDown() {
         if (actorSystem != null) {
             TestKit.shutdownActorSystem(actorSystem, scala.concurrent.duration.Duration.apply(5, TimeUnit.SECONDS),
                     false);
@@ -70,13 +74,12 @@ public class ErrorHandlingActorTest extends WithMockServers {
 
     @Test
     public void tryCreateConnectionExpectSuccessResponseIndependentOfConnectionStatus() {
+        setUp(true, false);
         new TestKit(actorSystem) {{
             final ConnectionId connectionId = TestConstants.createRandomConnectionId();
             final Connection connection = TestConstants.createConnection(connectionId);
             final ActorRef underTest = TestConstants.createConnectionSupervisorActor(connectionId, actorSystem,
-                    pubSubMediator, proxyActor,
-                    (connection1, connectionActor, proxyActor, actorSystem, dittoHeaders, overwrites) ->
-                            FaultyClientActor.props(false, false));
+                    pubSubMediator, proxyActor);
             watch(underTest);
 
             // create connection
@@ -84,6 +87,7 @@ public class ErrorHandlingActorTest extends WithMockServers {
             underTest.tell(command, getRef());
             expectMsg(CreateConnectionResponse.of(connection, DittoHeaders.empty()));
         }};
+        tearDown();
     }
 
     @Test
@@ -98,18 +102,14 @@ public class ErrorHandlingActorTest extends WithMockServers {
 
     @Test
     public void tryDeleteConnectionExpectErrorResponse() {
+        setUp(true, true);
         new TestKit(actorSystem) {{
             final ConnectionId connectionId = TestConstants.createRandomConnectionId();
             final Connection connection = TestConstants.createConnection(connectionId);
 
-            // need to allow close commands, since the ConnectionActor will send a CloseConnection to the clients upon
-            // receiving a DeleteConnection
-            final ClientActorPropsFactory faultyClientActorWithCloseCommands =
-                    (c, cA, pA, aS, dittoHeaders, overwrites) -> FaultyClientActor.props(true, true);
-
             final ActorRef underTest =
                     TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, pubSubMediator,
-                            proxyActor, faultyClientActorWithCloseCommands);
+                            proxyActor);
             watch(underTest);
 
             // create connection
@@ -125,15 +125,17 @@ public class ErrorHandlingActorTest extends WithMockServers {
             expectMsg(dilated(DISCONNECT_TIMEOUT),
                     DeleteConnectionResponse.of(connectionId, DittoHeaders.empty()));
         }};
+        tearDown();
     }
 
     private void tryModifyConnectionExpectErrorResponse(final String action) {
+        setUp(true, false);
         new TestKit(actorSystem) {{
             final ConnectionId connectionId = TestConstants.createRandomConnectionId();
             final Connection connection = TestConstants.createConnection(connectionId);
             final ActorRef underTest =
                     TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, pubSubMediator,
-                            proxyActor, FaultyClientActor.faultyClientActorPropsFactory);
+                            proxyActor);
             watch(underTest);
 
             // create connection
@@ -161,5 +163,6 @@ public class ErrorHandlingActorTest extends WithMockServers {
                     .description("error message")
                     .build());
         }};
+        tearDown();
     }
 }

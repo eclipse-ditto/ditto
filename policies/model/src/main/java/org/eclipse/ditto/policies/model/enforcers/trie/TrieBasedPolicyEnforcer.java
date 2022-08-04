@@ -16,18 +16,17 @@ import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.util.Set;
 
+import org.eclipse.ditto.base.model.auth.AuthorizationContext;
+import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonKey;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.base.model.auth.AuthorizationContext;
-import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
-import org.eclipse.ditto.policies.model.enforcers.EffectedSubjects;
-import org.eclipse.ditto.policies.model.enforcers.Enforcer;
 import org.eclipse.ditto.policies.model.Permissions;
-import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyEntry;
 import org.eclipse.ditto.policies.model.ResourceKey;
+import org.eclipse.ditto.policies.model.enforcers.EffectedSubjects;
+import org.eclipse.ditto.policies.model.enforcers.Enforcer;
 
 /**
  * Holds Algorithms to build trie-based indices for a policy and to perform policy checks based on those indices.
@@ -99,12 +98,12 @@ public final class TrieBasedPolicyEnforcer implements Enforcer {
     /**
      * Constructs a trie-based policy enforcer from a policy.
      *
-     * @param policy The policy to interpret.
+     * @param policyEntries The policy entries to interpret.
      * @return The policy enforcer.
-     * @throws NullPointerException if {@code policy} is {@code null}.
+     * @throws NullPointerException if {@code policyEntries} is {@code null}.
      */
-    public static TrieBasedPolicyEnforcer newInstance(final Policy policy) {
-        return new TrieBasedPolicyEnforcer(checkNotNull(policy, "policy to interpret"));
+    public static TrieBasedPolicyEnforcer newInstance(final Iterable<PolicyEntry> policyEntries) {
+        return new TrieBasedPolicyEnforcer(checkNotNull(policyEntries, "policy entries to interpret"));
     }
 
     /**

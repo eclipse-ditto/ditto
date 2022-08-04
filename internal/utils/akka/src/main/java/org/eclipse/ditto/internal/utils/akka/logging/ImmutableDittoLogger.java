@@ -364,13 +364,13 @@ final class ImmutableDittoLogger implements ThreadSafeDittoLogger {
     }
 
     @Override
-    public ImmutableDittoLogger withCorrelationId(final WithDittoHeaders withDittoHeaders) {
-        return withCorrelationId(checkNotNull(withDittoHeaders, "withDittoHeaders").getDittoHeaders());
+    public ImmutableDittoLogger withCorrelationId(@Nullable final WithDittoHeaders withDittoHeaders) {
+        return withCorrelationId(null != withDittoHeaders ? withDittoHeaders.getDittoHeaders() : null);
     }
 
     @Override
-    public ImmutableDittoLogger withCorrelationId(final DittoHeaders dittoHeaders) {
-        return withCorrelationId(checkNotNull(dittoHeaders, "dittoHeaders").getCorrelationId().orElse(null));
+    public ImmutableDittoLogger withCorrelationId(@Nullable final DittoHeaders dittoHeaders) {
+        return withCorrelationId(null != dittoHeaders ? dittoHeaders.getCorrelationId().orElse(null) : null);
     }
 
     @Override

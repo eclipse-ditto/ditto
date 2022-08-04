@@ -29,7 +29,9 @@ import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
 import org.eclipse.ditto.base.model.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
+import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.DittoMongoClient;
 import org.eclipse.ditto.internal.utils.persistence.mongo.MongoClientWrapper;
 import org.eclipse.ditto.internal.utils.test.mongo.MongoDbResource;
@@ -50,10 +52,9 @@ import org.eclipse.ditto.policies.model.SubjectType;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.ThingsModelFactory;
+import org.eclipse.ditto.thingsearch.api.commands.sudo.StreamThings;
 import org.eclipse.ditto.thingsearch.model.signals.commands.query.QueryThings;
 import org.eclipse.ditto.thingsearch.model.signals.commands.query.QueryThingsResponse;
-import org.eclipse.ditto.thingsearch.model.signals.commands.query.StreamThings;
-import org.eclipse.ditto.thingsearch.model.signals.commands.query.ThingSearchQueryCommand;
 import org.eclipse.ditto.thingsearch.service.common.config.DefaultSearchPersistenceConfig;
 import org.eclipse.ditto.thingsearch.service.common.config.DittoSearchConfig;
 import org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants;
@@ -134,7 +135,9 @@ public final class SearchActorIT {
     }
 
     private static TestSearchUpdaterStream provideWritePersistence(final ActorSystem system) {
-        return TestSearchUpdaterStream.of(mongoClient.getDefaultDatabase(), SearchUpdateMapper.get(system));
+        final var dittoExtensionsConfig = ScopedConfig.dittoExtension(system.settings().config());
+        return TestSearchUpdaterStream.of(mongoClient.getDefaultDatabase(),
+                SearchUpdateMapper.get(system, dittoExtensionsConfig));
     }
 
     private static DittoMongoClient provideClientWrapper() {
@@ -236,7 +239,7 @@ public final class SearchActorIT {
         }};
     }
 
-    private static ThingSearchQueryCommand<?> queryThings(@Nullable final Integer size, final @Nullable String cursor) {
+    private static Command<?> queryThings(@Nullable final Integer size, final @Nullable String cursor) {
         final List<String> options = new ArrayList<>();
         final String sort = "sort(-attributes/c,+attributes/b,-attributes/a,+attributes/null/1,-attributes/null/2)";
         if (cursor == null) {

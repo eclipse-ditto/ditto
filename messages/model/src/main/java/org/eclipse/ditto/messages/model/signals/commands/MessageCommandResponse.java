@@ -12,21 +12,23 @@
  */
 package org.eclipse.ditto.messages.model.signals.commands;
 
+import javax.annotation.Nullable;
+
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.json.FieldType;
+import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
+import org.eclipse.ditto.base.model.signals.SignalWithEntityId;
+import org.eclipse.ditto.base.model.signals.WithType;
+import org.eclipse.ditto.base.model.signals.commands.Command;
+import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonKey;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.base.model.json.FieldType;
-import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.messages.model.Message;
 import org.eclipse.ditto.messages.model.MessageDirection;
-import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.WithThingId;
-import org.eclipse.ditto.base.model.signals.SignalWithEntityId;
-import org.eclipse.ditto.base.model.signals.commands.Command;
-import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
 
 /**
  * Base interface for all response messages to things and features.
@@ -53,11 +55,6 @@ public interface MessageCommandResponse<P, C extends MessageCommandResponse<P, C
     }
 
     @Override
-    default ThingId getEntityId() {
-        return getEntityId();
-    }
-
-    @Override
     default String getResourceType() {
         return MessageCommand.RESOURCE_TYPE;
     }
@@ -81,6 +78,17 @@ public interface MessageCommandResponse<P, C extends MessageCommandResponse<P, C
                 .orElse(JsonPointer.empty());
 
         return path.append(pathSuffix);
+    }
+
+    /**
+     * Indicates whether the specified signal argument is a {@link MessageCommandResponse}.
+     *
+     * @param signal the signal to be checked.
+     * @return {@code true} if {@code signal} is a {@code MessageCommandResponse}, {@code false} else.
+     * @since 3.0.0
+     */
+    static boolean isMessageCommandResponse(@Nullable final WithType signal) {
+        return WithType.hasTypePrefix(signal, MessageCommandResponse.TYPE_PREFIX);
     }
 
     /**

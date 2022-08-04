@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.internal.utils.cacheloaders;
 
+import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
+
 import java.time.Duration;
 import java.util.Optional;
 import java.util.concurrent.Callable;
@@ -33,13 +35,14 @@ import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLogger;
 import org.eclipse.ditto.internal.utils.cacheloaders.config.AskWithRetryConfig;
 
 import akka.actor.ActorRef;
+import akka.actor.ActorSystem;
 import akka.actor.Scheduler;
 import akka.pattern.AskTimeoutException;
 import akka.pattern.Patterns;
 import scala.compat.java8.FutureConverters;
 
 /**
- * Helper/Pattern class providing a "ask with retry" pattern based on a provided {@link AskWithRetryConfig}.
+ * Helper/Pattern class providing an "ask with retry" pattern based on a provided {@link AskWithRetryConfig}.
  */
 public final class AskWithRetry {
 
@@ -58,6 +61,42 @@ public final class AskWithRetry {
     }
 
     /**
+     * Dispatcher name to use for AskWithRetry.
+     */
+    public static final String ASK_WITH_RETRY_DISPATCHER = "ask-with-retry-dispatcher";
+
+    /**
+     * Performs the "ask with retry" pattern by asking the passed in {@code actorToAsk} the passed in {@code message},
+     * mapping a successful response with the provided {@code responseMapper} and retrying the operation on Exceptions
+     * which are not {@link DittoRuntimeException}s based on the given {@code config}.
+     *
+     * @param actorToAsk the actor to ask the message.
+     * @param message the message to ask.
+     * @param config the "ask with retry" configuration to apply, e.g. whether to do retries at all,
+     * with which timeouts, with how many retries and delays, etc.
+     * @param actorSystem the actorSystem for looking up the scheduler and dispatcher to use.
+     * @param responseMapper a function converting the response of the asked message.
+     * @param <M> the type of the message to ask.
+     * @param <A> the type of the answer.
+     * @return a CompletionStage which is completed by applying the passed in {@code responseMapper} function on the
+     * response of the asked message or which is completed exceptionally with the Exception.
+     */
+    public static <M, A> CompletionStage<A> askWithRetry(final ActorRef actorToAsk,
+            final M message,
+            final AskWithRetryConfig config,
+            final ActorSystem actorSystem,
+            final Function<Object, A> responseMapper) {
+
+        return askWithRetry(actorToAsk,
+                message,
+                config,
+                actorSystem.getScheduler(),
+                actorSystem.dispatchers().lookup(ASK_WITH_RETRY_DISPATCHER),
+                responseMapper
+        );
+    }
+
+    /**
      * Performs the "ask with retry" pattern by asking the passed in {@code actorToAsk} the passed in {@code message},
      * mapping a successful response with the provided {@code responseMapper} and retrying the operation on Exceptions
      * which are not {@link DittoRuntimeException}s based on the given {@code config}.
@@ -73,6 +112,7 @@ public final class AskWithRetry {
      * @param <A> the type of the answer.
      * @return a CompletionStage which is completed by applying the passed in {@code responseMapper} function on the
      * response of the asked message or which is completed exceptionally with the Exception.
+     * @throws java.lang.NullPointerException if any of the passed arguments was {@code null}.
      */
     public static <M, A> CompletionStage<A> askWithRetry(final ActorRef actorToAsk,
             final M message,
@@ -81,9 +121,16 @@ public final class AskWithRetry {
             final Executor executor,
             final Function<Object, A> responseMapper) {
 
+        checkNotNull(actorToAsk, "actorToAsk");
+        checkNotNull(message, "message");
+        checkNotNull(config, "config");
+        checkNotNull(scheduler, "scheduler");
+        checkNotNull(executor, "executor");
+        checkNotNull(responseMapper, "responseMapper");
+
         final DittoHeaders dittoHeaders;
-        if (message instanceof WithDittoHeaders) {
-            dittoHeaders = ((WithDittoHeaders) message).getDittoHeaders();
+        if (message instanceof WithDittoHeaders withDittoHeaders) {
+            dittoHeaders = withDittoHeaders.getDittoHeaders();
         } else {
             dittoHeaders = null;
         }

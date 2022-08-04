@@ -22,6 +22,7 @@ import org.eclipse.ditto.base.service.cluster.ModifySplitBrainResolverResponse;
 import org.eclipse.ditto.internal.utils.health.RetrieveHealthResponse;
 import org.eclipse.ditto.internal.utils.test.GlobalCommandResponseRegistryTestCases;
 import org.eclipse.ditto.messages.model.signals.commands.SendClaimMessageResponse;
+import org.eclipse.ditto.policies.api.commands.sudo.SudoRetrievePolicyResponse;
 import org.eclipse.ditto.policies.model.signals.commands.PolicyErrorResponse;
 import org.eclipse.ditto.policies.model.signals.commands.actions.ActivateTokenIntegrationResponse;
 import org.eclipse.ditto.policies.model.signals.commands.modify.DeleteSubjectResponse;
@@ -35,6 +36,7 @@ public final class ThingsServiceGlobalCommandResponseRegistryTest extends Global
 
     public ThingsServiceGlobalCommandResponseRegistryTest() {
         super(
+                SudoRetrievePolicyResponse.class,
                 SudoRetrieveThingResponse.class,
                 RetrieveFeatureResponse.class,
                 ModifyFeaturePropertyResponse.class,

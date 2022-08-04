@@ -18,17 +18,15 @@ import java.util.stream.StreamSupport;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeExceptionBuilder;
-import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
-import org.eclipse.ditto.internal.utils.persistence.SnapshotAdapter;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.ActivityCheckConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.SnapshotConfig;
-import org.eclipse.ditto.internal.utils.persistentactors.AbstractShardedPersistenceActor;
+import org.eclipse.ditto.internal.utils.persistentactors.AbstractPersistenceActor;
 import org.eclipse.ditto.internal.utils.persistentactors.commands.CommandStrategy;
 import org.eclipse.ditto.internal.utils.persistentactors.commands.DefaultContext;
 import org.eclipse.ditto.internal.utils.persistentactors.events.EventStrategy;
@@ -53,7 +51,7 @@ import akka.persistence.RecoveryCompleted;
  * PersistentActor which "knows" the state of a single {@link Policy}.
  */
 public final class PolicyPersistenceActor
-        extends AbstractShardedPersistenceActor<Command<?>, Policy, PolicyId, PolicyId, PolicyEvent<?>> {
+        extends AbstractPersistenceActor<Command<?>, Policy, PolicyId, PolicyId, PolicyEvent<?>> {
 
     /**
      * The prefix of the persistenceId for Policies.
@@ -76,11 +74,11 @@ public final class PolicyPersistenceActor
 
     @SuppressWarnings("unused")
     private PolicyPersistenceActor(final PolicyId policyId,
-            final SnapshotAdapter<Policy> snapshotAdapter,
             final ActorRef pubSubMediator,
             final ActorRef announcementManager,
             final PolicyConfig policyConfig) {
-        super(policyId, snapshotAdapter);
+
+        super(policyId);
         this.pubSubMediator = pubSubMediator;
         this.announcementManager = announcementManager;
         this.policyConfig = policyConfig;
@@ -88,11 +86,11 @@ public final class PolicyPersistenceActor
 
     @SuppressWarnings("unused")
     private PolicyPersistenceActor(final PolicyId policyId,
-            final SnapshotAdapter<Policy> snapshotAdapter,
             final ActorRef pubSubMediator,
             final ActorRef announcementManager) {
+
         // not possible to call other constructor because "getContext()" is not available as argument of "this()"
-        super(policyId, snapshotAdapter);
+        super(policyId);
         this.pubSubMediator = pubSubMediator;
         this.announcementManager = announcementManager;
         final DittoPoliciesConfig policiesConfig = DittoPoliciesConfig.of(
@@ -105,29 +103,24 @@ public final class PolicyPersistenceActor
      * Creates Akka configuration object {@link Props} for this PolicyPersistenceActor.
      *
      * @param policyId the ID of the Policy this Actor manages.
-     * @param snapshotAdapter the adapter to serialize Policy snapshots.
      * @param pubSubMediator the PubSub mediator actor.
      * @param announcementManager manager of policy announcements.
      * @param policyConfig the policy config.
      * @return the Akka configuration Props object
      */
     public static Props props(final PolicyId policyId,
-            final SnapshotAdapter<Policy> snapshotAdapter,
             final ActorRef pubSubMediator,
             final ActorRef announcementManager,
             final PolicyConfig policyConfig) {
 
-        return Props.create(PolicyPersistenceActor.class, policyId, snapshotAdapter, pubSubMediator,
-                announcementManager, policyConfig);
+        return Props.create(PolicyPersistenceActor.class, policyId, pubSubMediator, announcementManager, policyConfig);
     }
 
     static Props propsForTests(final PolicyId policyId,
-            final SnapshotAdapter<Policy> snapshotAdapter,
             final ActorRef pubSubMediator,
             final ActorRef announcementManager) {
 
-        return Props.create(PolicyPersistenceActor.class, policyId, snapshotAdapter, pubSubMediator,
-                announcementManager);
+        return Props.create(PolicyPersistenceActor.class, policyId, pubSubMediator, announcementManager);
     }
 
     @Override
@@ -191,19 +184,38 @@ public final class PolicyPersistenceActor
     }
 
     @Override
-    protected void publishEvent(final PolicyEvent<?> event) {
-        pubSubMediator.tell(DistPubSubAccess.publishViaGroup(PolicyEvent.TYPE_PREFIX, event), getSender());
+    protected void publishEvent(@Nullable final Policy previousEntity, final PolicyEvent<?> event) {
+
+        // always publish the PolicyEvent
+        pubSubMediator.tell(DistPubSubAccess.publishViaGroup(PolicyEvent.TYPE_PREFIX, event), getSelf());
+
+        if (null != previousEntity && null != entity) {
+            if (entityExistsAsDeleted() ||
+                    !previousEntity.isSemanticallySameAs(entity.getEntriesSet())) {
+                // however only publish the PolicyTag when the Policy semantically changed
+                // (e.g. not when only a "subject" payload changed but not the subjectId itself)
+                publishPolicyTag(event);
+            } else {
+                log.withCorrelationId(event)
+                        .info("NOT publishing PolicyTag in cluster for PolicyEvent as the Policy did not change " +
+                                "its semantics for applying enforcement.");
+            }
+        } else {
+            publishPolicyTag(event);
+        }
+    }
+
+    private void publishPolicyTag(final PolicyEvent<?> event) {
 
         final PolicyTag policyTag = PolicyTag.of(entityId, event.getRevision());
-        pubSubMediator.tell(DistPubSubAccess.publishViaGroup(PolicyTag.PUB_SUB_TOPIC_MODIFIED, policyTag), getSender());
-
-        final boolean policyEnforcerInvalidatedPreemptively = Boolean.parseBoolean(event.getDittoHeaders()
-                .getOrDefault(DittoHeaderDefinition.POLICY_ENFORCER_INVALIDATED_PREEMPTIVELY.getKey(),
-                        Boolean.FALSE.toString()));
-        if (!policyEnforcerInvalidatedPreemptively) {
-            pubSubMediator.tell(DistPubSubAccess.publish(PolicyTag.PUB_SUB_TOPIC_INVALIDATE_ENFORCERS, policyTag),
-                    getSender());
-        }
+        pubSubMediator.tell(
+                DistPubSubAccess.publishViaGroup(PolicyTag.PUB_SUB_TOPIC_MODIFIED, policyTag),
+                getSelf()
+        );
+        pubSubMediator.tell(
+                DistPubSubAccess.publish(PolicyTag.PUB_SUB_TOPIC_INVALIDATE_ENFORCERS, policyTag),
+                getSelf()
+        );
     }
 
     @Override

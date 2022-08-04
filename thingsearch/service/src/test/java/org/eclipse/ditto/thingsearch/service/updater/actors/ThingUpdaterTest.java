@@ -32,14 +32,14 @@ import org.eclipse.ditto.internal.utils.akka.ActorSystemResource;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.policies.api.PolicyReferenceTag;
 import org.eclipse.ditto.policies.api.PolicyTag;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.events.AttributeModified;
 import org.eclipse.ditto.things.model.signals.events.ThingDeleted;
+import org.eclipse.ditto.thingsearch.api.PolicyReferenceTag;
 import org.eclipse.ditto.thingsearch.api.UpdateReason;
-import org.eclipse.ditto.thingsearch.api.commands.sudo.UpdateThing;
+import org.eclipse.ditto.thingsearch.api.commands.sudo.SudoUpdateThing;
 import org.eclipse.ditto.thingsearch.service.common.config.DittoSearchConfig;
 import org.eclipse.ditto.thingsearch.service.common.config.SearchConfig;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.Metadata;
@@ -164,7 +164,7 @@ public final class ThingUpdaterTest {
             final var data = inletProbe.expectNext();
             assertThat(data.metadata().export()).isEqualTo(Metadata.of(THING_ID, REVISION + 1, null, null, null));
             assertThat(data.metadata().getTimers().size()).isEqualTo(1);
-            assertThat(data.metadata().getSenders()).isEmpty();
+            assertThat(data.metadata().getAckRecipients()).isEmpty();
             assertThat(data.lastWriteModel()).isEqualTo(getThingWriteModel());
         }};
     }
@@ -188,7 +188,7 @@ public final class ThingUpdaterTest {
             final var data = inletProbe.expectNext();
             assertThat(data.metadata().export()).isEqualTo(Metadata.of(THING_ID, REVISION + 1, null, null, null));
             assertThat(data.metadata().getTimers().size()).isEqualTo(1);
-            assertThat(data.metadata().getSenders()).containsOnly(getRef());
+            assertThat(data.metadata().getAckRecipients()).containsOnly(getSystem().actorSelection(getRef().path()));
             assertThat(data.lastWriteModel()).isEqualTo(getThingWriteModel());
         }};
     }
@@ -261,7 +261,7 @@ public final class ThingUpdaterTest {
             final var data = inletProbe.expectNext();
             assertThat(data.metadata().export()).isEqualTo(Metadata.of(THING_ID, REVISION + 1, null, null, null));
             assertThat(data.metadata().getTimers().size()).isEqualTo(1);
-            assertThat(data.metadata().getSenders()).isEmpty();
+            assertThat(data.metadata().getAckRecipients()).isEmpty();
             assertThat(data.lastWriteModel()).isEqualTo(getThingWriteModel());
 
             // THEN: tell updater actor the event was skipped
@@ -276,7 +276,7 @@ public final class ThingUpdaterTest {
             final var data2 = inletProbe.expectNext();
             assertThat(data2.metadata().export()).isEqualTo(Metadata.of(THING_ID, REVISION + 2, null, null, null));
             assertThat(data2.metadata().getTimers().size()).isEqualTo(1);
-            assertThat(data2.metadata().getSenders()).isEmpty();
+            assertThat(data2.metadata().getAckRecipients()).isEmpty();
             assertThat(data2.lastWriteModel()).isEqualTo(getThingWriteModel().setMetadata(data.metadata().export()));
         }};
     }
@@ -464,7 +464,7 @@ public final class ThingUpdaterTest {
                     ThingUpdater.props(flow, id -> Source.single(getThingWriteModel()), SEARCH_CONFIG, getTestActor());
             final ActorRef underTest = watch(childActorOf(props, ACTOR_NAME));
 
-            final var command = UpdateThing.of(THING_ID, UpdateReason.MANUAL_REINDEXING, DittoHeaders.empty());
+            final var command = SudoUpdateThing.of(THING_ID, UpdateReason.MANUAL_REINDEXING, DittoHeaders.empty());
             underTest.tell(command, ActorRef.noSender());
 
             inletProbe.ensureSubscription();
@@ -484,7 +484,7 @@ public final class ThingUpdaterTest {
             final var expectedMetadata = Metadata.of(THING_ID, REVISION, null, null, null);
             final ActorRef underTest = watch(childActorOf(props, ACTOR_NAME));
 
-            final var command = UpdateThing.of(THING_ID, UpdateReason.MANUAL_REINDEXING, DittoHeaders.newBuilder()
+            final var command = SudoUpdateThing.of(THING_ID, UpdateReason.MANUAL_REINDEXING, DittoHeaders.newBuilder()
                     .putHeader("force-update", "true")
                     .build());
             underTest.tell(command, ActorRef.noSender());
@@ -618,7 +618,7 @@ public final class ThingUpdaterTest {
             final ActorRef underTest = watch(childActorOf(props, ACTOR_NAME));
 
             // WHEN: An event of the next revision arrives
-            underTest.tell(UpdateThing.of(THING_ID, UpdateReason.BACKGROUND_SYNC, DittoHeaders.empty()),
+            underTest.tell(SudoUpdateThing.of(THING_ID, UpdateReason.BACKGROUND_SYNC, DittoHeaders.empty()),
                     ActorRef.noSender());
 
             // THEN: Update is triggered only once

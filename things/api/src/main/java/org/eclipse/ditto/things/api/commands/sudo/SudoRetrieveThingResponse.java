@@ -44,7 +44,7 @@ import org.eclipse.ditto.things.model.ThingsModelFactory;
 @Immutable
 @JsonParsableCommandResponse(type = SudoRetrieveThingResponse.TYPE)
 public final class SudoRetrieveThingResponse extends AbstractCommandResponse<SudoRetrieveThingResponse>
-        implements SudoCommandResponse<SudoRetrieveThingResponse> {
+        implements ThingSudoQueryCommandResponse<SudoRetrieveThingResponse> {
 
     /**
      * Name of the response.

@@ -32,6 +32,7 @@ import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.connectivity.api.ExternalMessage;
 import org.eclipse.ditto.connectivity.api.ExternalMessageFactory;
+import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.connectivity.model.EnforcementFilterFactory;
 import org.eclipse.ditto.connectivity.model.Source;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.ConnectionMonitor;
@@ -51,14 +52,16 @@ final class KafkaMessageTransformer {
     private static final ThreadSafeDittoLogger LOGGER =
             DittoLoggerFactory.getThreadSafeLogger(KafkaMessageTransformer.class);
 
+    private final ConnectionId connectionId;
     private final Source source;
     private final String sourceAddress;
     private final EnforcementFilterFactory<Map<String, String>, Signal<?>> headerEnforcementFilterFactory;
     private final ConnectionMonitor inboundMonitor;
 
-    KafkaMessageTransformer(final Source source, final String sourceAddress,
+    KafkaMessageTransformer(final ConnectionId connectionId, final Source source, final String sourceAddress,
             final EnforcementFilterFactory<Map<String, String>, Signal<?>> headerEnforcementFilterFactory,
             final ConnectionMonitor inboundMonitor) {
+        this.connectionId = connectionId;
         this.source = source;
         this.sourceAddress = sourceAddress;
         this.headerEnforcementFilterFactory = headerEnforcementFilterFactory;
@@ -101,12 +104,15 @@ final class KafkaMessageTransformer {
 
         LOGGER.trace("Received record from kafka: {}", consumerRecord);
 
-        final Map<String, String> messageHeaders = extractMessageHeaders(consumerRecord);
+        Map<String, String> messageHeaders = extractMessageHeaders(consumerRecord);
         final String correlationId = messageHeaders
                 .getOrDefault(DittoHeaderDefinition.CORRELATION_ID.getKey(), UUID.randomUUID().toString());
 
-        final StartedTrace trace = DittoTracing.trace(DittoTracing.extractTraceContext(messageHeaders), "kafka.consume")
-                .correlationId(correlationId).start();
+        final StartedTrace trace = DittoTracing.trace(DittoTracing.extractTraceContext(messageHeaders), "kafka_consume")
+                .correlationId(correlationId)
+                .connectionId(connectionId)
+                .start();
+        messageHeaders = trace.propagateContext(messageHeaders);
 
         try {
             final String key = consumerRecord.key();

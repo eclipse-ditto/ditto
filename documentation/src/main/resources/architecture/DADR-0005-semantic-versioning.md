@@ -4,6 +4,7 @@ Date: 27.01.2020
 
 * Enhancement of adding `@since` in javadoc: 21.02.2020
 * Adjusted [Modules considered API](#modules-considered-api) with Ditto 2.0 in 05.2021
+* Adjusted [Modules considered API](#modules-considered-api) with Ditto 3.0 in 08.2022
 
 ## Status
 
@@ -63,13 +64,14 @@ ditto-jwt-model
 ditto-rql-model
 ditto-rql-query
 ditto-rql-parser
+ditto-rql-search-option-parser
 ditto-policies-model
 ditto-things-model
 ditto-thingsearch-model
-ditto-concierge-model
 ditto-connectivity-model
+ditto-placeholders
 ditto-protocol
-ditto-utils
+ditto-utils-jsr305
 ```
 
 ### Javadoc documentation using `@since`

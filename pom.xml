@@ -189,7 +189,6 @@
     <modules>
         <module>base</module>
         <module>bom</module>
-        <module>concierge</module>
         <module>connectivity</module>
         <module>documentation</module>
         <module>gateway</module>

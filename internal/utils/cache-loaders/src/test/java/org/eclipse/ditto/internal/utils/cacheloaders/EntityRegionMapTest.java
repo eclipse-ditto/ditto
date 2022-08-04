@@ -21,10 +21,7 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 import java.util.UUID;
 
 import org.eclipse.ditto.base.model.entity.type.EntityType;
-import org.eclipse.ditto.policies.model.PolicyConstants;
-import org.eclipse.ditto.things.model.ThingConstants;
 import org.junit.AfterClass;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import akka.actor.ActorRef;
@@ -65,9 +62,9 @@ public final class EntityRegionMapTest {
     @Test
     public void buildAndLookup() {
         // GIVEN
-        final EntityType thingType = ThingConstants.ENTITY_TYPE;
+        final EntityType thingType = EntityType.of("thing");
         final ActorRef actorRef1 = createTestActorRef("ref1");
-        final EntityType policyType = PolicyConstants.ENTITY_TYPE;
+        final EntityType policyType = EntityType.of("policy");
         final ActorRef actorRef2 = createTestActorRef("ref2");
 
         // WHEN
@@ -90,7 +87,7 @@ public final class EntityRegionMapTest {
 
     @Test(expected = NullPointerException.class)
     public void buildWithNullActorRefThrowsException() {
-        EntityRegionMap.newBuilder().put(ThingConstants.ENTITY_TYPE, null);
+        EntityRegionMap.newBuilder().put(EntityType.of("thing"), null);
     }
 
     private static ActorRef createTestActorRef(final String actorNamePrefix) {

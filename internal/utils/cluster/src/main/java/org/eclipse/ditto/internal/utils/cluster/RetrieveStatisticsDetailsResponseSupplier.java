@@ -19,13 +19,13 @@ import java.util.function.Function;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
 
+import org.eclipse.ditto.base.api.devops.signals.commands.RetrieveStatisticsDetailsResponse;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.base.api.devops.signals.commands.RetrieveStatisticsDetailsResponse;
 
 import akka.actor.ActorRef;
 import akka.cluster.sharding.ShardRegion;
@@ -87,7 +87,7 @@ public final class RetrieveStatisticsDetailsResponseSupplier
                                         .map(ShardRegion.ShardState::getEntityIds)
                                         .flatMap(strSet -> strSet.stream()
                                                 .map(str -> {
-                                                    // groupKey may be either namespace or resource-type+namespace (in case of concierge)
+                                                    // groupKey may be either namespace or resource-type+namespace
                                                     final String[] groupKeys = str.split(":", 2);
                                                     // assume String.split(String, int) may not return an empty array
                                                     if (groupKeys.length == 0) {

@@ -19,11 +19,11 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.model.entity.metadata.Metadata;
 import org.eclipse.ditto.base.model.headers.entitytag.EntityTag;
+import org.eclipse.ditto.internal.utils.persistentactors.results.Result;
+import org.eclipse.ditto.internal.utils.persistentactors.results.ResultFactory;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingId;
-import org.eclipse.ditto.internal.utils.persistentactors.results.Result;
-import org.eclipse.ditto.internal.utils.persistentactors.results.ResultFactory;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.PolicyIdNotAccessibleException;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrievePolicyId;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrievePolicyIdResponse;
@@ -62,7 +62,7 @@ final class RetrievePolicyIdStrategy extends AbstractThingCommandStrategy<Retrie
     }
 
     private Optional<PolicyId> extractPolicyId(final @Nullable Thing thing) {
-        return getEntityOrThrow(thing).getPolicyEntityId();
+        return getEntityOrThrow(thing).getPolicyId();
     }
 
     @Override

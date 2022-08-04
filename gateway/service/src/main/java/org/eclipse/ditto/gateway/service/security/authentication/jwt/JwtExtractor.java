@@ -16,8 +16,8 @@ import java.util.Optional;
 import java.util.function.BiFunction;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.gateway.api.GatewayAuthenticationFailedException;
 import org.eclipse.ditto.jwt.model.JsonWebToken;
-import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayAuthenticationFailedException;
 
 import akka.http.javadsl.server.RequestContext;
 

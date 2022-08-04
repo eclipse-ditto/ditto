@@ -18,16 +18,15 @@ import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstance
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.assertj.core.api.Assertions;
-import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.FieldType;
-import org.eclipse.ditto.things.model.Thing;
-import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
 import org.eclipse.ditto.base.model.signals.commands.GlobalCommandResponseRegistry;
-import org.junit.Ignore;
+import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.things.model.Thing;
+import org.eclipse.ditto.things.model.ThingId;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -42,8 +41,8 @@ public final class SudoRetrieveThingResponseTest {
     private static final Thing THING = Thing.newBuilder().setId(THING_ID).build();
 
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()
-            .set(SudoCommandResponse.JsonFields.TYPE, SudoRetrieveThingResponse.TYPE)
-            .set(SudoCommandResponse.JsonFields.STATUS, HttpStatus.OK.getCode())
+            .set(ThingSudoQueryCommandResponse.JsonFields.TYPE, SudoRetrieveThingResponse.TYPE)
+            .set(ThingSudoQueryCommandResponse.JsonFields.STATUS, HttpStatus.OK.getCode())
             .set(SudoRetrieveThingResponse.JSON_THING, THING.toJson())
             .build();
 

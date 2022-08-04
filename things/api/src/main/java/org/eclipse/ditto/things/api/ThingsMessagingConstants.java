@@ -39,6 +39,11 @@ public final class ThingsMessagingConstants {
     public static final String THINGS_SNAPSHOT_STREAMING_ACTOR_PATH = ROOT_ACTOR_PATH + "/snapshotStreamingActor";
 
     /**
+     * Path of the actor is used for aggregating things handling {@code RetrieveThings} command.
+     */
+    public static final String THINGS_AGGREGATOR_ACTOR_PATH = ROOT_ACTOR_PATH + "/aggregator";
+
+    /**
      * Name of the shard region for Thing entities.
      */
     public static final String SHARD_REGION = "thing";

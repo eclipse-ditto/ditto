@@ -50,6 +50,7 @@ public final class DittoConnectivityCommandValidator implements ConnectivityComm
             final ActorRef connectionActor,
             final ConnectionValidator connectionValidator,
             final ActorSystem actorSystem) {
+
         this.propsFactory = propsFactory;
         this.proxyActor = proxyActor;
         this.connectionActor = connectionActor;
@@ -60,34 +61,31 @@ public final class DittoConnectivityCommandValidator implements ConnectivityComm
     @Override
     public void accept(final ConnectivityCommand<?> command, final Supplier<Connection> connectionSupplier) {
         switch (command.getType()) {
-            case CreateConnection.TYPE:
-            case TestConnection.TYPE:
-            case ModifyConnection.TYPE:
-                resolveConnection(connectionSupplier)
-                        .ifPresentOrElse(connection -> {
-                                    connectionValidator.validate(connection, command.getDittoHeaders(), actorSystem);
-                                    propsFactory.getActorPropsForType(connection, proxyActor, connectionActor, actorSystem,
-                                            DittoHeaders.empty(), ConfigFactory.empty());
-                                },
-                                // should never happen
-                                handleNullConnection(command));
-                break;
-            case OpenConnection.TYPE:
-                resolveConnection(connectionSupplier).ifPresentOrElse(c -> connectionValidator.validate(c,
-                        command.getDittoHeaders(), actorSystem), handleNullConnection(command));
-                break;
-            default: // nothing to validate for other commands
+            case CreateConnection.TYPE, TestConnection.TYPE, ModifyConnection.TYPE ->
+                    resolveConnection(connectionSupplier)
+                            .ifPresentOrElse(connection -> {
+                                        connectionValidator.validate(connection, command.getDittoHeaders(), actorSystem);
+                                        propsFactory.getActorPropsForType(connection, proxyActor, connectionActor, actorSystem,
+                                                command.getDittoHeaders(), ConfigFactory.empty());
+                                    },
+                                    // should never happen
+                                    handleNullConnection(command));
+            case OpenConnection.TYPE ->
+                    resolveConnection(connectionSupplier).ifPresentOrElse(c -> connectionValidator.validate(c,
+                            command.getDittoHeaders(), actorSystem), handleNullConnection(command));
+            default -> {
+            } // nothing to validate for other commands
         }
     }
 
     @Nonnull
-    private Runnable handleNullConnection(final ConnectivityCommand<?> command) {
+    private static Runnable handleNullConnection(final ConnectivityCommand<?> command) {
         return () -> {
             throw new IllegalStateException("connection=null for " + command);
         };
     }
 
-    private Optional<Connection> resolveConnection(@Nullable Supplier<Connection> connectionSupplier) {
+    private static Optional<Connection> resolveConnection(@Nullable final Supplier<Connection> connectionSupplier) {
         return Optional.ofNullable(connectionSupplier).map(Supplier::get);
     }
 }

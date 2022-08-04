@@ -41,7 +41,6 @@ import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.policies.model.EffectedPermissions;
 import org.eclipse.ditto.policies.model.Permissions;
-import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyEntry;
 import org.eclipse.ditto.policies.model.Resource;
 import org.eclipse.ditto.policies.model.ResourceKey;
@@ -71,15 +70,14 @@ public final class TreeBasedPolicyEnforcer implements Enforcer {
     /**
      * Creates a new policy tree for execution of policy checks.
      *
-     * @param policy the policy to create a tree for
+     * @param policyEntries the policy entries to create a tree for
      * @return the generated {@code TreeBasedPolicyEnforcer}
-     * @throws NullPointerException if {@code policy} is {@code null}.
+     * @throws NullPointerException if {@code policyEntries} is {@code null}.
      */
-    public static TreeBasedPolicyEnforcer createInstance(final Policy policy) {
-        checkNotNull(policy, "policy");
+    public static TreeBasedPolicyEnforcer createInstance(final Iterable<PolicyEntry> policyEntries) {
+        checkNotNull(policyEntries, "policyEntries");
         final Map<String, PolicyTreeNode> tree = new HashMap<>();
 
-        final Set<PolicyEntry> policyEntries = policy.getEntriesSet();
         policyEntries.forEach(policyEntry -> {
 
             final Subjects subjects = policyEntry.getSubjects();

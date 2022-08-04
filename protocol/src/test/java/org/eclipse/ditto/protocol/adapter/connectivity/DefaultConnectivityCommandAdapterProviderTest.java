@@ -16,7 +16,7 @@ package org.eclipse.ditto.protocol.adapter.connectivity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
-import org.eclipse.ditto.protocol.HeaderTranslator;
+import org.eclipse.ditto.base.model.headers.translator.HeaderTranslator;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;

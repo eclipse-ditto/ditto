@@ -19,6 +19,7 @@ import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.base.model.acks.AcknowledgementLabel;
+import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.signals.SignalWithEntityId;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgements;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
@@ -35,6 +36,7 @@ import org.eclipse.ditto.internal.utils.pubsub.extractors.PubSubTopicExtractor;
 
 import akka.actor.AbstractActorWithTimers;
 import akka.actor.ActorRef;
+import akka.actor.ActorSelection;
 import akka.japi.Pair;
 import akka.japi.pf.ReceiveBuilder;
 
@@ -95,11 +97,10 @@ abstract class AbstractSubscriber<T extends SignalWithEntityId<?>> extends Abstr
                 localSubscriber.tell(message, getSender());
             }
         }
-        replyWeakAck(message, command, localSubscribers, getSender());
+        replyWeakAck(message, command, localSubscribers);
     }
 
-    private void replyWeakAck(final T message, final PublishSignal command, final Set<ActorRef> localSubscribers,
-            final ActorRef sender) {
+    private void replyWeakAck(final T message, final PublishSignal command, final Set<ActorRef> localSubscribers) {
         final Set<String> responsibleAcks = declaredAcks.getValues(command.getGroups().keySet());
         final Collection<AcknowledgementLabel> declaredCustomAcks =
                 ackExtractor.getDeclaredCustomAcksRequestedBy(message, responsibleAcks::contains);
@@ -109,7 +110,18 @@ abstract class AbstractSubscriber<T extends SignalWithEntityId<?>> extends Abstr
         if (!declaredCustomAcksWithoutSubscribers.isEmpty()) {
             final Acknowledgements acknowledgements =
                     ackExtractor.toWeakAcknowledgements(message, declaredCustomAcksWithoutSubscribers);
-            sender.tell(acknowledgements, ActorRef.noSender());
+
+            final String ackregatorAddress = acknowledgements.getDittoHeaders()
+                    .get(DittoHeaderDefinition.DITTO_ACKREGATOR_ADDRESS.getKey());
+            if (null != ackregatorAddress) {
+                final ActorSelection acknowledgementRequester = getContext().actorSelection(ackregatorAddress);
+                acknowledgementRequester.tell(acknowledgements, ActorRef.noSender());
+            } else {
+                logger.withCorrelationId(acknowledgements)
+                        .error("Issuing weak Acknowledgements to acknowledgement aggregator failed because " +
+                                        "ackgregator address was missing from headers: {}",
+                                acknowledgements.getDittoHeaders());
+            }
         }
     }
 
@@ -137,9 +149,4 @@ abstract class AbstractSubscriber<T extends SignalWithEntityId<?>> extends Abstr
         }
         return smaller.stream().noneMatch(bigger::contains);
     }
-
-    private enum Control {
-        RECEIVE_LOCAL_DECLARED_ACKS
-    }
-
 }

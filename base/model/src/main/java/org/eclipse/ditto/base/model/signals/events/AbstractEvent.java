@@ -23,13 +23,13 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.base.model.entity.metadata.Metadata;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
-import org.eclipse.ditto.base.model.entity.metadata.Metadata;
-import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 
 
 /**
@@ -104,7 +104,7 @@ public abstract class AbstractEvent<T extends AbstractEvent<T>> implements Event
                 .set(JsonFields.TIMESTAMP, getTimestamp().map(Instant::toString).orElse(null), predicate)
                 .set(JsonFields.METADATA, getMetadata().map(Metadata::toJson).orElse(null), predicate);
 
-        appendPayloadAndBuild(jsonObjectBuilder, schemaVersion, thePredicate);
+        appendPayload(jsonObjectBuilder, schemaVersion, thePredicate);
         return jsonObjectBuilder.build();
     }
 
@@ -115,8 +115,8 @@ public abstract class AbstractEvent<T extends AbstractEvent<T>> implements Event
      * @param schemaVersion the JsonSchemaVersion used in toJson().
      * @param predicate the predicate to evaluate when adding the payload.
      */
-    protected abstract void appendPayloadAndBuild(final JsonObjectBuilder jsonObjectBuilder,
-            final JsonSchemaVersion schemaVersion, final Predicate<JsonField> predicate);
+    protected abstract void appendPayload(JsonObjectBuilder jsonObjectBuilder,
+            JsonSchemaVersion schemaVersion, Predicate<JsonField> predicate);
 
     @SuppressWarnings({"squid:MethodCyclomaticComplexity", "squid:S1067", "OverlyComplexMethod"})
     @Override
