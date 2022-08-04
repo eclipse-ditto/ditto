@@ -14,13 +14,13 @@ package org.eclipse.ditto.protocol.adapter.policies;
 
 import static java.util.Objects.requireNonNull;
 
-import org.eclipse.ditto.protocol.Adaptable;
-import org.eclipse.ditto.protocol.HeaderTranslator;
-import org.eclipse.ditto.protocol.adapter.QueryCommandAdapter;
-import org.eclipse.ditto.protocol.TopicPath;
-import org.eclipse.ditto.protocol.mappingstrategies.MappingStrategiesFactory;
-import org.eclipse.ditto.protocol.mapper.SignalMapperFactory;
+import org.eclipse.ditto.base.model.headers.translator.HeaderTranslator;
 import org.eclipse.ditto.policies.model.signals.commands.query.PolicyQueryCommand;
+import org.eclipse.ditto.protocol.Adaptable;
+import org.eclipse.ditto.protocol.TopicPath;
+import org.eclipse.ditto.protocol.adapter.QueryCommandAdapter;
+import org.eclipse.ditto.protocol.mapper.SignalMapperFactory;
+import org.eclipse.ditto.protocol.mappingstrategies.MappingStrategiesFactory;
 
 /**
  * Adapter for mapping a {@link PolicyQueryCommand} to and from an {@link Adaptable}.

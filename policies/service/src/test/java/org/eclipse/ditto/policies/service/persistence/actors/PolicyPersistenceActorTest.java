@@ -13,7 +13,7 @@
 package org.eclipse.ditto.policies.service.persistence.actors;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
-import static org.eclipse.ditto.internal.utils.persistentactors.AbstractShardedPersistenceActor.JOURNAL_TAG_ALWAYS_ALIVE;
+import static org.eclipse.ditto.internal.utils.persistentactors.AbstractPersistenceActor.JOURNAL_TAG_ALWAYS_ALIVE;
 import static org.eclipse.ditto.policies.service.persistence.TestConstants.Policy.SUBJECT_TYPE;
 import static org.eclipse.ditto.policies.service.persistence.testhelper.ETagTestUtils.modifyPolicyEntryResponse;
 import static org.eclipse.ditto.policies.service.persistence.testhelper.ETagTestUtils.modifyPolicyResponse;
@@ -43,13 +43,13 @@ import org.awaitility.Awaitility;
 import org.eclipse.ditto.base.api.persistence.cleanup.CleanupPersistence;
 import org.eclipse.ditto.base.api.persistence.cleanup.CleanupPersistenceResponse;
 import org.eclipse.ditto.base.model.common.DittoDuration;
+import org.eclipse.ditto.base.model.common.DittoSystemProperties;
 import org.eclipse.ditto.base.model.entity.Revision;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.internal.utils.cluster.ShardRegionExtractor;
-import org.eclipse.ditto.internal.utils.persistence.SnapshotAdapter;
+import org.eclipse.ditto.internal.utils.persistentactors.AbstractPersistenceActor;
 import org.eclipse.ditto.internal.utils.persistentactors.AbstractPersistenceSupervisor;
-import org.eclipse.ditto.internal.utils.persistentactors.AbstractShardedPersistenceActor;
 import org.eclipse.ditto.internal.utils.pubsub.DistributedPub;
 import org.eclipse.ditto.policies.api.PoliciesMessagingConstants;
 import org.eclipse.ditto.policies.api.PolicyTag;
@@ -79,7 +79,6 @@ import org.eclipse.ditto.policies.model.assertions.DittoPolicyAssertions;
 import org.eclipse.ditto.policies.model.signals.announcements.PolicyAnnouncement;
 import org.eclipse.ditto.policies.model.signals.announcements.SubjectDeletionAnnouncement;
 import org.eclipse.ditto.policies.model.signals.commands.PolicyCommand;
-import org.eclipse.ditto.policies.model.signals.commands.PolicyCommandSizeValidator;
 import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyEntryModificationInvalidException;
 import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyEntryNotAccessibleException;
 import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyModificationInvalidException;
@@ -118,7 +117,6 @@ import org.eclipse.ditto.policies.model.signals.events.SubjectDeleted;
 import org.eclipse.ditto.policies.service.common.config.PolicyAnnouncementConfig;
 import org.eclipse.ditto.policies.service.persistence.TestConstants;
 import org.eclipse.ditto.policies.service.persistence.actors.announcements.PolicyAnnouncementManager;
-import org.eclipse.ditto.policies.service.persistence.serializer.PolicyMongoSnapshotAdapter;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
@@ -153,7 +151,7 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
     private static final Logger LOGGER = LoggerFactory.getLogger(PolicyPersistenceActorTest.class);
 
     private static final long POLICY_SIZE_LIMIT_BYTES = Long.parseLong(
-            System.getProperty(PolicyCommandSizeValidator.DITTO_LIMITS_POLICIES_MAX_SIZE_BYTES, "-1"));
+            System.getProperty(DittoSystemProperties.DITTO_LIMITS_POLICIES_MAX_SIZE_BYTES, "-1"));
 
     @SuppressWarnings("unchecked")
     private final DistributedPub<PolicyAnnouncement<?>> policyAnnouncementPub = Mockito.mock(DistributedPub.class);
@@ -1382,9 +1380,7 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
                         ClusterShardingSettings.apply(actorSystem).withRole("policies");
                 final var box = new AtomicReference<ActorRef>();
                 final ActorRef announcementManager = createAnnouncementManager(policyId, box::get);
-                final Props props =
-                        PolicyPersistenceActor.propsForTests(policyId, new PolicyMongoSnapshotAdapter(), pubSubMediator,
-                                announcementManager);
+                final Props props = PolicyPersistenceActor.propsForTests(policyId, pubSubMediator, announcementManager);
                 final Cluster cluster = Cluster.get(actorSystem);
                 cluster.join(cluster.selfAddress());
                 final ActorRef underTest = ClusterSharding.get(actorSystem)
@@ -1443,7 +1439,7 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
                                 expectedRoundedExpiryInstant);
                 TimeUnit.MILLISECONDS.sleep(between.toMillis() + 200L);
 
-                // AND WHEN: the policy is retrieved via concierge (and restored as a consequence)
+                // AND WHEN: the policy is retrieved (and restored as a consequence)
                 final SudoRetrievePolicy sudoRetrievePolicy = SudoRetrievePolicy.of(policyId, dittoHeadersV2);
                 underTest.tell(sudoRetrievePolicy, getRef());
                 expectMsgClass(SudoRetrievePolicyResponse.class);
@@ -1634,8 +1630,7 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
                 final var box = new AtomicReference<ActorRef>();
                 final ActorRef announcementManager = createAnnouncementManager(policyId, box::get);
                 final Props persistentActorProps =
-                        PolicyPersistenceActor.propsForTests(policyId, new PolicyMongoSnapshotAdapter(), pubSubMediator,
-                                announcementManager);
+                        PolicyPersistenceActor.propsForTests(policyId, pubSubMediator, announcementManager);
 
                 final TestProbe errorsProbe = TestProbe.apply(actorSystem);
 
@@ -1651,7 +1646,7 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
                         return new OneForOneStrategy(true,
                                 DeciderBuilder.matchAny(throwable -> {
                                     errorsProbe.ref().tell(throwable, getSelf());
-                                    return (SupervisorStrategy.Directive) SupervisorStrategy.restart();
+                                    return SupervisorStrategy.restart();
                                 }).build());
                     }
 
@@ -1673,7 +1668,7 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
                 // WHEN: CheckForActivity is sent to a persistence actor of nonexistent policy after startup
                 final ActorRef underTest = actorSystem.actorOf(parentProps);
 
-                final Object checkForActivity = AbstractShardedPersistenceActor.checkForActivity(1L);
+                final Object checkForActivity = AbstractPersistenceActor.checkForActivity(1L);
                 underTest.tell(checkForActivity, getRef());
                 underTest.tell(checkForActivity, getRef());
                 underTest.tell(checkForActivity, getRef());
@@ -1736,7 +1731,7 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
                 Assertions.assertThat(subjectDeleted.getDittoHeaders().getJournalTags()).isEmpty();
 
                 // THEN: the persistent actor should stop itself after activity checks.
-                final var checkForActivity = AbstractShardedPersistenceActor.checkForActivity(Integer.MAX_VALUE);
+                final var checkForActivity = AbstractPersistenceActor.checkForActivity(Integer.MAX_VALUE);
                 underTest.tell(checkForActivity, ActorRef.noSender());
                 expectMsg(AbstractPersistenceSupervisor.Control.PASSIVATE);
             }
@@ -1749,10 +1744,8 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
 
     private ActorRef createPersistenceActorFor(final TestKit testKit, final PolicyId policyId) {
         final var box = new AtomicReference<ActorRef>();
-        final SnapshotAdapter<Policy> snapshotAdapter = new PolicyMongoSnapshotAdapter();
         final ActorRef announcementManager = createAnnouncementManager(policyId, box::get);
-        final Props props = PolicyPersistenceActor.propsForTests(policyId, snapshotAdapter, pubSubMediator,
-                announcementManager);
+        final Props props = PolicyPersistenceActor.propsForTests(policyId, pubSubMediator, announcementManager);
         final var persistenceActor = testKit.watch(testKit.childActorOf(props));
         box.set(persistenceActor);
         return persistenceActor;

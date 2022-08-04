@@ -19,17 +19,19 @@ import java.util.List;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
-import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonParsableException;
+import org.eclipse.ditto.connectivity.model.ConnectivityException;
+import org.eclipse.ditto.json.JsonObject;
 
 @JsonParsableException(errorCode = ConnectionContextProviderMissingException.ERROR_CODE)
-public final class ConnectionContextProviderMissingException extends DittoRuntimeException {
+public final class ConnectionContextProviderMissingException extends DittoRuntimeException
+        implements ConnectivityException {
 
-    public static final String ERROR_CODE = "connectivity.config.provider.missing";
+    public static final String ERROR_CODE = ERROR_CODE_PREFIX + "config.provider.missing";
     private static final String MESSAGE_TEMPLATE =
             "Failed to find a suitable ConnectionContextProvider implementation in candidates: <{0}>.";
 

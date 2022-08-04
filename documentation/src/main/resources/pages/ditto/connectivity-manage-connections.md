@@ -27,7 +27,6 @@ See [Basic Authentication](basic-auth.html#authorization-context-in-devops-comma
 
 The following commands are available in order to manage connections:
 
-
 * [create](#create-connection)
 * [modify](#modify-connection)
 * [retrieve](#retrieve-connection)
@@ -42,7 +41,8 @@ Create a new connection by sending the following DevOps command.
   "targetActorSelection": "/system/sharding/connection",
   "headers": {
     "aggregate": false,
-    "is-group-topic": true
+    "is-group-topic": true,
+    "ditto-sudo": true
   },
   "piggybackCommand": {
     "type": "connectivity.commands:createConnection",
@@ -65,7 +65,8 @@ Modify an existing connection by sending the following DevOps command.
   "targetActorSelection": "/system/sharding/connection",
   "headers": {
     "aggregate": false,
-    "is-group-topic": true
+    "is-group-topic": true,
+    "ditto-sudo": true
   },
   "piggybackCommand": {
     "type": "connectivity.commands:modifyConnection",
@@ -86,7 +87,8 @@ The only parameter necessary for retrieving a connection is the `connectionId`.
   "targetActorSelection": "/system/sharding/connection",
   "headers": {
     "aggregate": false,
-    "is-group-topic": true
+    "is-group-topic": true,
+    "ditto-sudo": true
   },
   "piggybackCommand": {
     "type": "connectivity.commands:retrieveConnection",
@@ -153,7 +155,7 @@ The only parameter necessary for deleting a connection is the `connectionId`.
 
 ## Helper commands
 
-The following commands are available to help creating connections and retrieving the status of existing connections:
+The following commands are available to help to create connections and retrieving the status of existing connections:
 
 * [test connection](#test-connection)
 * [retrieve ids of all connections](#retrieve-ids-of-all-connections)
@@ -196,10 +198,10 @@ This command returns the ids of all connections.
 
 ```json
 {
-  "targetActorSelection": "/user/connectivityRoot/connectionIdsRetrieval/singleton",
+  "targetActorSelection": "/user/connectivityRoot/connectionIdsRetrieval",
   "headers": {
     "aggregate": false,
-    "is-group-topic": true
+    "is-group-topic": false
   },
   "piggybackCommand": {
     "type": "connectivity.commands:retrieveAllConnectionIds"

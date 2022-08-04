@@ -12,33 +12,27 @@
  */
 package org.eclipse.ditto.connectivity.service;
 
-import java.util.function.UnaryOperator;
-
-import javax.annotation.Nullable;
 import javax.jms.JMSRuntimeException;
 import javax.naming.NamingException;
 
-import org.eclipse.ditto.base.model.signals.Signal;
+import org.eclipse.ditto.base.service.RootChildActorStarter;
 import org.eclipse.ditto.base.service.actors.DittoRootActor;
-import org.eclipse.ditto.concierge.api.actors.ConciergeEnforcerClusterRouterFactory;
-import org.eclipse.ditto.concierge.api.actors.ConciergeForwarderActor;
 import org.eclipse.ditto.connectivity.api.ConnectivityMessagingConstants;
-import org.eclipse.ditto.connectivity.model.signals.commands.ConnectivityCommandInterceptor;
 import org.eclipse.ditto.connectivity.service.config.ConnectionIdsRetrievalConfig;
 import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
-import org.eclipse.ditto.connectivity.service.messaging.ClientActorPropsFactory;
+import org.eclipse.ditto.connectivity.service.enforcement.ConnectionEnforcerActorPropsFactory;
 import org.eclipse.ditto.connectivity.service.messaging.ConnectionIdsRetrievalActor;
-import org.eclipse.ditto.connectivity.service.messaging.ConnectivityProxyActor;
 import org.eclipse.ditto.connectivity.service.messaging.persistence.ConnectionPersistenceOperationsActor;
 import org.eclipse.ditto.connectivity.service.messaging.persistence.ConnectionPersistenceStreamingActorCreator;
-import org.eclipse.ditto.connectivity.service.messaging.persistence.ConnectionPriorityProviderFactory;
 import org.eclipse.ditto.connectivity.service.messaging.persistence.ConnectionSupervisorActor;
-import org.eclipse.ditto.connectivity.service.messaging.persistence.UsageBasedPriorityProvider;
+import org.eclipse.ditto.edge.service.dispatching.EdgeCommandForwarderActor;
+import org.eclipse.ditto.edge.service.dispatching.ShardRegions;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.cluster.ClusterUtil;
 import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.internal.utils.cluster.ShardRegionExtractor;
 import org.eclipse.ditto.internal.utils.cluster.config.ClusterConfig;
+import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import org.eclipse.ditto.internal.utils.health.DefaultHealthCheckingActorFactory;
 import org.eclipse.ditto.internal.utils.health.HealthCheckingActorOptions;
 import org.eclipse.ditto.internal.utils.health.config.HealthCheckConfig;
@@ -47,7 +41,9 @@ import org.eclipse.ditto.internal.utils.persistence.mongo.MongoHealthChecker;
 import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.MongoReadJournal;
 import org.eclipse.ditto.internal.utils.persistentactors.PersistencePingActor;
 import org.eclipse.ditto.internal.utils.persistentactors.cleanup.PersistenceCleanupActor;
-import org.eclipse.ditto.internal.utils.pubsub.DittoProtocolSub;
+import org.eclipse.ditto.internal.utils.pubsubthings.DittoProtocolSub;
+
+import com.typesafe.config.Config;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
@@ -75,25 +71,19 @@ public final class ConnectivityRootActor extends DittoRootActor {
 
     @SuppressWarnings("unused")
     private ConnectivityRootActor(final ConnectivityConfig connectivityConfig,
-            final ActorRef pubSubMediator,
-            final UnaryOperator<Signal<?>> conciergeForwarderSignalTransformer,
-            @Nullable final ConnectivityCommandInterceptor commandValidator,
-            final ConnectionPriorityProviderFactory connectionPriorityProviderFactory,
-            final ClientActorPropsFactory clientActorPropsFactory) {
+            final ActorRef pubSubMediator) {
 
         final ClusterConfig clusterConfig = connectivityConfig.getClusterConfig();
         final ActorSystem actorSystem = getContext().system();
+        final Config config = actorSystem.settings().config();
 
-        final ActorRef conciergeForwarder =
-                getConciergeForwarder(clusterConfig, pubSubMediator, conciergeForwarderSignalTransformer);
+        final ActorRef commandForwarder = getCommandForwarder(clusterConfig, pubSubMediator);
 
-        final ActorRef proxyActor =
-                startChildActor(ConnectivityProxyActor.ACTOR_NAME, ConnectivityProxyActor.props(conciergeForwarder));
-
-        final Props connectionSupervisorProps =
-                ConnectionSupervisorActor.props(proxyActor, clientActorPropsFactory, commandValidator,
-                        connectionPriorityProviderFactory, pubSubMediator);
-
+        final var dittoExtensionsConfig = ScopedConfig.dittoExtension(actorSystem.settings().config());
+        final var enforcerActorPropsFactory =
+                ConnectionEnforcerActorPropsFactory.get(actorSystem, dittoExtensionsConfig);
+        final var connectionSupervisorProps =
+                ConnectionSupervisorActor.props(commandForwarder, pubSubMediator, enforcerActorPropsFactory);
         // Create persistence streaming actor (with no cache) and make it known to pubSubMediator.
         final ActorRef persistenceStreamingActor =
                 startChildActor(ConnectionPersistenceStreamingActorCreator.ACTOR_NAME,
@@ -112,15 +102,17 @@ public final class ConnectivityRootActor extends DittoRootActor {
                         startConnectionShardRegion(actorSystem, connectionSupervisorProps, clusterConfig),
                         connectivityConfig.getPingConfig(), mongoReadJournal),
                 PersistencePingActor.ACTOR_NAME);
-
         final ConnectionIdsRetrievalConfig connectionIdsRetrievalConfig =
                 connectivityConfig.getConnectionIdsRetrievalConfig();
-        startClusterSingletonActor(ConnectionIdsRetrievalActor.props(mongoReadJournal, connectionIdsRetrievalConfig),
-                ConnectionIdsRetrievalActor.ACTOR_NAME);
-
+        final ActorRef connectionIdsRetrievalActor = startChildActor(
+                ConnectionIdsRetrievalActor.ACTOR_NAME,
+                ConnectionIdsRetrievalActor.props(mongoReadJournal, connectionIdsRetrievalConfig));
         startChildActor(ConnectionPersistenceOperationsActor.ACTOR_NAME,
                 ConnectionPersistenceOperationsActor.props(pubSubMediator, connectivityConfig.getMongoDbConfig(),
-                        actorSystem.settings().config(), connectivityConfig.getPersistenceOperationsConfig()));
+                        config, connectivityConfig.getPersistenceOperationsConfig()));
+
+        RootChildActorStarter.get(actorSystem, ScopedConfig.dittoExtension(config)).execute(getContext());
+
 
         final var cleanupConfig = connectivityConfig.getConnectionConfig().getCleanupConfig();
         final var cleanupActorProps = PersistenceCleanupActor.props(cleanupConfig, mongoReadJournal, CLUSTER_ROLE);
@@ -135,42 +127,11 @@ public final class ConnectivityRootActor extends DittoRootActor {
      *
      * @param connectivityConfig the configuration of the Connectivity service.
      * @param pubSubMediator the PubSub mediator Actor.
-     * @param conciergeForwarderSignalTransformer a function which transforms signals before forwarding them to the
-     * concierge service
-     * @param commandValidator custom command validator for connectivity commands
-     * @param connectionPriorityProviderFactory used to determine the reconnect priority of a connection.
-     * @param clientActorPropsFactory props factory of the client actors
      * @return the Akka configuration Props object.
      */
-    public static Props props(final ConnectivityConfig connectivityConfig,
-            final ActorRef pubSubMediator,
-            final UnaryOperator<Signal<?>> conciergeForwarderSignalTransformer,
-            final ConnectivityCommandInterceptor commandValidator,
-            final ConnectionPriorityProviderFactory connectionPriorityProviderFactory,
-            final ClientActorPropsFactory clientActorPropsFactory) {
+    public static Props props(final ConnectivityConfig connectivityConfig, final ActorRef pubSubMediator) {
 
-        return Props.create(ConnectivityRootActor.class, connectivityConfig, pubSubMediator,
-                conciergeForwarderSignalTransformer, commandValidator, connectionPriorityProviderFactory,
-                clientActorPropsFactory);
-    }
-
-    /**
-     * Creates Akka configuration object Props for this ConnectivityRootActor.
-     *
-     * @param connectivityConfig the configuration of the Connectivity service.
-     * @param pubSubMediator the PubSub mediator Actor.
-     * @param conciergeForwarderSignalTransformer a function which transforms signals before forwarding them to the
-     * concierge service
-     * @param clientActorPropsFactory props factory of the client actors.
-     * @return the Akka configuration Props object.
-     */
-    public static Props props(final ConnectivityConfig connectivityConfig, final ActorRef pubSubMediator,
-            final UnaryOperator<Signal<?>> conciergeForwarderSignalTransformer,
-            final ClientActorPropsFactory clientActorPropsFactory) {
-
-        return Props.create(ConnectivityRootActor.class, connectivityConfig, pubSubMediator,
-                conciergeForwarderSignalTransformer, null,
-                (ConnectionPriorityProviderFactory) UsageBasedPriorityProvider::getInstance, clientActorPropsFactory);
+        return Props.create(ConnectivityRootActor.class, connectivityConfig, pubSubMediator);
     }
 
     @Override
@@ -204,16 +165,10 @@ public final class ConnectivityRootActor extends DittoRootActor {
                 ));
     }
 
-    private ActorRef getConciergeForwarder(final ClusterConfig clusterConfig, final ActorRef pubSubMediator,
-            final UnaryOperator<Signal<?>> conciergeForwarderSignalTransformer) {
-
-        final ActorRef conciergeEnforcerRouter =
-                ConciergeEnforcerClusterRouterFactory.createConciergeEnforcerClusterRouter(getContext(),
-                        clusterConfig.getNumberOfShards());
-
-        return startChildActor(ConciergeForwarderActor.ACTOR_NAME,
-                ConciergeForwarderActor.props(pubSubMediator, conciergeEnforcerRouter,
-                        conciergeForwarderSignalTransformer));
+    private ActorRef getCommandForwarder(final ClusterConfig clusterConfig, final ActorRef pubSubMediator) {
+        return startChildActor(EdgeCommandForwarderActor.ACTOR_NAME,
+                EdgeCommandForwarderActor.props(pubSubMediator,
+                        ShardRegions.of(getContext().getSystem(), clusterConfig)));
     }
 
     private static ActorRef startConnectionShardRegion(final ActorSystem actorSystem,

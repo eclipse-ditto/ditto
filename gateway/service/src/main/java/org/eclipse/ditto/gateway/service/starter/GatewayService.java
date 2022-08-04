@@ -32,7 +32,7 @@ public final class GatewayService extends DittoService<GatewayConfig> {
     /**
      * Name for the Akka actor system of the Gateway service.
      */
-    static final String SERVICE_NAME = "gateway";
+    public static final String SERVICE_NAME = "gateway";
 
     private static final Logger LOGGER = LoggerFactory.getLogger(GatewayService.class);
 

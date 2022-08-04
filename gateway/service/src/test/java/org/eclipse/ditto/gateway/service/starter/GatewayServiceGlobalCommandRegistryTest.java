@@ -18,6 +18,8 @@ import org.eclipse.ditto.base.api.devops.signals.commands.ExecutePiggybackComman
 import org.eclipse.ditto.base.api.persistence.cleanup.CleanupPersistence;
 import org.eclipse.ditto.base.model.namespaces.signals.commands.PurgeNamespace;
 import org.eclipse.ditto.base.service.cluster.ModifySplitBrainResolver;
+import org.eclipse.ditto.connectivity.api.commands.sudo.SudoAddConnectionLogEntry;
+import org.eclipse.ditto.connectivity.api.commands.sudo.SudoRetrieveConnectionIdsByTag;
 import org.eclipse.ditto.connectivity.model.signals.commands.modify.OpenConnection;
 import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConnection;
 import org.eclipse.ditto.gateway.service.endpoints.routes.whoami.Whoami;
@@ -40,7 +42,8 @@ import org.eclipse.ditto.thingsearch.model.signals.commands.subscription.CreateS
 public final class GatewayServiceGlobalCommandRegistryTest extends GlobalCommandRegistryTestCases {
 
     public GatewayServiceGlobalCommandRegistryTest() {
-        super(SudoStreamPids.class,
+        super(
+                SudoStreamPids.class,
                 SudoRetrieveThing.class,
                 SudoRetrievePolicy.class,
                 SudoCountThings.class,
@@ -48,6 +51,7 @@ public final class GatewayServiceGlobalCommandRegistryTest extends GlobalCommand
                 CreateSubscription.class,
                 RetrieveConnection.class,
                 OpenConnection.class,
+                SudoRetrieveConnectionIdsByTag.class,
                 RetrieveFeature.class,
                 ModifyFeatureProperty.class,
                 ExecutePiggybackCommand.class,
@@ -62,7 +66,8 @@ public final class GatewayServiceGlobalCommandRegistryTest extends GlobalCommand
                 Whoami.class,
                 PublishSignal.class,
                 ModifySplitBrainResolver.class,
-                CleanupPersistence.class
+                CleanupPersistence.class,
+                SudoAddConnectionLogEntry.class
         );
     }
 

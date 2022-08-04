@@ -35,6 +35,10 @@
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-policies-api</artifactId> <!-- required to subscribe to PolicyTag -->
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-internal-models-streaming</artifactId>
         </dependency>
         <dependency>

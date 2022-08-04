@@ -64,28 +64,28 @@ public abstract class DittoRootActor extends AbstractActor {
                 e.printStackTrace(pw);
 
                 log.warning("Illegal Argument in child actor: {}", sw.toString());
-                return (SupervisorStrategy.Directive) SupervisorStrategy.resume();
+                return SupervisorStrategy.resume();
             }).match(IllegalStateException.class, e -> {
                 log.warning("Illegal State in child actor: {}", e.getMessage());
-                return (SupervisorStrategy.Directive) SupervisorStrategy.resume();
+                return SupervisorStrategy.resume();
             }).match(IndexOutOfBoundsException.class, e -> {
                 log.warning("IndexOutOfBounds in child actor: {}", e.getMessage());
-                return (SupervisorStrategy.Directive) SupervisorStrategy.resume();
+                return SupervisorStrategy.resume();
             }).match(NoSuchElementException.class, e -> {
                 log.warning("NoSuchElement in child actor: {}", e.getMessage());
-                return (SupervisorStrategy.Directive) SupervisorStrategy.resume();
+                return SupervisorStrategy.resume();
             }).match(AskTimeoutException.class, e -> {
                 log.warning("AskTimeoutException in child actor: {}", e.getMessage());
-                return (SupervisorStrategy.Directive) SupervisorStrategy.resume();
+                return SupervisorStrategy.resume();
             }).match(ConnectException.class, e -> {
                 log.warning("ConnectException in child actor: {}", e.getMessage());
                 return restartChild();
             }).match(InvalidActorNameException.class, e -> {
                 log.warning("InvalidActorNameException in child actor: {}", e.getMessage());
-                return (SupervisorStrategy.Directive) SupervisorStrategy.resume();
+                return SupervisorStrategy.resume();
             }).match(ActorInitializationException.class, e -> {
                 log.error(e, "ActorInitializationException in child actor: {}", e.getMessage());
-                return (SupervisorStrategy.Directive) SupervisorStrategy.stop();
+                return SupervisorStrategy.stop();
             }).match(ActorKilledException.class, e -> {
                 log.error(e, "ActorKilledException in child actor: {}", e.message());
                 return restartChild();
@@ -93,7 +93,7 @@ public abstract class DittoRootActor extends AbstractActor {
                 log.error(e,
                         "DittoRuntimeException '{}' should not be escalated to ConnectivityRootActor. Simply resuming Actor.",
                         e.getErrorCode());
-                return (SupervisorStrategy.Directive) SupervisorStrategy.resume();
+                return SupervisorStrategy.resume();
             }).match(Throwable.class, e -> {
                 log.error(e, "Escalating above root actor!");
                 return (SupervisorStrategy.Directive) SupervisorStrategy.escalate();
@@ -139,8 +139,9 @@ public abstract class DittoRootActor extends AbstractActor {
      * @return the ref of the started actor.
      */
     protected ActorRef startChildActor(final String actorName, final Props props) {
-        log.info("Starting child actor <{}>.", actorName);
-        return getContext().actorOf(props, actorName);
+        final ActorRef actorRef = getContext().actorOf(props, actorName);
+        log.info("Started child actor <{}> with path <{}>.", actorName, actorRef);
+        return actorRef;
     }
 
     /**
@@ -150,7 +151,7 @@ public abstract class DittoRootActor extends AbstractActor {
      */
     protected SupervisorStrategy.Directive restartChild() {
         log.info("Restarting child ...");
-        return (SupervisorStrategy.Directive) SupervisorStrategy.restart();
+        return SupervisorStrategy.restart();
     }
 
     private void startChildActor(final StartChildActor startChildActor) {

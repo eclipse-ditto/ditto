@@ -21,13 +21,13 @@ import java.util.List;
 import java.util.Random;
 import java.util.stream.Collectors;
 
-import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.base.model.auth.AuthorizationModelFactory;
 import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
 import org.eclipse.ditto.base.model.auth.DittoAuthorizationContextType;
-import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
+import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.policies.api.Permission;
 import org.eclipse.ditto.policies.model.EffectedPermissions;
 import org.eclipse.ditto.policies.model.Label;
 import org.eclipse.ditto.policies.model.Permissions;
@@ -43,7 +43,6 @@ import org.eclipse.ditto.policies.model.Subject;
 import org.eclipse.ditto.policies.model.SubjectId;
 import org.eclipse.ditto.policies.model.SubjectIssuer;
 import org.eclipse.ditto.policies.model.Subjects;
-import org.eclipse.ditto.policies.api.Permission;
 import org.eclipse.ditto.policies.service.common.config.DefaultPolicyConfig;
 import org.eclipse.ditto.policies.service.common.config.PolicyConfig;
 import org.eclipse.ditto.policies.service.persistence.TestConstants;
@@ -121,8 +120,6 @@ public abstract class PersistenceActorTestBase {
                 .authorizationContext(
                         AuthorizationModelFactory.newAuthContext(DittoAuthorizationContextType.UNSPECIFIED,
                                 authSubjects))
-                .putHeader(DittoHeaderDefinition.POLICY_ENFORCER_INVALIDATED_PREEMPTIVELY.getKey(),
-                        Boolean.TRUE.toString())
                 .build();
     }
 

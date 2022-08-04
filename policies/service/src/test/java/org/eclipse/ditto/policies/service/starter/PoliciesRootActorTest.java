@@ -16,7 +16,6 @@ import org.eclipse.ditto.base.service.actors.AbstractDittoRootActorTest;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.policies.service.common.config.DittoPoliciesConfig;
 import org.eclipse.ditto.policies.service.common.config.PoliciesConfig;
-import org.eclipse.ditto.policies.service.persistence.serializer.PolicyMongoSnapshotAdapter;
 
 import akka.actor.ActorSystem;
 import akka.actor.Props;
@@ -36,6 +35,6 @@ public final class PoliciesRootActorTest extends AbstractDittoRootActorTest {
         final PoliciesConfig config =
                 DittoPoliciesConfig.of(DefaultScopedConfig.dittoScoped(system.settings().config()));
 
-        return PoliciesRootActor.props(config, new PolicyMongoSnapshotAdapter(), system.deadLetters());
+        return PoliciesRootActor.props(config, system.deadLetters());
     }
 }

@@ -99,7 +99,7 @@ import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConne
 import org.eclipse.ditto.connectivity.service.messaging.AbstractBaseClientActorTest;
 import org.eclipse.ditto.connectivity.service.messaging.TestConstants;
 import org.eclipse.ditto.connectivity.service.messaging.TestConstants.Authorization;
-import org.eclipse.ditto.internal.utils.pubsub.DittoProtocolSub;
+import org.eclipse.ditto.internal.utils.pubsubthings.DittoProtocolSub;
 import org.eclipse.ditto.internal.utils.test.Retry;
 import org.eclipse.ditto.protocol.TopicPath;
 import org.eclipse.ditto.things.model.Attributes;

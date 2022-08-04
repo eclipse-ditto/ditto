@@ -19,7 +19,7 @@ import java.util.regex.Pattern;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.connectivity.api.placeholders.ConnectivityPlaceholders;
+import org.eclipse.ditto.connectivity.service.placeholders.ConnectivityPlaceholders;
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.ConnectionConfigurationInvalidException;
 import org.eclipse.ditto.placeholders.PlaceholderFactory;

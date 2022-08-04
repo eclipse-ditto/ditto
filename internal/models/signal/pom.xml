@@ -27,17 +27,18 @@
     <name>Eclipse Ditto :: Internal :: Models :: Signal</name>
 
     <dependencies>
+        <!-- Testing -->
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-things-model</artifactId>
+            <scope>test</scope>
         </dependency>
-
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-messages-model</artifactId>
+            <scope>test</scope>
         </dependency>
 
-        <!-- Testing -->
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-base-model</artifactId>

@@ -21,15 +21,15 @@ import java.util.function.Predicate;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.base.model.entity.id.EntityId;
+import org.eclipse.ditto.base.model.entity.metadata.Metadata;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
-import org.eclipse.ditto.base.model.entity.id.EntityId;
-import org.eclipse.ditto.base.model.entity.metadata.Metadata;
-import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 
 /**
  * Abstract base class of an event store event.
@@ -104,7 +104,7 @@ public abstract class AbstractEventsourcedEvent<T extends AbstractEventsourcedEv
                 .set(EventsourcedEvent.JsonFields.REVISION, revision, predicate)
                 .set(entityIdFieldDefinition, entityId.toString());
 
-        appendPayloadAndBuild(jsonObjectBuilder, schemaVersion, thePredicate);
+        appendPayload(jsonObjectBuilder, schemaVersion, thePredicate);
         return jsonObjectBuilder.build();
     }
 

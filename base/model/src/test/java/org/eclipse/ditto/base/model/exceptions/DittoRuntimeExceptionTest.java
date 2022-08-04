@@ -29,7 +29,7 @@ public final class DittoRuntimeExceptionTest {
                 .withRedefinedSuperclass()
                 .usingGetClass()
                 .suppress(Warning.NONFINAL_FIELDS)
-                .verify();
+                .verify();  
     }
 
 }

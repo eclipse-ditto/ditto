@@ -12,11 +12,11 @@
  */
 package org.eclipse.ditto.connectivity.service.messaging;
 
-import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.connectivity.model.signals.commands.modify.CloseConnection;
 import org.eclipse.ditto.connectivity.model.signals.commands.modify.CreateConnection;
 import org.eclipse.ditto.connectivity.model.signals.commands.modify.DeleteConnection;
 import org.eclipse.ditto.connectivity.model.signals.commands.modify.OpenConnection;
+import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 
 import akka.actor.AbstractActor;
 import akka.actor.Props;
@@ -28,10 +28,6 @@ import akka.event.DiagnosticLoggingAdapter;
  * allowCreate} is {@code true} the first create command will return success (required to test open/close/delete).
  */
 public class FaultyClientActor extends AbstractActor {
-
-    static final ClientActorPropsFactory faultyClientActorPropsFactory =
-            (connection, connectionActor, proxyActor, actorSystem, dittoHeaders, overwrites) ->
-                    FaultyClientActor.props(true, false);
 
     private final DiagnosticLoggingAdapter log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
     private final boolean allowClose;

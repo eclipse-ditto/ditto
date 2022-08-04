@@ -61,7 +61,8 @@ public final class ThingCreated extends AbstractThingEvent<ThingCreated> impleme
             final DittoHeaders dittoHeaders,
             @Nullable final Metadata metadata) {
 
-        super(TYPE, thing.getEntityId().orElse(null), revision, timestamp, dittoHeaders, metadata);
+        super(TYPE, thing.getEntityId().orElseThrow(() -> new NullPointerException("Thing has no ID!")),
+                revision, timestamp, dittoHeaders, metadata);
         this.thing = thing;
     }
 
@@ -155,7 +156,7 @@ public final class ThingCreated extends AbstractThingEvent<ThingCreated> impleme
     }
 
     @Override
-    protected void appendPayloadAndBuild(final JsonObjectBuilder jsonObjectBuilder,
+    protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder,
             final JsonSchemaVersion schemaVersion, final Predicate<JsonField> thePredicate) {
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         jsonObjectBuilder.set(ThingEvent.JsonFields.THING, thing.toJson(schemaVersion, thePredicate), predicate);

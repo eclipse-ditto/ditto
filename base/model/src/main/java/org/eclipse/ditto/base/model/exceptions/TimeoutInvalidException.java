@@ -20,10 +20,10 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
 
-import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonParsableException;
+import org.eclipse.ditto.json.JsonObject;
 
 /**
  * Thrown when timeout value can not be parsed.
@@ -32,12 +32,12 @@ import org.eclipse.ditto.base.model.json.JsonParsableException;
  */
 @Immutable
 @JsonParsableException(errorCode = TimeoutInvalidException.ERROR_CODE)
-public final class TimeoutInvalidException extends DittoRuntimeException {
+public final class TimeoutInvalidException extends DittoRuntimeException implements GeneralException {
 
     /**
      * Error code of this exception.
      */
-    public static final String ERROR_CODE = "timeout.invalid";
+    public static final String ERROR_CODE = ERROR_CODE_PREFIX + "timeout.invalid";
 
     private static final String DEFAULT_MESSAGE =
             "The timeout <{0}{2}> is not inside its allowed bounds <0{2} - {1}{2}>";

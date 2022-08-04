@@ -25,12 +25,25 @@ import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyLifecycle;
 import org.slf4j.LoggerFactory;
 
+import com.typesafe.config.Config;
+
+import akka.actor.ActorSystem;
+
 /**
  * A {@link org.eclipse.ditto.internal.utils.persistence.SnapshotAdapter} for snapshotting a
  * {@link org.eclipse.ditto.policies.model.Policy}.
  */
 @ThreadSafe
 public final class PolicyMongoSnapshotAdapter extends AbstractMongoSnapshotAdapter<Policy> {
+
+    /**
+     * @param actorSystem the actor system in which to load the extension
+     * @param config the config of the extension.
+     */
+    @SuppressWarnings("unused")
+    public PolicyMongoSnapshotAdapter(final ActorSystem actorSystem, final Config config) {
+        this();
+    }
 
     /**
      * Constructs a new {@code PolicyMongoSnapshotAdapter}.

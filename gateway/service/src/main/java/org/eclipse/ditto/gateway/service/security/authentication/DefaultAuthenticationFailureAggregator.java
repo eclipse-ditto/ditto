@@ -27,7 +27,7 @@ import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.DittoHeadersBuilder;
-import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayAuthenticationFailedException;
+import org.eclipse.ditto.gateway.api.GatewayAuthenticationFailedException;
 
 /**
  * Default implementation of {@link AuthenticationFailureAggregator}.

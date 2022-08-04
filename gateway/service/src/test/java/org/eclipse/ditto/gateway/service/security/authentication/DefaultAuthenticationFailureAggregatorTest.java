@@ -21,8 +21,8 @@ import java.util.List;
 
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.gateway.api.GatewayAuthenticationFailedException;
 import org.eclipse.ditto.jwt.model.JwtInvalidException;
-import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayAuthenticationFailedException;
 import org.junit.Before;
 import org.junit.Test;
 

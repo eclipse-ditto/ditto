@@ -21,7 +21,6 @@ import java.util.Collections;
 
 import org.assertj.core.api.JUnitSoftAssertions;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 
@@ -106,9 +105,9 @@ public final class DefaultScopedConfigTest {
     @Test
     public void getConfigPathReturnsAbsolutePathIfDefaultScopedConfigIsBuiltFromScopedConfig() {
         final Config dittoScopedConfig = DefaultScopedConfig.dittoScoped(testConfig);
-        final DefaultScopedConfig underTest = DefaultScopedConfig.newInstance(dittoScopedConfig, "concierge");
+        final DefaultScopedConfig underTest = DefaultScopedConfig.newInstance(dittoScopedConfig, "gateway");
 
-        softly.assertThat(underTest.getConfigPath()).isEqualTo("ditto.concierge");
+        softly.assertThat(underTest.getConfigPath()).isEqualTo("ditto.gateway");
     }
 
     @Test

@@ -14,9 +14,9 @@ package org.eclipse.ditto.internal.utils.search;
 
 import java.time.Duration;
 
+import org.eclipse.ditto.base.model.exceptions.DittoInternalErrorException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayInternalErrorException;
 import org.eclipse.ditto.internal.utils.akka.actors.AbstractActorWithStashWithTimers;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
@@ -252,7 +252,7 @@ public final class SubscriptionActor extends AbstractActorWithStashWithTimers {
                                     // incorrect protocol from the client side
                                     return SubscriptionProtocolErrorException.of(e, DittoHeaders.empty());
                                 } else {
-                                    return GatewayInternalErrorException.newBuilder().cause(e).build();
+                                    return DittoInternalErrorException.newBuilder().cause(e).build();
                                 }
                             }),
                             DittoHeaders.empty());

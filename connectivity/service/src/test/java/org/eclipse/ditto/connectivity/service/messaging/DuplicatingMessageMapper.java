@@ -17,6 +17,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.stream.LongStream;
 
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.connectivity.api.ExternalMessage;
 import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
 import org.eclipse.ditto.connectivity.model.MappingContext;
@@ -55,6 +56,11 @@ public final class DuplicatingMessageMapper extends AbstractMessageMapper {
                 .mapToObj(i -> delegate.map(message))
                 .flatMap(Collection::stream)
                 .toList();
+    }
+
+    @Override
+    public DittoHeaders getAdditionalInboundHeaders(final ExternalMessage message) {
+        return DittoHeaders.empty();
     }
 
     @Override

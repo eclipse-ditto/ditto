@@ -102,7 +102,7 @@ public interface HealthCheckConfig extends BasicHealthCheckConfig {
             ENABLED("enabled", true),
 
             EXPECTED("expected",
-                    Arrays.asList("policies", "things", "search", "gateway", "connectivity", "concierge"));
+                    Arrays.asList("policies", "things", "search", "gateway", "connectivity"));
 
             private final String path;
             private final Object defaultValue;

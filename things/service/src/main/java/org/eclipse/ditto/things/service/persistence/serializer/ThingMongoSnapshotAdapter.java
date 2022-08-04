@@ -33,7 +33,11 @@ import org.eclipse.ditto.things.model.ThingsModelFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.typesafe.config.Config;
+
 import akka.actor.ActorRef;
+import akka.actor.ActorSystem;
+import akka.cluster.pubsub.DistributedPubSub;
 
 /**
  * A {@link org.eclipse.ditto.internal.utils.persistence.SnapshotAdapter} for snapshotting a
@@ -45,6 +49,15 @@ public final class ThingMongoSnapshotAdapter extends AbstractMongoSnapshotAdapte
     private static final Logger LOGGER = LoggerFactory.getLogger(ThingMongoSnapshotAdapter.class);
 
     private final ActorRef pubSubMediator;
+
+    /**
+     * @param actorSystem the actor system in which to load the extension
+     * @param config the config of the extension.
+     */
+    @SuppressWarnings("unused")
+    public ThingMongoSnapshotAdapter(final ActorSystem actorSystem, final Config config) {
+        this(DistributedPubSub.get(actorSystem).mediator());
+    }
 
     /**
      * Constructs a new {@code ThingMongoSnapshotAdapter}.

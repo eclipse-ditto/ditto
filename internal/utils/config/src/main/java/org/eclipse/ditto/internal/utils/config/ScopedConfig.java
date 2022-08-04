@@ -18,13 +18,13 @@ import java.time.Duration;
 import javax.annotation.concurrent.Immutable;
 
 import com.typesafe.config.Config;
+import com.typesafe.config.ConfigFactory;
 
 /**
  * This extension of {@link com.typesafe.config.Config} knows the path which led to itself.
  * Based on the following example config
  * <pre>
  *    ditto {
- *      concierge {
  *        caches {
  *          ask-timeout = 10s
  *
@@ -40,9 +40,8 @@ import com.typesafe.config.Config;
  *        }
  *
  *        mongodb {
- *          uri = "mongodb://localhost:27017/concierge"
+ *          uri = "mongodb://localhost:27017/things"
  *        }
- *      }
  *    }
  * </pre>
  * a {@code ScopedConfig} with config path {@code caches} would comprise the following:
@@ -61,10 +60,10 @@ import com.typesafe.config.Config;
  *      }
  *    }
  * </pre>
- * A call to method {@link #getConfigPath()} would return {@code "ditto.concierge.caches"}.
+ * A call to method {@link #getConfigPath()} would return {@code "ditto.caches"}.
  * <p>
- *   All get methods will throw a {@link DittoConfigError} if the config at the particular path is missing the value or
- *   if the value has a wrong type.
+ * All get methods will throw a {@link DittoConfigError} if the config at the particular path is missing the value or
+ * if the value has a wrong type.
  * </p>
  */
 @Immutable
@@ -74,6 +73,16 @@ public interface ScopedConfig extends Config, WithConfigPath {
      * The {@code ditto} "root" scope used in most of the configurations in Eclipse Ditto.
      */
     String DITTO_SCOPE = "ditto";
+
+    String DITTO_EXTENSIONS_SCOPE = "ditto.extensions";
+
+    static Config getOrEmpty(final Config config, final String path) {
+        return config.hasPath(path) ? config.getConfig(path) : ConfigFactory.empty();
+    }
+
+    static Config dittoExtension(final Config config) {
+        return getOrEmpty(config, DITTO_EXTENSIONS_SCOPE);
+    }
 
     /**
      * Same as {@link #getDuration(String)} but with the guarantee that the returned Duration is positive.

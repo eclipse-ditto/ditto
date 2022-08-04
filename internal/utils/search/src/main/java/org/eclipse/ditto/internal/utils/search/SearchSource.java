@@ -21,26 +21,26 @@ import java.util.function.Consumer;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.json.JsonArray;
-import org.eclipse.ditto.json.JsonCollectors;
-import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.json.JsonFieldSelector;
-import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.base.model.exceptions.DittoInternalErrorException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.things.model.Thing;
-import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.internal.utils.akka.controlflow.ResumeSource;
 import org.eclipse.ditto.internal.utils.akka.controlflow.ResumeSourceBuilder;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLogger;
 import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
-import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayInternalErrorException;
+import org.eclipse.ditto.json.JsonArray;
+import org.eclipse.ditto.json.JsonCollectors;
+import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonFieldSelector;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.things.model.Thing;
+import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingNotAccessibleException;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThing;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThingResponse;
-import org.eclipse.ditto.thingsearch.model.signals.commands.query.StreamThings;
-import org.eclipse.ditto.thingsearch.model.signals.events.ThingsOutOfSync;
+import org.eclipse.ditto.thingsearch.api.commands.sudo.StreamThings;
+import org.eclipse.ditto.thingsearch.api.events.ThingsOutOfSync;
 
 import akka.NotUsed;
 import akka.actor.ActorRef;
@@ -63,7 +63,7 @@ public final class SearchSource {
     private static final ThreadSafeDittoLogger LOGGER = DittoLoggerFactory.getThreadSafeLogger(SearchSource.class);
 
     private final ActorRef pubSubMediator;
-    private final ActorSelection conciergeForwarder;
+    private final ActorSelection commandForwarder;
     private final Duration thingsAskTimeout;
     private final Duration searchAskTimeout;
     @Nullable private final JsonFieldSelector fields;
@@ -73,7 +73,7 @@ public final class SearchSource {
     private final String lastThingId;
 
     SearchSource(final ActorRef pubSubMediator,
-            final ActorSelection conciergeForwarder,
+            final ActorSelection commandForwarder,
             final Duration thingsAskTimeout,
             final Duration searchAskTimeout,
             @Nullable final JsonFieldSelector fields,
@@ -81,7 +81,7 @@ public final class SearchSource {
             final StreamThings streamThings,
             final String lastThingId) {
         this.pubSubMediator = pubSubMediator;
-        this.conciergeForwarder = conciergeForwarder;
+        this.commandForwarder = commandForwarder;
         this.thingsAskTimeout = thingsAskTimeout;
         this.searchAskTimeout = searchAskTimeout;
         this.fields = fields;
@@ -147,14 +147,14 @@ public final class SearchSource {
         } else {
             return Optional.of(DittoRuntimeException.asDittoRuntimeException(error, e -> {
                 LOGGER.withCorrelationId(streamThings).error("Unexpected error", e);
-                return GatewayInternalErrorException.newBuilder().build();
+                return DittoInternalErrorException.newBuilder().build();
             }));
         }
     }
 
     private Source<Pair<String, JsonObject>, NotUsed> resume(final String lastThingId) {
         return streamThingsFrom(lastThingId)
-                .mapAsync(1, streamThings -> Patterns.ask(conciergeForwarder, streamThings, searchAskTimeout))
+                .mapAsync(1, streamThings -> Patterns.ask(commandForwarder, streamThings, searchAskTimeout))
                 .via(expectMsgClass(SourceRef.class))
                 .flatMapConcat(SourceRef::source)
                 .flatMapConcat(thingId -> retrieveThingForElement((String) thingId));
@@ -215,7 +215,7 @@ public final class SearchSource {
                 .build();
 
         final CompletionStage<Object> responseFuture =
-                Patterns.ask(conciergeForwarder, retrieveThing, thingsAskTimeout);
+                Patterns.ask(commandForwarder, retrieveThing, thingsAskTimeout);
 
         return Source.completionStage(responseFuture)
                 .via(expectMsgClass(RetrieveThingResponse.class))
@@ -231,8 +231,8 @@ public final class SearchSource {
                 .flatMapConcat(element -> {
                     if (clazz.isInstance(element)) {
                         return Source.single(clazz.cast(element));
-                    } else if (element instanceof Throwable) {
-                        return Source.failed((Throwable) element);
+                    } else if (element instanceof Throwable throwable) {
+                        return Source.failed(throwable);
                     } else {
                         final String message =
                                 String.format("Expect <%s>, got <%s>", clazz.getCanonicalName(), element);

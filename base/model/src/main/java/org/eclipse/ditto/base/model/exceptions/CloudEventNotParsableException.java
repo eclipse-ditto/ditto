@@ -19,10 +19,10 @@
  import javax.annotation.concurrent.Immutable;
  import javax.annotation.concurrent.NotThreadSafe;
 
- import org.eclipse.ditto.json.JsonObject;
  import org.eclipse.ditto.base.model.common.HttpStatus;
  import org.eclipse.ditto.base.model.headers.DittoHeaders;
  import org.eclipse.ditto.base.model.json.JsonParsableException;
+ import org.eclipse.ditto.json.JsonObject;
 
  /**
   * Thrown if a request with an unparsable CloudEvent is made.
@@ -31,12 +31,12 @@
   */
  @Immutable
  @JsonParsableException(errorCode = CloudEventNotParsableException.ERROR_CODE)
- public final class CloudEventNotParsableException extends DittoRuntimeException {
+ public final class CloudEventNotParsableException extends DittoRuntimeException implements GeneralException {
 
      /**
       * Error code of this exception.
       */
-     public static final String ERROR_CODE = "cloudevent.unparsable";
+     public static final String ERROR_CODE = ERROR_CODE_PREFIX + "cloudevent.unparsable";
 
      private static final String DEFAULT_MESSAGE = "Unable to parse as Cloud Event.";
      private static final String MESSAGE_PATTERN = "Unable to parse as Cloud Event because of: <{0}>";

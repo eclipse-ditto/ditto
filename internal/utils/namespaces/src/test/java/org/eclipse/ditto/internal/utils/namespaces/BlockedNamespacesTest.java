@@ -64,7 +64,7 @@ public final class BlockedNamespacesTest {
 
     @Test
     public void startWithMatchingRole() throws Exception {
-        testCRUD(BlockedNamespaces.create(DistributedData.createConfig(actorSystem, "replicator", "ddata-aware"),
+        testCRUD(BlockedNamespaces.create(DistributedData.createConfig(actorSystem, "replicator", "blocked-namespaces-aware"),
                 actorSystem), actorSystem);
     }
 

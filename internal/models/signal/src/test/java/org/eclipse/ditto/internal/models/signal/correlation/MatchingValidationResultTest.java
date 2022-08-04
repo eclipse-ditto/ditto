@@ -23,15 +23,12 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 import java.util.Optional;
 import java.util.UUID;
 
-import org.assertj.core.api.Assertions;
 import org.eclipse.ditto.base.model.entity.id.EntityId;
-import org.eclipse.ditto.base.model.entity.type.EntityType;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
@@ -47,7 +44,7 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 public final class MatchingValidationResultTest {
 
     private static final String DETAIL_MESSAGE = "My detail message.";
-    private static final EntityId CONNECTION_ID = EntityId.of(EntityType.of("connection"), UUID.randomUUID().toString());
+    private static final String CONNECTION_ID = UUID.randomUUID().toString();
 
     @Mock private Command<?> command;
     @Mock private CommandResponse<?> commandResponse;
@@ -148,18 +145,6 @@ public final class MatchingValidationResultTest {
         assertThatIllegalArgumentException()
                 .isThrownBy(() -> MatchingValidationResult.failure(command, commandResponse, "   "))
                 .withMessage("The detailMessage must not be blank.")
-                .withNoCause();
-    }
-
-    @Test
-    public void getFailureInstanceWithInvalidConnectionIdInCommandResponseHeadersThrowsException() {
-        Mockito.when(commandResponse.getDittoHeaders())
-                .thenReturn(DittoHeaders.newBuilder()
-                        .putHeader(DittoHeaderDefinition.CONNECTION_ID.getKey(), "")
-                        .build());
-
-        Assertions.assertThatExceptionOfType(IllegalArgumentException.class)
-                .isThrownBy(() -> MatchingValidationResult.failure(command, commandResponse, DETAIL_MESSAGE))
                 .withNoCause();
     }
 

@@ -25,6 +25,28 @@ let environments = {
     usernamePassword: 'ditto:ditto',
     usernamePasswordDevOps: 'devops:foobar',
     useBasicAuth: true,
+    useDittoPreAuthenticatedAuth: false,
+    dittoPreAuthenticatedUsername: null,
+  },
+  local_ditto_ide: {
+    api_uri: 'http://localhost:8080',
+    solutionId: null,
+    bearer: null,
+    usernamePassword: null,
+    usernamePasswordDevOps: null,
+    useBasicAuth: false,
+    useDittoPreAuthenticatedAuth: true,
+    dittoPreAuthenticatedUsername: "pre:ditto",
+  },
+  ditto_sandbox: {
+    api_uri: 'https://ditto.eclipseprojects.io',
+    solutionId: null,
+    bearer: null,
+    usernamePassword: "ditto:ditto",
+    usernamePasswordDevOps: null,
+    useBasicAuth: true,
+    useDittoPreAuthenticatedAuth: false,
+    dittoPreAuthenticatedUsername: null,
   },
 };
 

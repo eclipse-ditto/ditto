@@ -33,6 +33,7 @@ import org.eclipse.ditto.base.model.signals.commands.CommandResponseJsonDeserial
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
+import org.eclipse.ditto.json.JsonValue;
 
 /**
  * Response to a {@link CleanupPersistence} command.
@@ -103,6 +104,17 @@ public final class CleanupPersistenceResponse extends AbstractCommandResponse<Cl
     @Override
     public EntityId getEntityId() {
         return entityId;
+    }
+
+    @Override
+    public CleanupPersistenceResponse setEntity(final JsonValue entity) {
+        // nothing to set - there is no entity in this response
+        return this;
+    }
+
+    @Override
+    public JsonValue getEntity(final JsonSchemaVersion schemaVersion) {
+        return JsonValue.nullLiteral();
     }
 
     @Override

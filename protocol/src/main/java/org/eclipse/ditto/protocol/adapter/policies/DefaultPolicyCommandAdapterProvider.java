@@ -16,16 +16,16 @@ import java.util.Arrays;
 import java.util.List;
 
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
-import org.eclipse.ditto.protocol.adapter.Adapter;
-import org.eclipse.ditto.protocol.HeaderTranslator;
-import org.eclipse.ditto.protocol.adapter.provider.PolicyCommandAdapterProvider;
+import org.eclipse.ditto.base.model.headers.translator.HeaderTranslator;
 import org.eclipse.ditto.base.model.signals.ErrorRegistry;
+import org.eclipse.ditto.policies.model.signals.announcements.PolicyAnnouncement;
 import org.eclipse.ditto.policies.model.signals.commands.PolicyErrorResponse;
 import org.eclipse.ditto.policies.model.signals.commands.modify.PolicyModifyCommand;
 import org.eclipse.ditto.policies.model.signals.commands.modify.PolicyModifyCommandResponse;
 import org.eclipse.ditto.policies.model.signals.commands.query.PolicyQueryCommand;
 import org.eclipse.ditto.policies.model.signals.commands.query.PolicyQueryCommandResponse;
-import org.eclipse.ditto.policies.model.signals.announcements.PolicyAnnouncement;
+import org.eclipse.ditto.protocol.adapter.Adapter;
+import org.eclipse.ditto.protocol.adapter.provider.PolicyCommandAdapterProvider;
 
 /**
  * Instantiates and provides {@link Adapter}s used to process Policy commands, responses and errors and announcements.

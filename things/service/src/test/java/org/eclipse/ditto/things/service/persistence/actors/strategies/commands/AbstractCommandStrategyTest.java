@@ -24,6 +24,7 @@ import java.util.function.Consumer;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.base.model.common.DittoSystemProperties;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
@@ -37,7 +38,6 @@ import org.eclipse.ditto.internal.utils.persistentactors.results.Result;
 import org.eclipse.ditto.internal.utils.persistentactors.results.ResultVisitor;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingId;
-import org.eclipse.ditto.things.model.signals.commands.ThingCommandSizeValidator;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 import org.eclipse.ditto.things.model.signals.events.ThingModifiedEvent;
 import org.junit.BeforeClass;
@@ -52,7 +52,7 @@ public abstract class AbstractCommandStrategyTest {
     protected static final long NEXT_REVISION = 42L;
 
     protected static final long THING_SIZE_LIMIT_BYTES = Long.parseLong(
-            System.getProperty(ThingCommandSizeValidator.DITTO_LIMITS_THINGS_MAX_SIZE_BYTES, "-1"));
+            System.getProperty(DittoSystemProperties.DITTO_LIMITS_THINGS_MAX_SIZE_BYTES, "-1"));
 
     protected static DittoDiagnosticLoggingAdapter logger;
 

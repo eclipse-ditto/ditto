@@ -18,8 +18,8 @@ import java.util.List;
 
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
-import org.eclipse.ditto.internal.models.signal.SignalInformationPoint;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 
@@ -184,9 +184,9 @@ public final class ResponseCollectorActor extends AbstractActor {
         }
 
         private static boolean isLiveResponse(final CommandResponse<?> response) {
-            return SignalInformationPoint.isMessageCommandResponse(response) ||
-                    SignalInformationPoint.isThingCommandResponse(response) &&
-                            SignalInformationPoint.isChannelLive(response);
+            return CommandResponse.isMessageCommandResponse(response) ||
+                    CommandResponse.isThingCommandResponse(response) &&
+                            Signal.isChannelLive(response);
         }
 
     }

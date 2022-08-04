@@ -53,7 +53,7 @@ import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.thingsearch.api.SearchNamespaceReportResult;
 import org.eclipse.ditto.thingsearch.api.UpdateReason;
-import org.eclipse.ditto.thingsearch.api.commands.sudo.UpdateThing;
+import org.eclipse.ditto.thingsearch.api.commands.sudo.SudoUpdateThing;
 import org.eclipse.ditto.thingsearch.service.common.config.BackgroundSyncConfig;
 import org.eclipse.ditto.thingsearch.service.common.config.DefaultBackgroundSyncConfig;
 import org.eclipse.ditto.thingsearch.service.common.model.ResultList;
@@ -182,7 +182,7 @@ public final class BackgroundSyncActorTest {
             thenRespondWithPersistedThingsStream(pubSub,
                     List.of(createStreamedSnapshot(THING_ID, persistedRevision + 1)));
             expectSyncActorToRequestThingUpdatesInSearch(thingsUpdater,
-                    List.of(UpdateThing.of(THING_ID, true, false, UpdateReason.BACKGROUND_SYNC, HEADERS)));
+                    List.of(SudoUpdateThing.of(THING_ID, true, false, UpdateReason.BACKGROUND_SYNC, HEADERS)));
 
             expectSyncActorToBeUpWithWarning(underTest, this);
 
@@ -214,14 +214,14 @@ public final class BackgroundSyncActorTest {
             expectSyncActorToStartStreaming(pubSub);
             thenRespondWithPersistedThingsStream(pubSub, streamedSnapshots);
             expectSyncActorToRequestThingUpdatesInSearch(thingsUpdater,
-                    List.of(UpdateThing.of(THING_ID, true, false, UpdateReason.BACKGROUND_SYNC, HEADERS)));
+                    List.of(SudoUpdateThing.of(THING_ID, true, false, UpdateReason.BACKGROUND_SYNC, HEADERS)));
 
             // second synchronization stream
             whenSearchPersistenceHasIndexedThings(List.of(indexedThingMetadata));
             expectSyncActorToStartStreaming(pubSub, backgroundSyncConfig.getIdleTimeout());
             thenRespondWithPersistedThingsStream(pubSub, streamedSnapshots);
             expectSyncActorToRequestThingUpdatesInSearch(thingsUpdater,
-                    List.of(UpdateThing.of(THING_ID, true, false, UpdateReason.BACKGROUND_SYNC, HEADERS)));
+                    List.of(SudoUpdateThing.of(THING_ID, true, false, UpdateReason.BACKGROUND_SYNC, HEADERS)));
 
             // third synchronization stream
             whenSearchPersistenceHasIndexedThings(List.of(persistedThingMetadata));
@@ -257,14 +257,14 @@ public final class BackgroundSyncActorTest {
             expectSyncActorToStartStreaming(pubSub);
             thenRespondWithPersistedThingsStream(pubSub, List.of(createStreamedSnapshot(THING_ID, persistedRevision)));
             expectSyncActorToRequestThingUpdatesInSearch(thingsUpdater, List.of(
-                    UpdateThing.of(THING_ID, true, false, UpdateReason.BACKGROUND_SYNC, HEADERS)));
+                    SudoUpdateThing.of(THING_ID, true, false, UpdateReason.BACKGROUND_SYNC, HEADERS)));
 
             // second synchronization stream
             whenSearchPersistenceHasIndexedThings(List.of(nextThingMetadata));
             expectSyncActorToStartStreaming(pubSub, backgroundSyncConfig.getIdleTimeout());
             thenRespondWithPersistedThingsStream(pubSub, List.of(createStreamedSnapshot(THING_ID, nextRevision)));
             expectSyncActorToRequestThingUpdatesInSearch(thingsUpdater, List.of(
-                    UpdateThing.of(THING_ID, true, false, UpdateReason.BACKGROUND_SYNC, HEADERS)));
+                    SudoUpdateThing.of(THING_ID, true, false, UpdateReason.BACKGROUND_SYNC, HEADERS)));
 
             // expect health to recover after successful sync
             expectSyncActorToBeUpAndHealthy(underTest, this);
@@ -311,23 +311,23 @@ public final class BackgroundSyncActorTest {
 
     private void expectSyncActorToRequestThingUpdatesInSearch(final TestKit thingsUpdater) {
         expectSyncActorToRequestThingUpdatesInSearch(thingsUpdater, List.of(
-                UpdateThing.of(KNOWN_IDs.get(0), true, false, UpdateReason.BACKGROUND_SYNC, HEADERS),
-                UpdateThing.of(KNOWN_IDs.get(1), true, false, UpdateReason.BACKGROUND_SYNC, HEADERS),
-                UpdateThing.of(KNOWN_IDs.get(2), true, false, UpdateReason.BACKGROUND_SYNC, HEADERS),
-                UpdateThing.of(KNOWN_IDs.get(3), true, false, UpdateReason.BACKGROUND_SYNC, HEADERS)
+                SudoUpdateThing.of(KNOWN_IDs.get(0), true, false, UpdateReason.BACKGROUND_SYNC, HEADERS),
+                SudoUpdateThing.of(KNOWN_IDs.get(1), true, false, UpdateReason.BACKGROUND_SYNC, HEADERS),
+                SudoUpdateThing.of(KNOWN_IDs.get(2), true, false, UpdateReason.BACKGROUND_SYNC, HEADERS),
+                SudoUpdateThing.of(KNOWN_IDs.get(3), true, false, UpdateReason.BACKGROUND_SYNC, HEADERS)
         ));
     }
 
     private void expectSyncActorToRequestThingUpdatesInSearch(final TestKit thingsUpdater,
-            final List<UpdateThing> commands) {
+            final List<SudoUpdateThing> commands) {
         commands.forEach(command -> {
             thingsUpdater.expectMsg(command);
             thingsUpdater.reply(toAcknowledgement(command));
         });
     }
 
-    private Acknowledgement toAcknowledgement(final UpdateThing updateThing) {
-        return Acknowledgement.of(DittoAcknowledgementLabel.SEARCH_PERSISTED, updateThing.getEntityId(), HttpStatus.OK,
+    private Acknowledgement toAcknowledgement(final SudoUpdateThing sudoUpdateThing) {
+        return Acknowledgement.of(DittoAcknowledgementLabel.SEARCH_PERSISTED, sudoUpdateThing.getEntityId(), HttpStatus.OK,
                 DittoHeaders.empty());
     }
 

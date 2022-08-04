@@ -18,6 +18,7 @@ import org.eclipse.ditto.base.service.config.ServiceSpecificConfig;
 import org.eclipse.ditto.connectivity.service.config.mapping.MappingConfig;
 import org.eclipse.ditto.internal.models.acks.config.AcknowledgementConfig;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
+import org.eclipse.ditto.internal.utils.config.KnownConfigValue;
 import org.eclipse.ditto.internal.utils.health.config.WithHealthCheckConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.WithMongoDbConfig;
 import org.eclipse.ditto.internal.utils.persistence.operations.WithPersistenceOperationsConfig;
@@ -97,6 +98,32 @@ public interface ConnectivityConfig extends ServiceSpecificConfig, WithHealthChe
      */
     static ConnectivityConfig of(final Config config) {
         return DittoConnectivityConfig.of(DefaultScopedConfig.dittoScoped(config));
+    }
+
+    /**
+     * An enumeration of the known config path expressions and their associated default values for
+     * {@code ConnectivityConfig}.
+     */
+    enum ConnectivityConfigValue implements KnownConfigValue {
+        ;
+        private final String path;
+        private final Object defaultValue;
+
+        ConnectivityConfigValue(final String thePath, final Object theDefaultValue) {
+            path = thePath;
+            defaultValue = theDefaultValue;
+        }
+
+        @Override
+        public Object getDefaultValue() {
+            return defaultValue;
+        }
+
+        @Override
+        public String getConfigPath() {
+            return path;
+        }
+
     }
 
 }

@@ -106,6 +106,11 @@ final class WrappingMessageMapper implements MessageMapper {
     }
 
     @Override
+    public DittoHeaders getAdditionalInboundHeaders(final ExternalMessage message) {
+        return delegate.getAdditionalInboundHeaders(message);
+    }
+
+    @Override
     public List<ExternalMessage> map(final Adaptable adaptable) {
         final var externalMessages = delegate.map(adaptable);
         checkMaxMappedMessagesLimit(externalMessages, outboundMessageLimit, adaptable.getDittoHeaders());
@@ -126,7 +131,7 @@ final class WrappingMessageMapper implements MessageMapper {
 
         if (mappingResult.size() > maxMappedMessages) {
             final var descFormat = "The payload mapping '%s' produced %d messages, which exceeds the limit of %d.";
-            throw MessageMappingFailedException.newBuilder((String) null)
+            throw MessageMappingFailedException.newBuilder(null)
                     .message("The number of messages produced by the payload mapping exceeded the limits.")
                     .dittoHeaders(dittoHeaders)
                     .description(String.format(descFormat, getId(), mappingResult.size(), maxMappedMessages))

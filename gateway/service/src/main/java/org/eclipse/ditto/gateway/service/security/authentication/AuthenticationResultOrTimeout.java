@@ -21,7 +21,7 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.ThreadSafe;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayAuthenticationProviderUnavailableException;
+import org.eclipse.ditto.gateway.api.GatewayAuthenticationProviderUnavailableException;
 
 /**
  * Waits for the future holding an {@link AuthenticationResult} and returns a failed authentication result with

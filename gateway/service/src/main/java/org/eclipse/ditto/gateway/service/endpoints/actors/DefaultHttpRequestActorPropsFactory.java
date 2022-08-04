@@ -14,11 +14,14 @@ package org.eclipse.ditto.gateway.service.endpoints.actors;
 
 import java.util.concurrent.CompletableFuture;
 
+import org.eclipse.ditto.base.model.headers.translator.HeaderTranslator;
 import org.eclipse.ditto.gateway.service.util.config.endpoints.CommandConfig;
 import org.eclipse.ditto.gateway.service.util.config.endpoints.HttpConfig;
-import org.eclipse.ditto.protocol.HeaderTranslator;
+
+import com.typesafe.config.Config;
 
 import akka.actor.ActorRef;
+import akka.actor.ActorSystem;
 import akka.actor.Props;
 import akka.http.javadsl.model.HttpRequest;
 import akka.http.javadsl.model.HttpResponse;
@@ -28,21 +31,23 @@ import akka.http.javadsl.model.HttpResponse;
  */
 public final class DefaultHttpRequestActorPropsFactory implements HttpRequestActorPropsFactory {
 
+    private DefaultHttpRequestActorPropsFactory(final ActorSystem actorSystem, final Config config) {
+        //NoOp Constructor to match extension instantiation
+    }
+
     @Override
     public Props props(final ActorRef proxyActor, final HeaderTranslator headerTranslator,
             final HttpRequest httpRequest,
             final CompletableFuture<HttpResponse> httpResponseFuture,
             final HttpConfig httpConfig,
-            final CommandConfig commandConfig,
-            final ActorRef connectivityShardRegionProxy) {
+            final CommandConfig commandConfig) {
 
         return HttpRequestActor.props(proxyActor,
                 headerTranslator,
                 httpRequest,
                 httpResponseFuture,
                 httpConfig,
-                commandConfig,
-                connectivityShardRegionProxy);
+                commandConfig);
     }
 
 }

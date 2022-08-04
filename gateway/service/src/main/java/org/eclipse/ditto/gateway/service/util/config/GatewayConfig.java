@@ -95,4 +95,5 @@ public interface GatewayConfig extends ServiceSpecificConfig, WithProtocolConfig
      * @return the config.
      */
     CloudEventsConfig getCloudEventsConfig();
+
 }

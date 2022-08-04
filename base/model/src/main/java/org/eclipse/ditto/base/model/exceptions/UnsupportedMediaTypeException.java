@@ -30,12 +30,12 @@
   */
  @Immutable
  @JsonParsableException(errorCode = UnsupportedMediaTypeException.ERROR_CODE)
- public final class UnsupportedMediaTypeException extends DittoRuntimeException {
+ public final class UnsupportedMediaTypeException extends DittoRuntimeException implements GeneralException {
 
      /**
       * Error code of this exception.
       */
-     public static final String ERROR_CODE = "mediatype.unsupported";
+     public static final String ERROR_CODE = ERROR_CODE_PREFIX + "mediatype.unsupported";
 
      private static final String DEFAULT_MESSAGE = "The Media-Type is not supported.";
      private static final String MESSAGE_PATTERN = "The Media-Type <{0}> is not supported for this resource.";
