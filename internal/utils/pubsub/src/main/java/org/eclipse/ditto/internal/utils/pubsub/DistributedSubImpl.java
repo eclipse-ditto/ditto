@@ -30,7 +30,6 @@ import org.eclipse.ditto.internal.utils.pubsub.api.Subscribe;
 import org.eclipse.ditto.internal.utils.pubsub.api.Unsubscribe;
 
 import akka.actor.ActorRef;
-import akka.cluster.ddata.Replicator;
 import akka.pattern.Patterns;
 
 /**
@@ -42,13 +41,11 @@ final class DistributedSubImpl implements DistributedSub {
     final ActorRef subSupervisor;
 
     private final DistributedDataConfig config;
-    private final Replicator.WriteConsistency writeConsistency;
     private final long ddataDelayInMillis;
 
     DistributedSubImpl(final DistributedDataConfig config, final ActorRef subSupervisor) {
         this.config = config;
         this.subSupervisor = subSupervisor;
-        writeConsistency = config.getSubscriptionWriteConsistency();
         ddataDelayInMillis = config.getSubscriptionDelay().toMillis();
     }
 
@@ -56,11 +53,12 @@ final class DistributedSubImpl implements DistributedSub {
     public CompletionStage<SubAck> subscribeWithFilterAndGroup(final Collection<String> topics,
             final ActorRef subscriber,
             @Nullable final Predicate<Collection<String>> filter,
-            @Nullable final String group) {
+            @Nullable final String group,
+            final boolean resubscribe) {
         if (group != null) {
             checkNotEmpty(group, "group");
         }
-        final Subscribe subscribe = Subscribe.of(topics, subscriber, writeConsistency, true, filter, group);
+        final Subscribe subscribe = Subscribe.of(topics, subscriber, true, filter, group, resubscribe);
         final CompletionStage<SubAck> subAckFuture = askSubSupervisor(subscribe);
 
         if (ddataDelayInMillis <= 0) {
@@ -78,7 +76,7 @@ final class DistributedSubImpl implements DistributedSub {
     @Override
     public CompletionStage<SubAck> unsubscribeWithAck(final Collection<String> topics,
             final ActorRef subscriber) {
-        return askSubSupervisor(Unsubscribe.of(topics, subscriber, writeConsistency, true));
+        return askSubSupervisor(Unsubscribe.of(topics, subscriber, true));
     }
 
     private CompletionStage<SubAck> askSubSupervisor(final Request request) {
@@ -88,24 +86,19 @@ final class DistributedSubImpl implements DistributedSub {
 
     @Override
     public void subscribeWithoutAck(final Collection<String> topics, final ActorRef subscriber) {
-        final Request request =
-                Subscribe.of(topics, subscriber,
-                        (Replicator.WriteConsistency) Replicator.writeLocal(), false, null);
+        final Request request = Subscribe.of(topics, subscriber, false, null);
         subSupervisor.tell(request, subscriber);
     }
 
     @Override
     public void unsubscribeWithoutAck(final Collection<String> topics, final ActorRef subscriber) {
-        final Request request =
-                Unsubscribe.of(topics, subscriber,
-                        (Replicator.WriteConsistency) Replicator.writeLocal(), false);
+        final Request request = Unsubscribe.of(topics, subscriber, false);
         subSupervisor.tell(request, subscriber);
     }
 
     @Override
     public void removeSubscriber(final ActorRef subscriber) {
-        final Request request =
-                RemoveSubscriber.of(subscriber, (Replicator.WriteConsistency) Replicator.writeLocal(), false);
+        final Request request = RemoveSubscriber.of(subscriber, false);
         subSupervisor.tell(request, subscriber);
     }
 

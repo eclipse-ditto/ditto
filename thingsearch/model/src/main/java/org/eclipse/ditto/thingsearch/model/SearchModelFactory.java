@@ -16,11 +16,9 @@ import static java.util.Objects.requireNonNull;
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 import static org.eclipse.ditto.base.model.exceptions.DittoJsonException.wrapJsonRuntimeException;
 
-import java.time.Instant;
 import java.util.Collections;
 import java.util.List;
 
-import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonArray;
@@ -54,22 +52,7 @@ public final class SearchModelFactory {
      * @throws NullPointerException if {@code items} is {@code null}.
      */
     public static SearchResult newSearchResult(final JsonArray items, final long nextPageOffset) {
-        return ImmutableSearchResult.of(items, nextPageOffset, null, null);
-    }
-
-    /**
-     * Creates a new {@link SearchResult}.
-     *
-     * @param items the items.
-     * @param nextPageOffset the offset of the next page or {@link org.eclipse.ditto.thingsearch.model.SearchResult#NO_NEXT_PAGE}.
-     * @param lastModified the last modified timestamp.
-     * @return the new immutable search results object.
-     * @throws NullPointerException if {@code items} is {@code null}.
-     * @since 3.0.0
-     */
-    public static SearchResult newSearchResult(final JsonArray items, final long nextPageOffset,
-            @Nullable final Instant lastModified) {
-        return ImmutableSearchResult.of(items, nextPageOffset, null, lastModified);
+        return ImmutableSearchResult.of(items, nextPageOffset, null);
     }
 
     /**

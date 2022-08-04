@@ -18,7 +18,7 @@ import java.util.concurrent.CompletableFuture;
 import javax.annotation.concurrent.ThreadSafe;
 
 import org.eclipse.ditto.base.model.common.BinaryValidationResult;
-import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayAuthenticationFailedException;
+import org.eclipse.ditto.gateway.api.GatewayAuthenticationFailedException;
 import org.eclipse.ditto.jwt.model.JsonWebToken;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

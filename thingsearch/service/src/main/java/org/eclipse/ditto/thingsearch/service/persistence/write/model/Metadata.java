@@ -33,9 +33,9 @@ import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 import org.eclipse.ditto.thingsearch.api.UpdateReason;
-import org.eclipse.ditto.thingsearch.api.commands.sudo.UpdateThingResponse;
 
 import akka.actor.ActorRef;
+import akka.actor.ActorSelection;
 
 /**
  * Data class holding information about a "thingEntities" database record.
@@ -49,7 +49,7 @@ public final class Metadata {
     @Nullable private final Instant modified;
     private final List<ThingEvent<?>> events;
     private final List<StartedTimer> timers;
-    private final List<ActorRef> senders;
+    private final List<ActorSelection> ackRecipients;
     private final boolean invalidateThing;
     private final boolean invalidatePolicy;
     private final List<UpdateReason> updateReasons;
@@ -61,7 +61,7 @@ public final class Metadata {
             @Nullable final Instant modified,
             final List<ThingEvent<?>> events,
             final Collection<StartedTimer> timers,
-            final Collection<ActorRef> senders,
+            final Collection<ActorSelection> ackRecipients,
             final boolean invalidateThing,
             final boolean invalidatePolicy,
             final Collection<UpdateReason> updateReasons) {
@@ -73,7 +73,7 @@ public final class Metadata {
         this.modified = modified;
         this.events = events;
         this.timers = List.copyOf(timers);
-        this.senders = List.copyOf(senders);
+        this.ackRecipients = List.copyOf(ackRecipients);
         this.invalidateThing = invalidateThing;
         this.invalidatePolicy = invalidatePolicy;
         this.updateReasons = List.copyOf(updateReasons);
@@ -101,14 +101,14 @@ public final class Metadata {
     }
 
     /**
-     * Create an Metadata object retaining the original sender of an event.
+     * Create an Metadata object retaining the original ackRecipient of an event.
      *
      * @param thingId the Thing ID.
      * @param thingRevision the Thing revision.
      * @param policyId the Policy ID if the Thing has one.
      * @param policyRevision the Policy revision if the Thing has a policy, or null if it does not.
      * @param timer an optional timer measuring the search updater's consistency lag.
-     * @param sender the sender.
+     * @param ackRecipient the ackRecipient.
      * @return the new Metadata object.
      */
     public static Metadata of(final ThingId thingId,
@@ -117,15 +117,15 @@ public final class Metadata {
             @Nullable final Long policyRevision,
             final List<ThingEvent<?>> events,
             @Nullable final StartedTimer timer,
-            @Nullable final ActorRef sender) {
+            @Nullable final ActorSelection ackRecipient) {
 
         return new Metadata(thingId, thingRevision, policyId, policyRevision, null, events,
                 null != timer ? List.of(timer) : List.of(),
-                null != sender ? List.of(sender) : List.of(), false, false, List.of(UpdateReason.UNKNOWN));
+                null != ackRecipient ? List.of(ackRecipient) : List.of(), false, false, List.of(UpdateReason.UNKNOWN));
     }
 
     /**
-     * Create an Metadata object retaining the original senders of an event.
+     * Create an Metadata object retaining the original ackRecipient of an event.
      *
      * @param thingId the Thing ID.
      * @param thingRevision the Thing revision.
@@ -134,7 +134,7 @@ public final class Metadata {
      * @param modified the timestamp of the last change incorporated into the search index, or null if not known.
      * @param events the events included in the metadata causing the search update.
      * @param timers the timers measuring the search updater's consistency lag.
-     * @param senders the senders.
+     * @param ackRecipient the ackRecipient.
      * @param updateReasons the update reasons.
      * @return the new Metadata object.
      */
@@ -145,10 +145,10 @@ public final class Metadata {
             @Nullable final Instant modified,
             final List<ThingEvent<?>> events,
             final Collection<StartedTimer> timers,
-            final Collection<ActorRef> senders,
+            final Collection<ActorSelection> ackRecipient,
             final Collection<UpdateReason> updateReasons) {
 
-        return new Metadata(thingId, thingRevision, policyId, policyRevision, modified, events, timers, senders,
+        return new Metadata(thingId, thingRevision, policyId, policyRevision, modified, events, timers, ackRecipient,
                 false, false, updateReasons);
     }
 
@@ -186,19 +186,6 @@ public final class Metadata {
     }
 
     /**
-     * Recover the metadata from an UpdateThingResponse.
-     *
-     * @param updateThingResponse the response.
-     * @return the metadata.
-     */
-    public static Metadata fromResponse(final UpdateThingResponse updateThingResponse) {
-        return of(updateThingResponse.getThingId(), updateThingResponse.getThingRevision(),
-                updateThingResponse.getPolicyId().orElse(null),
-                updateThingResponse.getPolicyRevision().orElse(null),
-                null);
-    }
-
-    /**
      * Create a copy of this object containing only the IDs and revisions of the thing and policy.
      *
      * @return the exported metadata.
@@ -215,7 +202,7 @@ public final class Metadata {
      * @return the copy.
      */
     public Metadata invalidateCaches(final boolean invalidateThing, final boolean invalidatePolicy) {
-        return new Metadata(thingId, thingRevision, policyId, policyRevision, modified, events, timers, senders,
+        return new Metadata(thingId, thingRevision, policyId, policyRevision, modified, events, timers, ackRecipients,
                 invalidateThing, invalidatePolicy, updateReasons);
     }
 
@@ -224,8 +211,8 @@ public final class Metadata {
      *
      * @return the copy.
      */
-    public Metadata withSender(final ActorRef sender) {
-        return new Metadata(thingId, thingRevision, policyId, policyRevision, modified, events, timers, List.of(sender),
+    public Metadata withAckRecipient(final ActorSelection ackRecipient) {
+        return new Metadata(thingId, thingRevision, policyId, policyRevision, modified, events, timers, List.of(ackRecipient),
                 invalidateThing, invalidatePolicy, updateReasons);
     }
 
@@ -235,7 +222,7 @@ public final class Metadata {
      * @return the copy.
      */
     public Metadata withUpdateReason(final UpdateReason reason) {
-        return new Metadata(thingId, thingRevision, policyId, policyRevision, modified, events, timers, senders,
+        return new Metadata(thingId, thingRevision, policyId, policyRevision, modified, events, timers, ackRecipients,
                 invalidateThing, invalidatePolicy, List.of(reason));
     }
 
@@ -326,12 +313,12 @@ public final class Metadata {
     }
 
     /**
-     * Return the senders of the originating event which should e.g. receive ACKs.
+     * Return selections to receive ACKs.
      *
      * @return the senders.
      */
-    public List<ActorRef> getSenders() {
-        return senders;
+    public List<ActorSelection> getAckRecipients() {
+        return ackRecipients;
     }
 
     /**
@@ -349,7 +336,7 @@ public final class Metadata {
      * @return whether {@code "search-persisted"} is requested.
      */
     public boolean isShouldAcknowledge() {
-        return !senders.isEmpty();
+        return !ackRecipients.isEmpty();
     }
 
     /**
@@ -379,11 +366,11 @@ public final class Metadata {
     public Metadata append(final Metadata newMetadata) {
         final List<ThingEvent<?>> newEvents = Stream.concat(events.stream(), newMetadata.events.stream()).toList();
         final List<StartedTimer> newTimers = Stream.concat(timers.stream(), newMetadata.timers.stream()).toList();
-        final List<ActorRef> newSenders = Stream.concat(senders.stream(), newMetadata.senders.stream()).toList();
+        final List<ActorSelection> newAckRecipients = Stream.concat(ackRecipients.stream(), newMetadata.ackRecipients.stream()).toList();
         final List<UpdateReason> newReasons = Stream.concat(updateReasons.stream(), newMetadata.updateReasons.stream())
                 .toList();
         return new Metadata(newMetadata.thingId, newMetadata.thingRevision, newMetadata.policyId,
-                newMetadata.policyRevision, newMetadata.modified, newEvents, newTimers, newSenders,
+                newMetadata.policyRevision, newMetadata.modified, newEvents, newTimers, newAckRecipients,
                 invalidateThing || newMetadata.invalidateThing,
                 invalidatePolicy || newMetadata.invalidatePolicy,
                 newReasons);
@@ -420,7 +407,7 @@ public final class Metadata {
                 timer.tag("success", ack.isSuccess()).stop();
             }
         });
-        senders.forEach(sender -> sender.tell(ack, ActorRef.noSender()));
+        ackRecipients.forEach(ackRecipient -> ackRecipient.tell(ack, ActorRef.noSender()));
     }
 
     @Override
@@ -439,7 +426,7 @@ public final class Metadata {
                 Objects.equals(modified, that.modified) &&
                 Objects.equals(events, that.events) &&
                 Objects.equals(timers, that.timers) &&
-                Objects.equals(senders, that.senders) &&
+                Objects.equals(ackRecipients, that.ackRecipients) &&
                 invalidateThing == that.invalidateThing &&
                 invalidatePolicy == that.invalidatePolicy &&
                 Objects.equals(updateReasons, that.updateReasons);
@@ -447,7 +434,7 @@ public final class Metadata {
 
     @Override
     public int hashCode() {
-        return Objects.hash(thingId, thingRevision, policyId, policyRevision, modified, events, timers, senders,
+        return Objects.hash(thingId, thingRevision, policyId, policyRevision, modified, events, timers, ackRecipients,
                 invalidateThing, invalidatePolicy, updateReasons);
     }
 
@@ -461,7 +448,7 @@ public final class Metadata {
                 ", modified=" + modified +
                 ", events=" + events +
                 ", timers=[" + timers.size() + " timers]" +
-                ", senders=" + senders +
+                ", ackRecipients=" + ackRecipients +
                 ", invalidateThing=" + invalidateThing +
                 ", invalidatePolicy=" + invalidatePolicy +
                 ", updateReasons=" + updateReasons +

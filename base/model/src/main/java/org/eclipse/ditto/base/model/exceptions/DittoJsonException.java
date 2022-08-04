@@ -19,21 +19,21 @@ import java.util.function.Supplier;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.json.JsonException;
-import org.eclipse.ditto.json.JsonRuntimeException;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.json.JsonException;
+import org.eclipse.ditto.json.JsonRuntimeException;
 
 /**
  * Exception to adapt {@link JsonRuntimeException}s to {@code DittoRuntimeException} by adding {@link org.eclipse.ditto.base.model.headers.DittoHeaders} and
  * the HTTP status code {@link org.eclipse.ditto.base.model.common.HttpStatus#BAD_REQUEST 400}.
  */
-public final class DittoJsonException extends DittoRuntimeException {
+public final class DittoJsonException extends DittoRuntimeException implements GeneralException {
 
     /**
      * Fallback Error code of this exception.
      */
-    public static final String FALLBACK_ERROR_CODE = "json.format.invalid";
+    public static final String FALLBACK_ERROR_CODE = ERROR_CODE_PREFIX + "json.format.invalid";
 
     private static final long serialVersionUID = -6003501868758251973L;
 

@@ -88,7 +88,7 @@ public interface MongoDbConfig {
         private final String path;
         private final Object defaultValue;
 
-        private MongoDbConfigValue(final String thePath, final Object theDefaultValue) {
+        MongoDbConfigValue(final String thePath, final Object theDefaultValue) {
             path = thePath;
             defaultValue = theDefaultValue;
         }
@@ -192,7 +192,7 @@ public interface MongoDbConfig {
             private final String path;
             private final Object defaultValue;
 
-            private OptionsConfigValue(final String thePath, final Object theDefaultValue) {
+            OptionsConfigValue(final String thePath, final Object theDefaultValue) {
                 path = thePath;
                 defaultValue = theDefaultValue;
             }
@@ -232,6 +232,13 @@ public interface MongoDbConfig {
         int getMaxSize();
 
         /**
+         * Returns the maximum amount of time a pooled connection is allowed to idle before closing the connection.
+         *
+         * @return the maximum amount of time a pooled connection is allowed to idle.
+         */
+        Duration getMaxIdleTime();
+
+        /**
          * Returns the maximum time to wait for a connection to become available.
          *
          * @return the maximum wait time.
@@ -262,6 +269,12 @@ public interface MongoDbConfig {
             MAX_SIZE("maxSize", 100),
 
             /**
+             * The maximum amount of time a pooled connection is allowed to idle before closing the connection.
+             * Set to negative value to ignore and use Mongo Client default or value provided with URI.
+             */
+            MAX_IDLE_TIME("maxIdleTime", Duration.ofSeconds(-1)),
+
+            /**
              * The maximum time to wait for a connection to become available.
              */
             MAX_WAIT_TIME("maxWaitTime", Duration.ofSeconds(30L)),
@@ -274,7 +287,7 @@ public interface MongoDbConfig {
             private final String path;
             private final Object defaultValue;
 
-            private ConnectionPoolConfigValue(final String thePath, final Object theDefaultValue) {
+            ConnectionPoolConfigValue(final String thePath, final Object theDefaultValue) {
                 path = thePath;
                 defaultValue = theDefaultValue;
             }
@@ -327,7 +340,7 @@ public interface MongoDbConfig {
             private final String path;
             private final Object defaultValue;
 
-            private CircuitBreakerConfigValue(final String thePath, final Object theDefaultValue) {
+            CircuitBreakerConfigValue(final String thePath, final Object theDefaultValue) {
                 path = thePath;
                 defaultValue = theDefaultValue;
             }
@@ -385,7 +398,7 @@ public interface MongoDbConfig {
                 private final String path;
                 private final Object defaultValue;
 
-                private TimeoutConfigValue(final String thePath, final Object theDefaultValue) {
+                TimeoutConfigValue(final String thePath, final Object theDefaultValue) {
                     path = thePath;
                     defaultValue = theDefaultValue;
                 }
@@ -445,7 +458,7 @@ public interface MongoDbConfig {
             private final String path;
             private final Object defaultValue;
 
-            private MonitoringConfigValue(final String thePath, final Object theDefaultValue) {
+            MonitoringConfigValue(final String thePath, final Object theDefaultValue) {
                 path = thePath;
                 defaultValue = theDefaultValue;
             }

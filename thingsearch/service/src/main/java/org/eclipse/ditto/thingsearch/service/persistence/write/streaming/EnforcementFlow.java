@@ -17,23 +17,23 @@ import java.time.Instant;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Executor;
 
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.internal.models.signalenrichment.CachingSignalEnrichmentFacade;
-import org.eclipse.ditto.internal.models.signalenrichment.CachingSignalEnrichmentFacadeProvider;
 import org.eclipse.ditto.internal.utils.cache.Cache;
 import org.eclipse.ditto.internal.utils.cache.CacheFactory;
 import org.eclipse.ditto.internal.utils.cache.config.CacheConfig;
 import org.eclipse.ditto.internal.utils.cache.entry.Entry;
-import org.eclipse.ditto.internal.utils.cacheloaders.EnforcementCacheKey;
-import org.eclipse.ditto.internal.utils.cacheloaders.PolicyCacheLoader;
 import org.eclipse.ditto.internal.utils.cacheloaders.config.AskWithRetryConfig;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
+import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonRuntimeException;
+import org.eclipse.ditto.policies.enforcement.PolicyCacheLoader;
 import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.PolicyIdInvalidException;
@@ -49,6 +49,7 @@ import org.eclipse.ditto.thingsearch.service.persistence.write.mapping.EnforcedT
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.AbstractWriteModel;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.Metadata;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.ThingDeleteModel;
+import org.eclipse.ditto.thingsearch.service.persistence.write.model.ThingWriteModel;
 import org.eclipse.ditto.thingsearch.service.updater.actors.MongoWriteModel;
 import org.eclipse.ditto.thingsearch.service.updater.actors.SearchUpdateObserver;
 import org.eclipse.ditto.thingsearch.service.updater.actors.ThingUpdater;
@@ -63,6 +64,7 @@ import akka.actor.ActorSystem;
 import akka.actor.Scheduler;
 import akka.japi.Pair;
 import akka.japi.pf.PFBuilder;
+import akka.pattern.AskTimeoutException;
 import akka.stream.javadsl.Flow;
 import akka.stream.javadsl.Keep;
 import akka.stream.javadsl.Source;
@@ -76,14 +78,14 @@ final class EnforcementFlow {
 
     private final Logger log = LoggerFactory.getLogger(getClass());
     private final CachingSignalEnrichmentFacade thingsFacade;
-    private final Cache<EnforcementCacheKey, Entry<Policy>> policyEnforcerCache;
+    private final Cache<PolicyId, Entry<Policy>> policyEnforcerCache;
     private final Duration cacheRetryDelay;
     private final SearchUpdateObserver searchUpdateObserver;
     private final int maxArraySize;
 
     private EnforcementFlow(final ActorSystem actorSystem,
             final ActorRef thingsShardRegion,
-            final Cache<EnforcementCacheKey, Entry<Policy>> policyEnforcerCache,
+            final Cache<PolicyId, Entry<Policy>> policyEnforcerCache,
             final AskWithRetryConfig askWithRetryConfig,
             final StreamCacheConfig thingCacheConfig,
             final Executor thingCacheDispatcher) {
@@ -91,7 +93,8 @@ final class EnforcementFlow {
         thingsFacade = createThingsFacade(actorSystem, thingsShardRegion, askWithRetryConfig.getAskTimeout(),
                 thingCacheConfig, thingCacheDispatcher);
         this.policyEnforcerCache = policyEnforcerCache;
-        searchUpdateObserver = SearchUpdateObserver.get(actorSystem);
+        searchUpdateObserver =
+                SearchUpdateObserver.get(actorSystem, ScopedConfig.dittoExtension(actorSystem.settings().config()));
         cacheRetryDelay = thingCacheConfig.getRetryDelay();
         final SearchConfig searchConfig =
                 DittoSearchConfig.of(DefaultScopedConfig.dittoScoped(actorSystem.settings().config()));
@@ -119,9 +122,9 @@ final class EnforcementFlow {
         final var policyCacheDispatcher = actorSystem.dispatchers()
                 .lookup(policyCacheConfig.getDispatcherName());
 
-        final AsyncCacheLoader<EnforcementCacheKey, Entry<Policy>> policyCacheLoader =
+        final AsyncCacheLoader<PolicyId, Entry<Policy>> policyCacheLoader =
                 new PolicyCacheLoader(askWithRetryConfig, scheduler, policiesShardRegion);
-        final Cache<EnforcementCacheKey, Entry<Policy>> policyEnforcerCache =
+        final Cache<PolicyId, Entry<Policy>> policyEnforcerCache =
                 CacheFactory.createCache(policyCacheLoader, policyCacheConfig,
                         "things-search_enforcementflow_enforcer_cache_policy", policyCacheDispatcher);
 
@@ -130,10 +133,6 @@ final class EnforcementFlow {
                 .lookup(thingCacheConfig.getDispatcherName());
         return new EnforcementFlow(actorSystem, thingsShardRegion, policyEnforcerCache, askWithRetryConfig,
                 thingCacheConfig, thingCacheDispatcher);
-    }
-
-    private static EnforcementCacheKey getPolicyCacheKey(final PolicyId policyId) {
-        return EnforcementCacheKey.of(policyId);
     }
 
     /**
@@ -172,7 +171,7 @@ final class EnforcementFlow {
 
         return source.flatMapConcat(changes -> Source.fromIterator(changes::iterator)
                         .flatMapMerge(parallelismPerBulkShard, changedMetadata ->
-                                retrieveThingFromCachingFacade(changedMetadata.getThingId(), changedMetadata)
+                                retrieveThingFromCachingFacade(changedMetadata.getThingId(), changedMetadata, 2)
                                         .flatMapConcat(pair -> {
                                             final JsonObject thing = pair.second();
                                             searchUpdateObserver.process(changedMetadata, thing);
@@ -191,7 +190,7 @@ final class EnforcementFlow {
      */
     public Flow<ThingUpdater.Data, MongoWriteModel, NotUsed> create(final SearchUpdateMapper mapper) {
         return Flow.<ThingUpdater.Data>create()
-                .flatMapConcat(data -> retrieveThingFromCachingFacade(data.metadata().getThingId(), data.metadata())
+                .flatMapConcat(data -> retrieveThingFromCachingFacade(data.metadata().getThingId(), data.metadata(), 2)
                         .flatMapConcat(pair -> {
                             final JsonObject thing = pair.second();
                             searchUpdateObserver.process(data.metadata(), thing);
@@ -206,23 +205,36 @@ final class EnforcementFlow {
     }
 
     private Source<Pair<ThingId, JsonObject>, NotUsed> retrieveThingFromCachingFacade(final ThingId thingId,
-            final Metadata metadata) {
+            final Metadata metadata, final int leftRetryAttempts) {
+
         ConsistencyLag.startS3RetrieveThing(metadata);
+        final CompletionStage<JsonObject> thingFuture = provideThingFuture(thingId, metadata);
+
+        return Source.completionStage(thingFuture)
+                .map(thing -> Pair.create(thingId, thing))
+                .recoverWithRetries(1, new PFBuilder<Throwable, Source<Pair<ThingId, JsonObject>, NotUsed>>()
+                        .match(Throwable.class, error -> {
+                            if (leftRetryAttempts > 0 && error instanceof CompletionException completionException &&
+                                    completionException.getCause() instanceof AskTimeoutException) {
+                                // retry ask timeouts
+                                return retrieveThingFromCachingFacade(thingId, metadata, leftRetryAttempts - 1);
+                            }
+
+                            log.error("Unexpected exception during SudoRetrieveThing via cache: <{}> - {}", thingId,
+                                    error.getClass().getSimpleName(), error);
+                            return Source.empty();
+                        })
+                        .build());
+    }
+
+    private CompletionStage<JsonObject> provideThingFuture(final ThingId thingId, final Metadata metadata) {
         final CompletionStage<JsonObject> thingFuture;
         if (metadata.shouldInvalidateThing()) {
             thingFuture = thingsFacade.retrieveThing(thingId, List.of(), -1);
         } else {
             thingFuture = thingsFacade.retrieveThing(thingId, metadata.getEvents(), metadata.getThingRevision());
         }
-
-        return Source.completionStage(thingFuture)
-                .map(thing -> Pair.create(thingId, thing))
-                .recoverWithRetries(1, new PFBuilder<Throwable, Source<Pair<ThingId, JsonObject>, NotUsed>>()
-                        .match(Throwable.class, error -> {
-                            log.error("Unexpected response for SudoRetrieveThing via cache: <{}>", thingId, error);
-                            return Source.empty();
-                        })
-                        .build());
+        return thingFuture;
     }
 
     private Source<AbstractWriteModel, NotUsed> computeWriteModel(final Metadata metadata,
@@ -248,15 +260,16 @@ final class EnforcementFlow {
                             } catch (final JsonRuntimeException e) {
                                 log.error(e.getMessage(), e);
                                 log.info(
-                                        "Computed - due to <{}: {}> - ThingDeleteModel for metadata <{}> and thing <{}>",
+                                        "Computed - due to <{}: {}> - 'emptied out' ThingWriteModel for metadata <{}> and thing <{}>",
                                         e.getClass().getSimpleName(), e.getMessage(), metadata, thing);
-                                return ThingDeleteModel.of(metadata);
+                                return ThingWriteModel.ofEmptiedOut(metadata);
                             }
                         } else {
-                            // no enforcer; delete thing from search index
-                            log.info("Computed - due to missing enforcer - ThingDeleteModel for metadata <{}> " +
-                                    "and thing <{}>", metadata, thing);
-                            return ThingDeleteModel.of(metadata);
+                            // no enforcer; "empty out" thing in search index
+                            log.info(
+                                    "Computed - due to missing enforcer - 'emptied out' ThingWriteModel for metadata <{}> " +
+                                            "and thing <{}>", metadata, thing);
+                            return ThingWriteModel.ofEmptiedOut(metadata);
                         }
                     });
         }
@@ -273,7 +286,7 @@ final class EnforcementFlow {
         try {
             return thing.getValue(Thing.JsonFields.POLICY_ID)
                     .map(PolicyId::of)
-                    .map(policyId -> readCachedEnforcer(metadata, getPolicyCacheKey(policyId), 0))
+                    .map(policyId -> readCachedEnforcer(metadata, policyId, 0))
                     .orElse(POLICY_NONEXISTENT);
         } catch (final PolicyIdInvalidException e) {
             return POLICY_NONEXISTENT;
@@ -281,7 +294,7 @@ final class EnforcementFlow {
     }
 
     private Source<Entry<Policy>, NotUsed> readCachedEnforcer(final Metadata metadata,
-            final EnforcementCacheKey policyId, final int iteration) {
+            final PolicyId policyId, final int iteration) {
 
         final Source<Entry<Policy>, ?> lazySource = Source.lazySource(() -> {
             final CompletionStage<Source<Entry<Policy>, NotUsed>> enforcerFuture = policyEnforcerCache.get(policyId)
@@ -314,7 +327,9 @@ final class EnforcementFlow {
             final Executor thingCacheDispatcher) {
 
         final var sudoRetrieveThingFacade = SudoSignalEnrichmentFacade.of(thingsShardRegion, timeout);
-        final var cachingSignalEnrichmentFacadeProvider = CachingSignalEnrichmentFacadeProvider.get(actorSystem);
+        final var dittoExtensionsConfig = ScopedConfig.dittoExtension(actorSystem.settings().config());
+        final var cachingSignalEnrichmentFacadeProvider =
+                CachingSignalEnrichmentFacadeProvider.get(actorSystem, dittoExtensionsConfig);
         return cachingSignalEnrichmentFacadeProvider.getSignalEnrichmentFacade(actorSystem, sudoRetrieveThingFacade,
                 thingCacheConfig, thingCacheDispatcher, "things-search_enforcementflow_enforcer_cache_things");
     }

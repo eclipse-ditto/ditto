@@ -17,7 +17,6 @@ import java.util.function.Supplier;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.base.model.entity.type.EntityType;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
@@ -28,6 +27,7 @@ import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapt
 import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.MongoReadJournal;
 import org.eclipse.ditto.internal.utils.persistentactors.config.PingConfig;
 import org.eclipse.ditto.internal.utils.persistentactors.config.RateConfig;
+import org.eclipse.ditto.json.JsonValue;
 
 import akka.NotUsed;
 import akka.actor.AbstractActor;
@@ -39,10 +39,10 @@ import akka.stream.Materializer;
 import akka.stream.javadsl.Source;
 
 /**
- * Actor which pings an {@link AbstractShardedPersistenceActor}s containing journal entries tagged with
+ * Actor which pings an {@link AbstractPersistenceActor}s containing journal entries tagged with
  * a configured {@link org.eclipse.ditto.internal.utils.persistentactors.config.PingConfig#getJournalTag()} automatically on a (cold) startup of the cluster.
  * <p>
- * Also periodically sends out ping messages to e.g. mitigate crashes of {@code AbstractShardedPersistenceActor}s
+ * Also periodically sends out ping messages to e.g. mitigate crashes of {@code AbstractPersistenceActor}s
  * which should be always kept alive.
  */
 public final class PersistencePingActor extends AbstractActor {
@@ -229,7 +229,7 @@ public final class PersistencePingActor extends AbstractActor {
     }
 
     static String toCorrelationId(final EntityId persistenceId) {
-        return CORRELATION_ID_PREFIX + persistenceId.toString();
+        return CORRELATION_ID_PREFIX + persistenceId;
     }
 
     static Optional<String> toPersistenceId(final String correlationId) {

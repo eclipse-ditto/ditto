@@ -47,6 +47,7 @@ import org.apache.qpid.jms.provider.amqp.message.AmqpJmsTextMessageFacade;
 import org.eclipse.ditto.base.model.acks.AcknowledgementLabel;
 import org.eclipse.ditto.base.model.acks.AcknowledgementRequest;
 import org.eclipse.ditto.base.model.common.HttpStatus;
+import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.WithOptionalEntity;
@@ -87,7 +88,7 @@ import akka.actor.Status;
 import akka.testkit.TestProbe;
 import akka.testkit.javadsl.TestKit;
 
-public class AmqpPublisherActorTest extends AbstractPublisherActorTest {
+public final class AmqpPublisherActorTest extends AbstractPublisherActorTest {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(AmqpPublisherActorTest.class);
     private static final String ANOTHER_ADDRESS = "anotherAddress";
@@ -156,6 +157,7 @@ public class AmqpPublisherActorTest extends AbstractPublisherActorTest {
                     .build();
             final DittoHeaders withAckRequest = dittoHeaders.toBuilder()
                     .acknowledgementRequest(AcknowledgementRequest.of(AcknowledgementLabel.of(ack)))
+                    .putHeader(DittoHeaderDefinition.DITTO_ACKREGATOR_ADDRESS.getKey(), getRef().path().toSerializationFormat())
                     .build();
 
             final Props props = getPublisherActorProps();
@@ -243,7 +245,6 @@ public class AmqpPublisherActorTest extends AbstractPublisherActorTest {
                                     TestConstants.Targets.TWIN_TARGET.withAddress(ANOTHER_ADDRESS)))
                             .build(),
                     session,
-                    "clientId",
                     connectivityStatusResolver,
                     loadConnectivityConfig());
             final ActorRef publisherActor = actorSystem.actorOf(props);
@@ -305,7 +306,6 @@ public class AmqpPublisherActorTest extends AbstractPublisherActorTest {
                                     TestConstants.Targets.TWIN_TARGET.withAddress(getOutboundAddress())))
                             .build(),
                     session,
-                    "clientId",
                     connectivityStatusResolver,
                     loadConnectivityConfig());
             final ActorRef publisherActor = actorSystem.actorOf(props);
@@ -343,7 +343,6 @@ public class AmqpPublisherActorTest extends AbstractPublisherActorTest {
                                                         getOutboundAddress() + "/{{ thing:id }}")))
                                 .build(),
                         session,
-                        "clientId",
                         connectivityStatusResolver,
                         loadConnectivityConfig());
                 final ActorRef publisherActor = actorSystem.actorOf(props);
@@ -398,7 +397,6 @@ public class AmqpPublisherActorTest extends AbstractPublisherActorTest {
                                             TestConstants.Targets.TWIN_TARGET.withAddress(getOutboundAddress())))
                             .build(),
                     session,
-                    "clientId",
                     connectivityStatusResolver,
                     loadConnectivityConfig());
 
@@ -471,8 +469,10 @@ public class AmqpPublisherActorTest extends AbstractPublisherActorTest {
 
     @Override
     protected Props getPublisherActorProps() {
-        return AmqpPublisherActor.props(TestConstants.createConnection(), session, "clientId",
-                connectivityStatusResolver, loadConnectivityConfig());
+        return AmqpPublisherActor.props(TestConstants.createConnection(),
+                session,
+                connectivityStatusResolver,
+                loadConnectivityConfig());
     }
 
     @Override

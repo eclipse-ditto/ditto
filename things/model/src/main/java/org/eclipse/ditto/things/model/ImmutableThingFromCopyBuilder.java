@@ -55,7 +55,7 @@ final class ImmutableThingFromCopyBuilder implements ThingBuilder, ThingBuilder.
 
         final ImmutableThingFromCopyBuilder result = new ImmutableThingFromCopyBuilder();
         thing.getEntityId().ifPresent(result::setId);
-        thing.getPolicyEntityId().ifPresent(result::setPolicyId);
+        thing.getPolicyId().ifPresent(result::setPolicyId);
         thing.getAttributes().ifPresent(result::setAttributes);
         thing.getDefinition().ifPresent(result::setDefinition);
         thing.getFeatures().ifPresent(result::setFeatures);

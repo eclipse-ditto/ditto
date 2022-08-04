@@ -15,9 +15,11 @@ package org.eclipse.ditto.internal.utils.persistence.mongo.streaming;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -324,6 +326,22 @@ public final class MongoReadJournal {
     }
 
     /**
+     * Retrieves all tags (by looking at the last persisted event) of the passed {@code pid} in the
+     * journal entries in the newest journal entry for that pid.
+     *
+     * @param pid the persistence id to look up the most recent tags for, e.g.: {@code connection:123456}
+     * @return a Source of tags of the pid or an empty source if either the pid or no tags could be found
+     */
+    public Source<String, NotUsed> getMostRecentJournalTagsForPid(final String pid) {
+
+        return getJournal().withAttributes(Attributes.inputBuffer(1, 1))
+                .flatMapConcat(journal ->
+                        listJournalEntryTags(journal, pid)
+                )
+                .mapConcat(tags -> tags);
+    }
+
+    /**
      * Retrieve all unique PIDs in journals selected by a provided {@code tag} above a lower bound.
      * Does its best not to create long-living cursors on the database by reading {@code batchSize} events per query.
      *
@@ -363,7 +381,6 @@ public final class MongoReadJournal {
 
         return getNewestSnapshotsAbove(lowerBoundPid, batchSize, false, mat, snapshotFields);
     }
-
 
     /**
      * Retrieve all latest snapshots with unique PIDs in snapshot store above a lower bound.
@@ -591,9 +608,6 @@ public final class MongoReadJournal {
 
         final List<Bson> pipeline = new ArrayList<>(6);
         // optional match stages: consecutive match stages are optimized together ($match + $match coalescence)
-        if (!tag.isEmpty()) {
-            pipeline.add(Aggregates.match(Filters.eq(J_TAGS, tag)));
-        }
         if (!startPid.isEmpty()) {
             pipeline.add(Aggregates.match(Filters.gt(J_PROCESSOR_ID, startPid)));
         }
@@ -604,8 +618,20 @@ public final class MongoReadJournal {
         // limit stage. It should come before group stage or MongoDB would scan the entire journal collection.
         pipeline.add(Aggregates.limit(batchSize));
 
+        final Set<String> fieldNamesWithOptionalTags;
+        if (tag.isEmpty()) {
+            fieldNamesWithOptionalTags = Arrays.stream(fieldNames).collect(Collectors.toSet());
+        } else {
+            fieldNamesWithOptionalTags = Stream
+                    .concat(Arrays.stream(fieldNames), Stream.of(J_TAGS))
+                    .collect(Collectors.toSet());
+        }
         // group stage
-        pipeline.add(Aggregates.group("$" + J_PROCESSOR_ID, toFirstJournalEntryFields(fieldNames)));
+        pipeline.add(Aggregates.group("$" + J_PROCESSOR_ID, toFirstJournalEntryFields(fieldNamesWithOptionalTags)));
+
+        if (!tag.isEmpty()) {
+            pipeline.add(Aggregates.match(Filters.eq(J_TAGS, tag)));
+        }
 
         // sort stage 2 -- order after group stage is not defined
         pipeline.add(Aggregates.sort(Sorts.ascending(J_ID)));
@@ -621,8 +647,8 @@ public final class MongoReadJournal {
         );
     }
 
-    private static List<BsonField> toFirstJournalEntryFields(final String... journalFields) {
-        return Arrays.stream(journalFields)
+    private static List<BsonField> toFirstJournalEntryFields(final Collection<String> journalFields) {
+        return journalFields.stream()
                 .map(fieldName -> {
                     final String serializedFieldName = String.format("$%s.%s", J_EVENT, fieldName);
                     final BsonArray bsonArray =
@@ -703,6 +729,18 @@ public final class MongoReadJournal {
                         return Source.single(new SnapshotBatch(theMaxPid, document.getList(items, Document.class)));
                     }
                 });
+    }
+
+    private static Source<List<String>, NotUsed> listJournalEntryTags(final MongoCollection<Document> journal,
+            final String pid) {
+
+        return Source.fromPublisher(journal.find(Filters.eq(J_PROCESSOR_ID, pid))
+                        .sort(Sorts.descending(J_TO))
+                        .limit(1)
+                )
+                .map(document -> Optional.ofNullable(document.getList(J_TAGS, String.class))
+                        .orElse(List.of()))
+                .orElse(Source.single(List.of()));
     }
 
     /**

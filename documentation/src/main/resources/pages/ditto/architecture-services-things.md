@@ -17,10 +17,10 @@ The model of the things service is defined around the entities `Thing` and `Feat
 
 Other services can communicate with the things service via:
 
-* [commands](https://github.com/eclipse/ditto/tree/master/things/model/src/main/java/org/eclipse/ditto/things/model/signals/commands):
-  containing commands and command responses which are processed by this service
-* [events](https://github.com/eclipse/ditto/tree/master/things/model/src/main/java/org/eclipse/ditto/things/model/signals/events):
-  containing events which are emitted when entities managed by this service were modified
+* [ThingCommands](https://github.com/eclipse/ditto/tree/master/things/model/src/main/java/org/eclipse/ditto/things/model/signals/commands/ThingCommand.java):
+  implementing classes provide commands which are processed by this service
+* [ThingEvents](https://github.com/eclipse/ditto/tree/master/things/model/src/main/java/org/eclipse/ditto/things/model/signals/events/ThingEvent.java):
+  implementing classes represent events which are emitted when entities managed by this service were modified
 
 ## Persistence
 
@@ -28,3 +28,7 @@ The things service uses [Akka persistence](https://doc.akka.io/docs/akka/current
 with that [Event sourcing](basic-signals.html#architectural-style) in order to persist changes to 
 and restore persisted [things](basic-thing.html).
 
+## Enforcement
+
+The things service enforces/authorizes [thing signals](#signals) by the via `policyId` referenced 
+[policy](basic-policy.html).

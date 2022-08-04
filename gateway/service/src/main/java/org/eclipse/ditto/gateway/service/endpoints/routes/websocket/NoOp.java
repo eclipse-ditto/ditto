@@ -15,7 +15,7 @@ package org.eclipse.ditto.gateway.service.endpoints.routes.websocket;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.gateway.service.streaming.StreamControlMessage;
+import org.eclipse.ditto.gateway.service.streaming.signals.StreamControlMessage;
 
 /**
  * This is a {@code StreamControlMessage} to explicitly express, that the WebSocket stream should remain as it is.

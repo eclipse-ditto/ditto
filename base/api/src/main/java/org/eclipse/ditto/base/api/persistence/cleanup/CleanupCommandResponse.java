@@ -12,28 +12,28 @@
  */
 package org.eclipse.ditto.base.api.persistence.cleanup;
 
-import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.json.JsonFieldDefinition;
-import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.base.api.commands.sudo.SudoQueryCommandResponse;
 import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.signals.SignalWithEntityId;
 import org.eclipse.ditto.base.model.signals.commands.Command;
-import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
+import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonFieldDefinition;
+import org.eclipse.ditto.json.JsonPointer;
 
 /**
  * Aggregates all possible responses relating to a given {@link CleanupCommand}.
  *
  * @param <T> the type of the implementing class.
  */
-public interface CleanupCommandResponse<T extends CleanupCommandResponse<T>> extends CommandResponse<T>,
+public interface CleanupCommandResponse<T extends CleanupCommandResponse<T>> extends SudoQueryCommandResponse<T>,
         SignalWithEntityId<T> {
 
     /**
      * Type Prefix of Cleanup command responses.
      */
-    String TYPE_PREFIX = "cleanup." + TYPE_QUALIFIER + ":";
+    String TYPE_PREFIX = "cleanup." + SUDO_TYPE_QUALIFIER;
 
     /**
      * Thing resource type.

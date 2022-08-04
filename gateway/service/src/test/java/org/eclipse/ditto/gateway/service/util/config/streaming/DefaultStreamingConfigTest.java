@@ -20,7 +20,6 @@ import java.time.Duration;
 
 import org.assertj.core.api.JUnitSoftAssertions;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 
@@ -47,8 +46,7 @@ public final class DefaultStreamingConfigTest {
     @Test
     public void assertImmutability() {
         assertInstancesOf(DefaultStreamingConfig.class, areImmutable(),
-                provided(Config.class, WebsocketConfig.class, SseConfig.class, GatewaySignalEnrichmentConfig.class)
-                        .areAlsoImmutable());
+                provided(Config.class, WebsocketConfig.class, SseConfig.class).areAlsoImmutable());
     }
 
     @Test
@@ -71,6 +69,9 @@ public final class DefaultStreamingConfigTest {
         softly.assertThat(underTest.getSearchIdleTimeout())
                 .as(StreamingConfig.StreamingConfigValue.SEARCH_IDLE_TIMEOUT.getConfigPath())
                 .isEqualTo(StreamingConfig.StreamingConfigValue.SEARCH_IDLE_TIMEOUT.getDefaultValue());
+        softly.assertThat(underTest.getSubscriptionRefreshDelay())
+                .as(StreamingConfig.StreamingConfigValue.SUBSCRIPTION_REFRESH_DELAY.getConfigPath())
+                .isEqualTo(StreamingConfig.StreamingConfigValue.SUBSCRIPTION_REFRESH_DELAY.getDefaultValue());
     }
 
     @Test
@@ -86,9 +87,9 @@ public final class DefaultStreamingConfigTest {
         softly.assertThat(underTest.getSearchIdleTimeout())
                 .as(StreamingConfig.StreamingConfigValue.SEARCH_IDLE_TIMEOUT.getConfigPath())
                 .isEqualTo(Duration.ofHours(7L));
-        softly.assertThat(underTest.getSignalEnrichmentConfig().isCachingEnabled())
-                .as(GatewaySignalEnrichmentConfig.CachingSignalEnrichmentFacadeConfigValue.CACHING_ENABLED.getConfigPath())
-                .isFalse();
+        softly.assertThat(underTest.getSubscriptionRefreshDelay())
+                .as(StreamingConfig.StreamingConfigValue.SUBSCRIPTION_REFRESH_DELAY.getConfigPath())
+                .isEqualTo(Duration.ofHours(8));
         softly.assertThat(underTest.getWebsocketConfig().getThrottlingConfig().getInterval())
                 .as("websocket.throttling.interval")
                 .isEqualTo(Duration.ofSeconds(8L));

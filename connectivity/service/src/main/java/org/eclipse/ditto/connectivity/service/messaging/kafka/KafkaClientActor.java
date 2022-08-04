@@ -69,13 +69,13 @@ public final class KafkaClientActor extends BaseClientActor {
     private final KafkaConfig kafkaConfig;
 
     private KafkaClientActor(final Connection connection,
-            final ActorRef proxyActor,
+            final ActorRef commandForwarderActor,
             final ActorRef connectionActor,
             final KafkaPublisherActorFactory publisherActorFactory,
             final DittoHeaders dittoHeaders,
             final Config connectivityConfigOverwrites) {
 
-        super(connection, proxyActor, connectionActor, dittoHeaders, connectivityConfigOverwrites);
+        super(connection, commandForwarderActor, connectionActor, dittoHeaders, connectivityConfigOverwrites);
         kafkaConfig = connectivityConfig().getConnectionConfig().getKafkaConfig();
         kafkaConsumerActors = new ArrayList<>();
         propertiesFactory = PropertiesFactory.newInstance(connection, kafkaConfig, getClientId(connection.getId()),
@@ -86,12 +86,12 @@ public final class KafkaClientActor extends BaseClientActor {
 
     @SuppressWarnings("unused") // used by `props` via reflection
     private KafkaClientActor(final Connection connection,
-            final ActorRef proxyActor,
+            final ActorRef commandForwarderActor,
             final ActorRef connectionActor,
             final DittoHeaders dittoHeaders,
             final Config connectivityConfigOverwrites) {
 
-        this(connection, proxyActor, connectionActor, DefaultKafkaPublisherActorFactory.getInstance(), dittoHeaders,
+        this(connection, commandForwarderActor, connectionActor, DefaultKafkaPublisherActorFactory.getInstance(), dittoHeaders,
                 connectivityConfigOverwrites);
 
         connectionCounterRegistry.registerAlertFactory(ConnectionType.KAFKA, MetricType.THROTTLED,
@@ -104,20 +104,20 @@ public final class KafkaClientActor extends BaseClientActor {
      * Creates Akka configuration object for this actor.
      *
      * @param connection the connection.
-     * @param proxyActor the actor used to send signals into the ditto cluster.
+     * @param commandForwarderActor the actor used to send signals into the ditto cluster.
      * @param connectionActor the connectionPersistenceActor which created this client.
      * @param dittoHeaders headers of the command that caused this actor to be created.
      * @param connectivityConfigOverwrites the overwrites for the connectivity config for the given connection.
      * @return the Akka configuration Props object.
      */
     public static Props props(final Connection connection,
-            final ActorRef proxyActor,
+            final ActorRef commandForwarderActor,
             final ActorRef connectionActor,
             final DittoHeaders dittoHeaders,
             final Config connectivityConfigOverwrites) {
 
-        return Props.create(KafkaClientActor.class, validateConnection(connection), proxyActor, connectionActor,
-                dittoHeaders, connectivityConfigOverwrites);
+        return Props.create(KafkaClientActor.class, validateConnection(connection), commandForwarderActor,
+                connectionActor, dittoHeaders, connectivityConfigOverwrites);
     }
 
     static Props propsForTests(final Connection connection,
@@ -217,7 +217,6 @@ public final class KafkaClientActor extends BaseClientActor {
         final Props publisherActorProps = publisherActorFactory.props(connection(),
                 producerFactory,
                 dryRun,
-                getDefaultClientId(),
                 connectivityStatusResolver,
                 connectivityConfig());
         kafkaPublisherActor = startChildActorConflictFree(publisherActorFactory.getActorName(), publisherActorProps);

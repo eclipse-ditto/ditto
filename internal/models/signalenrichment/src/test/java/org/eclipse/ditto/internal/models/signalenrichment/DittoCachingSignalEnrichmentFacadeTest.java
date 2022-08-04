@@ -44,7 +44,6 @@ import org.junit.Test;
 import com.typesafe.config.ConfigFactory;
 
 import akka.actor.ActorSelection;
-import akka.actor.ActorSystem;
 import akka.testkit.javadsl.TestKit;
 
 /**
@@ -87,12 +86,11 @@ public final class DittoCachingSignalEnrichmentFacadeTest extends AbstractSignal
         final ActorSelection commandHandler = ActorSelection.apply(kit.getRef(), "");
         final ByRoundTripSignalEnrichmentFacade cacheLoaderFacade =
                 ByRoundTripSignalEnrichmentFacade.of(commandHandler, Duration.ofSeconds(10L));
-        final var actorSystem =
-                ActorSystem.create(getClass().getSimpleName(), ConfigFactory.load("signal-enrichment-test.conf"));
-        final var cachingSignalEnrichmentFacadeProvider = CachingSignalEnrichmentFacadeProvider.get(actorSystem);
-        return cachingSignalEnrichmentFacadeProvider.getSignalEnrichmentFacade(actorSystem, cacheLoaderFacade,
+        return DittoCachingSignalEnrichmentFacade.newInstance(
+                cacheLoaderFacade,
                 cacheConfig,
-                kit.getSystem().getDispatcher(), "test");
+                kit.getSystem().getDispatcher(),
+                "test");
     }
 
     @Override

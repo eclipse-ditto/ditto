@@ -13,6 +13,7 @@
 package org.eclipse.ditto.things.service.persistence.actors.strategies.commands;
 
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Optional;
@@ -36,6 +37,7 @@ import org.eclipse.ditto.json.JsonKey;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.things.api.commands.sudo.ThingSudoCommand;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommand;
@@ -49,7 +51,7 @@ import org.eclipse.ditto.things.model.signals.events.ThingEvent;
  * Abstract base class for {@link org.eclipse.ditto.things.model.signals.commands.ThingCommand} strategies.
  *
  * @param <C> the type of the handled command - of type {@code Command} as also
- * {@link org.eclipse.ditto.things.api.commands.sudo.SudoCommand} are handled which are no ThingCommands.
+ * {@link org.eclipse.ditto.things.api.commands.sudo.ThingSudoCommand} are handled which are no ThingCommands.
  */
 @Immutable
 abstract class AbstractThingCommandStrategy<C extends Command<C>>
@@ -230,7 +232,7 @@ abstract class AbstractThingCommandStrategy<C extends Command<C>>
 
     @Override
     public boolean isDefined(final C command) {
-        return command instanceof ThingCommand;
+        return command instanceof ThingCommand || command instanceof ThingSudoCommand;
     }
 
     @Nullable
@@ -276,7 +278,7 @@ abstract class AbstractThingCommandStrategy<C extends Command<C>>
     private Metadata filterOutEmptyObjects(final MetadataBuilder metadataBuilder) {
         final Metadata metadata = metadataBuilder.build();
         final MetadataBuilder newMetadataBuilder = MetadataModelFactory.newMetadataBuilder();
-        final Map<String, JsonValue> leafs = new HashMap<>();
+        final Map<String, JsonValue> leafs = new LinkedHashMap<>();
         getNonEmptyLeafs(JsonPointer.empty(), metadata, leafs);
         leafs.forEach(newMetadataBuilder::set);
 

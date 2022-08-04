@@ -43,24 +43,25 @@ import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
+import org.eclipse.ditto.base.model.headers.translator.HeaderTranslator;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.json.Jsonifiable;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
-import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayInternalErrorException;
-import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayWebsocketSessionClosedException;
-import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayWebsocketSessionExpiredException;
+import org.eclipse.ditto.gateway.api.GatewayInternalErrorException;
+import org.eclipse.ditto.gateway.api.GatewayWebsocketSessionClosedException;
+import org.eclipse.ditto.gateway.api.GatewayWebsocketSessionExpiredException;
 import org.eclipse.ditto.gateway.service.endpoints.routes.AbstractRoute;
-import org.eclipse.ditto.gateway.service.endpoints.utils.EventSniffer;
 import org.eclipse.ditto.gateway.service.endpoints.utils.GatewaySignalEnrichmentProvider;
 import org.eclipse.ditto.gateway.service.security.HttpHeader;
-import org.eclipse.ditto.gateway.service.streaming.Connect;
-import org.eclipse.ditto.gateway.service.streaming.IncomingSignal;
-import org.eclipse.ditto.gateway.service.streaming.StreamControlMessage;
-import org.eclipse.ditto.gateway.service.streaming.StreamingAck;
+import org.eclipse.ditto.gateway.service.streaming.StreamingAuthorizationEnforcer;
 import org.eclipse.ditto.gateway.service.streaming.actors.SessionedJsonifiable;
 import org.eclipse.ditto.gateway.service.streaming.actors.StreamingActor;
 import org.eclipse.ditto.gateway.service.streaming.actors.SupervisedStream;
+import org.eclipse.ditto.gateway.service.streaming.signals.Connect;
+import org.eclipse.ditto.gateway.service.streaming.signals.IncomingSignal;
+import org.eclipse.ditto.gateway.service.streaming.signals.StreamControlMessage;
+import org.eclipse.ditto.gateway.service.streaming.signals.StreamingAck;
 import org.eclipse.ditto.gateway.service.util.config.streaming.StreamingConfig;
 import org.eclipse.ditto.gateway.service.util.config.streaming.WebsocketConfig;
 import org.eclipse.ditto.internal.models.signalenrichment.SignalEnrichmentFacade;
@@ -68,6 +69,7 @@ import org.eclipse.ditto.internal.utils.akka.controlflow.Filter;
 import org.eclipse.ditto.internal.utils.akka.controlflow.LimitRateByRejection;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLogger;
+import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.internal.utils.metrics.instruments.counter.Counter;
 import org.eclipse.ditto.internal.utils.pubsub.StreamingType;
@@ -84,7 +86,6 @@ import org.eclipse.ditto.jwt.model.JsonWebToken;
 import org.eclipse.ditto.policies.model.PolicyException;
 import org.eclipse.ditto.policies.model.signals.commands.PolicyErrorResponse;
 import org.eclipse.ditto.protocol.Adaptable;
-import org.eclipse.ditto.protocol.HeaderTranslator;
 import org.eclipse.ditto.protocol.JsonifiableAdaptable;
 import org.eclipse.ditto.protocol.ProtocolFactory;
 import org.eclipse.ditto.protocol.adapter.ProtocolAdapter;
@@ -97,6 +98,7 @@ import org.slf4j.Logger;
 
 import akka.NotUsed;
 import akka.actor.ActorRef;
+import akka.actor.ActorSystem;
 import akka.event.Logging;
 import akka.http.javadsl.model.HttpRequest;
 import akka.http.javadsl.model.HttpResponse;
@@ -104,6 +106,7 @@ import akka.http.javadsl.model.ws.Message;
 import akka.http.javadsl.model.ws.TextMessage;
 import akka.http.javadsl.model.ws.WebSocketUpgrade;
 import akka.http.javadsl.server.Directives;
+import akka.http.javadsl.server.RequestContext;
 import akka.http.javadsl.server.Route;
 import akka.japi.Pair;
 import akka.japi.function.Function;
@@ -167,26 +170,30 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
     private final StreamingConfig streamingConfig;
     private final Materializer materializer;
 
-    private EventSniffer<String> incomingMessageSniffer;
-    private EventSniffer<String> outgoingMessageSniffer;
-    private WebSocketAuthorizationEnforcer authorizationEnforcer;
+    private IncomingWebSocketEventSniffer incomingMessageSniffer;
+    private OutgoingWebSocketEventSniffer outgoingMessageSniffer;
+    private StreamingAuthorizationEnforcer authorizationEnforcer;
     private WebSocketSupervisor webSocketSupervisor;
     @Nullable private GatewaySignalEnrichmentProvider signalEnrichmentProvider;
     private HeaderTranslator headerTranslator;
     private WebSocketConfigProvider webSocketConfigProvider;
 
-    private WebSocketRoute(final ActorRef streamingActor, final StreamingConfig streamingConfig,
+    private WebSocketRoute(final ActorSystem actorSystem,
+            final ActorRef streamingActor,
+            final StreamingConfig streamingConfig,
             final Materializer materializer) {
 
         this.streamingActor = checkNotNull(streamingActor, "streamingActor");
         this.streamingConfig = streamingConfig;
 
-        final EventSniffer<String> noOpEventSniffer = EventSniffer.noOp();
-        incomingMessageSniffer = noOpEventSniffer;
-        outgoingMessageSniffer = noOpEventSniffer;
-        authorizationEnforcer = new NoOpAuthorizationEnforcer();
-        webSocketSupervisor = new NoOpWebSocketSupervisor();
-        webSocketConfigProvider = new NoOpWebSocketConfigProvider();
+        final var config = actorSystem.settings().config();
+        final var dittoExtensionsConfig = ScopedConfig.dittoExtension(config);
+        incomingMessageSniffer = IncomingWebSocketEventSniffer.get(actorSystem, dittoExtensionsConfig);
+        outgoingMessageSniffer = OutgoingWebSocketEventSniffer.get(actorSystem, dittoExtensionsConfig);
+        final var websocketConfig = ScopedConfig.getOrEmpty(config, "ditto.gateway.streaming.websocket");
+        authorizationEnforcer = StreamingAuthorizationEnforcer.get(actorSystem, websocketConfig);
+        webSocketSupervisor = WebSocketSupervisor.get(actorSystem, dittoExtensionsConfig);
+        webSocketConfigProvider = WebSocketConfigProvider.get(actorSystem, dittoExtensionsConfig);
         signalEnrichmentProvider = null;
         headerTranslator = HeaderTranslator.empty();
         this.materializer = materializer;
@@ -195,30 +202,35 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
     /**
      * Returns an instance of this class.
      *
+     * @param actorSystem the actorSystem in which the route should be instantiated.
      * @param streamingActor the {@link org.eclipse.ditto.gateway.service.streaming.actors.StreamingActor} reference.
      * @param streamingConfig the streaming configuration.
+     * @param materializer the materializer to use for stream materialization.
      * @return the instance.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static WebSocketRoute getInstance(final ActorRef streamingActor, final StreamingConfig streamingConfig,
+    public static WebSocketRoute getInstance(final ActorSystem actorSystem,
+            final ActorRef streamingActor,
+            final StreamingConfig streamingConfig,
             final Materializer materializer) {
-        return new WebSocketRoute(streamingActor, streamingConfig, materializer);
+
+        return new WebSocketRoute(actorSystem, streamingActor, streamingConfig, materializer);
     }
 
     @Override
-    public WebSocketRouteBuilder withIncomingEventSniffer(final EventSniffer<String> eventSniffer) {
+    public WebSocketRouteBuilder withIncomingEventSniffer(final IncomingWebSocketEventSniffer eventSniffer) {
         incomingMessageSniffer = checkNotNull(eventSniffer, "eventSniffer");
         return this;
     }
 
     @Override
-    public WebSocketRouteBuilder withOutgoingEventSniffer(final EventSniffer<String> eventSniffer) {
+    public WebSocketRouteBuilder withOutgoingEventSniffer(final OutgoingWebSocketEventSniffer eventSniffer) {
         outgoingMessageSniffer = checkNotNull(eventSniffer, "eventSniffer");
         return this;
     }
 
     @Override
-    public WebSocketRouteBuilder withAuthorizationEnforcer(final WebSocketAuthorizationEnforcer enforcer) {
+    public WebSocketRouteBuilder withAuthorizationEnforcer(final StreamingAuthorizationEnforcer enforcer) {
         authorizationEnforcer = checkNotNull(enforcer, "enforcer");
         return this;
     }
@@ -232,6 +244,7 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
     @Override
     public WebSocketRouteBuilder withSignalEnrichmentProvider(
             @Nullable final GatewaySignalEnrichmentProvider provider) {
+
         signalEnrichmentProvider = provider;
         return this;
     }
@@ -257,11 +270,12 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
     public Route build(final JsonSchemaVersion version,
             final CharSequence correlationId,
             final DittoHeaders dittoHeaders,
-            final ProtocolAdapter chosenProtocolAdapter) {
+            final ProtocolAdapter chosenProtocolAdapter,
+            final RequestContext ctx) {
 
         return Directives.extractWebSocketUpgrade(websocketUpgrade -> Directives.extractRequest(request -> {
             final CompletionStage<DittoHeaders> checkAuthorization =
-                    authorizationEnforcer.checkAuthorization(dittoHeaders);
+                    authorizationEnforcer.checkAuthorization(ctx, dittoHeaders);
             return Directives.completeWithFuture(checkAuthorization.thenCompose(authorizedHeaders ->
                     createWebSocket(websocketUpgrade, version, correlationId.toString(),
                             authorizedHeaders, chosenProtocolAdapter, request)));
@@ -467,7 +481,7 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
                                     adapter,
                                     headerTranslator,
                                     logger);
-                            final StartedTrace trace = DittoTracing.trace(signal, "gw.streaming.in.signal")
+                            final StartedTrace trace = DittoTracing.trace(signal, "gw_streaming_in_signal")
                                     .tag(TracingTags.SIGNAL_TYPE, signal.getType())
                                     .start();
                             final Signal<?> tracedSignal = DittoTracing.propagateContext(trace.getContext(), signal);
@@ -893,40 +907,4 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
                 .map(ImmutableJsonWebToken::fromAuthorization);
     }
 
-    /**
-     * Null implementation for {@link WebSocketAuthorizationEnforcer} which does nothing.
-     */
-    private static final class NoOpAuthorizationEnforcer implements WebSocketAuthorizationEnforcer {
-
-        @Override
-        public CompletionStage<DittoHeaders> checkAuthorization(final DittoHeaders dittoHeaders) {
-            return CompletableFuture.completedStage(dittoHeaders);
-        }
-    }
-
-    /**
-     * Null implementation for {@link WebSocketSupervisor} which does nothing.
-     */
-    private static final class NoOpWebSocketSupervisor implements WebSocketSupervisor {
-
-        @Override
-        public void supervise(final SupervisedStream supervisedStream, final CharSequence connectionCorrelationId,
-                final DittoHeaders dittoHeaders) {
-
-            // Does nothing.
-        }
-    }
-
-    /**
-     * Null implementation for {@link WebSocketConfigProvider} which does nothing.
-     */
-    private static final class NoOpWebSocketConfigProvider implements WebSocketConfigProvider {
-
-        @Override
-        public WebsocketConfig apply(final DittoHeaders dittoHeaders,
-                final WebsocketConfig websocketConfig) {
-            // given websocketConfig is not touched
-            return websocketConfig;
-        }
-    }
 }

@@ -22,7 +22,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
-import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
@@ -155,14 +154,14 @@ final class DefaultWotThingSkeletonGenerator implements WotThingSkeletonGenerato
                                         dittoHeaders), executor)
                         .toCompletableFuture()
                 )
-                .collect(Collectors.toList());
+                .toList();
 
         final List<Feature> features = CompletableFuture.allOf(futureList.toArray(CompletableFuture<?>[]::new))
                 .thenApply(v -> futureList.stream()
                         .map(CompletableFuture::join)
                         .filter(Optional::isPresent)
                         .map(Optional::get)
-                        .collect(Collectors.toList())
+                        .toList()
                 ).join();
 
         if (features.isEmpty()) {
@@ -221,14 +220,13 @@ final class DefaultWotThingSkeletonGenerator implements WotThingSkeletonGenerato
                 .or(dataSchema::getDefault)
                 .or(() -> {
                     final SingleDataSchema actualSchema;
-                    if (dataSchema instanceof Property) {
-                        actualSchema = resolveActualPropertySchema((Property) dataSchema);
+                    if (dataSchema instanceof Property property) {
+                        actualSchema = resolveActualPropertySchema(property);
                     } else {
                         actualSchema = dataSchema;
                     }
 
-                    if (actualSchema instanceof ObjectSchema) {
-                        final ObjectSchema objectSchema = (ObjectSchema) actualSchema;
+                    if (actualSchema instanceof ObjectSchema objectSchema) {
                         final List<String> required = objectSchema.getRequired();
                         if (!required.isEmpty()) {
                             final JsonObjectBuilder objectBuilder = JsonObject.newBuilder();
@@ -240,14 +238,13 @@ final class DefaultWotThingSkeletonGenerator implements WotThingSkeletonGenerato
                             return Optional.of(objectBuilder.build());
                         }
                         return Optional.of(JsonObject.empty());
-                    } else if (actualSchema instanceof ArraySchema) {
-                        final ArraySchema arraySchema = (ArraySchema) actualSchema;
+                    } else if (actualSchema instanceof ArraySchema arraySchema) {
                         final JsonArrayBuilder arrayBuilder = JsonArray.newBuilder();
                         arraySchema.getItems()
                                 .ifPresent(itemsSchema -> {
-                                    if (itemsSchema instanceof SingleDataSchema) {
+                                    if (itemsSchema instanceof SingleDataSchema singleDataSchema) {
                                         final int neutralElementCount = arraySchema.getMinItems().orElse(1);
-                                        provideNeutralElementForDataSchema((SingleDataSchema) itemsSchema)
+                                        provideNeutralElementForDataSchema(singleDataSchema)
                                                 .ifPresent(ne -> IntStream.range(0, neutralElementCount)
                                                         .forEach(i -> arrayBuilder.add(ne))
                                                 );

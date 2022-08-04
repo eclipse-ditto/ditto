@@ -51,7 +51,7 @@
         <!-- Keep these version consistent with akka-persistence-mongo.version's build.sbt -->
         <mongo-java-driver.version>4.3.4</mongo-java-driver.version>
 
-        <jjwt.version>0.11.2</jjwt.version>
+        <jjwt.version>0.11.5</jjwt.version>
         <asm.version>9.2</asm.version>
         <qpid-jms-client.version>1.5.0</qpid-jms-client.version>
         <newmotion-akka-rabbitmq.version>6.0.0</newmotion-akka-rabbitmq.version>
@@ -567,7 +567,7 @@
             </dependency>
             <dependency>
                 <groupId>org.eclipse.ditto</groupId>
-                <artifactId>ditto-edge-api</artifactId>
+                <artifactId>ditto-edge-service</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
@@ -643,6 +643,16 @@
             </dependency>
             <dependency>
                 <groupId>org.eclipse.ditto</groupId>
+                <artifactId>ditto-internal-utils-pubsub-policies</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.ditto</groupId>
+                <artifactId>ditto-internal-utils-pubsub-things</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.ditto</groupId>
                 <artifactId>ditto-internal-utils-search</artifactId>
                 <version>${project.version}</version>
             </dependency>
@@ -654,6 +664,11 @@
             <dependency>
                 <groupId>org.eclipse.ditto</groupId>
                 <artifactId>ditto-internal-utils-metrics</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.ditto</groupId>
+                <artifactId>ditto-internal-utils-extension</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -674,17 +689,17 @@
             </dependency>
             <dependency>
                 <groupId>org.eclipse.ditto</groupId>
-                <artifactId>ditto-concierge-api</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.eclipse.ditto</groupId>
                 <artifactId>ditto-connectivity-api</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.eclipse.ditto</groupId>
                 <artifactId>ditto-policies-api</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.ditto</groupId>
+                <artifactId>ditto-policies-enforcement</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -710,35 +725,15 @@
 
             <dependency>
                 <groupId>org.eclipse.ditto</groupId>
-                <artifactId>ditto-internal-concierge-config</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.eclipse.ditto</groupId>
-                <artifactId>ditto-internal-concierge-common</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.eclipse.ditto</groupId>
-                <artifactId>ditto-internal-concierge-enforcement</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.eclipse.ditto</groupId>
-                <artifactId>ditto-internal-concierge-actors</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.eclipse.ditto</groupId>
-                <artifactId>ditto-concierge-service</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.eclipse.ditto</groupId>
                 <artifactId>ditto-connectivity-service</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
+            <dependency>
+                <groupId>org.eclipse.ditto</groupId>
+                <artifactId>ditto-gateway-api</artifactId>
+                <version>${project.version}</version>
+            </dependency>
             <dependency>
                 <groupId>org.eclipse.ditto</groupId>
                 <artifactId>ditto-gateway-service</artifactId>

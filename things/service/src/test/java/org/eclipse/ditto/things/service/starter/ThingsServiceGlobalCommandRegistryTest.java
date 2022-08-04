@@ -23,6 +23,7 @@ import org.eclipse.ditto.internal.utils.health.RetrieveHealth;
 import org.eclipse.ditto.internal.utils.pubsub.api.PublishSignal;
 import org.eclipse.ditto.internal.utils.test.GlobalCommandRegistryTestCases;
 import org.eclipse.ditto.messages.model.signals.commands.SendClaimMessage;
+import org.eclipse.ditto.policies.api.commands.sudo.SudoRetrievePolicy;
 import org.eclipse.ditto.policies.model.signals.commands.actions.ActivateTokenIntegration;
 import org.eclipse.ditto.policies.model.signals.commands.modify.DeleteSubject;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrieveResource;
@@ -33,7 +34,9 @@ import org.eclipse.ditto.things.model.signals.commands.query.RetrieveFeature;
 public final class ThingsServiceGlobalCommandRegistryTest extends GlobalCommandRegistryTestCases {
 
     public ThingsServiceGlobalCommandRegistryTest() {
-        super(SudoStreamPids.class,
+        super(
+                SudoStreamPids.class,
+                SudoRetrievePolicy.class,
                 SudoRetrieveThing.class,
                 RetrieveFeature.class,
                 ModifyFeatureProperty.class,

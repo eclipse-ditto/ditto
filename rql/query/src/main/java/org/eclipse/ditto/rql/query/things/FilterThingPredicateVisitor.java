@@ -42,6 +42,11 @@ public final class FilterThingPredicateVisitor implements FilterFieldExpressionV
     }
 
     @Override
+    public Predicate<Thing> visitFeatureDefinition(final String featureId) {
+        return predicateFunction.apply("/features/" + featureId + "/definition");
+    }
+
+    @Override
     public Predicate<Thing> visitFeatureIdProperty(final String featureId, final String property) {
         return predicateFunction.apply("/features/" + featureId + "/properties/" + property);
     }

@@ -9,7 +9,7 @@
 [![Join the chat at https://gitter.im/eclipse/ditto](https://badges.gitter.im/eclipse/ditto.svg)](https://gitter.im/eclipse/ditto?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 [![Build Status](https://github.com/eclipse/ditto/workflows/build/badge.svg)](https://github.com/eclipse/ditto/actions?query=workflow%3Abuild)
 [![Maven Central](https://img.shields.io/maven-central/v/org.eclipse.ditto/ditto?label=maven)](https://search.maven.org/search?q=g:org.eclipse.ditto)
-[![Docker pulls](https://img.shields.io/docker/pulls/eclipse/ditto-concierge.svg)](https://hub.docker.com/search?q=eclipse%2Fditto&type=image)
+[![Docker pulls](https://img.shields.io/docker/pulls/eclipse/ditto-things.svg)](https://hub.docker.com/search?q=eclipse%2Fditto&type=image)
 [![License](https://img.shields.io/badge/License-EPL%202.0-green.svg)](https://opensource.org/licenses/EPL-2.0)
 [![Lines of code](https://img.shields.io/badge/dynamic/xml.svg?label=Lines%20of%20code&url=https%3A%2F%2Fwww.openhub.net%2Fprojects%2Feclipse-ditto.xml%3Fapi_key%3D11ac3aa12a364fd87b461559a7eedcc53e18fb5a4cf1e43e02cb7a615f1f3d4f&query=%2Fresponse%2Fresult%2Fproject%2Fanalysis%2Ftotal_code_lines&colorB=lightgrey)](https://www.openhub.net/p/eclipse-ditto)
 
@@ -21,6 +21,16 @@ An ever growing list of [adopters](https://iot.eclipse.org/adopters/?#iot.ditto)
 ## Documentation
 
 Find the documentation on the project site: [https://eclipse.org/ditto/](https://eclipse.org/ditto)
+
+## Eclipse Ditto™ explorer UI
+
+Find a live version of the latest explorer UI: [https://eclipse.github.io/ditto/](https://eclipse.github.io/ditto/)
+
+You should be able to work with your locally running default using the `local_ditto` environment - and you can add additional environments to also work with e.g. with a deployed installation of Ditto.
+
+## Star History
+
+[![Star History Chart](https://api.star-history.com/svg?repos=eclipse/ditto&type=Date)](https://star-history.com/?secret=Z2hwXzJERUNBUmFRa09KM3BvdTFMUkJ1Y3VnY25FV3hxVjNBM3hEVQ==#eclipse/ditto&Date)
 
 ## Getting started
 
@@ -108,6 +118,5 @@ You have now running:
    * Things-Search
    * Gateway
    * Connectivity
-   * Concierge
 * an nginx acting as a reverse proxy performing a simple "basic authentication" listening on port `8080`
    * including some static HTTP + API documentation on [http://localhost:8080](http://localhost:8080)

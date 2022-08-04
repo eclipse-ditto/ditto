@@ -29,25 +29,24 @@ import org.bson.BsonDocument;
 import org.eclipse.ditto.base.api.common.ShutdownReasonType;
 import org.eclipse.ditto.base.model.acks.AcknowledgementRequest;
 import org.eclipse.ditto.base.model.acks.DittoAcknowledgementLabel;
-import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
+import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.service.actors.ShutdownBehaviour;
 import org.eclipse.ditto.base.service.config.supervision.ExponentialBackOff;
-import org.eclipse.ditto.internal.models.streaming.IdentifiableStreamingMessage;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLogger;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
-import org.eclipse.ditto.internal.utils.akka.streaming.StreamAck;
 import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.internal.utils.metrics.instruments.counter.Counter;
 import org.eclipse.ditto.internal.utils.metrics.instruments.timer.StartedTimer;
 import org.eclipse.ditto.internal.utils.tracing.DittoTracing;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.policies.api.PolicyReferenceTag;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.events.ThingDeleted;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
+import org.eclipse.ditto.thingsearch.api.PolicyReferenceTag;
 import org.eclipse.ditto.thingsearch.api.UpdateReason;
-import org.eclipse.ditto.thingsearch.api.commands.sudo.UpdateThing;
+import org.eclipse.ditto.thingsearch.api.commands.sudo.SudoUpdateThing;
 import org.eclipse.ditto.thingsearch.service.common.config.SearchConfig;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.AbstractWriteModel;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.Metadata;
@@ -62,6 +61,7 @@ import akka.Done;
 import akka.NotUsed;
 import akka.actor.AbstractFSMWithStash;
 import akka.actor.ActorRef;
+import akka.actor.ActorSelection;
 import akka.actor.FSM;
 import akka.actor.Props;
 import akka.cluster.pubsub.DistributedPubSubMediator;
@@ -105,7 +105,7 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
     private final Materializer materializer;
     private final Duration writeInterval;
     private final Duration thingDeletionTimeout;
-    private final boolean sendingAcksEnabled;
+    private final Duration maxIdleTime;
     private ExponentialBackOff backOff;
     private boolean shuttingDown = false;
     @Nullable private UniqueKillSwitch killSwitch;
@@ -152,6 +152,7 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
         NAMESPACE_BLOCKED
     }
 
+    @SuppressWarnings("unused")
     private ThingUpdater(final Flow<Data, Result, NotUsed> flow,
             final Function<ThingId, Source<AbstractWriteModel, NotUsed>> recoveryFunction,
             final SearchConfig config, final ActorRef pubSubMediator) {
@@ -164,9 +165,7 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
         backOff = ExponentialBackOff.initial(
                 config.getUpdaterConfig().getStreamConfig().getPersistenceConfig().getExponentialBackOffConfig());
         thingDeletionTimeout = config.getUpdaterConfig().getStreamConfig().getThingDeletionTimeout();
-        sendingAcksEnabled = config.getUpdaterConfig().getStreamConfig().isSendingAcksEnabled();
-
-        startSingleTimer(ShutdownTrigger.IDLE.name(), ShutdownTrigger.IDLE, config.getUpdaterConfig().getMaxIdleTime());
+        maxIdleTime = config.getUpdaterConfig().getMaxIdleTime();
 
         startWith(State.RECOVERING, getInitialData(thingId));
         when(State.RECOVERING, recovering());
@@ -181,6 +180,8 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
 
         // subscribe for Shutdown commands
         ShutdownBehaviour.fromId(thingId, pubSubMediator, getSelf());
+
+        refreshIdleShutdownTimer();
     }
 
     /**
@@ -216,10 +217,7 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
     }
 
     private FSMStateFunctionBuilder<State, Data> unhandled() {
-        return matchEvent(Acknowledgement.class, (message, data) -> {
-            log.debug("Received redirected Acknowledgement: <{}>", message);
-            return stay();
-        }).anyEvent((message, data) -> {
+        return matchAnyEvent((message, data) -> {
             log.warning("Unknown message in <{}>: <{}>", stateName(), message);
             return stay();
         });
@@ -242,7 +240,7 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
         return matchEvent(ThingEvent.class, this::onThingEvent)
                 .event(Metadata.class, this::onEventMetadata)
                 .event(PolicyReferenceTag.class, this::onPolicyReferenceTag)
-                .event(UpdateThing.class, this::updateThing)
+                .event(SudoUpdateThing.class, this::updateThing)
                 .eventEquals(Control.TICK, this::tick)
                 .event(ShutdownTrigger.class, this::shutdown)
                 .event(SHUTDOWN_CLASS, this::shutdownNow)
@@ -252,7 +250,6 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
     private FSMStateFunctionBuilder<State, Data> persisting() {
         return matchEvent(Result.class, this::onResult)
                 .event(Done.class, this::onDone)
-                .event(ThingEvent.class, this::onEventWhenPersisting)
                 .event(ShutdownTrigger.class, this::shutdown)
                 .event(SHUTDOWN_CLASS, this::shutdownNow)
                 .event(DistributedPubSubMediator.SubscribeAck.class, this::subscribeAck)
@@ -293,14 +290,10 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
         if (previousState != nextState) {
             switch (nextState) {
                 case READY, RETRYING -> {
-                    final Duration delay;
-                    if (nextState == State.READY) {
-                        delay = writeInterval;
-                    } else {
+                    if (nextState == State.RETRYING) {
                         backOff = backOff.calculateNextBackOff();
-                        delay = backOff.getRestartDelay();
+                        resetTickTimer(backOff.getRestartDelay());
                     }
-                    startTimerWithFixedDelay(Control.TICK.name(), Control.TICK, delay);
                     unstashAll();
                 }
                 default -> cancelTimer(Control.TICK.name());
@@ -308,16 +301,11 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
         }
     }
 
-    private FSM.State<State, Data> onEventWhenPersisting(final ThingEvent<?> event, final Data data) {
-        computeEventMetadata(event, data).ifPresent(eventMetadata -> getSelf().tell(eventMetadata, getSelf()));
-        return stay();
-    }
-
     private FSM.State<State, Data> onResult(final Result result, final Data data) {
         killSwitch = null;
         final var writeResultAndErrors = result.resultAndErrors();
         final var pair = BulkWriteResultAckFlow.checkBulkWriteResult(writeResultAndErrors);
-        pair.second().forEach(log::info);
+        pair.second().forEach(log::debug);
         if (shuttingDown) {
             log.info("Shutting down after completing persistence operation");
             return stop();
@@ -405,23 +393,24 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
         return !metadata.equals(lastMetadata.export()) || lastMetadata.getThingRevision() <= 0;
     }
 
-    private FSM.State<State, Data> updateThing(final UpdateThing updateThing, final Data data) {
-        log.withCorrelationId(updateThing)
-                .info("Requested to update search index <{}> by <{}>", updateThing, getSender());
+    private FSM.State<State, Data> updateThing(final SudoUpdateThing sudoUpdateThing, final Data data) {
+        log.withCorrelationId(sudoUpdateThing)
+                .info("Requested to update search index <{}> by <{}>", sudoUpdateThing, getSender());
         final AbstractWriteModel lastWriteModel;
-        if (updateThing.getDittoHeaders().containsKey(FORCE_UPDATE)) {
+        if (sudoUpdateThing.getDittoHeaders().containsKey(FORCE_UPDATE)) {
             lastWriteModel = ThingDeleteModel.of(data.metadata());
         } else {
             lastWriteModel = data.lastWriteModel();
         }
         final Metadata metadata = data.metadata()
-                .invalidateCaches(updateThing.shouldInvalidateThing(), updateThing.shouldInvalidatePolicy())
-                .withUpdateReason(updateThing.getUpdateReason());
+                .invalidateCaches(sudoUpdateThing.shouldInvalidateThing(), sudoUpdateThing.shouldInvalidatePolicy())
+                .withUpdateReason(sudoUpdateThing.getUpdateReason());
         final Metadata nextMetadata =
-                updateThing.getDittoHeaders().getAcknowledgementRequests().contains(SEARCH_PERSISTED_REQUEST)
-                        ? metadata.withSender(getAckRecipient())
+                sudoUpdateThing.getDittoHeaders().getAcknowledgementRequests().contains(SEARCH_PERSISTED_REQUEST)
+                        ? metadata.withAckRecipient(getAckRecipient(sudoUpdateThing.getDittoHeaders()))
                         : metadata;
-        return stay().using(new Data(nextMetadata, lastWriteModel));
+        ensureTickTimer();
+        return stay().using(new Data(data.metadata().append(nextMetadata), lastWriteModel));
     }
 
     private FSM.State<State, Data> onPolicyReferenceTag(final PolicyReferenceTag policyReferenceTag, final Data data) {
@@ -437,8 +426,6 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
                     policyReferenceTag.getPolicyTag().getEntityId(), policyReferenceTag.getPolicyTag().getRevision(),
                     policyId, policyRevision);
         }
-
-        acknowledge(policyReferenceTag);
 
         final var policyTag = policyReferenceTag.getPolicyTag();
         final var policyIdOfTag = policyTag.getEntityId();
@@ -459,6 +446,7 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
     }
 
     private FSM.State<State, Data> onThingEvent(final ThingEvent<?> thingEvent, final Data data) {
+        refreshIdleShutdownTimer();
         return computeEventMetadata(thingEvent, data).map(eventMetadata -> onEventMetadata(eventMetadata, data))
                 .orElseGet(this::stay);
     }
@@ -475,13 +463,13 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
                             + "equal to the current sequence number <{}> of the update actor.", thingId,
                     thingEvent.getRevision(), data.metadata().getThingRevision());
             if (shouldAcknowledge) {
-                final String hint = String.format("Thing event with revision <%d> for thing <%s> dropped.",
-                        thingEvent.getRevision(),
-                        thingId);
-                exportMetadataWithSender(true, thingEvent, getAckRecipient(), null, data)
-                        .sendWeakAck(JsonValue.of(hint));
+                // add sender to pending acknowledgements
+                return Optional.of(data.metadata().export()
+                        .withAckRecipient(getAckRecipient(thingEvent.getDittoHeaders()))
+                );
+            } else {
+                return Optional.empty();
             }
-            return Optional.empty();
         }
 
         l.debug("Applying thing event <{}>.", thingEvent);
@@ -502,12 +490,14 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
                 .start();
         DittoTracing.wrapTimer(DittoTracing.extractTraceContext(thingEvent), timer);
         ConsistencyLag.startS1InUpdater(timer);
-        final var metadata = exportMetadataWithSender(shouldAcknowledge, thingEvent, getAckRecipient(), timer, data)
+        final var metadata = exportMetadataWithSender(shouldAcknowledge, thingEvent, getAckRecipient(
+                thingEvent.getDittoHeaders()), timer, data)
                 .withUpdateReason(UpdateReason.THING_UPDATE);
         return Optional.of(metadata);
     }
 
     private FSM.State<State, Data> enqueue(final Metadata newMetadata, final Data data) {
+        ensureTickTimer();
         return stay().using(new Data(data.metadata().append(newMetadata), data.lastWriteModel()));
     }
 
@@ -559,13 +549,14 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
 
     private Metadata exportMetadataWithSender(final boolean shouldAcknowledge,
             final ThingEvent<?> event,
-            final ActorRef sender,
+            final ActorSelection ackRecipient,
             @Nullable final StartedTimer consistencyLagTimer,
             final Data data) {
         final long thingRevision = event.getRevision();
         if (shouldAcknowledge) {
             return Metadata.of(thingId, thingRevision, data.metadata().getPolicyId().orElse(null),
-                    data.metadata().getPolicyRevision().orElse(null), List.of(event), consistencyLagTimer, sender);
+                    data.metadata().getPolicyRevision().orElse(null), List.of(event), consistencyLagTimer,
+                    ackRecipient);
         } else {
             return exportMetadata(event, thingRevision, consistencyLagTimer, data);
         }
@@ -579,10 +570,18 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
                 event == null ? List.of() : List.of(event), timer, null);
     }
 
-    private void acknowledge(final IdentifiableStreamingMessage message) {
-        final ActorRef sender = getAckRecipient();
-        if (!getContext().system().deadLetters().equals(sender)) {
-            sender.tell(StreamAck.success(message.asIdentifierString()), getSelf());
+    private void refreshIdleShutdownTimer() {
+        startSingleTimer(ShutdownTrigger.IDLE.name(), ShutdownTrigger.IDLE, maxIdleTime);
+    }
+
+    private void resetTickTimer(final Duration delay) {
+        startTimerWithFixedDelay(Control.TICK.name(), Control.TICK, delay);
+    }
+
+    private void ensureTickTimer() {
+        final var tickTimerName = Control.TICK.name();
+        if (!isTimerActive(tickTimerName)) {
+            resetTickTimer(writeInterval);
         }
     }
 
@@ -603,14 +602,21 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
         }
     }
 
-    private ActorRef getAckRecipient() {
-        if (sendingAcksEnabled) {
-            // normal behavior - return original sender
-            return getSender();
+    private ActorSelection getAckRecipient(final DittoHeaders dittoHeaders) {
+        final String ackregatorAddress = dittoHeaders.get(DittoHeaderDefinition.DITTO_ACKREGATOR_ADDRESS.getKey());
+        if (null != ackregatorAddress) {
+            return getContext().actorSelection(ackregatorAddress);
+        } else if (dittoHeaders.getAcknowledgementRequests().stream()
+                .anyMatch(ackRequest ->
+                        ackRequest.getLabel().equals(DittoAcknowledgementLabel.SEARCH_PERSISTED))) {
+            log.withCorrelationId(dittoHeaders)
+                    .error("Processed Event did not contain header of acknowledgement aggregator address: {}",
+                            dittoHeaders);
+            // fallback to sender:
+            return getContext().actorSelection(getSender().path());
         } else {
-            // return self as sender to prevent acknowledgements being sent to original sender
-            // this actor just write a log statement when receiving an acknowledgement
-            return getSelf();
+            // ignore
+            return getContext().actorSelection(getContext().getSystem().deadLetters().path());
         }
     }
 }

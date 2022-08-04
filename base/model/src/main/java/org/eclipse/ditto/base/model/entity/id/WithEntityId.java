@@ -16,6 +16,8 @@ import java.util.Optional;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.base.model.signals.Signal;
+
 /**
  * Implementations of this interface are associated to an entity identified by the value
  * returned from {@link #getEntityId()}.
@@ -46,6 +48,43 @@ public interface WithEntityId {
                 .map(WithEntityId::getEntityId)
                 .filter(theClass::isInstance)
                 .map(theClass::cast);
+    }
+
+    /**
+     * Indicates whether the specified signal argument provides an entity ID.
+     *
+     * @param signal the signal to be checked.
+     * @return {@code true} if {@code signal} provides an entity ID because it implements {@link WithEntityId}.
+     * {@code false} else.
+     * @since 3.0.0
+     */
+    static boolean isWithEntityId(@Nullable final Signal<?> signal) {
+        final boolean result;
+        if (null != signal) {
+            result = WithEntityId.class.isAssignableFrom(signal.getClass());
+        } else {
+            result = false;
+        }
+
+        return result;
+    }
+
+    /**
+     * Returns the {@link EntityId} for the specified signal argument.
+     *
+     * @param signal the signal to get the entity ID from.
+     * @return an {@code Optional} containing the signal's entity ID if it provides one, an empty {@code Optional} else.
+     * @since 3.0.0
+     */
+    static Optional<EntityId> getEntityId(@Nullable final Signal<?> signal) {
+        final Optional<EntityId> result;
+        if (null != signal && WithEntityId.isWithEntityId(signal)) {
+            result = Optional.of(((WithEntityId) signal).getEntityId());
+        } else {
+            result = Optional.empty();
+        }
+
+        return result;
     }
 
 }

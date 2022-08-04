@@ -152,7 +152,7 @@ public interface Subjects extends Iterable<Subject>, Jsonifiable.WithFieldSelect
     Subjects removeSubject(SubjectId subjectId);
 
     /**
-     * Returns the size of this Subjects, i. e. the number of contained values.
+     * Returns the size of this Subjects, i.e. the number of contained values.
      *
      * @return the number of Subjects.
      */
@@ -171,6 +171,16 @@ public interface Subjects extends Iterable<Subject>, Jsonifiable.WithFieldSelect
      * @return a sequential stream of the Subjects of this container.
      */
     Stream<Subject> stream();
+
+    /**
+     * Checks if the passed {@code otherSubjects} are semantically the same as the in this instance contained subjects,
+     * containing the same subject ids.
+     *
+     * @param otherSubjects the other subjects to check against.
+     * @return {@code true} if the other subjects are semantically the same as the in this instance contained subjects.
+     * @since 3.0.0
+     */
+    boolean isSemanticallySameAs(Subjects otherSubjects);
 
     /**
      * Returns all non-hidden marked fields of this subjects.

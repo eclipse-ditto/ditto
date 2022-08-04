@@ -132,9 +132,8 @@ public final class ThingsSearchCursorTest {
 
             final var command =
                     ThingsSearchCursor.adjust(Optional.of(underTest), QueryThings.of(DittoHeaders.empty()));
-            final var limitsConfig =
-                    DittoSearchConfig.of(DefaultScopedConfig.dittoScoped(config)).getLimitsConfig();
-            final var parser = SearchRootActor.getQueryParser(limitsConfig, actorSystem);
+            final var searchConfig = DittoSearchConfig.of(DefaultScopedConfig.dittoScoped(config));
+            final var parser = SearchRootActor.getQueryParser(searchConfig, actorSystem);
             final Query query = parser.parse(command).toCompletableFuture().join();
             final Query result = ThingsSearchCursor.adjust(Optional.of(underTest), query, parser.getCriteriaFactory());
             final var bson = CreateBsonVisitor.sudoApply(result.getCriteria())
@@ -149,10 +148,10 @@ public final class ThingsSearchCursorTest {
     private static ThingsSearchCursor randomCursor() {
         return new ThingsSearchCursor(
                 new HashSet<>(Arrays.asList(UUID.randomUUID().toString(), UUID.randomUUID().toString())),
-                "correlation-id-" + UUID.randomUUID().toString(),
+                "correlation-id-" + UUID.randomUUID(),
                 SortOption.of(Collections.singletonList(ThingsSearchCursor.DEFAULT_SORT_OPTION_ENTRY)),
-                "eq(attributes/x,\"" + UUID.randomUUID().toString() + "\")",
-                JsonArray.of(JsonValue.of("thingId:" + UUID.randomUUID().toString())));
+                "eq(attributes/x,\"" + UUID.randomUUID() + "\")",
+                JsonArray.of(JsonValue.of("thingId:" + UUID.randomUUID())));
     }
 
     private static QueryThings withCursor(final QueryThings queryThings, final ThingsSearchCursor cursor) {

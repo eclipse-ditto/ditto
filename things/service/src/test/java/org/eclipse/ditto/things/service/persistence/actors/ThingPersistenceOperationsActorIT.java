@@ -12,13 +12,16 @@
  */
 package org.eclipse.ditto.things.service.persistence.actors;
 
+import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.policies.model.PolicyId;
-import org.eclipse.ditto.things.model.Thing;
-import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.internal.utils.persistence.mongo.ops.eventsource.MongoEventSourceITAssertions;
 import org.eclipse.ditto.internal.utils.pubsub.DistributedPub;
 import org.eclipse.ditto.internal.utils.pubsub.extractors.AckExtractor;
+import org.eclipse.ditto.internal.utils.pubsubthings.LiveSignalPub;
+import org.eclipse.ditto.policies.enforcement.PolicyEnforcerProvider;
+import org.eclipse.ditto.policies.model.PolicyId;
+import org.eclipse.ditto.things.model.Thing;
+import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommand;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingNotAccessibleException;
 import org.eclipse.ditto.things.model.signals.commands.modify.CreateThing;
@@ -26,8 +29,11 @@ import org.eclipse.ditto.things.model.signals.commands.modify.CreateThingRespons
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThing;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThingResponse;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
+import org.eclipse.ditto.things.service.enforcement.TestSetup;
 import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
+import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mockito;
 
 import com.typesafe.config.Config;
 
@@ -40,6 +46,13 @@ import akka.actor.Props;
  */
 @AllValuesAreNonnullByDefault
 public final class ThingPersistenceOperationsActorIT extends MongoEventSourceITAssertions<ThingId> {
+
+    private PolicyEnforcerProvider policyEnforcerProvider;
+
+    @Before
+    public void setup() {
+        policyEnforcerProvider = Mockito.mock(PolicyEnforcerProvider.class);
+    }
 
     @Test
     public void purgeNamespace() {
@@ -67,7 +80,10 @@ public final class ThingPersistenceOperationsActorIT extends MongoEventSourceITA
         return CreateThing.of(Thing.newBuilder()
                 .setId(id)
                 .setPolicyId(PolicyId.of(id))
-                .build(), null, DittoHeaders.empty());
+                .build(), null, DittoHeaders.newBuilder()
+                .putHeader(DittoHeaderDefinition.DITTO_SUDO.getKey(),
+                        "true") // required for a stable test - which does not try to load policies from the policiesShardRegion for enforcement
+                .build());
     }
 
     @Override
@@ -77,7 +93,10 @@ public final class ThingPersistenceOperationsActorIT extends MongoEventSourceITA
 
     @Override
     protected Object getRetrieveEntityCommand(final ThingId id) {
-        return RetrieveThing.of(id, DittoHeaders.empty());
+        return RetrieveThing.of(id, DittoHeaders.newBuilder()
+                .putHeader(DittoHeaderDefinition.DITTO_SUDO.getKey(),
+                        "true") // required for a stable test - which does not try to load policies from the policiesShardRegion for enforcement
+                .build());
     }
 
     @Override
@@ -101,28 +120,32 @@ public final class ThingPersistenceOperationsActorIT extends MongoEventSourceITA
 
     @Override
     protected ActorRef startEntityActor(final ActorSystem system, final ActorRef pubSubMediator, final ThingId id) {
-        final Props props =
-                ThingSupervisorActor.props(pubSubMediator,
-                        new DistributedPub<>() {
 
-                            @Override
-                            public ActorRef getPublisher() {
-                                return pubSubMediator;
-                            }
+        final LiveSignalPub liveSignalPub = new TestSetup.DummyLiveSignalPub(pubSubMediator);
 
-                            @Override
-                            public Object wrapForPublication(final ThingEvent<?> message) {
-                                return message;
-                            }
+        final Props props = ThingSupervisorActor.props(pubSubMediator,
+                new DistributedPub<>() {
 
-                            @Override
-                            public <S extends ThingEvent<?>> Object wrapForPublicationWithAcks(final S message,
-                                    final AckExtractor<S> ackExtractor) {
-                                return wrapForPublication(message);
-                            }
-                        },
-                        (thingId, distributedPub) -> ThingPersistenceActor.props(thingId, distributedPub,
-                                pubSubMediator));
+                    @Override
+                    public ActorRef getPublisher() {
+                        return pubSubMediator;
+                    }
+
+                    @Override
+                    public Object wrapForPublication(final ThingEvent<?> message) {
+                        return message;
+                    }
+
+                    @Override
+                    public <S extends ThingEvent<?>> Object wrapForPublicationWithAcks(final S message,
+                            final AckExtractor<S> ackExtractor) {
+                        return wrapForPublication(message);
+                    }
+                },
+                liveSignalPub,
+                ThingPersistenceActor::props,
+                null,
+                policyEnforcerProvider);
 
         return system.actorOf(props, id.toString());
     }

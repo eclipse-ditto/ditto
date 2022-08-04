@@ -17,13 +17,13 @@ import static java.util.Objects.requireNonNull;
 import java.util.Collections;
 import java.util.Set;
 
+import org.eclipse.ditto.base.model.headers.translator.HeaderTranslator;
+import org.eclipse.ditto.policies.model.signals.announcements.PolicyAnnouncement;
 import org.eclipse.ditto.protocol.Adaptable;
-import org.eclipse.ditto.protocol.HeaderTranslator;
 import org.eclipse.ditto.protocol.TopicPath;
 import org.eclipse.ditto.protocol.adapter.UnknownTopicPathException;
-import org.eclipse.ditto.protocol.mappingstrategies.MappingStrategiesFactory;
 import org.eclipse.ditto.protocol.mapper.SignalMapperFactory;
-import org.eclipse.ditto.policies.model.signals.announcements.PolicyAnnouncement;
+import org.eclipse.ditto.protocol.mappingstrategies.MappingStrategiesFactory;
 
 /**
  * Adapter for mapping a {@link PolicyAnnouncement} to and from an {@link org.eclipse.ditto.protocol.Adaptable}.

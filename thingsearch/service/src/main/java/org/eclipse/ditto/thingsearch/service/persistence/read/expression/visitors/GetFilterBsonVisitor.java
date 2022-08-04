@@ -14,11 +14,13 @@ package org.eclipse.ditto.thingsearch.service.persistence.read.expression.visito
 
 import static org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants.DESIRED_PROPERTIES;
 import static org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants.FIELD_ATTRIBUTES_PATH;
+import static org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants.FIELD_DEFINITION;
 import static org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants.FIELD_FEATURES_PATH;
 import static org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants.FIELD_F_ARRAY;
 import static org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants.FIELD_METADATA_PATH;
 import static org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants.FIELD_THING;
 import static org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants.PROPERTIES;
+import static org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants.SLASH;
 
 import java.util.List;
 import java.util.function.Function;
@@ -76,6 +78,15 @@ public final class GetFilterBsonVisitor extends AbstractFieldBsonCreator impleme
     @Override
     public Bson visitAttribute(final String key) {
         return matchValue(FIELD_ATTRIBUTES_PATH + key);
+    }
+
+    @Override
+    public Bson visitFeatureDefinition(final String featureId) {
+        if (FEATURE_ID_WILDCARD.equals(featureId)) {
+            return matchWildcardFeatureValue(FIELD_DEFINITION);
+        } else {
+            return matchValue(FIELD_FEATURES_PATH + featureId + SLASH + FIELD_DEFINITION);
+        }
     }
 
     @Override

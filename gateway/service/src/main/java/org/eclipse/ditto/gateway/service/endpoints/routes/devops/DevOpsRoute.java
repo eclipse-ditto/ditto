@@ -27,7 +27,7 @@ import org.eclipse.ditto.base.api.devops.signals.commands.ExecutePiggybackComman
 import org.eclipse.ditto.base.api.devops.signals.commands.RetrieveLoggerConfig;
 import org.eclipse.ditto.base.model.exceptions.DittoJsonException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.base.model.headers.DittoHeadersBuilder;
+import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.base.service.devops.DevOpsCommandsActor;
 import org.eclipse.ditto.gateway.service.endpoints.directives.auth.DevOpsOAuth2AuthenticationDirective;
 import org.eclipse.ditto.gateway.service.endpoints.directives.auth.DevopsAuthenticationDirective;
@@ -215,40 +215,20 @@ public final class DevOpsRoute extends AbstractRoute {
                 extractDataBytes(payloadSource ->
                         handlePerRequest(ctx, dittoHeaders, payloadSource,
                                 piggybackCommandJson -> {
-                                    final JsonObject parsedJson = DittoJsonException.wrapJsonRuntimeException(() ->
+                                    JsonObject parsedJson = DittoJsonException.wrapJsonRuntimeException(() ->
                                             JsonFactory.readFrom(piggybackCommandJson).asObject());
-
-                                    final String serviceName1;
-                                    final String instance1;
+                                    parsedJson = parsedJson.set(Command.JsonFields.TYPE, ExecutePiggybackCommand.TYPE);
 
                                     // serviceName and instance from URL are preferred
-                                    if (serviceName == null) {
-                                        serviceName1 = parsedJson.getValue(DevOpsCommand.JsonFields.JSON_SERVICE_NAME)
-                                                .orElse(serviceName);
-                                    } else {
-                                        serviceName1 = serviceName;
+                                    if (null != serviceName) {
+                                        parsedJson = parsedJson.set(DevOpsCommand.JsonFields.JSON_SERVICE_NAME,
+                                                serviceName);
                                     }
-
-                                    if (instance == null) {
-                                        instance1 = parsedJson.getValue(DevOpsCommand.JsonFields.JSON_INSTANCE)
-                                                .orElse(instance);
-                                    } else {
-                                        instance1 = instance;
+                                    if (null != instance) {
+                                        parsedJson = parsedJson.set(DevOpsCommand.JsonFields.JSON_INSTANCE,
+                                                instance);
                                     }
-
-                                    return ExecutePiggybackCommand.of(serviceName1, instance1,
-                                            parsedJson.getValueOrThrow(
-                                                    ExecutePiggybackCommand.JSON_TARGET_ACTORSELECTION),
-                                            parsedJson.getValueOrThrow(
-                                                    ExecutePiggybackCommand.JSON_PIGGYBACK_COMMAND),
-                                            parsedJson.getValue("headers")
-                                                    .filter(JsonValue::isObject)
-                                                    .map(JsonValue::asObject)
-                                                    .map(DittoHeaders::newBuilder)
-                                                    .map(head -> head.putHeaders(dittoHeaders))
-                                                    .map((java.util.function.Function<DittoHeadersBuilder, DittoHeaders>)
-                                                            DittoHeadersBuilder::build)
-                                                    .orElse(dittoHeaders));
+                                    return ExecutePiggybackCommand.fromJson(parsedJson, dittoHeaders);
                                 }
                         )
                 )

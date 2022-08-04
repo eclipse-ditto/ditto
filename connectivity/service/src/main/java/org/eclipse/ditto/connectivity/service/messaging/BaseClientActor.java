@@ -118,8 +118,8 @@ import org.eclipse.ditto.internal.utils.config.InstanceIdentifierSupplier;
 import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.internal.utils.metrics.instruments.gauge.Gauge;
 import org.eclipse.ditto.internal.utils.protocol.ProtocolAdapterProvider;
-import org.eclipse.ditto.internal.utils.pubsub.DittoProtocolSub;
 import org.eclipse.ditto.internal.utils.pubsub.StreamingType;
+import org.eclipse.ditto.internal.utils.pubsubthings.DittoProtocolSub;
 import org.eclipse.ditto.internal.utils.search.SubscriptionManager;
 import org.eclipse.ditto.protocol.adapter.ProtocolAdapter;
 import org.eclipse.ditto.thingsearch.model.signals.commands.ThingSearchCommand;
@@ -141,7 +141,6 @@ import akka.actor.Status;
 import akka.actor.SupervisorStrategy;
 import akka.actor.Terminated;
 import akka.cluster.pubsub.DistributedPubSub;
-import akka.http.javadsl.ConnectionContext;
 import akka.japi.Pair;
 import akka.japi.pf.DeciderBuilder;
 import akka.japi.pf.FSMStateFunctionBuilder;
@@ -165,7 +164,6 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     protected final ThreadSafeDittoLoggingAdapter logger;
     protected static final Status.Success DONE = new Status.Success(Done.getInstance());
 
-    protected ConnectionContext connectionContext;
     protected final ConnectionLogger connectionLogger;
     protected final ConnectivityStatusResolver connectivityStatusResolver;
 
@@ -184,7 +182,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     private final Connection connection;
     private final ConnectivityConfig connectivityConfig;
     private final ActorRef connectionActor;
-    private final ActorSelection proxyActorSelection;
+    private final ActorSelection commandForwarderActorSelection;
     private final Gauge clientGauge;
     private final Gauge clientConnectingGauge;
     private final ReconnectTimeoutStrategy reconnectTimeoutStrategy;
@@ -192,15 +190,12 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     private final ClientActorRefs clientActorRefs;
     private final DittoProtocolSub dittoProtocolSub;
     private final int subscriptionIdPrefixLength;
-    private final String actorUUID;
+    protected final UUID actorUuid;
     private final ProtocolAdapter protocolAdapter;
     protected final ConnectivityCounterRegistry connectionCounterRegistry;
     protected final ConnectionLoggerRegistry connectionLoggerRegistry;
+    protected final ChildActorNanny childActorNanny;
     private final boolean dryRun;
-    private final ActorRef proxyActor;
-
-    // counter for all child actors ever started to disambiguate between them
-    private int childActorCount = 0;
 
     private Sink<Object, NotUsed> inboundMappingSink;
     private ActorRef outboundDispatchingActor;
@@ -208,7 +203,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     private ActorRef tunnelActor;
 
     protected BaseClientActor(final Connection connection,
-            final ActorRef proxyActor,
+            final ActorRef commandForwarderActor,
             final ActorRef connectionActor,
             final DittoHeaders dittoHeaders,
             final Config connectivityConfigOverwrites) {
@@ -219,13 +214,12 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         final Config withOverwrites = connectivityConfigOverwrites.withFallback(config);
         connectivityConfig = ConnectivityConfig.of(withOverwrites);
         this.connectionActor = connectionActor;
-        this.proxyActor = proxyActor;
 
         // this is retrieve via the extension for each baseClientActor in order to not pass it as constructor arg
         //  as all constructor arguments need to be serializable as the BaseClientActor is started behind a cluster
         //  router
         dittoProtocolSub = DittoProtocolSub.get(system);
-        actorUUID = UUID.randomUUID().toString();
+        actorUuid = UUID.randomUUID();
 
         final var connectionId = connection.getId();
         logger = DittoLoggerFactory.getThreadSafeDittoLoggingAdapter(this)
@@ -233,7 +227,8 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         // log the default client ID for tracing
         logger.info("Using default client ID <{}>", getDefaultClientId());
 
-        proxyActorSelection = getLocalActorOfSamePath(proxyActor);
+        commandForwarderActorSelection = getLocalActorOfSamePath(commandForwarderActor);
+        childActorNanny = ChildActorNanny.newInstance(getContext(), logger);
 
         final UserIndicatedErrors userIndicatedErrors = UserIndicatedErrors.of(config);
         connectivityStatusResolver = ConnectivityStatusResolver.of(userIndicatedErrors);
@@ -322,11 +317,11 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
 
         final var inboundDispatchingSink = getInboundDispatchingSink(actorPair.second());
         inboundMappingSink = getInboundMappingSink(protocolAdapter, inboundDispatchingSink);
-        subscriptionManager = startSubscriptionManager(proxyActorSelection, connectivityConfig().getClientConfig());
+        subscriptionManager = startSubscriptionManager(commandForwarderActorSelection, connectivityConfig().getClientConfig());
 
         if (connection.getSshTunnel().map(SshTunnel::isEnabled).orElse(false)) {
-            tunnelActor = startChildActor(SshTunnelActor.ACTOR_NAME, SshTunnelActor.props(connection,
-                    connectivityStatusResolver, connectionLogger));
+            tunnelActor = childActorNanny.startChildActor(SshTunnelActor.ACTOR_NAME,
+                    SshTunnelActor.props(connection, connectivityStatusResolver, connectionLogger));
         } else {
             tunnelActor = null;
         }
@@ -382,7 +377,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         if (connection.getClientCount() == 1) {
             return prefix.toString();
         } else {
-            return prefix + "_" + actorUUID;
+            return prefix + "_" + actorUuid;
         }
     }
 
@@ -393,15 +388,6 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
      */
     protected String getDefaultClientId() {
         return getClientId(connection.getId());
-    }
-
-    /**
-     * Get the proxyActor reference.
-     *
-     * @return the proxyActor ref.
-     */
-    protected ActorRef getProxyActor() {
-        return proxyActor;
     }
 
     private FSM.State<BaseClientState, BaseClientData> completeInitialization() {
@@ -561,27 +547,14 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     }
 
     /**
-     * Starts a child actor.
-     *
-     * @param name the Actor's name
-     * @param props the Props
-     * @return the created ActorRef
-     */
-    private ActorRef startChildActor(final String name, final Props props) {
-        logger.debug("Starting child actor <{}>.", name);
-        final String nameEscaped = escapeActorName(name);
-        return getContext().actorOf(props, nameEscaped);
-    }
-
-    /**
      * Start a child actor whose name is guaranteed to be different from all other child actors started by this method.
      *
      * @param prefix prefix of the child actor name.
      * @param props props of the child actor.
      * @return the created ActorRef.
      */
-    protected final ActorRef startChildActorConflictFree(final String prefix, final Props props) {
-        return startChildActor(nextChildActorName(prefix), props);
+    protected final ActorRef startChildActorConflictFree(final CharSequence prefix, final Props props) {
+        return childActorNanny.startChildActorConflictFree(prefix, props);
     }
 
     /**
@@ -590,9 +563,8 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
      * @param actor the ActorRef
      */
     protected final void stopChildActor(@Nullable final ActorRef actor) {
-        if (actor != null) {
-            logger.debug("Stopping child actor <{}>.", actor.path());
-            getContext().stop(actor);
+        if (null != actor) {
+            childActorNanny.stopChildActor(actor);
         }
     }
 
@@ -654,6 +626,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         if (to == CONNECTED || to == DISCONNECTED || to == INITIALIZED) {
             cancelStateTimeout();
         }
+        maintainResubscribeTimer(to);
     }
 
     private void publishConnectionOpenedAnnouncement() {
@@ -737,7 +710,8 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
                 .event(CloseConnectionAndShutdown.class, this::closeConnectionAndShutdown)
                 .event(SshTunnelActor.TunnelClosed.class, this::tunnelClosed)
                 .event(OpenConnection.class, this::connectionAlreadyOpen)
-                .event(ConnectionFailure.class, this::connectedConnectionFailed);
+                .event(ConnectionFailure.class, this::connectedConnectionFailed)
+                .eventEquals(Control.RESUBSCRIBE, this::resubscribe);
     }
 
     @Nullable
@@ -1183,7 +1157,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
 
         return publisherReady
                 .thenCompose(unused -> consumersReady)
-                .thenCompose(unused -> subscribeAndDeclareAcknowledgementLabels(dryRun))
+                .thenCompose(unused -> subscribeAndDeclareAcknowledgementLabels(dryRun, false))
                 .thenApply(unused -> InitializationResult.success())
                 .exceptionally(InitializationResult::failed);
     }
@@ -1727,7 +1701,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         try {
             // this one throws DittoRuntimeExceptions when the mapper could not be configured
             settings = OutboundMappingSettings.of(connection, connectivityConfig, getContext().getSystem(),
-                    proxyActorSelection, protocolAdapter, logger);
+                    commandForwarderActorSelection, protocolAdapter, logger);
             outboundMappingProcessors = IntStream.range(0, processorPoolSize)
                     .mapToObj(i -> OutboundMappingProcessor.of(settings))
                     .toList();
@@ -1743,10 +1717,11 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
                 OutboundMappingProcessorActor.props(getSelf(), outboundMappingProcessors, connection,
                         connectivityConfig, processorPoolSize);
 
-        final ActorRef processorActor =
-                getContext().actorOf(outboundMappingProcessorActorProps, OutboundMappingProcessorActor.ACTOR_NAME);
+        final ActorRef processorActor = childActorNanny.startChildActor(OutboundMappingProcessorActor.ACTOR_NAME,
+                outboundMappingProcessorActorProps);
 
-        final Props outboundDispatchingProcessorActorProps = OutboundDispatchingActor.props(settings, processorActor);
+        final Props outboundDispatchingProcessorActorProps = OutboundDispatchingActor.props(
+                settings, processorActor);
         final ActorRef dispatchingActor =
                 getContext().actorOf(outboundDispatchingProcessorActorProps, OutboundDispatchingActor.ACTOR_NAME);
 
@@ -1763,7 +1738,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     private Sink<Object, NotUsed> getInboundDispatchingSink(final ActorRef outboundMappingProcessorActor) {
         return InboundDispatchingSink.createSink(connection,
                 protocolAdapter.headerTranslator(),
-                proxyActorSelection,
+                commandForwarderActorSelection,
                 connectionActor,
                 outboundMappingProcessorActor,
                 getSelf(),
@@ -1852,12 +1827,14 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         return stay();
     }
 
-    protected boolean isDryRun() {
-        return dryRun;
+    private FSM.State<BaseClientState, BaseClientData> resubscribe(final Control trigger, final BaseClientData data) {
+        subscribeAndDeclareAcknowledgementLabels(dryRun, true);
+        startSubscriptionRefreshTimer();
+        return stay();
     }
 
-    private String nextChildActorName(final String prefix) {
-        return prefix + ++childActorCount;
+    protected boolean isDryRun() {
+        return dryRun;
     }
 
     private BaseClientData setSession(final BaseClientData data, @Nullable final ActorRef sender,
@@ -1885,23 +1862,22 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
      * @return status with meaningful message.
      */
     private Status.Status getStatusToReport(final Status.Status status, final DittoHeaders dittoHeaders) {
-        final Status.Status answerToPublish;
-        if (status instanceof Status.Failure) {
-            final var failure = (Status.Failure) status;
-            if (!(failure.cause() instanceof DittoRuntimeException)) {
-                final DittoRuntimeException error = ConnectionFailedException.newBuilder(connectionId())
-                        .description(describeEventualCause(failure.cause()))
-                        .dittoHeaders(dittoHeaders)
-                        .cause(failure.cause())
-                        .build();
-                answerToPublish = new Status.Failure(error);
+        final Status.Status result;
+        if (status instanceof Status.Failure failure) {
+            final var failureCause = failure.cause();
+            if (failureCause instanceof DittoRuntimeException) {
+                result = status;
             } else {
-                answerToPublish = status;
+                result = new Status.Failure(ConnectionFailedException.newBuilder(connectionId())
+                        .description(describeEventualCause(failureCause))
+                        .dittoHeaders(dittoHeaders)
+                        .cause(failureCause)
+                        .build());
             }
         } else {
-            answerToPublish = status;
+            result = status;
         }
-        return answerToPublish;
+        return result;
     }
 
     private ActorSelection getLocalActorOfSamePath(@Nullable final ActorRef exampleActor) {
@@ -1953,27 +1929,29 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
      * Subscribe for signals. NOT thread-safe due to querying actor state.
      *
      * @param isDryRun whether this is a dry run
+     * @param resubscribe whether this is a resubscription
      * @return a future that completes when subscription and ack label declaration succeed and fails when either fails.
      */
-    private CompletionStage<Void> subscribeAndDeclareAcknowledgementLabels(final boolean isDryRun) {
+    private CompletionStage<Void> subscribeAndDeclareAcknowledgementLabels(final boolean isDryRun,
+            final boolean resubscribe) {
         if (isDryRun) {
             // no point writing to the distributed data in a dry run - this actor will stop right away
             return CompletableFuture.completedFuture(null);
         } else {
             final String group = getPubsubGroup();
-            final CompletionStage<Void> subscribe = subscribeToStreamingTypes(group);
+            final CompletionStage<Boolean> subscribe = subscribeToStreamingTypes(group, resubscribe);
             final CompletionStage<Void> declare =
                     dittoProtocolSub.declareAcknowledgementLabels(getDeclaredAcks(), getSelf(), group);
-            return declare.thenCompose(unused -> subscribe);
+            return subscribe.thenCompose(unused -> declare);
         }
     }
 
-    private CompletionStage<Void> subscribeToStreamingTypes(final String pubSubGroup) {
+    private CompletionStage<Boolean> subscribeToStreamingTypes(final String pubSubGroup, final boolean resubscribe) {
         final Set<StreamingType> streamingTypes = getUniqueStreamingTypes();
         if (streamingTypes.isEmpty()) {
             return CompletableFuture.completedFuture(null);
         }
-        return dittoProtocolSub.subscribe(streamingTypes, getTargetAuthSubjects(), getSelf(), pubSubGroup);
+        return dittoProtocolSub.subscribe(streamingTypes, getTargetAuthSubjects(), getSelf(), pubSubGroup, resubscribe);
     }
 
     private Set<AcknowledgementLabel> getDeclaredAcks() {
@@ -2001,6 +1979,20 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
                 .filter(Optional::isPresent)
                 .map(Optional::get)
                 .collect(Collectors.toSet());
+    }
+
+    private void maintainResubscribeTimer(final BaseClientState nextState) {
+        if (nextState == CONNECTED) {
+            startSubscriptionRefreshTimer();
+        } else {
+            cancelTimer(Control.RESUBSCRIBE.name());
+        }
+    }
+
+    private void startSubscriptionRefreshTimer() {
+        final var delay = connectivityConfig.getClientConfig().getSubscriptionRefreshDelay();
+        final var randomizedDelay = delay.plus(Duration.ofMillis((long) (delay.toMillis() * Math.random())));
+        startSingleTimer(Control.RESUBSCRIBE.name(), Control.RESUBSCRIBE, randomizedDelay);
     }
 
     private static Optional<StreamingType> toStreamingTypes(final Topic topic) {
@@ -2221,7 +2213,8 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     private enum Control {
         INIT_COMPLETE,
         CONNECT_AFTER_TUNNEL_ESTABLISHED,
-        GOTO_CONNECTED_AFTER_INITIALIZATION
+        GOTO_CONNECTED_AFTER_INITIALIZATION,
+        RESUBSCRIBE
     }
 
     private static final Object SEND_DISCONNECT_ANNOUNCEMENT = new Object();
@@ -2258,7 +2251,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
 
     public enum HealthSignal implements AkkaJacksonCborSerializable {
         PING,
-        PONG;
+        PONG
     }
 
 }

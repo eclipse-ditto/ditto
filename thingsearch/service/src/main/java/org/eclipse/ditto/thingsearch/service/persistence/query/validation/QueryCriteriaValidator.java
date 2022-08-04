@@ -12,73 +12,70 @@
  */
 package org.eclipse.ditto.thingsearch.service.persistence.query.validation;
 
-import java.util.List;
+import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
+
 import java.util.concurrent.CompletionStage;
 
-import org.eclipse.ditto.internal.utils.akka.AkkaClassLoader;
-import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
-import org.eclipse.ditto.thingsearch.model.signals.commands.query.ThingSearchQueryCommand;
-import org.eclipse.ditto.thingsearch.service.common.config.DittoSearchConfig;
-import org.eclipse.ditto.thingsearch.service.common.config.SearchConfig;
+import org.eclipse.ditto.base.model.signals.commands.Command;
+import org.eclipse.ditto.internal.utils.extension.DittoExtensionPoint;
+import org.eclipse.ditto.internal.utils.extension.DittoExtensionIds;
+import org.eclipse.ditto.rql.query.Query;
 
-import akka.actor.AbstractExtensionId;
+import com.typesafe.config.Config;
+
 import akka.actor.ActorSystem;
-import akka.actor.ExtendedActorSystem;
-import akka.actor.Extension;
 
 /**
  * Search Query Validator to be loaded by reflection.
  * Can be used as an extension point to use custom validation of search queries.
  * Implementations MUST have a public constructor taking an actorSystem as argument.
  */
-public abstract class QueryCriteriaValidator implements Extension {
+public interface QueryCriteriaValidator extends DittoExtensionPoint {
 
-    private static final ExtensionId EXTENSION_ID = new ExtensionId();
+    /**
+     * Validate a parsed query of a
+     * {@link org.eclipse.ditto.thingsearch.model.signals.commands.query.ThingSearchQueryCommand}.
+     *
+     * @param query The query.
+     * @return The validated query in a future if it is valid, or a failed future if it is not.
+     */
+    CompletionStage<Query> validateQuery(final Command<?> command, final Query query);
 
-    protected final ActorSystem actorSystem;
-
-    protected QueryCriteriaValidator(final ActorSystem actorSystem) {
-        this.actorSystem = actorSystem;
+    /**
+     * Loads the implementation of {@code QueryCriteriaValidator} which is configured for the
+     * {@code ActorSystem}.
+     *
+     * @param actorSystem the actorSystem in which the {@code QueryCriteriaValidator} should be loaded.
+     * @param config the configuration of this extension.
+     * @return the {@code QueryCriteriaValidator} implementation.
+     * @throws NullPointerException if {@code actorSystem} is {@code null}.
+     */
+    static QueryCriteriaValidator get(final ActorSystem actorSystem, final Config config) {
+        checkNotNull(actorSystem, "actorSystem");
+        checkNotNull(config, "config");
+        final var extensionIdConfig = ExtensionId.computeConfig(config);
+        return DittoExtensionIds.get(actorSystem)
+                .computeIfAbsent(extensionIdConfig, ExtensionId::new)
+                .get(actorSystem);
     }
 
-    /**
-     * Gets the criteria of a {@link org.eclipse.ditto.thingsearch.model.signals.commands.query.ThingSearchQueryCommand} and
-     * validates it.
-     * <p>
-     * May throw an exception depending on the implementation in the used QueryCriteriaValidator.
-     *
-     * @param command the command to validate.
-     * @return the validated command in a future if it is valid, or a failed future if it is not.
-     */
-    public abstract CompletionStage<ThingSearchQueryCommand<?>> validateCommand(
-            final ThingSearchQueryCommand<?> command);
+    final class ExtensionId extends DittoExtensionPoint.ExtensionId<QueryCriteriaValidator> {
 
-    /**
-     * Load a {@code QueryCriteriaValidator} dynamically according to the search configuration.
-     *
-     * @param actorSystem The actor system in which to load the validator.
-     * @return The validator.
-     */
-    public static QueryCriteriaValidator get(final ActorSystem actorSystem) {
-        return EXTENSION_ID.get(actorSystem);
-    }
+        private static final String CONFIG_KEY = "query-criteria-validator";
 
-    /**
-     * ID of the actor system extension to validate the {@code QueryCriteriaValidator}.
-     */
-    private static final class ExtensionId extends AbstractExtensionId<QueryCriteriaValidator> {
+        private ExtensionId(final ExtensionIdConfig<QueryCriteriaValidator> extensionIdConfig) {
+            super(extensionIdConfig);
+        }
+
+        static ExtensionIdConfig<QueryCriteriaValidator> computeConfig(final Config config) {
+            return ExtensionIdConfig.of(QueryCriteriaValidator.class, config, CONFIG_KEY);
+        }
 
         @Override
-        public QueryCriteriaValidator createExtension(final ExtendedActorSystem system) {
-            final SearchConfig searchConfig =
-                    DittoSearchConfig.of(DefaultScopedConfig.dittoScoped(
-                            system.settings().config()));
-
-            return AkkaClassLoader.instantiate(system, QueryCriteriaValidator.class,
-                    searchConfig.getQueryValidatorImplementation(),
-                    List.of(ActorSystem.class),
-                    List.of(system));
+        protected String getConfigKey() {
+            return CONFIG_KEY;
         }
+
     }
 
 }

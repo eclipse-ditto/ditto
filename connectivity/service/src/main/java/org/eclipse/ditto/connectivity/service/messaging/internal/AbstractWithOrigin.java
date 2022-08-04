@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.connectivity.service.messaging.internal;
 
+import java.util.Objects;
 import java.util.Optional;
 
 import javax.annotation.Nullable;
@@ -35,7 +36,25 @@ public abstract class AbstractWithOrigin implements WithOrigin {
     }
 
     @Override
+    public boolean equals(@Nullable final Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        final var that = (AbstractWithOrigin) o;
+        return Objects.equals(origin, that.origin);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(origin);
+    }
+
+    @Override
     public String toString() {
         return "origin=" + origin;
     }
+
 }

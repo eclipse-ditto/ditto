@@ -2,7 +2,8 @@
   "@context": [
     "https://www.w3.org/2022/wot/td/v1.1",
     {
-      "ditto": "https://www.eclipse.org/ditto/ctx"
+      "ditto": "https://www.eclipse.org/ditto/ctx",
+      "ace": "http://www.example.org/ace-security#"
     }
   ],
   "id": "urn:org.eclipse.ditto:333-WoTLamp-1234",
@@ -11,7 +12,8 @@
     "de": "Mein Lampen Ding"
   },
   "securityDefinitions": {
-    "basic_sc": {"scheme": "basic", "in": "header"}
+    "basic_sc": {"scheme": "basic", "in": "header"},
+    "ace_sc": {"scheme": "ace:ACESecurityScheme", "description": "Here be dragons", "ace:custom":"foobar!"}
   },
   "security": "basic_sc",
   "base": "https://ditto.eclipseprojects.io/api/2/things/org.eclipse.ditto:333-WoTLamp-1234",
@@ -41,5 +43,11 @@
         "subprotocol": "sse"
       }]
     }
-  }
+  },
+  "links": [{
+    "rel": "service-doc",
+    "href": "https://eclipse.org/ditto/some-pdf.pdf",
+    "type": "application/pdf",
+    "hreflang" : "de-CH-1996"
+  }]
 }

@@ -69,7 +69,8 @@ public abstract class AbstractWriteModel {
      * @return Either the MongoDB write model of this object or an incremental update converting the document of
      * the previous model into this one.
      */
-    public Optional<MongoWriteModel> toIncrementalMongo(@Nullable final AbstractWriteModel previousWriteModel) {
+    public Optional<MongoWriteModel> toIncrementalMongo(@Nullable final AbstractWriteModel previousWriteModel,
+            final int maxWireVersion) {
         return Optional.of(MongoWriteModel.of(this, toMongo(), false));
     }
 

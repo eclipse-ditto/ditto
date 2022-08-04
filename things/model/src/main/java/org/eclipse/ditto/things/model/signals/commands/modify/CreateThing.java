@@ -186,11 +186,13 @@ public final class CreateThing extends AbstractCommand<CreateThing> implements T
             throw PoliciesConflictingException.newBuilder(thingId).dittoHeaders(dittoHeaders).build();
         }
 
+        final CreateThing createThing;
         if (policyIdOrPlaceholder == null) {
-            return of(newThing, initialPolicy, dittoHeaders);
+            createThing = of(newThing, initialPolicy, dittoHeaders);
         } else {
-            return withCopiedPolicy(newThing, policyIdOrPlaceholder, dittoHeaders);
+            createThing = withCopiedPolicy(newThing, policyIdOrPlaceholder, dittoHeaders);
         }
+        return createThing;
     }
 
     /**
@@ -248,7 +250,7 @@ public final class CreateThing extends AbstractCommand<CreateThing> implements T
     /**
      * @return the policyIdOrPlaceholder that should be used to copy an existing policy when creating the Thing.
      */
-    public Optional<String> getPolicyIdOrPlaceholder() { return Optional.ofNullable(policyIdOrPlaceholder);}
+    public Optional<String> getPolicyIdOrPlaceholder() {return Optional.ofNullable(policyIdOrPlaceholder);}
 
     @Override
     public ThingId getEntityId() {
@@ -288,7 +290,7 @@ public final class CreateThing extends AbstractCommand<CreateThing> implements T
 
     @Override
     public Category getCategory() {
-        return Category.MODIFY;
+        return Category.CREATE;
     }
 
     @Override
@@ -298,7 +300,7 @@ public final class CreateThing extends AbstractCommand<CreateThing> implements T
 
     @Override
     public boolean changesAuthorization() {
-        return true;
+        return false;
     }
 
     @Override

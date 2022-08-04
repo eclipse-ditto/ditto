@@ -60,7 +60,6 @@ import org.eclipse.ditto.connectivity.service.messaging.internal.ConnectionFailu
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.ConnectionMonitor;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.logs.InfoProviderFactory;
 import org.eclipse.ditto.connectivity.service.messaging.signing.NoOpSigning;
-import org.eclipse.ditto.internal.models.signal.SignalInformationPoint;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.internal.utils.metrics.instruments.timer.PreparedTimer;
@@ -139,11 +138,10 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
     @SuppressWarnings("unused")
     private HttpPublisherActor(final Connection connection,
             final HttpPushFactory factory,
-            final String clientId,
             final ConnectivityStatusResolver connectivityStatusResolver,
             final ConnectivityConfig connectivityConfig) {
 
-        super(connection, clientId, connectivityStatusResolver, connectivityConfig);
+        super(connection, connectivityStatusResolver, connectivityConfig);
         this.factory = factory;
         materializer = Materializer.createMaterializer(this::getContext);
         final var config = connectionConfig.getHttpPushConfig();
@@ -174,7 +172,6 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
      *
      * @param connection the connection.
      * @param factory the http push factory to use.
-     * @param clientId the client ID.
      * @param connectivityStatusResolver connectivity status resolver to resolve occurred exceptions to a connectivity
      * status.
      * @param connectivityConfig the config of the connectivity service with potential overwrites.
@@ -182,14 +179,12 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
      */
     static Props props(final Connection connection,
             final HttpPushFactory factory,
-            final String clientId,
             final ConnectivityStatusResolver connectivityStatusResolver,
             final ConnectivityConfig connectivityConfig) {
 
         return Props.create(HttpPublisherActor.class,
                 connection,
                 factory,
-                clientId,
                 connectivityStatusResolver,
                 connectivityConfig);
     }
@@ -510,7 +505,7 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
             return CompletableFuture.failedFuture(error);
         }
 
-        final var isSentSignalLiveCommand = SignalInformationPoint.isLiveCommand(sentSignal);
+        final var isSentSignalLiveCommand = Command.isLiveCommand(sentSignal);
         final int maxResponseSize = isSentSignalLiveCommand ? maxTotalMessageSize : ackSizeQuota;
         return getResponseBody(response, maxResponseSize, materializer).thenApply(body -> {
             @Nullable final CommandResponse<?> result;
@@ -524,8 +519,7 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
                     if (sentSignal instanceof MessageCommand) {
                         result = toMessageCommandResponse((MessageCommand<?, ?>) sentSignal, mergedDittoHeaders, body,
                                 httpStatus, targetAuthorizationContext);
-                    } else if (sentSignal instanceof ThingCommand &&
-                            SignalInformationPoint.isChannelLive(sentSignal)) {
+                    } else if (sentSignal instanceof ThingCommand && Signal.isChannelLive(sentSignal)) {
                         result = toLiveCommandResponse(mergedDittoHeaders, body, targetAuthorizationContext);
                     } else {
                         result = null;
@@ -545,7 +539,7 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
                             toCommandResponse(body.asObject(), targetAuthorizationContext);
                     if (parsedResponse instanceof Acknowledgement) {
                         result = parsedResponse;
-                    } else if (SignalInformationPoint.isLiveCommandResponse(parsedResponse)) {
+                    } else if (CommandResponse.isLiveCommandResponse(parsedResponse)) {
                         result = parsedResponse;
                     } else {
                         result = null;
@@ -558,7 +552,7 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
             final var liveCommandWithEntityId = tryToGetAsLiveCommandWithEntityId(sentSignal);
             if (liveCommandWithEntityId.isPresent()
                     && null != result
-                    && SignalInformationPoint.isLiveCommandResponse(result)) {
+                    && CommandResponse.isLiveCommandResponse(result)) {
 
                 // Do only return command response for live commands with a correct response.
                 httpPushRoundTripSignalValidator.accept((Command<?>) liveCommandWithEntityId.get(), result);
@@ -590,7 +584,7 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
 
     private static Optional<SignalWithEntityId<?>> tryToGetAsLiveCommandWithEntityId(@Nullable final Signal<?> signal) {
         final SignalWithEntityId<?> result;
-        if (SignalInformationPoint.isLiveCommand(signal)) {
+        if (Command.isLiveCommand(signal)) {
             result = (SignalWithEntityId<?>) signal;
         } else {
             result = null;
@@ -664,8 +658,7 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
                     toCommandResponse(jsonValue.asObject(), targetAuthorizationContext);
             if (commandResponse == null) {
                 return null;
-            } else if (commandResponse instanceof ThingCommandResponse &&
-                    SignalInformationPoint.isChannelLive(commandResponse)) {
+            } else if (commandResponse instanceof ThingCommandResponse && Signal.isChannelLive(commandResponse)) {
                 return commandResponse;
             } else {
                 connectionLogger.failure("Expected <{0}> to be of type <{1}> but was of type <{2}>.",

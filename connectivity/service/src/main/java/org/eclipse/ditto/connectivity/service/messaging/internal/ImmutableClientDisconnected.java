@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.connectivity.service.messaging.internal;
 
+import java.util.Objects;
+
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
@@ -36,9 +38,30 @@ final class ImmutableClientDisconnected extends AbstractWithOrigin implements Cl
     }
 
     @Override
+    public boolean equals(@Nullable final Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        if (!super.equals(o)) {
+            return false;
+        }
+        final var that = (ImmutableClientDisconnected) o;
+        return shutdownAfterDisconnected == that.shutdownAfterDisconnected;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(super.hashCode(), shutdownAfterDisconnected);
+    }
+
+    @Override
     public String toString() {
         return getClass().getSimpleName() + " [" + super.toString() +
                 ", shutdownAfterDisconnected=" + shutdownAfterDisconnected +
                 "]";
     }
+
 }

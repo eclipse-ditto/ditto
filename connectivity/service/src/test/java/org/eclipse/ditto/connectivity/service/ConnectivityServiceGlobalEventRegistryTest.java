@@ -12,12 +12,13 @@
  */
 package org.eclipse.ditto.connectivity.service;
 
-import org.eclipse.ditto.things.api.ThingSnapshotTaken;
+import org.eclipse.ditto.connectivity.model.signals.events.ConnectionCreated;
 import org.eclipse.ditto.internal.utils.persistentactors.EmptyEvent;
 import org.eclipse.ditto.internal.utils.test.GlobalEventRegistryTestCases;
-import org.eclipse.ditto.connectivity.model.signals.events.ConnectionCreated;
 import org.eclipse.ditto.policies.model.signals.events.ResourceDeleted;
+import org.eclipse.ditto.things.api.ThingSnapshotTaken;
 import org.eclipse.ditto.things.model.signals.events.FeatureDeleted;
+import org.eclipse.ditto.thingsearch.api.events.ThingsOutOfSync;
 import org.eclipse.ditto.thingsearch.model.signals.events.SubscriptionCreated;
 
 public final class ConnectivityServiceGlobalEventRegistryTest extends GlobalEventRegistryTestCases {
@@ -28,6 +29,7 @@ public final class ConnectivityServiceGlobalEventRegistryTest extends GlobalEven
                 ResourceDeleted.class,
                 FeatureDeleted.class,
                 SubscriptionCreated.class,
+                ThingsOutOfSync.class,
                 ThingSnapshotTaken.class,
                 EmptyEvent.class
         );

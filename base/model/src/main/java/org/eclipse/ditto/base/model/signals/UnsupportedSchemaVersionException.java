@@ -19,25 +19,26 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
 
-import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeExceptionBuilder;
+import org.eclipse.ditto.base.model.exceptions.GeneralException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonParsableException;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
+import org.eclipse.ditto.json.JsonObject;
 
 /**
  * Thrown if a {@link Signal} is not supported by the version called.
  */
 @Immutable
 @JsonParsableException(errorCode = UnsupportedSchemaVersionException.ERROR_CODE)
-public final class UnsupportedSchemaVersionException extends DittoRuntimeException {
+public final class UnsupportedSchemaVersionException extends DittoRuntimeException implements GeneralException {
 
     /**
      * Error code of this exception.
      */
-    public static final String ERROR_CODE = "unsupported.api.version";
+    public static final String ERROR_CODE = ERROR_CODE_PREFIX + "unsupported.api.version";
 
     private static final String MESSAGE_TEMPLATE = "The requested resource is not supported by version ''{0}''.";
 

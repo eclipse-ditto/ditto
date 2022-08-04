@@ -35,6 +35,6 @@ public final class ThingsRootActorTest extends AbstractDittoRootActorTest {
         final ThingsConfig config =
                 DittoThingsConfig.of(DefaultScopedConfig.dittoScoped(system.settings().config()));
         return ThingsRootActor.props(config, system.deadLetters(),
-                DefaultThingPersistenceActorPropsFactory.of(system.deadLetters()));
+                DefaultThingPersistenceActorPropsFactory.of(system));
     }
 }

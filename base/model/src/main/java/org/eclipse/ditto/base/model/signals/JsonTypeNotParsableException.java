@@ -19,24 +19,25 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
 
-import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeExceptionBuilder;
+import org.eclipse.ditto.base.model.exceptions.GeneralException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonParsableException;
+import org.eclipse.ditto.json.JsonObject;
 
 /**
  * Thrown if a JSON string or object could not be parsed as it was unexpected/unknown.
  */
 @Immutable
 @JsonParsableException(errorCode = JsonTypeNotParsableException.ERROR_CODE)
-public final class JsonTypeNotParsableException extends DittoRuntimeException {
+public final class JsonTypeNotParsableException extends DittoRuntimeException implements GeneralException {
 
     /**
      * Error code of this exception.
      */
-    public static final String ERROR_CODE = "json.type.notparsable";
+    public static final String ERROR_CODE = ERROR_CODE_PREFIX + "json.type.notparsable";
 
     private static final String MESSAGE_TEMPLATE = "The JSON type ''{0}'' is not supported by registry ''{1}''.";
 

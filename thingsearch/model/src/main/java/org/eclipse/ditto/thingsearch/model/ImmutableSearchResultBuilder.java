@@ -14,8 +14,6 @@ package org.eclipse.ditto.thingsearch.model;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
-import java.time.Instant;
-
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
@@ -33,7 +31,6 @@ final class ImmutableSearchResultBuilder implements SearchResultBuilder {
     private final JsonArrayBuilder jsonArrayBuilder;
     @Nullable private Long offset;
     @Nullable private String cursor;
-    @Nullable private Instant lastModified;
 
     private ImmutableSearchResultBuilder(final JsonArrayBuilder theJsonArrayBuilder) {
         jsonArrayBuilder = theJsonArrayBuilder;
@@ -63,11 +60,9 @@ final class ImmutableSearchResultBuilder implements SearchResultBuilder {
         final JsonArrayBuilder jsonArrayBuilder = JsonFactory.newArrayBuilder(searchResult.getItems());
         final Long nextPageOffset = searchResult.getNextPageOffset().orElse(null);
         final String cursor = searchResult.getCursor().orElse(null);
-        final Instant lastModified = searchResult.getLastModified().orElse(null);
 
         return new ImmutableSearchResultBuilder(jsonArrayBuilder).nextPageOffset(nextPageOffset)
-                .cursor(cursor)
-                .lastModified(lastModified);
+                .cursor(cursor);
     }
 
     @Override
@@ -79,12 +74,6 @@ final class ImmutableSearchResultBuilder implements SearchResultBuilder {
     @Override
     public SearchResultBuilder cursor(@Nullable final String cursor) {
         this.cursor = cursor;
-        return this;
-    }
-
-    @Override
-    public SearchResultBuilder lastModified(@Nullable final Instant lastModified) {
-        this.lastModified = lastModified;
         return this;
     }
 
@@ -109,7 +98,7 @@ final class ImmutableSearchResultBuilder implements SearchResultBuilder {
     @Override
     public SearchResult build() {
         final JsonArray searchResultsJsonArray = jsonArrayBuilder.build();
-        return ImmutableSearchResult.of(searchResultsJsonArray, offset, cursor, lastModified);
+        return ImmutableSearchResult.of(searchResultsJsonArray, offset, cursor);
     }
 
 }

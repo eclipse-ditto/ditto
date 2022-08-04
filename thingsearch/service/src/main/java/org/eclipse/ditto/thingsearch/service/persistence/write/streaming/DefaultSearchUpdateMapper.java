@@ -17,6 +17,8 @@ import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLogger;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.AbstractWriteModel;
 import org.eclipse.ditto.thingsearch.service.updater.actors.MongoWriteModel;
 
+import com.typesafe.config.Config;
+
 import akka.NotUsed;
 import akka.actor.ActorSystem;
 import akka.stream.javadsl.Source;
@@ -30,10 +32,12 @@ public final class DefaultSearchUpdateMapper extends SearchUpdateMapper {
 
     /**
      * Instantiate this provider. Called by reflection.
+     * @param actorSystem the actor system in which to load the extension.
+     * @param config the configuration for this extension.
      */
     @SuppressWarnings("unused")
-    private DefaultSearchUpdateMapper(final ActorSystem actorSystem) {
-        super(actorSystem);
+    private DefaultSearchUpdateMapper(final ActorSystem actorSystem, final Config config) {
+        super(actorSystem, config);
         // Nothing to initialize.
     }
 

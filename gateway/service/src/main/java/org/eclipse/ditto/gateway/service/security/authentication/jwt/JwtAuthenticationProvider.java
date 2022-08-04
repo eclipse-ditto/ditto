@@ -26,7 +26,7 @@ import org.eclipse.ditto.base.model.auth.AuthorizationContextType;
 import org.eclipse.ditto.base.model.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayAuthenticationFailedException;
+import org.eclipse.ditto.gateway.api.GatewayAuthenticationFailedException;
 import org.eclipse.ditto.gateway.service.security.authentication.AuthenticationResult;
 import org.eclipse.ditto.gateway.service.security.authentication.DefaultAuthenticationResult;
 import org.eclipse.ditto.gateway.service.security.authentication.TimeMeasuringAuthenticationProvider;

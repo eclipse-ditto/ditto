@@ -56,7 +56,7 @@ public final class WotThingModelInvalidException extends DittoRuntimeException i
             @Nullable final String description,
             @Nullable final Throwable cause,
             @Nullable final URI href) {
-        super(ERROR_CODE, HttpStatus.NOT_FOUND, dittoHeaders, message, description, cause, href);
+        super(ERROR_CODE, HttpStatus.BAD_REQUEST, dittoHeaders, message, description, cause, href);
     }
 
     /**

@@ -40,7 +40,6 @@ public final class AcknowledgementLabelsTest {
         private static final String KNOWN_LABEL_VALUE = "PROCESSING-DONE";
 
         @Test
-        @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
         public void assertImmutability() {
             assertInstancesOf(AcknowledgementLabels.class, areImmutable());
         }

@@ -74,6 +74,10 @@
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-internal-utils-pubsub-policies</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-internal-models-acks</artifactId>
         </dependency>
 
@@ -200,6 +204,33 @@
         </resources>
 
         <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-enforcer-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>enforce-banned-dependencies</id>
+                        <goals>
+                            <goal>enforce</goal>
+                        </goals>
+                        <configuration>
+                            <rules>
+                                <bannedDependencies>
+                                    <excludes>
+                                        <!-- we don't want to have things-model dependency here -->
+                                        <exclude>org.eclipse.ditto:ditto-things-model</exclude>
+                                    </excludes>
+                                    <includes>
+                                        <include>org.eclipse.ditto:ditto-things-model:*:jar:test</include>
+                                    </includes>
+                                    <message>Policies service must not depend on Ditto Things model</message>
+                                </bannedDependencies>
+                            </rules>
+                            <fail>true</fail>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-shade-plugin</artifactId>

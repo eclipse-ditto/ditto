@@ -18,12 +18,12 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
 
-import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonParsableException;
+import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.policies.model.PolicyException;
 
 /**
@@ -42,8 +42,15 @@ public final class PolicyIdNotExplicitlySettableException extends DittoRuntimeEx
     private static final String MESSAGE_TEMPLATE =
             "The Policy ID in the request body is not equal to the Policy ID in the request URL.";
 
+    private static final String MESSAGE_TEMPLATE_POST =
+            "It is not allowed to provide a Policy ID in the request body for "
+                    + "method POST. The method POST will generate the Policy ID by itself.";
+
     private static final String DEFAULT_DESCRIPTION =
             "Either delete the Policy ID from the request body or use the same Policy ID as in the request URL.";
+
+    private static final String DEFAULT_DESCRIPTION_POST =
+            "To provide your own Policy ID use a PUT request instead.";
 
 
     private PolicyIdNotExplicitlySettableException(final DittoHeaders dittoHeaders,
@@ -62,7 +69,17 @@ public final class PolicyIdNotExplicitlySettableException extends DittoRuntimeEx
      * @return the builder.
      */
     public static Builder newBuilder() {
-        return new Builder();
+        return new Builder(MESSAGE_TEMPLATE, DEFAULT_DESCRIPTION);
+    }
+
+    /**
+     * A mutable builder for a {@code PolicyIdNotExplicitlySettableException} in scope of POSTing a policy.
+     *
+     * @return the builder.
+     * @since 3.0.0
+     */
+    public static Builder forPostMethod() {
+        return new Builder(MESSAGE_TEMPLATE_POST, DEFAULT_DESCRIPTION_POST);
     }
 
     /**
@@ -108,14 +125,17 @@ public final class PolicyIdNotExplicitlySettableException extends DittoRuntimeEx
     }
 
     /**
-     * A mutable builder with a fluent API for a {@link org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyIdNotExplicitlySettableException}.
+     * A mutable builder with a fluent API for a {@link PolicyIdNotExplicitlySettableException}.
      */
     @NotThreadSafe
     public static final class Builder extends DittoRuntimeExceptionBuilder<PolicyIdNotExplicitlySettableException> {
 
+        private Builder(final String message, final String description) {
+            message(message);
+            description(description);
+        }
+
         private Builder() {
-            message(MESSAGE_TEMPLATE);
-            description(DEFAULT_DESCRIPTION);
         }
 
         @Override

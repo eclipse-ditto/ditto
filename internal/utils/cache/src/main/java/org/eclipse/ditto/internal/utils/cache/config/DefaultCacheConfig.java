@@ -42,7 +42,7 @@ public final class DefaultCacheConfig implements CacheConfig {
     }
 
     /**
-     * Returns an instance of {@code DittoConciergeCacheConfig} based on the settings of the specified Config.
+     * Returns an instance of {@code DefaultCacheConfig} based on the settings of the specified Config.
      *
      * @param config is supposed to provide the settings of the cache config at {@code configPath}.
      * @param configPath the supposed path of the nested cache config settings.

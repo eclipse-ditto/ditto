@@ -37,6 +37,7 @@ import org.eclipse.ditto.base.model.acks.AcknowledgementRequest;
 import org.eclipse.ditto.base.model.acks.DittoAcknowledgementLabel;
 import org.eclipse.ditto.base.model.common.DittoConstants;
 import org.eclipse.ditto.base.model.common.HttpStatus;
+import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgements;
@@ -123,7 +124,6 @@ public final class HttpPublisherActorTest extends AbstractPublisherActorTest {
     protected Props getPublisherActorProps() {
         return HttpPublisherActor.props(TestConstants.createConnection(),
                 httpPushFactory,
-                "clientId",
                 mock(ConnectivityStatusResolver.class),
                 ConnectivityConfig.of(actorSystem.settings().config()));
     }
@@ -322,6 +322,7 @@ public final class HttpPublisherActorTest extends AbstractPublisherActorTest {
                     .putHeader("device_id", "ditto:thing")
                     .acknowledgementRequest(AcknowledgementRequest.of(DittoAcknowledgementLabel.LIVE_RESPONSE),
                             AcknowledgementRequest.of(autoAckLabel))
+                    .putHeader(DittoHeaderDefinition.DITTO_ACKREGATOR_ADDRESS.getKey(), getRef().path().toSerializationFormat())
                     .build();
             final Signal<?> source = SendThingMessage.of(TestConstants.Things.THING_ID, message, dittoHeaders);
             final var outboundSignal =
@@ -528,6 +529,7 @@ public final class HttpPublisherActorTest extends AbstractPublisherActorTest {
                     .correlationId(TestConstants.CORRELATION_ID)
                     .putHeader("device_id", "ditto:thing")
                     .acknowledgementRequest(AcknowledgementRequest.of(DittoAcknowledgementLabel.LIVE_RESPONSE))
+                    .putHeader(DittoHeaderDefinition.DITTO_ACKREGATOR_ADDRESS.getKey(), getRef().path().toSerializationFormat())
                     .build();
             final Signal<?> source = SendThingMessage.of(TestConstants.Things.THING_ID, message, dittoHeaders);
             final var outboundSignal =
@@ -605,6 +607,7 @@ public final class HttpPublisherActorTest extends AbstractPublisherActorTest {
                     .correlationId(TestConstants.CORRELATION_ID)
                     .putHeader("device_id", "ditto:thing")
                     .acknowledgementRequest(AcknowledgementRequest.of(DittoAcknowledgementLabel.LIVE_RESPONSE))
+                    .putHeader(DittoHeaderDefinition.DITTO_ACKREGATOR_ADDRESS.getKey(), getRef().path().toSerializationFormat())
                     .build();
             final Signal<?> source = SendThingMessage.of(TestConstants.Things.THING_ID, message, dittoHeaders);
             final var outboundSignal =
@@ -685,6 +688,7 @@ public final class HttpPublisherActorTest extends AbstractPublisherActorTest {
                     .correlationId(TestConstants.CORRELATION_ID)
                     .putHeader("device_id", "ditto:thing")
                     .acknowledgementRequest(AcknowledgementRequest.of(DittoAcknowledgementLabel.LIVE_RESPONSE))
+                    .putHeader(DittoHeaderDefinition.DITTO_ACKREGATOR_ADDRESS.getKey(), getRef().path().toSerializationFormat())
                     .build();
             final Signal<?> source = SendThingMessage.of(TestConstants.Things.THING_ID, message, dittoHeaders);
             final var outboundSignal =
@@ -740,8 +744,10 @@ public final class HttpPublisherActorTest extends AbstractPublisherActorTest {
                     .toBuilder()
                     .credentials(hmacCredentials)
                     .build();
-            final var props = HttpPublisherActor.props(connection, httpPushFactory, "clientId",
-                    mock(ConnectivityStatusResolver.class), ConnectivityConfig.of(actorSystem.settings().config()));
+            final var props = HttpPublisherActor.props(connection,
+                    httpPushFactory,
+                    mock(ConnectivityStatusResolver.class),
+                    ConnectivityConfig.of(actorSystem.settings().config()));
             final var publisherActor = childActorOf(props);
             publisherCreated(this, publisherActor);
 
@@ -807,8 +813,10 @@ public final class HttpPublisherActorTest extends AbstractPublisherActorTest {
                     .toBuilder()
                     .credentials(hmacCredentials)
                     .build();
-            final var props = HttpPublisherActor.props(connection, httpPushFactory, "clientId",
-                    mock(ConnectivityStatusResolver.class), ConnectivityConfig.of(actorSystem.settings().config()));
+            final var props = HttpPublisherActor.props(connection,
+                    httpPushFactory,
+                    mock(ConnectivityStatusResolver.class),
+                    ConnectivityConfig.of(actorSystem.settings().config()));
             final var publisherActor = childActorOf(props);
             publisherCreated(this, publisherActor);
 
@@ -932,7 +940,8 @@ public final class HttpPublisherActorTest extends AbstractPublisherActorTest {
 
             final Connection connection =
                     TestConstants.createConnection().toBuilder().specificConfig(specificConfig).build();
-            final Props props = HttpPublisherActor.props(connection, httpPushFactory, "clientId",
+            final Props props = HttpPublisherActor.props(connection,
+                    httpPushFactory,
                     mock(ConnectivityStatusResolver.class),
                     ConnectivityConfig.of(actorSystem.settings().config()));
             final ActorRef publisherActor = childActorOf(props);
@@ -1016,8 +1025,10 @@ public final class HttpPublisherActorTest extends AbstractPublisherActorTest {
 
     private OutboundSignal.MultiMapped newMultiMappedWithContentType(final Target target, final ActorRef sender) {
         return OutboundSignalFactory.newMultiMappedOutboundSignal(
-                List.of(getMockOutboundSignal(target, "requested-acks",
-                        JsonArray.of(JsonValue.of("please-verify")).toString())), sender);
+                List.of(getMockOutboundSignal(target,
+                        "requested-acks", JsonArray.of(JsonValue.of("please-verify")).toString(),
+                        DittoHeaderDefinition.DITTO_ACKREGATOR_ADDRESS.getKey(), sender.path().toSerializationFormat()))
+                , sender);
     }
 
     private HttpPushFactory mockHttpPushFactory(final String contentType, final HttpStatus httpStatus,

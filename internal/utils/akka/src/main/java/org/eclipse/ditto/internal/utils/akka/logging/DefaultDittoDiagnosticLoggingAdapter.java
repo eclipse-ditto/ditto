@@ -73,14 +73,13 @@ final class DefaultDittoDiagnosticLoggingAdapter extends DittoDiagnosticLoggingA
     }
 
     @Override
-    public DefaultDittoDiagnosticLoggingAdapter withCorrelationId(final WithDittoHeaders withDittoHeaders) {
-        return withCorrelationId(checkNotNull(withDittoHeaders, "withDittoHeaders").getDittoHeaders());
+    public DefaultDittoDiagnosticLoggingAdapter withCorrelationId(@Nullable final WithDittoHeaders withDittoHeaders) {
+        return withCorrelationId(null != withDittoHeaders ? withDittoHeaders.getDittoHeaders() : null);
     }
 
     @Override
-    public DefaultDittoDiagnosticLoggingAdapter withCorrelationId(final DittoHeaders dittoHeaders) {
-        checkNotNull(dittoHeaders, "dittoHeaders");
-        return withCorrelationId(dittoHeaders.getCorrelationId().orElse(null));
+    public DefaultDittoDiagnosticLoggingAdapter withCorrelationId(@Nullable final DittoHeaders dittoHeaders) {
+        return withCorrelationId(null != dittoHeaders ? dittoHeaders.getCorrelationId().orElse(null) : null);
     }
 
     @Override

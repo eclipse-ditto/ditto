@@ -102,6 +102,12 @@ public final class GetSortBsonVisitor implements SortFieldExpressionVisitor<Stri
     }
 
     @Override
+    public String visitFeatureDefinition(final String featureId) {
+        return MongoSortKeyMappingFunction.mapSortKey(PersistenceConstants.FIELD_THING,
+                PersistenceConstants.FIELD_FEATURES, featureId, PersistenceConstants.FIELD_DEFINITION);
+    }
+
+    @Override
     public String visitFeatureIdProperty(final String featureId, final String property) {
         return MongoSortKeyMappingFunction.mapSortKey(
                 PersistenceConstants.FIELD_THING, PersistenceConstants.FIELD_FEATURES, featureId,

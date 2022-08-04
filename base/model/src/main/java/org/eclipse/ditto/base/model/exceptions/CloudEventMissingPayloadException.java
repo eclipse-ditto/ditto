@@ -18,10 +18,10 @@
  import javax.annotation.concurrent.Immutable;
  import javax.annotation.concurrent.NotThreadSafe;
 
- import org.eclipse.ditto.json.JsonObject;
  import org.eclipse.ditto.base.model.common.HttpStatus;
  import org.eclipse.ditto.base.model.headers.DittoHeaders;
  import org.eclipse.ditto.base.model.json.JsonParsableException;
+ import org.eclipse.ditto.json.JsonObject;
 
  /**
   * Thrown if a CloudEvent request with missing payload is being made.
@@ -30,12 +30,12 @@
   */
  @Immutable
  @JsonParsableException(errorCode = CloudEventMissingPayloadException.ERROR_CODE)
- public final class CloudEventMissingPayloadException extends DittoRuntimeException {
+ public final class CloudEventMissingPayloadException extends DittoRuntimeException implements GeneralException {
 
      /**
       * Error code of this exception.
       */
-     public static final String ERROR_CODE = "cloudevent.payload.missing";
+     public static final String ERROR_CODE = ERROR_CODE_PREFIX + "cloudevent.payload.missing";
 
      private static final String DEFAULT_MESSAGE = "The Cloud Event's payload is missing.";
      private static final String DEFAULT_DESCRIPTION = "Ensure to provide payload in the Cloud Event.";

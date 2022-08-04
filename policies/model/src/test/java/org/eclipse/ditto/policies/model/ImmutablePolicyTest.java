@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.policies.model;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
@@ -22,12 +23,11 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
-import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.base.model.entity.metadata.Metadata;
 import org.eclipse.ditto.base.model.json.FieldType;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.policies.model.assertions.DittoPolicyAssertions;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -329,6 +329,120 @@ public final class ImmutablePolicyTest {
 
         DittoPolicyAssertions.assertThat(entriesSet).contains(policyEntry);
         DittoPolicyAssertions.assertThat(policy.getEntriesSet()).doesNotContain(policyEntry);
+    }
+
+    @Test
+    public void ensureTwoPoliciesAreSemanticallyTheSameIfOnlySubjectPayloadDiffers() {
+        final Resource resource1 = Resource.newInstance("thing", "/",
+                EffectedPermissions.newInstance(Collections.singleton("READ"), null));
+        final Resource resource2 = Resource.newInstance("policy", "/",
+                EffectedPermissions.newInstance(Arrays.asList("READ", "WRITE"), null));
+
+        final Policy policyA = Policy.newBuilder(POLICY_ID)
+                .forLabel("one")
+                .setSubject("the:subject-one", SubjectType.GENERATED)
+                .setResource(resource1)
+                .forLabel("two")
+                .setSubject("the:subject-two", SubjectType.GENERATED)
+                .setResource(resource2)
+                .build();
+        final Policy policyB = Policy.newBuilder(POLICY_ID)
+                .forLabel("two")
+                .setSubject("the:subject-two", SubjectType.newInstance("something completely else"))
+                .setResource(resource2)
+                .forLabel("one")
+                .setSubject("the:subject-one", SubjectType.UNKNOWN)
+                .setResource(resource1)
+                .build();
+
+        assertThat(policyA.isSemanticallySameAs(policyB.getEntriesSet())).isTrue();
+    }
+
+    @Test
+    public void ensureTwoPoliciesAreSemanticallyDifferentIfSubjectIdsDiffer() {
+        final Resource resource1 = Resource.newInstance("thing", "/",
+                EffectedPermissions.newInstance(Collections.singleton("READ"), null));
+        final Resource resource2 = Resource.newInstance("policy", "/",
+                EffectedPermissions.newInstance(Arrays.asList("READ", "WRITE"), null));
+
+        final Policy policyA = Policy.newBuilder(POLICY_ID)
+                .forLabel("one")
+                .setSubject("the:subject-one", SubjectType.GENERATED)
+                .setResource(resource1)
+                .forLabel("two")
+                .setSubject("the:subject-two", SubjectType.GENERATED)
+                .setResource(resource2)
+                .build();
+        final Policy policyB = Policy.newBuilder(POLICY_ID)
+                .forLabel("one")
+                .setSubject("the:subject-one", SubjectType.GENERATED)
+                .setResource(resource1)
+                .forLabel("two")
+                .setSubject("the:subject-two", SubjectType.GENERATED)
+                .setSubject("the:subject-another-two", SubjectType.GENERATED)
+                .setResource(resource2)
+                .build();
+
+        assertThat(policyA.isSemanticallySameAs(policyB.getEntriesSet())).isFalse();
+    }
+
+    @Test
+    public void ensureTwoPoliciesAreSemanticallyDifferentIfResourcesDiffer() {
+        final Resource resource1 = Resource.newInstance("thing", "/",
+                EffectedPermissions.newInstance(Collections.singleton("READ"), null));
+        final Resource resource2 = Resource.newInstance("policy", "/",
+                EffectedPermissions.newInstance(Arrays.asList("READ", "WRITE"), null));
+        final Resource resource3 = Resource.newInstance("policy", "/",
+                EffectedPermissions.newInstance(Collections.singleton("READ"), null));
+
+        final Policy policyA = Policy.newBuilder(POLICY_ID)
+                .forLabel("one")
+                .setSubject("the:subject-one", SubjectType.GENERATED)
+                .setResource(resource1)
+                .forLabel("two")
+                .setSubject("the:subject-two", SubjectType.GENERATED)
+                .setResource(resource2)
+                .build();
+        final Policy policyB = Policy.newBuilder(POLICY_ID)
+                .forLabel("one")
+                .setSubject("the:subject-one", SubjectType.GENERATED)
+                .setResource(resource1)
+                .forLabel("two")
+                .setSubject("the:subject-two", SubjectType.GENERATED)
+                .setResource(resource3)
+                .build();
+
+        assertThat(policyA.isSemanticallySameAs(policyB.getEntriesSet())).isFalse();
+    }
+
+    @Test
+    public void ensureTwoPoliciesAreSemanticallyDifferentIfOneContainsMoreEntries() {
+        final Resource resource1 = Resource.newInstance("thing", "/",
+                EffectedPermissions.newInstance(Collections.singleton("READ"), null));
+        final Resource resource2 = Resource.newInstance("policy", "/",
+                EffectedPermissions.newInstance(Arrays.asList("READ", "WRITE"), null));
+
+        final Policy policyA = Policy.newBuilder(POLICY_ID)
+                .forLabel("one")
+                .setSubject("the:subject-one", SubjectType.GENERATED)
+                .setResource(resource1)
+                .forLabel("two")
+                .setSubject("the:subject-two", SubjectType.GENERATED)
+                .setResource(resource2)
+                .forLabel("three")
+                .setSubject("the:subject-three", SubjectType.GENERATED)
+                .setResource(resource2)
+                .build();
+        final Policy policyB = Policy.newBuilder(POLICY_ID)
+                .forLabel("one")
+                .setSubject("the:subject-one", SubjectType.GENERATED)
+                .setResource(resource1)
+                .forLabel("two")
+                .setSubject("the:subject-two", SubjectType.GENERATED)
+                .setResource(resource2)
+                .build();
+
+        assertThat(policyA.isSemanticallySameAs(policyB.getEntriesSet())).isFalse();
     }
 
 }

@@ -14,6 +14,7 @@ package org.eclipse.ditto.thingsearch.service.persistence.read.expression.visito
 
 import static org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants.DESIRED_PROPERTIES;
 import static org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants.FIELD_ATTRIBUTES_PATH;
+import static org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants.FIELD_DEFINITION;
 import static org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants.FIELD_DESIRED_PROPERTIES;
 import static org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants.FIELD_FEATURES_PATH;
 import static org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants.FIELD_FEATURE_ID;
@@ -81,12 +82,20 @@ public final class GetExistsBsonVisitor extends AbstractFieldBsonCreator impleme
     }
 
     @Override
+    public Bson visitFeatureDefinition(final String featureId) {
+        if (FEATURE_ID_WILDCARD.equals(featureId)) {
+            return matchWildcardFeatureKey(SLASH + FIELD_DEFINITION);
+        } else {
+            return matchKey(FIELD_FEATURES_PATH + featureId + SLASH + FIELD_DEFINITION);
+        }
+    }
+
+    @Override
     public Bson visitFeatureProperties(final CharSequence featureId) {
         if (FEATURE_ID_WILDCARD.equals(featureId)) {
             return matchWildcardFeatureKey(SLASH + FIELD_PROPERTIES);
         } else {
-            return matchKey(FIELD_FEATURES_PATH + featureId + SLASH +
-                    FIELD_PROPERTIES);
+            return matchKey(FIELD_FEATURES_PATH + featureId + SLASH + FIELD_PROPERTIES);
         }
     }
 

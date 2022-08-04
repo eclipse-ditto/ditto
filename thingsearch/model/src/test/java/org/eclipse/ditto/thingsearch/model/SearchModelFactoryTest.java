@@ -52,7 +52,7 @@ public final class SearchModelFactoryTest {
     @Test
     public void newSearchResult() {
         final SearchResult searchResult =
-                SearchModelFactory.newSearchResult(JsonFactory.newArray(), SearchResult.NO_NEXT_PAGE, null);
+                SearchModelFactory.newSearchResult(JsonFactory.newArray(), SearchResult.NO_NEXT_PAGE);
 
         assertThat(searchResult) //
                 .hasNoNextPage() //
@@ -66,7 +66,7 @@ public final class SearchModelFactoryTest {
                 .add(1, 2, 3) //
                 .build();
         final long nextPageOffset = 10L;
-        final String jsonStr = "{\"items\":" + itemsArray.toString() + ",\"nextPageOffset\":" + nextPageOffset + "}";
+        final String jsonStr = "{\"items\":" + itemsArray + ",\"nextPageOffset\":" + nextPageOffset + "}";
         final JsonObject jsonObject = JsonFactory.newObject(jsonStr);
 
         final SearchResult searchResult = SearchModelFactory.newSearchResult(jsonObject);
@@ -83,7 +83,7 @@ public final class SearchModelFactoryTest {
                 .add(1, 2, 3) //
                 .build();
         final long nextPageOffset = 10L;
-        final String jsonStr = "{\"items\":" + itemsArray.toString() + ",\"nextPageOffset\":" + nextPageOffset + "}";
+        final String jsonStr = "{\"items\":" + itemsArray + ",\"nextPageOffset\":" + nextPageOffset + "}";
 
         final SearchResult searchResult = SearchModelFactory.newSearchResult(jsonStr);
 
@@ -174,7 +174,7 @@ public final class SearchModelFactoryTest {
 
     @Test(expected = NullPointerException.class)
     public void tryToCreateSearchPropertyWithNullJsonPointer() {
-        SearchModelFactory.property((JsonPointer) null);
+        SearchModelFactory.property(null);
     }
 
 

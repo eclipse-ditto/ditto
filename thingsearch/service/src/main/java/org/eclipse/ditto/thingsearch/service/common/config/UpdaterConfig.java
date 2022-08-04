@@ -100,7 +100,7 @@ public interface UpdaterConfig {
      *
      * @return the config.
      */
-    UpdaterPersistenceConfig getUpdaterPersistenceConfig();
+    SearchPersistenceConfig getUpdaterPersistenceConfig();
 
     /**
      * An enumeration of the known config path expressions and their associated default values for
@@ -147,7 +147,7 @@ public interface UpdaterConfig {
         private final String path;
         private final Object defaultValue;
 
-        private UpdaterConfigValue(final String thePath, final Object theDefaultValue) {
+        UpdaterConfigValue(final String thePath, final Object theDefaultValue) {
             path = thePath;
             defaultValue = theDefaultValue;
         }

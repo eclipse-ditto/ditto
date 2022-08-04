@@ -46,7 +46,6 @@ public final class DefaultMetadataHeaderTest {
         private static final JsonValue KNOWN_VALUE = JsonValue.of(1);
 
         @Test
-        @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
         public void assertImmutability() {
             assertInstancesOf(DefaultMetadataHeader.class,
                     areImmutable(),

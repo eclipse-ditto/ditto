@@ -14,11 +14,11 @@ package org.eclipse.ditto.internal.utils.aggregator;
 
 import java.util.UUID;
 
+import org.eclipse.ditto.base.model.exceptions.DittoInternalErrorException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.ThingIdInvalidException;
-import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayInternalErrorException;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThings;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -42,8 +42,8 @@ public final class ThingsAggregatorProxyActorTest {
             ThingIdInvalidException.newBuilder("invalidThingId")
                     .dittoHeaders(DITTO_HEADERS)
                     .build();
-    private static final GatewayInternalErrorException GATEWAY_INTERNAL_ERROR_EXCEPTION =
-            GatewayInternalErrorException.newBuilder().dittoHeaders(DITTO_HEADERS).build();
+    private static final DittoInternalErrorException INTERNAL_ERROR_EXCEPTION =
+            DittoInternalErrorException.newBuilder().dittoHeaders(DITTO_HEADERS).build();
     private static final RetrieveThings RETRIEVE_THINGS_COMMAND =
             RetrieveThings.getBuilder(ThingId.of("ditto", "thing"))
                     .dittoHeaders(DITTO_HEADERS)
@@ -69,13 +69,13 @@ public final class ThingsAggregatorProxyActorTest {
     public void testHandleGenericException() {
         new TestKit(actorSystem) {{
             final TestProbe targetActor = new TestProbe(actorSystem);
-            targetActor.setAutoPilot(new AutoPilotAnsweringWithException(GATEWAY_INTERNAL_ERROR_EXCEPTION));
+            targetActor.setAutoPilot(new AutoPilotAnsweringWithException(INTERNAL_ERROR_EXCEPTION));
 
             final Props props = ThingsAggregatorProxyActor.props(targetActor.ref());
             final ActorRef proxyActor = actorSystem.actorOf(props);
 
             proxyActor.tell(RETRIEVE_THINGS_COMMAND, getRef());
-            expectMsg(GATEWAY_INTERNAL_ERROR_EXCEPTION);
+            expectMsg(INTERNAL_ERROR_EXCEPTION);
         }};
     }
 

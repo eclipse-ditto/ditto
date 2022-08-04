@@ -21,7 +21,7 @@ import org.eclipse.ditto.internal.utils.config.KnownConfigValue;
 import com.typesafe.config.Config;
 
 /**
- * Provides configuration settings of a particular cache of Concierge.
+ * Provides configuration settings of a particular cache.
  */
 @Immutable
 public interface CacheConfig {
@@ -90,7 +90,7 @@ public interface CacheConfig {
         private final String path;
         private final Object defaultValue;
 
-        private CacheConfigValue(final String thePath, final Object theDefaultValue) {
+        CacheConfigValue(final String thePath, final Object theDefaultValue) {
             path = thePath;
             defaultValue = theDefaultValue;
         }

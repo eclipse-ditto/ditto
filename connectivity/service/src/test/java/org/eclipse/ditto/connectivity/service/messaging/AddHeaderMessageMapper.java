@@ -42,6 +42,7 @@ import akka.actor.ActorSystem;
 public final class AddHeaderMessageMapper implements MessageMapper {
 
     static final String ALIAS = "header";
+
     /**
      * The context representing this mapper
      */
@@ -77,6 +78,11 @@ public final class AddHeaderMessageMapper implements MessageMapper {
             modifiedHeaders.putHeader(INBOUND_HEADER.getKey(), INBOUND_HEADER.getValue());
             return adaptable.setDittoHeaders(modifiedHeaders.build());
         }).toList();
+    }
+
+    @Override
+    public DittoHeaders getAdditionalInboundHeaders(final ExternalMessage message) {
+        return DittoHeaders.empty();
     }
 
     @Override

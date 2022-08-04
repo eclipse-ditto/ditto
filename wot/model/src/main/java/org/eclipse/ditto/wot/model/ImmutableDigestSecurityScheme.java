@@ -47,6 +47,11 @@ final class ImmutableDigestSecurityScheme extends AbstractSecurityScheme impleme
     }
 
     @Override
+    protected SecurityScheme createInstance(final JsonObject newWrapped) {
+        return new ImmutableDigestSecurityScheme(getSecuritySchemeName(), newWrapped);
+    }
+
+    @Override
     protected boolean canEqual(@Nullable final Object other) {
         return other instanceof ImmutableDigestSecurityScheme;
     }

@@ -36,7 +36,6 @@ public interface KafkaPublisherActorFactory {
      * @param connection the connection.
      * @param producerFactory a factory to create a kafka SendProducer.
      * @param dryRun if the publisher actor should be started in dry-run mode.
-     * @param clientId identifier of the client actor.
      * @param connectivityStatusResolver connectivity status resolver to resolve occurred exceptions to a connectivity
      * status.
      * @param connectivityConfig the config of the connectivity service with potential overwrites.
@@ -45,7 +44,6 @@ public interface KafkaPublisherActorFactory {
     Props props(Connection connection,
             SendProducerFactory producerFactory,
             boolean dryRun,
-            String clientId,
             ConnectivityStatusResolver connectivityStatusResolver,
             ConnectivityConfig connectivityConfig);
 

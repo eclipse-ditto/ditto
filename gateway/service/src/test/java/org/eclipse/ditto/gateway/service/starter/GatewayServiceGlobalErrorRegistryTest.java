@@ -24,10 +24,11 @@ import org.eclipse.ditto.base.model.signals.UnsupportedSchemaVersionException;
 import org.eclipse.ditto.base.model.signals.UnsupportedSignalException;
 import org.eclipse.ditto.base.model.signals.acks.AcknowledgementCorrelationIdMissingException;
 import org.eclipse.ditto.base.model.signals.commands.CommandNotSupportedException;
-import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayAuthenticationFailedException;
 import org.eclipse.ditto.base.model.signals.commands.exceptions.PathUnknownException;
 import org.eclipse.ditto.connectivity.model.ConnectionConfigurationInvalidException;
 import org.eclipse.ditto.connectivity.model.signals.commands.exceptions.ConnectionConflictException;
+import org.eclipse.ditto.edge.service.EdgeServiceTimeoutException;
+import org.eclipse.ditto.gateway.api.GatewayAuthenticationFailedException;
 import org.eclipse.ditto.gateway.service.security.authentication.jwt.PublicKeyProviderUnavailableException;
 import org.eclipse.ditto.internal.utils.test.GlobalErrorRegistryTestCases;
 import org.eclipse.ditto.jwt.model.JwtAudienceInvalidException;
@@ -41,13 +42,15 @@ import org.eclipse.ditto.protocol.adapter.UnknownTopicPathException;
 import org.eclipse.ditto.protocol.mappingstrategies.IllegalAdaptableException;
 import org.eclipse.ditto.things.model.ThingIdInvalidException;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.AttributePointerInvalidException;
+import org.eclipse.ditto.thingsearch.api.QueryTimeExceededException;
 import org.eclipse.ditto.thingsearch.model.signals.commands.exceptions.InvalidNamespacesException;
 import org.eclipse.ditto.wot.model.WotThingModelInvalidException;
 
 public final class GatewayServiceGlobalErrorRegistryTest extends GlobalErrorRegistryTestCases {
 
     public GatewayServiceGlobalErrorRegistryTest() {
-        super(UnknownCommandException.class,
+        super(
+                UnknownCommandException.class,
                 DittoHeaderInvalidException.class,
                 PolicyEntryInvalidException.class,
                 AttributePointerInvalidException.class,
@@ -55,6 +58,7 @@ public final class GatewayServiceGlobalErrorRegistryTest extends GlobalErrorRegi
                 UnsupportedSchemaVersionException.class,
                 UnsupportedSignalException.class,
                 GatewayAuthenticationFailedException.class,
+                QueryTimeExceededException.class,
                 ConnectionConflictException.class,
                 ConnectionConfigurationInvalidException.class,
                 PolicyConflictException.class,
@@ -76,7 +80,8 @@ public final class GatewayServiceGlobalErrorRegistryTest extends GlobalErrorRegi
                 PathUnknownException.class,
                 UnknownTopicPathException.class,
                 IllegalAdaptableException.class,
-                WotThingModelInvalidException.class
+                WotThingModelInvalidException.class,
+                EdgeServiceTimeoutException.class
         );
     }
 

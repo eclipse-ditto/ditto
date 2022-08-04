@@ -18,12 +18,10 @@ import java.util.List;
 
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
-import org.eclipse.ditto.messages.model.signals.commands.MessageCommandResponse;
-import org.eclipse.ditto.protocol.adapter.ProtocolAdapter;
-import org.eclipse.ditto.things.model.signals.commands.ThingCommandResponse;
 
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
@@ -57,7 +55,7 @@ public final class ResponseCollectorActor extends AbstractActor {
         return Query.INSTANCE;
     }
 
-    static Input setCount(final int expectedCount) {
+    public static Input setCount(final int expectedCount) {
         return new SetCount(expectedCount);
     }
 
@@ -171,22 +169,26 @@ public final class ResponseCollectorActor extends AbstractActor {
         }
 
         private static boolean isFailedResponse(final CommandResponse<?> response) {
+            final boolean result;
             final var responseHttpStatus = response.getHttpStatus();
             if (isLiveResponse(response)) {
                 /*
                  * Consider live responses only as failed acknowledgement when the response timed out.
                  * Otherwise it would not be possible to respond with an error status code to live messages.
                  */
-                return HttpStatus.REQUEST_TIMEOUT.equals(responseHttpStatus);
+                result = HttpStatus.REQUEST_TIMEOUT.equals(responseHttpStatus);
             } else {
-                return responseHttpStatus.isClientError() || responseHttpStatus.isServerError();
+                result = responseHttpStatus.isClientError() || responseHttpStatus.isServerError();
             }
+            return result;
         }
 
         private static boolean isLiveResponse(final CommandResponse<?> response) {
-            return response instanceof MessageCommandResponse ||
-                    response instanceof ThingCommandResponse && ProtocolAdapter.isLiveSignal(response);
+            return CommandResponse.isMessageCommandResponse(response) ||
+                    CommandResponse.isThingCommandResponse(response) &&
+                            Signal.isChannelLive(response);
         }
+
     }
 
     /**
@@ -195,7 +197,7 @@ public final class ResponseCollectorActor extends AbstractActor {
     interface Input {}
 
     private enum Query implements Input {
-        INSTANCE;
+        INSTANCE
     }
 
     private static final class SetCount implements Input {

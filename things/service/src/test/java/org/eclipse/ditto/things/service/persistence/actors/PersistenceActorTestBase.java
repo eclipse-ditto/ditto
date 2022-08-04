@@ -16,11 +16,13 @@ import static java.util.Objects.requireNonNull;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
+import org.eclipse.ditto.base.model.auth.AuthorizationModelFactory;
 import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
 import org.eclipse.ditto.base.model.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.base.model.entity.metadata.Metadata;
@@ -28,10 +30,12 @@ import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.internal.utils.pubsub.DistributedPub;
 import org.eclipse.ditto.internal.utils.pubsub.extractors.AckExtractor;
+import org.eclipse.ditto.internal.utils.pubsubthings.LiveSignalPub;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.policies.enforcement.PolicyEnforcerProvider;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.things.model.Attributes;
 import org.eclipse.ditto.things.model.Feature;
@@ -45,19 +49,23 @@ import org.eclipse.ditto.things.model.ThingsModelFactory;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 import org.eclipse.ditto.things.service.common.config.DefaultThingConfig;
 import org.eclipse.ditto.things.service.common.config.ThingConfig;
+import org.eclipse.ditto.things.service.enforcement.TestSetup;
 import org.eclipse.ditto.utils.jsr305.annotations.AllParametersAndReturnValuesAreNonnullByDefault;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.rules.TestWatcher;
+import org.mockito.Mockito;
+import org.slf4j.Logger;
+
+import com.typesafe.config.Config;
+import com.typesafe.config.ConfigFactory;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
 import akka.testkit.TestProbe;
 import akka.testkit.javadsl.TestKit;
-import com.typesafe.config.Config;
-import com.typesafe.config.ConfigFactory;
-import org.junit.After;
-import org.junit.BeforeClass;
-import org.junit.rules.TestWatcher;
-import org.slf4j.Logger;
 
 /**
  * Base test class for testing persistence actors of the things persistence.
@@ -67,6 +75,8 @@ public abstract class PersistenceActorTestBase {
     protected static final ThingId THING_ID = ThingId.of("org.eclipse.ditto", "thingId");
     protected static final PolicyId POLICY_ID = PolicyId.of("org.eclipse.ditto:policyId");
     protected static final String AUTH_SUBJECT = "allowedId";
+    protected static final AuthorizationSubject AUTHORIZED_SUBJECT =
+            AuthorizationModelFactory.newAuthSubject("test:" + AUTH_SUBJECT);
 
     protected static final String ATTRIBUTE_KEY = "attrKey";
     protected static final String ATTRIBUTE_VALUE = "attrVal";
@@ -131,13 +141,23 @@ public abstract class PersistenceActorTestBase {
 
     protected ActorSystem actorSystem = null;
     protected TestProbe pubSubTestProbe = null;
+    protected TestProbe policiesShardRegionTestProbe = null;
     protected ActorRef pubSubMediator = null;
+
+    protected ActorRef policiesShardRegion = null;
     protected DittoHeaders dittoHeadersV2;
+
+    protected PolicyEnforcerProvider policyEnforcerProvider;
 
     @BeforeClass
     public static void initTestFixture() {
         testConfig = ConfigFactory.load("test");
         thingConfig = getThingConfig(testConfig);
+    }
+
+    @Before
+    public void setup() {
+        policyEnforcerProvider = Mockito.mock(PolicyEnforcerProvider.class);
     }
 
     protected static ThingConfig getThingConfig(final Config testConfig) {
@@ -184,9 +204,12 @@ public abstract class PersistenceActorTestBase {
         requireNonNull(customConfig, "Consider to use ConfigFactory.empty()");
         final Config config = customConfig.withFallback(ConfigFactory.load("test"));
 
-        actorSystem = ActorSystem.create("AkkaTestSystem", config);
+        actorSystem = ActorSystem.create("AkkaTestSystem", ConfigFactory.parseMap(
+                Map.of("akka.actor.provider", "cluster")).withFallback(config));
         pubSubTestProbe = TestProbe.apply("mock-pubSub-mediator", actorSystem);
         pubSubMediator = pubSubTestProbe.ref();
+        policiesShardRegionTestProbe = TestProbe.apply("mock-policiesShardRegion", actorSystem);
+        policiesShardRegion = policiesShardRegionTestProbe.ref();
 
         dittoHeadersV2 = createDittoHeadersMock(JsonSchemaVersion.V_2, "test:" + AUTH_SUBJECT);
     }
@@ -207,13 +230,36 @@ public abstract class PersistenceActorTestBase {
     }
 
     private Props getPropsOfThingPersistenceActor(final ThingId thingId, final DistributedPub<ThingEvent<?>> pub) {
-
-        return ThingPersistenceActor.props(thingId, pub, pubSubMediator);
+        return ThingPersistenceActor.props(thingId, pub);
     }
 
     protected ActorRef createSupervisorActorFor(final ThingId thingId) {
+        final LiveSignalPub liveSignalPub = new TestSetup.DummyLiveSignalPub(pubSubMediator);
         final Props props =
-                ThingSupervisorActor.props(pubSubMediator, getDistributedPub(), this::getPropsOfThingPersistenceActor);
+                ThingSupervisorActor.props(pubSubMediator,
+                        policiesShardRegion,
+                        new DistributedPub<>() {
+
+                            @Override
+                            public ActorRef getPublisher() {
+                                return pubSubMediator;
+                            }
+
+                            @Override
+                            public Object wrapForPublication(final ThingEvent<?> message) {
+                                return message;
+                            }
+
+                            @Override
+                            public <S extends ThingEvent<?>> Object wrapForPublicationWithAcks(final S message,
+                                    final AckExtractor<S> ackExtractor) {
+                                return wrapForPublication(message);
+                            }
+                        },
+                        liveSignalPub,
+                        this::getPropsOfThingPersistenceActor,
+                        null,
+                        policyEnforcerProvider);
 
         return actorSystem.actorOf(props, thingId.toString());
     }

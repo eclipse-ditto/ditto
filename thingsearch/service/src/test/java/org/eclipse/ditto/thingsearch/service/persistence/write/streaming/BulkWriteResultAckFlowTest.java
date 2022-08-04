@@ -200,7 +200,8 @@ public final class BulkWriteResultAckFlowTest {
             final PolicyId policyId = i % 4 < 2 ? null : PolicyId.of("policy", String.valueOf(i));
             final long policyRevision = i * 100L;
             final Metadata metadata =
-                    Metadata.of(thingId, thingRevision, policyId, policyRevision, List.of(), null, probes.get(i).ref());
+                    Metadata.of(thingId, thingRevision, policyId, policyRevision, List.of(), null,
+                            actorSystem.actorSelection(probes.get(i).ref().path()));
             final AbstractWriteModel abstractModel;
             if (i % 2 == 0) {
                 abstractModel = ThingDeleteModel.of(metadata);

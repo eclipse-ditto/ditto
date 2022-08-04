@@ -14,7 +14,6 @@ package org.eclipse.ditto.connectivity.service.messaging;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
-import static org.eclipse.ditto.connectivity.service.messaging.MockClientActor.mockClientActorPropsFactory;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
@@ -100,20 +99,21 @@ import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.config.DittoConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.config.MonitoringConfig;
 import org.eclipse.ditto.connectivity.service.config.mapping.MappingConfig;
+import org.eclipse.ditto.connectivity.service.enforcement.ConnectionEnforcerActorPropsFactory;
 import org.eclipse.ditto.connectivity.service.messaging.internal.ssl.TestCertificates;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.ConnectionMonitor;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.ConnectionMonitorRegistry;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.metrics.ConnectivityCounterRegistry;
 import org.eclipse.ditto.connectivity.service.messaging.persistence.ConnectionSupervisorActor;
-import org.eclipse.ditto.connectivity.service.messaging.persistence.UsageBasedPriorityProvider;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
+import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import org.eclipse.ditto.internal.utils.persistentactors.config.PingConfig;
 import org.eclipse.ditto.internal.utils.protocol.config.ProtocolConfig;
-import org.eclipse.ditto.internal.utils.pubsub.DittoProtocolSub;
 import org.eclipse.ditto.internal.utils.pubsub.StreamingType;
+import org.eclipse.ditto.internal.utils.pubsubthings.DittoProtocolSub;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.messages.model.Message;
 import org.eclipse.ditto.messages.model.MessageDirection;
@@ -254,15 +254,17 @@ public final class TestConstants {
             @Nullable final DittoProtocolSub delegate) {
         return new DittoProtocolSub() {
             @Override
-            public CompletionStage<Void> subscribe(final Collection<StreamingType> types,
-                    final Collection<String> topics, final ActorRef subscriber, @Nullable final String group) {
+            public CompletionStage<Boolean> subscribe(final Collection<StreamingType> types,
+                    final Collection<String> topics, final ActorRef subscriber, @Nullable final String group,
+                    final boolean resubscribe) {
                 doDelegate(d -> d.subscribe(types, topics, subscriber));
                 return CompletableFuture.allOf(types.stream()
-                        .map(type -> {
-                            final Object sub = DistPubSubAccess.subscribe(type.getDistributedPubSubTopic(), subscriber);
-                            return Patterns.ask(pubSubMediator, sub, Duration.ofSeconds(10L)).toCompletableFuture();
-                        })
-                        .toArray(CompletableFuture[]::new));
+                                .map(type -> {
+                                    final Object sub = DistPubSubAccess.subscribe(type.getDistributedPubSubTopic(), subscriber);
+                                    return Patterns.ask(pubSubMediator, sub, Duration.ofSeconds(10L)).toCompletableFuture();
+                                })
+                                .toArray(CompletableFuture[]::new))
+                        .thenApply(_void -> true);
             }
 
             @Override
@@ -909,35 +911,20 @@ public final class TestConstants {
     public static ActorRef createConnectionSupervisorActor(final ConnectionId connectionId,
             final ActorSystem actorSystem,
             final ActorRef proxyActor) {
+
         return createConnectionSupervisorActor(connectionId, actorSystem, proxyActor,
-                mockClientActorPropsFactory, TestProbe.apply(actorSystem).ref());
+                TestProbe.apply(actorSystem).ref());
     }
 
     public static ActorRef createConnectionSupervisorActor(final ConnectionId connectionId,
             final ActorSystem actorSystem,
-            final ActorRef pubSubMediator,
-            final ActorRef proxyActor,
-            final ClientActorPropsFactory clientActorPropsFactory) {
-        return createConnectionSupervisorActor(connectionId, actorSystem, proxyActor,
-                clientActorPropsFactory, pubSubMediator);
-    }
-
-    public static ActorRef createConnectionSupervisorActor(final ConnectionId connectionId,
-            final ActorSystem actorSystem,
-            final ActorRef pubSubMediator,
-            final ActorRef proxyActor) {
-
-        return createConnectionSupervisorActor(connectionId, actorSystem, proxyActor,
-                mockClientActorPropsFactory, pubSubMediator);
-    }
-
-    public static ActorRef createConnectionSupervisorActor(final ConnectionId connectionId,
-            final ActorSystem actorSystem,
-            final ActorRef proxyActor,
-            final ClientActorPropsFactory clientActorPropsFactory,
+            final ActorRef commandForwarderActor,
             final ActorRef pubSubMediator) {
-        final Props props = ConnectionSupervisorActor.props(proxyActor, clientActorPropsFactory, null,
-                UsageBasedPriorityProvider::getInstance, pubSubMediator);
+        final var dittoExtensionsConfig = ScopedConfig.dittoExtension(actorSystem.settings().config());
+        final var enforcerActorPropsFactory =
+                ConnectionEnforcerActorPropsFactory.get(actorSystem, dittoExtensionsConfig);
+        final Props props =
+                ConnectionSupervisorActor.props(commandForwarderActor, pubSubMediator, enforcerActorPropsFactory);
 
         final Props shardRegionMockProps = Props.create(ShardRegionMockActor.class, props, connectionId.toString());
 
@@ -1078,6 +1065,17 @@ public final class TestConstants {
         public int getPort() {
             return port;
         }
+
+        /**
+         * Returns the port number as String.
+         *
+         * @return the port number as String.
+         */
+        @Override
+        public String toString() {
+            return String.valueOf(getPort());
+        }
+
     }
 
 }

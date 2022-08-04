@@ -89,9 +89,21 @@ public final class DefaultMongoDbConfigTest {
             softly.assertThat(optionsConfig.isSslEnabled()).isFalse();
         });
         softly.assertThat(underTest.getConnectionPoolConfig()).satisfies(connectionPoolConfig -> {
-            softly.assertThat(connectionPoolConfig.getMaxSize()).isEqualTo(1_000);
-            softly.assertThat(connectionPoolConfig.getMaxWaitTime()).isEqualTo(Duration.ofSeconds(42L));
-            softly.assertThat(connectionPoolConfig.isJmxListenerEnabled()).isTrue();
+            softly.assertThat(connectionPoolConfig.getMinSize())
+                    .as(MongoDbConfig.ConnectionPoolConfig.ConnectionPoolConfigValue.MIN_SIZE.getConfigPath())
+                    .isEqualTo(10);
+            softly.assertThat(connectionPoolConfig.getMaxSize())
+                    .as(MongoDbConfig.ConnectionPoolConfig.ConnectionPoolConfigValue.MAX_SIZE.getConfigPath())
+                    .isEqualTo(1_000);
+            softly.assertThat(connectionPoolConfig.getMaxIdleTime())
+                    .as(MongoDbConfig.ConnectionPoolConfig.ConnectionPoolConfigValue.MAX_IDLE_TIME.getConfigPath())
+                    .isEqualTo(Duration.ofMinutes(5L));
+            softly.assertThat(connectionPoolConfig.getMaxWaitTime())
+                    .as(MongoDbConfig.ConnectionPoolConfig.ConnectionPoolConfigValue.MAX_WAIT_TIME.getConfigPath())
+                    .isEqualTo(Duration.ofSeconds(42L));
+            softly.assertThat(connectionPoolConfig.isJmxListenerEnabled())
+                    .as(MongoDbConfig.ConnectionPoolConfig.ConnectionPoolConfigValue.JMX_LISTENER_ENABLED.getConfigPath())
+                    .isTrue();
         });
         softly.assertThat(underTest.getCircuitBreakerConfig()).satisfies(circuitBreakerConfig -> {
             softly.assertThat(circuitBreakerConfig.getMaxFailures()).isEqualTo(23);

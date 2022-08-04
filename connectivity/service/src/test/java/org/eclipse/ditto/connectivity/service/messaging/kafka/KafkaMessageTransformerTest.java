@@ -13,7 +13,7 @@
 package org.eclipse.ditto.connectivity.service.messaging.kafka;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.eclipse.ditto.connectivity.api.EnforcementFactoryFactory.newEnforcementFilterFactory;
+import static org.eclipse.ditto.connectivity.service.EnforcementFactoryFactory.newEnforcementFilterFactory;
 import static org.eclipse.ditto.connectivity.service.messaging.TestConstants.Authorization.AUTHORIZATION_CONTEXT;
 import static org.eclipse.ditto.connectivity.service.messaging.kafka.KafkaHeader.KAFKA_KEY;
 import static org.eclipse.ditto.connectivity.service.messaging.kafka.KafkaHeader.KAFKA_TIMESTAMP;
@@ -39,6 +39,7 @@ import org.apache.kafka.common.header.internals.RecordHeaders;
 import org.eclipse.ditto.base.model.common.ByteBufferUtils;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.connectivity.api.ExternalMessage;
+import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
 import org.eclipse.ditto.connectivity.model.Enforcement;
 import org.eclipse.ditto.connectivity.model.EnforcementFilterFactory;
@@ -46,7 +47,6 @@ import org.eclipse.ditto.connectivity.model.Source;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.ConnectionMonitor;
 import org.eclipse.ditto.placeholders.UnresolvedPlaceholderException;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 public final class KafkaMessageTransformerTest {
@@ -69,7 +69,8 @@ public final class KafkaMessageTransformerTest {
         final EnforcementFilterFactory<Map<String, String>, Signal<?>> enforcementFilterFactory =
                 newEnforcementFilterFactory(enforcement, newHeadersPlaceholder());
         inboundMonitor = mock(ConnectionMonitor.class);
-        underTest = new KafkaMessageTransformer(source, sourceAddress, enforcementFilterFactory, inboundMonitor);
+        underTest = new KafkaMessageTransformer(ConnectionId.of("foo"),
+                source, sourceAddress, enforcementFilterFactory, inboundMonitor);
     }
 
     @Test

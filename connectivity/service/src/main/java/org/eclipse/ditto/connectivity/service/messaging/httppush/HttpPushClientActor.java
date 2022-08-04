@@ -68,9 +68,13 @@ public final class HttpPushClientActor extends BaseClientActor {
     @Nullable private ActorRef httpPublisherActor;
 
     @SuppressWarnings("unused")
-    private HttpPushClientActor(final Connection connection, final ActorRef connectionActor,
-            final ActorRef proxyActor, final DittoHeaders dittoHeaders, final Config connectivityConfigOverwrites) {
-        super(connection, proxyActor, connectionActor, dittoHeaders, connectivityConfigOverwrites);
+    private HttpPushClientActor(final Connection connection,
+            final ActorRef connectionActor,
+            final ActorRef commandForwarderActor,
+            final DittoHeaders dittoHeaders,
+            final Config connectivityConfigOverwrites) {
+
+        super(connection, commandForwarderActor, connectionActor, dittoHeaders, connectivityConfigOverwrites);
         httpPushConfig = connectivityConfig().getConnectionConfig().getHttpPushConfig();
         final MonitoringLoggerConfig loggerConfig = connectivityConfig().getMonitoringConfig().logger();
         factory = HttpPushFactory.of(connection, httpPushConfig, connectionLogger, this::getSshTunnelState);
@@ -80,15 +84,16 @@ public final class HttpPushClientActor extends BaseClientActor {
      * Create the {@code Props} object for an {@code HttpPushClientActor}.
      *
      * @param connection the HTTP-push connection.
-     * @param proxyActor the actor used to send signals into the ditto cluster.
+     * @param commandForwarderActor the actor used to send signals into the ditto cluster.
      * @param connectionActor the connectionPersistenceActor which created this client.
      * @param dittoHeaders headers of the command that caused this actor to be created.
      * @param connectivityConfigOverwrites the overwrites for the connectivity config for the given connection.
      * @return the {@code Props} object.
      */
-    public static Props props(final Connection connection, final ActorRef proxyActor,
-            final ActorRef connectionActor, final DittoHeaders dittoHeaders, final Config connectivityConfigOverwrites) {
-        return Props.create(HttpPushClientActor.class, connection, connectionActor, proxyActor, dittoHeaders,
+    public static Props props(final Connection connection, final ActorRef commandForwarderActor,
+            final ActorRef connectionActor, final DittoHeaders dittoHeaders,
+            final Config connectivityConfigOverwrites) {
+        return Props.create(HttpPushClientActor.class, connection, connectionActor, commandForwarderActor, dittoHeaders,
                 connectivityConfigOverwrites);
     }
 
@@ -155,7 +160,6 @@ public final class HttpPushClientActor extends BaseClientActor {
         stopPublisherActor();
         final Props props = HttpPublisherActor.props(connection(),
                 factory,
-                getDefaultClientId(),
                 connectivityStatusResolver,
                 connectivityConfig());
         httpPublisherActor = startChildActorConflictFree(HttpPublisherActor.ACTOR_NAME, props);

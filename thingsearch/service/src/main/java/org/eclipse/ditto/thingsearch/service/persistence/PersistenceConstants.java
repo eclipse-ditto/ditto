@@ -97,6 +97,11 @@ public final class PersistenceConstants {
     public static final String FIELD_PROPERTIES = "properties";
 
     /**
+     * Field name for feature definition.
+     */
+    public static final String FIELD_DEFINITION = "definition";
+
+    /**
      * Part of the path between feature ID and property key.
      */
     public static final String PROPERTIES = SLASH + FIELD_PROPERTIES + SLASH;

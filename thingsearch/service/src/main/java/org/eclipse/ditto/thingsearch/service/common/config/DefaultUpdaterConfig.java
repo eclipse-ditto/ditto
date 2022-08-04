@@ -41,7 +41,7 @@ public final class DefaultUpdaterConfig implements UpdaterConfig {
     private final double forceUpdateAfterStartRandomFactor;
     private final BackgroundSyncConfig backgroundSyncConfig;
     private final StreamConfig streamConfig;
-    private final UpdaterPersistenceConfig updaterPersistenceConfig;
+    private final SearchPersistenceConfig updaterPersistenceConfig;
 
     private DefaultUpdaterConfig(final ConfigWithFallback updaterScopedConfig) {
         maxIdleTime = updaterScopedConfig.getNonNegativeDurationOrThrow(UpdaterConfigValue.MAX_IDLE_TIME);
@@ -59,7 +59,7 @@ public final class DefaultUpdaterConfig implements UpdaterConfig {
                 UpdaterConfigValue.FORCE_UPDATE_AFTER_START_RANDOM_FACTOR.getConfigPath());
         backgroundSyncConfig = DefaultBackgroundSyncConfig.fromUpdaterConfig(updaterScopedConfig);
         streamConfig = DefaultStreamConfig.of(updaterScopedConfig);
-        updaterPersistenceConfig = DefaultUpdaterPersistenceConfig.of(updaterScopedConfig);
+        updaterPersistenceConfig = DefaultSearchPersistenceConfig.of(updaterScopedConfig);
     }
 
     /**
@@ -120,7 +120,7 @@ public final class DefaultUpdaterConfig implements UpdaterConfig {
     }
 
     @Override
-    public UpdaterPersistenceConfig getUpdaterPersistenceConfig() {
+    public SearchPersistenceConfig getUpdaterPersistenceConfig() {
         return updaterPersistenceConfig;
     }
 

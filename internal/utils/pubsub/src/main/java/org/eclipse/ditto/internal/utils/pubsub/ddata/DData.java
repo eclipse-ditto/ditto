@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.internal.utils.pubsub.ddata;
 
+import org.eclipse.ditto.internal.utils.ddata.DistributedDataConfig;
+
 /**
  * A package of ddata reader, writer, and creator of local subscriptions to plug into a pub-sub framework.
  *
@@ -30,5 +32,11 @@ public interface DData<K, R, W extends DDataUpdate<?>> {
      * @return the distributed data writer.
      */
     DDataWriter<K, W> getWriter();
+
+    /**
+     * @return the config of the distributed data.
+     * @since 3.0.0
+     */
+    DistributedDataConfig getConfig();
 
 }

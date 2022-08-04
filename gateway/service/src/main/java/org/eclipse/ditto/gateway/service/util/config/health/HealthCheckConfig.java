@@ -55,7 +55,7 @@ public interface HealthCheckConfig extends BasicHealthCheckConfig {
         private final String path;
         private final Object defaultValue;
 
-        private HealthCheckConfigValue(final String thePath, final Object theDefaultValue) {
+        HealthCheckConfigValue(final String thePath, final Object theDefaultValue) {
             path = thePath;
             defaultValue = theDefaultValue;
         }
@@ -102,12 +102,12 @@ public interface HealthCheckConfig extends BasicHealthCheckConfig {
             ENABLED("enabled", true),
 
             EXPECTED("expected",
-                    Arrays.asList("policies", "things", "search", "gateway", "connectivity", "concierge"));
+                    Arrays.asList("policies", "things", "search", "gateway", "connectivity"));
 
             private final String path;
             private final Object defaultValue;
 
-            private ClusterRolesConfigValue(final String thePath, final Object theDefaultValue) {
+            ClusterRolesConfigValue(final String thePath, final Object theDefaultValue) {
                 path = thePath;
                 defaultValue = theDefaultValue;
             }

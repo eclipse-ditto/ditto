@@ -18,10 +18,12 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.function.UnaryOperator;
 
+import javax.annotation.Nullable;
+
 import org.eclipse.ditto.base.model.entity.id.WithEntityId;
+import org.eclipse.ditto.base.model.exceptions.DittoInternalErrorException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
-import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayInternalErrorException;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
@@ -91,6 +93,16 @@ public abstract class AbstractGraphActor<T, M> extends AbstractActor {
      * @return the created Source.
      */
     protected abstract T mapMessage(M message);
+
+    /**
+     * Called when a message is dropped as result of backpressure strategy.
+     * Provides the possibility to add custom handling of dropped messages by implementations of AbstractGraphActor.
+     *
+     * @param message the dropped message.
+     */
+    protected void messageDiscarded(M message, QueueOfferResult result) {
+        // do nothing by default
+    }
 
     /**
      * Called before handling the actual message via the {@link #createSink()} in order to being able to enhance
@@ -184,42 +196,50 @@ public abstract class AbstractGraphActor<T, M> extends AbstractActor {
 
     private void handleMatched(final SourceQueue<T> sourceQueue, final M match) {
         final ThreadSafeDittoLoggingAdapter loggerWithCID;
-        if (match instanceof WithDittoHeaders) {
-            loggerWithCID = logger.withCorrelationId((WithDittoHeaders) match);
+        if (match instanceof final WithDittoHeaders withDittoHeaders) {
+            loggerWithCID = logger.withCorrelationId(withDittoHeaders);
         } else {
             loggerWithCID = logger;
         }
-        if (match instanceof WithEntityId) {
+        if (match instanceof final WithEntityId withEntityId) {
             loggerWithCID.debug("Received <{}> with ID <{}>.", match.getClass().getSimpleName(),
-                    ((WithEntityId) match).getEntityId());
+                    withEntityId.getEntityId());
         } else {
             loggerWithCID.debug("Received match: <{}>.", match);
         }
         receiveCounter.increment();
-        sourceQueue.offer(mapMessage(match)).handle(this::incrementEnqueueCounters);
+        sourceQueue.offer(mapMessage(match))
+                .whenComplete(this::incrementEnqueueCounters)
+                .thenAccept(result -> {
+                    if (!result.isEnqueued()) {
+                        messageDiscarded(match, result);
+                    }
+                });
     }
 
-    private Void incrementEnqueueCounters(final QueueOfferResult result, final Throwable error) {
+    private void incrementEnqueueCounters(@Nullable final QueueOfferResult result, @Nullable final Throwable error) {
         if (QueueOfferResult.enqueued().equals(result)) {
             enqueueSuccessCounter.increment();
         } else if (QueueOfferResult.dropped().equals(result)) {
             enqueueDroppedCounter.increment();
             logger.error("Dropped message as result of backpressure strategy! - result was: {} - adjust queue " +
                     "size or scaling if this appears regularly", result);
-        } else if (result instanceof QueueOfferResult.Failure) {
-            final var failure = (QueueOfferResult.Failure) result;
+        } else if (result instanceof QueueOfferResult.Failure failure) {
             logger.error(failure.cause(), "Enqueue failed!");
             enqueueFailureCounter.increment();
         } else {
-            logger.error(error, "Enqueue failed without acknowledgement!");
             enqueueFailureCounter.increment();
+            if (error == null) {
+                logger.error("Enqueue failed - result was: {}", result);
+            } else {
+                logger.error(error, "Enqueue failed without acknowledgement!");
+            }
         }
-        return null;
     }
 
     private void handleUnknownThrowable(final Throwable unknownThrowable) {
         logger.warning("Received unknown Throwable <{}>!", unknownThrowable);
-        final GatewayInternalErrorException gatewayInternalError = GatewayInternalErrorException.newBuilder()
+        final DittoInternalErrorException gatewayInternalError = DittoInternalErrorException.newBuilder()
                 .cause(unknownThrowable)
                 .build();
         getSender().tell(gatewayInternalError, getSelf());
