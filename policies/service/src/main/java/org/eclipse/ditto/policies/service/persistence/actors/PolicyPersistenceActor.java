@@ -190,7 +190,7 @@ public final class PolicyPersistenceActor
         pubSubMediator.tell(DistPubSubAccess.publishViaGroup(PolicyEvent.TYPE_PREFIX, event), getSelf());
 
         if (null != previousEntity && null != entity) {
-            if (entityExistsAsDeleted() ||
+            if (previousEntity.hasLifecycle(PolicyLifecycle.DELETED) || entityExistsAsDeleted() ||
                     !previousEntity.isSemanticallySameAs(entity.getEntriesSet())) {
                 // however only publish the PolicyTag when the Policy semantically changed
                 // (e.g. not when only a "subject" payload changed but not the subjectId itself)
