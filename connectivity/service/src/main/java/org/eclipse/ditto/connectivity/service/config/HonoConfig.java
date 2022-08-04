@@ -13,20 +13,16 @@
 package org.eclipse.ditto.connectivity.service.config;
 
 import java.net.URI;
-import java.net.URISyntaxException;
 import java.util.Set;
 
 import org.eclipse.ditto.connectivity.model.UserPasswordCredentials;
-import org.eclipse.ditto.internal.utils.config.DittoConfigError;
 import org.eclipse.ditto.internal.utils.config.KnownConfigValue;
-
-import akka.actor.Extension;
 
 /**
  * This interface provides access to the configuration properties Hono connections.
  * The actual configuration can be obtained via actor system extension.
  */
-public interface HonoConfig extends Extension {
+public interface HonoConfig {
 
     /**
      * Prefix in .conf files
@@ -119,21 +115,6 @@ public interface HonoConfig extends Extension {
             return path;
         }
 
-    }
-
-    /**
-     * Validates and gets URI from a string
-     *
-     * @param uri A {@link String} to be validated
-     * @return New {@link URI} from specified string
-     * @throws DittoConfigError if given string is not a valid URI
-     */
-    static URI getUri(final String uri) throws DittoConfigError {
-        try {
-            return new URI(uri);
-        } catch (final URISyntaxException e) {
-            throw new DittoConfigError(e);
-        }
     }
 
     enum SaslMechanism {
