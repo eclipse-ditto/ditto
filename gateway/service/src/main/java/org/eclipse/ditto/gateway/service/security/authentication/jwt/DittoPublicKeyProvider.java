@@ -14,10 +14,16 @@ package org.eclipse.ditto.gateway.service.security.authentication.jwt;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.argumentNotNull;
 
+import java.security.AlgorithmParameters;
 import java.security.KeyFactory;
 import java.security.NoSuchAlgorithmException;
 import java.security.PublicKey;
+import java.security.spec.ECGenParameterSpec;
+import java.security.spec.ECParameterSpec;
+import java.security.spec.ECPoint;
+import java.security.spec.ECPublicKeySpec;
 import java.security.spec.InvalidKeySpecException;
+import java.security.spec.InvalidParameterSpecException;
 import java.security.spec.KeySpec;
 import java.security.spec.RSAPublicKeySpec;
 import java.text.MessageFormat;
@@ -84,10 +90,10 @@ public final class DittoPublicKeyProvider implements PublicKeyProvider {
     private final Cache<PublicKeyIdWithIssuer, PublicKeyWithParser> publicKeyCache;
 
     private DittoPublicKeyProvider(final JwtSubjectIssuersConfig jwtSubjectIssuersConfig,
-        final HttpClientFacade httpClient,
-        final CacheConfig publicKeysConfig,
-        final String cacheName,
-        final OAuthConfig oAuthConfig) {
+            final HttpClientFacade httpClient,
+            final CacheConfig publicKeysConfig,
+            final String cacheName,
+            final OAuthConfig oAuthConfig) {
 
         this.jwtSubjectIssuersConfig = argumentNotNull(jwtSubjectIssuersConfig);
         this.httpClient = argumentNotNull(httpClient);
@@ -107,10 +113,10 @@ public final class DittoPublicKeyProvider implements PublicKeyProvider {
     }
 
     DittoPublicKeyProvider(final JwtSubjectIssuersConfig jwtSubjectIssuersConfig,
-                           final HttpClientFacade httpClient,
-                           final OAuthConfig oAuthConfig,
-                           final Function<AsyncCacheLoader<PublicKeyIdWithIssuer, PublicKeyWithParser>,
-                                   Cache<PublicKeyIdWithIssuer, PublicKeyWithParser>> publicKeyCacheFactory) {
+            final HttpClientFacade httpClient,
+            final OAuthConfig oAuthConfig,
+            final Function<AsyncCacheLoader<PublicKeyIdWithIssuer, PublicKeyWithParser>,
+                    Cache<PublicKeyIdWithIssuer, PublicKeyWithParser>> publicKeyCacheFactory) {
 
         this.jwtSubjectIssuersConfig = argumentNotNull(jwtSubjectIssuersConfig);
         this.httpClient = argumentNotNull(httpClient);
@@ -131,16 +137,18 @@ public final class DittoPublicKeyProvider implements PublicKeyProvider {
      * @throws NullPointerException if any argument is {@code null}.
      */
     public static PublicKeyProvider of(final JwtSubjectIssuersConfig jwtSubjectIssuersConfig,
-        final HttpClientFacade httpClient,
-        final CacheConfig publicKeysCacheConfig,
-        final String cacheName,
-        final OAuthConfig oAuthConfig) {
+            final HttpClientFacade httpClient,
+            final CacheConfig publicKeysCacheConfig,
+            final String cacheName,
+            final OAuthConfig oAuthConfig) {
 
-        return new DittoPublicKeyProvider(jwtSubjectIssuersConfig, httpClient, publicKeysCacheConfig, cacheName, oAuthConfig);
+        return new DittoPublicKeyProvider(jwtSubjectIssuersConfig, httpClient, publicKeysCacheConfig, cacheName,
+                oAuthConfig);
     }
 
     @Override
-    public CompletableFuture<Optional<PublicKeyWithParser>> getPublicKeyWithParser(final String issuer, final String keyId) {
+    public CompletableFuture<Optional<PublicKeyWithParser>> getPublicKeyWithParser(final String issuer,
+            final String keyId) {
         argumentNotNull(issuer);
         argumentNotNull(keyId);
 
@@ -148,8 +156,9 @@ public final class DittoPublicKeyProvider implements PublicKeyProvider {
     }
 
     /* this method is used to asynchronously load the public key into the cache */
-    private CompletableFuture<PublicKeyWithParser> loadPublicKeyWithParser(final PublicKeyIdWithIssuer publicKeyIdWithIssuer,
-        final Executor executor) {
+    private CompletableFuture<PublicKeyWithParser> loadPublicKeyWithParser(
+            final PublicKeyIdWithIssuer publicKeyIdWithIssuer,
+            final Executor executor) {
 
         final String issuer = publicKeyIdWithIssuer.getIssuer();
         final String keyId = publicKeyIdWithIssuer.getKeyId();
@@ -159,7 +168,7 @@ public final class DittoPublicKeyProvider implements PublicKeyProvider {
         if (subjectIssuerConfigOpt.isEmpty()) {
             LOGGER.info("The JWT issuer <{}> is not included in Ditto's gateway configuration at " +
                             "'ditto.gateway.authentication.oauth.openid-connect-issuers', supported are: <{}>",
-                            issuer, jwtSubjectIssuersConfig);
+                    issuer, jwtSubjectIssuersConfig);
             return CompletableFuture.failedFuture(GatewayJwtIssuerNotSupportedException.newBuilder(issuer).build());
         }
 
@@ -167,7 +176,7 @@ public final class DittoPublicKeyProvider implements PublicKeyProvider {
         final CompletionStage<HttpResponse> responseFuture = getPublicKeysFromDiscoveryEndpoint(discoveryEndpoint);
         final CompletionStage<JsonArray> publicKeysFuture = responseFuture.thenCompose(this::mapResponseToJsonArray);
         return publicKeysFuture.thenApply(publicKeysArray -> mapToPublicKey(publicKeysArray, keyId, discoveryEndpoint))
-                .thenApply(publicKey -> mapToPublicKeyWithParser(publicKey))
+                .thenApply(optionalKey -> optionalKey.map(this::mapToPublicKeyWithParser).orElse(null))
                 .toCompletableFuture();
     }
 
@@ -248,8 +257,9 @@ public final class DittoPublicKeyProvider implements PublicKeyProvider {
         return PublicKeyProviderUnavailableException.newBuilder().cause(e).build();
     }
 
-    private static PublicKey mapToPublicKey(final JsonArray publicKeys, final String keyId,
+    private static Optional<PublicKey> mapToPublicKey(final JsonArray publicKeys, final String keyId,
             final String discoveryEndpoint) {
+
         LOGGER.debug("Trying to find key with id <{}> in json array <{}>.", keyId, publicKeys);
 
         for (final JsonValue jsonValue : publicKeys) {
@@ -259,39 +269,91 @@ public final class DittoPublicKeyProvider implements PublicKeyProvider {
 
                 if (jsonWebKey.getId().equals(keyId)) {
                     LOGGER.debug("Found matching JsonWebKey for id <{}>: <{}>.", keyId, jsonWebKey);
-                    final KeyFactory keyFactory = KeyFactory.getInstance(jsonWebKey.getType());
-                    final KeySpec rsaPublicKeySpec =
-                            new RSAPublicKeySpec(jsonWebKey.getModulus(), jsonWebKey.getExponent());
-                    return keyFactory.generatePublic(rsaPublicKeySpec);
+                    return Optional.of(mapMatchingPublicKey(discoveryEndpoint, jsonWebKey));
                 }
-            } catch (final NoSuchAlgorithmException | InvalidKeySpecException e) {
+            } catch (final NoSuchAlgorithmException | InvalidKeySpecException | InvalidParameterSpecException e) {
                 final String msg =
                         MessageFormat.format("Got invalid key from JwkResource provider at discovery endpoint <{0}>",
                                 discoveryEndpoint);
-                LOGGER.warn(msg, e);
-                throw PublicKeyProviderUnavailableException.newBuilder()
-                        .cause(new IllegalStateException(msg, e))
-                        .build();
+                throw getPublicKeyProviderUnavailableException(msg, e);
             }
         }
 
         LOGGER.debug("Did not find key with id <{}>.", keyId);
-        return null;
+        return Optional.empty();
     }
 
-    private PublicKeyWithParser mapToPublicKeyWithParser(final PublicKey publicKey){
-        if (publicKey == null){
-            return null;
+    private static PublicKey mapMatchingPublicKey(final String discoveryEndpoint, final JsonWebKey jsonWebKey)
+            throws NoSuchAlgorithmException, InvalidKeySpecException, InvalidParameterSpecException {
+
+        final var type = jsonWebKey.getType();
+        final KeyFactory keyFactory = KeyFactory.getInstance(type);
+        final PublicKey result;
+        if ("EC".equals(type)) {
+            result = generateECPublicKey(keyFactory, jsonWebKey);
+        } else if ("RSA".equals(type)) {
+            result = generateRSAPublicKey(keyFactory, jsonWebKey);
+        } else {
+            final String msg =
+                    MessageFormat.format(
+                            "Got invalid key from JwkResource provider at discovery endpoint <{0}>. " +
+                                    "The KeyType (kty): <{1}> is unknown.",
+                            discoveryEndpoint, type);
+            throw getPublicKeyProviderUnavailableException(msg, null);
         }
+        return result;
+    }
+
+    private static PublicKey generateECPublicKey(final KeyFactory keyFactory, final JsonWebKey jsonWebKey)
+            throws InvalidKeySpecException, NoSuchAlgorithmException, InvalidParameterSpecException {
+
+        final AlgorithmParameters parameters = AlgorithmParameters.getInstance("EC");
+        parameters.init(new ECGenParameterSpec("secp256r1"));
+        final ECParameterSpec ecParameterSpec = parameters.getParameterSpec(ECParameterSpec.class);
+        final var ecPoint =
+                new ECPoint(jsonWebKey.getXCoordinate().orElseThrow(), jsonWebKey.getYCoordinate().orElseThrow());
+        final var ecPublicKeySpec = new ECPublicKeySpec(ecPoint, ecParameterSpec);
+        return keyFactory.generatePublic(ecPublicKeySpec);
+    }
+
+    private static PublicKey generateRSAPublicKey(final KeyFactory keyFactory, final JsonWebKey jsonWebKey)
+            throws InvalidKeySpecException {
+
+        final KeySpec rsaPublicKeySpec =
+                new RSAPublicKeySpec(jsonWebKey.getModulus().orElseThrow(), jsonWebKey.getExponent().orElseThrow());
+        return keyFactory.generatePublic(rsaPublicKeySpec);
+    }
+
+    private static PublicKeyProviderUnavailableException getPublicKeyProviderUnavailableException(final String msg,
+            @Nullable Throwable e) {
+
+        final PublicKeyProviderUnavailableException result;
+        if (null != e) {
+            LOGGER.warn(msg, e);
+            result = PublicKeyProviderUnavailableException.newBuilder()
+                    .cause(new IllegalStateException(msg, e))
+                    .build();
+        } else {
+            LOGGER.warn(msg);
+            result = PublicKeyProviderUnavailableException.newBuilder()
+                    .cause(new IllegalStateException(msg))
+                    .build();
+        }
+        return result;
+    }
+
+
+    private PublicKeyWithParser mapToPublicKeyWithParser(final PublicKey publicKey) {
         final var jwtParserBuilder = Jwts.parserBuilder();
         final JwtParser jwtParser = jwtParserBuilder.deserializeJsonWith(JjwtDeserializer.getInstance())
-            .setSigningKey(publicKey)
-            .setAllowedClockSkewSeconds(oAuthConfig.getAllowedClockSkew().getSeconds())
-            .build();
+                .setSigningKey(publicKey)
+                .setAllowedClockSkewSeconds(oAuthConfig.getAllowedClockSkew().getSeconds())
+                .build();
         return new PublicKeyWithParser(publicKey, jwtParser);
     }
 
-    private static final class CacheRemovalListener implements RemovalListener<PublicKeyIdWithIssuer, PublicKeyWithParser> {
+    private static final class CacheRemovalListener
+            implements RemovalListener<PublicKeyIdWithIssuer, PublicKeyWithParser> {
 
         @Override
         public void onRemoval(@Nullable final PublicKeyIdWithIssuer key, @Nullable final PublicKeyWithParser value,

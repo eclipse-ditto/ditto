@@ -22,16 +22,15 @@ import static org.mockito.Mockito.when;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.Optional;
-import java.util.concurrent.*;
-
-import com.github.benmanes.caffeine.cache.AsyncCacheLoader;
-import com.github.benmanes.caffeine.cache.Caffeine;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 import org.eclipse.ditto.gateway.api.GatewayAuthenticationProviderUnavailableException;
 import org.eclipse.ditto.gateway.service.util.config.security.OAuthConfig;
 import org.eclipse.ditto.internal.utils.cache.Cache;
 import org.eclipse.ditto.internal.utils.cache.CaffeineCache;
-import org.eclipse.ditto.internal.utils.cache.config.CacheConfig;
 import org.eclipse.ditto.internal.utils.http.HttpClientFacade;
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonObject;
@@ -44,6 +43,9 @@ import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
+
+import com.github.benmanes.caffeine.cache.AsyncCacheLoader;
+import com.github.benmanes.caffeine.cache.Caffeine;
 
 import akka.actor.ActorSystem;
 import akka.http.javadsl.model.HttpRequest;
@@ -68,9 +70,6 @@ public final class DittoPublicKeyProviderTest {
     public HttpClientFacade httpClientMock;
 
     @Mock
-    public CacheConfig cacheConfigMock;
-
-    @Mock
     public OAuthConfig oauthConfigMock;
 
     @Before
@@ -93,10 +92,10 @@ public final class DittoPublicKeyProviderTest {
     }
 
     @Test
-    public void verifyThatKeyIsCached() throws InterruptedException, TimeoutException, ExecutionException {
+    public void verifyThatRSAKeyIsCached() throws InterruptedException, TimeoutException, ExecutionException {
 
         mockSuccessfulDiscoveryEndpointRequest();
-        mockSuccessfulPublicKeysRequest();
+        mockRSASuccessfulPublicKeysRequest();
 
         final Optional<PublicKeyWithParser> publicKeyFromEndpoint =
                 underTest.getPublicKeyWithParser("google.com", KEY_ID).get(LATCH_TIMEOUT, TimeUnit.SECONDS);
@@ -111,6 +110,46 @@ public final class DittoPublicKeyProviderTest {
         assertThat(publicKeyFromCache).contains(publicKeyFromEndpoint.get());
         assertThat(publicKeyFromCache).isNotEmpty();
         verifyNoMoreInteractions(httpClientMock);
+    }
+
+    @Test
+    public void verifyThatECKeyIsCached() throws InterruptedException, TimeoutException, ExecutionException {
+
+        mockSuccessfulDiscoveryEndpointRequest();
+        mockECSuccessfulPublicKeysRequest();
+
+        final Optional<PublicKeyWithParser> publicKeyFromEndpoint =
+                underTest.getPublicKeyWithParser("google.com", KEY_ID).get(LATCH_TIMEOUT, TimeUnit.SECONDS);
+        assertThat(publicKeyFromEndpoint).isNotEmpty();
+        verify(httpClientMock).createSingleHttpRequest(DISCOVERY_ENDPOINT_REQUEST);
+        verify(httpClientMock).createSingleHttpRequest(PUBLIC_KEYS_REQUEST);
+
+        Mockito.clearInvocations(httpClientMock);
+
+        final Optional<PublicKeyWithParser> publicKeyFromCache =
+                underTest.getPublicKeyWithParser("google.com", KEY_ID).get(LATCH_TIMEOUT, TimeUnit.SECONDS);
+        assertThat(publicKeyFromCache).contains(publicKeyFromEndpoint.get());
+        assertThat(publicKeyFromCache).isNotEmpty();
+        verifyNoMoreInteractions(httpClientMock);
+    }
+
+    @Test
+    public void verifyWithoutPublicKeys() throws InterruptedException, TimeoutException, ExecutionException {
+
+        mockSuccessfulDiscoveryEndpointRequest();
+        mockSuccessfulPublicKeysRequestWithoutKeys();
+
+        final Optional<PublicKeyWithParser> publicKeyFromEndpoint =
+                underTest.getPublicKeyWithParser("google.com", KEY_ID).get(LATCH_TIMEOUT, TimeUnit.SECONDS);
+        assertThat(publicKeyFromEndpoint).isEmpty();
+        verify(httpClientMock).createSingleHttpRequest(DISCOVERY_ENDPOINT_REQUEST);
+        verify(httpClientMock).createSingleHttpRequest(PUBLIC_KEYS_REQUEST);
+
+        Mockito.clearInvocations(httpClientMock);
+
+        final Optional<PublicKeyWithParser> publicKeyFromCache =
+                underTest.getPublicKeyWithParser("google.com", KEY_ID).get(LATCH_TIMEOUT, TimeUnit.SECONDS);
+        assertThat(publicKeyFromCache).isEmpty();
     }
 
     @Test
@@ -167,7 +206,7 @@ public final class DittoPublicKeyProviderTest {
                 .thenReturn(CompletableFuture.completedFuture(discoveryEndpointResponse));
     }
 
-    private void mockSuccessfulPublicKeysRequest() {
+    private void mockRSASuccessfulPublicKeysRequest() {
 
         final JsonObject jsonWebKey = JsonObject.newBuilder()
                 .set(JsonWebKey.JsonFields.KEY_TYPE, "RSA")
@@ -179,6 +218,36 @@ public final class DittoPublicKeyProviderTest {
                 .set(JsonWebKey.JsonFields.KEY_EXPONENT, "AQAB")
                 .build();
         final JsonArray keysArray = JsonArray.newBuilder().add(jsonWebKey).build();
+        final JsonObject keysJson = JsonObject.newBuilder().set("keys", keysArray).build();
+        final HttpResponse publicKeysResponse = HttpResponse.create()
+                .withStatus(StatusCodes.OK)
+                .withEntity(keysJson.toString());
+        when(httpClientMock.createSingleHttpRequest(PUBLIC_KEYS_REQUEST))
+                .thenReturn(CompletableFuture.completedFuture(publicKeysResponse));
+    }
+
+    private void mockECSuccessfulPublicKeysRequest() {
+
+        final JsonObject jsonWebKey = JsonObject.newBuilder()
+                .set(JsonWebKey.JsonFields.KEY_TYPE, "EC")
+                .set(JsonWebKey.JsonFields.KEY_ALGORITHM, "ES256")
+                .set(JsonWebKey.JsonFields.KEY_USAGE, "sig")
+                .set(JsonWebKey.JsonFields.KEY_ID, KEY_ID)
+                .set(JsonWebKey.JsonFields.KEY_X_COORDINATE, "zBewGSZEyL3rA4ureC8G3r34t62KaH9qqdH365QCZLM")
+                .set(JsonWebKey.JsonFields.KEY_Y_COORDINATE, "CqR6KnLjIevbqnxkStm69-w-7K175k-nx2NdwddASGk")
+                .build();
+        final JsonArray keysArray = JsonArray.newBuilder().add(jsonWebKey).build();
+        final JsonObject keysJson = JsonObject.newBuilder().set("keys", keysArray).build();
+        final HttpResponse publicKeysResponse = HttpResponse.create()
+                .withStatus(StatusCodes.OK)
+                .withEntity(keysJson.toString());
+        when(httpClientMock.createSingleHttpRequest(PUBLIC_KEYS_REQUEST))
+                .thenReturn(CompletableFuture.completedFuture(publicKeysResponse));
+    }
+
+    private void mockSuccessfulPublicKeysRequestWithoutKeys() {
+
+        final JsonArray keysArray = JsonArray.newBuilder().build();
         final JsonObject keysJson = JsonObject.newBuilder().set("keys", keysArray).build();
         final HttpResponse publicKeysResponse = HttpResponse.create()
                 .withStatus(StatusCodes.OK)
