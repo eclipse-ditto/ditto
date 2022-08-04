@@ -19,8 +19,6 @@ import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.base.model.common.ConditionChecker;
-
 /**
  * Possible address aliases used by connections of type 'Hono'
  */
@@ -88,40 +86,6 @@ public enum HonoAddressAlias {
      */
     public String getAliasValue() {
         return value;
-    }
-
-    /**
-     * Resolves the source or target address of this address alias for the specified tenant ID.
-     *
-     * @param tenantId the tenant ID to resolve the address of this alias for.
-     * @return the resolved address of this address alias for {@code tenantId}.
-     * @throws NullPointerException if {@code tenantId} is {@code null}.
-     */
-    public String resolveAddress(final CharSequence tenantId) {
-        ConditionChecker.checkNotNull(tenantId, "tenantId");
-
-        final String prefix = "hono.";
-        final String aliasValue = getAliasValue();
-        final int tenantIdLength = tenantId.length();
-        final StringBuilder sb = new StringBuilder(prefix.length() + aliasValue.length() + 1 + tenantIdLength);
-        sb.append(prefix).append(aliasValue);
-        if (0 < tenantIdLength) {
-            sb.append(".").append(tenantId);
-        }
-        return sb.toString();
-    }
-
-    /**
-     * Resolves the source or target address of this address alias for the specified tenant ID and appends a suffix
-     * for thing ID.
-     * This is mainly needed for reply target addresses.
-     *
-     * @param tenantId the tenant ID to resolve the address of this alias for.
-     * @return the resolved address of this address alias for {@code tenantId} with {@code "/{{thing:id}}"} appended.
-     * @throws NullPointerException if {@code tenantId} is {@code null}.
-     */
-    public String resolveAddressWithThingIdSuffix(final CharSequence tenantId) {
-        return resolveAddress(tenantId) + "/{{thing:id}}";
     }
 
 }

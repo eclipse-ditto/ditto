@@ -13,7 +13,6 @@
 package org.eclipse.ditto.connectivity.model;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 import static org.eclipse.ditto.connectivity.model.HonoAddressAlias.COMMAND_RESPONSE;
 
 import java.util.Collection;
@@ -67,44 +66,6 @@ public final class HonoAddressAliasTest {
                         .hasValue(honoAddressAlias);
             }
         }
-    }
-
-    @Test
-    public void resolveAddressWithNullTenantIdThrowsException() {
-        assertThatNullPointerException()
-                .isThrownBy(() -> HonoAddressAlias.EVENT.resolveAddress(null))
-                .withMessage("The tenantId must not be null!")
-                .withNoCause();
-    }
-
-    @Test
-    public void resolveAddressWithNonEmptyTenantIdReturnsExpected() {
-        final HonoAddressAlias honoAddressAlias = HonoAddressAlias.EVENT;
-        final String tenantId = "myTenant";
-
-        final String resolvedAddress = honoAddressAlias.resolveAddress(tenantId);
-
-        assertThat(resolvedAddress).isEqualTo("hono." + honoAddressAlias.getAliasValue() + "." + tenantId);
-    }
-
-    @Test
-    public void resolveAddressWithEmptyTenantIdReturnsExpected() {
-        final HonoAddressAlias honoAddressAlias = HonoAddressAlias.EVENT;
-
-        final String resolvedAddress = honoAddressAlias.resolveAddress("");
-
-        assertThat(resolvedAddress).isEqualTo("hono." + honoAddressAlias.getAliasValue());
-    }
-
-    @Test
-    public void resolveAddressWithThingIdSuffixReturnsExpected() {
-        final HonoAddressAlias honoAddressAlias = HonoAddressAlias.EVENT;
-        final String tenantId = "myTenant";
-
-        final String resolvedAddress = honoAddressAlias.resolveAddressWithThingIdSuffix(tenantId);
-
-        assertThat(resolvedAddress)
-                .isEqualTo("hono." + honoAddressAlias.getAliasValue() + "." + tenantId + "/{{thing:id}}");
     }
 
 }

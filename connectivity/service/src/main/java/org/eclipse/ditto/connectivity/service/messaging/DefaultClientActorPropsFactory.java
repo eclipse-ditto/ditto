@@ -90,13 +90,20 @@ public final class DefaultClientActorPropsFactory implements ClientActorPropsFac
                     connectionActor,
                     dittoHeaders,
                     connectivityConfigOverwrites);
-            case HONO -> KafkaClientActor.props(
-                    DefaultHonoConnectionFactory.getEnrichedConnection(actorSystem, connection),
+            case HONO -> KafkaClientActor.props(getResolvedHonoConnectionOrThrow(actorSystem, connection),
                     proxyActor,
                     connectionActor,
                     dittoHeaders,
                     connectivityConfigOverwrites);
         };
+    }
+
+    private static Connection getResolvedHonoConnectionOrThrow(
+            final ActorSystem actorSystem,
+            final Connection connection
+    ) {
+        final var honoConnectionFactory = DefaultHonoConnectionFactory.newInstance(actorSystem, connection);
+        return honoConnectionFactory.getHonoConnection();
     }
 
 }

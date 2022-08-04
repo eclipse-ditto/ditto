@@ -912,10 +912,14 @@ public final class ConnectionPersistenceActor
     }
 
     private CompletionStage<Object> startAndAskClientActors(final SignalWithEntityId<?> cmd, final int clientCount) {
-        startClientActorsIfRequired(clientCount, cmd.getDittoHeaders());
-        final Object msg = consistentHashableEnvelope(cmd, cmd.getEntityId().toString());
-
-        return processClientAskResult(Patterns.ask(clientActorRouter, msg, clientActorAskTimeout));
+        try {
+            startClientActorsIfRequired(clientCount, cmd.getDittoHeaders());
+            return processClientAskResult(Patterns.ask(clientActorRouter,
+                    consistentHashableEnvelope(cmd, cmd.getEntityId().toString()),
+                    clientActorAskTimeout));
+        } catch (final Exception e) {
+            return CompletableFuture.failedStage(e);
+        }
     }
 
     private static Object consistentHashableEnvelope(final Object message, final String hashKey) {

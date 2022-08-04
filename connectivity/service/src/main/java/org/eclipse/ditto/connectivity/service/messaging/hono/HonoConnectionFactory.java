@@ -12,17 +12,25 @@
  */
 package org.eclipse.ditto.connectivity.service.messaging.hono;
 
+import static org.eclipse.ditto.base.model.common.ConditionChecker.checkArgument;
+import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
+
 import java.net.URI;
+import java.text.MessageFormat;
 import java.util.Collection;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
+import javax.annotation.concurrent.NotThreadSafe;
+
 import org.eclipse.ditto.connectivity.model.Connection;
+import org.eclipse.ditto.connectivity.model.ConnectionType;
 import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
 import org.eclipse.ditto.connectivity.model.FilteredTopic;
 import org.eclipse.ditto.connectivity.model.HeaderMapping;
@@ -32,84 +40,112 @@ import org.eclipse.ditto.connectivity.model.Source;
 import org.eclipse.ditto.connectivity.model.Target;
 import org.eclipse.ditto.connectivity.model.Topic;
 import org.eclipse.ditto.connectivity.model.UserPasswordCredentials;
-import org.eclipse.ditto.connectivity.service.config.DefaultHonoConfig;
 import org.eclipse.ditto.connectivity.service.config.HonoConfig;
-import org.eclipse.ditto.json.JsonFactory;
 
-import akka.actor.ActorSystem;
-
+/**
+ * Base implementation of a factory for getting a Hono {@link Connection}.
+ * The Connection this factory supplies is based on a provided Connection with adjustments of
+ * <ul>
+ *     <li>the base URI,</li>
+ *     <li>the "validate certificates" flag,</li>
+ *     <li>the specific config including SASL mechanism, bootstrap server URIs and group ID,</li>
+ *     <li>the credentials and</li>
+ *     <li>the sources and targets.</li>
+ * </ul>
+ *
+ * @since 3.0.0
+ */
 public abstract class HonoConnectionFactory {
 
     protected final Connection connection;
-    protected final HonoConfig honoConfig;
 
-    protected HonoConnectionFactory(final ActorSystem actorSystem, final Connection connection) {
-        this.connection = connection;
-        honoConfig = new DefaultHonoConfig(actorSystem);
+    /**
+     * Constructs a {@code HonoConnectionFactory}.
+     *
+     * @param connection the connection that serves as base for the Hono connection this factory returns.
+     * @throws NullPointerException if {@code connection} is {@code null}.
+     * @throws IllegalArgumentException if the type of {@code connection} is not {@link ConnectionType#HONO};
+     */
+    protected HonoConnectionFactory(final Connection connection) {
+        this.connection = checkArgument(
+                checkNotNull(connection, "connection"),
+                arg -> ConnectionType.HONO == arg.getConnectionType(),
+                () -> MessageFormat.format("Expected type of connection to be <{0}> but it was <{1}>.",
+                        ConnectionType.HONO,
+                        connection.getConnectionType())
+        );
     }
 
-    public Connection enrichConnection() {
-        final var tenantId = getTenantId();
+    /**
+     * Returns a proper Hono Connection for the Connection that was used to create this factory instance.
+     *
+     * @return the Hono Connection.
+     */
+    public Connection getHonoConnection() {
         return ConnectivityModelFactory.newConnectionBuilder(connection)
-                .uri(honoConfig.getBaseUri().toString())
-                .validateCertificate(honoConfig.isValidateCertificates())
-                .specificConfig(Map.of(
-                        "saslMechanism", honoConfig.getSaslMechanism().toString(),
-                        "bootstrapServers", getBootstrapServerUrisAsCommaSeparatedListString(honoConfig),
-                        "groupId", (tenantId.isEmpty() ? "" : tenantId + "_") + connection.getId())
-                )
+                .uri(String.valueOf(getBaseUri()))
+                .validateCertificate(isValidateCertificates())
+                .specificConfig(getSpecificConfig())
                 .credentials(getCredentials())
-                .setSources(getSources(connection.getSources(), tenantId))
-                .setTargets(getTargets(connection.getTargets(), tenantId))
+                .setSources(getSources(connection.getSources()))
+                .setTargets(getTargets(connection.getTargets()))
                 .build();
     }
 
-    protected abstract String getTenantId();
+    protected abstract URI getBaseUri();
 
-    private static String getBootstrapServerUrisAsCommaSeparatedListString(final HonoConfig honoConfig) {
-        return honoConfig.getBootstrapServerUris()
-                .stream()
+    protected abstract boolean isValidateCertificates();
+
+    private Map<String, String> getSpecificConfig() {
+        return Map.of(
+                "saslMechanism", String.valueOf(getSaslMechanism()),
+                "bootstrapServers", getAsCommaSeparatedListString(getBootstrapServerUris()),
+                "groupId", getGroupId(connection)
+        );
+    }
+
+    protected abstract HonoConfig.SaslMechanism getSaslMechanism();
+
+    protected abstract Set<URI> getBootstrapServerUris();
+
+    private static String getAsCommaSeparatedListString(final Collection<URI> uris) {
+        return uris.stream()
                 .map(URI::toString)
                 .collect(Collectors.joining(","));
     }
 
+    protected abstract String getGroupId(Connection connection);
+
     protected abstract UserPasswordCredentials getCredentials();
 
-    private static List<Source> getSources(final Collection<Source> originalSources, final CharSequence tenantId) {
+    private List<Source> getSources(final Collection<Source> originalSources) {
         return originalSources.stream()
-                .map(originalSource -> resolveSourceAliases(originalSource, tenantId))
+                .map(originalSource -> ConnectivityModelFactory.newSourceBuilder(originalSource)
+                        .addresses(resolveSourceAddresses(originalSource.getAddresses()))
+                        .replyTarget(getReplyTargetForSource(originalSource).orElse(null))
+                        .headerMapping(getSourceHeaderMapping(originalSource))
+                        .build())
                 .collect(Collectors.toList());
     }
 
-    private static Source resolveSourceAliases(final Source source, final CharSequence tenantId) {
-        return ConnectivityModelFactory.newSourceBuilder(source)
-                .addresses(resolveSourceAddresses(source.getAddresses(), tenantId))
-                .replyTarget(getReplyTarget(source, tenantId).orElse(null))
-                .headerMapping(getSourceHeaderMapping(source))
-                .build();
-    }
-
-    private static Set<String> resolveSourceAddresses(
-            final Collection<String> unresolvedSourceAddresses,
-            final CharSequence tenantId
-    ) {
+    private Set<String> resolveSourceAddresses(final Collection<String> unresolvedSourceAddresses) {
         return unresolvedSourceAddresses.stream()
                 .map(unresolvedSourceAddress -> HonoAddressAlias.forAliasValue(unresolvedSourceAddress)
-                        .map(honoAddressAlias -> honoAddressAlias.resolveAddress(tenantId))
+                        .map(this::resolveSourceAddress)
                         .orElse(unresolvedSourceAddress))
-                .collect(Collectors.toSet());
+                .collect(Collectors.toCollection(LinkedHashSet::new));
     }
 
-    private static Optional<ReplyTarget> getReplyTarget(final Source source, final CharSequence tenantId) {
+    protected abstract String resolveSourceAddress(HonoAddressAlias honoAddressAlias);
+
+    private Optional<ReplyTarget> getReplyTargetForSource(final Source source) {
         final Optional<ReplyTarget> result;
         if (isApplyReplyTarget(source.getAddresses())) {
             result = source.getReplyTarget()
-                    .map(replyTarget -> {
-                        final var replyTargetBuilder = replyTarget.toBuilder();
-                        replyTargetBuilder.address(resolveTargetAddress(replyTarget.getAddress(), tenantId));
-                        replyTargetBuilder.headerMapping(getReplyTargetHeaderMapping(replyTarget));
-                        return replyTargetBuilder.build();
-                    });
+                    .map(replyTarget -> replyTarget.toBuilder()
+                            .address(resolveTargetAddressOrKeepUnresolved(replyTarget.getAddress()))
+                            .headerMapping(getReplyTargetHeaderMapping(replyTarget))
+                            .build());
         } else {
             result = Optional.empty();
         }
@@ -120,43 +156,43 @@ public abstract class HonoConnectionFactory {
         final Predicate<String> isTelemetryHonoAddressAlias = HonoAddressAlias.TELEMETRY.getAliasValue()::equals;
         final Predicate<String> isEventHonoAddressAlias = HonoAddressAlias.EVENT.getAliasValue()::equals;
 
-        return sourceAddresses.stream().anyMatch(isTelemetryHonoAddressAlias.or(isEventHonoAddressAlias));
+        return sourceAddresses.stream()
+                .anyMatch(isTelemetryHonoAddressAlias.or(isEventHonoAddressAlias));
     }
 
-    private static String resolveTargetAddress(final String unresolvedTargetAddress, final CharSequence tenantId) {
+    private String resolveTargetAddressOrKeepUnresolved(final String unresolvedTargetAddress) {
         return HonoAddressAlias.forAliasValue(unresolvedTargetAddress)
-                .map(honoAddressAlias -> honoAddressAlias.resolveAddressWithThingIdSuffix(tenantId))
+                .map(this::resolveTargetAddress)
                 .orElse(unresolvedTargetAddress);
     }
 
+    protected abstract String resolveTargetAddress(HonoAddressAlias honoAddressAlias);
+
     private static HeaderMapping getReplyTargetHeaderMapping(final ReplyTarget replyTarget) {
-        final var originalHeaderMapping = replyTarget.getHeaderMapping();
-        final var headerMappingBuilder = JsonFactory.newObjectBuilder(originalHeaderMapping.toJson())
-                .set("correlation-id", "{{ header:correlation-id }}");
+        final var headerMappingBuilder = HeaderMappingBuilder.of(replyTarget.getHeaderMapping());
+        headerMappingBuilder.putCorrelationId();
         if (isCommandHonoAddressAlias(replyTarget.getAddress())) {
-            headerMappingBuilder.set("device_id", "{{ thing:id }}");
-            headerMappingBuilder.set("subject",
-                    "{{ header:subject | fn:default(topic:action-subject) | fn:default(topic:criterion) }}-response");
+            headerMappingBuilder.putDeviceId();
+            headerMappingBuilder.putSubject(
+                    "{{ header:subject | fn:default(topic:action-subject) | fn:default(topic:criterion) }}-response"
+            );
         }
-        return ConnectivityModelFactory.newHeaderMapping(headerMappingBuilder.build());
+        return headerMappingBuilder.build();
     }
 
     private static boolean isCommandHonoAddressAlias(final String replyTargetAddress) {
-        return Objects.equals(HonoAddressAlias.COMMAND.getAliasValue(), replyTargetAddress);
+        return replyTargetAddress.equals(HonoAddressAlias.COMMAND.getAliasValue());
     }
 
     private static HeaderMapping getSourceHeaderMapping(final Source source) {
         final HeaderMapping result;
-        final var originalHeaderMapping = source.getHeaderMapping();
         if (isAdjustSourceHeaderMapping(source.getAddresses())) {
-            result = ConnectivityModelFactory.newHeaderMapping(
-                    JsonFactory.newObjectBuilder(originalHeaderMapping.toJson())
-                            .set("correlation-id", "{{ header:correlation-id }}")
-                            .set("status", "{{ header:status }}")
-                            .build()
-            );
+            result = HeaderMappingBuilder.of(source.getHeaderMapping())
+                    .putCorrelationId()
+                    .putEntry("status", "{{ header:status }}")
+                    .build();
         } else {
-            result = originalHeaderMapping;
+            result = source.getHeaderMapping();
         }
         return result;
     }
@@ -165,37 +201,73 @@ public abstract class HonoConnectionFactory {
         return sourceAddresses.contains(HonoAddressAlias.COMMAND_RESPONSE.getAliasValue());
     }
 
-    private static List<Target> getTargets(final Collection<Target> originalTargets, final CharSequence tenantId) {
+    private List<Target> getTargets(final Collection<Target> originalTargets) {
         return originalTargets.stream()
-                .map(originalTarget -> resolveTargetAlias(originalTarget, tenantId))
+                .map(originalTarget -> ConnectivityModelFactory.newTargetBuilder(originalTarget)
+                        .address(resolveTargetAddressOrKeepUnresolved(originalTarget.getAddress()))
+                        .headerMapping(getTargetHeaderMapping(originalTarget))
+                        .build())
                 .collect(Collectors.toList());
     }
 
-    private static Target resolveTargetAlias(final Target target, final CharSequence tenantId) {
-        return ConnectivityModelFactory.newTargetBuilder(target)
-                .address(resolveTargetAddress(target.getAddress(), tenantId))
-                .headerMapping(getTargetHeaderMapping(target))
-                .build();
-    }
-
     private static HeaderMapping getTargetHeaderMapping(final Target target) {
-        final var headerMappingBuilder = JsonFactory.newObjectBuilder(target.getHeaderMapping().toJson())
-                .set("device_id", "{{ thing:id }}")
-                .set("correlation-id", "{{ header:correlation-id }}")
-                .set("subject", "{{ header:subject | fn:default(topic:action-subject) }}");
-        if (isSetResponseRequiredHeader(target.getTopics())) {
-            headerMappingBuilder.set("response-required", "{{ header:response-required }}");
+        final var headerMappingBuilder = HeaderMappingBuilder.of(target.getHeaderMapping())
+                .putDeviceId()
+                .putCorrelationId()
+                .putSubject("{{ header:subject | fn:default(topic:action-subject) }}");
+
+        if (isPutResponseRequiredHeaderMapping(target.getTopics())) {
+            headerMappingBuilder.putEntry("response-required", "{{ header:response-required }}");
         }
-        return ConnectivityModelFactory.newHeaderMapping(headerMappingBuilder.build());
+        return headerMappingBuilder.build();
     }
 
-    private static boolean isSetResponseRequiredHeader(final Collection<FilteredTopic> targetTopics) {
+    private static boolean isPutResponseRequiredHeaderMapping(final Collection<FilteredTopic> targetTopics) {
         final Predicate<Topic> isLiveMessages = topic -> Topic.LIVE_MESSAGES == topic;
         final Predicate<Topic> isLiveCommands = topic -> Topic.LIVE_COMMANDS == topic;
 
         return targetTopics.stream()
                 .map(FilteredTopic::getTopic)
                 .anyMatch(isLiveMessages.or(isLiveCommands));
+    }
+
+    @NotThreadSafe
+    private static final class HeaderMappingBuilder {
+
+        private final Map<String, String> headerMappingDefinition;
+
+        private HeaderMappingBuilder(final HeaderMapping existingHeaderMapping) {
+            headerMappingDefinition = new LinkedHashMap<>(existingHeaderMapping.getMapping());
+        }
+
+        static HeaderMappingBuilder of(final HeaderMapping existingHeaderMapping) {
+            return new HeaderMappingBuilder(checkNotNull(existingHeaderMapping, "existingHeaderMapping"));
+        }
+
+        HeaderMappingBuilder putCorrelationId() {
+            headerMappingDefinition.put("correlation-id", "{{ header:correlation-id }}");
+            return this;
+        }
+
+        HeaderMappingBuilder putDeviceId() {
+            headerMappingDefinition.put("device_id", "{{ thing:id }}");
+            return this;
+        }
+
+        HeaderMappingBuilder putSubject(final String subjectValue) {
+            headerMappingDefinition.put("subject", subjectValue);
+            return this;
+        }
+
+        HeaderMappingBuilder putEntry(final String key, final String value) {
+            headerMappingDefinition.put(key, value);
+            return this;
+        }
+
+        HeaderMapping build() {
+            return ConnectivityModelFactory.newHeaderMapping(headerMappingDefinition);
+        }
+
     }
 
 }
