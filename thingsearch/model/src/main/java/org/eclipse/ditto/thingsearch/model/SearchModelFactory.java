@@ -65,7 +65,7 @@ public final class SearchModelFactory {
      * @param lastModified the last modified timestamp.
      * @return the new immutable search results object.
      * @throws NullPointerException if {@code items} is {@code null}.
-     * @since 2.5.0
+     * @since 3.0.0
      */
     public static SearchResult newSearchResult(final JsonArray items, final long nextPageOffset,
             @Nullable final Instant lastModified) {

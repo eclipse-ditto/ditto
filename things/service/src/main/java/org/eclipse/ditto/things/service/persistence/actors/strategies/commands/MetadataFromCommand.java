@@ -100,7 +100,8 @@ final class MetadataFromCommand implements Supplier<Metadata> {
                             final JsonObject mergedJson =
                                     JsonFactory.newObject(entity.asObject(),
                                             existingOrEmptyThing.toJson().get(resourcePath));
-                            return ThingsModelFactory.newThing(existingOrEmptyThing.toJson().setValue(resourcePath, mergedJson));
+                            return ThingsModelFactory.newThing(
+                                    existingOrEmptyThing.toJson().setValue(resourcePath, mergedJson));
                         } else {
                             return ThingsModelFactory.newThing(
                                     existingOrEmptyThing.toJson().setValue(resourcePath, entity));

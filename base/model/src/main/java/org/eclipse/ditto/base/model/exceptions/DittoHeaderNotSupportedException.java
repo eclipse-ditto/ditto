@@ -58,7 +58,7 @@ public final class DittoHeaderNotSupportedException extends DittoRuntimeExceptio
     /**
      * Definition of an optional JSON field that contains the key of the not supported header.
      *
-     * @since 2.5.0
+     * @since 3.0.0
      */
     static final JsonFieldDefinition<String> JSON_FIELD_NOT_SUPPORTED_HEADER_KEY =
             JsonFieldDefinition.ofString("notSupportedHeaderKey",
@@ -99,7 +99,7 @@ public final class DittoHeaderNotSupportedException extends DittoRuntimeExceptio
      * @param headerValue the value of the header.
      * @return the builder.
      * @throws NullPointerException if any argument is {@code null}.
-     * @since 2.5.0
+     * @since 3.0.0
      */
     public static DittoHeaderNotSupportedException.Builder newInvalidTypeBuilder(final HeaderDefinition headerDefinition,
             @Nullable final CharSequence headerValue) {
@@ -112,7 +112,7 @@ public final class DittoHeaderNotSupportedException extends DittoRuntimeExceptio
      * The returned builder is initialized with a default message and a default description.
      *
      * @return the builder.
-     * @since 2.5.0
+     * @since 3.0.0
      */
     public static DittoHeaderNotSupportedException.Builder newBuilder() {
         return new Builder();
@@ -141,7 +141,7 @@ public final class DittoHeaderNotSupportedException extends DittoRuntimeExceptio
      * Returns the key of the not supported header if known.
      *
      * @return an Optional that either contains the key of the not supported header or is empty if the key is unknown.
-     * @since 2.5.0
+     * @since 3.0.0
      */
     public Optional<String> getNotSupportedHeaderKey() {
         return Optional.ofNullable(notSupportedHeaderKey);
@@ -210,7 +210,7 @@ public final class DittoHeaderNotSupportedException extends DittoRuntimeExceptio
          *
          * @param notSupportedHeaderKey the key of the not supported header.
          * @return this builder instance for method chaining.
-         * @since 2.5.0
+         * @since 3.0.0
          */
         public Builder withNotSupportedHeaderKey(@Nullable final CharSequence notSupportedHeaderKey) {
             if (null != notSupportedHeaderKey) {

@@ -29,7 +29,7 @@ import org.eclipse.ditto.things.model.ThingException;
 /**
  * Thrown if metadata of a Thing can't be modified.
  *
- * @since 2.5.0
+ * @since 3.0.0
  */
 @Immutable
 @JsonParsableException(errorCode = MetadataNotModifiableException.ERROR_CODE)

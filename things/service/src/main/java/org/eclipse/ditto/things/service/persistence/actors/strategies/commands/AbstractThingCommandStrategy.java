@@ -12,7 +12,9 @@
  */
 package org.eclipse.ditto.things.service.persistence.actors.strategies.commands;
 
+import java.util.HashMap;
 import java.util.LinkedHashSet;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
@@ -23,12 +25,14 @@ import org.eclipse.ditto.base.model.entity.metadata.Metadata;
 import org.eclipse.ditto.base.model.entity.metadata.MetadataBuilder;
 import org.eclipse.ditto.base.model.entity.metadata.MetadataModelFactory;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
+import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.signals.WithOptionalEntity;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.internal.utils.headers.conditional.ConditionalHeadersValidator;
 import org.eclipse.ditto.internal.utils.persistentactors.etags.AbstractConditionHeaderCheckingCommandStrategy;
 import org.eclipse.ditto.internal.utils.persistentactors.results.Result;
 import org.eclipse.ditto.internal.utils.persistentactors.results.ResultFactory;
+import org.eclipse.ditto.json.JsonKey;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
@@ -219,8 +223,9 @@ abstract class AbstractThingCommandStrategy<C extends Command<C>>
             final Set<JsonPointer> metadataFieldsToDelete) {
         final MetadataBuilder metadataBuilder = existingMetadata.toBuilder();
         metadataFieldsToDelete.forEach(metadataBuilder::remove);
+        final Metadata metadata = filterOutEmptyObjects(metadataBuilder);
 
-        return Optional.of(metadataBuilder.build());
+        return Optional.of(metadata);
     }
 
     @Override
@@ -266,6 +271,31 @@ abstract class AbstractThingCommandStrategy<C extends Command<C>>
         });
 
         return resolvedMetadataPointers;
+    }
+
+    private Metadata filterOutEmptyObjects(final MetadataBuilder metadataBuilder) {
+        final Metadata metadata = metadataBuilder.build();
+        final MetadataBuilder newMetadataBuilder = MetadataModelFactory.newMetadataBuilder();
+        final Map<String, JsonValue> leafs = new HashMap<>();
+        getNonEmptyLeafs(JsonPointer.empty(), metadata, leafs);
+        leafs.forEach(newMetadataBuilder::set);
+
+        return newMetadataBuilder.build();
+    }
+
+    private static void getNonEmptyLeafs(final JsonPointer path, final JsonValue entity,
+            final Map<String, JsonValue> leafs) {
+        if (entity.isObject()) {
+            final JsonObject jsonObject = entity.asObject();
+            jsonObject.stream()
+                    .filter(field -> !(field.isMarkedAs(FieldType.SPECIAL) || field.isMarkedAs(FieldType.HIDDEN)))
+                    .forEach(jsonField -> {
+                        final JsonKey key = jsonField.getKey();
+                        getNonEmptyLeafs(path.append(key.asPointer()), jsonField.getValue(), leafs);
+                    });
+        } else {
+            leafs.put(path.toString(), entity);
+        }
     }
 
 }

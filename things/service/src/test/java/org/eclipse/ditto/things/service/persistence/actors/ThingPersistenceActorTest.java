@@ -29,6 +29,7 @@ import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
 import org.eclipse.ditto.base.model.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.base.model.entity.Revision;
 import org.eclipse.ditto.base.model.entity.metadata.Metadata;
+import org.eclipse.ditto.base.model.entity.metadata.MetadataModelFactory;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
@@ -1441,8 +1442,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
 
             // modify features with metadata
             underTest.tell(modifyThing, getRef());
-            expectMsgEquals(java.time.Duration.ofSeconds(3600),
-                    ETagTestUtils.modifyThingResponse(thing, thing, headers, false));
+            expectMsgEquals(ETagTestUtils.modifyThingResponse(thing, thing, headers, false));
 
             final var modifiedMetadata = JsonObject.newBuilder()
                     .set("modified", "2022-06-23T06:49:05")
@@ -1487,7 +1487,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
             final JsonObject commandJson = getJsonCommand(thing);
             final CreateThing createThing = CreateThing.fromJson(commandJson, dittoHeadersV2);
             underTest.tell(createThing, getRef());
-            expectMsgClass(java.time.Duration.ofSeconds(3600), CreateThingResponse.class);
+            expectMsgClass(CreateThingResponse.class);
 
             // retrieve thing with metadata
             final Metadata expectedMetadata = Metadata.newBuilder()
@@ -1907,6 +1907,44 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
 
             underTest.tell(modifyAttributeCommand, getRef());
             expectMsgClass(MetadataHeadersConflictException.class);
+        }};
+    }
+
+    @Test
+    public void testRemovalOfEmptyMetadataAfterDeletion() {
+        final var thing = createThingV2WithRandomId();
+        final var putHeaders = DittoHeaders.newBuilder()
+                .putHeader(DittoHeaderDefinition.PUT_METADATA.getKey(),
+                        "[{\"key\":\"*/modified\",\"value\":\"2022-06-23T06:49:05\"}]")
+                .build();
+        final var modifyThing = ModifyThing.of(getIdOrThrow(thing), thing, null, putHeaders);
+
+        final var deleteHeaders = DittoHeaders.newBuilder()
+                .putHeader(DittoHeaderDefinition.DELETE_METADATA.getKey(), "*/modified")
+                .build();
+        final var modifyThing1 = ModifyThing.of(getIdOrThrow(thing), thing, null, deleteHeaders);
+
+        new TestKit(actorSystem) {{
+            final ActorRef underTest = createPersistenceActorFor(thing);
+
+            // create thing
+            final JsonObject commandJson = getJsonCommand(thing);
+            final CreateThing createThing = CreateThing.fromJson(commandJson, dittoHeadersV2);
+            underTest.tell(createThing, getRef());
+            expectMsgClass(CreateThingResponse.class);
+
+            // modify features with metadata
+            underTest.tell(modifyThing, getRef());
+            expectMsgEquals(ETagTestUtils.modifyThingResponse(thing, thing, putHeaders, false));
+
+            underTest.tell(modifyThing1, getRef());
+            expectMsgEquals(ETagTestUtils.modifyThingResponse(thing.toBuilder().setRevision(2).build(), thing,
+                    deleteHeaders, false));
+
+            // assert that metadata is empty
+            final Metadata expectedEmptyMetadata = MetadataModelFactory.emptyMetadata();
+
+            assertMetadataAsExpected(this, underTest, getIdOrThrow(thing), expectedEmptyMetadata);
         }};
     }
 

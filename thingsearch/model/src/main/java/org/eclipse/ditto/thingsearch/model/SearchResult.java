@@ -86,7 +86,7 @@ public interface SearchResult extends Iterable<JsonValue>, Jsonifiable.WithField
      * Get the timestamp of the last modification of the search result.
      *
      * @return the timestamp.
-     * @since 2.5.0
+     * @since 3.0.0
      */
     Optional<Instant> getLastModified();
 

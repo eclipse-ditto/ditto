@@ -352,7 +352,7 @@ public interface DittoHeaders extends Jsonifiable<JsonObject>, Map<String, Strin
      *
      * @return set of {@code JsonPointer}s to get {@code Metadata} for.
      * Changes on the returned set are not reflected back to this DittoHeaders instance.
-     * @since 2.5.0
+     * @since 3.0.0
      */
     Set<JsonPointer> getMetadataFieldsToGet();
 
@@ -361,7 +361,7 @@ public interface DittoHeaders extends Jsonifiable<JsonObject>, Map<String, Strin
      *
      * @return set of {@code JsonPointer}s to delete {@code Metadata} for.
      * Changes on the returned set are not reflected back to this DittoHeaders instance.
-     * @since 2.5.0
+     * @since 3.0.0
      */
     Set<JsonPointer> getMetadataFieldsToDelete();
 

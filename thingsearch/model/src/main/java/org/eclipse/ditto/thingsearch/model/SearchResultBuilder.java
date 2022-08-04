@@ -48,7 +48,7 @@ public interface SearchResultBuilder {
      *
      * @param lastModified the timestamp.
      * @return this builder.
-     * @since 2.5.0
+     * @since 3.0.0
      */
     SearchResultBuilder lastModified(@Nullable Instant lastModified);
 

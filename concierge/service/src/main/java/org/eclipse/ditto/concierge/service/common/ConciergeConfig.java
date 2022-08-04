@@ -71,7 +71,7 @@ public interface ConciergeConfig extends ServiceSpecificConfig, WithHealthCheckC
         /**
          * The default namespace to use for creating things without specified namespace.
          *
-         * @since 2.5.0
+         * @since 3.0.0
          */
         DEFAULT_NAMESPACE("default-namespace", "org.eclipse.ditto");
 

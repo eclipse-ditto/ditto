@@ -430,18 +430,18 @@ The `delete-metadata` header expects a comma separated list of metadata `{key}`.
 For example a `PATCH` request to `https://{ditto-instance}/api/2/things/{namespace}:{name}` with HTTP header `delete-metadata`
 and value `features/lamp/properties/color` will remove the complete `color` property from the thing metadata.
 
-<b>Note:</b> When deleting things or parts of a thing like feature properties or attributes, their relative metadata 
+<b>Note:</b> When deleting things or parts of a thing, like feature properties or attributes, their relative metadata 
 is also deleted.
 
 ## Wildcard usage for metadata requests
  
 When working with metadata there are some wildcards which can be used to modify, retrieve or delete metadata.
-The following table gives an overview which Wildcards can be used for what requests.
+The following table gives an overview which Wildcards can be used on top-level for what requests.
 
 | Wildcard                                | PUT/PATCH                                                              | GET                                                                          | DELETE                                                                     |
 |-----------------------------------------|------------------------------------------------------------------------|------------------------------------------------------------------------------|----------------------------------------------------------------------------|
 | `*`                                     | x                                                                      | retrieve all metadata relative to the path                                   | delete all metadata relative to the path                                   |
-| `*/key`                                 | add metadata for the given `key` to all JSON leaves                    | retrieve all metadata with `key`                                             | x                                                                          |
+| `*/key`                                 | add metadata for the given `key` to all JSON leaves                    | retrieve all metadata with `key`                                             | delete all metadata with `key`                                             |
 | `attributes/*/key`                      | add metadata for the given `key` to all attributes                     | retrieve metadata for given `key` from all attributes                        | delete metadata for given `key` from all attributes                        |
 | `features/*/properties/*/key`           | add metadata for the given `key` to all feature properties             | retrieve metadata for given `key` from all feature properties                | delete metadata for given `key` from all feature properties                |
 | `features/*/properties/{property}/key`  | add metadata for the given `key` to all features with a given property | retrieve metadata for given `key` from all features with a specific property | delete metadata for given `key` from all features with a specific property |
