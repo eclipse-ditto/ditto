@@ -15,8 +15,8 @@ package org.eclipse.ditto.protocol.adapter.connectivity;
 import java.util.Collections;
 import java.util.List;
 
+import org.eclipse.ditto.base.model.headers.translator.HeaderTranslator;
 import org.eclipse.ditto.connectivity.model.signals.announcements.ConnectivityAnnouncement;
-import org.eclipse.ditto.protocol.HeaderTranslator;
 import org.eclipse.ditto.protocol.adapter.Adapter;
 
 /**

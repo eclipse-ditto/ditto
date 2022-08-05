@@ -18,6 +18,8 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import javax.annotation.Nullable;
+
 import org.eclipse.ditto.gateway.service.util.config.endpoints.GatewayHttpConfig;
 import org.eclipse.ditto.gateway.service.util.config.endpoints.HttpConfig;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
@@ -33,11 +35,11 @@ import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThings;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThingsResponse;
+import org.eclipse.ditto.thingsearch.api.events.ThingsOutOfSync;
 import org.eclipse.ditto.thingsearch.model.SearchModelFactory;
 import org.eclipse.ditto.thingsearch.model.SearchResult;
 import org.eclipse.ditto.thingsearch.model.signals.commands.query.QueryThings;
 import org.eclipse.ditto.thingsearch.model.signals.commands.query.QueryThingsResponse;
-import org.eclipse.ditto.thingsearch.model.signals.events.ThingsOutOfSync;
 
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
@@ -58,21 +60,21 @@ final class QueryThingsPerRequestActor extends AbstractActor {
     private final DittoDiagnosticLoggingAdapter log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
 
     private final QueryThings queryThings;
-    private final ActorRef aggregatorProxyActor;
+    private final ActorRef commandForwarderActor;
     private final ActorRef originatingSender;
     private final ActorRef pubSubMediator;
 
-    private QueryThingsResponse queryThingsResponse;
-    private List<ThingId> queryThingsResponseThingIds;
+    @Nullable private QueryThingsResponse queryThingsResponse;
+    @Nullable private List<ThingId> queryThingsResponseThingIds;
 
     @SuppressWarnings("unused")
     private QueryThingsPerRequestActor(final QueryThings queryThings,
-            final ActorRef aggregatorProxyActor,
+            final ActorRef commandForwarderActor,
             final ActorRef originatingSender,
             final ActorRef pubSubMediator) {
 
         this.queryThings = queryThings;
-        this.aggregatorProxyActor = aggregatorProxyActor;
+        this.commandForwarderActor = commandForwarderActor;
         this.originatingSender = originatingSender;
         this.pubSubMediator = pubSubMediator;
         queryThingsResponse = null;
@@ -90,11 +92,11 @@ final class QueryThingsPerRequestActor extends AbstractActor {
      * @return the Akka configuration Props object.
      */
     static Props props(final QueryThings queryThings,
-            final ActorRef aggregatorProxyActor,
+            final ActorRef commandForwarderActor,
             final ActorRef originatingSender,
             final ActorRef pubSubMediator) {
 
-        return Props.create(QueryThingsPerRequestActor.class, queryThings, aggregatorProxyActor, originatingSender,
+        return Props.create(QueryThingsPerRequestActor.class, queryThings, commandForwarderActor, originatingSender,
                 pubSubMediator);
     }
 
@@ -117,8 +119,10 @@ final class QueryThingsPerRequestActor extends AbstractActor {
                             .map(ThingId::of)
                             .toList();
 
-                    if (queryThingsResponseThingIds.isEmpty()) {
-                        // shortcut - for no search results we don't have to look up the things
+                    if (queryThingsResponseThingIds.isEmpty() || queryThingsOnlyContainsThingIdSelector()) {
+                        // shortcuts: we don't have to look up the things
+                        // - for no search results
+                        // - if only the "thingId" was selected in the QueryThings commands
                         originatingSender.tell(qtr, getSelf());
                         stopMyself();
                     } else {
@@ -127,8 +131,9 @@ final class QueryThingsPerRequestActor extends AbstractActor {
                                 .dittoHeaders(qtr.getDittoHeaders().toBuilder().responseRequired(true).build())
                                 .selectedFields(selectedFieldsWithThingId)
                                 .build();
-                        // delegate to the ThingsAggregatorProxyActor which receives the results via a cluster stream:
-                        aggregatorProxyActor.tell(retrieveThings, getSelf());
+                        // delegate to the ThingsAggregatorProxyActor via the command forwarder -
+                        // which receives the results via a cluster stream:
+                        commandForwarderActor.tell(retrieveThings, getSelf());
                     }
                 })
                 .match(RetrieveThingsResponse.class, rtr -> {
@@ -160,6 +165,12 @@ final class QueryThingsPerRequestActor extends AbstractActor {
                     stopMyself();
                 })
                 .build();
+    }
+
+    private boolean queryThingsOnlyContainsThingIdSelector() {
+        final Optional<JsonFieldSelector> fields = queryThings.getFields();
+        return fields.isPresent() && fields.get().getPointers()
+                .equals(Set.of(JsonPointer.of(Thing.JsonFields.ID.getPointer())));
     }
 
     /**

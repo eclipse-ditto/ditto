@@ -28,16 +28,16 @@ import javax.annotation.Nullable;
 
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
-import org.eclipse.ditto.gateway.service.streaming.Jwt;
-import org.eclipse.ditto.gateway.service.streaming.StartStreaming;
-import org.eclipse.ditto.gateway.service.streaming.StopStreaming;
-import org.eclipse.ditto.gateway.service.streaming.StreamControlMessage;
+import org.eclipse.ditto.gateway.service.streaming.signals.Jwt;
+import org.eclipse.ditto.gateway.service.streaming.signals.StartStreaming;
+import org.eclipse.ditto.gateway.service.streaming.signals.StopStreaming;
+import org.eclipse.ditto.gateway.service.streaming.signals.StreamControlMessage;
 import org.eclipse.ditto.things.model.ThingFieldSelector;
 import org.eclipse.ditto.internal.utils.pubsub.StreamingType;
 
 /**
- * Extracts WebSocket Protocol message from the given payload string and returns a {@link org.eclipse.ditto.gateway.service.streaming.StartStreaming},
- * {@link org.eclipse.ditto.gateway.service.streaming.StopStreaming} instance or {@code null} if the payload did not contain one of the defined
+ * Extracts WebSocket Protocol message from the given payload string and returns a {@link org.eclipse.ditto.gateway.service.streaming.signals.StartStreaming},
+ * {@link org.eclipse.ditto.gateway.service.streaming.signals.StopStreaming} instance or {@code null} if the payload did not contain one of the defined
  * {@link ProtocolMessageType}.
  */
 final class ProtocolMessageExtractor implements Function<String, Optional<StreamControlMessage>> {

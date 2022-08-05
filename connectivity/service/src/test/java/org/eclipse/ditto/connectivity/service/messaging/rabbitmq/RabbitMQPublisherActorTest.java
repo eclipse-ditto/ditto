@@ -29,6 +29,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 
 import org.eclipse.ditto.base.model.common.HttpStatus;
+import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgements;
 import org.eclipse.ditto.connectivity.api.OutboundSignal;
@@ -67,12 +68,24 @@ public class RabbitMQPublisherActorTest extends AbstractPublisherActorTest {
             final int signalCount = 6;
             final OutboundSignal.MultiMapped multiMapped =
                     OutboundSignalFactory.newMultiMappedOutboundSignal(List.of(
-                            getMockOutboundSignalWithAutoAck("rabbit1"),
-                            getMockOutboundSignalWithAutoAck("rabbit2"),
-                            getMockOutboundSignalWithAutoAck("rabbit3"),
-                            getMockOutboundSignalWithAutoAck("rabbit4"),
-                            getMockOutboundSignalWithAutoAck("rabbit5"),
-                            getMockOutboundSignalWithAutoAck("rabbit6")
+                            getMockOutboundSignalWithAutoAck("rabbit1",
+                                    DittoHeaderDefinition.DITTO_ACKREGATOR_ADDRESS.getKey(),
+                                    getRef().path().toSerializationFormat()),
+                            getMockOutboundSignalWithAutoAck("rabbit2",
+                                    DittoHeaderDefinition.DITTO_ACKREGATOR_ADDRESS.getKey(),
+                                    getRef().path().toSerializationFormat()),
+                            getMockOutboundSignalWithAutoAck("rabbit3",
+                                    DittoHeaderDefinition.DITTO_ACKREGATOR_ADDRESS.getKey(),
+                                    getRef().path().toSerializationFormat()),
+                            getMockOutboundSignalWithAutoAck("rabbit4",
+                                    DittoHeaderDefinition.DITTO_ACKREGATOR_ADDRESS.getKey(),
+                                    getRef().path().toSerializationFormat()),
+                            getMockOutboundSignalWithAutoAck("rabbit5",
+                                    DittoHeaderDefinition.DITTO_ACKREGATOR_ADDRESS.getKey(),
+                                    getRef().path().toSerializationFormat()),
+                            getMockOutboundSignalWithAutoAck("rabbit6",
+                                    DittoHeaderDefinition.DITTO_ACKREGATOR_ADDRESS.getKey(),
+                                    getRef().path().toSerializationFormat())
                     ), getRef());
 
             final Props props = getPublisherActorProps();

@@ -22,11 +22,23 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
 import org.slf4j.LoggerFactory;
 
+import com.typesafe.config.Config;
+
+import akka.actor.ActorSystem;
+
 /**
  * SnapshotAdapter for {@link String}s persisted to/from MongoDB.
  */
 public final class ConnectionMongoSnapshotAdapter extends AbstractMongoSnapshotAdapter<Connection> {
 
+    /**
+     * @param actorSystem the actor system in which to load the extension
+     * @param config the config of the extension.
+     */
+    @SuppressWarnings("unused")
+    public ConnectionMongoSnapshotAdapter(final ActorSystem actorSystem, final Config config) {
+        this();
+    }
 
     public ConnectionMongoSnapshotAdapter() {
         super(LoggerFactory.getLogger(ConnectionMongoSnapshotAdapter.class));

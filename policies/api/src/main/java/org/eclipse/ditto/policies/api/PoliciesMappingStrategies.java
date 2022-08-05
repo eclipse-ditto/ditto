@@ -18,13 +18,13 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.model.json.Jsonifiable;
-import org.eclipse.ditto.policies.model.PoliciesModelFactory;
-import org.eclipse.ditto.policies.model.Policy;
+import org.eclipse.ditto.base.model.signals.JsonParsable;
 import org.eclipse.ditto.internal.models.streaming.BatchedEntityIdWithRevisions;
 import org.eclipse.ditto.internal.utils.cluster.GlobalMappingStrategies;
 import org.eclipse.ditto.internal.utils.cluster.MappingStrategies;
 import org.eclipse.ditto.internal.utils.cluster.MappingStrategiesBuilder;
-import org.eclipse.ditto.base.model.signals.JsonParsable;
+import org.eclipse.ditto.policies.model.PoliciesModelFactory;
+import org.eclipse.ditto.policies.model.Policy;
 
 /**
  * {@link MappingStrategies} for the Policies service containing all {@link Jsonifiable} types known to Policies.
@@ -63,10 +63,9 @@ public final class PoliciesMappingStrategies extends MappingStrategies {
     private static MappingStrategies getPoliciesMappingStrategies() {
         return MappingStrategiesBuilder.newInstance()
                 .add(Policy.class, jsonObject -> PoliciesModelFactory.newPolicy(jsonObject))
-                .add(PolicyTag.class, jsonObject -> PolicyTag.fromJson(jsonObject))  // do not replace with lambda!
+                .add(PolicyTag.class, PolicyTag::fromJson)
                 .add(BatchedEntityIdWithRevisions.typeOf(PolicyTag.class),
-                        BatchedEntityIdWithRevisions.deserializer(jsonObject -> PolicyTag.fromJson(jsonObject)))
-                .add(PolicyReferenceTag.class, jsonObject -> PolicyReferenceTag.fromJson(jsonObject))
+                        BatchedEntityIdWithRevisions.deserializer(PolicyTag::fromJson))
                 .putAll(GlobalMappingStrategies.getInstance())
                 .build();
     }

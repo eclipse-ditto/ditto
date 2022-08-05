@@ -26,9 +26,9 @@ import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.internal.utils.namespaces.BlockNamespaceBehavior;
 import org.eclipse.ditto.internal.utils.namespaces.BlockedNamespaces;
-import org.eclipse.ditto.policies.api.PolicyReferenceTag;
 import org.eclipse.ditto.policies.api.PolicyTag;
 import org.eclipse.ditto.policies.model.PolicyId;
+import org.eclipse.ditto.thingsearch.api.PolicyReferenceTag;
 import org.eclipse.ditto.thingsearch.service.common.config.DittoSearchConfig;
 import org.eclipse.ditto.thingsearch.service.persistence.write.ThingsSearchUpdaterPersistence;
 
@@ -135,7 +135,7 @@ final class PolicyModificationForwarder extends AbstractActor {
     }
 
     private void updatePolicyRevision(final LocalWrappedPolicyTag wrappedPolicyTag) {
-        final PolicyTag policyTag = wrappedPolicyTag.delegate;
+        final PolicyTag policyTag = wrappedPolicyTag.delegate();
         final PolicyId policyId = policyTag.getEntityId();
         final long revision = policyTag.getRevision();
         policyRevisions.merge(policyId, revision, Long::max);
@@ -225,11 +225,5 @@ final class PolicyModificationForwarder extends AbstractActor {
         STREAM_COMPLETED
     }
 
-    private static final class LocalWrappedPolicyTag {
-        private final PolicyTag delegate;
-
-        private LocalWrappedPolicyTag(final PolicyTag delegate) {
-            this.delegate = delegate;
-        }
-    }
+    private record LocalWrappedPolicyTag(PolicyTag delegate) {}
 }

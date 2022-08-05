@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.things.service.persistence.actors;
 
+import javax.annotation.Nullable;
+
 import org.eclipse.ditto.base.model.acks.DittoAcknowledgementLabel;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
@@ -20,10 +22,9 @@ import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
-import org.eclipse.ditto.internal.utils.persistence.SnapshotAdapter;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.ActivityCheckConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.SnapshotConfig;
-import org.eclipse.ditto.internal.utils.persistentactors.AbstractShardedPersistenceActor;
+import org.eclipse.ditto.internal.utils.persistentactors.AbstractPersistenceActor;
 import org.eclipse.ditto.internal.utils.persistentactors.commands.CommandStrategy;
 import org.eclipse.ditto.internal.utils.persistentactors.commands.DefaultContext;
 import org.eclipse.ditto.internal.utils.persistentactors.events.EventStrategy;
@@ -46,9 +47,7 @@ import org.eclipse.ditto.things.service.common.config.DittoThingsConfig;
 import org.eclipse.ditto.things.service.common.config.ThingConfig;
 import org.eclipse.ditto.things.service.persistence.actors.strategies.commands.ThingCommandStrategies;
 import org.eclipse.ditto.things.service.persistence.actors.strategies.events.ThingEventStrategies;
-import org.eclipse.ditto.things.service.persistence.serializer.ThingMongoSnapshotAdapter;
 
-import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.japi.pf.ReceiveBuilder;
 import akka.persistence.RecoveryCompleted;
@@ -57,7 +56,7 @@ import akka.persistence.RecoveryCompleted;
  * PersistentActor which "knows" the state of a single {@link Thing}.
  */
 public final class ThingPersistenceActor
-        extends AbstractShardedPersistenceActor<Command<?>, Thing, ThingId, ThingId, ThingEvent<?>> {
+        extends AbstractPersistenceActor<Command<?>, Thing, ThingId, ThingId, ThingEvent<?>> {
 
     /**
      * The prefix of the persistenceId for Things.
@@ -81,10 +80,10 @@ public final class ThingPersistenceActor
     private final DistributedPub<ThingEvent<?>> distributedPub;
 
     @SuppressWarnings("unused")
-    private ThingPersistenceActor(final ThingId thingId, final DistributedPub<ThingEvent<?>> distributedPub,
-            final SnapshotAdapter<Thing> snapshotAdapter) {
+    private ThingPersistenceActor(final ThingId thingId,
+            final DistributedPub<ThingEvent<?>> distributedPub) {
 
-        super(thingId, snapshotAdapter);
+        super(thingId);
         final DittoThingsConfig thingsConfig = DittoThingsConfig.of(
                 DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config())
         );
@@ -97,26 +96,12 @@ public final class ThingPersistenceActor
      *
      * @param thingId the Thing ID this Actor manages.
      * @param distributedPub the distributed-pub access to publish thing events.
-     * @param snapshotAdapter the snapshot adapter.
      * @return the Akka configuration Props object
      */
-    public static Props props(final ThingId thingId, final DistributedPub<ThingEvent<?>> distributedPub,
-            final SnapshotAdapter<Thing> snapshotAdapter) {
+    public static Props props(final ThingId thingId,
+            final DistributedPub<ThingEvent<?>> distributedPub) {
 
-        return Props.create(ThingPersistenceActor.class, thingId, distributedPub, snapshotAdapter);
-    }
-
-    /**
-     * Creates Akka configuration object {@link Props} for this ThingPersistenceActor.
-     *
-     * @param thingId the Thing ID this Actor manages.
-     * @param distributedPub the distributed-pub access to publish thing events.
-     * @param pubSubMediator the Akka pub-sub mediator with which to publish snapshot events.
-     * @return the Akka configuration Props object.
-     */
-    public static Props props(final ThingId thingId, final DistributedPub<ThingEvent<?>> distributedPub,
-            final ActorRef pubSubMediator) {
-        return props(thingId, distributedPub, new ThingMongoSnapshotAdapter(pubSubMediator));
+        return Props.create(ThingPersistenceActor.class, thingId, distributedPub);
     }
 
     @Override
@@ -126,8 +111,7 @@ public final class ThingPersistenceActor
                     .getLiveChannelTimeoutStrategy()
                     .orElse(LiveChannelTimeoutStrategy.FAIL);
             if (liveChannelTimeoutStrategy != LiveChannelTimeoutStrategy.USE_TWIN &&
-                    response instanceof ThingQueryCommandResponse) {
-                final var queryResponse = (ThingQueryCommandResponse<?>) response;
+                    response instanceof ThingQueryCommandResponse<?> queryResponse) {
                 super.onQuery(command, queryResponse.setEntity(JsonFactory.nullLiteral()));
                 return;
             }
@@ -214,8 +198,8 @@ public final class ThingPersistenceActor
     }
 
     @Override
-    protected void publishEvent(final ThingEvent<?> event) {
-        distributedPub.publishWithAcks(event, ACK_EXTRACTOR, getSender());
+    protected void publishEvent(@Nullable final Thing previousEntity, final ThingEvent<?> event) {
+        distributedPub.publishWithAcks(event, ACK_EXTRACTOR, getSelf());
     }
 
     @Override

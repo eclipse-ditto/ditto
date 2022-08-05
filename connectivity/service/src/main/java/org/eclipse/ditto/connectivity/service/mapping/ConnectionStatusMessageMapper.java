@@ -112,8 +112,8 @@ public class ConnectionStatusMessageMapper extends AbstractMessageMapper {
             return doMap(externalMessage);
         } catch (final Exception e) {
             final DittoHeaders dittoHeaders;
-            if (e instanceof WithDittoHeaders) {
-                dittoHeaders = ((WithDittoHeaders) e).getDittoHeaders();
+            if (e instanceof WithDittoHeaders withDittoHeaders) {
+                dittoHeaders = withDittoHeaders.getDittoHeaders();
             } else {
                 dittoHeaders = externalMessage.getInternalHeaders();
             }
@@ -122,6 +122,11 @@ public class ConnectionStatusMessageMapper extends AbstractMessageMapper {
                     .info("Error occurred during mapping: <{}>: {}", e.getClass().getSimpleName(), e.getMessage());
             return EMPTY_RESULT;
         }
+    }
+
+    @Override
+    public DittoHeaders getAdditionalInboundHeaders(final ExternalMessage message) {
+        return DittoHeaders.empty();
     }
 
     private List<Adaptable> doMap(final ExternalMessage externalMessage) {
@@ -223,7 +228,7 @@ public class ConnectionStatusMessageMapper extends AbstractMessageMapper {
 
     private MessageMappingFailedException getMappingFailedException(final String message,
             final String description, final DittoHeaders dittoHeaders) {
-        return MessageMappingFailedException.newBuilder((String) null)
+        return MessageMappingFailedException.newBuilder(null)
                 .message(message)
                 .description(description)
                 .dittoHeaders(dittoHeaders)

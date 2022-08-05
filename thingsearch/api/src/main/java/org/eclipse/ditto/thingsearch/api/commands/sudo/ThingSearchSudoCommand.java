@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.thingsearch.api.commands.sudo;
 
+import org.eclipse.ditto.base.api.commands.sudo.SudoCommand;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.signals.commands.Command;
@@ -21,7 +22,7 @@ import org.eclipse.ditto.base.model.signals.commands.Command;
  *
  * @param <T> the type of the implementing class.
  */
-public interface ThingSearchSudoCommand<T extends ThingSearchSudoCommand<T>> extends Command<T> {
+public interface ThingSearchSudoCommand<T extends ThingSearchSudoCommand<T>> extends SudoCommand<T> {
 
     /**
      * Type Prefix of Sudo commands.

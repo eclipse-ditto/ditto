@@ -24,6 +24,7 @@ import javax.annotation.concurrent.NotThreadSafe;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeExceptionBuilder;
+import org.eclipse.ditto.base.model.exceptions.GeneralException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonParsableException;
 import org.eclipse.ditto.json.JsonObject;
@@ -34,12 +35,12 @@ import org.eclipse.ditto.json.JsonParseException;
  */
 @Immutable
 @JsonParsableException(errorCode = UnsupportedSignalException.ERROR_CODE)
-public final class UnsupportedSignalException extends DittoRuntimeException {
+public final class UnsupportedSignalException extends DittoRuntimeException implements GeneralException {
 
     /**
      * Error code of this exception.
      */
-    public static final String ERROR_CODE = "signal.unsupported";
+    public static final String ERROR_CODE = ERROR_CODE_PREFIX + "signal.unsupported";
 
     static final String MESSAGE_TEMPLATE = "The provided signal ''{0}'' is not supported.";
 

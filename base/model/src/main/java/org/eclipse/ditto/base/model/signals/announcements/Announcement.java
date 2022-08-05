@@ -12,12 +12,15 @@
  */
 package org.eclipse.ditto.base.model.signals.announcements;
 
+import javax.annotation.Nullable;
+
 import org.atteo.classindex.IndexSubclasses;
-import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.signals.Signal;
+import org.eclipse.ditto.base.model.signals.WithType;
+import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonFieldDefinition;
 
 /**
  * Announcements are subscribable signals that are not persisted.
@@ -40,6 +43,18 @@ public interface Announcement<T extends Announcement<T>> extends Signal<T> {
      */
     @Override
     String getName();
+
+    /**
+     * Indicates whether the specified signal argument is a {@code PolicyAnnouncement} without requiring a direct
+     * dependency to the policies-model.
+     *
+     * @param signal the signal to be checked.
+     * @return {@code true} if {@code signal} is a {@code PolicyAnnouncement}, {@code false} else.
+     * @since 3.0.0
+     */
+    static boolean isPolicyAnnouncement(@Nullable final WithType signal) {
+        return WithType.hasTypePrefix(signal, WithType.POLICY_ANNOUNCEMENT_PREFIX);
+    }
 
     /**
      * Definition of fields of the JSON representation of an {@link Announcement}.

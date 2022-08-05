@@ -16,8 +16,7 @@ import java.util.Arrays;
 import java.util.Optional;
 
 import org.eclipse.ditto.base.model.signals.Signal;
-import org.eclipse.ditto.things.model.signals.commands.ThingCommand;
-import org.eclipse.ditto.things.model.signals.events.ThingEvent;
+import org.eclipse.ditto.base.model.signals.commands.Command;
 
 /**
  * Enumeration of the different types which can be streamed (e.g. to an open Websocket connection). Each
@@ -28,7 +27,7 @@ public enum StreamingType {
     /**
      * Streaming type of thing events.
      */
-    EVENTS(ThingEvent.TYPE_PREFIX),
+    EVENTS("things.events:"),
 
     /**
      * Streaming type of message commands. The pubsub topic must be equal to the type prefix of message commands.
@@ -109,7 +108,7 @@ public enum StreamingType {
                 result = LIVE_EVENTS;
             } else if (signal.getType().startsWith(MESSAGES.getDistributedPubSubTopic())) {
                 result = MESSAGES;
-            } else if (signal instanceof ThingCommand) {
+            } else if (signal instanceof Command<?>) {
                 result = LIVE_COMMANDS;
             } else {
                 result = null;

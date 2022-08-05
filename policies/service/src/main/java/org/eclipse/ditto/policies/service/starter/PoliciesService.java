@@ -13,12 +13,14 @@
 package org.eclipse.ditto.policies.service.starter;
 
 import org.eclipse.ditto.base.service.DittoService;
+import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import org.eclipse.ditto.policies.service.common.config.DittoPoliciesConfig;
 import org.eclipse.ditto.policies.service.common.config.PoliciesConfig;
-import org.eclipse.ditto.policies.service.persistence.serializer.PolicyMongoSnapshotAdapter;
-import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.typesafe.config.Config;
+import com.typesafe.config.ConfigValueFactory;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
@@ -56,8 +58,14 @@ public final class PoliciesService extends DittoService<PoliciesConfig> {
 
     @Override
     protected Props getMainRootActorProps(final PoliciesConfig policiesConfig, final ActorRef pubSubMediator) {
+        return PoliciesRootActor.props(policiesConfig, pubSubMediator);
+    }
 
-        return PoliciesRootActor.props(policiesConfig, new PolicyMongoSnapshotAdapter(), pubSubMediator);
+    @Override
+    protected Config appendAkkaPersistenceMongoUriToRawConfig() {
+        final var mongoDbConfig = serviceSpecificConfig.getMongoDbConfig();
+        final String mongoDbUri = mongoDbConfig.getMongoDbUri();
+        return rawConfig.withValue(MONGO_URI_CONFIG_PATH, ConfigValueFactory.fromAnyRef(mongoDbUri));
     }
 
 }

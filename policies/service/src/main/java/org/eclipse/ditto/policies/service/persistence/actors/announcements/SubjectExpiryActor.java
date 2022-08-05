@@ -21,14 +21,13 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
-import java.util.function.Function;
-
-import javax.annotation.Nullable;
 
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.DittoHeadersBuilder;
+import org.eclipse.ditto.base.model.headers.translator.HeaderTranslator;
+import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgements;
 import org.eclipse.ditto.internal.models.acks.AcknowledgementAggregatorActorStarter;
@@ -42,9 +41,8 @@ import org.eclipse.ditto.policies.model.SubjectAnnouncement;
 import org.eclipse.ditto.policies.model.SubjectExpiry;
 import org.eclipse.ditto.policies.model.signals.announcements.PolicyAnnouncement;
 import org.eclipse.ditto.policies.model.signals.announcements.SubjectDeletionAnnouncement;
-import org.eclipse.ditto.policies.model.signals.commands.modify.DeleteExpiredSubject;
 import org.eclipse.ditto.policies.service.common.config.PolicyAnnouncementConfig;
-import org.eclipse.ditto.protocol.HeaderTranslator;
+import org.eclipse.ditto.policies.service.persistence.actors.strategies.commands.SudoDeleteExpiredSubject;
 
 import akka.NotUsed;
 import akka.actor.AbstractFSM;
@@ -75,7 +73,7 @@ public final class SubjectExpiryActor extends AbstractFSM<SubjectExpiryState, No
     private final Duration gracePeriod;
     private final DistributedPub<PolicyAnnouncement<?>> policyAnnouncementPub;
     private final AcknowledgementAggregatorActorStarter ackregatorStarter;
-    private final DeleteExpiredSubject deleteExpiredSubject;
+    private final SudoDeleteExpiredSubject sudoDeleteExpiredSubject;
     private final Duration persistenceTimeout;
     private final ActorRef commandForwarder;
     private final boolean enableAnnouncementsWhenDeleted;
@@ -104,10 +102,11 @@ public final class SubjectExpiryActor extends AbstractFSM<SubjectExpiryState, No
         enableAnnouncementsWhenDeleted = config.isEnableAnnouncementsWhenDeleted();
 
         ackregatorStarter =
-                AcknowledgementAggregatorActorStarter.of(getContext(), maxTimeout, HeaderTranslator.empty(), null);
+                AcknowledgementAggregatorActorStarter.of(getContext(), maxTimeout, HeaderTranslator.empty(),
+                        null, List.of(), List.of());
         this.commandForwarder = commandForwarder;
-        deleteExpiredSubject =
-                DeleteExpiredSubject.of(policyId, subject, DittoHeaders.newBuilder().responseRequired(false).build());
+        sudoDeleteExpiredSubject =
+                SudoDeleteExpiredSubject.of(policyId, subject, DittoHeaders.newBuilder().responseRequired(false).build());
         persistenceTimeout = maxTimeout;
 
         final var backOffConfig = config.getExponentialBackOffConfig();
@@ -225,8 +224,9 @@ public final class SubjectExpiryActor extends AbstractFSM<SubjectExpiryState, No
                 }
             }
         }
-        final ActorRef ackregator = startAckregatorAndPublishAnnouncement();
-        if (ackregator == null) {
+
+        final boolean directlyAckMessage = startAckregatorAndPublishAnnouncement();
+        if (directlyAckMessage) {
             // if no acks requested, do not wait for acknowledgements.
             getSelf().tell(Message.ACKNOWLEDGED, ActorRef.noSender());
         }
@@ -308,13 +308,13 @@ public final class SubjectExpiryActor extends AbstractFSM<SubjectExpiryState, No
         final boolean shouldAnnounce = shouldAnnounceWhenDeleted();
         final boolean inGracePeriod = isInGracePeriod(Instant.now().plus(nextBackOff));
         if (acknowledged || !shouldAnnounce || !inGracePeriod) {
-            log.error("Timeout waiting for persistence, giving up. acknowledged=<{}> shouldAnnounce=<{}> " +
+            log.error("Timeout waiting for ACKs, giving up. acknowledged=<{}> shouldAnnounce=<{}> " +
                     "inGracePeriod=<{}>", acknowledged, shouldAnnounce, inGracePeriod);
 
             return stop();
         } else {
             // retry deletion
-            commandForwarder.tell(deleteExpiredSubject, ActorRef.noSender());
+            commandForwarder.tell(sudoDeleteExpiredSubject, ActorRef.noSender());
 
             return goTo(DELETED);
         }
@@ -360,7 +360,7 @@ public final class SubjectExpiryActor extends AbstractFSM<SubjectExpiryState, No
         } else {
             // outside of grace period; delete
             l.info("Grace period past for subject <{}>. Deleting.", subject);
-            commandForwarder.tell(deleteExpiredSubject, ActorRef.noSender());
+            commandForwarder.tell(sudoDeleteExpiredSubject, ActorRef.noSender());
 
             return goTo(DELETED);
         }
@@ -404,7 +404,7 @@ public final class SubjectExpiryActor extends AbstractFSM<SubjectExpiryState, No
     }
 
     private void doDelete() {
-        commandForwarder.tell(deleteExpiredSubject, ActorRef.noSender());
+        commandForwarder.tell(sudoDeleteExpiredSubject, ActorRef.noSender());
         cancelTimer(Message.DELETE.name());
     }
 
@@ -440,30 +440,48 @@ public final class SubjectExpiryActor extends AbstractFSM<SubjectExpiryState, No
         }
     }
 
-    @Nullable
-    private ActorRef startAckregatorAndPublishAnnouncement() {
+    private boolean startAckregatorAndPublishAnnouncement() {
         if (!acknowledged && subject.getAnnouncement().isPresent()) {
             final PolicyAnnouncement<?> announcement = getAnnouncement();
-            final ActorRef ackregator = startAckregator(announcement);
-            log.withCorrelationId(announcement).debug("Publishing <{}>", announcement);
-            policyAnnouncementPub.publishWithAcks(announcement, ACK_EXTRACTOR, ackregator);
-
-            return ackregator;
+            return startAckregator(announcement);
         } else {
             // already acknowledged
-            return null;
+            return true;
         }
     }
 
-    @Nullable
-    private ActorRef startAckregator(final PolicyAnnouncement<?> announcement) {
-        // if has requested acks, start it. otherwise return null
-        if (announcement.getDittoHeaders().getAcknowledgementRequests().isEmpty()) {
-            return null;
-        } else {
-            return ackregatorStarter.doStart(policyId, announcement, null, this::receiveAcknowledgements,
-                    Function.identity());
-        }
+    private boolean startAckregator(final PolicyAnnouncement<?> announcement) {
+        return ackregatorStarter.start(announcement,
+                null,
+                this::onAggregatedResponseOrError,
+                this::handleSignalWithAckregator,
+                this::handleSignalWithoutAckregator
+        );
+    }
+
+    private boolean onAggregatedResponseOrError(final Object responseOrError) {
+        getSelf().tell(responseOrError, ActorRef.noSender());
+        return false;
+    }
+
+    private boolean handleSignalWithAckregator(final Signal<?> signal, final ActorRef ackregator) {
+        log.withCorrelationId(signal)
+                .info("Publishing PolicyAnnouncement with ack requests: <{}>", signal.getType());
+        log.withCorrelationId(signal)
+                .debug("Publishing PolicyAnnouncement with ack requests: <{}>", signal);
+        policyAnnouncementPub.publishWithAcks((PolicyAnnouncement<?>) signal, ACK_EXTRACTOR,
+                ackregator);
+        return false;
+    }
+
+    private boolean handleSignalWithoutAckregator(final Signal<?> signalWithoutAckregator) {
+        log.withCorrelationId(signalWithoutAckregator)
+                .info("Publishing PolicyAnnouncement: <{}>", signalWithoutAckregator.getType());
+        log.withCorrelationId(signalWithoutAckregator)
+                .debug("Publishing PolicyAnnouncement: <{}>", signalWithoutAckregator);
+        policyAnnouncementPub.publishWithAcks((PolicyAnnouncement<?>) signalWithoutAckregator, ACK_EXTRACTOR,
+                ActorRef.noSender());
+        return true;
     }
 
     private PolicyAnnouncement<?> getAnnouncement() {
@@ -478,10 +496,6 @@ public final class SubjectExpiryActor extends AbstractFSM<SubjectExpiryState, No
         });
 
         return builder.build();
-    }
-
-    private void receiveAcknowledgements(final Object response) {
-        getSelf().tell(response, ActorRef.noSender());
     }
 
     private Optional<Instant> getAnnouncementInstant() {

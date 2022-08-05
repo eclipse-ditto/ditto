@@ -35,15 +35,15 @@ import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.base.model.signals.commands.CommandNotSupportedException;
-import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayTimeoutInvalidException;
 import org.eclipse.ditto.base.service.config.ThrottlingConfig;
+import org.eclipse.ditto.gateway.api.GatewayTimeoutInvalidException;
 import org.eclipse.ditto.gateway.service.endpoints.actors.AbstractHttpRequestActor;
 import org.eclipse.ditto.gateway.service.endpoints.actors.HttpRequestActorPropsFactory;
 import org.eclipse.ditto.gateway.service.endpoints.directives.ContentTypeValidationDirective;
 import org.eclipse.ditto.gateway.service.util.config.endpoints.CommandConfig;
-import org.eclipse.ditto.internal.utils.akka.AkkaClassLoader;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLogger;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
+import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonParseException;
@@ -112,20 +112,20 @@ public abstract class AbstractRoute extends AllDirectives {
         mediaTypeJsonWithFallbacks = Stream.concat(jsonMediaType, fallbackMediaTypes).collect(Collectors.toSet());
 
         LOGGER.debug("Using headerTranslator <{}>.", routeBaseProperties.getHeaderTranslator());
-
-        httpRequestActorPropsFactory = AkkaClassLoader.instantiate(routeBaseProperties.getActorSystem(),
-                HttpRequestActorPropsFactory.class,
-                httpConfig.getActorPropsFactoryFullQualifiedClassname());
+        final var dittoExtensionsConfig =
+                ScopedConfig.dittoExtension(routeBaseProperties.getActorSystem().settings().config());
+        httpRequestActorPropsFactory =
+                HttpRequestActorPropsFactory.get(routeBaseProperties.getActorSystem(), dittoExtensionsConfig);
 
         supervisionStrategy = createSupervisionStrategy();
     }
 
     private static Attributes createSupervisionStrategy() {
         return ActorAttributes.withSupervisionStrategy(exc -> {
-            if (exc instanceof DittoRuntimeException) {
-                LOGGER.withCorrelationId((DittoRuntimeException) exc)
+            if (exc instanceof DittoRuntimeException dre) {
+                LOGGER.withCorrelationId(dre)
                         .debug("DittoRuntimeException during materialization of HTTP request: [{}] {}",
-                                exc.getClass().getSimpleName(), exc.getMessage());
+                                dre.getClass().getSimpleName(), dre.getMessage());
             } else {
                 LOGGER.warn("Exception during materialization of HTTP request: {}", exc.getMessage(), exc);
             }
@@ -289,8 +289,7 @@ public abstract class AbstractRoute extends AllDirectives {
                 ctx.getRequest(),
                 httpResponseFuture,
                 routeBaseProperties.getHttpConfig(),
-                routeBaseProperties.getCommandConfig(),
-                routeBaseProperties.getConnectivityShardRegionProxy());
+                routeBaseProperties.getCommandConfig());
 
         final var actorSystem = routeBaseProperties.getActorSystem();
         return actorSystem.actorOf(props);

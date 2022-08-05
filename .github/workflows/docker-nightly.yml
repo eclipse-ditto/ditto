@@ -81,20 +81,6 @@ jobs:
           tags: |
             eclipse/ditto-things:${{ env.IMAGE_TAG }}
       -
-        name: Build and push ditto-concierge
-        uses: docker/build-push-action@v3
-        with:
-          context: .
-          file: dockerfile-release
-          platforms: linux/amd64,linux/arm64
-          build-args: |
-            SERVICE_STARTER=ditto-concierge-service
-            SERVICE_VERSION=0-SNAPSHOT
-          pull: true
-          push: true
-          tags: |
-            eclipse/ditto-concierge:${{ env.IMAGE_TAG }}
-      -
         name: Build and push ditto-gateway
         uses: docker/build-push-action@v3
         with:

@@ -13,6 +13,7 @@
 package org.eclipse.ditto.gateway.service.util.config.streaming;
 
 import org.eclipse.ditto.base.service.config.ThrottlingConfig;
+import org.eclipse.ditto.internal.utils.config.KnownConfigValue;
 
 /**
  * Provides configuration settings of SSE.
@@ -30,5 +31,28 @@ public interface SseConfig {
      * @return the throttling config.
      */
     ThrottlingConfig getThrottlingConfig();
+
+    enum SseConfigValue implements KnownConfigValue {
+        ;
+        private final String path;
+        private final Object defaultValue;
+
+        SseConfigValue(final String thePath, final Object theDefaultValue) {
+            path = thePath;
+            defaultValue = theDefaultValue;
+        }
+
+        @Override
+        public Object getDefaultValue() {
+            return defaultValue;
+        }
+
+        @Override
+        public String getConfigPath() {
+            return path;
+        }
+
+    }
+
 
 }

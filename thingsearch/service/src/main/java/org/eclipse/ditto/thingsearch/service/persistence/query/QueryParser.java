@@ -28,11 +28,11 @@ import org.eclipse.ditto.rql.query.criteria.Criteria;
 import org.eclipse.ditto.rql.query.criteria.CriteriaFactory;
 import org.eclipse.ditto.rql.query.expression.ThingsFieldExpressionFactory;
 import org.eclipse.ditto.rql.query.filter.QueryFilterCriteriaFactory;
+import org.eclipse.ditto.thingsearch.api.commands.sudo.StreamThings;
 import org.eclipse.ditto.thingsearch.api.commands.sudo.SudoCountThings;
 import org.eclipse.ditto.thingsearch.api.query.filter.ParameterOptionVisitor;
 import org.eclipse.ditto.thingsearch.model.signals.commands.exceptions.InvalidOptionException;
 import org.eclipse.ditto.thingsearch.model.signals.commands.query.QueryThings;
-import org.eclipse.ditto.thingsearch.model.signals.commands.query.StreamThings;
 import org.eclipse.ditto.thingsearch.model.signals.commands.query.ThingSearchQueryCommand;
 import org.eclipse.ditto.thingsearch.service.persistence.query.validation.QueryCriteriaValidator;
 
@@ -101,9 +101,11 @@ public final class QueryParser {
     }
 
     private Criteria parseCriteria(final ThingSearchQueryCommand<?> command) {
+
         final DittoHeaders headers = command.getDittoHeaders();
         final Set<String> namespaces = command.getNamespaces().orElse(null);
         final String filter = command.getFilter().orElse(null);
+
         if (namespaces == null) {
             return queryFilterCriteriaFactory.filterCriteria(filter, command.getDittoHeaders());
         } else {

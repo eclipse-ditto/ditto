@@ -12,21 +12,19 @@
  */
 package org.eclipse.ditto.thingsearch.service.updater.actors;
 
-import java.util.List;
+import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.internal.utils.akka.AkkaClassLoader;
-import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
+import org.eclipse.ditto.internal.utils.extension.DittoExtensionPoint;
+import org.eclipse.ditto.internal.utils.extension.DittoExtensionIds;
+
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.thingsearch.service.common.config.DittoSearchConfig;
-import org.eclipse.ditto.thingsearch.service.common.config.SearchConfig;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.Metadata;
 
-import akka.actor.AbstractExtensionId;
+import com.typesafe.config.Config;
+
 import akka.actor.ActorSystem;
-import akka.actor.ExtendedActorSystem;
-import akka.actor.Extension;
 
 /**
  * Search update observer to be loaded by reflection.
@@ -35,19 +33,7 @@ import akka.actor.Extension;
  *
  * @since 2.3.0
  */
-public abstract class SearchUpdateObserver implements Extension {
-
-    private static final SearchUpdateObserver.ExtensionId EXTENSION_ID = new SearchUpdateObserver.ExtensionId();
-
-    /**
-     * Load a {@code SearchUpdateObserver} dynamically according to the search configuration.
-     *
-     * @param actorSystem the actor system in which to load the observer.
-     * @return the thing event observer.
-     */
-    public static SearchUpdateObserver get(final ActorSystem actorSystem) {
-        return EXTENSION_ID.get(actorSystem);
-    }
+public interface SearchUpdateObserver extends DittoExtensionPoint {
 
     /**
      * Process the given {@code Metadata} and thing as {@code JsonObject}.
@@ -55,22 +41,43 @@ public abstract class SearchUpdateObserver implements Extension {
      * @param metadata the metadata for the update.
      * @param thingJson the thing used for the update as jsonObject.
      */
-    public abstract void process(final Metadata metadata, @Nullable final JsonObject thingJson);
-
+    void process(final Metadata metadata, @Nullable final JsonObject thingJson);
 
     /**
-     * ID of the actor system extension to validate the {@code SearchUpdateObserver}.
+     * Loads the implementation of {@code SearchUpdateObserver} which is configured for the
+     * {@code ActorSystem}.
+     *
+     * @param actorSystem the actorSystem in which the {@code SearchUpdateObserver} should be loaded.
+     * @param config the configuration for this extension.
+     * @return the {@code SearchUpdateObserver} implementation.
+     * @throws NullPointerException if {@code actorSystem} is {@code null}.
      */
-    private static final class ExtensionId extends AbstractExtensionId<SearchUpdateObserver> {
+    static SearchUpdateObserver get(final ActorSystem actorSystem, final Config config) {
+        checkNotNull(actorSystem, "actorSystem");
+        checkNotNull(config, "config");
+        final var extensionIdConfig = ExtensionId.computeConfig(config);
+        return DittoExtensionIds.get(actorSystem)
+                .computeIfAbsent(extensionIdConfig, ExtensionId::new)
+                .get(actorSystem);
+    }
+
+    final class ExtensionId extends DittoExtensionPoint.ExtensionId<SearchUpdateObserver> {
+
+        private static final String CONFIG_KEY = "search-update-observer";
+
+        private ExtensionId(final ExtensionIdConfig<SearchUpdateObserver> extensionIdConfig) {
+            super(extensionIdConfig);
+        }
+
+        static ExtensionIdConfig<SearchUpdateObserver> computeConfig(final Config config) {
+            return ExtensionIdConfig.of(SearchUpdateObserver.class, config, CONFIG_KEY);
+        }
 
         @Override
-        public SearchUpdateObserver createExtension(final ExtendedActorSystem system) {
-            final SearchConfig searchConfig =
-                    DittoSearchConfig.of(DefaultScopedConfig.dittoScoped(system.settings().config()));
-
-            return AkkaClassLoader.instantiate(system, SearchUpdateObserver.class,
-                    searchConfig.getSearchUpdateObserverImplementation(), List.of(ActorSystem.class), List.of(system));
+        protected String getConfigKey() {
+            return CONFIG_KEY;
         }
+
     }
 
 }

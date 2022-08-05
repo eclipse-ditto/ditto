@@ -31,7 +31,6 @@ import org.bson.BsonDocument;
 import org.bson.Document;
 import org.bson.conversions.Bson;
 import org.eclipse.ditto.base.model.entity.id.EntityId;
-import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayQueryTimeExceededException;
 import org.eclipse.ditto.internal.models.streaming.LowerBound;
 import org.eclipse.ditto.internal.utils.persistence.mongo.BsonUtil;
 import org.eclipse.ditto.internal.utils.persistence.mongo.DittoMongoClient;
@@ -41,6 +40,7 @@ import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.rql.query.Query;
 import org.eclipse.ditto.rql.query.SortOption;
 import org.eclipse.ditto.things.model.ThingId;
+import org.eclipse.ditto.thingsearch.api.QueryTimeExceededException;
 import org.eclipse.ditto.thingsearch.api.SearchNamespaceReportResult;
 import org.eclipse.ditto.thingsearch.api.SearchNamespaceResultEntry;
 import org.eclipse.ditto.thingsearch.service.common.config.SearchPersistenceConfig;
@@ -363,7 +363,7 @@ public final class MongoThingsSearchPersistence implements ThingsSearchPersisten
         return new PFBuilder<Throwable, Throwable>()
                 .match(Throwable.class, error ->
                         error instanceof MongoExecutionTimeoutException
-                                ? GatewayQueryTimeExceededException.newBuilder().build()
+                                ? QueryTimeExceededException.newBuilder().build()
                                 : error
                 )
                 .build();

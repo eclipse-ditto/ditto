@@ -66,6 +66,7 @@ public final class DefaultOAuthConfig implements OAuthConfig {
 
     private static Map<SubjectIssuer, SubjectIssuerConfig> loadIssuers(final ConfigWithFallback config,
             final KnownConfigValue configValue) {
+
         final ConfigObject issuersConfig = config.getObject(configValue.getConfigPath());
 
         return issuersConfig.entrySet().stream().collect(SubjectIssuerCollector.toSubjectIssuerMap());
@@ -137,7 +138,8 @@ public final class DefaultOAuthConfig implements OAuthConfig {
     }
 
     private static class SubjectIssuerCollector
-            implements Collector<Map.Entry<String, ConfigValue>, Map<SubjectIssuer, SubjectIssuerConfig>, Map<SubjectIssuer,
+            implements
+            Collector<Map.Entry<String, ConfigValue>, Map<SubjectIssuer, SubjectIssuerConfig>, Map<SubjectIssuer,
                     SubjectIssuerConfig>> {
 
         private static SubjectIssuerCollector toSubjectIssuerMap() {

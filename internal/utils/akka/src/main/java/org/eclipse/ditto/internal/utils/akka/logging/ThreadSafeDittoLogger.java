@@ -84,10 +84,9 @@ public interface ThreadSafeDittoLogger extends Logger, WithMdcEntry<ThreadSafeDi
      * @param withDittoHeaders provides DittoHeaders which might contain the correlation ID to be put to the MDC before
      * each log operation.
      * @return a ThreadSafeDittoLogger which appends the derived correlation ID to all of its log operations.
-     * @throws NullPointerException if {@code withDittoHeaders} is {@code null}.
      * @see #withCorrelationId(DittoHeaders)
      */
-    ThreadSafeDittoLogger withCorrelationId(WithDittoHeaders withDittoHeaders);
+    ThreadSafeDittoLogger withCorrelationId(@Nullable WithDittoHeaders withDittoHeaders);
 
     /**
      * Obtains the correlation ID from the given DittoHeaders for log operations on the returned logger.
@@ -96,9 +95,8 @@ public interface ThreadSafeDittoLogger extends Logger, WithMdcEntry<ThreadSafeDi
      *
      * @param dittoHeaders might contain the correlation ID to be put to the MDC before each log operation.
      * @return a ThreadSafeDittoLogger which appends the obtained correlation ID to all of its log operations.
-     * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
      */
-    ThreadSafeDittoLogger withCorrelationId(DittoHeaders dittoHeaders);
+    ThreadSafeDittoLogger withCorrelationId(@Nullable DittoHeaders dittoHeaders);
 
     /**
      * Removes the currently set correlation ID from the MDC.

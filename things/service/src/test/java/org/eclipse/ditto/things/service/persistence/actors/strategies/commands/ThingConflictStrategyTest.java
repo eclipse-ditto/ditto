@@ -22,20 +22,19 @@ import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.headers.entitytag.EntityTagMatchers;
-import org.eclipse.ditto.things.model.Thing;
-import org.eclipse.ditto.things.model.ThingId;
-import org.eclipse.ditto.things.model.ThingsModelFactory;
+import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.internal.utils.persistentactors.commands.CommandStrategy;
 import org.eclipse.ditto.internal.utils.persistentactors.commands.DefaultContext;
 import org.eclipse.ditto.internal.utils.persistentactors.results.Result;
 import org.eclipse.ditto.internal.utils.persistentactors.results.ResultVisitor;
-import org.eclipse.ditto.base.model.signals.commands.Command;
+import org.eclipse.ditto.things.model.Thing;
+import org.eclipse.ditto.things.model.ThingId;
+import org.eclipse.ditto.things.model.ThingsModelFactory;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingConflictException;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingPreconditionFailedException;
 import org.eclipse.ditto.things.model.signals.commands.modify.CreateThing;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.Mockito;
 
@@ -55,7 +54,8 @@ public final class ThingConflictStrategyTest {
         final ThingConflictStrategy underTest = new ThingConflictStrategy();
         final ThingId thingId = ThingId.of("thing:id");
         final Thing thing = ThingsModelFactory.newThingBuilder().setId(thingId).setRevision(25L).build();
-        final CommandStrategy.Context<ThingId> context = DefaultContext.getInstance(thingId, mockLoggingAdapter());
+        final CommandStrategy.Context<ThingId> context = DefaultContext.getInstance(thingId,
+                mockLoggingAdapter());
         final CreateThing command = CreateThing.of(thing, null, DittoHeaders.empty());
         final Result<ThingEvent<?>> result = underTest.apply(context, thing, 26L, command);
         result.accept(new ExpectErrorVisitor(ThingConflictException.class));
@@ -66,7 +66,8 @@ public final class ThingConflictStrategyTest {
         final ThingConflictStrategy underTest = new ThingConflictStrategy();
         final ThingId thingId = ThingId.of("thing:id");
         final Thing thing = ThingsModelFactory.newThingBuilder().setId(thingId).setRevision(25L).build();
-        final CommandStrategy.Context<ThingId> context = DefaultContext.getInstance(thingId, mockLoggingAdapter());
+        final CommandStrategy.Context<ThingId> context = DefaultContext.getInstance(thingId,
+                mockLoggingAdapter());
         final CreateThing command = CreateThing.of(thing, null, DittoHeaders.newBuilder()
                 .ifNoneMatch(EntityTagMatchers.fromStrings("*"))
                 .build());

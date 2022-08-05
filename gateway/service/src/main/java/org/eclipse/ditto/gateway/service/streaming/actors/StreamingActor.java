@@ -16,9 +16,10 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.stream.StreamSupport;
 
+import org.eclipse.ditto.base.model.headers.translator.HeaderTranslator;
 import org.eclipse.ditto.gateway.service.security.authentication.jwt.JwtAuthenticationResultProvider;
 import org.eclipse.ditto.gateway.service.security.authentication.jwt.JwtValidator;
-import org.eclipse.ditto.gateway.service.streaming.Connect;
+import org.eclipse.ditto.gateway.service.streaming.signals.Connect;
 import org.eclipse.ditto.gateway.service.util.config.streaming.DefaultStreamingConfig;
 import org.eclipse.ditto.gateway.service.util.config.streaming.StreamingConfig;
 import org.eclipse.ditto.internal.utils.akka.actors.ModifyConfigBehavior;
@@ -27,9 +28,8 @@ import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapt
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.internal.utils.metrics.instruments.gauge.Gauge;
-import org.eclipse.ditto.internal.utils.pubsub.DittoProtocolSub;
+import org.eclipse.ditto.internal.utils.pubsubthings.DittoProtocolSub;
 import org.eclipse.ditto.internal.utils.search.SubscriptionManager;
-import org.eclipse.ditto.protocol.HeaderTranslator;
 
 import com.typesafe.config.Config;
 
@@ -84,7 +84,7 @@ public final class StreamingActor extends AbstractActorWithTimers implements Ret
             final StreamingConfig streamingConfig,
             final HeaderTranslator headerTranslator,
             final ActorRef pubSubMediator,
-            final ActorRef conciergeForwarder) {
+            final ActorRef commandForwarder) {
 
         this.dittoProtocolSub = dittoProtocolSub;
         this.commandRouter = commandRouter;
@@ -93,10 +93,10 @@ public final class StreamingActor extends AbstractActorWithTimers implements Ret
         this.streamingConfig = streamingConfig;
         this.headerTranslator = headerTranslator;
         streamingSessionsCounter = DittoMetrics.gauge("streaming_sessions_count");
-        final ActorSelection conciergeForwarderSelection = ActorSelection.apply(conciergeForwarder, "");
+        final ActorSelection commandForwarderSelection = ActorSelection.apply(commandForwarder, "");
         subscriptionManagerProps =
                 SubscriptionManager.props(streamingConfig.getSearchIdleTimeout(), pubSubMediator,
-                        conciergeForwarderSelection, Materializer.createMaterializer(getContext()));
+                        commandForwarderSelection, Materializer.createMaterializer(getContext()));
         scheduleScrapeStreamSessionsCounter();
     }
 
@@ -105,8 +105,12 @@ public final class StreamingActor extends AbstractActorWithTimers implements Ret
      *
      * @param dittoProtocolSub the Ditto protocol sub access.
      * @param commandRouter the command router used to send signals into the cluster.
+     * @param jwtValidator the validator of JWTs to use.
+     * @param jwtAuthenticationResultProvider the JwtAuthenticationResultProvider.
      * @param streamingConfig the streaming config.
      * @param headerTranslator translates headers from external sources or to external sources.
+     * @param pubSubMediator the ActorRef to the Akka pub/sub mediator.
+     * @param commandForwarder the ActorRef of the actor to forward commands to.
      * @return the Akka configuration Props object.
      */
     public static Props props(final DittoProtocolSub dittoProtocolSub,
@@ -116,10 +120,10 @@ public final class StreamingActor extends AbstractActorWithTimers implements Ret
             final StreamingConfig streamingConfig,
             final HeaderTranslator headerTranslator,
             final ActorRef pubSubMediator,
-            final ActorRef conciergeForwarder) {
+            final ActorRef commandForwarder) {
 
         return Props.create(StreamingActor.class, dittoProtocolSub, commandRouter, jwtValidator,
-                jwtAuthenticationResultProvider, streamingConfig, headerTranslator, pubSubMediator, conciergeForwarder);
+                jwtAuthenticationResultProvider, streamingConfig, headerTranslator, pubSubMediator, commandForwarder);
     }
 
     @Override

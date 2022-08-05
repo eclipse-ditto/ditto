@@ -13,17 +13,18 @@
 package org.eclipse.ditto.internal.models.signal;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.util.stream.Stream;
 
 import org.assertj.core.api.JUnitSoftAssertions;
 import org.eclipse.ditto.base.model.correlationid.TestNameCorrelationId;
+import org.eclipse.ditto.base.model.entity.id.WithEntityId;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.SignalWithEntityId;
+import org.eclipse.ditto.base.model.signals.commands.Command;
+import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
 import org.eclipse.ditto.internal.models.signal.common.SignalInterfaceImplementations;
 import org.eclipse.ditto.messages.model.signals.commands.MessageCommand;
 import org.eclipse.ditto.messages.model.signals.commands.MessageCommandResponse;
@@ -32,11 +33,15 @@ import org.eclipse.ditto.things.model.signals.commands.ThingCommand;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommandResponse;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThing;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThings;
-import org.junit.*;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.Rule;
+import org.junit.Test;
 import org.mockito.Mockito;
 
 /**
- * Unit test for {@link SignalInformationPoint}.
+ * Unit test for former {@code SignalInformationPoint} - which was split up in Ditto 3.0.0 to the interfaces as static
+ * methods in order to not create a module with dependencies to all entity modules.
  */
 public final class SignalInformationPointTest {
 
@@ -75,19 +80,14 @@ public final class SignalInformationPointTest {
     }
 
     @Test
-    public void assertImmutability() {
-        assertInstancesOf(SignalInformationPoint.class, areImmutable());
-    }
-
-    @Test
     public void isLiveCommandForNullSignalReturnsFalse() {
-        assertThat(SignalInformationPoint.isLiveCommand(null)).isFalse();
+        assertThat(Command.isLiveCommand(null)).isFalse();
     }
 
     @Test
     public void isLiveCommandForMessageCommandReturnsTrue() {
         messageCommands.forEach(
-                messageCommand -> softly.assertThat(SignalInformationPoint.isLiveCommand(messageCommand))
+                messageCommand -> softly.assertThat(Command.isLiveCommand(messageCommand))
                         .as(getSimpleClassName(messageCommand))
                         .isTrue());
     }
@@ -97,7 +97,7 @@ public final class SignalInformationPointTest {
         final var dittoHeadersWithTwinChannel = DittoHeaders.newBuilder(dittoHeaders).channel("twin").build();
         thingCommands.stream()
                 .map(thingCommand -> thingCommand.setDittoHeaders(dittoHeadersWithTwinChannel))
-                .forEach(thingCommand -> softly.assertThat(SignalInformationPoint.isLiveCommand(thingCommand))
+                .forEach(thingCommand -> softly.assertThat(Command.isLiveCommand(thingCommand))
                         .as(getSimpleClassName(thingCommand))
                         .isFalse());
     }
@@ -107,39 +107,39 @@ public final class SignalInformationPointTest {
         final var dittoHeadersWithLiveChannel = DittoHeaders.newBuilder(dittoHeaders).channel("live").build();
         thingCommands.stream()
                 .map(thingCommand -> thingCommand.setDittoHeaders(dittoHeadersWithLiveChannel))
-                .forEach(thingCommand -> softly.assertThat(SignalInformationPoint.isLiveCommand(thingCommand))
+                .forEach(thingCommand -> softly.assertThat(Command.isLiveCommand(thingCommand))
                         .as(getSimpleClassName(thingCommand))
                         .isTrue());
     }
 
     @Test
     public void isMessageCommandForNullReturnsFalse() {
-        assertThat(SignalInformationPoint.isMessageCommand(null)).isFalse();
+        assertThat(MessageCommand.isMessageCommand(null)).isFalse();
     }
 
     @Test
     public void isMessageCommandForMessageCommandReturnsTrue() {
         messageCommands.forEach(
-                messageCommand -> softly.assertThat(SignalInformationPoint.isMessageCommand(messageCommand))
+                messageCommand -> softly.assertThat(MessageCommand.isMessageCommand(messageCommand))
                         .as(getSimpleClassName(messageCommand))
                         .isTrue());
     }
 
     @Test
     public void isMessageCommandForThingCommandReturnsFalse() {
-        thingCommands.forEach(thingCommand -> softly.assertThat(SignalInformationPoint.isMessageCommand(thingCommand))
+        thingCommands.forEach(thingCommand -> softly.assertThat(MessageCommand.isMessageCommand(thingCommand))
                 .as(getSimpleClassName(thingCommand))
                 .isFalse());
     }
 
     @Test
     public void isThingCommandForNullReturnsFalse() {
-        assertThat(SignalInformationPoint.isThingCommand(null)).isFalse();
+        assertThat(ThingCommand.isThingCommand(null)).isFalse();
     }
 
     @Test
     public void isThingCommandForThingCommandReturnsTrue() {
-        thingCommands.forEach(thingCommand -> softly.assertThat(SignalInformationPoint.isThingCommand(thingCommand))
+        thingCommands.forEach(thingCommand -> softly.assertThat(ThingCommand.isThingCommand(thingCommand))
                 .as(getSimpleClassName(thingCommand))
                 .isTrue());
     }
@@ -147,20 +147,20 @@ public final class SignalInformationPointTest {
     @Test
     public void isThingCommandForMessageCommandReturnsFalse() {
         messageCommands.forEach(
-                messageCommand -> softly.assertThat(SignalInformationPoint.isThingCommand(messageCommand))
+                messageCommand -> softly.assertThat(ThingCommand.isThingCommand(messageCommand))
                         .as(getSimpleClassName(messageCommand))
                         .isFalse());
     }
 
     @Test
     public void isLiveCommandResponseForNullReturnsFalse() {
-        assertThat(SignalInformationPoint.isLiveCommandResponse(null)).isFalse();
+        assertThat(CommandResponse.isLiveCommandResponse(null)).isFalse();
     }
 
     @Test
     public void isLiveCommandResponseForMessageCommandResponseReturnsTrue() {
         messageCommandResponses.forEach(
-                response -> softly.assertThat(SignalInformationPoint.isLiveCommandResponse(response))
+                response -> softly.assertThat(CommandResponse.isLiveCommandResponse(response))
                         .as(getSimpleClassName(response))
                         .isTrue());
     }
@@ -168,7 +168,7 @@ public final class SignalInformationPointTest {
     @Test
     public void isLiveCommandResponseForThingCommandResponseWithoutChannelHeaderReturnsFalse() {
         thingCommandResponses.forEach(
-                response -> softly.assertThat(SignalInformationPoint.isLiveCommandResponse(response))
+                response -> softly.assertThat(CommandResponse.isLiveCommandResponse(response))
                         .as(getSimpleClassName(response))
                         .isFalse());
     }
@@ -178,20 +178,20 @@ public final class SignalInformationPointTest {
         final var dittoHeadersWithLiveChannel = DittoHeaders.newBuilder(dittoHeaders).channel("live").build();
         thingCommandResponses.stream()
                 .map(response -> response.setDittoHeaders(dittoHeadersWithLiveChannel))
-                .forEach(response -> softly.assertThat(SignalInformationPoint.isLiveCommandResponse(response))
+                .forEach(response -> softly.assertThat(CommandResponse.isLiveCommandResponse(response))
                         .as(getSimpleClassName(response))
                         .isTrue());
     }
 
     @Test
     public void isMessageCommandResponseForNullReturnsFalse() {
-        assertThat(SignalInformationPoint.isMessageCommandResponse(null)).isFalse();
+        assertThat(MessageCommandResponse.isMessageCommandResponse(null)).isFalse();
     }
 
     @Test
     public void isMessageCommandResponseForMessageCommandResponseReturnsTrue() {
         messageCommandResponses.forEach(
-                response -> softly.assertThat(SignalInformationPoint.isMessageCommandResponse(response))
+                response -> softly.assertThat(MessageCommandResponse.isMessageCommandResponse(response))
                         .as(getSimpleClassName(response))
                         .isTrue());
     }
@@ -199,20 +199,20 @@ public final class SignalInformationPointTest {
     @Test
     public void isMessageCommandResponseForThingCommandResponseReturnsFalse() {
         thingCommandResponses.forEach(
-                response -> softly.assertThat(SignalInformationPoint.isMessageCommandResponse(response))
+                response -> softly.assertThat(MessageCommandResponse.isMessageCommandResponse(response))
                         .as(getSimpleClassName(response))
                         .isFalse());
     }
 
     @Test
     public void isThingCommandResponseForNullReturnsFalse() {
-        assertThat(SignalInformationPoint.isThingCommandResponse(null)).isFalse();
+        assertThat(ThingCommandResponse.isThingCommandResponse(null)).isFalse();
     }
 
     @Test
     public void isThingCommandResponseForThingCommandResponseReturnsTrue() {
         thingCommandResponses.forEach(
-                response -> softly.assertThat(SignalInformationPoint.isThingCommandResponse(response))
+                response -> softly.assertThat(ThingCommandResponse.isThingCommandResponse(response))
                         .as(getSimpleClassName(response))
                         .isTrue());
     }
@@ -220,14 +220,14 @@ public final class SignalInformationPointTest {
     @Test
     public void isThingCommandResponseForMessageCommandResponseReturnsFalse() {
         messageCommandResponses.forEach(
-                response -> softly.assertThat(SignalInformationPoint.isThingCommandResponse(response))
+                response -> softly.assertThat(ThingCommandResponse.isThingCommandResponse(response))
                         .as(getSimpleClassName(response))
                         .isFalse());
     }
 
     @Test
     public void isChannelLiveForNullReturnsFalse() {
-        assertThat(SignalInformationPoint.isChannelLive(null)).isFalse();
+        assertThat(Signal.isChannelLive(null)).isFalse();
     }
 
     @Test
@@ -236,7 +236,7 @@ public final class SignalInformationPointTest {
         final var signalMock = Mockito.mock(WithDittoHeaders.class);
         Mockito.when(signalMock.getDittoHeaders()).thenReturn(dittoHeadersWithLiveChannel);
 
-        assertThat(SignalInformationPoint.isChannelLive(signalMock)).isTrue();
+        assertThat(Signal.isChannelLive(signalMock)).isTrue();
     }
 
     @Test
@@ -245,7 +245,7 @@ public final class SignalInformationPointTest {
         final var signalMock = Mockito.mock(WithDittoHeaders.class);
         Mockito.when(signalMock.getDittoHeaders()).thenReturn(dittoHeadersWithTwinChannel);
 
-        assertThat(SignalInformationPoint.isChannelLive(signalMock)).isFalse();
+        assertThat(Signal.isChannelLive(signalMock)).isFalse();
     }
 
     @Test
@@ -253,50 +253,50 @@ public final class SignalInformationPointTest {
         final var signalMock = Mockito.mock(WithDittoHeaders.class);
         Mockito.when(signalMock.getDittoHeaders()).thenReturn(dittoHeaders);
 
-        assertThat(SignalInformationPoint.isChannelLive(signalMock)).isFalse();
+        assertThat(Signal.isChannelLive(signalMock)).isFalse();
     }
 
     @Test
     public void isWithEntityIdForNullSignalReturnsFalse() {
-        assertThat(SignalInformationPoint.isWithEntityId(null)).isFalse();
+        assertThat(WithEntityId.isWithEntityId(null)).isFalse();
     }
 
     @Test
     public void isWithEntityIdForSignalImplementingWithEntityIdReturnsTrue() {
         final var signal = RetrieveThing.of(ThingId.generateRandom(), dittoHeaders);
 
-        assertThat(SignalInformationPoint.isWithEntityId(signal)).isTrue();
+        assertThat(WithEntityId.isWithEntityId(signal)).isTrue();
     }
 
     @Test
     public void isWithEntityIdForSignalNotImplementingWithEntityIdReturnsFalse() {
         final var signal = RetrieveThings.getBuilder(ThingId.generateRandom()).dittoHeaders(dittoHeaders).build();
 
-        assertThat(SignalInformationPoint.isWithEntityId(signal)).isFalse();
+        assertThat(WithEntityId.isWithEntityId(signal)).isFalse();
     }
 
     @Test
     public void getEntityIdForNullSignalReturnsEmptyOptional() {
-        assertThat(SignalInformationPoint.getEntityId(null)).isEmpty();
+        assertThat(WithEntityId.getEntityId(null)).isEmpty();
     }
 
     @Test
     public void getEntityIdForSignalWithEntityIdReturnsOptionalWithEntityId() {
         final var signal = RetrieveThing.of(ThingId.generateRandom(), dittoHeaders);
 
-        assertThat(SignalInformationPoint.getEntityId(signal)).hasValue(signal.getEntityId());
+        assertThat(WithEntityId.getEntityId(signal)).hasValue(signal.getEntityId());
     }
 
     @Test
     public void getEntityIdForSignalWithoutEntityIdReturnsEmptyOptional() {
         final var signal = RetrieveThings.getBuilder(ThingId.generateRandom()).dittoHeaders(dittoHeaders).build();
 
-        assertThat(SignalInformationPoint.getEntityId(signal)).isEmpty();
+        assertThat(WithEntityId.getEntityId(signal)).isEmpty();
     }
 
     @Test
     public void getCorrelationIdFromNullSignalReturnsEmptyOptional() {
-        assertThat(SignalInformationPoint.getCorrelationId(null)).isEmpty();
+        assertThat(WithDittoHeaders.getCorrelationId(null)).isEmpty();
     }
 
     @Test
@@ -304,7 +304,7 @@ public final class SignalInformationPointTest {
         final Signal<?> signal = Mockito.mock(Signal.class);
         Mockito.when(signal.getDittoHeaders()).thenReturn(DittoHeaders.empty());
 
-        assertThat(SignalInformationPoint.getCorrelationId(null)).isEmpty();
+        assertThat(WithDittoHeaders.getCorrelationId(null)).isEmpty();
     }
 
     @Test
@@ -312,26 +312,26 @@ public final class SignalInformationPointTest {
         final Signal<?> signal = Mockito.mock(Signal.class);
         Mockito.when(signal.getDittoHeaders()).thenReturn(dittoHeaders);
 
-        assertThat(SignalInformationPoint.getCorrelationId(signal)).isEqualTo(dittoHeaders.getCorrelationId());
+        assertThat(WithDittoHeaders.getCorrelationId(signal)).isEqualTo(dittoHeaders.getCorrelationId());
     }
 
     @Test
     public void isCommandForCommandReturnsFalse() {
         Stream.concat(thingCommands.stream(), messageCommands.stream())
-                .forEach(command -> softly.assertThat(SignalInformationPoint.isCommand(command))
+                .forEach(command -> softly.assertThat(Command.isCommand(command))
                         .as(command.getType())
                         .isTrue());
     }
 
     @Test
     public void isCommandForNullReturnsFalse() {
-        assertThat(SignalInformationPoint.isCommand(null)).isFalse();
+        assertThat(Command.isCommand(null)).isFalse();
     }
 
     @Test
     public void isCommandForCommandResponseReturnsFalse() {
         Stream.concat(thingCommandResponses.stream(), messageCommandResponses.stream())
-                .forEach(commandResponse -> softly.assertThat(SignalInformationPoint.isCommand(commandResponse))
+                .forEach(commandResponse -> softly.assertThat(Command.isCommand(commandResponse))
                         .as(commandResponse.getType())
                         .isFalse());
     }
@@ -339,20 +339,20 @@ public final class SignalInformationPointTest {
     @Test
     public void isCommandResponseForCommandResponseReturnsFalse() {
         Stream.concat(thingCommandResponses.stream(), messageCommandResponses.stream())
-                .forEach(commandResponse -> softly.assertThat(SignalInformationPoint.isCommandResponse(commandResponse))
+                .forEach(commandResponse -> softly.assertThat(CommandResponse.isCommandResponse(commandResponse))
                         .as(commandResponse.getType())
                         .isTrue());
     }
 
     @Test
     public void isCommandResponseForNullReturnsFalse() {
-        assertThat(SignalInformationPoint.isCommandResponse(null)).isFalse();
+        assertThat(CommandResponse.isCommandResponse(null)).isFalse();
     }
 
     @Test
     public void isCommandForCommandResponseResponseReturnsFalse() {
         Stream.concat(thingCommands.stream(), messageCommands.stream())
-                .forEach(command -> softly.assertThat(SignalInformationPoint.isCommandResponse(command))
+                .forEach(command -> softly.assertThat(CommandResponse.isCommandResponse(command))
                         .as(command.getType())
                         .isFalse());
     }

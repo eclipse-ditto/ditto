@@ -29,24 +29,24 @@ import org.bson.BsonDocument;
 import org.eclipse.ditto.base.api.common.ShutdownReasonType;
 import org.eclipse.ditto.base.model.acks.AcknowledgementRequest;
 import org.eclipse.ditto.base.model.acks.DittoAcknowledgementLabel;
+import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.service.actors.ShutdownBehaviour;
 import org.eclipse.ditto.base.service.config.supervision.ExponentialBackOff;
-import org.eclipse.ditto.internal.models.streaming.IdentifiableStreamingMessage;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLogger;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
-import org.eclipse.ditto.internal.utils.akka.streaming.StreamAck;
 import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.internal.utils.metrics.instruments.counter.Counter;
 import org.eclipse.ditto.internal.utils.metrics.instruments.timer.StartedTimer;
 import org.eclipse.ditto.internal.utils.tracing.DittoTracing;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.policies.api.PolicyReferenceTag;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.events.ThingDeleted;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
+import org.eclipse.ditto.thingsearch.api.PolicyReferenceTag;
 import org.eclipse.ditto.thingsearch.api.UpdateReason;
-import org.eclipse.ditto.thingsearch.api.commands.sudo.UpdateThing;
+import org.eclipse.ditto.thingsearch.api.commands.sudo.SudoUpdateThing;
 import org.eclipse.ditto.thingsearch.service.common.config.SearchConfig;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.AbstractWriteModel;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.Metadata;
@@ -61,6 +61,7 @@ import akka.Done;
 import akka.NotUsed;
 import akka.actor.AbstractFSMWithStash;
 import akka.actor.ActorRef;
+import akka.actor.ActorSelection;
 import akka.actor.FSM;
 import akka.actor.Props;
 import akka.cluster.pubsub.DistributedPubSubMediator;
@@ -151,6 +152,7 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
         NAMESPACE_BLOCKED
     }
 
+    @SuppressWarnings("unused")
     private ThingUpdater(final Flow<Data, Result, NotUsed> flow,
             final Function<ThingId, Source<AbstractWriteModel, NotUsed>> recoveryFunction,
             final SearchConfig config, final ActorRef pubSubMediator) {
@@ -238,7 +240,7 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
         return matchEvent(ThingEvent.class, this::onThingEvent)
                 .event(Metadata.class, this::onEventMetadata)
                 .event(PolicyReferenceTag.class, this::onPolicyReferenceTag)
-                .event(UpdateThing.class, this::updateThing)
+                .event(SudoUpdateThing.class, this::updateThing)
                 .eventEquals(Control.TICK, this::tick)
                 .event(ShutdownTrigger.class, this::shutdown)
                 .event(SHUTDOWN_CLASS, this::shutdownNow)
@@ -391,21 +393,21 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
         return !metadata.equals(lastMetadata.export()) || lastMetadata.getThingRevision() <= 0;
     }
 
-    private FSM.State<State, Data> updateThing(final UpdateThing updateThing, final Data data) {
-        log.withCorrelationId(updateThing)
-                .info("Requested to update search index <{}> by <{}>", updateThing, getSender());
+    private FSM.State<State, Data> updateThing(final SudoUpdateThing sudoUpdateThing, final Data data) {
+        log.withCorrelationId(sudoUpdateThing)
+                .info("Requested to update search index <{}> by <{}>", sudoUpdateThing, getSender());
         final AbstractWriteModel lastWriteModel;
-        if (updateThing.getDittoHeaders().containsKey(FORCE_UPDATE)) {
+        if (sudoUpdateThing.getDittoHeaders().containsKey(FORCE_UPDATE)) {
             lastWriteModel = ThingDeleteModel.of(data.metadata());
         } else {
             lastWriteModel = data.lastWriteModel();
         }
         final Metadata metadata = data.metadata()
-                .invalidateCaches(updateThing.shouldInvalidateThing(), updateThing.shouldInvalidatePolicy())
-                .withUpdateReason(updateThing.getUpdateReason());
+                .invalidateCaches(sudoUpdateThing.shouldInvalidateThing(), sudoUpdateThing.shouldInvalidatePolicy())
+                .withUpdateReason(sudoUpdateThing.getUpdateReason());
         final Metadata nextMetadata =
-                updateThing.getDittoHeaders().getAcknowledgementRequests().contains(SEARCH_PERSISTED_REQUEST)
-                        ? metadata.withSender(getSender())
+                sudoUpdateThing.getDittoHeaders().getAcknowledgementRequests().contains(SEARCH_PERSISTED_REQUEST)
+                        ? metadata.withAckRecipient(getAckRecipient(sudoUpdateThing.getDittoHeaders()))
                         : metadata;
         ensureTickTimer();
         return stay().using(new Data(data.metadata().append(nextMetadata), lastWriteModel));
@@ -424,8 +426,6 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
                     policyReferenceTag.getPolicyTag().getEntityId(), policyReferenceTag.getPolicyTag().getRevision(),
                     policyId, policyRevision);
         }
-
-        acknowledge(policyReferenceTag);
 
         final var policyTag = policyReferenceTag.getPolicyTag();
         final var policyIdOfTag = policyTag.getEntityId();
@@ -464,7 +464,9 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
                     thingEvent.getRevision(), data.metadata().getThingRevision());
             if (shouldAcknowledge) {
                 // add sender to pending acknowledgements
-                return Optional.of(data.metadata().export().withSender(getSender()));
+                return Optional.of(data.metadata().export()
+                        .withAckRecipient(getAckRecipient(thingEvent.getDittoHeaders()))
+                );
             } else {
                 return Optional.empty();
             }
@@ -488,7 +490,8 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
                 .start();
         DittoTracing.wrapTimer(DittoTracing.extractTraceContext(thingEvent), timer);
         ConsistencyLag.startS1InUpdater(timer);
-        final var metadata = exportMetadataWithSender(shouldAcknowledge, thingEvent, getSender(), timer, data)
+        final var metadata = exportMetadataWithSender(shouldAcknowledge, thingEvent, getAckRecipient(
+                thingEvent.getDittoHeaders()), timer, data)
                 .withUpdateReason(UpdateReason.THING_UPDATE);
         return Optional.of(metadata);
     }
@@ -546,13 +549,14 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
 
     private Metadata exportMetadataWithSender(final boolean shouldAcknowledge,
             final ThingEvent<?> event,
-            final ActorRef sender,
+            final ActorSelection ackRecipient,
             @Nullable final StartedTimer consistencyLagTimer,
             final Data data) {
         final long thingRevision = event.getRevision();
         if (shouldAcknowledge) {
             return Metadata.of(thingId, thingRevision, data.metadata().getPolicyId().orElse(null),
-                    data.metadata().getPolicyRevision().orElse(null), List.of(event), consistencyLagTimer, sender);
+                    data.metadata().getPolicyRevision().orElse(null), List.of(event), consistencyLagTimer,
+                    ackRecipient);
         } else {
             return exportMetadata(event, thingRevision, consistencyLagTimer, data);
         }
@@ -564,13 +568,6 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
         return Metadata.of(thingId, thingRevision, data.metadata().getPolicyId().orElse(null),
                 data.metadata().getPolicyRevision().orElse(null),
                 event == null ? List.of() : List.of(event), timer, null);
-    }
-
-    private void acknowledge(final IdentifiableStreamingMessage message) {
-        final ActorRef sender = getSender();
-        if (!getContext().system().deadLetters().equals(sender)) {
-            sender.tell(StreamAck.success(message.asIdentifierString()), getSelf());
-        }
     }
 
     private void refreshIdleShutdownTimer() {
@@ -605,4 +602,21 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
         }
     }
 
+    private ActorSelection getAckRecipient(final DittoHeaders dittoHeaders) {
+        final String ackregatorAddress = dittoHeaders.get(DittoHeaderDefinition.DITTO_ACKREGATOR_ADDRESS.getKey());
+        if (null != ackregatorAddress) {
+            return getContext().actorSelection(ackregatorAddress);
+        } else if (dittoHeaders.getAcknowledgementRequests().stream()
+                .anyMatch(ackRequest ->
+                        ackRequest.getLabel().equals(DittoAcknowledgementLabel.SEARCH_PERSISTED))) {
+            log.withCorrelationId(dittoHeaders)
+                    .error("Processed Event did not contain header of acknowledgement aggregator address: {}",
+                            dittoHeaders);
+            // fallback to sender:
+            return getContext().actorSelection(getSender().path());
+        } else {
+            // ignore
+            return getContext().actorSelection(getContext().getSystem().deadLetters().path());
+        }
+    }
 }

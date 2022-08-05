@@ -14,9 +14,9 @@ package org.eclipse.ditto.protocol.adapter.things;
 
 import static java.util.Objects.requireNonNull;
 
+import org.eclipse.ditto.base.model.headers.translator.HeaderTranslator;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.protocol.Adaptable;
-import org.eclipse.ditto.protocol.HeaderTranslator;
 import org.eclipse.ditto.protocol.adapter.MergeCommandAdapter;
 import org.eclipse.ditto.protocol.mapper.SignalMapperFactory;
 import org.eclipse.ditto.protocol.mappingstrategies.MappingStrategiesFactory;

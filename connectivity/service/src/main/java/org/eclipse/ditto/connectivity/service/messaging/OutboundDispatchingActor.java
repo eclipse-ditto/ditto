@@ -25,21 +25,23 @@ import org.eclipse.ditto.base.model.acks.AcknowledgementRequest;
 import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.base.model.entity.id.WithEntityId;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
+import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
 import org.eclipse.ditto.connectivity.api.InboundSignal;
 import org.eclipse.ditto.connectivity.api.OutboundSignalFactory;
 import org.eclipse.ditto.connectivity.model.Target;
 import org.eclipse.ditto.internal.models.acks.AcknowledgementForwarderActor;
-import org.eclipse.ditto.internal.models.signal.SignalInformationPoint;
-import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
+import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.thingsearch.model.signals.events.SubscriptionEvent;
 
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
+import akka.actor.ActorSelection;
 import akka.actor.Props;
 import akka.japi.pf.ReceiveBuilder;
 
@@ -53,7 +55,7 @@ final class OutboundDispatchingActor extends AbstractActor {
      */
     public static final String ACTOR_NAME = "outboundDispatching";
 
-    private final DittoDiagnosticLoggingAdapter logger = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
+    private final ThreadSafeDittoLoggingAdapter logger = DittoLoggerFactory.getThreadSafeDittoLoggingAdapter(this);
 
     private final OutboundMappingSettings settings;
     private final ActorRef outboundMappingProcessorActor;
@@ -61,11 +63,13 @@ final class OutboundDispatchingActor extends AbstractActor {
     @SuppressWarnings("unused")
     private OutboundDispatchingActor(final OutboundMappingSettings settings,
             final ActorRef outboundMappingProcessorActor) {
+
         this.settings = settings;
         this.outboundMappingProcessorActor = outboundMappingProcessorActor;
     }
 
     static Props props(final OutboundMappingSettings settings, final ActorRef outboundMappingProcessorActor) {
+
         return Props.create(OutboundDispatchingActor.class, settings, outboundMappingProcessorActor);
     }
 
@@ -99,7 +103,7 @@ final class OutboundDispatchingActor extends AbstractActor {
         if (subscribedAndAuthorizedTargets.isEmpty()) {
             logDroppedSignal(signal, signal.getType(), "No subscribed and authorized targets present");
             // issue weak acks here as the signal will not reach OutboundMappingProcessorActor
-            issueWeakAcknowledgements(signal, getSender());
+            issueWeakAcknowledgements(signal);
             return;
         }
 
@@ -123,10 +127,11 @@ final class OutboundDispatchingActor extends AbstractActor {
         logger.withCorrelationId(withDittoHeaders).debug("Signal ({}) dropped: {}", type, reason);
     }
 
-    private void issueWeakAcknowledgements(final Signal<?> signal, final ActorRef sender) {
+    private void issueWeakAcknowledgements(final Signal<?> signal) {
         OutboundMappingProcessorActor.issueWeakAcknowledgements(signal,
                 this::isSourceDeclaredOrTargetIssuedAck,
-                sender);
+                getContext(),
+                logger);
     }
 
     private boolean isNotSourceDeclaredAck(final Acknowledgement acknowledgement) {
@@ -152,7 +157,7 @@ final class OutboundDispatchingActor extends AbstractActor {
             // start ackregator for source declared acks
             return AcknowledgementForwarderActor.startAcknowledgementForwarder(getContext(),
                     self(),
-                    sender(),
+                    settings.getProxyActor(),
                     entityId,
                     signal,
                     settings.getAcknowledgementConfig(),
@@ -170,9 +175,9 @@ final class OutboundDispatchingActor extends AbstractActor {
 
     private static boolean isLiveCommandExpectingResponse(final Signal<?> signal) {
         final var headers = signal.getDittoHeaders();
-        return SignalInformationPoint.isCommand(signal) &&
+        return Command.isCommand(signal) &&
                 headers.isResponseRequired() &&
-                SignalInformationPoint.isChannelLive(signal);
+                Signal.isChannelLive(signal);
     }
 
     private void handleInboundResponseOrAcknowledgement(final Signal<?> responseOrAck) {
@@ -189,9 +194,9 @@ final class OutboundDispatchingActor extends AbstractActor {
         final Consumer<ActorRef> forwardAck =
                 acknowledgementForwarder -> acknowledgementForwarder.forward(responseOrAck, context);
 
-        final Runnable forwardToConcierge = () -> {
+        final Runnable forwardToProxyActor = () -> {
             final var forwarderActorClassName = AcknowledgementForwarderActor.class.getSimpleName();
-            final var template = "No {} found. Forwarding signal to concierge. <{}>";
+            final var template = "No {} found. Forwarding signal to proxy actor: <{}>";
             if (logger.isDebugEnabled()) {
                 logger.withCorrelationId(responseOrAck).debug(template, forwarderActorClassName, responseOrAck);
             } else {
@@ -202,13 +207,21 @@ final class OutboundDispatchingActor extends AbstractActor {
         };
 
         context.findChild(AcknowledgementForwarderActor.determineActorName(responseOrAck.getDittoHeaders()))
-                .ifPresentOrElse(forwardAck, forwardToConcierge);
+                .ifPresentOrElse(forwardAck, forwardToProxyActor);
     }
 
     private void denyNonSourceDeclaredAck(final Acknowledgement ack) {
-        final var sender = getSender();
-        sender.tell(AcknowledgementLabelNotDeclaredException.of(ack.getLabel(), ack.getDittoHeaders()),
-                ActorRef.noSender());
+        final String ackregatorAddress = ack.getDittoHeaders()
+                .get(DittoHeaderDefinition.DITTO_ACKREGATOR_ADDRESS.getKey());
+        if (null != ackregatorAddress) {
+            final ActorSelection acknowledgementRequester = getContext().actorSelection(ackregatorAddress);
+            acknowledgementRequester.tell(AcknowledgementLabelNotDeclaredException.of(ack.getLabel(), ack.getDittoHeaders()),
+                    ActorRef.noSender());
+        } else {
+            logger.withCorrelationId(ack)
+                    .error("Received Acknowledgement <{}> did not contain header of acknowledgement aggregator " +
+                            "address", ack);
+        }
     }
 
 }
