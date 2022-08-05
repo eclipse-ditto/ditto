@@ -71,7 +71,7 @@
                     </div>
                 </div>
                 <div class="col-md-6 resizable_flex_column">
-                    <div class="input-group input-group-sm mb-1 mt-1 has-validation">
+                    <div class="input-group input-group-sm mb-1 has-validation">
                         <label class="input-group-text">Subject</label>
                         <input type="text" class="form-control form-control-sm" id="inputSubjectId"></input>
                         <button class="btn btn-outline-secondary btn-sm" id="buttonCreatePolicySubject">
@@ -91,7 +91,7 @@
                 </div>
             </div>
             <h6>Ressources</h6>
-            <div class="row flex_column_part" style="flex-grow: 2;">
+            <div class="row flex_column_part">
                 <div class="col-md-6 resizable_flex_column">
                     <div class="input-group has-validation">
                         <input class="form-control" id="tableValidationResources" hidden="true"></input>
@@ -104,8 +104,13 @@
                     </div>
                 </div>
                 <div class="col-md-6 resizable_flex_column">
-                    <div class="input-group input-group-sm mb-1 mt-1 has-validation">
+                    <div class="input-group input-group-sm mb-1 has-validation">
                         <label class="input-group-text">Ressource</label>
+                        <div class="btn-group dropend">
+                            <button class="btn btn-outline-secondary btn-sm dropdown-toggle"
+                            data-bs-toggle="dropdown"></button>
+                            <ul id="ulResourceTemplates" class="dropdown-menu" style="position: fixed; top: auto;"></ul>                                    
+                        </div>
                         <input type="text" class="form-control form-control-sm" id="inputResourceId"></input>
                         <button class="btn btn-outline-secondary btn-sm" id="buttonCreatePolicyResource">
                             <i class="bi bi-plus-circle"></i>
@@ -117,10 +122,6 @@
                             <i class="bi bi-trash"></i>
                         </button>
                         <div class="invalid-feedback"></div>
-                    </div>
-                    <div class="input-group input-group-sm mb-1">
-                        <label class="input-group-text">Template</label>
-                        <select type="text" class="form-select form-select-sm" id="selectResourceTemplates"></select>
                     </div>
                     <div class="ace_container" style="flex-grow: 1;">
                         <div class="script_editor" id="resourceEditor"></div>

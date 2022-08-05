@@ -78,7 +78,7 @@ export async function ready() {
     Utils.assert(!Environments.current().fieldList
         .filter((elem, i) => i != theFieldIndex)
         .map((field) => field.path)
-        .includes(selectedField.path), 'Changed field path already exists', dom.fieldPath);
+        .includes(dom.fieldPath.value), 'Changed field path already exists', dom.fieldPath);
 
     selectedField.path = dom.fieldPath.value;
     selectedField.label = dom.fieldLabel.value;
@@ -94,7 +94,7 @@ export async function ready() {
     Environments.current().fieldList.push({
       active: true,
       path: dom.fieldPath.value,
-      label: dom.fieldPath.value.split('/').slice(-1)[0],
+      label: dom.fieldLabel.value ? dom.fieldLabel.value : dom.fieldPath.value.split('/').slice(-1)[0],
     });
     updateFieldList();
   };

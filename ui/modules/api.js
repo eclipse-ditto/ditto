@@ -324,7 +324,7 @@ export async function callConnectionsAPI(operation, successCallback, connectionI
       document.body.style.cursor = 'progress';
       response.json().then((data) => {
         if (data && data['?'] && data['?']['?'].status >= 400) {
-          const dittoErr = data['?']['?'];
+          const dittoErr = data['?']['?'].payload;
           Utils.showError(dittoErr.description, dittoErr.message, dittoErr.status);
         } else {
           if (params.unwrapJsonPath) {

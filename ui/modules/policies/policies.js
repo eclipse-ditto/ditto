@@ -37,7 +37,7 @@ let dom = {
   tableValidationSubjects: null,
   tableValidationResources: null,
   collapsePolicies: null,
-  selectResourceTemplates: null,
+  ulResourceTemplates: null,
   tabPolicies: null,
 };
 
@@ -183,10 +183,10 @@ export function ready() {
     modifyPolicyEntry('/resources/', selectedResource);
   };
 
-  dom.selectResourceTemplates.onchange = () => {
-    dom.inputResourceId.value = dom.selectResourceTemplates.value;
+  dom.ulResourceTemplates.addEventListener('click', (event) => {
+    dom.inputResourceId.value = event.target.textContent;
     resourceEditor.setValue(JSON.stringify(policyTemplates.resources[dom.inputResourceId.value], 0, 2), -1);
-  };
+  });
 
   // WhoAmI -------------
 
@@ -220,7 +220,7 @@ function validations(entryFilled, entrySelected, subjectFilled, subjectSelected,
 }
 
 function onThingChanged(thing) {
-  dom.inputPolicyId.value = thing._policy.policyId;
+  dom.inputPolicyId.value = (thing && thing._policy) ? thing._policy.policyId : null;
   viewDirty = true;
 }
 
@@ -229,7 +229,7 @@ function refreshWhoAmI() {
   API.callDittoREST('GET', '/whoami')
       .then((whoamiResult) => {
         whoamiResult.subjects.forEach((subject) => {
-          Utils.addTableRow(dom.tbodyWhoami, subject, false, false,
+          Utils.addTableRow(dom.tbodyWhoami, subject, subject === selectedSubject, false,
             subject === whoamiResult.defaultSubject ? 'default' : '');
         });
       })
@@ -261,8 +261,10 @@ function setThePolicy(policy) {
     });
     if (!policyHasEntry) {
       selectedEntry = null;
+      setEntry(null);
     }
   } else {
+    dom.inputPolicyId.value = null;
     setEntry(null);
   }
 };
@@ -338,8 +340,7 @@ function loadPolicyTemplates() {
       .then((response) => {
         response.json().then((loadedTemplates) => {
           policyTemplates = loadedTemplates;
-          Utils.setOptions(dom.selectResourceTemplates, Object.keys(policyTemplates.resources));
-          dom.selectResourceTemplates.value = null;
+          Utils.addDropDownEntries(dom.ulResourceTemplates, Object.keys(policyTemplates.resources));
         });
       });
 }

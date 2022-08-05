@@ -36,13 +36,13 @@ let environments = {
     usernamePasswordDevOps: null,
     useBasicAuth: false,
     useDittoPreAuthenticatedAuth: true,
-    dittoPreAuthenticatedUsername: "pre:ditto",
+    dittoPreAuthenticatedUsername: 'pre:ditto',
   },
   ditto_sandbox: {
     api_uri: 'https://ditto.eclipseprojects.io',
     solutionId: null,
     bearer: null,
-    usernamePassword: "ditto:ditto",
+    usernamePassword: 'ditto:ditto',
     usernamePasswordDevOps: null,
     useBasicAuth: true,
     useDittoPreAuthenticatedAuth: false,
@@ -112,7 +112,7 @@ export function ready() {
     Utils.assert(dom.inputEnvironmentName.value, 'Please provide an environment name', dom.inputEnvironmentName);
     Utils.assert(!environments[dom.inputEnvironmentName.value], 'Name already used', dom.inputEnvironmentName);
     environments[dom.inputEnvironmentName.value] = {
-      api_uri: '',
+      api_uri: dom.inputApiUri.value ? dom.inputApiUri.value : '',
     };
     environmentsJsonChanged();
   };

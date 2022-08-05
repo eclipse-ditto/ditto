@@ -136,10 +136,11 @@ textarea {
     left: 0;
 }
 
-h5 {
-    margin-bottom: 0;
+h5, h6 {
+    margin-top: 0.25rem;
+    margin-bottom: 0.25rem;
 }
 
 hr {
-    margin-top: 0.1rem;
+    margin: 0.25rem;
 }

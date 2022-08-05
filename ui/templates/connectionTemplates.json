@@ -124,7 +124,7 @@
     "connectionType": "http-push",
     "connectionStatus": "closed",
     "failoverEnabled": true,
-    "uri": "https://webhook.site/<YOUR-WEBHOOK-ID>",
+    "uri": "https://webhook.site:443/<YOUR-WEBHOOK-ID>",
     "specificConfig": {
       "parallelism": "1"
     },
