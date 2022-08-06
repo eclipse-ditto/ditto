@@ -170,7 +170,7 @@ public final class PolicyIdModified extends AbstractThingEvent<PolicyIdModified>
     }
 
     @Override
-    protected void appendPayloadAndBuild(final JsonObjectBuilder jsonObjectBuilder,
+    protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder,
             final JsonSchemaVersion schemaVersion, final Predicate<JsonField> predicate) {
         final Predicate<JsonField> thePredicate = schemaVersion.and(predicate);
         jsonObjectBuilder.set(JSON_POLICY_ID, String.valueOf(policyId), thePredicate);

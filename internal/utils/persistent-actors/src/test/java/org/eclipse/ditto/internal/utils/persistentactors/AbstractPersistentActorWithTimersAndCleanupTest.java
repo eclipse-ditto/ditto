@@ -25,7 +25,6 @@ import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.base.model.entity.type.EntityType;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.things.model.ThingConstants;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -256,7 +255,7 @@ public class AbstractPersistentActorWithTimersAndCleanupTest {
     }
 
     private String persistenceId() {
-        return ThingConstants.ENTITY_TYPE + ":" + NAMESPACE + ":" + name.getMethodName();
+        return EntityType.of("thing") + ":" + NAMESPACE + ":" + name.getMethodName();
     }
 
     private static EntityId extractEntityIdFromPersistenceId(final String persistenceId) {

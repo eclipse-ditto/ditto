@@ -28,7 +28,6 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.things.model.ThingId;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -41,8 +40,8 @@ public final class SudoRetrieveThingTest {
     private static final ThingId THING_ID = ThingId.of("org.eclipse.ditto.test", "myThing");
 
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()
-            .set(SudoCommand.JsonFields.TYPE, SudoRetrieveThing.TYPE)
-            .set(SudoCommand.JsonFields.JSON_THING_ID, THING_ID.toString())
+            .set(ThingSudoCommand.JsonFields.TYPE, SudoRetrieveThing.TYPE)
+            .set(ThingSudoCommand.JsonFields.JSON_THING_ID, THING_ID.toString())
             .set(SudoRetrieveThing.JSON_USE_ORIGINAL_SCHEMA_VERSION, false)
             .build();
 

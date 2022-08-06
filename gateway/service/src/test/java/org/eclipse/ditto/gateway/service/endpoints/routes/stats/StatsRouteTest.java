@@ -16,6 +16,7 @@ import static org.eclipse.ditto.gateway.service.endpoints.EndpointTestConstants.
 import static org.eclipse.ditto.gateway.service.endpoints.EndpointTestConstants.UNKNOWN_PATH;
 
 import java.util.Optional;
+import java.util.UUID;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.gateway.service.endpoints.EndpointTestBase;
@@ -25,11 +26,15 @@ import org.eclipse.ditto.gateway.service.endpoints.routes.RouteBaseProperties;
 import org.eclipse.ditto.gateway.service.security.authentication.jwt.JwtAuthenticationFactory;
 import org.eclipse.ditto.gateway.service.security.authentication.jwt.JwtAuthenticationProvider;
 import org.eclipse.ditto.gateway.service.util.config.security.DevOpsConfig;
+import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import org.eclipse.ditto.thingsearch.model.signals.commands.query.CountThingsResponse;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.typesafe.config.ConfigFactory;
+
 import akka.actor.ActorRef;
+import akka.actor.ActorSystem;
 import akka.http.javadsl.model.HttpRequest;
 import akka.http.javadsl.model.StatusCodes;
 import akka.http.javadsl.testkit.TestRoute;
@@ -40,6 +45,8 @@ import akka.http.javadsl.testkit.TestRoute;
 public final class StatsRouteTest extends EndpointTestBase {
 
     private static final String STATS_PATH = "/" + StatsRoute.STATISTICS_PATH_PREFIX;
+    private static final ActorSystem actorSystem =
+            ActorSystem.create(UUID.randomUUID().toString(), ConfigFactory.load("test"));
 
     private TestRoute statsTestRoute;
     private DevOpsConfig devOpsConfig;
@@ -54,9 +61,9 @@ public final class StatsRouteTest extends EndpointTestBase {
     private void setUp(final ActorRef proxyActor) {
         final var devopsJwtAuthenticationFactory =
                 JwtAuthenticationFactory.newInstance(devOpsConfig.getOAuthConfig(), cacheConfig, httpClientFacade,
-                        authorizationSubjectsProviderFactory);
+                        actorSystem);
         final var jwtAuthenticationProvider = JwtAuthenticationProvider.newInstance(
-                devopsJwtAuthenticationFactory.newJwtAuthenticationResultProvider(),
+                devopsJwtAuthenticationFactory.newJwtAuthenticationResultProvider(ScopedConfig.DITTO_EXTENSIONS_SCOPE),
                 devopsJwtAuthenticationFactory.getJwtValidator());
         final var routeBaseProperties = RouteBaseProperties.newBuilder(this.routeBaseProperties)
                 .proxyActor(proxyActor)

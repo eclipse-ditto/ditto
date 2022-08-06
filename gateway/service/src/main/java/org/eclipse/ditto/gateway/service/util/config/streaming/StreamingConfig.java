@@ -57,17 +57,9 @@ public interface StreamingConfig {
      * Returns the SSE config.
      *
      * @return the SSE config.
-     *
      * @since 1.1.0
      */
     SseConfig getSseConfig();
-
-    /**
-     * Returns the signal-enrichment config.
-     *
-     * @return the signal-enrichment config.
-     */
-    GatewaySignalEnrichmentConfig getSignalEnrichmentConfig();
 
     /**
      * Returns maximum number of stream elements to process in parallel.
@@ -104,7 +96,6 @@ public interface StreamingConfig {
         map.put(StreamingConfigValue.SUBSCRIPTION_REFRESH_DELAY.getConfigPath(), getSubscriptionRefreshDelay());
         return ConfigFactory.parseMap(map)
                 .withFallback(getWebsocketConfig().render())
-                .withFallback(getSignalEnrichmentConfig().render())
                 .atKey(CONFIG_PATH);
     }
 

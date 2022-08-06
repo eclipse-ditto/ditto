@@ -23,7 +23,6 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.Mockito;
 
@@ -175,9 +174,9 @@ public final class ConfigWithFallbackTest {
     public void getConfigPathReturnsAbsolutePathIfDefaultScopedConfigIsBuiltFromScopedConfig() {
         final Config dittoScopedConfig = DefaultScopedConfig.dittoScoped(testConfig);
         final ConfigWithFallback underTest =
-                ConfigWithFallback.newInstance(dittoScopedConfig, "concierge", new KnownConfigValue[0]);
+                ConfigWithFallback.newInstance(dittoScopedConfig, "gateway", new KnownConfigValue[0]);
 
-        assertThat(underTest.getConfigPath()).isEqualTo("ditto.concierge");
+        assertThat(underTest.getConfigPath()).isEqualTo("ditto.gateway");
     }
 
 }

@@ -22,18 +22,17 @@ import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import org.eclipse.ditto.json.JsonCollectors;
-import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.FieldType;
-import org.eclipse.ditto.things.model.Thing;
-import org.eclipse.ditto.things.model.ThingsModelFactory;
-import org.eclipse.ditto.things.api.TestConstants;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
 import org.eclipse.ditto.base.model.signals.commands.GlobalCommandResponseRegistry;
-import org.junit.Ignore;
+import org.eclipse.ditto.json.JsonCollectors;
+import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.things.api.TestConstants;
+import org.eclipse.ditto.things.model.Thing;
+import org.eclipse.ditto.things.model.ThingsModelFactory;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -47,8 +46,8 @@ public final class SudoRetrieveThingsResponseTest {
             Collections.singletonList(ThingsModelFactory.newThingBuilder().setId(TestConstants.Thing.THING_ID).build());
 
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()
-            .set(SudoCommandResponse.JsonFields.TYPE, SudoRetrieveThingsResponse.TYPE)
-            .set(SudoCommandResponse.JsonFields.STATUS, HttpStatus.OK.getCode())
+            .set(ThingSudoQueryCommandResponse.JsonFields.TYPE, SudoRetrieveThingsResponse.TYPE)
+            .set(ThingSudoQueryCommandResponse.JsonFields.STATUS, HttpStatus.OK.getCode())
 
             .set(SudoRetrieveThingsResponse.JSON_THINGS_PLAIN_JSON,
                     KNOWN_THINGS.stream()

@@ -26,13 +26,13 @@ import org.eclipse.ditto.base.model.json.Jsonifiable;
 import org.eclipse.ditto.base.model.signals.JsonParsable;
 import org.eclipse.ditto.base.model.signals.JsonParsableRegistry;
 import org.eclipse.ditto.base.model.signals.ShardedMessageEnvelope;
-import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.internal.utils.akka.PingCommand;
 import org.eclipse.ditto.internal.utils.akka.PingCommandResponse;
 import org.eclipse.ditto.internal.utils.akka.SimpleCommand;
 import org.eclipse.ditto.internal.utils.akka.SimpleCommandResponse;
 import org.eclipse.ditto.internal.utils.akka.streaming.StreamAck;
 import org.eclipse.ditto.internal.utils.health.StatusInfo;
+import org.eclipse.ditto.json.JsonObject;
 
 /**
  * A mutable builder with a fluent API for a Map containing mapping strategies. This builder mainly exists to eliminate
@@ -62,18 +62,12 @@ public final class MappingStrategiesBuilder {
 
         // add the commonly known types:
         builder.add(DittoHeaders.class, jsonObject -> DittoHeaders.newBuilder(jsonObject).build());
-        builder.add(ShardedMessageEnvelope.class,
-                jsonObject -> ShardedMessageEnvelope.fromJson(jsonObject)); // do not replace with lambda!
-        builder.add(SimpleCommand.class,
-                jsonObject -> SimpleCommand.fromJson(jsonObject)); // do not replace with lambda!
-        builder.add(SimpleCommandResponse.class,
-                jsonObject -> SimpleCommandResponse.fromJson(jsonObject)); // do not replace with lambda!
-        builder.add(PingCommand.class,
-                jsonObject -> PingCommand.fromJson(jsonObject)); // do not replace with lambda!
-        builder.add(PingCommandResponse.class,
-                jsonObject -> PingCommandResponse.fromJson(jsonObject)); // do not replace with lambda!
-        builder.add(StatusInfo.class,
-                jsonObject -> StatusInfo.fromJson(jsonObject)); // do not replace with lambda!
+        builder.add(ShardedMessageEnvelope.class, ShardedMessageEnvelope::fromJson);
+        builder.add(SimpleCommand.class, SimpleCommand::fromJson);
+        builder.add(SimpleCommandResponse.class, SimpleCommandResponse::fromJson);
+        builder.add(PingCommand.class, PingCommand::fromJson);
+        builder.add(PingCommandResponse.class, PingCommandResponse::fromJson);
+        builder.add(StatusInfo.class, StatusInfo::fromJson);
         builder.add(StreamAck.class, StreamAck::fromJson);
 
         return builder;

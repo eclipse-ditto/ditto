@@ -13,11 +13,10 @@
 <component name="ProjectRunConfigurationManager">
   <configuration default="false" name="Ditto" type="CompoundRunConfigurationType">
     <toRun name="PoliciesService" type="Application" />
-    <toRun name="ConciergeService" type="Application" />
-    <toRun name="ConnectivityService" type="Application" />
-    <toRun name="GatewayService" type="Application" />
-    <toRun name="SearchService" type="Application" />
     <toRun name="ThingsService" type="Application" />
+    <toRun name="GatewayService" type="Application" />
+    <toRun name="ConnectivityService" type="Application" />
+    <toRun name="SearchService" type="Application" />
     <method v="2" />
   </configuration>
 </component>

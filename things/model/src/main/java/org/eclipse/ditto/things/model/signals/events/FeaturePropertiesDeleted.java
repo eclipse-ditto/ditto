@@ -154,7 +154,7 @@ public final class FeaturePropertiesDeleted extends AbstractThingEvent<FeaturePr
     }
 
     @Override
-    protected void appendPayloadAndBuild(final JsonObjectBuilder jsonObjectBuilder,
+    protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder,
             final JsonSchemaVersion schemaVersion, final Predicate<JsonField> thePredicate) {
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         jsonObjectBuilder.set(ThingEvent.JsonFields.FEATURE_ID, featureId, predicate);

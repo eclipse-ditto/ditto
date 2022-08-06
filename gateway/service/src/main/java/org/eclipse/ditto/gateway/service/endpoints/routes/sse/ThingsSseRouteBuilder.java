@@ -46,15 +46,16 @@ import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.service.UriEncoding;
 import org.eclipse.ditto.gateway.service.endpoints.routes.AbstractRoute;
 import org.eclipse.ditto.gateway.service.endpoints.routes.things.ThingsParameter;
-import org.eclipse.ditto.gateway.service.endpoints.utils.EventSniffer;
 import org.eclipse.ditto.gateway.service.endpoints.utils.GatewaySignalEnrichmentProvider;
-import org.eclipse.ditto.gateway.service.streaming.Connect;
-import org.eclipse.ditto.gateway.service.streaming.StartStreaming;
+import org.eclipse.ditto.gateway.service.streaming.StreamingAuthorizationEnforcer;
 import org.eclipse.ditto.gateway.service.streaming.actors.SessionedJsonifiable;
 import org.eclipse.ditto.gateway.service.streaming.actors.StreamingSession;
 import org.eclipse.ditto.gateway.service.streaming.actors.SupervisedStream;
+import org.eclipse.ditto.gateway.service.streaming.signals.Connect;
+import org.eclipse.ditto.gateway.service.streaming.signals.StartStreaming;
 import org.eclipse.ditto.gateway.service.util.config.streaming.StreamingConfig;
 import org.eclipse.ditto.internal.models.signalenrichment.SignalEnrichmentFacade;
+import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.internal.utils.metrics.instruments.counter.Counter;
 import org.eclipse.ditto.internal.utils.pubsub.StreamingType;
@@ -75,9 +76,12 @@ import org.eclipse.ditto.things.model.ThingFieldSelector;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 
+import com.typesafe.config.Config;
+
 import akka.NotUsed;
 import akka.actor.ActorRef;
 import akka.actor.ActorSelection;
+import akka.actor.ActorSystem;
 import akka.http.javadsl.marshalling.sse.EventStreamMarshalling;
 import akka.http.javadsl.model.HttpHeader;
 import akka.http.javadsl.model.MediaTypes;
@@ -133,14 +137,14 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
     private final StreamingConfig streamingConfig;
     private final QueryFilterCriteriaFactory queryFilterCriteriaFactory;
     private final ActorRef pubSubMediator;
-
-    private SseAuthorizationEnforcer sseAuthorizationEnforcer;
     private SseConnectionSupervisor sseConnectionSupervisor;
-    private EventSniffer<ServerSentEvent> eventSniffer;
-    @Nullable GatewaySignalEnrichmentProvider signalEnrichmentProvider;
-    @Nullable ActorRef proxyActor;
+    private SseEventSniffer eventSniffer;
+    private StreamingAuthorizationEnforcer sseAuthorizationEnforcer;
+    @Nullable private GatewaySignalEnrichmentProvider signalEnrichmentProvider;
+    @Nullable private ActorRef proxyActor;
 
-    private ThingsSseRouteBuilder(final ActorRef streamingActor,
+    private ThingsSseRouteBuilder(final ActorSystem actorSystem,
+            final ActorRef streamingActor,
             final StreamingConfig streamingConfig,
             final QueryFilterCriteriaFactory queryFilterCriteriaFactory,
             final ActorRef pubSubMediator) {
@@ -149,9 +153,14 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
         this.streamingConfig = streamingConfig;
         this.queryFilterCriteriaFactory = queryFilterCriteriaFactory;
         this.pubSubMediator = pubSubMediator;
-        sseAuthorizationEnforcer = new NoOpSseAuthorizationEnforcer();
-        sseConnectionSupervisor = new NoOpSseConnectionSupervisor();
-        eventSniffer = EventSniffer.noOp();
+
+        final Config config = actorSystem.settings().config();
+        final var dittoExtensionsConfig = ScopedConfig.dittoExtension(config);
+        eventSniffer = SseEventSniffer.get(actorSystem, dittoExtensionsConfig);
+        sseConnectionSupervisor = SseConnectionSupervisor.get(actorSystem, dittoExtensionsConfig);
+
+        final var sseConfig = ScopedConfig.getOrEmpty(config, "ditto.gateway.streaming.sse");
+        sseAuthorizationEnforcer = StreamingAuthorizationEnforcer.get(actorSystem, sseConfig);
     }
 
     /**
@@ -163,26 +172,29 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
      * @return the instance.
      * @throws NullPointerException if {@code streamingActor} is {@code null}.
      */
-    public static ThingsSseRouteBuilder getInstance(final ActorRef streamingActor,
+    public static ThingsSseRouteBuilder getInstance(final ActorSystem actorSystem,
+            final ActorRef streamingActor,
             final StreamingConfig streamingConfig,
             final ActorRef pubSubMediator) {
+
         checkNotNull(streamingActor, "streamingActor");
         final var queryFilterCriteriaFactory =
                 QueryFilterCriteriaFactory.modelBased(RqlPredicateParser.getInstance(),
                         TopicPathPlaceholder.getInstance(), ResourcePlaceholder.getInstance(),
                         TimePlaceholder.getInstance());
 
-        return new ThingsSseRouteBuilder(streamingActor, streamingConfig, queryFilterCriteriaFactory, pubSubMediator);
+        return new ThingsSseRouteBuilder(actorSystem, streamingActor, streamingConfig, queryFilterCriteriaFactory,
+                pubSubMediator);
     }
 
     @Override
-    public SseRouteBuilder withAuthorizationEnforcer(final SseAuthorizationEnforcer enforcer) {
+    public SseRouteBuilder withAuthorizationEnforcer(final StreamingAuthorizationEnforcer enforcer) {
         sseAuthorizationEnforcer = checkNotNull(enforcer, "enforcer");
         return this;
     }
 
     @Override
-    public ThingsSseRouteBuilder withEventSniffer(final EventSniffer<ServerSentEvent> eventSniffer) {
+    public ThingsSseRouteBuilder withEventSniffer(final SseEventSniffer eventSniffer) {
         this.eventSniffer = checkNotNull(eventSniffer, "eventSniffer");
         return this;
     }
@@ -489,7 +501,7 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
 
                     final var searchSourceBuilder = SearchSource.newBuilder()
                             .pubSubMediator(pubSubMediator)
-                            .conciergeForwarder(ActorSelection.apply(proxyActor, ""))
+                            .commandForwarder(ActorSelection.apply(proxyActor, ""))
                             .filter(parameters.get(PARAM_FILTER))
                             .options(parameters.get(PARAM_OPTION))
                             .fields(parameters.get(PARAM_FIELDS))
@@ -683,29 +695,4 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
                 .tag("path", path);
     }
 
-    /**
-     * Null implementation for {@link SseAuthorizationEnforcer}.
-     */
-    private static final class NoOpSseAuthorizationEnforcer implements SseAuthorizationEnforcer {
-
-        @Override
-        public CompletionStage<Void> checkAuthorization(final RequestContext requestContext,
-                final DittoHeaders dittoHeaders) {
-            return CompletableFuture.completedStage(null);
-        }
-
-    }
-
-    /**
-     * Null implementation for {@link SseConnectionSupervisor}.
-     */
-    private static final class NoOpSseConnectionSupervisor implements SseConnectionSupervisor {
-
-        @Override
-        public void supervise(final SupervisedStream supervisedStream, final CharSequence connectionCorrelationId,
-                final DittoHeaders dittoHeaders) {
-
-            // Does nothing.
-        }
-    }
 }

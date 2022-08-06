@@ -12,10 +12,6 @@
  */
 package org.eclipse.ditto.internal.models.acks;
 
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.when;
-
 import java.time.Instant;
 import java.util.concurrent.TimeUnit;
 
@@ -24,6 +20,7 @@ import org.eclipse.ditto.base.model.acks.AcknowledgementLabel;
 import org.eclipse.ditto.base.model.acks.AcknowledgementRequest;
 import org.eclipse.ditto.base.model.acks.DittoAcknowledgementLabel;
 import org.eclipse.ditto.base.model.common.HttpStatus;
+import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
 import org.eclipse.ditto.base.model.signals.acks.AcknowledgementRequestDuplicateCorrelationIdException;
@@ -38,17 +35,12 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
 import org.junit.runner.RunWith;
-import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
-import org.mockito.stubbing.Answer;
 
 import com.typesafe.config.ConfigFactory;
 
-import akka.actor.ActorContext;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
-import akka.actor.Props;
 import akka.testkit.TestProbe;
 import akka.testkit.javadsl.TestKit;
 import scala.concurrent.duration.FiniteDuration;
@@ -70,9 +62,6 @@ public final class AcknowledgementForwarderActorStarterTest {
     @Rule
     public final JUnitSoftAssertions softly = new JUnitSoftAssertions();
 
-    @Mock
-    private ActorContext actorContext;
-
     private TestProbe testProbe;
 
     @BeforeClass
@@ -89,10 +78,6 @@ public final class AcknowledgementForwarderActorStarterTest {
     @Before
     public void setUp() {
         testProbe = new TestProbe(actorSystem);
-
-        when(actorContext.actorOf(any(Props.class), anyString()))
-                .thenAnswer((Answer<ActorRef>) invocationOnMock -> actorSystem.actorOf(invocationOnMock.getArgument(0),
-                        invocationOnMock.getArgument(1)));
     }
 
     @Test
@@ -102,7 +87,6 @@ public final class AcknowledgementForwarderActorStarterTest {
         final AcknowledgementForwarderActorStarter underTest = getActorStarter(dittoHeaders);
 
         softly.assertThat(underTest.get()).isNotPresent();
-        Mockito.verifyNoInteractions(actorContext);
     }
 
     @Test
@@ -126,6 +110,7 @@ public final class AcknowledgementForwarderActorStarterTest {
                 .correlationId(correlationId)
                 .acknowledgementRequest(AcknowledgementRequest.of(DittoAcknowledgementLabel.TWIN_PERSISTED),
                         AcknowledgementRequest.of(customAckLabel))
+                .putHeader(DittoHeaderDefinition.DITTO_ACKREGATOR_ADDRESS.getKey(), testProbe.ref().path().toSerializationFormat())
                 .build();
         final AcknowledgementRequestDuplicateCorrelationIdException expectedException =
                 AcknowledgementRequestDuplicateCorrelationIdException.newBuilder(correlationId)
@@ -154,8 +139,8 @@ public final class AcknowledgementForwarderActorStarterTest {
     }
 
     private AcknowledgementForwarderActorStarter getActorStarter(final DittoHeaders dittoHeaders) {
-        return AcknowledgementForwarderActorStarter.getInstance(actorContext, TestProbe.apply(actorSystem).ref(),
-                testProbe.ref(),
+        final ActorRef ref = TestProbe.apply(actorSystem).ref();
+        return AcknowledgementForwarderActorStarter.getInstance(actorSystem, ref, actorSystem.actorSelection(ref.path()),
                 KNOWN_ENTITY_ID,
                 ThingDeleted.of(KNOWN_ENTITY_ID, 1L, Instant.EPOCH, dittoHeaders, null),
                 acknowledgementConfig, label -> true);

@@ -13,11 +13,11 @@
 package org.eclipse.ditto.connectivity.service.messaging.persistence;
 
 import java.util.Collections;
-import java.util.concurrent.CompletableFuture;
 
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
 import org.eclipse.ditto.base.model.auth.DittoAuthorizationContextType;
+import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.ConnectionId;
@@ -26,14 +26,13 @@ import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
 import org.eclipse.ditto.connectivity.model.ConnectivityStatus;
 import org.eclipse.ditto.connectivity.model.Source;
 import org.eclipse.ditto.connectivity.model.signals.commands.ConnectivityCommand;
-import org.eclipse.ditto.connectivity.model.signals.commands.ConnectivityCommandInterceptor;
 import org.eclipse.ditto.connectivity.model.signals.commands.exceptions.ConnectionNotAccessibleException;
 import org.eclipse.ditto.connectivity.model.signals.commands.modify.CreateConnection;
 import org.eclipse.ditto.connectivity.model.signals.commands.modify.CreateConnectionResponse;
 import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConnection;
 import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConnectionResponse;
-import org.eclipse.ditto.connectivity.service.messaging.ClientActorPropsFactory;
-import org.eclipse.ditto.connectivity.service.messaging.DefaultClientActorPropsFactory;
+import org.eclipse.ditto.connectivity.service.enforcement.ConnectionEnforcerActorPropsFactory;
+import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.ops.eventsource.MongoEventSourceITAssertions;
 import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
 import org.junit.Test;
@@ -81,10 +80,12 @@ public final class ConnectionPersistenceOperationsActorIT extends MongoEventSour
                 ConnectivityModelFactory.newSource(authorizationContext, "address");
         final Connection connection =
                 ConnectivityModelFactory.newConnectionBuilder(id, ConnectionType.AMQP_091, ConnectivityStatus.CLOSED,
-                        "amqp://user:pass@8.8.8.8:5671")
+                                "amqp://user:pass@8.8.8.8:5671")
                         .sources(Collections.singletonList(source))
                         .build();
-        return CreateConnection.of(connection, DittoHeaders.empty());
+        return CreateConnection.of(connection, DittoHeaders.newBuilder()
+                .putHeader(DittoHeaderDefinition.DITTO_SUDO.getKey(), "true")
+                .build());
     }
 
     @Override
@@ -94,7 +95,9 @@ public final class ConnectionPersistenceOperationsActorIT extends MongoEventSour
 
     @Override
     protected Object getRetrieveEntityCommand(final ConnectionId id) {
-        return RetrieveConnection.of(id, DittoHeaders.empty());
+        return RetrieveConnection.of(id, DittoHeaders.newBuilder()
+                .putHeader(DittoHeaderDefinition.DITTO_SUDO.getKey(), "true")
+                .build());
     }
 
     @Override
@@ -122,13 +125,10 @@ public final class ConnectionPersistenceOperationsActorIT extends MongoEventSour
 
         // essentially never restart
         final TestProbe proxyActorProbe = new TestProbe(system, "proxyActor");
-        final ConnectivityCommandInterceptor dummyInterceptor = (command, connectionSupplier) -> {};
-        final ConnectionPriorityProviderFactory dummyPriorityProvider = (connectionPersistenceActor, log) ->
-                (connectionId, correlationId) -> CompletableFuture.completedFuture(4711);
-        final ClientActorPropsFactory entityActorFactory = DefaultClientActorPropsFactory.getInstance();
+        final var dittoExtensionsConfig = ScopedConfig.dittoExtension(system.settings().config());
+        final var enforcerActorPropsFactory = ConnectionEnforcerActorPropsFactory.get(system, dittoExtensionsConfig);
         final Props props =
-                ConnectionSupervisorActor.props(proxyActorProbe.ref(), entityActorFactory,
-                        dummyInterceptor, dummyPriorityProvider, pubSubMediator);
+                ConnectionSupervisorActor.props(proxyActorProbe.ref(), pubSubMediator, enforcerActorPropsFactory);
 
         return system.actorOf(props, String.valueOf(id));
     }

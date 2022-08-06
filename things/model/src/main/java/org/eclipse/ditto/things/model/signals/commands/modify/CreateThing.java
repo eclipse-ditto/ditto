@@ -21,6 +21,13 @@ import java.util.function.Predicate;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.base.model.common.Placeholders;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.json.FieldType;
+import org.eclipse.ditto.base.model.json.JsonParsableCommand;
+import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
+import org.eclipse.ditto.base.model.signals.commands.AbstractCommand;
+import org.eclipse.ditto.base.model.signals.commands.CommandJsonDeserializer;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
@@ -28,17 +35,10 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.base.model.common.Placeholders;
-import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.base.model.json.FieldType;
-import org.eclipse.ditto.base.model.json.JsonParsableCommand;
-import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.ThingsModelFactory;
-import org.eclipse.ditto.base.model.signals.commands.AbstractCommand;
-import org.eclipse.ditto.base.model.signals.commands.CommandJsonDeserializer;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommand;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommandSizeValidator;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.PoliciesConflictingException;
@@ -184,11 +184,13 @@ public final class CreateThing extends AbstractCommand<CreateThing> implements T
             throw PoliciesConflictingException.newBuilder(thingId).dittoHeaders(dittoHeaders).build();
         }
 
+        final CreateThing createThing;
         if (policyIdOrPlaceholder == null) {
-            return of(newThing, initialPolicy, dittoHeaders);
+            createThing = of(newThing, initialPolicy, dittoHeaders);
         } else {
-            return withCopiedPolicy(newThing, policyIdOrPlaceholder, dittoHeaders);
+            createThing = withCopiedPolicy(newThing, policyIdOrPlaceholder, dittoHeaders);
         }
+        return createThing;
     }
 
     /**
@@ -246,7 +248,7 @@ public final class CreateThing extends AbstractCommand<CreateThing> implements T
     /**
      * @return the policyIdOrPlaceholder that should be used to copy an existing policy when creating the Thing.
      */
-    public Optional<String> getPolicyIdOrPlaceholder() { return Optional.ofNullable(policyIdOrPlaceholder);}
+    public Optional<String> getPolicyIdOrPlaceholder() {return Optional.ofNullable(policyIdOrPlaceholder);}
 
     @Override
     public ThingId getEntityId() {
@@ -286,7 +288,7 @@ public final class CreateThing extends AbstractCommand<CreateThing> implements T
 
     @Override
     public Category getCategory() {
-        return Category.MODIFY;
+        return Category.CREATE;
     }
 
     @Override
@@ -296,7 +298,7 @@ public final class CreateThing extends AbstractCommand<CreateThing> implements T
 
     @Override
     public boolean changesAuthorization() {
-        return true;
+        return false;
     }
 
     @Override

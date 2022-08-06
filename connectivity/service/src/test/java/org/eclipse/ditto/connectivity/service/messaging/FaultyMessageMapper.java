@@ -17,6 +17,8 @@ import static org.eclipse.ditto.connectivity.service.messaging.FaultyMessageMapp
 import java.util.Collections;
 import java.util.List;
 
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.connectivity.api.ExternalMessage;
 import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
 import org.eclipse.ditto.connectivity.model.MappingContext;
 import org.eclipse.ditto.connectivity.service.config.mapping.MappingConfig;
@@ -24,7 +26,6 @@ import org.eclipse.ditto.connectivity.service.mapping.AbstractMessageMapper;
 import org.eclipse.ditto.connectivity.service.mapping.MessageMapperConfiguration;
 import org.eclipse.ditto.connectivity.service.mapping.PayloadMapper;
 import org.eclipse.ditto.protocol.Adaptable;
-import org.eclipse.ditto.connectivity.api.ExternalMessage;
 
 /**
  * Implementation of {@link org.eclipse.ditto.connectivity.service.mapping.MessageMapper} that always throws an exception.
@@ -47,6 +48,11 @@ public final class FaultyMessageMapper extends AbstractMessageMapper {
     @Override
     public List<Adaptable> map(final ExternalMessage message) {
         throw new IllegalStateException("inbound mapping failed");
+    }
+
+    @Override
+    public DittoHeaders getAdditionalInboundHeaders(final ExternalMessage message) {
+        return DittoHeaders.empty();
     }
 
     @Override

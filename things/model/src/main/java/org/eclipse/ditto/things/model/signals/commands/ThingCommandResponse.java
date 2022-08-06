@@ -12,15 +12,17 @@
  */
 package org.eclipse.ditto.things.model.signals.commands;
 
-import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.json.JsonFieldDefinition;
+import javax.annotation.Nullable;
+
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
-import org.eclipse.ditto.things.model.ThingId;
-import org.eclipse.ditto.things.model.WithThingId;
 import org.eclipse.ditto.base.model.signals.SignalWithEntityId;
+import org.eclipse.ditto.base.model.signals.WithType;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
+import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonFieldDefinition;
+import org.eclipse.ditto.things.model.WithThingId;
 
 /**
  * Aggregates all possible responses relating to a given {@link ThingCommand}.
@@ -36,17 +38,23 @@ public interface ThingCommandResponse<T extends ThingCommandResponse<T>> extends
     String TYPE_PREFIX = "things." + TYPE_QUALIFIER + ":";
 
     @Override
-    default ThingId getEntityId() {
-        return getEntityId();
-    }
-
-    @Override
     default String getResourceType() {
         return ThingCommand.RESOURCE_TYPE;
     }
 
     @Override
     T setDittoHeaders(DittoHeaders dittoHeaders);
+
+    /**
+     * Indicates whether the specified signal argument is a {@link ThingCommandResponse}.
+     *
+     * @param signal the signal to be checked.
+     * @return {@code true} if {@code signal} is a {@code ThingCommandResponse}, {@code false} else.
+     * @since 3.0.0
+     */
+    static boolean isThingCommandResponse(@Nullable final WithType signal) {
+        return WithType.hasTypePrefix(signal, ThingCommandResponse.TYPE_PREFIX);
+    }
 
     /**
      * This class contains definitions for all specific fields of a {@code ThingCommandResponse}'s JSON representation.

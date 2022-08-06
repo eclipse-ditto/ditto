@@ -20,16 +20,16 @@ import java.util.function.Predicate;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.json.JsonParsableCommand;
+import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
+import org.eclipse.ditto.base.model.signals.SignalWithEntityId;
+import org.eclipse.ditto.base.model.signals.commands.AbstractCommand;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
-import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.base.model.json.JsonParsableCommand;
-import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.policies.model.PolicyId;
-import org.eclipse.ditto.base.model.signals.SignalWithEntityId;
-import org.eclipse.ditto.base.model.signals.commands.AbstractCommand;
 import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
 
 /**
@@ -38,9 +38,9 @@ import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
  */
 @Immutable
 @AllValuesAreNonnullByDefault
-@JsonParsableCommand(typePrefix = SudoCommand.TYPE_PREFIX, name = SudoRetrievePolicy.NAME)
+@JsonParsableCommand(typePrefix = PolicySudoCommand.TYPE_PREFIX, name = SudoRetrievePolicy.NAME)
 public final class SudoRetrievePolicy extends AbstractCommand<SudoRetrievePolicy>
-        implements SudoCommand<SudoRetrievePolicy>, SignalWithEntityId<SudoRetrievePolicy> {
+        implements PolicySudoCommand<SudoRetrievePolicy>, SignalWithEntityId<SudoRetrievePolicy> {
 
     /**
      * Name of the "Sudo Retrieve Policy" command.
@@ -50,7 +50,7 @@ public final class SudoRetrievePolicy extends AbstractCommand<SudoRetrievePolicy
     /**
      * Type of this command.
      */
-    public static final String TYPE = SudoCommand.TYPE_PREFIX + NAME;
+    public static final String TYPE = PolicySudoCommand.TYPE_PREFIX + NAME;
 
     private final PolicyId policyId;
 
@@ -100,7 +100,7 @@ public final class SudoRetrievePolicy extends AbstractCommand<SudoRetrievePolicy
      * format.
      */
     public static SudoRetrievePolicy fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        final String extractedPolicyId = jsonObject.getValueOrThrow(SudoCommand.JsonFields.JSON_POLICY_ID);
+        final String extractedPolicyId = jsonObject.getValueOrThrow(PolicySudoCommand.JsonFields.JSON_POLICY_ID);
         final PolicyId policyId = PolicyId.of(extractedPolicyId);
 
         return SudoRetrievePolicy.of(policyId, dittoHeaders);
@@ -121,7 +121,7 @@ public final class SudoRetrievePolicy extends AbstractCommand<SudoRetrievePolicy
             final Predicate<JsonField> thePredicate) {
 
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(SudoCommand.JsonFields.JSON_POLICY_ID, String.valueOf(policyId), predicate);
+        jsonObjectBuilder.set(PolicySudoCommand.JsonFields.JSON_POLICY_ID, String.valueOf(policyId), predicate);
     }
 
     @Override

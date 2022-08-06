@@ -43,7 +43,6 @@ import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgements;
 import org.eclipse.ditto.base.model.signals.commands.ErrorResponse;
 import org.eclipse.ditto.base.model.signals.events.AbstractEventsourcedEvent;
-import org.eclipse.ditto.connectivity.api.EnforcementFactoryFactory;
 import org.eclipse.ditto.connectivity.api.ExternalMessage;
 import org.eclipse.ditto.connectivity.api.ExternalMessageFactory;
 import org.eclipse.ditto.connectivity.api.InboundSignal;
@@ -57,6 +56,7 @@ import org.eclipse.ditto.connectivity.model.EnforcementFilterFactory;
 import org.eclipse.ditto.connectivity.model.MessageMappingFailedException;
 import org.eclipse.ditto.connectivity.model.Target;
 import org.eclipse.ditto.connectivity.model.Topic;
+import org.eclipse.ditto.connectivity.service.EnforcementFactoryFactory;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
@@ -191,7 +191,7 @@ public final class MessageMappingProcessorActorTest extends AbstractMessageMappi
     @Test
     public void testSignalEnrichmentWithPayloadMappedTargets() {
         resetActorSystemWithCachingSignalEnrichmentProvider();
-        final TestProbe proxyActorProbe = TestProbe.apply("mockConciergeForwarder", actorSystem);
+        final TestProbe proxyActorProbe = TestProbe.apply("mockEdgeForwarder", actorSystem);
         setUpProxyActor(proxyActorProbe.ref());
 
         new TestKit(actorSystem) {{

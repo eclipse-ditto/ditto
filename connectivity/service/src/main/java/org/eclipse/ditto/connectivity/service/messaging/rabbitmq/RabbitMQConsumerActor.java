@@ -26,7 +26,6 @@ import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.signals.Signal;
-import org.eclipse.ditto.connectivity.api.EnforcementFactoryFactory;
 import org.eclipse.ditto.connectivity.api.ExternalMessage;
 import org.eclipse.ditto.connectivity.api.ExternalMessageBuilder;
 import org.eclipse.ditto.connectivity.api.ExternalMessageFactory;
@@ -35,6 +34,7 @@ import org.eclipse.ditto.connectivity.model.EnforcementFilterFactory;
 import org.eclipse.ditto.connectivity.model.PayloadMapping;
 import org.eclipse.ditto.connectivity.model.ResourceStatus;
 import org.eclipse.ditto.connectivity.model.Source;
+import org.eclipse.ditto.connectivity.service.EnforcementFactoryFactory;
 import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.messaging.ConnectivityStatusResolver;
 import org.eclipse.ditto.connectivity.service.messaging.LegacyBaseConsumerActor;
@@ -145,7 +145,9 @@ public final class RabbitMQConsumerActor extends LegacyBaseConsumerActor {
             headers = extractHeadersFromMessage(properties, envelope);
 
             final PreparedTrace preparedTrace =
-                    DittoTracing.trace(DittoTracing.extractTraceContext(headers), "rabbitmq.consume");
+                    DittoTracing.trace(DittoTracing.extractTraceContext(headers), "rabbitmq_consume")
+                            .connectionId(connectionId);
+            headers = trace.propagateContext(headers);
             if (null != correlationId) {
                 trace = preparedTrace.correlationId(correlationId).start();
             } else {

@@ -22,6 +22,7 @@ import org.eclipse.ditto.base.model.signals.JsonParsable;
 import org.eclipse.ditto.internal.utils.cluster.GlobalMappingStrategies;
 import org.eclipse.ditto.internal.utils.cluster.MappingStrategies;
 import org.eclipse.ditto.internal.utils.cluster.MappingStrategiesBuilder;
+import org.eclipse.ditto.policies.api.PolicyTag;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingsModelFactory;
 
@@ -61,7 +62,8 @@ public final class ThingsMappingStrategies extends MappingStrategies {
 
     private static MappingStrategies getThingsMappingStrategies() {
         return MappingStrategiesBuilder.newInstance()
-                .add(Thing.class, jsonObject -> ThingsModelFactory.newThing(jsonObject)) // do not replace with lambda!
+                .add(Thing.class, jsonObject -> ThingsModelFactory.newThing(jsonObject)) // do not replace with lambda
+                .add(PolicyTag.class, PolicyTag::fromJson)
                 .putAll(GlobalMappingStrategies.getInstance())
                 .build();
     }

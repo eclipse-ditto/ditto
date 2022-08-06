@@ -56,7 +56,8 @@ public final class DefaultMessageMapperFactoryTest {
     @BeforeClass
     public static void initTestFixture() {
         final Config testConfig = ConfigFactory.parseMap(
-                Collections.singletonMap("ditto.connectivity.mapping.dummy", ""));
+                Collections.singletonMap("ditto.connectivity.mapping.dummy", ""))
+                .withFallback(ConfigFactory.load("test"));
         system = ActorSystem.create("test", testConfig);
     }
 

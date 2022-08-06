@@ -50,10 +50,11 @@ public final class BlockNamespaceBehavior {
      * Blocks the given {@code signal} if it relates to an entity within a blocked namespace.
      *
      * @param signal the signal to block.
+     * @param <T> the type of the signal to block.
      * @return a completion stage which either completes successfully with the given {@code signal} or exceptionally
      * with a {@code NamespaceBlockedException}.
      */
-    public CompletionStage<DittoHeadersSettable<?>> block(final DittoHeadersSettable<?> signal) {
+    public <T extends DittoHeadersSettable<?>> CompletionStage<T> block(final T signal) {
         if (signal instanceof WithEntityId withEntityId) {
             return isBlocked(withEntityId.getEntityId())
                     .thenApply(containsNamespace -> {

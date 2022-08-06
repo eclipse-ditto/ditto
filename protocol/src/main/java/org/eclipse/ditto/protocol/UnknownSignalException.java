@@ -18,23 +18,23 @@ import java.text.MessageFormat;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
-import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonParsableException;
+import org.eclipse.ditto.json.JsonObject;
 
 /**
  * Thrown if a {@link org.eclipse.ditto.base.model.signals.Signal} is not supported.
  */
 @JsonParsableException(errorCode = UnknownSignalException.ERROR_CODE)
-public final class UnknownSignalException extends DittoRuntimeException {
+public final class UnknownSignalException extends DittoRuntimeException implements ProtocolAdapterException {
 
     /**
      * Error code of this exception.
      */
-    public static final String ERROR_CODE = "things.protocol.adapter:unknown.signal";
+    public static final String ERROR_CODE = ERROR_CODE_PREFIX + "unknown.signal";
 
     private static final String MESSAGE_TEMPLATE = "The signal ''{0}'' is not supported by the adapter.";
 

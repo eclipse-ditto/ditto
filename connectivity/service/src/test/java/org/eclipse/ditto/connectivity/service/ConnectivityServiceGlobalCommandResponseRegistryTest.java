@@ -19,6 +19,7 @@ import org.eclipse.ditto.base.api.persistence.cleanup.CleanupPersistenceResponse
 import org.eclipse.ditto.base.model.namespaces.signals.commands.PurgeNamespaceResponse;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
 import org.eclipse.ditto.base.service.cluster.ModifySplitBrainResolverResponse;
+import org.eclipse.ditto.connectivity.api.commands.sudo.SudoRetrieveConnectionIdsByTagResponse;
 import org.eclipse.ditto.connectivity.model.signals.commands.ConnectivityErrorResponse;
 import org.eclipse.ditto.connectivity.model.signals.commands.modify.OpenConnectionResponse;
 import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConnectionResponse;
@@ -41,11 +42,13 @@ import org.eclipse.ditto.thingsearch.model.signals.commands.query.QueryThingsRes
 public final class ConnectivityServiceGlobalCommandResponseRegistryTest extends GlobalCommandResponseRegistryTestCases {
 
     public ConnectivityServiceGlobalCommandResponseRegistryTest() {
-        super(SudoRetrieveThingResponse.class,
+        super(
+                SudoRetrieveThingResponse.class,
                 SudoRetrievePolicyResponse.class,
                 SudoRetrieveNamespaceReportResponse.class,
                 QueryThingsResponse.class,
                 RetrieveConnectionResponse.class,
+                SudoRetrieveConnectionIdsByTagResponse.class,
                 OpenConnectionResponse.class,
                 RetrieveFeatureResponse.class,
                 ModifyFeaturePropertyResponse.class,

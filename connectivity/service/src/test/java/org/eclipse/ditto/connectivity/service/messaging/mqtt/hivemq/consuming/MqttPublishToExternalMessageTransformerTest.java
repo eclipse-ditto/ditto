@@ -27,17 +27,17 @@ import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
 import org.eclipse.ditto.base.model.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.base.model.common.ByteBufferUtils;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
-import org.eclipse.ditto.connectivity.api.EnforcementFactoryFactory;
 import org.eclipse.ditto.connectivity.api.ExternalMessageFactory;
-import org.eclipse.ditto.connectivity.api.placeholders.ConnectivityPlaceholders;
 import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
 import org.eclipse.ditto.connectivity.model.HeaderMapping;
 import org.eclipse.ditto.connectivity.model.PayloadMapping;
 import org.eclipse.ditto.connectivity.model.Source;
+import org.eclipse.ditto.connectivity.service.EnforcementFactoryFactory;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.MqttHeader;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.message.publish.GenericMqttPublish;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.message.publish.MqttPublishTransformationException;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.message.publish.UserProperty;
+import org.eclipse.ditto.connectivity.service.placeholders.ConnectivityPlaceholders;
 import org.eclipse.ditto.placeholders.PlaceholderFactory;
 import org.eclipse.ditto.placeholders.UnresolvedPlaceholderException;
 import org.junit.Test;
@@ -129,12 +129,14 @@ public final class MqttPublishToExternalMessageTransformerTest {
 
     @Test
     public void newInstanceWithNonNullArgumentsReturnsNotNull() {
-        assertThat(MqttPublishToExternalMessageTransformer.newInstance(SOURCE_ADDRESS, Mockito.mock(Source.class))).isNotNull();
+        assertThat(MqttPublishToExternalMessageTransformer.newInstance(SOURCE_ADDRESS,
+                Mockito.mock(Source.class))).isNotNull();
     }
 
     @Test
     public void transformWithNullGenericMqttPublishThrowsException() {
-        final var underTest = MqttPublishToExternalMessageTransformer.newInstance(SOURCE_ADDRESS, Mockito.mock(Source.class));
+        final var underTest =
+                MqttPublishToExternalMessageTransformer.newInstance(SOURCE_ADDRESS, Mockito.mock(Source.class));
 
         Assertions.assertThatNullPointerException()
                 .isThrownBy(() -> underTest.transform(null))
@@ -144,7 +146,8 @@ public final class MqttPublishToExternalMessageTransformerTest {
 
     @Test
     public void transformMqtt5PublishWithoutSourceEnforcementReturnsExpectedTransformationSuccess() {
-        final var underTest = MqttPublishToExternalMessageTransformer.newInstance(SOURCE_ADDRESS, SOURCE_WITHOUT_ENFORCEMENT);
+        final var underTest =
+                MqttPublishToExternalMessageTransformer.newInstance(SOURCE_ADDRESS, SOURCE_WITHOUT_ENFORCEMENT);
 
         final var transformationResult = underTest.transform(GenericMqttPublish.ofMqtt5Publish(Mqtt5Publish.builder()
                 .topic(MQTT_TOPIC)

@@ -99,7 +99,8 @@ public final class DefaultAuthenticationConfig implements AuthenticationConfig, 
 
     @Override
     public int hashCode() {
-        return Objects.hash(preAuthenticationEnabled, httpProxyConfig, devOpsConfig, oAuthConfig);
+        return Objects.hash(preAuthenticationEnabled, httpProxyConfig,
+                devOpsConfig, oAuthConfig);
     }
 
     @Override

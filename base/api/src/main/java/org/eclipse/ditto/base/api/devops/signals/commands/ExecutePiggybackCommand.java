@@ -20,16 +20,16 @@ import java.util.function.Predicate;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.json.JsonField;
-import org.eclipse.ditto.json.JsonFieldDefinition;
-import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.json.JsonParsableCommand;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.signals.commands.CommandJsonDeserializer;
+import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonField;
+import org.eclipse.ditto.json.JsonFieldDefinition;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonObjectBuilder;
 
 /**
  * Command to execute an arbitrary wrapped Command which is included "piggyback" in this {@link DevOpsCommand}.
@@ -63,10 +63,14 @@ public final class ExecutePiggybackCommand extends AbstractDevOpsCommand<Execute
      */
     public static final String TYPE = TYPE_PREFIX + NAME;
 
-    public static final JsonFieldDefinition<String> JSON_TARGET_ACTORSELECTION =
+    private static final JsonFieldDefinition<String> JSON_TARGET_ACTORSELECTION =
             JsonFactory.newStringFieldDefinition("targetActorSelection", FieldType.REGULAR,
                     JsonSchemaVersion.V_2);
-    public static final JsonFieldDefinition<JsonObject> JSON_PIGGYBACK_COMMAND =
+
+    private static final JsonFieldDefinition<JsonObject> JSON_HEADERS =
+            JsonFactory.newJsonObjectFieldDefinition("headers", FieldType.REGULAR,
+                    JsonSchemaVersion.V_2);
+    private static final JsonFieldDefinition<JsonObject> JSON_PIGGYBACK_COMMAND =
             JsonFactory.newJsonObjectFieldDefinition("piggybackCommand", FieldType.REGULAR,
                     JsonSchemaVersion.V_2);
 
@@ -154,9 +158,13 @@ public final class ExecutePiggybackCommand extends AbstractDevOpsCommand<Execute
             final String serviceName = jsonObject.getValue(DevOpsCommand.JsonFields.JSON_SERVICE_NAME).orElse(null);
             final String instance = jsonObject.getValue(DevOpsCommand.JsonFields.JSON_INSTANCE).orElse(null);
             final String targetActorSelection = jsonObject.getValueOrThrow(JSON_TARGET_ACTORSELECTION);
+            final JsonObject dittoHeadersObj = jsonObject.getValueOrThrow(JSON_HEADERS);
+            final DittoHeaders combinedDittoHeaders = dittoHeaders.toBuilder()
+                    .putHeaders(DittoHeaders.newBuilder(dittoHeadersObj).build())
+                    .build();
             final JsonObject piggybackCommand = jsonObject.getValueOrThrow(JSON_PIGGYBACK_COMMAND);
 
-            return of(serviceName, instance, targetActorSelection, piggybackCommand, dittoHeaders);
+            return of(serviceName, instance, targetActorSelection, piggybackCommand, combinedDittoHeaders);
         });
     }
 
@@ -193,6 +201,7 @@ public final class ExecutePiggybackCommand extends AbstractDevOpsCommand<Execute
 
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         jsonObjectBuilder.set(JSON_TARGET_ACTORSELECTION, targetActorSelection, predicate);
+        jsonObjectBuilder.set(JSON_HEADERS, getDittoHeaders().toJson(), predicate);
         jsonObjectBuilder.set(JSON_PIGGYBACK_COMMAND, piggybackCommand, predicate);
     }
 

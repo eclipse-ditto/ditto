@@ -25,6 +25,11 @@ import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.json.FieldType;
+import org.eclipse.ditto.base.model.json.JsonParsableCommand;
+import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
+import org.eclipse.ditto.base.model.signals.commands.AbstractCommand;
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.json.JsonFactory;
@@ -34,12 +39,7 @@ import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.base.model.json.FieldType;
-import org.eclipse.ditto.base.model.json.JsonParsableCommand;
-import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.things.model.ThingId;
-import org.eclipse.ditto.base.model.signals.commands.AbstractCommand;
 import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
 
 /**
@@ -49,9 +49,9 @@ import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
  */
 @Immutable
 @AllValuesAreNonnullByDefault
-@JsonParsableCommand(typePrefix = SudoCommand.TYPE_PREFIX, name = SudoRetrieveThings.NAME)
+@JsonParsableCommand(typePrefix = ThingSudoCommand.TYPE_PREFIX, name = SudoRetrieveThings.NAME)
 public final class SudoRetrieveThings extends AbstractCommand<SudoRetrieveThings>
-        implements SudoCommand<SudoRetrieveThings> {
+        implements ThingSudoCommand<SudoRetrieveThings> {
 
     /**
      * Name of the "Sudo Retrieve Things" command.
@@ -143,7 +143,7 @@ public final class SudoRetrieveThings extends AbstractCommand<SudoRetrieveThings
                 .map(ThingId::of)
                 .collect(Collectors.toList());
 
-        final JsonFieldSelector extractedFieldSelector = jsonObject.getValue(SudoCommand.JsonFields.SELECTED_FIELDS)
+        final JsonFieldSelector extractedFieldSelector = jsonObject.getValue(ThingSudoCommand.JsonFields.SELECTED_FIELDS)
                 .map(str -> JsonFactory.newFieldSelector(str, JsonFactory.newParseOptionsBuilder()
                         .withoutUrlDecoding()
                         .build()))
@@ -185,7 +185,7 @@ public final class SudoRetrieveThings extends AbstractCommand<SudoRetrieveThings
         jsonObjectBuilder.set(JSON_THING_IDS, thingIdsJsonArray, predicate);
 
         if (null != selectedFields) {
-            jsonObjectBuilder.set(SudoCommand.JsonFields.SELECTED_FIELDS, selectedFields.toString(), predicate);
+            jsonObjectBuilder.set(ThingSudoCommand.JsonFields.SELECTED_FIELDS, selectedFields.toString(), predicate);
         }
     }
 

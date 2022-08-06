@@ -150,7 +150,7 @@ public final class ImplicitThingCreationMessageMapperTest {
 
         final Thing expectedThing = createExpectedThing(DEVICE_ID, DEVICE_ID, GATEWAY_ID);
         assertThat(createThing.getThing().getEntityId()).isEqualTo(expectedThing.getEntityId());
-        assertThat(createThing.getThing().getPolicyEntityId()).isEmpty();
+        assertThat(createThing.getThing().getPolicyId()).isEmpty();
         assertThat(createThing.getThing().getAttributes()).isEqualTo(expectedThing.getAttributes());
         assertThat(createThing.getDittoHeaders().get("other-test-header")).isEqualTo(GATEWAY_ID);
         assertThat(createThing.getDittoHeaders().get("test-header")).isEqualTo("this-is-a-test-header");
@@ -174,7 +174,7 @@ public final class ImplicitThingCreationMessageMapperTest {
 
         final Thing expectedThing = createExpectedThing(DEVICE_ID, DEVICE_ID, GATEWAY_ID);
         assertThat(createThing.getThing().getEntityId()).isEqualTo(expectedThing.getEntityId());
-        assertThat(createThing.getThing().getPolicyEntityId()).isEmpty();
+        assertThat(createThing.getThing().getPolicyId()).isEmpty();
         assertThat(createThing.getThing().getAttributes()).isEqualTo(expectedThing.getAttributes());
         assertThat(createThing.getPolicyIdOrPlaceholder()).contains(GATEWAY_ID);
         assertThat(createThing.getDittoHeaders().isAllowPolicyLockout()).isFalse();
@@ -196,7 +196,7 @@ public final class ImplicitThingCreationMessageMapperTest {
 
         final Thing expectedThing = createExpectedThing(DEVICE_ID, DEVICE_ID, GATEWAY_ID);
         assertThat(createThing.getThing().getEntityId()).isEqualTo(expectedThing.getEntityId());
-        assertThat(createThing.getThing().getPolicyEntityId()).isEqualTo(expectedThing.getPolicyEntityId());
+        assertThat(createThing.getThing().getPolicyId()).isEqualTo(expectedThing.getPolicyId());
         assertThat(createThing.getThing().getAttributes()).isEqualTo(expectedThing.getAttributes());
         assertThat(createThing.getInitialPolicy()).contains(INITIAL_POLICY);
         assertThat(createThing.getDittoHeaders().isAllowPolicyLockout()).isFalse();
@@ -223,7 +223,7 @@ public final class ImplicitThingCreationMessageMapperTest {
                 createExpectedThing("headerNamespace:headerDeviceId1", "headerNamespace:headerDeviceId1",
                         GATEWAY_ID);
         assertThat(createThing1.getThing().getEntityId()).isEqualTo(expectedThing1.getEntityId());
-        assertThat(createThing1.getThing().getPolicyEntityId()).isEqualTo(expectedThing1.getPolicyEntityId());
+        assertThat(createThing1.getThing().getPolicyId()).isEqualTo(expectedThing1.getPolicyId());
         assertThat(createThing1.getThing().getAttributes()).isEqualTo(expectedThing1.getAttributes());
         assertThat(createThing1.getInitialPolicy()).contains(INITIAL_POLICY);
 
@@ -243,7 +243,7 @@ public final class ImplicitThingCreationMessageMapperTest {
                 createExpectedThing("headerNamespace:headerDeviceId2", "headerNamespace:headerDeviceId2",
                         GATEWAY_ID);
         assertThat(createThing2.getThing().getEntityId()).isEqualTo(expectedThing2.getEntityId());
-        assertThat(createThing2.getThing().getPolicyEntityId()).isEqualTo(expectedThing2.getPolicyEntityId());
+        assertThat(createThing2.getThing().getPolicyId()).isEqualTo(expectedThing2.getPolicyId());
         assertThat(createThing2.getThing().getAttributes()).isEqualTo(expectedThing2.getAttributes());
         assertThat(createThing2.getInitialPolicy()).contains(INITIAL_POLICY);
     }
@@ -264,7 +264,7 @@ public final class ImplicitThingCreationMessageMapperTest {
         final Thing expectedThing =
                 createExpectedThing("some:validThingId!", "some:validPolicyId!", "some:validGatewayId!");
         assertThat(createThing.getThing().getEntityId()).isEqualTo(expectedThing.getEntityId());
-        assertThat(createThing.getThing().getPolicyEntityId()).isEqualTo(expectedThing.getPolicyEntityId());
+        assertThat(createThing.getThing().getPolicyId()).isEqualTo(expectedThing.getPolicyId());
     }
 
     @Test

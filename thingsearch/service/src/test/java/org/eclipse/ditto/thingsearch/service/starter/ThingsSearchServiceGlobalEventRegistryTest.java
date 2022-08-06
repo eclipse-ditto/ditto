@@ -17,13 +17,20 @@ import org.eclipse.ditto.internal.utils.test.GlobalEventRegistryTestCases;
 import org.eclipse.ditto.policies.model.signals.events.ResourceDeleted;
 import org.eclipse.ditto.things.api.ThingSnapshotTaken;
 import org.eclipse.ditto.things.model.signals.events.FeatureDeleted;
-import org.eclipse.ditto.thingsearch.model.signals.events.ThingsOutOfSync;
+import org.eclipse.ditto.thingsearch.api.events.ThingsOutOfSync;
+import org.eclipse.ditto.thingsearch.model.signals.events.SubscriptionCreated;
 
 public final class ThingsSearchServiceGlobalEventRegistryTest extends GlobalEventRegistryTestCases {
 
     public ThingsSearchServiceGlobalEventRegistryTest() {
-        super(ResourceDeleted.class, FeatureDeleted.class, ThingsOutOfSync.class, ThingSnapshotTaken.class,
-                ConnectionModified.class);
+        super(
+                ResourceDeleted.class,
+                FeatureDeleted.class,
+                SubscriptionCreated.class,
+                ThingsOutOfSync.class,
+                ThingSnapshotTaken.class,
+                ConnectionModified.class
+        );
     }
 
 }

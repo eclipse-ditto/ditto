@@ -29,12 +29,12 @@ import org.eclipse.ditto.json.JsonObject;
  */
 @Immutable
 @JsonParsableException(errorCode = TooManyRequestsException.ERROR_CODE)
-public final class TooManyRequestsException extends DittoRuntimeException {
+public final class TooManyRequestsException extends DittoRuntimeException implements GeneralException {
 
     /**
      * Error code of this exception.
      */
-    public static final String ERROR_CODE = "too.many.requests";
+    public static final String ERROR_CODE = ERROR_CODE_PREFIX + "too.many.requests";
 
     /**
      * Retry-After header specified by RFC-6585 SS.4.

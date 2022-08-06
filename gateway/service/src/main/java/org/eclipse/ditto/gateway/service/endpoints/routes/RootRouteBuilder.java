@@ -15,6 +15,7 @@ package org.eclipse.ditto.gateway.service.endpoints.routes;
 import java.util.Collection;
 
 import org.eclipse.ditto.base.model.headers.DittoHeadersSizeChecker;
+import org.eclipse.ditto.base.model.headers.translator.HeaderTranslator;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.gateway.service.endpoints.directives.auth.GatewayAuthenticationDirective;
 import org.eclipse.ditto.gateway.service.endpoints.routes.cloudevents.CloudEventsRoute;
@@ -28,7 +29,6 @@ import org.eclipse.ditto.gateway.service.endpoints.routes.things.ThingsRoute;
 import org.eclipse.ditto.gateway.service.endpoints.routes.thingsearch.ThingSearchRoute;
 import org.eclipse.ditto.gateway.service.endpoints.routes.websocket.WebSocketRouteBuilder;
 import org.eclipse.ditto.gateway.service.endpoints.routes.whoami.WhoamiRoute;
-import org.eclipse.ditto.protocol.HeaderTranslator;
 import org.eclipse.ditto.internal.utils.health.routes.StatusRoute;
 import org.eclipse.ditto.internal.utils.protocol.ProtocolAdapterProvider;
 
@@ -186,7 +186,7 @@ public interface RootRouteBuilder {
      * @param provider the provider to set.
      * @return the Builder to allow method chaining.
      */
-    RootRouteBuilder customApiRoutesProvider(CustomApiRoutesProvider provider);
+    RootRouteBuilder customApiRoutesProvider(CustomApiRoutesProvider provider, RouteBaseProperties routeBaseProperties);
 
     /**
      * Sets the custom headers handler.

@@ -135,7 +135,7 @@ public final class ThingDeleted extends AbstractThingEvent<ThingDeleted> impleme
     }
 
     @Override
-    protected void appendPayloadAndBuild(final JsonObjectBuilder jsonObjectBuilder,
+    protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder,
             final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> predicate) {
         // nothing to add

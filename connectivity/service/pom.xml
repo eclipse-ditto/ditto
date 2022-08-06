@@ -40,10 +40,6 @@
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-concierge-api</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-base-service</artifactId>
         </dependency>
         <dependency>
@@ -59,6 +55,12 @@
             <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-wot-model</artifactId>
         </dependency>
+
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-edge-service</artifactId>
+        </dependency>
+
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-internal-models-acks</artifactId>
@@ -90,6 +92,10 @@
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-internal-utils-aggregator</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-internal-utils-pubsub-things</artifactId>
         </dependency>
 
         <dependency>

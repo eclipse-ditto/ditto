@@ -36,20 +36,28 @@
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-internal-utils-namespaces</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-internal-utils-conditional-headers</artifactId>
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-internal-utils-akka</artifactId>
         </dependency>
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-internal-utils-pubsub</artifactId>
+        </dependency>
 
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-rql-query</artifactId>
+            <artifactId>ditto-policies-api</artifactId>
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-rql-parser</artifactId>
+            <artifactId>ditto-policies-enforcement</artifactId>
         </dependency>
 
         <dependency>
@@ -62,6 +70,11 @@
         </dependency>
 
         <!-- tests -->
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-things-model</artifactId>
+            <scope>test</scope> <!-- only needed for unit test -->
+        </dependency>
         <dependency>
             <groupId>com.typesafe.akka</groupId>
             <artifactId>akka-stream-testkit_${scala.version}</artifactId>
@@ -78,5 +91,37 @@
             <scope>test</scope>
         </dependency>
     </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-enforcer-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>enforce-banned-dependencies</id>
+                        <goals>
+                            <goal>enforce</goal>
+                        </goals>
+                        <configuration>
+                            <rules>
+                                <bannedDependencies>
+                                    <excludes>
+                                        <!-- we don't want to have things-model dependency here -->
+                                        <exclude>org.eclipse.ditto:ditto-things-model</exclude>
+                                    </excludes>
+                                    <includes>
+                                        <include>org.eclipse.ditto:ditto-things-model:*:jar:test</include>
+                                    </includes>
+                                    <message>Persistence actors in general must not depend on Ditto Things model</message>
+                                </bannedDependencies>
+                            </rules>
+                            <fail>true</fail>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
 
 </project>

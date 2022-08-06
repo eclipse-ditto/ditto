@@ -43,9 +43,9 @@ import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
  */
 @Immutable
 @AllValuesAreNonnullByDefault
-@JsonParsableCommand(typePrefix = SudoCommand.TYPE_PREFIX, name = SudoRetrieveThing.NAME)
+@JsonParsableCommand(typePrefix = ThingSudoCommand.TYPE_PREFIX, name = SudoRetrieveThing.NAME)
 public final class SudoRetrieveThing extends AbstractCommand<SudoRetrieveThing>
-        implements SudoCommand<SudoRetrieveThing>, SignalWithEntityId<SudoRetrieveThing> {
+        implements ThingSudoCommand<SudoRetrieveThing>, SignalWithEntityId<SudoRetrieveThing> {
 
     /**
      * Name of the "Sudo Retrieve Thing" command.
@@ -160,9 +160,9 @@ public final class SudoRetrieveThing extends AbstractCommand<SudoRetrieveThing>
      * expected format.
      */
     public static SudoRetrieveThing fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        final String extractedThingId = jsonObject.getValueOrThrow(SudoCommand.JsonFields.JSON_THING_ID);
+        final String extractedThingId = jsonObject.getValueOrThrow(ThingSudoCommand.JsonFields.JSON_THING_ID);
         final ThingId thingId = ThingId.of(extractedThingId);
-        final JsonFieldSelector readFieldSelector = jsonObject.getValue(SudoCommand.JsonFields.SELECTED_FIELDS)
+        final JsonFieldSelector readFieldSelector = jsonObject.getValue(ThingSudoCommand.JsonFields.SELECTED_FIELDS)
                 .map(str -> JsonFactory.newFieldSelector(str, JsonFactory.newParseOptionsBuilder()
                         .withoutUrlDecoding()
                         .build())
@@ -202,11 +202,11 @@ public final class SudoRetrieveThing extends AbstractCommand<SudoRetrieveThing>
             final Predicate<JsonField> thePredicate) {
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
 
-        jsonObjectBuilder.set(SudoCommand.JsonFields.JSON_THING_ID, String.valueOf(thingId), predicate);
+        jsonObjectBuilder.set(ThingSudoCommand.JsonFields.JSON_THING_ID, String.valueOf(thingId), predicate);
         jsonObjectBuilder.set(JSON_USE_ORIGINAL_SCHEMA_VERSION, useOriginalSchemaVersion, predicate);
 
         if (null != selectedFields) {
-            jsonObjectBuilder.set(SudoCommand.JsonFields.SELECTED_FIELDS, selectedFields.toString(), predicate);
+            jsonObjectBuilder.set(ThingSudoCommand.JsonFields.SELECTED_FIELDS, selectedFields.toString(), predicate);
         }
     }
 

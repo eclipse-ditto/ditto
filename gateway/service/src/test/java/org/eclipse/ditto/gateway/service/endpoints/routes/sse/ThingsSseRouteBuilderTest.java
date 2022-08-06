@@ -26,11 +26,11 @@ import org.assertj.core.util.Lists;
 import org.eclipse.ditto.base.model.auth.AuthorizationModelFactory;
 import org.eclipse.ditto.base.model.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayServiceUnavailableException;
+import org.eclipse.ditto.gateway.api.GatewayServiceUnavailableException;
 import org.eclipse.ditto.gateway.service.endpoints.EndpointTestBase;
-import org.eclipse.ditto.gateway.service.streaming.Connect;
-import org.eclipse.ditto.gateway.service.streaming.StartStreaming;
 import org.eclipse.ditto.gateway.service.streaming.actors.SessionedJsonifiable;
+import org.eclipse.ditto.gateway.service.streaming.signals.Connect;
+import org.eclipse.ditto.gateway.service.streaming.signals.StartStreaming;
 import org.eclipse.ditto.internal.utils.pubsub.StreamingType;
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonFieldSelector;
@@ -40,11 +40,13 @@ import org.eclipse.ditto.things.model.ThingFieldSelector;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThing;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThingResponse;
-import org.eclipse.ditto.thingsearch.model.signals.commands.query.StreamThings;
+import org.eclipse.ditto.thingsearch.api.commands.sudo.StreamThings;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
+
+import com.typesafe.config.ConfigFactory;
 
 import akka.actor.ActorSystem;
 import akka.http.javadsl.model.HttpHeader;
@@ -79,7 +81,7 @@ public final class ThingsSseRouteBuilderTest extends EndpointTestBase {
 
     @BeforeClass
     public static void setUpClass() {
-        actorSystem = ActorSystem.create(ThingsSseRouteBuilderTest.class.getSimpleName());
+        actorSystem = ActorSystem.create(ThingsSseRouteBuilderTest.class.getSimpleName(), ConfigFactory.load("test"));
         acceptHeader = HttpHeader.parse("Accept", "text/event-stream");
     }
 
@@ -99,7 +101,7 @@ public final class ThingsSseRouteBuilderTest extends EndpointTestBase {
                 () -> CompletableFuture.completedFuture(dittoHeaders);
 
         final var sseRouteBuilder =
-                ThingsSseRouteBuilder.getInstance(streamingActor.ref(), streamingConfig, proxyActor.ref());
+                ThingsSseRouteBuilder.getInstance(actorSystem, streamingActor.ref(), streamingConfig, proxyActor.ref());
         sseRouteBuilder.withProxyActor(proxyActor.ref());
         final Route sseRoute = extractRequestContext(ctx -> sseRouteBuilder.build(ctx, dittoHeadersSupplier));
         underTest = testRoute(sseRoute);
@@ -261,7 +263,8 @@ public final class ThingsSseRouteBuilderTest extends EndpointTestBase {
                 StartStreaming.getBuilder(StreamingType.MESSAGES, connectionCorrelationId,
                                 AuthorizationModelFactory.newAuthContext(DittoAuthorizationContextType.UNSPECIFIED,
                                         Collections.emptySet()))
-                        .withFilter(String.format("and(eq(entity:id,'%s'),like(resource:path,'%s*'))", thingId, "/inbox/messages"))
+                        .withFilter(String.format("and(eq(entity:id,'%s'),like(resource:path,'%s*'))", thingId,
+                                "/inbox/messages"))
                         .build());
     }
 
@@ -274,7 +277,8 @@ public final class ThingsSseRouteBuilderTest extends EndpointTestBase {
                 StartStreaming.getBuilder(StreamingType.MESSAGES, connectionCorrelationId,
                                 AuthorizationModelFactory.newAuthContext(DittoAuthorizationContextType.UNSPECIFIED,
                                         Collections.emptySet()))
-                        .withFilter(String.format("and(eq(entity:id,'%s'),eq(resource:path,'%s'))", thingId, "/inbox/messages/hello-world"))
+                        .withFilter(String.format("and(eq(entity:id,'%s'),eq(resource:path,'%s'))", thingId,
+                                "/inbox/messages/hello-world"))
                         .build());
     }
 

@@ -25,7 +25,6 @@ import org.eclipse.ditto.base.model.acks.DittoAcknowledgementLabel;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.signals.commands.modify.CreateThing;
-import org.junit.Ignore;
 import org.junit.Test;
 
 /**
@@ -92,12 +91,14 @@ public final class ThingLiveCommandAckRequestSetterTest {
                         AcknowledgementRequest.of(DittoAcknowledgementLabel.SEARCH_PERSISTED))
                 .randomCorrelationId()
                 .build();
-        final CreateThing command = CreateThing.of(Thing.newBuilder().build(), null, dittoHeaders);
+
+        final Thing newThing = Thing.newBuilder().setGeneratedId().build();
+        final CreateThing command = CreateThing.of(newThing, null, dittoHeaders);
         final DittoHeaders expectedHeaders = dittoHeaders.toBuilder()
                 .acknowledgementRequest(AcknowledgementRequest.of(DittoAcknowledgementLabel.LIVE_RESPONSE))
                 .responseRequired(true)
                 .build();
-        final CreateThing expected = CreateThing.of(Thing.newBuilder().build(), null, expectedHeaders);
+        final CreateThing expected = CreateThing.of(newThing, null, expectedHeaders);
         final ThingLiveCommandAckRequestSetter underTest = ThingLiveCommandAckRequestSetter.getInstance();
 
         assertThat(underTest.apply(command)).isEqualTo(expected);

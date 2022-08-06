@@ -15,10 +15,9 @@ package org.eclipse.ditto.thingsearch.service.persistence.write.model;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
-import org.junit.Ignore;
 import org.junit.Test;
 
-import akka.actor.ActorRef;
+import akka.actor.ActorSelection;
 import akka.actor.ActorSystem;
 import akka.testkit.TestProbe;
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -40,7 +39,8 @@ public final class ThingDeleteModelTest extends AbstractWithActorSystemTest {
         final TestProbe probe2 = TestProbe.apply(system);
         EqualsVerifier.forClass(ThingDeleteModel.class)
                 .usingGetClass()
-                .withPrefabValues(ActorRef.class, probe1.ref(), probe2.ref())
+                .withPrefabValues(ActorSelection.class, system.actorSelection(probe1.ref().path()),
+                        system.actorSelection(probe2.ref().path()))
                 .verify();
     }
 

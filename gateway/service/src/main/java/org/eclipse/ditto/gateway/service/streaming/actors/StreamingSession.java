@@ -20,7 +20,7 @@ import javax.annotation.Nullable;
 
 import org.eclipse.ditto.base.model.entity.id.WithEntityId;
 import org.eclipse.ditto.base.model.signals.Signal;
-import org.eclipse.ditto.edge.api.placeholders.EntityIdPlaceholder;
+import org.eclipse.ditto.edge.service.placeholders.EntityIdPlaceholder;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.placeholders.PlaceholderFactory;
