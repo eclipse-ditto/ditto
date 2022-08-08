@@ -18,6 +18,10 @@ import * as Features from './modules/things/features.js';
 import * as Fields from './modules/things/fields.js';
 import * as SearchFilter from './modules/things/searchFilter.js';
 import * as Things from './modules/things/things.js';
+import * as Connections from './modules/connections/connections.js';
+import * as API from './modules/api.js';
+import * as Utils from './modules/utils.js';
+
 
 let resized = false;
 let mainNavbar;
@@ -26,16 +30,20 @@ document.addEventListener('DOMContentLoaded', async function() {
   document.getElementById('thingsHTML').innerHTML = await (await fetch('modules/things/things.html')).text();
   document.getElementById('fieldsHTML').innerHTML = await (await fetch('modules/things/fields.html')).text();
   document.getElementById('featuresHTML').innerHTML = await (await fetch('modules/things/features.html')).text();
+  document.getElementById('connectionsHTML').innerHTML =
+      await (await fetch('modules/connections/connections.html')).text();
   document.getElementById('environmentsHTML').innerHTML =
       await (await fetch('modules/environments/environments.html')).text();
   document.getElementById('authorizationHTML').innerHTML =
       await (await fetch('modules/environments/authorization.html')).text();
 
+  Utils.ready();
   await Things.ready();
   Attributes.ready();
   await Fields.ready();
   await SearchFilter.ready();
   Features.ready();
+  Connections.ready();
   Authorization.ready();
   Environments.ready();
 
@@ -46,12 +54,13 @@ document.addEventListener('DOMContentLoaded', async function() {
     },
   });
 
-  // make top navbar activating
+  // make top navbar activating and setting the right auth header
   mainNavbar = document.getElementById('mainNavbar');
   mainNavbar.querySelectorAll('.nav-link').forEach((e) => {
     e.addEventListener('click', (event) => {
       mainNavbar.querySelectorAll('.nav-link,.active').forEach((n) => n.classList.remove('active'));
       event.currentTarget.classList.add('active');
+      API.setAuthHeader(event.currentTarget.parentNode.id === 'tabConnections');
     });
   });
 
@@ -82,6 +91,4 @@ document.addEventListener('DOMContentLoaded', async function() {
       }
     });
   });
-
-  SearchFilter.performLastSearch();
 });

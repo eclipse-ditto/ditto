@@ -14,6 +14,7 @@ package org.eclipse.ditto.base.model.signals.commands;
 
 import java.util.function.Predicate;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.atteo.classindex.IndexSubclasses;
@@ -21,6 +22,7 @@ import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.signals.Signal;
+import org.eclipse.ditto.base.model.signals.WithType;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
@@ -75,6 +77,53 @@ public interface Command<T extends Command<T>> extends Signal<T> {
     JsonObject toJson(JsonSchemaVersion schemaVersion, Predicate<JsonField> predicate);
 
     /**
+     * Indicates whether the specified signal argument is a live command.
+     *
+     * @param signal the signal to be checked.
+     * @return {@code true} if {@code signal} is an instance of {@link Command} with channel
+     * {@value CHANNEL_LIVE} in its headers, {@code false} else.
+     * @since 3.0.0
+     */
+    static boolean isLiveCommand(@Nullable final Signal<?> signal) {
+        return isMessageCommand(signal) || Command.isCommand(signal) && Signal.isChannelLive(signal);
+    }
+
+    /**
+     * Indicates whether the specified signal argument is a {@code ThingCommand} without requiring a direct dependency
+     * to the things-model.
+     *
+     * @param signal the signal to be checked.
+     * @return {@code true} if {@code signal} is a {@code ThingCommand}, {@code false} else.
+     * @since 3.0.0
+     */
+    static boolean isThingCommand(@Nullable final WithType signal) {
+        return WithType.hasTypePrefix(signal, WithType.THINGS_COMMANDS_PREFIX);
+    }
+
+    /**
+     * Indicates whether the specified signal argument is a {@code MessageCommand} without requiring a direct dependency
+     * to the messages-model.
+     *
+     * @param signal the signal to be checked.
+     * @return {@code true} if {@code signal} is a {@code MessageCommand}, {@code false} else.
+     * @since 3.0.0
+     */
+    static boolean isMessageCommand(@Nullable final WithType signal) {
+        return WithType.hasTypePrefix(signal, WithType.MESSAGES_COMMANDS_PREFIX);
+    }
+
+    /**
+     * Indicates whether the specified signal argument is an instance of {@code Command}.
+     *
+     * @param signal the signal to be checked.
+     * @return {@code true} if {@code signal} is an instance of {@link Command}, {@code false} else.
+     * @since 3.0.0
+     */
+    static boolean isCommand(@Nullable final Signal<?> signal) {
+        return signal instanceof Command;
+    }
+
+    /**
      * Categories every command is classified into.
      */
     @Immutable
@@ -83,6 +132,13 @@ public interface Command<T extends Command<T>> extends Signal<T> {
          * Category of commands that do not change the state of any entity.
          */
         QUERY,
+
+        /**
+         * Category of commands that creates entities.
+         *
+         * @since 3.0.0
+         */
+        CREATE,
 
         /**
          * Category of commands that change the state of entities.
@@ -103,7 +159,18 @@ public interface Command<T extends Command<T>> extends Signal<T> {
          * Category of commands that are neither of the above 3 (query, modify, delete) but perform an action on the
          * entity.
          */
-        ACTION
+        ACTION;
+
+        /**
+         * Determines whether the passed {@code category} effectively modifies the targeted entity.
+         *
+         * @param category the category to check.
+         * @return whether the passed {@code category} effectively modifies the targeted entity.
+         * @since 3.0.0
+         */
+        public static boolean isEntityModifyingCommand(final Category category) {
+            return category == CREATE || category == MODIFY || category == MERGE || category == DELETE;
+        }
     }
 
     /**

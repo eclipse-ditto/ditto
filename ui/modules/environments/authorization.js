@@ -23,28 +23,37 @@ let dom = {
   password: null,
   devOpsUserName: null,
   devOpsPassword: null,
+  dittoPreAuthenticatedUsername: null,
+  collapseConnections: null,
 };
 
 export function ready() {
-  Environments.addChangeListener(onEnvironmentChanged);
-
   Utils.getAllElementsById(dom);
 
   document.getElementById('authorizeBearer').onclick = () => {
     Environments.current().useBasicAuth = false;
+    Environments.current().useDittoPreAuthenticatedAuth = false;
     Environments.current().bearer = dom.bearer.value;
     Environments.environmentsJsonChanged();
   };
 
   document.getElementById('authorizeBasic').onclick = () => {
     Environments.current().useBasicAuth = true;
+    Environments.current().useDittoPreAuthenticatedAuth = false;
     Environments.current().usernamePassword = dom.userName.value + ':' + dom.password.value;
     Environments.current().usernamePasswordDevOps = dom.devOpsUserName.value + ':' + dom.devOpsPassword.value;
     Environments.environmentsJsonChanged();
   };
+
+  document.getElementById('authorizePreAuthenticated').onclick = () => {
+    Environments.current().useBasicAuth = false;
+    Environments.current().useDittoPreAuthenticatedAuth = true;
+    Environments.current().dittoPreAuthenticatedUsername = dom.dittoPreAuthenticatedUsername.value;
+    Environments.environmentsJsonChanged();
+  };
 };
 
-function onEnvironmentChanged() {
+export function onEnvironmentChanged() {
   let usernamePassword = Environments.current().usernamePassword ? Environments.current().usernamePassword : ':';
   dom.userName.value = usernamePassword.split(':')[0];
   dom.password.value = usernamePassword.split(':')[1];
@@ -54,5 +63,8 @@ function onEnvironmentChanged() {
   dom.devOpsUserName.value = usernamePassword.split(':')[0];
   dom.devOpsPassword.value = usernamePassword.split(':')[1];
   dom.bearer.value = Environments.current().bearer ? Environments.current().bearer : '';
-  API.setAuthHeader();
+  dom.dittoPreAuthenticatedUsername.value = Environments.current().dittoPreAuthenticatedUsername ?
+                                            Environments.current().dittoPreAuthenticatedUsername :
+                                            '';
+  API.setAuthHeader(dom.collapseConnections.classList.contains('show'));
 };

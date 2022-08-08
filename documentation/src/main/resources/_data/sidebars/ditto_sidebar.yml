@@ -159,6 +159,9 @@ entries:
           - title: Operating Ditto
             url: /installation-operating.html
             output: web
+          - title: Extending Ditto
+            url: /installation-extending.html
+            output: web
 
       - title: Basic concepts
         output: web
@@ -291,9 +294,6 @@ entries:
                     output: web
                   - title: Connectivity
                     url: /architecture-services-connectivity.html
-                    output: web
-                  - title: Concierge
-                    url: /architecture-services-concierge.html
                     output: web
                   - title: Gateway
                     url: /architecture-services-gateway.html

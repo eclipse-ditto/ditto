@@ -29,10 +29,7 @@
             <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-base-model</artifactId>
         </dependency>
-        <dependency>
-            <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-messages-model</artifactId>
-        </dependency>
+
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-internal-utils-config</artifactId>
@@ -43,7 +40,19 @@
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-internal-utils-persistence</artifactId>
+            <artifactId>ditto-internal-utils-tracing</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-internal-utils-health</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-internal-utils-cluster</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-internal-utils-extension</artifactId>
         </dependency>
 
         <dependency>
@@ -105,6 +114,14 @@
         <dependency>
             <groupId>io.kamon</groupId>
             <artifactId>kamon-opentelemetry_${scala.version}</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-placeholders</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-policies-model</artifactId>
         </dependency>
 
         <!-- test scope -->

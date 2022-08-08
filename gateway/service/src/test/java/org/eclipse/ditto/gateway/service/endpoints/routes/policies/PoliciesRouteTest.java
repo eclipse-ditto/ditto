@@ -106,7 +106,7 @@ public final class PoliciesRouteTest extends EndpointTestBase {
     public void postPolicy() {
         getRoute(getPreAuthResult()).run(HttpRequest.POST("/policies")
                         .withEntity(APPLICATION_JSON, DUMMY_POLICY))
-                .assertStatusCode(StatusCodes.NOT_FOUND);
+                .assertStatusCode(StatusCodes.OK);
     }
 
     @Test

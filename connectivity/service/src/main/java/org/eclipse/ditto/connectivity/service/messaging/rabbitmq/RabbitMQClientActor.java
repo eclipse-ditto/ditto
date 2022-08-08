@@ -94,12 +94,12 @@ public final class RabbitMQClientActor extends BaseClientActor {
      */
     @SuppressWarnings("unused")
     private RabbitMQClientActor(final Connection connection,
-            final ActorRef proxyActor,
+            final ActorRef commandForwarderActor,
             final ActorRef connectionActor,
             final DittoHeaders dittoHeaders,
             final Config connectivityOverwritesConfig) {
 
-        super(connection, proxyActor, connectionActor, dittoHeaders, connectivityOverwritesConfig);
+        super(connection, commandForwarderActor, connectionActor, dittoHeaders, connectivityOverwritesConfig);
 
         rabbitConnectionFactoryFactory =
                 ConnectionBasedRabbitConnectionFactoryFactory.getInstance(this::getSshTunnelState);
@@ -131,18 +131,18 @@ public final class RabbitMQClientActor extends BaseClientActor {
      * Creates Akka configuration object for this actor.
      *
      * @param connection the connection.
-     * @param proxyActor the actor used to send signals into the ditto cluster.
+     * @param commandForwarderActor the actor used to send signals into the ditto cluster.
      * @param connectionActor the connectionPersistenceActor which created this client.
      * @param dittoHeaders headers of the command that caused this actor to be created.
      * @param connectivityOverwritesConfig the overwrites for the connectivity config for the given connection.
      * @return the Akka configuration Props object.
      */
-    public static Props props(final Connection connection, final ActorRef proxyActor,
+    public static Props props(final Connection connection, final ActorRef commandForwarderActor,
             final ActorRef connectionActor,
             final DittoHeaders dittoHeaders,
             final Config connectivityOverwritesConfig) {
 
-        return Props.create(RabbitMQClientActor.class, validateConnection(connection), proxyActor,
+        return Props.create(RabbitMQClientActor.class, validateConnection(connection), commandForwarderActor,
                 connectionActor, dittoHeaders, connectivityOverwritesConfig);
     }
 

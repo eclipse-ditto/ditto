@@ -34,12 +34,12 @@ import org.eclipse.ditto.rql.parser.thingsearch.RqlOptionParser;
 import org.eclipse.ditto.rql.query.expression.ThingsFieldExpressionFactory;
 import org.eclipse.ditto.rql.query.things.ModelBasedThingsFieldExpressionFactory;
 import org.eclipse.ditto.things.model.Thing;
+import org.eclipse.ditto.thingsearch.api.commands.sudo.StreamThings;
 import org.eclipse.ditto.thingsearch.model.Option;
 import org.eclipse.ditto.thingsearch.model.SizeOption;
 import org.eclipse.ditto.thingsearch.model.SortOption;
 import org.eclipse.ditto.thingsearch.model.SortOptionEntry;
 import org.eclipse.ditto.thingsearch.model.signals.commands.exceptions.InvalidOptionException;
-import org.eclipse.ditto.thingsearch.model.signals.commands.query.StreamThings;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSelection;
@@ -55,7 +55,7 @@ public final class SearchSourceBuilder {
             SortOption.of(List.of(SortOptionEntry.asc(Thing.JsonFields.ID.getPointer())));
 
     private ActorRef pubSubMediator;
-    private ActorSelection conciergeForwarder;
+    private ActorSelection commandForwarder;
     private JsonFieldSelector fields;
     private JsonFieldSelector sortFields;
     private String filter;
@@ -81,7 +81,7 @@ public final class SearchSourceBuilder {
         final StreamThings streamThings = constructStreamThings();
         return new SearchSource(
                 checkNotNull(pubSubMediator, "pubSubMediator"),
-                checkNotNull(conciergeForwarder, "conciergeForwarder"),
+                checkNotNull(commandForwarder, "commandForwarder"),
                 thingsAskTimeout,
                 searchAskTimeout,
                 fields,
@@ -102,13 +102,13 @@ public final class SearchSourceBuilder {
     }
 
     /**
-     * Set the concierge forwarder to send commands.
+     * Set the forwarder to forward commands.
      *
-     * @param conciergeForwarder the concierge forwarder.
+     * @param commandForwarder the forwarder.
      * @return this builder.
      */
-    public SearchSourceBuilder conciergeForwarder(final ActorSelection conciergeForwarder) {
-        this.conciergeForwarder = conciergeForwarder;
+    public SearchSourceBuilder commandForwarder(final ActorSelection commandForwarder) {
+        this.commandForwarder = commandForwarder;
         return this;
     }
 
@@ -316,8 +316,8 @@ public final class SearchSourceBuilder {
         }
         checkForUnsupportedOptions(parsedOptions);
         final List<SortOption> sortOptions = parsedOptions.stream()
-                .flatMap(option -> option instanceof SortOption
-                        ? Stream.of((SortOption) option)
+                .flatMap(option -> option instanceof SortOption sortOption
+                        ? Stream.of(sortOption)
                         : Stream.empty()
                 )
                 .toList();

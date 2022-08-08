@@ -5,83 +5,6 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: concierge
-  labels:
-    app: concierge
-spec:
-  selector:
-    matchLabels:
-      app: concierge
-  replicas: 1
-  template:
-    metadata:
-      labels:
-        app: concierge
-        actorSystemName: ditto-cluster
-    spec:
-      restartPolicy: Always
-      containers:
-      - name: concierge
-        image: docker.io/eclipse/ditto-concierge:lastest
-        imagePullPolicy: IfNotPresent
-        args:
-          - "java"
-          - "-jar"
-          - "/opt/ditto/starter.jar"
-        ports:
-        - name: remoting
-          containerPort: 2551
-          protocol: TCP
-        - name: management
-          containerPort: 8558
-          protocol: TCP
-        readinessProbe:
-          httpGet:
-            port: management
-            path: /ready
-          initialDelaySeconds: 45
-          periodSeconds: 10
-        livenessProbe:
-          httpGet:
-            port: management
-            path: /alive
-          initialDelaySeconds: 180
-          periodSeconds: 10
-          timeoutSeconds: 3
-          failureThreshold: 4
-        resources:
-          requests:
-            memory: "512Mi"
-          limits:
-            # cpu: "" no cpu limit to avoid CFS scheduler limits see https://doc.akka.io/docs/akka/snapshot/additional/deploy.html#in-kubernetes
-            memory: "512Mi"
-        env:
-        - name: INSTANCE_INDEX
-          valueFrom:
-            fieldRef:
-              apiVersion: v1
-              fieldPath: metadata.name
-        - name: HOSTNAME
-          valueFrom:
-            fieldRef:
-              apiVersion: v1
-              fieldPath: status.podIP
-        - name: DISCOVERY_METHOD
-          value: "kubernetes-api"
-          # namespace in which the Ditto service is running according to this the pod-reader-role have to be created in the same namespace
-        - name: TZ
-          value: "Europe/Berlin"
-        - name: JAVA_TOOL_OPTIONS
-          value: "-XX:+ExitOnOutOfMemoryError -XX:+UseContainerSupport -XX:+UseStringDeduplication -Xss512k -XX:MaxRAMPercentage=75 -XX:+UseG1GC -XX:MaxGCPauseMillis=150 -Dakka.coordinated-shutdown.exit-jvm=on -Dakka.cluster.shutdown-after-unsuccessful-join-seed-nodes=60s -Dakka.cluster.failure-detector.threshold=15.0 -Dakka.cluster.failure-detector.expected-response-after=3s -Dakka.cluster.failure-detector.acceptable-heartbeat-pause=7s"
-        - name: MONGO_DB_URI
-          valueFrom:
-            secretKeyRef:
-              name: mongodb-uri
-              key: mongodb-uri
----
-apiVersion: apps/v1
-kind: Deployment
-metadata:
   name: connectivity
   labels:
     app: connectivity
@@ -438,7 +361,7 @@ spec:
             memory: "512Mi"
         env:
           - name: ENABLE_PRE_AUTHENTICATION
-          value: "true"
+            value: "true"
         - name: INSTANCE_INDEX
           valueFrom:
             fieldRef:
@@ -455,7 +378,7 @@ spec:
         - name: BIND_HOSTNAME
           value: 0.0.0.0
         - name: TZ
-          value: "Europe/Berlin"∆
+          value: "Europe/Berlin"
         - name: JAVA_TOOL_OPTIONS
           value: "-XX:+ExitOnOutOfMemoryError -XX:+UseContainerSupport -XX:+UseStringDeduplication -Xss512k -XX:MaxRAMPercentage=75 -XX:+UseG1GC -XX:MaxGCPauseMillis=150 -Dakka.coordinated-shutdown.exit-jvm=on -Dakka.cluster.shutdown-after-unsuccessful-join-seed-nodes=60s -Dakka.cluster.failure-detector.threshold=15.0 -Dakka.cluster.failure-detector.expected-response-after=3s -Dakka.cluster.failure-detector.acceptable-heartbeat-pause=7s"
         - name: DEVOPS_PASSWORD

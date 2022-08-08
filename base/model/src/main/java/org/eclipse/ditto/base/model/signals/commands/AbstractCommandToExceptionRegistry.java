@@ -47,12 +47,7 @@ public abstract class AbstractCommandToExceptionRegistry<C extends Command<?>, T
 
     @Override
     public T exceptionFrom(final C command) {
-        final Function<C, T> mapper = mappingStrategies.get(command.getType());
-        if (mapper != null) {
-            return mapper.apply(command);
-        } else {
-            return fallback(command);
-        }
+        return mappingStrategies.getOrDefault(command.getType(), this::fallback).apply(command);
     }
 
 }

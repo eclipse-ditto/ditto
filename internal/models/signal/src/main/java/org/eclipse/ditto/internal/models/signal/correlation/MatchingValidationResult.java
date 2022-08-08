@@ -22,8 +22,6 @@ import java.util.function.Predicate;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.base.model.entity.id.EntityId;
-import org.eclipse.ditto.base.model.entity.type.EntityType;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
@@ -127,7 +125,7 @@ public abstract class MatchingValidationResult {
 
         private final Command<?> command;
         private final CommandResponse<?> commandResponse;
-        @Nullable private final EntityId connectionId;
+        @Nullable private final String connectionId;
         private final String detailMessage;
 
         private Failure(final Command<?> command,
@@ -137,30 +135,15 @@ public abstract class MatchingValidationResult {
             this.command = checkNotNull(command, "command");
             this.commandResponse = checkNotNull(commandResponse, "commandResponse");
 
-            /*
-             * Initialising connection ID in constructor already to throw
-             * a possible ConnectionIdInvalidException only once and that
-             * at construction time.
-             * Connection ID in DittoHeaders could be invalid as it gets not
-             * validated by DittoHeaders.
-             */
             connectionId = getConnectionId(commandResponse).orElse(null);
             this.detailMessage = checkArgument(checkNotNull(detailMessage, "detailMessage"),
                     Predicate.not(String::isBlank),
                     () -> "The detailMessage must not be blank.");
         }
 
-        private static Optional<EntityId> getConnectionId(final CommandResponse<?> commandResponse) {
-            final Optional<EntityId> result;
+        private static Optional<String> getConnectionId(final CommandResponse<?> commandResponse) {
             final var responseDittoHeaders = commandResponse.getDittoHeaders();
-            final var connectionIdString = responseDittoHeaders.get(DittoHeaderDefinition.CONNECTION_ID.getKey());
-            if (null != connectionIdString) {
-                result = Optional.of(EntityId.of(EntityType.of("connection"), connectionIdString));
-            } else {
-                result = Optional.empty();
-            }
-
-            return result;
+            return Optional.ofNullable(responseDittoHeaders.get(DittoHeaderDefinition.CONNECTION_ID.getKey()));
         }
 
         @Override
@@ -205,7 +188,7 @@ public abstract class MatchingValidationResult {
          *
          * @return the connection ID.
          */
-        public Optional<EntityId> getConnectionId() {
+        public Optional<String> getConnectionId() {
             return Optional.ofNullable(connectionId);
         }
 

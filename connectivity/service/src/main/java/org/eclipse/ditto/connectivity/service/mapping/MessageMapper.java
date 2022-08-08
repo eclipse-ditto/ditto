@@ -19,6 +19,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.connectivity.api.ExternalMessage;
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.MessageMapperConfigurationInvalidException;
@@ -80,6 +81,14 @@ public interface MessageMapper {
     List<Adaptable> map(ExternalMessage message);
 
     /**
+     * Lets the mapper implementation calculate additional DittoHeaders to set for an incoming inbound
+     * {@code externalMessage}.
+     *
+     * @return the additional DittoHeaders to inject.
+     */
+    DittoHeaders getAdditionalInboundHeaders(ExternalMessage message);
+
+    /**
      * Maps an {@link Adaptable} to an {@link ExternalMessage}
      *
      * @param adaptable the Adaptable to map
@@ -136,4 +145,5 @@ public interface MessageMapper {
                 .findFirst()
                 .map(Map.Entry::getValue);
     }
+
 }

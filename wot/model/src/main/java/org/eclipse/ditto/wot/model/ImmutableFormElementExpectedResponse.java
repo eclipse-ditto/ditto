@@ -12,9 +12,9 @@
  */
 package org.eclipse.ditto.wot.model;
 
-import java.util.Objects;
 import java.util.Optional;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonObject;
@@ -23,12 +23,16 @@ import org.eclipse.ditto.json.JsonObject;
  * Immutable implementation of {@link FormElementExpectedResponse}.
  */
 @Immutable
-final class ImmutableFormElementExpectedResponse implements FormElementExpectedResponse {
-
-    private final JsonObject wrappedObject;
+final class ImmutableFormElementExpectedResponse extends AbstractTypedJsonObject<FormElementExpectedResponse>
+        implements FormElementExpectedResponse {
 
     ImmutableFormElementExpectedResponse(final JsonObject wrappedObject) {
-        this.wrappedObject = wrappedObject;
+        super(wrappedObject);
+    }
+
+    @Override
+    protected FormElementExpectedResponse createInstance(final JsonObject newWrapped) {
+        return new ImmutableFormElementExpectedResponse(newWrapped);
     }
 
     @Override
@@ -42,26 +46,13 @@ final class ImmutableFormElementExpectedResponse implements FormElementExpectedR
     }
 
     @Override
-    public boolean equals(final Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
-        final ImmutableFormElementExpectedResponse that = (ImmutableFormElementExpectedResponse) o;
-        return Objects.equals(wrappedObject, that.wrappedObject);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(wrappedObject);
+    protected boolean canEqual(@Nullable final Object other) {
+        return other instanceof ImmutableFormElementExpectedResponse;
     }
 
     @Override
     public String toString() {
-        return getClass().getSimpleName() + "[" +
-                "wrappedObject=" + wrappedObject +
-                "]";
+        return getClass().getSimpleName() + "[" + super.toString() + "]";
     }
+
 }

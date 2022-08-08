@@ -16,10 +16,10 @@ import java.util.Optional;
 
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.gateway.api.GatewayAuthenticationFailedException;
+import org.eclipse.ditto.gateway.service.security.utils.HttpUtils;
 import org.eclipse.ditto.jwt.model.ImmutableJsonWebToken;
 import org.eclipse.ditto.jwt.model.JsonWebToken;
-import org.eclipse.ditto.gateway.service.security.utils.HttpUtils;
-import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayAuthenticationFailedException;
 
 import akka.http.javadsl.server.RequestContext;
 

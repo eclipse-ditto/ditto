@@ -22,7 +22,9 @@ import java.util.stream.Collectors;
 import org.eclipse.ditto.base.model.acks.AcknowledgementLabel;
 import org.eclipse.ditto.base.model.acks.AcknowledgementRequest;
 import org.eclipse.ditto.base.model.entity.id.EntityId;
+import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.signals.SignalWithEntityId;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgements;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
@@ -40,6 +42,7 @@ import org.eclipse.ditto.json.JsonValue;
 
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
+import akka.actor.ActorSelection;
 import akka.actor.Props;
 import akka.cluster.ddata.Key;
 import akka.cluster.ddata.ORMultiMap;
@@ -156,7 +159,17 @@ public final class Publisher extends AbstractActor {
                 .toList();
 
         if (!labelsWithoutAuthorizedSubscribers.isEmpty()) {
-            getSender().tell(publishWithAck.toWeakAcks(labelsWithoutAuthorizedSubscribers), ActorRef.noSender());
+            final Acknowledgements weakAcks = publishWithAck.toWeakAcks(labelsWithoutAuthorizedSubscribers);
+            final String ackregatorAddress = publishWithAck.getDittoHeaders()
+                    .get(DittoHeaderDefinition.DITTO_ACKREGATOR_ADDRESS.getKey());
+            if (null != ackregatorAddress) {
+                final ActorSelection acknowledgementRequester = getContext().actorSelection(ackregatorAddress);
+                acknowledgementRequester.tell(weakAcks, ActorRef.noSender());
+            } else {
+                log.withCorrelationId(publishWithAck)
+                        .error("Issuing weak Acknowledgements to acknowledgement aggregator failed because " +
+                                "ackgregator address was missing from headers: {}", publishWithAck.getDittoHeaders());
+            }
         }
     }
 
@@ -185,6 +198,7 @@ public final class Publisher extends AbstractActor {
     }
 
     private void topicSubscribersChanged(final Replicator.Changed<?> event) {
+        log.debug("Topics changed <{}>", event.key());
         final Map<ActorRef, scala.collection.immutable.Set<String>> mmap =
                 CollectionConverters.asJava(((ORMultiMap<ActorRef, String>) event.dataValue()).entries());
         final Map<ActorRef, List<Grouped<Long>>> deserializedMMap = mmap.entrySet()
@@ -209,7 +223,7 @@ public final class Publisher extends AbstractActor {
     /**
      * Requests to a publisher actor.
      */
-    public interface Request {}
+    public interface Request extends WithDittoHeaders {}
 
     /**
      * Request for the publisher to publish a message.
@@ -223,6 +237,11 @@ public final class Publisher extends AbstractActor {
         private Publish(final Collection<String> topics, final SignalWithEntityId<?> message) {
             this.topics = topics;
             this.message = message;
+        }
+
+        @Override
+        public DittoHeaders getDittoHeaders() {
+            return message.getDittoHeaders();
         }
     }
 
@@ -254,6 +273,11 @@ public final class Publisher extends AbstractActor {
 
         private Acknowledgements toWeakAcks(final Collection<AcknowledgementLabel> ackLabels) {
             return ACK_EXTRACTOR.toWeakAcknowledgements(this, ackLabels);
+        }
+
+        @Override
+        public DittoHeaders getDittoHeaders() {
+            return dittoHeaders;
         }
     }
 }

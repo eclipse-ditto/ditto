@@ -38,7 +38,6 @@ configuration files of Ditto's microservices:
 * Policies: [policies.conf](https://github.com/eclipse/ditto/blob/master/policies/service/src/main/resources/policies.conf)
 * Things: [things.conf](https://github.com/eclipse/ditto/blob/master/things/service/src/main/resources/things.conf)
 * Things-Search: [things-search.conf](https://github.com/eclipse/ditto/blob/master/thingsearch/service/src/main/resources/things-search.conf)
-* Concierge: [concierge.conf](https://github.com/eclipse/ditto/blob/master/concierge/service/src/main/resources/concierge.conf)
 * Connectivity: [connectivity.conf](https://github.com/eclipse/ditto/blob/master/connectivity/service/src/main/resources/connectivity.conf)
 * Gateway: [gateway.conf](https://github.com/eclipse/ditto/blob/master/gateway/service/src/main/resources/gateway.conf)
 
@@ -180,29 +179,22 @@ Please consult the available `throttling` configuration sections in the
 By default, Ditto allows anyone to create a new entity (policy or thing) in any namespace. However, this behavior can
 be customized, and the ability to create new entities can be restricted.
 
-In the concierge service, you can re-configure the `entity-creation` section to suit your needs. The basic schema is:
+In the `ditto-entity-creation.conf`, you can re-configure the `entity-creation` section to suit your needs.  
+The basic schema is:
 
 ```
-ditto {
-  concierge {
-    enforcement {
-
-      # restrict entity creation
-      entity-creation {
-        grant = [
-            {
-                resource-types = [],
-                namespace = []
-                auth-subjects = []
-            }
-        ]
-        revoke = [
-            # same as "grant", but rejecting requests which already passed "grant"
-        ]
+# restrict entity creation
+ditto.entity-creation {
+   grant = [
+      {
+         resource-types = [],
+         namespace = []
+         auth-subjects = []
       }
-
-    }
-  }
+   ]
+   revoke = [
+      # same as "grant", but rejecting requests which already passed "grant"
+   ]
 }
 ```
 
@@ -222,7 +214,7 @@ This means, an existing entry, with all empty lists, will match. So the default 
 can be as simple as:
 
 ```
-entity-creation {
+ditto.entity-creation {
   grant = [{}]
 }
 ```
@@ -329,7 +321,6 @@ To put it in a nutshell, Ditto reports:
 [policies-service](architecture-services-policies.html), [things-search-service](architecture-services-things-search.html)
     * inserts, updates, reads per second
     * roundtrip times
-* cache metrics for [concierge-service](architecture-services-concierge.html)
 * connection metrics for [connectivity-service](architecture-services-connectivity.html)
     * processed messages
     * mapping times
@@ -374,7 +365,7 @@ since the cause of the problem could be lost on service restart.
 
 #### Retrieve all log levels
 
-Example for retrieving all currently configured log levels:<br/>
+Example for retrieving all currently configured log levels:  
 `GET /devops/logging`
 
 Response:
@@ -416,7 +407,7 @@ Response:
 
 #### Change a specific log level for all services
 
-Example request payload to change the log level of logger `org.eclipse.ditto` in all services to `DEBUG`:<br/>
+Example request payload to change the log level of logger `org.eclipse.ditto` in all services to `DEBUG`:  
 `PUT /devops/logging`
 
 ```json
@@ -428,7 +419,7 @@ Example request payload to change the log level of logger `org.eclipse.ditto` in
 
 #### Retrieve log levels of a service
 
-Example response for retrieving all currently configured log levels of gateways services:<br/>
+Example response for retrieving all currently configured log levels of gateways services:  
 `GET /devops/logging/gateway`
 
 Response:
@@ -456,8 +447,8 @@ Response:
 
 #### Change a specific log level for one service
 
-Example request payload to change the log level of logger `org.eclipse.ditto` in all
-instances of gateway-service to `DEBUG`:
+Example request payload to change the log level of logger `org.eclipse.ditto` in all instances of gateway-service to 
+`DEBUG`:
 
 `PUT /devops/logging/gateway`
 
@@ -570,12 +561,15 @@ A piggyback command must conform to the following schema:
 
 Piggyback commands can be sent to only one actor in the cluster or to a group of actors.   
 To have control this there are two headers which can be used for piggyback commands:
-* is-group-topic: `true`|`false` - Default: `false`
-* aggregate: `true`|`false` - Default: `true` 
+* `"is-group-topic"`: `true`|`false` - Default: `false`
+* `"aggregate"`: `true`|`false` - Default: `true` 
 
-The `is-group-topic` header indicates if the piggyback command should be forwarded to only one actor or all actors of a group.
-The `aggregate` header indicates if the responses should be aggregated or not. 
+The `"is-group-topic"` header indicates if the piggyback command should be forwarded to only one actor or all actors of a group.
+The `"aggregate"` header indicates if the responses should be aggregated or not. 
 If `false` the first response is sent back and all other responses are ignored (if `is-group-topic` was `false`).
+
+Additionally, the `"ditto-sudo"` header can be used in order to bypass any enforcement/authorization the service performs
+when processing commands. By explicitly setting this header to `true`, you bypass enforcement.
 
 Example:
 
@@ -584,7 +578,8 @@ Example:
   "targetActorSelection": "/system/sharding/connection",
   "headers": {
     "aggregate": false,
-    "is-group-topic": true
+    "is-group-topic": true,
+    "ditto-sudo": true
   },
   "piggybackCommand": {
     "type": "connectivity.commands:createConnection",
@@ -612,12 +607,13 @@ Example piggyback for
   "targetActorSelection": "/system/sharding/policy",
   "headers": {
     "aggregate": false,
-    "is-group-topic": true
+    "is-group-topic": true,
+    "ditto-sudo": true
   },
   "piggybackCommand": {
     "type": "policies.commands:createPolicy",
     "policy": {
-      "policyId": "<insert-the-policy-id-to-retrieve-here>",
+      "policyId": "<insert-the-policy-id-to-create-here>",
       "entries": {
         ...
       }
@@ -633,7 +629,8 @@ Example piggyback for
   "targetActorSelection": "/system/sharding/policy",
   "headers": {
     "aggregate": false,
-    "is-group-topic": true
+    "is-group-topic": true,
+    "ditto-sudo": true
   },
   "piggybackCommand": {
     "type": "policies.commands:retrievePolicy",
@@ -661,12 +658,13 @@ Example piggyback for
   "targetActorSelection": "/system/sharding/thing",
   "headers": {
     "aggregate": false,
-    "is-group-topic": true
+    "is-group-topic": true,
+    "ditto-sudo": true
   },
   "piggybackCommand": {
     "type": "things.commands:createThing",
     "thing": {
-      "thingId": "<insert-the-thing-id-to-use-here>",
+      "thingId": "<insert-the-thing-id-to-create-here>",
       "policyId": "<insert-the-policy-id-to-use-here>"
     }
   }
@@ -680,7 +678,8 @@ Example piggyback for
   "targetActorSelection": "/system/sharding/thing",
   "headers": {
     "aggregate": false,
-    "is-group-topic": true
+    "is-group-topic": true,
+    "ditto-sudo": true
   },
   "piggybackCommand": {
     "type": "things.commands:retrieveThing",
@@ -704,11 +703,11 @@ process.
 Each command is sent to the actor selection `/user/<SERVICE_NAME>Root/persistenceCleanup`, where
 `SERVICE_NAME` is `things`, `policies` or `connectivity`:
 
-`POST /devops/piggygack/<SERVICE_NAME>?timeout=10s`
+`POST /devops/piggyback/<SERVICE_NAME>?timeout=10s`
 
 ##### Query background cleanup coordinator state
 
-`POST /devops/piggygack/<SERVICE_NAME>?timeout=10s`
+`POST /devops/piggyback/<SERVICE_NAME>?timeout=10s`
 
 ```json
 {
@@ -745,7 +744,7 @@ The response has the following details:
 
 ##### Query background cleanup coordinator configuration
 
-`POST /devops/piggygack/<SERVICE_NAME>?timeout=10s`
+`POST /devops/piggyback/<SERVICE_NAME>?timeout=10s`
 
 ```json
 {
@@ -783,7 +782,7 @@ process. All subsequent cleanup processes will use the new configuration. The on
 Configurations absent in the payload of the piggyback command remain unchanged.
 Set the special key `last-pid` to set the lower bound of PIDs to clean up in the next run.
 
-`POST /devops/piggygack/<SERVICE_NAME>?timeout=10s`
+`POST /devops/piggyback/<SERVICE_NAME>?timeout=10s`
 
 ```json
 {
@@ -823,35 +822,6 @@ The field `last-pid` is not a part of the configuration.
 }
 ```
 
-##### Shutdown background cleanup coordinator
-
-Send a piggyback command of type `common.commands:shutdown` to stop the background cleanup process. The next process is
-scheduled after the `quiet-period` duration in the coordinator's configuration.
-
-`POST /devops/piggygack/concierge/<INSTANCE_INDEX>?timeout=10s`
-
-```json
-{
-  "targetActorSelection": "/user/conciergeRoot/eventSnapshotCleanupCoordinatorProxy",
-  "headers": {
-    "aggregate": false,
-    "is-grouped-topic": true
-  },
-  "piggybackCommand": {
-    "type": "common.commands:shutdown"
-  }
-}
-```
-
-Response example:
-
-```json
-{
-  "type": "common.responses:shutdown",
-  "status": 200,
-  "message": "Restarting stream in <PT5760H30M5S>."
-}
-```
 
 ##### Cleanup events and snapshots of an entity
 
@@ -860,7 +830,7 @@ snapshots manually. Here is an example for things. Change the service name and s
 policies and connections. Typically, in a docker based environment, use `INSTANCE_INDEX=1`.
 
 
-`POST /devops/piggygack/things/<INSTANCE_INDEX>?timeout=10s`
+`POST /devops/piggyback/things/<INSTANCE_INDEX>?timeout=10s`
 
 ```json
 {
@@ -869,7 +839,7 @@ policies and connections. Typically, in a docker based environment, use `INSTANC
     "aggregate": false
   },
   "piggybackCommand": {
-    "type": "cleanup.commands:cleanupPersistence",
+    "type": "cleanup.sudo.commands:cleanupPersistence",
     "entityId": "ditto:thing1"
   }
 }
@@ -879,7 +849,7 @@ Response example:
 
 ```json
 {
-  "type": "cleanup.responses:cleanupPersistence",
+  "type": "cleanup.sudo.responses:cleanupPersistence",
   "status": 200,
   "entityId": "thing:ditto:thing1"
 }
@@ -891,11 +861,11 @@ A background sync actor goes over thing snapshots and search index entries slowl
 of the search index. The actor operates in the same manner as the background cleanup coordinator and responds to
 the same commands.
 
-`POST /devops/piggygack/things-search/<INSTANCE_INDEX>?timeout=10s`
+`POST /devops/piggyback/search/<INSTANCE_INDEX>?timeout=10s`
 
 ```json
 {
-  "targetActorSelection": "/user/thingsWildcardSearchRoot/searchUpdaterRoot/backgroundSyncProxy",
+  "targetActorSelection": "/user/thingsWildcardSearchRoot/searchUpdaterRoot/backgroundSync/singleton",
   "headers": {
     "aggregate": false,
     "is-grouped-topic": true
@@ -922,7 +892,7 @@ The search index should rarely become out-of-sync for a long time, and it can re
 of any inconsistencies detected at query time. Nevertheless, you can trigger search index update
 for a particular thing by a DevOp-command and bring the entry up-to-date immediately.
 
-`POST /devops/piggygack/things-search/<INSTANCE_INDEX>?timeout=0`
+`POST /devops/piggyback/search/<INSTANCE_INDEX>?timeout=0`
 
 ```json
 {
@@ -932,7 +902,7 @@ for a particular thing by a DevOp-command and bring the entry up-to-date immedia
     "is-grouped-topic": true
   },
   "piggybackCommand": {
-    "type": "thing-search.commands:updateThing",
+    "type": "thing-search.sudo.commands:sudoUpdateThing",
     "thingId": "<THING-ID>"
   }
 }
@@ -959,7 +929,7 @@ To do so safely, perform the following steps in sequence.
 Send a piggyback command to [Akka's pub-sub-mediator][pubsubmediator] with type `namespaces.commands:blockNamespace`
 to block all messages sent to actors belonging to a namespace.
 
-`PUT /devops/piggygack?timeout=10s`
+`PUT /devops/piggyback?timeout=10s`
 
 ```json
 {
@@ -993,7 +963,7 @@ Send a piggyback command to [Akka's pub-sub-mediator][pubsubmediator] with type 
 to request all actors in a namespace to shut down. The value of `piggybackCommand/reason/type` must be
 `purge-namespace`; otherwise, the namespace's actors will not stop themselves.
 
-`PUT /devops/piggygack?timeout=0`
+`PUT /devops/piggyback?timeout=0`
 
 ```json
 {
@@ -1024,7 +994,7 @@ all its actors so that no data is written in the namespace while erasing is ongo
 The erasure may take a long time if the namespace has a lot of data associated with it or if the persistent storage is
 slow. Set the timeout to a safe margin above the estimated erasure time in milliseconds.
 
-`PUT /devops/piggygack?timeout=10s`
+`PUT /devops/piggyback?timeout=10s`
 
 ```json
 {
@@ -1076,7 +1046,7 @@ Note that to see responses from multiple resource types, the header `aggregate` 
 Send a piggyback command to [Akka's pub-sub-mediator][pubsubmediator] with type `namespaces.commands:unblockNamespace`
 to stop blocking messages to a namespace.
 
-`PUT /devops/piggygack?timeout=10s`
+`PUT /devops/piggyback?timeout=10s`
 
 ```json
 {

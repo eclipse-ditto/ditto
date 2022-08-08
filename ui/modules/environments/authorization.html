@@ -11,7 +11,7 @@
   ~ SPDX-License-Identifier: EPL-2.0
   -->
 <div id="authorizationModal" class="modal fade" tabindex="-1">
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
                 Authorize
@@ -21,10 +21,10 @@
                 <h5>Basic Auth</h5>
                 <hr />
                 <div class="row">
-                    <div class="col-md-4">
+                    <div class="col-md-5">
                         <label>Main User</label>
                     </div>
-                    <div class="col-md-8">
+                    <div class="col-md-7">
                         <div class="input-group input-group-sm mb-1">
                             <label class="input-group-text">Username</label>
                             <input type="text" class="form-control form-control-sm" id="userName"></input>
@@ -36,10 +36,10 @@
                     </div>
                 </div>
                 <div class="row">
-                    <div class="col-md-4">
+                    <div class="col-md-5">
                         <label>DevOps User<br /><small>(for Connections, optional)</small></label>
                     </div>
-                    <div class="col-md-8">
+                    <div class="col-md-7">
                         <div class="input-group input-group-sm mb-1">
                             <label class="input-group-text">DevOps Username</label>
                             <input type="text" class="form-control form-control-sm" id="devOpsUserName"></input>
@@ -56,13 +56,40 @@
                 </div>
                 <h5>Bearer</h5>
                 <hr />
-                <div class="input-group input-group-sm mb-1">
-                    <label class="input-group-text">Value</label>
-                    <input type="password" class="form-control form-control-sm" id="bearer"></input>
+                <div class="row">
+                    <div class="col-md-5">
+                        <label>Main User<br /><small>(JWT OAuth2.0 Bearer token)</small></label>
+                    </div>
+                    <div class="col-md-7">
+                        <div class="input-group input-group-sm mb-1">
+                            <label class="input-group-text">Bearer</label>
+                            <input type="password" class="form-control form-control-sm" id="bearer"></input>
+                        </div>
+                    </div>
                 </div>
                 <div class="input-group input-group-sm" style="flex-direction: row-reverse;">
                     <button class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal"
                         id="authorizeBearer">Authorize</button>
+                </div>
+                <h5>Ditto Pre Authenticated</h5>
+                <hr />
+                <div class="row">
+                    <div class="col-md-5">
+                        <label>Main User<br />
+                            <small>(via HTTP header 'x-ditto-pre-authenticated', must take the form
+                                <code>prefix:suffix</code>)</small>
+                        </label>
+                    </div>
+                    <div class="col-md-7">
+                        <div class="input-group input-group-sm mb-1">
+                            <label class="input-group-text">Username</label>
+                            <input type="text" class="form-control form-control-sm" id="dittoPreAuthenticatedUsername"></input>
+                        </div>
+                    </div>
+                </div>
+                <div class="input-group input-group-sm" style="flex-direction: row-reverse;">
+                    <button class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal"
+                        id="authorizePreAuthenticated">Authorize</button>
                 </div>
             </div>
         </div>

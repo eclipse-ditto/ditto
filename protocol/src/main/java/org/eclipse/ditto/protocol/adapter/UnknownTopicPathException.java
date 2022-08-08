@@ -19,25 +19,26 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
-import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonParsableException;
+import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.protocol.MessagePath;
+import org.eclipse.ditto.protocol.ProtocolAdapterException;
 import org.eclipse.ditto.protocol.TopicPath;
 
 /**
  * Thrown if a {@link org.eclipse.ditto.protocol.TopicPath} is not supported.
  */
 @JsonParsableException(errorCode = UnknownTopicPathException.ERROR_CODE)
-public final class UnknownTopicPathException extends DittoRuntimeException {
+public final class UnknownTopicPathException extends DittoRuntimeException implements ProtocolAdapterException {
 
     /**
      * Error code of this exception.
      */
-    public static final String ERROR_CODE = "things.protocol.adapter:unknown.topicpath";
+    public static final String ERROR_CODE = ERROR_CODE_PREFIX + "unknown.topicpath";
 
     private static final String MESSAGE_TEMPLATE = "The topic path ''{0}'' is not supported.";
 

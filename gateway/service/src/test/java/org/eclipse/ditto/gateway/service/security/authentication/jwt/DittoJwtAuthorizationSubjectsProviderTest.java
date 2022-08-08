@@ -17,20 +17,31 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
+import java.util.UUID;
 
 import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.jwt.model.JsonWebToken;
 import org.eclipse.ditto.policies.model.SubjectIssuer;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.junit.MockitoJUnitRunner;
+
+import akka.actor.ActorSystem;
 
 /**
  * Unit test for {@link DittoJwtAuthorizationSubjectsProvider}.
  */
 @RunWith(MockitoJUnitRunner.class)
 public final class DittoJwtAuthorizationSubjectsProviderTest {
+
+    private ActorSystem actorSystem;
+
+    @Before
+    public void setup() {
+        actorSystem = ActorSystem.create(UUID.randomUUID().toString());
+    }
 
     @Test
     public void verifyThatTheDefaultJwtSubjectPlaceholderWorks() {
@@ -41,7 +52,7 @@ public final class DittoJwtAuthorizationSubjectsProviderTest {
         final JwtSubjectIssuersConfig subjectIssuersConfig = createSubjectIssuersConfig(subjectIssuer);
 
         final DittoJwtAuthorizationSubjectsProvider underTest = DittoJwtAuthorizationSubjectsProvider
-                .of(subjectIssuersConfig);
+                .of(actorSystem, subjectIssuersConfig);
 
         final List<AuthorizationSubject> authSubjects = underTest.getAuthorizationSubjects(jsonWebToken);
 
@@ -59,7 +70,7 @@ public final class DittoJwtAuthorizationSubjectsProviderTest {
                 createSubjectIssuersConfig(subjectIssuer, List.of("test-{{ jwt:aud }}"));
 
         final DittoJwtAuthorizationSubjectsProvider underTest = DittoJwtAuthorizationSubjectsProvider
-                .of(subjectIssuersConfig);
+                .of(actorSystem, subjectIssuersConfig);
 
         final List<AuthorizationSubject> authSubjects = underTest.getAuthorizationSubjects(jsonWebToken);
 
@@ -80,7 +91,7 @@ public final class DittoJwtAuthorizationSubjectsProviderTest {
                 List.of("{{ jwt:aud }}"));
 
         final DittoJwtAuthorizationSubjectsProvider underTest = DittoJwtAuthorizationSubjectsProvider
-                .of(subjectIssuersConfig);
+                .of(actorSystem, subjectIssuersConfig);
 
         final List<AuthorizationSubject> authSubjects = underTest.getAuthorizationSubjects(jsonWebToken);
 
@@ -104,7 +115,7 @@ public final class DittoJwtAuthorizationSubjectsProviderTest {
                 List.of("{{ jwt:aud }}", "{{ jwt:grp | fn:lower()}}"));
 
         final DittoJwtAuthorizationSubjectsProvider underTest = DittoJwtAuthorizationSubjectsProvider
-                .of(subjectIssuersConfig);
+                .of(actorSystem, subjectIssuersConfig);
 
         final List<AuthorizationSubject> authSubjects = underTest.getAuthorizationSubjects(jsonWebToken);
 
@@ -129,7 +140,7 @@ public final class DittoJwtAuthorizationSubjectsProviderTest {
                 List.of("{{ jwt:aud | fn:filter('like','some*|noone*') }}"));
 
         final DittoJwtAuthorizationSubjectsProvider underTest = DittoJwtAuthorizationSubjectsProvider
-                .of(subjectIssuersConfig);
+                .of(actorSystem, subjectIssuersConfig);
 
         final List<AuthorizationSubject> authSubjects = underTest.getAuthorizationSubjects(jsonWebToken);
 
@@ -153,7 +164,7 @@ public final class DittoJwtAuthorizationSubjectsProviderTest {
                 List.of("{{ jwt:aud | fn:split(',') | fn:filter('like','v*') | fn:substring-after('v') | fn:replace('-audience','') }}"));
 
         final DittoJwtAuthorizationSubjectsProvider underTest = DittoJwtAuthorizationSubjectsProvider
-                .of(subjectIssuersConfig);
+                .of(actorSystem, subjectIssuersConfig);
 
         final List<AuthorizationSubject> authSubjects = underTest.getAuthorizationSubjects(jsonWebToken);
 
@@ -177,7 +188,7 @@ public final class DittoJwtAuthorizationSubjectsProviderTest {
                 List.of("{{ jwt:aud | fn:lower() }}"));
 
         final DittoJwtAuthorizationSubjectsProvider underTest = DittoJwtAuthorizationSubjectsProvider
-                .of(subjectIssuersConfig);
+                .of(actorSystem, subjectIssuersConfig);
 
         final List<AuthorizationSubject> authSubjects = underTest.getAuthorizationSubjects(jsonWebToken);
 
@@ -199,7 +210,7 @@ public final class DittoJwtAuthorizationSubjectsProviderTest {
         // fn:split(" ") -> ["openid", "all", "profile", "nothing"]
 
         final DittoJwtAuthorizationSubjectsProvider underTest = DittoJwtAuthorizationSubjectsProvider
-                .of(subjectIssuersConfig);
+                .of(actorSystem, subjectIssuersConfig);
 
         final List<AuthorizationSubject> authSubjects = underTest.getAuthorizationSubjects(jsonWebToken);
 
@@ -228,7 +239,7 @@ public final class DittoJwtAuthorizationSubjectsProviderTest {
         // fn:filter('like', '*o*|*x*') -> ["openid:test", "profile", "nothing", "only", "relax,a"]
 
         final DittoJwtAuthorizationSubjectsProvider underTest = DittoJwtAuthorizationSubjectsProvider
-                .of(subjectIssuersConfig);
+                .of(actorSystem, subjectIssuersConfig);
 
         final List<AuthorizationSubject> authSubjects = underTest.getAuthorizationSubjects(jsonWebToken);
 
@@ -263,7 +274,7 @@ public final class DittoJwtAuthorizationSubjectsProviderTest {
         // fn:filter('like', 'ope|all') -> ["ope", "all"]
 
         final DittoJwtAuthorizationSubjectsProvider underTest = DittoJwtAuthorizationSubjectsProvider
-                .of(subjectIssuersConfig);
+                .of(actorSystem, subjectIssuersConfig);
 
         final List<AuthorizationSubject> authSubjects = underTest.getAuthorizationSubjects(jsonWebToken);
 

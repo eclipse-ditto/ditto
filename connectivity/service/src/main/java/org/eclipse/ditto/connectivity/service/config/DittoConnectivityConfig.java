@@ -25,6 +25,7 @@ import org.eclipse.ditto.connectivity.service.config.mapping.MappingConfig;
 import org.eclipse.ditto.internal.models.acks.config.AcknowledgementConfig;
 import org.eclipse.ditto.internal.models.acks.config.DefaultAcknowledgementConfig;
 import org.eclipse.ditto.internal.utils.cluster.config.ClusterConfig;
+import org.eclipse.ditto.internal.utils.config.ConfigWithFallback;
 import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import org.eclipse.ditto.internal.utils.health.config.DefaultHealthCheckConfig;
 import org.eclipse.ditto.internal.utils.health.config.HealthCheckConfig;
@@ -86,7 +87,8 @@ public final class DittoConnectivityConfig implements ConnectivityConfig {
      * @throws org.eclipse.ditto.internal.utils.config.DittoConfigError if {@code config} is invalid.
      */
     public static DittoConnectivityConfig of(final ScopedConfig dittoScopedConfig) {
-        return new DittoConnectivityConfig(dittoScopedConfig);
+        return new DittoConnectivityConfig(
+                ConfigWithFallback.newInstance(dittoScopedConfig, ConnectivityConfigValue.values()));
     }
 
     @Override

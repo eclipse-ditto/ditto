@@ -24,12 +24,11 @@ SCRIPTDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 # Array of the services to build Docker images for.
 # The pattern is MODULE_NAME:IMAGE_NAME as both can differ from each other.
 SERVICES=(
-  "concierge:concierge"
-  "gateway:gateway"
-  "policies:policies"
-  "things:things"
-  "thingsearch:things-search"
-  "connectivity:connectivity"
+  "gateway:gateway:org.eclipse.ditto.gateway.service.starter.GatewayService"
+  "policies:policies:org.eclipse.ditto.policies.service.starter.PoliciesService"
+  "things:things:org.eclipse.ditto.things.service.starter.ThingsService"
+  "thingsearch:things-search:org.eclipse.ditto.thingsearch.service.starter.SearchService"
+  "connectivity:connectivity:org.eclipse.ditto.connectivity.service.ConnectivityService"
 )
 : "${HTTP_PROXY_LOCAL:=$HTTP_PROXY}"
 : "${HTTPS_PROXY_LOCAL:=$HTTPS_PROXY}"
@@ -52,7 +51,8 @@ build_docker_image() {
   module_name_base=$(echo "$1" | awk -F ":" '{ print $1 }')
   module_name=$(printf "ditto-%s" "$module_name_base")
   image_tag=$(printf "${CONTAINER_REGISTRY}/ditto-%s" "$(echo "$1" | awk -F ":" '{ print $2 }')")
-  jvm_args=$(echo "$1" | awk -F ":" '{ print $3 }')
+  jvm_args=$(echo "$1" | awk -F ":" '{ print $4 }')
+  main_class=$(echo "$1" | awk -F ":" '{ print $3 }')
   printf "\nBuilding Docker image <%s> for service module <%s> with jvm_args <%s>\n" \
     "$image_tag" \
     "$module_name" \
@@ -65,6 +65,7 @@ build_docker_image() {
       --build-arg SERVICE_STARTER="$module_name"-service \
       --build-arg SERVICE_VERSION=$SERVICE_VERSION \
       --build-arg JVM_CMD_ARGS="$jvm_args" \
+      --build-arg MAIN_CLASS="$main_class" \
       -t "$image_tag":$IMAGE_VERSION \
       "$SCRIPTDIR"
 
@@ -73,10 +74,27 @@ build_docker_image() {
   fi
 }
 
+build_ditto_ui_docker_image() {
+  image_tag=$(printf "${CONTAINER_REGISTRY}/ditto-ui")
+  printf "\nBuilding Docker image <%s> for Ditto-UI\n" \
+    "$image_tag"
+
+    $DOCKER_BIN build --pull -f $SCRIPTDIR/ui/Dockerfile \
+        --build-arg HTTP_PROXY="$HTTP_PROXY_LOCAL" \
+        --build-arg HTTPS_PROXY="$HTTPS_PROXY_LOCAL" \
+        -t "$image_tag":$IMAGE_VERSION \
+        "${SCRIPTDIR}/ui"
+
+    if [[ "$PUSH_CONTAINERS" == "true" ]]; then
+      $DOCKER_BIN push "$image_tag":$IMAGE_VERSION
+    fi
+}
+
 build_all_docker_images() {
   for i in "${SERVICES[@]}"; do
     build_docker_image "$i"
   done
+  build_ditto_ui_docker_image
 }
 
 set_proxies() {

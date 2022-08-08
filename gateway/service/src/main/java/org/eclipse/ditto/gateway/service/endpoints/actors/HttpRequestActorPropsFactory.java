@@ -12,13 +12,21 @@
  */
 package org.eclipse.ditto.gateway.service.endpoints.actors;
 
+import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
+
 import java.util.concurrent.CompletableFuture;
 
+import org.eclipse.ditto.base.model.headers.translator.HeaderTranslator;
 import org.eclipse.ditto.gateway.service.util.config.endpoints.CommandConfig;
 import org.eclipse.ditto.gateway.service.util.config.endpoints.HttpConfig;
-import org.eclipse.ditto.protocol.HeaderTranslator;
+import org.eclipse.ditto.internal.utils.extension.DittoExtensionPoint;
+import org.eclipse.ditto.internal.utils.extension.DittoExtensionIds;
+
+
+import com.typesafe.config.Config;
 
 import akka.actor.ActorRef;
+import akka.actor.ActorSystem;
 import akka.actor.Props;
 import akka.http.javadsl.model.HttpRequest;
 import akka.http.javadsl.model.HttpResponse;
@@ -27,7 +35,7 @@ import akka.http.javadsl.model.HttpResponse;
  * Factory of props of actors that handle HTTP requests.
  */
 @FunctionalInterface
-public interface HttpRequestActorPropsFactory {
+public interface HttpRequestActorPropsFactory extends DittoExtensionPoint {
 
     /**
      * Create Props object of an actor to handle 1 HTTP request.
@@ -38,7 +46,6 @@ public interface HttpRequestActorPropsFactory {
      * @param httpResponseFuture promise of an HTTP response to be fulfilled by the actor.
      * @param httpConfig the configuration settings of the Gateway service's HTTP endpoint.
      * @param commandConfig the configuration settings for incoming commands (via HTTP requests) in the gateway.
-     * @param connectivityShardRegionProxy proxy actor reference for Connectivity's cluster shard region.
      * @return Props of the actor.
      */
     Props props(ActorRef proxyActor,
@@ -46,7 +53,35 @@ public interface HttpRequestActorPropsFactory {
             HttpRequest httpRequest,
             CompletableFuture<HttpResponse> httpResponseFuture,
             HttpConfig httpConfig,
-            CommandConfig commandConfig,
-            ActorRef connectivityShardRegionProxy);
+            CommandConfig commandConfig);
+
+    static HttpRequestActorPropsFactory get(final ActorSystem actorSystem, final Config config) {
+        checkNotNull(actorSystem, "actorSystem");
+        checkNotNull(config, "config");
+        final var extensionIdConfig = ExtensionId.computeConfig(config);
+        return DittoExtensionIds.get(actorSystem)
+                .computeIfAbsent(extensionIdConfig, ExtensionId::new)
+                .get(actorSystem);
+    }
+
+
+    final class ExtensionId extends DittoExtensionPoint.ExtensionId<HttpRequestActorPropsFactory> {
+
+        private static final String CONFIG_KEY = "http-request-actor-props-factory";
+
+        private ExtensionId(final ExtensionIdConfig<HttpRequestActorPropsFactory> extensionIdConfig) {
+            super(extensionIdConfig);
+        }
+
+        static ExtensionIdConfig<HttpRequestActorPropsFactory> computeConfig(final Config config) {
+            return ExtensionIdConfig.of(HttpRequestActorPropsFactory.class, config, CONFIG_KEY);
+        }
+
+        @Override
+        protected String getConfigKey() {
+            return CONFIG_KEY;
+        }
+
+    }
 
 }

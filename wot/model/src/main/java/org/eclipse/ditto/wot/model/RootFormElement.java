@@ -12,8 +12,6 @@
  */
 package org.eclipse.ditto.wot.model;
 
-import java.util.Optional;
-
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.json.JsonObject;
@@ -44,7 +42,7 @@ public interface RootFormElement extends FormElement<RootFormElement> {
         return RootFormElement.Builder.newBuilder(toJson());
     }
 
-    Optional<RootFormElementOp<SingleRootFormElementOp>> getOp();
+    RootFormElementOp<SingleRootFormElementOp> getOp();
 
     interface Builder extends FormElement.Builder<Builder, RootFormElement> {
 

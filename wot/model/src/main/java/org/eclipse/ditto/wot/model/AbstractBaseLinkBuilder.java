@@ -59,4 +59,19 @@ abstract class AbstractBaseLinkBuilder<B extends BaseLink.Builder<B, L>, L exten
         return myself;
     }
 
+    @Override
+    public B setHreflang(@Nullable final Hreflang hreflang) {
+        if (hreflang != null) {
+            if (hreflang instanceof MultipleHreflang) {
+                putValue(BaseLink.BaseLinkJsonFields.HREFLANG_MULTIPLE, ((MultipleHreflang) hreflang).toJson());
+            } else if (hreflang instanceof SingleHreflang) {
+                putValue(BaseLink.BaseLinkJsonFields.HREFLANG, hreflang.toString());
+            } else {
+                throw new IllegalArgumentException("Unsupported hreflang: " + hreflang.getClass().getSimpleName());
+            }
+        } else {
+            remove(BaseLink.BaseLinkJsonFields.HREFLANG);
+        }
+        return myself;
+    }
 }

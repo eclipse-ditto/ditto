@@ -13,6 +13,15 @@
 package org.eclipse.ditto.wot.model;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
+import static org.eclipse.ditto.wot.model.SecuritySchemeScheme.APIKEY;
+import static org.eclipse.ditto.wot.model.SecuritySchemeScheme.AUTO;
+import static org.eclipse.ditto.wot.model.SecuritySchemeScheme.BASIC;
+import static org.eclipse.ditto.wot.model.SecuritySchemeScheme.BEARER;
+import static org.eclipse.ditto.wot.model.SecuritySchemeScheme.COMBO;
+import static org.eclipse.ditto.wot.model.SecuritySchemeScheme.DIGEST;
+import static org.eclipse.ditto.wot.model.SecuritySchemeScheme.NOSEC;
+import static org.eclipse.ditto.wot.model.SecuritySchemeScheme.OAUTH2;
+import static org.eclipse.ditto.wot.model.SecuritySchemeScheme.PSK;
 
 import java.util.Optional;
 
@@ -30,6 +39,7 @@ import org.eclipse.ditto.json.JsonObject;
  * It has the following subclasses:
  * <ul>
  *     <li>{@link NoSecurityScheme}</li>
+ *     <li>{@link AutoSecurityScheme}</li>
  *     <li>{@link ComboSecurityScheme}</li>
  *     <li>{@link BasicSecurityScheme}</li>
  *     <li>{@link DigestSecurityScheme}</li>
@@ -37,37 +47,39 @@ import org.eclipse.ditto.json.JsonObject;
  *     <li>{@link BearerSecurityScheme}</li>
  *     <li>{@link PskSecurityScheme}</li>
  *     <li>{@link OAuth2SecurityScheme}</li>
+ *     <li>{@link AdditionalSecurityScheme}</li>
  * </ul>
  *
  * @see <a href="https://www.w3.org/TR/wot-thing-description11/#securityscheme">WoT TD SecurityScheme</a>
  * @since 2.4.0
  */
-public interface SecurityScheme extends Jsonifiable<JsonObject> {
+public interface SecurityScheme extends TypedJsonObject<SecurityScheme>, Jsonifiable<JsonObject> {
 
     static SecurityScheme fromJson(final CharSequence securitySchemeName, final JsonObject jsonObject) {
         final String schemeName = checkNotNull(securitySchemeName, "securitySchemeName").toString();
         return jsonObject.getValue(SecuritySchemeJsonFields.SCHEME)
-                .flatMap(SecuritySchemeScheme::forName)
+                .map(SecuritySchemeScheme::of)
                 .map(type -> {
-                    switch (type) {
-                        case NOSEC:
-                            return NoSecurityScheme.fromJson(schemeName, jsonObject);
-                        case COMBO:
-                            return ComboSecurityScheme.fromJson(schemeName, jsonObject);
-                        case BASIC:
-                            return BasicSecurityScheme.fromJson(schemeName, jsonObject);
-                        case DIGEST:
-                            return DigestSecurityScheme.fromJson(schemeName, jsonObject);
-                        case APIKEY:
-                            return ApiKeySecurityScheme.fromJson(schemeName, jsonObject);
-                        case BEARER:
-                            return BearerSecurityScheme.fromJson(schemeName, jsonObject);
-                        case PSK:
-                            return PskSecurityScheme.fromJson(schemeName, jsonObject);
-                        case OAUTH2:
-                            return OAuth2SecurityScheme.fromJson(schemeName, jsonObject);
-                        default:
-                            throw new IllegalArgumentException("Unsupported securityScheme scheme: " + type);
+                    if (type.equals(NOSEC)) {
+                        return NoSecurityScheme.fromJson(schemeName, jsonObject);
+                    } else if (type.equals(AUTO)) {
+                        return AutoSecurityScheme.fromJson(schemeName, jsonObject);
+                    } else if (type.equals(COMBO)) {
+                        return ComboSecurityScheme.fromJson(schemeName, jsonObject);
+                    } else if (type.equals(BASIC)) {
+                        return BasicSecurityScheme.fromJson(schemeName, jsonObject);
+                    } else if (type.equals(DIGEST)) {
+                        return DigestSecurityScheme.fromJson(schemeName, jsonObject);
+                    } else if (type.equals(APIKEY)) {
+                        return ApiKeySecurityScheme.fromJson(schemeName, jsonObject);
+                    } else if (type.equals(BEARER)) {
+                        return BearerSecurityScheme.fromJson(schemeName, jsonObject);
+                    } else if (type.equals(PSK)) {
+                        return PskSecurityScheme.fromJson(schemeName, jsonObject);
+                    } else if (type.equals(OAUTH2)) {
+                        return OAuth2SecurityScheme.fromJson(schemeName, jsonObject);
+                    } else {
+                        return AdditionalSecurityScheme.fromJson(schemeName, jsonObject);
                     }
                 })
                 .orElseThrow(() -> new IllegalArgumentException("Could not create SingleDataSchema"));
@@ -75,6 +87,10 @@ public interface SecurityScheme extends Jsonifiable<JsonObject> {
 
     static NoSecurityScheme.Builder newNoSecurityBuilder(final CharSequence securitySchemeName) {
         return NoSecurityScheme.newBuilder(securitySchemeName);
+    }
+
+    static AutoSecurityScheme.Builder newAutoSecurityBuilder(final CharSequence securitySchemeName) {
+        return AutoSecurityScheme.newBuilder(securitySchemeName);
     }
 
     static AllOfComboSecurityScheme.Builder newAllOfComboSecurityBuilder(final CharSequence securitySchemeName) {
@@ -109,6 +125,11 @@ public interface SecurityScheme extends Jsonifiable<JsonObject> {
         return OAuth2SecurityScheme.newBuilder(securitySchemeName);
     }
 
+    static AdditionalSecurityScheme.Builder newAdditionalSecurityBuilder(final CharSequence securitySchemeName,
+            final CharSequence contextExtensionScopedScheme) {
+        return AdditionalSecurityScheme.newBuilder(securitySchemeName, contextExtensionScopedScheme);
+    }
+
     String getSecuritySchemeName();
 
     Optional<AtType> getAtType();
@@ -122,7 +143,7 @@ public interface SecurityScheme extends Jsonifiable<JsonObject> {
     Optional<IRI> getProxy();
 
 
-    interface Builder<B extends Builder<B, S>, S extends SecurityScheme> {
+    interface Builder<B extends Builder<B, S>, S extends SecurityScheme> extends TypedJsonObjectBuilder<B, S> {
 
         B setAtType(@Nullable AtType atType);
 

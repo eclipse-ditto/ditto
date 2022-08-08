@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.connectivity.service.messaging.kafka;
 
-import static org.eclipse.ditto.connectivity.api.EnforcementFactoryFactory.newEnforcementFilterFactory;
+import static org.eclipse.ditto.connectivity.service.EnforcementFactoryFactory.newEnforcementFilterFactory;
 import static org.eclipse.ditto.placeholders.PlaceholderFactory.newHeadersPlaceholder;
 
 import java.util.Map;
@@ -89,7 +89,8 @@ final class KafkaConsumerStreamFactory {
             final ConnectionId connectionId,
             final String consumerId) {
 
-        final KafkaMessageTransformer kafkaMessageTransformer = buildKafkaMessageTransformer(inboundMonitor);
+        final KafkaMessageTransformer kafkaMessageTransformer = buildKafkaMessageTransformer(inboundMonitor,
+                connectionId);
         return new AtMostOnceConsumerStream(atMostOnceKafkaConsumerSourceSupplier,
                 throttlingConfig,
                 kafkaMessageTransformer,
@@ -111,7 +112,8 @@ final class KafkaConsumerStreamFactory {
             final ConnectionId connectionId,
             final String consumerId) {
 
-        final KafkaMessageTransformer kafkaMessageTransformer = buildKafkaMessageTransformer(inboundMonitor);
+        final KafkaMessageTransformer kafkaMessageTransformer = buildKafkaMessageTransformer(inboundMonitor,
+                connectionId);
         return new AtLeastOnceConsumerStream(atLeastOnceKafkaConsumerSourceSupplier,
                 propertiesFactory.getCommitterSettings(),
                 throttlingConfig,
@@ -126,7 +128,8 @@ final class KafkaConsumerStreamFactory {
                 consumerId);
     }
 
-    private KafkaMessageTransformer buildKafkaMessageTransformer(final ConnectionMonitor inboundMonitor) {
+    private KafkaMessageTransformer buildKafkaMessageTransformer(final ConnectionMonitor inboundMonitor,
+            final ConnectionId connectionId) {
         final Source source = consumerData.getSource();
         final String address = consumerData.getAddress();
         final Enforcement enforcement = source.getEnforcement().orElse(null);
@@ -134,7 +137,8 @@ final class KafkaConsumerStreamFactory {
                 enforcement != null
                         ? newEnforcementFilterFactory(enforcement, newHeadersPlaceholder())
                         : input -> null;
-        return new KafkaMessageTransformer(source, address, headerEnforcementFilterFactory, inboundMonitor);
+        return new KafkaMessageTransformer(connectionId, source, address, headerEnforcementFilterFactory,
+                inboundMonitor);
     }
 
 }

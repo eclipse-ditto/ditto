@@ -18,24 +18,24 @@ import java.text.MessageFormat;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
-import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonParsableException;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonPointer;
 
 /**
  * Thrown if a path does not correspond to any known command, response or event.
  */
 @JsonParsableException(errorCode = UnknownPathException.ERROR_CODE)
-public final class UnknownPathException extends DittoRuntimeException {
+public final class UnknownPathException extends DittoRuntimeException implements ProtocolAdapterException {
 
     /**
      * Error code of this exception.
      */
-    public static final String ERROR_CODE = "things.protocol.adapter:unknown.path";
+    public static final String ERROR_CODE = ERROR_CODE_PREFIX + "unknown.path";
 
     private static final String MESSAGE_TEMPLATE =
             "The path ''{0}'' does not correspond to any known command, response or event.";

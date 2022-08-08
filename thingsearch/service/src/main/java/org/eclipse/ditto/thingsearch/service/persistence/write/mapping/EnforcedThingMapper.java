@@ -107,7 +107,7 @@ public final class EnforcedThingMapper {
                 Optional.ofNullable(oldMetadata).flatMap(Metadata::getModified).orElse(null),
                 Optional.ofNullable(oldMetadata).map(Metadata::getEvents).orElse(List.of()),
                 Optional.ofNullable(oldMetadata).map(Metadata::getTimers).orElse(List.of()),
-                Optional.ofNullable(oldMetadata).map(Metadata::getSenders).orElse(List.of()),
+                Optional.ofNullable(oldMetadata).map(Metadata::getAckRecipients).orElse(List.of()),
                 Optional.ofNullable(oldMetadata).map(Metadata::getUpdateReasons)
                         .orElse(List.of(UpdateReason.UNKNOWN))
         );

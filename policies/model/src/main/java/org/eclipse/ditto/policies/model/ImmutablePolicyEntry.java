@@ -19,12 +19,12 @@ import java.util.function.Predicate;
 
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.base.model.exceptions.DittoJsonException;
+import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonMissingFieldException;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.base.model.exceptions.DittoJsonException;
-import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 
 /**
  * An immutable implementation of {@link PolicyEntry}.
@@ -101,6 +101,12 @@ final class ImmutablePolicyEntry implements PolicyEntry {
     @Override
     public Resources getResources() {
         return resources;
+    }
+
+    @Override
+    public boolean isSemanticallySameAs(final PolicyEntry otherPolicyEntry) {
+        return subjects.isSemanticallySameAs(otherPolicyEntry.getSubjects()) &&
+                resources.equals(otherPolicyEntry.getResources());
     }
 
     @Override

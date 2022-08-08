@@ -23,7 +23,7 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.protocol.HeaderTranslator;
+import org.eclipse.ditto.base.model.headers.translator.HeaderTranslator;
 
 import akka.http.javadsl.model.ContentTypes;
 import akka.http.javadsl.model.HttpHeader;

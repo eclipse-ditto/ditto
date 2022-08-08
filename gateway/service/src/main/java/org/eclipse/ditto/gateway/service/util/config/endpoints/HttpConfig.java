@@ -85,14 +85,6 @@ public interface HttpConfig extends org.eclipse.ditto.base.service.config.http.H
     Duration getRequestTimeout();
 
     /**
-     * Returns the full qualified classname of the {@code org.eclipse.ditto.gateway.service.endpoints.actors.HttpRequestActorPropsFactory}
-     * implementation to use for instantiating the Gateway {@code org.eclipse.ditto.gateway.service.endpoints.actors.AbstractHttpRequestActor}.
-     *
-     * @return the full qualified classname of the HttpRequestActorPropsFactory implementation to use.
-     */
-    String getActorPropsFactoryFullQualifiedClassname();
-
-    /**
      * Returns definitions of headers which should be derived from query parameters.
      * I. e. if query parameters are supplied with the same name as the configured header keys then the query parameters
      * will be converted to header key-value pairs.
@@ -153,12 +145,6 @@ public interface HttpConfig extends org.eclipse.ditto.base.service.config.http.H
          * The timeout for HTTP requests.
          */
         REQUEST_TIMEOUT("request-timeout", Duration.ofMinutes(1L)),
-
-        /**
-         * The full qualified classname of the HttpRequestActorPropsFactory to instantiate.
-         */
-        ACTOR_PROPS_FACTORY("actor-props-factory",
-                "org.eclipse.ditto.gateway.service.endpoints.actors.DefaultHttpRequestActorPropsFactory"),
 
         /**
          * Denotes the name of query parameters that equal the names of well-known headers; the here defined query

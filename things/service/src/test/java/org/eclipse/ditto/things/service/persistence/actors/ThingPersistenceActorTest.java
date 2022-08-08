@@ -14,9 +14,13 @@ package org.eclipse.ditto.things.service.persistence.actors;
 
 import static org.assertj.core.api.Assertions.fail;
 import static org.eclipse.ditto.things.model.assertions.DittoThingsAssertions.assertThat;
+import static org.mockito.Mockito.when;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.NoSuchElementException;
+import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
@@ -28,7 +32,6 @@ import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
 import org.eclipse.ditto.base.model.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.base.model.entity.Revision;
-import org.eclipse.ditto.base.model.entity.metadata.Metadata;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
@@ -44,7 +47,16 @@ import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonParseOptions;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.policies.enforcement.PolicyEnforcer;
+import org.eclipse.ditto.policies.model.Permissions;
+import org.eclipse.ditto.policies.model.PoliciesModelFactory;
+import org.eclipse.ditto.policies.model.PoliciesResourceType;
+import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyId;
+import org.eclipse.ditto.policies.model.SubjectIssuer;
+import org.eclipse.ditto.policies.model.signals.commands.modify.CreatePolicy;
+import org.eclipse.ditto.policies.model.signals.commands.modify.CreatePolicyResponse;
+import org.eclipse.ditto.things.api.Permission;
 import org.eclipse.ditto.things.model.Attributes;
 import org.eclipse.ditto.things.model.Feature;
 import org.eclipse.ditto.things.model.FeatureDefinition;
@@ -95,7 +107,9 @@ import org.junit.Test;
 import org.junit.rules.TestWatcher;
 import org.slf4j.LoggerFactory;
 
+import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
+import com.typesafe.config.ConfigValueFactory;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSelection;
@@ -119,9 +133,6 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
             JsonFactory.newParseOptionsBuilder().withoutUrlDecoding().build();
 
     private static final Instant TIMESTAMP = Instant.EPOCH;
-    private static final Metadata METADATA = Metadata.newBuilder()
-            .set("creator", "The epic Ditto team")
-            .build();
 
 
     private static void assertThingInResponse(final Thing actualThing, final Thing expectedThing) {
@@ -145,11 +156,26 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
 
     @Before
     public void setUp() {
-        setup(ConfigFactory.empty());
+        final Config customConfig = ConfigFactory.empty()
+                .withValue("akka.actor.provider",
+                        ConfigValueFactory.fromAnyRef("akka.cluster.ClusterActorRefProvider"));
+        setup(customConfig);
     }
 
     @Test
     public void unavailableExpectedIfPersistenceActorTerminates() throws Exception {
+        final Policy inlinePolicy = PoliciesModelFactory.newPolicyBuilder(POLICY_ID)
+                .setRevision(1L)
+                .forLabel("authorize-self")
+                .setSubject(SubjectIssuer.newInstance("test"), AUTH_SUBJECT)
+                .setGrantedPermissions(PoliciesResourceType.thingResource(JsonPointer.empty()),
+                        Permissions.newInstance(Permission.READ, Permission.WRITE))
+                .setGrantedPermissions(PoliciesResourceType.policyResource(JsonPointer.empty()),
+                        Permissions.newInstance(Permission.READ, Permission.WRITE))
+                .build();
+        final CreatePolicyResponse createPolicyResponse = CreatePolicyResponse.of(POLICY_ID, inlinePolicy,
+                DittoHeaders.empty());
+
         new TestKit(actorSystem) {
             {
                 final Thing thing = createThingV2WithRandomId();
@@ -157,16 +183,27 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
 
                 final ActorRef underTest = createSupervisorActorFor(thingId);
 
-                final CreateThing createThing = CreateThing.of(thing, null, dittoHeadersV2);
+
+                // as the "createThing" shall be handled by the supervisor which now also does enforcement, pass along
+                // an initial policy which will also be used for enforcement:
+                final CreateThing createThing = CreateThing.of(thing, inlinePolicy.toJson(FieldType.all()),
+                        dittoHeadersV2);
                 underTest.tell(createThing, getRef());
+
+                policiesShardRegionTestProbe.expectMsgClass(CreatePolicy.class);
+                policiesShardRegionTestProbe.reply(createPolicyResponse);
 
                 final CreateThingResponse createThingResponse = expectMsgClass(CreateThingResponse.class);
                 assertThingInResponse(createThingResponse.getThingCreated().orElse(null), thing);
-
+                when(policyEnforcerProvider.getPolicyEnforcer(POLICY_ID))
+                        .thenReturn(CompletableFuture.completedStage(Optional.of(PolicyEnforcer.of(inlinePolicy))));
                 // retrieve created thing
                 final RetrieveThing retrieveThing = RetrieveThing.of(thingId, dittoHeadersV2);
                 underTest.tell(retrieveThing, getRef());
-                expectMsgEquals(ETagTestUtils.retrieveThingResponse(thing, null, dittoHeadersV2));
+                final DittoHeaders expectedHeaders = dittoHeadersV2.toBuilder()
+                        .readGrantedSubjects(List.of(AUTHORIZED_SUBJECT))
+                        .build();
+                expectMsgEquals(ETagTestUtils.retrieveThingResponse(thing, null, expectedHeaders));
 
                 // terminate thing persistence actor
                 final String thingActorPath = String.format("akka://AkkaTestSystem/user/%s/pa", thingId);
@@ -251,7 +288,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
         final Thing thing = createThingV2WithRandomId();
         final CreateThing createThing = CreateThing.of(thing, null, dittoHeadersV2);
 
-        final Props props = ThingPersistenceActor.props(thingIdOfActor, getDistributedPub(), pubSubMediator);
+        final Props props = ThingPersistenceActor.props(thingIdOfActor, getDistributedPub());
         final TestActorRef<ThingPersistenceActor> underTest = TestActorRef.create(actorSystem, props);
         final ThingPersistenceActor thingPersistenceActor = underTest.underlyingActor();
         final PartialFunction<Object, BoxedUnit> receiveCommand = thingPersistenceActor.receiveCommand();
@@ -419,7 +456,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
                 underTest.tell(modifyThingCommand, getRef());
 
                 expectMsgEquals(ETagTestUtils.modifyThingResponse(thingWithFirstLevelFields, minimalThing, dittoHeaders,
-                                false));
+                        false));
 
                 assertPublishEvent(ThingModified.of(expectedThing, 2L, TIMESTAMP, dittoHeaders, null));
 
@@ -543,7 +580,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
             {
                 final Thing initialThing = createThingV2WithRandomId();
                 final ThingId thingId = getIdOrThrow(initialThing);
-                final PolicyId policyId = initialThing.getPolicyEntityId().orElseThrow(IllegalStateException::new);
+                final PolicyId policyId = initialThing.getPolicyId().orElseThrow(IllegalStateException::new);
                 final ActorRef underTest = createPersistenceActorFor(initialThing);
 
                 final CreateThing createThing = CreateThing.of(initialThing, null, dittoHeadersV2);
@@ -893,7 +930,8 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
 
                 // retrieve the thing's sequence number
                 final JsonFieldSelector versionFieldSelector =
-                        JsonFactory.newFieldSelector(Thing.JsonFields.REVISION.getPointer().toString(), JSON_PARSE_OPTIONS);
+                        JsonFactory.newFieldSelector(Thing.JsonFields.REVISION.getPointer().toString(),
+                                JSON_PARSE_OPTIONS);
                 final long versionExpected = 2;
                 final Thing thingExpected = ThingsModelFactory.newThingBuilder(thingToModify)
                         .setRevision(versionExpected)
@@ -902,7 +940,8 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
                         .withSelectedFields(versionFieldSelector)
                         .build();
                 underTest.tell(retrieveThing, getRef());
-                expectMsgEquals(ETagTestUtils.retrieveThingResponse(thingExpected, versionFieldSelector, dittoHeadersV2));
+                expectMsgEquals(
+                        ETagTestUtils.retrieveThingResponse(thingExpected, versionFieldSelector, dittoHeadersV2));
             }
         };
     }
@@ -930,7 +969,8 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
 
                 // retrieve the thing's sequence number from recovered actor
                 final JsonFieldSelector versionFieldSelector =
-                        JsonFactory.newFieldSelector(Thing.JsonFields.REVISION.getPointer().toString(), JSON_PARSE_OPTIONS);
+                        JsonFactory.newFieldSelector(Thing.JsonFields.REVISION.getPointer().toString(),
+                                JSON_PARSE_OPTIONS);
                 final long versionExpected = 2;
                 final Thing thingExpected = ThingsModelFactory.newThingBuilder(thingToModify)
                         .setRevision(versionExpected)
@@ -1250,7 +1290,11 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
 
             final DistributedPubSubMediator.Subscribe subscribe =
                     DistPubSubAccess.subscribe(Shutdown.TYPE, underTest);
-            pubSubTestProbe.expectMsg(subscribe);
+            pubSubTestProbe.fishForMessage(Duration.apply(5, TimeUnit.SECONDS), "subscribe for shutdown",
+                    PartialFunction.fromFunction(msg ->
+                            msg instanceof DistributedPubSubMediator.Subscribe foundSubs && foundSubs.topic()
+                                    .equals(Shutdown.TYPE))
+            );
             pubSubTestProbe.reply(new DistributedPubSubMediator.SubscribeAck(subscribe));
 
             underTest.tell(

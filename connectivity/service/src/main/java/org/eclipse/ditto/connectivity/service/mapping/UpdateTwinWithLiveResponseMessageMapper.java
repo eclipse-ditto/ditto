@@ -29,11 +29,12 @@ import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.base.model.headers.entitytag.EntityTagMatcher;
 import org.eclipse.ditto.base.model.headers.entitytag.EntityTagMatchers;
+import org.eclipse.ditto.base.model.headers.translator.HeaderTranslator;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.connectivity.api.ExternalMessage;
-import org.eclipse.ditto.connectivity.api.placeholders.ConnectivityPlaceholders;
-import org.eclipse.ditto.edge.api.placeholders.RequestPlaceholder;
 import org.eclipse.ditto.connectivity.service.config.mapping.MappingConfig;
+import org.eclipse.ditto.connectivity.service.placeholders.ConnectivityPlaceholders;
+import org.eclipse.ditto.edge.service.placeholders.RequestPlaceholder;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLogger;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.json.JsonFactory;
@@ -45,7 +46,6 @@ import org.eclipse.ditto.placeholders.HeadersPlaceholder;
 import org.eclipse.ditto.placeholders.PlaceholderFactory;
 import org.eclipse.ditto.placeholders.TimePlaceholder;
 import org.eclipse.ditto.protocol.Adaptable;
-import org.eclipse.ditto.protocol.HeaderTranslator;
 import org.eclipse.ditto.protocol.JsonifiableAdaptable;
 import org.eclipse.ditto.protocol.ProtocolFactory;
 import org.eclipse.ditto.protocol.TopicPath;
@@ -138,6 +138,11 @@ public class UpdateTwinWithLiveResponseMessageMapper extends AbstractMessageMapp
         }
     }
 
+    @Override
+    public DittoHeaders getAdditionalInboundHeaders(final ExternalMessage message) {
+        return DittoHeaders.empty();
+    }
+
     private static boolean shouldUpdateTwinWithLiveThingQueryCommandResponse(final Adaptable adaptable) {
         return isResponse(adaptable) &&
                 isLiveSignal(adaptable) &&
@@ -161,9 +166,7 @@ public class UpdateTwinWithLiveResponseMessageMapper extends AbstractMessageMapp
 
         final DittoHeaders dittoHeaders = liveResponseSignal.getDittoHeaders();
         final JsonPointer resourcePath = liveResponseSignal.getResourcePath();
-        if (liveResponseSignal instanceof ThingQueryCommandResponse) {
-            final ThingQueryCommandResponse<?> queryCommandResponse =
-                    (ThingQueryCommandResponse<?>) liveResponseSignal;
+        if (liveResponseSignal instanceof ThingQueryCommandResponse<?> queryCommandResponse) {
             final ThingId thingId = queryCommandResponse.getEntityId();
             final JsonValue entity = queryCommandResponse.getEntity();
             final String correlationId = dittoHeaders.getCorrelationId().orElseGet(() -> UUID.randomUUID().toString());

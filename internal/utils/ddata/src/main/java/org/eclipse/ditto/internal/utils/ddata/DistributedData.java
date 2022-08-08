@@ -65,6 +65,8 @@ public abstract class DistributedData<R extends ReplicatedData> implements Exten
 
     private final Executor ddataExecutor;
 
+    private final DistributedDataConfig config;
+
     /**
      * Create a wrapper of distributed data replicator.
      *
@@ -80,6 +82,7 @@ public abstract class DistributedData<R extends ReplicatedData> implements Exten
         readTimeout = config.getReadTimeout();
         writeTimeout = config.getWriteTimeout();
         numberOfShards = config.getNumberOfShards();
+        this.config = config;
     }
 
     /**
@@ -169,6 +172,16 @@ public abstract class DistributedData<R extends ReplicatedData> implements Exten
      */
     public ActorRef getReplicator() {
         return replicator;
+    }
+
+    /**
+     * Get the config of this distributed data.
+     *
+     * @return The config.
+     * @since 3.0.0
+     */
+    public DistributedDataConfig getConfig() {
+        return config;
     }
 
     private Void handleUpdateResponse(final Object reply, final Key<R> key) {

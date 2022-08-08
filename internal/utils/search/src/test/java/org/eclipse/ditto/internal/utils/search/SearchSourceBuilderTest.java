@@ -41,13 +41,13 @@ public final class SearchSourceBuilderTest {
         system = ActorSystem.create();
         SearchSource.newBuilder()
                 .dittoHeaders(DittoHeaders.empty())
-                .conciergeForwarder(ActorSelection.apply(system.deadLetters(), ""))
+                .commandForwarder(ActorSelection.apply(system.deadLetters(), ""))
                 .pubSubMediator(system.deadLetters())
                 .build();
     }
 
     @Test(expected = NullPointerException.class)
-    public void failWithMissingConciergeForwarder() {
+    public void failWithMissingCommandForwarder() {
         system = ActorSystem.create();
         SearchSource.newBuilder()
                 .dittoHeaders(DittoHeaders.empty())
@@ -60,7 +60,7 @@ public final class SearchSourceBuilderTest {
         system = ActorSystem.create();
         SearchSource.newBuilder()
                 .dittoHeaders(DittoHeaders.empty())
-                .conciergeForwarder(ActorSelection.apply(system.deadLetters(), ""))
+                .commandForwarder(ActorSelection.apply(system.deadLetters(), ""))
                 .build();
     }
 
@@ -68,7 +68,7 @@ public final class SearchSourceBuilderTest {
     public void failWithMissingDittoHeaders() {
         system = ActorSystem.create();
         SearchSource.newBuilder()
-                .conciergeForwarder(ActorSelection.apply(system.deadLetters(), ""))
+                .commandForwarder(ActorSelection.apply(system.deadLetters(), ""))
                 .pubSubMediator(system.deadLetters())
                 .build();
     }

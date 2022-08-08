@@ -14,31 +14,24 @@ package org.eclipse.ditto.wot.model;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
-import java.util.Optional;
-
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.json.JsonFieldDefinition;
-import org.eclipse.ditto.json.JsonKey;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 
 /**
  * Abstract implementation of {@link org.eclipse.ditto.wot.model.SecurityScheme.Builder}.
  */
 abstract class AbstractSecuritySchemeBuilder<B extends SecurityScheme.Builder<B, S>, S extends SecurityScheme>
+        extends AbstractTypedJsonObjectBuilder<B, S>
         implements SecurityScheme.Builder<B, S> {
 
     protected final String securitySchemeName;
-    protected final B myself;
-    protected final JsonObjectBuilder wrappedObjectBuilder;
 
-    @SuppressWarnings("unchecked")
     protected AbstractSecuritySchemeBuilder(final String securitySchemeName,
             final JsonObjectBuilder wrappedObjectBuilder,
             final Class<?> selfType) {
+        super(wrappedObjectBuilder, selfType);
         this.securitySchemeName = checkNotNull(securitySchemeName, "securitySchemeName");
-        myself = (B) selfType.cast(this);
-        this.wrappedObjectBuilder = checkNotNull(wrappedObjectBuilder, "wrappedObjectBuilder");
         setScheme(getSecuritySchemeScheme());
     }
 
@@ -63,7 +56,7 @@ abstract class AbstractSecuritySchemeBuilder<B extends SecurityScheme.Builder<B,
     @Override
     public B setScheme(@Nullable final SecuritySchemeScheme scheme) {
         if (scheme != null) {
-            putValue(SecurityScheme.SecuritySchemeJsonFields.SCHEME, scheme.getName());
+            putValue(SecurityScheme.SecuritySchemeJsonFields.SCHEME, scheme.toString());
         } else {
             remove(SecurityScheme.SecuritySchemeJsonFields.SCHEME);
         }
@@ -100,21 +93,4 @@ abstract class AbstractSecuritySchemeBuilder<B extends SecurityScheme.Builder<B,
         return myself;
     }
 
-    protected <J> void putValue(final JsonFieldDefinition<J> definition, @Nullable final J value) {
-        final Optional<JsonKey> keyOpt = definition.getPointer().getRoot();
-        if (keyOpt.isPresent()) {
-            final JsonKey key = keyOpt.get();
-            if (null != value) {
-                checkNotNull(value, definition.getPointer().toString());
-                wrappedObjectBuilder.remove(key);
-                wrappedObjectBuilder.set(definition, value);
-            } else {
-                wrappedObjectBuilder.remove(key);
-            }
-        }
-    }
-
-    protected void remove(final JsonFieldDefinition<?> fieldDefinition) {
-        wrappedObjectBuilder.remove(fieldDefinition);
-    }
 }

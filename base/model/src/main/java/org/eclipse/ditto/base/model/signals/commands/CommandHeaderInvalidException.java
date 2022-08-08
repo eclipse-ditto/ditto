@@ -19,24 +19,25 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
 
-import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeExceptionBuilder;
+import org.eclipse.ditto.base.model.exceptions.GeneralException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonParsableException;
+import org.eclipse.ditto.json.JsonObject;
 
 /**
  * Thrown if a header of a {@link Command}'s {@link org.eclipse.ditto.base.model.headers.DittoHeaders} was invalid.
  */
 @Immutable
 @JsonParsableException(errorCode = CommandHeaderInvalidException.ERROR_CODE)
-public final class CommandHeaderInvalidException extends DittoRuntimeException {
+public final class CommandHeaderInvalidException extends DittoRuntimeException implements GeneralException {
 
     /**
      * Error code of this exception.
      */
-    public static final String ERROR_CODE = "command.headers.invalid";
+    public static final String ERROR_CODE = ERROR_CODE_PREFIX + "command.headers.invalid";
 
     static final String MESSAGE_TEMPLATE = "The header ''{0}'' was invalid in context of the command.";
 

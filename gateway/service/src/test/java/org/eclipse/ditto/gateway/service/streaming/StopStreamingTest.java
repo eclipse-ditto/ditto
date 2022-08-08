@@ -17,14 +17,14 @@ import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstance
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.assertj.core.api.SoftAssertions;
+import org.eclipse.ditto.gateway.service.streaming.signals.StopStreaming;
 import org.eclipse.ditto.internal.utils.pubsub.StreamingType;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
 
 /**
- * Unit test for {@link StopStreaming}.
+ * Unit test for {@link org.eclipse.ditto.gateway.service.streaming.signals.StopStreaming}.
  */
 public final class StopStreamingTest {
 

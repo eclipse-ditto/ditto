@@ -22,13 +22,15 @@ import static org.mockito.Mockito.when;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.Optional;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
+import java.util.concurrent.*;
 
-import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayAuthenticationProviderUnavailableException;
+import com.github.benmanes.caffeine.cache.AsyncCacheLoader;
+import com.github.benmanes.caffeine.cache.Caffeine;
+
+import org.eclipse.ditto.gateway.api.GatewayAuthenticationProviderUnavailableException;
 import org.eclipse.ditto.gateway.service.util.config.security.OAuthConfig;
+import org.eclipse.ditto.internal.utils.cache.Cache;
+import org.eclipse.ditto.internal.utils.cache.CaffeineCache;
 import org.eclipse.ditto.internal.utils.cache.config.CacheConfig;
 import org.eclipse.ditto.internal.utils.http.HttpClientFacade;
 import org.eclipse.ditto.json.JsonArray;
@@ -77,11 +79,9 @@ public final class DittoPublicKeyProviderTest {
         when(httpClientMock.getActorSystem()).thenReturn(actorSystem);
         final JwtSubjectIssuersConfig subjectIssuersConfig = JwtSubjectIssuersConfig.fromJwtSubjectIssuerConfigs(
                 Collections.singleton(new JwtSubjectIssuerConfig(SubjectIssuer.GOOGLE, "google.com")));
-        when(cacheConfigMock.getMaximumSize()).thenReturn(100L);
-        when(cacheConfigMock.getExpireAfterWrite()).thenReturn(Duration.ofMinutes(3));
         when(oauthConfigMock.getAllowedClockSkew()).thenReturn(Duration.ofSeconds(1));
-        underTest = DittoPublicKeyProvider.of(subjectIssuersConfig, httpClientMock, cacheConfigMock,
-                getClass().getSimpleName(), oauthConfigMock);
+        underTest = new DittoPublicKeyProvider(subjectIssuersConfig, httpClientMock,
+                oauthConfigMock, DittoPublicKeyProviderTest::thisThreadCache);
     }
 
     @After
@@ -207,4 +207,12 @@ public final class DittoPublicKeyProviderTest {
                 .thenReturn(CompletableFuture.completedFuture(publicKeysResponse));
     }
 
+    private static <K, V> Cache<K, V> thisThreadCache(final AsyncCacheLoader<K, V> loader) {
+        final var caffeine = Caffeine.newBuilder()
+                .maximumSize(100)
+                .expireAfterWrite(Duration.ofMinutes(3L))
+                .executor(Runnable::run);
+
+        return CaffeineCache.of(caffeine, loader, DittoPublicKeyProviderTest.class.getSimpleName());
+    }
 }

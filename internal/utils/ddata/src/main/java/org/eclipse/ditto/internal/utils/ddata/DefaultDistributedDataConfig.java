@@ -24,7 +24,7 @@ import akka.cluster.ddata.Replicator;
 /**
  * This class is the default implementation of the distributed data config.
  */
-class DefaultDistributedDataConfig implements DistributedDataConfig {
+public final class DefaultDistributedDataConfig implements DistributedDataConfig {
 
     private static final String CONFIG_PATH = "ddata";
 

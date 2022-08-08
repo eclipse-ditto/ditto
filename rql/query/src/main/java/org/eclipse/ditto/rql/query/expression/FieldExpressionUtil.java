@@ -149,6 +149,9 @@ public final class FieldExpressionUtil {
         private static final Pattern FIELD_NAME_FEATURE_PATTERN2 =
                 Pattern.compile("^features/(?<featureId>[^/]++)");
 
+        private static final Pattern FIELD_NAME_FEATURE_DEFINITION_PATTERN =
+                Pattern.compile("^features/(?<featureId>[^/]++)/definition/?");
+
         private static final String FEATURE_ID = "featureId";
 
         private final boolean matches;
@@ -157,6 +160,7 @@ public final class FieldExpressionUtil {
         private final boolean isProperties;
         private final String desiredProperty;
         private final boolean isDesiredProperties;
+        private final boolean isDefinition;
 
         private FeatureField(final CharSequence fieldName) {
             Matcher matcher = FIELD_NAME_FEATURE_PATTERN1.matcher(fieldName);
@@ -166,6 +170,7 @@ public final class FieldExpressionUtil {
                 isProperties = false;
                 property = matcher.group("property");
                 isDesiredProperties = false;
+                isDefinition = false;
                 desiredProperty = null;
             } else {
 
@@ -176,6 +181,7 @@ public final class FieldExpressionUtil {
                     isProperties = false;
                     property = null;
                     isDesiredProperties = false;
+                    isDefinition = false;
                     desiredProperty = matcher.group("desiredProperty");
                 } else {
 
@@ -186,6 +192,7 @@ public final class FieldExpressionUtil {
                         isProperties = true;
                         property = null;
                         isDesiredProperties = false;
+                        isDefinition = false;
                         desiredProperty = null;
                     } else {
 
@@ -196,25 +203,40 @@ public final class FieldExpressionUtil {
                             isProperties = false;
                             property = null;
                             isDesiredProperties = true;
+                            isDefinition = false;
                             desiredProperty = null;
                         } else {
 
-                            matcher = FIELD_NAME_FEATURE_PATTERN2.matcher(fieldName);
+                            matcher = FIELD_NAME_FEATURE_DEFINITION_PATTERN.matcher(fieldName);
                             if (matcher.matches()) {
                                 matches = true;
                                 featureId = matcher.group(FEATURE_ID);
                                 isProperties = false;
                                 property = null;
                                 isDesiredProperties = false;
+                                isDefinition = true;
                                 desiredProperty = null;
                             } else {
 
-                                matches = false;
-                                featureId = null;
-                                isProperties = false;
-                                property = null;
-                                isDesiredProperties = false;
-                                desiredProperty = null;
+                                matcher = FIELD_NAME_FEATURE_PATTERN2.matcher(fieldName);
+                                if (matcher.matches()) {
+                                    matches = true;
+                                    featureId = matcher.group(FEATURE_ID);
+                                    isProperties = false;
+                                    property = null;
+                                    isDesiredProperties = false;
+                                    isDefinition = false;
+                                    desiredProperty = null;
+                                } else {
+
+                                    matches = false;
+                                    featureId = null;
+                                    isProperties = false;
+                                    property = null;
+                                    isDesiredProperties = false;
+                                    isDefinition = false;
+                                    desiredProperty = null;
+                                }
                             }
                         }
                     }
@@ -261,6 +283,9 @@ public final class FieldExpressionUtil {
             return isDesiredProperties;
         }
 
+        public boolean isDefinition() {
+            return isDefinition;
+        }
     }
 
 }

@@ -41,7 +41,7 @@ public interface ThingBuilder {
 
     /**
      * Generates a random Thing ID with a specified namespace
-     * @since 2.5.0
+     * @since 3.0.0
      * @param namespace the specified namespace
      * @return the ID
      */

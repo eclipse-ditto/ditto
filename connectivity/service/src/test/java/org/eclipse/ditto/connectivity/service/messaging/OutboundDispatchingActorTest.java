@@ -23,6 +23,7 @@ import org.eclipse.ditto.base.model.acks.AcknowledgementRequest;
 import org.eclipse.ditto.base.model.auth.AuthorizationModelFactory;
 import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
 import org.eclipse.ditto.base.model.common.HttpStatus;
+import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
@@ -89,6 +90,7 @@ public final class OutboundDispatchingActorTest {
             final AcknowledgementLabel acknowledgementLabel = getTestAck(connectionId);
             final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
                     .acknowledgementRequest(AcknowledgementRequest.of(acknowledgementLabel))
+                    .putHeader(DittoHeaderDefinition.DITTO_ACKREGATOR_ADDRESS.getKey(), getRef().path().toSerializationFormat())
                     .readGrantedSubjects(Collections.singleton(TestConstants.Authorization.SUBJECT))
                     .timeout("2s")
                     .randomCorrelationId()
@@ -130,6 +132,7 @@ public final class OutboundDispatchingActorTest {
             final AcknowledgementLabel acknowledgementLabel = getTestAck(connectionId);
             final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
                     .acknowledgementRequest(AcknowledgementRequest.of(acknowledgementLabel))
+                    .putHeader(DittoHeaderDefinition.DITTO_ACKREGATOR_ADDRESS.getKey(), getRef().path().toSerializationFormat())
                     .readGrantedSubjects(Collections.singleton(TestConstants.Authorization.SUBJECT))
                     .timeout("2s")
                     .randomCorrelationId()
@@ -178,6 +181,7 @@ public final class OutboundDispatchingActorTest {
             final AcknowledgementLabel acknowledgementLabel = getTestAck(connectionId);
             final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
                     .acknowledgementRequest(AcknowledgementRequest.of(acknowledgementLabel))
+                    .putHeader(DittoHeaderDefinition.DITTO_ACKREGATOR_ADDRESS.getKey(), getRef().path().toSerializationFormat())
                     .readGrantedSubjects(Collections.singleton(TestConstants.Authorization.SUBJECT))
                     .timeout("2s")
                     .randomCorrelationId()
@@ -226,6 +230,7 @@ public final class OutboundDispatchingActorTest {
             final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
                     .acknowledgementRequest(AcknowledgementRequest.of(acknowledgementLabel))
                     .readGrantedSubjects(Collections.singleton(TestConstants.Authorization.SUBJECT))
+                    .putHeader(DittoHeaderDefinition.DITTO_ACKREGATOR_ADDRESS.getKey(), getRef().path().toSerializationFormat())
                     .timeout("2s")
                     .randomCorrelationId()
                     .build();
