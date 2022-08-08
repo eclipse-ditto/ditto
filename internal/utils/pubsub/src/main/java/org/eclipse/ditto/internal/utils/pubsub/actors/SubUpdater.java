@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.internal.utils.pubsub.actors;
 
-import java.time.Duration;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -95,10 +94,6 @@ public final class SubUpdater extends akka.actor.AbstractActorWithTimers
      */
     private final Replicator.WriteConsistency writeConsistency;
 
-    /**
-     * Whether local subscriptions changed.
-     */
-    private boolean localSubscriptionsChanged = false;
     private int seqNr = 0;
     private LiteralUpdate previousUpdate = LiteralUpdate.empty();
     private int errorCounter = 0;
@@ -160,7 +155,7 @@ public final class SubUpdater extends akka.actor.AbstractActorWithTimers
                 subscriptions.subscribe(subscribe.getSubscriber(), subscribe.getTopics(), subscribe.getFilter(),
                         subscribe.getGroup().orElse(null));
         final var consistent = checkForLostSubscriber(subscribe, changed);
-        enqueueRequest(subscribe, changed, getSender(), awaitUpdate, awaitUpdateMetric, consistent);
+        enqueueRequest(subscribe, getSender(), awaitUpdate, awaitUpdateMetric, consistent);
         if (changed) {
             getContext().watch(subscribe.getSubscriber());
         }
@@ -168,7 +163,7 @@ public final class SubUpdater extends akka.actor.AbstractActorWithTimers
 
     private void unsubscribe(final Unsubscribe unsubscribe) {
         final boolean changed = subscriptions.unsubscribe(unsubscribe.getSubscriber(), unsubscribe.getTopics());
-        enqueueRequest(unsubscribe, changed, getSender(), awaitUpdate, awaitUpdateMetric, true);
+        enqueueRequest(unsubscribe, getSender(), awaitUpdate, awaitUpdateMetric, true);
         if (changed && !subscriptions.contains(unsubscribe.getSubscriber())) {
             getContext().unwatch(unsubscribe.getSubscriber());
         }
@@ -187,20 +182,14 @@ public final class SubUpdater extends akka.actor.AbstractActorWithTimers
     private void ddataOpSuccess(final DDataOpSuccess<SubscriptionsReader> opSuccess) {
         log().debug("DDataOp success seqNr=<{}>", opSuccess.seqNr);
         errorCounter = 0;
-        flushSubAcks(opSuccess.seqNr);
         // race condition possible -- some published messages may arrive before the acknowledgement
         // could solve it by having pubSubSubscriber forward acknowledgements. probably not worth it.
         subscriber.tell(opSuccess.payload, getSelf());
-
-        // reset changed flags if there are no more pending changes
-        if (awaitSubAck.isEmpty() && awaitUpdate.isEmpty()) {
-            localSubscriptionsChanged = false;
-        }
+        flushSubAcks(opSuccess.seqNr);
     }
 
     private void tick(final Clock tick) {
-        performDDataOp(localSubscriptionsChanged, writeConsistency)
-                .handle(handleDDataWriteResult(getSeqNr()));
+        performDDataOp(writeConsistency).handle(handleDDataWriteResult(getSeqNr()));
         moveAwaitUpdateToAwaitAcknowledge();
     }
 
@@ -210,25 +199,28 @@ public final class SubUpdater extends akka.actor.AbstractActorWithTimers
         }
     }
 
-    private CompletionStage<SubscriptionsReader> performDDataOp(final boolean localSubscriptionsChanged,
-            final Replicator.WriteConsistency writeConsistency) {
-        final SubscriptionsReader snapshot = subscriptions.snapshot();
+    private CompletionStage<SubscriptionsReader> performDDataOp(final Replicator.WriteConsistency writeConsistency) {
+        final SubscriptionsReader snapshot;
         final CompletionStage<Void> ddataOp;
-        log().debug("Tick seq=<{}> changed=<{}> empty=<{}> writeConsistency=<{}>", seqNr, localSubscriptionsChanged,
-                subscriptions.isEmpty(), writeConsistency);
-        if (resetProbability > 0 && Math.random() < resetProbability) {
+        log().debug("Tick seq=<{}> empty=<{}> writeConsistency=<{}>", seqNr, subscriptions.isEmpty(), writeConsistency);
+        final boolean isReset = previousUpdate.isEmpty() && !subscriptions.isEmpty();
+        if (isReset || resetProbability > 0 && Math.random() < resetProbability) {
             log().debug("Resetting ddata topics: <{}>", getSelf());
-            ddataOp = ddata.getWriter().reset(subscriber, subscriptions.export(), writeConsistency);
-        } else if (!localSubscriptionsChanged) {
-            ddataOp = CompletableFuture.completedStage(null);
+            final var nextUpdate = subscriptions.export();
+            ddataOp = ddata.getWriter().reset(subscriber, nextUpdate, writeConsistency);
+            snapshot = subscriptions.snapshot();
+            previousUpdate = nextUpdate;
+            topicSizeMetric.set(subscriptions.estimateSize());
         } else if (subscriptions.isEmpty()) {
             ddataOp = ddata.getWriter().removeSubscriber(subscriber, writeConsistency);
+            snapshot = subscriptions.snapshot();
             previousUpdate = LiteralUpdate.empty();
             topicSizeMetric.set(0L);
         } else {
             // export before taking snapshot so that implementations may output incremental update.
             final LiteralUpdate nextUpdate = subscriptions.export();
             // take snapshot to give to the subscriber; clear accumulated incremental changes.
+            snapshot = subscriptions.snapshot();
             final var diff = nextUpdate.diff(previousUpdate);
             log().debug("diff.isEmpty=<{}>", diff.isEmpty());
             if (!diff.isEmpty()) {
@@ -254,23 +246,20 @@ public final class SubUpdater extends akka.actor.AbstractActorWithTimers
         } else {
             log.warning("Failure updating Ditto pub/sub subscription - trying again next clock tick");
         }
-        // try again next clock tick
-        localSubscriptionsChanged = true;
+        previousUpdate = LiteralUpdate.empty();
     }
 
     /**
      * Add a request to the queue to be handled after cluster update.
      *
      * @param request the request.
-     * @param changed whether the request changed ddata.
      * @param sender sender of the request.
      * @param queue the queue to enqueue the request.
      * @param queueSizeMetric the metrics for the queue size.
      * @param consistent whether the consistency check of a resubscription succeeded.
      */
-    private void enqueueRequest(final Request request, final boolean changed, final ActorRef sender,
+    private void enqueueRequest(final Request request, final ActorRef sender,
             final Collection<SubAck> queue, final Gauge queueSizeMetric, final boolean consistent) {
-        localSubscriptionsChanged |= changed;
         if (request.shouldAcknowledge()) {
             final SubAck subAck = SubAck.of(request, sender, ++seqNr, consistent);
             queue.add(subAck);
@@ -352,7 +341,7 @@ public final class SubUpdater extends akka.actor.AbstractActorWithTimers
     }
 
     private void doRemoveSubscriber(final ActorRef subscriber) {
-        localSubscriptionsChanged |= subscriptions.removeSubscriber(subscriber);
+        subscriptions.removeSubscriber(subscriber);
         getContext().unwatch(subscriber);
     }
 
@@ -399,7 +388,6 @@ public final class SubUpdater extends akka.actor.AbstractActorWithTimers
     public void verifyNoDDataForCurrentMember() {
         if (!subscriptions.isEmpty()) {
             previousUpdate = LiteralUpdate.empty();
-            localSubscriptionsChanged = true;
         }
         // Do nothing for empty subscriptions: No data is expected for the current member.
     }
@@ -426,9 +414,5 @@ public final class SubUpdater extends akka.actor.AbstractActorWithTimers
             this.payload = payload;
             this.seqNr = seqNr;
         }
-    }
-
-    private static Replicator.WriteConsistency defaultWriteConsistency() {
-        return new Replicator.WriteAll(Duration.ofSeconds(25L));
     }
 }
