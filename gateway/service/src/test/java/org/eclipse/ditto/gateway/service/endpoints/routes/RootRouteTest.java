@@ -20,8 +20,6 @@ import java.text.MessageFormat;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.UUID;
-import java.util.concurrent.Executor;
-import java.util.concurrent.Executors;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -38,6 +36,7 @@ import org.eclipse.ditto.gateway.service.endpoints.directives.auth.DevopsAuthent
 import org.eclipse.ditto.gateway.service.endpoints.directives.auth.DittoGatewayAuthenticationDirectiveFactory;
 import org.eclipse.ditto.gateway.service.endpoints.directives.auth.GatewayAuthenticationDirectiveFactory;
 import org.eclipse.ditto.gateway.service.endpoints.routes.cloudevents.CloudEventsRoute;
+import org.eclipse.ditto.gateway.service.endpoints.routes.connections.ConnectionsRoute;
 import org.eclipse.ditto.gateway.service.endpoints.routes.devops.DevOpsRoute;
 import org.eclipse.ditto.gateway.service.endpoints.routes.health.CachingHealthRoute;
 import org.eclipse.ditto.gateway.service.endpoints.routes.policies.OAuthTokenIntegrationSubjectIdFactory;
@@ -110,16 +109,10 @@ public final class RootRouteTest extends EndpointTestBase {
 
     private static final String HTTPS = "https";
 
-    private final Executor messageDispatcher;
-
     private TestRoute rootTestRoute;
 
     @Mock
     private HttpClientFacade httpClientFacade;
-
-    public RootRouteTest() {
-        messageDispatcher = Executors.newFixedThreadPool(8);
-    }
 
     @Before
     public void setUp() {
@@ -147,6 +140,7 @@ public final class RootRouteTest extends EndpointTestBase {
                 .statusRoute(new StatusRoute(clusterStatusSupplier,
                         createHealthCheckingActorMock(),
                         routeBaseProperties.getActorSystem()))
+                .connectionsRoute(new ConnectionsRoute(routeBaseProperties, devOpsAuthenticationDirective))
                 .overallStatusRoute(new OverallStatusRoute(clusterStatusSupplier,
                         statusAndHealthProvider,
                         devopsAuthenticationDirectiveFactory.status()))
