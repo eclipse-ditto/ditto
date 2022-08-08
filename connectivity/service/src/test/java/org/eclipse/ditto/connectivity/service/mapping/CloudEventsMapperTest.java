@@ -17,17 +17,17 @@ import org.eclipse.ditto.things.model.ThingId;
 import org.junit.Before;
 import org.junit.Test;
 import static org.junit.Assert.assertEquals;
-public class TestMapperTest {
+public class CloudEventsMapperTest {
 
     private static final ThingId THING_ID = ThingId.of("thing:id");
     private static final ProtocolAdapter ADAPTER = DittoProtocolAdapter.newInstance();
 
     String payload = "{\"specversion\": \"1.0\", \"id\":\"3212e\", \"source\":\"http:somesite.com\",\"type\":\"com.site.com\"}";
-    private TestMapper underTest;
+    private CloudEventsMapper underTest;
 
     @Before
     public void setUp() {
-        underTest = new TestMapper();
+        underTest = new CloudEventsMapper();
     }
 
     @Test
