@@ -10,7 +10,6 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-
 package org.eclipse.ditto.gateway.service.endpoints.actors;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
@@ -55,6 +54,9 @@ import akka.cluster.pubsub.DistributedPubSubMediator;
 import akka.japi.pf.ReceiveBuilder;
 import akka.pattern.Patterns;
 
+/**
+ * Actor for retrieving multiple connections.
+ */
 public class ConnectionsRetrievalActor extends AbstractActor {
 
     private static final ThreadSafeDittoLogger LOGGER =
@@ -68,11 +70,19 @@ public class ConnectionsRetrievalActor extends AbstractActor {
     private ActorRef retrieveConnectionsSender;
     private RetrieveConnections initialCommand;
 
+    @SuppressWarnings("unused")
     private ConnectionsRetrievalActor(final CommandConfig commandConfig, final ActorRef connectivityShardRegion) {
         this.commandConfig = commandConfig;
         this.connectivityShardRegion = connectivityShardRegion;
     }
 
+    /**
+     * Creates props for {@code ConnectionsRetrievalActor}.
+     *
+     * @param commandConfig the command config for timeouts.
+     * @param connectivityShardRegion the connectivity shard region to contact for the connections.
+     * @return the props.
+     */
     public static Props props(final CommandConfig commandConfig, ActorRef connectivityShardRegion) {
         return Props.create(ConnectionsRetrievalActor.class, commandConfig, connectivityShardRegion);
     }
@@ -80,13 +90,13 @@ public class ConnectionsRetrievalActor extends AbstractActor {
     @Override
     public Receive createReceive() {
         return ReceiveBuilder.create()
-                .match(RetrieveConnections.class, this::retreiveConnectionIds)
+                .match(RetrieveConnections.class, this::retrieveConnectionIds)
                 .match(RetrieveAllConnectionIdsResponse.class, this::retrieveConnectionsResponse)
                 .matchAny(msg -> LOGGER.warn("Unknown message: <{}>", msg))
                 .build();
     }
 
-    private void retreiveConnectionIds(final RetrieveConnections cmd) {
+    private void retrieveConnectionIds(final RetrieveConnections cmd) {
         initialCommand = cmd;
         retrieveConnectionsSender = getSender();
         ActorRef pubSubMediator = DistributedPubSub.get(getContext().getSystem()).mediator();
@@ -125,8 +135,6 @@ public class ConnectionsRetrievalActor extends AbstractActor {
                         return null;
                     });
         }
-
-
     }
 
     private CompletionStage<RetrieveConnectionsResponse> retrieveConnections(
@@ -152,7 +160,7 @@ public class ConnectionsRetrievalActor extends AbstractActor {
         return CompletableFuture.allOf(completableFutures.toArray(new CompletableFuture[0]))
                 .thenApply(ignored -> completableFutures.stream()
                         .map(CompletableFuture::join)
-                        .collect(Collectors.toList()))
+                        .toList())
                 .thenApply(retrieveConnectionResponses -> {
                     final JsonArray connections = retrieveConnectionResponses.stream()
                             .sorted(sorter)
@@ -166,11 +174,12 @@ public class ConnectionsRetrievalActor extends AbstractActor {
     private CompletionStage<RetrieveConnectionResponse> retrieveConnection(
             final RetrieveConnection retrieveConnection) {
 
-        return askConnectivityCommandActor(retrieveConnection, RetrieveConnectionResponse.class);
+        return askConnectivityCommandActor(retrieveConnection);
     }
 
-    private <T extends ConnectivityCommandResponse> CompletionStage<T> askConnectivityCommandActor(
-            final Command<?> command, final Class<T> responseType) {
+    private <T extends ConnectivityCommandResponse<?>> CompletionStage<T> askConnectivityCommandActor(
+            final Command<?> command) {
+
         LOGGER.withCorrelationId(command).debug(LOG_SEND_COMMAND, command);
         final var commandWithCorrelationId = ensureCommandHasCorrelationId(command);
         Duration askTimeout = command.getDittoHeaders().getTimeout().orElse(commandConfig.getDefaultTimeout());
@@ -180,7 +189,7 @@ public class ConnectionsRetrievalActor extends AbstractActor {
                             .debug("Received response <{}> from com.bosch.iot.things.connectivity.service.", response);
                     throwCauseIfErrorResponse(response);
                     throwCauseIfDittoRuntimeException(response);
-                    final T mappedResponse = mapToType(response, responseType, command);
+                    final T mappedResponse = mapToType(response, (Class<T>) RetrieveConnectionResponse.class, command);
                     LOGGER.withCorrelationId(command)
                             .info("Received response of type <{}> from com.bosch.iot.things.connectivity.service.",
                                     mappedResponse.getType());
@@ -198,14 +207,14 @@ public class ConnectionsRetrievalActor extends AbstractActor {
     }
 
     private static void throwCauseIfErrorResponse(final Object response) {
-        if (response instanceof ErrorResponse) {
-            throw ((ErrorResponse<?>) response).getDittoRuntimeException();
+        if (response instanceof ErrorResponse<?> errorResponse) {
+            throw (errorResponse).getDittoRuntimeException();
         }
     }
 
     private static void throwCauseIfDittoRuntimeException(final Object response) {
-        if (response instanceof DittoRuntimeException) {
-            throw ((DittoRuntimeException) response);
+        if (response instanceof DittoRuntimeException dittoRuntimeException) {
+            throw dittoRuntimeException;
         }
     }
 

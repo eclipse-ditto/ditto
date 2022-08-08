@@ -236,6 +236,7 @@ public final class RootRoute extends AllDirectives {
                                     .withRequestContext(ctx)
                                     .withQueryParameters(queryParameters)
                                     .build(CustomHeadersHandler.RequestType.API);
+                    //TODO dgs: fix after concierge-removal merge.
                     return withDittoHeaders(dittoHeadersPromise, dh -> connectionsRoute.buildConnectionsRoute(ctx, dh))
                             .orElse(customApiRoutesProvider.unauthorized(routeBaseProperties, apiVersion, correlationId).orElse(
                                             apiAuthentication(apiVersion, correlationId, auth -> {

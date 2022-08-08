@@ -10,7 +10,6 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-
 package org.eclipse.ditto.connectivity.model.signals.commands.query;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
@@ -45,6 +44,8 @@ import org.eclipse.ditto.json.JsonValue;
 /**
  * Command that retrieves several {@link org.eclipse.ditto.connectivity.model.Connection}s based on the passed in list
  * of Connection IDs.
+ *
+ * @since 3.0.0
  */
 @Immutable
 @JsonParsableCommand(typePrefix = ConnectivityCommand.TYPE_PREFIX, name = RetrieveConnections.NAME)
@@ -70,7 +71,8 @@ public final class RetrieveConnections extends AbstractCommand<RetrieveConnectio
     private final Set<ConnectionId> connectionIds;
     private final boolean idsOnly;
 
-    private RetrieveConnections(final Set<ConnectionId> connectionIds, final boolean idsOnly, final DittoHeaders dittoHeaders) {
+    private RetrieveConnections(final Set<ConnectionId> connectionIds, final boolean idsOnly,
+            final DittoHeaders dittoHeaders) {
         super(TYPE, dittoHeaders);
         this.connectionIds = Collections.unmodifiableSet(connectionIds);
         this.idsOnly = idsOnly;
@@ -87,7 +89,8 @@ public final class RetrieveConnections extends AbstractCommand<RetrieveConnectio
     public static RetrieveConnections newInstance(final Collection<ConnectionId> connectionIds,
             final boolean idsOnly, final DittoHeaders dittoHeaders) {
 
-        return new RetrieveConnections(new LinkedHashSet<>(checkNotNull(connectionIds, "connectionIds")), idsOnly, dittoHeaders);
+        return new RetrieveConnections(new LinkedHashSet<>(checkNotNull(connectionIds, "connectionIds")), idsOnly,
+                dittoHeaders);
     }
 
     /**

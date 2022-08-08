@@ -10,7 +10,6 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-
 package org.eclipse.ditto.connectivity.model.signals.commands.exceptions;
 
 import java.net.URI;
@@ -30,6 +29,8 @@ import org.eclipse.ditto.json.JsonObject;
 
 /**
  * Thrown if an invalid command is sent to a connection.
+ *
+ * @since 3.0.0
  */
 @Immutable
 @JsonParsableException(errorCode = ConnectivityCommandInvalidException.ERROR_CODE)
@@ -54,7 +55,7 @@ public final class ConnectivityCommandInvalidException extends DittoRuntimeExcep
     }
 
     /**
-     * A mutable builder for a {@code ConnectionIdNotExplicitlySettableException}.
+     * A mutable builder for a {@code ConnectivityCommandInvalidException}.
      *
      * @return the builder.
      */
@@ -91,7 +92,7 @@ public final class ConnectivityCommandInvalidException extends DittoRuntimeExcep
     }
 
     /**
-     * A mutable builder with a fluent API for a {@link ConnectionIdNotExplicitlySettableException}.
+     * A mutable builder with a fluent API for a {@link ConnectivityCommandInvalidException}.
      */
     @NotThreadSafe
     public static final class Builder extends DittoRuntimeExceptionBuilder<ConnectivityCommandInvalidException> {

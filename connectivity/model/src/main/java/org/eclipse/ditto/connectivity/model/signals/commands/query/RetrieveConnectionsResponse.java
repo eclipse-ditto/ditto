@@ -46,6 +46,8 @@ import org.eclipse.ditto.json.JsonValue;
 
 /**
  * Response for a {@link RetrieveConnections} request.
+ *
+ * @since 3.0.0
  */
 @Immutable
 @JsonParsableCommandResponse(type = RetrieveConnectionsResponse.TYPE)
