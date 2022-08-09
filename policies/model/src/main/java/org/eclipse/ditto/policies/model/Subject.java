@@ -120,8 +120,11 @@ public interface Subject extends Jsonifiable.WithFieldSelectorAndPredicate<JsonF
      * @throws NullPointerException if the {@code subjectId} or {@code subjectType} argument is {@code null}.
      * @since 2.0.0
      */
-    static Subject newInstance(final SubjectId subjectId, final SubjectType subjectType,
-            @Nullable final SubjectExpiry subjectExpiry, @Nullable final SubjectAnnouncement subjectAnnouncement) {
+    static Subject newInstance(final SubjectId subjectId,
+            final SubjectType subjectType,
+            @Nullable final SubjectExpiry subjectExpiry,
+            @Nullable final SubjectAnnouncement subjectAnnouncement) {
+
         return ImmutableSubject.of(subjectId, subjectType, subjectExpiry, subjectAnnouncement);
     }
 
