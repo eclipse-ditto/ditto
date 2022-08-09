@@ -7534,7 +7534,10 @@ components:
             timeout: 5s
         randomizationInterval:
           type: string
-          description: Interval in which the announcement can be sent earlier in effort to prevent announcement peaks.
+          minimum: 0ms
+          maximum: 2562047788015215h
+          default: 5m
+          description: 'Interval in which the announcement can be sent earlier in effort to prevent announcement peaks. If omitted, the default value will be applied. If set to minimum, no randomization will be applied.'
       example:
         beforeExpiry: 5m
         whenDeleted: true
