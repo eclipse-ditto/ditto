@@ -30,8 +30,7 @@ import org.eclipse.ditto.protocol.JsonifiableAdaptable;
 import org.eclipse.ditto.protocol.ProtocolFactory;
 
 /**
- * A message mapper implementation for the Ditto Protocol. Expects messages to contain a JSON
- * serialized Ditto Protocol message.
+ * A message mapper implementation for the Mapping incoming CloudEvents to Ditto Protocol. 
  */
 @PayloadMapper(
     alias = {
@@ -95,22 +94,20 @@ public final class CloudEventsMapper extends AbstractMessageMapper {
     }
   }
 
-  private JsonifiableAdaptable extractData(final String message) {
+  private JsonifiableAdaptable extractData(final String message)
+      throws UnsupportedEncodingException {
     Map<String, String> payloadMap = new HashMap<>();
     final JsonObject payloadJson = JsonFactory.newObject(message);
     if (payloadJson.getValue("data_base64").isPresent()) {
-      try {
-        String base64Data = payloadJson.getValue("data_base64").orElse(null).asString();
-        String decodedData = base64decoding(base64Data);
-        final JsonifiableAdaptable decodedJsonifiableAdaptable =
-            DittoJsonException.wrapJsonRuntimeException(
-                () ->
-                    ProtocolFactory.jsonifiableAdaptableFromJson(
-                        JsonFactory.newObject(decodedData)));
-        return decodedJsonifiableAdaptable;
-      } catch (UnsupportedEncodingException e) {
-        throw new RuntimeException(e);
-      }
+      String base64Data = payloadJson.getValue("data_base64").orElse(null).asString();
+      String decodedData = base64decoding(base64Data);
+
+      final JsonifiableAdaptable decodedJsonifiableAdaptable =
+          DittoJsonException.wrapJsonRuntimeException(
+              () ->
+                  ProtocolFactory.jsonifiableAdaptableFromJson(JsonFactory.newObject(decodedData)));
+      return decodedJsonifiableAdaptable;
+
     } else {
       String data = payloadJson.getValue("data").get().toString();
       return DittoJsonException.wrapJsonRuntimeException(
@@ -123,21 +120,20 @@ public final class CloudEventsMapper extends AbstractMessageMapper {
     // extract message as String
     final String payload = extractPayloadAsString(message);
     if (validatePayload(payload)) {
-      JsonifiableAdaptable adaptable = extractData(payload);
-      System.out.println(singletonList(ProtocolFactory.newAdaptableBuilder(adaptable).build()));
-      return singletonList(ProtocolFactory.newAdaptableBuilder(adaptable).build());
-    } else {
       try {
-        throw new Exception("This isn't a CloudEvent");
-      } catch (Exception e) {
-        throw new RuntimeException(e);
+        JsonifiableAdaptable adaptable = extractData(payload);
+        ;
+        return singletonList(ProtocolFactory.newAdaptableBuilder(adaptable).build());
+      } catch (Throwable e) {
+        e.printStackTrace();
       }
     }
+    return null;
   }
 
   @Override
   public DittoHeaders getAdditionalInboundHeaders(ExternalMessage message) {
-    return null;
+    return DittoHeaders.empty();
   }
 
   @Override
