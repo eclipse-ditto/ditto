@@ -21,7 +21,6 @@ import java.util.List;
 
 import org.assertj.core.api.Assertions;
 import org.assertj.core.api.JUnitSoftAssertions;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.runners.Enclosed;
@@ -39,7 +38,6 @@ public final class SemanticSignalTypeTest {
     public static final class GeneralFunctionalityTest {
 
         @Test
-        @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
         public void assertImmutability() {
             assertInstancesOf(SemanticSignalType.class, areImmutable());
         }
@@ -129,14 +127,14 @@ public final class SemanticSignalTypeTest {
         public static List<Object[]> parameters() {
             return Arrays.asList(new Object[][]{
                     {
-                            "cleanup.commands:cleanupPersistence",
-                            "cleanup",
+                            "cleanup.sudo.commands:cleanupPersistence",
+                            "cleanup.sudo",
                             SignalTypeCategory.COMMAND,
                             "cleanupPersistence"
                     },
                     {
-                            "cleanup.responses:cleanupPersistence",
-                            "cleanup",
+                            "cleanup.sudo.responses:cleanupPersistence",
+                            "cleanup.sudo",
                             SignalTypeCategory.RESPONSE,
                             "cleanupPersistence"
                     },

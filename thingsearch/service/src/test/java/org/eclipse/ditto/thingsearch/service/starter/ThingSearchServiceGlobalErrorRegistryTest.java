@@ -16,13 +16,14 @@ import org.eclipse.ditto.base.model.acks.AcknowledgementLabelInvalidException;
 import org.eclipse.ditto.base.model.entity.id.NamespacedEntityIdInvalidException;
 import org.eclipse.ditto.base.model.exceptions.AskException;
 import org.eclipse.ditto.base.model.exceptions.DittoHeaderInvalidException;
+import org.eclipse.ditto.base.model.exceptions.DittoInternalErrorException;
 import org.eclipse.ditto.base.model.namespaces.NamespaceBlockedException;
 import org.eclipse.ditto.base.model.signals.JsonTypeNotParsableException;
 import org.eclipse.ditto.base.model.signals.UnsupportedSchemaVersionException;
 import org.eclipse.ditto.base.model.signals.UnsupportedSignalException;
 import org.eclipse.ditto.base.model.signals.acks.AcknowledgementCorrelationIdMissingException;
 import org.eclipse.ditto.base.model.signals.commands.CommandNotSupportedException;
-import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayAuthenticationFailedException;
+import org.eclipse.ditto.base.model.signals.commands.exceptions.CommandTimeoutException;
 import org.eclipse.ditto.base.model.signals.commands.exceptions.PathUnknownException;
 import org.eclipse.ditto.connectivity.model.ConnectionIdInvalidException;
 import org.eclipse.ditto.connectivity.model.signals.commands.exceptions.ConnectionConflictException;
@@ -37,6 +38,7 @@ import org.eclipse.ditto.protocol.mappingstrategies.IllegalAdaptableException;
 import org.eclipse.ditto.things.model.FeatureDefinitionEmptyException;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.AttributePointerInvalidException;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingNotAccessibleException;
+import org.eclipse.ditto.thingsearch.api.QueryTimeExceededException;
 import org.eclipse.ditto.thingsearch.model.signals.commands.exceptions.InvalidNamespacesException;
 
 public final class ThingSearchServiceGlobalErrorRegistryTest extends GlobalErrorRegistryTestCases {
@@ -49,7 +51,9 @@ public final class ThingSearchServiceGlobalErrorRegistryTest extends GlobalError
                 CommandNotSupportedException.class,
                 UnsupportedSchemaVersionException.class,
                 UnsupportedSignalException.class,
-                GatewayAuthenticationFailedException.class,
+                DittoInternalErrorException.class,
+                CommandTimeoutException.class,
+                QueryTimeExceededException.class,
                 PolicyConflictException.class,
                 FeatureDefinitionEmptyException.class,
                 AuthorizationSubjectBlockedException.class,

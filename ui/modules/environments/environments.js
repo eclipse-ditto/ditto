@@ -11,10 +11,10 @@
  * SPDX-License-Identifier: EPL-2.0
  */
 
-import * as API from '../api.js';
 /* eslint-disable arrow-parens */
 /* eslint-disable prefer-const */
 /* eslint-disable require-jsdoc */
+import * as Authorization from '../environments/authorization.js';
 import * as Utils from '../utils.js';
 
 let environments = {
@@ -25,6 +25,28 @@ let environments = {
     usernamePassword: 'ditto:ditto',
     usernamePasswordDevOps: 'devops:foobar',
     useBasicAuth: true,
+    useDittoPreAuthenticatedAuth: false,
+    dittoPreAuthenticatedUsername: null,
+  },
+  local_ditto_ide: {
+    api_uri: 'http://localhost:8080',
+    solutionId: null,
+    bearer: null,
+    usernamePassword: null,
+    usernamePasswordDevOps: null,
+    useBasicAuth: false,
+    useDittoPreAuthenticatedAuth: true,
+    dittoPreAuthenticatedUsername: "pre:ditto",
+  },
+  ditto_sandbox: {
+    api_uri: 'https://ditto.eclipseprojects.io',
+    solutionId: null,
+    bearer: null,
+    usernamePassword: "ditto:ditto",
+    usernamePasswordDevOps: null,
+    useBasicAuth: true,
+    useDittoPreAuthenticatedAuth: false,
+    dittoPreAuthenticatedUsername: null,
   },
 };
 
@@ -51,8 +73,11 @@ export function addChangeListener(observer) {
   observers.push(observer);
 }
 
-function notifyAll() {
-  observers.forEach(observer => observer.call());
+function notifyAll(modifiedField) {
+  // Notify Authorization first to set right auth header
+  Authorization.onEnvironmentChanged(modifiedField);
+  // Notify others
+  observers.forEach(observer => observer.call(null, modifiedField));
 }
 
 export function ready() {
@@ -105,41 +130,44 @@ export function ready() {
     settingsEditor.renderer.updateFull();
   });
 
-  // Ensure to togle right Ditto user for rest or dev ops api
-  document.querySelectorAll('.mainUser,.devOpsUser').forEach((menuTab) => {
-    menuTab.addEventListener('click', (event) => {
-      API.setAuthHeader(event.target.parentNode.classList.contains('devOpsUser'));
-    });
-  });
-
-  document.getElementById('environmentSelector').onchange = notifyAll;
+  document.getElementById('environmentSelector').onchange = () => {
+    notifyAll();
+  };
 
   environmentsJsonChanged();
 }
 
-export function environmentsJsonChanged() {
+export function environmentsJsonChanged(modifiedField) {
   localStorage.setItem('ditto-ui-env', JSON.stringify(environments));
 
   updateEnvSelector();
   updateEnvEditors();
   updateEnvTable();
-  notifyAll();
-}
 
-function updateEnvSelector() {
-  let activeEnvironment = dom.environmentSelector.value;
-  if (!activeEnvironment || !environments[activeEnvironment]) {
-    activeEnvironment = Object.keys(environments)[0];
-  };
+  notifyAll(modifiedField);
 
-  dom.environmentSelector.innerHTML = '';
-  Object.keys(environments).forEach((key) => {
-    let option = document.createElement('option');
-    option.text = key;
-    dom.environmentSelector.add(option);
-  });
+  function updateEnvSelector() {
+    let activeEnvironment = dom.environmentSelector.value;
+    if (!activeEnvironment || !environments[activeEnvironment]) {
+      activeEnvironment = Object.keys(environments)[0];
+    };
 
-  dom.environmentSelector.value = activeEnvironment;
+    dom.environmentSelector.innerHTML = '';
+    Object.keys(environments).forEach((key) => {
+      let option = document.createElement('option');
+      option.text = key;
+      dom.environmentSelector.add(option);
+    });
+
+    dom.environmentSelector.value = activeEnvironment;
+  }
+
+  function updateEnvTable() {
+    dom.tbodyEnvironments.innerHTML = '';
+    Object.keys(environments).forEach((key) => {
+      Utils.addTableRow(dom.tbodyEnvironments, key, key === dom.inputEnvironmentName.value);
+    });
+  }
 }
 
 function updateEnvEditors() {
@@ -154,9 +182,3 @@ function updateEnvEditors() {
   }
 }
 
-function updateEnvTable() {
-  dom.tbodyEnvironments.innerHTML = '';
-  Object.keys(environments).forEach((key) => {
-    Utils.addTableRow(dom.tbodyEnvironments, key, null, key === dom.inputEnvironmentName.value);
-  });
-}

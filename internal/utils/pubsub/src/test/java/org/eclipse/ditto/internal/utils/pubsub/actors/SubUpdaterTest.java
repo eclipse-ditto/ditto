@@ -13,7 +13,6 @@
 package org.eclipse.ditto.internal.utils.pubsub.actors;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.eclipse.ditto.internal.utils.pubsub.actors.ClusterMemberRemovedAware.writeLocal;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 
@@ -23,6 +22,8 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 
+import org.eclipse.ditto.internal.utils.ddata.DefaultDistributedDataConfig;
+import org.eclipse.ditto.internal.utils.ddata.DistributedDataConfig;
 import org.eclipse.ditto.internal.utils.pubsub.api.SubAck;
 import org.eclipse.ditto.internal.utils.pubsub.api.Subscribe;
 import org.eclipse.ditto.internal.utils.pubsub.config.PubSubConfig;
@@ -107,7 +108,7 @@ public final class SubUpdaterTest {
             final ActorRef underTest = system.actorOf(SubUpdater.props(config, subscriberRef, ddata));
 
             // GIVEN: local subscriptions are not empty
-            final var subscribe = Subscribe.of(List.of("topic"), subscriberRef, writeLocal(), true, null);
+            final var subscribe = Subscribe.of(List.of("topic"), subscriberRef, true, null);
             underTest.tell(subscribe, getRef());
             expectMsgClass(SubAck.class);
 
@@ -118,7 +119,7 @@ public final class SubUpdaterTest {
             Mockito.verify(ddata.getReader(), Mockito.timeout(5000))
                     .getAllShards(eq((Replicator.ReadConsistency) Replicator.readLocal()));
             Thread.sleep(3000);
-            Mockito.verify(ddata.getWriter(), Mockito.times(1)).put(any(), any(), any());
+            Mockito.verify(ddata.getWriter(), Mockito.times(1)).reset(any(), any(), any());
             Mockito.verify(ddata.getWriter(), Mockito.never()).removeAddress(any(), any());
         }};
     }
@@ -132,14 +133,14 @@ public final class SubUpdaterTest {
             final var addressMap = Map.of(subscriberRef, "unknown-value");
             final CompressedDData ddata = mockDistributedData(addressMap);
             final ActorRef underTest = system.actorOf(SubUpdater.props(config, subscriberRef, ddata));
-            final var subscribe = Subscribe.of(List.of("topic"), subscriberRef, writeLocal(), true, null);
+            final var subscribe = Subscribe.of(List.of("topic"), subscriberRef, true, null);
             underTest.tell(subscribe, getRef());
             expectMsgClass(SubAck.class);
 
             // WHEN: SubUpdater is requested to resubscribe
             final var writer = ddata.getWriter();
             Mockito.when(writer.reset(any(), any(), any())).thenReturn(CompletableFuture.completedStage(null));
-            final var resubscribe = Subscribe.of(List.of("topic"), subscriberRef, writeLocal(), true, null, null, true);
+            final var resubscribe = Subscribe.of(List.of("topic"), subscriberRef, true, null, null, true);
             underTest.tell(resubscribe, getRef());
 
             // THEN: SubAck confirms consistency.
@@ -161,7 +162,7 @@ public final class SubUpdaterTest {
             // WHEN: SubUpdater is requested to resubscribe
             final var writer = ddata.getWriter();
             Mockito.when(writer.reset(any(), any(), any())).thenReturn(CompletableFuture.completedStage(null));
-            final var resubscribe = Subscribe.of(List.of("topic"), subscriberRef, writeLocal(), true, null, null, true);
+            final var resubscribe = Subscribe.of(List.of("topic"), subscriberRef, true, null, null, true);
             underTest.tell(resubscribe, getRef());
 
             // THEN: SubAck denies consistency.
@@ -181,7 +182,8 @@ public final class SubUpdaterTest {
     }
 
     @SuppressWarnings({"rawtypes", "unchecked"})
-    private static CompressedDData mockDistributedData(final Map<ActorRef, String> result) {
+    private CompressedDData mockDistributedData(final Map<ActorRef, String> result) {
+        final DistributedDataConfig ddataConfig = DefaultDistributedDataConfig.of(getTestConf().getConfig("ditto"));
         final ORMultiMap map = Mockito.mock(ORMultiMap.class);
         Mockito.when(map.getEntries()).thenReturn(result);
         final var mock = Mockito.mock(CompressedDData.class);
@@ -190,9 +192,11 @@ public final class SubUpdaterTest {
         Mockito.when(mock.getReader()).thenReturn(reader);
         Mockito.when(mock.getWriter()).thenReturn(writer);
         Mockito.when(mock.getSeeds()).thenReturn(List.of(1, 2));
+        Mockito.when(mock.getConfig()).thenReturn(ddataConfig);
         Mockito.when(reader.get(any(), any())).thenReturn(CompletableFuture.completedStage(Optional.of(map)));
         Mockito.when(reader.getAllShards(any())).thenReturn(CompletableFuture.completedStage(List.of(map)));
         Mockito.when(writer.put(any(), any(), any())).thenReturn(CompletableFuture.completedStage(null));
+        Mockito.when(writer.reset(any(), any(), any())).thenReturn(CompletableFuture.completedStage(null));
         return mock;
     }
 

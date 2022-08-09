@@ -29,6 +29,7 @@ import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
 import org.eclipse.ditto.base.model.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.gateway.api.GatewayAuthenticationFailedException;
 import org.eclipse.ditto.gateway.service.security.HttpHeader;
 import org.eclipse.ditto.gateway.service.security.authentication.AuthenticationResult;
 import org.eclipse.ditto.gateway.service.security.authentication.DefaultAuthenticationResult;
@@ -36,7 +37,6 @@ import org.eclipse.ditto.gateway.service.security.authentication.TimeMeasuringAu
 import org.eclipse.ditto.gateway.service.security.utils.HttpUtils;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLogger;
-import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayAuthenticationFailedException;
 import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
 
 import akka.http.javadsl.model.HttpRequest;

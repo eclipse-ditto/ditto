@@ -18,12 +18,12 @@ import java.text.MessageFormat;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
-import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonParsableException;
+import org.eclipse.ditto.json.JsonObject;
 
 /**
  * Thrown if a {@link org.eclipse.ditto.protocol.TopicPath.Channel} is not supported in combination with the
@@ -31,12 +31,12 @@ import org.eclipse.ditto.base.model.json.JsonParsableException;
  * @since 1.1.0
  */
 @JsonParsableException(errorCode = UnknownChannelException.ERROR_CODE)
-public final class UnknownChannelException extends DittoRuntimeException {
+public final class UnknownChannelException extends DittoRuntimeException implements ProtocolAdapterException {
 
     /**
      * Error code of this exception.
      */
-    public static final String ERROR_CODE = "things.protocol.adapter:unknown.channel";
+    public static final String ERROR_CODE = ERROR_CODE_PREFIX + "unknown.channel";
 
     private static final String MESSAGE_TEMPLATE =
             "The channel ''{0}'' is not supported in combination with signal type ''{1}''.";

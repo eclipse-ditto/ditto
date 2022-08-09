@@ -17,11 +17,13 @@ import org.eclipse.ditto.base.service.actors.StartChildActor;
 import org.eclipse.ditto.internal.utils.akka.streaming.TimestampPersistence;
 import org.eclipse.ditto.internal.utils.cluster.ClusterUtil;
 import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
+import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import org.eclipse.ditto.internal.utils.health.RetrieveHealth;
 import org.eclipse.ditto.internal.utils.namespaces.BlockedNamespaces;
 import org.eclipse.ditto.internal.utils.persistence.mongo.DittoMongoClient;
 import org.eclipse.ditto.internal.utils.pubsub.DistributedAcks;
-import org.eclipse.ditto.internal.utils.pubsub.ThingEventPubSubFactory;
+import org.eclipse.ditto.internal.utils.pubsubthings.ThingEventPubSubFactory;
+import org.eclipse.ditto.thingsearch.api.ThingsSearchConstants;
 import org.eclipse.ditto.thingsearch.service.common.config.SearchConfig;
 import org.eclipse.ditto.thingsearch.service.common.util.RootSupervisorStrategyFactory;
 import org.eclipse.ditto.thingsearch.service.persistence.read.MongoThingsSearchPersistence;
@@ -56,9 +58,7 @@ public final class SearchUpdaterRootActor extends AbstractActor {
     /**
      * The main cluster role of the cluster member where this actor and its children start.
      */
-    public static final String CLUSTER_ROLE = "things-wildcard-search";
-
-    private static final String SEARCH_ROLE = "things-wildcard-search";
+    public static final String CLUSTER_ROLE = ThingsSearchConstants.CLUSTER_ROLE;
 
     private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 
@@ -91,7 +91,8 @@ public final class SearchUpdaterRootActor extends AbstractActor {
 
         final ActorRef thingsShard = shardRegionFactory.getThingsShardRegion(numberOfShards);
         final ActorRef policiesShard = shardRegionFactory.getPoliciesShardRegion(numberOfShards);
-        final var searchUpdateMapper = SearchUpdateMapper.get(actorSystem);
+        final var dittoExtensionsConfig = ScopedConfig.dittoExtension(actorSystem.settings().config());
+        final var searchUpdateMapper = SearchUpdateMapper.get(actorSystem, dittoExtensionsConfig);
         final SearchUpdaterStream searchUpdaterStream =
                 SearchUpdaterStream.of(updaterConfig, actorSystem, thingsShard, policiesShard,
                         dittoMongoClient.getDefaultDatabase(), blockedNamespaces,
@@ -207,7 +208,7 @@ public final class SearchUpdaterRootActor extends AbstractActor {
     }
 
     private ActorRef startClusterSingletonActor(final String actorName, final Props props) {
-        return ClusterUtil.startSingleton(getContext(), SEARCH_ROLE, actorName, props);
+        return ClusterUtil.startSingleton(getContext(), CLUSTER_ROLE, actorName, props);
     }
 
 }

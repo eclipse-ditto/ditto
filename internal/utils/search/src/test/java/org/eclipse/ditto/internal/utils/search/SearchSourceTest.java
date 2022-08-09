@@ -19,18 +19,18 @@ import java.util.Collections;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.json.JsonArray;
-import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.base.model.exceptions.InvalidRqlExpressionException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
+import org.eclipse.ditto.json.JsonArray;
+import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingId;
-import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingNotAccessibleException;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThing;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThingResponse;
-import org.eclipse.ditto.thingsearch.model.signals.commands.query.StreamThings;
-import org.eclipse.ditto.thingsearch.model.signals.events.ThingsOutOfSync;
+import org.eclipse.ditto.thingsearch.api.commands.sudo.StreamThings;
+import org.eclipse.ditto.thingsearch.api.events.ThingsOutOfSync;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -62,7 +62,7 @@ public final class SearchSourceTest {
     private ActorSystem actorSystem;
     private Materializer materializer;
     private TestProbe pubSubMediatorProbe;
-    private TestProbe conciergeForwarderProbe;
+    private TestProbe edgeCommandForwarderProbe;
     private DittoHeaders dittoHeaders;
     private TestPublisher.Probe<Object> sourceProbe;
     private TestSubscriber.Probe<Object> sinkProbe;
@@ -72,7 +72,7 @@ public final class SearchSourceTest {
         actorSystem = ActorSystem.create();
         materializer = SystemMaterializer.get(actorSystem).materializer();
         pubSubMediatorProbe = TestProbe.apply("pubSubMediator", actorSystem);
-        conciergeForwarderProbe = TestProbe.apply("conciergeForwarder", actorSystem);
+        edgeCommandForwarderProbe = TestProbe.apply("edgeCommandForwarder", actorSystem);
         dittoHeaders = DittoHeaders.newBuilder().randomCorrelationId().build();
     }
 
@@ -88,8 +88,8 @@ public final class SearchSourceTest {
     public void emptyStream() {
         startTestSearchSource(null, null);
         sinkProbe.request(1L);
-        conciergeForwarderProbe.expectMsg(streamThings(null));
-        conciergeForwarderProbe.reply(materializeSourceProbe());
+        edgeCommandForwarderProbe.expectMsg(streamThings(null));
+        edgeCommandForwarderProbe.reply(materializeSourceProbe());
         sourceProbe.expectRequest(); // this request is the input buffer size and not the sink probe request.
         sourceProbe.sendComplete();
         sinkProbe.expectComplete();
@@ -99,8 +99,8 @@ public final class SearchSourceTest {
     public void clientError() {
         startTestSearchSource(null, null);
         sinkProbe.request(1L);
-        conciergeForwarderProbe.expectMsg(streamThings(null));
-        conciergeForwarderProbe.reply(InvalidRqlExpressionException.newBuilder().build());
+        edgeCommandForwarderProbe.expectMsg(streamThings(null));
+        edgeCommandForwarderProbe.reply(InvalidRqlExpressionException.newBuilder().build());
         assertThat(sinkProbe.expectError()).isInstanceOf(InvalidRqlExpressionException.class);
     }
 
@@ -110,16 +110,16 @@ public final class SearchSourceTest {
                 JsonFieldSelector.newInstance("thingId", "_revision", "_modified");
         startTestSearchSource(fields, null);
         sinkProbe.request(200L);
-        conciergeForwarderProbe.expectMsg(streamThings(null));
-        conciergeForwarderProbe.reply(materializeSourceProbe());
+        edgeCommandForwarderProbe.expectMsg(streamThings(null));
+        edgeCommandForwarderProbe.reply(materializeSourceProbe());
         sourceProbe.expectRequest();
         sourceProbe.sendNext("t:3").sendNext("t:2").sendNext("t:1").sendComplete();
-        conciergeForwarderProbe.expectMsg(retrieveThing("t:3", fields));
-        conciergeForwarderProbe.reply(retrieveThingResponse(3));
-        conciergeForwarderProbe.expectMsg(retrieveThing("t:2", fields));
-        conciergeForwarderProbe.reply(ThingNotAccessibleException.newBuilder(ThingId.of("t:2")).build());
-        conciergeForwarderProbe.expectMsg(retrieveThing("t:1", fields));
-        conciergeForwarderProbe.reply(retrieveThingResponse(1));
+        edgeCommandForwarderProbe.expectMsg(retrieveThing("t:3", fields));
+        edgeCommandForwarderProbe.reply(retrieveThingResponse(3));
+        edgeCommandForwarderProbe.expectMsg(retrieveThing("t:2", fields));
+        edgeCommandForwarderProbe.reply(ThingNotAccessibleException.newBuilder(ThingId.of("t:2")).build());
+        edgeCommandForwarderProbe.expectMsg(retrieveThing("t:1", fields));
+        edgeCommandForwarderProbe.reply(retrieveThingResponse(1));
 
         // successfully retrieved things are found
         sinkProbe.expectNext(getThing(3).toJson())
@@ -136,12 +136,12 @@ public final class SearchSourceTest {
         final JsonArray sortValues = JsonArray.of(997, "t:3");
         startTestSearchSource(null, sortValues);
         sinkProbe.request(200L);
-        conciergeForwarderProbe.expectMsg(streamThings(sortValues));
-        conciergeForwarderProbe.reply(materializeSourceProbe());
+        edgeCommandForwarderProbe.expectMsg(streamThings(sortValues));
+        edgeCommandForwarderProbe.reply(materializeSourceProbe());
         sourceProbe.expectRequest();
         sourceProbe.sendNext("t:2").sendComplete();
-        conciergeForwarderProbe.expectMsg(retrieveThing("t:2", null));
-        conciergeForwarderProbe.reply(retrieveThingResponse(2));
+        edgeCommandForwarderProbe.expectMsg(retrieveThing("t:2", null));
+        edgeCommandForwarderProbe.reply(retrieveThingResponse(2));
         sinkProbe.expectNext(getThing(2).toJson())
                 .expectComplete();
     }
@@ -153,30 +153,30 @@ public final class SearchSourceTest {
 
         startTestSearchSource(null, null);
         sinkProbe.request(200L);
-        conciergeForwarderProbe.expectMsg(streamThings(null));
-        conciergeForwarderProbe.reply(materializeSourceProbe());
+        edgeCommandForwarderProbe.expectMsg(streamThings(null));
+        edgeCommandForwarderProbe.reply(materializeSourceProbe());
 
         // GIVEN: first search result goes through
         sourceProbe.expectRequest();
         sourceProbe.sendNext("t:3");
-        conciergeForwarderProbe.expectMsg(retrieveThing("t:3", null));
-        conciergeForwarderProbe.reply(retrieveThingResponse(3));
+        edgeCommandForwarderProbe.expectMsg(retrieveThing("t:3", null));
+        edgeCommandForwarderProbe.reply(retrieveThingResponse(3));
         sinkProbe.expectNext(getThing(3).toJson());
 
         // WHEN: search persistence deleted the cursor
         sourceProbe.sendError(new IllegalStateException("mock cursor-not-found error"));
 
         // THEN: the final thing is retrieved again to compute the cursor
-        conciergeForwarderProbe.expectMsg(retrieveThing("t:3", SORT_FIELDS));
-        conciergeForwarderProbe.reply(retrieveThingResponse(3));
+        edgeCommandForwarderProbe.expectMsg(retrieveThing("t:3", SORT_FIELDS));
+        edgeCommandForwarderProbe.reply(retrieveThingResponse(3));
 
         // THEN: stream resumes from the last result
-        conciergeForwarderProbe.expectMsg(streamThings(JsonArray.of(997, "t:3")));
-        conciergeForwarderProbe.reply(materializeSourceProbe());
+        edgeCommandForwarderProbe.expectMsg(streamThings(JsonArray.of(997, "t:3")));
+        edgeCommandForwarderProbe.reply(materializeSourceProbe());
         sourceProbe.expectRequest();
         sourceProbe.sendNext("t:2").sendComplete();
-        conciergeForwarderProbe.expectMsg(retrieveThing("t:2", null));
-        conciergeForwarderProbe.reply(retrieveThingResponse(2));
+        edgeCommandForwarderProbe.expectMsg(retrieveThing("t:2", null));
+        edgeCommandForwarderProbe.reply(retrieveThingResponse(2));
         sinkProbe.expectNext(getThing(2).toJson())
                 .expectComplete();
     }
@@ -213,7 +213,7 @@ public final class SearchSourceTest {
             @Nullable final JsonArray sortValues) {
         final SearchSource underTest = SearchSource.newBuilder()
                 .pubSubMediator(pubSubMediatorProbe.ref())
-                .conciergeForwarder(ActorSelection.apply(conciergeForwarderProbe.ref(), ""))
+                .commandForwarder(ActorSelection.apply(edgeCommandForwarderProbe.ref(), ""))
                 .thingsAskTimeout(Duration.ofSeconds(3L))
                 .searchAskTimeout(Duration.ofSeconds(3L))
                 .fields(fields)

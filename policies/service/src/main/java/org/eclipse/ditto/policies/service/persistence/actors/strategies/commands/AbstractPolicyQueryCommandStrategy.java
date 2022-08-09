@@ -17,16 +17,16 @@ import java.util.Optional;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.base.model.headers.entitytag.EntityTag;
-import org.eclipse.ditto.policies.model.Policy;
-import org.eclipse.ditto.policies.service.common.config.PolicyConfig;
 import org.eclipse.ditto.base.model.signals.commands.Command;
+import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.signals.events.PolicyEvent;
+import org.eclipse.ditto.policies.service.common.config.PolicyConfig;
 
 /**
  * Abstract base class for all policy query commands.
  *
  * @param <C> the type of the handled command - of type {@code Command} as also
- * {@link org.eclipse.ditto.policies.api.commands.sudo.SudoCommand} are handled which are no
+ * {@link org.eclipse.ditto.policies.api.commands.sudo.PolicySudoCommand} are handled which are no
  * PolicyQueryCommands.
  */
 abstract class AbstractPolicyQueryCommandStrategy<C extends Command<C>>

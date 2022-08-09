@@ -30,6 +30,11 @@ public final class ConnectivityMessagingConstants {
      */
     public static final String CLUSTER_ROLE = "connectivity";
 
+    public static final String CONNECTION_ID_RETRIEVAL_ACTOR_NAME = "connectionIdsRetrieval";
+
+    public static final String CONNECTION_ID_RETRIEVAL_ACTOR_PATH =
+            "/user/connectivityRoot/" + CONNECTION_ID_RETRIEVAL_ACTOR_NAME;
+
     /*
      * Inhibit instantiation of this utility class.
      */

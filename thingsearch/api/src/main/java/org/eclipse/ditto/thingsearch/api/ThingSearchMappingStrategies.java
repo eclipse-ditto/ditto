@@ -18,13 +18,13 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.model.json.Jsonifiable;
-import org.eclipse.ditto.policies.api.PoliciesMappingStrategies;
+import org.eclipse.ditto.base.model.signals.JsonParsable;
 import org.eclipse.ditto.internal.models.streaming.StreamedSnapshot;
-import org.eclipse.ditto.things.api.ThingsMappingStrategies;
 import org.eclipse.ditto.internal.utils.cluster.GlobalMappingStrategies;
 import org.eclipse.ditto.internal.utils.cluster.MappingStrategies;
 import org.eclipse.ditto.internal.utils.cluster.MappingStrategiesBuilder;
-import org.eclipse.ditto.base.model.signals.JsonParsable;
+import org.eclipse.ditto.policies.api.PoliciesMappingStrategies;
+import org.eclipse.ditto.things.api.ThingsMappingStrategies;
 
 /**
  * {@link MappingStrategies} for the Thing Search service containing all {@link Jsonifiable} types known to Things
@@ -65,6 +65,7 @@ public final class ThingSearchMappingStrategies extends MappingStrategies {
         return MappingStrategiesBuilder.newInstance()
                 .putAll(PoliciesMappingStrategies.getInstance())
                 .putAll(ThingsMappingStrategies.getInstance())
+                .add(PolicyReferenceTag.class, PolicyReferenceTag::fromJson) // for inter-search instance communication
                 .add(StreamedSnapshot.class.getSimpleName(),
                         (jsonObject, dittoHeaders) -> StreamedSnapshot.fromJson(jsonObject))
                 .putAll(GlobalMappingStrategies.getInstance())

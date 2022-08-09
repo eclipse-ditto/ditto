@@ -33,6 +33,8 @@ import org.eclipse.ditto.connectivity.model.signals.events.ConnectionCreated;
 import org.eclipse.ditto.connectivity.model.signals.events.ConnectionDeleted;
 import org.eclipse.ditto.connectivity.model.signals.events.ConnectivityEvent;
 import org.eclipse.ditto.connectivity.service.messaging.persistence.ConnectionMongoSnapshotAdapter;
+import org.eclipse.ditto.internal.utils.akka.PingCommand;
+import org.eclipse.ditto.json.JsonValue;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -106,6 +108,9 @@ public final class ConnectionPersistenceActorRecoveryTest extends WithMockServer
 
             final ActorRef underTest = TestConstants.createConnectionSupervisorActor(connectionId, actorSystem,
                     pubSubMediator, proxyActor);
+            underTest.tell(PingCommand.of(connectionId,
+                    "123",
+                    JsonValue.of("always-alive")), getRef());
             watch(underTest);
 
             // expect termination because it was deleted (last event was ConnectionDeleted)

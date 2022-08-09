@@ -28,12 +28,11 @@ After completing the deployment of your choice Ditto should be up & running.
 Now you have running:
 * a MongoDB as backing datastore of Ditto (not part of Ditto but started to get Ditto running),
 * Ditto microservices:
-   * Concierge,
-   * Connectivity,  
    * Policies,
    * Things,
+   * Connectivity,  
    * Thing-Search,
-   * Gateway,
+   * Gateway
 * an instance of nginx acting as a reverse proxy performing a simple "basic authentication" listening on a local port 
    * including some static HTTP + API documentation
 

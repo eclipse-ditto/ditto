@@ -19,16 +19,16 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Predicate;
 
-import org.eclipse.ditto.json.JsonField;
-import org.eclipse.ditto.json.JsonFieldSelector;
-import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.base.model.assertions.AbstractJsonifiableAssert;
 import org.eclipse.ditto.base.model.assertions.JsonifiableAssertions;
 import org.eclipse.ditto.base.model.assertions.JsonifiableWithPredicateAssert;
 import org.eclipse.ditto.base.model.assertions.JsonifiableWithSelectorAndPredicateAssert;
 import org.eclipse.ditto.base.model.entity.metadata.Metadata;
+import org.eclipse.ditto.json.JsonField;
+import org.eclipse.ditto.json.JsonFieldSelector;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.things.model.Attributes;
 import org.eclipse.ditto.things.model.Feature;
@@ -114,7 +114,7 @@ public final class ThingAssert extends AbstractJsonifiableAssert<ThingAssert, Th
     public ThingAssert hasPolicyId(final String expectedPolicyId) {
         isNotNull();
 
-        final Optional<PolicyId> optionalPolicyId = actual.getPolicyEntityId();
+        final Optional<PolicyId> optionalPolicyId = actual.getPolicyId();
 
         assertThat(optionalPolicyId.isPresent() && Objects.equals(optionalPolicyId.get(), expectedPolicyId))
                 .overridingErrorMessage("Expected Policy ID to be \n<%s> but was \n<%s>", expectedPolicyId,
@@ -127,7 +127,7 @@ public final class ThingAssert extends AbstractJsonifiableAssert<ThingAssert, Th
     public ThingAssert hasPolicyId(final PolicyId expectedPolicyId) {
         isNotNull();
 
-        final Optional<PolicyId> optionalPolicyId = actual.getPolicyEntityId();
+        final Optional<PolicyId> optionalPolicyId = actual.getPolicyId();
 
         assertThat(optionalPolicyId.isPresent() && Objects.equals(optionalPolicyId.get(), expectedPolicyId))
                 .overridingErrorMessage("Expected Policy ID to be \n<%s> but was \n<%s>", expectedPolicyId,
@@ -140,7 +140,7 @@ public final class ThingAssert extends AbstractJsonifiableAssert<ThingAssert, Th
     public ThingAssert hasNoPolicyId() {
         isNotNull();
 
-        final Optional<PolicyId> policyIdOptional = actual.getPolicyEntityId();
+        final Optional<PolicyId> policyIdOptional = actual.getPolicyId();
 
         assertThat(policyIdOptional.isPresent())
                 .overridingErrorMessage("Expected Thing not have a PolicyId but it had <%s>",
@@ -603,7 +603,7 @@ public final class ThingAssert extends AbstractJsonifiableAssert<ThingAssert, Th
         assertThat(actual.getEntityId()).isEqualTo(expected.getEntityId());
         assertThat(actual.getAttributes()).isEqualTo(expected.getAttributes());
         assertThat(actual.getFeatures()).isEqualTo(expected.getFeatures());
-        assertThat(actual.getPolicyEntityId()).isEqualTo(expected.getPolicyEntityId());
+        assertThat(actual.getPolicyId()).isEqualTo(expected.getPolicyId());
 
         return this;
     }

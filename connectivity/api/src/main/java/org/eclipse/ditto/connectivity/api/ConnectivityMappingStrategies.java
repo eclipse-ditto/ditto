@@ -23,7 +23,6 @@ import org.eclipse.ditto.base.model.signals.JsonParsable;
 import org.eclipse.ditto.base.model.signals.commands.GlobalCommandRegistry;
 import org.eclipse.ditto.base.model.signals.commands.GlobalCommandResponseRegistry;
 import org.eclipse.ditto.base.model.signals.events.GlobalEventRegistry;
-import org.eclipse.ditto.connectivity.api.messaging.monitoring.logs.AddConnectionLogEntry;
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
 import org.eclipse.ditto.connectivity.model.ConnectivityStatus;
@@ -77,28 +76,24 @@ public final class ConnectivityMappingStrategies extends MappingStrategies {
                 .add(GlobalCommandResponseRegistry.getInstance())
                 .add(GlobalEventRegistry.getInstance())
                 .add(GlobalErrorRegistry.getInstance())
-                .add(Connection.class, jsonObject -> ConnectivityModelFactory.connectionFromJson(jsonObject)) // do not replace with lambda!
-                .add("ImmutableConnection", jsonObject -> ConnectivityModelFactory.connectionFromJson(jsonObject)) // do not replace with lambda!
-                .add(ResourceStatus.class, jsonObject -> ConnectivityModelFactory.resourceStatusFromJson(jsonObject)) // do not replace with lambda!
-                .add("ImmutableResourceStatus", jsonObject -> ConnectivityModelFactory.resourceStatusFromJson(jsonObject)) // do not replace with lambda!
-                .add(ConnectivityStatus.class,
-                        jsonObject -> ConnectivityStatus.fromJson(jsonObject)) // do not replace with lambda!
-                .add(BaseClientState.class,
-                        jsonObject -> BaseClientState.fromJson(jsonObject)) // do not replace with lambda!
-                .add(ConnectionTag.class,
-                        jsonObject -> ConnectionTag.fromJson(jsonObject)) // do not replace with lambda!
+                .add(Connection.class, ConnectivityModelFactory::connectionFromJson)
+                .add("ImmutableConnection", ConnectivityModelFactory::connectionFromJson)
+                .add(ResourceStatus.class, ConnectivityModelFactory::resourceStatusFromJson)
+                .add("ImmutableResourceStatus", ConnectivityModelFactory::resourceStatusFromJson)
+                .add(ConnectivityStatus.class, ConnectivityStatus::fromJson)
+                .add(BaseClientState.class, BaseClientState::fromJson)
+                .add(ConnectionTag.class, ConnectionTag::fromJson)
                 .add(BatchedEntityIdWithRevisions.typeOf(ConnectionTag.class),
-                        BatchedEntityIdWithRevisions.deserializer(jsonObject -> ConnectionTag.fromJson(jsonObject)))
+                        BatchedEntityIdWithRevisions.deserializer(ConnectionTag::fromJson))
                 .build();
 
         final MappingStrategies specialStrategies = MappingStrategiesBuilder.newInstance()
                 .add(OutboundSignal.class,
-                        jsonObject -> OutboundSignalFactory.outboundSignalFromJson(jsonObject, strategies)) // do not replace with lambda!
+                        jsonObject -> OutboundSignalFactory.outboundSignalFromJson(jsonObject, strategies))
                 .add(InboundSignal.class, jsonObject -> InboundSignal.fromJson(jsonObject, strategies))
-                .add(AddConnectionLogEntry.class, jsonObject -> AddConnectionLogEntry.fromJson(jsonObject))
                 .add("UnmappedOutboundSignal",
                         jsonObject -> OutboundSignalFactory.outboundSignalFromJson(jsonObject, strategies))
-                .build();// do not replace with lambda!
+                .build();
 
         return MappingStrategiesBuilder.newInstance()
                 .putAll(strategies)

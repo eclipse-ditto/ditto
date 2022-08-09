@@ -14,8 +14,6 @@ package org.eclipse.ditto.thingsearch.model;
 
 import static org.eclipse.ditto.thingsearch.model.assertions.DittoSearchAssertions.assertThat;
 
-import java.time.Instant;
-
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonFactory;
 import org.junit.Before;
@@ -42,7 +40,7 @@ public final class ImmutableSearchResultBuilderTest {
     public void copySearchResultWithBuilder() {
         final JsonArray items = JsonFactory.newArrayBuilder().add("foo", "bar", "baz").build();
         final long offset = 25;
-        final SearchResult searchResult = SearchModelFactory.newSearchResult(items, offset, null);
+        final SearchResult searchResult = SearchModelFactory.newSearchResult(items, offset);
 
         final SearchResultBuilder underTest = ImmutableSearchResultBuilder.of(searchResult);
 
@@ -53,7 +51,7 @@ public final class ImmutableSearchResultBuilderTest {
     public void copyAndModifyExistingSearchResultWithBuilder() {
         final JsonArray items = JsonFactory.newArrayBuilder().add("foo", "bar", "baz").build();
         final long offset = 25;
-        final SearchResult searchResult = SearchModelFactory.newSearchResult(items, offset, null);
+        final SearchResult searchResult = SearchModelFactory.newSearchResult(items, offset);
 
         final SearchResult newSearchResult = ImmutableSearchResultBuilder.of(searchResult)
                 .nextPageOffset(SearchResult.NO_NEXT_PAGE)
@@ -112,14 +110,6 @@ public final class ImmutableSearchResultBuilderTest {
         assertThat(searchResult)
                 .hasNextPageOffset(expectedNextPageOffset)
                 .isEmpty();
-    }
-
-    @Test
-    public void setLastModified() {
-        final Instant expectedLastModified = Instant.now();
-        final SearchResult searchResult = underTest.lastModified(expectedLastModified).build();
-
-        assertThat(searchResult.getLastModified()).contains(expectedLastModified);
     }
 
     @Test(expected = NullPointerException.class)

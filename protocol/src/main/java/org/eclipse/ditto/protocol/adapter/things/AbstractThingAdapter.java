@@ -12,9 +12,9 @@
  */
 package org.eclipse.ditto.protocol.adapter.things;
 
+import org.eclipse.ditto.base.model.headers.translator.HeaderTranslator;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.protocol.Adaptable;
-import org.eclipse.ditto.protocol.HeaderTranslator;
 import org.eclipse.ditto.protocol.PayloadPathMatcher;
 import org.eclipse.ditto.protocol.TopicPath;
 import org.eclipse.ditto.protocol.adapter.AbstractAdapter;

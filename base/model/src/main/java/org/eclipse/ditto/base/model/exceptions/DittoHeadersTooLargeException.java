@@ -19,22 +19,22 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
 
-import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonParsableException;
+import org.eclipse.ditto.json.JsonObject;
 
 /**
  * Thrown when Ditto headers are too large to communicate within the cluster.
  */
 @Immutable
 @JsonParsableException(errorCode = DittoHeadersTooLargeException.ERROR_CODE)
-public final class DittoHeadersTooLargeException extends DittoRuntimeException {
+public final class DittoHeadersTooLargeException extends DittoRuntimeException implements GeneralException {
 
     /**
      * Error code of this exception.
      */
-    public static final String ERROR_CODE = "headers.too.large";
+    public static final String ERROR_CODE = ERROR_CODE_PREFIX + "headers.too.large";
 
     private static final String DEFAULT_MESSAGE = "The headers are too large.";
 

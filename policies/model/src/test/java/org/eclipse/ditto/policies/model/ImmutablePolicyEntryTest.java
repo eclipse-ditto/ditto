@@ -12,17 +12,19 @@
  */
 package org.eclipse.ditto.policies.model;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
+import java.util.Arrays;
+import java.util.Collections;
+
+import org.eclipse.ditto.base.model.exceptions.DittoJsonException;
+import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.base.model.exceptions.DittoJsonException;
-import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
-import org.eclipse.ditto.policies.model.assertions.DittoPolicyAssertions;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -60,7 +62,7 @@ public final class ImmutablePolicyEntryTest {
         final JsonObject policyEntryJson = policyEntry.toJson();
         final PolicyEntry policyEntry1 = ImmutablePolicyEntry.fromJson(policyEntry.getLabel(), policyEntryJson);
 
-        DittoPolicyAssertions.assertThat(policyEntry).isEqualTo(policyEntry1);
+        assertThat(policyEntry).isEqualTo(policyEntry1);
     }
 
     @Test(expected = NullPointerException.class)
@@ -112,7 +114,62 @@ public final class ImmutablePolicyEntryTest {
         final PolicyEntry policyEntry = ImmutablePolicyEntry.fromJson(LABEL_END_USER,
                 jsonObject.getValueOrThrow(LABEL_END_USER.getJsonFieldDefinition()));
 
-        DittoPolicyAssertions.assertThat(policyEntry.getLabel()).isEqualTo(LABEL_END_USER);
+        assertThat(policyEntry.getLabel()).isEqualTo(LABEL_END_USER);
+    }
+
+    @Test
+    public void ensureTwoPolicyEntriesAreSemanticallyTheSameIfOnlySubjectPayloadDiffers() {
+        final SubjectId subjectId = SubjectId.newInstance("the:subject");
+        final Resource resource = Resource.newInstance("thing", "/",
+                EffectedPermissions.newInstance(Collections.singleton("READ"), null));
+
+        final PolicyEntry entry1 = PolicyEntry.newInstance("foo",
+                Collections.singleton(Subject.newInstance(subjectId, SubjectType.GENERATED)),
+                Collections.singleton(resource)
+        );
+        final PolicyEntry entry2 = PolicyEntry.newInstance("foo",
+                Collections.singleton(Subject.newInstance(subjectId, SubjectType.UNKNOWN)), // only difference is the subjectType!
+                Collections.singleton(resource)
+        );
+        assertThat(entry1.isSemanticallySameAs(entry2)).isTrue();
+    }
+
+    @Test
+    public void ensureTwoPolicyEntriesAreSemanticallyDifferentIfSubjectIdsDiffer() {
+        final SubjectId subjectId1 = SubjectId.newInstance("the:subject1");
+        final SubjectId subjectId2 = SubjectId.newInstance("the:subject2");
+        final Resource resource = Resource.newInstance("thing", "/",
+                EffectedPermissions.newInstance(Collections.singleton("READ"), null));
+
+        final PolicyEntry entry1 = PolicyEntry.newInstance("foo",
+                Collections.singleton(Subject.newInstance(subjectId1, SubjectType.GENERATED)),
+                Collections.singleton(resource)
+        );
+        final PolicyEntry entry2 = PolicyEntry.newInstance("foo",
+                Collections.singleton(Subject.newInstance(subjectId2, SubjectType.GENERATED)),
+                Collections.singleton(resource)
+        );
+        assertThat(entry1.isSemanticallySameAs(entry2)).isFalse();
+    }
+
+    @Test
+    public void ensureTwoPolicyEntriesAreSemanticallyDifferentIfOnlyResourcesDiffer() {
+        final SubjectId subjectId = SubjectId.newInstance("the:subject");
+        final Resource resource1 = Resource.newInstance("thing", "/",
+                EffectedPermissions.newInstance(Collections.singleton("READ"), null));
+        final Resource resource2 = Resource.newInstance("thing", "/attributes",
+                EffectedPermissions.newInstance(Collections.singleton("READ"), null));
+
+        final PolicyEntry entry1 = PolicyEntry.newInstance("foo",
+                Collections.singleton(Subject.newInstance(subjectId, SubjectType.GENERATED)),
+                Collections.singleton(resource1)
+        );
+        final PolicyEntry entry2 = PolicyEntry.newInstance("foo",
+                Collections.singleton(Subject.newInstance(subjectId, SubjectType.GENERATED)),
+                Arrays.asList(resource1, resource2)
+        );
+
+        assertThat(entry1.isSemanticallySameAs(entry2)).isFalse();
     }
 
 }

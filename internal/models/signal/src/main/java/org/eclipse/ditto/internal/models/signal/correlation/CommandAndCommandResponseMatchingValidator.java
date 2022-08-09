@@ -22,13 +22,14 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.common.ResponseType;
 import org.eclipse.ditto.base.model.entity.id.EntityId;
+import org.eclipse.ditto.base.model.entity.id.WithEntityId;
+import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.UnsupportedSignalException;
 import org.eclipse.ditto.base.model.signals.WithType;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
-import org.eclipse.ditto.internal.models.signal.SignalInformationPoint;
 import org.eclipse.ditto.internal.models.signal.type.SemanticSignalType;
 import org.eclipse.ditto.internal.models.signal.type.SignalTypeFormatException;
 
@@ -46,11 +47,6 @@ import org.eclipse.ditto.internal.models.signal.type.SignalTypeFormatException;
  * <p>
  * If any of the above evaluates to {@code false} the yielded {@link MatchingValidationResult} is a failure, else it is
  * a success.
- * </p>
- * <p>
- * If validation failed a {@link org.eclipse.ditto.base.model.entity.id.EntityIdInvalidException} might be thrown if
- * the headers of the {@code CommandResponse} contain an invalid value for
- * {@link org.eclipse.ditto.base.model.headers.DittoHeaderDefinition#CONNECTION_ID}.
  * </p>
  * <p>
  * If the type of the command or command response is invalid an {@link UnsupportedSignalException} is thrown.
@@ -113,7 +109,7 @@ public final class CommandAndCommandResponseMatchingValidator
     /**
      * Checks whether the {@code command} and {@code commandResponse} correlation-ids are either completely equal or
      * if the response's correlation-id "starts with" the command's correlation-id.
-     * That could be the case for correlation-id collisions detected in concierge's {@code ResponseReceiverCache} in
+     * That could be the case for correlation-id collisions detected in {@code ResponseReceiverCache} in
      * which case a newly created UUID is appended to the collided previous correlation-id.
      *
      * @param command the command to extract the correlation-id to check.
@@ -132,7 +128,7 @@ public final class CommandAndCommandResponseMatchingValidator
     }
 
     private static Optional<String> getCorrelationId(final Signal<?> signal) {
-        return SignalInformationPoint.getCorrelationId(signal);
+        return WithDittoHeaders.getCorrelationId(signal);
     }
 
     private static MatchingValidationResult validateTypesMatch(final Command<?> command,
@@ -150,7 +146,7 @@ public final class CommandAndCommandResponseMatchingValidator
                 result = MatchingValidationResult.failure(command,
                         commandResponse,
                         getMessageForMismatchingTypes(commandResponse, command));
-            } else if (SignalInformationPoint.isMessageCommandResponse(commandResponse)) {
+            } else if (CommandResponse.isMessageCommandResponse(commandResponse)) {
                 if (!areCorrespondingMessageSignals(semanticCommandType, semanticCommandResponseType)) {
                     result = MatchingValidationResult.failure(command,
                             commandResponse,
@@ -241,14 +237,14 @@ public final class CommandAndCommandResponseMatchingValidator
     }
 
     private static Optional<EntityId> getEntityId(final Signal<?> signal) {
-        return SignalInformationPoint.getEntityId(signal);
+        return WithEntityId.getEntityId(signal);
     }
 
     private static MatchingValidationResult validateResourcePathsMatch(final Command<?> command,
             final CommandResponse<?> commandResponse) {
 
         final MatchingValidationResult result;
-        if (SignalInformationPoint.isThingCommand(command)) {
+        if (Command.isThingCommand(command)) {
             final var commandResourcePath = command.getResourcePath();
             final var commandResponseResourcePath = commandResponse.getResourcePath();
             if (commandResourcePath.equals(commandResponseResourcePath) ||

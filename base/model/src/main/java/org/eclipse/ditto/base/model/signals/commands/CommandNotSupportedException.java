@@ -22,6 +22,7 @@ import javax.annotation.concurrent.NotThreadSafe;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeExceptionBuilder;
+import org.eclipse.ditto.base.model.exceptions.GeneralException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonParsableException;
 import org.eclipse.ditto.json.JsonObject;
@@ -31,12 +32,12 @@ import org.eclipse.ditto.json.JsonObject;
  */
 @Immutable
 @JsonParsableException(errorCode = CommandNotSupportedException.ERROR_CODE)
-public final class CommandNotSupportedException extends DittoRuntimeException {
+public final class CommandNotSupportedException extends DittoRuntimeException implements GeneralException {
 
     /**
      * Error code of this exception.
      */
-    public static final String ERROR_CODE = "api.version.notsupported";
+    public static final String ERROR_CODE = ERROR_CODE_PREFIX + "api.version.notsupported";
 
     private static final String MESSAGE_TEMPLATE = "The requested resource is not supported by version ''{0}''.";
 

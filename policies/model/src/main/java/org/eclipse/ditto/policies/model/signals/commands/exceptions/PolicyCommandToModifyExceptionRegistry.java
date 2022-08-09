@@ -77,7 +77,7 @@ public final class PolicyCommandToModifyExceptionRegistry
                         .dittoHeaders(command.getDittoHeaders())
                         .build());
         mappingStrategies.put(CreatePolicy.TYPE,
-                command -> PolicyNotAccessibleException.newBuilder(command.getEntityId())
+                command -> PolicyNotCreatableException.newBuilder(command.getEntityId())
                         .dittoHeaders(command.getDittoHeaders())
                         .build());
         mappingStrategies.put(ModifyPolicy.TYPE,

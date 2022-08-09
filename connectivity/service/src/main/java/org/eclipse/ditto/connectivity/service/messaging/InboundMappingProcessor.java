@@ -154,6 +154,7 @@ public final class InboundMappingProcessor
                 if (isNullOrEmpty(adaptables)) {
                     return Stream.of(MappingOutcome.dropped(mapper.getId(), message));
                 } else {
+                    final DittoHeaders additionalInboundHeaders = mapper.getAdditionalInboundHeaders(message);
                     final List<MappedInboundExternalMessage> mappedMessages = new ArrayList<>(adaptables.size());
                     for (final Adaptable adaptable : adaptables) {
                         try {
@@ -161,8 +162,10 @@ public final class InboundMappingProcessor
                                     timer.inboundProtocol(() -> protocolAdapter.fromAdaptable(adaptable));
                             final DittoHeaders dittoHeaders = signal.getDittoHeaders();
                             dittoHeadersSizeChecker.check(dittoHeaders);
-                            final DittoHeaders headersWithMapper =
-                                    dittoHeaders.toBuilder().inboundPayloadMapper(mapper.getId()).build();
+                            final DittoHeaders headersWithMapper = dittoHeaders.toBuilder()
+                                    .inboundPayloadMapper(mapper.getId())
+                                    .putHeaders(additionalInboundHeaders)
+                                    .build();
                             final Signal<?> signalWithMapperHeader = signal.setDittoHeaders(headersWithMapper);
                             final MappedInboundExternalMessage mappedMessage =
                                     MappedInboundExternalMessage.of(message, adaptable.getTopicPath(),

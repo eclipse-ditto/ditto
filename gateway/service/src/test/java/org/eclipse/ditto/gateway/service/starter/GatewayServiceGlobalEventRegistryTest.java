@@ -12,11 +12,12 @@
  */
 package org.eclipse.ditto.gateway.service.starter;
 
-import org.eclipse.ditto.things.api.ThingSnapshotTaken;
-import org.eclipse.ditto.internal.utils.test.GlobalEventRegistryTestCases;
 import org.eclipse.ditto.connectivity.model.signals.events.ConnectionCreated;
+import org.eclipse.ditto.internal.utils.test.GlobalEventRegistryTestCases;
 import org.eclipse.ditto.policies.model.signals.events.ResourceDeleted;
+import org.eclipse.ditto.things.api.ThingSnapshotTaken;
 import org.eclipse.ditto.things.model.signals.events.FeatureDeleted;
+import org.eclipse.ditto.thingsearch.api.events.ThingsOutOfSync;
 import org.eclipse.ditto.thingsearch.model.signals.events.SubscriptionCreated;
 
 public final class GatewayServiceGlobalEventRegistryTest extends GlobalEventRegistryTestCases {
@@ -26,6 +27,7 @@ public final class GatewayServiceGlobalEventRegistryTest extends GlobalEventRegi
                 ConnectionCreated.class,
                 ResourceDeleted.class,
                 FeatureDeleted.class,
+                ThingsOutOfSync.class,
                 SubscriptionCreated.class,
                 ThingSnapshotTaken.class
         );

@@ -12,14 +12,27 @@
  */
 package org.eclipse.ditto.thingsearch.service.persistence.write.model;
 
+import static org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants.FIELD_F_ARRAY;
+import static org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants.FIELD_GLOBAL_READ;
+import static org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants.FIELD_ID;
+import static org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants.FIELD_NAMESPACE;
+import static org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants.FIELD_POLICY;
+import static org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants.FIELD_POLICY_ID;
+import static org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants.FIELD_POLICY_REVISION;
+import static org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants.FIELD_REVISION;
+import static org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants.FIELD_THING;
+
 import java.util.Objects;
 import java.util.Optional;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
+import org.bson.BsonArray;
 import org.bson.BsonDocument;
+import org.bson.BsonInt64;
 import org.bson.BsonInvalidOperationException;
+import org.bson.BsonString;
 import org.bson.conversions.Bson;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLogger;
@@ -70,6 +83,34 @@ public final class ThingWriteModel extends AbstractWriteModel {
      */
     public static ThingWriteModel of(final Metadata metadata, final BsonDocument thingDocument) {
         return new ThingWriteModel(metadata, thingDocument, false, 0L);
+    }
+
+    /**
+     * Create a Thing write model which only preserves "toplevel" fields:
+     * <ul>
+     * <li>{@link org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants#FIELD_ID}</li>
+     * <li>{@link org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants#FIELD_NAMESPACE}</li>
+     * <li>{@link org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants#FIELD_REVISION}</li>
+     * <li>{@link org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants#FIELD_POLICY_ID}</li>
+     * <li>{@link org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants#FIELD_POLICY_REVISION}</li>
+     * </ul>
+     * and "emtpies" all other fields, e.g. containing the thing payload.
+     *
+     * @param metadata the metadata.
+     * @return a Thing write model.
+     */
+    public static ThingWriteModel ofEmptiedOut(final Metadata metadata) {
+        final BsonDocument emptiedOutThingDocument = new BsonDocument()
+                .append(FIELD_ID, new BsonString(metadata.getThingId().toString()))
+                .append(FIELD_NAMESPACE, new BsonString(metadata.getThingId().getNamespace()))
+                .append(FIELD_GLOBAL_READ, new BsonArray())
+                .append(FIELD_REVISION, new BsonInt64(metadata.getThingRevision()))
+                .append(FIELD_POLICY_ID, new BsonString(metadata.getPolicyIdInPersistence()))
+                .append(FIELD_POLICY_REVISION, new BsonInt64(metadata.getPolicyRevision().orElse(0L)))
+                .append(FIELD_THING, new BsonDocument())
+                .append(FIELD_POLICY, new BsonDocument())
+                .append(FIELD_F_ARRAY, new BsonArray());
+        return new ThingWriteModel(metadata, emptiedOutThingDocument, false, 0L);
     }
 
     @Override

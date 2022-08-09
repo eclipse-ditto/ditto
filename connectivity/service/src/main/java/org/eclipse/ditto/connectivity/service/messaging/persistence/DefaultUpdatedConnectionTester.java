@@ -30,6 +30,8 @@ import org.eclipse.ditto.internal.utils.cluster.ShardRegionProxyActorFactory;
 import org.eclipse.ditto.internal.utils.cluster.config.DefaultClusterConfig;
 import org.slf4j.Logger;
 
+import com.typesafe.config.Config;
+
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.pattern.Patterns;
@@ -39,7 +41,7 @@ public final class DefaultUpdatedConnectionTester implements UpdatedConnectionTe
     private static final Logger LOGGER = DittoLoggerFactory.getThreadSafeLogger(UpdatedConnectionTester.class);
     private final ActorRef connectionShardRegion;
 
-    public DefaultUpdatedConnectionTester(final ActorSystem actorSystem) {
+    public DefaultUpdatedConnectionTester(final ActorSystem actorSystem, final Config config) {
         final var clusterConfig =
                 DefaultClusterConfig.of(actorSystem.settings().config().getConfig("ditto.cluster"));
         final ShardRegionProxyActorFactory shardRegionProxyActorFactory =

@@ -12,10 +12,10 @@
  */
 package org.eclipse.ditto.connectivity.service.messaging.amqp;
 
-import static org.eclipse.ditto.connectivity.api.placeholders.ConnectivityPlaceholders.newEntityPlaceholder;
-import static org.eclipse.ditto.connectivity.api.placeholders.ConnectivityPlaceholders.newFeaturePlaceholder;
-import static org.eclipse.ditto.connectivity.api.placeholders.ConnectivityPlaceholders.newPolicyPlaceholder;
-import static org.eclipse.ditto.connectivity.api.placeholders.ConnectivityPlaceholders.newThingPlaceholder;
+import static org.eclipse.ditto.connectivity.service.placeholders.ConnectivityPlaceholders.newEntityPlaceholder;
+import static org.eclipse.ditto.connectivity.service.placeholders.ConnectivityPlaceholders.newFeaturePlaceholder;
+import static org.eclipse.ditto.connectivity.service.placeholders.ConnectivityPlaceholders.newPolicyPlaceholder;
+import static org.eclipse.ditto.connectivity.service.placeholders.ConnectivityPlaceholders.newThingPlaceholder;
 
 import java.util.Collection;
 import java.util.List;

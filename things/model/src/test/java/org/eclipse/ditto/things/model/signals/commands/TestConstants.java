@@ -19,6 +19,7 @@ import java.util.Collection;
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
 import org.eclipse.ditto.base.model.auth.DittoAuthorizationContextType;
+import org.eclipse.ditto.base.model.common.DittoSystemProperties;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.json.JsonFactory;
@@ -82,7 +83,7 @@ import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingUnavailab
 public final class TestConstants {
 
     public static final long THING_SIZE_LIMIT_BYTES = Long.parseLong(
-            System.getProperty(ThingCommandSizeValidator.DITTO_LIMITS_THINGS_MAX_SIZE_BYTES, "-1"));
+            System.getProperty(DittoSystemProperties.DITTO_LIMITS_THINGS_MAX_SIZE_BYTES, "-1"));
 
     /**
      * A known correlation id for testing.

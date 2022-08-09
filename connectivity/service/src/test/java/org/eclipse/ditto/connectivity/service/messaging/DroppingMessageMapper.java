@@ -15,6 +15,8 @@ package org.eclipse.ditto.connectivity.service.messaging;
 import java.util.Collections;
 import java.util.List;
 
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.connectivity.api.ExternalMessage;
 import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
 import org.eclipse.ditto.connectivity.model.MappingContext;
 import org.eclipse.ditto.connectivity.service.config.mapping.MappingConfig;
@@ -22,7 +24,6 @@ import org.eclipse.ditto.connectivity.service.mapping.AbstractMessageMapper;
 import org.eclipse.ditto.connectivity.service.mapping.MessageMapperConfiguration;
 import org.eclipse.ditto.connectivity.service.mapping.PayloadMapper;
 import org.eclipse.ditto.protocol.Adaptable;
-import org.eclipse.ditto.connectivity.api.ExternalMessage;
 
 /**
  * Implementation of {@link org.eclipse.ditto.connectivity.service.mapping.MessageMapper} that always drops.
@@ -45,6 +46,11 @@ public class DroppingMessageMapper extends AbstractMessageMapper {
     @Override
     public List<Adaptable> map(final ExternalMessage message) {
         return Collections.emptyList();
+    }
+
+    @Override
+    public DittoHeaders getAdditionalInboundHeaders(final ExternalMessage message) {
+        return DittoHeaders.empty();
     }
 
     @Override

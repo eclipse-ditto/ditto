@@ -16,15 +16,15 @@ import java.time.Instant;
 import java.util.Arrays;
 import java.util.HashSet;
 
-import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.json.JsonFieldSelector;
-import org.eclipse.ditto.json.JsonParseOptions;
-import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
 import org.eclipse.ditto.base.model.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonFieldSelector;
+import org.eclipse.ditto.json.JsonParseOptions;
+import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.policies.model.EffectedPermissions;
 import org.eclipse.ditto.policies.model.Label;
 import org.eclipse.ditto.policies.model.PoliciesModelFactory;
@@ -46,6 +46,7 @@ import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyEntryN
 import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyIdNotExplicitlySettableException;
 import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyModificationInvalidException;
 import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyNotAccessibleException;
+import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyNotCreatableException;
 import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyNotModifiableException;
 import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyPreconditionFailedException;
 import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyPreconditionNotModifiedException;
@@ -239,6 +240,12 @@ public final class TestConstants {
          */
         public static final PolicyNotAccessibleException POLICY_NOT_ACCESSIBLE_EXCEPTION =
                 PolicyNotAccessibleException.newBuilder(POLICY_ID).build();
+
+        /**
+         * A known {@code PolicyNotCreatableException}.
+         */
+        public static final PolicyNotCreatableException POLICY_NOT_CREATABLE_EXCEPTION =
+                PolicyNotCreatableException.newBuilder(POLICY_ID).build();
 
         /**
          * A known {@code PolicyNotModifiableException}.

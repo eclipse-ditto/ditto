@@ -23,7 +23,7 @@ import org.eclipse.ditto.json.JsonValue;
  *
  * @param <T> the type of the implementing class.
  */
-public interface WithEntity<T extends WithEntity> {
+public interface WithEntity<T extends WithEntity<T>> {
 
     /**
      * Returns the plain JSON string representation of the entity which is an

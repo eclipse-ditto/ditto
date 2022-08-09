@@ -110,7 +110,6 @@ gateway-d9f9cbb65-4fsbk          1/1     Running   0          3m
 things-search-768c894bd4-v4n2z   1/1     Running   0          3m
 things-5787ffdf7f-mn2cs          1/1     Running   0          3m
 connectivity-54b9799b8f-496f5    1/1     Running   0          3m
-concierge-7b8fd6f857-6585g       1/1     Running   0          3m
 swagger-b8asd6f857-651bg         1/1     Running   0          2m
 nginx-7bdb84f965-gf2lp           1/1     Running   0          1m
 ```

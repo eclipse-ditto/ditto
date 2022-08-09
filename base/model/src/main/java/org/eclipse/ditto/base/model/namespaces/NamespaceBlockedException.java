@@ -19,24 +19,25 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
 
-import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeExceptionBuilder;
+import org.eclipse.ditto.base.model.exceptions.GeneralException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonParsableException;
+import org.eclipse.ditto.json.JsonObject;
 
 /**
  * Thrown when a namespace is blocked.
  */
 @Immutable
 @JsonParsableException(errorCode = NamespaceBlockedException.ERROR_CODE)
-public final class NamespaceBlockedException extends DittoRuntimeException {
+public final class NamespaceBlockedException extends DittoRuntimeException implements GeneralException {
 
     /**
      * Error code of this exception.
      */
-    public static final String ERROR_CODE = "namespace.blocked";
+    public static final String ERROR_CODE = ERROR_CODE_PREFIX + "namespace.blocked";
 
     private static final String DEFAULT_MESSAGE = "Namespace is not available due to an ongoing operation.";
 

@@ -18,6 +18,8 @@ In order to edit the documentation
 
 #### Alternative 1: install Jekyll (UNIX)
 
+**If you are using an ARM Mac, please follow the [installation guide](https://jekyllrb.com/docs/installation/macos/).**
+
 Use that if you are on a UNIX system (or have the Ubuntu bash subsystem for Windows 10). 
 If you're behind a proxy, you can use the `http_proxy` parameter.
 

@@ -15,8 +15,10 @@ package org.eclipse.ditto.thingsearch.service.persistence.query.validation;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
+import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.rql.query.Query;
-import org.eclipse.ditto.thingsearch.model.signals.commands.query.ThingSearchQueryCommand;
+
+import com.typesafe.config.Config;
 
 import akka.actor.ActorSystem;
 
@@ -24,18 +26,20 @@ import akka.actor.ActorSystem;
  * Default {@link QueryCriteriaValidator},
  * who parses QueryCriteria without additional validation.
  */
-public final class DefaultQueryCriteriaValidator extends QueryCriteriaValidator {
+public final class DefaultQueryCriteriaValidator implements QueryCriteriaValidator {
 
     /**
      * Instantiate this provider. Called by reflection.
+     * @param actorSystem the actor system in which to load the extension.
+     * @param config the configuration for this extension.
      */
-    public DefaultQueryCriteriaValidator(final ActorSystem actorSystem) {
-        super(actorSystem);
+    @SuppressWarnings("unused")
+    public DefaultQueryCriteriaValidator(final ActorSystem actorSystem, final Config config) {
         // Nothing to initialize.
     }
 
     @Override
-    public CompletionStage<Query> validateQuery(final ThingSearchQueryCommand<?> command, final Query query) {
+    public CompletionStage<Query> validateQuery(final Command<?> command, final Query query) {
         return CompletableFuture.completedStage(query);
     }
 }

@@ -17,15 +17,14 @@ import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.json.FieldType;
+import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.base.model.json.FieldType;
-import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.api.TestConstants;
-import org.eclipse.ditto.base.model.signals.commands.Command;
-import org.junit.Ignore;
+import org.eclipse.ditto.policies.model.PolicyId;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -37,7 +36,7 @@ public final class SudoRetrievePolicyTest {
 
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()
             .set(Command.JsonFields.TYPE, SudoRetrievePolicy.TYPE)
-            .set(SudoCommand.JsonFields.JSON_POLICY_ID, TestConstants.Policy.POLICY_ID.toString())
+            .set(PolicySudoCommand.JsonFields.JSON_POLICY_ID, TestConstants.Policy.POLICY_ID.toString())
             .build();
 
     private static final DittoHeaders EMPTY_DITTO_HEADERS = DittoHeaders.empty();

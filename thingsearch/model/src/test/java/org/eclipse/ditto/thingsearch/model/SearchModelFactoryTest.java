@@ -52,7 +52,7 @@ public final class SearchModelFactoryTest {
     @Test
     public void newSearchResult() {
         final SearchResult searchResult =
-                SearchModelFactory.newSearchResult(JsonFactory.newArray(), SearchResult.NO_NEXT_PAGE, null);
+                SearchModelFactory.newSearchResult(JsonFactory.newArray(), SearchResult.NO_NEXT_PAGE);
 
         assertThat(searchResult) //
                 .hasNoNextPage() //

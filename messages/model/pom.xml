@@ -36,6 +36,7 @@
             <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-things-model</artifactId>
         </dependency>
+
         <!-- ### Testing ### -->
         <dependency>
             <groupId>org.assertj</groupId>
@@ -130,6 +131,8 @@
                         <excludes>
                             <!-- Don't add excludes here before checking with the whole Ditto team -->
                             <!--<exclude></exclude>-->
+                            <exclude>org.eclipse.ditto.messages.model.signals.commands.MessageCommandSizeValidator#DITTO_LIMITS_MESSAGES_MAX_SIZE_BYTES</exclude>
+                            <exclude>org.eclipse.ditto.messages.model.signals.commands.MessageCommandResponse#getEntityId()</exclude>
                         </excludes>
                     </parameter>
                 </configuration>

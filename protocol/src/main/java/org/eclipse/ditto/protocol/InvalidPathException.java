@@ -32,12 +32,12 @@ import org.eclipse.ditto.json.JsonPointer;
  * @since 2.1.0
  */
 @JsonParsableException(errorCode = InvalidPathException.ERROR_CODE)
-public final class InvalidPathException extends DittoRuntimeException {
+public final class InvalidPathException extends DittoRuntimeException implements ProtocolAdapterException {
 
     /**
      * Error code of this exception.
      */
-    public static final String ERROR_CODE = "things.protocol.adapter:invalid.path";
+    public static final String ERROR_CODE = ERROR_CODE_PREFIX + "invalid.path";
 
     private static final String MESSAGE_TEMPLATE = "The path ''{0}'' is not valid.";
 

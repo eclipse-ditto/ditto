@@ -13,7 +13,6 @@
 
 import * as Environments from '../environments/environments.js';
 import * as Utils from '../utils.js';
-import * as SearchFilter from './searchFilter.js';
 
 let theFieldIndex = -1;
 
@@ -29,6 +28,9 @@ const dom = {
  * @return {String} The fields query parameter for Ditto search
  */
 export function getQueryParameter() {
+  if (!Environments.current().fieldList) {
+    Environments.current().fieldList = [];
+  }
   const fields = Environments.current().fieldList.filter((f) => f.active).map((f) => f.path);
   return 'fields=thingId' + (fields !== '' ? ',' + fields : '');
 };
@@ -63,7 +65,7 @@ export async function ready() {
   });
 
   dom.fieldsModal.addEventListener('hide.bs.modal', () => {
-    SearchFilter.performLastSearch();
+    Environments.environmentsJsonChanged();
   });
 
   document.getElementById('fieldUpdate').onclick = () => {
@@ -76,7 +78,7 @@ export async function ready() {
 
     selectedField.path = dom.fieldPath.value;
     selectedField.label = dom.fieldLabel.value;
-    Environments.environmentsJsonChanged();
+    updateFieldList();
   };
 
   document.getElementById('fieldCreate').onclick = () => {
@@ -85,22 +87,19 @@ export async function ready() {
         .map((field) => field.path)
         .includes(dom.fieldPath.value), 'Field path already exists', dom.fieldPath);
 
-    if (!dom.fieldLabel.value) {
-      dom.fieldLabel.value = dom.fieldPath.value.split('/').slice(-1)[0];
-    }
     Environments.current().fieldList.push({
       active: true,
       path: dom.fieldPath.value,
-      label: dom.fieldLabel.value,
+      label: dom.fieldPath.value.split('/').slice(-1)[0],
     });
-    Environments.environmentsJsonChanged();
+    updateFieldList();
   };
 
   document.getElementById('fieldDelete').onclick = () => {
     Utils.assert(theFieldIndex >= 0, 'No field selected');
 
     Environments.current().fieldList.splice(theFieldIndex, 1);
-    Environments.environmentsJsonChanged();
+    updateFieldList();
     theFieldIndex = -1;
   };
 
@@ -112,7 +111,7 @@ export async function ready() {
     Environments.current().fieldList.splice(theFieldIndex, 1);
     theFieldIndex--;
     Environments.current().fieldList.splice(theFieldIndex, 0, movedItem);
-    Environments.environmentsJsonChanged();
+    updateFieldList();
   };
 
   document.getElementById('fieldDown').onclick = () => {
@@ -123,7 +122,7 @@ export async function ready() {
     Environments.current().fieldList.splice(theFieldIndex, 1);
     theFieldIndex++;
     Environments.current().fieldList.splice(theFieldIndex, 0, movedItem);
-    Environments.environmentsJsonChanged();
+    updateFieldList();
   };
 };
 
@@ -169,10 +168,12 @@ function updateFieldList() {
     if (fieldSelected) {
       theFieldIndex = i;
       row.classList.add('table-active');
+      dom.fieldLabel.value = field.label;
     }
   });
   if (theFieldIndex < 0) {
     dom.fieldPath.value = null;
+    dom.fieldLabel.value = null;
   }
 };
 
@@ -182,6 +183,6 @@ function updateFieldList() {
  */
 function toggleFieldActiveEventHandler(evt) {
   Environments.current().fieldList[evt.target.id].active = evt.target.checked;
-  Environments.environmentsJsonChanged();
+  updateFieldList();
 };
 

@@ -12,18 +12,16 @@
  */
 package org.eclipse.ditto.connectivity.service.mapping;
 
-import java.util.Arrays;
+import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import org.eclipse.ditto.connectivity.model.ConnectionId;
-import org.eclipse.ditto.internal.models.signalenrichment.DefaultSignalEnrichmentConfig;
-import org.eclipse.ditto.internal.models.signalenrichment.SignalEnrichmentConfig;
 import org.eclipse.ditto.internal.models.signalenrichment.SignalEnrichmentFacade;
-import org.eclipse.ditto.internal.utils.akka.AkkaClassLoader;
+import org.eclipse.ditto.internal.utils.extension.DittoExtensionPoint;
+import org.eclipse.ditto.internal.utils.extension.DittoExtensionIds;
 
-import akka.actor.AbstractExtensionId;
+import com.typesafe.config.Config;
+
 import akka.actor.ActorSystem;
-import akka.actor.ExtendedActorSystem;
-import akka.actor.Extension;
 
 /**
  * Provider of {@link SignalEnrichmentFacade} to be loaded by reflection.
@@ -34,7 +32,7 @@ import akka.actor.Extension;
  * <li>Config config: configuration for the facade provider.</li>
  * </ul>
  */
-public abstract class ConnectivitySignalEnrichmentProvider implements Extension {
+public interface ConnectivitySignalEnrichmentProvider extends DittoExtensionPoint {
 
     /**
      * Create a signal-enriching facade from the ID of a connection.
@@ -42,37 +40,44 @@ public abstract class ConnectivitySignalEnrichmentProvider implements Extension 
      * @param connectionId the connection ID.
      * @return the facade.
      */
-    public abstract SignalEnrichmentFacade getFacade(ConnectionId connectionId);
+    SignalEnrichmentFacade getFacade(ConnectionId connectionId);
 
     /**
      * Load a {@code ConnectivitySignalEnrichmentProvider} dynamically according to the streaming configuration.
      *
      * @param actorSystem The actor system in which to load the facade provider class.
+     * @param config the config the extension is configured.
      * @return The configured facade provider.
      */
-    public static ConnectivitySignalEnrichmentProvider get(final ActorSystem actorSystem) {
-        return ExtensionId.INSTANCE.get(actorSystem);
+    static ConnectivitySignalEnrichmentProvider get(final ActorSystem actorSystem, final Config config) {
+        checkNotNull(actorSystem, "actorSystem");
+        checkNotNull(config, "config");
+        final var extensionIdConfig = ExtensionId.computeConfig(config);
+        return DittoExtensionIds.get(actorSystem)
+                .computeIfAbsent(extensionIdConfig, ExtensionId::new)
+                .get(actorSystem);
     }
 
     /**
      * ID of the actor system extension to provide signal enrichment for connectivity.
      */
-    private static final class ExtensionId extends AbstractExtensionId<ConnectivitySignalEnrichmentProvider> {
+    final class ExtensionId extends DittoExtensionPoint.ExtensionId<ConnectivitySignalEnrichmentProvider> {
 
-        private static final String SIGNAL_ENRICHMENT_CONFIG_PATH = "ditto.connectivity";
+        private static final String CONFIG_KEY = "signal-enrichment-provider";
 
-        private static final ExtensionId INSTANCE = new ExtensionId();
+        private ExtensionId(final ExtensionIdConfig<ConnectivitySignalEnrichmentProvider> extensionIdConfig) {
+            super(extensionIdConfig);
+        }
+
+        static ExtensionIdConfig<ConnectivitySignalEnrichmentProvider> computeConfig(final Config config) {
+            return ExtensionIdConfig.of(ConnectivitySignalEnrichmentProvider.class, config, CONFIG_KEY);
+        }
 
         @Override
-        public ConnectivitySignalEnrichmentProvider createExtension(final ExtendedActorSystem system) {
-            final SignalEnrichmentConfig signalEnrichmentConfig =
-                    DefaultSignalEnrichmentConfig.of(
-                            system.settings().config().getConfig(SIGNAL_ENRICHMENT_CONFIG_PATH));
-            return AkkaClassLoader.instantiate(system, ConnectivitySignalEnrichmentProvider.class,
-                    signalEnrichmentConfig.getProvider(),
-                    Arrays.asList(ActorSystem.class, SignalEnrichmentConfig.class),
-                    Arrays.asList(system, signalEnrichmentConfig)
-            );
+        protected String getConfigKey() {
+            return CONFIG_KEY;
         }
+
     }
+
 }

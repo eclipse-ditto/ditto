@@ -23,10 +23,9 @@ import java.time.Instant;
 import java.util.Base64;
 
 import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
-import org.junit.Ignore;
+import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
-import org.junit.Test;
 
 /**
  * Unit test for {@link ImmutableJsonWebToken}.
@@ -111,7 +110,7 @@ public final class ImmutableJsonWebTokenTest {
     }
 
     private static String base64(final String value) {
-        return new String(Base64.getEncoder().encode(value.getBytes()));
+        return new String(Base64.getUrlEncoder().encode(value.getBytes()));
     }
 
 }

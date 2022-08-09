@@ -14,24 +14,52 @@ package org.eclipse.ditto.things.service.persistence.actors;
 
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
+import java.util.Objects;
+import java.util.concurrent.CompletionStage;
 
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.base.model.acks.DittoAcknowledgementLabel;
+import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeExceptionBuilder;
-import org.eclipse.ditto.things.model.ThingId;
+import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
+import org.eclipse.ditto.base.model.signals.Signal;
+import org.eclipse.ditto.base.model.signals.commands.Command;
+import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
+import org.eclipse.ditto.base.model.signals.events.Event;
 import org.eclipse.ditto.base.service.actors.ShutdownBehaviour;
 import org.eclipse.ditto.base.service.config.supervision.ExponentialBackOffConfig;
-import org.eclipse.ditto.things.service.common.config.DittoThingsConfig;
+import org.eclipse.ditto.internal.utils.cluster.ShardRegionProxyActorFactory;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
+import org.eclipse.ditto.internal.utils.namespaces.BlockedNamespaces;
 import org.eclipse.ditto.internal.utils.persistentactors.AbstractPersistenceSupervisor;
+import org.eclipse.ditto.internal.utils.persistentactors.TargetActorWithMessage;
 import org.eclipse.ditto.internal.utils.pubsub.DistributedPub;
+import org.eclipse.ditto.internal.utils.pubsubthings.LiveSignalPub;
+import org.eclipse.ditto.policies.api.PoliciesMessagingConstants;
+import org.eclipse.ditto.policies.enforcement.PolicyEnforcerProvider;
+import org.eclipse.ditto.policies.enforcement.config.DefaultEnforcementConfig;
+import org.eclipse.ditto.things.api.ThingsMessagingConstants;
+import org.eclipse.ditto.things.model.ThingId;
+import org.eclipse.ditto.things.model.signals.commands.ThingCommandResponse;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingUnavailableException;
+import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThing;
+import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThingResponse;
+import org.eclipse.ditto.things.model.signals.commands.query.ThingQueryCommand;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
+import org.eclipse.ditto.things.service.common.config.DittoThingsConfig;
+import org.eclipse.ditto.things.service.enforcement.ThingEnforcement;
+import org.eclipse.ditto.things.service.enforcement.ThingEnforcerActor;
 
 import akka.actor.ActorKilledException;
 import akka.actor.ActorRef;
+import akka.actor.ActorSelection;
+import akka.actor.ActorSystem;
 import akka.actor.Props;
+import akka.stream.Materializer;
+import akka.stream.javadsl.Keep;
+import akka.stream.javadsl.Sink;
+import akka.stream.javadsl.Source;
 
 /**
  * Supervisor for {@link ThingPersistenceActor} which means it will create, start and watch it as child actor.
@@ -41,20 +69,84 @@ import akka.actor.Props;
  * {@link ThingUnavailableException} as fail fast strategy.
  * </p>
  */
-public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<ThingId> {
+public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<ThingId, Signal<?>> {
 
     private final ActorRef pubSubMediator;
-    private final DistributedPub<ThingEvent<?>> distributedPub;
-    private final ThingPersistenceActorPropsFactory thingPersistenceActorPropsFactory;
+    private final ActorRef policiesShardRegion;
+    private final ActorRef thingsShardRegion;
+    private final DistributedPub<ThingEvent<?>> distributedPubThingEventsForTwin;
+    @Nullable private final ThingPersistenceActorPropsFactory thingPersistenceActorPropsFactory;
+    private final DefaultEnforcementConfig enforcementConfig;
+    private final Materializer materializer;
+    private final ResponseReceiverCache responseReceiverCache;
+
+    private final SupervisorInlinePolicyEnrichment inlinePolicyEnrichment;
+    private final SupervisorLiveChannelDispatching liveChannelDispatching;
+    private final SupervisorSmartChannelDispatching smartChannelDispatching;
+
+    private final PolicyEnforcerProvider policyEnforcerProvider;
 
     @SuppressWarnings("unused")
     private ThingSupervisorActor(final ActorRef pubSubMediator,
-            final DistributedPub<ThingEvent<?>> distributedPub,
-            final ThingPersistenceActorPropsFactory thingPersistenceActorPropsFactory) {
+            @Nullable final ActorRef policiesShardRegion,
+            final DistributedPub<ThingEvent<?>> distributedPubThingEventsForTwin,
+            final LiveSignalPub liveSignalPub,
+            @Nullable final ThingPersistenceActorPropsFactory thingPersistenceActorPropsFactory,
+            @Nullable final ActorRef thingPersistenceActorRef,
+            @Nullable final BlockedNamespaces blockedNamespaces,
+            final PolicyEnforcerProvider policyEnforcerProvider) {
 
+        super(blockedNamespaces, DEFAULT_LOCAL_ASK_TIMEOUT);
+
+        this.policyEnforcerProvider = policyEnforcerProvider;
         this.pubSubMediator = pubSubMediator;
-        this.distributedPub = distributedPub;
+        this.distributedPubThingEventsForTwin = distributedPubThingEventsForTwin;
         this.thingPersistenceActorPropsFactory = thingPersistenceActorPropsFactory;
+        persistenceActorChild = thingPersistenceActorRef;
+        final DefaultScopedConfig dittoScoped =
+                DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config());
+        enforcementConfig = DefaultEnforcementConfig.of(dittoScoped);
+        final DittoThingsConfig thingsConfig = DittoThingsConfig.of(dittoScoped);
+
+        materializer = Materializer.createMaterializer(getContext());
+        responseReceiverCache = ResponseReceiverCache.lookup(getContext().getSystem());
+
+        final ActorSelection thingPersistenceActorSelection;
+        if (null != persistenceActorChild) {
+            thingPersistenceActorSelection = getContext().actorSelection(persistenceActorChild.path());
+        } else {
+            // we use a ActorSelection so that we
+            // a) do not have to have the persistence actor initialized at this point
+            // b) must not react on recreation of the persistence actor by recreating the classes using it
+            thingPersistenceActorSelection = getContext().actorSelection(PERSISTENCE_ACTOR_NAME);
+        }
+
+        final ShardRegionProxyActorFactory shardRegionProxyActorFactory =
+                ShardRegionProxyActorFactory.newInstance(getContext().getSystem(), thingsConfig.getClusterConfig());
+
+        if (null != policiesShardRegion) {
+            this.policiesShardRegion = policiesShardRegion;
+        } else {
+            this.policiesShardRegion = shardRegionProxyActorFactory.getShardRegionProxyActor(
+                    PoliciesMessagingConstants.CLUSTER_ROLE,
+                    PoliciesMessagingConstants.SHARD_REGION
+            );
+        }
+        thingsShardRegion = shardRegionProxyActorFactory.getShardRegionProxyActor(
+                ThingsMessagingConstants.CLUSTER_ROLE,
+                ThingsMessagingConstants.SHARD_REGION
+        );
+
+        try {
+            inlinePolicyEnrichment = new SupervisorInlinePolicyEnrichment(getContext().getSystem(), log, getEntityId(),
+                    thingPersistenceActorSelection, this.policiesShardRegion, enforcementConfig);
+        } catch (final Exception e) {
+            throw new IllegalStateException("Entity Id could not be retrieved", e);
+        }
+        liveChannelDispatching = new SupervisorLiveChannelDispatching(log, enforcementConfig, responseReceiverCache,
+                liveSignalPub, getContext());
+        smartChannelDispatching = new SupervisorSmartChannelDispatching(log, thingPersistenceActorSelection,
+                liveChannelDispatching);
     }
 
     /**
@@ -64,17 +156,148 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
      * for {@link ActorKilledException}'s and escalates all others.
      * </p>
      *
-     * @param distributedPub distributed-pub access for publishing thing events.
+     * @param pubSubMediator the pub/sub mediator ActorRef to required for the creation of the ThingEnforcerActor.
+     * @param distributedPubThingEventsForTwin distributed-pub access for publishing thing events on "twin" channel.
+     * @param liveSignalPub distributed-pub access for "live" channel.
      * @param propsFactory factory for creating Props to be used for creating
-     * {@link ThingPersistenceActor}s.
+     * @param blockedNamespaces the blocked namespaces functionality to retrieve/subscribe for blocked namespaces.
+     * @param policyEnforcerProvider used to load the policy enforcer.
      * @return the {@link Props} to create this actor.
      */
-    public static Props props(
-            final ActorRef pubSubMediator,
-            final DistributedPub<ThingEvent<?>> distributedPub,
-            final ThingPersistenceActorPropsFactory propsFactory) {
+    public static Props props(final ActorRef pubSubMediator,
+            final DistributedPub<ThingEvent<?>> distributedPubThingEventsForTwin,
+            final LiveSignalPub liveSignalPub,
+            final ThingPersistenceActorPropsFactory propsFactory,
+            @Nullable final BlockedNamespaces blockedNamespaces,
+            final PolicyEnforcerProvider policyEnforcerProvider) {
 
-        return Props.create(ThingSupervisorActor.class, pubSubMediator, distributedPub, propsFactory);
+        return Props.create(ThingSupervisorActor.class, pubSubMediator, null,
+                distributedPubThingEventsForTwin, liveSignalPub, propsFactory, null, blockedNamespaces,
+                policyEnforcerProvider);
+    }
+
+    /**
+     * Props for creating a {@code ThingSupervisorActor} inside of unit tests.
+     */
+    public static Props props(final ActorRef pubSubMediator,
+            final ActorRef policiesShardRegion,
+            final DistributedPub<ThingEvent<?>> distributedPubThingEventsForTwin,
+            final LiveSignalPub liveSignalPub,
+            final ThingPersistenceActorPropsFactory propsFactory,
+            @Nullable final BlockedNamespaces blockedNamespaces,
+            final PolicyEnforcerProvider policyEnforcerProvider) {
+
+        return Props.create(ThingSupervisorActor.class, pubSubMediator, policiesShardRegion,
+                distributedPubThingEventsForTwin, liveSignalPub, propsFactory, null, blockedNamespaces,
+                policyEnforcerProvider);
+    }
+
+    /**
+     * Props for creating a {@code ThingSupervisorActor} inside of unit tests.
+     */
+    public static Props props(final ActorRef pubSubMediator,
+            final ActorRef policiesShardRegion,
+            final DistributedPub<ThingEvent<?>> distributedPubThingEventsForTwin,
+            final LiveSignalPub liveSignalPub,
+            final ActorRef thingsPersistenceActor,
+            @Nullable final BlockedNamespaces blockedNamespaces,
+            final PolicyEnforcerProvider policyEnforcerProvider) {
+
+        return Props.create(ThingSupervisorActor.class, pubSubMediator, policiesShardRegion,
+                distributedPubThingEventsForTwin, liveSignalPub, null, thingsPersistenceActor, blockedNamespaces,
+                policyEnforcerProvider);
+    }
+
+    @Override
+    protected CompletionStage<Object> askEnforcerChild(final Signal<?> signal) {
+
+        if (signal instanceof ThingCommandResponse<?> thingCommandResponse &&
+                CommandResponse.isLiveCommandResponse(thingCommandResponse)) {
+
+            return signal.getDittoHeaders().getCorrelationId()
+                    .map(responseReceiverCache::get)
+                    .map(future -> future
+                            .thenApply(responseReceiverEntry -> responseReceiverEntry
+                                    .map(ResponseReceiverCache.ResponseReceiverCacheEntry::authorizationContext)
+                                    .orElse(null)
+                            )
+                            .thenApply(authorizationContext ->
+                                    replaceAuthContext(thingCommandResponse, authorizationContext)
+                            )
+                            .thenCompose(super::askEnforcerChild)
+                    )
+                    .orElseGet(() -> super.askEnforcerChild(thingCommandResponse).toCompletableFuture());
+        } else {
+            return super.askEnforcerChild(signal);
+        }
+    }
+
+    /**
+     * Replaces the {@link AuthorizationContext} in the headers of the passed {@code response}.
+     *
+     * @param response the ThingCommandResponse to replace the authorization context in.
+     * @param authorizationContext the new authorization context to inject in the headers of the passed {@code response}
+     * @return the modified thing command response.
+     */
+    @SuppressWarnings("unchecked")
+    static <T extends ThingCommandResponse<?>> T replaceAuthContext(final T response,
+            @Nullable final AuthorizationContext authorizationContext) {
+
+        if (null != authorizationContext) {
+            return (T) response.setDittoHeaders(response.getDittoHeaders()
+                    .toBuilder()
+                    .authorizationContext(authorizationContext)
+                    .build());
+        } else {
+            return response;
+        }
+    }
+
+    @Override
+    protected CompletionStage<TargetActorWithMessage> getTargetActorForSendingEnforcedMessageTo(final Object message,
+            final boolean shouldSendResponse,
+            final ActorRef sender) {
+
+        if (message instanceof CommandResponse<?> commandResponse &&
+                CommandResponse.isLiveCommandResponse(commandResponse)) {
+
+            return liveChannelDispatching.dispatchGlobalLiveCommandResponse(commandResponse);
+        } else if (message instanceof ThingQueryCommand<?> thingQueryCommand &&
+                Signal.isChannelSmart(thingQueryCommand)) {
+
+            return smartChannelDispatching.dispatchSmartChannelThingQueryCommand(thingQueryCommand, sender);
+        } else if (message instanceof ThingQueryCommand<?> thingQueryCommand &&
+                Command.isLiveCommand(thingQueryCommand)) {
+
+            return liveChannelDispatching.dispatchLiveChannelThingQueryCommand(thingQueryCommand,
+                    liveChannelDispatching::prepareForPubSubPublishing);
+        } else if (message instanceof Signal<?> signal &&
+                (Command.isLiveCommand(signal) || Event.isLiveEvent(signal))) {
+
+            return liveChannelDispatching.dispatchLiveSignal(signal, sender);
+        } else {
+
+            return super.getTargetActorForSendingEnforcedMessageTo(message, shouldSendResponse, sender);
+        }
+    }
+
+    @Override
+    protected CompletionStage<Object> modifyTargetActorCommandResponse(final Signal<?> enforcedSignal,
+            final Object persistenceCommandResponse) {
+
+        return Source.single(new CommandResponsePair<Signal<?>, Object>(enforcedSignal, persistenceCommandResponse))
+                .flatMapConcat(pair -> {
+                    if (pair.command() instanceof RetrieveThing retrieveThing &&
+                            SupervisorInlinePolicyEnrichment.shouldRetrievePolicyWithThing(retrieveThing) &&
+                            pair.response() instanceof RetrieveThingResponse retrieveThingResponse) {
+                        return inlinePolicyEnrichment.enrichPolicy(retrieveThing, retrieveThingResponse)
+                                .map(Object.class::cast);
+                    } else {
+                        return Source.single(pair.response());
+                    }
+                })
+                .toMat(Sink.head(), Keep.right())
+                .run(materializer);
     }
 
     @Override
@@ -83,34 +306,48 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
     }
 
     @Override
-    @Nonnull
-    protected Props getPersistenceActorProps(@Nonnull final ThingId entityId) {
-        return thingPersistenceActorPropsFactory.props(entityId, distributedPub);
+    protected Props getPersistenceActorProps(final ThingId entityId) {
+        assert thingPersistenceActorPropsFactory != null;
+        return thingPersistenceActorPropsFactory.props(entityId, distributedPubThingEventsForTwin);
     }
 
     @Override
-    @Nonnull
-    protected ShutdownBehaviour getShutdownBehaviour(@Nonnull final ThingId entityId) {
+    protected Props getPersistenceEnforcerProps(final ThingId entityId) {
+        final ActorSystem system = getContext().getSystem();
+        final ThingEnforcement thingEnforcement =
+                new ThingEnforcement(policiesShardRegion, system, enforcementConfig);
+
+        return ThingEnforcerActor.props(entityId, thingEnforcement, enforcementConfig.getAskWithRetryConfig(),
+                policiesShardRegion, thingsShardRegion, policyEnforcerProvider);
+    }
+
+    @Override
+    protected boolean shouldSendResponse(final WithDittoHeaders withDittoHeaders) {
+        return withDittoHeaders.getDittoHeaders().isResponseRequired() ||
+                withDittoHeaders.getDittoHeaders().getAcknowledgementRequests()
+                        .stream()
+                        .anyMatch(ar -> DittoAcknowledgementLabel.TWIN_PERSISTED.equals(ar.getLabel()));
+    }
+
+    @Override
+    protected ShutdownBehaviour getShutdownBehaviour(final ThingId entityId) {
         return ShutdownBehaviour.fromId(entityId, pubSubMediator, getSelf());
     }
 
     @Override
-    @Nonnull
     protected DittoRuntimeExceptionBuilder<?> getUnavailableExceptionBuilder(@Nullable final ThingId entityId) {
-        if (entityId != null) {
-            return ThingUnavailableException.newBuilder(entityId);
-        } else {
-            return ThingUnavailableException.newBuilder(ThingId.of("UNKNOWN:ID"));
-        }
+        return ThingUnavailableException.newBuilder(
+                Objects.requireNonNullElseGet(entityId, () -> ThingId.of("UNKNOWN:ID")));
     }
 
     @Override
-    @Nonnull
     protected ExponentialBackOffConfig getExponentialBackOffConfig() {
+
         return DittoThingsConfig.of(DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config()))
                 .getThingConfig()
                 .getSupervisorConfig()
                 .getExponentialBackOffConfig();
     }
 
+    private record CommandResponsePair<C, R>(C command, R response) {}
 }

@@ -603,7 +603,7 @@ public interface Thing extends Entity<ThingRevision> {
      *
      * @return the Policy ID of this Thing.
      */
-    Optional<PolicyId> getPolicyEntityId();
+    Optional<PolicyId> getPolicyId();
 
     /**
      * Returns the Features of this Thing.

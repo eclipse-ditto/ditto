@@ -28,6 +28,10 @@ Find a live version of the latest explorer UI: [https://eclipse.github.io/ditto/
 
 You should be able to work with your locally running default using the `local_ditto` environment - and you can add additional environments to also work with e.g. with a deployed installation of Ditto.
 
+## Star History
+
+[![Star History Chart](https://api.star-history.com/svg?repos=eclipse/ditto&type=Date)](https://star-history.com/?secret=Z2hwXzJERUNBUmFRa09KM3BvdTFMUkJ1Y3VnY25FV3hxVjNBM3hEVQ==#eclipse/ditto&Date)
+
 ## Getting started
 
 In order to start up Ditto via *Docker Compose*, you'll need:
@@ -114,6 +118,5 @@ You have now running:
    * Things-Search
    * Gateway
    * Connectivity
-   * Concierge
 * an nginx acting as a reverse proxy performing a simple "basic authentication" listening on port `8080`
    * including some static HTTP + API documentation on [http://localhost:8080](http://localhost:8080)

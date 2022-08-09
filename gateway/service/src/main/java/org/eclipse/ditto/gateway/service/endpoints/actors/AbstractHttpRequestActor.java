@@ -31,12 +31,14 @@ import org.eclipse.ditto.base.api.devops.signals.commands.DevOpsCommand;
 import org.eclipse.ditto.base.model.acks.DittoAcknowledgementLabel;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.entity.id.EntityId;
+import org.eclipse.ditto.base.model.entity.id.WithEntityId;
 import org.eclipse.ditto.base.model.exceptions.DittoJsonException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.headers.contenttype.ContentType;
+import org.eclipse.ditto.base.model.headers.translator.HeaderTranslator;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.WithOptionalEntity;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
@@ -45,11 +47,11 @@ import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
 import org.eclipse.ditto.base.model.signals.commands.ErrorResponse;
 import org.eclipse.ditto.base.model.signals.commands.WithEntity;
-import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayCommandTimeoutException;
-import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayServiceUnavailableException;
-import org.eclipse.ditto.connectivity.api.messaging.monitoring.logs.AddConnectionLogEntry;
+import org.eclipse.ditto.base.model.signals.commands.exceptions.CommandTimeoutException;
+import org.eclipse.ditto.connectivity.api.commands.sudo.SudoAddConnectionLogEntry;
 import org.eclipse.ditto.connectivity.api.messaging.monitoring.logs.LogEntryFactory;
 import org.eclipse.ditto.connectivity.model.ConnectionId;
+import org.eclipse.ditto.gateway.api.GatewayServiceUnavailableException;
 import org.eclipse.ditto.gateway.service.endpoints.routes.whoami.DefaultUserInformation;
 import org.eclipse.ditto.gateway.service.endpoints.routes.whoami.Whoami;
 import org.eclipse.ditto.gateway.service.endpoints.routes.whoami.WhoamiResponse;
@@ -57,7 +59,6 @@ import org.eclipse.ditto.gateway.service.util.config.endpoints.CommandConfig;
 import org.eclipse.ditto.gateway.service.util.config.endpoints.HttpConfig;
 import org.eclipse.ditto.internal.models.acks.AcknowledgementAggregatorActorStarter;
 import org.eclipse.ditto.internal.models.acks.config.AcknowledgementConfig;
-import org.eclipse.ditto.internal.models.signal.SignalInformationPoint;
 import org.eclipse.ditto.internal.models.signal.correlation.MatchingValidationResult;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
@@ -67,7 +68,8 @@ import org.eclipse.ditto.json.JsonRuntimeException;
 import org.eclipse.ditto.messages.model.Message;
 import org.eclipse.ditto.messages.model.signals.commands.MessageCommandResponse;
 import org.eclipse.ditto.messages.model.signals.commands.acks.MessageCommandAckRequestSetter;
-import org.eclipse.ditto.protocol.HeaderTranslator;
+import org.eclipse.ditto.messages.model.signals.commands.acks.MessageCommandResponseAcknowledgementProvider;
+import org.eclipse.ditto.things.model.signals.commands.acks.ThingCommandResponseAcknowledgementProvider;
 import org.eclipse.ditto.things.model.signals.commands.acks.ThingLiveCommandAckRequestSetter;
 import org.eclipse.ditto.things.model.signals.commands.acks.ThingModifyCommandAckRequestSetter;
 
@@ -122,8 +124,7 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
             final HttpRequest request,
             final CompletableFuture<HttpResponse> httpResponseFuture,
             final HttpConfig httpConfig,
-            final CommandConfig commandConfig,
-            final ActorRef connectivityShardRegionProxy) {
+            final CommandConfig commandConfig) {
 
         this.proxyActor = proxyActor;
         this.headerTranslator = headerTranslator;
@@ -133,10 +134,16 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
         ackregatorStarter = AcknowledgementAggregatorActorStarter.of(getContext(),
                 HttpAcknowledgementConfig.of(httpConfig),
                 headerTranslator,
-                getResponseValidationFailureConsumer(connectivityShardRegionProxy),
-                ThingModifyCommandAckRequestSetter.getInstance(),
-                ThingLiveCommandAckRequestSetter.getInstance(),
-                MessageCommandAckRequestSetter.getInstance());
+                getResponseValidationFailureConsumer(),
+                List.of(
+                        ThingModifyCommandAckRequestSetter.getInstance(),
+                        ThingLiveCommandAckRequestSetter.getInstance(),
+                        MessageCommandAckRequestSetter.getInstance()
+                ),
+                List.of(
+                        ThingCommandResponseAcknowledgementProvider.getInstance(),
+                        MessageCommandResponseAcknowledgementProvider.getInstance()
+                ));
 
         responseLocationUri = null;
         receivedCommand = null;
@@ -145,12 +152,10 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
         setReceiveTimeout(httpConfig.getRequestTimeout());
     }
 
-    private Consumer<MatchingValidationResult.Failure> getResponseValidationFailureConsumer(
-            final ActorRef connectivityShardRegionProxy
-    ) {
+    private Consumer<MatchingValidationResult.Failure> getResponseValidationFailureConsumer() {
         return failure -> {
-            final Consumer<AddConnectionLogEntry> addConnectionLogEntry =
-                    msg -> connectivityShardRegionProxy.tell(msg, ActorRef.noSender());
+            final Consumer<SudoAddConnectionLogEntry> addConnectionLogEntry =
+                    msg -> proxyActor.tell(msg, ActorRef.noSender());
             final Runnable logMissingConnectionId =
                     () -> logger.withCorrelationId(failure.getCommand())
                             .warning("Discarding invalid response as connection ID of sender could not be determined.");
@@ -160,14 +165,14 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
         };
     }
 
-    private static AddConnectionLogEntry getAddConnectionLogEntry(final ConnectionId connectionId,
+    private static SudoAddConnectionLogEntry getAddConnectionLogEntry(final ConnectionId connectionId,
             final MatchingValidationResult.Failure failure) {
 
         final var logEntry = LogEntryFactory.getLogEntryForFailedCommandResponseRoundTrip(failure.getCommand(),
                 failure.getCommandResponse(),
                 failure.getDetailMessage());
 
-        return AddConnectionLogEntry.newInstance(connectionId, logEntry);
+        return SudoAddConnectionLogEntry.newInstance(connectionId, logEntry, failure.getCommand().getDittoHeaders());
     }
 
     private void setReceiveTimeout(final Duration receiveTimeout) {
@@ -228,8 +233,8 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
             ackregatorStarter.start(command,
                     timeoutOverride,
                     this::onAggregatedResponseOrError,
-                    this::handleCommandWithAckregator,
-                    command1 -> handleCommandWithoutAckregator(command1, timeoutOverride)
+                    this::handleSignalWithAckregator,
+                    signalWithoutAckregator -> handleSignalWithoutAckregator(signalWithoutAckregator, timeoutOverride)
             );
             final var responseBehavior = ReceiveBuilder.create()
                     .match(Acknowledgements.class, this::completeAcknowledgements)
@@ -245,7 +250,7 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
         timeoutExceptionSupplier = () -> {
             final var actorContext = getContext();
 
-            return GatewayCommandTimeoutException.newBuilder(actorContext.getReceiveTimeout())
+            return CommandTimeoutException.newBuilder(actorContext.getReceiveTimeout())
                     .dittoHeaders(command.getDittoHeaders()
                             .toBuilder()
                             .responseRequired(false)
@@ -260,19 +265,19 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
         return null;
     }
 
-    private Void handleCommandWithAckregator(final Signal<?> command, final ActorRef aggregator) {
-        logger.debug("Got <{}>. Telling the target actor about it.", command);
-        proxyActor.tell(command, aggregator);
+    private Void handleSignalWithAckregator(final Signal<?> signal, final ActorRef ackregator) {
+        logger.debug("Got <{}>. Telling the target actor about it.", signal);
+        proxyActor.tell(signal, ackregator);
 
         return null;
     }
 
-    private Void handleCommandWithoutAckregator(final Signal<?> command, final Duration timeoutOverride) {
-        if (isDevOpsCommand(command) || !shallAcceptImmediately(command)) {
-            handleCommandWithResponse(command, getResponseAwaitingBehavior(), timeoutOverride);
-            setDefaultTimeoutExceptionSupplier(command);
+    private Void handleSignalWithoutAckregator(final Signal<?> signalWithoutAckregator, final Duration timeoutOverride) {
+        if (isDevOpsCommand(signalWithoutAckregator) || !shallAcceptImmediately(signalWithoutAckregator)) {
+            handleCommandWithResponse(signalWithoutAckregator, getResponseAwaitingBehavior(), timeoutOverride);
+            setDefaultTimeoutExceptionSupplier(signalWithoutAckregator);
         } else {
-            handleCommandAndAcceptImmediately(command);
+            handleCommandAndAcceptImmediately(signalWithoutAckregator);
         }
 
         return null;
@@ -291,7 +296,7 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
     }
 
     private void rememberResponseLocationUri(final CommandResponse<?> commandResponse) {
-        final var optionalEntityId = SignalInformationPoint.getEntityId(commandResponse);
+        final var optionalEntityId = WithEntityId.getEntityId(commandResponse);
         if (HttpStatus.CREATED.equals(commandResponse.getHttpStatus()) && optionalEntityId.isPresent()) {
             responseLocationUri =
                     getUriForLocationHeader(httpRequest, optionalEntityId.get(), commandResponse.getResourcePath());
@@ -481,7 +486,7 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
         final var actorContext = getContext();
         final var receiveTimeout = actorContext.getReceiveTimeout();
 
-        logger.setCorrelationId(SignalInformationPoint.getCorrelationId(receivedCommand).orElse(null));
+        logger.setCorrelationId(WithDittoHeaders.getCorrelationId(receivedCommand).orElse(null));
         logger.info("Got <{}> after <{}> before an appropriate response arrived.",
                 ReceiveTimeout.class.getSimpleName(),
                 receiveTimeout);
@@ -730,7 +735,7 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
                 .filter(timeout -> timeout.minus(maxTimeout).isNegative())
                 .orElse(maxTimeout);
 
-        if (SignalInformationPoint.isChannelSmart(originatingSignal)) {
+        if (Signal.isChannelSmart(originatingSignal)) {
             return candidateTimeout.plus(commandConfig.getSmartChannelBuffer());
         } else {
             return candidateTimeout;

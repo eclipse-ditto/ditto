@@ -18,15 +18,13 @@ import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 import java.lang.management.ManagementFactory;
 import java.text.MessageFormat;
 import java.time.Duration;
-import java.util.Collection;
-import java.util.Collections;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
 import javax.annotation.Nullable;
-import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
 
+import org.eclipse.ditto.base.model.common.DittoSystemProperties;
 import org.eclipse.ditto.base.model.signals.FeatureToggle;
 import org.eclipse.ditto.base.service.config.ServiceSpecificConfig;
 import org.eclipse.ditto.base.service.devops.DevOpsCommandsActor;
@@ -38,11 +36,7 @@ import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import org.eclipse.ditto.internal.utils.config.raw.RawConfigSupplier;
 import org.eclipse.ditto.internal.utils.health.status.StatusSupplierActor;
 import org.eclipse.ditto.internal.utils.metrics.prometheus.PrometheusReporterRoute;
-import org.eclipse.ditto.internal.utils.persistence.mongo.config.WithMongoDbConfig;
 import org.eclipse.ditto.internal.utils.tracing.DittoTracing;
-import org.eclipse.ditto.messages.model.signals.commands.MessageCommandSizeValidator;
-import org.eclipse.ditto.policies.model.signals.commands.PolicyCommandSizeValidator;
-import org.eclipse.ditto.things.model.signals.commands.ThingCommandSizeValidator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -82,8 +76,6 @@ import kamon.prometheus.PrometheusReporter;
  * <ol>
  * <li>{@link #getMainRootActorProps(org.eclipse.ditto.base.service.config.ServiceSpecificConfig, akka.actor.ActorRef)},</li>
  * <li>{@link #startMainRootActor(akka.actor.ActorSystem, akka.actor.Props)},</li>
- * <li>{@link #getAdditionalRootActorsInformation(org.eclipse.ditto.base.service.config.ServiceSpecificConfig, akka.actor.ActorSystem)} and</li>
- * <li>{@link #startAdditionalRootActors(akka.actor.ActorSystem, Iterable)}.</li>
  * </ol>
  * </li>
  * </ol>
@@ -103,11 +95,13 @@ public abstract class DittoService<C extends ServiceSpecificConfig> {
      */
     public static final String DITTO_CONFIG_PATH = ScopedConfig.DITTO_SCOPE;
 
+    protected static final String MONGO_URI_CONFIG_PATH = "akka.contrib.persistence.mongodb.mongo.mongouri";
+
+    protected final Config rawConfig;
+    protected final C serviceSpecificConfig;
     private final Logger logger;
     private final String serviceName;
     private final String rootActorName;
-    private final Config rawConfig;
-    private final C serviceSpecificConfig;
 
     @Nullable
     private PrometheusReporter prometheusReporter;
@@ -135,11 +129,20 @@ public abstract class DittoService<C extends ServiceSpecificConfig> {
     }
 
     /**
+     * Starts this service. Any thrown {@code Throwable}s will be logged and re-thrown.
+     *
+     * @return the created ActorSystem during startup
+     */
+    public ActorSystem start() {
+        return MainMethodExceptionHandler.getInstance(logger).call(this::doStart);
+    }
+
+    /**
      * Determines the {@link com.typesafe.config.Config} of this service. May be overridden to change the way how the config is determined.
      *
      * @return the config of this service.
      */
-    protected Config determineRawConfig() {
+    private Config determineRawConfig() {
         final var loadedConfig = RawConfigSupplier.of(serviceName).get();
 
         if (logger.isDebugEnabled()) {
@@ -194,15 +197,6 @@ public abstract class DittoService<C extends ServiceSpecificConfig> {
     protected abstract C getServiceSpecificConfig(ScopedConfig dittoConfig);
 
     /**
-     * Starts this service. Any thrown {@code Throwable}s will be logged and re-thrown.
-     *
-     * @return the created ActorSystem during startup
-     */
-    public ActorSystem start() {
-        return MainMethodExceptionHandler.getInstance(logger).call(this::doStart);
-    }
-
-    /**
      * Starts this service.
      * <p>
      * May be overridden to <em>completely</em> change the way how this service is started.
@@ -211,7 +205,7 @@ public abstract class DittoService<C extends ServiceSpecificConfig> {
      *
      * @return the created ActorSystem during startup
      */
-    protected ActorSystem doStart() {
+    private ActorSystem doStart() {
         logRuntimeParameters();
         final var actorSystemConfig = appendDittoInfo(appendAkkaPersistenceMongoUriToRawConfig());
         startKamon();
@@ -221,18 +215,8 @@ public abstract class DittoService<C extends ServiceSpecificConfig> {
         return actorSystem;
     }
 
-    private Config appendAkkaPersistenceMongoUriToRawConfig() {
-        if (!isServiceWithMongoDbConfig()) {
-            return rawConfig;
-        }
-        final var configPath = "akka.contrib.persistence.mongodb.mongo.mongouri";
-        final var mongoDbConfig = ((WithMongoDbConfig) serviceSpecificConfig).getMongoDbConfig();
-        final String mongoDbUri = mongoDbConfig.getMongoDbUri();
-        return rawConfig.withValue(configPath, ConfigValueFactory.fromAnyRef(mongoDbUri));
-    }
-
-    private boolean isServiceWithMongoDbConfig() {
-        return serviceSpecificConfig instanceof WithMongoDbConfig;
+    protected Config appendAkkaPersistenceMongoUriToRawConfig() {
+        return rawConfig;
     }
 
     private void logRuntimeParameters() {
@@ -263,7 +247,7 @@ public abstract class DittoService<C extends ServiceSpecificConfig> {
     private void startPrometheusReporter() {
         try {
             prometheusReporter = PrometheusReporter.create();
-            Kamon.registerModule("prometheus reporter", prometheusReporter);
+            Kamon.addReporter("prometheus reporter", prometheusReporter);
             logger.info("Successfully added Prometheus reporter to Kamon.");
         } catch (final Exception ex) {
             logger.error("Error while adding Prometheus reporter to Kamon.", ex);
@@ -285,7 +269,7 @@ public abstract class DittoService<C extends ServiceSpecificConfig> {
      *
      * @param actorSystem the Akka ActorSystem to be initialized.
      */
-    protected void initializeActorSystem(final ActorSystem actorSystem) {
+    private void initializeActorSystem(final ActorSystem actorSystem) {
         startAkkaManagement(actorSystem);
         startClusterBootstrap(actorSystem);
 
@@ -331,7 +315,7 @@ public abstract class DittoService<C extends ServiceSpecificConfig> {
      * @param config the configuration settings of this service.
      * @return the actor system.
      */
-    protected ActorSystem createActorSystem(final Config config) {
+    private ActorSystem createActorSystem(final Config config) {
         return ActorSystem.create(CLUSTER_NAME, config);
     }
 
@@ -360,7 +344,7 @@ public abstract class DittoService<C extends ServiceSpecificConfig> {
      *
      * @param actorSystem Akka actor system for starting actors.
      */
-    protected void startStatusSupplierActor(final ActorSystem actorSystem) {
+    private void startStatusSupplierActor(final ActorSystem actorSystem) {
         startActor(actorSystem, StatusSupplierActor.props(rootActorName), StatusSupplierActor.ACTOR_NAME);
     }
 
@@ -379,7 +363,7 @@ public abstract class DittoService<C extends ServiceSpecificConfig> {
      *
      * @param actorSystem Akka actor system for starting actors.
      */
-    protected void startDevOpsCommandsActor(final ActorSystem actorSystem) {
+    private void startDevOpsCommandsActor(final ActorSystem actorSystem) {
         startActor(actorSystem, DevOpsCommandsActor.props(LogbackLoggingFacade.newInstance(), serviceName,
                 InstanceIdentifierSupplier.getInstance().get()), DevOpsCommandsActor.ACTOR_NAME);
     }
@@ -393,14 +377,12 @@ public abstract class DittoService<C extends ServiceSpecificConfig> {
      * <ul>
      * <li>{@link #getMainRootActorProps(org.eclipse.ditto.base.service.config.ServiceSpecificConfig, akka.actor.ActorRef)},</li>
      * <li>{@link #startMainRootActor(akka.actor.ActorSystem, akka.actor.Props)},</li>
-     * <li>{@link #getAdditionalRootActorsInformation(org.eclipse.ditto.base.service.config.ServiceSpecificConfig, akka.actor.ActorSystem)} and</li>
-     * <li>{@link #startAdditionalRootActors(akka.actor.ActorSystem, Iterable)}.</li>
      * </ul>
      *
      * @param actorSystem Akka actor system for starting actors.
      * @param serviceSpecificConfig the configuration settings of this service.
      */
-    protected void startServiceRootActors(final ActorSystem actorSystem, final C serviceSpecificConfig) {
+    private void startServiceRootActors(final ActorSystem actorSystem, final C serviceSpecificConfig) {
         logger.info("Waiting for member to be up before proceeding with further initialisation.");
 
         Cluster.get(actorSystem).registerOnMemberUp(() -> {
@@ -411,8 +393,7 @@ public abstract class DittoService<C extends ServiceSpecificConfig> {
             injectSystemPropertiesLimits(serviceSpecificConfig);
 
             startMainRootActor(actorSystem, getMainRootActorProps(serviceSpecificConfig, pubSubMediator));
-            startAdditionalRootActors(actorSystem, getAdditionalRootActorsInformation(serviceSpecificConfig,
-                    actorSystem));
+            RootActorStarter.get(actorSystem, ScopedConfig.dittoExtension(actorSystem.settings().config())).execute();
         });
     }
 
@@ -425,13 +406,13 @@ public abstract class DittoService<C extends ServiceSpecificConfig> {
      *
      * @param serviceSpecificConfig the Ditto serviceSpecificConfig providing the limits from configuration
      */
-    protected void injectSystemPropertiesLimits(final C serviceSpecificConfig) {
+    private void injectSystemPropertiesLimits(final C serviceSpecificConfig) {
         final var limitsConfig = serviceSpecificConfig.getLimitsConfig();
-        System.setProperty(ThingCommandSizeValidator.DITTO_LIMITS_THINGS_MAX_SIZE_BYTES,
+        System.setProperty(DittoSystemProperties.DITTO_LIMITS_THINGS_MAX_SIZE_BYTES,
                 Long.toString(limitsConfig.getThingsMaxSize()));
-        System.setProperty(PolicyCommandSizeValidator.DITTO_LIMITS_POLICIES_MAX_SIZE_BYTES,
+        System.setProperty(DittoSystemProperties.DITTO_LIMITS_POLICIES_MAX_SIZE_BYTES,
                 Long.toString(limitsConfig.getPoliciesMaxSize()));
-        System.setProperty(MessageCommandSizeValidator.DITTO_LIMITS_MESSAGES_MAX_SIZE_BYTES,
+        System.setProperty(DittoSystemProperties.DITTO_LIMITS_MESSAGES_MAX_SIZE_BYTES,
                 Long.toString(limitsConfig.getMessagesMaxSize()));
         System.setProperty(FeatureToggle.MERGE_THINGS_ENABLED,
                 Boolean.toString(rawConfig.getBoolean(FeatureToggle.MERGE_THINGS_ENABLED)));
@@ -448,7 +429,7 @@ public abstract class DittoService<C extends ServiceSpecificConfig> {
      * @param pubSubMediator ActorRef of the distributed pub-sub-mediator.
      * @return the Props.
      */
-    protected abstract Props getMainRootActorProps(C serviceSpecificConfig, ActorRef pubSubMediator);
+    protected abstract Props getMainRootActorProps(C serviceSpecificConfig, final ActorRef pubSubMediator);
 
     /**
      * Starts the main root actor of this service. May be overridden to change the way of starting this service's root
@@ -457,36 +438,8 @@ public abstract class DittoService<C extends ServiceSpecificConfig> {
      * @param actorSystem Akka actor system for starting actors.
      * @param mainRootActorProps the Props of the main root actor.
      */
-    protected ActorRef startMainRootActor(final ActorSystem actorSystem, final Props mainRootActorProps) {
+    private ActorRef startMainRootActor(final ActorSystem actorSystem, final Props mainRootActorProps) {
         return startActor(actorSystem, mainRootActorProps, rootActorName);
-    }
-
-    /**
-     * May be overridden to return information of additional root actors of this service.
-     * <em>The base implementation returns an empty collection.</em>
-     *
-     * @param serviceSpecificConfig the specific configuration of this service.
-     * @param actorSystem the actor system.
-     * @return the additional root actors information.
-     */
-    protected Collection<RootActorInformation> getAdditionalRootActorsInformation(final C serviceSpecificConfig,
-            final ActorSystem actorSystem) {
-        return Collections.emptyList();
-    }
-
-    /**
-     * Starts additional root actors of this service. May be overridden to change the way how additional root actors
-     * will be started.
-     *
-     * @param actorSystem Akka actor system for starting actors.
-     * @param additionalRootActorsInformation information of additional root actors to be started.
-     */
-    protected void startAdditionalRootActors(final ActorSystem actorSystem,
-            final Iterable<RootActorInformation> additionalRootActorsInformation) {
-
-        for (final RootActorInformation rootActorInformation : additionalRootActorsInformation) {
-            startActor(actorSystem, rootActorInformation.props, rootActorInformation.name);
-        }
     }
 
     private void setUpCoordinatedShutdown(final ActorSystem actorSystem) {
@@ -512,38 +465,6 @@ public abstract class DittoService<C extends ServiceSpecificConfig> {
                     loggerContext.stop();
                     return CompletableFuture.completedFuture(Done.getInstance());
                 });
-    }
-
-    /**
-     * This class bundles meta information of this service's root actor.
-     */
-    @Immutable
-    public static final class RootActorInformation {
-
-        private final Props props;
-        private final String name;
-
-        private RootActorInformation(final Props theProps, final String theName) {
-            props = theProps;
-            name = theName;
-        }
-
-        /**
-         * Returns an instance of {@code RootActorInformation}.
-         *
-         * @param props the Props of the root actor.
-         * @param name the name of the root actor.
-         * @return the instance.
-         * @throws NullPointerException if any argument is {@code null}.
-         * @throws IllegalArgumentException if {@code name} is empty.
-         */
-        public static RootActorInformation getInstance(final Props props, final String name) {
-            checkNotNull(props, "root actor props");
-            argumentNotEmpty(name, "root actor name");
-
-            return new RootActorInformation(props, name);
-        }
-
     }
 
 }

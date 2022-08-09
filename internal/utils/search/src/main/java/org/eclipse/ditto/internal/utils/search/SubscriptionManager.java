@@ -19,17 +19,17 @@ import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.json.JsonArray;
-import org.eclipse.ditto.json.JsonCollectors;
-import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
-import org.eclipse.ditto.thingsearch.model.SizeOption;
-import org.eclipse.ditto.rql.parser.thingsearch.RqlOptionParser;
 import org.eclipse.ditto.base.service.config.limits.DefaultLimitsConfig;
 import org.eclipse.ditto.base.service.config.limits.LimitsConfig;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
+import org.eclipse.ditto.json.JsonArray;
+import org.eclipse.ditto.json.JsonCollectors;
+import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.rql.parser.thingsearch.RqlOptionParser;
+import org.eclipse.ditto.thingsearch.model.SizeOption;
 import org.eclipse.ditto.thingsearch.model.signals.commands.ThingSearchCommand;
 import org.eclipse.ditto.thingsearch.model.signals.commands.exceptions.InvalidOptionException;
 import org.eclipse.ditto.thingsearch.model.signals.commands.exceptions.SubscriptionNotFoundException;
@@ -115,8 +115,8 @@ public final class SubscriptionManager extends AbstractActor {
         } else {
             final int pageSize = RqlOptionParser.parseOptions(optionString)
                     .stream()
-                    .flatMap(option -> option instanceof SizeOption
-                            ? Stream.of(((SizeOption) option).getSize())
+                    .flatMap(option -> option instanceof SizeOption sizeOption
+                            ? Stream.of(sizeOption.getSize())
                             : Stream.empty())
                     .findFirst()
                     .orElse(defaultPageSize);
@@ -188,7 +188,7 @@ public final class SubscriptionManager extends AbstractActor {
         try {
             final SearchSource searchSource = SearchSource.newBuilder()
                     .pubSubMediator(pubSubMediator)
-                    .conciergeForwarder(proxyActor)
+                    .commandForwarder(proxyActor)
                     .namespaces(namespaces)
                     .filter(createSubscription.getFilter().orElse(null))
                     .fields(createSubscription.getSelectedFields().orElse(null))
@@ -216,7 +216,7 @@ public final class SubscriptionManager extends AbstractActor {
      * @return the lazified source.
      */
     private static <T> Source<T, ?> lazify(final Source<T, ?> upstream) {
-        return Source.lazily(() -> upstream);
+        return Source.lazySource(() -> upstream);
     }
 
 }

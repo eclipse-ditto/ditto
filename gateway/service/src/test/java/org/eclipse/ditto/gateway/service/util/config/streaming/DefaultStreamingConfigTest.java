@@ -20,7 +20,6 @@ import java.time.Duration;
 
 import org.assertj.core.api.JUnitSoftAssertions;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 
@@ -47,8 +46,7 @@ public final class DefaultStreamingConfigTest {
     @Test
     public void assertImmutability() {
         assertInstancesOf(DefaultStreamingConfig.class, areImmutable(),
-                provided(Config.class, WebsocketConfig.class, SseConfig.class, GatewaySignalEnrichmentConfig.class)
-                        .areAlsoImmutable());
+                provided(Config.class, WebsocketConfig.class, SseConfig.class).areAlsoImmutable());
     }
 
     @Test
@@ -92,9 +90,6 @@ public final class DefaultStreamingConfigTest {
         softly.assertThat(underTest.getSubscriptionRefreshDelay())
                 .as(StreamingConfig.StreamingConfigValue.SUBSCRIPTION_REFRESH_DELAY.getConfigPath())
                 .isEqualTo(Duration.ofHours(8));
-        softly.assertThat(underTest.getSignalEnrichmentConfig().isCachingEnabled())
-                .as(GatewaySignalEnrichmentConfig.CachingSignalEnrichmentFacadeConfigValue.CACHING_ENABLED.getConfigPath())
-                .isFalse();
         softly.assertThat(underTest.getWebsocketConfig().getThrottlingConfig().getInterval())
                 .as("websocket.throttling.interval")
                 .isEqualTo(Duration.ofSeconds(8L));

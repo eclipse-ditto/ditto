@@ -61,14 +61,13 @@ final class DefaultDittoLogger implements DittoLogger, AutoCloseableSlf4jLogger 
     }
 
     @Override
-    public DefaultDittoLogger withCorrelationId(final WithDittoHeaders withDittoHeaders) {
-        return withCorrelationId(checkNotNull(withDittoHeaders, "withDittoHeaders").getDittoHeaders());
+    public DefaultDittoLogger withCorrelationId(@Nullable final WithDittoHeaders withDittoHeaders) {
+        return withCorrelationId(null != withDittoHeaders ? withDittoHeaders.getDittoHeaders() : null);
     }
 
     @Override
-    public DefaultDittoLogger withCorrelationId(final DittoHeaders dittoHeaders) {
-        checkNotNull(dittoHeaders, "dittoHeaders");
-        return withCorrelationId(dittoHeaders.getCorrelationId().orElse(null));
+    public DefaultDittoLogger withCorrelationId(@Nullable final DittoHeaders dittoHeaders) {
+        return withCorrelationId(null != dittoHeaders ? dittoHeaders.getCorrelationId().orElse(null) : null);
     }
 
     @Override

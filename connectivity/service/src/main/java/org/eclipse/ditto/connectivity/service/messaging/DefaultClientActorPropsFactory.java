@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.connectivity.service.messaging;
 
-import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
@@ -37,25 +36,12 @@ import akka.actor.Props;
 @Immutable
 public final class DefaultClientActorPropsFactory implements ClientActorPropsFactory {
 
-    @Nullable private static DefaultClientActorPropsFactory instance;
-
-    private DefaultClientActorPropsFactory() {}
-
-    /**
-     * Returns an instance of {@code DefaultClientActorPropsFactory}. Creates a new one if not already done.
-     *
-     * @return the factory instance.
-     */
-    public static DefaultClientActorPropsFactory getInstance() {
-        if (null == instance) {
-            instance = new DefaultClientActorPropsFactory();
-        }
-        return instance;
+    public DefaultClientActorPropsFactory(final ActorSystem actorSystem, final Config config) {
     }
 
     @Override
     public Props getActorPropsForType(final Connection connection,
-            final ActorRef proxyActor,
+            final ActorRef commandForwarderActor,
             final ActorRef connectionActor,
             final ActorSystem actorSystem,
             final DittoHeaders dittoHeaders,
@@ -63,28 +49,28 @@ public final class DefaultClientActorPropsFactory implements ClientActorPropsFac
 
         return switch (connection.getConnectionType()) {
             case AMQP_091 -> RabbitMQClientActor.props(connection,
-                    proxyActor,
+                    commandForwarderActor,
                     connectionActor,
                     dittoHeaders,
                     connectivityConfigOverwrites);
             case AMQP_10 -> AmqpClientActor.props(connection,
-                    proxyActor,
+                    commandForwarderActor,
                     connectionActor,
                     connectivityConfigOverwrites,
                     actorSystem,
                     dittoHeaders);
             case MQTT, MQTT_5 -> MqttClientActor.props(connection,
-                    proxyActor,
+                    commandForwarderActor,
                     connectionActor,
                     dittoHeaders,
                     connectivityConfigOverwrites);
             case KAFKA -> KafkaClientActor.props(connection,
-                    proxyActor,
+                    commandForwarderActor,
                     connectionActor,
                     dittoHeaders,
                     connectivityConfigOverwrites);
             case HTTP_PUSH -> HttpPushClientActor.props(connection,
-                    proxyActor,
+                    commandForwarderActor,
                     connectionActor,
                     dittoHeaders,
                     connectivityConfigOverwrites);

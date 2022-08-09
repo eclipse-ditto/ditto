@@ -24,15 +24,15 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
 
+import org.eclipse.ditto.base.model.common.HttpStatus;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.headers.HeaderDefinition;
 import org.eclipse.ditto.base.model.json.FieldType;
+import org.eclipse.ditto.base.model.json.JsonParsableException;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.base.model.common.HttpStatus;
-import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.base.model.headers.HeaderDefinition;
-import org.eclipse.ditto.base.model.json.JsonParsableException;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 
 /**
@@ -40,12 +40,12 @@ import org.eclipse.ditto.json.JsonObjectBuilder;
  */
 @Immutable
 @JsonParsableException(errorCode = DittoHeaderInvalidException.ERROR_CODE)
-public final class DittoHeaderInvalidException extends DittoRuntimeException {
+public final class DittoHeaderInvalidException extends DittoRuntimeException implements GeneralException {
 
     /**
      * Error code of this exception.
      */
-    public static final String ERROR_CODE = "header.invalid";
+    public static final String ERROR_CODE = ERROR_CODE_PREFIX + "header.invalid";
 
     private static final String DEFAULT_MESSAGE = "The value of a header is invalid.";
 

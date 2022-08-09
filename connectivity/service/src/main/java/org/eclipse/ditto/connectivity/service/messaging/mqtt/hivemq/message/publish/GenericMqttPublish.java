@@ -24,6 +24,7 @@ import java.util.stream.Stream;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
+import org.eclipse.ditto.base.model.common.ByteBufferUtils;
 import org.eclipse.ditto.base.model.common.CharsetDeterminer;
 import org.eclipse.ditto.base.model.common.ConditionChecker;
 
@@ -328,7 +329,8 @@ public abstract class GenericMqttPublish {
 
         @Override
         public Optional<ByteBuffer> getPayload() {
-            return Optional.ofNullable(payload);
+            return Optional.ofNullable(payload)
+                    .map(ByteBufferUtils::clone);
         }
 
         @Override
@@ -446,7 +448,8 @@ public abstract class GenericMqttPublish {
 
         @Override
         public Optional<ByteBuffer> getPayload() {
-            return mqtt3Publish.getPayload();
+            return mqtt3Publish.getPayload()
+                    .map(ByteBufferUtils::clone);
         }
 
         @Override
@@ -562,7 +565,8 @@ public abstract class GenericMqttPublish {
 
         @Override
         public Optional<ByteBuffer> getPayload() {
-            return mqtt5Publish.getPayload();
+            return mqtt5Publish.getPayload()
+                    .map(ByteBufferUtils::clone);
         }
 
         @Override

@@ -37,27 +37,29 @@
                 <a class="nav-link active" data-bs-toggle="tab" data-bs-target="#tabEnvDetails">Environment Details</a>
             </li>
             <li class="nav-item">
-                <a class="nav-link" data-bs-toggle="tab" data-bs-target="#tabEnvJson">Full JSON</a>
+                <a class="nav-link" data-bs-toggle="tab" data-bs-target="#tabEnvJson">Environment JSON</a>
             </li>
         </ul>
-        <div class="tab-content" style="flex-grow: 1;">
+        <div class="tab-content" style="flex-grow: 1; overflow: hidden;">
             <div class="tab-pane container active no-margin" id="tabEnvDetails">
                 <div class="input-group input-group-sm mt-1">
                     <label class="input-group-text" data-bs-toggle="tooltip"
                         title="URI including protocol, host and port (e.g. http://localhost:8080)">API URI</label>
                     <input type="text" class="form-control form-control-sm" id="inputApiUri"></input>
-                    <button class="btn btn-outline-secondary btn-sm button_round_left" id="buttonUpdateFields"
+                    <button class="btn btn-outline-secondary btn-sm" id="buttonUpdateFields"
                         data-bs-toggle="tooltip" title="Save selected field details">
                         <i class="bi bi-save2"></i>
+                        Save
                     </button>
                 </div>
             </div>
             <div class="tab-pane container no-margin" id="tabEnvJson">
                 <div class="input-group input-group-sm mb-1">
                     <div class="form-control-sm" style="flex-grow: 1;"></div>
-                    <button class="btn btn-outline-secondary btn-sm button_round_left" id="buttonUpdateJson"
+                    <button class="btn btn-outline-secondary btn-sm button_round_both" id="buttonUpdateJson"
                         data-bs-toggle="tooltip" title="Save selected environment json">
                         <i class="bi bi-save2"></i>
+                        Save
                     </button>
                 </div>
                 <div class="ace_container" style="height: 100%;">

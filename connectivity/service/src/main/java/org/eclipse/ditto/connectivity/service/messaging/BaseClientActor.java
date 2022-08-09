@@ -118,8 +118,8 @@ import org.eclipse.ditto.internal.utils.config.InstanceIdentifierSupplier;
 import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.internal.utils.metrics.instruments.gauge.Gauge;
 import org.eclipse.ditto.internal.utils.protocol.ProtocolAdapterProvider;
-import org.eclipse.ditto.internal.utils.pubsub.DittoProtocolSub;
 import org.eclipse.ditto.internal.utils.pubsub.StreamingType;
+import org.eclipse.ditto.internal.utils.pubsubthings.DittoProtocolSub;
 import org.eclipse.ditto.internal.utils.search.SubscriptionManager;
 import org.eclipse.ditto.protocol.adapter.ProtocolAdapter;
 import org.eclipse.ditto.thingsearch.model.signals.commands.ThingSearchCommand;
@@ -183,7 +183,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     private final Connection connection;
     private final ConnectivityConfig connectivityConfig;
     private final ActorRef connectionActor;
-    private final ActorSelection proxyActorSelection;
+    private final ActorSelection commandForwarderActorSelection;
     private final Gauge clientGauge;
     private final Gauge clientConnectingGauge;
     private final ReconnectTimeoutStrategy reconnectTimeoutStrategy;
@@ -197,7 +197,6 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     protected final ConnectionLoggerRegistry connectionLoggerRegistry;
     protected final ChildActorNanny childActorNanny;
     private final boolean dryRun;
-    private final ActorRef proxyActor;
 
     private Sink<Object, NotUsed> inboundMappingSink;
     private ActorRef outboundDispatchingActor;
@@ -205,7 +204,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     private ActorRef tunnelActor;
 
     protected BaseClientActor(final Connection connection,
-            final ActorRef proxyActor,
+            final ActorRef commandForwarderActor,
             final ActorRef connectionActor,
             final DittoHeaders dittoHeaders,
             final Config connectivityConfigOverwrites) {
@@ -216,7 +215,6 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         final Config withOverwrites = connectivityConfigOverwrites.withFallback(config);
         connectivityConfig = ConnectivityConfig.of(withOverwrites);
         this.connectionActor = connectionActor;
-        this.proxyActor = proxyActor;
 
         // this is retrieve via the extension for each baseClientActor in order to not pass it as constructor arg
         //  as all constructor arguments need to be serializable as the BaseClientActor is started behind a cluster
@@ -230,9 +228,8 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         // log the default client ID for tracing
         logger.info("Using default client ID <{}>", getDefaultClientId());
 
+        commandForwarderActorSelection = getLocalActorOfSamePath(commandForwarderActor);
         childActorNanny = ChildActorNanny.newInstance(getContext(), logger);
-
-        proxyActorSelection = getLocalActorOfSamePath(proxyActor);
 
         final UserIndicatedErrors userIndicatedErrors = UserIndicatedErrors.of(config);
         connectivityStatusResolver = ConnectivityStatusResolver.of(userIndicatedErrors);
@@ -321,7 +318,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
 
         final var inboundDispatchingSink = getInboundDispatchingSink(actorPair.second());
         inboundMappingSink = getInboundMappingSink(protocolAdapter, inboundDispatchingSink);
-        subscriptionManager = startSubscriptionManager(proxyActorSelection, connectivityConfig().getClientConfig());
+        subscriptionManager = startSubscriptionManager(commandForwarderActorSelection, connectivityConfig().getClientConfig());
 
         if (connection.getSshTunnel().map(SshTunnel::isEnabled).orElse(false)) {
             tunnelActor = childActorNanny.startChildActor(SshTunnelActor.ACTOR_NAME,
@@ -392,15 +389,6 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
      */
     protected String getDefaultClientId() {
         return getClientId(connection.getId());
-    }
-
-    /**
-     * Get the proxyActor reference.
-     *
-     * @return the proxyActor ref.
-     */
-    protected ActorRef getProxyActor() {
-        return proxyActor;
     }
 
     private FSM.State<BaseClientState, BaseClientData> completeInitialization() {
@@ -1735,7 +1723,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         try {
             // this one throws DittoRuntimeExceptions when the mapper could not be configured
             settings = OutboundMappingSettings.of(connection, connectivityConfig, getContext().getSystem(),
-                    proxyActorSelection, protocolAdapter, logger);
+                    commandForwarderActorSelection, protocolAdapter, logger);
             outboundMappingProcessors = IntStream.range(0, processorPoolSize)
                     .mapToObj(i -> OutboundMappingProcessor.of(settings))
                     .toList();
@@ -1754,7 +1742,8 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         final ActorRef processorActor = childActorNanny.startChildActor(OutboundMappingProcessorActor.ACTOR_NAME,
                 outboundMappingProcessorActorProps);
 
-        final Props outboundDispatchingProcessorActorProps = OutboundDispatchingActor.props(settings, processorActor);
+        final Props outboundDispatchingProcessorActorProps = OutboundDispatchingActor.props(
+                settings, processorActor);
         final ActorRef dispatchingActor =
                 getContext().actorOf(outboundDispatchingProcessorActorProps, OutboundDispatchingActor.ACTOR_NAME);
 
@@ -1771,7 +1760,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     private Sink<Object, NotUsed> getInboundDispatchingSink(final ActorRef outboundMappingProcessorActor) {
         return InboundDispatchingSink.createSink(connection,
                 protocolAdapter.headerTranslator(),
-                proxyActorSelection,
+                commandForwarderActorSelection,
                 connectionActor,
                 outboundMappingProcessorActor,
                 getSelf(),

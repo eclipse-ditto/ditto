@@ -12,14 +12,22 @@
  */
 package org.eclipse.ditto.connectivity.service.messaging.persistence;
 
+import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
+
 import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
+import org.eclipse.ditto.internal.utils.extension.DittoExtensionPoint;
+import org.eclipse.ditto.internal.utils.extension.DittoExtensionIds;
+
+
+import com.typesafe.config.Config;
 
 import akka.actor.ActorRef;
+import akka.actor.ActorSystem;
 
 /**
  * Creates a connection priority provider based on the connection persistence actor and its logger.
  */
-public interface ConnectionPriorityProviderFactory {
+public interface ConnectionPriorityProviderFactory extends DittoExtensionPoint {
 
     /**
      * Creates a connection priority provider based on the connection persistence actor and its logger.
@@ -29,5 +37,43 @@ public interface ConnectionPriorityProviderFactory {
      * @return the new provider.
      */
     ConnectionPriorityProvider newProvider(ActorRef connectionPersistenceActor, DittoDiagnosticLoggingAdapter log);
+
+
+    /**
+     * Loads the implementation of {@code ConnectionPriorityProviderFactory} which is configured for the
+     * {@code ActorSystem}.
+     *
+     * @param actorSystem the actorSystem in which the {@code ConnectionPriorityProviderFactory} should be loaded.
+     * @param config the configuration of this extension.
+     * @return the {@code ConnectionPriorityProviderFactory} implementation.
+     * @throws NullPointerException if {@code actorSystem} is {@code null}.
+     */
+    static ConnectionPriorityProviderFactory get(final ActorSystem actorSystem, final Config config) {
+        checkNotNull(actorSystem, "actorSystem");
+        checkNotNull(config, "config");
+        final var extensionIdConfig = ExtensionId.computeConfig(config);
+        return DittoExtensionIds.get(actorSystem)
+                .computeIfAbsent(extensionIdConfig, ExtensionId::new)
+                .get(actorSystem);
+    }
+
+    final class ExtensionId extends DittoExtensionPoint.ExtensionId<ConnectionPriorityProviderFactory> {
+
+        private static final String CONFIG_KEY = "connection-priority-provider-factory";
+
+        private ExtensionId(final ExtensionIdConfig<ConnectionPriorityProviderFactory> extensionIdConfig) {
+            super(extensionIdConfig);
+        }
+
+        static ExtensionIdConfig<ConnectionPriorityProviderFactory> computeConfig(final Config config) {
+            return ExtensionIdConfig.of(ConnectionPriorityProviderFactory.class, config, CONFIG_KEY);
+        }
+
+        @Override
+        protected String getConfigKey() {
+            return CONFIG_KEY;
+        }
+
+    }
 
 }

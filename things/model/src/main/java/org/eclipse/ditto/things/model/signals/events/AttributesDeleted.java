@@ -136,7 +136,7 @@ public final class AttributesDeleted extends AbstractThingEvent<AttributesDelete
     }
 
     @Override
-    protected void appendPayloadAndBuild(final JsonObjectBuilder jsonObjectBuilder,
+    protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder,
             final JsonSchemaVersion schemaVersion, final Predicate<JsonField> predicate) {
         // nothing to add
     }
