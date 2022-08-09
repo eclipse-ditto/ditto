@@ -46,7 +46,6 @@ public interface CommandConfig {
      */
     Duration getSmartChannelBuffer();
 
-    //TODO dgs: remove.
     /**
      * Return the limit of how many connections can be retrieved.
      * If not limited the response may become few MB in size.

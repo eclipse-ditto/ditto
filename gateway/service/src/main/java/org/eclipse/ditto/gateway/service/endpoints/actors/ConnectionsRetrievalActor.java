@@ -22,7 +22,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
-import java.util.stream.Collectors;
 
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
@@ -33,13 +32,16 @@ import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.connectivity.model.ConnectivityInternalErrorException;
 import org.eclipse.ditto.connectivity.model.signals.commands.ConnectivityCommandResponse;
 import org.eclipse.ditto.connectivity.model.signals.commands.ConnectivityErrorResponse;
+import org.eclipse.ditto.connectivity.model.signals.commands.exceptions.ConnectionsAmountIllegalException;
 import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveAllConnectionIdsResponse;
 import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConnection;
 import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConnectionResponse;
 import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConnections;
 import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConnectionsResponse;
+import org.eclipse.ditto.gateway.service.util.config.DittoGatewayConfig;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLogger;
+import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonCollectors;
 
@@ -63,13 +65,19 @@ public class ConnectionsRetrievalActor extends AbstractActor {
     private final ActorRef edgeCommandForwarder;
     private final ActorRef sender;
     private final RetrieveConnections initialCommand;
+    private final int connectionsRetrieveLimit;
 
     @SuppressWarnings("unused")
     private ConnectionsRetrievalActor(final RetrieveConnections initialCommand, final ActorRef edgeCommandForwarder,
             final ActorRef sender) {
+
         this.edgeCommandForwarder = edgeCommandForwarder;
         this.initialCommand = initialCommand;
         this.sender = sender;
+        connectionsRetrieveLimit =
+                DittoGatewayConfig.of(DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config()))
+                        .getCommandConfig()
+                        .connectionsRetrieveLimit();
     }
 
     /**
@@ -80,7 +88,7 @@ public class ConnectionsRetrievalActor extends AbstractActor {
      * @param sender the initial sender.
      * @return the props.
      */
-    public static Props props(final RetrieveConnections initialCommand, final ActorRef  edgeCommandForwarder,
+    public static Props props(final RetrieveConnections initialCommand, final ActorRef edgeCommandForwarder,
             final ActorRef sender) {
         return Props.create(ConnectionsRetrievalActor.class, initialCommand, edgeCommandForwarder, sender);
     }
@@ -94,33 +102,37 @@ public class ConnectionsRetrievalActor extends AbstractActor {
     }
 
     private void retrieveConnectionsResponse(final RetrieveAllConnectionIdsResponse msg) {
+        final var connectionIds = msg.getAllConnectionIds();
         if (initialCommand.getIdsOnly()) {
             RetrieveConnectionsResponse response = RetrieveConnectionsResponse
-                    .of(JsonArray.of(msg.getAllConnectionIds()), initialCommand.getDittoHeaders());
+                    .of(JsonArray.of(connectionIds), initialCommand.getDittoHeaders());
             sender.tell(response, getSelf());
             stop();
         } else {
-            retrieveConnections(msg.getAllConnectionIds()
-                            .stream()
-//                            .limit(commandConfig.connectionsRetrieveLimit()) //TODO limit
-                            .map(ConnectionId::of).collect(Collectors.toList()),
-                    initialCommand.getDittoHeaders())
-                    .thenAccept(retrieveConnectionsResponse -> {
-                        sender.tell(retrieveConnectionsResponse, getSelf());
-                        stop();
-                    })
-                    .exceptionally(t -> {
-                        ConnectivityInternalErrorException exception =
-                                ConnectivityInternalErrorException.newBuilder()
-                                        .dittoHeaders(initialCommand.getDittoHeaders())
-                                        .cause(t)
-                                        .build();
-                        ConnectivityErrorResponse response =
-                                ConnectivityErrorResponse.of(exception, initialCommand.getDittoHeaders());
-                        sender.tell(response, getSelf());
-                        stop();
-                        return null;
-                    });
+            if (connectionIds.size() > connectionsRetrieveLimit) {
+                sender.tell(ConnectionsAmountIllegalException.newBuilder(connectionsRetrieveLimit).build(), getSelf());
+            } else {
+                retrieveConnections(connectionIds
+                        .stream()
+                        .map(ConnectionId::of)
+                        .toList(), initialCommand.getDittoHeaders())
+                        .thenAccept(retrieveConnectionsResponse -> {
+                            sender.tell(retrieveConnectionsResponse, getSelf());
+                            stop();
+                        })
+                        .exceptionally(t -> {
+                            ConnectivityInternalErrorException exception =
+                                    ConnectivityInternalErrorException.newBuilder()
+                                            .dittoHeaders(initialCommand.getDittoHeaders())
+                                            .cause(t)
+                                            .build();
+                            ConnectivityErrorResponse response =
+                                    ConnectivityErrorResponse.of(exception, initialCommand.getDittoHeaders());
+                            sender.tell(response, getSelf());
+                            stop();
+                            return null;
+                        });
+            }
         }
     }
 
