@@ -35,6 +35,8 @@ final class DefaultPolicyAnnouncementConfig implements PolicyAnnouncementConfig 
     private final Duration gracePeriod;
     private final Duration maxTimeout;
     private final boolean enableAnnouncementsWhenDeleted;
+
+    private final Duration defaultRandomizationInterval;
     private final ExponentialBackOffConfig exponentialBackOffConfig;
 
     private DefaultPolicyAnnouncementConfig(final ScopedConfig scopedConfig) {
@@ -42,6 +44,7 @@ final class DefaultPolicyAnnouncementConfig implements PolicyAnnouncementConfig 
         maxTimeout = scopedConfig.getDuration(ConfigValue.MAX_TIMEOUT.getConfigPath());
         enableAnnouncementsWhenDeleted =
                 scopedConfig.getBoolean(ConfigValue.ENABLE_ANNOUNCEMENTS_WHEN_DELETED.getConfigPath());
+        defaultRandomizationInterval = scopedConfig.getDuration(ConfigValue.DEFAULT_RANDOMIZATION_INTERVAL.getConfigPath());
         exponentialBackOffConfig = DefaultExponentialBackOffConfig.of(scopedConfig);
     }
 
@@ -67,6 +70,11 @@ final class DefaultPolicyAnnouncementConfig implements PolicyAnnouncementConfig 
     }
 
     @Override
+    public Duration getDefaultRandomizationInterval() {
+        return defaultRandomizationInterval;
+    }
+
+    @Override
     public ExponentialBackOffConfig getExponentialBackOffConfig() {
         return exponentialBackOffConfig;
     }
@@ -83,12 +91,14 @@ final class DefaultPolicyAnnouncementConfig implements PolicyAnnouncementConfig 
         return Objects.equals(gracePeriod, that.gracePeriod) &&
                 Objects.equals(maxTimeout, that.maxTimeout) &&
                 enableAnnouncementsWhenDeleted == that.enableAnnouncementsWhenDeleted &&
+                Objects.equals(defaultRandomizationInterval, that.defaultRandomizationInterval) &&
                 Objects.equals(exponentialBackOffConfig, that.exponentialBackOffConfig);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(gracePeriod, maxTimeout, enableAnnouncementsWhenDeleted, exponentialBackOffConfig);
+        return Objects.hash(gracePeriod, maxTimeout, enableAnnouncementsWhenDeleted, defaultRandomizationInterval,
+                exponentialBackOffConfig);
     }
 
     @Override
@@ -97,6 +107,7 @@ final class DefaultPolicyAnnouncementConfig implements PolicyAnnouncementConfig 
                 "gracePeriod=" + gracePeriod +
                 ", maxTimeout=" + maxTimeout +
                 ", enableAnnouncementsWhenDeleted=" + enableAnnouncementsWhenDeleted +
+                ", defaultRandomizationInterval=" + defaultRandomizationInterval +
                 ", exponentialBackOffConfig" + exponentialBackOffConfig +
                 "]";
     }

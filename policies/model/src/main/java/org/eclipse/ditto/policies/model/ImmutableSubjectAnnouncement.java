@@ -49,14 +49,19 @@ final class ImmutableSubjectAnnouncement implements SubjectAnnouncement {
     private final boolean whenDeleted;
     private final List<AcknowledgementRequest> requestedAcksLabels;
     @Nullable private final DittoDuration requestedAcksTimeout;
+    @Nullable private final DittoDuration randomizationInterval;
 
-    ImmutableSubjectAnnouncement(@Nullable final DittoDuration beforeExpiry, final boolean whenDeleted,
+    ImmutableSubjectAnnouncement(@Nullable final DittoDuration beforeExpiry,
+            final boolean whenDeleted,
             final List<AcknowledgementRequest> requestedAcksLabels,
-            @Nullable final DittoDuration requestedAcksTimeout) {
+            @Nullable final DittoDuration requestedAcksTimeout,
+            @Nullable final DittoDuration randomizationInterval) {
+
         this.beforeExpiry = beforeExpiry;
         this.whenDeleted = whenDeleted;
         this.requestedAcksLabels = Collections.unmodifiableList(new ArrayList<>(requestedAcksLabels));
         this.requestedAcksTimeout = requestedAcksTimeout;
+        this.randomizationInterval = randomizationInterval;
     }
 
     static ImmutableSubjectAnnouncement fromJson(final JsonObject jsonObject) {
@@ -67,21 +72,29 @@ final class ImmutableSubjectAnnouncement implements SubjectAnnouncement {
                         .map(ImmutableSubjectAnnouncement::deserializeRequestedAcks)
                         .orElse(Collections.emptyList());
         final DittoDuration requestedAcksTimeout = jsonObject.getValue(JsonFields.REQUESTED_ACKS_TIMEOUT)
-                .map(DittoDuration::parseDuration)
+                .map(ImmutableSubjectAnnouncement::parseDittoDurationOrThrow)
+                .orElse(null);
+        final DittoDuration randomizationInterval = jsonObject.getValue(JsonFields.RANDOMIZATION_INTERVAL)
+                .map(ImmutableSubjectAnnouncement::parseDittoDurationOrThrow)
                 .orElse(null);
         if (beforeExpiryString.isPresent()) {
-            try {
-                final DittoDuration beforeExpiry = DittoDuration.parseDuration(beforeExpiryString.get());
-                if (!BEFORE_EXPIRY_DURATION_UNITS.contains(beforeExpiry.getChronoUnit())) {
-                    throw SubjectAnnouncementInvalidException.newBuilder(beforeExpiryString.get()).build();
-                }
-                return new ImmutableSubjectAnnouncement(beforeExpiry, whenDeleted, requestedAcksLabels,
-                        requestedAcksTimeout);
-            } catch (final IllegalArgumentException e) {
+            final DittoDuration beforeExpiry = parseDittoDurationOrThrow(beforeExpiryString.get());
+            if (!BEFORE_EXPIRY_DURATION_UNITS.contains(beforeExpiry.getChronoUnit())) {
                 throw SubjectAnnouncementInvalidException.newBuilder(beforeExpiryString.get()).build();
             }
+            return new ImmutableSubjectAnnouncement(beforeExpiry, whenDeleted, requestedAcksLabels,
+                    requestedAcksTimeout, randomizationInterval);
         } else {
-            return new ImmutableSubjectAnnouncement(null, whenDeleted, requestedAcksLabels, requestedAcksTimeout);
+            return new ImmutableSubjectAnnouncement(null, whenDeleted, requestedAcksLabels, requestedAcksTimeout,
+                    randomizationInterval);
+        }
+    }
+
+    private static DittoDuration parseDittoDurationOrThrow(final String duration) {
+        try {
+            return DittoDuration.parseDuration(duration);
+        } catch (final IllegalArgumentException e) {
+            throw SubjectAnnouncementInvalidException.newBuilder(duration).build();
         }
     }
 
@@ -106,9 +119,14 @@ final class ImmutableSubjectAnnouncement implements SubjectAnnouncement {
     }
 
     @Override
+    public Optional<DittoDuration> getRandomizationInterval() {
+        return Optional.ofNullable(randomizationInterval);
+    }
+
+    @Override
     public SubjectAnnouncement setBeforeExpiry(@Nullable final DittoDuration beforeExpiry) {
         return new ImmutableSubjectAnnouncement(beforeExpiry, whenDeleted, requestedAcksLabels,
-                requestedAcksTimeout);
+                requestedAcksTimeout, randomizationInterval);
     }
 
     @Override
@@ -124,6 +142,9 @@ final class ImmutableSubjectAnnouncement implements SubjectAnnouncement {
         if (requestedAcksTimeout != null) {
             builder.set(JsonFields.REQUESTED_ACKS_TIMEOUT, requestedAcksTimeout.toString());
         }
+        if (randomizationInterval != null) {
+            builder.set(JsonFields.RANDOMIZATION_INTERVAL, randomizationInterval.toString());
+        }
         return builder.build();
     }
 
@@ -133,7 +154,8 @@ final class ImmutableSubjectAnnouncement implements SubjectAnnouncement {
             final ImmutableSubjectAnnouncement that = (ImmutableSubjectAnnouncement) other;
             return Objects.equals(beforeExpiry, that.beforeExpiry) && whenDeleted == that.whenDeleted &&
                     Objects.equals(requestedAcksLabels, that.requestedAcksLabels) &&
-                    Objects.equals(requestedAcksTimeout, that.requestedAcksTimeout);
+                    Objects.equals(requestedAcksTimeout, that.requestedAcksTimeout) &&
+                    Objects.equals(randomizationInterval, that.randomizationInterval);
         } else {
             return false;
         }
@@ -141,7 +163,8 @@ final class ImmutableSubjectAnnouncement implements SubjectAnnouncement {
 
     @Override
     public int hashCode() {
-        return Objects.hash(beforeExpiry, whenDeleted, requestedAcksLabels, requestedAcksTimeout);
+        return Objects.hash(beforeExpiry, whenDeleted, requestedAcksLabels, requestedAcksTimeout,
+                randomizationInterval);
     }
 
     @Override
@@ -151,6 +174,7 @@ final class ImmutableSubjectAnnouncement implements SubjectAnnouncement {
                 ", whenDeleted=" + whenDeleted +
                 ", requestedAcksLabels=" + requestedAcksLabels +
                 ", requestedAcksTimeout=" + requestedAcksTimeout +
+                ", randomizationInterval=" + randomizationInterval +
                 "]";
     }
 

@@ -112,7 +112,8 @@ public final class SubjectExpiryActorTest {
             final Subject subject = createSubject(null,
                     null,
                     true,
-                    null
+                    null,
+                    Duration.ofSeconds(0)
             );
 
             final Props props = SubjectExpiryActor.props(policyId, subject, Duration.ofHours(4), policiesPub,
@@ -130,7 +131,6 @@ public final class SubjectExpiryActorTest {
             assertThat(subjectDeletionAnnouncement.getSubjectIds())
                     .containsExactly(SUBJECT_DITTO_DITTO);
             assertThat(subjectDeletionAnnouncement.getDittoHeaders().getAcknowledgementRequests()).isEmpty();
-
             expectTerminated(underTest);
             expectNoMessage();
             verifyNoMoreInteractions(policiesPub);
@@ -144,7 +144,8 @@ public final class SubjectExpiryActorTest {
             final Subject subject = createSubject(null,
                     null,
                     true,
-                    null
+                    null,
+                    Duration.ofSeconds(0)
             );
 
             final var disabledConfig = PolicyAnnouncementConfig.of(ConfigFactory.parseMap(
@@ -173,6 +174,7 @@ public final class SubjectExpiryActorTest {
                     null,
                     true,
                     Duration.ofSeconds(30),
+                    Duration.ofSeconds(0),
                     ACK_LABEL_CONNECTION_ACK
             );
 
@@ -211,6 +213,7 @@ public final class SubjectExpiryActorTest {
                     null,
                     true,
                     Duration.ofSeconds(30),
+                    Duration.ofSeconds(0),
                     ACK_LABEL_CONNECTION_ACK
             );
 
@@ -258,6 +261,7 @@ public final class SubjectExpiryActorTest {
                     null,
                     true,
                     Duration.ofMillis(1),
+                    Duration.ofSeconds(0),
                     ACK_LABEL_CONNECTION_ACK
             );
 
@@ -286,8 +290,9 @@ public final class SubjectExpiryActorTest {
             final Subject subject = createSubject(Instant.now().plus(Duration.ofSeconds(3)),
                     null,
                     false,
-                    Duration.ofSeconds(30)
-            );
+                    Duration.ofSeconds(30),
+                    Duration.ofSeconds(0)
+                    );
 
             final Props props = SubjectExpiryActor.props(policyId, subject, Duration.ofHours(4), policiesPub,
                     maxTimeout, getTestActor(), config);
@@ -313,7 +318,8 @@ public final class SubjectExpiryActorTest {
             final Subject subject = createSubject(Instant.now().plus(Duration.ofSeconds(3)),
                     null,
                     true,
-                    Duration.ofSeconds(30)
+                    Duration.ofSeconds(30),
+                    null
             );
 
             final Props props = SubjectExpiryActor.props(policyId, subject, Duration.ofHours(4), policiesPub,
@@ -350,6 +356,7 @@ public final class SubjectExpiryActorTest {
                     null,
                     true,
                     Duration.ofSeconds(30),
+                    Duration.ofSeconds(0),
                     ACK_LABEL_CONNECTION_ACK
             );
 
@@ -389,6 +396,7 @@ public final class SubjectExpiryActorTest {
                     null,
                     true,
                     Duration.ofSeconds(30),
+                    Duration.ofSeconds(0),
                     ACK_LABEL_CONNECTION_ACK
             );
 
@@ -423,6 +431,7 @@ public final class SubjectExpiryActorTest {
                     null,
                     true,
                     Duration.ofSeconds(30),
+                    Duration.ofSeconds(0),
                     ACK_LABEL_CONNECTION_ACK
             );
 
@@ -448,7 +457,8 @@ public final class SubjectExpiryActorTest {
             final Subject subject = createSubject(Instant.now().plus(Duration.ofSeconds(3)),
                     Duration.ofMillis(500),
                     false,
-                    Duration.ofSeconds(30)
+                    Duration.ofSeconds(30),
+                    Duration.ofSeconds(0)
             );
 
             final Props props = SubjectExpiryActor.props(policyId, subject, Duration.ofHours(4), policiesPub,
@@ -480,7 +490,8 @@ public final class SubjectExpiryActorTest {
             final Subject subject = createSubject(Instant.now().plus(Duration.ofSeconds(10)),
                     Duration.ofSeconds(7),
                     false,
-                    Duration.ofSeconds(30)
+                    Duration.ofSeconds(30),
+                    Duration.ofSeconds(0)
             );
 
             final Props props = SubjectExpiryActor.props(policyId, subject, Duration.ofHours(4), policiesPub,
@@ -503,7 +514,8 @@ public final class SubjectExpiryActorTest {
             final Subject subject = createSubject(Instant.now().plus(Duration.ofSeconds(3)),
                     Duration.ofMillis(500),
                     false,
-                    Duration.ofSeconds(30)
+                    Duration.ofSeconds(30),
+                    Duration.ofSeconds(0)
             );
 
             final Props props = SubjectExpiryActor.props(policyId, subject, Duration.ofHours(4), policiesPub,
@@ -528,7 +540,8 @@ public final class SubjectExpiryActorTest {
             final Subject subject = createSubject(Instant.now().plus(Duration.ofSeconds(3)),
                     Duration.ofMillis(500),
                     false,
-                    Duration.ofSeconds(30)
+                    Duration.ofSeconds(30),
+                    Duration.ofSeconds(0)
             );
 
             final Props props =
@@ -566,6 +579,7 @@ public final class SubjectExpiryActorTest {
                     Duration.ofMillis(500),
                     false,
                     Duration.ofSeconds(30),
+                    Duration.ofSeconds(0),
                     ACK_LABEL_CONNECTION_ACK
             );
 
@@ -603,6 +617,7 @@ public final class SubjectExpiryActorTest {
                     Duration.ofMillis(500),
                     false,
                     Duration.ofSeconds(30),
+                    Duration.ofSeconds(0),
                     ACK_LABEL_CONNECTION_ACK
             );
 
@@ -632,6 +647,7 @@ public final class SubjectExpiryActorTest {
                     Duration.ofMillis(500),
                     false,
                     Duration.ofSeconds(30),
+                    Duration.ofSeconds(0),
                     ACK_LABEL_CONNECTION_ACK
             );
 
@@ -661,6 +677,7 @@ public final class SubjectExpiryActorTest {
                     Duration.ofMillis(9000),
                     false,
                     Duration.ofSeconds(30),
+                    Duration.ofSeconds(0),
                     ACK_LABEL_CONNECTION_ACK
             );
 
@@ -690,6 +707,7 @@ public final class SubjectExpiryActorTest {
                     Duration.ofMillis(1500),
                     false,
                     Duration.ofSeconds(30),
+                    Duration.ofSeconds(0),
                     ACK_LABEL_CONNECTION_ACK
             );
 
@@ -727,6 +745,7 @@ public final class SubjectExpiryActorTest {
                     Duration.ofMillis(1500),
                     false,
                     Duration.ofSeconds(30),
+                    Duration.ofSeconds(0),
                     ACK_LABEL_CONNECTION_ACK
             );
 
@@ -758,7 +777,8 @@ public final class SubjectExpiryActorTest {
             final Subject subject = createSubject(Instant.now().plus(Duration.ofSeconds(3)),
                     Duration.ofMillis(500),
                     true,
-                    Duration.ofSeconds(30)
+                    Duration.ofSeconds(30),
+                    Duration.ofSeconds(0)
             );
 
             final Props props = SubjectExpiryActor.props(policyId, subject, Duration.ofHours(4), policiesPub,
@@ -790,7 +810,8 @@ public final class SubjectExpiryActorTest {
             final Subject subject = createSubject(Instant.now().plus(Duration.ofSeconds(160)),
                     Duration.ofMillis(500),
                     true,
-                    Duration.ofSeconds(30)
+                    Duration.ofSeconds(30),
+                    Duration.ofSeconds(0)
             );
 
             final Props props = SubjectExpiryActor.props(policyId, subject, Duration.ofHours(4), policiesPub,
@@ -812,7 +833,8 @@ public final class SubjectExpiryActorTest {
             final Subject subject = createSubject(Instant.now().plus(Duration.ofSeconds(60)),
                     Duration.ofSeconds(57),
                     true,
-                    Duration.ofSeconds(30)
+                    Duration.ofSeconds(30),
+                    Duration.ofSeconds(0)
             );
 
             final Props props = SubjectExpiryActor.props(policyId, subject, Duration.ofHours(4), policiesPub,
@@ -833,7 +855,8 @@ public final class SubjectExpiryActorTest {
             final Subject subject = createSubject(Instant.now().plus(Duration.ofSeconds(3)),
                     Duration.ofMillis(500),
                     true,
-                    Duration.ofSeconds(30)
+                    Duration.ofSeconds(30),
+                    Duration.ofSeconds(0)
             );
 
             final Props props =
@@ -859,6 +882,7 @@ public final class SubjectExpiryActorTest {
                     Duration.ofMillis(500),
                     true,
                     Duration.ofSeconds(30),
+                    Duration.ofSeconds(0),
                     ACK_LABEL_CONNECTION_ACK
             );
 
@@ -896,6 +920,7 @@ public final class SubjectExpiryActorTest {
                     Duration.ofMillis(500),
                     true,
                     Duration.ofSeconds(30),
+                    Duration.ofSeconds(0),
                     ACK_LABEL_CONNECTION_ACK
             );
 
@@ -925,6 +950,7 @@ public final class SubjectExpiryActorTest {
                     Duration.ofMillis(500),
                     true,
                     Duration.ofSeconds(30),
+                    Duration.ofSeconds(0),
                     ACK_LABEL_CONNECTION_ACK
             );
 
@@ -954,6 +980,7 @@ public final class SubjectExpiryActorTest {
                     Duration.ofMillis(9500),
                     true,
                     Duration.ofSeconds(30),
+                    Duration.ofSeconds(0),
                     ACK_LABEL_CONNECTION_ACK
             );
 
@@ -983,6 +1010,7 @@ public final class SubjectExpiryActorTest {
                     Duration.ofMillis(500),
                     true,
                     Duration.ofSeconds(30),
+                    Duration.ofSeconds(0),
                     ACK_LABEL_CONNECTION_ACK
             );
 
@@ -1020,6 +1048,7 @@ public final class SubjectExpiryActorTest {
                     Duration.ofMillis(500),
                     true,
                     Duration.ofSeconds(30),
+                    Duration.ofSeconds(0),
                     ACK_LABEL_CONNECTION_ACK
             );
 
@@ -1050,6 +1079,7 @@ public final class SubjectExpiryActorTest {
                     Duration.ofMillis(500),
                     true,
                     Duration.ofSeconds(30),
+                    Duration.ofSeconds(0),
                     ACK_LABEL_CONNECTION_ACK
             );
 
@@ -1087,6 +1117,7 @@ public final class SubjectExpiryActorTest {
                     Duration.ofMillis(500),
                     true,
                     Duration.ofSeconds(30),
+                    Duration.ofSeconds(0),
                     ACK_LABEL_CONNECTION_ACK
             );
 
@@ -1117,6 +1148,7 @@ public final class SubjectExpiryActorTest {
                     Duration.ofMillis(9500),
                     true,
                     Duration.ofSeconds(30),
+                    Duration.ofSeconds(0),
                     ACK_LABEL_CONNECTION_ACK
             );
 
@@ -1156,6 +1188,7 @@ public final class SubjectExpiryActorTest {
                     Duration.ofMillis(9500),
                     true,
                     Duration.ofSeconds(30),
+                    Duration.ofSeconds(0),
                     ACK_LABEL_CONNECTION_ACK
             );
 
@@ -1195,6 +1228,7 @@ public final class SubjectExpiryActorTest {
                     Duration.ofMillis(500),
                     true,
                     Duration.ofSeconds(30),
+                    Duration.ofSeconds(0),
                     ACK_LABEL_CONNECTION_ACK
             );
 
@@ -1232,6 +1266,7 @@ public final class SubjectExpiryActorTest {
                     Duration.ofMillis(500),
                     true,
                     Duration.ofSeconds(30),
+                    Duration.ofSeconds(0),
                     ACK_LABEL_CONNECTION_ACK
             );
 
@@ -1255,11 +1290,96 @@ public final class SubjectExpiryActorTest {
         }};
     }
 
+    @Test
+    public void testRandomization() {
+        new TestKit(system) {{
+            final Subject subject = createSubject(Instant.now().plus(Duration.ofSeconds(5)),
+                    Duration.ofSeconds(0),
+                    false,
+                    null,
+                    Duration.ofDays(20)
+            );
+
+            final Props props = SubjectExpiryActor.props(policyId, subject, Duration.ofHours(4), policiesPub,
+                    maxTimeout, getTestActor(), config);
+            final ActorRef underTest = watch(childActorOf(props));
+
+            underTest.tell(SUBJECT_DELETED, ActorRef.noSender());
+
+            verify(policiesPub, timeout(4_000))
+                    .publishWithAcks(announcementCaptor.capture(), any(), senderCaptor.capture());
+            final var announcement = announcementCaptor.getValue();
+
+            assertThat(announcement).isInstanceOf(SubjectDeletionAnnouncement.class);
+            final var subjectDeletionAnnouncement = (SubjectDeletionAnnouncement) announcement;
+            assertThat(subjectDeletionAnnouncement.getSubjectIds())
+                    .containsExactly(SUBJECT_DITTO_DITTO);
+            assertThat(subjectDeletionAnnouncement.getDittoHeaders().getAcknowledgementRequests()).isEmpty();
+            expectTerminated(underTest);
+            expectNoMessage();
+            verifyNoMoreInteractions(policiesPub);
+        }};
+    }
+
+    @Test
+    public void testNoRandomization() {
+        new TestKit(system) {{
+            final Subject subject = createSubject(Instant.now().plus(Duration.ofSeconds(5)),
+                    Duration.ofSeconds(0),
+                    false,
+                    null,
+                    Duration.ZERO
+            );
+
+            final Props props = SubjectExpiryActor.props(policyId, subject, Duration.ofHours(4), policiesPub,
+                    maxTimeout, getTestActor(), config);
+            final ActorRef underTest = watch(childActorOf(props));
+
+            underTest.tell(SUBJECT_DELETED, ActorRef.noSender());
+
+            expectTerminated(underTest);
+            expectNoMessage();
+        }};
+    }
+
+    @Test
+    public void testDefaultRandomization() {
+        new TestKit(system) {{
+            final Subject subject = createSubject(Instant.now().plus(Duration.ofSeconds(5)),
+                    Duration.ofSeconds(0),
+                    false,
+                    null,
+                    null
+            );
+
+            final Props props = SubjectExpiryActor.props(policyId, subject, Duration.ofHours(4), policiesPub,
+                    maxTimeout, getTestActor(), config);
+            final ActorRef underTest = watch(childActorOf(props));
+
+            underTest.tell(SUBJECT_DELETED, ActorRef.noSender());
+
+            verify(policiesPub, timeout(4_000))
+                    .publishWithAcks(announcementCaptor.capture(), any(), senderCaptor.capture());
+            final var announcement = announcementCaptor.getValue();
+
+            assertThat(announcement).isInstanceOf(SubjectDeletionAnnouncement.class);
+            final var subjectDeletionAnnouncement = (SubjectDeletionAnnouncement) announcement;
+            assertThat(subjectDeletionAnnouncement.getSubjectIds())
+                    .containsExactly(SUBJECT_DITTO_DITTO);
+            assertThat(subjectDeletionAnnouncement.getDittoHeaders().getAcknowledgementRequests()).isEmpty();
+            expectTerminated(underTest);
+            expectNoMessage();
+            verifyNoMoreInteractions(policiesPub);
+        }};
+    }
+
     private static Subject createSubject(@Nullable final Instant expiry,
             @Nullable final Duration beforeExpiry,
             final boolean whenDeleted,
             @Nullable final Duration ackTimeout,
+            @Nullable final Duration randomizationInterval,
             final String... ackLabels) {
+
         return Subject.newInstance(SUBJECT_DITTO_DITTO,
                 SubjectType.UNKNOWN,
                 expiry != null ? PoliciesModelFactory.newSubjectExpiry(expiry) : null,
@@ -1269,7 +1389,8 @@ public final class SubjectExpiryActorTest {
                         Arrays.stream(ackLabels)
                                 .map(AcknowledgementRequest::parseAcknowledgementRequest)
                                 .collect(Collectors.toList()),
-                        ackTimeout != null ? DittoDuration.of(ackTimeout) : null
+                        ackTimeout != null ? DittoDuration.of(ackTimeout) : null,
+                        randomizationInterval != null ?DittoDuration.of(randomizationInterval) : null
                 )
         );
     }
