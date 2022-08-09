@@ -14,6 +14,7 @@ package org.eclipse.ditto.connectivity.model.signals.commands.query;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
+import java.time.Duration;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashSet;
@@ -67,15 +68,20 @@ public final class RetrieveConnections extends AbstractCommand<RetrieveConnectio
                     JsonSchemaVersion.V_2);
     static final JsonFieldDefinition<Boolean> JSON_IDS_ONLY =
             JsonFactory.newBooleanFieldDefinition("idsOnly", FieldType.REGULAR, JsonSchemaVersion.V_2);
+    static final JsonFieldDefinition<Long> JSON_DEFAULT_TIMEOUT =
+            JsonFactory.newLongFieldDefinition("timeoutMs", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
     private final Set<ConnectionId> connectionIds;
     private final boolean idsOnly;
 
+    private final Duration timeout;
+
     private RetrieveConnections(final Set<ConnectionId> connectionIds, final boolean idsOnly,
-            final DittoHeaders dittoHeaders) {
+            final Duration defaultTimeout, final DittoHeaders dittoHeaders) {
         super(TYPE, dittoHeaders);
         this.connectionIds = Collections.unmodifiableSet(connectionIds);
         this.idsOnly = idsOnly;
+        this.timeout = dittoHeaders.getTimeout().orElse(defaultTimeout);
     }
 
     /**
@@ -87,10 +93,10 @@ public final class RetrieveConnections extends AbstractCommand<RetrieveConnectio
      * @throws NullPointerException if any argument is {@code null}.
      */
     public static RetrieveConnections newInstance(final Collection<ConnectionId> connectionIds,
-            final boolean idsOnly, final DittoHeaders dittoHeaders) {
+            final boolean idsOnly, final Duration defaultTimeout, final DittoHeaders dittoHeaders) {
 
-        return new RetrieveConnections(new LinkedHashSet<>(checkNotNull(connectionIds, "connectionIds")), idsOnly,
-                dittoHeaders);
+        return new RetrieveConnections(new LinkedHashSet<>(checkNotNull(connectionIds, "connectionIds")),
+                idsOnly, defaultTimeout, dittoHeaders);
     }
 
     /**
@@ -125,16 +131,21 @@ public final class RetrieveConnections extends AbstractCommand<RetrieveConnectio
                 .map(ConnectionId::of)
                 .collect(Collectors.toCollection(LinkedHashSet::new));
         final boolean idsOnly = jsonObject.getValueOrThrow(JSON_IDS_ONLY);
+        final Duration defaultTimeout = Duration.ofMillis(jsonObject.getValueOrThrow(JSON_DEFAULT_TIMEOUT));
 
-        return new RetrieveConnections(extractedConnectionIds, idsOnly, dittoHeaders);
+        return new RetrieveConnections(extractedConnectionIds, idsOnly, defaultTimeout, dittoHeaders);
     }
 
     public Set<ConnectionId> getConnectionIds() {
         return connectionIds;
     }
 
-    public boolean idsOnly() {
+    public boolean getIdsOnly() {
         return idsOnly;
+    }
+
+    public Duration getTimeout() {
+        return timeout;
     }
 
     @Override
@@ -144,7 +155,7 @@ public final class RetrieveConnections extends AbstractCommand<RetrieveConnectio
 
     @Override
     public RetrieveConnections setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return new RetrieveConnections(connectionIds, idsOnly, dittoHeaders);
+        return new RetrieveConnections(connectionIds, idsOnly, timeout, dittoHeaders);
     }
 
     @Override
@@ -159,6 +170,7 @@ public final class RetrieveConnections extends AbstractCommand<RetrieveConnectio
 
         jsonObjectBuilder.set(JSON_CONNECTION_IDS, connectionIdsArray, predicate);
         jsonObjectBuilder.set(JSON_IDS_ONLY, idsOnly);
+        jsonObjectBuilder.set(JSON_DEFAULT_TIMEOUT, timeout.toMillis());
     }
 
     @Override
@@ -174,12 +186,13 @@ public final class RetrieveConnections extends AbstractCommand<RetrieveConnectio
         }
         final RetrieveConnections that = (RetrieveConnections) o;
         return Objects.equals(connectionIds, that.connectionIds) &&
-                Objects.equals(idsOnly, that.idsOnly);
+                Objects.equals(idsOnly, that.idsOnly) &&
+                Objects.equals(timeout, that.timeout);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(super.hashCode(), connectionIds, idsOnly);
+        return Objects.hash(super.hashCode(), connectionIds, idsOnly, timeout);
     }
 
     @Override
@@ -188,6 +201,7 @@ public final class RetrieveConnections extends AbstractCommand<RetrieveConnectio
                 super.toString() +
                 ", connectionIds=" + connectionIds +
                 ", idsOnly=" + idsOnly +
+                ", timeout=" + timeout +
                 "]";
     }
 

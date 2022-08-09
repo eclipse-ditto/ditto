@@ -54,7 +54,6 @@ import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.edge.service.acknowledgements.AcknowledgementAggregatorActorStarter;
 import org.eclipse.ditto.edge.service.acknowledgements.AcknowledgementConfig;
 import org.eclipse.ditto.edge.service.acknowledgements.message.MessageCommandAckRequestSetter;
-import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConnections;
 import org.eclipse.ditto.edge.service.acknowledgements.message.MessageCommandResponseAcknowledgementProvider;
 import org.eclipse.ditto.edge.service.acknowledgements.things.ThingCommandResponseAcknowledgementProvider;
 import org.eclipse.ditto.edge.service.acknowledgements.things.ThingLiveCommandAckRequestSetter;
@@ -225,13 +224,8 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
         return HttpResponse.create().withStatus(statusCode);
     }
 
-        if (command instanceof RetrieveConnections) {
-            ActorRef retrieveConnectionsActorRef = getContext()
-                    .actorOf(ConnectionsRetrievalActor.props(commandConfig, connectivityShardRegionProxy),
-                    ConnectionsRetrievalActor.ACTOR_NAME);
-            retrieveConnectionsActorRef.tell(command, getSelf());
-        } else {
-            connectivityShardRegionProxy.tell(command, getSelf());
+        proxyActor.tell(command, getSelf());
+
         }
     private void handleCommand(final Command<?> command) {
         try {

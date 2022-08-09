@@ -16,6 +16,7 @@ package org.eclipse.ditto.gateway.service.endpoints.routes.connections;
 import static org.eclipse.ditto.base.model.exceptions.DittoJsonException.wrapJsonRuntimeException;
 import static org.eclipse.ditto.gateway.service.endpoints.directives.ContentTypeValidationDirective.ensureValidContentType;
 
+import java.time.Duration;
 import java.util.Collections;
 import java.util.Optional;
 import java.util.Set;
@@ -76,6 +77,7 @@ public final class ConnectionsRoute extends AbstractRoute {
 
     private final Set<String> mediaTypePlainTextWithFallbacks;
     private final DevopsAuthenticationDirective devopsAuthenticationDirective;
+    private final Duration defaultTimeout;
 
     /**
      * Constructs a {@code ConnectionsRoute} object.
@@ -87,7 +89,7 @@ public final class ConnectionsRoute extends AbstractRoute {
             final DevopsAuthenticationDirective devopsAuthenticationDirective) {
         super(routeBaseProperties);
         this.devopsAuthenticationDirective = devopsAuthenticationDirective;
-
+        defaultTimeout = routeBaseProperties.getCommandConfig().getDefaultTimeout();
         final var httpConfig = routeBaseProperties.getHttpConfig();
         final var fallbackMediaTypes = httpConfig.getAdditionalAcceptedMediaTypes().stream();
         final var plainText = Stream.of(MediaTypes.TEXT_PLAIN.toString());
@@ -140,7 +142,7 @@ public final class ConnectionsRoute extends AbstractRoute {
                         get(() -> // GET /connections?idsOnly=false
                                 parameterOptional("idsOnly",  idsOnly -> handlePerRequest(ctx,
                                         RetrieveConnections.newInstance(Collections.emptySet(),
-                                                idsOnly.map(Boolean::valueOf).orElse(false), dittoHeaders)
+                                                idsOnly.map(Boolean::valueOf).orElse(false), defaultTimeout, dittoHeaders)
                                 ))
 
                         ),
