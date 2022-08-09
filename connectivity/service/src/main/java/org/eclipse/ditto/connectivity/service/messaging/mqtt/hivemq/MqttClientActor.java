@@ -319,10 +319,14 @@ public final class MqttClientActor extends BaseClientActor {
 
                     // This is sent because the status of the client isn't made explicit to the user.
                     getSelf().tell(new ReportConnectionStatusError(context.getCause()), ActorRef.noSender());
-                } else {
-                    logger.info("Not reconnecting client <{}>.", clientId);
+                } else if (List.of(MqttDisconnectSource.CLIENT, MqttDisconnectSource.SERVER).contains(context.getSource())){
+                    logger.info("Not reconnecting client <{}> after disconnect caused by: {}.", clientId, context.getCause());
                     getSelf().tell(ConnectionFailure.of(null, context.getCause(), "MQTT client got disconnected."),
                             ActorRef.noSender());
+                } else if (MqttDisconnectSource.USER.equals(context.getSource())){
+                    logger.debug("Not reconnecting client <{}>, user initiated disconnect: {}.", clientId, context.getCause());
+                } else {
+                    logger.info("Not reconnecting client <{}>: {}.", clientId, context.getCause());
                 }
                 mqttClientReconnector.delay(reconnectDelay.toMillis(), TimeUnit.MILLISECONDS);
                 mqttClientReconnector.reconnect(reconnect);
