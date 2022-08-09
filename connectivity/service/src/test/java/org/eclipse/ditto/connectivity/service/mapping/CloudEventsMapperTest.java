@@ -17,12 +17,14 @@ import org.eclipse.ditto.things.model.ThingId;
 import org.junit.Before;
 import org.junit.Test;
 import static org.junit.Assert.assertEquals;
+
 public class CloudEventsMapperTest {
 
-    private static final ThingId THING_ID = ThingId.of("thing:id");
-    private static final ProtocolAdapter ADAPTER = DittoProtocolAdapter.newInstance();
+     private static final ThingId THING_ID = ThingId.of("thing:id");
+     private static final ProtocolAdapter ADAPTER = DittoProtocolAdapter.newInstance();
 
-    String payload = "{\"specversion\": \"1.0\", \"id\":\"3212e\", \"source\":\"http:somesite.com\",\"type\":\"com.site.com\"}";
+     String payload =
+      "{\"specversion\": \"1.0\", \"id\":\"3212e\", \"source\":\"http:somesite.com\",\"type\":\"com.site.com\"}";
     private CloudEventsMapper underTest;
 
     @Before
@@ -30,10 +32,13 @@ public class CloudEventsMapperTest {
         underTest = new CloudEventsMapper();
     }
 
+      @Test
+     public void validatePayload() {
+         Boolean expected = true;
+         Boolean actual = underTest.validatePayload(payload);
+         assertEquals(expected, actual);
+     }
+
     @Test
-    public void validatePayload(){
-        Boolean expected = true;
-        Boolean actual = underTest.validatePayload(payload);
-        assertEquals(expected,actual);
-    }
+    private void CloudEventsStructuredMessage() {}
 }

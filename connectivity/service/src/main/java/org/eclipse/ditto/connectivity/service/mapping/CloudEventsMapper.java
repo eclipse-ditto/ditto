@@ -69,26 +69,6 @@ public final class CloudEventsMapper extends AbstractMessageMapper {
   final String SOURCE = "source";
   final String TYPE = "type";
 
-  //    public static void main(String[] args) {
-  //        String data =
-  // "{\"topic\":\"org.eclipse.ditto/sensor/things/twin/commands/modify\",\"path\":\"/\",\"value\":53}";
-  //        String data_base64 =
-  // Base64.getEncoder().withoutPadding().encodeToString(data.getBytes(StandardCharsets.UTF_8));
-  //////        System.out.println(data_base64);
-  ////       String f =
-  // "ewogICJ0b3BpYyI6Im15LnNlbnNvcnMvc2Vuc29yMDEvdGhpbmdzL3R3aW4vY29tbWFuZHMvbW9kaWZ5IiwKICAicGF0aCI6Ii8iLAogICJ2YWx1ZSI6ewogICAgICAidGhpbmdJZCI6ICJteS5zZW5zb3JzOnNlbnNvcjAxIiwKICAgICAgInBvbGljeUlkIjogIm15LnRlc3Q6cG9saWN5IiwKICAgICAgImF0dHJpYnV0ZXMiOiB7CiAgICAgICAgICAibWFudWZhY3R1cmVyIjogIldlbGwga25vd24gc2Vuc29ycyBwcm9kdWNlciIsCiAgICAgICAgICAgICJzZXJpYWwgbnVtYmVyIjogIjEwMCIsIAogICAgICAgICAgICAibG9jYXRpb24iOiAiR3JvdW5kIGZsb29yIiB9LAogICAgICAgICAgICAiZmVhdHVyZXMiOiB7CiAgICAgICAgICAgICAgIm1lYXN1cmVtZW50cyI6IAogICAgICAgICAgICAgICB7InByb3BlcnRpZXMiOiAKICAgICAgICAgICAgICAgeyJ0ZW1wZXJhdHVyZSI6IDIwMCwKICAgICAgICAgICAgICAgICJodW1pZGl0eSI6IDEwMH19fX19";
-  //////        byte[] a = Base64.getDecoder().decode(f);
-  //////        String s = new String(a);
-  //////        System.out.println(s);
-  //        String test = "{\"specversion\": \"1.0\", \"id\":\"3212e\",
-  // \"source\":\"http:somesite.com\",\"type\":\"com.site.com\",\"data\":{\"topic\":\"org.eclipse.ditto/sensor/things/twin/commands/modify\",\"path\":\"/\",\"value\":53}}";
-  //        String test2 = "{\"specversion\": \"1.0\", \"id\":\"3212e\",
-  // \"source\":\"http:somesite.com\",\"type\":\"com.site.com\",\"data_base64\":\"ewogICJ0b3BpYyI6Im15LnNlbnNvcnMvc2Vuc29yMDEvdGhpbmdzL3R3aW4vY29tbWFuZHMvbW9kaWZ5IiwKICAicGF0aCI6Ii8iLAogICJ2YWx1ZSI6ewogICAgICAidGhpbmdJZCI6ICJteS5zZW5zb3JzOnNlbnNvcjAxIiwKICAgICAgInBvbGljeUlkIjogIm15LnRlc3Q6cG9saWN5IiwKICAgICAgImF0dHJpYnV0ZXMiOiB7CiAgICAgICAgICAibWFudWZhY3R1cmVyIjogIldlbGwga25vd24gc2Vuc29ycyBwcm9kdWNlciIsCiAgICAgICAgICAgICJzZXJpYWwgbnVtYmVyIjogIjEwMCIsIAogICAgICAgICAgICAibG9jYXRpb24iOiAiR3JvdW5kIGZsb29yIiB9LAogICAgICAgICAgICAiZmVhdHVyZXMiOiB7CiAgICAgICAgICAgICAgIm1lYXN1cmVtZW50cyI6IAogICAgICAgICAgICAgICB7InByb3BlcnRpZXMiOiAKICAgICAgICAgICAgICAgeyJ0ZW1wZXJhdHVyZSI6IDIwMCwKICAgICAgICAgICAgICAgICJodW1pZGl0eSI6IDEwMH19fX19\"}";
-  //        extractData(test2);
-  //
-  ////        base64decoding(test2);
-  //    }
-
   public String base64decoding(final String base64Message) throws UnsupportedEncodingException {
     byte[] messageByte = Base64.getDecoder().decode(base64Message);
     String decodedString = new String(messageByte);
