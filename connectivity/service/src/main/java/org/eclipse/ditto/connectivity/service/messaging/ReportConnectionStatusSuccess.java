@@ -1,5 +1,4 @@
 /*
- * Copyright text:
  * Copyright (c) 2022 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
@@ -11,9 +10,9 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-
 package org.eclipse.ditto.connectivity.service.messaging;
 
-// A placeholder indicating ConnectivityStatus.OPEN
-public record ReportConnectionStatusSuccess() {
-}
+/**
+ * Reports a successful connection. The receiver should update its own status to e.g. {@code ConnectionStatus#OPEN}.
+ */
+public record ReportConnectionStatusSuccess() {}

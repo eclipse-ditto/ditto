@@ -38,6 +38,7 @@ import org.eclipse.ditto.connectivity.service.messaging.ReportConnectionStatusSu
 import org.eclipse.ditto.connectivity.service.messaging.backoff.RetryTimeoutStrategy;
 import org.eclipse.ditto.connectivity.service.messaging.internal.ClientConnected;
 import org.eclipse.ditto.connectivity.service.messaging.internal.ClientDisconnected;
+import org.eclipse.ditto.connectivity.service.messaging.internal.ConnectionFailure;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.MqttSpecificConfig;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.client.ClientRole;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.client.GenericMqttClient;
@@ -303,6 +304,8 @@ public final class MqttClientActor extends BaseClientActor {
                  */
                 logger.info("Initial connect of client <{}> failed. Disabling automatic reconnect.", clientId);
                 mqttClientReconnector.reconnect(false);
+                getSelf().tell(ConnectionFailure.of(null, context.getCause(), "MQTT client got disconnected."),
+                        ActorRef.noSender());
             } else {
                 final var mqttDisconnectSource = context.getSource();
                 final var reconnect = isReconnect();
@@ -313,10 +316,13 @@ public final class MqttClientActor extends BaseClientActor {
                             clientId,
                             retryTimeoutStrategy.getCurrentTries(),
                             reconnectDelay);
+
                     // This is sent because the status of the client isn't made explicit to the user.
                     getSelf().tell(new ReportConnectionStatusError(context.getCause()), ActorRef.noSender());
                 } else {
                     logger.info("Not reconnecting client <{}>.", clientId);
+                    getSelf().tell(ConnectionFailure.of(null, context.getCause(), "MQTT client got disconnected."),
+                            ActorRef.noSender());
                 }
                 mqttClientReconnector.delay(reconnectDelay.toMillis(), TimeUnit.MILLISECONDS);
                 mqttClientReconnector.reconnect(reconnect);
@@ -344,16 +350,15 @@ public final class MqttClientActor extends BaseClientActor {
         final var retryTimeoutReconnectDelay = retryTimeoutStrategy.getNextTimeout();
         if (MqttDisconnectSource.SERVER == mqttDisconnectSource) {
             // wait at least the configured duration for server initiated disconnect to not overload the server with reconnect attempts
-            final var reconnectDelayForBrokerInitiatedDisconnect =
-                    mqttConfig.getReconnectMinTimeoutForMqttBrokerInitiatedDisconnect();
-            result = max(retryTimeoutReconnectDelay, reconnectDelayForBrokerInitiatedDisconnect);
+            result = getMaxDuration(retryTimeoutReconnectDelay,
+                    mqttConfig.getReconnectMinTimeoutForMqttBrokerInitiatedDisconnect());
         } else {
             result = retryTimeoutReconnectDelay;
         }
         return result;
     }
 
-    private static Duration max(Duration d1, Duration d2) {
+    private static Duration getMaxDuration(final Duration d1, final Duration d2) {
         return d1.compareTo(d2) >= 0 ? d1 : d2;
     }
 

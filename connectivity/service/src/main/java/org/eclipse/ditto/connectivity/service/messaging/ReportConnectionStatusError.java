@@ -1,5 +1,4 @@
 /*
- * Copyright text:
  * Copyright (c) 2022 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
@@ -11,12 +10,10 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-
 package org.eclipse.ditto.connectivity.service.messaging;
 
-/*
-
+/**
+ * Reports a connection error with the given {@code cause}. The receiver should update its own status but should not
+ * initiate reconnection as it is handled by the sender.
  */
-public record ReportConnectionStatusError(Throwable cause) {
-
-}
+public record ReportConnectionStatusError(Throwable cause) {}
