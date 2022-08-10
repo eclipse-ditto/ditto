@@ -134,6 +134,18 @@ public final class DittoPublicKeyProviderTest {
     }
 
     @Test
+    public void verifyExceptionIsThrownForInvalidECKey() {
+
+        mockSuccessfulDiscoveryEndpointRequest();
+        mockECSuccessfulPublicKeysRequestAndReturnInvalidJsonWebKey();
+
+        assertThatExceptionOfType(ExecutionException.class)
+                .isThrownBy(() -> underTest.getPublicKeyWithParser("google.com", KEY_ID).get(LATCH_TIMEOUT,
+                        TimeUnit.SECONDS))
+                .withCauseExactlyInstanceOf(JwkInvalidException.class);
+    }
+
+    @Test
     public void verifyWithoutPublicKeys() throws InterruptedException, TimeoutException, ExecutionException {
 
         mockSuccessfulDiscoveryEndpointRequest();
@@ -158,7 +170,8 @@ public final class DittoPublicKeyProviderTest {
         mockErrorDiscoveryEndpointRequest();
 
         assertThatExceptionOfType(ExecutionException.class)
-                .isThrownBy(() -> underTest.getPublicKeyWithParser("google.com", KEY_ID).get(LATCH_TIMEOUT, TimeUnit.SECONDS))
+                .isThrownBy(() -> underTest.getPublicKeyWithParser("google.com", KEY_ID)
+                        .get(LATCH_TIMEOUT, TimeUnit.SECONDS))
                 .withCauseExactlyInstanceOf(GatewayAuthenticationProviderUnavailableException.class);
         verify(httpClientMock).createSingleHttpRequest(DISCOVERY_ENDPOINT_REQUEST);
         verify(httpClientMock, never()).createSingleHttpRequest(PUBLIC_KEYS_REQUEST);
@@ -166,7 +179,8 @@ public final class DittoPublicKeyProviderTest {
         Mockito.clearInvocations(httpClientMock);
 
         assertThatExceptionOfType(ExecutionException.class)
-                .isThrownBy(() -> underTest.getPublicKeyWithParser("google.com", KEY_ID).get(LATCH_TIMEOUT, TimeUnit.SECONDS))
+                .isThrownBy(() -> underTest.getPublicKeyWithParser("google.com", KEY_ID)
+                        .get(LATCH_TIMEOUT, TimeUnit.SECONDS))
                 .withCauseExactlyInstanceOf(GatewayAuthenticationProviderUnavailableException.class);
         verify(httpClientMock).createSingleHttpRequest(DISCOVERY_ENDPOINT_REQUEST);
         verify(httpClientMock, never()).createSingleHttpRequest(PUBLIC_KEYS_REQUEST);
@@ -179,13 +193,15 @@ public final class DittoPublicKeyProviderTest {
         mockSuccessfulDiscoveryEndpointRequest();
         mockSuccessfulPublicKeysRequestWithoutMatchingKeyId();
 
-        assertThat(underTest.getPublicKeyWithParser("google.com", KEY_ID).get(LATCH_TIMEOUT, TimeUnit.SECONDS)).isEmpty();
+        assertThat(
+                underTest.getPublicKeyWithParser("google.com", KEY_ID).get(LATCH_TIMEOUT, TimeUnit.SECONDS)).isEmpty();
         verify(httpClientMock).createSingleHttpRequest(DISCOVERY_ENDPOINT_REQUEST);
         verify(httpClientMock).createSingleHttpRequest(PUBLIC_KEYS_REQUEST);
 
         Mockito.clearInvocations(httpClientMock);
 
-        assertThat(underTest.getPublicKeyWithParser("google.com", KEY_ID).get(LATCH_TIMEOUT, TimeUnit.SECONDS)).isEmpty();
+        assertThat(
+                underTest.getPublicKeyWithParser("google.com", KEY_ID).get(LATCH_TIMEOUT, TimeUnit.SECONDS)).isEmpty();
         verify(httpClientMock).createSingleHttpRequest(DISCOVERY_ENDPOINT_REQUEST);
         verify(httpClientMock).createSingleHttpRequest(PUBLIC_KEYS_REQUEST);
     }
@@ -227,6 +243,26 @@ public final class DittoPublicKeyProviderTest {
     }
 
     private void mockECSuccessfulPublicKeysRequest() {
+
+        final JsonObject jsonWebKey = JsonObject.newBuilder()
+                .set(JsonWebKey.JsonFields.KEY_TYPE, "EC")
+                .set(JsonWebKey.JsonFields.KEY_ALGORITHM, "ES256")
+                .set(JsonWebKey.JsonFields.KEY_CURVE, "P-256")
+                .set(JsonWebKey.JsonFields.KEY_USAGE, "sig")
+                .set(JsonWebKey.JsonFields.KEY_ID, KEY_ID)
+                .set(JsonWebKey.JsonFields.KEY_X_COORDINATE, "zBewGSZEyL3rA4ureC8G3r34t62KaH9qqdH365QCZLM")
+                .set(JsonWebKey.JsonFields.KEY_Y_COORDINATE, "CqR6KnLjIevbqnxkStm69-w-7K175k-nx2NdwddASGk")
+                .build();
+        final JsonArray keysArray = JsonArray.newBuilder().add(jsonWebKey).build();
+        final JsonObject keysJson = JsonObject.newBuilder().set("keys", keysArray).build();
+        final HttpResponse publicKeysResponse = HttpResponse.create()
+                .withStatus(StatusCodes.OK)
+                .withEntity(keysJson.toString());
+        when(httpClientMock.createSingleHttpRequest(PUBLIC_KEYS_REQUEST))
+                .thenReturn(CompletableFuture.completedFuture(publicKeysResponse));
+    }
+
+    private void mockECSuccessfulPublicKeysRequestAndReturnInvalidJsonWebKey() {
 
         final JsonObject jsonWebKey = JsonObject.newBuilder()
                 .set(JsonWebKey.JsonFields.KEY_TYPE, "EC")

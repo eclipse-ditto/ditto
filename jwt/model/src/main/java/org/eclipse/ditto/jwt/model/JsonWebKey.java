@@ -17,9 +17,9 @@ import java.util.Optional;
 
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldDefinition;
-import org.eclipse.ditto.base.model.json.FieldType;
 
 /**
  * Representation for a JSON Web Key.
@@ -75,7 +75,7 @@ public interface JsonWebKey {
     /**
      * Returns the EC X coordinate.
      *
-     * @return the exponent.
+     * @return the EC X coordinate.
      * @since 3.0.0
      */
     Optional<BigInteger> getXCoordinate();
@@ -83,10 +83,18 @@ public interface JsonWebKey {
     /**
      * Returns the EC Y coordinate.
      *
-     * @return the exponent.
+     * @return the EC Y coordinate.
      * @since 3.0.0
      */
     Optional<BigInteger> getYCoordinate();
+
+    /**
+     * Returns the curve type.
+     *
+     * @return the curve type.
+     * @since 3.0.0
+     */
+    Optional<String> getCurveType();
 
     /**
      * An enumeration of the known {@link org.eclipse.ditto.json.JsonField}s of a JSON Web Key.
@@ -143,6 +151,13 @@ public interface JsonWebKey {
          */
         public static final JsonFieldDefinition<String> KEY_Y_COORDINATE =
                 JsonFactory.newStringFieldDefinition("y", FieldType.REGULAR);
+
+        /**
+         * JSON field containing the key's EC curve.
+         * @since 3.0.0
+         */
+        public static final JsonFieldDefinition<String> KEY_CURVE =
+                JsonFactory.newStringFieldDefinition("crv", FieldType.REGULAR);
 
         private JsonFields() {
             throw new AssertionError();

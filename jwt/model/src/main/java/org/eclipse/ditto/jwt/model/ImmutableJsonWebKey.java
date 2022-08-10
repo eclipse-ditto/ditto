@@ -44,6 +44,7 @@ public final class ImmutableJsonWebKey implements JsonWebKey {
     @Nullable private final BigInteger exponent;
     @Nullable private final BigInteger xCoordinate;
     @Nullable private final BigInteger yCoordinate;
+    @Nullable private final String curveType;
 
     private ImmutableJsonWebKey(final String type,
             @Nullable final String algorithm,
@@ -52,7 +53,8 @@ public final class ImmutableJsonWebKey implements JsonWebKey {
             @Nullable final BigInteger modulus,
             @Nullable final BigInteger exponent,
             @Nullable final BigInteger xCoordinate,
-            @Nullable final BigInteger yCoordinate) {
+            @Nullable final BigInteger yCoordinate,
+            @Nullable final String curveType) {
 
         this.type = type;
         this.algorithm = algorithm;
@@ -62,6 +64,7 @@ public final class ImmutableJsonWebKey implements JsonWebKey {
         this.exponent = exponent;
         this.xCoordinate = xCoordinate;
         this.yCoordinate = yCoordinate;
+        this.curveType = curveType;
     }
 
     /**
@@ -76,6 +79,7 @@ public final class ImmutableJsonWebKey implements JsonWebKey {
      * @param exponent the optional exponent of the JWK.
      * @param xCoordinate the optional EC X coordinate.
      * @param yCoordinate the optional EC Y coordinate.
+     * @param curveType the optional type of the used curve.
      * @return the JsonWebKey.
      * @throws NullPointerException if any argument but {@code algorithm} or {@code usage} is {@code null}.
      * @throws IllegalArgumentException if any {@code String} argument is empty.
@@ -87,12 +91,14 @@ public final class ImmutableJsonWebKey implements JsonWebKey {
             @Nullable final BigInteger modulus,
             @Nullable final BigInteger exponent,
             @Nullable final BigInteger xCoordinate,
-            @Nullable final BigInteger yCoordinate) {
+            @Nullable final BigInteger yCoordinate,
+            @Nullable final String curveType) {
 
         argumentNotEmpty(type);
         argumentNotEmpty(id);
 
-        return new ImmutableJsonWebKey(type, algorithm, usage, id, modulus, exponent, xCoordinate, yCoordinate);
+        return new ImmutableJsonWebKey(type, algorithm, usage, id, modulus, exponent, xCoordinate, yCoordinate,
+                curveType);
     }
 
     /**
@@ -122,10 +128,11 @@ public final class ImmutableJsonWebKey implements JsonWebKey {
         final Optional<BigInteger> exponent = getOptionalValueFromJson(JsonFields.KEY_EXPONENT, jsonObject);
         final Optional<BigInteger> xCoordinate = getOptionalValueFromJson(JsonFields.KEY_X_COORDINATE, jsonObject);
         final Optional<BigInteger> yCoordinate = getOptionalValueFromJson(JsonFields.KEY_Y_COORDINATE, jsonObject);
+        final Optional<String> curveType = jsonObject.getValue(JsonFields.KEY_CURVE);
 
 
         return of(type, algorithm, usage, id, modulus.orElse(null), exponent.orElse(null),
-                xCoordinate.orElse(null), yCoordinate.orElse(null));
+                xCoordinate.orElse(null), yCoordinate.orElse(null), curveType.orElse(null));
     }
 
     private static Optional<BigInteger> getOptionalValueFromJson(final JsonFieldDefinition<String> field,
@@ -178,6 +185,11 @@ public final class ImmutableJsonWebKey implements JsonWebKey {
     }
 
     @Override
+    public Optional<String> getCurveType() {
+        return Optional.ofNullable(curveType);
+    }
+
+    @Override
     @SuppressWarnings({"squid:MethodCyclomaticComplexity", "squid:S1067"})
     public boolean equals(final Object o) {
         if (this == o) {
@@ -194,12 +206,13 @@ public final class ImmutableJsonWebKey implements JsonWebKey {
                 Objects.equals(modulus, that.modulus) &&
                 Objects.equals(exponent, that.exponent) &&
                 Objects.equals(xCoordinate, that.xCoordinate) &&
-                Objects.equals(yCoordinate, that.yCoordinate);
+                Objects.equals(yCoordinate, that.yCoordinate) &&
+                Objects.equals(curveType, that.curveType);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(type, algorithm, usage, id, modulus, exponent, xCoordinate, yCoordinate);
+        return Objects.hash(type, algorithm, usage, id, modulus, exponent, xCoordinate, yCoordinate, curveType);
     }
 
     @Override
@@ -213,6 +226,7 @@ public final class ImmutableJsonWebKey implements JsonWebKey {
                 ", exponent=" + exponent +
                 ", xCoordinate=" + xCoordinate +
                 ", yCoordinate=" + yCoordinate +
+                ", curveType=" + curveType +
                 ']';
     }
 
