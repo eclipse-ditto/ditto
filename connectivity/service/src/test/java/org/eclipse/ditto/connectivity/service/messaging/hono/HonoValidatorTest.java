@@ -149,7 +149,6 @@ public final class HonoValidatorTest {
                         .hasMessageStartingWith("The provided source address <%s> is invalid." +
                                         " It should be one of the defined aliases: ",
                                 invalidSourceAddress)
-                        .hasMessageContainingAll("Foo")
                         .hasMessageContainingAll(Stream.of(HonoAddressAlias.values())
                                 .filter(honoAddressAlias -> HonoAddressAlias.COMMAND !=honoAddressAlias)
                                 .map(HonoAddressAlias::getAliasValue)
