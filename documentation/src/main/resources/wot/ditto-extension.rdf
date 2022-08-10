@@ -1,0 +1,38 @@
+<!--
+  ~ Copyright (c) 2022 Contributors to the Eclipse Foundation
+  ~
+  ~ See the NOTICE file(s) distributed with this work for additional
+  ~ information regarding copyright ownership.
+  ~
+  ~ This program and the accompanying materials are made available under the
+  ~ terms of the Eclipse Public License 2.0 which is available at
+  ~ http://www.eclipse.org/legal/epl-2.0
+  ~
+  ~ SPDX-License-Identifier: EPL-2.0
+-->
+<!-- created with https://www.easyrdf.org/converter -->
+<?xml version="1.0" encoding="utf-8" ?>
+<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+         xmlns:owl="http://www.w3.org/2002/07/owl#"
+         xmlns:vann="http://purl.org/vocab/vann/"
+         xmlns:dc="http://purl.org/dc/elements/1.1/"
+         xmlns:rdfs="http://www.w3.org/2000/01/rdf-schema#"
+         xmlns:schema="https://schema.org/">
+
+  <owl:Ontology rdf:about="https://ditto.eclipseprojects.io/wot/ditto-extension#">
+    <vann:preferredNamespacePrefix>ditto</vann:preferredNamespacePrefix>
+    <vann:preferredNamespaceUri>https://ditto.eclipseprojects.io/wot/ditto-extension#</vann:preferredNamespaceUri>
+    <owl:versionInfo>3.0.0</owl:versionInfo>
+    <dc:title xml:lang="en">Eclipse Ditto™ - WoT Extension Ontology</dc:title>
+    <rdfs:comment xml:lang="en">This ontology provides additional Eclipse Ditto™ specific context for Web of Things (https://www.w3.org/WoT/) TDs and TMs</rdfs:comment>
+  </owl:Ontology>
+
+  <owl:DatatypeProperty rdf:about="https://ditto.eclipseprojects.io/wot/ditto-extension#category">
+    <rdfs:label>category</rdfs:label>
+    <rdfs:comment xml:lang="en">Optional category for WoT Property affordances, e.g. something like 'status' or 'configuration'</rdfs:comment>
+    <schema:domainIncludes rdf:resource="https://www.w3.org/2019/wot/td#PropertyAffordance"/>
+    <schema:rangeIncludes rdf:resource="http://schema.org/Text"/>
+    <rdfs:isDefinedBy rdf:resource="https://ditto.eclipseprojects.io/wot/ditto-extension#"/>
+  </owl:DatatypeProperty>
+
+</rdf:RDF>
