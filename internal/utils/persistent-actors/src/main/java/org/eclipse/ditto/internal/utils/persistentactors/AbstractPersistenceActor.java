@@ -619,7 +619,7 @@ public abstract class AbstractPersistenceActor<
     }
 
     private void shutdown(final String shutdownLogTemplate, final I entityId) {
-        log.debug(shutdownLogTemplate, String.valueOf(entityId));
+        log.info(shutdownLogTemplate, String.valueOf(entityId));
         passivate();
     }
 
