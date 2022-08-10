@@ -426,7 +426,7 @@ public final class MqttConsumerActorTest {
         final var onCompleteMessage = new Object();
         final var fakeMqttClientActor = ACTOR_SYSTEM_RESOURCE.newTestKit();
 
-        fakeMqttClientActor.watch(fakeMqttClientActor.childActorOf(
+        fakeMqttClientActor.childActorOf(
                 MqttConsumerActor.propsProcessing(connection,
                         Sink.actorRef(inboundMappingSinkElementReceiver.getRef(), onCompleteMessage),
                         connectionSource,
@@ -434,7 +434,7 @@ public final class MqttConsumerActorTest {
                         TestConstants.CONNECTIVITY_CONFIG,
                         Source.single(GenericMqttPublish.ofMqtt5Publish(mqtt5Publish))),
                 testName.getMethodName()
-        ));
+        );
 
         final var externalMessageWithSender =
                 inboundMappingSinkElementReceiver.expectMsgClass(ExternalMessageWithSender.class);
@@ -469,7 +469,7 @@ public final class MqttConsumerActorTest {
         final var onCompleteMessage = new Object();
         final var fakeMqttClientActor = ACTOR_SYSTEM_RESOURCE.newTestKit();
 
-        fakeMqttClientActor.watch(fakeMqttClientActor.childActorOf(
+        fakeMqttClientActor.childActorOf(
                 MqttConsumerActor.propsProcessing(connection,
                         Sink.actorRef(inboundMappingSinkElementReceiver.getRef(), onCompleteMessage),
                         connectionSource,
@@ -477,7 +477,7 @@ public final class MqttConsumerActorTest {
                         connectivityConfig,
                         Source.single(GenericMqttPublish.ofMqtt5Publish(mqtt5Publish))),
                 testName.getMethodName()
-        ));
+        );
 
         final var externalMessageWithSender =
                 inboundMappingSinkElementReceiver.expectMsgClass(ExternalMessageWithSender.class);
@@ -506,7 +506,7 @@ public final class MqttConsumerActorTest {
         final var onCompleteMessage = new Object();
         final var fakeMqttClientActor = ACTOR_SYSTEM_RESOURCE.newTestKit();
 
-        fakeMqttClientActor.watch(fakeMqttClientActor.childActorOf(
+        fakeMqttClientActor.childActorOf(
                 MqttConsumerActor.propsProcessing(connection,
                         Sink.actorRef(inboundMappingSinkElementReceiver.getRef(), onCompleteMessage),
                         connectionSource,
@@ -514,7 +514,7 @@ public final class MqttConsumerActorTest {
                         TestConstants.CONNECTIVITY_CONFIG,
                         Source.single(GenericMqttPublish.ofMqtt5Publish(mqtt5Publish))),
                 testName.getMethodName()
-        ));
+        );
 
         final var externalMessageWithSender =
                 inboundMappingSinkElementReceiver.expectMsgClass(ExternalMessageWithSender.class);
@@ -543,7 +543,7 @@ public final class MqttConsumerActorTest {
         final var onCompleteMessage = new Object();
         final var fakeMqttClientActor = ACTOR_SYSTEM_RESOURCE.newTestKit();
 
-        fakeMqttClientActor.watch(fakeMqttClientActor.childActorOf(
+        fakeMqttClientActor.childActorOf(
                 MqttConsumerActor.propsProcessing(connection,
                         Sink.actorRef(inboundMappingSinkElementReceiver.getRef(), onCompleteMessage),
                         connectionSource,
@@ -551,7 +551,7 @@ public final class MqttConsumerActorTest {
                         TestConstants.CONNECTIVITY_CONFIG,
                         Source.single(GenericMqttPublish.ofMqtt5Publish(mqtt5Publish))),
                 testName.getMethodName()
-        ));
+        );
 
         final var externalMessageWithSender =
                 inboundMappingSinkElementReceiver.expectMsgClass(ExternalMessageWithSender.class);
