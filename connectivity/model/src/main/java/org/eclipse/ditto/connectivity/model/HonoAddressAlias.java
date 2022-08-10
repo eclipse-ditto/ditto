@@ -12,13 +12,6 @@
  */
 package org.eclipse.ditto.connectivity.model;
 
-import java.util.Locale;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.stream.Stream;
-
-import javax.annotation.Nullable;
-
 /**
  * Possible address aliases used by connections of type 'Hono'
  */
@@ -48,35 +41,6 @@ public enum HonoAddressAlias {
 
     private HonoAddressAlias(final String value) {
         this.value = value;
-    }
-
-    /**
-     * Returns all defined HonoAddressAlias values.
-     *
-     * @return a stream with HonoAddressAlias values.
-     */
-    public static Stream<String> aliasValues() {
-        return Stream.of(values()).map(HonoAddressAlias::getAliasValue);
-    }
-
-    /**
-     * Returns the HonoAddressAlias to which the given alias value is mapped.
-     * This method is fault-tolerant for its parameter to some degree:
-     * <ul>
-     *     <li>it accepts {@code null},</li>
-     *     <li>it trims white spaces and</li>
-     *     <li>it converts the specified string to lower case.</li>
-     * </ul>
-     *
-     * @param aliasValue the aliasValue of the supposed HonoAddressAlias.
-     * @return an Optional containing the HonoAddressAlias which matches {@code aliasValue} or an empty Optional if none
-     * matches.
-     */
-    public static Optional<HonoAddressAlias> forAliasValue(@Nullable final String aliasValue) {
-        return Stream.of(values())
-                .filter(alias -> null != aliasValue &&
-                        Objects.equals(alias.getAliasValue(), aliasValue.trim().toLowerCase(Locale.ENGLISH)))
-                .findAny();
     }
 
     /**

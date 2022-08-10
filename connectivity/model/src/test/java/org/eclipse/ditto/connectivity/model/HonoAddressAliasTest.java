@@ -12,12 +12,7 @@
  */
 package org.eclipse.ditto.connectivity.model;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.eclipse.ditto.connectivity.model.HonoAddressAlias.COMMAND_RESPONSE;
-
-import java.util.Collection;
-import java.util.LinkedHashSet;
-import java.util.UUID;
+import java.util.Locale;
 
 import org.assertj.core.api.AutoCloseableSoftAssertions;
 import org.junit.Test;
@@ -28,42 +23,12 @@ import org.junit.Test;
 public final class HonoAddressAliasTest {
 
     @Test
-    public void aliasValuesReturnsExpected() {
-        final HonoAddressAlias[] honoAddressAliases = HonoAddressAlias.values();
-        final Collection<String> expectedAliasValues = new LinkedHashSet<>(honoAddressAliases.length);
-        for (final HonoAddressAlias honoAddressAlias : honoAddressAliases) {
-            expectedAliasValues.add(honoAddressAlias.getAliasValue());
-        }
-        assertThat(HonoAddressAlias.aliasValues()).hasSameElementsAs(expectedAliasValues);
-    }
-
-    @Test
-    public void forAliasValueWithNullAliasValueReturnsEmptyOptional() {
-        assertThat(HonoAddressAlias.forAliasValue(null)).isEmpty();
-    }
-
-    @Test
-    public void forAliasValueWithUnknownAliasValueReturnsEmptyOptional() {
-        assertThat(HonoAddressAlias.forAliasValue(String.valueOf(UUID.randomUUID()))).isEmpty();
-    }
-
-    @Test
-    public void forAliasValueIsTolerantForSmallDiscrepancyInSpecifiedAliasValue() {
-        try (final AutoCloseableSoftAssertions softly = new AutoCloseableSoftAssertions()) {
-            softly.assertThat(HonoAddressAlias.forAliasValue("    TeLeMeTrY  ")).hasValue(HonoAddressAlias.TELEMETRY);
-            softly.assertThat(HonoAddressAlias.forAliasValue(COMMAND_RESPONSE.name()))
-                    .as(COMMAND_RESPONSE.name())
-                    .hasValue(COMMAND_RESPONSE);
-        }
-    }
-
-    @Test
-    public void forAliasValueReturnsExpectedForKnownAliasValue() {
+    public void getAliasValueReturnsExpected() {
         try (final AutoCloseableSoftAssertions softly = new AutoCloseableSoftAssertions()) {
             for (final HonoAddressAlias honoAddressAlias : HonoAddressAlias.values()) {
-                softly.assertThat(HonoAddressAlias.forAliasValue(honoAddressAlias.getAliasValue()))
-                        .as(honoAddressAlias.getAliasValue())
-                        .hasValue(honoAddressAlias);
+                softly.assertThat(honoAddressAlias.getAliasValue())
+                        .as(honoAddressAlias.name())
+                        .isEqualTo(honoAddressAlias.name().toLowerCase(Locale.ENGLISH));
             }
         }
     }

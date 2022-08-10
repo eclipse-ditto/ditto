@@ -24,8 +24,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import javax.annotation.concurrent.NotThreadSafe;
 
@@ -56,6 +58,10 @@ import org.eclipse.ditto.connectivity.service.config.HonoConfig;
  * @since 3.0.0
  */
 public abstract class HonoConnectionFactory {
+
+    private static final Map<String, HonoAddressAlias> HONO_ADDRESS_ALIASES_BY_ALIAS_VALUE =
+            Stream.of(HonoAddressAlias.values())
+                    .collect(Collectors.toUnmodifiableMap(HonoAddressAlias::getAliasValue, Function.identity()));
 
     protected final Connection connection;
 
@@ -130,10 +136,14 @@ public abstract class HonoConnectionFactory {
 
     private Set<String> resolveSourceAddresses(final Collection<String> unresolvedSourceAddresses) {
         return unresolvedSourceAddresses.stream()
-                .map(unresolvedSourceAddress -> HonoAddressAlias.forAliasValue(unresolvedSourceAddress)
+                .map(unresolvedSourceAddress -> getHonoAddressAliasByAliasValue(unresolvedSourceAddress)
                         .map(this::resolveSourceAddress)
                         .orElse(unresolvedSourceAddress))
                 .collect(Collectors.toCollection(LinkedHashSet::new));
+    }
+    
+    private static Optional<HonoAddressAlias> getHonoAddressAliasByAliasValue(final String aliasValue) {
+        return Optional.ofNullable(HONO_ADDRESS_ALIASES_BY_ALIAS_VALUE.get(aliasValue));
     }
 
     protected abstract String resolveSourceAddress(HonoAddressAlias honoAddressAlias);
@@ -161,7 +171,7 @@ public abstract class HonoConnectionFactory {
     }
 
     private String resolveTargetAddressOrKeepUnresolved(final String unresolvedTargetAddress) {
-        return HonoAddressAlias.forAliasValue(unresolvedTargetAddress)
+        return getHonoAddressAliasByAliasValue(unresolvedTargetAddress)
                 .map(this::resolveTargetAddress)
                 .orElse(unresolvedTargetAddress);
     }

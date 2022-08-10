@@ -149,7 +149,11 @@ public final class HonoValidatorTest {
                         .hasMessageStartingWith("The provided source address <%s> is invalid." +
                                         " It should be one of the defined aliases: ",
                                 invalidSourceAddress)
-                        .hasMessageContainingAll(HonoAddressAlias.aliasValues().toArray(CharSequence[]::new))
+                        .hasMessageContainingAll("Foo")
+                        .hasMessageContainingAll(Stream.of(HonoAddressAlias.values())
+                                .filter(honoAddressAlias -> HonoAddressAlias.COMMAND !=honoAddressAlias)
+                                .map(HonoAddressAlias::getAliasValue)
+                                .toArray(CharSequence[]::new))
                         .hasNoCause()
                         .isInstanceOfSatisfying(ConnectionConfigurationInvalidException.class,
                                 exception -> assertThat(exception.getDittoHeaders()).isEqualTo(dittoHeaders))
