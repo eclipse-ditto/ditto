@@ -25,6 +25,7 @@ import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
 import org.eclipse.ditto.base.model.exceptions.DittoInternalErrorException;
 import org.eclipse.ditto.base.model.exceptions.DittoJsonException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.namespaces.NamespaceBlockedException;
 import org.eclipse.ditto.base.model.signals.Signal;
@@ -397,6 +398,8 @@ public final class ThingEnforcerActor
                         JsonFieldSelector.newInstance("policyId"),
                         DittoHeaders.newBuilder()
                                 .correlationId("sudoRetrieveThingFromThingEnforcerActor-" + UUID.randomUUID())
+                                .putHeader(DittoHeaderDefinition.DITTO_RETRIEVE_DELETED.getKey(),
+                                        Boolean.TRUE.toString())
                                 .build()
                 ), DEFAULT_LOCAL_ASK_TIMEOUT
         ).thenApply(response -> extractPolicyIdFromSudoRetrieveThingResponse(response).orElse(null));
