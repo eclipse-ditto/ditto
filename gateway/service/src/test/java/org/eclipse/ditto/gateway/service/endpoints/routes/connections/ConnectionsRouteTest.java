@@ -10,7 +10,6 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-
 package org.eclipse.ditto.gateway.service.endpoints.routes.connections;
 
 import static org.eclipse.ditto.connectivity.model.ConnectivityModelFactory.newSourceBuilder;
@@ -49,7 +48,6 @@ import akka.http.javadsl.server.ExceptionHandler;
 import akka.http.javadsl.server.RejectionHandler;
 import akka.http.javadsl.server.Route;
 import akka.http.javadsl.testkit.TestRoute;
-
 
 public final class ConnectionsRouteTest extends EndpointTestBase {
 
@@ -259,7 +257,5 @@ public final class ConnectionsRouteTest extends EndpointTestBase {
                 .build()
                 .toJson();
     }
-
-
 
 }
