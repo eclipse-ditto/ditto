@@ -17,11 +17,12 @@ import java.text.MessageFormat;
 import java.util.Set;
 
 import org.eclipse.ditto.connectivity.model.Connection;
-import org.eclipse.ditto.connectivity.model.ConnectionType;
 import org.eclipse.ditto.connectivity.model.HonoAddressAlias;
 import org.eclipse.ditto.connectivity.model.UserPasswordCredentials;
 import org.eclipse.ditto.connectivity.service.config.DefaultHonoConfig;
 import org.eclipse.ditto.connectivity.service.config.HonoConfig;
+
+import com.typesafe.config.Config;
 
 import akka.actor.ActorSystem;
 
@@ -35,22 +36,15 @@ public final class DefaultHonoConnectionFactory extends HonoConnectionFactory {
 
     private final HonoConfig honoConfig;
 
-    private DefaultHonoConnectionFactory(final HonoConfig honoConfig, final Connection connection) {
-        super(connection);
-        this.honoConfig = honoConfig;
-    }
-
     /**
-     * Returns a new instance of {@code DefaultHonoConnectionFactory} for the specified arguments.
+     * Constructs a {@code DefaultHonoConnectionFactory} for the specified arguments.
      *
-     * @param actorSystem the actor system that is used to obtain the HonoConfig.
-     * @param connection the connection that serves as base for the Hono connection this factory returns.
-     * @return the instance.
-     * @throws NullPointerException if any argument is {@code null}.
-     * @throws IllegalArgumentException if the type of {@code connection} is not {@link ConnectionType#HONO};
+     * @param actorSystem the actor system in which to load the factory.
+     * @param config configuration properties for this factory.
+     * @throws NullPointerException if {@code actorSystem} is {@code null}.
      */
-    public static DefaultHonoConnectionFactory newInstance(final ActorSystem actorSystem, final Connection connection) {
-        return new DefaultHonoConnectionFactory(new DefaultHonoConfig(actorSystem), connection);
+    public DefaultHonoConnectionFactory(final ActorSystem actorSystem, final Config config) {
+        honoConfig = new DefaultHonoConfig(actorSystem);
     }
 
     @Override

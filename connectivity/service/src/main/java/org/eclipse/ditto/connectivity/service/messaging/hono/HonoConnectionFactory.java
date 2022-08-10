@@ -24,10 +24,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import javax.annotation.concurrent.NotThreadSafe;
 
@@ -43,6 +41,12 @@ import org.eclipse.ditto.connectivity.model.Target;
 import org.eclipse.ditto.connectivity.model.Topic;
 import org.eclipse.ditto.connectivity.model.UserPasswordCredentials;
 import org.eclipse.ditto.connectivity.service.config.HonoConfig;
+import org.eclipse.ditto.internal.utils.extension.DittoExtensionIds;
+import org.eclipse.ditto.internal.utils.extension.DittoExtensionPoint;
+
+import com.typesafe.config.Config;
+
+import akka.actor.ActorSystem;
 
 /**
  * Base implementation of a factory for getting a Hono {@link Connection}.
@@ -57,52 +61,85 @@ import org.eclipse.ditto.connectivity.service.config.HonoConfig;
  *
  * @since 3.0.0
  */
-public abstract class HonoConnectionFactory {
-
-    private static final Map<String, HonoAddressAlias> HONO_ADDRESS_ALIASES_BY_ALIAS_VALUE =
-            Stream.of(HonoAddressAlias.values())
-                    .collect(Collectors.toUnmodifiableMap(HonoAddressAlias::getAliasValue, Function.identity()));
-
-    protected final Connection connection;
+public abstract class HonoConnectionFactory implements DittoExtensionPoint {
 
     /**
      * Constructs a {@code HonoConnectionFactory}.
+     */
+    protected HonoConnectionFactory() {
+        super();
+    }
+
+    /**
+     * Loads the implementation of {@code HonoConnectionFactory} which is configured for the specified
+     * {@code ActorSystem}.
+     *
+     * @param actorSystem the actorSystem in which the {@code HonoConnectionFactory} should be loaded.
+     * @param config the configuration for this extension.
+     * @return the {@code HonoConnectionFactory} implementation.
+     * @throws NullPointerException if any argument is {@code null}.
+     */
+    public static HonoConnectionFactory get(final ActorSystem actorSystem, final Config config) {
+        checkNotNull(actorSystem, "actorSystem");
+        checkNotNull(config, "config");
+
+        return DittoExtensionIds.get(actorSystem)
+                .computeIfAbsent(
+                        DittoExtensionPoint.ExtensionId.ExtensionIdConfig.of(HonoConnectionFactory.class,
+                                config,
+                                ExtensionId.CONFIG_KEY),
+                        ExtensionId::new
+                )
+                .get(actorSystem);
+    }
+
+    /**
+     * Returns a proper Hono Connection for the Connection that was used to create this factory instance.
      *
      * @param connection the connection that serves as base for the Hono connection this factory returns.
+     * @return the Hono Connection.
      * @throws NullPointerException if {@code connection} is {@code null}.
      * @throws IllegalArgumentException if the type of {@code connection} is not {@link ConnectionType#HONO};
+     * @throws org.eclipse.ditto.base.model.exceptions.DittoRuntimeException if converting {@code connection} to a
+     * Hono connection failed for some reason.
      */
-    protected HonoConnectionFactory(final Connection connection) {
-        this.connection = checkArgument(
+    public Connection getHonoConnection(final Connection connection) {
+        checkArgument(
                 checkNotNull(connection, "connection"),
                 arg -> ConnectionType.HONO == arg.getConnectionType(),
                 () -> MessageFormat.format("Expected type of connection to be <{0}> but it was <{1}>.",
                         ConnectionType.HONO,
                         connection.getConnectionType())
         );
-    }
 
-    /**
-     * Returns a proper Hono Connection for the Connection that was used to create this factory instance.
-     *
-     * @return the Hono Connection.
-     */
-    public Connection getHonoConnection() {
+        preConversion(connection);
+
         return ConnectivityModelFactory.newConnectionBuilder(connection)
                 .uri(String.valueOf(getBaseUri()))
                 .validateCertificate(isValidateCertificates())
-                .specificConfig(getSpecificConfig())
+                .specificConfig(getSpecificConfig(connection))
                 .credentials(getCredentials())
                 .setSources(getSources(connection.getSources()))
                 .setTargets(getTargets(connection.getTargets()))
                 .build();
     }
 
+    /**
+     * User overridable callback.
+     * This method is called before the actual conversion of the specified {@code Connection} is performed.
+     * Empty default implementation.
+     *
+     * @param honoConnection the connection that is guaranteed to have type {@link ConnectionType#HONO}.
+     */
+    protected void preConversion(final Connection honoConnection) {
+        // Do nothing by default.
+    }
+
     protected abstract URI getBaseUri();
 
     protected abstract boolean isValidateCertificates();
 
-    private Map<String, String> getSpecificConfig() {
+    private Map<String, String> getSpecificConfig(final Connection connection) {
         return Map.of(
                 "saslMechanism", String.valueOf(getSaslMechanism()),
                 "bootstrapServers", getAsCommaSeparatedListString(getBootstrapServerUris()),
@@ -136,14 +173,10 @@ public abstract class HonoConnectionFactory {
 
     private Set<String> resolveSourceAddresses(final Collection<String> unresolvedSourceAddresses) {
         return unresolvedSourceAddresses.stream()
-                .map(unresolvedSourceAddress -> getHonoAddressAliasByAliasValue(unresolvedSourceAddress)
+                .map(unresolvedSourceAddress -> HonoAddressAlias.forAliasValue(unresolvedSourceAddress)
                         .map(this::resolveSourceAddress)
                         .orElse(unresolvedSourceAddress))
                 .collect(Collectors.toCollection(LinkedHashSet::new));
-    }
-    
-    private static Optional<HonoAddressAlias> getHonoAddressAliasByAliasValue(final String aliasValue) {
-        return Optional.ofNullable(HONO_ADDRESS_ALIASES_BY_ALIAS_VALUE.get(aliasValue));
     }
 
     protected abstract String resolveSourceAddress(HonoAddressAlias honoAddressAlias);
@@ -171,7 +204,7 @@ public abstract class HonoConnectionFactory {
     }
 
     private String resolveTargetAddressOrKeepUnresolved(final String unresolvedTargetAddress) {
-        return getHonoAddressAliasByAliasValue(unresolvedTargetAddress)
+        return HonoAddressAlias.forAliasValue(unresolvedTargetAddress)
                 .map(this::resolveTargetAddress)
                 .orElse(unresolvedTargetAddress);
     }
@@ -239,6 +272,21 @@ public abstract class HonoConnectionFactory {
         return targetTopics.stream()
                 .map(FilteredTopic::getTopic)
                 .anyMatch(isLiveMessages.or(isLiveCommands));
+    }
+
+    public static final class ExtensionId extends DittoExtensionPoint.ExtensionId<HonoConnectionFactory> {
+
+        private static final String CONFIG_KEY = "hono-connection-factory";
+
+        private ExtensionId(final ExtensionIdConfig<HonoConnectionFactory> extensionIdConfig) {
+            super(extensionIdConfig);
+        }
+
+        @Override
+        protected String getConfigKey() {
+            return CONFIG_KEY;
+        }
+
     }
 
     @NotThreadSafe

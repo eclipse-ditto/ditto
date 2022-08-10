@@ -41,7 +41,6 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
-import org.mockito.Mockito;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
@@ -78,16 +77,8 @@ public final class DefaultHonoConnectionFactoryTest {
     @Test
     public void newInstanceWithNullActorSystemThrowsException() {
         Assertions.assertThatNullPointerException()
-                .isThrownBy(() -> DefaultHonoConnectionFactory.newInstance(null, Mockito.mock(Connection.class)))
+                .isThrownBy(() -> new DefaultHonoConnectionFactory(null, ConfigFactory.empty()))
                 .withMessage("The actorSystem must not be null!")
-                .withNoCause();
-    }
-
-    @Test
-    public void newInstanceWithNullConnectionThrowsException() {
-        Assertions.assertThatNullPointerException()
-                .isThrownBy(() -> DefaultHonoConnectionFactory.newInstance(actorSystemResource.getActorSystem(), null))
-                .withMessage("The connection must not be null!")
                 .withNoCause();
     }
 
@@ -96,10 +87,11 @@ public final class DefaultHonoConnectionFactoryTest {
         final var userProvidedHonoConnection =
                 ConnectivityModelFactory.connectionFromJson(honoTestConnectionJsonObject);
 
-        final var underTest = DefaultHonoConnectionFactory.newInstance(actorSystemResource.getActorSystem(),
-                userProvidedHonoConnection);
+        final var underTest =
+                new DefaultHonoConnectionFactory(actorSystemResource.getActorSystem(), ConfigFactory.empty());
 
-        assertThat(underTest.getHonoConnection()).isEqualTo(getExpectedHonoConnection(userProvidedHonoConnection));
+        assertThat(underTest.getHonoConnection(userProvidedHonoConnection))
+                .isEqualTo(getExpectedHonoConnection(userProvidedHonoConnection));
     }
 
     private Connection getExpectedHonoConnection(final Connection originalConnection) {
