@@ -11,65 +11,158 @@ package org.eclipse.ditto.connectivity.service.mapping;
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-//import org.eclipse.ditto.base.model.common.DittoConstants;
-//import org.eclipse.ditto.base.model.headers.DittoHeaders;
-//import org.eclipse.ditto.connectivity.api.ExternalMessage;
-//import org.eclipse.ditto.connectivity.api.ExternalMessageFactory;
-//import org.eclipse.ditto.json.JsonFactory;
-//import org.eclipse.ditto.json.JsonPointer;
-//import org.eclipse.ditto.protocol.JsonifiableAdaptable;
-//import org.eclipse.ditto.protocol.ProtocolFactory;
-//import org.eclipse.ditto.protocol.adapter.DittoProtocolAdapter;
-//import org.eclipse.ditto.protocol.adapter.ProtocolAdapter;
-//import org.eclipse.ditto.things.model.ThingId;
-//import org.junit.Before;
-//import org.junit.Test;
-//
-//import java.util.Map;
-//
-//import static org.eclipse.ditto.connectivity.service.mapping.AbstractMessageMapper.extractPayloadAsString;
-//import static org.junit.Assert.assertEquals;
-//
-//public class CloudEventsMapperTest {
-//
-//     private static final ThingId THING_ID = ThingId.of("thing:id");
-//     private static final ProtocolAdapter ADAPTER = DittoProtocolAdapter.newInstance();
-//
-//  public static void main(String[] args) {
-//    //
-//      ThingId thingId = ThingId.of("org.eclipse.ditto:thingID");
-//      final JsonifiableAdaptable adaptable =
-//              ProtocolFactory.wrapAsJsonifiableAdaptable(ProtocolFactory.newAdaptableBuilder
-//                              (ProtocolFactory.newTopicPathBuilder(thingId).things().twin().commands().modify().build())
-//                      .withPayload(ProtocolFactory
-//                              .newPayloadBuilder(JsonPointer.of("/features"))
-//                              .withValue(JsonFactory.nullLiteral())
-//                              .build())
-//                      .build());
-//      ExternalMessage message = ExternalMessageFactory.newExternalMessageBuilder(
-//                      Map.of(ExternalMessage.CONTENT_TYPE_HEADER, DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE))
-//              .withTopicPath(adaptable.getTopicPath())
-//              .withText(adaptable.toJsonString())
-//              .build();
-//    System.out.println(extractPayloadAsString(message));
-//  }
-//
-//     String payload =
-//      "{\"specversion\": \"1.0\", \"id\":\"3212e\", \"source\":\"http:somesite.com\",\"type\":\"com.site.com\"}";
-//    private CloudEventsMapper underTest;
-//
-//    @Before
-//    public void setUp() {
-//        underTest = new CloudEventsMapper();
-//    }
-//
-//      @Test
-//     public void validatePayload() {
-//         Boolean expected = true;
-//         Boolean actual = underTest.validatePayload(payload);
-//         assertEquals(expected, actual);
-//     }
-//
-//    @Test
-//    private void CloudEventsStructuredMessage() {}
-//}
+import org.eclipse.ditto.base.model.common.DittoConstants;
+import org.eclipse.ditto.base.model.exceptions.DittoJsonException;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.connectivity.api.ExternalMessage;
+import org.eclipse.ditto.connectivity.api.ExternalMessageFactory;
+import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.protocol.Adaptable;
+import org.eclipse.ditto.protocol.JsonifiableAdaptable;
+import org.eclipse.ditto.protocol.ProtocolFactory;
+import org.eclipse.ditto.protocol.adapter.DittoProtocolAdapter;
+import org.eclipse.ditto.protocol.adapter.ProtocolAdapter;
+import org.eclipse.ditto.things.model.ThingId;
+import org.junit.Before;
+import org.junit.Test;
+
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
+import java.util.List;
+import java.util.Map;
+
+import static java.util.Collections.singletonList;
+import static org.eclipse.ditto.connectivity.service.mapping.AbstractMessageMapper.extractPayloadAsString;
+import static org.junit.Assert.assertEquals;
+
+public class CloudEventsMapperTest {
+
+  private static final ThingId THING_ID = ThingId.of("thing:id");
+  private static final ProtocolAdapter ADAPTER = DittoProtocolAdapter.newInstance();
+
+  //  public static void main(String[] args) {
+  //    //
+  //      String test = "{\"specversion\": \"1.0\", \"id\":\"3212e\",
+  // \"source\":\"http:somesite.com\",\"type\":\"com.site.com\",\"data\":{
+  // \"topic\":\"my.sensors/sensor01/things/twin/commands/create\", \"path\":\"/\",\"value\":55}";
+  //
+  //      ThingId thingId = ThingId.of("org.eclipse.ditto:thingID");
+  //      final JsonifiableAdaptable adaptable =
+  //              ProtocolFactory.wrapAsJsonifiableAdaptable(ProtocolFactory.newAdaptableBuilder
+  //
+  // (ProtocolFactory.newTopicPathBuilder(thingId).things().twin().commands().modify().build())
+  //                      .withPayload(ProtocolFactory
+  //                              .newPayloadBuilder(JsonPointer.of("/"))
+  //                              .withValue(JsonFactory.newObject("{\"value\":\"534\"}"))
+  //                              .build())
+  //                      .build());
+  //      ExternalMessage message = ExternalMessageFactory.newExternalMessageBuilder(
+  //                      Map.of(ExternalMessage.CONTENT_TYPE_HEADER,
+  // DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE))
+  //
+  //              .build();
+  //
+  //  }
+
+  String payload =
+      "{\"specversion\": \"1.0\", \"id\":\"3212e\", \"source\":\"http:somesite.com\",\"type\":\"com.site.com\"}";
+  String testPayload =
+      "{\n"
+          + "      \"specversion\": \"1.0\", \"id\":\"3212e\", \"source\":\"http:somesite.com\",\"type\":\"com.site.com\",\n"
+          + "      \"data\":{\n"
+          + "      \"topic\":\"my.sensors/sensor01/things/twin/commands/modify\",\n"
+          + "      \"path\":\"/\",\n"
+          + "      \"value\":{\n"
+          + "          \"thingId\": \"my.sensors:sensor01\",\n"
+          + "          \"policyId\": \"my.test:policy\",\n"
+          + "          \"attributes\": {\n"
+          + "              \"manufacturer\": \"Well known sensors producer\",\n"
+          + "                \"serial number\": \"100\", \n"
+          + "                \"location\": \"Ground floor\" },\n"
+          + "                \"features\": {\n"
+          + "                  \"measurements\": \n"
+          + "                   {\"properties\": \n"
+          + "                   {\"temperature\": 100,\n"
+          + "                    \"humidity\": 0}}}}}}";
+
+  String data =
+      "{\n"
+          + "  \"topic\":\"my.sensors/sensor01/things/twin/commands/modify\",\n"
+          + "  \"path\":\"/\",\n"
+          + "  \"value\":{\n"
+          + "      \"thingId\": \"my.sensors:sensor01\",\n"
+          + "      \"policyId\": \"my.test:policy\",\n"
+          + "      \"attributes\": {\n"
+          + "          \"manufacturer\": \"Well known sensors producer\",\n"
+          + "            \"serial number\": \"100\", \n"
+          + "            \"location\": \"Ground floor\" },\n"
+          + "            \"features\": {\n"
+          + "              \"measurements\": \n"
+          + "               {\"properties\": \n"
+          + "               {\"temperature\": 100,\n"
+          + "                \"humidity\": 0}}}}}";
+
+  String base64payload =
+      "{\n"
+          + "                    \"specversion\": \"1.0\" , \"id\":\"3212e\", \"source\":\"http:somesite.com\",\"type\":\"com.site.com\",\n"
+          + "                    \"data_base64\":\"ewogICJ0b3BpYyI6Im15LnNlbnNvcnMvc2Vuc29yMDEvdGhpbmdzL3R3aW4vY29tbWFuZHMvbW9kaWZ5IiwKICAicGF0aCI6Ii8iLAogICJ2YWx1ZSI6ewogICAgICAidGhpbmdJZCI6ICJteS5zZW5zb3JzOnNlbnNvcjAxIiwKICAgICAgInBvbGljeUlkIjogIm15LnRlc3Q6cG9saWN5IiwKICAgICAgImF0dHJpYnV0ZXMiOiB7CiAgICAgICAgICAibWFudWZhY3R1cmVyIjogIldlbGwga25vd24gc2Vuc29ycyBwcm9kdWNlciIsCiAgICAgICAgICAgICJzZXJpYWwgbnVtYmVyIjogIjEwMCIsIAogICAgICAgICAgICAibG9jYXRpb24iOiAiR3JvdW5kIGZsb29yIiB9LAogICAgICAgICAgICAiZmVhdHVyZXMiOiB7CiAgICAgICAgICAgICAgIm1lYXN1cmVtZW50cyI6IAogICAgICAgICAgICAgICB7InByb3BlcnRpZXMiOiAKICAgICAgICAgICAgICAgeyJ0ZW1wZXJhdHVyZSI6IDEwMCwKICAgICAgICAgICAgICAgICJodW1pZGl0eSI6IDIwMH19fX19\"\n"
+          + "                  }";
+
+  String data_base64 =
+      "ewogICJ0b3BpYyI6Im15LnNlbnNvcnMvc2Vuc29yMDEvdGhpbmdzL3R3aW4vY29tbWFuZHMvbW9kaWZ5IiwKICAicGF0aCI6Ii8iLAogICJ2YWx1ZSI6ewogICAgICAidGhpbmdJZCI6ICJteS5zZW5zb3JzOnNlbnNvcjAxIiwKICAgICAgInBvbGljeUlkIjogIm15LnRlc3Q6cG9saWN5IiwKICAgICAgImF0dHJpYnV0ZXMiOiB7CiAgICAgICAgICAibWFudWZhY3R1cmVyIjogIldlbGwga25vd24gc2Vuc29ycyBwcm9kdWNlciIsCiAgICAgICAgICAgICJzZXJpYWwgbnVtYmVyIjogIjEwMCIsIAogICAgICAgICAgICAibG9jYXRpb24iOiAiR3JvdW5kIGZsb29yIiB9LAogICAgICAgICAgICAiZmVhdHVyZXMiOiB7CiAgICAgICAgICAgICAgIm1lYXN1cmVtZW50cyI6IAogICAgICAgICAgICAgICB7InByb3BlcnRpZXMiOiAKICAgICAgICAgICAgICAgeyJ0ZW1wZXJhdHVyZSI6IDEwMCwKICAgICAgICAgICAgICAgICJodW1pZGl0eSI6IDIwMH19fX19";
+  private CloudEventsMapper underTest;
+
+  @Before
+  public void setUp() {
+    underTest = new CloudEventsMapper();
+  }
+
+  @Test
+  public void textPayloadMessage() {
+    ExternalMessage message =
+        ExternalMessageFactory.newExternalMessageBuilder(
+                Map.of(
+                    ExternalMessage.CONTENT_TYPE_HEADER,
+                    DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE))
+            .withText(testPayload)
+            .build();
+
+    Adaptable expectedAdaptable =
+        DittoJsonException.wrapJsonRuntimeException(
+            () -> ProtocolFactory.jsonifiableAdaptableFromJson(JsonFactory.newObject(data)));
+    List<Adaptable> expectedMap =
+        singletonList(ProtocolFactory.newAdaptableBuilder(expectedAdaptable).build());
+    assertEquals(expectedMap, underTest.map(message));
+  }
+
+  @Test
+  public void validatePayload() {
+    Boolean expected = true;
+    Boolean actual = underTest.validatePayload(payload);
+    assertEquals(expected, actual);
+  }
+
+  @Test
+  public void base64Payload() {
+    ExternalMessage message =
+        ExternalMessageFactory.newExternalMessageBuilder(
+                Map.of(
+                    ExternalMessage.CONTENT_TYPE_HEADER,
+                    DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE))
+            .withText(base64payload)
+            .build();
+    System.out.println(underTest.map(message));
+    String base64 = data_base64.replace("\"", "");
+    byte[] decodedBytes = Base64.getDecoder().decode(base64);
+    String decodedString = new String(decodedBytes);
+
+    Adaptable expectedAdaptable =
+        DittoJsonException.wrapJsonRuntimeException(
+            () ->
+                ProtocolFactory.jsonifiableAdaptableFromJson(JsonFactory.newObject(decodedString)));
+    List<Adaptable> expectedMap =
+        singletonList(ProtocolFactory.newAdaptableBuilder(expectedAdaptable).build());
+    assertEquals(expectedMap, underTest.map(message));
+  }
+}
