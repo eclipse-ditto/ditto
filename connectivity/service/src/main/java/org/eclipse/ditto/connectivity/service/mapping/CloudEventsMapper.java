@@ -24,6 +24,8 @@ import org.eclipse.ditto.connectivity.api.ExternalMessage;
 import org.eclipse.ditto.connectivity.api.ExternalMessageFactory;
 import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
 import org.eclipse.ditto.connectivity.model.MappingContext;
+import org.eclipse.ditto.internal.utils.akka.logging.DittoLogger;
+import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.json.*;
 import org.eclipse.ditto.protocol.Adaptable;
 import org.eclipse.ditto.protocol.JsonifiableAdaptable;
@@ -40,6 +42,7 @@ import org.eclipse.ditto.protocol.ProtocolFactory;
     })
 public final class CloudEventsMapper extends AbstractMessageMapper {
 
+  private static final DittoLogger LOGGER = DittoLoggerFactory.getLogger(CloudEventsMapper.class);
   static final String CE_ID = "ce-id";
   static final String CE_TYPE = "ce-type";
   static final String CE_SOURCE = "ce-source";
@@ -96,7 +99,6 @@ public final class CloudEventsMapper extends AbstractMessageMapper {
 
   private JsonifiableAdaptable extractData(final String message)
       throws UnsupportedEncodingException {
-    Map<String, String> payloadMap = new HashMap<>();
     final JsonObject payloadJson = JsonFactory.newObject(message);
     if (payloadJson.getValue("data_base64").isPresent()) {
       String base64Data = payloadJson.getValue("data_base64").orElse(null).asString();
@@ -122,10 +124,9 @@ public final class CloudEventsMapper extends AbstractMessageMapper {
     if (validatePayload(payload)) {
       try {
         JsonifiableAdaptable adaptable = extractData(payload);
-        ;
         return singletonList(ProtocolFactory.newAdaptableBuilder(adaptable).build());
-      } catch (Throwable e) {
-        e.printStackTrace();
+      } catch (Exception e) {
+         e.printStackTrace();
       }
     }
     return null;
