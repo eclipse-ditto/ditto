@@ -111,6 +111,59 @@ public final class ShardRegionCreatorTest {
         }};
     }
 
+    @Test
+    public void testSelfRestart() throws Exception {
+        new TestKit(system2) {{
+            // GIVEN: 2 actor systems form a cluster with shard regions started on both
+            final var latch = new CountDownLatch(2);
+            final var cluster1 = Cluster.get(system1);
+            final var cluster2 = Cluster.get(system2);
+            cluster1.registerOnMemberUp(latch::countDown);
+            cluster2.registerOnMemberUp(latch::countDown);
+            cluster1.join(cluster1.selfAddress());
+            cluster2.join(cluster1.selfAddress());
+            latch.await();
+
+            final var props = Props.create(MessageForwarder.class, testActor());
+            final var shardName = "shard";
+            final var role = "dc-default";
+            final var extractor = new DummyExtractor();
+            final var shard1 = ShardRegionCreator.start(system1, shardName, props, extractor, role);
+            final var shard2 = ShardRegionCreator.start(system2, shardName, props, extractor, role);
+            final var proxy1 = ClusterSharding.get(system1).startProxy(shardName, Optional.of(role), extractor);
+
+            // GIVEN: a sharded actor is started
+            final var signal = DeleteThing.of(ThingId.of("thing:id"), DittoHeaders.empty());
+            proxy1.tell(signal, testActor());
+            final var firstShardedActor = expectMsgClass(ActorRef.class);
+            expectMsgClass(DeleteThing.class);
+
+            final var startedInSystem1 = isShardedActorIn(firstShardedActor, system1);
+            final var startedInSystem2 = isShardedActorIn(firstShardedActor, system2);
+            assertThat(startedInSystem1)
+                    .describedAs("Sharded actor should start in exactly 1 actor system")
+                    .isNotEqualTo(startedInSystem2);
+
+            // WHEN: the shard region containing the started actor is shut down
+            final var shardOfFirstActor = startedInSystem1 ? shard1 : shard2;
+            shardOfFirstActor.tell(ShardRegion.GracefulShutdown$.MODULE$, ActorRef.noSender());
+
+            // THEN: the sharded actor receives the hand-off message
+            expectMsgClass(StopShardedActor.class);
+
+            // WHEN: the sharded actor queues another message to self before stoppin
+            firstShardedActor.tell(MessageForwarder.MESSAGE_SHARD, testActor());
+            expectMsg(MessageForwarder.MESSAGE_SHARD);
+            firstShardedActor.tell(PoisonPill.getInstance(), testActor());
+
+            // THEN: a new sharded actor for the same entity starts in the remaining shard region
+            final var activeSystem = startedInSystem1 ? system2 : system1;
+            final var secondShardedActor = expectMsgClass(Duration.apply(10, "s"), ActorRef.class);
+            assertThat(isShardedActorIn(secondShardedActor, activeSystem)).isTrue();
+            expectMsg(MessageForwarder.RESTART_TRIGGER);
+        }};
+    }
+
     private static boolean isShardedActorIn(final ActorRef shardedActor, final ActorSystem system) {
         final var relativePath =
                 shardedActor.path().elements().drop(1).reduce((x, y) -> x + "/" + y).toString();
@@ -142,6 +195,9 @@ public final class ShardRegionCreatorTest {
 
     private static final class MessageForwarder extends AbstractActor {
 
+        private static final Object MESSAGE_SHARD = "message shard";
+        private static final Object RESTART_TRIGGER = "restart trigger";
+
         private final ActorRef receiver;
 
         private MessageForwarder(final ActorRef receiver) {
@@ -156,6 +212,12 @@ public final class ShardRegionCreatorTest {
         @Override
         public Receive createReceive() {
             return ReceiveBuilder.create()
+                    .matchEquals(MESSAGE_SHARD, m -> {
+                        ClusterSharding.get(getContext().getSystem())
+                                .shardRegion("shard")
+                                .tell(RESTART_TRIGGER, getSelf());
+                        getSender().tell(MESSAGE_SHARD, getSelf());
+                    })
                     .matchAny(message -> receiver.tell(message, getSelf()))
                     .build();
         }
