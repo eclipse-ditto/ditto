@@ -42,7 +42,6 @@ import org.eclipse.ditto.protocol.ProtocolFactory;
     })
 public final class CloudEventsMapper extends AbstractMessageMapper {
 
-  private static final DittoLogger LOGGER = DittoLoggerFactory.getLogger(CloudEventsMapper.class);
   static final String CE_ID = "ce-id";
   static final String CE_TYPE = "ce-type";
   static final String CE_SOURCE = "ce-source";
@@ -125,7 +124,7 @@ public final class CloudEventsMapper extends AbstractMessageMapper {
       try {
         JsonifiableAdaptable adaptable = extractData(payload);
         return singletonList(ProtocolFactory.newAdaptableBuilder(adaptable).build());
-      } catch (Exception e) {
+      } catch (Throwable e) {
          e.printStackTrace();
       }
     }

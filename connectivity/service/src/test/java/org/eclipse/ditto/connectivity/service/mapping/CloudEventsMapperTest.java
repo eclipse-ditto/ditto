@@ -155,19 +155,6 @@ public class CloudEventsMapperTest {
   }
 
   @Test
-  public void invalidPayloadOutput(){
-    ExternalMessage message =
-            ExternalMessageFactory.newExternalMessageBuilder(
-                            Map.of(
-                                    ExternalMessage.CONTENT_TYPE_HEADER,
-                                    DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE))
-                    .withText(incompletePayload)
-                    .build();
-
-    assertEquals(underTest.map(message),null);
-  }
-
-  @Test
   public void validatePayloadTest() {
     Boolean expected = true;
     Boolean actual = underTest.validatePayload(payload);
