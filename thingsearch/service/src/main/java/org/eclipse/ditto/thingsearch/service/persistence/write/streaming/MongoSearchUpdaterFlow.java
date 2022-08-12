@@ -154,6 +154,7 @@ final class MongoSearchUpdaterFlow {
         } else if (writeModel instanceof DeleteManyModel) {
             return ((DeleteManyModel<BsonDocument>) writeModel).getFilter().toString();
         }
+
         return "no filter";
     }
 

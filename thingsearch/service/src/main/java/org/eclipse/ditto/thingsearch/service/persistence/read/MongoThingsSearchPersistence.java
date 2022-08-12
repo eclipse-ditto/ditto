@@ -162,6 +162,7 @@ public final class MongoThingsSearchPersistence implements ThingsSearchPersisten
                             ? document.get(PersistenceConstants.FIELD_ID).toString()
                             : "NOT_MIGRATED";
                     final long count = Long.parseLong(document.get(PersistenceConstants.FIELD_COUNT).toString());
+
                     return new SearchNamespaceResultEntry(namespace, count);
                 })
                 .fold(new ArrayList<SearchNamespaceResultEntry>(), (list, entry) -> {

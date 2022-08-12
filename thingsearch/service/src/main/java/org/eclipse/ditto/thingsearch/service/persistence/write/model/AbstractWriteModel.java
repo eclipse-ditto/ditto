@@ -112,4 +112,5 @@ public abstract class AbstractWriteModel {
         return getClass().getSimpleName() + " [" +
                 "metadata=" + metadata + " ]";
     }
+
 }

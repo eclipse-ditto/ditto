@@ -125,6 +125,7 @@ public final class GetFilterBsonVisitor extends AbstractFieldBsonCreator impleme
     private Bson matchValue(final CharSequence key) {
         final JsonPointer pointer = JsonPointer.of(key);
         final Bson keyValueFilter = predicateFunction.apply(toDottedPath(FIELD_THING, pointer));
+
         return getAuthorizationBson(pointer)
                 .map(authBson -> Filters.and(keyValueFilter, authBson))
                 .orElse(keyValueFilter);
@@ -133,6 +134,7 @@ public final class GetFilterBsonVisitor extends AbstractFieldBsonCreator impleme
     private Bson matchWildcardFeatureValue(final CharSequence key) {
         final JsonPointer pointer = JsonPointer.of(key);
         final Bson keyValueFilter = predicateFunction.apply(toDottedPath(pointer));
+
         return getFeatureWildcardAuthorizationBson(pointer)
                 .map(authBson -> Filters.elemMatch(FIELD_F_ARRAY, Filters.and(keyValueFilter, authBson)))
                 .orElse(keyValueFilter);

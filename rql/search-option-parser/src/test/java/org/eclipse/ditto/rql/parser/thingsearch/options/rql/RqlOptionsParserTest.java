@@ -111,7 +111,7 @@ public final class RqlOptionsParserTest {
     @Test
     public void parseOptionCombinations() throws ParserException {
         final List<Option> options = parser.parse("sort(-attributes/username),cursor(ABC),size(463)");
-        assertThat(options.size()).isEqualTo(4);
+        assertThat(options.size()).isEqualTo(3);
 
         final SortOption sortOption = (SortOption) options.get(0);
         assertThat(sortOption.getEntries().stream()
@@ -126,10 +126,10 @@ public final class RqlOptionsParserTest {
                 .anyMatch(SortOptionEntry.SortOrder.DESC::equals)
         ).isTrue();
 
-        final CursorOption cursorOption = (CursorOption) options.get(2);
+        final CursorOption cursorOption = (CursorOption) options.get(1);
         assertThat(cursorOption.getCursor()).isEqualTo("ABC");
 
-        final SizeOption sizeOption = (SizeOption) options.get(3);
+        final SizeOption sizeOption = (SizeOption) options.get(2);
         assertThat(sizeOption.getSize()).isEqualTo(463);
     }
 

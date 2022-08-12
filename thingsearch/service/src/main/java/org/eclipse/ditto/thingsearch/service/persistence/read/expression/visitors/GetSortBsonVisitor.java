@@ -65,6 +65,7 @@ public final class GetSortBsonVisitor implements SortFieldExpressionVisitor<Stri
                 .map(SortOption::getSortExpression)
                 .map(GetSortBsonVisitor::path)
                 .forEach(path -> document.append(path, true));
+
         return document;
     }
 
@@ -82,6 +83,7 @@ public final class GetSortBsonVisitor implements SortFieldExpressionVisitor<Stri
                 .map(GetSortBsonVisitor::path)
                 .map(seekToPath(document))
                 .forEach(value -> builder.add(toJsonValue(value)));
+
         return builder.build();
     }
 

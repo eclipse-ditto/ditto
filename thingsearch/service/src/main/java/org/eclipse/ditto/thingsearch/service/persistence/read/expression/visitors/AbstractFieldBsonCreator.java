@@ -110,6 +110,7 @@ public abstract class AbstractFieldBsonCreator {
         final Bson or = child != null
                 ? Filters.or(Filters.in(grant, authSubjectIds), child)
                 : Filters.or(Filters.in(grant, authSubjectIds));
+
         return Filters.and(Filters.nin(revoke, authSubjectIds), or);
     }
 
@@ -123,6 +124,7 @@ public abstract class AbstractFieldBsonCreator {
         if (pointer.isEmpty()) {
             return Stream.empty();
         }
+
         return Stream.concat(collectPaths(pointer.cutLeaf()), Stream.of(pointer));
     }
 

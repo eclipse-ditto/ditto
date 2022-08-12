@@ -98,13 +98,16 @@ public final class BsonDiff {
         // compute the internal array diff especially to find similar elements by internal key
         final var minuendFeatures = minuend.getArray(FIELD_F_ARRAY);
         final var subtrahendFeatures = subtrahend.getArray(FIELD_F_ARRAY);
-        final var diffFeatures = BsonArrayDiff.diffFeaturesArray(minuendFeatures, subtrahendFeatures, maxWireVersion);
+        final var diffFeatures =
+                BsonArrayDiff.diffFeaturesArray(minuendFeatures, subtrahendFeatures, maxWireVersion);
         // compute the rest of the diff without the internal array
         final var minuendWithoutInternal = minuend.clone();
         final var subtrahendWithoutInternal = subtrahend.clone();
         minuendWithoutInternal.remove(FIELD_F_ARRAY);
         subtrahendWithoutInternal.remove(FIELD_F_ARRAY);
-        final var diffWithoutInternal = minus(minuendWithoutInternal, subtrahendWithoutInternal, true, maxWireVersion);
+        final var diffWithoutInternal =
+                minus(minuendWithoutInternal, subtrahendWithoutInternal, true, maxWireVersion);
+
         return diffWithoutInternal.concat(diffFeatures);
     }
 
@@ -138,6 +141,7 @@ public final class BsonDiff {
         if (!unsetArray.isEmpty()) {
             result.add(new BsonDocument().append(UNSET, unsetArray));
         }
+
         return result;
     }
 
@@ -153,12 +157,14 @@ public final class BsonDiff {
     private BsonDocument consumeAndExportSet() {
         final BsonDocument setDocument = new BsonDocument();
         setPointers.forEach(pair -> setDocument.append(getPathString(pair.first()), pair.second()));
+
         return setDocument;
     }
 
     private BsonArray consumeAndExportUnset() {
         final var unsetArray = new BsonArray();
         unsetPointers.forEach(path -> unsetArray.add(new BsonString(getPathString(path))));
+
         return unsetArray;
     }
 

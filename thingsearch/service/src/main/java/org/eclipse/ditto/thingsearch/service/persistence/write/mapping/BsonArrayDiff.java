@@ -107,6 +107,7 @@ final class BsonArrayDiff {
             for (final var element : elements) {
                 result.add(element.toBsonValue());
             }
+
             return result;
         }
     }
@@ -129,6 +130,7 @@ final class BsonArrayDiff {
                 result.add(new Replace(element));
             }
         }
+
         return result;
     }
 
@@ -136,6 +138,7 @@ final class BsonArrayDiff {
         final BsonArray args = new BsonArray();
         args.add(subtrahendExpr);
         args.add(new BsonInt32(i));
+
         return new BsonDocument().append(ARRAY_ELEM_AT, args);
     }
 
@@ -169,6 +172,7 @@ final class BsonArrayDiff {
             // Add element as a new group.
             aggregated.add(element.toSingletonGroup());
         }
+
         return aggregated;
     }
 
