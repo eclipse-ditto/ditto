@@ -111,6 +111,16 @@ public final class UserPasswordCredentials implements Credentials {
     }
 
     /**
+     * Create credentials from JsonObject
+     *
+     * @param jsonObject the jsonObject
+     * @return credentials.
+     */
+    public static UserPasswordCredentials newInstance(final JsonObject jsonObject) {
+        return UserPasswordCredentials.fromJson(jsonObject);
+    }
+
+    /**
      * JSON field definitions.
      */
     public static final class JsonFields extends Credentials.JsonFields {
