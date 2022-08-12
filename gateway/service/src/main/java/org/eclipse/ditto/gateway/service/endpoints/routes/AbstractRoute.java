@@ -155,7 +155,7 @@ public abstract class AbstractRoute extends AllDirectives {
         if (throttlingConfig.isEnabled()) {
             return Flow.<T>create().throttle(throttlingConfig.getLimit(), throttlingConfig.getInterval());
         } else {
-            return Flow.create();
+            return Flow.<T>create();
         }
     }
 

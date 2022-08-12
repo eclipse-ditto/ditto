@@ -28,6 +28,7 @@ import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.json.JsonKey;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonParseException;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.policies.model.Label;
@@ -35,6 +36,8 @@ import org.eclipse.ditto.policies.model.PoliciesModelFactory;
 import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyEntry;
 import org.eclipse.ditto.policies.model.PolicyId;
+import org.eclipse.ditto.policies.model.PolicyImport;
+import org.eclipse.ditto.policies.model.PolicyImports;
 import org.eclipse.ditto.policies.model.Resource;
 import org.eclipse.ditto.policies.model.ResourceKey;
 import org.eclipse.ditto.policies.model.Subject;
@@ -532,6 +535,49 @@ final class MappingContext {
                 result = Optional.of(PoliciesModelFactory.newPolicyEntry(getLabelOrThrow(), jsonValue.asObject()));
             } else {
                 throw newPayloadValueNotJsonObjectException(PolicyEntry.class, jsonValue);
+            }
+        } else {
+            result = Optional.empty();
+        }
+        return result;
+    }
+
+    Optional<PolicyImports> getPolicyImports() {
+        final Optional<PolicyImports> result;
+        final Optional<JsonValue> payloadValueOptional = getPayloadValue();
+        if (payloadValueOptional.isPresent()) {
+            final JsonValue jsonValue = payloadValueOptional.get();
+            if (jsonValue.isObject()) {
+                result = Optional.of(PoliciesModelFactory.newPolicyImports(jsonValue.asObject()));
+            } else {
+                throw newPayloadValueNotJsonObjectException(PolicyImports.class, jsonValue);
+            }
+        } else {
+            result = Optional.empty();
+        }
+        return result;
+    }
+
+    PolicyId getImportedPolicyId() {
+        final MessagePath path = adaptable.getPayload().getPath();
+        return path.getRoot()
+                .filter(entries -> Policy.JsonFields.IMPORTS.getPointer().equals(entries.asPointer()))
+                .map(entries -> path.nextLevel())
+                .flatMap(JsonPointer::getRoot)
+                .map(JsonKey::toString)
+                .map(PolicyId::of)
+                .orElseThrow(() -> JsonParseException.newBuilder().build());
+    }
+
+    Optional<PolicyImport> getPolicyImport() {
+        final Optional<PolicyImport> result;
+        final Optional<JsonValue> payloadValueOptional = getPayloadValue();
+        if (payloadValueOptional.isPresent()) {
+            final JsonValue jsonValue = payloadValueOptional.get();
+            if (jsonValue.isObject()) {
+                result = Optional.of(PoliciesModelFactory.newPolicyImport(getPolicyIdOrThrow(), jsonValue.asObject()));
+            } else {
+                throw newPayloadValueNotJsonObjectException(PolicyImports.class, jsonValue);
             }
         } else {
             result = Optional.empty();

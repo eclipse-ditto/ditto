@@ -17,7 +17,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
-import java.util.function.BiFunction;
 
 import org.assertj.core.api.ListAssert;
 import org.awaitility.Awaitility;
@@ -39,7 +38,6 @@ public final class Assertions {
      * @param <T> the type of the list elements
      * @return an instance of {@link ListAssert}
      */
-    @SuppressWarnings("unchecked")
     public static <T> ListAssert<T> assertListWithIndexInfo(final List<T> actual, final BiConsumer<T, T> elementAssert) {
         return new ListAssert<>(actual).usingComparator((actualList, expectedList) -> {
             assertThat(actualList).hasSize(expectedList.size());

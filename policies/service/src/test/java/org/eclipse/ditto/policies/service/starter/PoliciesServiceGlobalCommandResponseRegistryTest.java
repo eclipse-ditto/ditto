@@ -25,6 +25,7 @@ import org.eclipse.ditto.policies.api.commands.sudo.SudoRetrievePolicyResponse;
 import org.eclipse.ditto.policies.model.signals.commands.PolicyErrorResponse;
 import org.eclipse.ditto.policies.model.signals.commands.actions.ActivateTokenIntegrationResponse;
 import org.eclipse.ditto.policies.model.signals.commands.modify.DeleteSubjectResponse;
+import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyImportsResponse;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrieveResourceResponse;
 
 public final class PoliciesServiceGlobalCommandResponseRegistryTest extends GlobalCommandResponseRegistryTestCases {
@@ -42,6 +43,8 @@ public final class PoliciesServiceGlobalCommandResponseRegistryTest extends Glob
                 RetrieveConfigResponse.class,
                 RetrieveHealthResponse.class,
                 PurgeEntitiesResponse.class,
+                ModifyPolicyImportsResponse.class,
+
                 Acknowledgement.class,
                 ModifySplitBrainResolverResponse.class
         );

@@ -18,6 +18,8 @@ import java.util.Map;
 import org.eclipse.ditto.policies.model.signals.commands.query.PolicyQueryCommandResponse;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicyEntriesResponse;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicyEntryResponse;
+import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicyImportResponse;
+import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicyImportsResponse;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicyResponse;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrieveResourceResponse;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrieveResourcesResponse;
@@ -48,6 +50,7 @@ final class PolicyQueryCommandResponseMappingStrategies
         addPolicyEntryResponses(mappingStrategies);
         addPolicyEntryResourceResponses(mappingStrategies);
         addPolicyEntrySubjectResponses(mappingStrategies);
+        addPolicyImportResponses(mappingStrategies);
         return mappingStrategies;
     }
 
@@ -70,6 +73,18 @@ final class PolicyQueryCommandResponseMappingStrategies
                         policyEntriesFrom(adaptable),
                         dittoHeadersFrom(adaptable)));
 
+    }
+
+    private static void addPolicyImportResponses(
+            final Map<String, JsonifiableMapper<PolicyQueryCommandResponse<?>>> mappingStrategies) {
+
+        mappingStrategies.put(RetrievePolicyImportResponse.TYPE,
+                adaptable -> RetrievePolicyImportResponse.of(policyIdFromTopicPath(adaptable.getTopicPath()),
+                        policyImportFrom(adaptable), dittoHeadersFrom(adaptable)));
+
+        mappingStrategies.put(RetrievePolicyImportsResponse.TYPE,
+                adaptable -> RetrievePolicyImportsResponse.of(policyIdFromTopicPath(adaptable.getTopicPath()),
+                        policyImportsFrom(adaptable), dittoHeadersFrom(adaptable)));
     }
 
     private static void addPolicyEntryResourceResponses(

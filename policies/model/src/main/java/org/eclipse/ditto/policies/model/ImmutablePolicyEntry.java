@@ -35,11 +35,14 @@ final class ImmutablePolicyEntry implements PolicyEntry {
     private final Label label;
     private final Subjects subjects;
     private final Resources resources;
+    private final boolean importable;
 
-    private ImmutablePolicyEntry(final Label theLabel, final Subjects theSubjects, final Resources theResources) {
+    private ImmutablePolicyEntry(final Label theLabel, final Subjects theSubjects, final Resources theResources,
+            final boolean importable) {
         label = checkNotNull(theLabel, "label");
         subjects = theSubjects;
         resources = theResources;
+        this.importable = importable;
     }
 
     /**
@@ -54,7 +57,25 @@ final class ImmutablePolicyEntry implements PolicyEntry {
     public static PolicyEntry of(final Label label, final Subjects subjects, final Resources resources) {
         checkNotNull(subjects, "subjects");
         checkNotNull(resources, "resources");
-        return new ImmutablePolicyEntry(label, subjects, resources);
+        return new ImmutablePolicyEntry(label, subjects, resources, false);
+    }
+
+    /**
+     * Returns a new {@code PolicyEntry} object of the given Subjects and Resources.
+     *
+     * @param label the Label of the PolicyEntry to create.
+     * @param subjects the Subjects contained in the PolicyEntry to create.
+     * @param resources the Resources of the PolicyEntry to create.
+     * @param importable specifies whether or not this entry is allowed to be imported by others
+     * @return a new {@code PolicyEntry} object.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @since 3.x.0 TODO ditto#298
+     */
+    public static PolicyEntry of(final Label label, final Subjects subjects, final Resources resources,
+            final boolean importable) {
+        checkNotNull(subjects, "subjects");
+        checkNotNull(resources, "resources");
+        return new ImmutablePolicyEntry(label, subjects, resources, importable);
     }
 
     /**
@@ -81,8 +102,9 @@ final class ImmutablePolicyEntry implements PolicyEntry {
             final Subjects subjectsFromJson = PoliciesModelFactory.newSubjects(subjectsJsonObject);
             final JsonObject resourcesJsonObject = jsonObject.getValueOrThrow(JsonFields.RESOURCES);
             final Resources resourcesFromJson = PoliciesModelFactory.newResources(resourcesJsonObject);
+            final boolean importable = jsonObject.getValue(JsonFields.IMPORTABLE).orElse(false);
 
-            return of(lbl, subjectsFromJson, resourcesFromJson);
+            return of(lbl, subjectsFromJson, resourcesFromJson, importable);
         } catch (final JsonMissingFieldException e) {
             throw new DittoJsonException(e);
         }
@@ -104,6 +126,11 @@ final class ImmutablePolicyEntry implements PolicyEntry {
     }
 
     @Override
+    public boolean isImportable() {
+        return importable;
+    }
+
+    @Override
     public boolean isSemanticallySameAs(final PolicyEntry otherPolicyEntry) {
         return subjects.isSemanticallySameAs(otherPolicyEntry.getSubjects()) &&
                 resources.equals(otherPolicyEntry.getResources());
@@ -115,6 +142,7 @@ final class ImmutablePolicyEntry implements PolicyEntry {
         return JsonFactory.newObjectBuilder()
                 .set(JsonFields.SUBJECTS, subjects.toJson(schemaVersion, thePredicate), predicate)
                 .set(JsonFields.RESOURCES, resources.toJson(schemaVersion, thePredicate), predicate)
+                .set(JsonFields.IMPORTABLE, importable, predicate)
                 .build();
     }
 
@@ -129,12 +157,13 @@ final class ImmutablePolicyEntry implements PolicyEntry {
         final ImmutablePolicyEntry that = (ImmutablePolicyEntry) o;
         return Objects.equals(label, that.label) &&
                 Objects.equals(subjects, that.subjects) &&
-                Objects.equals(resources, that.resources);
+                Objects.equals(resources, that.resources) &&
+                importable == that.importable;
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(label, subjects, resources);
+        return Objects.hash(label, subjects, resources, importable);
     }
 
     @Override
@@ -143,6 +172,7 @@ final class ImmutablePolicyEntry implements PolicyEntry {
                 "label=" + label +
                 ", subjects=" + subjects +
                 ", resources=" + resources +
+                ", importable=" + importable +
                 "]";
     }
 

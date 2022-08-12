@@ -181,7 +181,8 @@ final class PolicyEntriesRoute extends AbstractRoute {
         final Resources resources =
                 PoliciesModelFactory.newResources(jsonObject.getValueOrThrow(PolicyEntry.JsonFields.RESOURCES));
 
-        return PoliciesModelFactory.newPolicyEntry(Label.of(labelString), subjects, resources);
+        final boolean importable = jsonObject.getValue(PolicyEntry.JsonFields.IMPORTABLE).orElse(false);
+        return PoliciesModelFactory.newPolicyEntry(Label.of(labelString), subjects, resources, importable);
     }
 
     /*

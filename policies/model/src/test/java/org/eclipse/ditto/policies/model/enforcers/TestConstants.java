@@ -14,9 +14,9 @@ package org.eclipse.ditto.policies.model.enforcers;
 
 import java.util.Arrays;
 
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.policies.model.EffectedPermissions;
 import org.eclipse.ditto.policies.model.Label;
 import org.eclipse.ditto.policies.model.PoliciesModelFactory;
@@ -122,7 +122,7 @@ public final class TestConstants {
         /**
          * A known {@code PolicyEntry} for a {@code Policy}.
          */
-        public static final PolicyEntry POLICY_ENTRY = PoliciesModelFactory.newPolicyEntry(LABEL, SUBJECTS, RESOURCES);
+        public static final PolicyEntry POLICY_ENTRY = PoliciesModelFactory.newPolicyEntry(LABEL, SUBJECTS, RESOURCES, false);
 
         /**
          * A known identifier for a {@code Policy}.

@@ -20,8 +20,11 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
+import javax.annotation.Nullable;
+
 import org.eclipse.ditto.base.model.common.Validator;
 import org.eclipse.ditto.policies.model.PoliciesResourceType;
+import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyEntry;
 import org.eclipse.ditto.policies.model.ResourceKey;
 import org.eclipse.ditto.policies.model.Subject;
@@ -39,11 +42,14 @@ public final class PoliciesValidator implements Validator {
             "It must contain at least one permanent Subject with permission(s) <{0}> on resource <{1}>!";
 
     private final Iterable<PolicyEntry> policyEntries;
-    private boolean validationResult;
-    private String reason;
+    private final boolean containsPolicyImport;
 
-    private PoliciesValidator(final Iterable<PolicyEntry> policyEntries) {
+    private boolean validationResult;
+    @Nullable private String reason;
+
+    private PoliciesValidator(final Iterable<PolicyEntry> policyEntries, final boolean containsPolicyImport) {
         this.policyEntries = policyEntries;
+        this.containsPolicyImport = containsPolicyImport;
         validationResult = true;
         reason = null;
     }
@@ -58,35 +64,49 @@ public final class PoliciesValidator implements Validator {
     public static PoliciesValidator newInstance(final Iterable<PolicyEntry> policyEntries) {
         requireNonNull(policyEntries, "The policyEntries to validate must not be null!");
 
-        return new PoliciesValidator(policyEntries);
+        final boolean containsPolicyImport;
+        if (policyEntries instanceof Policy policy) {
+            containsPolicyImport = policy.getImports()
+                    .filter(imports -> !imports.isEmpty())
+                    .isPresent();
+        } else {
+            containsPolicyImport = false;
+        }
+
+        return new PoliciesValidator(policyEntries, containsPolicyImport);
     }
 
     @Override
     public boolean isValid() {
-        // Disregard expiring subjects when testing for permissions granted because those are deleted after some time.
-        final Set<Subject> withPermissionGranted = StreamSupport.stream(policyEntries.spliterator(), false)
-                .filter(this::hasPermissionGranted)
-                .map(PolicyEntry::getSubjects)
-                .flatMap(Subjects::stream)
-                .filter(subject -> subject.getExpiry().isEmpty())
-                .collect(Collectors.toSet());
+        if (containsPolicyImport) {
+            // TODO ditto#298 check whether we cannot do any other validation
+            return true;
+        } else {
+            // Disregard expiring subjects when testing for permissions granted because those are deleted after some time.
+            final Set<Subject> withPermissionGranted = StreamSupport.stream(policyEntries.spliterator(), false)
+                    .filter(this::hasPermissionGranted)
+                    .map(PolicyEntry::getSubjects)
+                    .flatMap(Subjects::stream)
+                    .filter(subject -> subject.getExpiry().isEmpty())
+                    .collect(Collectors.toSet());
 
-        final Set<Subject> withPermissionRevoked = StreamSupport.stream(policyEntries.spliterator(), false)
-                .filter(this::hasPermissionRevoked)
-                .map(PolicyEntry::getSubjects)
-                .flatMap(Subjects::stream)
-                .collect(Collectors.toSet());
+            final Set<Subject> withPermissionRevoked = StreamSupport.stream(policyEntries.spliterator(), false)
+                    .filter(this::hasPermissionRevoked)
+                    .map(PolicyEntry::getSubjects)
+                    .flatMap(Subjects::stream)
+                    .collect(Collectors.toSet());
 
-        withPermissionGranted.removeAll(withPermissionRevoked);
+            withPermissionGranted.removeAll(withPermissionRevoked);
 
-        validationResult = !withPermissionGranted.isEmpty();
+            validationResult = !withPermissionGranted.isEmpty();
 
-        if (!validationResult) {
-            reason = MessageFormat.format(NO_AUTH_SUBJECT_PATTERN, Permission.MIN_REQUIRED_POLICY_PERMISSIONS,
-                    ROOT_RESOURCE);
+            if (!validationResult) {
+                reason = MessageFormat.format(NO_AUTH_SUBJECT_PATTERN, Permission.MIN_REQUIRED_POLICY_PERMISSIONS,
+                        ROOT_RESOURCE);
+            }
+
+            return validationResult;
         }
-
-        return validationResult;
     }
 
     private boolean hasPermissionGranted(final PolicyEntry policyEntry) {

@@ -16,7 +16,6 @@ import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstance
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.eclipse.ditto.base.model.entity.id.restriction.LengthRestrictionTestBase;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -54,4 +53,9 @@ public final class ImmutableLabelTest extends LengthRestrictionTestBase {
         ImmutableLabel.of(generateStringExceedingMaxLength());
     }
 
+    @Test(expected = LabelInvalidException.class)
+    public void createBlocklistedLabel() {
+        final String invalidLabel = "imported-someLabel";
+        ImmutableLabel.of(invalidLabel);
+    }
 }
