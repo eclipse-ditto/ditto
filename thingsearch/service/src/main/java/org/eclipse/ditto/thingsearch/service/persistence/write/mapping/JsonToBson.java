@@ -71,6 +71,7 @@ public final class JsonToBson implements JsonInternalVisitor<BsonValue> {
     public BsonValue array(final Stream<BsonValue> values) {
         final BsonArray bsonArray = new BsonArray();
         values.forEach(bsonArray::add);
+
         return bsonArray;
     }
 
@@ -78,6 +79,8 @@ public final class JsonToBson implements JsonInternalVisitor<BsonValue> {
     public BsonValue object(final Stream<Map.Entry<String, BsonValue>> values) {
         final BsonDocument bsonDocument = new BsonDocument();
         values.forEach(entry -> bsonDocument.append(KeyEscapeUtil.escape(entry.getKey()), entry.getValue()));
+
         return bsonDocument;
     }
+
 }

@@ -18,7 +18,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
@@ -118,7 +117,7 @@ public class CreateBsonPredicateVisitor implements PredicateVisitor<Function<Str
 
     @Override
     public Function<String, Bson> visitIn(final List<?> values) {
-        return fieldName -> Filters.in(fieldName, values.stream().map(this::resolveValue).collect(Collectors.toList()));
+        return fieldName -> Filters.in(fieldName, values.stream().map(this::resolveValue).toList());
     }
 
     @Override
@@ -163,9 +162,9 @@ public class CreateBsonPredicateVisitor implements PredicateVisitor<Function<Str
     }
 
     private Object resolveValue(final Object value) {
-        if (value instanceof ParsedPlaceholder) {
-            final String prefix = ((ParsedPlaceholder) value).getPrefix();
-            final String name = ((ParsedPlaceholder) value).getName();
+        if (value instanceof ParsedPlaceholder parsedPlaceholder) {
+            final String prefix = parsedPlaceholder.getPrefix();
+            final String name = parsedPlaceholder.getName();
             return additionalPlaceholderResolvers.stream()
                     .filter(pr -> prefix.equals(pr.getPrefix()))
                     .filter(pr -> pr.supports(name))
@@ -175,4 +174,5 @@ public class CreateBsonPredicateVisitor implements PredicateVisitor<Function<Str
         }
         return value;
     }
+
 }

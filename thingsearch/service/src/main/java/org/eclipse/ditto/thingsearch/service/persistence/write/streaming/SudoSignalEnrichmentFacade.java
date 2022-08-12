@@ -73,9 +73,8 @@ final class SudoSignalEnrichmentFacade implements SignalEnrichmentFacade {
     }
 
     private static CompletionStage<JsonObject> extractThing(final Object object) {
-        if (object instanceof SudoRetrieveThingResponse) {
-            final SudoRetrieveThingResponse response = (SudoRetrieveThingResponse) object;
-            return CompletableFuture.completedFuture(response.getEntity(JsonSchemaVersion.LATEST));
+        if (object instanceof SudoRetrieveThingResponse sudoRetrieveThingResponse) {
+            return CompletableFuture.completedFuture(sudoRetrieveThingResponse.getEntity(JsonSchemaVersion.LATEST));
         } else if (object instanceof ThingNotAccessibleException) {
             return CompletableFuture.completedFuture(JsonObject.empty());
         } else {
@@ -86,8 +85,8 @@ final class SudoSignalEnrichmentFacade implements SignalEnrichmentFacade {
     }
 
     private static Throwable toThrowable(final Object object) {
-        if (object instanceof Throwable) {
-            return (Throwable) object;
+        if (object instanceof Throwable throwable) {
+            return throwable;
         } else {
             return new IllegalStateException("Unexpected message: " + object);
         }

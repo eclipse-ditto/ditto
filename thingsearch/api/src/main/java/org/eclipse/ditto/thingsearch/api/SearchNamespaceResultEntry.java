@@ -17,13 +17,13 @@ import java.util.function.Predicate;
 
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.base.model.json.FieldType;
+import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
+import org.eclipse.ditto.base.model.json.Jsonifiable;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.base.model.json.FieldType;
-import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
-import org.eclipse.ditto.base.model.json.Jsonifiable;
 
 
 /**
@@ -141,9 +141,9 @@ public final class SearchNamespaceResultEntry implements Jsonifiable.WithPredica
     @Override
     public String toString() {
         return "SearchNamespaceResultEntry{" +
-                "namespace='" + namespace + '\'' +
+                "namespace='" + namespace + "\"" +
                 ", count=" + count +
-                '}';
+                "}";
     }
 
 }

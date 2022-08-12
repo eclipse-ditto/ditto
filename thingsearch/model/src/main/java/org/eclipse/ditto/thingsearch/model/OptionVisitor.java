@@ -18,13 +18,6 @@ package org.eclipse.ditto.thingsearch.model;
 public interface OptionVisitor {
 
     /**
-     * Is called by a {@link LimitOption} in its {@link LimitOption#accept(OptionVisitor)} method.
-     *
-     * @param limitOption an instance of the {@link LimitOption}.
-     */
-    void visit(LimitOption limitOption);
-
-    /**
      * Is called by a {@link SortOption} in its {@link SortOption#accept(OptionVisitor)} method.
      *
      * @param sortOption an instance of the {@link SortOption}.

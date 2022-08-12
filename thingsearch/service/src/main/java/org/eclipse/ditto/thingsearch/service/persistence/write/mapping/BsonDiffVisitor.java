@@ -129,6 +129,7 @@ final class BsonDiffVisitor implements BsonValueVisitor<Function<BsonValue, Bson
                     .collect(Collectors.toList());
             unset = Stream.concat(unset, deletedKeys.stream());
             diffSize += deletedKeys.stream().mapToInt(JsonPointer::length).sum();
+
             return new BsonDiff(replacementSize, diffSize, set, unset);
         };
     }
@@ -136,4 +137,5 @@ final class BsonDiffVisitor implements BsonValueVisitor<Function<BsonValue, Bson
     private static BsonValue literal(final BsonValue value) {
         return value.isDocument() ? new BsonDocument().append(LITERAL, value) : value;
     }
+
 }

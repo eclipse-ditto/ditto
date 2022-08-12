@@ -50,25 +50,6 @@ public interface SearchQueryBuilder {
     SearchQueryBuilder removeSortOptionFor(CharSequence propertyPath);
 
     /**
-     * Sets a limit for pagination. The maximum allowed count is {@code 200}.
-     *
-     * @param offset determines, if a search result contains multiple results, from which entry the result entries are
-     * returned. This makes it possible to skip unwanted entries.
-     * @param count determines, if a search result contains multiple results, how many entries are returned.
-     * @return this builder to allow method chaining.
-     * @throws IllegalArgumentException if any argument is negative or if {@code count} is zero or greater than {@code
-     * 200}.
-     */
-    SearchQueryBuilder limit(int offset, int count);
-
-    /**
-     * Removes a previously set limit for pagination.
-     *
-     * @return this builder to allow method chaining.
-     */
-    SearchQueryBuilder removeLimitation();
-
-    /**
      * Creates a new immutable {@code SearchQuery} object based on the properties of this builder.
      *
      * @return the new SearchQuery.

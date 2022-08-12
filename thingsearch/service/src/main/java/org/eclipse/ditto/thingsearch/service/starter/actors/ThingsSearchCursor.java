@@ -55,7 +55,6 @@ import org.eclipse.ditto.rql.query.criteria.CriteriaFactory;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.thingsearch.api.commands.sudo.StreamThings;
 import org.eclipse.ditto.thingsearch.model.CursorOption;
-import org.eclipse.ditto.thingsearch.model.LimitOption;
 import org.eclipse.ditto.thingsearch.model.Option;
 import org.eclipse.ditto.thingsearch.model.SearchResult;
 import org.eclipse.ditto.thingsearch.model.SearchResultBuilder;
@@ -103,8 +102,6 @@ final class ThingsSearchCursor {
 
     static final SortOptionEntry DEFAULT_SORT_OPTION_ENTRY =
             SortOptionEntry.asc(Thing.JsonFields.ID.getPointer());
-
-    private static final String LIMIT_OPTION_FORBIDDEN = "The options 'cursor' and 'limit' must not be used together.";
 
     private static final Base64.Encoder BASE64_URL_ENCODER_WITHOUT_PADDING = Base64.getUrlEncoder().withoutPadding();
     private static final PartialFunction<Throwable, Throwable> DECODE_ERROR_MAPPER = createDecodeErrorMapper();
@@ -197,8 +194,6 @@ final class ThingsSearchCursor {
 
         if (commandHasDifferentFilter) {
             description = "The parameter 'filter' must not differ from the original query of the cursor.";
-        } else if (commandOptions.stream().anyMatch(LimitOption.class::isInstance)) {
-            description = LIMIT_OPTION_FORBIDDEN;
         } else if (hasIncompatibleSortOption(commandOptions)) {
             description = "The option 'sort' must not differ from the original query of the cursor.";
         } else {
@@ -209,20 +204,26 @@ final class ThingsSearchCursor {
     }
 
     /**
-     * Check if options from a {@code QueryThings} command contains an incompatible sort option.
-     * A sort option is compatible with the sort option of this cursor if
-     * <ul>
-     * <li>both are identical,</li>
-     * <li>cursor option is obtained from command option by appending the default option, or</li>
-     * <li>cursor option is obtained from command option by truncating after +thingId or -thingId.</li>
-     * </ul>
+     * Augment a search result by the next cursor as needed.
      *
-     * @param commandOptions options from a command.
-     * @return whether the options contains an incompatible sort option.
+     * @param queryThings the command that produced the results.
+     * @param cursor cursor given by the command, if any.
+     * @param searchResult the search result.
+     * @param resultList items in the search result.
+     * @return search result with cursor or next-page-offset or both as appropriate.
      */
-    private boolean hasIncompatibleSortOption(final List<Option> commandOptions) {
-        return findAll(SortOption.class, commandOptions).stream()
-                .anyMatch(sortOption -> !areCompatible(this.sortOption.getEntries(), sortOption.getEntries(), 0));
+    static SearchResult processSearchResult(final QueryThings queryThings,
+            @Nullable final ThingsSearchCursor cursor,
+            final SearchResult searchResult,
+            final ResultList<?> resultList) {
+
+        if (cursor != null) {
+            // adjust next cursor by search result, do not deliver nextPageOffset
+            return cursor.searchResultWithExistingCursor(searchResult, resultList);
+        } else {
+            // compute new cursor, deliver both
+            return searchResultWithNewCursor(queryThings, searchResult, resultList);
+        }
     }
 
     /**
@@ -248,20 +249,18 @@ final class ThingsSearchCursor {
     }
 
     /**
-     * @return Compute a {@code QueryThings} using content of this cursor.
+     * Locate instances of a class within a collection.
+     *
+     * @param clazz the class.
+     * @param collection the collection.
+     * @param <T> type of the class.
+     * @return list of all instances of the class in the collection.
      */
-    private QueryThings adjustQueryThings(final QueryThings queryThings) {
-        final List<String> adjustedOptions =
-                Stream.concat(
-                        Stream.of(RqlOptionParser.unparse(Collections.singletonList(sortOption))),
-                        queryThings.getOptions()
-                                .stream()
-                                .flatMap(Collection::stream)
-                                .filter(option -> !option.startsWith("sort")))
-                        .collect(Collectors.toList());
-        // leave correlation ID alone
-        final DittoHeaders headers = queryThings.getDittoHeaders();
-        return QueryThings.of(filter, adjustedOptions, queryThings.getFields().orElse(null), namespaces, headers);
+    private static <T> List<T> findAll(final Class<T> clazz, final Collection<?> collection) {
+        return collection.stream()
+                .filter(clazz::isInstance)
+                .map(clazz::cast)
+                .toList();
     }
 
     /**
@@ -382,7 +381,6 @@ final class ThingsSearchCursor {
         return catchExceptions(queryThings.getDittoHeaders(), () -> {
             final List<Option> options = getOptions(queryThings);
             final List<CursorOption> cursorOptions = findAll(CursorOption.class, options);
-            final List<LimitOption> limitOptions = findAll(LimitOption.class, options);
             final Optional<InvalidOptionException> sizeOptionError = checkSizeOption(options, queryThings);
             if (sizeOptionError.isPresent()) {
                 return Source.failed(sizeOptionError.get());
@@ -391,8 +389,6 @@ final class ThingsSearchCursor {
             } else if (cursorOptions.size() > 1) {
                 // there may not be 2 or more cursor options in 1 command.
                 return Source.failed(invalidCursor("There may not be more than 1 'cursor' option.", queryThings));
-            } else if (!limitOptions.isEmpty()) {
-                return Source.failed(invalidCursor(LIMIT_OPTION_FORBIDDEN, queryThings));
             } else {
                 return decode(cursorOptions.get(0).getCursor(), system)
                         .flatMapConcat(cursor -> cursor.checkCursorValidity(queryThings, options)
@@ -441,44 +437,59 @@ final class ThingsSearchCursor {
     }
 
     /**
-     * Augment a search result by the next cursor as needed.
+     * Augment a fresh search result (i.e., not obtained via any cursor) by a new cursor if appropriate.
      *
-     * @param queryThings the command that produced the results.
-     * @param cursor cursor given by the command, if any.
+     * @param queryThings the command that produced the search result.
      * @param searchResult the search result.
      * @param resultList items in the search result.
-     * @return search result with cursor or next-page-offset or both as appropriate.
+     * @return the augmented search result.
      */
-    static SearchResult processSearchResult(final QueryThings queryThings,
-            @Nullable final ThingsSearchCursor cursor,
-            final SearchResult searchResult,
-            final ResultList<?> resultList) {
+    private static SearchResult searchResultWithNewCursor(final QueryThings queryThings,
+            final SearchResult searchResult, final ResultList<?> resultList) {
 
-        if (!findAll(LimitOption.class, getOptions(queryThings)).isEmpty()) {
-            // do not deliver cursor if "limit" is specified
-            return searchResult;
-        } else if (cursor != null) {
-            // adjust next cursor by search result, do not deliver nextPageOffset
-            return cursor.searchResultWithExistingCursor(searchResult, resultList);
+        final List<Option> commandOptions = getOptions(queryThings);
+        final boolean hasSizeOption = !findAll(SizeOption.class, commandOptions).isEmpty();
+
+        if (hasNextPage(resultList)) {
+            // there are more results; append cursor and offset as appropriate
+            final SearchResultBuilder builder = searchResult.toBuilder();
+
+
+            // limit option is absent. Compute cursor.
+            final ThingsSearchCursor newCursor = computeNewCursor(queryThings, resultList);
+            builder.cursor(newCursor.encode());
+
+            // size option is present. Remove next-page-offset.
+            if (hasSizeOption) {
+                // using size option; do not deliver nextPageOffset
+                builder.nextPageOffset(null);
+            }
+
+            return builder.build();
+        } else if (hasSizeOption) {
+            // This is the last page. Size option is present. Remove next-page-offset.
+            return searchResult.toBuilder().nextPageOffset(null).build();
         } else {
-            // compute new cursor, deliver both
-            return searchResultWithNewCursor(queryThings, searchResult, resultList);
+            // This is the last page. Size option is absent. Retain next-page-offset.
+            return searchResult;
         }
     }
 
     /**
-     * Locate instances of a class within a collection.
+     * Check if options from a {@code QueryThings} command contains an incompatible sort option.
+     * A sort option is compatible with the sort option of this cursor if
+     * <ul>
+     * <li>both are identical,</li>
+     * <li>cursor option is obtained from command option by appending the default option, or</li>
+     * <li>cursor option is obtained from command option by truncating after +thingId or -thingId.</li>
+     * </ul>
      *
-     * @param clazz the class.
-     * @param collection the collection.
-     * @param <T> type of the class.
-     * @return list of all instances of the class in the collection.
+     * @param commandOptions options from a command.
+     * @return whether the options contain an incompatible sort option.
      */
-    private static <T> List<T> findAll(final Class<T> clazz, final Collection<?> collection) {
-        return collection.stream()
-                .filter(clazz::isInstance)
-                .map(clazz::cast)
-                .collect(Collectors.toList());
+    private boolean hasIncompatibleSortOption(final List<Option> commandOptions) {
+        return findAll(SortOption.class, commandOptions).stream()
+                .anyMatch(sortOption -> !areCompatible(this.sortOption.getEntries(), sortOption.getEntries(), 0));
     }
 
     /**
@@ -577,46 +588,20 @@ final class ThingsSearchCursor {
     }
 
     /**
-     * Augment a fresh search result (i. e., not obtained via any cursor) by a new cursor if appropriate.
-     *
-     * @param queryThings the command that produced the search result.
-     * @param searchResult the search result.
-     * @param resultList items in the search result.
-     * @return the augmented search result.
+     * @return Compute a {@code QueryThings} using content of this cursor.
      */
-    private static SearchResult searchResultWithNewCursor(final QueryThings queryThings,
-            final SearchResult searchResult, final ResultList<?> resultList) {
-
-        final List<Option> commandOptions = getOptions(queryThings);
-        final boolean hasLimitOption = !findAll(LimitOption.class, commandOptions).isEmpty();
-        final boolean hasSizeOption = !findAll(SizeOption.class, commandOptions).isEmpty();
-
-        if (hasNextPage(resultList)) {
-            // there are more results; append cursor and offset as appropriate
-            final SearchResultBuilder builder = searchResult.toBuilder();
-
-            if (hasLimitOption) {
-                // limit option is present. Do not compute cursor.
-                builder.cursor(null);
-            } else {
-                // limit option is absent. Compute cursor.
-                final ThingsSearchCursor newCursor = computeNewCursor(queryThings, resultList);
-                builder.cursor(newCursor.encode());
-
-                // size option is present. Remove next-page-offset.
-                if (hasSizeOption) {
-                    // using size option; do not deliver nextPageOffset
-                    builder.nextPageOffset(null);
-                }
-            }
-            return builder.build();
-        } else if (hasSizeOption) {
-            // This is the last page. Size option is present. Remove next-page-offset.
-            return searchResult.toBuilder().nextPageOffset(null).build();
-        } else {
-            // This is the last page. Size option is absent. Retain next-page-offset.
-            return searchResult;
-        }
+    private QueryThings adjustQueryThings(final QueryThings queryThings) {
+        final List<String> adjustedOptions =
+                Stream.concat(
+                                Stream.of(RqlOptionParser.unparse(Collections.singletonList(sortOption))),
+                                queryThings.getOptions()
+                                        .stream()
+                                        .flatMap(Collection::stream)
+                                        .filter(option -> !option.startsWith("sort")))
+                        .toList();
+        // leave correlation ID alone
+        final DittoHeaders headers = queryThings.getDittoHeaders();
+        return QueryThings.of(filter, adjustedOptions, queryThings.getFields().orElse(null), namespaces, headers);
     }
 
     /**

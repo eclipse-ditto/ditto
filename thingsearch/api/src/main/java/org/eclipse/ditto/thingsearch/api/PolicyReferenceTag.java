@@ -133,9 +133,9 @@ public final class PolicyReferenceTag implements IdentifiableStreamingMessage, J
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
-                "thingId='" + thingId + '\'' +
+                "thingId='" + thingId + "\"" +
                 ", policyTag=" + policyTag +
-                ']';
+                "]";
     }
 
     /**
@@ -165,4 +165,5 @@ public final class PolicyReferenceTag implements IdentifiableStreamingMessage, J
         }
 
     }
+
 }

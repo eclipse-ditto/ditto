@@ -21,7 +21,6 @@ import org.eclipse.ditto.rql.model.ParserException;
 import org.eclipse.ditto.rql.parser.thingsearch.OptionParser;
 import org.eclipse.ditto.rql.parser.thingsearch.RqlOptionParser;
 import org.eclipse.ditto.thingsearch.model.CursorOption;
-import org.eclipse.ditto.thingsearch.model.LimitOption;
 import org.eclipse.ditto.thingsearch.model.Option;
 import org.eclipse.ditto.thingsearch.model.SizeOption;
 import org.eclipse.ditto.thingsearch.model.SortOption;
@@ -110,39 +109,17 @@ public final class RqlOptionsParserTest {
     }
 
     @Test
-    public void parseLimitSuccess() throws ParserException {
-        final List<Option> options = parser.parse("limit(0,1)");
-        assertThat(options.size()).isEqualTo(1);
-        final LimitOption limitOption = (LimitOption) options.get(0);
-        assertThat(limitOption.getCount()).isEqualTo(1);
-        assertThat(limitOption.getOffset()).isEqualTo(0);
-    }
-
-    @Test(expected = ParserException.class)
-    public void invalidLimitMissingNumber() throws ParserException {
-        parser.parse("limit(0)");
-    }
-
-    @Test(expected = ParserException.class)
-    public void invalidLimitTooManyArguments() throws ParserException {
-        parser.parse("limit(0,1,2)");
-    }
-
-    @Test
     public void parseOptionCombinations() throws ParserException {
-        final List<Option> options = parser.parse("limit(0,1),sort(-attributes/username),cursor(ABC),size(463)");
+        final List<Option> options = parser.parse("sort(-attributes/username),cursor(ABC),size(463)");
         assertThat(options.size()).isEqualTo(4);
 
-        final LimitOption limitOption = (LimitOption) options.get(0);
-        assertThat(limitOption.getCount()).isEqualTo(1);
-        assertThat(limitOption.getOffset()).isEqualTo(0);
-
-        final SortOption sortOption = (SortOption) options.get(1);
+        final SortOption sortOption = (SortOption) options.get(0);
         assertThat(sortOption.getEntries().stream()
                 .map(SortOptionEntry::getPropertyPath)
                 .map(JsonPointer::toString)
                 .anyMatch("/attributes/username"::equals)
         ).isTrue();
+
         assertThat(sortOption.getEntries().stream()
                 .filter(soe -> JsonPointer.of("/attributes/username").equals(soe.getPropertyPath()))
                 .map(SortOptionEntry::getOrder)
@@ -158,17 +135,12 @@ public final class RqlOptionsParserTest {
 
     @Test
     public void parseAndUnparseAreInverseOfEachOther() throws ParserException {
-        final String input = "limit(0,1),sort(-attributes/username)";
+        final String input = "cursor(ABC),sort(-attributes/username)";
         final List<Option> parsed = parser.parse(input);
         final String unparsed = RqlOptionParser.unparse(parsed);
         final List<Option> reParsed = parser.parse(unparsed);
 
         assertThat(reParsed).isEqualTo(parsed);
-    }
-
-    @Test(expected = ParserException.class)
-    public void invalidLimitArgumentsExceedsLong() throws ParserException {
-        parser.parse("limit(100000000000000000000,10)");
     }
 
     @Test(expected = ParserException.class)

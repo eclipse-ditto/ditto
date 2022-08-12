@@ -150,6 +150,7 @@ public final class EnforcedThingMapper {
         for (final var field : features) {
             array.add(getFeatureArrayElement(field, evaluatedPolicy));
         }
+
         return array;
     }
 
@@ -169,6 +170,8 @@ public final class EnforcedThingMapper {
         }
 
         doc.put(FIELD_POLICY, evaluatedPolicy.forFeature(featureId));
+
         return doc;
     }
+
 }

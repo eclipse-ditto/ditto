@@ -61,6 +61,8 @@ interface JsonObjectVisitor<T extends JsonValue> {
         } else {
             throw new UnsupportedOperationException("Unsupported JSON value: " + value);
         }
+
         return result;
     }
+
 }

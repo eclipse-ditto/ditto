@@ -24,7 +24,6 @@ import org.eclipse.ditto.rql.query.QueryBuilder;
 import org.eclipse.ditto.rql.query.SortDirection;
 import org.eclipse.ditto.rql.query.expression.FieldExpressionFactory;
 import org.eclipse.ditto.rql.query.expression.SortFieldExpression;
-import org.eclipse.ditto.thingsearch.model.LimitOption;
 import org.eclipse.ditto.thingsearch.model.Option;
 import org.eclipse.ditto.thingsearch.model.SearchModelFactory;
 import org.eclipse.ditto.thingsearch.model.SortOption;
@@ -79,17 +78,6 @@ public final class ParameterOptionVisitorTest {
 
 
     @Test
-    public void visitLimitOption() {
-        // test
-        visitor.visitAll(Collections.singletonList(SearchModelFactory.newLimitOption(KNOWN_SKIP, KNOWN_LIMIT)));
-
-        // verify
-        verify(qbMock).skip(KNOWN_SKIP);
-        verify(qbMock).limit(KNOWN_LIMIT);
-    }
-
-
-    @Test
     public void visitSortOptionWithSingleSortOption() {
         // prepare
         final SortOption sortOption = SearchModelFactory.newSortOption(POINTER_1, SortOptionEntry.SortOrder.ASC);
@@ -138,27 +126,6 @@ public final class ParameterOptionVisitorTest {
                                 SortDirection.DESC),
                         new org.eclipse.ditto.rql.query.SortOption(exprMock,
                                 SortDirection.ASC)));
-    }
-
-
-
-    @Test
-    public void visitLimitOptionAndSortOption() {
-        // test
-        final LimitOption limitOption = SearchModelFactory.newLimitOption(KNOWN_SKIP, KNOWN_LIMIT);
-        SortOption sortOption = SearchModelFactory.newSortOption(Collections.emptyList());
-        sortOption = sortOption.add(POINTER_1, SortOptionEntry.SortOrder.ASC);
-
-        // test
-        visitor.visitAll(Arrays.asList(limitOption, sortOption));
-
-        // verify
-        verify(qbMock).skip(KNOWN_SKIP);
-        verify(qbMock).limit(KNOWN_LIMIT);
-        verify(exprFactoryMock).sortBy(POINTER_1.toString());
-        verify(qbMock).sort(
-                Collections.singletonList(new org.eclipse.ditto.rql.query.SortOption(exprMock,
-                        SortDirection.ASC)));
     }
 
     @Test

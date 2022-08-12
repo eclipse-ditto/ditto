@@ -208,8 +208,8 @@ public final class BackgroundSyncStream {
                                 return Source.single(error)
                                         .log("ErrorRetrievingPolicyRevision " + policyId)
                                         .map(e -> indexed.invalidateCaches(true, true));
-                            } else if (response instanceof SudoRetrievePolicyRevisionResponse) {
-                                final long revision = ((SudoRetrievePolicyRevisionResponse) response).getRevision();
+                            } else if (response instanceof SudoRetrievePolicyRevisionResponse sudoRetrievePolicyRevisionResponse) {
+                                final long revision = sudoRetrievePolicyRevisionResponse.getRevision();
                                 return indexed.getPolicyRevision()
                                         .filter(indexedPolicyRevision -> indexedPolicyRevision.equals(revision))
                                         .map(indexedPolicyRevision -> Source.<Metadata>empty())

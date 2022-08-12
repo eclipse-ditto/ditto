@@ -39,6 +39,7 @@ final class IndexLengthRestrictionEnforcerVisitor implements JsonObjectVisitor<J
 
     static JsonObject enforce(final JsonObject thingJson, final int maxArraySize) {
         final String thingId = thingJson.getValueOrThrow(Thing.JsonFields.ID);
+
         return new IndexLengthRestrictionEnforcerVisitor(thingId, maxArraySize).eval(thingJson)
                 .map(JsonValue::asObject)
                 .orElseThrow();
@@ -79,4 +80,5 @@ final class IndexLengthRestrictionEnforcerVisitor implements JsonObjectVisitor<J
     private Optional<JsonValue> singleton(final JsonPointer key, final JsonValue jsonValue) {
         return indexLengthRestrictionEnforcer.enforce(key, jsonValue);
     }
+
 }

@@ -24,7 +24,6 @@ import org.eclipse.ditto.rql.query.SortOption;
 import org.eclipse.ditto.rql.query.expression.FieldExpressionFactory;
 import org.eclipse.ditto.rql.query.expression.SortFieldExpression;
 import org.eclipse.ditto.thingsearch.model.CursorOption;
-import org.eclipse.ditto.thingsearch.model.LimitOption;
 import org.eclipse.ditto.thingsearch.model.Option;
 import org.eclipse.ditto.thingsearch.model.OptionVisitor;
 import org.eclipse.ditto.thingsearch.model.SizeOption;
@@ -63,14 +62,6 @@ public final class ParameterOptionVisitor implements OptionVisitor {
     public ParameterOptionVisitor visitAll(final Iterable<Option> options) {
         options.forEach(o -> o.accept(this));
         return this;
-    }
-
-    @Override
-    public void visit(final LimitOption limitOption) {
-        checkNotNull(limitOption, "limit option");
-        final long skip = limitOption.getOffset();
-        final long limit = limitOption.getCount();
-        queryBuilder.skip(skip).limit(limit);
     }
 
     @Override

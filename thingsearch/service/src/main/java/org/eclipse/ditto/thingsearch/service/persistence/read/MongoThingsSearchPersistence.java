@@ -132,6 +132,7 @@ public final class MongoThingsSearchPersistence implements ThingsSearchPersisten
      */
     public MongoThingsSearchPersistence withHintsByNamespace(final String jsonString) {
         final MongoHints theHints = MongoHints.byNamespace(jsonString);
+
         return new MongoThingsSearchPersistence(collection, log, indexInitializer, maxQueryTime, theHints);
     }
 
@@ -216,6 +217,7 @@ public final class MongoThingsSearchPersistence implements ThingsSearchPersisten
             @Nullable final Set<String> namespaces) {
 
         final Integer limit = query.getLimit() == Integer.MAX_VALUE ? null : query.getLimit();
+
         return findAllInternal(query, authorizationSubjectIds, namespaces, limit, null)
                 .map(MongoThingsSearchPersistence::toThingId)
                 .idleTimeout(maxQueryTime);
@@ -233,6 +235,7 @@ public final class MongoThingsSearchPersistence implements ThingsSearchPersisten
         final var publisher = collection.find(Filters.eq(PersistenceConstants.FIELD_ID, thingId.toString())).limit(1);
         final var emptySource =
                 Source.<AbstractWriteModel>single(ThingDeleteModel.of(metadata));
+
         return Source.fromPublisher(publisher)
                 .map(MongoThingsSearchPersistence::documentToWriteModel)
                 .orElse(emptySource);
@@ -290,6 +293,7 @@ public final class MongoThingsSearchPersistence implements ThingsSearchPersisten
         final Publisher<Document> publisher = collection.find(filter)
                 .projection(relevantFieldsProjection)
                 .sort(sortById);
+
         return Source.fromPublisher(publisher).map(MongoThingsSearchPersistence::readAsMetadata);
     }
 
@@ -340,6 +344,7 @@ public final class MongoThingsSearchPersistence implements ThingsSearchPersisten
         } catch (final Exception e) {
             // ignore invalid or nonexistent timestamp
         }
+
         return Optional.empty();
     }
 
@@ -380,12 +385,15 @@ public final class MongoThingsSearchPersistence implements ThingsSearchPersisten
                 document.getEmbedded(List.of(PersistenceConstants.FIELD_THING, PersistenceConstants.FIELD_MODIFIED),
                         String.class);
         final Instant modified = Optional.ofNullable(nullableTimestamp).map(Instant::parse).orElse(null);
+
         return Metadata.of(thingId, thingRevision, policyId, policyRevision, modified, null);
     }
 
     private static AbstractWriteModel documentToWriteModel(final Document document) {
         final var bsonDocument = document.toBsonDocument(Document.class, MongoClient.DEFAULT_CODEC_REGISTRY());
         final Metadata actualMetadata = readAsMetadata(document);
+
         return ThingWriteModel.of(actualMetadata, bsonDocument);
     }
+
 }

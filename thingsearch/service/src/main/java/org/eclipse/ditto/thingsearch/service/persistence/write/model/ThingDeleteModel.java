@@ -43,6 +43,7 @@ public final class ThingDeleteModel extends AbstractWriteModel {
     @Override
     public WriteModel<BsonDocument> toMongo() {
         final Bson filter = getFilter();
+
         return new DeleteOneModel<>(filter);
     }
 
@@ -55,4 +56,5 @@ public final class ThingDeleteModel extends AbstractWriteModel {
     public String toString() {
         return super.toString() + "]";
     }
+
 }

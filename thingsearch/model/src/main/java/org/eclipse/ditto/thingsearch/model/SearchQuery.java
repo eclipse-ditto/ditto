@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.thingsearch.model;
 
-import java.util.Collection;
 import java.util.Optional;
 
 import javax.annotation.concurrent.Immutable;
@@ -57,23 +56,8 @@ public interface SearchQuery {
     Optional<SortOption> getSortOption();
 
     /**
-     * Returns the option which determines pagination of the search result.
-     *
-     * @return the option for determining the pagination of the search result.
-     */
-    Optional<LimitOption> getLimitOption();
-
-    /**
-     * Returns a collection of all options of this search query. Changes on this collection won't be reflected by the
-     * search query.
-     *
-     * @return the options of this query.
-     */
-    Collection<Option> getAllOptions();
-
-    /**
      * Returns the string representation of all options combined. For example, if a limit and a sort option is specified
-     * in this query, the result might look like {@code "limit(0,25),sort(+thingId,-attributes/manufacturer)"}.
+     * in this query, the result might look like {@code "sort(+thingId,-attributes/manufacturer)"}.
      *
      * @return the string representation of all options combined. If this query does not contain any options, an empty
      * string is returned.

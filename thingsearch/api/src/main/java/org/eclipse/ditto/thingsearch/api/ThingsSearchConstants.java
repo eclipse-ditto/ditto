@@ -61,4 +61,5 @@ public final class ThingsSearchConstants {
     private ThingsSearchConstants() {
         // no-op
     }
+
 }

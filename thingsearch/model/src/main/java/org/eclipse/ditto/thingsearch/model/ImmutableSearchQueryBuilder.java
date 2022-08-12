@@ -12,11 +12,9 @@
  */
 package org.eclipse.ditto.thingsearch.model;
 
-import static org.eclipse.ditto.base.model.common.ConditionChecker.checkArgument;
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -37,12 +35,10 @@ final class ImmutableSearchQueryBuilder implements SearchQueryBuilder {
 
     private final SearchFilter searchFilter;
     private final Map<JsonPointer, SortOptionEntry> sortOptionEntries;
-    private LimitOption limitOption;
 
     private ImmutableSearchQueryBuilder(final SearchFilter theSearchFilter) {
         searchFilter = theSearchFilter;
         sortOptionEntries = new LinkedHashMap<>();
-        limitOption = null;
     }
 
     /**
@@ -81,23 +77,6 @@ final class ImmutableSearchQueryBuilder implements SearchQueryBuilder {
     }
 
     @Override
-    public SearchQueryBuilder limit(final int offset, final int count) {
-        checkArgument(offset, o -> (o >= 0), () -> "The offset must not be negative!");
-        checkArgument(count, c -> (c > 0), () -> "The count must neither be negative nor zero!");
-        checkArgument(count, c -> (c <= ImmutableLimitOption.MAX_COUNT),
-                () -> "The count must not be greater than 200!");
-
-        limitOption = ImmutableLimitOption.of(offset, count);
-        return this;
-    }
-
-    @Override
-    public SearchQueryBuilder removeLimitation() {
-        limitOption = null;
-        return this;
-    }
-
-    @Override
     public SearchQuery build() {
         return new ImmutableSearchQuery(this);
     }
@@ -111,13 +90,11 @@ final class ImmutableSearchQueryBuilder implements SearchQueryBuilder {
 
         private final SearchFilter filter;
         private final SortOption sortOption;
-        private final LimitOption limitOption;
 
         private ImmutableSearchQuery(final ImmutableSearchQueryBuilder builder) {
             filter = builder.searchFilter;
             final List<SortOptionEntry> sortOptionEntries = new ArrayList<>(builder.sortOptionEntries.values());
             sortOption = !sortOptionEntries.isEmpty() ? ImmutableSortOption.of(sortOptionEntries) : null;
-            limitOption = builder.limitOption;
         }
 
         @Override
@@ -131,19 +108,6 @@ final class ImmutableSearchQueryBuilder implements SearchQueryBuilder {
         }
 
         @Override
-        public Optional<LimitOption> getLimitOption() {
-            return Optional.ofNullable(limitOption);
-        }
-
-        @Override
-        public Collection<Option> getAllOptions() {
-            final List<Option> result = new ArrayList<>(2);
-            result.add(sortOption);
-            getLimitOption().ifPresent(result::add);
-            return result;
-        }
-
-        @Override
         public String getFilterAsString() {
             return filter.toString();
         }
@@ -151,10 +115,6 @@ final class ImmutableSearchQueryBuilder implements SearchQueryBuilder {
         @Override
         public String getOptionsAsString() {
             final StringBuilder stringBuilder = new StringBuilder();
-
-            getLimitOption()
-                    .map(Option::toString)
-                    .ifPresent(stringBuilder::append);
 
             getSortOption()
                     .map(Option::toString)
@@ -170,9 +130,7 @@ final class ImmutableSearchQueryBuilder implements SearchQueryBuilder {
 
         @Override
         public String toString() {
-            return getClass().getSimpleName() + " [" + "filter=" + filter + ", sortOption=" + sortOption +
-                    ", limitOption="
-                    + limitOption + "]";
+            return getClass().getSimpleName() + " [" + "filter=" + filter + ", sortOption=" + sortOption + "]";
         }
     }
 

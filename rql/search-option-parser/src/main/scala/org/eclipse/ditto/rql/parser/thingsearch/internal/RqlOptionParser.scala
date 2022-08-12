@@ -17,7 +17,7 @@ import org.eclipse.ditto.rql.model.ParserException
 import org.eclipse.ditto.rql.parser.internal.RqlParserBase
 import org.eclipse.ditto.rql.parser.thingsearch.OptionParser
 import org.eclipse.ditto.thingsearch.model
-import org.eclipse.ditto.thingsearch.model.{LimitOption, SearchModelFactory, SortOption, SortOptionEntry}
+import org.eclipse.ditto.thingsearch.model.{SearchModelFactory, SortOption, SortOptionEntry}
 
 import java.util
 import scala.collection.JavaConverters
@@ -31,7 +31,6 @@ import scala.util.{Failure, Success}
   * Sort                       = "sort", '(', SortProperty, { ',', SortProperty }, ')'
   * SortProperty               = SortOrder, PropertyLiteral
   * SortOrder                  = '+' | '-'
-  * Limit                      = "limit", '(', IntegerLiteral, ',', IntegerLiteral, ')'
   * </pre>
   */
 private class RqlOptionParser(override val input: ParserInput) extends RqlParserBase(input) {
@@ -54,7 +53,7 @@ private class RqlOptionParser(override val input: ParserInput) extends RqlParser
     * Option                     = Sort | Limit | Cursor | Size
     */
   private def Option: Rule1[model.Option] = rule {
-    Sort | Limit | Cursor | Size
+    Sort | Cursor | Size
   }
 
   /**
@@ -87,14 +86,6 @@ private class RqlOptionParser(override val input: ParserInput) extends RqlParser
 
   private def Desc: Rule1[SortOptionEntry.SortOrder] = rule {
     '-' ~ push(SortOptionEntry.SortOrder.DESC)
-  }
-
-  /**
-    * Limit                      = "limit", '(', IntegerLiteral, ',', IntegerLiteral, ')'
-    */
-  private def Limit: Rule1[LimitOption] = rule {
-    "limit" ~ '(' ~ LongLiteral ~ ',' ~ LongLiteral ~ ')' ~> ((offset: java.lang.Long, count: java.lang.Long) =>
-      SearchModelFactory.newLimitOption(offset.toInt, count.toInt))
   }
 
   /**

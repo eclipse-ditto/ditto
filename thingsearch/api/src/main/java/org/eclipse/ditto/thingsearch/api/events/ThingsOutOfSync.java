@@ -193,4 +193,5 @@ public final class ThingsOutOfSync implements Event<ThingsOutOfSync> {
                 .set(JSON_THING_IDS, thingIdsJsonArray, predicate)
                 .build();
     }
+
 }

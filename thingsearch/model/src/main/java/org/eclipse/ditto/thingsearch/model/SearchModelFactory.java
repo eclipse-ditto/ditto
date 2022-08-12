@@ -160,8 +160,8 @@ public final class SearchModelFactory {
      * final SearchProperty searchProperty = SearchModelFactory.property("attributes/manufacturer");
      * final PropertySearchFilter searchFilter = searchProperty.eq("Bosch");
      *
-     * final SearchQuery query = SearchModelFactory.newSearchQueryBuilder(searchFilter) //
-     *    .limit(0, 25) //
+     * final SearchQuery query = SearchModelFactory.newSearchQueryBuilder(searchFilter)
+     *    .sortAsc("attributes/manufacturer")
      *    .build();
      * </pre>
      *
@@ -180,8 +180,8 @@ public final class SearchModelFactory {
      * final SearchProperty searchProperty = SearchModelFactory.property("attributes/manufacturer");
      * final PropertySearchFilter searchFilter = searchProperty.eq("Bosch");
      *
-     * final SearchQuery query = SearchModelFactory.newSearchQueryBuilder(searchFilter) //
-     *    .limit(0, 25) //
+     * final SearchQuery query = SearchModelFactory.newSearchQueryBuilder(searchFilter)
+     *    .sortAsc("attributes/manufacturer")
      *    .build();
      * </pre>
      *
@@ -252,17 +252,6 @@ public final class SearchModelFactory {
             final SortOptionEntry.SortOrder sortOrder) {
 
         return ImmutableSortOptionEntry.of(propertyPath, sortOrder);
-    }
-
-    /**
-     * Creates a new {@link LimitOption} for the provided {@code offset} and {@code count}.
-     *
-     * @param offset the offset to use for the LimitOption
-     * @param count the count to include in the LimitOption
-     * @return the created LimitOption
-     */
-    public static LimitOption newLimitOption(final int offset, final int count) {
-        return ImmutableLimitOption.of(offset, count);
     }
 
     /**

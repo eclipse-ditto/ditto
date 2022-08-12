@@ -165,4 +165,5 @@ public final class BsonDiff {
     private static String getPathString(final Iterable<JsonKey> jsonPointer) {
         return StreamSupport.stream(jsonPointer.spliterator(), false).collect(Collectors.joining("."));
     }
+
 }

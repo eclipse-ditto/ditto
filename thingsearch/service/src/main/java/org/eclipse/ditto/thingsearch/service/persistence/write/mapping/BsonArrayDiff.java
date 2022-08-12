@@ -76,6 +76,7 @@ final class BsonArrayDiff {
                 // use 0 as default value to re-use root grant/revoke
                 (doc, j) -> kMap.getOrDefault(doc.get(FIELD_FEATURE_ID), 0);
         final BsonValue difference = diff(internalArrayKey, minuend, subtrahend, maxWireVersion, kMapGet);
+
         return new BsonDiff(
                 replacementSize,
                 bsonSizeVisitor.eval(difference),
