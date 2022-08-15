@@ -21,5 +21,6 @@ content:
         requestedAcks:
           labels: ["my-connection-id:my-issued-acknowledgement"]
           timeout: "30s"
+        randomizationInterval: "5m"
 description: Optional request payload for `activateTokenIntegration` policy action.
 required: false

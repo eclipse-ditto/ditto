@@ -205,6 +205,6 @@ public final class PolicyAnnouncementManager extends AbstractActor {
 
         return minuend.stream()
                 .filter(subject -> !subtrahend.contains(subject))
-                .collect(Collectors.toList());
+                .toList();
     }
 }

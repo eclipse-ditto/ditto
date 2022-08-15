@@ -45,7 +45,7 @@ public interface SubjectAnnouncement extends Jsonifiable<JsonObject> {
      */
     static SubjectAnnouncement of(@Nullable final DittoDuration beforeExpiry, final boolean whenDeleted) {
         return new ImmutableSubjectAnnouncement(beforeExpiry, whenDeleted, Collections.emptyList(),
-                null);
+                null, null);
     }
 
     /**
@@ -56,14 +56,17 @@ public interface SubjectAnnouncement extends Jsonifiable<JsonObject> {
      * @param whenDeleted whether an announcement should be sent when the subject is deleted.
      * @param requestedAcksLabels acknowledgement requests for subject deletion announcements.
      * @param requestedAcksTimeout timeout of acknowledgement requests.
+     * @param randomizationInterval interval for randomizing the announcement timing.
      * @return the new {@link SubjectAnnouncement}.
      */
     static SubjectAnnouncement of(@Nullable final DittoDuration beforeExpiry,
             final boolean whenDeleted,
             final List<AcknowledgementRequest> requestedAcksLabels,
-            @Nullable final DittoDuration requestedAcksTimeout) {
+            @Nullable final DittoDuration requestedAcksTimeout,
+            @Nullable final DittoDuration randomizationInterval) {
+
         return new ImmutableSubjectAnnouncement(beforeExpiry, whenDeleted, requestedAcksLabels,
-                requestedAcksTimeout);
+                requestedAcksTimeout, randomizationInterval);
     }
 
     /**
@@ -109,6 +112,15 @@ public interface SubjectAnnouncement extends Jsonifiable<JsonObject> {
     Optional<DittoDuration> getRequestedAcksTimeout();
 
     /**
+     * Returns interval in which the announcement can be sent earlier in effort to prevent announcement
+     * peaks.
+     *
+     * @return the interval.
+     * @since 3.0.0
+     */
+    Optional<DittoDuration> getRandomizationInterval();
+
+    /**
      * Returns a copy of this object with the field {@code beforeExpiry} replaced.
      *
      * @param beforeExpiry the new value.
@@ -147,6 +159,14 @@ public interface SubjectAnnouncement extends Jsonifiable<JsonObject> {
          */
         public static final JsonFieldDefinition<String> REQUESTED_ACKS_TIMEOUT =
                 JsonFactory.newStringFieldDefinition("requestedAcks/timeout");
+
+        /**
+         * Field to store interval in which the announcement can be sent earlier in effort to prevent announcement
+         * peaks.
+         * @since 3.0.0
+         */
+        public static final JsonFieldDefinition<String> RANDOMIZATION_INTERVAL =
+                JsonFactory.newStringFieldDefinition("randomizationInterval");
 
         private JsonFields() {}
     }
