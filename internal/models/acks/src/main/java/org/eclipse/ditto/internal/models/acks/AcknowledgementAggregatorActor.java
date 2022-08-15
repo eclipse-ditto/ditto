@@ -246,7 +246,7 @@ public final class AcknowledgementAggregatorActor extends AbstractActorWithTimer
                 .match(Acknowledgements.class, this::handleAcknowledgements)
                 .match(CommandResponse.class, this::handleCommandResponse)
                 .match(DittoRuntimeException.class, this::handleDittoRuntimeException)
-                .match(Control.class, Control.WAITING_FOR_ACKS_TIMED_OUT::equals, this::handleReceiveTimeout)
+                .matchEquals(Control.WAITING_FOR_ACKS_TIMED_OUT, this::handleReceiveTimeout)
                 .matchAny(m -> log.warning("Received unexpected message: <{}>", m))
                 .build();
     }
@@ -369,7 +369,8 @@ public final class AcknowledgementAggregatorActor extends AbstractActorWithTimer
 
     private void handleSignal(final DittoHeadersSettable<?> signal) {
         responseSignalConsumer.accept(
-                CommandHeaderRestoration.restoreCommandConnectivityHeaders(signal, originatingSignal.getDittoHeaders()));
+                CommandHeaderRestoration.restoreCommandConnectivityHeaders(signal,
+                        originatingSignal.getDittoHeaders()));
     }
 
     private static boolean containsOnlyTwinPersistedOrLiveResponse(final Acknowledgements aggregatedAcknowledgements) {
