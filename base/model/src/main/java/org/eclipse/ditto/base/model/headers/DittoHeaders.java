@@ -31,6 +31,7 @@ import org.eclipse.ditto.base.model.headers.metadata.MetadataHeaders;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.json.Jsonifiable;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonPointer;
 
 /**
  * Headers for commands and their responses which provide additional information needed for correlation and transfer.
@@ -345,6 +346,24 @@ public interface DittoHeaders extends Jsonifiable<JsonObject>, Map<String, Strin
      * @since 1.2.0
      */
     MetadataHeaders getMetadataHeadersToPut();
+
+    /**
+     * Returns the metadata fields to get for the (retrieving) response were they should be added to.
+     *
+     * @return set of {@code JsonPointer}s to get {@code Metadata} for.
+     * Changes on the returned set are not reflected back to this DittoHeaders instance.
+     * @since 3.0.0
+     */
+    Set<JsonPointer> getMetadataFieldsToGet();
+
+    /**
+     * Returns the metadata fields to delete metadata for the modifying request.
+     *
+     * @return set of {@code JsonPointer}s to delete {@code Metadata} for.
+     * Changes on the returned set are not reflected back to this DittoHeaders instance.
+     * @since 3.0.0
+     */
+    Set<JsonPointer> getMetadataFieldsToDelete();
 
     /**
      * Returns whether the policy lockout is allowed.

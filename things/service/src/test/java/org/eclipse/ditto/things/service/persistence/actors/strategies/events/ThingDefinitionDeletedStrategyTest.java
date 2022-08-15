@@ -16,10 +16,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
+import org.eclipse.ditto.base.model.entity.metadata.Metadata;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.signals.events.ThingDefinitionDeleted;
-import org.junit.Ignore;
 import org.junit.Test;
 
 /**
@@ -39,8 +40,22 @@ public final class ThingDefinitionDeletedStrategyTest extends AbstractStrategyTe
         final ThingDefinitionDeleted event = ThingDefinitionDeleted.of(THING_ID, REVISION,
                 TIMESTAMP, DittoHeaders.empty(), null);
 
+        final Metadata thingMetadata = Metadata.newBuilder()
+                .set("definition", METADATA)
+                .set("features", JsonObject.newBuilder()
+                        .set(FEATURE_ID, JsonObject.newBuilder()
+                                .set("definition", JsonObject.newBuilder()
+                                        .set(FEATURE_DEFINITION_ID, METADATA)
+                                        .build())
+                                .set("properties", JsonObject.newBuilder()
+                                        .set(FEATURE_PROPERTY_POINTER, METADATA)
+                                        .build())
+                                .build())
+                        .build())
+                .build();
         final Thing thingWithDefinition = THING.toBuilder()
                 .setDefinition(THING_DEFINITION)
+                .setMetadata(thingMetadata)
                 .build();
         final Thing thingWithEventApplied = strategy.handle(event, thingWithDefinition, NEXT_REVISION);
 
@@ -48,7 +63,9 @@ public final class ThingDefinitionDeletedStrategyTest extends AbstractStrategyTe
                 .setDefinition(null)
                 .setRevision(NEXT_REVISION)
                 .setModified(TIMESTAMP)
+                .setMetadata(thingMetadata.toBuilder().remove("definition").build())
                 .build();
+
         assertThat(thingWithEventApplied).isEqualTo(expected);
     }
 

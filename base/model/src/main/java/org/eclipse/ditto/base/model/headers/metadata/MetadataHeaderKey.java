@@ -17,7 +17,7 @@ import org.eclipse.ditto.json.JsonPointer;
 /**
  * Key of a Ditto metadata header that is associated with a metadata value within DittoHeaders.
  * The string representation of a metadata header key consists of a path that is represented as {@link JsonPointer}.
- * Furthermore a MetadataHeaderKey has knowledge about for which parts of a JSON value the associated header value is
+ * Furthermore, a MetadataHeaderKey has knowledge about for which parts of a JSON value the associated header value is
  * applicable.
  * This knowledge is derived from the path.
  *
@@ -71,9 +71,9 @@ public interface MetadataHeaderKey extends Comparable<MetadataHeaderKey> {
     /**
      * Returns the path of this key.
      * The returned path is determined by the fact whether this key should be applied to all levels:
-     * If this key applies to all leaves, only the leaf of the original path is returned, i. e. the wildcard at the
+     * If this key applies to all leaves, only the leaf of the original path is returned, i.e. the wildcard at the
      * beginning is truncated.
-     * Otherwise the full original path is returned.
+     * Otherwise, the full original path is returned.
      *
      * @return the path.
      * @see #appliesToAllLeaves()
@@ -88,7 +88,7 @@ public interface MetadataHeaderKey extends Comparable<MetadataHeaderKey> {
     String toString();
 
     /**
-     * Compares the given given key with this key.
+     * Compares the given key with this key.
      * Generally the result is obtained by comparing the key's paths.
      * Keys that have a wildcard are regarded to be less than keys with a specific path.
      *

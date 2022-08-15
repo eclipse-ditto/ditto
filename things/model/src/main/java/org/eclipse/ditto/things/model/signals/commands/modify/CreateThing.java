@@ -44,9 +44,9 @@ import org.eclipse.ditto.things.model.signals.commands.ThingCommandSizeValidator
 import org.eclipse.ditto.things.model.signals.commands.exceptions.PoliciesConflictingException;
 
 /**
- * This command creates a new Thing. It contains the full {@link org.eclipse.ditto.things.model.Thing} including the Thing ID which should be used for
- * creation. If the Thing ID is already in the system, a response with a status code {@code 409} (Conflict) will be
- * generated.
+ * This command creates a new Thing. It contains the full {@link org.eclipse.ditto.things.model.Thing} including the
+ * Thing ID which should be used for creation. If the Thing ID is already in the system, a response with a status code
+ * {@code 409} (Conflict) will be generated.
  */
 @Immutable
 @JsonParsableCommand(typePrefix = ThingCommand.TYPE_PREFIX, name = CreateThing.NAME)
@@ -101,7 +101,8 @@ public final class CreateThing extends AbstractCommand<CreateThing> implements T
         this.initialPolicy = initialPolicy;
         this.policyIdOrPlaceholder = null;
 
-        final JsonObject thingJsonObject = thing.toJson();
+        final JsonObject thingJsonObject = thing.toJson(FieldType.notHidden()
+                .or(jsonField -> Objects.equals(Thing.JsonFields.METADATA.getPointer(), jsonField.getKey().asPointer())));
 
         ThingCommandSizeValidator.getInstance().ensureValidSize(
                 thingJsonObject::getUpperBoundForStringSize,
@@ -118,7 +119,8 @@ public final class CreateThing extends AbstractCommand<CreateThing> implements T
             PolicyId.of(policyIdOrPlaceholder); //validates
         }
 
-        final JsonObject thingJsonObject = thing.toJson();
+        final JsonObject thingJsonObject = thing.toJson(FieldType.notHidden()
+                .or(jsonField -> Objects.equals(Thing.JsonFields.METADATA.getPointer(), jsonField.getKey().asPointer())));
 
         ThingCommandSizeValidator.getInstance().ensureValidSize(
                 thingJsonObject::getUpperBoundForStringSize,

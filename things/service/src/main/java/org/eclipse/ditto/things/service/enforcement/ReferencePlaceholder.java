@@ -36,15 +36,15 @@ import org.eclipse.ditto.placeholders.PlaceholderReferenceNotSupportedException;
 @Immutable
 final class ReferencePlaceholder {
 
-    private static String placeholderBeginning = "\\{\\{\\s?";
-    private static String placeholderEnding = "\\s?}}";
-    private static String referenceKeyword = "ref";
-    private static String everythingExceptFrontSlashesAndSpaces = "[^/\\s]";
-    private static String everythingExceptSpaces = "[^\\s]";
-    private static String entityTypeGroup = "(" + everythingExceptFrontSlashesAndSpaces + "+)";
-    private static String entityIdGroup = "(" + everythingExceptFrontSlashesAndSpaces + "+)";
-    private static String fieldSelectorGroup = "(" + everythingExceptSpaces + "+)";
-    private static Pattern referencePlaceholderPattern = Pattern.compile(
+    private static final String placeholderBeginning = "\\{\\{\\s?";
+    private static final String placeholderEnding = "\\s?}}";
+    private static final String referenceKeyword = "ref";
+    private static final String everythingExceptFrontSlashesAndSpaces = "[^/\\s]";
+    private static final String everythingExceptSpaces = "[^\\s]";
+    private static final String entityTypeGroup = "(" + everythingExceptFrontSlashesAndSpaces + "+)";
+    private static final String entityIdGroup = "(" + everythingExceptFrontSlashesAndSpaces + "+)";
+    private static final String fieldSelectorGroup = "(" + everythingExceptSpaces + "+)";
+    private static final Pattern referencePlaceholderPattern = Pattern.compile(
             placeholderBeginning + referenceKeyword + ":" + entityTypeGroup + "/" + entityIdGroup + "/" +
                     fieldSelectorGroup + placeholderEnding);
 

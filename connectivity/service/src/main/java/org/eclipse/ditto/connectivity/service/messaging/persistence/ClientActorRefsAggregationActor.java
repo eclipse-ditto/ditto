@@ -169,7 +169,7 @@ final class ClientActorRefsAggregationActor extends AbstractFSM<AggregationState
 
     enum AggregationState {
         AGGREGATING,
-        AGGREGATED;
+        AGGREGATED
     }
 
     static class AggregationData {

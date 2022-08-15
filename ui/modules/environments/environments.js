@@ -67,7 +67,7 @@ let observers = [];
 
 export function current() {
   return environments[dom.environmentSelector.value];
-};
+}
 
 export function addChangeListener(observer) {
   observers.push(observer);
@@ -150,7 +150,7 @@ export function environmentsJsonChanged(modifiedField) {
     let activeEnvironment = dom.environmentSelector.value;
     if (!activeEnvironment || !environments[activeEnvironment]) {
       activeEnvironment = Object.keys(environments)[0];
-    };
+    }
 
     dom.environmentSelector.innerHTML = '';
     Object.keys(environments).forEach((key) => {

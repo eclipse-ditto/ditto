@@ -147,7 +147,7 @@ public interface UpdaterConfig {
         private final String path;
         private final Object defaultValue;
 
-        private UpdaterConfigValue(final String thePath, final Object theDefaultValue) {
+        UpdaterConfigValue(final String thePath, final Object theDefaultValue) {
             path = thePath;
             defaultValue = theDefaultValue;
         }

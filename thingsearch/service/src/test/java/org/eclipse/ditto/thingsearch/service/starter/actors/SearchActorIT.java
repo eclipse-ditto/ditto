@@ -28,6 +28,7 @@ import org.bson.Document;
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
 import org.eclipse.ditto.base.model.auth.DittoAuthorizationContextType;
+import org.eclipse.ditto.base.model.entity.metadata.MetadataModelFactory;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
@@ -38,6 +39,7 @@ import org.eclipse.ditto.internal.utils.test.mongo.MongoDbResource;
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.policies.model.EffectedPermissions;
@@ -254,7 +256,7 @@ public final class SearchActorIT {
         final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
                 .authorizationContext(AUTH_CONTEXT)
                 .build();
-        final String filter = "eq(attributes/x,5)";
+        final String filter = "and(eq(attributes/x,5),eq(_metadata/attributes/x/type,\"x attribute\"))";
         if (size != null) {
             return QueryThings.of(filter, options, null, null, dittoHeaders);
         } else {
@@ -267,6 +269,13 @@ public final class SearchActorIT {
                 .setId(ThingId.of("thing", "00"))
                 .setRevision(1234L)
                 .setAttribute(JsonPointer.of("x"), JsonValue.of(5))
+                .setMetadata(MetadataModelFactory.newMetadataBuilder()
+                        .set("attributes", JsonObject.newBuilder()
+                                .set("x", JsonObject.newBuilder()
+                                        .set("type", "x attribute")
+                                        .build())
+                                .build())
+                        .build())
                 .build();
 
         final Thing irrelevantThing = baseThing.toBuilder().removeAllAttributes().build();

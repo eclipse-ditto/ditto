@@ -19,13 +19,11 @@ import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
-import java.time.Instant;
 import java.util.Arrays;
 import java.util.Collection;
 
 import org.eclipse.ditto.json.JsonMissingFieldException;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonParseException;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.junit.Ignore;
@@ -131,22 +129,6 @@ public final class DefaultMetadataHeaderTest {
                     .withMessage("Metadata header entry JSON object did not include required <%s> field!",
                             MetadataHeader.JsonFields.METADATA_VALUE.getPointer())
                     .withNoCause();
-        }
-
-        @Test
-        public void getInstanceFromJsonWithInvalidMetadataEntryKey() {
-            final String metadataKey = "*/*/issuedAt";
-            final JsonObject jsonObject = JsonObject.newBuilder()
-                    .set(MetadataHeader.JsonFields.METADATA_KEY, metadataKey)
-                    .set(MetadataHeader.JsonFields.METADATA_VALUE, JsonValue.of(String.valueOf(Instant.now())))
-                    .build();
-
-            assertThatExceptionOfType(JsonParseException.class)
-                    .isThrownBy(() -> DefaultMetadataHeader.fromJson(jsonObject))
-                    .withMessage("The metadata header key <%s> is invalid!", metadataKey)
-                    .satisfies(jsonParseException -> assertThat(jsonParseException.getDescription()).contains(
-                            "A wildcard path of a metadata header key must have exactly two levels but it had <3>!"))
-                    .withCauseInstanceOf(IllegalArgumentException.class);
         }
 
     }

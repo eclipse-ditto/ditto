@@ -116,7 +116,7 @@ public final class ExistsThingPredicateVisitor implements ExistsFieldExpressionV
     public Predicate<Thing> visitFeatureDesiredProperties(final CharSequence featureId) {
         return thing -> thing.getFeatures()
                 .flatMap(features -> features.getFeature(featureId.toString()))
-                .map(feature -> feature.getProperties().isPresent())
+                .map(feature -> feature.getDesiredProperties().isPresent())
                 .orElse(false);
     }
 

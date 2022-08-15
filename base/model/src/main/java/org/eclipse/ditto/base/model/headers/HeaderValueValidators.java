@@ -173,13 +173,24 @@ public final class HeaderValueValidators {
     }
 
     /**
-     * Returns a validator for checking if a CharSequence represents a {@link org.eclipse.ditto.base.model.headers.metadata.MetadataHeaders}.
+     * Returns a validator for checking if a CharSequence represents a
+     * {@link org.eclipse.ditto.base.model.headers.metadata.MetadataHeaders} to put.
      *
      * @return the validator.
      * @since 1.2.0
      */
     static ValueValidator getMetadataHeadersValidator() {
         return MetadataHeadersValueValidator.getInstance();
+    }
+
+    /**
+     * Returns a validator for checking if a CharSequence represents a {@link org.eclipse.ditto.json.JsonFieldSelector}.
+     *
+     * @return the validator.
+     * @since 3.0.0
+     */
+    static ValueValidator getJsonFieldSelectorValidator() {
+        return JsonFieldSelectorValidator.getInstance();
     }
 
     /**

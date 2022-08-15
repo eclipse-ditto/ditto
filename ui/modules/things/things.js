@@ -101,7 +101,7 @@ export async function ready() {
   dom.tabThings.onclick = onTabActivated;
 
   dom.searchFilterEdit.focus();
-};
+}
 
 /**
  * Fills the things table UI with the given things
@@ -129,7 +129,7 @@ function fillThingsTable(thingsList) {
     row.id = item.thingId;
     if (theThing && (item.thingId === theThing.thingId)) {
       row.classList.add('table-active');
-    };
+    }
     Utils.addCheckboxToRow(
         row,
         item.thingId,
@@ -149,7 +149,7 @@ function fillThingsTable(thingsList) {
       row.insertCell(-1).innerHTML = elem.length !== 0 ? elem[0] : '';
     });
   }
-};
+}
 
 /**
  * Calls Ditto search api and fills UI with the result
@@ -180,7 +180,7 @@ export function searchThings(filter, cursor) {
   }).finally(() => {
     document.body.style.cursor = 'default';
   });
-};
+}
 
 /**
  * Gets things from Ditto by thingIds and fills the UI with the result
@@ -192,8 +192,8 @@ export function getThings(thingIds) {
     API.callDittoREST('GET',
         `/things?${Fields.getQueryParameter()}&ids=${thingIds}&option=sort(%2BthingId)`,
     ).then(fillThingsTable);
-  };
-};
+  }
+}
 
 /**
  * Returns a click handler for Update thing and delete thing
@@ -206,7 +206,7 @@ function modifyThing(method) {
   ).then(() => {
     method === 'PUT' ? refreshThing(dom.thingId.value) : searchThings();
   });
-};
+}
 
 /**
  * Load thing from Ditto and update all UI components
@@ -217,7 +217,7 @@ export function refreshThing(thingId) {
       `/things/${thingId}?fields=thingId%2Cattributes%2Cfeatures%2C_created%2C_modified%2C_revision%2C_policy`)
       .then((thing) => setTheThing(thing))
       .catch(() => setTheThing(null));
-};
+}
 
 /**
  * Update all UI components for the given Thing
@@ -284,7 +284,7 @@ function addMoreToThingList() {
   moreCell.disabled = true;
   moreCell.style.color = '#3a8c9a';
   moreCell.parentNode.id = 'searchThingsMore';
-};
+}
 
 /**
  * remove the "more" line from the things table
@@ -303,10 +303,10 @@ function togglePinnedThing(evt) {
     const index = Environments.current().pinnedThings.indexOf(this.id);
     if (index > -1) {
       Environments.current().pinnedThings.splice(index, 1);
-    };
-  };
+    }
+  }
   Environments.environmentsJsonChanged('pinnedThings');
-};
+}
 
 let viewDirty = false;
 

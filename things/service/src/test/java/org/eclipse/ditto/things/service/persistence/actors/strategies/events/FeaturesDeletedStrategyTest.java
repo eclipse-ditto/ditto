@@ -16,10 +16,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
+import org.eclipse.ditto.base.model.entity.metadata.Metadata;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.signals.events.FeaturesDeleted;
-import org.junit.Ignore;
 import org.junit.Test;
 
 /**
@@ -37,13 +38,30 @@ public final class FeaturesDeletedStrategyTest extends AbstractStrategyTest {
         final FeaturesDeletedStrategy strategy = new FeaturesDeletedStrategy();
         final FeaturesDeleted event = FeaturesDeleted.of(THING_ID, REVISION, TIMESTAMP, DittoHeaders.empty(), null);
 
-        final Thing thingWithFeatures = THING.toBuilder().setFeatures(FEATURES).build();
+        final Metadata thingMetadata = Metadata.newBuilder()
+                .set("features", JsonObject.newBuilder()
+                        .set(FEATURE_ID, JsonObject.newBuilder()
+                                .set("definition", JsonObject.newBuilder()
+                                        .set(FEATURE_DEFINITION_ID, METADATA)
+                                        .build())
+                                .set("properties", JsonObject.newBuilder()
+                                        .set(FEATURE_PROPERTY_POINTER, METADATA)
+                                        .build())
+                                .build())
+                        .build())
+                .build();
+        final Thing thingWithFeatures = THING.toBuilder()
+                .setFeatures(FEATURES)
+                .setMetadata(thingMetadata)
+                .build();
         final Thing thingWithEventApplied = strategy.handle(event, thingWithFeatures, NEXT_REVISION);
 
         final Thing expected = THING.toBuilder()
                 .setRevision(NEXT_REVISION)
                 .setModified(TIMESTAMP)
+                .setMetadata(thingMetadata.toBuilder().remove("features").build())
                 .build();
+
         assertThat(thingWithEventApplied).isEqualTo(expected);
     }
 

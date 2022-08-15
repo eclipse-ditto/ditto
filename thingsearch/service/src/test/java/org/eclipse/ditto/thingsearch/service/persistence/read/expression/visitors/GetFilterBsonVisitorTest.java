@@ -13,23 +13,16 @@
 package org.eclipse.ditto.thingsearch.service.persistence.read.expression.visitors;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.fail;
 import static org.eclipse.ditto.thingsearch.service.persistence.read.expression.visitors.FilterAssertions.AND;
 import static org.eclipse.ditto.thingsearch.service.persistence.read.expression.visitors.FilterAssertions.ELEM_MATCH;
 import static org.eclipse.ditto.thingsearch.service.persistence.read.expression.visitors.FilterAssertions.assertAuthFilter;
 import static org.eclipse.ditto.thingsearch.service.persistence.read.expression.visitors.FilterAssertions.toBsonDocument;
 
-import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
 
 import org.bson.BsonArray;
 import org.bson.BsonDocument;
 import org.bson.BsonInt32;
-import org.bson.BsonNumber;
-import org.bson.BsonReader;
-import org.bson.BsonString;
 import org.bson.BsonValue;
 import org.bson.conversions.Bson;
 import org.eclipse.ditto.json.JsonPointer;
@@ -37,8 +30,6 @@ import org.eclipse.ditto.rql.query.expression.visitors.FilterFieldExpressionVisi
 import org.junit.Before;
 import org.junit.Test;
 import org.mongodb.scala.model.Filters;
-
-import com.mongodb.reactivestreams.client.MongoClients;
 
 public class GetFilterBsonVisitorTest {
 
@@ -121,6 +112,16 @@ public class GetFilterBsonVisitorTest {
         final Bson attributeFilter = underTest.visitSimple("_id");
         final BsonDocument document = toBsonDocument(attributeFilter);
         assertThat(document).isEqualTo(new BsonDocument("_id", BSON_VALUE));
+    }
+
+    @Test
+    public void testMetadata() {
+        final Bson metadataFilter = underTest.visitMetadata("m1");
+        final BsonDocument document = toBsonDocument(metadataFilter);
+        final BsonValue valueFilter = document.getArray(AND).get(0);
+        final BsonValue authFilter = document.getArray(AND).get(1);
+        assertThat(valueFilter).isEqualTo(new BsonDocument("t._metadata.m1", BSON_VALUE));
+        assertAuthFilter(authFilter, List.of("subject1", "subject2"), "_metadata.m1", "_metadata", "");
     }
 
 }

@@ -322,6 +322,36 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
     PUT_METADATA("put-metadata", JsonArray.class, true, false, HeaderValueValidators.getMetadataHeadersValidator()),
 
     /**
+     * Header definition for getting metadata relatively to the resource of an entity.
+     * <p>
+     * Key {@code "get-metadata"}, Java type: {@link String}.
+     * </p>
+     *
+     * @since 3.0.0
+     */
+    GET_METADATA("get-metadata", String.class, true, false, HeaderValueValidators.getJsonFieldSelectorValidator()),
+
+    /**
+     * Header definition for deleting metadata relatively to the resource of an entity.
+     * <p>
+     * Key {@code "delete-metadata"}, Java type: {@link String}.
+     * </p>
+     *
+     * @since 3.0.0
+     */
+    DELETE_METADATA("delete-metadata", String.class, true, false, HeaderValueValidators.getJsonFieldSelectorValidator()),
+
+    /**
+     * Header definition for metadata relatively to the resource of an entity.
+     * <p>
+     * Key {@code "ditto-metadata"}, Java type: {@link JsonObject}.
+     * </p>
+     *
+     * @since 3.0.0
+     */
+    DITTO_METADATA("ditto-metadata", JsonObject.class, false, true, HeaderValueValidators.getNoOpValidator()),
+
+    /**
      * Header definition for allowing the policy lockout (i.e. a subject can create a policy without having WRITE
      * permission on the policy resource for itself, by default a subject making the request must have
      * WRITE permission on policy resource).
@@ -475,7 +505,7 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
      * @param readFromExternalHeaders whether Ditto reads this header from headers sent by externals.
      * @param writeToExternalHeaders whether Ditto publishes this header to externals.
      */
-    private DittoHeaderDefinition(final String theKey,
+    DittoHeaderDefinition(final String theKey,
             final Class<?> theType,
             final boolean readFromExternalHeaders,
             final boolean writeToExternalHeaders,
@@ -491,7 +521,7 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
      * @param readFromExternalHeaders whether Ditto reads this header from headers sent by externals.
      * @param writeToExternalHeaders whether Ditto publishes this header to externals.
      */
-    private DittoHeaderDefinition(final String theKey,
+    DittoHeaderDefinition(final String theKey,
             final Class<?> theType,
             final Class<?> serializationType,
             final boolean readFromExternalHeaders,

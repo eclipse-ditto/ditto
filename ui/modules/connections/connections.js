@@ -248,7 +248,7 @@ function loadConnections() {
       setConnection(null);
     }
   });
-};
+}
 
 function loadConnectionTemplates() {
   fetch('templates/connectionTemplates.json')

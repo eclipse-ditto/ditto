@@ -57,6 +57,7 @@ import org.eclipse.ditto.things.model.signals.commands.exceptions.FeaturePropert
 import org.eclipse.ditto.things.model.signals.commands.exceptions.FeaturePropertyNotModifiableException;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.FeaturesNotAccessibleException;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.FeaturesNotModifiableException;
+import org.eclipse.ditto.things.model.signals.commands.exceptions.MetadataNotModifiableException;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.MissingThingIdsException;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.PolicyIdNotAccessibleException;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.PolicyIdNotAllowedException;
@@ -278,6 +279,12 @@ public final class TestConstants {
                 ThingNotModifiableException.newBuilder(THING_ID).build();
 
         /**
+         * A known {@code MetadataNotModifiableException}.
+         */
+        public static final MetadataNotModifiableException METADATA_NOT_MODIFIABLE_EXCEPTION =
+                MetadataNotModifiableException.newBuilder().build();
+
+        /**
          * A known {@code PolicyIdNotModifiableException}.
          */
         public static final PolicyIdNotModifiableException POLICY_ID_NOT_MODIFIABLE_EXCEPTION =
@@ -421,6 +428,7 @@ public final class TestConstants {
         public static final org.eclipse.ditto.things.model.Feature FLUX_CAPACITOR =
                 ThingsModelFactory.newFeatureBuilder()
                         .properties(FLUX_CAPACITOR_PROPERTIES)
+                        .definition(FLUX_CAPACITOR_DEFINITION)
                         .withId(FLUX_CAPACITOR_ID)
                         .build();
 

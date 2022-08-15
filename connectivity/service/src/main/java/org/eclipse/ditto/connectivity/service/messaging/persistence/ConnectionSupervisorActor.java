@@ -75,7 +75,7 @@ public final class ConnectionSupervisorActor
     private static final SupervisorStrategy SUPERVISOR_STRATEGY =
             new OneForOneStrategy(true,
                     DeciderBuilder.match(JMSRuntimeException.class, e ->
-                                    (SupervisorStrategy.Directive) SupervisorStrategy.resume())
+                                    SupervisorStrategy.resume())
                             .build()
                             .orElse(SupervisorStrategy.stoppingStrategy().decider()));
     private static final Duration OVERWRITES_CHECK_BACKOFF_DURATION = Duration.ofSeconds(30);

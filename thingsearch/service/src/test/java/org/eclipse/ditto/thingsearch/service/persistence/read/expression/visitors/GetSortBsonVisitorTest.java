@@ -46,6 +46,7 @@ public final class GetSortBsonVisitorTest {
         final SortOption sortOption = new SortOption(expression, SortDirection.ASC);
 
         final var result = GetSortBsonVisitor.sortValuesAsArray(document, List.of(sortOption));
-        assertThat(result.toString()).isEqualTo("[{\"key\":\"value\"}]");
+        assertThat(result.toString()).hasToString("[{\"key\":\"value\"}]");
     }
+
 }
