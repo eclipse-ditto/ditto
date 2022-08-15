@@ -33,11 +33,11 @@ final class MutableThingModelBuilder
     }
 
     @Override
-    public ThingModel.Builder setTmRequired(@Nullable final TmRequired tmRequired) {
-        if (tmRequired != null) {
-            putValue(ThingModel.JsonFields.TM_REQUIRED, tmRequired.toJson());
+    public ThingModel.Builder setTmOptional(@Nullable final TmOptional tmOptional) {
+        if (tmOptional != null) {
+            putValue(ThingModel.JsonFields.TM_OPTIONAL, tmOptional.toJson());
         } else {
-            remove(ThingModel.JsonFields.TM_REQUIRED);
+            remove(ThingModel.JsonFields.TM_OPTIONAL);
         }
         return myself;
     }
