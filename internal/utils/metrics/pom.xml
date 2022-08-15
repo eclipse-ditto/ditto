@@ -42,6 +42,10 @@
             <artifactId>kamon-prometheus_${scala.version}</artifactId>
         </dependency>
         <dependency>
+            <groupId>io.kamon</groupId>
+            <artifactId>kamon-executors_${scala.version}</artifactId>
+        </dependency>
+        <dependency>
             <groupId>com.typesafe.akka</groupId>
             <artifactId>akka-actor_${scala.version}</artifactId>
         </dependency>
