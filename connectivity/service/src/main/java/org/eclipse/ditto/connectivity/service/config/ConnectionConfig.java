@@ -242,7 +242,7 @@ public interface ConnectionConfig extends WithSupervisorConfig, WithActivityChec
         private final String path;
         private final Object defaultValue;
 
-        private ConnectionConfigValue(final String thePath, final Object theDefaultValue) {
+        ConnectionConfigValue(final String thePath, final Object theDefaultValue) {
             path = thePath;
             defaultValue = theDefaultValue;
         }

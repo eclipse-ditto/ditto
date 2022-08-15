@@ -50,7 +50,13 @@ public final class AskWithRetryTest {
 
     private static final String ASK_MESSAGE = "asking..";
     private static final String ASK_MESSAGE_SUCCESS_RESPONSE = "..answering";
-    private static final Duration DEFAULT_NO_MESSAGE_EXPECTATION_DURATION = Duration.ofMillis(100);
+
+    private static final Integer DEFAULT_RETRY_ATTEMPTS = 3;
+    private static final Duration DEFAULT_ASK_TIMEOUT = Duration.ofSeconds(1);
+    private static final Duration DEFAULT_OFFSET = Duration.ofMillis(500);
+    private static final Duration DEFAULT_QUIET_PERIOD = DEFAULT_ASK_TIMEOUT.minus(DEFAULT_OFFSET);
+    private static final Duration DEFAULT_RETRY_DELAY_AFTER_QUIET_PERIOD = DEFAULT_OFFSET.multipliedBy(2);
+    private static final Duration DEFAULT_RETRY_DELAY = DEFAULT_ASK_TIMEOUT.plus(DEFAULT_OFFSET);
 
     private static ActorSystem system;
 
@@ -79,24 +85,23 @@ public final class AskWithRetryTest {
         final Map<String, Object> configMap = Map.of(
                 RETRY_STRATEGY.getConfigPath(), RetryStrategy.OFF.name()
         );
-        ensureDoesNotRetryOnSentDittoRuntimeException(Duration.ofMillis(5), configMap);
+        ensureDoesNotRetryOnSentDittoRuntimeException(configMap);
     }
 
     @Test
     public void ensureRetryStrategyOffDoesNotRetryOnAskTimeout() {
-        final Duration askTimeout = Duration.ofMillis(50);
         final Map<String, Object> configMap = Map.of(
-                ASK_TIMEOUT.getConfigPath(), askTimeout,
+                ASK_TIMEOUT.getConfigPath(), DEFAULT_ASK_TIMEOUT,
                 RETRY_STRATEGY.getConfigPath(), RetryStrategy.OFF.name()
         );
         new TestKit(system) {{
             final CompletionStage<Object> retryStage = buildRetryStage(getRef(), configMap);
 
             expectMsg(ASK_MESSAGE);
-            expectNoMessage(DEFAULT_NO_MESSAGE_EXPECTATION_DURATION);
+            expectNoMessage(DEFAULT_RETRY_DELAY);
 
             assertThat(retryStage)
-                    .failsWithin(askTimeout)
+                    .failsWithin(DEFAULT_ASK_TIMEOUT)
                     .withThrowableOfType(ExecutionException.class)
                     .withCauseInstanceOf(AskException.class);
         }};
@@ -104,9 +109,8 @@ public final class AskWithRetryTest {
 
     @Test
     public void ensureRetryStrategyNoDelayDoesNotRetryOnSuccess() {
-        final Duration askTimeout = Duration.ofMillis(50);
         final Map<String, Object> configMap = Map.of(
-                ASK_TIMEOUT.getConfigPath(), askTimeout,
+                ASK_TIMEOUT.getConfigPath(), DEFAULT_ASK_TIMEOUT,
                 RETRY_STRATEGY.getConfigPath(), RetryStrategy.NO_DELAY.name()
         );
         ensureDoesNotRetryOnSuccess(configMap);
@@ -114,63 +118,63 @@ public final class AskWithRetryTest {
 
     @Test
     public void ensureRetryStrategyNoDelayDoesNotRetryOnSentDittoRuntimeException() {
-        final Duration askTimeout = Duration.ofMillis(50);
         final Map<String, Object> configMap = Map.of(
-                ASK_TIMEOUT.getConfigPath(), askTimeout,
+                ASK_TIMEOUT.getConfigPath(), DEFAULT_ASK_TIMEOUT,
                 RETRY_STRATEGY.getConfigPath(), RetryStrategy.NO_DELAY.name(),
                 RETRY_ATTEMPTS.getConfigPath(), 5
         );
-        ensureDoesNotRetryOnSentDittoRuntimeException(askTimeout, configMap);
+        ensureDoesNotRetryOnSentDittoRuntimeException(configMap);
     }
 
     @Test
     public void ensureRetryStrategyNoDelayDoesRetryOnAskTimeoutUntilSuccess() {
-        final int retryAttempts = 4;
-        final Duration askTimeout = Duration.ofMillis(50);
         final Map<String, Object> configMap = Map.of(
-                ASK_TIMEOUT.getConfigPath(), askTimeout,
+                ASK_TIMEOUT.getConfigPath(), DEFAULT_ASK_TIMEOUT,
                 RETRY_STRATEGY.getConfigPath(), RetryStrategy.NO_DELAY.name(),
-                RETRY_ATTEMPTS.getConfigPath(), retryAttempts
+                RETRY_ATTEMPTS.getConfigPath(), DEFAULT_RETRY_ATTEMPTS
         );
         new TestKit(system) {{
             final CompletionStage<Object> retryStage = buildRetryStage(getRef(), configMap);
 
             expectMsg(ASK_MESSAGE);
-            for (int i = 0; i < retryAttempts; i++) {
-                expectMsg(askTimeout.multipliedBy(3 + i), ASK_MESSAGE);
-                if (i == 2) {
+            expectNoMessage(DEFAULT_QUIET_PERIOD);
+            for (int i = 0; i < DEFAULT_RETRY_ATTEMPTS; i++) {
+                expectMsg(DEFAULT_RETRY_DELAY_AFTER_QUIET_PERIOD, ASK_MESSAGE);
+                if (i == DEFAULT_RETRY_ATTEMPTS -
+                        2) { // Succeed on penultimate attempt to make sure it's not retried again
                     reply(ASK_MESSAGE_SUCCESS_RESPONSE);
                     break;
                 }
+                expectNoMessage(DEFAULT_QUIET_PERIOD);
             }
-            expectNoMessage(DEFAULT_NO_MESSAGE_EXPECTATION_DURATION);
+            expectNoMessage(DEFAULT_RETRY_DELAY_AFTER_QUIET_PERIOD);
 
             assertThat(retryStage)
-                    .succeedsWithin(askTimeout)
+                    .succeedsWithin(DEFAULT_ASK_TIMEOUT)
                     .isEqualTo(ASK_MESSAGE_SUCCESS_RESPONSE);
         }};
     }
 
     @Test
     public void ensureRetryStrategyNoDelayDoesRetryOnAskTimeoutUntilFailed() {
-        final int retryAttempts = 4;
-        final Duration askTimeout = Duration.ofMillis(50);
         final Map<String, Object> configMap = Map.of(
-                ASK_TIMEOUT.getConfigPath(), askTimeout,
+                ASK_TIMEOUT.getConfigPath(), DEFAULT_ASK_TIMEOUT,
                 RETRY_STRATEGY.getConfigPath(), RetryStrategy.NO_DELAY.name(),
-                RETRY_ATTEMPTS.getConfigPath(), retryAttempts
+                RETRY_ATTEMPTS.getConfigPath(), DEFAULT_RETRY_ATTEMPTS
         );
         new TestKit(system) {{
             final CompletionStage<Object> retryStage = buildRetryStage(getRef(), configMap);
 
             expectMsg(ASK_MESSAGE);
-            for (int i = 0; i < retryAttempts; i++) {
-                expectMsg(askTimeout.multipliedBy(2 + i), ASK_MESSAGE);
+            expectNoMessage(DEFAULT_QUIET_PERIOD);
+            for (int i = 0; i < DEFAULT_RETRY_ATTEMPTS; i++) {
+                expectMsg(DEFAULT_RETRY_DELAY_AFTER_QUIET_PERIOD, ASK_MESSAGE);
+                expectNoMessage(DEFAULT_QUIET_PERIOD);
             }
-            expectNoMessage(DEFAULT_NO_MESSAGE_EXPECTATION_DURATION);
+            expectNoMessage(DEFAULT_RETRY_DELAY_AFTER_QUIET_PERIOD);
 
             assertThat(retryStage)
-                    .failsWithin(askTimeout)
+                    .failsWithin(DEFAULT_ASK_TIMEOUT)
                     .withThrowableOfType(ExecutionException.class)
                     .withCauseInstanceOf(AskException.class);
         }};
@@ -178,9 +182,8 @@ public final class AskWithRetryTest {
 
     @Test
     public void ensureRetryStrategyFixedDelayDoesNotRetryOnSuccess() {
-        final Duration askTimeout = Duration.ofMillis(50);
         final Map<String, Object> configMap = Map.of(
-                ASK_TIMEOUT.getConfigPath(), askTimeout,
+                ASK_TIMEOUT.getConfigPath(), DEFAULT_ASK_TIMEOUT,
                 RETRY_STRATEGY.getConfigPath(), RetryStrategy.FIXED_DELAY.name()
         );
         ensureDoesNotRetryOnSuccess(configMap);
@@ -188,69 +191,66 @@ public final class AskWithRetryTest {
 
     @Test
     public void ensureRetryStrategyFixedDelayDoesNotRetryOnSentDittoRuntimeException() {
-        final Duration askTimeout = Duration.ofMillis(50);
         final Map<String, Object> configMap = Map.of(
-                ASK_TIMEOUT.getConfigPath(), askTimeout,
+                ASK_TIMEOUT.getConfigPath(), DEFAULT_ASK_TIMEOUT,
                 RETRY_STRATEGY.getConfigPath(), RetryStrategy.FIXED_DELAY.name(),
                 RETRY_ATTEMPTS.getConfigPath(), 5
         );
-        ensureDoesNotRetryOnSentDittoRuntimeException(askTimeout, configMap);
+        ensureDoesNotRetryOnSentDittoRuntimeException(configMap);
     }
 
     @Test
     public void ensureRetryStrategyFixedDelayDoesRetryOnAskTimeoutUntilSuccess() {
-        final Duration askTimeout = Duration.ofMillis(50);
-        final int retryAttempts = 4;
         final Duration fixedDelay = Duration.ofSeconds(1);
         final Map<String, Object> configMap = Map.of(
-                ASK_TIMEOUT.getConfigPath(), askTimeout,
+                ASK_TIMEOUT.getConfigPath(), DEFAULT_ASK_TIMEOUT,
                 RETRY_STRATEGY.getConfigPath(), RetryStrategy.FIXED_DELAY.name(),
-                RETRY_ATTEMPTS.getConfigPath(), retryAttempts,
+                RETRY_ATTEMPTS.getConfigPath(), DEFAULT_RETRY_ATTEMPTS,
                 FIXED_DELAY.getConfigPath(), fixedDelay
         );
         new TestKit(system) {{
             final CompletionStage<Object> retryStage = buildRetryStage(getRef(), configMap);
 
             expectMsg(ASK_MESSAGE);
-            for (int i = 0; i < retryAttempts; i++) {
-                expectMsg(fixedDelay.plus(askTimeout.multipliedBy(3 + i)), ASK_MESSAGE);
-                if (i == 2) {
+            expectNoMessage(DEFAULT_QUIET_PERIOD);
+            for (int i = 0; i < DEFAULT_RETRY_ATTEMPTS; i++) {
+                expectMsg(fixedDelay.plus(DEFAULT_RETRY_DELAY_AFTER_QUIET_PERIOD), ASK_MESSAGE);
+                if (i == DEFAULT_RETRY_ATTEMPTS - 2) { // Succeed on penultimate attempt to make sure it's not retried
                     reply(ASK_MESSAGE_SUCCESS_RESPONSE);
                     break;
                 }
-                expectNoMessage(fixedDelay.minus(askTimeout.multipliedBy(3)));
+                expectNoMessage(DEFAULT_QUIET_PERIOD);
             }
-            expectNoMessage(DEFAULT_NO_MESSAGE_EXPECTATION_DURATION);
+            expectNoMessage(fixedDelay.plus(DEFAULT_RETRY_DELAY_AFTER_QUIET_PERIOD));
 
             assertThat(retryStage)
-                    .succeedsWithin(askTimeout)
+                    .succeedsWithin(DEFAULT_RETRY_DELAY)
                     .isEqualTo(ASK_MESSAGE_SUCCESS_RESPONSE);
         }};
     }
 
     @Test
     public void ensureRetryStrategyFixedDelayDoesRetryOnAskTimeoutUntilFailed() {
-        final Duration askTimeout = Duration.ofMillis(50);
-        final int retryAttempts = 4;
         final Duration fixedDelay = Duration.ofSeconds(1);
         final Map<String, Object> configMap = Map.of(
-                ASK_TIMEOUT.getConfigPath(), askTimeout,
+                ASK_TIMEOUT.getConfigPath(), DEFAULT_ASK_TIMEOUT,
                 RETRY_STRATEGY.getConfigPath(), RetryStrategy.FIXED_DELAY.name(),
-                RETRY_ATTEMPTS.getConfigPath(), retryAttempts,
+                RETRY_ATTEMPTS.getConfigPath(), DEFAULT_RETRY_ATTEMPTS,
                 FIXED_DELAY.getConfigPath(), fixedDelay
         );
         new TestKit(system) {{
             final CompletionStage<Object> retryStage = buildRetryStage(getRef(), configMap);
 
             expectMsg(ASK_MESSAGE);
-            for (int i = 0; i < retryAttempts; i++) {
-                expectMsg(fixedDelay.plus(askTimeout.multipliedBy(5 + i)), ASK_MESSAGE);
-                expectNoMessage(fixedDelay.minus(askTimeout.multipliedBy(5)));
+            expectNoMessage(DEFAULT_QUIET_PERIOD);
+            for (int i = 0; i < DEFAULT_RETRY_ATTEMPTS; i++) {
+                expectMsg(fixedDelay.plus(DEFAULT_RETRY_DELAY_AFTER_QUIET_PERIOD), ASK_MESSAGE);
+                expectNoMessage(DEFAULT_QUIET_PERIOD);
             }
-            expectNoMessage(DEFAULT_NO_MESSAGE_EXPECTATION_DURATION);
+            expectNoMessage(DEFAULT_RETRY_DELAY_AFTER_QUIET_PERIOD);
 
             assertThat(retryStage)
-                    .failsWithin(askTimeout)
+                    .failsWithin(DEFAULT_ASK_TIMEOUT)
                     .withThrowableOfType(ExecutionException.class)
                     .withCauseInstanceOf(AskException.class);
         }};
@@ -258,9 +258,8 @@ public final class AskWithRetryTest {
 
     @Test
     public void ensureRetryStrategyBackoffDelayDoesNotRetryOnSuccess() {
-        final Duration askTimeout = Duration.ofMillis(50);
         final Map<String, Object> configMap = Map.of(
-                ASK_TIMEOUT.getConfigPath(), askTimeout,
+                ASK_TIMEOUT.getConfigPath(), DEFAULT_ASK_TIMEOUT,
                 RETRY_STRATEGY.getConfigPath(), RetryStrategy.BACKOFF_DELAY.name()
         );
         ensureDoesNotRetryOnSuccess(configMap);
@@ -268,26 +267,23 @@ public final class AskWithRetryTest {
 
     @Test
     public void ensureRetryStrategyBackoffDelayDoesNotRetryOnSentDittoRuntimeException() {
-        final Duration askTimeout = Duration.ofMillis(50);
         final Map<String, Object> configMap = Map.of(
-                ASK_TIMEOUT.getConfigPath(), askTimeout,
+                ASK_TIMEOUT.getConfigPath(), DEFAULT_ASK_TIMEOUT,
                 RETRY_STRATEGY.getConfigPath(), RetryStrategy.BACKOFF_DELAY.name(),
                 RETRY_ATTEMPTS.getConfigPath(), 5
         );
-        ensureDoesNotRetryOnSentDittoRuntimeException(askTimeout, configMap);
+        ensureDoesNotRetryOnSentDittoRuntimeException(configMap);
     }
 
     @Test
     public void ensureRetryStrategyBackoffDelayDoesRetryOnAskTimeoutUntilSuccess() {
-        final Duration askTimeout = Duration.ofMillis(100);
-        final int retryAttempts = 4;
         final Duration minDelay = Duration.ofMillis(100);
-        final Duration maxDelay = Duration.ofSeconds(2);
+        final Duration maxDelay = Duration.ofSeconds(1);
         final double randomFactor = 0.1;
         final Map<String, Object> configMap = Map.of(
-                ASK_TIMEOUT.getConfigPath(), askTimeout,
+                ASK_TIMEOUT.getConfigPath(), DEFAULT_ASK_TIMEOUT,
                 RETRY_STRATEGY.getConfigPath(), RetryStrategy.BACKOFF_DELAY.name(),
-                RETRY_ATTEMPTS.getConfigPath(), retryAttempts,
+                RETRY_ATTEMPTS.getConfigPath(), DEFAULT_RETRY_ATTEMPTS,
                 BACKOFF_DELAY_MIN.getConfigPath(), minDelay,
                 BACKOFF_DELAY_MAX.getConfigPath(), maxDelay,
                 BACKOFF_DELAY_RANDOM_FACTOR.getConfigPath(), randomFactor
@@ -296,33 +292,32 @@ public final class AskWithRetryTest {
             final CompletionStage<Object> retryStage = buildRetryStage(getRef(), configMap);
 
             expectMsg(ASK_MESSAGE);
-            for (int i = 0; i < retryAttempts; i++) {
-                expectMsg(maxDelay.plus(askTimeout.multipliedBy(3 + i)), ASK_MESSAGE);
-                if (i == 2) {
+            expectNoMessage(DEFAULT_QUIET_PERIOD);
+            for (int i = 0; i < DEFAULT_RETRY_ATTEMPTS; i++) {
+                expectMsg(maxDelay.plus(DEFAULT_RETRY_DELAY_AFTER_QUIET_PERIOD), ASK_MESSAGE);
+                if (i == DEFAULT_RETRY_ATTEMPTS - 2) { // Succeed on penultimate attempt to make sure it's not retried
                     reply(ASK_MESSAGE_SUCCESS_RESPONSE);
                     break;
                 }
-                expectNoMessage(minDelay);
+                expectNoMessage(DEFAULT_QUIET_PERIOD);
             }
-            expectNoMessage(DEFAULT_NO_MESSAGE_EXPECTATION_DURATION);
+            expectNoMessage(DEFAULT_RETRY_DELAY_AFTER_QUIET_PERIOD);
 
             assertThat(retryStage)
-                    .succeedsWithin(askTimeout)
+                    .succeedsWithin(DEFAULT_ASK_TIMEOUT)
                     .isEqualTo(ASK_MESSAGE_SUCCESS_RESPONSE);
         }};
     }
 
     @Test
     public void ensureRetryStrategyBackoffDelayDoesRetryOnAskTimeoutUntilFailed() {
-        final Duration askTimeout = Duration.ofMillis(50);
-        final int retryAttempts = 4;
         final Duration minDelay = Duration.ofMillis(100);
-        final Duration maxDelay = Duration.ofSeconds(2);
+        final Duration maxDelay = Duration.ofSeconds(1);
         final double randomFactor = 0.1;
         final Map<String, Object> configMap = Map.of(
-                ASK_TIMEOUT.getConfigPath(), askTimeout,
+                ASK_TIMEOUT.getConfigPath(), DEFAULT_ASK_TIMEOUT,
                 RETRY_STRATEGY.getConfigPath(), RetryStrategy.BACKOFF_DELAY.name(),
-                RETRY_ATTEMPTS.getConfigPath(), retryAttempts,
+                RETRY_ATTEMPTS.getConfigPath(), DEFAULT_RETRY_ATTEMPTS,
                 BACKOFF_DELAY_MIN.getConfigPath(), minDelay,
                 BACKOFF_DELAY_MAX.getConfigPath(), maxDelay,
                 BACKOFF_DELAY_RANDOM_FACTOR.getConfigPath(), randomFactor
@@ -331,14 +326,15 @@ public final class AskWithRetryTest {
             final CompletionStage<Object> retryStage = buildRetryStage(getRef(), configMap);
 
             expectMsg(ASK_MESSAGE);
-            for (int i = 0; i < retryAttempts; i++) {
-                expectMsg(maxDelay.plus(askTimeout.multipliedBy(3 + i)), ASK_MESSAGE);
-                expectNoMessage(minDelay);
+            expectNoMessage(DEFAULT_QUIET_PERIOD);
+            for (int i = 0; i < DEFAULT_RETRY_ATTEMPTS; i++) {
+                expectMsg(maxDelay.plus(DEFAULT_RETRY_DELAY_AFTER_QUIET_PERIOD), ASK_MESSAGE);
+                expectNoMessage(DEFAULT_QUIET_PERIOD);
             }
-            expectNoMessage(DEFAULT_NO_MESSAGE_EXPECTATION_DURATION);
+            expectNoMessage(maxDelay.plus(DEFAULT_RETRY_DELAY_AFTER_QUIET_PERIOD));
 
             assertThat(retryStage)
-                    .failsWithin(askTimeout)
+                    .failsWithin(DEFAULT_ASK_TIMEOUT)
                     .withThrowableOfType(ExecutionException.class)
                     .withCauseInstanceOf(AskException.class);
         }};
@@ -350,7 +346,7 @@ public final class AskWithRetryTest {
 
             expectMsg(ASK_MESSAGE);
             reply(ASK_MESSAGE_SUCCESS_RESPONSE);
-            expectNoMessage(DEFAULT_NO_MESSAGE_EXPECTATION_DURATION);
+            expectNoMessage(DEFAULT_RETRY_DELAY);
 
             assertThat(retryStage)
                     .succeedsWithin(Duration.ofMillis(50))
@@ -358,17 +354,16 @@ public final class AskWithRetryTest {
         }};
     }
 
-    private static void ensureDoesNotRetryOnSentDittoRuntimeException(final Duration askTimeout,
-            final Map<String, Object> configMap) {
+    private static void ensureDoesNotRetryOnSentDittoRuntimeException(final Map<String, Object> configMap) {
         new TestKit(system) {{
             final CompletionStage<Object> retryStage = buildRetryStage(getRef(), configMap);
 
             expectMsg(ASK_MESSAGE);
             reply(CommandHeaderInvalidException.newBuilder("just-for-testing").build());
-            expectNoMessage(DEFAULT_NO_MESSAGE_EXPECTATION_DURATION);
+            expectNoMessage(DEFAULT_RETRY_DELAY);
 
             assertThat(retryStage)
-                    .failsWithin(askTimeout.multipliedBy(3))
+                    .failsWithin(DEFAULT_RETRY_DELAY)
                     .withThrowableOfType(ExecutionException.class)
                     .withCauseInstanceOf(CommandHeaderInvalidException.class);
         }};

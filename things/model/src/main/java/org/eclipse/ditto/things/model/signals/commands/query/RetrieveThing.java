@@ -40,7 +40,7 @@ import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommand;
 
 /**
- * Command which retrieves one {@link org.eclipse.ditto.things.model.Thing} based on the the passed in Thing ID.
+ * Command which retrieves one {@link org.eclipse.ditto.things.model.Thing} based on the passed in Thing ID.
  */
 @Immutable
 @JsonParsableCommand(typePrefix = ThingCommand.TYPE_PREFIX, name = RetrieveThing.NAME)

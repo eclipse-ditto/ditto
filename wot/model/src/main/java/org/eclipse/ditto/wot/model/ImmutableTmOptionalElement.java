@@ -20,30 +20,30 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 /**
- * Immutable implementation of {@link TmRequiredElement}.
+ * Immutable implementation of {@link TmOptionalElement}.
  */
 @Immutable
-final class ImmutableTmRequiredElement implements TmRequiredElement {
+final class ImmutableTmOptionalElement implements TmOptionalElement {
 
-    private final String requiredElement;
+    private final String optionalElement;
 
-    ImmutableTmRequiredElement(final CharSequence requiredElement) {
-        this.requiredElement = checkNotNull(requiredElement, "requiredElement").toString();
+    ImmutableTmOptionalElement(final CharSequence optionalElement) {
+        this.optionalElement = checkNotNull(optionalElement, "optionalElement").toString();
     }
 
     @Override
     public int length() {
-        return requiredElement.length();
+        return optionalElement.length();
     }
 
     @Override
     public char charAt(final int index) {
-        return requiredElement.charAt(index);
+        return optionalElement.charAt(index);
     }
 
     @Override
     public CharSequence subSequence(final int start, final int end) {
-        return requiredElement.subSequence(start, end);
+        return optionalElement.subSequence(start, end);
     }
 
     @Override
@@ -54,17 +54,17 @@ final class ImmutableTmRequiredElement implements TmRequiredElement {
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        final ImmutableTmRequiredElement that = (ImmutableTmRequiredElement) o;
-        return Objects.equals(requiredElement, that.requiredElement);
+        final ImmutableTmOptionalElement that = (ImmutableTmOptionalElement) o;
+        return Objects.equals(optionalElement, that.optionalElement);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(requiredElement);
+        return Objects.hash(optionalElement);
     }
 
     @Override
     public String toString() {
-        return requiredElement;
+        return optionalElement;
     }
 }

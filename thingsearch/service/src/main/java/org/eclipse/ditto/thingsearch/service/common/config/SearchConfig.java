@@ -72,20 +72,23 @@ public interface SearchConfig extends ServiceSpecificConfig, WithHealthCheckConf
          *
          * @since 3.0.0
          */
-        SIMPLE_FIELD_MAPPINGS("simple-field-mappings", ConfigValueFactory.fromMap(Map.of(
+        SIMPLE_FIELD_MAPPINGS("simple-field-mappings", ConfigValueFactory.fromMap(
+                Map.of(
                 "thingId", "_id",
                 "namespace", "_namespace",
                 "policyId", "/policyId",
                 "_revision", "/_revision",
                 "_modified", "/_modified",
                 "_created", "/_created",
-                "definition", "/definition"
-        )));
+                "definition", "/definition",
+                "_metadata", "/_metadata"
+                )
+        ));
 
         private final String path;
         private final Object defaultValue;
 
-        private SearchConfigValue(final String path, final Object defaultValue) {
+        SearchConfigValue(final String path, final Object defaultValue) {
             this.path = path;
             this.defaultValue = defaultValue;
         }

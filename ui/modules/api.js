@@ -334,7 +334,7 @@ export async function callConnectionsAPI(operation, successCallback, connectionI
               }
               data = data[node];
             });
-          };
+          }
           successCallback(data);
         }
       }).catch((error) => {
@@ -350,9 +350,9 @@ export async function callConnectionsAPI(operation, successCallback, connectionI
     Utils.showError(err);
     throw err;
   }
-};
+}
 
 export function env() {
   return Environments.current().api_uri.startsWith('https://things') ? 'things' : 'ditto';
-};
+}
 

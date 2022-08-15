@@ -159,6 +159,7 @@ public final class AcknowledgementAggregatorActorStarter {
             result = !ackRequests.isEmpty();
         } else if (signal instanceof Command<?> command &&
                 Command.Category.isEntityModifyingCommand(command.getCategory()) &&
+                Command.isThingCommand(signal) &&
                 !isLiveSignal) {
             result = ackRequests.stream().anyMatch(AcknowledgementForwarderActorStarter::isNotLiveResponse);
         } else if (Command.isMessageCommand(signal) || isLiveSignal && Command.isThingCommand(signal)) {

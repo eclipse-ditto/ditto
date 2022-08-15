@@ -120,7 +120,7 @@ export async function ready() {
   dom.tabThings.onclick = onTabActivated;
 
   dom.searchFilterEdit.focus();
-};
+}
 
 function loadThingTemplates() {
   fetch('templates/thingTemplates.json')
@@ -163,7 +163,7 @@ function fillThingsTable(thingsList) {
     if (theThing && (item.thingId === theThing.thingId)) {
       thingSelected = true;
       row.classList.add('table-active');
-    };
+    }
     Utils.addCheckboxToRow(
         row,
         item.thingId,
@@ -183,7 +183,7 @@ function fillThingsTable(thingsList) {
       row.insertCell(-1).innerHTML = elem.length !== 0 ? elem[0] : '';
     });
   }
-};
+}
 
 /**
  * Calls Ditto search api and fills UI with the result
@@ -214,7 +214,7 @@ export function searchThings(filter, cursor) {
   }).finally(() => {
     document.body.style.cursor = 'default';
   });
-};
+}
 
 /**
  * Gets things from Ditto by thingIds and fills the UI with the result
@@ -226,8 +226,8 @@ export function getThings(thingIds) {
     API.callDittoREST('GET',
         `/things?${Fields.getQueryParameter()}&ids=${thingIds}&option=sort(%2BthingId)`,
     ).then(fillThingsTable);
-  };
-};
+  }
+}
 
 /**
  * Returns a click handler for Update thing and delete thing
@@ -240,7 +240,7 @@ function modifyThing(method) {
   ).then(() => {
     method === 'PUT' ? refreshThing(dom.thingId.value) : SearchFilter.performLastSearch();
   });
-};
+}
 
 /**
  * Load thing from Ditto and update all UI components
@@ -256,7 +256,7 @@ export function refreshThing(thingId, successCallback) {
         successCallback && successCallback();
       })
       .catch(() => setTheThing());
-};
+}
 
 /**
  * Update all UI components for the given Thing
@@ -326,7 +326,7 @@ function addMoreToThingList() {
   moreCell.disabled = true;
   moreCell.style.color = '#3a8c9a';
   moreCell.parentNode.id = 'searchThingsMore';
-};
+}
 
 /**
  * remove the "more" line from the things table
@@ -345,10 +345,10 @@ function togglePinnedThing(evt) {
     const index = Environments.current().pinnedThings.indexOf(this.id);
     if (index > -1) {
       Environments.current().pinnedThings.splice(index, 1);
-    };
-  };
+    }
+  }
   Environments.environmentsJsonChanged('pinnedThings');
-};
+}
 
 let viewDirty = false;
 

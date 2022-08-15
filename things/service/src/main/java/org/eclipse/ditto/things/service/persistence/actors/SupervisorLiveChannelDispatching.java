@@ -28,7 +28,7 @@ import org.eclipse.ditto.base.model.signals.SignalWithEntityId;
 import org.eclipse.ditto.base.model.signals.UnsupportedSignalException;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
 import org.eclipse.ditto.base.model.signals.commands.exceptions.CommandTimeoutException;
-import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
+import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.internal.utils.persistentactors.DistributedPubWithMessage;
 import org.eclipse.ditto.internal.utils.persistentactors.TargetActorWithMessage;
 import org.eclipse.ditto.internal.utils.pubsub.DistributedPub;
@@ -60,13 +60,13 @@ final class SupervisorLiveChannelDispatching {
     private static final AckExtractor<MessageCommand<?, ?>> MESSAGE_COMMAND_ACK_EXTRACTOR =
             AckExtractor.of(MessageCommand::getEntityId, MessageCommand::getDittoHeaders);
 
-    private final DittoDiagnosticLoggingAdapter log;
+    private final ThreadSafeDittoLoggingAdapter log;
     private final EnforcementConfig enforcementConfig;
     private final ResponseReceiverCache responseReceiverCache;
     private final LiveSignalPub liveSignalPub;
     private final ActorRefFactory actorRefFactory;
 
-    SupervisorLiveChannelDispatching(final DittoDiagnosticLoggingAdapter log,
+    SupervisorLiveChannelDispatching(final ThreadSafeDittoLoggingAdapter log,
             final EnforcementConfig enforcementConfig,
             final ResponseReceiverCache responseReceiverCache,
             final LiveSignalPub liveSignalPub,

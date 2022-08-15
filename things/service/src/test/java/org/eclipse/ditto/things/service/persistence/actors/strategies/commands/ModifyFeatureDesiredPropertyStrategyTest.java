@@ -17,24 +17,24 @@ import static org.eclipse.ditto.things.model.TestConstants.Thing.THING_V2;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
-import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.base.model.entity.metadata.Metadata;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.metadata.MetadataHeaderKey;
+import org.eclipse.ditto.internal.utils.persistentactors.commands.CommandStrategy;
+import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.things.model.TestConstants;
 import org.eclipse.ditto.things.model.ThingId;
-import org.eclipse.ditto.internal.utils.persistentactors.commands.CommandStrategy;
 import org.eclipse.ditto.things.model.signals.commands.modify.ModifyFeatureDesiredProperty;
 import org.eclipse.ditto.things.model.signals.events.FeatureDesiredPropertyCreated;
 import org.eclipse.ditto.things.model.signals.events.FeatureDesiredPropertyModified;
 import org.eclipse.ditto.things.service.persistence.actors.ETagTestUtils;
+
 import org.junit.Before;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Test;
 
 /**
@@ -123,7 +123,9 @@ public final class ModifyFeatureDesiredPropertyStrategyTest extends AbstractComm
         final ModifyFeatureDesiredProperty command =
                 ModifyFeatureDesiredProperty.of(context.getState(), featureId, propertyPointer, newPropertyValue,
                         DittoHeaders.newBuilder()
-                                .putMetadata(MetadataHeaderKey.of(JsonPointer.of("additive")), JsonValue.of("E129"))
+                                .putMetadata(MetadataHeaderKey.of(JsonPointer.of("meta")), JsonObject.newBuilder()
+                                        .set("description", "bumlux")
+                                        .build())
                                 .build());
 
         final FeatureDesiredPropertyModified event =
@@ -134,7 +136,11 @@ public final class ModifyFeatureDesiredPropertyStrategyTest extends AbstractComm
                                 false));
 
         assertThat((CharSequence) event.getResourcePath()).isEqualTo(command.getResourcePath());
-        assertThat(event.getMetadata()).contains(Metadata.newMetadata(JsonObject.of("{\"additive\":\"E129\"}")));
+        assertThat(event.getMetadata()).contains(Metadata.newMetadata(JsonObject.newBuilder()
+                .set("meta", JsonObject.newBuilder()
+                        .set("description", "bumlux")
+                        .build())
+                .build()));
     }
 
     @Test

@@ -85,7 +85,7 @@ public final class PolicyPersistenceActorSnapshottingTest extends PersistenceAct
     private PoliciesSnapshotTestHelper<Policy> snapshotTestHelper;
     private Map<Class<? extends Command<?>>, BiFunction<Command<?>, Long, EventsourcedEvent<?>>>
             commandToEventMapperRegistry;
-    private DistributedPub<PolicyAnnouncement<?>> policyAnnouncementPub = Mockito.mock(DistributedPub.class);
+    private final DistributedPub<PolicyAnnouncement<?>> policyAnnouncementPub = Mockito.mock(DistributedPub.class);
 
     @Override
     protected void setup(final Config customConfig) {

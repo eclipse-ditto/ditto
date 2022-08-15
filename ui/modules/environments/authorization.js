@@ -51,7 +51,7 @@ export function ready() {
     Environments.current().dittoPreAuthenticatedUsername = dom.dittoPreAuthenticatedUsername.value;
     Environments.environmentsJsonChanged();
   };
-};
+}
 
 export function onEnvironmentChanged() {
   let usernamePassword = Environments.current().usernamePassword ? Environments.current().usernamePassword : ':';
@@ -67,4 +67,4 @@ export function onEnvironmentChanged() {
                                             Environments.current().dittoPreAuthenticatedUsername :
                                             '';
   API.setAuthHeader(dom.collapseConnections.classList.contains('show'));
-};
+}

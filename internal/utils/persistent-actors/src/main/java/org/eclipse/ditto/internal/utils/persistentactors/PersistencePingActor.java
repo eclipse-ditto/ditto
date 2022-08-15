@@ -229,7 +229,7 @@ public final class PersistencePingActor extends AbstractActor {
     }
 
     static String toCorrelationId(final EntityId persistenceId) {
-        return CORRELATION_ID_PREFIX + persistenceId.toString();
+        return CORRELATION_ID_PREFIX + persistenceId;
     }
 
     static Optional<String> toPersistenceId(final String correlationId) {

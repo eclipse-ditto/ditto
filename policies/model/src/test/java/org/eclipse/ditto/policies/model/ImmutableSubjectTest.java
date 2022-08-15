@@ -23,7 +23,6 @@ import java.util.Collections;
 import org.eclipse.ditto.base.model.acks.AcknowledgementRequest;
 import org.eclipse.ditto.base.model.common.DittoDuration;
 import org.eclipse.ditto.json.JsonObject;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -77,7 +76,7 @@ public final class ImmutableSubjectTest {
                 SubjectAnnouncement.of(DittoDuration.parseDuration("5m"), true,
                         Collections.singletonList(
                                 AcknowledgementRequest.parseAcknowledgementRequest("integration:connection")),
-                        DittoDuration.parseDuration("10s")
+                        DittoDuration.parseDuration("10s"), DittoDuration.parseDuration("5m")
                 ));
 
         final Subject subject1 = ImmutableSubject.fromJson(SubjectIssuer.GOOGLE + ":myself",
@@ -85,7 +84,6 @@ public final class ImmutableSubjectTest {
 
         assertThat(subject).isEqualTo(subject1);
     }
-
 
     @Test(expected = NullPointerException.class)
     public void createSubjectWithNullSubjectIssuer() {

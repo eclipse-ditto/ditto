@@ -140,17 +140,11 @@ public final class GetSortBsonVisitor implements SortFieldExpressionVisitor<Stri
     private static List<Bson> getSortBson(final SortDirection sortDirection, final String sortKey) {
         requireNonNull(sortDirection);
 
-        final Bson sort;
-        switch (sortDirection) {
-            case ASC:
-                sort = Sorts.ascending(sortKey);
-                break;
-            case DESC:
-                sort = Sorts.descending(sortKey);
-                break;
-            default:
-                throw new IllegalStateException("Unknown SortDirection=" + sortDirection);
-        }
+        final Bson sort = switch (sortDirection) {
+            case ASC -> Sorts.ascending(sortKey);
+            case DESC -> Sorts.descending(sortKey);
+            default -> throw new IllegalStateException("Unknown SortDirection=" + sortDirection);
+        };
 
         return Collections.singletonList(sort);
     }
@@ -170,10 +164,10 @@ public final class GetSortBsonVisitor implements SortFieldExpressionVisitor<Stri
     }
 
     private static JsonValue toJsonValue(final Object object) {
-        if (object instanceof Document) {
-            return JsonFactory.readFrom(((Document) object).toJson());
-        } else if (object instanceof BsonValue) {
-            return DittoBsonJson.getInstance().serialize((BsonValue) object);
+        if (object instanceof Document document) {
+            return JsonFactory.readFrom((document).toJson());
+        } else if (object instanceof BsonValue bsonValue) {
+            return DittoBsonJson.getInstance().serialize(bsonValue);
         } else {
             return JsonValue.of(object);
         }
