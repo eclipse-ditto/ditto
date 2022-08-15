@@ -20,11 +20,10 @@ get:
       spelling of value of the namespace, name, attribute, feature etc. is, use the *like*
       notation instead of *eq* for filtering.
 
-    * The resource supports sorting and paging. If paging is not explicitly
-      specified by means of the `size` option, a default count of `25`
-      documents is returned.
+    * The resource supports sorting and paging. If paging is not explicitly specified by means of the `size` option, 
+      a default count of `25` documents is returned.
 
-    * The internal search index is "eventually consistent".  Consistency with the latest
+    * The internal search index is "eventually consistent". Consistency with the latest
       thing updates should recover within milliseconds.
   parameters:
     - $ref: '../../parameters/searchFilter.yml'
@@ -48,9 +47,6 @@ get:
         quotation marks. Cursor IDs are given in search responses and mark the position after the last entry of
         the previous search. The meaning of cursor IDs is unspecified and may change without notice.
 
-        The paging option `limit({offset},{count})` is deprecated.
-        It may result in slow queries or timeouts and will be removed eventually.
-
         #### Examples:
 
         * ```sort(+thingId)```
@@ -67,7 +63,6 @@ get:
 
         ```size(200),cursor(LOREMIPSUM)```
 
-        The deprecated paging option `limit` may not be combined with the other paging options `size` and `cursor`.
       required: false
       schema:
         type: string
@@ -82,8 +77,7 @@ get:
             $ref: '../../schemas/search/searchResultThings.yml'
     '400':
       description: |-
-        The request could not be completed. A provided parameter is in a
-        wrong format.
+        The request could not be completed. A provided parameter is in a wrong format.
       content:
         application/json:
           schema:

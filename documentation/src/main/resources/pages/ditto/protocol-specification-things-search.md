@@ -97,9 +97,9 @@ In particular:
 - When given in the `options` field, `sort(<+"-><property1>, ...)` sets the order of search results.
   If not given, the default `sort(+thingId)` is used.
 
-The paging options `cursor` and `limit` of the [HTTP-API](httpapi-search.html) are not supported here, because
-they are not meaningful for the search protocol. For the HTTP-API, those options are for iterating through large
-numbers of search results over many HTTP requests in a stateless manner.
+The paging option `cursor` of the [HTTP-API](httpapi-search.html) is not supported here, because
+it is not meaningful for the search protocol. For the HTTP-API, the option is for iterating through a large
+number of search results over many HTTP requests in a stateless manner.
 The search protocol is not stateless and does not require the client to keep track of any cursor or offset;
 results of any size are streamed over an arbitrarily long period of time.
 
