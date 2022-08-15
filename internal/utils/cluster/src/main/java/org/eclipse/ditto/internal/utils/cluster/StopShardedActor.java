@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.internal.utils.cluster;
 
+import java.io.Serializable;
+
 import javax.annotation.concurrent.Immutable;
 
 /**
@@ -20,4 +22,4 @@ import javax.annotation.concurrent.Immutable;
  * @since 3.0.0
  */
 @Immutable
-public record StopShardedActor() {}
+public record StopShardedActor() implements Serializable {}
