@@ -33,7 +33,7 @@ export function getQueryParameter() {
   }
   const fields = Environments.current().fieldList.filter((f) => f.active).map((f) => f.path);
   return 'fields=thingId' + (fields !== '' ? ',' + fields : '');
-};
+}
 
 
 let bsFieldsModal = null;
@@ -124,7 +124,7 @@ export async function ready() {
     Environments.current().fieldList.splice(theFieldIndex, 0, movedItem);
     updateFieldList();
   };
-};
+}
 
 /**
  * Selects or de-selects the field for editing
@@ -149,9 +149,9 @@ function toggleFieldSelection(fieldIndex) {
 function onEnvironmentChanged() {
   if (!Environments.current()['fieldList']) {
     Environments.current().fieldList = [];
-  };
+  }
   updateFieldList();
-};
+}
 
 /**
  * (Re-)Initializes the fieldlist in the UI
@@ -175,7 +175,7 @@ function updateFieldList() {
     dom.fieldPath.value = null;
     dom.fieldLabel.value = null;
   }
-};
+}
 
 /**
  * Event handler for field active check box
@@ -184,5 +184,5 @@ function updateFieldList() {
 function toggleFieldActiveEventHandler(evt) {
   Environments.current().fieldList[evt.target.id].active = evt.target.checked;
   updateFieldList();
-};
+}
 
