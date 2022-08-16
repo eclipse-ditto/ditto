@@ -12,16 +12,12 @@ The integration is based on the
 Using this integration, Ditto managed digital twins can be linked to WoT "Thing Models" from which Ditto can create
 WoT "Thing Descriptions" containing the API descriptions of the twins.
 
-{% include warning.html content="As WoT Thing Description version 1.1 was not yet published as \"W3C Recommendation\", 
-    when Ditto `2.4.0` was released, the WoT integration is currently marked as **experimental**.<br/>This means that 
-    aspects of the implementation, the behavior and the **ditto-wot-module** (Java module) are subject to change
-    without the guarantee of being backwards compatible." %}
-
-Because the integration is experimental, it must explicitly be activated via a "feature toggle":  
-In order to activate the WoT integration, configure the following environment variable for all Ditto services:
+The WoT integration is active by default starting with Ditto version `3.0.0`.  
+If it should be disabled, it can be deactivated via a "feature toggle":  
+In order to deactivate the WoT integration, configure the following environment variable for all Ditto services:
 
 ```bash
-DITTO_DEVOPS_FEATURE_WOT_INTEGRATION_ENABLED=true
+DITTO_DEVOPS_FEATURE_WOT_INTEGRATION_ENABLED=false
 ```
 
 
