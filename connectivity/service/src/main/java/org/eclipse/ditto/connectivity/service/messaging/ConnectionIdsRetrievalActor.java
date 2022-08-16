@@ -132,10 +132,10 @@ public final class ConnectionIdsRetrievalActor extends AbstractActor {
     }
 
     private void getConnectionIDsByTag(final SudoRetrieveConnectionIdsByTag sudoRetrieveConnectionIdsByTag) {
-        final String tag = sudoRetrieveConnectionIdsByTag.getTag();
         final DittoHeaders dittoHeaders = sudoRetrieveConnectionIdsByTag.getDittoHeaders();
-        log.withCorrelationId(dittoHeaders)
-                .info("Retrieving connection IDs by tag <{}>: {}", tag, sudoRetrieveConnectionIdsByTag);
+        final DittoDiagnosticLoggingAdapter l = log.withCorrelationId(dittoHeaders);
+        final String tag = sudoRetrieveConnectionIdsByTag.getTag();
+        l.info("Retrieving connection IDs by tag <{}>: {}", tag, sudoRetrieveConnectionIdsByTag);
         try {
             final ActorRef sender = sender();
             final CompletionStage<SudoRetrieveConnectionIdsByTagResponse>
@@ -145,12 +145,16 @@ public final class ConnectionIdsRetrievalActor extends AbstractActor {
                             .map(pid -> pid.substring(ConnectionPersistenceActor.PERSISTENCE_ID_PREFIX.length()))
                             .map(ConnectionId::of)
                             .runWith(Sink.seq(), materializer)
-                            .thenApply(connectionIds -> Set.of(connectionIds.toArray(new ConnectionId[0])))
+                            .thenApply(Set::copyOf)
+                            .thenApply(connectionIds -> {
+                                l.info("Found the following connection IDs for tag <{}>: <{}>", tag, connectionIds);
+                                return connectionIds;
+                            })
                             .thenApply(connectionIds -> SudoRetrieveConnectionIdsByTagResponse.of(connectionIds,
                                     dittoHeaders));
             Patterns.pipe(retrieveConnectionIdsByTagResponseCompletionStage, getContext().dispatcher()).to(sender);
         } catch (final Exception e) {
-            log.error(e, "Failed to load persistence ids from journal/snapshots for connections with tag <{}>.", tag);
+            l.error(e, "Failed to load persistence ids from journal/snapshots for connections with tag <{}>.", tag);
             getSender().tell(buildErrorResponse(e, dittoHeaders), getSelf());
         }
     }
