@@ -99,7 +99,7 @@ export function ready() {
     if (selectedSubject === event.target.parentNode.id) {
       selectedSubject = null;
       Utils.tableAdjustSelection(tbodyWhoami, () => false);
-      subjectEditor.setValue(null);
+      subjectEditor.setValue('');
     } else {
       selectedSubject = event.target.parentNode.id;
       Utils.tableAdjustSelection(tbodyWhoami, (row) => row.id === selectedSubject);
@@ -144,7 +144,7 @@ export function ready() {
   dom.tbodyPolicyResources.onclick = (event) => {
     if (selectedResource === event.target.parentNode.id) {
       selectedResource = null;
-      resourceEditor.setValue(null);
+      resourceEditor.setValue('');
     } else {
       selectedResource = event.target.parentNode.id;
       resourceEditor.setValue(
