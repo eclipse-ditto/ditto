@@ -433,6 +433,8 @@ public final class ConnectionPersistenceActor
         final Collection<String> connectionTags;
         if (event instanceof ConnectionCreated connectionCreated) {
             connectionTags = connectionCreated.getConnection().getTags();
+        } else if (event instanceof ConnectionModified connectionModified) {
+            connectionTags = connectionModified.getConnection().getTags();
         } else if (event instanceof ConnectionDeleted) {
             connectionTags = Set.of();
         } else {
