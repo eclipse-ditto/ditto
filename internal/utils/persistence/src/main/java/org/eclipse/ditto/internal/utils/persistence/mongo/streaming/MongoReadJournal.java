@@ -297,7 +297,8 @@ public final class MongoReadJournal {
                                 "$" + J_PROCESSOR_ID,
                                 toFirstJournalEntryFields(Set.of(J_PROCESSOR_ID, J_TAGS))
                         ),
-                        Aggregates.match(Filters.eq(J_TAGS, tag))
+                        Aggregates.match(Filters.eq(J_TAGS, tag)),
+                        Aggregates.sort(Sorts.ascending(J_PROCESSOR_ID))
                 )))
                 .flatMapConcat(document -> {
                     final Object objectPid = document.get(J_PROCESSOR_ID);
