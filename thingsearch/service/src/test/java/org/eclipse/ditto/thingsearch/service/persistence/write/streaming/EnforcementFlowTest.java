@@ -654,7 +654,7 @@ public final class EnforcementFlowTest {
             sourceProbe.sendComplete();
 
             final var list = sinkProbe.expectNext(FiniteDuration.apply(60, "s"));
-            assertThat(list).hasSameSizeAs(changeMaps.get(0).size());
+            assertThat(list).hasSameSizeAs(changeMaps.get(0));
             sinkProbe.expectComplete();
         }};
     }
