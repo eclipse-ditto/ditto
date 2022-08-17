@@ -232,7 +232,7 @@ public final class SortingIT extends AbstractReadPersistenceITBase {
 
         final List<Thing> things = values.stream()
                 .map(builderFunction)
-                .toList();
+                .collect(Collectors.toList()); // do not replace with .toList()
         // shuffle the documents for more realistic testing
         Collections.shuffle(things);
         things.forEach(this::persistThing);
