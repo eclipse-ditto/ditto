@@ -16,6 +16,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.function.Supplier;
 
 import javax.annotation.Nullable;
 
@@ -32,10 +33,10 @@ import akka.japi.pf.ReceiveBuilder;
 
 /**
  * This class allows chaining futures related for a single entity.
- * This means that you can be sure that previous tasks for the entity are completed when you're reiving the TaskResult
+ * This means that you can be sure that previous tasks for the entity are completed when you're receiving the TaskResult
  * as response.
  */
-final class EntityTaskResultSequentializer extends AbstractActor {
+final class EntityTaskScheduler extends AbstractActor {
 
     static final String ACTOR_NAME = "entity-task-scheduler";
 
@@ -47,7 +48,7 @@ final class EntityTaskResultSequentializer extends AbstractActor {
     private final Counter scheduledTasks;
     private final Counter completedTasks;
 
-    private EntityTaskResultSequentializer() {
+    private EntityTaskScheduler() {
         taskCsPerEntityId = new HashMap<>();
         log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
         scheduledTasks = DittoMetrics.counter("scheduled_tasks");
@@ -55,7 +56,7 @@ final class EntityTaskResultSequentializer extends AbstractActor {
     }
 
     static Props props() {
-        return Props.create(EntityTaskResultSequentializer.class);
+        return Props.create(EntityTaskScheduler.class);
     }
 
     @Override
@@ -98,7 +99,7 @@ final class EntityTaskResultSequentializer extends AbstractActor {
     }
 
     /**
-     * Schedule an enforcement task based on previous completion stage of a task for an entity.
+     * Schedule a task based on previous completion stage of a task for an entity.
      * Informs self about completion by sending TaskComplete to self when the scheduled task has been completed.
      *
      * @param previousTaskCompletion in-flight tasks for the same entity.
@@ -109,12 +110,12 @@ final class EntityTaskResultSequentializer extends AbstractActor {
     private CompletionStage<?> scheduleTaskAfter(final CompletionStage<?> previousTaskCompletion, final Task<?> task) {
         return previousTaskCompletion
                 .exceptionally(error -> null) //future tasks should ignore failures of previous tasks
-                .thenCompose(lastResult -> task.startedStage()
+                .thenCompose(lastResult -> task.taskRunner().get()
                         .whenComplete((result, error) ->
                                 self().tell(new TaskComplete(task.entityId()), ActorRef.noSender())));
     }
 
-    record Task<R>(EntityId entityId, CompletionStage<R> startedStage) {}
+    record Task<R>(EntityId entityId, Supplier<CompletionStage<R>> taskRunner) {}
 
     record TaskResult<R>(@Nullable R result, @Nullable Throwable error) {}
 
