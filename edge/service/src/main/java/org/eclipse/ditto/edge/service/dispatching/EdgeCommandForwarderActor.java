@@ -12,11 +12,14 @@
  */
 package org.eclipse.ditto.edge.service.dispatching;
 
+import java.time.Duration;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
 import org.eclipse.ditto.base.model.entity.id.WithEntityId;
 import org.eclipse.ditto.base.model.exceptions.DittoInternalErrorException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
@@ -52,6 +55,7 @@ import akka.actor.ActorSystem;
 import akka.actor.Props;
 import akka.cluster.pubsub.DistributedPubSubMediator;
 import akka.japi.pf.ReceiveBuilder;
+import akka.pattern.Patterns;
 
 /**
  * Actor which acts as a client used at the Ditto edges (gateway and connectivity) in order to forward messages
@@ -73,6 +77,8 @@ public class EdgeCommandForwarderActor extends AbstractActor {
     private final AskWithRetryCommandForwarder askWithRetryCommandForwarder;
     private final ActorRef aggregatorProxyActor;
 
+    private final ActorRef taskScheduler;
+
     @SuppressWarnings("unused")
     private EdgeCommandForwarderActor(final ActorRef pubSubMediator, final ShardRegions shardRegions) {
 
@@ -87,6 +93,8 @@ public class EdgeCommandForwarderActor extends AbstractActor {
         askWithRetryCommandForwarder = AskWithRetryCommandForwarder.get(actorSystem);
         aggregatorProxyActor = getContext().actorOf(ThingsAggregatorProxyActor.props(pubSubMediator),
                 ThingsAggregatorProxyActor.ACTOR_NAME);
+        taskScheduler =
+                getContext().actorOf(EntityTaskResultSequentializer.props(), EntityTaskResultSequentializer.ACTOR_NAME);
     }
 
     /**
@@ -173,7 +181,7 @@ public class EdgeCommandForwarderActor extends AbstractActor {
     }
 
     private CompletionStage<Signal<?>> applySignalTransformation(final Signal<?> signal, final ActorRef sender) {
-        return signalTransformer.apply(signal)
+        final CompletionStage<Signal<?>> signalTransformationCs = signalTransformer.apply(signal)
                 .whenComplete((transformed, error) -> {
                     if (error != null) {
                         final var dre = DittoRuntimeException.asDittoRuntimeException(error,
@@ -182,6 +190,41 @@ public class EdgeCommandForwarderActor extends AbstractActor {
                                         .cause(reason)
                                         .build());
                         sender.tell(dre, ActorRef.noSender());
+                    }
+                });
+
+        if (signal instanceof WithEntityId withEntityId) {
+            return scheduleTaskForEntity(
+                    new EntityTaskResultSequentializer.Task<>(withEntityId.getEntityId(), signalTransformationCs),
+                    signal.getDittoHeaders()
+            );
+        } else {
+            return signalTransformationCs;
+        }
+    }
+
+    private CompletionStage<Signal<?>> scheduleTaskForEntity(final EntityTaskResultSequentializer.Task<Signal<?>> task,
+            final DittoHeaders dittoHeaders) {
+        return Patterns.ask(taskScheduler, task, dittoHeaders.getTimeout().orElse(Duration.ofSeconds(60)))
+                .thenApply(result -> {
+                    if (result instanceof EntityTaskResultSequentializer.TaskResult<?> taskResult) {
+                        return taskResult;
+                    } else {
+                        throw DittoInternalErrorException.newBuilder()
+                                .dittoHeaders(dittoHeaders)
+                                .build();
+                    }
+                })
+                .thenCompose(taskResult -> {
+                    if (taskResult.result() instanceof Signal<?> resultSignal) {
+                        return CompletableFuture.completedStage(resultSignal);
+                    } else if (taskResult.error() != null) {
+                        return CompletableFuture.failedStage(taskResult.error());
+                    } else {
+                        // Should never happen. Either a Signal result or an error is expected
+                        return CompletableFuture.failedStage(DittoInternalErrorException.newBuilder()
+                                .dittoHeaders(dittoHeaders)
+                                .build());
                     }
                 });
     }
