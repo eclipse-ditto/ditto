@@ -34,7 +34,6 @@ import org.eclipse.ditto.connectivity.model.Source;
 import org.eclipse.ditto.connectivity.model.Target;
 import org.eclipse.ditto.connectivity.model.Topic;
 import org.eclipse.ditto.gateway.service.endpoints.EndpointTestBase;
-import org.eclipse.ditto.gateway.service.endpoints.directives.auth.DevOpsInsecureAuthenticationDirective;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
 import org.junit.Before;
@@ -93,7 +92,7 @@ public final class ConnectionsRouteTest extends EndpointTestBase {
 
     @Before
     public void setUp() {
-        final var connectionsRoute = new ConnectionsRoute(routeBaseProperties, DevOpsInsecureAuthenticationDirective.getInstance());
+        final var connectionsRoute = new ConnectionsRoute(routeBaseProperties);
         final Route route =
                 extractRequestContext(ctx -> connectionsRoute.buildConnectionsRoute(ctx, dittoHeaders));
         underTest = testRoute(route);

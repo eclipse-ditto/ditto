@@ -12,16 +12,9 @@
  */
 package org.eclipse.ditto.connectivity.model.signals.commands.query;
 
-import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
-
 import java.time.Duration;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.LinkedHashSet;
 import java.util.Objects;
-import java.util.Set;
 import java.util.function.Predicate;
-import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
@@ -31,16 +24,13 @@ import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.json.JsonParsableCommand;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.signals.commands.AbstractCommand;
-import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.connectivity.model.signals.commands.ConnectivityCommand;
-import org.eclipse.ditto.json.JsonArray;
-import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
-import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.json.JsonPointer;
 
 /**
  * Command that retrieves several {@link org.eclipse.ditto.connectivity.model.Connection}s based on the passed in list
@@ -62,24 +52,16 @@ public final class RetrieveConnections extends AbstractCommand<RetrieveConnectio
      * Type of this command.
      */
     public static final String TYPE = ConnectivityCommand.TYPE_PREFIX + NAME;
-
-    static final JsonFieldDefinition<JsonArray> JSON_CONNECTION_IDS =
-            JsonFactory.newJsonArrayFieldDefinition("connectionIds", FieldType.REGULAR,
-                    JsonSchemaVersion.V_2);
     static final JsonFieldDefinition<Boolean> JSON_IDS_ONLY =
             JsonFactory.newBooleanFieldDefinition("idsOnly", FieldType.REGULAR, JsonSchemaVersion.V_2);
     static final JsonFieldDefinition<Long> JSON_DEFAULT_TIMEOUT =
             JsonFactory.newLongFieldDefinition("timeoutMs", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
-    private final Set<ConnectionId> connectionIds;
     private final boolean idsOnly;
-
     private final Duration timeout;
 
-    private RetrieveConnections(final Set<ConnectionId> connectionIds, final boolean idsOnly,
-            final Duration defaultTimeout, final DittoHeaders dittoHeaders) {
+    private RetrieveConnections(final boolean idsOnly, final Duration defaultTimeout, final DittoHeaders dittoHeaders) {
         super(TYPE, dittoHeaders);
-        this.connectionIds = Collections.unmodifiableSet(connectionIds);
         this.idsOnly = idsOnly;
         this.timeout = dittoHeaders.getTimeout().orElse(defaultTimeout);
     }
@@ -87,16 +69,14 @@ public final class RetrieveConnections extends AbstractCommand<RetrieveConnectio
     /**
      * Returns a new instance of the retrieve connections command.
      *
-     * @param connectionIds the IDs of the connections to be retrieved.
      * @param dittoHeaders provide additional information regarding connections retrieval like a correlation ID.
      * @return the instance.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static RetrieveConnections newInstance(final Collection<ConnectionId> connectionIds,
-            final boolean idsOnly, final Duration defaultTimeout, final DittoHeaders dittoHeaders) {
+    public static RetrieveConnections newInstance(final boolean idsOnly, final Duration defaultTimeout,
+            final DittoHeaders dittoHeaders) {
 
-        return new RetrieveConnections(new LinkedHashSet<>(checkNotNull(connectionIds, "connectionIds")),
-                idsOnly, defaultTimeout, dittoHeaders);
+        return new RetrieveConnections(idsOnly, defaultTimeout, dittoHeaders);
     }
 
     /**
@@ -125,19 +105,10 @@ public final class RetrieveConnections extends AbstractCommand<RetrieveConnectio
      * format.
      */
     public static RetrieveConnections fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        final Set<ConnectionId> extractedConnectionIds = jsonObject.getValueOrThrow(JSON_CONNECTION_IDS).stream()
-                .filter(JsonValue::isString)
-                .map(JsonValue::asString)
-                .map(ConnectionId::of)
-                .collect(Collectors.toCollection(LinkedHashSet::new));
         final boolean idsOnly = jsonObject.getValueOrThrow(JSON_IDS_ONLY);
         final Duration defaultTimeout = Duration.ofMillis(jsonObject.getValueOrThrow(JSON_DEFAULT_TIMEOUT));
 
-        return new RetrieveConnections(extractedConnectionIds, idsOnly, defaultTimeout, dittoHeaders);
-    }
-
-    public Set<ConnectionId> getConnectionIds() {
-        return connectionIds;
+        return new RetrieveConnections(idsOnly, defaultTimeout, dittoHeaders);
     }
 
     public boolean getIdsOnly() {
@@ -155,7 +126,12 @@ public final class RetrieveConnections extends AbstractCommand<RetrieveConnectio
 
     @Override
     public RetrieveConnections setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return new RetrieveConnections(connectionIds, idsOnly, timeout, dittoHeaders);
+        return new RetrieveConnections(idsOnly, timeout, dittoHeaders);
+    }
+
+    @Override
+    public JsonPointer getResourcePath() {
+        return JsonPointer.of("/connections");
     }
 
     @Override
@@ -163,14 +139,8 @@ public final class RetrieveConnections extends AbstractCommand<RetrieveConnectio
             final Predicate<JsonField> thePredicate) {
 
         final Predicate<JsonField> predicate = jsonSchemaVersion.and(thePredicate);
-        final JsonArray connectionIdsArray = connectionIds.stream()
-                .map(String::valueOf)
-                .map(JsonFactory::newValue)
-                .collect(JsonCollectors.valuesToArray());
-
-        jsonObjectBuilder.set(JSON_CONNECTION_IDS, connectionIdsArray, predicate);
-        jsonObjectBuilder.set(JSON_IDS_ONLY, idsOnly);
-        jsonObjectBuilder.set(JSON_DEFAULT_TIMEOUT, timeout.toMillis());
+        jsonObjectBuilder.set(JSON_IDS_ONLY, idsOnly, predicate);
+        jsonObjectBuilder.set(JSON_DEFAULT_TIMEOUT, timeout.toMillis(), predicate);
     }
 
     @Override
@@ -185,21 +155,19 @@ public final class RetrieveConnections extends AbstractCommand<RetrieveConnectio
             return false;
         }
         final RetrieveConnections that = (RetrieveConnections) o;
-        return Objects.equals(connectionIds, that.connectionIds) &&
-                Objects.equals(idsOnly, that.idsOnly) &&
+        return Objects.equals(idsOnly, that.idsOnly) &&
                 Objects.equals(timeout, that.timeout);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(super.hashCode(), connectionIds, idsOnly, timeout);
+        return Objects.hash(super.hashCode(), idsOnly, timeout);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
                 super.toString() +
-                ", connectionIds=" + connectionIds +
                 ", idsOnly=" + idsOnly +
                 ", timeout=" + timeout +
                 "]";

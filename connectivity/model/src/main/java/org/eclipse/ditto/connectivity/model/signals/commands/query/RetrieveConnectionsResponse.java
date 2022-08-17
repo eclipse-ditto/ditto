@@ -42,6 +42,7 @@ import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
+import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 
 /**
@@ -200,6 +201,11 @@ public final class RetrieveConnectionsResponse extends AbstractCommandResponse<R
                 .map(JsonValue::asObject)
                 .map(ConnectivityModelFactory::connectionFromJson)
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    public JsonPointer getResourcePath() {
+        return JsonPointer.of("/connections");
     }
 
     @Override

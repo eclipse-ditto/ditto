@@ -17,7 +17,6 @@ import static org.eclipse.ditto.base.model.exceptions.DittoJsonException.wrapJso
 import static org.eclipse.ditto.gateway.service.endpoints.directives.ContentTypeValidationDirective.ensureValidContentType;
 
 import java.time.Duration;
-import java.util.Collections;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -47,8 +46,6 @@ import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConne
 import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConnectionMetrics;
 import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConnectionStatus;
 import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConnections;
-import org.eclipse.ditto.gateway.service.endpoints.directives.auth.DevOpsOAuth2AuthenticationDirective;
-import org.eclipse.ditto.gateway.service.endpoints.directives.auth.DevopsAuthenticationDirective;
 import org.eclipse.ditto.gateway.service.endpoints.routes.AbstractRoute;
 import org.eclipse.ditto.gateway.service.endpoints.routes.RouteBaseProperties;
 import org.eclipse.ditto.json.JsonFactory;
@@ -76,7 +73,6 @@ public final class ConnectionsRoute extends AbstractRoute {
     private static final String PATH_LOGS = "logs";
 
     private final Set<String> mediaTypePlainTextWithFallbacks;
-    private final DevopsAuthenticationDirective devopsAuthenticationDirective;
     private final Duration defaultTimeout;
 
     /**
@@ -85,10 +81,8 @@ public final class ConnectionsRoute extends AbstractRoute {
      * @param routeBaseProperties the base properties of the route.
      * @throws NullPointerException if {@code routeBaseProperties} is {@code null}.
      */
-    public ConnectionsRoute(final RouteBaseProperties routeBaseProperties,
-            final DevopsAuthenticationDirective devopsAuthenticationDirective) {
+    public ConnectionsRoute(final RouteBaseProperties routeBaseProperties) {
         super(routeBaseProperties);
-        this.devopsAuthenticationDirective = devopsAuthenticationDirective;
         defaultTimeout = routeBaseProperties.getCommandConfig().getDefaultTimeout();
         final var httpConfig = routeBaseProperties.getHttpConfig();
         final var fallbackMediaTypes = httpConfig.getAdditionalAcceptedMediaTypes().stream();
@@ -104,16 +98,14 @@ public final class ConnectionsRoute extends AbstractRoute {
      */
     public Route buildConnectionsRoute(final RequestContext ctx, final DittoHeaders dittoHeaders) {
         return rawPathPrefix(PathMatchers.slash().concat(PATH_CONNECTIONS), () -> {// /connections
-            return devopsAuthenticationDirective.authenticateDevOps(DevOpsOAuth2AuthenticationDirective.REALM_DEVOPS,
-                        concat(
-                                // /connections
-                                connections(ctx, dittoHeaders),
-                                rawPathPrefix(
-                                        PathMatchers.slash().concat(PathMatchers.segment()),
-                                        connectionId -> connectionRoute(ctx, dittoHeaders,
-                                                ConnectionId.of(connectionId))
-                                )
-                        )
+            return concat(
+                    // /connections
+                    connections(ctx, dittoHeaders),
+                    rawPathPrefix(
+                            PathMatchers.slash().concat(PathMatchers.segment()),
+                            connectionId -> connectionRoute(ctx, dittoHeaders,
+                                    ConnectionId.of(connectionId))
+                    )
             );
         });
     }
@@ -140,9 +132,9 @@ public final class ConnectionsRoute extends AbstractRoute {
         return pathEndOrSingleSlash(() ->
                 concat(
                         get(() -> // GET /connections?idsOnly=false
-                                parameterOptional("idsOnly",  idsOnly -> handlePerRequest(ctx,
-                                        RetrieveConnections.newInstance(Collections.emptySet(),
-                                                idsOnly.map(Boolean::valueOf).orElse(false), defaultTimeout, dittoHeaders)
+                                parameterOptional("idsOnly", idsOnly -> handlePerRequest(ctx,
+                                        RetrieveConnections.newInstance(idsOnly.map(Boolean::valueOf).orElse(false),
+                                                defaultTimeout, dittoHeaders)
                                 ))
 
                         ),
@@ -170,7 +162,7 @@ public final class ConnectionsRoute extends AbstractRoute {
 
         if (isDryRun(dryRun)) {
             return TestConnection.of(buildConnectionForTest(connectionJsonString),
-                            dittoHeaders.toBuilder().putHeader("timeout", "15000").build());
+                    dittoHeaders.toBuilder().putHeader("timeout", "15000").build());
         }
         return CreateConnection.of(buildConnectionForPost(connectionJsonString), dittoHeaders);
     }
@@ -195,10 +187,10 @@ public final class ConnectionsRoute extends AbstractRoute {
                                 ensureMediaTypeJsonWithFallbacksThenExtractDataBytes(ctx, dittoHeaders,
                                         payloadSource ->
                                                 handlePerRequest(ctx, dittoHeaders, payloadSource, payloadJsonString ->
-                                                                ModifyConnection.of(
-                                                                        buildConnectionForPut(connectionId,
-                                                                                payloadJsonString),
-                                                                        dittoHeaders))
+                                                        ModifyConnection.of(
+                                                                buildConnectionForPut(connectionId,
+                                                                        payloadJsonString),
+                                                                dittoHeaders))
                                 )
                         ),
                         get(() -> // GET /connections/<connectionId>

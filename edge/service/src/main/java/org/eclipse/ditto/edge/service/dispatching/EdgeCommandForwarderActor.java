@@ -140,7 +140,7 @@ public class EdgeCommandForwarderActor extends AbstractActor {
                 .match(RetrieveThings.class, this::forwardToThingsAggregatorProxy)
                 .match(SudoRetrieveThings.class, this::forwardToThingsAggregatorProxy)
                 .match(PolicyCommand.class, this::forwardToPolicies)
-                .match(RetrieveAllConnectionIds.class, this::forwardToConnectivityWithPubSub)
+                .match(RetrieveAllConnectionIds.class, this::forwardToConnectivityPubSub)
                 .match(ConnectivityCommand.class, this::forwardToConnectivity)
                 .match(ConnectivitySudoCommand.class, this::forwardToConnectivity)
                 .match(ThingSearchCommand.class, this::forwardToThingSearch)
@@ -244,9 +244,9 @@ public class EdgeCommandForwarderActor extends AbstractActor {
                 }));
     }
 
-    public void forwardToConnectivityWithPubSub(final RetrieveAllConnectionIds cmd) {
+    public void forwardToConnectivityPubSub(final RetrieveAllConnectionIds cmd) {
         DistributedPubSubMediator.Send send =
-                DistPubSubAccess.send("/user/connectivityRoot/connectionIdsRetrievalProxy", cmd);
+                DistPubSubAccess.send("/user/connectivityRoot/connectionIdsRetrieval", cmd);
         pubSubMediator.tell(send, getSender());
     }
 

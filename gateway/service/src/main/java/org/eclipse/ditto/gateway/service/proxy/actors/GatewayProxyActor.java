@@ -19,14 +19,16 @@ import org.eclipse.ditto.base.model.exceptions.DittoJsonException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.commands.Command;
-import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveAllConnectionIds;
 import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConnections;
-import org.eclipse.ditto.gateway.service.endpoints.actors.ConnectionsRetrievalActor;
+import org.eclipse.ditto.gateway.service.endpoints.actors.ConnectionsRetrievalActorPropsFactory;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
+import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import org.eclipse.ditto.internal.utils.pubsub.StreamingType;
 import org.eclipse.ditto.json.JsonRuntimeException;
 import org.eclipse.ditto.thingsearch.model.signals.commands.query.QueryThings;
+
+import com.typesafe.config.Config;
 
 import akka.actor.AbstractActor;
 import akka.actor.ActorKilledException;
@@ -129,11 +131,14 @@ public final class GatewayProxyActor extends AbstractActor {
                     edgeCommandForwarder.tell(qt, responseActor);
                 })
                 .match(RetrieveConnections.class, rc -> {
-                    ActorRef connectionsAggregatingRetrievalActor = getContext().actorOf(
-                            ConnectionsRetrievalActor.props(rc, edgeCommandForwarder,
-                                    getSender()), ConnectionsRetrievalActor.ACTOR_NAME);
-                    edgeCommandForwarder.tell(RetrieveAllConnectionIds.of(rc.getDittoHeaders()),
-                            connectionsAggregatingRetrievalActor);
+                    final Config dittoExtensionConfig =
+                            ScopedConfig.dittoExtension(getContext().getSystem().settings().config());
+                    final ConnectionsRetrievalActorPropsFactory connectionsRetrievalActorPropsFactory =
+                            ConnectionsRetrievalActorPropsFactory.get(getContext().getSystem(), dittoExtensionConfig);
+                    final ActorRef connectionsRetrievalActor = getContext().actorOf(
+                            connectionsRetrievalActorPropsFactory.getActorProps(edgeCommandForwarder, getSender())
+                    );
+                    connectionsRetrievalActor.tell(rc, getSender());
                 })
                 /* send all other Commands to command forwarder */
                 .match(Command.class, this::forwardToCommandForwarder)
