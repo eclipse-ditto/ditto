@@ -213,7 +213,7 @@ public final class ThingCommandEnforcementTest extends AbstractThingEnforcementT
             final DeletePolicy deletePolicy = policiesShardRegionProbe.expectMsgClass(DeletePolicy.class);
             assertThat(deletePolicy.getDittoHeaders().isSudo()).isTrue();
             assertThat(deletePolicy.getDittoHeaders().isResponseRequired()).isTrue();
-            assertThat(deletePolicy.getEntityId().toString()).isEqualTo(policyId.toString());
+            assertThat(deletePolicy.getEntityId().toString()).hasToString(policyId.toString());
             policiesShardRegionProbe.reply(DeletePolicyResponse.of(policyId, deletePolicy.getDittoHeaders()));
 
             TestSetup.fishForMsgClass(this, ThingNotModifiableException.class);

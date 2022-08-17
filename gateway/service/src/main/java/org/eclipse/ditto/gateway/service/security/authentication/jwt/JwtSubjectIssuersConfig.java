@@ -122,7 +122,7 @@ public final class JwtSubjectIssuersConfig {
 
         return subjectIssuerConfigMap.values().stream()
                 .filter(jwtSubjectIssuerConfig -> jwtSubjectIssuerConfig.getSubjectIssuer().equals(subjectIssuer))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Override

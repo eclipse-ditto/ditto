@@ -22,7 +22,6 @@ import java.net.URI;
 
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.service.messaging.TestConstants;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -117,7 +116,7 @@ public class SshTunnelStateTest {
         assertThat(closed.isEstablished()).isFalse();
         assertThat(closed.isFailed()).isFalse();
 
-        assertThat(closed.getLocalPort()).isEqualTo(0);
+        assertThat(closed.getLocalPort()).isZero();
         assertThat(closed.getReason()).isNull();
         assertThatExceptionOfType(IllegalStateException.class)
                 .isThrownBy(() -> closed.getURI(CONNECTION_WITH_TUNNEL));
@@ -128,7 +127,7 @@ public class SshTunnelStateTest {
         assertThat(failed.isEstablished()).isFalse();
         assertThat(failed.isFailed()).isTrue();
 
-        assertThat(failed.getLocalPort()).isEqualTo(0);
+        assertThat(failed.getLocalPort()).isZero();
         assertThat(failed.getReason()).isInstanceOf(IllegalStateException.class);
         assertThatExceptionOfType(IllegalStateException.class)
                 .isThrownBy(() -> failed.getURI(CONNECTION_WITH_TUNNEL));
@@ -139,7 +138,7 @@ public class SshTunnelStateTest {
         assertThat(disabled.isEstablished()).isFalse();
         assertThat(disabled.isFailed()).isFalse();
 
-        assertThat(disabled.getLocalPort()).isEqualTo(0);
+        assertThat(disabled.getLocalPort()).isZero();
         assertThat(disabled.getReason()).isNull();
         assertThat(disabled.getURI(connection)).isEqualTo(URI.create(connection.getUri()));
     }

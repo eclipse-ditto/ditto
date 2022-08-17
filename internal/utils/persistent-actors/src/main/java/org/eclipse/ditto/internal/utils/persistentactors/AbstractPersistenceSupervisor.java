@@ -602,9 +602,9 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
                 final CompletionStage<Control> syncCs = signalTransformer.apply(signal)
                         .whenComplete((result, error) -> handleOptionalTransformationException(signal, error, sender))
                         .thenCompose(transformed -> enforceSignalAndForwardToTargetActor((S) transformed, sender)
-                                .whenComplete((response, throwable) -> {
-                                    handleSignalEnforcementResponse(response, throwable, transformed, sender);
-                                }))
+                                .whenComplete((response, throwable) ->
+                                    handleSignalEnforcementResponse(response, throwable, transformed, sender)
+                                ))
                         .handle((response, throwable) -> Control.PROCESS_NEXT_TWIN_MESSAGE);
                 Patterns.pipe(syncCs, getContext().getDispatcher()).pipeTo(getSelf(), getSelf());
             }

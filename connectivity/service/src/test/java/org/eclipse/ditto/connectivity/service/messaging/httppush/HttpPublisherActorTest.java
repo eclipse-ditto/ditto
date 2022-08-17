@@ -172,7 +172,7 @@ public final class HttpPublisherActorTest extends AbstractPublisherActorTest {
         final var acks = ackSupplier.get();
         assertThat(acks.getSize()).describedAs("Expect 1 acknowledgement in: " + acks).isEqualTo(1);
         final var ack = acks.stream().findAny().orElseThrow();
-        assertThat(ack.getLabel().toString()).describedAs("Ack label").isEqualTo("please-verify");
+        assertThat(ack.getLabel().toString()).describedAs("Ack label").hasToString("please-verify");
         assertThat(ack.getHttpStatus()).describedAs("Ack status").isEqualTo(HttpStatus.OK);
         assertThat(ack.getEntity()).contains(JsonFactory.readFrom(BODY));
         assertThat(ack.getDittoHeaders()).containsAllEntriesOf(
@@ -286,7 +286,7 @@ public final class HttpPublisherActorTest extends AbstractPublisherActorTest {
             assertThat(responseMessage.getPayload()).contains(jsonResponse);
 
             final var responseMessageHeaders = responseMessage.getHeaders();
-            assertThat(responseMessageHeaders.get(CUSTOM_HEADER_NAME)).isEqualTo(CUSTOM_HEADER_VALUE);
+            assertThat(responseMessageHeaders).containsKey(CUSTOM_HEADER_NAME);
         }};
     }
 
@@ -426,7 +426,7 @@ public final class HttpPublisherActorTest extends AbstractPublisherActorTest {
             assertThat(responseMessage.getPayload()).contains(jsonResponse);
 
             final var responseMessageHeaders = responseMessage.getHeaders();
-            assertThat(responseMessageHeaders.get(CUSTOM_HEADER_NAME)).isEqualTo(CUSTOM_HEADER_VALUE);
+            assertThat(responseMessageHeaders).containsKey(CUSTOM_HEADER_NAME);
         }};
     }
 
@@ -790,6 +790,7 @@ public final class HttpPublisherActorTest extends AbstractPublisherActorTest {
     }
 
     @Test
+    @SuppressWarnings("secrets:S6290")
     public void testAwsRequestSigning() throws Exception {
         new TestKit(actorSystem) {{
             // GIVEN: HTTP publisher actor configured to authenticate by HMAC request signing

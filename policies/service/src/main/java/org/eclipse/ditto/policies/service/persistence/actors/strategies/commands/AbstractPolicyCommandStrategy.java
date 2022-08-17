@@ -178,8 +178,7 @@ abstract class AbstractPolicyCommandStrategy<C extends Command<C>, E extends Pol
     protected Subjects potentiallyAdjustSubjects(final Subjects subjects) {
         return Subjects.newInstance(subjects.stream()
                 .map(this::potentiallyAdjustSubject)
-                .collect(Collectors.toList())
-        );
+                .toList());
     }
 
     /**

@@ -661,8 +661,8 @@ public final class MessageMappingProcessorActorTest extends AbstractMessageMappi
                     ActorRef.noSender()
             );
             final Acknowledgement receivedAck = (Acknowledgement) expectMsgClass(InboundSignal.class).getSignal();
-            assertThat(receivedAck.getDittoHeaders().get(DittoHeaderDefinition.CONNECTION_ID.getKey()))
-                    .isEqualTo(CONNECTION_ID.toString());
+            assertThat(receivedAck.getDittoHeaders())
+                    .containsEntry(DittoHeaderDefinition.CONNECTION_ID.getKey(), CONNECTION_ID.toString());
             assertThat(getLastSender()).isEqualTo(outboundMappingProcessorActor);
 
             // Acknowledgements
@@ -675,9 +675,8 @@ public final class MessageMappingProcessorActorTest extends AbstractMessageMappi
             final Acknowledgements receivedAcks = (Acknowledgements) expectMsgClass(InboundSignal.class).getSignal();
             assertThat(receivedAcks.getAcknowledgement(label)
                     .orElseThrow()
-                    .getDittoHeaders()
-                    .get(DittoHeaderDefinition.CONNECTION_ID.getKey()))
-                    .isEqualTo(CONNECTION_ID.toString());
+                    .getDittoHeaders())
+                    .containsEntry(DittoHeaderDefinition.CONNECTION_ID.getKey(), CONNECTION_ID.toString());
             assertThat(getLastSender()).isEqualTo(outboundMappingProcessorActor);
 
             // Live response
@@ -692,8 +691,8 @@ public final class MessageMappingProcessorActorTest extends AbstractMessageMappi
             final DeleteThingResponse receivedResponse =
                     (DeleteThingResponse) expectMsgClass(InboundSignal.class).getSignal();
             assertThat(receivedResponse.getDittoHeaders().getChannel()).contains(TopicPath.Channel.LIVE.getName());
-            assertThat(receivedResponse.getDittoHeaders().get(DittoHeaderDefinition.CONNECTION_ID.getKey()))
-                    .isEqualTo(CONNECTION_ID.toString());
+            assertThat(receivedResponse.getDittoHeaders())
+                    .containsEntry(DittoHeaderDefinition.CONNECTION_ID.getKey(), CONNECTION_ID.toString());
             assertThat(getLastSender()).isEqualTo(actorSystem.deadLetters());
         }};
     }

@@ -63,8 +63,7 @@ public final class RequestResultLoggingDirective {
             final String filteredRelativeRequestUri = filterUri(request.getUri().toRelative()).toString();
             return mapRouteResult(routeResult -> {
                 final ThreadSafeDittoLogger logger = LOGGER.withCorrelationId(correlationId);
-                if (routeResult instanceof Complete) {
-                    final Complete complete = (Complete) routeResult;
+                if (routeResult instanceof Complete complete) {
                     final int statusCode = complete.getResponse().status().intValue();
                     logger.info("StatusCode of request {} '{}' was: {}", requestMethod, filteredRelativeRequestUri,
                             statusCode);

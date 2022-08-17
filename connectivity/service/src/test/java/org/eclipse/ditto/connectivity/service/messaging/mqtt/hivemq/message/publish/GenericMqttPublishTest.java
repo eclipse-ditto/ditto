@@ -250,7 +250,7 @@ public final class GenericMqttPublishTest {
             Mockito.when(mqtt3Publish.toString()).thenReturn(stringRepresentation);
             final var underTest = GenericMqttPublish.ofMqtt3Publish(mqtt3Publish);
 
-            assertThat(underTest.toString()).isEqualTo(stringRepresentation);
+            assertThat(underTest.toString()).hasToString(stringRepresentation);
         }
 
     }
@@ -522,7 +522,7 @@ public final class GenericMqttPublishTest {
             Mockito.when(mqtt5Publish.toString()).thenReturn(stringRepresentation);
             final var underTest = GenericMqttPublish.ofMqtt5Publish(mqtt5Publish);
 
-            assertThat(underTest.toString()).isEqualTo(stringRepresentation);
+            assertThat(underTest.toString()).hasToString(stringRepresentation);
         }
 
     }

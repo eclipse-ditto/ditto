@@ -176,7 +176,8 @@ public final class SortingIT extends AbstractReadPersistenceITBase {
 
         final List<ThingId> expectedResult = createExpectedResult(things, sortOption, ascendingComparator);
 
-        final Query query = AbstractThingSearchPersistenceITBase.qbf.newBuilder(cf.any()).sort(Collections.singletonList(sortOption)).build();
+        final Query query = AbstractThingSearchPersistenceITBase.qbf.newBuilder(cf.any())
+                .sort(Collections.singletonList(sortOption)).build();
         final ResultList<ThingId> result = findAll(query);
 
         assertThat(result).isEqualTo(expectedResult);
@@ -231,7 +232,7 @@ public final class SortingIT extends AbstractReadPersistenceITBase {
 
         final List<Thing> things = values.stream()
                 .map(builderFunction)
-                .collect(Collectors.toList());
+                .toList();
         // shuffle the documents for more realistic testing
         Collections.shuffle(things);
         things.forEach(this::persistThing);
@@ -295,11 +296,13 @@ public final class SortingIT extends AbstractReadPersistenceITBase {
         final List<ThingId> simpleList = things.stream()
                 .sorted(comparator)
                 .map(thing -> thing.getEntityId().orElseThrow(IllegalStateException::new))
-                .collect(Collectors.toList());
+                .toList();
+
         return new ResultListImpl<>(simpleList, ResultList.NO_NEXT_PAGE);
     }
 
     private static ThingId randomThingId() {
         return ThingId.of(NAMESPACE, UUID.randomUUID().toString());
     }
+
 }

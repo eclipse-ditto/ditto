@@ -1797,7 +1797,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
             inboundMappingProcessors = IntStream.range(0, processorPoolSize)
                     .mapToObj(i -> InboundMappingProcessor.of(connection, connectivityConfig, actorSystem,
                             protocolAdapter, logger))
-                    .collect(Collectors.toList());
+                    .toList();
         } catch (final DittoRuntimeException dre) {
             connectionLogger.failure("Failed to start message mapping processor due to: {0}", dre.getMessage());
             logger.info("Got DittoRuntimeException during initialization of MessageMappingProcessor: {} {} - desc: {}",

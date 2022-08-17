@@ -103,10 +103,10 @@ final class DistributedSubImpl implements DistributedSub {
     }
 
     private static CompletionStage<SubAck> processAskResponse(final Object askResponse) {
-        if (askResponse instanceof SubAck) {
-            return CompletableFuture.completedStage((SubAck) askResponse);
-        } else if (askResponse instanceof Throwable) {
-            return CompletableFuture.failedStage((Throwable) askResponse);
+        if (askResponse instanceof SubAck subAck) {
+            return CompletableFuture.completedStage(subAck);
+        } else if (askResponse instanceof Throwable throwable) {
+            return CompletableFuture.failedStage(throwable);
         } else {
             return CompletableFuture.failedStage(new ClassCastException("Expect SubAck, got: " + askResponse));
         }

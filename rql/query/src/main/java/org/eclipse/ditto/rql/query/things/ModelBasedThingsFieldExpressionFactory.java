@@ -44,6 +44,7 @@ public final class ModelBasedThingsFieldExpressionFactory implements ThingsField
         addMapping(hashMap, Thing.JsonFields.CREATED);
         addMapping(hashMap, Thing.JsonFields.MODIFIED);
         addMapping(hashMap, Thing.JsonFields.DEFINITION);
+        addMapping(hashMap, Thing.JsonFields.METADATA);
         filteringSimpleFieldMappings = Collections.unmodifiableMap(hashMap);
     }
 
@@ -59,7 +60,7 @@ public final class ModelBasedThingsFieldExpressionFactory implements ThingsField
     /**
      * Returns the ModelBasedThingsFieldExpressionFactory instance without any {@code Placeholder}s.
      *
-     * @return the singletone ModelBasedThingsFieldExpressionFactory.
+     * @return the singleton ModelBasedThingsFieldExpressionFactory.
      */
     public static ModelBasedThingsFieldExpressionFactory getInstance() {
         return INSTANCE;

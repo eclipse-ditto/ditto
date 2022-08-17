@@ -15,8 +15,6 @@ package org.eclipse.ditto.thingsearch.service.persistence.write.mapping;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.eclipse.ditto.policies.model.PoliciesResourceType.THING;
 
-import java.util.Arrays;
-import java.util.Collection;
 import java.util.List;
 
 import org.bson.BsonDocument;
@@ -37,10 +35,7 @@ import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.Metadata;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.ClassRule;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
 import org.reactivestreams.Publisher;
 
 import com.mongodb.reactivestreams.client.MongoCollection;
@@ -107,7 +102,8 @@ abstract class BsonDiffVisitorIT {
         final var collection = client.getCollection("test");
 
         final Metadata metadata =
-                Metadata.of(ThingId.of("solar.system:pluto"), 23L, PolicyId.of("solar.system:pluto"), 45L, null, null);
+                Metadata.of(ThingId.of("solar.system:pluto"), 23L,
+                        PolicyId.of("solar.system:pluto"), 45L, null, null);
 
         final JsonObject prevThing = getThing1();
         final JsonObject nextThing = getThing2(); // Thing1 with some fields updated
@@ -141,7 +137,8 @@ abstract class BsonDiffVisitorIT {
         final var collection = client.getCollection("test");
 
         final Metadata metadata =
-                Metadata.of(ThingId.of("solar.system:pluto"), 23L, PolicyId.of("solar.system:pluto"), 45L, null, null);
+                Metadata.of(ThingId.of("solar.system:pluto"), 23L,
+                        PolicyId.of("solar.system:pluto"), 45L, null, null);
 
         final JsonObject prevThing = getThing1();
         final JsonObject nextThing = getThing1();
@@ -175,7 +172,8 @@ abstract class BsonDiffVisitorIT {
         final var collection = client.getCollection("test");
 
         final Metadata metadata =
-                Metadata.of(ThingId.of("solar.system:pluto"), 23L, PolicyId.of("solar.system:pluto"), 45L, null, null);
+                Metadata.of(ThingId.of("solar.system:pluto"), 23L,
+                        PolicyId.of("solar.system:pluto"), 45L, null, null);
 
         final JsonObject prevThing = getThing1();
         final JsonObject nextThing = getThing2();
@@ -209,7 +207,8 @@ abstract class BsonDiffVisitorIT {
         final var collection = client.getCollection("test");
 
         final Metadata metadata =
-                Metadata.of(ThingId.of("solar.system:pluto"), 23L, PolicyId.of("solar.system:pluto"), 45L, null, null);
+                Metadata.of(ThingId.of("solar.system:pluto"), 23L,
+                        PolicyId.of("solar.system:pluto"), 45L, null, null);
 
         final JsonObject prevThing = getThing1();
         final JsonObject nextThing = getThing6(); // identical to Thing1 with property deleted
@@ -245,10 +244,11 @@ abstract class BsonDiffVisitorIT {
         final var collection = client.getCollection("test");
 
         final Metadata metadata =
-                Metadata.of(ThingId.of("solar.system:pluto"), 23L, PolicyId.of("solar.system:pluto"), 45L, null, null);
+                Metadata.of(ThingId.of("solar.system:pluto"), 23L,
+                        PolicyId.of("solar.system:pluto"), 45L, null, null);
 
         final JsonObject prevThing = getThing1();
-        final JsonObject nextThing = getThing4(); // identical to Thing1 with an extra fields with emtpy object as value
+        final JsonObject nextThing = getThing4(); // identical to Thing1 with an extra fields with empty object as value
 
         final BsonDocument prevThingDoc =
                 EnforcedThingMapper.toBsonDocument(prevThing, policy, metadata);
@@ -281,7 +281,8 @@ abstract class BsonDiffVisitorIT {
         final var collection = client.getCollection("test");
 
         final Metadata metadata =
-                Metadata.of(ThingId.of("solar.system:pluto"), 23L, PolicyId.of("solar.system:pluto"), 45L, null, null);
+                Metadata.of(ThingId.of("solar.system:pluto"), 23L,
+                        PolicyId.of("solar.system:pluto"), 45L, null, null);
 
         final JsonObject prevThing = getThing1();
         final JsonObject nextThing = getThing5(); // Thing1 with string field updated to begin with '$' and end with '.'

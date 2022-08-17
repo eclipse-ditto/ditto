@@ -18,7 +18,6 @@ import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstance
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.eclipse.ditto.base.model.entity.id.EntityId;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -58,7 +57,7 @@ public class ConnectionIdTest {
     @Test
     public void toStringEqualsInput() {
         final ConnectionId connectionId = ConnectionId.of("myConnection");
-        assertThat(connectionId.toString()).isEqualTo("myConnection");
+        assertThat(connectionId.toString()).hasToString("myConnection");
     }
 
 }

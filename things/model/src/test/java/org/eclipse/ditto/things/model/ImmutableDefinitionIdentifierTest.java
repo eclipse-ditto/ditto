@@ -23,7 +23,6 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 import java.net.MalformedURLException;
 import java.net.URL;
 
-import org.junit.Ignore;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -149,7 +148,7 @@ public final class ImmutableDefinitionIdentifierTest {
         final DefinitionIdentifier underTest =
                 ImmutableDefinitionIdentifier.getInstance(NAMESPACE, NAME, VERSION);
 
-        assertThat(underTest.toString()).isEqualTo(VALID_IDENTIFIER_STRING);
+        assertThat(underTest.toString()).hasToString(VALID_IDENTIFIER_STRING);
     }
 
     @Test
@@ -157,7 +156,7 @@ public final class ImmutableDefinitionIdentifierTest {
         final DefinitionIdentifier underTest =
                 ImmutableDefinitionIdentifier.getInstance(VALID_IDENTIFIER_URL);
 
-        assertThat(underTest.toString()).isEqualTo(VALID_IDENTIFIER_URL_STR);
+        assertThat(underTest.toString()).hasToString(VALID_IDENTIFIER_URL_STR);
     }
 
     @Test

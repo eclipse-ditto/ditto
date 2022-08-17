@@ -101,10 +101,10 @@ final class ThingsConditionalHeadersValidatorProvider {
     private static boolean skipExemptedFields(final Command<?> command) {
 
         @Nullable final JsonFieldSelector selectedFields;
-        if (command instanceof RetrieveThing) {
-            selectedFields = ((RetrieveThing) command).getSelectedFields().orElse(null);
-        } else if (command instanceof RetrieveThings) {
-            selectedFields = ((RetrieveThings) command).getSelectedFields().orElse(null);
+        if (command instanceof RetrieveThing retrieveThing) {
+            selectedFields = retrieveThing.getSelectedFields().orElse(null);
+        } else if (command instanceof RetrieveThings retrieveThings) {
+            selectedFields = retrieveThings.getSelectedFields().orElse(null);
         } else {
             return false;
         }

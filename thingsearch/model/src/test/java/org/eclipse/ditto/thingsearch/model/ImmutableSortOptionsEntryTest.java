@@ -17,18 +17,17 @@ import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstance
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.eclipse.ditto.json.JsonPointer;
-import org.junit.Ignore;
 import org.junit.Test;
 
 /**
  * Unit test for {@link ImmutableSortOptionEntry}.
  */
-public final class ImmutableSortOptionsTestEntry {
+public final class ImmutableSortOptionsEntryTest {
 
     @Test
     public void assertImmutability() {
         assertInstancesOf(ImmutableSortOptionEntry.class,
-                areImmutable(),//
+                areImmutable(),
                 provided(JsonPointer.class).areAlsoImmutable());
     }
 

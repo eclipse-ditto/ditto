@@ -56,7 +56,7 @@ public final class DittoJwtAuthorizationSubjectsProviderTest {
 
         final List<AuthorizationSubject> authSubjects = underTest.getAuthorizationSubjects(jsonWebToken);
 
-        assertThat(authSubjects.size()).isEqualTo(1);
+        assertThat(authSubjects).hasSize(1);
         assertThat(authSubjects.get(0)).isEqualTo(AuthorizationSubject.newInstance(subjectIssuer + ":" + tokenSubject));
     }
 
@@ -74,7 +74,7 @@ public final class DittoJwtAuthorizationSubjectsProviderTest {
 
         final List<AuthorizationSubject> authSubjects = underTest.getAuthorizationSubjects(jsonWebToken);
 
-        assertThat(authSubjects.size()).isEqualTo(1);
+        assertThat(authSubjects).hasSize(1);
         assertThat(authSubjects.get(0)).isEqualTo(
                 AuthorizationSubject.newInstance(subjectIssuer + ":test-" + tokenAudience));
     }

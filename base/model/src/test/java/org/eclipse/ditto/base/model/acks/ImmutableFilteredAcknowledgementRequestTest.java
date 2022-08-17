@@ -25,7 +25,6 @@ import java.util.Set;
 import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -101,7 +100,7 @@ public final class ImmutableFilteredAcknowledgementRequestTest {
         final ImmutableFilteredAcknowledgementRequest underTest =
                 ImmutableFilteredAcknowledgementRequest.getInstance(INCLUDES, FILTER);
 
-        assertThat(underTest.toString()).isEqualTo(
+        assertThat(underTest.toString()).hasToString(
                 ImmutableFilteredAcknowledgementRequest.class.getSimpleName() + " [" +
                         "includes=" + INCLUDES +
                         ", filter=" + FILTER +

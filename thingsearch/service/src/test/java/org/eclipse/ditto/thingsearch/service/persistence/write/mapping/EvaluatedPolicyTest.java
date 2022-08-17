@@ -12,24 +12,15 @@
  */
 package org.eclipse.ditto.thingsearch.service.persistence.write.mapping;
 
-import static org.assertj.core.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
 
-import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.bson.BsonArray;
 import org.bson.BsonDocument;
 import org.bson.BsonString;
-import org.bson.BsonValue;
-import org.eclipse.ditto.internal.utils.persistence.mongo.DittoBsonJson;
-import org.eclipse.ditto.internal.utils.persistence.mongo.KeyNameReviser;
-import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonObjectBuilder;
-import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.policies.model.PoliciesModelFactory;
 import org.eclipse.ditto.policies.model.Policy;
 import org.junit.Test;
@@ -203,7 +194,7 @@ public class EvaluatedPolicyTest {
         final BsonArray globalRead = evaluatedPolicy.getGlobalRead();
         final List<BsonString> expectedSubjects = Stream.of(ADMIN, USER1, USER2, USER3, USER4, USER5, GRANTED)
                 .map(BsonString::new)
-                .collect(Collectors.toList());
+                .toList();
 
         assertThat(globalRead).containsExactlyInAnyOrderElementsOf(expectedSubjects);
     }

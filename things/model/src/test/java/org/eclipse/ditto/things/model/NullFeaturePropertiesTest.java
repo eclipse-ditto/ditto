@@ -21,7 +21,6 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -76,10 +75,10 @@ public final class NullFeaturePropertiesTest {
 
     @Test
     public void nullFeaturePropertiesIsNothing() {
-        assertThat(underTest).isNotBoolean();
-        assertThat(underTest).isNotNumber();
-        assertThat(underTest).isNotString();
-        assertThat(underTest).isNotArray();
+        assertThat(underTest).isNotBoolean()
+                .isNotNumber()
+                .isNotString()
+                .isNotArray();
     }
 
 }

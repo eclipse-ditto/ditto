@@ -17,19 +17,19 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
-import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.policies.model.PolicyId;
-import org.eclipse.ditto.policies.model.PolicyIdInvalidException;
-import org.eclipse.ditto.things.model.Thing;
-import org.eclipse.ditto.things.model.ThingConstants;
-import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.internal.models.streaming.LowerBound;
 import org.eclipse.ditto.internal.models.streaming.StreamedSnapshot;
 import org.eclipse.ditto.internal.models.streaming.SudoStreamSnapshots;
-import org.eclipse.ditto.things.api.ThingsMessagingConstants;
-import org.eclipse.ditto.thingsearch.service.persistence.write.model.Metadata;
 import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.policies.model.PolicyId;
+import org.eclipse.ditto.policies.model.PolicyIdInvalidException;
+import org.eclipse.ditto.things.api.ThingsMessagingConstants;
+import org.eclipse.ditto.things.model.Thing;
+import org.eclipse.ditto.things.model.ThingConstants;
+import org.eclipse.ditto.things.model.ThingId;
+import org.eclipse.ditto.thingsearch.service.persistence.write.model.Metadata;
 
 import akka.NotUsed;
 import akka.actor.ActorRef;
@@ -102,8 +102,8 @@ final class ThingsMetadataSource {
     private static Source<StreamedSnapshot, NotUsed> getStreamedSnapshots(final SourceRef<?> sourceRef) {
         return sourceRef.getSource()
                 .map(element -> {
-                    if (element instanceof StreamedSnapshot) {
-                        return (StreamedSnapshot) element;
+                    if (element instanceof StreamedSnapshot streamedSnapshot) {
+                        return streamedSnapshot;
                     } else {
                         throw new ClassCastException("Not a StreamedSnapshot: " + element);
                     }

@@ -44,4 +44,5 @@ public final class TestStringGenerator {
     private static Stream<String> repeat(final String element, final int number) {
         return IntStream.range(0, number).mapToObj(i -> element);
     }
+
 }
