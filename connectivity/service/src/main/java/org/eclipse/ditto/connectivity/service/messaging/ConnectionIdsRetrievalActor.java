@@ -85,7 +85,7 @@ public final class ConnectionIdsRetrievalActor extends AbstractActor {
 
         taggedPidSourceFunction =
                 tag -> readJournal.getJournalPidsWithTag(tag, connectionIdsRetrievalConfig.getReadJournalBatchSize(),
-                        Duration.ofSeconds(1), materializer, true);
+                        Duration.ofSeconds(1), materializer);
     }
 
     @Override

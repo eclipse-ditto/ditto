@@ -93,8 +93,7 @@ public final class PersistencePingActor extends AbstractActor {
                 persistenceIdsSourceSupplier = () -> readJournal.getJournalPidsWithTag(pingConfig.getJournalTag(),
                         pingConfig.getReadJournalBatchSize(),
                         pingConfig.getInterval(),
-                        materializer,
-                        false);
+                        materializer);
         }
         readJournal.ensureTagPidIndex().exceptionally(e -> {
             log.error(e, "Failed to create TagPidIndex");

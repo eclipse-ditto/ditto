@@ -278,36 +278,29 @@ public final class MongoReadJournal {
     public Source<String, NotUsed> getJournalPidsWithTag(final String tag,
             final int batchSize,
             final Duration maxIdleTime,
-            final Materializer mat,
-            final boolean tagMustExistInLatestEntry) {
+            final Materializer mat) {
 
         final int maxRestarts = computeMaxRestarts(maxIdleTime);
         return getJournal().withAttributes(Attributes.inputBuffer(1, 1))
-                .flatMapConcat(journal ->
-                        listPidsInJournal(journal, "", tag, batchSize, mat, maxRestarts)
-                                .mapConcat(pids -> pids)
-                                .flatMapConcat(pid -> {
-                                    if (tagMustExistInLatestEntry) {
-                                        return filterPidsThatDoesntContainTagInNewestEntry(journal, pid, tag);
-                                    } else {
-                                        return Source.single(pid);
-                                    }
-                                }));
+                .flatMapConcat(journal -> listPidsInJournal(journal, "", tag, batchSize, mat, maxRestarts)
+                        .mapConcat(pids -> pids)
+                        .grouped(batchSize)
+                        .flatMapConcat(pids -> filterPidsThatDoesntContainTagInNewestEntry(journal, pids, tag)));
     }
 
     private Source<String, NotUsed> filterPidsThatDoesntContainTagInNewestEntry(final MongoCollection<Document> journal,
-            final String pid, final String tag) {
+            final List<String> pids, final String tag) {
         return Source.fromPublisher(journal.aggregate(List.of(
-                        Aggregates.match(Filters.eq(J_EVENT_PID, pid)),
+                        Aggregates.match(Filters.in(J_PROCESSOR_ID, pids)),
                         Aggregates.sort(Sorts.descending(J_TO)),
                         Aggregates.group(
-                                "$pid",
-                                toFirstJournalEntryFields(Set.of(J_EVENT_PID, J_TAGS))
+                                "$" + J_PROCESSOR_ID,
+                                toFirstJournalEntryFields(Set.of(J_PROCESSOR_ID, J_TAGS))
                         ),
                         Aggregates.match(Filters.eq(J_TAGS, tag))
                 )))
                 .flatMapConcat(document -> {
-                    final Object objectPid = document.get(J_EVENT_PID);
+                    final Object objectPid = document.get(J_PROCESSOR_ID);
                     if (objectPid instanceof CharSequence) {
                         return Source.single(objectPid.toString());
                     } else {
