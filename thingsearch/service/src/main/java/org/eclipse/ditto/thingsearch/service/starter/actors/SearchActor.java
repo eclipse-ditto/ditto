@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.thingsearch.service.starter.actors;
 
+import java.time.Duration;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -34,6 +36,7 @@ import org.eclipse.ditto.base.service.signaltransformer.SignalTransformers;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLogger;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
+import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
@@ -55,6 +58,7 @@ import org.eclipse.ditto.thingsearch.api.commands.sudo.SudoCountThings;
 import org.eclipse.ditto.thingsearch.api.commands.sudo.SudoRetrieveNamespaceReport;
 import org.eclipse.ditto.thingsearch.model.SearchModelFactory;
 import org.eclipse.ditto.thingsearch.model.signals.commands.ThingSearchCommand;
+import org.eclipse.ditto.thingsearch.model.signals.commands.exceptions.SubscriptionAbortedException;
 import org.eclipse.ditto.thingsearch.model.signals.commands.query.CountThings;
 import org.eclipse.ditto.thingsearch.model.signals.commands.query.CountThingsResponse;
 import org.eclipse.ditto.thingsearch.model.signals.commands.query.QueryThings;
@@ -67,15 +71,20 @@ import org.eclipse.ditto.thingsearch.service.persistence.read.ThingsSearchPersis
 
 import com.typesafe.config.Config;
 
+import akka.Done;
 import akka.NotUsed;
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
+import akka.actor.CoordinatedShutdown;
 import akka.actor.Props;
+import akka.cluster.pubsub.DistributedPubSubMediator;
 import akka.japi.pf.PFBuilder;
 import akka.japi.pf.ReceiveBuilder;
 import akka.pattern.Patterns;
 import akka.stream.Graph;
+import akka.stream.KillSwitches;
+import akka.stream.SharedKillSwitch;
 import akka.stream.SourceRef;
 import akka.stream.SourceShape;
 import akka.stream.SystemMaterializer;
@@ -115,19 +124,31 @@ public final class SearchActor extends AbstractActor {
 
     private static final Map<String, ThreadSafeDittoLogger> NAMESPACE_INSPECTION_LOGGERS = new HashMap<>();
 
+    /**
+     * Ask-timeout in shutdown tasks. Its duration should be long enough for search queries but ultimately does not
+     * matter because each shutdown phase has its own timeout.
+     */
+    private static final Duration SHUTDOWN_ASK_TIMEOUT = Duration.ofMinutes(2L);
+
     private final ThreadSafeDittoLoggingAdapter log = DittoLoggerFactory.getThreadSafeDittoLoggingAdapter(this);
 
     private final QueryParser queryParser;
     private final ThingsSearchPersistence searchPersistence;
     private final PreEnforcerProvider preEnforcer;
     private final SignalTransformer signalTransformer;
+    private final ActorRef pubSubMediator;
+
+    private final List<ActorRef> queryWaiters = new ArrayList<>();
+    private final SharedKillSwitch streamKillSwitch = KillSwitches.shared(ACTOR_NAME);
+    private int ongoingQueries = 0;
 
     @SuppressWarnings("unused")
-    private SearchActor(final QueryParser queryParser,
-            final ThingsSearchPersistence searchPersistence) {
+    private SearchActor(final QueryParser queryParser, final ThingsSearchPersistence searchPersistence,
+            final ActorRef pubSubMediator) {
 
         this.queryParser = queryParser;
         this.searchPersistence = searchPersistence;
+        this.pubSubMediator = pubSubMediator;
         final var system = getContext().getSystem();
         final Config config = system.settings().config();
         final var dittoExtensionsConfig = ScopedConfig.dittoExtension(config);
@@ -147,15 +168,33 @@ public final class SearchActor extends AbstractActor {
      * Creates Akka configuration object Props for this SearchActor.
      *
      * @param queryFactory factory of query objects.
-     * @param searchPersistence the {@link ThingsSearchPersistence} to use in order to execute queries.
+     * @param searchPersistence the {@link org.eclipse.ditto.thingsearch.service.persistence.read.ThingsSearchPersistence} to use in order to execute queries.
+     * @param pubSubMediator the Akka pub-sub mediator.
      * @return the Akka configuration Props object.
      */
-    static Props props(
-            final QueryParser queryFactory,
-            final ThingsSearchPersistence searchPersistence) {
+    static Props props(final QueryParser queryFactory, final ThingsSearchPersistence searchPersistence,
+            final ActorRef pubSubMediator) {
 
-        return Props.create(SearchActor.class, queryFactory, searchPersistence)
+        return Props.create(SearchActor.class, queryFactory, searchPersistence, pubSubMediator)
                 .withDispatcher(SEARCH_DISPATCHER_ID);
+    }
+
+    @Override
+    public void preStart() {
+        final var subscribe = DistPubSubAccess.subscribeViaGroup(ThingSearchCommand.TYPE_PREFIX, ACTOR_NAME, getSelf());
+        pubSubMediator.tell(subscribe, getSelf());
+
+        final var coordinatedShutdown = CoordinatedShutdown.get(getContext().getSystem());
+        final var serviceUnbindTask = "service-unbind-" + ACTOR_NAME;
+        final var serviceRequestsDoneTask = "service-requests-done-" + ACTOR_NAME;
+        coordinatedShutdown.addTask(CoordinatedShutdown.PhaseServiceUnbind(), serviceUnbindTask,
+                () -> Patterns.ask(getSelf(), Control.SERVICE_UNBIND, SHUTDOWN_ASK_TIMEOUT)
+                        .thenApply(reply -> Done.done())
+        );
+        coordinatedShutdown.addTask(CoordinatedShutdown.PhaseServiceRequestsDone(), serviceRequestsDoneTask,
+                () -> Patterns.ask(getSelf(), Control.SERVICE_REQUESTS_DONE, SHUTDOWN_ASK_TIMEOUT)
+                        .thenApply(reply -> Done.done())
+        );
     }
 
     @Override
@@ -166,6 +205,10 @@ public final class SearchActor extends AbstractActor {
                 .match(QueryThings.class, this::query)
                 .match(SudoRetrieveNamespaceReport.class, this::namespaceReport)
                 .match(StreamThings.class, this::stream)
+                .matchEquals(Control.DECREMENT_QUERY_COUNTER, this::decrementQueryCounter)
+                .matchEquals(Control.SERVICE_UNBIND, this::serviceUnbind)
+                .matchEquals(Control.SERVICE_REQUESTS_DONE, this::serviceRequestsDone)
+                .match(DistributedPubSubMediator.SubscribeAck.class, ack -> log.info("Got <{}>", ack))
                 .matchAny(any -> log.warning("Got unknown message '{}'", any))
                 .build();
     }
@@ -175,6 +218,7 @@ public final class SearchActor extends AbstractActor {
         log.withCorrelationId(dittoHeaders)
                 .info("Processing SudoRetrieveNamespaceReport command: {}", namespaceReport);
 
+        // exclude namespace report from query counting so that it does not delay shutdown
         Patterns.pipe(
                 searchPersistence.generateNamespaceCountReport().runWith(Sink.head(),
                         SystemMaterializer.get(getSystem()).materializer()),
@@ -204,9 +248,12 @@ public final class SearchActor extends AbstractActor {
         l.info("Processing CountThings command with namespaces <{}> and filter: <{}>",
                 countThings.getNamespaces(), countThings.getFilter());
         l.debug("Processing CountThings command: <{}>", countThings);
-        applySignalTransformation(countThings, sender)
-                .thenCompose(preEnforcer::apply)
-                .thenAccept(signal -> executeCount((CountThings) signal, queryParser::parse, false, sender));
+
+        withQueryCounting(
+                applySignalTransformation(countThings, sender)
+                        .thenCompose(preEnforcer::apply)
+                        .thenCompose(signal -> executeCount((CountThings) signal, queryParser::parse, false, sender))
+        );
     }
 
     private void sudoCount(final SudoCountThings sudoCountThings) {
@@ -214,12 +261,14 @@ public final class SearchActor extends AbstractActor {
         final ThreadSafeDittoLoggingAdapter l = log.withCorrelationId(sudoCountThings);
         l.info("Processing SudoCountThings command with filter: <{}>", sudoCountThings.getFilter());
         l.debug("Processing SudoCountThings command: <{}>", sudoCountThings);
-        applySignalTransformation(sudoCountThings, sender)
-                .thenAccept(signal -> executeCount((SudoCountThings) signal, queryParser::parseSudoCountThings, true,
-                        sender));
+        withQueryCounting(
+                applySignalTransformation(sudoCountThings, sender)
+                        .thenCompose(signal -> executeCount((SudoCountThings) signal, queryParser::parseSudoCountThings,
+                                true, sender))
+        );
     }
 
-    private <T extends Command<?>> void executeCount(final T countCommand,
+    private <T extends Command<?>> CompletionStage<Object> executeCount(final T countCommand,
             final Function<T, CompletionStage<Query>> queryParseFunction,
             final boolean isSudo,
             final ActorRef sender) {
@@ -255,10 +304,9 @@ public final class SearchActor extends AbstractActor {
         final Source<Object, ?> replySourceWithErrorHandling =
                 countThingsResponseSource.via(stopTimerAndHandleError(countTimer, countCommand));
 
-        Patterns.pipe(
-                replySourceWithErrorHandling.runWith(Sink.head(), SystemMaterializer.get(getSystem()).materializer()),
-                getContext().dispatcher()
-        ).to(sender);
+        final var replyFuture =
+                replySourceWithErrorHandling.runWith(Sink.head(), SystemMaterializer.get(getSystem()).materializer());
+        return Patterns.pipe(replyFuture, getContext().dispatcher()).to(sender).future();
     }
 
     private void stream(final StreamThings streamThings) {
@@ -267,17 +315,16 @@ public final class SearchActor extends AbstractActor {
         l.info("Processing StreamThings command: {}", streamThings);
         applySignalTransformation(streamThings, sender)
                 .thenCompose(preEnforcer::apply)
-                .thenAccept(stream -> performStream((StreamThings) stream, sender, l));
+                .thenCompose(stream -> performStream((StreamThings) stream, sender, l));
     }
 
-    private void performStream(final StreamThings streamThings, final ActorRef sender,
+    private CompletionStage<Object> performStream(final StreamThings streamThings, final ActorRef sender,
             final ThreadSafeDittoLoggingAdapter l) {
 
-        final JsonSchemaVersion version = streamThings.getImplementedSchemaVersion();
         final var queryType = "query"; // same as queryThings
-        final StartedTimer searchTimer = startNewTimer(version, queryType, streamThings);
-        final StartedTimer queryParsingTimer = searchTimer.startNewSegment(QUERY_PARSING_SEGMENT_NAME);
-        final Set<String> namespaces = streamThings.getNamespaces().orElse(null);
+        final var searchTimer = startNewTimer(streamThings.getImplementedSchemaVersion(), queryType, streamThings);
+        final var queryParsingTimer = searchTimer.startNewSegment(QUERY_PARSING_SEGMENT_NAME);
+        final var namespaces = streamThings.getNamespaces().orElse(null);
 
         final Source<SourceRef<String>, NotUsed> thingIdSourceRefSource =
                 ThingsSearchCursor.extractCursor(streamThings).flatMapConcat(cursor -> {
@@ -293,18 +340,19 @@ public final class SearchActor extends AbstractActor {
                                         .getAuthorizationContext()
                                         .getAuthorizationSubjectIds();
                         return searchPersistence.findAllUnlimited(query, subjectIds, namespaces)
+                                .via(streamKillSwitch.flow())
                                 .map(ThingId::toString) // for serialization???
                                 .runWith(StreamRefs.sourceRef(), SystemMaterializer.get(getSystem()).materializer());
                     });
                 });
 
         final Source<Object, NotUsed> replySourceWithErrorHandling =
-                thingIdSourceRefSource.via(stopTimerAndHandleError(searchTimer, streamThings));
+                thingIdSourceRefSource.via(streamKillSwitch.flow())
+                        .via(stopTimerAndHandleError(searchTimer, streamThings));
 
-        Patterns.pipe(
-                replySourceWithErrorHandling.runWith(Sink.head(), SystemMaterializer.get(getSystem()).materializer()),
-                getContext().dispatcher()
-        ).to(sender);
+        final var replyFuture =
+                replySourceWithErrorHandling.runWith(Sink.head(), SystemMaterializer.get(getSystem()).materializer());
+        return Patterns.pipe(replyFuture, getContext().dispatcher()).to(sender).future();
     }
 
     private void query(final QueryThings queryThings) {
@@ -313,22 +361,23 @@ public final class SearchActor extends AbstractActor {
 
         final ThreadSafeDittoLoggingAdapter l = log.withCorrelationId(queryThings);
         l.debug("Starting to process QueryThings command: {}", queryThings);
-        applySignalTransformation(queryThings, sender)
-                .thenCompose(preEnforcer::apply)
-                .thenAccept(query -> performQuery((QueryThings) query, sender));
+        withQueryCounting(
+                applySignalTransformation(queryThings, sender)
+                        .thenCompose(preEnforcer::apply)
+                        .thenCompose(query -> performQuery((QueryThings) query, sender))
+        );
     }
 
-    private void performQuery(final QueryThings queryThings, final ActorRef sender) {
+    private CompletionStage<Object> performQuery(final QueryThings queryThings, final ActorRef sender) {
         performLogging(queryThings);
 
         final ThreadSafeDittoLoggingAdapter l = log.withCorrelationId(queryThings);
         l.debug("Starting to process QueryThings command: {}", queryThings);
 
-        final JsonSchemaVersion version = queryThings.getImplementedSchemaVersion();
         final var queryType = "query";
-        final StartedTimer searchTimer = startNewTimer(version, queryType, queryThings);
-        final StartedTimer queryParsingTimer = searchTimer.startNewSegment(QUERY_PARSING_SEGMENT_NAME);
-        final Set<String> namespaces = queryThings.getNamespaces().orElse(null);
+        final var searchTimer = startNewTimer(queryThings.getImplementedSchemaVersion(), queryType, queryThings);
+        final var queryParsingTimer = searchTimer.startNewSegment(QUERY_PARSING_SEGMENT_NAME);
+        final var namespaces = queryThings.getNamespaces().orElse(null);
 
         final Source<QueryThingsResponse, ?> queryThingsResponseSource =
                 ThingsSearchCursor.extractCursor(queryThings, getSystem()).flatMapConcat(cursor -> {
@@ -366,10 +415,9 @@ public final class SearchActor extends AbstractActor {
         final Source<Object, ?> replySourceWithErrorHandling =
                 queryThingsResponseSource.via(stopTimerAndHandleError(searchTimer, queryThings));
 
-        Patterns.pipe(
-                replySourceWithErrorHandling.runWith(Sink.head(), SystemMaterializer.get(getSystem()).materializer()),
-                getContext().dispatcher()
-        ).to(sender);
+        final var replyFuture =
+                replySourceWithErrorHandling.runWith(Sink.head(), SystemMaterializer.get(getSystem()).materializer());
+        return Patterns.pipe(replyFuture, getContext().dispatcher()).to(sender).future();
     }
 
     private void performLogging(final ThingSearchQueryCommand<?> thingSearchQueryCommand) {
@@ -452,6 +500,47 @@ public final class SearchActor extends AbstractActor {
         }
     }
 
+    private void queryComplete(final Object result, final Throwable error) {
+        getSelf().tell(Control.DECREMENT_QUERY_COUNTER, ActorRef.noSender());
+    }
+
+    private void withQueryCounting(final CompletionStage<?> queryRunner) {
+        ++ongoingQueries;
+        queryRunner.whenComplete(this::queryComplete);
+    }
+
+    private void decrementQueryCounter(final Control decrementOpCounter) {
+        --ongoingQueries;
+        if (ongoingQueries == 0 && !queryWaiters.isEmpty()) {
+            log.info("{}: finished waiting for queries, reporting to {} query waiters",
+                    Control.SERVICE_REQUESTS_DONE, queryWaiters.size());
+            queryWaiters.forEach(queryWaiter -> queryWaiter.tell(Done.getInstance(), getSelf()));
+            queryWaiters.clear();
+        }
+    }
+
+    private void serviceUnbind(final Control serviceUnbind) {
+        log.info("{}: unsubscribing from pubsub", serviceUnbind);
+        final var unsubscribe =
+                DistPubSubAccess.unsubscribeViaGroup(ThingSearchCommand.TYPE_PREFIX, ACTOR_NAME, getSelf());
+        final var unsubscribeTask =
+                Patterns.ask(pubSubMediator, unsubscribe, SHUTDOWN_ASK_TIMEOUT).thenApply(ack -> Done.getInstance());
+        Patterns.pipe(unsubscribeTask, getContext().getDispatcher()).to(getSender());
+    }
+
+    private void serviceRequestsDone(final Control serviceRequestsDone) {
+        log.info("{}: abort ongoing streams", serviceRequestsDone);
+        streamKillSwitch.abort(SubscriptionAbortedException.of(DittoHeaders.empty()));
+
+        if (ongoingQueries == 0) {
+            log.info("{}: no ongoing queries", serviceRequestsDone);
+            getSender().tell(Done.getInstance(), getSelf());
+        } else {
+            log.info("{}: waiting for {} ongoing queries", serviceRequestsDone, ongoingQueries);
+            queryWaiters.add(getSender());
+        }
+    }
+
     private static JsonArray getItems(final ResultList<TimestampedThingId> thingIds) {
         return thingIds.stream()
                 .map(TimestampedThingId::thingId)
@@ -492,6 +581,12 @@ public final class SearchActor extends AbstractActor {
         } catch (final IllegalStateException e) {
             // it is okay if the timer was stopped.
         }
+    }
+
+    enum Control {
+        DECREMENT_QUERY_COUNTER,
+        SERVICE_UNBIND,
+        SERVICE_REQUESTS_DONE
     }
 
 }

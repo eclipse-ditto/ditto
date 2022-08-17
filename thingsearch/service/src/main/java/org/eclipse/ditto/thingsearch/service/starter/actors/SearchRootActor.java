@@ -65,7 +65,7 @@ public final class SearchRootActor extends DittoRootActor {
                 .execute(getContext());
 
         final var thingsSearchPersistence = getThingsSearchPersistence(searchConfig, mongoDbClient);
-        final ActorRef searchActor = initializeSearchActor(searchConfig, thingsSearchPersistence);
+        final ActorRef searchActor = initializeSearchActor(searchConfig, thingsSearchPersistence, pubSubMediator);
         pubSubMediator.tell(DistPubSubAccess.put(searchActor), getSelf());
 
         final TimestampPersistence backgroundSyncPersistence =
@@ -135,10 +135,11 @@ public final class SearchRootActor extends DittoRootActor {
     }
 
     private ActorRef initializeSearchActor(final SearchConfig searchConfig,
-            final ThingsSearchPersistence thingsSearchPersistence) {
+            final ThingsSearchPersistence thingsSearchPersistence, final ActorRef pubSubMediator) {
 
         final var queryParser = getQueryParser(searchConfig, getContext().getSystem());
-        return startChildActor(SearchActor.ACTOR_NAME, SearchActor.props(queryParser, thingsSearchPersistence));
+        final var props = SearchActor.props(queryParser, thingsSearchPersistence, pubSubMediator);
+        return startChildActor(SearchActor.ACTOR_NAME, props);
     }
 
 }
