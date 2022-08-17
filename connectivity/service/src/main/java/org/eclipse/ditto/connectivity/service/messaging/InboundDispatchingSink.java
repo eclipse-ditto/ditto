@@ -142,15 +142,15 @@ public final class InboundDispatchingSink
 
     @SuppressWarnings("ununsed")
     private InboundDispatchingSink(final Connection connection,
-            final HeaderTranslator headerTranslator,
-            final ActorSelection proxyActor,
-            final ActorRef connectionActor,
-            final ActorRef outboundMessageMappingProcessorActor,
-            final ActorRef clientActor,
-            final ConnectivityConfig connectivityConfig,
-            final LimitsConfig limitsConfig,
-            final ActorRefFactory actorRefFactory,
-            @Nullable final Consumer<MatchingValidationResult.Failure> responseValidationFailureConsumer) {
+                                   final HeaderTranslator headerTranslator,
+                                   final ActorSelection proxyActor,
+                                   final ActorRef connectionActor,
+                                   final ActorRef outboundMessageMappingProcessorActor,
+                                   final ActorRef clientActor,
+                                   final ConnectivityConfig connectivityConfig,
+                                   final LimitsConfig limitsConfig,
+                                   final ActorRefFactory actorRefFactory,
+                                   @Nullable final Consumer<MatchingValidationResult.Failure> responseValidationFailureConsumer) {
 
         this.connection = checkNotNull(connection, "connection");
         this.headerTranslator = checkNotNull(headerTranslator, "headerTranslator");
@@ -193,27 +193,27 @@ public final class InboundDispatchingSink
     /**
      * Creates a Sink that dispatches inbound messages after they are mapped.
      *
-     * @param connection the connection
-     * @param headerTranslator the headerTranslator to use.
-     * @param proxyActor the actor used to send signals into the ditto cluster.
-     * @param connectionActor the connection actor acting as the grandparent of this actor.
+     * @param connection                           the connection
+     * @param headerTranslator                     the headerTranslator to use.
+     * @param proxyActor                           the actor used to send signals into the ditto cluster.
+     * @param connectionActor                      the connection actor acting as the grandparent of this actor.
      * @param outboundMessageMappingProcessorActor used to publish errors.
-     * @param clientActor the client actor ref to forward commands to.
-     * @param actorRefFactory the ActorRefFactory to use in order to create new actors in.
-     * @param connectivityConfig the connectivity configuration including potential overwrites.
-     * @param responseValidationFailureConsumer optional handler for response validation failures.
+     * @param clientActor                          the client actor ref to forward commands to.
+     * @param actorRefFactory                      the ActorRefFactory to use in order to create new actors in.
+     * @param connectivityConfig                   the connectivity configuration including potential overwrites.
+     * @param responseValidationFailureConsumer    optional handler for response validation failures.
      * @return the Sink.
      * @throws java.lang.NullPointerException if any of the passed arguments was {@code null}.
      */
     public static Sink<Object, NotUsed> createSink(final Connection connection,
-            final HeaderTranslator headerTranslator,
-            final ActorSelection proxyActor,
-            final ActorRef connectionActor,
-            final ActorRef outboundMessageMappingProcessorActor,
-            final ActorRef clientActor,
-            final ActorRefFactory actorRefFactory,
-            final ConnectivityConfig connectivityConfig,
-            @Nullable final Consumer<MatchingValidationResult.Failure> responseValidationFailureConsumer) {
+                                                   final HeaderTranslator headerTranslator,
+                                                   final ActorSelection proxyActor,
+                                                   final ActorRef connectionActor,
+                                                   final ActorRef outboundMessageMappingProcessorActor,
+                                                   final ActorRef clientActor,
+                                                   final ActorRefFactory actorRefFactory,
+                                                   final ConnectivityConfig connectivityConfig,
+                                                   @Nullable final Consumer<MatchingValidationResult.Failure> responseValidationFailureConsumer) {
 
         final var limitsConfig = connectivityConfig.getLimitsConfig();
         final var inboundDispatchingSink = new InboundDispatchingSink(
@@ -295,7 +295,7 @@ public final class InboundDispatchingSink
 
     @Override
     public Optional<Signal<?>> onMapped(final String mapperId,
-            final MappedInboundExternalMessage mappedInboundMessage) {
+                                        final MappedInboundExternalMessage mappedInboundMessage) {
 
         final ExternalMessage incomingMessage = mappedInboundMessage.getSource();
         final String source = getAddress(incomingMessage);
@@ -345,9 +345,9 @@ public final class InboundDispatchingSink
 
     @Override
     public Optional<Signal<?>> onError(final String mapperId,
-            @Nullable final Exception e,
-            @Nullable final TopicPath topicPath,
-            @Nullable final ExternalMessage message) {
+                                       @Nullable final Exception e,
+                                       @Nullable final TopicPath topicPath,
+                                       @Nullable final ExternalMessage message) {
 
         final Optional<Signal<?>> result;
         logger.debug("OnError mapperId=<{}> exception=<{}> topicPath=<{}> message=<{}>",
@@ -458,9 +458,9 @@ public final class InboundDispatchingSink
     }
 
     private Optional<Signal<?>> handleGenericDittoRuntimeException(final DittoRuntimeException dittoRuntimeException,
-            @Nullable final TopicPath topicPath,
-            @Nullable final ExternalMessage message,
-            final String mapperId) {
+                                                                   @Nullable final TopicPath topicPath,
+                                                                   @Nullable final ExternalMessage message,
+                                                                   final String mapperId) {
 
         final var errorResponse = toErrorResponseFunction.apply(dittoRuntimeException, topicPath);
         final DittoHeaders mappedHeaders;
@@ -490,7 +490,7 @@ public final class InboundDispatchingSink
     }
 
     private PartialFunction<Signal<?>, Stream<IncomingSignal>> dispatchResponsesAndSearchCommands(final ActorRef sender,
-            final InboundMappingOutcomes outcomes) {
+                                                                                                  final InboundMappingOutcomes outcomes) {
         final Set<AcknowledgementLabel> declaredAckLabels = getDeclaredAckLabels(outcomes);
         final PartialFunction<Signal<?>, Signal<?>> appendConnectionId = new PFBuilder<Signal<?>, Signal<?>>()
                 .match(Acknowledgements.class, this::appendConnectionIdToAcknowledgements)
@@ -532,7 +532,7 @@ public final class InboundDispatchingSink
      * acknowledgement aggregators is not thread-safe.
      *
      * @param incomingSignal the signal requesting acknowledgements together with its original sender,
-     * the response collector actor.
+     *                       the response collector actor.
      * @return 1 if the signal is ack-requesting, 0 if it is not.
      */
     private int dispatchIncomingSignal(final IncomingSignal incomingSignal) {
@@ -592,8 +592,8 @@ public final class InboundDispatchingSink
     }
 
     private void startAckregatorAndForwardSignal(final EntityId entityId,
-            final Signal<?> signal,
-            @Nullable final ActorRef sender) {
+                                                 final Signal<?> signal,
+                                                 @Nullable final ActorRef sender) {
 
         ackregatorStarter.doStart(entityId, signal, null,
                 responseSignal -> {
@@ -616,8 +616,8 @@ public final class InboundDispatchingSink
     }
 
     private void handleErrorDuringStartingOfAckregator(final DittoRuntimeException e,
-            final DittoHeaders dittoHeaders,
-            @Nullable final ActorRef sender) {
+                                                       final DittoHeaders dittoHeaders,
+                                                       @Nullable final ActorRef sender) {
 
         logger.withCorrelationId(dittoHeaders)
                 .info("Got 'DittoRuntimeException' during 'startAcknowledgementAggregator': {}: <{}>",
@@ -647,7 +647,7 @@ public final class InboundDispatchingSink
      *
      * @param signal the Signal to forward to the clientActor
      * @param sender the sender which shall receive the response
-     * @param <T> type of elements for the next step..
+     * @param <T>    type of elements for the next step..
      * @return an empty source of Signals
      */
     private <T> Stream<T> forwardToClientActor(final Signal<?> signal, @Nullable final ActorRef sender) {
@@ -664,8 +664,8 @@ public final class InboundDispatchingSink
     }
 
     private <T> Stream<T> forwardAcknowledgement(final Acknowledgement ack,
-            final Collection<AcknowledgementLabel> declaredAckLabels,
-            final InboundMappingOutcomes outcomes) {
+                                                 final Collection<AcknowledgementLabel> declaredAckLabels,
+                                                 final InboundMappingOutcomes outcomes) {
 
         final Stream<T> result;
         if (declaredAckLabels.contains(ack.getLabel())) {
@@ -682,8 +682,8 @@ public final class InboundDispatchingSink
     }
 
     private <T> Stream<T> forwardAcknowledgements(final Acknowledgements acks,
-            final Collection<AcknowledgementLabel> declaredAckLabels,
-            final InboundMappingOutcomes outcomes) {
+                                                  final Collection<AcknowledgementLabel> declaredAckLabels,
+                                                  final InboundMappingOutcomes outcomes) {
 
         final Stream<T> result;
         final var ackLabelNotDeclaredException = acks.stream()
@@ -713,7 +713,7 @@ public final class InboundDispatchingSink
     }
 
     private static TopicPathBuilder newTopicPathBuilder(final WithEntityId withEntityId,
-            final WithDittoHeaders withDittoHeaders) {
+                                                        final WithDittoHeaders withDittoHeaders) {
 
         final var builder = ProtocolFactory.newTopicPathBuilder(ThingId.of(withEntityId.getEntityId()));
         if (Signal.isChannelLive(withDittoHeaders)) {
@@ -804,10 +804,10 @@ public final class InboundDispatchingSink
      * Helper applying the {@link org.eclipse.ditto.connectivity.model.HeaderMapping}.
      */
     private DittoHeaders applyInboundHeaderMapping(final Signal<?> signal,
-            final ExternalMessage externalMessage,
-            @Nullable final AuthorizationContext authorizationContext,
-            @Nullable final TopicPath topicPath,
-            final DittoHeaders extraInternalHeaders) {
+                                                   final ExternalMessage externalMessage,
+                                                   @Nullable final AuthorizationContext authorizationContext,
+                                                   @Nullable final TopicPath topicPath,
+                                                   final DittoHeaders extraInternalHeaders) {
 
         return externalMessage.getHeaderMapping()
                 .map(mapping -> {
@@ -851,9 +851,9 @@ public final class InboundDispatchingSink
     }
 
     private DittoHeadersBuilder<?, ?> appendInternalHeaders(final DittoHeadersBuilder<?, ?> builder,
-            @Nullable final AuthorizationContext authorizationContext,
-            final DittoHeaders extraInternalHeaders,
-            final boolean appendRandomCorrelationId) {
+                                                            @Nullable final AuthorizationContext authorizationContext,
+                                                            final DittoHeaders extraInternalHeaders,
+                                                            final boolean appendRandomCorrelationId) {
 
         builder.putHeaders(extraInternalHeaders).origin(connection.getId());
         if (authorizationContext != null) {
@@ -870,7 +870,7 @@ public final class InboundDispatchingSink
      * Appends the ConnectionId to the processed {@code commandResponse} payload.
      *
      * @param commandResponse the CommandResponse (or Acknowledgement as subtype) to append the ConnectionId to
-     * @param <T> the type of the CommandResponse
+     * @param <T>             the type of the CommandResponse
      * @return the CommandResponse with appended ConnectionId.
      */
     private <T extends CommandResponse<T>> T appendConnectionIdToAcknowledgementOrResponse(final T commandResponse) {
@@ -944,11 +944,12 @@ public final class InboundDispatchingSink
     private static final class IncomingSignal {
 
         private final Signal<?> signal;
-        @Nullable private final ActorRef sender;
+        @Nullable
+        private final ActorRef sender;
         private final boolean isAckRequesting;
 
         private IncomingSignal(final Signal<?> signal, @Nullable final ActorRef sender,
-                final boolean isAckRequesting) {
+                               final boolean isAckRequesting) {
             this.signal = signal;
             this.sender = sender;
             this.isAckRequesting = isAckRequesting;

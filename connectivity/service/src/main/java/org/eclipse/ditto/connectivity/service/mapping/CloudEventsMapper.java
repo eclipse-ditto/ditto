@@ -27,6 +27,7 @@ import org.eclipse.ditto.connectivity.model.MappingContext;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLogger;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.json.*;
+import org.eclipse.ditto.messages.model.MessageHeaders;
 import org.eclipse.ditto.protocol.Adaptable;
 import org.eclipse.ditto.protocol.JsonifiableAdaptable;
 import org.eclipse.ditto.protocol.ProtocolFactory;
@@ -72,29 +73,18 @@ public final class CloudEventsMapper extends AbstractMessageMapper {
     final String SOURCE = "source";
     final String TYPE = "type";
 
-    public String base64decoding(final String base64Message) throws UnsupportedEncodingException {
+    private String base64decoding(final String base64Message) throws UnsupportedEncodingException {
         byte[] messageByte = Base64.getDecoder().decode(base64Message);
         String decodedString = new String(messageByte);
         return decodedString;
     }
 
     boolean validatePayload(String payload) {
-        Map<String, Object> incomingMessagePayload = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
         final JsonObject jsonObject = JsonFactory.newObject(payload);
-        List<JsonKey> key = jsonObject.getKeys();
-        for (JsonKey keyIterator : key) {
-            Object value = jsonObject.getValue(keyIterator).orElse(null);
-            if (value != null) {
-                incomingMessagePayload.put(keyIterator.toString(), value);
-            }
-        }
-        if (incomingMessagePayload.get("specversion") == null
-                || incomingMessagePayload.get("id") == null
-                || incomingMessagePayload.get("source") == null
-                || incomingMessagePayload.get("type") == null) {
-            return false;
-        } else {
+        if (jsonObject.getValue(SPECVERSION).isPresent() && jsonObject.getValue(TYPE).isPresent() && jsonObject.getValue(ID).isPresent() && jsonObject.getValue(SOURCE).isPresent()) {
             return true;
+        } else {
+            return false;
         }
     }
 
@@ -133,20 +123,28 @@ public final class CloudEventsMapper extends AbstractMessageMapper {
     @Override
     public List<Adaptable> map(final ExternalMessage message) {
         // extract message as String
-        checkHeaders(message);
+        final String payload = extractPayloadAsString(message);
         System.out.println("The headers are " + message.getHeaders());
         System.out.println("The headers belong to class " + message.getHeaders().getClass());
 
-        final String payload = extractPayloadAsString(message);
+        if (checkHeaders(message)) {
+            final JsonifiableAdaptable binaryAdaptable = DittoJsonException.wrapJsonRuntimeException(
+                    () -> ProtocolFactory.jsonifiableAdaptableFromJson(JsonFactory.newObject(payload)));
+            DittoHeaders headers = binaryAdaptable.getDittoHeaders();
+            return singletonList(ProtocolFactory.newAdaptableBuilder(binaryAdaptable).withHeaders(headers).build());
+        }
+
         if (validatePayload(payload)) {
             try {
                 JsonifiableAdaptable adaptable = extractData(payload);
-                return singletonList(ProtocolFactory.newAdaptableBuilder(adaptable).build());
+                DittoHeaders headers = adaptable.getDittoHeaders();
+                System.out.println("DittoHeaders are " + headers);
+                return singletonList(ProtocolFactory.newAdaptableBuilder(adaptable).withHeaders(headers).build());
             } catch (Throwable e) {
                 e.printStackTrace();
             }
         }
-        return null;
+        return Collections.emptyList();
     }
 
     @Override
