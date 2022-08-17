@@ -40,6 +40,8 @@ import org.eclipse.ditto.internal.utils.persistence.mongo.indices.Index;
 import org.eclipse.ditto.internal.utils.persistence.mongo.indices.IndexFactory;
 import org.eclipse.ditto.internal.utils.persistence.mongo.indices.IndexInitializer;
 import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.mongodb.client.model.Accumulators;
 import com.mongodb.client.model.Aggregates;
@@ -83,6 +85,8 @@ import akka.stream.javadsl.Source;
 @AllValuesAreNonnullByDefault
 public final class MongoReadJournal {
     // not a final class to test with Mockito
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(MongoReadJournal.class);
 
     /**
      * ID field of documents delivered by the read journal.
@@ -274,14 +278,42 @@ public final class MongoReadJournal {
     public Source<String, NotUsed> getJournalPidsWithTag(final String tag,
             final int batchSize,
             final Duration maxIdleTime,
-            final Materializer mat) {
+            final Materializer mat,
+            final boolean tagMustExistInLatestEntry) {
 
         final int maxRestarts = computeMaxRestarts(maxIdleTime);
         return getJournal().withAttributes(Attributes.inputBuffer(1, 1))
                 .flatMapConcat(journal ->
                         listPidsInJournal(journal, "", tag, batchSize, mat, maxRestarts)
-                )
-                .mapConcat(pids -> pids);
+                                .mapConcat(pids -> pids)
+                                .flatMapConcat(pid -> {
+                                    if (tagMustExistInLatestEntry) {
+                                        return filterPidsThatDoesntContainTagInNewestEntry(journal, pid, tag);
+                                    } else {
+                                        return Source.single(pid);
+                                    }
+                                }));
+    }
+
+    private Source<String, NotUsed> filterPidsThatDoesntContainTagInNewestEntry(final MongoCollection<Document> journal,
+            final String pid, final String tag) {
+        return Source.fromPublisher(journal.aggregate(List.of(
+                        Aggregates.match(Filters.eq(J_EVENT_PID, pid)),
+                        Aggregates.sort(Sorts.descending(J_TO)),
+                        Aggregates.group(
+                                "$pid",
+                                toFirstJournalEntryFields(Set.of(J_EVENT_PID, J_TAGS))
+                        ),
+                        Aggregates.match(Filters.eq(J_TAGS, tag))
+                )))
+                .flatMapConcat(document -> {
+                    final Object objectPid = document.get(J_EVENT_PID);
+                    if (objectPid instanceof CharSequence) {
+                        return Source.single(objectPid.toString());
+                    } else {
+                        return Source.empty();
+                    }
+                });
     }
 
     /**
@@ -528,18 +560,18 @@ public final class MongoReadJournal {
             final Function<String, Source<T, ?>> sourceCreator) {
 
         return Source.unfoldAsync("",
-                startPid -> {
-                    final String actualStart = lowerBoundPid.compareTo(startPid) >= 0 ? lowerBoundPid : startPid;
-                    return sourceCreator.apply(actualStart)
-                            .runWith(Sink.seq(), mat)
-                            .thenApply(list -> {
-                                if (list.isEmpty()) {
-                                    return Optional.empty();
-                                } else {
-                                    return Optional.of(Pair.create(seedCreator.apply(list.get(list.size() - 1)), list));
-                                }
-                            });
-                })
+                        startPid -> {
+                            final String actualStart = lowerBoundPid.compareTo(startPid) >= 0 ? lowerBoundPid : startPid;
+                            return sourceCreator.apply(actualStart)
+                                    .runWith(Sink.seq(), mat)
+                                    .thenApply(list -> {
+                                        if (list.isEmpty()) {
+                                            return Optional.empty();
+                                        } else {
+                                            return Optional.of(Pair.create(seedCreator.apply(list.get(list.size() - 1)), list));
+                                        }
+                                    });
+                        })
                 .withAttributes(Attributes.inputBuffer(1, 1));
     }
 
@@ -583,11 +615,11 @@ public final class MongoReadJournal {
         final double randomFactor = 0.1;
 
         final RestartSettings restartSettings = RestartSettings.create(minBackOff,
-                MongoReadJournal.MAX_BACK_OFF_DURATION, randomFactor)
+                        MongoReadJournal.MAX_BACK_OFF_DURATION, randomFactor)
                 .withMaxRestarts(maxRestarts, minBackOff);
         return RestartSource.onFailuresWithBackoff(restartSettings, () ->
                 Source.fromPublisher(journal.aggregate(pipeline)
-                        .collation(Collation.builder().locale("en_US").numericOrdering(true).build()))
+                                .collation(Collation.builder().locale("en_US").numericOrdering(true).build()))
                         .flatMapConcat(document -> {
                             final Object pid = document.get(J_ID);
                             if (pid instanceof CharSequence) {
@@ -608,6 +640,9 @@ public final class MongoReadJournal {
 
         final List<Bson> pipeline = new ArrayList<>(6);
         // optional match stages: consecutive match stages are optimized together ($match + $match coalescence)
+        if (!tag.isEmpty()) {
+            pipeline.add(Aggregates.match(Filters.eq(J_TAGS, tag)));
+        }
         if (!startPid.isEmpty()) {
             pipeline.add(Aggregates.match(Filters.gt(J_PROCESSOR_ID, startPid)));
         }
@@ -618,20 +653,9 @@ public final class MongoReadJournal {
         // limit stage. It should come before group stage or MongoDB would scan the entire journal collection.
         pipeline.add(Aggregates.limit(batchSize));
 
-        final Set<String> fieldNamesWithOptionalTags;
-        if (tag.isEmpty()) {
-            fieldNamesWithOptionalTags = Arrays.stream(fieldNames).collect(Collectors.toSet());
-        } else {
-            fieldNamesWithOptionalTags = Stream
-                    .concat(Arrays.stream(fieldNames), Stream.of(J_TAGS))
-                    .collect(Collectors.toSet());
-        }
+        final Set<String> fieldNamesWithOptionalTags = Arrays.stream(fieldNames).collect(Collectors.toSet());
         // group stage
         pipeline.add(Aggregates.group("$" + J_PROCESSOR_ID, toFirstJournalEntryFields(fieldNamesWithOptionalTags)));
-
-        if (!tag.isEmpty()) {
-            pipeline.add(Aggregates.match(Filters.eq(J_TAGS, tag)));
-        }
 
         // sort stage 2 -- order after group stage is not defined
         pipeline.add(Aggregates.sort(Sorts.ascending(J_ID)));
@@ -640,10 +664,12 @@ public final class MongoReadJournal {
         final double randomFactor = 0.1;
 
         final RestartSettings restartSettings = RestartSettings.create(minBackOff,
-                MongoReadJournal.MAX_BACK_OFF_DURATION, randomFactor)
+                        MongoReadJournal.MAX_BACK_OFF_DURATION, randomFactor)
                 .withMaxRestarts(maxRestarts, minBackOff);
-        return RestartSource.onFailuresWithBackoff(restartSettings, () ->
-                Source.fromPublisher(journal.aggregate(pipeline))
+        return RestartSource.onFailuresWithBackoff(restartSettings, () -> {
+                    LOGGER.warn("Ran into failure when listing latest journal entries with tag <{}>.", tag);
+                    return Source.fromPublisher(journal.aggregate(pipeline));
+                }
         );
     }
 
