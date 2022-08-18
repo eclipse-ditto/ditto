@@ -43,6 +43,6 @@ RUN set -x \
 USER ditto
 WORKDIR $DITTO_HOME
 ENTRYPOINT ["/usr/bin/tini", "--"]
-CMD ["java", "${JVM_CMD_ARGS_ENV}", "${MAIN_CLASS_ENV}"]
+CMD ["sh", "-c", "exec java ${JVM_CMD_ARGS_ENV} ${MAIN_CLASS_ENV}"]
 
 COPY ${TARGET_DIR}/${SERVICE_STARTER}-${SERVICE_VERSION}-allinone.jar $DITTO_HOME
