@@ -50,7 +50,9 @@ public class CloudEventsMapperTest {
             """;
 
     String incompletePayload = """
-            { "id":"3212e", "source":"http:somesite.com","type":"com.site.com"}"
+            { 
+            "id":"3212e", "source":"http:somesite.com","type":"com.site.com"
+            }
             """;
     String testPayload = """
             {"specversion": "1.0", "id":"3212e", "source":"http:somesite.com","type":"com.site.com",
