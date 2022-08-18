@@ -27,6 +27,8 @@ let theSearchCursor;
 
 let thingJsonEditor;
 
+let thingTemplates;
+
 const observers = [];
 
 const dom = {
@@ -34,6 +36,11 @@ const dom = {
   thingsTableBody: null,
   thingDetails: null,
   thingId: null,
+  buttonCreateThing: null,
+  buttonSaveThing: null,
+  buttonDeleteThing: null,
+  inputThingDefinition: null,
+  ulThingDefinitions: null,
   tabModifyThing: null,
   searchFilterEdit: null,
   collapseThings: null,
@@ -56,26 +63,34 @@ export async function ready() {
 
   Utils.getAllElementsById(dom);
 
-  thingJsonEditor = ace.edit('thingJsonEditor');
-  thingJsonEditor.session.setMode('ace/mode/json');
+  thingJsonEditor = Utils.createAceEditor('thingJsonEditor', 'ace/mode/json');
+
+  loadThingTemplates();
+
+  dom.ulThingDefinitions.addEventListener('click', (event) => {
+    dom.inputThingDefinition.value = event.target.textContent;
+    thingJsonEditor.setValue(JSON.stringify(thingTemplates[event.target.textContent], null, 2), -1);
+  });
 
   dom.searchFilterEdit.onchange = removeMoreFromThingList;
 
-  document.getElementById('createThing').onclick = () => {
-    API.callDittoREST('POST', '/things', {})
+  dom.buttonCreateThing.onclick = async () => {
+    const editorValue = thingJsonEditor.getValue();
+    API.callDittoREST('POST', '/things', editorValue === '' ? {} : JSON.parse(editorValue))
         .then((data) => {
-          refreshThing(data.thingId);
-          getThings([data.thingId]);
+          refreshThing(data.thingId, () => {
+            getThings([data.thingId]);
+          });
         });
   };
 
-  document.getElementById('putThing').onclick = () => {
-    Utils.assert(dom.thingId.value, 'Thing ID is empty');
+  dom.buttonSaveThing.onclick = () => {
+    Utils.assert(dom.thingId.value, 'Thing ID is empty', dom.thingId);
     modifyThing('PUT');
   };
 
-  document.getElementById('deleteThing').onclick = () => {
-    Utils.assert(dom.thingId.value, 'Thing ID is empty');
+  dom.buttonDeleteThing.onclick = () => {
+    Utils.assert(dom.thingId.value, 'Thing ID is empty', dom.thingId);
     Utils.confirm(`Are you sure you want to delete thing<br>'${theThing.thingId}'?`, 'Delete', () => {
       modifyThing('DELETE');
     });
@@ -89,7 +104,11 @@ export async function ready() {
         event.stopImmediatePropagation();
         searchThings(dom.searchFilterEdit.value, theSearchCursor);
       } else {
-        refreshThing(row.id);
+        if (theThing && theThing.thingId === row.id) {
+          setTheThing(null);
+        } else {
+          refreshThing(row.id);
+        }
       }
     }
   });
@@ -101,7 +120,17 @@ export async function ready() {
   dom.tabThings.onclick = onTabActivated;
 
   dom.searchFilterEdit.focus();
-};
+}
+
+function loadThingTemplates() {
+  fetch('templates/thingTemplates.json')
+      .then((response) => {
+        response.json().then((loadedTemplates) => {
+          thingTemplates = loadedTemplates;
+          Utils.addDropDownEntries(dom.ulThingDefinitions, Object.keys(thingTemplates));
+        });
+      });
+}
 
 /**
  * Fills the things table UI with the given things
@@ -110,10 +139,14 @@ export async function ready() {
 function fillThingsTable(thingsList) {
   const activeFields = Environments.current().fieldList.filter((f) => f.active);
   fillHeaderRow();
+  let thingSelected = false;
   thingsList.forEach((item, t) => {
     const row = dom.thingsTableBody.insertRow();
     fillBodyRow(row, item);
   });
+  if (!thingSelected) {
+    setTheThing(null);
+  };
 
   function fillHeaderRow() {
     dom.thingsTableHead.innerHTML = '';
@@ -128,8 +161,9 @@ function fillThingsTable(thingsList) {
   function fillBodyRow(row, item) {
     row.id = item.thingId;
     if (theThing && (item.thingId === theThing.thingId)) {
+      thingSelected = true;
       row.classList.add('table-active');
-    };
+    }
     Utils.addCheckboxToRow(
         row,
         item.thingId,
@@ -149,7 +183,7 @@ function fillThingsTable(thingsList) {
       row.insertCell(-1).innerHTML = elem.length !== 0 ? elem[0] : '';
     });
   }
-};
+}
 
 /**
  * Calls Ditto search api and fills UI with the result
@@ -180,7 +214,7 @@ export function searchThings(filter, cursor) {
   }).finally(() => {
     document.body.style.cursor = 'default';
   });
-};
+}
 
 /**
  * Gets things from Ditto by thingIds and fills the UI with the result
@@ -192,8 +226,8 @@ export function getThings(thingIds) {
     API.callDittoREST('GET',
         `/things?${Fields.getQueryParameter()}&ids=${thingIds}&option=sort(%2BthingId)`,
     ).then(fillThingsTable);
-  };
-};
+  }
+}
 
 /**
  * Returns a click handler for Update thing and delete thing
@@ -204,26 +238,31 @@ function modifyThing(method) {
       '/things/' + dom.thingId.value,
       method === 'PUT' ? JSON.parse(thingJsonEditor.getValue()) : null,
   ).then(() => {
-    method === 'PUT' ? refreshThing(dom.thingId.value) : searchThings();
+    method === 'PUT' ? refreshThing(dom.thingId.value) : SearchFilter.performLastSearch();
   });
-};
+}
 
 /**
  * Load thing from Ditto and update all UI components
  * @param {String} thingId ThingId
+ * @param {function} successCallback callback function that is called after refresh is finished
  */
-export function refreshThing(thingId) {
+export function refreshThing(thingId, successCallback) {
   API.callDittoREST('GET',
-      `/things/${thingId}?fields=thingId%2Cattributes%2Cfeatures%2C_created%2C_modified%2C_revision%2C_policy`)
-      .then((thing) => setTheThing(thing))
-      .catch(() => setTheThing(null));
-};
+      `/things/${thingId}?` +
+      'fields=thingId%2Cdefinition%2Cattributes%2Cfeatures%2C_created%2C_modified%2C_revision%2C_policy')
+      .then((thing) => {
+        setTheThing(thing);
+        successCallback && successCallback();
+      })
+      .catch(() => setTheThing());
+}
 
 /**
  * Update all UI components for the given Thing
  * @param {Object} thingJson Thing json
  */
-export function setTheThing(thingJson) {
+function setTheThing(thingJson) {
   theThing = thingJson;
 
   updateThingDetailsTable();
@@ -236,6 +275,7 @@ export function setTheThing(thingJson) {
     if (theThing) {
       Utils.addTableRow(dom.thingDetails, 'thingId', false, true, theThing.thingId);
       Utils.addTableRow(dom.thingDetails, 'policyId', false, true, theThing._policy.policyId);
+      Utils.addTableRow(dom.thingDetails, 'definition', false, true, theThing.definition ?? '');
       Utils.addTableRow(dom.thingDetails, 'revision', false, true, theThing._revision);
       Utils.addTableRow(dom.thingDetails, 'created', false, true, theThing._created);
       Utils.addTableRow(dom.thingDetails, 'modified', false, true, theThing._modified);
@@ -245,15 +285,17 @@ export function setTheThing(thingJson) {
   function updateThingJsonEditor() {
     if (theThing) {
       dom.thingId.value = theThing.thingId;
+      dom.inputThingDefinition.value = theThing.definition ?? '';
       const thingCopy = JSON.parse(JSON.stringify(theThing));
       delete thingCopy['_revision'];
       delete thingCopy['_created'];
       delete thingCopy['_modified'];
       delete thingCopy['_policy'];
       thingCopy.policyId = theThing._policy.policyId;
-      thingJsonEditor.setValue(JSON.stringify(thingCopy, null, 2));
+      thingJsonEditor.setValue(JSON.stringify(thingCopy, null, 2), -1);
     } else {
       dom.thingId.value = null;
+      dom.inputThingDefinition.value = null;
       thingJsonEditor.setValue('');
     }
   }
@@ -284,7 +326,7 @@ function addMoreToThingList() {
   moreCell.disabled = true;
   moreCell.style.color = '#3a8c9a';
   moreCell.parentNode.id = 'searchThingsMore';
-};
+}
 
 /**
  * remove the "more" line from the things table
@@ -303,10 +345,10 @@ function togglePinnedThing(evt) {
     const index = Environments.current().pinnedThings.indexOf(this.id);
     if (index > -1) {
       Environments.current().pinnedThings.splice(index, 1);
-    };
-  };
+    }
+  }
   Environments.environmentsJsonChanged('pinnedThings');
-};
+}
 
 let viewDirty = false;
 
@@ -318,20 +360,17 @@ function onTabActivated() {
 }
 
 function onEnvironmentChanged(modifiedField) {
-  if (dom.collapseThings.classList.contains('show')) {
-    if (!['pinnedThings', 'filterList'].includes(modifiedField)) {
+  if (!['pinnedThings', 'filterList'].includes(modifiedField)) {
+    if (dom.collapseThings.classList.contains('show')) {
       refreshView();
+    } else {
+      viewDirty = true;
     }
-  } else {
-    viewDirty = true;
   }
 }
 
 function refreshView() {
   SearchFilter.performLastSearch();
-  if (theThing) {
-    refreshThing(theThing.thingId);
-  }
 }
 
 

@@ -58,7 +58,7 @@ public interface ThingsAggregatorConfig {
         private final String path;
         private final Object defaultValue;
 
-        private ThingsAggregatorConfigValue(final String thePath, final Object theDefaultValue) {
+        ThingsAggregatorConfigValue(final String thePath, final Object theDefaultValue) {
             path = thePath;
             defaultValue = theDefaultValue;
         }

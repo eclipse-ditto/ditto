@@ -24,7 +24,7 @@ import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.json.FieldType;
-import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
+import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.internal.utils.cacheloaders.AskWithRetry;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
@@ -57,14 +57,14 @@ final class SupervisorInlinePolicyEnrichment {
     private static final Duration DEFAULT_LOCAL_ASK_TIMEOUT = Duration.ofSeconds(5);
 
     private final ActorSystem actorSystem;
-    private final DittoDiagnosticLoggingAdapter log;
+    private final ThreadSafeDittoLoggingAdapter log;
     private final ThingId thingId;
     private final ActorSelection thingPersistenceActor;
     private final ActorRef policiesShardRegion;
     private final EnforcementConfig enforcementConfig;
 
     SupervisorInlinePolicyEnrichment(final ActorSystem actorSystem,
-            final DittoDiagnosticLoggingAdapter log,
+            final ThreadSafeDittoLoggingAdapter log,
             final ThingId thingId,
             final ActorSelection thingPersistenceActor,
             final ActorRef policiesShardRegion,

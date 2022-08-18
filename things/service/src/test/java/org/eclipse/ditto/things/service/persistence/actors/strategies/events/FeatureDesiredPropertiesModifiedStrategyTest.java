@@ -19,7 +19,6 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.signals.events.FeatureDesiredPropertiesModified;
-import org.junit.Ignore;
 import org.junit.Test;
 
 /**
@@ -35,8 +34,9 @@ public final class FeatureDesiredPropertiesModifiedStrategyTest extends Abstract
     @Test
     public void appliesEventCorrectly() {
         final FeatureDesiredPropertiesModifiedStrategy strategy = new FeatureDesiredPropertiesModifiedStrategy();
-        final FeatureDesiredPropertiesModified event = FeatureDesiredPropertiesModified.of(THING_ID, FEATURE_ID, FEATURE_DESIRED_PROPERTIES,
-                REVISION, TIMESTAMP,  DittoHeaders.empty(), null);
+        final FeatureDesiredPropertiesModified event =
+                FeatureDesiredPropertiesModified.of(THING_ID, FEATURE_ID, FEATURE_DESIRED_PROPERTIES,
+                        REVISION, TIMESTAMP, DittoHeaders.empty(), null);
 
         final Thing thingWithEventApplied = strategy.handle(event, THING, NEXT_REVISION);
 

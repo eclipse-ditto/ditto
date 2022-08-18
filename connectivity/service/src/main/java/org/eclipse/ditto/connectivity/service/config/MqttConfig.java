@@ -160,7 +160,7 @@ public interface MqttConfig {
         private final String path;
         private final Object defaultValue;
 
-        private MqttConfigValue(final String thePath, final Object theDefaultValue) {
+        MqttConfigValue(final String thePath, final Object theDefaultValue) {
             path = thePath;
             defaultValue = theDefaultValue;
         }

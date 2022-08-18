@@ -27,26 +27,26 @@ import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.json.JsonValue;
 
 /**
- * Immutable implementation of {@link TmRequired}.
+ * Immutable implementation of {@link TmOptional}.
  */
 @Immutable
-final class ImmutableTmRequired implements TmRequired {
+final class ImmutableTmOptional implements TmOptional {
 
-    private final List<TmRequiredElement> requiredElements;
+    private final List<TmOptionalElement> optionalElements;
 
-    ImmutableTmRequired(final Collection<TmRequiredElement> requiredElements) {
-        this.requiredElements = Collections.unmodifiableList(new ArrayList<>(requiredElements));
+    ImmutableTmOptional(final Collection<TmOptionalElement> optionalElements) {
+        this.optionalElements = Collections.unmodifiableList(new ArrayList<>(optionalElements));
     }
 
     @Override
-    public Iterator<TmRequiredElement> iterator() {
-        return requiredElements.iterator();
+    public Iterator<TmOptionalElement> iterator() {
+        return optionalElements.iterator();
     }
 
     @Override
     public JsonArray toJson() {
-        return requiredElements.stream()
-                .map(TmRequiredElement::toString)
+        return optionalElements.stream()
+                .map(TmOptionalElement::toString)
                 .map(JsonValue::of)
                 .collect(JsonCollectors.valuesToArray());
     }
@@ -59,19 +59,19 @@ final class ImmutableTmRequired implements TmRequired {
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        final ImmutableTmRequired that = (ImmutableTmRequired) o;
-        return Objects.equals(requiredElements, that.requiredElements);
+        final ImmutableTmOptional that = (ImmutableTmOptional) o;
+        return Objects.equals(optionalElements, that.optionalElements);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(requiredElements);
+        return Objects.hash(optionalElements);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + "[" +
-                "requiredElements=" + requiredElements +
+                "optionalElements=" + optionalElements +
                 "]";
     }
 }

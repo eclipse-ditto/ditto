@@ -18,7 +18,7 @@
  * It also contains builder to build and enhance all aspects of TDs and TMs.
  * <p>
  * As of version {@code 2.4.0} of Ditto, this implementation follows
- * <a href="https://www.w3.org/TR/2022/WD-wot-thing-description11-20220311/">Web of Things (WoT) Thing Description 1.1 - W3C Working Draft 11 March 2022</a>.
+ * <a href="https://www.w3.org/TR/wot-thing-description11/">Web of Things (WoT) Thing Description 1.1</a>.
  *
  * @since 2.4.0
  */

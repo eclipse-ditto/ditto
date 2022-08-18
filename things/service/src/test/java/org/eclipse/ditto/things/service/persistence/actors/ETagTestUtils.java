@@ -282,7 +282,7 @@ public final class ETagTestUtils {
 
     // Attributes
 
-    public static ModifyAttributesResponse modifyAttributesResponse(final ThingId thingId,
+    public static ModifyAttributesResponse modifyAttributeResponse(final ThingId thingId,
             final Attributes modifiedAttributes, final DittoHeaders dittoHeaders, final boolean created) {
         final DittoHeaders dittoHeadersWithETag = appendETagToDittoHeaders(modifiedAttributes, dittoHeaders);
         if (created) {

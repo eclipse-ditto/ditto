@@ -27,7 +27,6 @@ import org.eclipse.ditto.things.model.signals.events.AttributesModified;
 import org.eclipse.ditto.things.service.persistence.actors.ETagTestUtils;
 import org.junit.Before;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Test;
 
 /**
@@ -64,7 +63,7 @@ public final class ModifyAttributesStrategyTest extends AbstractCommandStrategyT
 
         assertModificationResult(underTest, THING_V2.removeAttributes(), command,
                 AttributesCreated.class,
-                ETagTestUtils.modifyAttributesResponse(context.getState(), modifiedAttributes, command.getDittoHeaders(), true));
+                ETagTestUtils.modifyAttributeResponse(context.getState(), modifiedAttributes, command.getDittoHeaders(), true));
     }
 
     @Test
@@ -75,7 +74,7 @@ public final class ModifyAttributesStrategyTest extends AbstractCommandStrategyT
 
         assertModificationResult(underTest, THING_V2, command,
                 AttributesModified.class,
-                ETagTestUtils.modifyAttributesResponse(context.getState(), modifiedAttributes, command.getDittoHeaders(), false));
+                ETagTestUtils.modifyAttributeResponse(context.getState(), modifiedAttributes, command.getDittoHeaders(), false));
     }
 
 }

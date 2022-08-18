@@ -275,10 +275,10 @@ final class DefaultWotThingDescriptionGenerator implements WotThingDescriptionGe
                             "The WoT ThingModel must be of '@type' being 'tm:ThingModel'")
                     .dittoHeaders(dittoHeaders)
                     .build();
-        } else if (atType instanceof MultipleAtType) {
+        } else if (atType instanceof MultipleAtType multipleAtType) {
             final List<SingleAtType> keptTypes = new ArrayList<>();
             final AtomicBoolean tmThingModelWasPresent = new AtomicBoolean(false);
-            ((MultipleAtType) atType).stream()
+            multipleAtType.stream()
                     .forEach(st -> {
                         if (st.equals(SingleAtType.of("tm:ThingModel"))) {
                             tmThingModelWasPresent.set(true);
@@ -299,7 +299,7 @@ final class DefaultWotThingDescriptionGenerator implements WotThingDescriptionGe
     }
 
     private void removeTmRequired(final ThingModel.Builder builder) {
-        builder.remove(ThingModel.JsonFields.TM_REQUIRED);
+        builder.remove(ThingModel.JsonFields.TM_OPTIONAL);
     }
 
     private void addBase(final ThingDescription.Builder thingDescriptionBuilder,

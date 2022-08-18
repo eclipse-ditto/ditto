@@ -16,10 +16,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
+import org.eclipse.ditto.base.model.entity.metadata.Metadata;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.things.model.Feature;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.signals.events.FeatureDefinitionModified;
-import org.junit.Ignore;
 import org.junit.Test;
 
 /**
@@ -45,6 +47,32 @@ public final class FeatureDefinitionModifiedStrategyTest extends AbstractStrateg
                 .setFeatureDefinition(FEATURE_ID, FEATURE_DEFINITION)
                 .setRevision(NEXT_REVISION)
                 .setModified(TIMESTAMP)
+                .build();
+        assertThat(thingWithEventApplied).isEqualTo(expected);
+    }
+
+    @Test
+    public void appliesEventWithMetadataCorrectly() {
+        final FeatureDefinitionModifiedStrategy strategy = new FeatureDefinitionModifiedStrategy();
+        final FeatureDefinitionModified event =
+                FeatureDefinitionModified.of(THING_ID, FEATURE_ID, FEATURE_DEFINITION, REVISION, TIMESTAMP,
+                        DittoHeaders.empty(), METADATA);
+
+        final Thing thingWithEventApplied = strategy.handle(event, THING, NEXT_REVISION);
+
+        final Metadata expectedMetadata = Metadata.newBuilder()
+                .set(Thing.JsonFields.FEATURES, JsonObject.newBuilder()
+                        .set(FEATURE_ID, JsonObject.newBuilder()
+                                .set(Feature.JsonFields.DEFINITION.getPointer(), METADATA)
+                                .build())
+                        .build())
+                .build();
+
+        final Thing expected = THING.toBuilder()
+                .setFeatureDefinition(FEATURE_ID, FEATURE_DEFINITION)
+                .setRevision(NEXT_REVISION)
+                .setModified(TIMESTAMP)
+                .setMetadata(expectedMetadata)
                 .build();
         assertThat(thingWithEventApplied).isEqualTo(expected);
     }

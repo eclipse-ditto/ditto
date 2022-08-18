@@ -20,20 +20,20 @@ import java.util.function.Predicate;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.json.FieldType;
+import org.eclipse.ditto.base.model.json.JsonParsableCommand;
+import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
+import org.eclipse.ditto.base.model.signals.WithFeatureId;
+import org.eclipse.ditto.base.model.signals.commands.AbstractCommand;
+import org.eclipse.ditto.base.model.signals.commands.CommandJsonDeserializer;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.base.model.json.FieldType;
-import org.eclipse.ditto.base.model.json.JsonParsableCommand;
-import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.things.model.ThingId;
-import org.eclipse.ditto.base.model.signals.WithFeatureId;
-import org.eclipse.ditto.base.model.signals.commands.AbstractCommand;
-import org.eclipse.ditto.base.model.signals.commands.CommandJsonDeserializer;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommand;
 
 /**
@@ -55,8 +55,7 @@ public final class DeleteFeature extends AbstractCommand<DeleteFeature> implemen
     public static final String TYPE = TYPE_PREFIX + NAME;
 
     static final JsonFieldDefinition<String> JSON_FEATURE_ID =
-            JsonFactory.newStringFieldDefinition("featureId", FieldType.REGULAR,
-                    JsonSchemaVersion.V_2);
+            JsonFactory.newStringFieldDefinition("featureId", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
     private final ThingId thingId;
     private final String featureId;
@@ -74,7 +73,7 @@ public final class DeleteFeature extends AbstractCommand<DeleteFeature> implemen
      * @param featureId the ID of the {@code Feature} to delete.
      * @param dittoHeaders the headers of the command.
      * @return a Command for deleting the provided new Feature.
-     * @throws NullPointerException if the any argument but {@code thingId} is {@code null}.
+     * @throws NullPointerException if any argument but {@code thingId} is {@code null}.
      */
     public static DeleteFeature of(final ThingId thingId, final String featureId, final DittoHeaders dittoHeaders) {
         return new DeleteFeature(thingId, featureId, dittoHeaders);

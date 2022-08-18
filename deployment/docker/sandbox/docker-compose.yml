@@ -175,7 +175,9 @@ services:
        - ./nginx-devops.htpasswd:/etc/nginx/nginx-devops.htpasswd:ro
        - ./html:/etc/nginx/html
        - ../nginx-cors.conf:/etc/nginx/nginx-cors.conf:ro
+       - ../mime.types:/etc/nginx/mime.types:ro
        - ../../../documentation/src/main/resources/images:/etc/nginx/html/images:ro
+       - ../../../documentation/src/main/resources/wot:/etc/nginx/html/wot:ro
        - /opt/letsencrypt/src/letsencrypt/letsencrypt-site/.well-known:/etc/nginx/html/.well-known:ro
        - /opt/letsencrypt/src/production/dh-param/dhparam-2048.pem:/etc/ssl/certs/dhparam-2048.pem
        - /opt/docker-volumes/etc/letsencrypt/live/ditto.eclipseprojects.io/fullchain.pem:/etc/letsencrypt/live/ditto.eclipseprojects.io/fullchain.pem

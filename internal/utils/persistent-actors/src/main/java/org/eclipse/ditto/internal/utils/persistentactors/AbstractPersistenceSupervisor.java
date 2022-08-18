@@ -40,8 +40,8 @@ import org.eclipse.ditto.base.service.config.supervision.ExponentialBackOffConfi
 import org.eclipse.ditto.base.service.signaltransformer.SignalTransformer;
 import org.eclipse.ditto.base.service.signaltransformer.SignalTransformers;
 import org.eclipse.ditto.internal.utils.akka.actors.AbstractActorWithStashWithTimers;
-import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
+import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.internal.utils.metrics.instruments.counter.Counter;
@@ -105,7 +105,7 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
 
     protected static final String PERSISTENCE_ACTOR_NAME = "pa";
 
-    protected final DittoDiagnosticLoggingAdapter log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
+    protected final ThreadSafeDittoLoggingAdapter log = DittoLoggerFactory.getThreadSafeDittoLoggingAdapter(this);
 
     private final SupervisorStrategy supervisorStrategy;
 

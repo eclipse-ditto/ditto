@@ -197,7 +197,7 @@ public final class ResponseCollectorActor extends AbstractActor {
     interface Input {}
 
     private enum Query implements Input {
-        INSTANCE;
+        INSTANCE
     }
 
     private static final class SetCount implements Input {

@@ -19,6 +19,7 @@ import static org.eclipse.ditto.thingsearch.service.persistence.PersistenceConst
 import static org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants.FIELD_FEATURES_PATH;
 import static org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants.FIELD_FEATURE_ID;
 import static org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants.FIELD_F_ARRAY;
+import static org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants.FIELD_METADATA_PATH;
 import static org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants.FIELD_PROPERTIES;
 import static org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants.FIELD_THING;
 import static org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants.PROPERTIES;
@@ -152,7 +153,7 @@ public final class GetExistsBsonVisitor extends AbstractFieldBsonCreator impleme
 
     @Override
     public Bson visitMetadata(final String key) {
-        // search on _metadata is not supported, return filter that don't match
-        return Filters.eq("nomatch");
+        return matchKey(FIELD_METADATA_PATH + key);
     }
+
 }
