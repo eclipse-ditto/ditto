@@ -64,6 +64,7 @@ import akka.http.javadsl.model.HttpHeader;
 import akka.http.javadsl.model.HttpRequest;
 import akka.http.javadsl.model.HttpResponse;
 import akka.http.javadsl.server.AllDirectives;
+import akka.http.javadsl.server.Directives;
 import akka.http.javadsl.server.ExceptionHandler;
 import akka.http.javadsl.server.PathMatchers;
 import akka.http.javadsl.server.RejectionHandler;
@@ -242,9 +243,7 @@ public final class RootRoute extends AllDirectives {
                                     .withQueryParameters(queryParameters)
                                     .build(CustomHeadersHandler.RequestType.API);
                     //TODO dgs: fix after concierge-removal merge.
-                    return withDittoHeaders(dittoHeadersPromise, dh -> devopsAuthenticationDirective.authenticateDevOps(
-                            DevOpsOAuth2AuthenticationDirective.REALM_DEVOPS,
-                            connectionsRoute.buildConnectionsRoute(ctx, withSudo(dh))))
+                    return withDittoHeaders(dittoHeadersPromise, dh -> devOpsConnectionsRoute(ctx, dh))
                                             apiAuthentication(apiVersion, correlationId, auth -> {
                                                         final CompletionStage<DittoHeaders> dittoHeadersPromisee =
                                                                 rootRouteHeadersStepBuilder
@@ -263,6 +262,18 @@ public final class RootRoute extends AllDirectives {
                         }
                 )
         );
+    }
+
+    private Route devOpsConnectionsRoute(final RequestContext ctx, final DittoHeaders dh) {
+        return extractUnmatchedPath(path -> {
+            if (("/" + ConnectionsRoute.PATH_CONNECTIONS).equalsIgnoreCase(path)) {
+                return devopsAuthenticationDirective.authenticateDevOps(
+                        DevOpsOAuth2AuthenticationDirective.REALM_DEVOPS,
+                        connectionsRoute.buildConnectionsRoute(ctx, withSudo(dh)));
+
+            }
+            return Directives.reject();
+        });
     }
 
     private DittoHeaders withSudo(final DittoHeaders dittoHeaders) {

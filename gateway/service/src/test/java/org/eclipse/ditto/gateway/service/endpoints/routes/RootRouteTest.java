@@ -98,6 +98,8 @@ public final class RootRouteTest extends EndpointTestBase {
             JsonSchemaVersion.V_2.toInt() + "/" + ThingsRoute.PATH_THINGS;
     private static final String THING_SEARCH_2_PATH = ROOT_PATH + RootRoute.HTTP_PATH_API_PREFIX + "/" +
             JsonSchemaVersion.V_2.toInt() + "/" + ThingSearchRoute.PATH_SEARCH + "/" + ThingSearchRoute.PATH_THINGS;
+    private static final String CONNECTIONS_2_PATH = ROOT_PATH + RootRoute.HTTP_PATH_API_PREFIX + "/" +
+            JsonSchemaVersion.V_2.toInt() + "/" + ConnectionsRoute.PATH_CONNECTIONS;
     private static final String WHOAMI_PATH = ROOT_PATH + RootRoute.HTTP_PATH_API_PREFIX + "/" +
             JsonSchemaVersion.V_2.toInt() + "/" + WhoamiRoute.PATH_WHOAMI;
     private static final String UNKNOWN_SEARCH_PATH =
@@ -205,9 +207,32 @@ public final class RootRouteTest extends EndpointTestBase {
     @Test
     public void getStatusWithDevopsAuth() {
         final TestRouteResult result =
-                rootTestRoute.run(withHttps(withDevopsCredentials(HttpRequest.GET(OVERALL_STATUS_PATH))));
+                rootTestRoute.run(withHttps(withDevopsCredentials(HttpRequest.GET(CONNECTIONS_2_PATH))));
 
         result.assertStatusCode(EndpointTestConstants.DUMMY_COMMAND_SUCCESS);
+    }
+    @Test
+    public void getConnectionsWithDevopsAuth() {
+        final TestRouteResult result =
+                rootTestRoute.run(withHttps(withDevopsCredentials(HttpRequest.GET(CONNECTIONS_2_PATH))));
+
+        result.assertStatusCode(EndpointTestConstants.DUMMY_COMMAND_SUCCESS);
+    }
+
+    @Test
+    public void getConnectionsWithPreAuthenticated() {
+        final TestRouteResult result =
+                rootTestRoute.run(withHttps(withPreAuthenticatedAuthentication(HttpRequest.GET(CONNECTIONS_2_PATH))));
+
+        result.assertStatusCode(StatusCodes.UNAUTHORIZED);
+    }
+
+    @Test
+    public void getConnectionsUnAuthenticated() {
+        final TestRouteResult result =
+                rootTestRoute.run(withHttps(HttpRequest.GET(CONNECTIONS_2_PATH)));
+
+        result.assertStatusCode(StatusCodes.UNAUTHORIZED);
     }
 
     @Test
