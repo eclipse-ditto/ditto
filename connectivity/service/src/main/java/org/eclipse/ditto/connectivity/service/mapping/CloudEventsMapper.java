@@ -92,8 +92,8 @@ public final class CloudEventsMapper extends AbstractMessageMapper {
             throws UnsupportedEncodingException {
         final JsonObject payloadJson = JsonFactory.newObject(message);
         if (payloadJson.getValue("data_base64").isPresent()) {
-            String base64Data = payloadJson.getValue("data_base64").orElse(null).asString();
-            String decodedData = base64decoding(base64Data);
+           final String base64Data = payloadJson.getValue("data_base64").get().asString();
+           final String decodedData = base64decoding(base64Data);
 
             final JsonifiableAdaptable decodedJsonifiableAdaptable =
                     DittoJsonException.wrapJsonRuntimeException(
@@ -101,10 +101,14 @@ public final class CloudEventsMapper extends AbstractMessageMapper {
                                     ProtocolFactory.jsonifiableAdaptableFromJson(JsonFactory.newObject(decodedData)));
             return decodedJsonifiableAdaptable;
 
-        } else {
-            String data = payloadJson.getValue("data").get().toString();
+        }
+        if (payloadJson.getValue("data").isPresent()) {
+            final String data = payloadJson.getValue("data").get().toString();
             return DittoJsonException.wrapJsonRuntimeException(
                     () -> ProtocolFactory.jsonifiableAdaptableFromJson(JsonFactory.newObject(data)));
+        }
+        else {
+            throw new InputMismatchException("Invalid CloudEvent");
         }
     }
 
@@ -136,8 +140,8 @@ public final class CloudEventsMapper extends AbstractMessageMapper {
 
         if (validatePayload(payload)) {
             try {
-                JsonifiableAdaptable adaptable = extractData(payload);
-                DittoHeaders headers = adaptable.getDittoHeaders();
+                final JsonifiableAdaptable adaptable = extractData(payload);
+                final DittoHeaders headers = adaptable.getDittoHeaders();
                 System.out.println("DittoHeaders are " + headers);
                 return singletonList(ProtocolFactory.newAdaptableBuilder(adaptable).withHeaders(headers).build());
             } catch (Throwable e) {

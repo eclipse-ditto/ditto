@@ -43,15 +43,35 @@ public class CloudEventsMapperTest {
     private static final ThingId THING_ID = ThingId.of("thing:id");
     private static final ProtocolAdapter ADAPTER = DittoProtocolAdapter.newInstance();
 
-    String payload = "{\"specversion\": \"1.0\", \"id\":\"3212e\", \"source\":\"http:somesite.com\",\"type\":\"com.site.com\"}";
+    String payload = """
+            {
+             "specversion": "1.0",  "id":"3212e","source":"http:somesite.com","type":"com.site.com"
+             }
+            """;
 
-    String incompletePayload = "{ \"id\":\"3212e\", \"source\":\"http:somesite.com\",\"type\":\"com.site.com\"}";
-    String testPayload = "{\n" + "      \"specversion\": \"1.0\", \"id\":\"3212e\", \"source\":\"http:somesite.com\",\"type\":\"com.site.com\",\n" + "      \"data\":{\n" + "      \"topic\":\"my.sensors/sensor01/things/twin/commands/modify\",\n" + "      \"path\":\"/\",\n" + "      \"value\":{\n" + "          \"thingId\": \"my.sensors:sensor01\",\n" + "          \"policyId\": \"my.test:policy\",\n" + "          \"attributes\": {\n" + "              \"manufacturer\": \"Well known sensors producer\",\n" + "                \"serial number\": \"100\", \n" + "                \"location\": \"Ground floor\" },\n" + "                \"features\": {\n" + "                  \"measurements\": \n" + "                   {\"properties\": \n" + "                   {\"temperature\": 100,\n" + "                    \"humidity\": 0}}}}}}";
+    String incompletePayload = """
+            { "id":"3212e", "source":"http:somesite.com","type":"com.site.com"}"
+            """;
+    String testPayload = """
+            {"specversion": "1.0", "id":"3212e", "source":"http:somesite.com","type":"com.site.com",
+            "data":{"topic":"my.sensors/sensor01/things/twin/commands/modify",
+            "path":"/","value":
+            {"thingId": "my.sensors:sensor01","policyId": "my.test:policy", 
+            "attributes": {"manufacturer": "Well known sensors producer","serial number": "100","location": "Ground floor" },
+            "features": {"measurements":{"properties":{"temperature": 100,"humidity": 0}}}}}} 
+            """;
+    String data = """
+            {"topic":"my.sensors/sensor01/things/twin/commands/modify",
+            "path":"/","value":
+            {"thingId": "my.sensors:sensor01","policyId": "my.test:policy",
+            "attributes": {"manufacturer": "Well known sensors producer","serial number": "100","location": "Ground floor" },
+            "features": {"measurements":{"properties":{"temperature": 100,"humidity": 0}}}}}
+            """;
 
-    String data = "{\n" + "  \"topic\":\"my.sensors/sensor01/things/twin/commands/modify\",\n" + "  \"path\":\"/\",\n" + "  \"value\":{\n" + "      \"thingId\": \"my.sensors:sensor01\",\n" + "      \"policyId\": \"my.test:policy\",\n" + "      \"attributes\": {\n" + "          \"manufacturer\": \"Well known sensors producer\",\n" + "            \"serial number\": \"100\", \n" + "            \"location\": \"Ground floor\" },\n" + "            \"features\": {\n" + "              \"measurements\": \n" + "               {\"properties\": \n" + "               {\"temperature\": 100,\n" + "                \"humidity\": 0}}}}}";
 
-    String base64payload = "{\n" + "                    \"specversion\": \"1.0\" , \"id\":\"3212e\", \"source\":\"http:somesite.com\",\"type\":\"com.site.com\",\n" + "\"data_base64\":\"ewogICJ0b3BpYyI6Im15LnNlbnNvcnMvc2Vuc29yMDEvdGhpbmdzL3R3aW4vY29tbWFuZHMvbW9kaWZ5IiwKICAicGF0aCI6Ii8iLAogICJ2YWx1ZSI6ewogICAgICAidGhpbmdJZCI6ICJteS5zZW5zb3JzOnNlbnNvcjAxIiwKICAgICAgInBvbGljeUlkIjogIm15LnRlc3Q6cG9saWN5IiwKICAgICAgImF0dHJpYnV0ZXMiOiB7CiAgICAgICAgICAibWFudWZhY3R1cmVyIjogIldlbGwga25vd24gc2Vuc29ycyBwcm9kdWNlciIsCiAgICAgICAgICAgICJzZXJpYWwgbnVtYmVyIjogIjEwMCIsIAogICAgICAgICAgICAibG9jYXRpb24iOiAiR3JvdW5kIGZsb29yIiB9LAogICAgICAgICAgICAiZmVhdHVyZXMiOiB7CiAgICAgICAgICAgICAgIm1lYXN1cmVtZW50cyI6IAogICAgICAgICAgICAgICB7InByb3BlcnRpZXMiOiAKICAgICAgICAgICAgICAgeyJ0ZW1wZXJhdHVyZSI6IDEwMCwKICAgICAgICAgICAgICAgICJodW1pZGl0eSI6IDB9fX19fQ==\"\n" + "                  }";
-
+    String base64payload = """
+    {"specversion": "1.0" , "id":"3212e", "source":"http:somesite.com","type":"com.site.com", "data_base64":"ewogICJ0b3BpYyI6Im15LnNlbnNvcnMvc2Vuc29yMDEvdGhpbmdzL3R3aW4vY29tbWFuZHMvbW9kaWZ5IiwKICAicGF0aCI6Ii8iLAogICJ2YWx1ZSI6ewogICAgICAidGhpbmdJZCI6ICJteS5zZW5zb3JzOnNlbnNvcjAxIiwKICAgICAgInBvbGljeUlkIjogIm15LnRlc3Q6cG9saWN5IiwKICAgICAgImF0dHJpYnV0ZXMiOiB7CiAgICAgICAgICAibWFudWZhY3R1cmVyIjogIldlbGwga25vd24gc2Vuc29ycyBwcm9kdWNlciIsCiAgICAgICAgICAgICJzZXJpYWwgbnVtYmVyIjogIjEwMCIsIAogICAgICAgICAgICAibG9jYXRpb24iOiAiR3JvdW5kIGZsb29yIiB9LAogICAgICAgICAgICAiZmVhdHVyZXMiOiB7CiAgICAgICAgICAgICAgIm1lYXN1cmVtZW50cyI6IAogICAgICAgICAgICAgICB7InByb3BlcnRpZXMiOiAKICAgICAgICAgICAgICAgeyJ0ZW1wZXJhdHVyZSI6IDEwMCwKICAgICAgICAgICAgICAgICJodW1pZGl0eSI6IDB9fX19fQ=="}
+    """;
     String data_base64 = Base64.getEncoder().encodeToString(data.getBytes());
     private CloudEventsMapper underTest;
 
