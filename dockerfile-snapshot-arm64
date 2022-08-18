@@ -21,7 +21,7 @@ ENV HTTP_PORT=8080 \
     HOSTING_ENVIRONMENT=Docker \
     DITTO_HOME=/opt/ditto \
     DITTO_LOGS=/var/log/ditto \
-    JVM_CMD_ARGS_ENV=${JVM_CMD_ARGS}\
+    JVM_CMD_ARGS_ENV=${JVM_CMD_ARGS} \
     MAIN_CLASS_ENV=${MAIN_CLASS} \
     CLASSPATH=/opt/ditto/*
 
@@ -31,10 +31,10 @@ EXPOSE 8080
 RUN set -x \
     && apt-get update \
     && apt-get install -y tini \
-    && groupadd --system --gid 1000 ditto \
-    && useradd --no-log-init --system --home-dir $DITTO_HOME --shell /bin/sh --gid ditto --uid 1000 ditto \
     && mkdir -p $DITTO_HOME \
     && mkdir -p $DITTO_LOGS \
+    && groupadd --system --gid 1000 ditto \
+    && useradd --no-log-init --system --home-dir $DITTO_HOME --shell /bin/sh --gid ditto --uid 1000 ditto \
     && cd $DITTO_HOME \
     && chown -R ditto:ditto $DITTO_HOME \
     && cd $DITTO_LOGS \
@@ -43,6 +43,6 @@ RUN set -x \
 USER ditto
 WORKDIR $DITTO_HOME
 ENTRYPOINT ["/usr/bin/tini", "--"]
-CMD ["sh", "-c", "java ${JVM_CMD_ARGS_ENV} ${MAIN_CLASS_ENV}"]
+CMD ["java", "${JVM_CMD_ARGS_ENV}", "${MAIN_CLASS_ENV}"]
 
 COPY ${TARGET_DIR}/${SERVICE_STARTER}-${SERVICE_VERSION}-allinone.jar $DITTO_HOME
