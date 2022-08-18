@@ -22,6 +22,7 @@ import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.UnaryOperator;
 
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.SignalWithEntityId;
@@ -117,7 +118,9 @@ final class SupervisorLiveChannelDispatching {
     TargetActorWithMessage prepareForPubSubPublishing(final ThingQueryCommand<?> thingQueryCommand,
             final ActorRef receiver) {
 
-        return prepareForPubSubPublishing(thingQueryCommand, receiver, UnaryOperator.identity());
+        return prepareForPubSubPublishing(thingQueryCommand, receiver,
+                response -> handleEncounteredAskTimeoutsAsCommandTimeoutException(thingQueryCommand.getDittoHeaders(),
+                        response));
     }
 
     /**
@@ -159,7 +162,8 @@ final class SupervisorLiveChannelDispatching {
      * @return a CompletionStage which will be completed with a target actor and a message to send to this target actor
      */
     CompletionStage<TargetActorWithMessage> dispatchLiveSignal(final Signal<?> signal, final ActorRef sender) {
-
+        final UnaryOperator<Object> errorHandler =
+                response -> handleEncounteredAskTimeoutsAsCommandTimeoutException(signal.getDittoHeaders(), response);
         final DistributedPubWithMessage distributedPubWithMessage = selectLiveSignalPublisher(signal);
         if (enforcementConfig.shouldDispatchGlobally(signal)) {
             return responseReceiverCache.insertResponseReceiverConflictFree(signal,
@@ -176,9 +180,8 @@ final class SupervisorLiveChannelDispatching {
                     .thenApply(distributedPub -> new TargetActorWithMessage(
                             distributedPub.pub().getPublisher(),
                             distributedPub.wrappedSignalForPublication(),
-                            calculateLiveChannelTimeout(distributedPub.signal()),
-                            response -> handleEncounteredAskTimeoutsAsCommandTimeoutException(
-                                    signal, distributedPub, response)
+                            calculateLiveChannelTimeout(distributedPub.signal().getDittoHeaders()),
+                            errorHandler
                     ));
         } else {
             log.withCorrelationId(signal)
@@ -186,15 +189,15 @@ final class SupervisorLiveChannelDispatching {
             return CompletableFuture.completedStage(new TargetActorWithMessage(
                     distributedPubWithMessage.pub().getPublisher(),
                     distributedPubWithMessage.wrappedSignalForPublication(),
-                    calculateLiveChannelTimeout(signal),
-                    Function.identity()
+                    calculateLiveChannelTimeout(signal.getDittoHeaders()),
+                    errorHandler
             ));
         }
     }
 
-    private static Duration calculateLiveChannelTimeout(final WithDittoHeaders withDittoHeaders) {
-        if (withDittoHeaders.getDittoHeaders().isResponseRequired()) {
-            return withDittoHeaders.getDittoHeaders().getTimeout().orElse(DEFAULT_LIVE_TIMEOUT);
+    private static Duration calculateLiveChannelTimeout(final DittoHeaders dittoHeaders) {
+        if (dittoHeaders.isResponseRequired()) {
+            return dittoHeaders.getTimeout().orElse(DEFAULT_LIVE_TIMEOUT);
         } else {
             return Duration.ZERO;
         }
@@ -245,7 +248,8 @@ final class SupervisorLiveChannelDispatching {
                                         liveResponse.getType(), receiver);
                         targetActorWithMessage = new TargetActorWithMessage(receiver.sender(),
                                 liveResponse,
-                                Duration.ZERO, // ZERO duration means that no "ask" is used, but "tell" - not expecting an answer
+                                Duration.ZERO,
+                                // ZERO duration means that no "ask" is used, but "tell" - not expecting an answer
                                 Function.identity()
                         );
                     } else {
@@ -258,8 +262,7 @@ final class SupervisorLiveChannelDispatching {
                 });
     }
 
-    private Object handleEncounteredAskTimeoutsAsCommandTimeoutException(final Signal<?> signal,
-            final DistributedPubWithMessage distributedPub,
+    private Object handleEncounteredAskTimeoutsAsCommandTimeoutException(final DittoHeaders dittoHeaders,
             final Object response) {
 
         if (response instanceof Throwable t) {
@@ -269,11 +272,9 @@ final class SupervisorLiveChannelDispatching {
             }
 
             if (throwable instanceof AskTimeoutException askTimeoutException) {
-                return CommandTimeoutException.newBuilder(
-                                distributedPub.signal().getDittoHeaders().getTimeout().orElse(DEFAULT_LIVE_TIMEOUT)
-                        )
+                return CommandTimeoutException.newBuilder(calculateLiveChannelTimeout(dittoHeaders))
                         .cause(askTimeoutException)
-                        .dittoHeaders(signal.getDittoHeaders())
+                        .dittoHeaders(dittoHeaders)
                         .build();
             } else {
                 return response;
