@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.edge.service.dispatching;
 
+import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
+
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -40,23 +42,32 @@ final class EntityTaskScheduler extends AbstractActor {
 
     static final String ACTOR_NAME = "entity-task-scheduler";
 
+    private final DittoDiagnosticLoggingAdapter log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
+
     /**
      * Remembers running tasks for a certain entity ID. May contain an already completed future.
      */
     private final Map<EntityId, CompletionStage<?>> taskCsPerEntityId;
-    private final DittoDiagnosticLoggingAdapter log;
     private final Counter scheduledTasks;
     private final Counter completedTasks;
 
-    private EntityTaskScheduler() {
+    @SuppressWarnings("unused")
+    private EntityTaskScheduler(final String metricsNameTag) {
         taskCsPerEntityId = new HashMap<>();
-        log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
-        scheduledTasks = DittoMetrics.counter("scheduled_tasks");
-        completedTasks = DittoMetrics.counter("completed_tasks");
+        scheduledTasks = DittoMetrics.counter("scheduled_tasks")
+                .tag("name", metricsNameTag);
+        completedTasks = DittoMetrics.counter("completed_tasks")
+                .tag("name", metricsNameTag);
     }
 
-    static Props props() {
-        return Props.create(EntityTaskScheduler.class);
+    /**
+     * Creates Akka configuration object for this actor.
+     *
+     * @param metricsNameTag a name tag to include in the gathered counters/metrics of the actor.
+     * @return the Akka configuration Props object.
+     */
+    static Props props(final String metricsNameTag) {
+        return Props.create(EntityTaskScheduler.class, checkNotNull(metricsNameTag, "metricsNameTag"));
     }
 
     @Override
@@ -69,6 +80,7 @@ final class EntityTaskScheduler extends AbstractActor {
     }
 
     private void scheduleTask(final Task<?> task) {
+
         final ActorRef sender = sender();
         final CompletionStage<?> taskCs = taskCsPerEntityId.compute(task.entityId(), (entityId, previousTaskCS) -> {
             final CompletionStage<?> previous =
@@ -84,12 +96,10 @@ final class EntityTaskScheduler extends AbstractActor {
     }
 
     private void taskComplete(final TaskComplete taskComplete) {
+
         taskCsPerEntityId.compute(taskComplete.entityId(), (entityId, previousTaskCs) -> {
-            if (previousTaskCs == null) {
-                log.warning("PreviousTaskCs must never be null on task completion. We at least expect the cs for " +
-                        "the task which is completed by this message.");
-                return null;
-            } else if (previousTaskCs.toCompletableFuture().isDone()) {
+            if (previousTaskCs == null || previousTaskCs.toCompletableFuture().isDone()) {
+                // no pending task was existing or it was already done/deleted
                 return null;
             } else {
                 return previousTaskCs;
@@ -108,8 +118,9 @@ final class EntityTaskScheduler extends AbstractActor {
      * Completes after all previous tasks are completed as well.
      */
     private CompletionStage<?> scheduleTaskAfter(final CompletionStage<?> previousTaskCompletion, final Task<?> task) {
+
         return previousTaskCompletion
-                .exceptionally(error -> null) //future tasks should ignore failures of previous tasks
+                .exceptionally(error -> null) // future tasks should ignore failures of previous tasks
                 .thenCompose(lastResult -> task.taskRunner().get()
                         .whenComplete((result, error) ->
                                 self().tell(new TaskComplete(task.entityId()), ActorRef.noSender())));
