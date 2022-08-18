@@ -245,6 +245,7 @@ public final class AcknowledgementAggregatorActor extends AbstractActorWithTimer
                 .match(Acknowledgement.class, this::handleAcknowledgement)
                 .match(Acknowledgements.class, this::handleAcknowledgements)
                 .match(CommandResponse.class, this::handleCommandResponse)
+                .match(CommandTimeoutException.class, this::handleCommandTimeoutException)
                 .match(DittoRuntimeException.class, this::handleDittoRuntimeException)
                 .matchEquals(Control.WAITING_FOR_ACKS_TIMED_OUT, this::handleReceiveTimeout)
                 .matchAny(m -> log.warning("Received unexpected message: <{}>", m))
@@ -330,6 +331,15 @@ public final class AcknowledgementAggregatorActor extends AbstractActorWithTimer
         log.withCorrelationId(correlationId).debug("Received acknowledgements <{}>.", acknowledgements);
         acknowledgements.stream().forEach(ackregator::addReceivedAcknowledgment);
         potentiallyCompleteAcknowledgements(null);
+    }
+
+    private void handleCommandTimeoutException(final CommandTimeoutException commandTimeoutException) {
+        /*
+            When a command timeout exception is received, this indicates that the acknowledgements should no longer be
+            awaited. This is a rare case and can happen for example when the timeout for a live message hits before the
+            receive timeout does.
+        */
+        this.handleReceiveTimeout(Control.WAITING_FOR_ACKS_TIMED_OUT);
     }
 
     private void handleDittoRuntimeException(final DittoRuntimeException dittoRuntimeException) {

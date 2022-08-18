@@ -14,7 +14,6 @@
 package org.eclipse.ditto.things.service.persistence.actors;
 
 import java.time.Duration;
-import java.time.Instant;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.CompletionStage;
@@ -138,12 +137,9 @@ final class SupervisorLiveChannelDispatching {
             final ActorRef receiver,
             final UnaryOperator<Object> responseOrErrorConverter) {
 
-        final var startTime = Instant.now();
-        final var timeout = getAdjustedTimeout(thingQueryCommand, startTime);
-        final var signalWithAdjustedTimeout = adjustTimeout(thingQueryCommand, timeout);
+        final var timeout = calculateLiveChannelTimeout(thingQueryCommand.getDittoHeaders());
         final var pub = liveSignalPub.command();
-        final var publish =
-                pub.wrapForPublicationWithAcks(signalWithAdjustedTimeout, THING_COMMAND_ACK_EXTRACTOR);
+        final var publish = pub.wrapForPublicationWithAcks(thingQueryCommand, THING_COMMAND_ACK_EXTRACTOR);
 
         return new TargetActorWithMessage(
                 receiver,
@@ -290,17 +286,6 @@ final class SupervisorLiveChannelDispatching {
         final var props = LiveResponseAndAcknowledgementForwarder.props(thingQueryCommand, pub.getPublisher());
         // and start the actor using the provided actorRefFactory
         return actorRefFactory.actorOf(props);
-    }
-
-    private static Duration getAdjustedTimeout(final Signal<?> signal, final Instant startTime) {
-
-        final var baseTimeout = getLiveSignalTimeout(signal);
-        final var adjustedTimeout = baseTimeout.minus(Duration.between(startTime, Instant.now()));
-        return adjustedTimeout.minus(MIN_LIVE_TIMEOUT).isNegative() ? MIN_LIVE_TIMEOUT : adjustedTimeout;
-    }
-
-    static Duration getLiveSignalTimeout(final Signal<?> signal) {
-        return signal.getDittoHeaders().getTimeout().orElse(DEFAULT_LIVE_TIMEOUT);
     }
 
     private static ThingCommand<?> adjustTimeout(final ThingCommand<?> signal, final Duration adjustedTimeout) {
