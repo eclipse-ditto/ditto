@@ -20,7 +20,8 @@ import * as API from '../api.js';
 import * as Environments from '../environments/environments.js';
 
 let dom = {
-  connectionTemplateRadios: null,
+  ulConnectionTemplates: null,
+  inputConnectionTemplate: null,
   inputConnectionId: null,
   tbodyConnections: null,
   tbodyConnectionLogs: null,
@@ -37,6 +38,8 @@ let dom = {
   buttonResetConnectionMetrics: null,
   tabConnections: null,
   collapseConnections: null,
+  editorValidationConnection: null,
+  tableValidationConnections: null,
 };
 
 let connectionEditor;
@@ -46,6 +49,7 @@ let connectionLogDetail;
 let connectionStatusDetail;
 
 let theConnection;
+let selectedConnectionId;
 let connectionLogs;
 
 let connectionTemplates;
@@ -61,31 +65,38 @@ export function ready() {
   connectionLogDetail = Utils.createAceEditor('connectionLogDetail', 'ace/mode/json', true);
   connectionStatusDetail = Utils.createAceEditor('connectionStatusDetail', 'ace/mode/json', true);
 
+  Utils.addValidatorToTable(dom.tbodyConnections, dom.tableValidationConnections);
+
   loadConnectionTemplates();
 
   dom.buttonLoadConnections.onclick = loadConnections;
   dom.tabConnections.onclick = onTabActivated;
 
-  dom.buttonCreateConnection.onclick = () => {
+  dom.tbodyConnections.addEventListener('click', (event) => {
+    if (event.target && event.target.tagName === 'TD') {
+      if (selectedConnectionId === event.target.parentNode.id) {
+        selectedConnectionId = null;
+        setConnection(null);
+      } else {
+        selectedConnectionId = event.target.parentNode.id;
+        API.callConnectionsAPI('retrieveConnection', setConnection, selectedConnectionId);
+      }
+    }
+  });
+
+  dom.ulConnectionTemplates.addEventListener('click', (event) => {
+    dom.inputConnectionTemplate.value = event.target.textContent;
     const templateConnection = {};
     if (API.env() !== 'things') {
       templateConnection.id = Math.random().toString(36).replace('0.', '');
     }
     const newConnection = JSON.parse(JSON.stringify(
-        connectionTemplates[document.querySelector('input[name=connectionTemplate]:checked').value]));
+        connectionTemplates[dom.inputConnectionTemplate.value]));
 
     const mergedConnection = {...templateConnection, ...newConnection};
-    setConnection(mergedConnection);
-  };
-
-  dom.tbodyConnections.addEventListener('click', (event) => {
-    if (event.target && event.target.tagName === 'TD') {
-      API.callConnectionsAPI('retrieveConnection', setConnection, event.target.parentNode.id);
-    }
-  });
-
-  dom.tbodyConnectionLogs.addEventListener('click', (event) => {
-    connectionLogDetail.setValue(JSON.stringify(connectionLogs[event.target.parentNode.rowIndex - 1], null, 2), -1);
+    setConnection(mergedConnection, true);
+    dom.editorValidationConnection.classList.remove('is-invalid');
+    connectionEditor.session.getUndoManager().markClean();
   });
 
   incomingEditor.on('blur', function() {
@@ -102,54 +113,75 @@ export function ready() {
     theConnection = JSON.parse(connectionEditor.getValue());
   });
 
-  dom.buttonSaveConnection.onclick = () => {
-    if (dom.inputConnectionId.value) {
-      API.callConnectionsAPI('modifyConnection', loadConnections, dom.inputConnectionId.value, theConnection);
-    } else {
-      if (API.env() === 'things') {
-        delete theConnection.id;
-      }
-      API.callConnectionsAPI('createConnection', loadConnections, null, theConnection);
+  connectionEditor.on('input', () => {
+    if (!connectionEditor.session.getUndoManager().isClean()) {
+      dom.inputConnectionTemplate.value = null;
+      dom.editorValidationConnection.classList.remove('is-invalid');
     }
+  });
+
+  dom.buttonCreateConnection.onclick = () => {
+    Utils.assert(theConnection, 'Please enter a connection configuration (select   a template as a basis)', dom.editorValidationConnection);
+    if (API.env() === 'things') {
+      delete theConnection.id;
+    } else {
+      selectedConnectionId = theConnection.id;
+    }
+    API.callConnectionsAPI('createConnection', loadConnections, null, theConnection);
+  };
+
+  dom.buttonSaveConnection.onclick = () => {
+    Utils.assert(selectedConnectionId, 'Please select a connection', dom.tableValidationConnections);
+    API.callConnectionsAPI('modifyConnection', loadConnections, selectedConnectionId, theConnection);
   };
 
   dom.buttonDeleteConnection.onclick = () => {
-    Utils.assert(dom.inputConnectionId.value, 'Please select a connection');
+    Utils.assert(selectedConnectionId, 'Please select a connection', dom.tableValidationConnections);
     Utils.confirm(`Are you sure you want to delete connection<br>'${theConnection.name}'?`, 'Delete', () => {
       API.callConnectionsAPI('deleteConnection', () => {
         setConnection(null);
         loadConnections();
       },
-      dom.inputConnectionId.value);
+      selectedConnectionId);
     });
   };
 
+  // Status --------------
+
   dom.buttonRetrieveConnectionStatus.onclick = retrieveConnectionStatus;
   document.querySelector('a[data-bs-target="#tabConnectionStatus"]').onclick = retrieveConnectionStatus;
-  dom.buttonRetrieveConnectionMetrics.onclick = retrieveConnectionMetrics;
-  document.querySelector('a[data-bs-target="#tabConnectionMetrics"]').onclick = retrieveConnectionMetrics;
+
+  // Logs --------------
 
   dom.buttonEnableConnectionLogs.onclick = () => {
-    Utils.assert(dom.inputConnectionId.value, 'Please select a connection');
+    Utils.assert(selectedConnectionId, 'Please select a connection', dom.tableValidationConnections);
     API.callConnectionsAPI('connectionCommand', retrieveConnectionLogs, dom.inputConnectionId.value, null, 'connectivity.commands:enableConnectionLogs');
   };
 
   dom.buttonResetConnectionLogs.onclick = () => {
-    Utils.assert(dom.inputConnectionId.value, 'Please select a connection');
+    Utils.assert(selectedConnectionId, 'Please select a connection', dom.tableValidationConnections);
     API.callConnectionsAPI('connectionCommand', retrieveConnectionLogs, dom.inputConnectionId.value, null, 'connectivity.commands:resetConnectionLogs');
   };
 
   dom.buttonRetrieveConnectionLogs.onclick = retrieveConnectionLogs;
 
+  dom.tbodyConnectionLogs.addEventListener('click', (event) => {
+    connectionLogDetail.setValue(JSON.stringify(connectionLogs[event.target.parentNode.rowIndex - 1], null, 2), -1);
+  });
+
+  // Metrics ---------------
+
+  dom.buttonRetrieveConnectionMetrics.onclick = retrieveConnectionMetrics;
+  document.querySelector('a[data-bs-target="#tabConnectionMetrics"]').onclick = retrieveConnectionMetrics;
 
   dom.buttonResetConnectionMetrics.onclick = () => {
-    Utils.assert(dom.inputConnectionId.value, 'Please select a connection');
+    Utils.assert(selectedConnectionId, 'Please select a connection', dom.tableValidationConnections);
     API.callConnectionsAPI('connectionCommand', null, dom.inputConnectionId.value, null, 'connectivity.commands:resetConnectionMetrics');
   };
 }
 
 function retrieveConnectionMetrics() {
-  Utils.assert(dom.inputConnectionId.value, 'Please select a connection');
+  Utils.assert(selectedConnectionId, 'Please select a connection', dom.tableValidationConnections);
   dom.tbodyConnectionMetrics.innerHTML = '';
   API.callConnectionsAPI('retrieveConnectionMetrics', (response) => {
     if (response.connectionMetrics.outbound) {
@@ -164,7 +196,7 @@ function retrieveConnectionMetrics() {
 }
 
 function retrieveConnectionStatus() {
-  Utils.assert(dom.inputConnectionId.value, 'Please select a connection');
+  Utils.assert(selectedConnectionId, 'Please select a connection', dom.tableValidationConnections);
   API.callConnectionsAPI('retrieveStatus', (connectionStatus) => {
     connectionStatusDetail.setValue(JSON.stringify(connectionStatus, null, 2), -1);
   },
@@ -172,7 +204,7 @@ function retrieveConnectionStatus() {
 }
 
 function retrieveConnectionLogs() {
-  Utils.assert(dom.inputConnectionId.value, 'Please select a connection');
+  Utils.assert(selectedConnectionId, 'Please select a connection', dom.tableValidationConnections);
   dom.tbodyConnectionLogs.innerHTML = '';
   connectionLogDetail.setValue('');
   API.callConnectionsAPI('retrieveConnectionLogs', (response) => {
@@ -188,32 +220,34 @@ function retrieveConnectionLogs() {
   function adjustEnableButton(response) {
     if (response.enabledUntil) {
       dom.buttonEnableConnectionLogs.querySelector('i').classList.replace('bi-toggle-off', 'bi-toggle-on');
-      dom.buttonEnableConnectionLogs.querySelector('span').innerText = 'Enabled';
       dom.buttonEnableConnectionLogs.setAttribute('title', `Enabled until ${Utils.formatDate(response.enabledUntil)}`);
     } else {
       dom.buttonEnableConnectionLogs.querySelector('i').classList.replace('bi-toggle-on', 'bi-toggle-off');
-      dom.buttonEnableConnectionLogs.querySelector('span').innerText = 'Disabled';
       dom.buttonEnableConnectionLogs.setAttribute('title', 'Click to enable connection logs for the selected connection');
     }
   }
 }
 
-function setConnection(connection) {
+function setConnection(connection, isNewConnection) {
   theConnection = connection;
-  dom.inputConnectionId.value = (theConnection && theConnection.id) ? theConnection.id : null;
-  connectionEditor.setValue(theConnection ? JSON.stringify(theConnection, null, 2) : '', -1);
-  const withJavaScript = theConnection && theConnection.mappingDefinitions && theConnection.mappingDefinitions.javascript;
-  incomingEditor.setValue(withJavaScript ?
-    theConnection.mappingDefinitions.javascript.options.incomingScript :
-    '', -1);
-  outgoingEditor.setValue(withJavaScript ?
-    theConnection.mappingDefinitions.javascript.options.outgoingScript :
-    '', -1);
+  incomingEditor.setValue('');
+  outgoingEditor.setValue('');
+  if (theConnection) {
+    dom.inputConnectionId.value = theConnection.id ? theConnection.id : null;
+    connectionEditor.setValue(JSON.stringify(theConnection, null, 2), -1);
+    if (theConnection.mappingDefinitions && theConnection.mappingDefinitions.javascript) {
+      incomingEditor.setValue(theConnection.mappingDefinitions.javascript.options.incomingScript, -1);
+      outgoingEditor.setValue(theConnection.mappingDefinitions.javascript.options.outgoingScript, -1);
+    };
+  } else {
+    dom.inputConnectionId.value = null;
+    connectionEditor.setValue('');
+  }
   connectionStatusDetail.setValue('');
   connectionLogDetail.setValue('');
   dom.tbodyConnectionMetrics.innerHTML = '';
   dom.tbodyConnectionLogs.innerHTML = '';
-  if (theConnection && theConnection.id) {
+  if (!isNewConnection && theConnection && theConnection.id) {
     retrieveConnectionLogs();
   }
 }
@@ -239,12 +273,13 @@ function loadConnections() {
         row.insertCell(-1).innerHTML = status.recoveryStatus;
       },
       id);
-      if (theConnection && id === theConnection.id) {
+      if (id === selectedConnectionId) {
         row.classList.add('table-active');
         connectionSelected = true;
       }
     });
     if (!connectionSelected) {
+      selectedConnectionId = null;
       setConnection(null);
     }
   });
@@ -255,9 +290,7 @@ function loadConnectionTemplates() {
       .then((response) => {
         response.json().then((loadedTemplates) => {
           connectionTemplates = loadedTemplates;
-          Object.keys(connectionTemplates).forEach((templateName, i) => {
-            Utils.addRadioButton(dom.connectionTemplateRadios, 'connectionTemplate', templateName, i == 0);
-          });
+          Utils.addDropDownEntries(dom.ulConnectionTemplates, Object.keys(connectionTemplates));
         });
       });
 }
@@ -283,6 +316,7 @@ function initializeMappings(connection) {
   if (!connection['mappingDefinitions']) {
     connection.mappingDefinitions = {
       javascript: {
+        mappingEngine: 'JavaScript',
         options: {
           incomingScript: '',
           outgoingScript: '',

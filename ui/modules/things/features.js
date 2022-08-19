@@ -40,9 +40,10 @@ export function ready() {
   Utils.getAllElementsById(dom);
 
   dom.featuresTable.onclick = (event) => {
-    dom.theFeatureId.value = event.target.textContent;
-    // $('[href="#tabCrudFeature"]').tab('show');
-    refreshFeature(Things.theThing, dom.theFeatureId.value);
+    if (event.target && event.target.nodeName === 'TD') {
+      dom.theFeatureId.value = event.target.textContent;
+      refreshFeature(Things.theThing, dom.theFeatureId.value);
+    }
   };
 
   document.getElementById('createFeature').onclick = () => {

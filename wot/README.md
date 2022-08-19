@@ -3,7 +3,7 @@
 This module contains models and implementation of the W3C "Web of Things" (WoT) integration of Eclipse Ditto.
 
 As of version `2.4.0` of Ditto, this implementation follows the 
-[Web of Things (WoT) Thing Description 1.1 - W3C Working Draft 11 March 2022](https://www.w3.org/TR/2022/WD-wot-thing-description11-20220311/).
+[Web of Things (WoT) Thing Description 1.1](https://www.w3.org/TR/wot-thing-description11/).
 
 This module is separated in 2 submodules:
 * **model** (ditto-wot-model): contains a Java model of WoT (Web of Things) entities based on **ditto-json**.<br/>
