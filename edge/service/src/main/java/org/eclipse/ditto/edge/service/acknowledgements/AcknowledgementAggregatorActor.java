@@ -307,11 +307,16 @@ public final class AcknowledgementAggregatorActor<C extends Command<C>> extends 
         log.withCorrelationId(correlationId)
                 .info("Stopped waiting for acknowledgements because of ditto runtime exception <{}>.",
                         dittoRuntimeException);
-        final Acknowledgement acknowledgement = provideAcknowledgement(dittoRuntimeException);
-        ackregator.addReceivedAcknowledgment(acknowledgement);
-        completeAcknowledgements(null);
-        // abort on DittoRuntimeException
-        handleSignal(dittoRuntimeException);
+        final var aggregatedAcknowledgements =
+                ackregator.getAggregatedAcknowledgements(originatingSignal.getDittoHeaders());
+        final var builtInAcknowledgementOnly = containsOnlyTwinPersistedOrLiveResponse(aggregatedAcknowledgements);
+        if (builtInAcknowledgementOnly) {
+            handleSignal(dittoRuntimeException);
+        } else {
+            final Acknowledgement acknowledgement = provideAcknowledgement(dittoRuntimeException);
+            ackregator.addReceivedAcknowledgment(acknowledgement);
+            completeAcknowledgements(null);
+        }
         getContext().stop(getSelf());
     }
 
