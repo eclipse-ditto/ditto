@@ -26,6 +26,7 @@ import java.util.concurrent.ThreadLocalRandom;
 import org.eclipse.ditto.base.model.common.DittoDuration;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.base.model.signals.Signal;
@@ -47,7 +48,9 @@ import org.eclipse.ditto.policies.service.persistence.actors.strategies.commands
 import akka.NotUsed;
 import akka.actor.AbstractFSM;
 import akka.actor.ActorRef;
+import akka.actor.Address;
 import akka.actor.Props;
+import akka.cluster.Cluster;
 import akka.japi.pf.FSMStateFunctionBuilder;
 import scala.util.Random$;
 
@@ -86,6 +89,7 @@ public final class SubjectExpiryActor extends AbstractFSM<SubjectExpiryState, No
     private boolean deleted;
     private Instant deleteAt;
     private boolean acknowledged;
+    private final Address selfRemoteAddress;
 
     @SuppressWarnings("unused")
     private SubjectExpiryActor(final PolicyId policyId,
@@ -117,6 +121,7 @@ public final class SubjectExpiryActor extends AbstractFSM<SubjectExpiryState, No
         deleted = false;
         deleteAt = subject.getExpiry().map(SubjectExpiry::getTimestamp).orElseGet(Instant::now);
         acknowledged = false;
+        selfRemoteAddress = Cluster.get(getContext().systemImpl()).selfUniqueAddress().address();
     }
 
     /**
@@ -469,7 +474,14 @@ public final class SubjectExpiryActor extends AbstractFSM<SubjectExpiryState, No
                 .info("Publishing PolicyAnnouncement with ack requests: <{}>", announcement.getType());
         log.withCorrelationId(announcement)
                 .debug("Publishing PolicyAnnouncement with ack requests: <{}>", announcement);
-        policyAnnouncementPub.publishWithAcks(announcement, ACK_EXTRACTOR, aggregatorActor);
+
+        final String addressSerializationFormat = aggregatorActor.path()
+                .toSerializationFormatWithAddress(selfRemoteAddress);
+        final PolicyAnnouncement<?> adjustedSignal =
+                announcement.setDittoHeaders(announcement.getDittoHeaders().toBuilder()
+                        .putHeader(DittoHeaderDefinition.DITTO_ACKREGATOR_ADDRESS.getKey(), addressSerializationFormat)
+                        .build());
+        policyAnnouncementPub.publishWithAcks(adjustedSignal, ACK_EXTRACTOR, aggregatorActor);
 
         return false;
     }
