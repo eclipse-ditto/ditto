@@ -85,6 +85,7 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
     private final SupervisorSmartChannelDispatching smartChannelDispatching;
 
     private final PolicyEnforcerProvider policyEnforcerProvider;
+    private final ActorRef searchShardRegionProxy;
 
     @SuppressWarnings("unused")
     private ThingSupervisorActor(final ActorRef pubSubMediator,
@@ -136,6 +137,9 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
                 ThingsMessagingConstants.CLUSTER_ROLE,
                 ThingsMessagingConstants.SHARD_REGION
         );
+        // TODO
+        searchShardRegionProxy =
+                shardRegionProxyActorFactory.getShardRegionProxyActor("search", "search-wildcard-updater");
 
         try {
             inlinePolicyEnrichment = new SupervisorInlinePolicyEnrichment(getContext().getSystem(), log, getEntityId(),
@@ -302,13 +306,14 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
 
     @Override
     protected ThingId getEntityId() throws Exception {
-        return ThingId.of(URLDecoder.decode(getSelf().path().name(), StandardCharsets.UTF_8.name()));
+        return ThingId.of(URLDecoder.decode(getSelf().path().name(), StandardCharsets.UTF_8));
     }
 
     @Override
     protected Props getPersistenceActorProps(final ThingId entityId) {
         assert thingPersistenceActorPropsFactory != null;
-        return thingPersistenceActorPropsFactory.props(entityId, distributedPubThingEventsForTwin);
+        return thingPersistenceActorPropsFactory.props(entityId, distributedPubThingEventsForTwin,
+                searchShardRegionProxy);
     }
 
     @Override

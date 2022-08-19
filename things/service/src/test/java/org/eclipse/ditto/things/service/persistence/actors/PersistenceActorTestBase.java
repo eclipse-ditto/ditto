@@ -230,7 +230,7 @@ public abstract class PersistenceActorTestBase {
     }
 
     private Props getPropsOfThingPersistenceActor(final ThingId thingId, final DistributedPub<ThingEvent<?>> pub) {
-        return ThingPersistenceActor.props(thingId, pub);
+        return ThingPersistenceActor.props(thingId, pub, null);
     }
 
     protected ActorRef createSupervisorActorFor(final ThingId thingId) {
@@ -257,7 +257,7 @@ public abstract class PersistenceActorTestBase {
                             }
                         },
                         liveSignalPub,
-                        this::getPropsOfThingPersistenceActor,
+                        (thingId1, pub, searchShardRegionProxy) -> getPropsOfThingPersistenceActor(thingId1, pub),
                         null,
                         policyEnforcerProvider);
 

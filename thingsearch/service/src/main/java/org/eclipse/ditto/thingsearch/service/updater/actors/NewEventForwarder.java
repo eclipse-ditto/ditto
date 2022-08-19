@@ -115,19 +115,21 @@ final class NewEventForwarder extends AbstractActorWithTimers {
     }
 
     private void retrieveClusterShardingStats(final Clock rebalanceTick) {
-        shardRegion.tell(getClusterShardingStats, getSelf());
+        // TODO
+        // shardRegion.tell(getClusterShardingStats, getSelf());
     }
 
     private void updateSubscriptions(final ShardRegion.ClusterShardingStats stats) {
-        final Set<String> inactiveShardIds = shardRegionExtractor.getInactiveShardIds(getActiveShardIds(stats));
-        log.debug("Updating event subscriptions for inactive shards: <{}> -> <{}>", previousShardIds, inactiveShardIds);
-        final List<String> toSubscribe =
-                inactiveShardIds.stream().filter(s -> !previousShardIds.contains(s)).collect(Collectors.toList());
-        final List<String> toUnsubscribe =
-                previousShardIds.stream().filter(s -> !inactiveShardIds.contains(s)).collect(Collectors.toList());
-        thingEventSub.subscribeWithoutAck(toSubscribe, getSelf());
-        thingEventSub.unsubscribeWithoutAck(toUnsubscribe, getSelf());
-        previousShardIds = inactiveShardIds;
+        // TODO
+        // final Set<String> inactiveShardIds = shardRegionExtractor.getInactiveShardIds(getActiveShardIds(stats));
+        // log.debug("Updating event subscriptions for inactive shards: <{}> -> <{}>", previousShardIds, inactiveShardIds);
+        // final List<String> toSubscribe =
+        //         inactiveShardIds.stream().filter(s -> !previousShardIds.contains(s)).collect(Collectors.toList());
+        // final List<String> toUnsubscribe =
+        //         previousShardIds.stream().filter(s -> !inactiveShardIds.contains(s)).collect(Collectors.toList());
+        // thingEventSub.subscribeWithoutAck(toSubscribe, getSelf());
+        // thingEventSub.unsubscribeWithoutAck(toUnsubscribe, getSelf());
+        // previousShardIds = inactiveShardIds;
     }
 
     private void processThingEvent(final ThingEvent<?> thingEvent) {

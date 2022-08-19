@@ -48,6 +48,7 @@ import org.eclipse.ditto.things.service.common.config.ThingConfig;
 import org.eclipse.ditto.things.service.persistence.actors.strategies.commands.ThingCommandStrategies;
 import org.eclipse.ditto.things.service.persistence.actors.strategies.events.ThingEventStrategies;
 
+import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.japi.pf.ReceiveBuilder;
 import akka.persistence.RecoveryCompleted;
@@ -78,10 +79,12 @@ public final class ThingPersistenceActor
 
     private final ThingConfig thingConfig;
     private final DistributedPub<ThingEvent<?>> distributedPub;
+    @Nullable private final ActorRef searchShardRegionProxy;
 
     @SuppressWarnings("unused")
     private ThingPersistenceActor(final ThingId thingId,
-            final DistributedPub<ThingEvent<?>> distributedPub) {
+            final DistributedPub<ThingEvent<?>> distributedPub,
+            @Nullable final ActorRef searchShardRegionProxy) {
 
         super(thingId);
         final DittoThingsConfig thingsConfig = DittoThingsConfig.of(
@@ -89,6 +92,7 @@ public final class ThingPersistenceActor
         );
         thingConfig = thingsConfig.getThingConfig();
         this.distributedPub = distributedPub;
+        this.searchShardRegionProxy = searchShardRegionProxy;
     }
 
     /**
@@ -99,9 +103,10 @@ public final class ThingPersistenceActor
      * @return the Akka configuration Props object
      */
     public static Props props(final ThingId thingId,
-            final DistributedPub<ThingEvent<?>> distributedPub) {
+            final DistributedPub<ThingEvent<?>> distributedPub,
+            @Nullable final ActorRef searchShardRegionProxy) {
 
-        return Props.create(ThingPersistenceActor.class, thingId, distributedPub);
+        return Props.create(ThingPersistenceActor.class, thingId, distributedPub, searchShardRegionProxy);
     }
 
     @Override
@@ -200,6 +205,9 @@ public final class ThingPersistenceActor
     @Override
     protected void publishEvent(@Nullable final Thing previousEntity, final ThingEvent<?> event) {
         distributedPub.publishWithAcks(event, ACK_EXTRACTOR, getSelf());
+        if (searchShardRegionProxy != null) {
+            searchShardRegionProxy.tell(event, getSelf());
+        }
     }
 
     @Override
