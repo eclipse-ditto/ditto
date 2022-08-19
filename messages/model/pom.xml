@@ -134,6 +134,7 @@
                             <exclude>org.eclipse.ditto.messages.model.signals.commands.MessageCommandSizeValidator#DITTO_LIMITS_MESSAGES_MAX_SIZE_BYTES</exclude>
                             <exclude>org.eclipse.ditto.messages.model.signals.commands.MessageCommandResponse#getEntityId()</exclude>
                             <exclude>org.eclipse.ditto.messages.model.MessageTimeoutException</exclude>
+                            <exclude>org.eclipse.ditto.messages.model.signals.commands.acks.MessageCommandAckRequestSetter</exclude>
                         </excludes>
                     </parameter>
                 </configuration>
