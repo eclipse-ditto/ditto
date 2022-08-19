@@ -150,9 +150,10 @@ export function addDropDownEntries(target, items, isHeader) {
  * @param {HTMLElement} tabContentsNode root node for the tab contents
  * @param {String} title name of the new tab
  * @param {String} contentHTML tab content for the new tab
+ * @return {String} id of the tabpane content node
  */
 export function addTab(tabItemsNode, tabContentsNode, title, contentHTML) {
-  const id = 'tab' + title.replace(/\s/g, '');
+  const id = 'tab' + Math.random().toString(36).replace('0.', '');
 
   const li = document.createElement('li');
   li.classList.add('nav-item');
@@ -163,6 +164,8 @@ export function addTab(tabItemsNode, tabContentsNode, title, contentHTML) {
   template.innerHTML = contentHTML;
   template.content.firstElementChild.id = id;
   tabContentsNode.appendChild(template.content.firstElementChild);
+
+  return id;
 }
 
 /**

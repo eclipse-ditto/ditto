@@ -93,8 +93,6 @@ function onEnvironmentChanged() {
     Environments.current().pinnedThings = [];
   }
   updateFilterList();
-
-  dom.searchFilterEdit.focus();
 }
 
 /**
