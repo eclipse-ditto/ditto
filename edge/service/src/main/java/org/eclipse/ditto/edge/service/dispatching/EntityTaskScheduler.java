@@ -89,10 +89,12 @@ final class EntityTaskScheduler extends AbstractActor {
         });
         scheduledTasks.increment();
 
-        taskCs.whenComplete((result, error) -> {
-            final TaskResult<?> taskResult = new TaskResult<>(result, error);
-            sender.tell(taskResult, ActorRef.noSender());
-        });
+        if (sender != null && sender != getContext().system().deadLetters()) {
+            taskCs.whenComplete((result, error) -> {
+                final TaskResult<?> taskResult = new TaskResult<>(result, error);
+                sender.tell(taskResult, ActorRef.noSender());
+            });
+        }
     }
 
     private void taskComplete(final TaskComplete taskComplete) {
