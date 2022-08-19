@@ -32,7 +32,6 @@ import org.eclipse.ditto.base.model.headers.translator.HeaderTranslator;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgements;
-import org.eclipse.ditto.internal.models.acks.AcknowledgementAggregatorActorStarter;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.pubsub.DistributedPub;
@@ -74,7 +73,7 @@ public final class SubjectExpiryActor extends AbstractFSM<SubjectExpiryState, No
     private final Subject subject;
     private final Duration gracePeriod;
     private final DistributedPub<PolicyAnnouncement<?>> policyAnnouncementPub;
-    private final AcknowledgementAggregatorActorStarter ackregatorStarter;
+//    private final AcknowledgementAggregatorActorStarter ackregatorStarter;
     private final SudoDeleteExpiredSubject sudoDeleteExpiredSubject;
     private final Duration persistenceTimeout;
     private final ActorRef commandForwarder;
@@ -106,9 +105,9 @@ public final class SubjectExpiryActor extends AbstractFSM<SubjectExpiryState, No
         enableAnnouncementsWhenDeleted = config.isEnableAnnouncementsWhenDeleted();
         defaultRandomizationInterval = config.getDefaultRandomizationInterval();
 
-        ackregatorStarter =
-                AcknowledgementAggregatorActorStarter.of(getContext(), maxTimeout, HeaderTranslator.empty(),
-                        null, List.of(), List.of());
+//        ackregatorStarter =
+//                AcknowledgementAggregatorActorStarter.of(getContext(), maxTimeout, HeaderTranslator.empty(),
+//                        null, List.of(), List.of());
         this.commandForwarder = commandForwarder;
         sudoDeleteExpiredSubject =
                 SudoDeleteExpiredSubject.of(policyId, subject,
@@ -457,12 +456,13 @@ public final class SubjectExpiryActor extends AbstractFSM<SubjectExpiryState, No
     }
 
     private boolean startAckregator(final PolicyAnnouncement<?> announcement) {
-        return ackregatorStarter.start(announcement,
-                null,
-                this::onAggregatedResponseOrError,
-                this::handleSignalWithAckregator,
-                this::handleSignalWithoutAckregator
-        );
+        return false;
+//        return ackregatorStarter.start(announcement,
+//                null,
+//                this::onAggregatedResponseOrError,
+//                this::handleSignalWithAckregator,
+//                this::handleSignalWithoutAckregator
+//        );
     }
 
     private boolean onAggregatedResponseOrError(final Object responseOrError) {
