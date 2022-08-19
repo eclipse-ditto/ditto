@@ -216,6 +216,7 @@ public final class AcknowledgementAggregatorActor<C extends Command<C>> extends 
                 .match(Acknowledgement.class, this::handleAcknowledgement)
                 .match(Acknowledgements.class, this::handleAcknowledgements)
                 .match(CommandResponse.class, this::handleCommandResponse)
+                .match(CommandTimeoutException.class, this::handleCommandTimeoutException)
                 .match(DittoRuntimeException.class, this::handleDittoRuntimeException)
                 .matchEquals(Control.WAITING_FOR_ACKS_TIMED_OUT, this::handleReceiveTimeout)
                 .matchAny(m -> log.warning("Received unexpected message: <{}>", m))
@@ -307,17 +308,24 @@ public final class AcknowledgementAggregatorActor<C extends Command<C>> extends 
         log.withCorrelationId(correlationId)
                 .info("Stopped waiting for acknowledgements because of ditto runtime exception <{}>.",
                         dittoRuntimeException);
+        handleSignal(dittoRuntimeException);
+        getContext().stop(getSelf());
+    }
+
+    private void handleCommandTimeoutException(final CommandTimeoutException commandTimeoutException) {
+        log.withCorrelationId(correlationId)
+                .info("Stopped waiting for acknowledgements because of command timeout exception <{}>.",
+                        commandTimeoutException);
         final var aggregatedAcknowledgements =
                 ackregator.getAggregatedAcknowledgements(originatingSignal.getDittoHeaders());
         final var builtInAcknowledgementOnly = containsOnlyTwinPersistedOrLiveResponse(aggregatedAcknowledgements);
+
         if (builtInAcknowledgementOnly) {
-            handleSignal(dittoRuntimeException);
+            handleSignal(commandTimeoutException);
+            getContext().stop(getSelf());
         } else {
-            final Acknowledgement acknowledgement = provideAcknowledgement(dittoRuntimeException);
-            ackregator.addReceivedAcknowledgment(acknowledgement);
-            completeAcknowledgements(null);
+            handleReceiveTimeout(Control.WAITING_FOR_ACKS_TIMED_OUT);
         }
-        getContext().stop(getSelf());
     }
 
     private Acknowledgement provideAcknowledgement(final CommandResponse<?> commandResponse) {
@@ -331,10 +339,6 @@ public final class AcknowledgementAggregatorActor<C extends Command<C>> extends 
             throw DittoInternalErrorException.newBuilder().dittoHeaders(originatingSignal.getDittoHeaders())
                     .build();
         }
-    }
-
-    private Acknowledgement provideAcknowledgement(final DittoRuntimeException dittoRuntimeException) {
-        return acknowledgementProvider.provideAcknowledgement(originatingSignal, dittoRuntimeException);
     }
 
     private void potentiallyCompleteAcknowledgements(@Nullable final CommandResponse<?> response) {

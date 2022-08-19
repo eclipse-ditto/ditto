@@ -14,7 +14,6 @@ package org.eclipse.ditto.base.model.acks;
 
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
@@ -36,16 +35,6 @@ public interface CommandResponseAcknowledgementProvider<C extends Command<?>> {
      * @return the created Acknowledgement.
      */
     Acknowledgement provideAcknowledgement(C originatingSignal, CommandResponse<?> commandResponse);
-
-    /**
-     * Provides an {@link Acknowledgement} based on the provided {@code originatingSignal} and
-     * {@code dittoRuntimeException}.
-     *
-     * @param originatingSignal the Signal which caused the passed in {@code commandResponse}.
-     * @param dittoRuntimeException the ditto runtime exception which was caused by the originating signal.
-     * @return the created Acknowledgement.
-     */
-    Acknowledgement provideAcknowledgement(C originatingSignal, DittoRuntimeException dittoRuntimeException);
 
     /**
      * Checks if the passed {@code commandResponse} is applicable by this provider to provide Acknowledgements for.

@@ -20,7 +20,6 @@ import java.util.Optional;
 import org.eclipse.ditto.base.model.acks.AcknowledgementLabel;
 import org.eclipse.ditto.base.model.acks.CommandResponseAcknowledgementProvider;
 import org.eclipse.ditto.base.model.exceptions.DittoInternalErrorException;
-import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.WithOptionalEntity;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
@@ -70,17 +69,6 @@ public final class ThingCommandResponseAcknowledgementProvider
                             "method."))
                     .build();
         }
-    }
-
-    @Override
-    public Acknowledgement provideAcknowledgement(final ThingCommand<?> originatingSignal,
-            final DittoRuntimeException dittoRuntimeException) {
-        final AcknowledgementLabel acknowledgementLabel = getAckLabelOfResponse(originatingSignal);
-        return ThingAcknowledgementFactory.newAcknowledgement(acknowledgementLabel,
-                originatingSignal.getEntityId(),
-                dittoRuntimeException.getHttpStatus(),
-                dittoRuntimeException.getDittoHeaders(),
-                JsonValue.of(dittoRuntimeException.getMessage()));
     }
 
     @Override
