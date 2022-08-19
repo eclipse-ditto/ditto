@@ -12,16 +12,11 @@
  */
 package org.eclipse.ditto.edge.service.dispatching;
 
-import java.time.Duration;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
-import java.util.function.Supplier;
 
-import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.base.model.entity.id.WithEntityId;
 import org.eclipse.ditto.base.model.exceptions.DittoInternalErrorException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
-import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
@@ -57,7 +52,6 @@ import akka.actor.ActorSystem;
 import akka.actor.Props;
 import akka.cluster.pubsub.DistributedPubSubMediator;
 import akka.japi.pf.ReceiveBuilder;
-import akka.pattern.Patterns;
 
 /**
  * Actor which acts as a client used at the Ditto edges (gateway and connectivity) in order to forward messages
@@ -71,8 +65,6 @@ public class EdgeCommandForwarderActor extends AbstractActor {
      */
     public static final String ACTOR_NAME = "edgeCommandForwarder";
 
-    private static final Duration FALLBACK_LOCAL_ASK_TIMEOUT = Duration.ofSeconds(60);
-
     private final DittoDiagnosticLoggingAdapter log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
 
     private final ActorRef pubSubMediator;
@@ -80,8 +72,6 @@ public class EdgeCommandForwarderActor extends AbstractActor {
     private final SignalTransformer signalTransformer;
     private final AskWithRetryCommandForwarder askWithRetryCommandForwarder;
     private final ActorRef aggregatorProxyActor;
-
-    private final ActorRef taskScheduler;
 
     @SuppressWarnings("unused")
     private EdgeCommandForwarderActor(final ActorRef pubSubMediator, final ShardRegions shardRegions) {
@@ -97,8 +87,6 @@ public class EdgeCommandForwarderActor extends AbstractActor {
         askWithRetryCommandForwarder = AskWithRetryCommandForwarder.get(actorSystem);
         aggregatorProxyActor = getContext().actorOf(ThingsAggregatorProxyActor.props(pubSubMediator),
                 ThingsAggregatorProxyActor.ACTOR_NAME);
-        taskScheduler =
-                getContext().actorOf(EntityTaskScheduler.props(ACTOR_NAME), EntityTaskScheduler.ACTOR_NAME);
     }
 
     /**
@@ -163,53 +151,25 @@ public class EdgeCommandForwarderActor extends AbstractActor {
 
     private void forwardToThings(final Signal<?> thingSignal) {
         final ActorRef sender = getSender();
-        final CompletionStage<Signal<?>> signalTransformationCs = applySignalTransformation(thingSignal, sender);
+        applySignalTransformation(thingSignal, sender)
+                .thenAccept(transformed -> {
+                    log.withCorrelationId(transformed)
+                            .info("Forwarding thing signal with ID <{}> and type <{}> to 'things' shard region",
+                                    transformed instanceof WithEntityId withEntityId ? withEntityId.getEntityId() :
+                                            null,
+                                    transformed.getType());
 
-        scheduleTask(thingSignal, () -> signalTransformationCs.thenAccept(transformed -> {
-            log.withCorrelationId(transformed)
-                    .info("Forwarding thing signal with ID <{}> and type <{}> to 'things' shard region",
-                            transformed instanceof WithEntityId withEntityId ? withEntityId.getEntityId() :
-                                    null,
-                            transformed.getType());
-
-            if (!Signal.isChannelLive(transformed) &&
-                    !Signal.isChannelSmart(transformed) &&
-                    transformed instanceof Command<?> command &&
-                    isIdempotent(command)) {
-                askWithRetryCommandForwarder.forwardCommand(command,
-                        shardRegions.things(),
-                        sender);
-            } else {
-                shardRegions.things().tell(transformed, sender);
-            }
-        }));
-    }
-
-    private void scheduleTask(final Signal<?> signal,
-            final Supplier<CompletionStage<Void>> signalTransformationCsSupplier) {
-
-        if (signal instanceof WithEntityId withEntityId) {
-            final EntityId entityId = withEntityId.getEntityId();
-            log.withCorrelationId(signal)
-                    .debug("Scheduling signal transformation task for entityId <{}>", entityId);
-            scheduleTaskForEntity(
-                    new EntityTaskScheduler.Task<>(entityId, signalTransformationCsSupplier),
-                    signal.getDittoHeaders()
-            ).whenComplete((aVoid, throwable) ->
-                    log.withCorrelationId(signal)
-                            .debug("Scheduled task for entityId <{}> completed successfully: <{}>",
-                                    entityId, throwable == null)
-            );
-        } else {
-            log.withCorrelationId(signal)
-                    .debug("Scheduling signal transformation task without entity");
-            signalTransformationCsSupplier.get()
-                    .whenComplete((aVoid, throwable) ->
-                            log.withCorrelationId(signal)
-                                    .debug("Scheduled task without entityId completed successfully: <{}>",
-                                            throwable == null)
-                    );
-        }
+                    if (!Signal.isChannelLive(transformed) &&
+                            !Signal.isChannelSmart(transformed) &&
+                            transformed instanceof Command<?> command &&
+                            isIdempotent(command)) {
+                        askWithRetryCommandForwarder.forwardCommand(command,
+                                shardRegions.things(),
+                                sender);
+                    } else {
+                        shardRegions.things().tell(transformed, sender);
+                    }
+                });
     }
 
     private CompletionStage<Signal<?>> applySignalTransformation(final Signal<?> signal, final ActorRef sender) {
@@ -226,41 +186,15 @@ public class EdgeCommandForwarderActor extends AbstractActor {
                 });
     }
 
-    private CompletionStage<Void> scheduleTaskForEntity(final EntityTaskScheduler.Task<Void> task,
-            final DittoHeaders dittoHeaders) {
-
-        return Patterns.ask(taskScheduler, task, dittoHeaders.getTimeout().orElse(FALLBACK_LOCAL_ASK_TIMEOUT))
-                .thenApply(result -> {
-                    if (result instanceof EntityTaskScheduler.TaskResult<?> taskResult) {
-                        return taskResult;
-                    } else {
-                        log.withCorrelationId(dittoHeaders)
-                                .error("Did not receive expected TaskResult from TaskScheduler, was: <{}>", result);
-                        throw DittoInternalErrorException.newBuilder()
-                                .dittoHeaders(dittoHeaders)
-                                .build();
-                    }
-                })
-                .thenCompose(taskResult -> {
-                    if (taskResult.error() != null) {
-                        return CompletableFuture.failedStage(taskResult.error());
-                    } else {
-                        return CompletableFuture.completedStage(null);
-                    }
-                });
-    }
-
     private void forwardToThingsAggregatorProxy(final Command<?> command) {
         final ActorRef sender = getSender();
-        final CompletionStage<Signal<?>> signalTransformationCs = applySignalTransformation(command, sender);
-        scheduleTask(command,
-                () -> signalTransformationCs.thenAccept(transformed -> aggregatorProxyActor.tell(transformed, sender)));
+        applySignalTransformation(command, sender)
+                .thenAccept(transformed -> aggregatorProxyActor.tell(transformed, sender));
     }
 
     private void forwardToPolicies(final PolicyCommand<?> policyCommand) {
         final ActorRef sender = getSender();
-        final CompletionStage<Signal<?>> signalTransformationCs = applySignalTransformation(policyCommand, sender);
-        scheduleTask(policyCommand, () -> signalTransformationCs
+        applySignalTransformation(policyCommand, sender)
                 .thenAccept(transformed -> {
                     final PolicyCommand<?> transformedPolicyCommand = (PolicyCommand<?>) transformed;
                     log.withCorrelationId(transformedPolicyCommand)
@@ -274,14 +208,14 @@ public class EdgeCommandForwarderActor extends AbstractActor {
                     } else {
                         shardRegions.policies().tell(transformedPolicyCommand, sender);
                     }
-                }));
+                });
+
     }
 
     private void forwardToConnectivity(final Command<?> connectivityCommand) {
         if (connectivityCommand instanceof WithEntityId withEntityId) {
             final ActorRef sender = getSender();
-            final var signalTransformationCs = applySignalTransformation(connectivityCommand, sender);
-            scheduleTask(connectivityCommand, () -> signalTransformationCs
+            applySignalTransformation(connectivityCommand, sender)
                     .thenAccept(transformed -> {
                         final Command<?> transformedConnectivityCommand = (Command<?>) transformed;
                         log.withCorrelationId(transformedConnectivityCommand)
@@ -291,7 +225,7 @@ public class EdgeCommandForwarderActor extends AbstractActor {
 
                         // don't retry connectivity commands
                         shardRegions.connections().tell(transformedConnectivityCommand, sender);
-                    }));
+                    });
         } else {
             log.withCorrelationId(connectivityCommand)
                     .error("Could not forward ConnectivityCommand not implementing WithEntityId to 'connections' " +

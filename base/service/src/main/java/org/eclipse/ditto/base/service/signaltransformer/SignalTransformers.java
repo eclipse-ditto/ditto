@@ -20,11 +20,11 @@ import java.util.concurrent.CompletionStage;
 import java.util.stream.Collectors;
 
 import org.eclipse.ditto.base.model.signals.Signal;
-import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
-import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLogger;
 import org.eclipse.ditto.internal.utils.extension.DittoExtensionIds;
 import org.eclipse.ditto.internal.utils.extension.DittoExtensionPoint;
 import org.eclipse.ditto.internal.utils.extension.DittoExtensionPoint.ExtensionId.ExtensionIdConfig;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigValue;
@@ -33,7 +33,7 @@ import akka.actor.ActorSystem;
 
 public final class SignalTransformers implements DittoExtensionPoint, SignalTransformer {
 
-    private static final ThreadSafeDittoLogger LOGGER = DittoLoggerFactory.getThreadSafeLogger(SignalTransformers.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(SignalTransformers.class);
     private static final String SIGNAL_TRANSFORMERS = "signal-transformers";
     private final List<SignalTransformer> transformers;
 
@@ -63,11 +63,9 @@ public final class SignalTransformers implements DittoExtensionPoint, SignalTran
         }
         return prior.whenComplete((result, error) -> {
             if (error != null) {
-                LOGGER.withCorrelationId(signal)
-                        .debug("Error happened during signal transforming.", error);
+                LOGGER.debug("Error happened during signal transforming.", error);
             } else {
-                LOGGER.withCorrelationId(signal)
-                        .debug("Signal transforming of <{}> resulted in <{}>.", signal, result);
+                LOGGER.debug("Signal transforming of <{}> resulted in <{}>.", signal, result);
             }
         });
     }
