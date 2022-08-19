@@ -48,6 +48,7 @@ import akka.japi.pf.ReceiveBuilder;
 abstract class AbstractSubscriber<T extends SignalWithEntityId<?>> extends AbstractActorWithTimers {
 
     final DittoDiagnosticLoggingAdapter logger = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
+
     final Class<T> messageClass;
     final PubSubTopicExtractor<T> topicExtractor;
     final AckExtractor<T> ackExtractor;
