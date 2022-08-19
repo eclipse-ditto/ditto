@@ -39,6 +39,7 @@ import org.eclipse.ditto.base.model.signals.acks.Acknowledgements;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
 import org.eclipse.ditto.base.model.signals.commands.exceptions.CommandTimeoutException;
+import org.eclipse.ditto.base.service.acknowledgements.AcknowledgementAggregator;
 import org.eclipse.ditto.internal.models.signal.CommandHeaderRestoration;
 import org.eclipse.ditto.internal.models.signal.correlation.CommandAndCommandResponseMatchingValidator;
 import org.eclipse.ditto.internal.models.signal.correlation.MatchingValidationResult;
@@ -50,7 +51,7 @@ import akka.actor.Props;
 
 /**
  * Actor which is created for an {@code ThingModifyCommand} containing {@code AcknowledgementRequests} responsible for
- * building an {@link AcknowledgementAggregator}, e.g. timing it out when not all requested acknowledgements were
+ * building an {@link org.eclipse.ditto.base.service.acknowledgements.AcknowledgementAggregator}, e.g. timing it out when not all requested acknowledgements were
  * received after the {@code timeout} contained in the passed thing modify command.
  *
  * @since 1.1.0

@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.edge.service.acknowledgements;
+package org.eclipse.ditto.base.service.acknowledgements;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
@@ -27,24 +27,25 @@ import org.eclipse.ditto.base.model.acks.AcknowledgementLabel;
 import org.eclipse.ditto.base.model.acks.AcknowledgementRequest;
 import org.eclipse.ditto.base.model.acks.DittoAcknowledgementLabel;
 import org.eclipse.ditto.base.model.common.HttpStatus;
+import org.eclipse.ditto.base.model.entity.id.EntityId;
+import org.eclipse.ditto.base.model.entity.type.EntityType;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.translator.HeaderTranslator;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
 import org.eclipse.ditto.base.model.signals.acks.AcknowledgementRequestTimeoutException;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgements;
-import org.eclipse.ditto.things.model.ThingId;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
 
 /**
- * Unit test for {@link AcknowledgementAggregator}.
+ * Unit test for {@link org.eclipse.ditto.base.service.acknowledgements.AcknowledgementAggregator}.
  */
 public final class AcknowledgementAggregatorTest {
 
-    private static final ThingId ENTITY_ID = ThingId.generateRandom();
+    private static final EntityId ENTITY_ID = randomEntityId();
     private static final Duration TIMEOUT = Duration.ofMillis(1337);
     private static final HeaderTranslator HEADER_TRANSLATOR = HeaderTranslator.empty();
 
@@ -146,7 +147,7 @@ public final class AcknowledgementAggregatorTest {
     @Test
     public void onlyRegardFirstReceivedAcknowledgementForSameLabel() {
         final AcknowledgementLabel ackLabel = DittoAcknowledgementLabel.TWIN_PERSISTED;
-        final ThingId entityId = ThingId.generateRandom();
+        final EntityId entityId = randomEntityId();
         final DittoHeaders dittoHeaders = DittoHeaders.newBuilder().correlationId(testName.getMethodName()).build();
         final Acknowledgement failedAcknowledgement =
                 Acknowledgement.of(ackLabel, entityId, HttpStatus.UNAUTHORIZED, dittoHeaders);
@@ -369,6 +370,10 @@ public final class AcknowledgementAggregatorTest {
             result.add(Acknowledgement.of(ackLabel, ENTITY_ID, httpStatus, dittoHeaders));
         }
         return result;
+    }
+
+    private static EntityId randomEntityId() {
+        return EntityId.of(EntityType.of("foo"), UUID.randomUUID().toString());
     }
 
 }
