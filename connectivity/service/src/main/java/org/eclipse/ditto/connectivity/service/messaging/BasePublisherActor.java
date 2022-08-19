@@ -210,8 +210,9 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
 
         final ThreadSafeDittoLoggingAdapter l = logger.withCorrelationId(multiMapped.getSource());
         if (!ackList.isEmpty()) {
+            final DittoHeaders sourceSignalHeaders = multiMapped.getSource().getDittoHeaders();
             final Acknowledgements aggregatedAcks = appendConnectionId(
-                    Acknowledgements.of(ackList, multiMapped.getSource().getDittoHeaders()));
+                    Acknowledgements.of(ackList, sourceSignalHeaders));
 
             final String ackregatorAddress = aggregatedAcks.getDittoHeaders()
                     .get(DittoHeaderDefinition.DITTO_ACKREGATOR_ADDRESS.getKey());
@@ -219,9 +220,15 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
                 final ActorSelection acknowledgementRequester = getContext().actorSelection(ackregatorAddress);
                 l.debug("Message sent. Replying to <{}>: <{}>", acknowledgementRequester, aggregatedAcks);
                 acknowledgementRequester.tell(aggregatedAcks, ActorRef.noSender());
+            } else if (sourceSignalHeaders.getAcknowledgementRequests().isEmpty()) {
+                l.info("Aggregated Acknowledgements did not contain header of acknowledgement aggregator, but " +
+                        "ignoring ackList to issue as the source signal did not request any ACKs in its " +
+                        "headers: <{}> - source signal headers: <{}>", aggregatedAcks, sourceSignalHeaders);
             } else {
+                // only log the error if the originating signal even did request acks in the first place
+                // the ackList could be a result of an error automatically converted to a negative ACK
                 l.error("Aggregated Acknowledgements did not contain header of acknowledgement aggregator " +
-                        "address: {}", aggregatedAcks.getDittoHeaders());
+                        "address: <{}> - source signal headers: {}", aggregatedAcks, sourceSignalHeaders);
             }
         } else {
             l.debug("Message sent: No acks requested.");
