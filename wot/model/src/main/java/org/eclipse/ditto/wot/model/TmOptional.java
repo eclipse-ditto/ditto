@@ -23,28 +23,28 @@ import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonValue;
 
 /**
- * TmRequired holds which parts in a {@link ThingModel} are mandatory to be implemented in a {@link ThingDescription}
+ * TmOptional holds which parts in a {@link ThingModel} are optionally implemented in a {@link ThingDescription}
  * derived from the Thing Model.
  *
- * @see <a href="https://w3c.github.io/wot-thing-description/#thing-model-td-required">WoT TD Thing Model Required</a>
- * @since 2.4.0
+ * @see <a href="https://www.w3.org/TR/wot-thing-description11/#thing-model-td-required">WoT TD Thing Model Optional</a>
+ * @since 3.0.0
  */
-public interface TmRequired extends Iterable<TmRequiredElement>, Jsonifiable<JsonArray> {
+public interface TmOptional extends Iterable<TmOptionalElement>, Jsonifiable<JsonArray> {
 
-    static TmRequired fromJson(final JsonArray jsonArray) {
-        final List<TmRequiredElement> requiredElements = jsonArray.stream()
+    static TmOptional fromJson(final JsonArray jsonArray) {
+        final List<TmOptionalElement> optionalElements = jsonArray.stream()
                 .filter(JsonValue::isString)
                 .map(JsonValue::asString)
-                .map(TmRequiredElement::of)
+                .map(TmOptionalElement::of)
                 .collect(Collectors.toList());
-        return of(requiredElements);
+        return of(optionalElements);
     }
 
-    static TmRequired of(final Collection<TmRequiredElement> requiredElements) {
-        return new ImmutableTmRequired(requiredElements);
+    static TmOptional of(final Collection<TmOptionalElement> optionalElements) {
+        return new ImmutableTmOptional(optionalElements);
     }
 
-    default Stream<TmRequiredElement> stream() {
+    default Stream<TmOptionalElement> stream() {
         return StreamSupport.stream(spliterator(), false);
     }
 }

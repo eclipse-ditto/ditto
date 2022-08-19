@@ -34,7 +34,7 @@ export function ready() {
     Environments.current().useBasicAuth = false;
     Environments.current().useDittoPreAuthenticatedAuth = false;
     Environments.current().bearer = dom.bearer.value;
-    Environments.environmentsJsonChanged();
+    Environments.environmentsJsonChanged('authorization');
   };
 
   document.getElementById('authorizeBasic').onclick = () => {
@@ -42,7 +42,7 @@ export function ready() {
     Environments.current().useDittoPreAuthenticatedAuth = false;
     Environments.current().usernamePassword = dom.userName.value + ':' + dom.password.value;
     Environments.current().usernamePasswordDevOps = dom.devOpsUserName.value + ':' + dom.devOpsPassword.value;
-    Environments.environmentsJsonChanged();
+    Environments.environmentsJsonChanged('authorization');
   };
 
   document.getElementById('authorizePreAuthenticated').onclick = () => {

@@ -75,8 +75,8 @@ This can be ensured e.g. before sending a property to Ditto or before sending a 
 ### The link to W3C WoT (Web of Things)
 
 If a [feature definition](#feature-definition) has the form of an HTTP(s) URL, this URL pointing to a resource may be
-interpreted as the link to a [W3C WoT (Web of Things)](https://www.w3.org/TR/2022/WD-wot-thing-description11-20220311/) 
-[Thing Model](https://www.w3.org/TR/2022/WD-wot-thing-description11-20220311/#thing-model) in [JSON-LD](https://www.w3.org/TR/json-ld11/) 
+interpreted as the link to a [W3C WoT (Web of Things)](https://www.w3.org/TR/wot-thing-description11/) 
+[Thing Model](https://www.w3.org/TR/wot-thing-description11/#thing-model) in [JSON-LD](https://www.w3.org/TR/json-ld11/) 
 format.
 
 For a detailed explanation how WoT and its concepts link to Ditto, please consult the 

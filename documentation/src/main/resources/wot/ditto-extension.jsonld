@@ -1,0 +1,47 @@
+{
+  "@context": {
+    "ditto": "https://ditto.eclipseprojects.io/wot/ditto-extension#",
+    "dc": "http://purl.org/dc/elements/1.1/",
+    "owl": "http://www.w3.org/2002/07/owl#",
+    "rdf": "http://www.w3.org/1999/02/22-rdf-syntax-ns#",
+    "rdfs": "http://www.w3.org/2000/01/rdf-schema#",
+    "schema": "https://schema.org/",
+    "td": "https://www.w3.org/2019/wot/td#",
+    "vann": "http://purl.org/vocab/vann/"
+  },
+  "@graph": [
+    {
+      "@id": "ditto:",
+      "@type": "owl:Ontology",
+      "dc:title": {
+        "@language": "en",
+        "@value": "Eclipse Ditto™ - WoT Extension Ontology"
+      },
+      "vann:preferredNamespacePrefix": "ditto",
+      "vann:preferredNamespaceUri": "https://ditto.eclipseprojects.io/wot/ditto-extension#",
+      "rdfs:comment": {
+        "@language": "en",
+        "@value": "This ontology provides additional Eclipse Ditto™ specific context for Web of Things (https://www.w3.org/WoT/) TDs and TMs"
+      },
+      "owl:versionInfo": "3.0.0"
+    },
+    {
+      "@id": "ditto:category",
+      "@type": "owl:DatatypeProperty",
+      "schema:domainIncludes": {
+        "@id": "td:PropertyAffordance"
+      },
+      "schema:rangeIncludes": {
+        "@id": "schema:Text"
+      },
+      "rdfs:comment": {
+        "@language": "en",
+        "@value": "Optional category for WoT Property affordances, e.g. something like 'status' or 'configuration'"
+      },
+      "rdfs:isDefinedBy": {
+        "@id": "ditto:"
+      },
+      "rdfs:label": "category"
+    }
+  ]
+}

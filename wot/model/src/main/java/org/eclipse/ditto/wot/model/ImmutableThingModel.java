@@ -30,9 +30,9 @@ final class ImmutableThingModel extends AbstractThingSkeleton<ThingModel> implem
     }
 
     @Override
-    public Optional<TmRequired> getTmRequired() {
-        return getValue(ThingModel.JsonFields.TM_REQUIRED)
-                .map(TmRequired::fromJson);
+    public Optional<TmOptional> getTmOptional() {
+        return getValue(ThingModel.JsonFields.TM_OPTIONAL)
+                .map(TmOptional::fromJson);
     }
 
     @Override
