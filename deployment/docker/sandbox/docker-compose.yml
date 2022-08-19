@@ -145,7 +145,6 @@ services:
         -Dditto.gateway.health-check.cluster-roles.expected.1=things 
         -Dditto.gateway.health-check.cluster-roles.expected.2=search 
         -Dditto.gateway.health-check.cluster-roles.expected.3=gateway 
-        -Dditto.gateway.health-check.cluster-roles.expected.4=
     healthcheck:
       test: curl --fail `hostname`:8558/alive || exit 1
       interval: 30s
