@@ -31,6 +31,15 @@ import org.eclipse.ditto.policies.model.signals.announcements.PolicyAnnouncement
 import akka.actor.AbstractActorWithTimers;
 import akka.actor.Props;
 
+/**
+ * Aggregates acknowledgements for a published {@link PolicyAnnouncement}
+ * When all acknowledgements are completed the responseConsumer will be called with an {@link Acknowledgements} in case
+ * there are multiple acknowledgements requested or with an {@link Acknowledgement} in case just a single acknowledgement
+ * was requested.
+ * If an error happens the responseConsumer will be called with a {@link DittoRuntimeException}.
+ *
+ * @since 3.0.0
+ */
 final class PolicyAnnouncementAcknowledgementAggregatorActor extends AbstractActorWithTimers {
 
     static final String ACTOR_NAME = "policy-announcement-acknowledgement-aggregator";
