@@ -126,6 +126,11 @@ final class DistributedAcksImpl implements DistributedAcks {
         ackSupervisor.tell(RemoveSubscriberAcks.of(subscriber), ActorRef.noSender());
     }
 
+    @Override
+    public DistributedDataConfig getConfig() {
+        return config;
+    }
+
     private static CompletionStage<AcksDeclared> processAskResponse(final Object askResponse) {
         if (askResponse instanceof AcksDeclared) {
             return CompletableFuture.completedStage((AcksDeclared) askResponse);
