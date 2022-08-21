@@ -21,8 +21,6 @@ import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import org.eclipse.ditto.internal.utils.health.RetrieveHealth;
 import org.eclipse.ditto.internal.utils.namespaces.BlockedNamespaces;
 import org.eclipse.ditto.internal.utils.persistence.mongo.DittoMongoClient;
-import org.eclipse.ditto.internal.utils.pubsub.DistributedAcks;
-import org.eclipse.ditto.internal.utils.pubsubthings.ThingEventPubSubFactory;
 import org.eclipse.ditto.thingsearch.api.ThingsSearchConstants;
 import org.eclipse.ditto.thingsearch.service.common.config.SearchConfig;
 import org.eclipse.ditto.thingsearch.service.common.util.RootSupervisorStrategyFactory;
@@ -110,16 +108,10 @@ public final class SearchUpdaterRootActor extends AbstractActor {
 
         pubSubMediator.tell(DistPubSubAccess.put(getSelf()), getSelf());
 
-        final var thingEventSub =
-                ThingEventPubSubFactory.shardIdOnly(getContext(), numberOfShards, DistributedAcks.empty(actorSystem))
-                        .startDistributedSub();
         final var thingsUpdaterProps =
-                ThingsUpdater.props(thingEventSub, updaterShard, updaterConfig, blockedNamespaces,
-                        pubSubMediator);
+                ThingsUpdater.props(updaterShard, updaterConfig, blockedNamespaces, pubSubMediator);
 
         thingsUpdaterActor = startChildActor(ThingsUpdater.ACTOR_NAME, thingsUpdaterProps);
-        startClusterSingletonActor(NewEventForwarder.ACTOR_NAME,
-                NewEventForwarder.props(thingEventSub, updaterShard, blockedNamespaces));
 
         // start policy modification forwarder
         startChildActor(PolicyModificationForwarder.ACTOR_NAME, PolicyModificationForwarder.props(

@@ -50,6 +50,7 @@ import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 import org.eclipse.ditto.things.service.common.config.DittoThingsConfig;
 import org.eclipse.ditto.things.service.enforcement.ThingEnforcement;
 import org.eclipse.ditto.things.service.enforcement.ThingEnforcerActor;
+import org.eclipse.ditto.thingsearch.api.ThingsSearchConstants;
 
 import akka.actor.ActorKilledException;
 import akka.actor.ActorRef;
@@ -137,9 +138,9 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
                 ThingsMessagingConstants.CLUSTER_ROLE,
                 ThingsMessagingConstants.SHARD_REGION
         );
-        // TODO
         searchShardRegionProxy =
-                shardRegionProxyActorFactory.getShardRegionProxyActor("search", "search-wildcard-updater");
+                shardRegionProxyActorFactory.getShardRegionProxyActor(ThingsSearchConstants.CLUSTER_ROLE,
+                        ThingsSearchConstants.SHARD_REGION);
 
         try {
             inlinePolicyEnrichment = new SupervisorInlinePolicyEnrichment(getContext().getSystem(), log, getEntityId(),

@@ -35,7 +35,6 @@ import org.eclipse.ditto.base.model.signals.ShardedMessageEnvelope;
 import org.eclipse.ditto.internal.utils.akka.streaming.StreamAck;
 import org.eclipse.ditto.internal.utils.ddata.DistributedData;
 import org.eclipse.ditto.internal.utils.namespaces.BlockedNamespaces;
-import org.eclipse.ditto.internal.utils.pubsub.DistributedSub;
 import org.eclipse.ditto.policies.api.PolicyTag;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.things.model.ThingId;
@@ -140,7 +139,8 @@ public final class ThingsUpdaterTest {
                 assertThat(envelope.getDittoHeaders()).isEqualTo(dittoHeaders);
                 assertThat(envelope.getMessage())
                         .isEqualTo(
-                                SudoUpdateThing.of(ThingId.of(envelopeId),  UpdateReason.BACKGROUND_SYNC, dittoHeaders).toJson());
+                                SudoUpdateThing.of(ThingId.of(envelopeId), UpdateReason.BACKGROUND_SYNC, dittoHeaders)
+                                        .toJson());
             }
         }};
     }
@@ -195,11 +195,9 @@ public final class ThingsUpdaterTest {
         final UpdaterConfig config =
                 DefaultUpdaterConfig.of(ConfigFactory.parseString("updater.event-processing-active=false"));
         final ActorRef thingsShardRegion = shardRegionFactory.getThingsShardRegion(NUMBER_OF_SHARDS);
-        final DistributedSub mockDistributedSub = Mockito.mock(DistributedSub.class);
         final TestProbe pubSubMediatorProbe = TestProbe.apply(actorSystem);
         return actorSystem.actorOf(
-                ThingsUpdater.props(mockDistributedSub, thingsShardRegion, config, blockedNamespaces,
-                        pubSubMediatorProbe.ref()));
+                ThingsUpdater.props(thingsShardRegion, config, blockedNamespaces, pubSubMediatorProbe.ref()));
     }
 
     /**
