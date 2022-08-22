@@ -57,7 +57,7 @@ public final class ThingCommandResponseAcknowledgementProvider
 
             final AcknowledgementLabel acknowledgementLabel = getAckLabelOfResponse(originatingSignal);
             return ThingAcknowledgementFactory.newAcknowledgement(acknowledgementLabel,
-                    originatingSignal.getEntityId(),
+                    thingCommandResponse.getEntityId(),
                     thingCommandResponse.getHttpStatus(),
                     thingCommandResponse.getDittoHeaders(),
                     getPayload(thingCommandResponse).orElse(null));
