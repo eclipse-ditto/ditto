@@ -288,9 +288,9 @@ public final class MongoReadJournal {
                         .grouped(batchSize)
                         .flatMapConcat(pids -> {
                             if (considerOnlyLatest) {
-                                return filterPidsThatDoesntContainTagInNewestEntry(journal, pids, tag)
+                                return filterPidsThatDoesntContainTagInNewestEntry(journal, pids, tag);
                             } else {
-                                return pids;
+                                return Source.from(pids);
                             }
                         }));
     }
