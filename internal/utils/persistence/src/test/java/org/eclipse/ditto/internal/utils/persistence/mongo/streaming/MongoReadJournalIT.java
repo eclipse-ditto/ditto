@@ -286,7 +286,7 @@ public final class MongoReadJournalIT {
         insert("test_journal", new JournalEntry("pid4").withSn(2L).withTags(tagged).getDocument());
 
         final List<String> pids =
-                readJournal.getJournalPidsWithTag("always-live", 2, Duration.ZERO, materializer)
+                readJournal.getJournalPidsWithTag("always-live", 2, Duration.ZERO, materializer, true)
                         .runWith(Sink.seq(), materializer)
                         .toCompletableFuture().join();
 
@@ -347,7 +347,7 @@ public final class MongoReadJournalIT {
                 new JournalEntry("pid4").withSn(2L).withTags(Set.of()).getDocument());
 
         final List<String> pids =
-                readJournal.getJournalPidsWithTag("test", 5, Duration.ZERO, materializer)
+                readJournal.getJournalPidsWithTag("test", 5, Duration.ZERO, materializer, true)
                         .runWith(Sink.seq(), materializer)
                         .toCompletableFuture().join();
 
@@ -368,7 +368,7 @@ public final class MongoReadJournalIT {
                 new JournalEntry("pid4").withSn(2L).withTags(Set.of()).getDocument());
 
         final List<String> pids =
-                readJournal.getJournalPidsWithTag("test", 2, Duration.ZERO, materializer)
+                readJournal.getJournalPidsWithTag("test", 2, Duration.ZERO, materializer, true)
                         .runWith(Sink.seq(), materializer)
                         .toCompletableFuture().join();
 

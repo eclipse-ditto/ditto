@@ -278,14 +278,21 @@ public final class MongoReadJournal {
     public Source<String, NotUsed> getJournalPidsWithTag(final String tag,
             final int batchSize,
             final Duration maxIdleTime,
-            final Materializer mat) {
+            final Materializer mat,
+            final boolean considerOnlyLatest) {
 
         final int maxRestarts = computeMaxRestarts(maxIdleTime);
         return getJournal().withAttributes(Attributes.inputBuffer(1, 1))
                 .flatMapConcat(journal -> listPidsInJournal(journal, "", tag, batchSize, mat, maxRestarts)
                         .mapConcat(pids -> pids)
                         .grouped(batchSize)
-                        .flatMapConcat(pids -> filterPidsThatDoesntContainTagInNewestEntry(journal, pids, tag)));
+                        .flatMapConcat(pids -> {
+                            if (considerOnlyLatest) {
+                                return filterPidsThatDoesntContainTagInNewestEntry(journal, pids, tag)
+                            } else {
+                                return pids;
+                            }
+                        }));
     }
 
     private Source<String, NotUsed> filterPidsThatDoesntContainTagInNewestEntry(final MongoCollection<Document> journal,
