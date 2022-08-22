@@ -69,6 +69,7 @@ public final class Publisher extends AbstractActor {
     private final Counter topicCounter = DittoMetrics.counter("pubsub-published-topics");
     private final Counter sentMessagesCounter = DittoMetrics.counter("pubsub-sent-messages");
     private final Map<Key<?>, PublisherIndex<Long>> publisherIndexes = new HashMap<>();
+    private final int subscriberPoolSize;
 
     private PublisherIndex<Long> publisherIndex = PublisherIndex.empty();
     private RemoteAcksChanged remoteAcks = RemoteAcksChanged.of(Map.of());
@@ -76,6 +77,7 @@ public final class Publisher extends AbstractActor {
     @SuppressWarnings("unused")
     private Publisher(final DDataReader<ActorRef, String> ddataReader, final DistributedAcks distributedAcks) {
         this.ddataReader = ddataReader;
+        subscriberPoolSize = distributedAcks.getConfig().getSubscriberPoolSize();
         ddataReader.receiveChanges(getSelf());
         distributedAcks.receiveDistributedDeclaredAcks(getSelf());
     }
@@ -189,8 +191,12 @@ public final class Publisher extends AbstractActor {
                     subscribers.stream().map(Pair::first).toList());
         }
         sentMessagesCounter.increment(subscribers.size());
-        subscribers.forEach(pair -> pair.first().tell(pair.second(), sender));
+        subscribers.forEach(pair -> publishSignal(pair.first(), pair.second(), sender));
         return subscribers;
+    }
+
+    private void publishSignal(final ActorRef subscriber, final PublishSignal signal, final ActorRef sender) {
+        Subscriber.chooseSubscriber(subscriber, signal, subscriberPoolSize).tell(signal, sender);
     }
 
     private void declaredAcksChanged(final RemoteAcksChanged event) {
