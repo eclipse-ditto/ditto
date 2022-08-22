@@ -1,0 +1,7 @@
+type: string
+description: A category to which the log entry can be referred to.
+enum:
+  - source
+  - target
+  - response
+  - connection

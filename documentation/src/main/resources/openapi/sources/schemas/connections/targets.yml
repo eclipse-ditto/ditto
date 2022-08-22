@@ -1,0 +1,6 @@
+type: array
+title: The publish targets of this connection
+description: The publish targets of this connection
+uniqueItems: true
+items:
+  $ref: 'target.yml'

@@ -1,0 +1,23 @@
+type: object
+description: Log entries of a connection.
+required:
+  - connectionId
+  - connectionLogs
+properties:
+  connectionId:
+    type: string
+    description: ID of the connection for which the log entries were logged.
+    example: '759304b8-8056-11e9-bc42-526af7764f64'
+  connectionLogs:
+    type: array
+    description: Log entries for the connection.
+    items:
+      $ref: 'logEntry.yml'
+  enabledSince:
+    type: string
+    description: Since when logging is enabled. Might be missing / null if logging is not enabled.
+    example: '2019-01-21T08:57:24.710Z'
+  enabledUntil:
+    type: string
+    description: Until when logging is enabled. Might be missing / null if logging is not enabled.
+    example: '2019-01-22T08:57:24.710Z'

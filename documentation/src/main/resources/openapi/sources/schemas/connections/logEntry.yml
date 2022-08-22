@@ -1,0 +1,36 @@
+type: object
+description: Represents a log entry for a connection.
+required:
+  - timestamp
+  - correlationId
+  - message
+  - category
+  - type
+  - level
+properties:
+  timestamp:
+    type: string
+    description: Timestamp of the log entry.
+    example: '2019-01-21T08:57:24.710Z'
+  correlationId:
+    type: string
+    description: Correlation ID that is associated with the log entry.
+    example: '759304b8-8056-11e9-bc42-526af7764f64'
+  message:
+    type: string
+    description: The log message.
+    example: 'Successfully connected to ... at ...'
+  category:
+    $ref: 'logCategory.yml'
+  type:
+    $ref: 'logType.yml'
+  level:
+    $ref: 'logLevel.yml'
+  address:
+    type: string
+    description: Connection address on which the log occured.
+    example: 'telemetry/the_hub'
+  thingId:
+    type: string
+    description: The thing for which the log entry was created.
+    example: 'com.bosch.iot.things:theThing'

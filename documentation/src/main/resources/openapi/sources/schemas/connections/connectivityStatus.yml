@@ -1,0 +1,8 @@
+type: string
+description: The status of a connection or resource
+enum:
+  - open
+  - closed
+  - failed
+  - misconfigured
+  - unknown

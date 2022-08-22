@@ -1,0 +1,11 @@
+type: string
+description: The type of a log entry describing during what kind of activity the entry was created.
+enum:
+  - consumed
+  - dispatched
+  - filtered
+  - mapped
+  - dropped
+  - enforced
+  - published
+  - other

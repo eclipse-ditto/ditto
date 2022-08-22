@@ -1,0 +1,29 @@
+type: object
+description: |-
+  The status of a single resource (e.g. a client or a source/target resource)
+required:
+  - type
+  - client
+  - status
+properties:
+  type:
+    type: string
+    description: The type of the resource
+    enum:
+      - client
+      - source
+      - target
+  client:
+    type: string
+    description: A client identifier where the resource is held (e.g. a cluster instance ID)
+  address:
+    type: string
+    description: The address information of the resource (optional)
+  status:
+    $ref: 'connectivityStatus.yml'
+  statusDetails:
+    type: string
+    description: Details to the status of the resource
+  inStateSince:
+    type: string
+    description: Date since when the resource is in the present state

@@ -1,0 +1,6 @@
+name: connectionId
+in: path
+description: The ID of the connection
+required: true
+schema:
+  type: string

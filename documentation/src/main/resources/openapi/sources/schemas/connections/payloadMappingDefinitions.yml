@@ -1,0 +1,6 @@
+type: object
+additionalProperties:
+  $ref: 'payloadMappingDefinition.yml'
+description: |-
+  List of mapping definitions where the key represents the ID of each mapping that can be used in sources and
+  targets to reference a mapping.

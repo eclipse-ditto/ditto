@@ -1,0 +1,160 @@
+#jinja2:variable_start_string:'[%' , variable_end_string:'%]'
+type: object
+title: Source
+description: A subscription source subscribed by this connection
+properties:
+  addresses:
+    type: array
+    uniqueItems: true
+    title: Array of source addresses
+    description: The source addresses this connection consumes messages from
+    items:
+      type: string
+      title: Source address
+      description: A source address to consume messages from
+  consumerCount:
+    type: integer
+    title: Consumer count
+    description: The number of consumers that should be attached to each source address
+    default: 1
+  qos:
+    type: integer
+    title: Quality of service level
+    description: Maximum Quality-of-Service level to request when subscribing for messages
+  authorizationContext:
+    type: array
+    title: The authorization context
+    description: The authorization context defines all authorization subjects associated for this source
+    uniqueItems: true
+    items:
+      type: string
+      title: Authorization Subject
+      description: |-
+        An authorization subject associated with this source.
+        You can either use a fixed subject or use a placeholder that resolves header values from incoming messages.
+        For example to use the `device_id` header in the subject, you can specify the placeholder
+        `{{ header:device_id }}` which is then replaced by Ditto when a message from this source is processed.
+        By using a placeholder you can access any header value: `{{ header:<any-header-name> }}`
+      example:
+        - "ditto:myAuthorizationSubject"
+        - "device:{{ header:device_id }}"
+  enforcement:
+    type: object
+    title: Enforcement configuration
+    description: Defines an enforcement for this source to make sure that a device can only access its associated
+      Thing.
+    required:
+      - input
+      - filters
+    properties:
+      input:
+        type: string
+        title: Input value of enforcement
+        description: |-
+          The input value of the enforcement that should identify the origin of the message (e.g. a
+          device id). You can use placeholders within this field depending on the connection type. E.g. for AMQP
+          1.0 connections you can use `{{ header:[any-header-name] }}` to resolve the value from a message header.
+        example: "{{ header:device_id }}"
+      filters:
+        type: array
+        title: The enforcement filters
+        description: An array of filters. One of the defined filters must match the input value from the message
+          otherwise the message is rejected.
+        uniqueItems: true
+        items:
+          type: string
+          title: Enforcement filter
+          description: |-
+            A filter that must match the input value for a message to be accepted. You can use the placeholders
+             `{{ thing:id }}`, `{{ thing:name }}` or `{{ thing:namespace }}` in a filter.
+          example:
+            - "{{ thing:id }}"
+            - "{{ thing:namespace }}/{{ thing:name }}"
+  acknowledgementRequests:
+    type: object
+    title: Acknowledgement requests configuration
+    description: Contains requests to acknowledgements which must be fulfilled before a message consumed from this
+      source is technically settled/ACKed at the e.g. message broker.
+    additionalProperties: false
+    properties:
+      includes:
+        type: array
+        title: Included acknowledgement requests
+        description: Acknowledgement requests to be included for each message consumed by this source.
+        items:
+          title: String representation of a single acknowledgement request
+          type: string
+      filter:
+        type: string
+        title: Filter expression whether to include acknowledgements at all
+        description: Optional filter to be applied to the requested acknowledgements - takes an `fn:filter()`
+          function expression
+        example:
+          - "fn:filter(header:qos,'ne',0)"
+    required:
+      - includes
+  payloadMapping:
+    type: array
+    title: The payload mappings
+    description: A list of payload mappings that are applied to messages received via this source. If no
+      payload mapping is specified the standard Ditto mapping is used as default.
+    items:
+      type: string
+      title: Payload Mapping
+      description: References a payload mapping definition by its ID (the key of the PayloadMappingDefinition)
+      example:
+        - "Ditto"
+        - "status"
+  headerMapping:
+    type: object
+    title: Header mapping configuration
+    description: Ditto protocol headers computed from external headers and certain properties of the Ditto protocol messages created by payload mapping.
+  replyTarget:
+    type: object
+    title: Reply target configuration
+    description: Configuration for sending responses of incoming commands.
+    additionalProperties: false
+    properties:
+      enabled:
+        type: boolean
+        title: Whether reply target is enabled
+        description: Whether reply target is enabled.
+      address:
+        type: string
+        title: Reply target address
+        description: |-
+          The target address where responses of incoming commands from the parent source are published to.
+          The following placeholders are allowed within the target address:
+
+          * Thing ID: `{{ thing:id }}`
+
+          * Thing Namespace: `{{ thing:namespace }}`
+
+          * Thing Name: `{{ thing:name }}` (the part of the ID without the namespace)
+
+          * Ditto protocol topic attribute: `{{ topic:[topic-placeholder-attr] }}`
+
+          * Ditto protocol header value: `{{ header:[any-header-name] }}`
+
+          If placeholder resolution fails for a response, then the response is dropped.
+        example:
+          - "{{ header:device_id }}"
+          - "{{ source:address }}"
+      headerMapping:
+        type: object
+        title: Header mapping configuration
+        description: External headers computed from headers and other properties of Ditto protocol messages.
+      expectedResponseTypes:
+        type: array
+        title: Expected response types
+        description: Contains a list of response types that should be published to the reply target.
+        uniqueItems: true
+        items:
+          type: string
+          title: Response types
+          enum:
+            - "response"
+            - "error"
+            - "nack"
+    required:
+      - address

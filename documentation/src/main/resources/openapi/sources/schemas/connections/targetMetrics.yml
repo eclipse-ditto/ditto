@@ -1,0 +1,11 @@
+type: object
+description: |-
+  Target metrics of the connection
+required:
+  - addressMetrics
+properties:
+  addressMetrics:
+    type: object
+    additionalProperties:
+      $ref: 'outboundMetrics.yml'
+    description: Contains "outbound" towards external targets messages metric counts

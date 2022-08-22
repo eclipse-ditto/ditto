@@ -1,0 +1,5 @@
+type: string
+description: Escalation level of a log entry.
+enum:
+  - success
+  - failure

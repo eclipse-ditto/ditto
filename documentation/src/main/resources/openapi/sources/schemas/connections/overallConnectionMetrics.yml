@@ -1,0 +1,11 @@
+type: object
+description: |-
+  Overall metrics of the connection
+required:
+  - inbound
+  - outbound
+properties:
+  inbound:
+    $ref: 'inboundMetrics.yml'
+  outbound:
+    $ref: 'outboundMetrics.yml'

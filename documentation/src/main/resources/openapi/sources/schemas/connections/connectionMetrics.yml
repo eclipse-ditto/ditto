@@ -1,0 +1,23 @@
+type: object
+description: |-
+  Metrics of a connection
+required:
+  - connectionId
+  - containsFailures
+  - connectionMetrics
+  - sourceMetrics
+  - targetMetrics
+properties:
+  connectionId:
+    type: string
+    description: The connection ID
+  containsFailures:
+    type: boolean
+    description: Whether the connection metrics contains any failures
+    example: false
+  connectionMetrics:
+    $ref: 'overallConnectionMetrics.yml'
+  sourceMetrics:
+    $ref: 'sourceMetrics.yml'
+  targetMetrics:
+    $ref: 'targetMetrics.yml'

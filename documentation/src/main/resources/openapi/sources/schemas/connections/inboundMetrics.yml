@@ -1,0 +1,25 @@
+type: object
+description: |-
+  Metrics of an inbound (e.g. a Source) resource
+required:
+  - consumed
+  - mapped
+  - dropped
+  - enforced
+properties:
+  consumed:
+    allOf:
+      - $ref: 'typedMetric.yml'
+    description: Contains from external sources consumed metric counts
+  mapped:
+    allOf:
+      - $ref: 'typedMetric.yml'
+    description: Contains mapped (payload mapping) messages metric counts
+  dropped:
+    allOf:
+      - $ref: 'typedMetric.yml'
+    description: Contains dropped (in the payload mapping) messages metric counts
+  enforced:
+    allOf:
+      - $ref: 'typedMetric.yml'
+    description: Contains enforced (e.g. source address enforcement) messages metric counts

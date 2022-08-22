@@ -1,0 +1,7 @@
+allOf:
+  - type: object
+    properties:
+      id:
+        type: string
+        description: The generated unique identifier of the connection
+  - $ref: "newConnection.yml"

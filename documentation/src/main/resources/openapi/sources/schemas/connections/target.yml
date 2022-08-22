@@ -1,0 +1,81 @@
+#jinja2:variable_start_string:'[%' , variable_end_string:'%]'
+type: object
+title: Target
+description: A publish target served by this connection
+properties:
+  address:
+    type: string
+    title: Target address
+    description: |-
+      The target address where events, commands and messages are published to.
+      The following placeholders are allowed within the target address:
+
+      * Thing ID: `{{ thing:id }}`
+
+      * Thing Namespace: `{{ thing:namespace }}`
+
+      * Thing Name: `{{ thing:name }}` (the part of the ID without the namespace)
+  topics:
+    type: array
+    title: Topics
+    description: The topics to which this target is registered for
+    uniqueItems: true
+    items:
+      type: string
+      enum:
+        - "_/_/things/twin/events"
+        - "_/_/things/live/commands"
+        - "_/_/things/live/events"
+        - "_/_/things/live/messages"
+        - "_/_/policies/announcements"
+        - "_/_/connections/announcements"
+      title: Subscribed topics
+      description: |-
+        Contains the type of messages that are delivered to this target. You can receive
+
+        * Thing events: `_/_/things/twin/events` (notification about twin change)
+
+        * Live events: `_/_/things/live/events`
+
+        * Live commands: `_/_/things/live/commands`
+
+        * Live messages: `_/_/things/live/messages`
+
+        * Policy announcements: `_/_/policies/announcements`
+
+        * Connection announcements: `_/_/connections/announcements`
+  qos:
+    type: integer
+    title: Quality of service level
+    description: Maximum Quality-of-Service level to request when subscribing for messages
+  authorizationContext:
+    type: array
+    title: The authorisation context
+    description: The authorization context defines all authorization subjects associated for this target
+    uniqueItems: true
+    items:
+      type: string
+      title: Authorization Subject
+      description: An authorization subject associated with this target
+      example:
+        - "ditto:myAuthorizationSubject"
+  issuedAcknowledgementLabel:
+    type: string
+    title: Issued acknowledgement label for this target
+    description: The optional label of an acknowledgement which should automatically be issued by this target
+      based on the technical settlement/ACK the connection channel provides.
+  payloadMapping:
+    type: array
+    title: The payload mappings
+    description: A list of payload mappings that are applied to messages sent via this target. If no
+      payload mapping is specified the standard Ditto mapping is used as default.
+    items:
+      type: string
+      title: Payload Mapping
+      description: References a payload mapping definition by its ID (the key of the PayloadMappingDefinition)
+      example:
+        - "javascript"
+  headerMapping:
+    type: object
+    title: Header mapping configuration
+    description: External headers computed from headers and other properties of Ditto protocol messages.

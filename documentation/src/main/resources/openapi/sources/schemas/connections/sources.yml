@@ -1,0 +1,6 @@
+type: array
+title: The subscription sources of this connection
+description: The subscription sources of this connection
+uniqueItems: true
+items:
+  $ref: 'source.yml'

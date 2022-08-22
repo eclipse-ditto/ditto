@@ -1,0 +1,15 @@
+type: object
+description: |-
+  Metrics of a single metric `type` containing "success" and "failure" metrics
+required:
+  - success
+  - failure
+properties:
+  success:
+    allOf:
+      - $ref: 'singleMetric.yml'
+    description: Contains the successfully processed message counts
+  failure:
+    allOf:
+      - $ref: 'singleMetric.yml'
+    description: Contains the failed processed message counts

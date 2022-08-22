@@ -1,0 +1,8 @@
+type: string
+description: The type of a connection
+enum:
+  - amqp-091
+  - amqp-10
+  - http-push
+  - mqtt
+  - kafka

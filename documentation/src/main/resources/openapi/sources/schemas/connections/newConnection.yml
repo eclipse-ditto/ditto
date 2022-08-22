@@ -1,0 +1,45 @@
+type: object
+required:
+  - connectionType
+  - connectionStatus
+  - uri
+  - sources
+  - targets
+properties:
+  name:
+    type: string
+    description: The name of the connection
+  connectionType:
+    $ref: 'connectionType.yml'
+  connectionStatus:
+    $ref: 'connectionStatus.yml'
+  uri:
+    type: string
+    description: The URI of the connection
+  sources:
+    $ref: 'sources.yml'
+  targets:
+    $ref: 'targets.yml'
+  specificConfig:
+    type: object
+    description: Configuration which is only applicable for a specific connection type
+  clientCount:
+    type: number
+    description: How many clients on different cluster nodes should establish the connection
+  failoverEnabled:
+    type: boolean
+    description: Whether or not failover is enabled for this connection
+  validateCertificates:
+    type: boolean
+    description: Whether or not to validate server certificates on connection establishment
+  mappingDefinitions:
+    $ref: 'payloadMappingDefinitions.yml'
+  mappingContext:
+    $ref: 'mappingContext.yml'
+  sshTunnel:
+    $ref: 'sshTunnel.yml'
+  tags:
+    type: array
+    items:
+      type: string
+    description: The tags of the connection

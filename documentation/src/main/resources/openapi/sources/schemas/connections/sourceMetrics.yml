@@ -1,0 +1,11 @@
+type: object
+description: |-
+  Source metrics of the connection
+required:
+  - addressMetrics
+properties:
+  addressMetrics:
+    type: object
+    additionalProperties:
+      $ref: 'inboundMetrics.yml'
+    description: Contains "inbound" from external sources consumed metric counts
