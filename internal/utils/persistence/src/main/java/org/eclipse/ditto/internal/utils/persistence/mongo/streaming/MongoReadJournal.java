@@ -272,6 +272,11 @@ public final class MongoReadJournal {
      * @param maxIdleTime how long the stream is allowed to idle without sending any element. Bounds the number of
      * retries with exponential back-off.
      * @param mat the actor materializer to run the query streams.
+     * @param considerOnlyLatest whether only the latest available journal entry should have the provided {@code tag},
+     * or if any still available journal entry should be considered. If set to {@code true} (only the latest available
+     * journal entry must have the tag), this Source needs an additional DB query per found {@code batchSize} PIDs. So
+     * e.g. one additional DB query for each 500 (if that is the {@code batchSize}) PIDs containing the {@code tag} in
+     * any journal entry.
      * @return Source of all persistence IDs such that each element contains the persistence IDs in {@code batchSize}
      * events that do not occur in prior buckets.
      */

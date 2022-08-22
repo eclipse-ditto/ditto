@@ -334,7 +334,18 @@ public final class MongoReadJournalIT {
     }
 
     @Test
+    public void extractJournalPidsInOrderOfTagsOfNewestEventWhenNewestDoesNotContainTagAnymoreConsideringOnlyLatest() {
+        final List<String> pids = findPidsWithTestTagWithDifferentConsiderOnlyLatest(true);
+        assertThat(pids).containsExactly("pid2", "pid3");
+    }
+
+    @Test
     public void extractJournalPidsInOrderOfTagsOfNewestEventWhenNewestDoesNotContainTagAnymore() {
+        final List<String> pids = findPidsWithTestTagWithDifferentConsiderOnlyLatest(false);
+        assertThat(pids).containsExactly("pid1", "pid2", "pid3");
+    }
+
+    private List<String> findPidsWithTestTagWithDifferentConsiderOnlyLatest(final boolean considerOnlyLatest) {
         insert("test_journal",
                 new JournalEntry("pid1").withSn(1L).withTags(Set.of("test")).getDocument());
         insert("test_journal",
@@ -346,12 +357,9 @@ public final class MongoReadJournalIT {
         insert("test_journal",
                 new JournalEntry("pid4").withSn(2L).withTags(Set.of()).getDocument());
 
-        final List<String> pids =
-                readJournal.getJournalPidsWithTag("test", 5, Duration.ZERO, materializer, true)
+        return readJournal.getJournalPidsWithTag("test", 5, Duration.ZERO, materializer, considerOnlyLatest)
                         .runWith(Sink.seq(), materializer)
                         .toCompletableFuture().join();
-
-        assertThat(pids).containsExactly("pid2", "pid3");
     }
 
     @Test

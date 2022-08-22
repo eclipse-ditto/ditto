@@ -58,6 +58,7 @@ public final class AcknowledgementAggregatorActorStarter {
 
     private static final ThreadSafeDittoLogger LOGGER =
             DittoLoggerFactory.getThreadSafeLogger(AcknowledgementAggregatorActorStarter.class);
+
     private final ActorRefFactory actorRefFactory;
     private final Duration maxTimeout;
     private final HeaderTranslator headerTranslator;
@@ -267,8 +268,9 @@ public final class AcknowledgementAggregatorActorStarter {
         final CommandResponseAcknowledgementProvider<C> acknowledgementProvider =
                 findRelevantAcknowledgementProvider(command)
                         .orElseThrow(() -> {
-                            LOGGER.error("Tried to start acknowledgement aggregator for command <{}> " +
-                                    "but don't know any applicable acknowledgement providers for this.", command);
+                            LOGGER.withCorrelationId(command)
+                                    .error("Tried to start acknowledgement aggregator for command <{}> but don't " +
+                                            "know any applicable acknowledgement providers for this.", command);
                             return DittoInternalErrorException.newBuilder()
                                     .dittoHeaders(command.getDittoHeaders())
                                     .build();
@@ -285,8 +287,9 @@ public final class AcknowledgementAggregatorActorStarter {
         return actorRefFactory.actorOf(props, getNextActorName(command.getDittoHeaders()));
     }
 
+    @SuppressWarnings("unchecked")
     private <C extends Command<?>> Optional<CommandResponseAcknowledgementProvider<C>> findRelevantAcknowledgementProvider(
-            C signal) {
+            final C signal) {
         return responseAcknowledgementProviders.stream()
                 .filter(provider -> provider.getCommandClass().isAssignableFrom(signal.getClass()))
                 .map(provider -> (CommandResponseAcknowledgementProvider<C>) provider)
