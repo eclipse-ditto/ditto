@@ -34,15 +34,15 @@
 
         <!-- ### Compile dependencies versions -->
         <minimal-json.version>0.9.5</minimal-json.version>
-        <jackson-bom.version>2.13.2.20220328</jackson-bom.version>
+        <jackson-bom.version>2.13.3</jackson-bom.version>
         <typesafe-config.version>1.4.2</typesafe-config.version>
-        <ssl-config-core.version>0.6.0</ssl-config-core.version>
+        <ssl-config-core.version>0.6.1</ssl-config-core.version>
         <akka-bom.version>2.6.19</akka-bom.version>
         <akka-persistence-mongo.version>3.0.8</akka-persistence-mongo.version>
         <akka-http-bom.version>10.2.9</akka-http-bom.version>
         <akka-management.version>1.1.3</akka-management.version>
         <akka-stream-kafka.version>3.0.0</akka-stream-kafka.version>
-        <kafka-client.version>3.0.0</kafka-client.version>
+        <kafka-client.version>3.0.1</kafka-client.version>
         <hivemq-mqtt-client.version>1.3.0</hivemq-mqtt-client.version>
         <sshd.version>2.7.0</sshd.version>
         <eddsa.version>0.3.0</eddsa.version>
@@ -53,19 +53,19 @@
 
         <jjwt.version>0.11.5</jjwt.version>
         <asm.version>9.2</asm.version>
-        <qpid-jms-client.version>1.5.0</qpid-jms-client.version>
+        <qpid-jms-client.version>1.6.0</qpid-jms-client.version>
         <newmotion-akka-rabbitmq.version>6.0.0</newmotion-akka-rabbitmq.version>
-        <amqp-client.version>5.14.1</amqp-client.version>
-        <reactive-streams.version>1.0.3</reactive-streams.version>
-        <netty-bom.version>4.1.75.Final</netty-bom.version>
+        <amqp-client.version>5.14.2</amqp-client.version>
+        <reactive-streams.version>1.0.4</reactive-streams.version>
+        <netty-bom.version>4.1.79.Final</netty-bom.version>
         <cloudevents.version>2.3.0</cloudevents.version>
         <commons-net.version>3.8.0</commons-net.version>
 
         <slf4j.version>1.7.36</slf4j.version>
         <logback.version>1.2.11</logback.version>
-        <logstash-logback-encoder.version>7.0.1</logstash-logback-encoder.version>
-        <fluency.version>2.6.3</fluency.version>
-        <janino.version>3.1.6</janino.version>
+        <logstash-logback-encoder.version>7.2</logstash-logback-encoder.version>
+        <fluency.version>2.6.5</fluency.version>
+        <janino.version>3.1.7</janino.version>
 
         <!-- ### Metrics and Tracing -->
         <kamon.version>2.5.0</kamon.version>
@@ -92,23 +92,23 @@
         -->
         <js.long.version>3.2.0</js.long.version>
 
-        <caffeine.version>3.0.6</caffeine.version>
+        <caffeine.version>3.1.1</caffeine.version>
         <classindex.version>3.11</classindex.version>
 
         <!-- ### Testing dependencies versions -->
         <junit.version>4.13.2</junit.version>
         <junit-jupiter.version>5.8.2</junit-jupiter.version>
-        <assertj.version>3.22.0</assertj.version>
+        <assertj.version>3.23.1</assertj.version>
         <mutability-detector.version>0.10.6</mutability-detector.version>
-        <equals-verifier.version>3.8.2</equals-verifier.version>
-        <mockito.version>4.2.0</mockito.version>
-        <jsonassert.version>1.5.0</jsonassert.version>
-        <awaitility.version>4.1.1</awaitility.version>
+        <equals-verifier.version>3.10.1</equals-verifier.version>
+        <mockito.version>4.7.0</mockito.version>
+        <jsonassert.version>1.5.1</jsonassert.version>
+        <awaitility.version>4.2.0</awaitility.version>
         <akka-persistence-inmemory.version>2.5.15.2</akka-persistence-inmemory.version>
 
-        <jmh.version>1.34</jmh.version>
+        <jmh.version>1.35</jmh.version>
 
-        <scalatest.version>3.2.10</scalatest.version>
+        <scalatest.version>3.2.13</scalatest.version>
         <docker-java.version>3.2.13</docker-java.version>
         <system-rules.version>1.19.0</system-rules.version>
     </properties>
