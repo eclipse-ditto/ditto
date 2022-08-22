@@ -32,6 +32,8 @@ import org.eclipse.ditto.policies.model.PolicyIdInvalidException;
 import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyConflictException;
 import org.eclipse.ditto.things.model.ThingIdInvalidException;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.AttributePointerInvalidException;
+import org.eclipse.ditto.thingsearch.api.QueryTimeExceededException;
+import org.eclipse.ditto.thingsearch.model.signals.commands.exceptions.InvalidOptionException;
 import org.eclipse.ditto.wot.model.WotThingModelInvalidException;
 
 public final class ThingsServiceGlobalErrorRegistryTest extends GlobalErrorRegistryTestCases {
@@ -56,7 +58,11 @@ public final class ThingsServiceGlobalErrorRegistryTest extends GlobalErrorRegis
                 AcknowledgementCorrelationIdMissingException.class,
                 PlaceholderFunctionUnknownException.class,
                 PathUnknownException.class,
-                WotThingModelInvalidException.class);
+                WotThingModelInvalidException.class,
+                InvalidOptionException.class,
+                QueryTimeExceededException.class
+        );
+
     }
 
 }
