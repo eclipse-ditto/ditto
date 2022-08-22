@@ -21,7 +21,7 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.service.config.supervision.DefaultSupervisorConfig;
 import org.eclipse.ditto.base.service.config.supervision.SupervisorConfig;
-import org.eclipse.ditto.internal.models.acks.config.DefaultAcknowledgementConfig;
+import org.eclipse.ditto.edge.service.acknowledgements.config.DefaultAcknowledgementConfig;
 import org.eclipse.ditto.internal.utils.config.ConfigWithFallback;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.ActivityCheckConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.DefaultActivityCheckConfig;
@@ -91,7 +91,8 @@ public final class DefaultConnectionConfig implements ConnectionConfig {
         priorityUpdateInterval =
                 config.getNonNegativeAndNonZeroDurationOrThrow(ConnectionConfigValue.PRIORITY_UPDATE_INTERVAL);
         doubleDecodingEnabled = config.getBoolean(ConnectionConfigValue.DOUBLE_DECODING_ENABLED.getConfigPath());
-        doubleDecodingMigrationEnabled = config.getBoolean(ConnectionConfigValue.DOUBLE_DECODING_MIGRATION_ENABLED.getConfigPath());
+        doubleDecodingMigrationEnabled =
+                config.getBoolean(ConnectionConfigValue.DOUBLE_DECODING_MIGRATION_ENABLED.getConfigPath());
 
     }
 
@@ -269,7 +270,8 @@ public final class DefaultConnectionConfig implements ConnectionConfig {
                 blockedHostnames, blockedSubnets, blockedHostRegex, supervisorConfig, snapshotConfig,
                 acknowledgementConfig, cleanupConfig, maxNumberOfTargets, maxNumberOfSources, activityCheckConfig,
                 amqp10Config, amqp091Config, mqttConfig, kafkaConfig, httpPushConfig, ackLabelDeclareInterval,
-                priorityUpdateInterval, allClientActorsOnOneNode, doubleDecodingEnabled, doubleDecodingMigrationEnabled);
+                priorityUpdateInterval, allClientActorsOnOneNode, doubleDecodingEnabled,
+                doubleDecodingMigrationEnabled);
     }
 
     @Override

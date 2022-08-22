@@ -399,9 +399,13 @@ public final class ConnectionPersistenceActor
     @Override
     protected ConnectivityEvent<?> modifyEventBeforePersist(final ConnectivityEvent<?> event) {
         final ConnectivityEvent<?> superEvent = super.modifyEventBeforePersist(event);
+        final Set<String> tags = journalTags(event);
         final DittoHeaders headersWithJournalTags = superEvent.getDittoHeaders().toBuilder()
-                .journalTags(journalTags(event))
+                .journalTags(tags)
                 .build();
+        log.withCorrelationId(event)
+                .info("Appending the following tags to event of type <{}> for connection with ID <{}>: <{}>",
+                        event.getType(), event.getEntityId(), tags);
         return superEvent.setDittoHeaders(headersWithJournalTags);
     }
 
@@ -429,6 +433,8 @@ public final class ConnectionPersistenceActor
         final Collection<String> connectionTags;
         if (event instanceof ConnectionCreated connectionCreated) {
             connectionTags = connectionCreated.getConnection().getTags();
+        } else if (event instanceof ConnectionModified connectionModified) {
+            connectionTags = connectionModified.getConnection().getTags();
         } else if (event instanceof ConnectionDeleted) {
             connectionTags = Set.of();
         } else {
