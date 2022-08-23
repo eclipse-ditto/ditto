@@ -119,7 +119,7 @@ public final class ConnectionSupervisorActor
 
     @Override
     protected ConnectionId getEntityId() throws Exception {
-        return ConnectionId.of(URLDecoder.decode(getSelf().path().name(), StandardCharsets.UTF_8.name()));
+        return ConnectionId.of(URLDecoder.decode(getSelf().path().name(), StandardCharsets.UTF_8));
     }
 
     @Override

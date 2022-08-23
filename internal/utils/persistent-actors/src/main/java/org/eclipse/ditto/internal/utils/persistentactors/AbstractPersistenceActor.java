@@ -289,14 +289,14 @@ public abstract class AbstractPersistenceActor<
         final CommandStrategy<C, S, K, E> commandStrategy = getCreatedStrategy();
 
         final Receive receive = handleCleanups.orElse(ReceiveBuilder.create()
-                .match(commandStrategy.getMatchingClass(), commandStrategy::isDefined, this::handleByCommandStrategy)
-                .match(PersistEmptyEvent.class, this::handlePersistEmptyEvent)
-                .match(CheckForActivity.class, this::checkForActivity)
-                .match(PingCommand.class, this::processPingCommand)
-                .matchEquals(Control.TAKE_SNAPSHOT, this::takeSnapshotByInterval)
-                .match(SaveSnapshotSuccess.class, this::saveSnapshotSuccess)
-                .match(SaveSnapshotFailure.class, this::saveSnapshotFailure)
-                .build())
+                        .match(commandStrategy.getMatchingClass(), commandStrategy::isDefined, this::handleByCommandStrategy)
+                        .match(PersistEmptyEvent.class, this::handlePersistEmptyEvent)
+                        .match(CheckForActivity.class, this::checkForActivity)
+                        .match(PingCommand.class, this::processPingCommand)
+                        .matchEquals(Control.TAKE_SNAPSHOT, this::takeSnapshotByInterval)
+                        .match(SaveSnapshotSuccess.class, this::saveSnapshotSuccess)
+                        .match(SaveSnapshotFailure.class, this::saveSnapshotFailure)
+                        .build())
                 .orElse(matchAnyAfterInitialization());
 
         getContext().become(receive);
@@ -417,11 +417,11 @@ public abstract class AbstractPersistenceActor<
 
     private Receive createDeletedBehavior() {
         return handleCleanups.orElse(handleByDeletedStrategyReceiveBuilder()
-                .match(CheckForActivity.class, this::checkForActivity)
-                .matchEquals(Control.TAKE_SNAPSHOT, this::takeSnapshotByInterval)
-                .match(SaveSnapshotSuccess.class, this::saveSnapshotSuccess)
-                .match(SaveSnapshotFailure.class, this::saveSnapshotFailure)
-                .build())
+                        .match(CheckForActivity.class, this::checkForActivity)
+                        .matchEquals(Control.TAKE_SNAPSHOT, this::takeSnapshotByInterval)
+                        .match(SaveSnapshotSuccess.class, this::saveSnapshotSuccess)
+                        .match(SaveSnapshotFailure.class, this::saveSnapshotFailure)
+                        .build())
                 .orElse(matchAnyWhenDeleted());
     }
 
@@ -618,6 +618,7 @@ public abstract class AbstractPersistenceActor<
         final DittoRuntimeExceptionBuilder<?> builder = newNotAccessibleExceptionBuilder()
                 .dittoHeaders(withDittoHeaders.getDittoHeaders());
         notifySender(builder.build());
+        reportSudoCommandDone(withDittoHeaders);
     }
 
     private void shutdown(final String shutdownLogTemplate, final I entityId) {
@@ -629,7 +630,7 @@ public abstract class AbstractPersistenceActor<
         return entity != null && !entityExistsAsDeleted();
     }
 
-    private void reportSudoCommandDone(final Command<?> command) {
+    private void reportSudoCommandDone(final WithDittoHeaders command) {
         if (command instanceof SudoCommand || command.getDittoHeaders().isSudo()) {
             getSudoCommandDoneRecipient().tell(AbstractPersistenceSupervisor.Control.SUDO_COMMAND_DONE, getSelf());
         }

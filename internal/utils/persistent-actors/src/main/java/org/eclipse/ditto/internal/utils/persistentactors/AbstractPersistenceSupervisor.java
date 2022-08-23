@@ -290,7 +290,6 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
                     unstashAll();
                     becomeActive(getShutdownBehaviour(entityId));
                 })
-                .match(StopShardedActor.class, this::stopBeforeRecovery)
                 .matchAny(this::handleMessagesDuringStartup)
                 .build();
     }
@@ -350,11 +349,6 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
                 });
     }
 
-    private void stopBeforeRecovery(final StopShardedActor trigger) {
-        log.debug("Stopping before recovery due to shard region shutdown");
-        getContext().stop(getSelf());
-    }
-
     private void stopAfterOngoingOps(final StopShardedActor trigger) {
         if (opCounter == 0 && sudoOpCounter == 0) {
             log.debug("Stopping: no ongoing ops.");
@@ -369,7 +363,7 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
         return control -> {
             --opCounter;
             matchProcessNextTwinMessageBehavior.apply(control);
-            if (opCounter == 0 && sudoOpCounter == 0) {
+            if (inCoordinatedShutdown && opCounter == 0 && sudoOpCounter == 0) {
                 log.debug("Stopping after waiting for ongoing ops.");
                 getContext().stop(getSelf());
             }
@@ -378,7 +372,7 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
 
     private void decrementSudoOpCounter(final Control sudoCommandDone) {
         --sudoOpCounter;
-        if (opCounter == 0 && sudoOpCounter == 0) {
+        if (inCoordinatedShutdown && opCounter == 0 && sudoOpCounter == 0) {
             log.debug("Stopping after waiting for ongoing sudo ops.");
             getContext().stop(getSelf());
         }
