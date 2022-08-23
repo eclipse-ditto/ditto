@@ -94,7 +94,7 @@ public final class PolicySupervisorActor extends AbstractPersistenceSupervisor<P
 
     @Override
     protected PolicyId getEntityId() throws Exception {
-        return PolicyId.of(URLDecoder.decode(getSelf().path().name(), StandardCharsets.UTF_8.name()));
+        return PolicyId.of(URLDecoder.decode(getSelf().path().name(), StandardCharsets.UTF_8));
     }
 
     @Override

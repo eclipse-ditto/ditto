@@ -42,6 +42,7 @@ import org.eclipse.ditto.base.service.signaltransformer.SignalTransformers;
 import org.eclipse.ditto.internal.utils.akka.actors.AbstractActorWithStashWithTimers;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
+import org.eclipse.ditto.internal.utils.cluster.StopShardedActor;
 import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.internal.utils.metrics.instruments.counter.Counter;
@@ -121,6 +122,9 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
     private final SignalTransformer signalTransformer;
     private ExponentialBackOff backOff;
     private boolean waitingForStopBeforeRestart = false;
+    private boolean inCoordinatedShutdown = false;
+    private int opCounter = 0;
+    private int sudoOpCounter = 0;
 
     protected AbstractPersistenceSupervisor(@Nullable final BlockedNamespaces blockedNamespaces,
             final Duration defaultLocalAskTimeout) {
@@ -207,7 +211,9 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
                 .match(Terminated.class, this::childTerminated)
                 .matchEquals(Control.START_CHILDREN, this::startChildren)
                 .matchEquals(Control.PASSIVATE, this::passivate)
-                .matchEquals(Control.PROCESS_NEXT_TWIN_MESSAGE, matchProcessNextTwinMessageBehavior)
+                .matchEquals(Control.PROCESS_NEXT_TWIN_MESSAGE, decrementOpCounter(matchProcessNextTwinMessageBehavior))
+                .matchEquals(Control.SUDO_COMMAND_DONE, this::decrementSudoOpCounter)
+                .match(StopShardedActor.class, this::stopAfterOngoingOps)
                 .match(SudoCommand.class, this::forwardSudoCommandToChildIfAvailable)
                 .match(WithDittoHeaders.class, w -> w.getDittoHeaders().isSudo(),
                         this::forwardDittoSudoToChildIfAvailable)
@@ -284,6 +290,7 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
                     unstashAll();
                     becomeActive(getShutdownBehaviour(entityId));
                 })
+                .match(StopShardedActor.class, this::stopBeforeRecovery)
                 .matchAny(this::handleMessagesDuringStartup)
                 .build();
     }
@@ -341,6 +348,40 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
                         return response;
                     }
                 });
+    }
+
+    private void stopBeforeRecovery(final StopShardedActor trigger) {
+        log.debug("Stopping before recovery due to shard region shutdown");
+        getContext().stop(getSelf());
+    }
+
+    private void stopAfterOngoingOps(final StopShardedActor trigger) {
+        if (opCounter == 0 && sudoOpCounter == 0) {
+            log.debug("Stopping: no ongoing ops.");
+            getContext().stop(getSelf());
+        } else {
+            inCoordinatedShutdown = true;
+            log.debug("Waiting for <{}> ops and <{}> sudo ops before stopping", opCounter, sudoOpCounter);
+        }
+    }
+
+    private FI.UnitApply<Control> decrementOpCounter(final FI.UnitApply<Control> matchProcessNextTwinMessageBehavior) {
+        return control -> {
+            --opCounter;
+            matchProcessNextTwinMessageBehavior.apply(control);
+            if (opCounter == 0 && sudoOpCounter == 0) {
+                log.debug("Stopping after waiting for ongoing ops.");
+                getContext().stop(getSelf());
+            }
+        };
+    }
+
+    private void decrementSudoOpCounter(final Control sudoCommandDone) {
+        --sudoOpCounter;
+        if (opCounter == 0 && sudoOpCounter == 0) {
+            log.debug("Stopping after waiting for ongoing sudo ops.");
+            getContext().stop(getSelf());
+        }
     }
 
     private CompletionStage<Object> askOrForwardToTargetActor(
@@ -471,7 +512,12 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
     private void childTerminated(final Terminated message) {
         if (message.getActor().equals(persistenceActorChild)) {
             persistenceActorChild = null;
-            if (waitingForStopBeforeRestart) {
+            opCounter = 0;
+            sudoOpCounter = 0;
+            if (inCoordinatedShutdown) {
+                log.info("Terminating self after persistence actor <{}>", persistenceActorChild);
+                getContext().stop(getSelf());
+            } else if (waitingForStopBeforeRestart) {
                 log.info("Persistence actor for entity with ID <{}> was stopped and will now be started again.",
                         entityId);
                 self().tell(Control.START_CHILDREN, ActorRef.noSender());
@@ -525,6 +571,7 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
                 SUDO_COMMANDS_COUNTER
                         .tag(SUDO_COMMAND_COUNTER_TAG_TYPE, sudoCommand.getType())
                         .increment();
+                ++sudoOpCounter;
                 persistenceActorChild.forward(sudoCommand, getContext());
             }
         } else {
@@ -548,6 +595,7 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
                 } else {
                     SUDO_COMMANDS_COUNTER.increment();
                 }
+                ++sudoOpCounter;
                 if (withDittoHeaders instanceof Signal<?> signal) {
                     signalTransformer.apply(signal)
                             .whenComplete(
@@ -606,6 +654,7 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
                                     handleSignalEnforcementResponse(response, throwable, transformed, sender);
                                 }))
                         .handle((response, throwable) -> Control.PROCESS_NEXT_TWIN_MESSAGE);
+                ++opCounter; // decremented by PROCESS_NEXT_TWIN_MESSAGE
                 Patterns.pipe(syncCs, getContext().getDispatcher()).pipeTo(getSelf(), getSelf());
             }
         } else if (null != persistenceActorChild) {
@@ -614,6 +663,7 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
                         .warning("Received unhandled message from persistenceActorChild '{}': {}", entityId, message);
                 unhandled(message);
             } else {
+                // not a signal: not incrementing the op counter
                 persistenceActorChild.forward(message, getContext());
             }
         } else {
@@ -888,7 +938,12 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
         /**
          * Signals the actor to process the next message.
          */
-        PROCESS_NEXT_TWIN_MESSAGE
+        PROCESS_NEXT_TWIN_MESSAGE,
+
+        /**
+         * Signals completion of a sudo command.
+         */
+        SUDO_COMMAND_DONE
     }
 
     private record EnforcedSignalAndTargetActorResponse(@Nullable Signal<?> enforcedSignal,

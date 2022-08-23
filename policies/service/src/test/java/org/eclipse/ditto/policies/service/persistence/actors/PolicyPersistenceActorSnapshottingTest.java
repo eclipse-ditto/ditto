@@ -409,7 +409,8 @@ public final class PolicyPersistenceActorSnapshottingTest extends PersistenceAct
     }
 
     private ActorRef createPersistenceActorFor(final PolicyId policyId) {
-        final Props props = PolicyPersistenceActor.propsForTests(policyId, pubSubMediator, actorSystem.deadLetters());
+        final Props props = PolicyPersistenceActor.propsForTests(policyId, pubSubMediator, actorSystem.deadLetters(),
+                actorSystem);
         return actorSystem.actorOf(props);
     }
 
