@@ -13,7 +13,6 @@
 package org.eclipse.ditto.thingsearch.model.assertions;
 
 import org.assertj.core.api.AbstractIterableAssert;
-import org.assertj.core.api.Assertions;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.json.assertions.DittoJsonAssertions;
 import org.eclipse.ditto.json.assertions.JsonValueAssert;
@@ -32,28 +31,6 @@ public final class SearchResultAssert extends AbstractIterableAssert<SearchResul
      */
     public SearchResultAssert(final SearchResult actual) {
         super(actual, SearchResultAssert.class);
-    }
-
-    public SearchResultAssert hasNextPageOffset(final long expectedNextPageOffset) {
-        isNotNull();
-        final Long actualNextPageOffset = actual.getNextPageOffset().orElse(null);
-        Assertions.assertThat(actualNextPageOffset)
-                .overridingErrorMessage("Expected SearchResult to have next page offset \n<%s> but it had \n<%s>",
-                        expectedNextPageOffset, actualNextPageOffset)
-                .isEqualTo(expectedNextPageOffset);
-
-        return this;
-    }
-
-    public SearchResultAssert hasNoNextPage() {
-        isNotNull();
-        final Long actualNextPageOffset = actual.getNextPageOffset().orElse(null);
-        Assertions.assertThat(actualNextPageOffset)
-                .overridingErrorMessage("Expected SearchResult not to have a next page offset but it had <%s>",
-                        actualNextPageOffset)
-                .isEqualTo(SearchResult.NO_NEXT_PAGE);
-
-        return this;
     }
 
     @Override

@@ -67,40 +67,26 @@ public final class MongoQueryBuilderUnlimitedTest {
     }
 
     @Test
-    public void buildWithLimit() {
-        final int limit = 4;
+    public void buildWithSize() {
+        final int size = 4;
 
-        final Query query = underTest.limit(limit).build();
+        final Query query = underTest.size(size).build();
 
-        assertThat(query.getLimit()).isEqualTo(limit);
+        assertThat(query.getSize()).isEqualTo(size);
     }
 
     @Test
-    public void buildWithSkip() {
-        final int skip = 4;
+    public void buildWithVeryHighSize() {
+        final int veryHighSize = Integer.MAX_VALUE;
 
-        final Query query = underTest.skip(skip).build();
+        final Query query = underTest.size(veryHighSize).build();
 
-        assertThat(query.getSkip()).isEqualTo(skip);
-    }
-
-    @Test
-    public void buildWithVeryHighLimit() {
-        final int veryHighLimit = Integer.MAX_VALUE;
-
-        final Query query = underTest.limit(veryHighLimit).build();
-
-        assertThat(query.getLimit()).isEqualTo(veryHighLimit);
+        assertThat(query.getSize()).isEqualTo(veryHighSize);
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void buildWithLimitLessThanZero() {
-        underTest.limit(-1);
-    }
-
-    @Test(expected = IllegalArgumentException.class)
-    public void buildWithSkipLessThanZero() {
-        underTest.skip(-1);
+        underTest.size(-1);
     }
 
 }

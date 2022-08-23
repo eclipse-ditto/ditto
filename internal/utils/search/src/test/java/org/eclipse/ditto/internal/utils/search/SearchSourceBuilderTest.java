@@ -74,11 +74,6 @@ public final class SearchSourceBuilderTest {
     }
 
     @Test(expected = InvalidOptionException.class)
-    public void failOnLimitOption() {
-        SearchSource.newBuilder().options("limit(0,1)");
-    }
-
-    @Test(expected = InvalidOptionException.class)
     public void failOnCursorOption() {
         SearchSource.newBuilder().options("cursor(ABC)");
     }

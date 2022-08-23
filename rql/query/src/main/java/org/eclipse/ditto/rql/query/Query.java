@@ -32,14 +32,9 @@ public interface Query {
     List<SortOption> getSortOptions();
 
     /**
-     * @return the number of results to which this query is limited.
+     * @return the number of results for this query.
      */
-    int getLimit();
-
-    /**
-     * @return the number of results which are discarded from the beginning of this query.
-     */
-    int getSkip();
+    int getSize();
 
     /**
      * Replace criteria of this query by another.
@@ -49,4 +44,5 @@ public interface Query {
      * @since 1.1.0
      */
     Query withCriteria(Criteria criteria);
+
 }

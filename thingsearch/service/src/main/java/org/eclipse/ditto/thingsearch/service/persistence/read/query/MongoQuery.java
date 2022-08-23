@@ -39,26 +39,20 @@ public final class MongoQuery implements Query {
 
     private final Criteria criteria;
     private final List<SortOption> sortOptions;
-    private final int limit;
-    private final int skip;
+    private final int size;
 
     /**
      * Constructor.
      *
      * @param criteria the criteria
      * @param sortOptions the SortOptions
-     * @param limit the limit param
-     * @param skip the skip param
+     * @param size the size param
      */
-    public MongoQuery(final Criteria criteria,
-            final List<SortOption> sortOptions,
-            final int limit,
-            final int skip) {
+    public MongoQuery(final Criteria criteria, final List<SortOption> sortOptions, final int size) {
 
         this.criteria = checkNotNull(criteria, "criterion");
         this.sortOptions = Collections.unmodifiableList(new ArrayList<>(sortOptions));
-        this.limit = limit;
-        this.skip = skip;
+        this.size = size;
     }
 
     @Override
@@ -72,18 +66,13 @@ public final class MongoQuery implements Query {
     }
 
     @Override
-    public int getLimit() {
-        return limit;
-    }
-
-    @Override
-    public int getSkip() {
-        return skip;
+    public int getSize() {
+        return size;
     }
 
     @Override
     public Query withCriteria(final Criteria criteria) {
-        return new MongoQuery(criteria, sortOptions, limit, skip);
+        return new MongoQuery(criteria, sortOptions, size);
     }
 
     /**
@@ -115,15 +104,14 @@ public final class MongoQuery implements Query {
             return false;
         }
         final MongoQuery that = (MongoQuery) o;
-        return limit == that.limit &&
-                skip == that.skip &&
+        return size == that.size &&
                 Objects.equals(criteria, that.criteria) &&
                 Objects.equals(sortOptions, that.sortOptions);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(criteria, sortOptions, limit, skip);
+        return Objects.hash(criteria, sortOptions, size);
     }
 
     @Override
@@ -131,8 +119,7 @@ public final class MongoQuery implements Query {
         return getClass().getSimpleName() + " [" +
                 "criteria=" + criteria +
                 ", sortOptions=" + sortOptions +
-                ", limit=" + limit +
-                ", skip=" + skip +
+                ", size=" + size +
                 "]";
     }
 

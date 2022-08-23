@@ -37,36 +37,34 @@ import org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants;
 @NotThreadSafe
 final class MongoQueryBuilder implements QueryBuilder {
 
-    static final int DEFAULT_SKIP = 0;
+    /**
+     * The default value for the size parameter, if we have a unlimited query (count).
+     */
+    private static final int DEFAULT_SIZE_UNLIMITED = 0;
 
     /**
-     * The default value for the limit parameter, if we have a unlimited query (count).
+     * The max value for the size parameter, if we have a unlimited query (count).
      */
-    private static final int DEFAULT_LIMIT_UNLIMITED = 0;
+    private static final int MAX_SIZE_UNLIMITED = Integer.MAX_VALUE;
 
-    /**
-     * The max value for the limit parameter, if we have a unlimited query (count).
-     */
-    private static final int MAX_LIMIT_UNLIMITED = Integer.MAX_VALUE;
-
-    private static final SortFieldExpression ID_SORT_FIELD_EXPRESSION = SimpleFieldExpression.of(
-            PersistenceConstants.FIELD_ID);
+    private static final SortFieldExpression ID_SORT_FIELD_EXPRESSION =
+            SimpleFieldExpression.of(PersistenceConstants.FIELD_ID);
 
     private static final List<SortOption> DEFAULT_SORT_OPTIONS =
             Collections.singletonList(new SortOption(ID_SORT_FIELD_EXPRESSION, SortDirection.ASC));
 
     private final Criteria criteria;
-    private final int maxLimit;
-    private int limit;
-    private int skip;
+    private final int maxSize;
+    private int size;
+
     private List<SortOption> sortOptions;
 
-    private MongoQueryBuilder(final Criteria criteria, final int maxLimit, final int defaultLimit) {
+    private MongoQueryBuilder(final Criteria criteria, final int maxSize, final int defaultSize) {
 
         this.criteria = checkNotNull(criteria, "criteria");
-        this.maxLimit = maxLimit;
-        limit = defaultLimit;
-        skip = DEFAULT_SKIP;
+        this.maxSize = maxSize;
+        size = defaultSize;
+
         sortOptions = DEFAULT_SORT_OPTIONS;
     }
 
@@ -83,13 +81,13 @@ final class MongoQueryBuilder implements QueryBuilder {
     }
 
     /**
-     * Creates a builder for a unlimited query (count).
+     * Creates a builder for an unlimited query (count).
      *
      * @param criteria the query criteria.
      * @throws NullPointerException if {@code criteria} is {@code null}.
      */
     public static MongoQueryBuilder unlimited(final Criteria criteria) {
-        return new MongoQueryBuilder(criteria, MAX_LIMIT_UNLIMITED, DEFAULT_LIMIT_UNLIMITED);
+        return new MongoQueryBuilder(criteria, MAX_SIZE_UNLIMITED, DEFAULT_SIZE_UNLIMITED);
     }
 
     @Override
@@ -106,30 +104,19 @@ final class MongoQueryBuilder implements QueryBuilder {
             options.addAll(DEFAULT_SORT_OPTIONS);
             this.sortOptions = options;
         }
-        return this;
-    }
 
-    @Override
-    public QueryBuilder limit(final long n) {
-        limit = Validator.checkLimit(n, maxLimit);
         return this;
     }
 
     @Override
     public QueryBuilder size(final long n) {
-        limit = Validator.checkSize(n, maxLimit);
-        return this;
-    }
-
-    @Override
-    public QueryBuilder skip(final long n) {
-        skip = Validator.checkSkip(n);
+        size = Validator.checkSize(n, maxSize);
         return this;
     }
 
     @Override
     public Query build() {
-        return new MongoQuery(criteria, sortOptions, limit, skip);
+        return new MongoQuery(criteria, sortOptions, size);
     }
 
 }

@@ -182,8 +182,7 @@ public final class MongoThingsSearchPersistence implements ThingsSearchPersisten
         log.debug("count with query filter <{}>.", queryFilter);
 
         final CountOptions countOptions = new CountOptions()
-                .skip(query.getSkip())
-                .limit(query.getLimit())
+                .limit(query.getSize())
                 .maxTime(maxQueryTime.getSeconds(), TimeUnit.SECONDS);
 
         return Source.fromPublisher(collection.countDocuments(queryFilter, countOptions))
@@ -201,14 +200,13 @@ public final class MongoThingsSearchPersistence implements ThingsSearchPersisten
             @Nullable final List<String> authorizationSubjectIds,
             @Nullable final Set<String> namespaces) {
 
-        final int skip = query.getSkip();
-        final int limit = query.getLimit();
-        final int limitPlusOne = limit + 1;
+        final int size = query.getSize();
+        final int sizePlusOne = size + 1;
 
-        return findAllInternal(query, authorizationSubjectIds, namespaces, limitPlusOne, maxQueryTime)
-                .grouped(limitPlusOne)
+        return findAllInternal(query, authorizationSubjectIds, namespaces, sizePlusOne, maxQueryTime)
+                .grouped(sizePlusOne)
                 .orElse(Source.single(Collections.emptyList()))
-                .map(resultsPlus0ne -> toResultList(resultsPlus0ne, skip, limit, query.getSortOptions()))
+                .map(resultsPlus0ne -> toResultList(resultsPlus0ne, size, query.getSortOptions()))
                 .mapError(handleMongoExecutionTimeExceededException())
                 .log("findAll");
     }
@@ -217,9 +215,9 @@ public final class MongoThingsSearchPersistence implements ThingsSearchPersisten
     public Source<ThingId, NotUsed> findAllUnlimited(final Query query, final List<String> authorizationSubjectIds,
             @Nullable final Set<String> namespaces) {
 
-        final Integer limit = query.getLimit() == Integer.MAX_VALUE ? null : query.getLimit();
+        final Integer size = query.getSize() == Integer.MAX_VALUE ? null : query.getSize();
 
-        return findAllInternal(query, authorizationSubjectIds, namespaces, limit, null)
+        return findAllInternal(query, authorizationSubjectIds, namespaces, size, null)
                 .map(MongoThingsSearchPersistence::toThingId)
                 .idleTimeout(maxQueryTime);
     }
@@ -256,13 +254,11 @@ public final class MongoThingsSearchPersistence implements ThingsSearchPersisten
 
         final Bson sortOptions = getMongoSort(query);
 
-        final int skip = query.getSkip();
         final Bson projection = GetSortBsonVisitor.projections(query.getSortOptions());
         final FindPublisher<Document> findPublisher =
                 collection.find(queryFilter, Document.class)
                         .hint(hints.getHint(namespaces).orElse(null))
                         .sort(sortOptions)
-                        .skip(skip)
                         .projection(projection);
 
         final FindPublisher<Document> findPublisherWithLimit;
@@ -298,23 +294,21 @@ public final class MongoThingsSearchPersistence implements ThingsSearchPersisten
         return Source.fromPublisher(publisher).map(MongoThingsSearchPersistence::readAsMetadata);
     }
 
-    private ResultList<TimestampedThingId> toResultList(final List<Document> resultsPlus0ne, final int skip,
-            final int limit,
+    private ResultList<TimestampedThingId> toResultList(final List<Document> resultsPlus0ne, final int limit,
             final List<SortOption> sortOptions) {
 
-        log.debug("Creating paged ResultList from parameters: resultsPlusOne=<{}>,skip={},limit={}",
-                resultsPlus0ne, skip, limit);
+        log.debug("Creating paged ResultList from parameters: resultsPlusOne=<{}>,limit={}",
+                resultsPlus0ne, limit);
 
         final ResultList<TimestampedThingId> pagedResultList;
         if (resultsPlus0ne.size() <= limit || limit <= 0) {
-            pagedResultList = new ResultListImpl<>(toTimestampedThingIds(resultsPlus0ne), ResultList.NO_NEXT_PAGE);
+            pagedResultList = new ResultListImpl<>(toTimestampedThingIds(resultsPlus0ne));
         } else {
-            // MongoDB returned limit + 1 items. However only <limit> items are of interest per page.
+            // MongoDB returned limit + 1 items. However, only <limit> items are of interest per page.
             final List<Document> results = resultsPlus0ne.subList(0, limit);
             final Document lastResult = results.get(limit - 1);
-            final long nextPageOffset = (long) skip + limit;
             final JsonArray sortValues = GetSortBsonVisitor.sortValuesAsArray(lastResult, sortOptions);
-            pagedResultList = new ResultListImpl<>(toTimestampedThingIds(results), nextPageOffset, sortValues);
+            pagedResultList = new ResultListImpl<>(toTimestampedThingIds(results), sortValues);
         }
 
         log.debug("Returning paged ResultList: {}", pagedResultList);

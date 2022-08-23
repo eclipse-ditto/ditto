@@ -296,7 +296,7 @@ public final class SortingIT extends AbstractReadPersistenceITBase {
                 .sorted(comparator)
                 .map(thing -> thing.getEntityId().orElseThrow(IllegalStateException::new))
                 .collect(Collectors.toList());
-        return new ResultListImpl<>(simpleList, ResultList.NO_NEXT_PAGE);
+        return new ResultListImpl<>(simpleList);
     }
 
     private static ThingId randomThingId() {

@@ -39,8 +39,7 @@ public final class ImmutableSearchResultBuilderTest {
     @Test
     public void copySearchResultWithBuilder() {
         final JsonArray items = JsonFactory.newArrayBuilder().add("foo", "bar", "baz").build();
-        final long offset = 25;
-        final SearchResult searchResult = SearchModelFactory.newSearchResult(items, offset);
+        final SearchResult searchResult = SearchModelFactory.newSearchResult(items);
 
         final SearchResultBuilder underTest = ImmutableSearchResultBuilder.of(searchResult);
 
@@ -48,27 +47,10 @@ public final class ImmutableSearchResultBuilderTest {
     }
 
     @Test
-    public void copyAndModifyExistingSearchResultWithBuilder() {
-        final JsonArray items = JsonFactory.newArrayBuilder().add("foo", "bar", "baz").build();
-        final long offset = 25;
-        final SearchResult searchResult = SearchModelFactory.newSearchResult(items, offset);
-
-        final SearchResult newSearchResult = ImmutableSearchResultBuilder.of(searchResult)
-                .nextPageOffset(SearchResult.NO_NEXT_PAGE)
-                .build();
-
-        assertThat(newSearchResult)
-                .hasNoNextPage()
-                .containsExactlyElementsOf(searchResult.getItems());
-    }
-
-    @Test
     public void createEmptySearchResult() {
         final SearchResult searchResult = underTest.build();
 
-        assertThat(searchResult)
-                .hasNoNextPage()
-                .isEmpty();
+        assertThat(searchResult).isEmpty();
     }
 
     @Test(expected = NullPointerException.class)
@@ -87,7 +69,6 @@ public final class ImmutableSearchResultBuilderTest {
                 .build();
 
         assertThat(searchResult)
-                .hasNoNextPage()
                 .contains(TestConstants.SearchThing.THING.toJson());
     }
 
@@ -97,19 +78,7 @@ public final class ImmutableSearchResultBuilderTest {
                 .remove(TestConstants.SearchThing.THING.toJson())
                 .build();
 
-        assertThat(searchResult)
-                .hasNoNextPage()
-                .isEmpty();
-    }
-
-    @Test
-    public void setNextPageOffset() {
-        final long expectedNextPageOffset = 20L;
-        final SearchResult searchResult = underTest.nextPageOffset(expectedNextPageOffset).build();
-
-        assertThat(searchResult)
-                .hasNextPageOffset(expectedNextPageOffset)
-                .isEmpty();
+        assertThat(searchResult).isEmpty();
     }
 
     @Test(expected = NullPointerException.class)
@@ -128,9 +97,7 @@ public final class ImmutableSearchResultBuilderTest {
                 .addAll(items)
                 .build();
 
-        assertThat(searchResult)
-                .containsExactlyElementsOf(items)
-                .hasNoNextPage();
+        assertThat(searchResult).containsExactlyElementsOf(items);
     }
 
 }

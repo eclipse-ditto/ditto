@@ -47,12 +47,11 @@ public final class SearchModelFactory {
      * Creates a new {@link SearchResult}.
      *
      * @param items the items.
-     * @param nextPageOffset the offset of the next page or {@link org.eclipse.ditto.thingsearch.model.SearchResult#NO_NEXT_PAGE}.
      * @return the new immutable search results object.
      * @throws NullPointerException if {@code items} is {@code null}.
      */
-    public static SearchResult newSearchResult(final JsonArray items, final long nextPageOffset) {
-        return ImmutableSearchResult.of(items, nextPageOffset, null);
+    public static SearchResult newSearchResult(final JsonArray items) {
+        return ImmutableSearchResult.of(items, null);
     }
 
     /**

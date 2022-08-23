@@ -18,23 +18,11 @@ import java.util.Optional;
 import org.eclipse.ditto.json.JsonArray;
 
 /**
- * ResultList defines the offset of the next page in addition to the standard list operations.
+ * ResultList that has the array of sort expressions of the last result.
  *
  * @param <E> the type of the items
  */
 public interface ResultList<E> extends List<E> {
-
-    /**
-     * Signals that there is no next page.
-     */
-    long NO_NEXT_PAGE = -1;
-
-    /**
-     * Gets the offset of the next page or {@link ResultList#NO_NEXT_PAGE}.
-     *
-     * @return the offset of the next page
-     */
-    long nextPageOffset();
 
     /**
      * Get values of sort expressions of the last result.
@@ -42,4 +30,5 @@ public interface ResultList<E> extends List<E> {
      * @return the array of sort expressions of the last result
      */
     Optional<JsonArray> lastResultSortValues();
+
 }

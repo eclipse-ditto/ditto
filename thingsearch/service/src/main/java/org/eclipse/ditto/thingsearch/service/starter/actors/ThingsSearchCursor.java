@@ -241,10 +241,9 @@ final class ThingsSearchCursor {
                     new ThingsSearchCursor(namespaces, correlationId, sortOption, filter, newValues.get());
             return searchResult.toBuilder()
                     .cursor(newCursor.encode())
-                    .nextPageOffset(null)
                     .build();
         } else {
-            return searchResult.toBuilder().nextPageOffset(null).build();
+            return searchResult;
         }
     }
 
@@ -315,7 +314,7 @@ final class ThingsSearchCursor {
      * Decode the string representation of a cursor.
      *
      * @param cursorString the string representation.
-     * @param system actor system holding the default materializer
+     * @param system actor system holding the default materializer.
      * @return source of the decoded cursor or a failed source containing a {@code DittoRuntimeException}.
      */
     static Source<ThingsSearchCursor, NotUsed> decode(final String cursorString, final ActorSystem system) {
@@ -447,9 +446,6 @@ final class ThingsSearchCursor {
     private static SearchResult searchResultWithNewCursor(final QueryThings queryThings,
             final SearchResult searchResult, final ResultList<?> resultList) {
 
-        final List<Option> commandOptions = getOptions(queryThings);
-        final boolean hasSizeOption = !findAll(SizeOption.class, commandOptions).isEmpty();
-
         if (hasNextPage(resultList)) {
             // there are more results; append cursor and offset as appropriate
             final SearchResultBuilder builder = searchResult.toBuilder();
@@ -459,20 +455,10 @@ final class ThingsSearchCursor {
             final ThingsSearchCursor newCursor = computeNewCursor(queryThings, resultList);
             builder.cursor(newCursor.encode());
 
-            // size option is present. Remove next-page-offset.
-            if (hasSizeOption) {
-                // using size option; do not deliver nextPageOffset
-                builder.nextPageOffset(null);
-            }
-
             return builder.build();
-        } else if (hasSizeOption) {
-            // This is the last page. Size option is present. Remove next-page-offset.
-            return searchResult.toBuilder().nextPageOffset(null).build();
-        } else {
-            // This is the last page. Size option is absent. Retain next-page-offset.
-            return searchResult;
         }
+
+        return searchResult;
     }
 
     /**
@@ -835,4 +821,5 @@ final class ThingsSearchCursor {
             return Optional.empty();
         }
     }
+
 }

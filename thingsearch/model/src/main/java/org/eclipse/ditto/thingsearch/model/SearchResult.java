@@ -36,11 +36,6 @@ import org.eclipse.ditto.json.JsonValue;
 public interface SearchResult extends Iterable<JsonValue>, Jsonifiable.WithFieldSelectorAndPredicate<JsonField> {
 
     /**
-     * Signals that there is no next page.
-     */
-    long NO_NEXT_PAGE = -1;
-
-    /**
      * Returns a new builder with a fluent API for a {@code SearchResult}.
      *
      * @return the new builder.
@@ -66,13 +61,6 @@ public interface SearchResult extends Iterable<JsonValue>, Jsonifiable.WithField
      */
     JsonArray getItems();
 
-    /**
-     * Get the offset of the next page if there are more matching results available or {@link #NO_NEXT_PAGE}, if there
-     * is no next page. Superseded by {@code getCursor()}.
-     *
-     * @return the offset of the next page or {@link #NO_NEXT_PAGE}, if there is no next page.
-     */
-    Optional<Long> getNextPageOffset();
 
     /**
      * Get the cursor to the next page.
@@ -82,10 +70,9 @@ public interface SearchResult extends Iterable<JsonValue>, Jsonifiable.WithField
     Optional<String> getCursor();
 
     /**
-     * Returns {@code true} if there is a next page and thus {@link #getNextPageOffset()} does not equal
-     * {@link #NO_NEXT_PAGE}, otherwise {@code false}.
+     * Returns {@code true} if there is a cursor, otherwise {@code false}.
      *
-     * @return {@code true} if there is a next page, otherwise {@code false}.
+     * @return {@code true} if there is a cursor, otherwise {@code false}.
      */
     boolean hasNextPage();
 
@@ -149,12 +136,6 @@ public interface SearchResult extends Iterable<JsonValue>, Jsonifiable.WithField
          */
         public static final JsonFieldDefinition<JsonArray> ITEMS =
                 JsonFactory.newJsonArrayFieldDefinition("items", FieldType.REGULAR, JsonSchemaVersion.V_2);
-
-        /**
-         * JSON field containing the nextPageOffset.
-         */
-        public static final JsonFieldDefinition<Long> NEXT_PAGE_OFFSET =
-                JsonFactory.newLongFieldDefinition("nextPageOffset", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the cursor.

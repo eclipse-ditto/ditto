@@ -35,30 +35,25 @@ import org.eclipse.ditto.json.JsonArray;
 public final class ResultListImpl<E> implements ResultList<E> {
 
     private final List<E> items;
-    private final long nextPageOffset;
     @Nullable private final JsonArray lastResultSortValues;
 
     /**
      * Constructor.
      *
-     * @param items the items
-     * @param nextPageOffset the offset of the next page or {@link ResultList#NO_NEXT_PAGE}
+     * @param items the items.
      */
-    public ResultListImpl(final List<E> items, final long nextPageOffset) {
-        this(items, nextPageOffset, null);
+    public ResultListImpl(final List<E> items) {
+        this(items, null);
     }
 
     /**
      * Constructor.
      *
-     * @param items the items
-     * @param nextPageOffset the offset of the next page or {@link ResultList#NO_NEXT_PAGE}
+     * @param items the items.
      * @param lastResultSortValues sort values of the last result.
      */
-    public ResultListImpl(final List<E> items, final long nextPageOffset,
-            @Nullable final JsonArray lastResultSortValues) {
+    public ResultListImpl(final List<E> items, @Nullable final JsonArray lastResultSortValues) {
         this.items = Collections.unmodifiableList(new ArrayList<>(requireNonNull(items)));
-        this.nextPageOffset = nextPageOffset;
         this.lastResultSortValues = lastResultSortValues;
     }
 
@@ -178,18 +173,13 @@ public final class ResultListImpl<E> implements ResultList<E> {
     }
 
     @Override
-    public long nextPageOffset() {
-        return nextPageOffset;
-    }
-
-    @Override
     public Optional<JsonArray> lastResultSortValues() {
         return Optional.ofNullable(lastResultSortValues);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(items, nextPageOffset, lastResultSortValues);
+        return Objects.hash(items, lastResultSortValues);
     }
 
     @Override
@@ -199,7 +189,6 @@ public final class ResultListImpl<E> implements ResultList<E> {
         } else {
             final ResultListImpl<?> that = (ResultListImpl<?>) obj;
             return Objects.equals(items, that.items) &&
-                    Objects.equals(nextPageOffset, that.nextPageOffset) &&
                     Objects.equals(lastResultSortValues, that.lastResultSortValues);
         }
     }
@@ -207,7 +196,6 @@ public final class ResultListImpl<E> implements ResultList<E> {
     @Override
     public String toString() {
         return "ResultListImpl [items=" + items +
-                ", nextPageOffset=" + nextPageOffset +
                 ", lastResultSortValues=" + lastResultSortValues +
                 "]";
     }

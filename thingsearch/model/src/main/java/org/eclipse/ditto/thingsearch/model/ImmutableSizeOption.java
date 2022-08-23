@@ -17,11 +17,6 @@ import javax.annotation.concurrent.Immutable;
 @Immutable
 final class ImmutableSizeOption implements SizeOption {
 
-    /**
-     * The maximum allowed page size.
-     */
-    static final int MAX_SIZE = 200;
-
     private final int size;
 
     private ImmutableSizeOption(final int size) {
@@ -67,4 +62,5 @@ final class ImmutableSizeOption implements SizeOption {
     public String toString() {
         return "size(" + size + ")";
     }
+
 }

@@ -28,6 +28,8 @@ import java.util.Map;
 
 import org.bson.BsonDocument;
 import org.bson.conversions.Bson;
+import org.eclipse.ditto.base.service.config.limits.DefaultLimitsConfig;
+import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.BsonUtil;
 import org.eclipse.ditto.rql.query.SortDirection;
 import org.eclipse.ditto.rql.query.SortOption;
@@ -36,8 +38,6 @@ import org.eclipse.ditto.rql.query.expression.FieldExpressionUtil;
 import org.eclipse.ditto.rql.query.expression.SimpleFieldExpression;
 import org.eclipse.ditto.rql.query.expression.SortFieldExpression;
 import org.eclipse.ditto.rql.query.expression.ThingsFieldExpressionFactory;
-import org.eclipse.ditto.base.service.config.limits.DefaultLimitsConfig;
-import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -103,16 +103,14 @@ public final class MongoQueryTest {
 
     @Test
     public void criteriaIsCorrectlySet() {
-        final MongoQuery query = new MongoQuery(KNOWN_CRIT, knownSortOptions, defaultPageSizeFromConfig,
-                MongoQueryBuilder.DEFAULT_SKIP);
+        final MongoQuery query = new MongoQuery(KNOWN_CRIT, knownSortOptions, defaultPageSizeFromConfig);
 
         assertThat(query.getCriteria()).isEqualTo(KNOWN_CRIT);
     }
 
     @Test
     public void emptySortOptions() {
-        final MongoQuery query = new MongoQuery(KNOWN_CRIT, Collections.emptyList(), defaultPageSizeFromConfig,
-                MongoQueryBuilder.DEFAULT_SKIP);
+        final MongoQuery query = new MongoQuery(KNOWN_CRIT, Collections.emptyList(), defaultPageSizeFromConfig);
 
         assertThat(query.getCriteria()).isEqualTo(KNOWN_CRIT);
         assertThat(query.getSortOptions()).isEmpty();
@@ -121,8 +119,7 @@ public final class MongoQueryTest {
 
     @Test
     public void sortOptionsAreCorrectlySet() {
-        final MongoQuery query = new MongoQuery(KNOWN_CRIT, knownSortOptions, defaultPageSizeFromConfig,
-                MongoQueryBuilder.DEFAULT_SKIP);
+        final MongoQuery query = new MongoQuery(KNOWN_CRIT, knownSortOptions, defaultPageSizeFromConfig);
 
         assertThat(query.getCriteria()).isEqualTo(KNOWN_CRIT);
         assertThat(query.getSortOptions()).isEqualTo(knownSortOptions);

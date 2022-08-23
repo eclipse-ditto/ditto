@@ -27,7 +27,7 @@ import scala.util.{Failure, Success}
   * RQL Parser. Parses options in the RQL "standard" according to https://github.com/persvr/rql with the following EBNF:
   * <pre>
   * Options                    = Option, { ',', Option }
-  * Option                     = Sort | Limit
+  * Option                     = Sort | Cursor | Size
   * Sort                       = "sort", '(', SortProperty, { ',', SortProperty }, ')'
   * SortProperty               = SortOrder, PropertyLiteral
   * SortOrder                  = '+' | '-'
@@ -50,7 +50,7 @@ private class RqlOptionParser(override val input: ParserInput) extends RqlParser
   }
 
   /**
-    * Option                     = Sort | Limit | Cursor | Size
+    * Option                     = Sort | Cursor | Size
     */
   private def Option: Rule1[model.Option] = rule {
     Sort | Cursor | Size
@@ -105,6 +105,7 @@ private class RqlOptionParser(override val input: ParserInput) extends RqlParser
   }
 
   private def CursorString: Rule1[String] = PropertyLiteral
+
 }
 
 /**
@@ -132,4 +133,5 @@ object RqlOptionParser extends OptionParser {
   }
 
   private def rqlOptionsParser(string: String): RqlOptionParser = new RqlOptionParser(ParserInput.apply(string))
+
 }
