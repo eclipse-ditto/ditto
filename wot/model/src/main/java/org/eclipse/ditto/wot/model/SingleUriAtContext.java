@@ -13,7 +13,7 @@
 package org.eclipse.ditto.wot.model;
 
 /**
- * A SingleAtContext is a single String {@link AtContext}.
+ * A SingleAtContext is a single IRI {@link AtContext}.
  *
  * @since 2.4.0
  */
@@ -24,6 +24,8 @@ public interface SingleUriAtContext extends SingleAtContext, IRI {
     SingleUriAtContext W3ORG_2022_WOT_TD_V11 = of("https://www.w3.org/2022/wot/td/v1.1");
 
     SingleUriAtContext W3ORG_NS_TD = of("http://www.w3.org/ns/td");
+
+    SingleUriAtContext DITTO_WOT_EXTENSION = of("https://ditto.eclipseprojects.io/wot/ditto-extension#");
 
     static SingleUriAtContext of(final CharSequence context) {
         if (context instanceof SingleUriAtContext) {

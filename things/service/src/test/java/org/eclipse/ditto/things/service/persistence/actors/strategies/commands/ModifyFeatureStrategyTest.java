@@ -13,22 +13,27 @@
 package org.eclipse.ditto.things.service.persistence.actors.strategies.commands;
 
 import static org.eclipse.ditto.things.model.TestConstants.Thing.THING_V2;
+import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.internal.utils.persistentactors.commands.CommandStrategy;
 import org.eclipse.ditto.things.model.Feature;
 import org.eclipse.ditto.things.model.TestConstants;
 import org.eclipse.ditto.things.model.ThingId;
-import org.eclipse.ditto.internal.utils.persistentactors.commands.CommandStrategy;
 import org.eclipse.ditto.things.model.signals.commands.modify.ModifyFeature;
 import org.eclipse.ditto.things.model.signals.events.FeatureCreated;
 import org.eclipse.ditto.things.model.signals.events.FeatureModified;
 import org.eclipse.ditto.things.service.persistence.actors.ETagTestUtils;
+import org.eclipse.ditto.wot.integration.provider.WotThingDescriptionProvider;
 import org.junit.Before;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Test;
+
+import com.typesafe.config.ConfigFactory;
+
+import akka.actor.ActorSystem;
 
 /**
  * Unit test for {@link ModifyFeatureStrategy}.
@@ -46,12 +51,14 @@ public final class ModifyFeatureStrategyTest extends AbstractCommandStrategyTest
 
     @Before
     public void setUp() {
-        underTest = new ModifyFeatureStrategy();
+        final ActorSystem system = ActorSystem.create("test", ConfigFactory.load("test"));
+        underTest = new ModifyFeatureStrategy(system);
     }
 
     @Test
     public void assertImmutability() {
-        assertInstancesOf(ModifyFeatureStrategy.class, areImmutable());
+        assertInstancesOf(ModifyFeatureStrategy.class, areImmutable(),
+                provided(WotThingDescriptionProvider.class).areAlsoImmutable());
     }
 
     @Test

@@ -111,8 +111,8 @@ public final class ThingCommandStrategies
     }
 
     private void addFeaturesStrategies(final ActorSystem system) {
-        addStrategy(new ModifyFeaturesStrategy());
-        addStrategy(new ModifyFeatureStrategy());
+        addStrategy(new ModifyFeaturesStrategy(system));
+        addStrategy(new ModifyFeatureStrategy(system));
         addStrategy(new RetrieveFeaturesStrategy());
         addStrategy(new RetrieveFeatureStrategy(system));
         addStrategy(new DeleteFeaturesStrategy());

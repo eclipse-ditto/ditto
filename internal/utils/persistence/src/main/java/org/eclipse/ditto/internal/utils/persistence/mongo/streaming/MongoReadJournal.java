@@ -672,10 +672,8 @@ public final class MongoReadJournal {
         final RestartSettings restartSettings = RestartSettings.create(minBackOff,
                         MongoReadJournal.MAX_BACK_OFF_DURATION, randomFactor)
                 .withMaxRestarts(maxRestarts, minBackOff);
-        return RestartSource.onFailuresWithBackoff(restartSettings, () -> {
-                    LOGGER.warn("Ran into failure when listing latest journal entries with tag <{}>.", tag);
-                    return Source.fromPublisher(journal.aggregate(pipeline));
-                }
+        return RestartSource.onFailuresWithBackoff(restartSettings, () ->
+                Source.fromPublisher(journal.aggregate(pipeline))
         );
     }
 

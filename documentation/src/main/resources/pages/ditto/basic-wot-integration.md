@@ -12,16 +12,12 @@ The integration is based on the
 Using this integration, Ditto managed digital twins can be linked to WoT "Thing Models" from which Ditto can create
 WoT "Thing Descriptions" containing the API descriptions of the twins.
 
-{% include warning.html content="As WoT Thing Description version 1.1 was not yet published as \"W3C Recommendation\", 
-    when Ditto `2.4.0` was released, the WoT integration is currently marked as **experimental**.<br/>This means that 
-    aspects of the implementation, the behavior and the **ditto-wot-module** (Java module) are subject to change
-    without the guarantee of being backwards compatible." %}
-
-Because the integration is experimental, it must explicitly be activated via a "feature toggle":  
-In order to activate the WoT integration, configure the following environment variable for all Ditto services:
+The WoT integration is considered stable and therefore active by default starting with Ditto version `3.0.0`.  
+If it should be disabled, it can be deactivated via a "feature toggle":  
+In order to deactivate the WoT integration, configure the following environment variable for all Ditto services:
 
 ```bash
-DITTO_DEVOPS_FEATURE_WOT_INTEGRATION_ENABLED=true
+DITTO_DEVOPS_FEATURE_WOT_INTEGRATION_ENABLED=false
 ```
 
 
@@ -165,24 +161,24 @@ Here we listed some ontologies which you can use in order to provide semantic co
 To describe time related data (e.g. durations, timestamps) you can use: [W3C Time Ontology](https://www.w3.org/TR/owl-time/)  
 ```json
 {
-  "@context": {
+  "@context": [
     "https://www.w3.org/2022/wot/td/v1.1",
     {
       "time": "http://www.w3.org/2006/time#"
     }
-  }
+  ]
 }
 ```
 
 To describe geolocations you can use: [W3C Basic Geo (WGS84 lat/long) Vocabulary](https://www.w3.org/2003/01/geo/):  
 ```json
 {
-  "@context": {
+  "@context": [
     "https://www.w3.org/2022/wot/td/v1.1",
     {
       "geo": "http://www.w3.org/2003/01/geo/wgs84_pos#"
     }
-  }
+  ]
 }
 ```
 
@@ -190,37 +186,37 @@ To describe units you can choose between:
 * [QUDT.org](http://www.qudt.org)  
   ```json
   {
-    "@context": {
+    "@context": [
       "https://www.w3.org/2022/wot/td/v1.1",
       {
         "qudt": "http://qudt.org/schema/qudt/",
         "unit": "http://qudt.org/vocab/unit/",
         "quantitykind": "http://qudt.org/vocab/quantitykind/"
       }
-    }
+    ]
   }
   ```
 * [OM 2: Units of Measure](http://www.ontology-of-units-of-measure.org/page/om-2):  
   ```json
   {
-    "@context": {
+    "@context": [
       "https://www.w3.org/2022/wot/td/v1.1",
       {
         "om2": "http://www.ontology-of-units-of-measure.org/resource/om-2/"
       }
-    }
+    ]
   }
   ```
 
 To describe "assets" you can use: [SAREF](https://ontology.tno.nl/saref/)  
 ```json
 {
-  "@context": {
+  "@context": [
     "https://www.w3.org/2022/wot/td/v1.1",
     {
       "saref": "https://w3id.org/saref#"
     }
-  }
+  ]
 }
 ```
 
@@ -380,9 +376,9 @@ In order to resolve TM placeholders, Ditto applies the following strategy:
       This map may contain static values, but use and JSON type as value (e.g. also a JSON Object), e.g.:
       ```
       FOO = "bar"
-      TM_REQUIRED = [
-        "#/properties/status",
-        "#/actions/toggle"
+      TM_OPTIONAL = [
+        "/properties/status",
+        "/actions/toggle"
       ]
       ```
 
@@ -412,6 +408,82 @@ Function:
 * if any error happens during the skeleton creation (e.g. a Thing Model can't be downloaded or is invalid),
   the Thing is created without the skeleton model, just containing the specified `"definition"`
 
+
+## Ditto WoT Extension Ontology
+
+As WoT is built on JSON-LD, extension of Thing Models (TMs) or Thing Descriptions (TDs) via a custom ontology is possible.  
+Ditto provides such an "WoT extension ontology" in order to provide the option to categorize WoT properties.
+
+The Ditto WoT Extension Ontology can be found here:  
+[https://ditto.eclipseprojects.io/wot/ditto-extension#](https://ditto.eclipseprojects.io/wot/ditto-extension#)
+
+It contains an HTML description of the contained terms of the ontology.
+
+### Ditto WoT Extension: category
+
+The [category](https://ditto.eclipseprojects.io/wot/ditto-extension#category) is a term which can be added in scope of
+WoT TM/TD [Property Affordances](https://www.w3.org/TR/wot-thing-description11/#propertyaffordance).  
+It can be used to apply an optional categorization of the property.
+
+Such a category could, for example, be a categorization of configuration vs. status properties.
+
+In order to use that categorization, you need to enhance your JSON-LD context with the Ditto WoT extension. You can then
+make use of the `"category"` in properties defined in your TM/TD.
+
+Example:
+```json
+{
+  "@context": [
+    "https://www.w3.org/2022/wot/td/v1.1",
+    {
+      "ditto": "https://ditto.eclipseprojects.io/wot/ditto-extension#",
+      "om2": "http://www.ontology-of-units-of-measure.org/resource/om-2/"
+    }
+  ],
+  ...
+  "properties": {
+    "on": {
+      "title": "On",
+      "type": "boolean",
+      "ditto:category": "configuration"
+    },
+    "power-consumption": {
+      "@type": "om2:Power",
+      "title": "Power consumption",
+      "type": "number",
+      "unit": "om2:kilowatt",
+      "ditto:category": "status"
+    }
+  }
+}
+```
+
+The effect of this Ditto `"category"` for properties is the following:
+* for [Things TD generation](#td-generation-for-things) the category will be used as an additional path element in the
+  created `"href"` link of the attribute.
+* for [Feature TD generation](#td-generation-for-features) the category will be used as an additional path element in 
+  the created `"href"` link of the property.
+* for [Thing skeleton generation](#thing-skeleton-generation-upon-thing-creation) the category will be used as a 
+  "grouping JSON object".  
+  All WoT properties with the same category will be placed in either an attribute or a feature property JSON object 
+  having the category name.
+
+Based on the example above, a generated feature JSON would for example look like this:
+```json
+{
+  "definition": [
+    "https://some.domain/some.tm.jsonld"
+  ],
+  "properties": {
+    "configuration": {
+      "on": false
+    },
+    "status": {
+      "power-consumption": 0.0
+    }
+  }
+}
+```
 
 ## Example
 
