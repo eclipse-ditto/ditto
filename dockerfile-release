@@ -45,4 +45,4 @@ RUN set -x \
 USER ditto
 WORKDIR $DITTO_HOME
 ENTRYPOINT ["/usr/bin/tini", "--"]
-CMD ["sh", "-c", "java -jar ${JVM_CMD_ARGS_ENV} /opt/ditto/starter.jar"]
+CMD ["sh", "-c", "exec java -jar ${JVM_CMD_ARGS_ENV} /opt/ditto/starter.jar"]
