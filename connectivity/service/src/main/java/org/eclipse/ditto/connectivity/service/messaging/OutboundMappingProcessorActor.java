@@ -71,6 +71,7 @@ import org.eclipse.ditto.connectivity.service.messaging.monitoring.DefaultConnec
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.logs.InfoProviderFactory;
 import org.eclipse.ditto.connectivity.service.messaging.validation.ConnectionValidator;
 import org.eclipse.ditto.connectivity.service.util.ConnectivityMdcEntryKey;
+import org.eclipse.ditto.edge.service.headers.DittoHeadersValidator;
 import org.eclipse.ditto.internal.models.signalenrichment.SignalEnrichmentFacade;
 import org.eclipse.ditto.internal.utils.akka.controlflow.AbstractGraphActor;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
@@ -113,6 +114,7 @@ import akka.stream.QueueOfferResult;
 import akka.stream.javadsl.Flow;
 import akka.stream.javadsl.Sink;
 import akka.stream.javadsl.Source;
+import com.typesafe.config.Config;
 import scala.PartialFunction;
 import scala.runtime.BoxedUnit;
 
@@ -168,15 +170,15 @@ public final class OutboundMappingProcessorActor
         mappingConfig = connectivityConfig.getMappingConfig();
         final LimitsConfig limitsConfig = connectivityConfig.getLimitsConfig();
 
+
+        final var dittoExtensionConfig = ScopedConfig.dittoExtension(system.settings().config());
         connectionMonitorRegistry = DefaultConnectionMonitorRegistry.fromConfig(connectivityConfig);
         responseDispatchedMonitor = connectionMonitorRegistry.forResponseDispatched(this.connection);
         responseDroppedMonitor = connectionMonitorRegistry.forResponseDropped(this.connection);
         responseMappedMonitor = connectionMonitorRegistry.forResponseMapped(this.connection);
-        signalEnrichmentFacade = ConnectivitySignalEnrichmentProvider.get(system,
-                        ScopedConfig.dittoExtension(system.settings().config()))
-                .getFacade(this.connection.getId());
+        signalEnrichmentFacade = ConnectivitySignalEnrichmentProvider.get(system, dittoExtensionConfig).getFacade(this.connection.getId());
         this.processorPoolSize = determinePoolSize(processorPoolSize, mappingConfig.getMaxPoolSize());
-        toErrorResponseFunction = DittoRuntimeExceptionToErrorResponseFunction.of(limitsConfig.getHeadersMaxSize());
+        toErrorResponseFunction = DittoRuntimeExceptionToErrorResponseFunction.of(DittoHeadersValidator.get(system, dittoExtensionConfig));
     }
 
     /**

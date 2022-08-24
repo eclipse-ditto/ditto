@@ -26,10 +26,8 @@ import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.DittoHeadersBuilder;
-import org.eclipse.ditto.base.model.headers.DittoHeadersSizeChecker;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.signals.Signal;
-import org.eclipse.ditto.base.service.config.limits.LimitsConfig;
 import org.eclipse.ditto.connectivity.api.ExternalMessage;
 import org.eclipse.ditto.connectivity.api.MappedInboundExternalMessage;
 import org.eclipse.ditto.connectivity.model.Connection;
@@ -43,7 +41,9 @@ import org.eclipse.ditto.connectivity.service.mapping.MessageMapperFactory;
 import org.eclipse.ditto.connectivity.service.mapping.MessageMapperRegistry;
 import org.eclipse.ditto.connectivity.service.messaging.mappingoutcome.MappingOutcome;
 import org.eclipse.ditto.connectivity.service.util.ConnectivityMdcEntryKey;
+import org.eclipse.ditto.edge.service.headers.DittoHeadersValidator;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
+import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import org.eclipse.ditto.internal.utils.tracing.DittoTracing;
 import org.eclipse.ditto.protocol.Adaptable;
 import org.eclipse.ditto.protocol.adapter.ProtocolAdapter;
@@ -60,18 +60,18 @@ public final class InboundMappingProcessor
         extends AbstractMappingProcessor<ExternalMessage, MappedInboundExternalMessage> {
 
     private final ProtocolAdapter protocolAdapter;
-    private final DittoHeadersSizeChecker dittoHeadersSizeChecker;
+    private final DittoHeadersValidator dittoHeadersSizeValidator;
 
     private InboundMappingProcessor(final ConnectionId connectionId,
             final ConnectionType connectionType,
             final MessageMapperRegistry registry,
             final ThreadSafeDittoLoggingAdapter logger,
             final ProtocolAdapter protocolAdapter,
-            final DittoHeadersSizeChecker dittoHeadersSizeChecker) {
+            final DittoHeadersValidator dittoHeadersValidator) {
 
         super(registry, logger, connectionId, connectionType);
         this.protocolAdapter = protocolAdapter;
-        this.dittoHeadersSizeChecker = dittoHeadersSizeChecker;
+        this.dittoHeadersSizeValidator = dittoHeadersValidator;
     }
 
     /**
@@ -104,19 +104,18 @@ public final class InboundMappingProcessor
         final MessageMapperRegistry registry =
                 messageMapperFactory.registryOf(DittoMessageMapper.CONTEXT, mappingDefinition);
 
-        final LimitsConfig limitsConfig = connectivityConfig.getLimitsConfig();
-        final DittoHeadersSizeChecker dittoHeadersSizeChecker =
-                DittoHeadersSizeChecker.of(limitsConfig.getHeadersMaxSize(), limitsConfig.getAuthSubjectsMaxCount());
+        final var dittoHeadersValidator = DittoHeadersValidator.get(actorSystem,
+                ScopedConfig.dittoExtension(actorSystem.settings().config()));
 
-        return of(connection, registry, loggerWithConnectionId, protocolAdapter, dittoHeadersSizeChecker);
+        return of(connection, registry, loggerWithConnectionId, protocolAdapter, dittoHeadersValidator);
     }
 
     static InboundMappingProcessor of(final Connection connection,
             final MessageMapperRegistry registry, final ThreadSafeDittoLoggingAdapter logger,
-            final ProtocolAdapter adapter, final DittoHeadersSizeChecker sizeChecker) {
+            final ProtocolAdapter adapter, final DittoHeadersValidator dittoHeadersValidator) {
         final var connectionId = connection.getId();
         final var connectionType = connection.getConnectionType();
-        return new InboundMappingProcessor(connectionId, connectionType, registry, logger, adapter, sizeChecker);
+        return new InboundMappingProcessor(connectionId, connectionType, registry, logger, adapter, dittoHeadersValidator);
     }
 
     /**
@@ -161,7 +160,7 @@ public final class InboundMappingProcessor
                             final Signal<?> signal =
                                     timer.inboundProtocol(() -> protocolAdapter.fromAdaptable(adaptable));
                             final DittoHeaders dittoHeaders = signal.getDittoHeaders();
-                            dittoHeadersSizeChecker.check(dittoHeaders);
+                            dittoHeadersSizeValidator.validate(dittoHeaders);
                             final DittoHeaders headersWithMapper = dittoHeaders.toBuilder()
                                     .inboundPayloadMapper(mapper.getId())
                                     .putHeaders(additionalInboundHeaders)

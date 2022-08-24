@@ -15,15 +15,12 @@ package org.eclipse.ditto.gateway.service.starter;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Supplier;
 
-import org.eclipse.ditto.base.model.headers.DittoHeadersSizeChecker;
 import org.eclipse.ditto.base.model.headers.translator.HeaderTranslator;
 import org.eclipse.ditto.base.service.RootChildActorStarter;
 import org.eclipse.ditto.base.service.actors.DittoRootActor;
-import org.eclipse.ditto.base.service.config.limits.LimitsConfig;
 import org.eclipse.ditto.edge.service.dispatching.EdgeCommandForwarderActor;
 import org.eclipse.ditto.edge.service.dispatching.ShardRegions;
-import org.eclipse.ditto.base.service.signaltransformer.SignalTransformer;
-import org.eclipse.ditto.base.service.signaltransformer.SignalTransformers;
+import org.eclipse.ditto.edge.service.headers.DittoHeadersValidator;
 import org.eclipse.ditto.gateway.service.endpoints.directives.auth.DevopsAuthenticationDirective;
 import org.eclipse.ditto.gateway.service.endpoints.directives.auth.DevopsAuthenticationDirectiveFactory;
 import org.eclipse.ditto.gateway.service.endpoints.directives.auth.GatewayAuthenticationDirectiveFactory;
@@ -72,8 +69,6 @@ import org.eclipse.ditto.internal.utils.http.HttpClientFacade;
 import org.eclipse.ditto.internal.utils.protocol.ProtocolAdapterProvider;
 import org.eclipse.ditto.internal.utils.pubsubthings.DittoProtocolSub;
 
-import com.typesafe.config.Config;
-
 import akka.actor.ActorRef;
 import akka.actor.ActorRefFactory;
 import akka.actor.ActorSelection;
@@ -87,6 +82,7 @@ import akka.http.javadsl.server.Route;
 import akka.japi.pf.ReceiveBuilder;
 import akka.stream.Materializer;
 import akka.stream.SystemMaterializer;
+import com.typesafe.config.Config;
 
 /**
  * The Root Actor of the API Gateway's Akka ActorSystem.
@@ -230,9 +226,7 @@ public final class GatewayRootActor extends DittoRootActor {
         final StatusAndHealthProvider statusAndHealthProvider =
                 DittoStatusAndHealthProviderFactory.of(actorSystem, clusterStateSupplier, healthCheckConfig);
 
-        final LimitsConfig limitsConfig = gatewayConfig.getLimitsConfig();
-        final DittoHeadersSizeChecker dittoHeadersSizeChecker =
-                DittoHeadersSizeChecker.of(limitsConfig.getHeadersMaxSize(), limitsConfig.getAuthSubjectsMaxCount());
+        final var dittoHeadersValidator = DittoHeadersValidator.get(actorSystem, dittoExtensionConfig);
 
         final HttpConfig httpConfig = gatewayConfig.getHttpConfig();
 
@@ -282,7 +276,7 @@ public final class GatewayRootActor extends DittoRootActor {
                         authenticationDirectiveFactory.buildHttpAuthentication(jwtAuthenticationFactory))
                 .wsAuthenticationDirective(
                         authenticationDirectiveFactory.buildWsAuthentication(jwtAuthenticationFactory))
-                .dittoHeadersSizeChecker(dittoHeadersSizeChecker)
+                .dittoHeadersValidator(dittoHeadersValidator)
                 .customApiRoutesProvider(customApiRoutesProvider, routeBaseProperties)
                 .build();
     }

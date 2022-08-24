@@ -27,7 +27,6 @@ import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
-import org.assertj.core.api.AutoCloseableSoftAssertions;
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.auth.AuthorizationModelFactory;
 import org.eclipse.ditto.base.model.auth.DittoAuthorizationContextType;
@@ -55,7 +54,9 @@ import org.eclipse.ditto.connectivity.model.SourceBuilder;
 import org.eclipse.ditto.connectivity.model.Target;
 import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.mapping.DefaultConnectivitySignalEnrichmentProvider;
+import org.eclipse.ditto.edge.service.headers.DittoHeadersValidator;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
+import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import org.eclipse.ditto.internal.utils.protocol.ProtocolAdapterProvider;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
@@ -70,13 +71,6 @@ import org.eclipse.ditto.things.model.signals.commands.ThingErrorResponse;
 import org.eclipse.ditto.things.model.signals.commands.modify.ModifyAttribute;
 import org.eclipse.ditto.things.model.signals.commands.modify.ModifyAttributeResponse;
 import org.eclipse.ditto.utils.jsr305.annotations.AllParametersAndReturnValuesAreNonnullByDefault;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Rule;
-import org.mockito.Mockito;
-
-import com.typesafe.config.ConfigFactory;
-import com.typesafe.config.ConfigValueFactory;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSelection;
@@ -88,6 +82,12 @@ import akka.stream.OverflowStrategy;
 import akka.stream.scaladsl.Source;
 import akka.testkit.TestProbe;
 import akka.testkit.javadsl.TestKit;
+import com.typesafe.config.ConfigValueFactory;
+import org.assertj.core.api.AutoCloseableSoftAssertions;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Rule;
+import org.mockito.Mockito;
 
 /**
  * Abstract class to setup the infrastructure to test MessageMappingProcessorActor.
@@ -356,6 +356,7 @@ public abstract class AbstractMessageMappingProcessorActorTest {
                 protocolAdapter,
                 logger
         );
+        final var config = actorSystem.settings().config();
         final var inboundDispatchingSink = InboundDispatchingSink.createSink(CONNECTION,
                 protocolAdapter.headerTranslator(),
                 ActorSelection.apply(proxyActor, ""),
@@ -363,7 +364,8 @@ public abstract class AbstractMessageMappingProcessorActorTest {
                 outboundMappingProcessorActor,
                 testKit.getRef(),
                 actorSystem,
-                ConnectivityConfig.of(actorSystem.settings().config()),
+                ConnectivityConfig.of(config),
+                DittoHeadersValidator.get(actorSystem, ScopedConfig.dittoExtension(config)),
                 null);
 
         final var inboundMappingSink = InboundMappingSink.createSink(

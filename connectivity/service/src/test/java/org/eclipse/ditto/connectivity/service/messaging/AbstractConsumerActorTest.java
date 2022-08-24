@@ -35,20 +35,13 @@ import org.eclipse.ditto.connectivity.model.PayloadMapping;
 import org.eclipse.ditto.connectivity.model.PayloadMappingDefinition;
 import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.mapping.DittoMessageMapper;
+import org.eclipse.ditto.edge.service.headers.DittoHeadersValidator;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
+import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import org.eclipse.ditto.internal.utils.protocol.ProtocolAdapterProvider;
 import org.eclipse.ditto.placeholders.UnresolvedPlaceholderException;
 import org.eclipse.ditto.protocol.adapter.ProtocolAdapter;
 import org.eclipse.ditto.things.model.signals.commands.modify.ModifyThing;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TestName;
-import org.mockito.Mockito;
-
-import com.typesafe.config.Config;
-import com.typesafe.config.ConfigFactory;
 
 import akka.NotUsed;
 import akka.actor.ActorRef;
@@ -58,6 +51,14 @@ import akka.actor.Props;
 import akka.stream.javadsl.Sink;
 import akka.testkit.TestProbe;
 import akka.testkit.javadsl.TestKit;
+import com.typesafe.config.Config;
+import com.typesafe.config.ConfigFactory;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.TestName;
+import org.mockito.Mockito;
 import scala.concurrent.duration.FiniteDuration;
 
 public abstract class AbstractConsumerActorTest<M> {
@@ -257,6 +258,7 @@ public abstract class AbstractConsumerActorTest<M> {
         final ActorRef outboundProcessorActor = actorSystem.actorOf(props,
                 OutboundMappingProcessorActor.ACTOR_NAME + "-" + name.getMethodName());
 
+        final var config = actorSystem.settings().config();
         final Sink<Object, NotUsed> inboundDispatchingSink = InboundDispatchingSink.createSink(CONNECTION,
                 protocolAdapter.headerTranslator(),
                 ActorSelection.apply(proxyActor, ""),
@@ -264,7 +266,8 @@ public abstract class AbstractConsumerActorTest<M> {
                 outboundProcessorActor,
                 TestProbe.apply(actorSystem).ref(),
                 actorSystem,
-                ConnectivityConfig.of(actorSystem.settings().config()),
+                ConnectivityConfig.of(config),
+                DittoHeadersValidator.get(actorSystem, ScopedConfig.dittoExtension(config)),
                 null);
 
         return InboundMappingSink.createSink(List.of(inboundMappingProcessor),

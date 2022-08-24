@@ -28,9 +28,9 @@ import java.util.stream.IntStream;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.base.model.headers.DittoHeadersSizeChecker;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.signals.commands.CommandHeaderInvalidException;
+import org.eclipse.ditto.edge.service.headers.DittoHeadersValidator;
 import org.eclipse.ditto.gateway.api.GatewayDuplicateHeaderException;
 import org.eclipse.ditto.gateway.service.endpoints.EndpointTestBase;
 import org.eclipse.ditto.gateway.service.endpoints.EndpointTestConstants;
@@ -61,8 +61,6 @@ import org.eclipse.ditto.internal.utils.protocol.ProtocolAdapterProvider;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.things.model.ThingIdInvalidException;
 
-import com.typesafe.config.ConfigFactory;
-
 import akka.actor.ActorSystem;
 import akka.http.javadsl.model.HttpRequest;
 import akka.http.javadsl.model.StatusCodes;
@@ -71,6 +69,7 @@ import akka.http.javadsl.model.headers.RawHeader;
 import akka.http.javadsl.testkit.TestRoute;
 import akka.http.javadsl.testkit.TestRouteResult;
 import akka.stream.SystemMaterializer;
+import com.typesafe.config.ConfigFactory;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -174,7 +173,8 @@ public final class RootRouteTest extends EndpointTestBase {
                         authenticationDirectiveFactory.buildHttpAuthentication(jwtAuthenticationFactory))
                 .wsAuthenticationDirective(
                         authenticationDirectiveFactory.buildWsAuthentication(jwtAuthenticationFactory))
-                .dittoHeadersSizeChecker(DittoHeadersSizeChecker.of(4096, 100))
+                .dittoHeadersValidator(
+                        DittoHeadersValidator.get(routeBaseProperties.getActorSystem(), dittoExtensionConfig))
                 .customApiRoutesProvider(
                         CustomApiRoutesProvider.get(routeBaseProperties.getActorSystem(), dittoExtensionConfig),
                         routeBaseProperties)

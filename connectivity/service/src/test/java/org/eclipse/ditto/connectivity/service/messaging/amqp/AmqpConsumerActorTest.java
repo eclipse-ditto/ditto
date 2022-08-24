@@ -43,14 +43,6 @@ import javax.jms.JMSRuntimeException;
 import javax.jms.MessageConsumer;
 import javax.jms.MessageListener;
 
-import org.apache.qpid.jms.JmsAcknowledgeCallback;
-import org.apache.qpid.jms.message.JmsMessage;
-import org.apache.qpid.jms.message.JmsMessageSupport;
-import org.apache.qpid.jms.provider.amqp.AmqpConnection;
-import org.apache.qpid.jms.provider.amqp.message.AmqpJmsTextMessageFacade;
-import org.apache.qpid.jms.provider.exceptions.ProviderSecurityException;
-import org.apache.qpid.proton.amqp.Symbol;
-import org.awaitility.Awaitility;
 import org.eclipse.ditto.base.model.acks.AcknowledgementRequest;
 import org.eclipse.ditto.base.model.acks.FilteredAcknowledgementRequest;
 import org.eclipse.ditto.base.model.common.ResponseType;
@@ -78,16 +70,15 @@ import org.eclipse.ditto.connectivity.service.messaging.TestConstants;
 import org.eclipse.ditto.connectivity.service.messaging.amqp.status.ConsumerClosedStatusReport;
 import org.eclipse.ditto.connectivity.service.messaging.internal.ConnectionFailure;
 import org.eclipse.ditto.connectivity.service.messaging.internal.RetrieveAddressStatus;
+import org.eclipse.ditto.edge.service.headers.DittoHeadersValidator;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
+import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.protocol.adapter.ProtocolAdapter;
 import org.eclipse.ditto.things.model.signals.commands.modify.ModifyAttribute;
 import org.eclipse.ditto.things.model.signals.commands.modify.ModifyFeatureProperty;
 import org.eclipse.ditto.things.model.signals.commands.modify.ModifyThing;
-import org.hamcrest.Matchers;
-import org.junit.Test;
-import org.mockito.Mockito;
 
 import akka.NotUsed;
 import akka.actor.ActorRef;
@@ -97,6 +88,17 @@ import akka.actor.Props;
 import akka.stream.javadsl.Sink;
 import akka.testkit.TestProbe;
 import akka.testkit.javadsl.TestKit;
+import org.apache.qpid.jms.JmsAcknowledgeCallback;
+import org.apache.qpid.jms.message.JmsMessage;
+import org.apache.qpid.jms.message.JmsMessageSupport;
+import org.apache.qpid.jms.provider.amqp.AmqpConnection;
+import org.apache.qpid.jms.provider.amqp.message.AmqpJmsTextMessageFacade;
+import org.apache.qpid.jms.provider.exceptions.ProviderSecurityException;
+import org.apache.qpid.proton.amqp.Symbol;
+import org.awaitility.Awaitility;
+import org.hamcrest.Matchers;
+import org.junit.Test;
+import org.mockito.Mockito;
 
 /**
  * Tests the AMQP {@link AmqpConsumerActor}.
@@ -320,6 +322,7 @@ public final class AmqpConsumerActorTest extends AbstractConsumerActorWithAcknow
                 AbstractConsumerActorTest.actorSystem,
                 protocolAdapter,
                 logger);
+        final var config = actorSystem.settings().config();
         final var inboundDispatchingSink = InboundDispatchingSink.createSink(CONNECTION,
                 protocolAdapter.headerTranslator(),
                 ActorSelection.apply(testRef, ""),
@@ -327,7 +330,8 @@ public final class AmqpConsumerActorTest extends AbstractConsumerActorWithAcknow
                 testRef,
                 TestProbe.apply(actorSystem).ref(),
                 actorSystem,
-                ConnectivityConfig.of(actorSystem.settings().config()),
+                ConnectivityConfig.of(config),
+                DittoHeadersValidator.get(actorSystem, ScopedConfig.dittoExtension(config)),
                 null);
 
         return InboundMappingSink.createSink(List.of(inboundMappingProcessor),
