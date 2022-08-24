@@ -16,10 +16,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
+import org.eclipse.ditto.base.model.entity.metadata.Metadata;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.signals.events.FeatureDefinitionDeleted;
-import org.junit.Ignore;
 import org.junit.Test;
 
 /**
@@ -38,10 +39,24 @@ public final class FeatureDefinitionDeletedStrategyTest extends AbstractStrategy
         final FeatureDefinitionDeleted event =
                 FeatureDefinitionDeleted.of(THING_ID, FEATURE_ID, REVISION, TIMESTAMP, DittoHeaders.empty(), null);
 
+        final Metadata thingMetadata = Metadata.newBuilder()
+                .set("features", JsonObject.newBuilder()
+                        .set(FEATURE_ID, JsonObject.newBuilder()
+                                .set("definition", JsonObject.newBuilder()
+                                        .set(FEATURE_DEFINITION_ID, METADATA)
+                                        .build())
+                                .set("properties", JsonObject.newBuilder()
+                                        .set(FEATURE_PROPERTY_POINTER, METADATA)
+                                        .build())
+                                .build())
+                        .build())
+                .build();
+
         final Thing thingWithFeatureWithDefinition = THING.toBuilder()
                 .setFeature(FEATURE.toBuilder()
                         .definition(FEATURE_DEFINITION)
                         .build())
+                .setMetadata(thingMetadata)
                 .build();
         final Thing thingWithEventApplied = strategy.handle(event, thingWithFeatureWithDefinition,
                 NEXT_REVISION);
@@ -50,7 +65,9 @@ public final class FeatureDefinitionDeletedStrategyTest extends AbstractStrategy
                 .setFeature(FEATURE)
                 .setRevision(NEXT_REVISION)
                 .setModified(TIMESTAMP)
+                .setMetadata(thingMetadata.toBuilder().remove("features/" + FEATURE_ID + "/definition").build())
                 .build();
+
         assertThat(thingWithEventApplied).isEqualTo(expected);
     }
 

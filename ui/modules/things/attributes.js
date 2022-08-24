@@ -42,7 +42,7 @@ export function ready() {
   dom.deleteAttribute.onclick = clickAttribute('DELETE');
 
   Things.addChangeListener(updateAttributesTable);
-};
+}
 
 /**
  * Creates a onclick handler function
@@ -60,7 +60,7 @@ function clickAttribute(method) {
         method === 'PUT' ? attributeFromString(dom.attributeValue.value) : null,
     ).then(() => Things.refreshThing(Things.theThing.thingId));
   };
-};
+}
 
 /**
  * Updates UI compoents for attributes
@@ -74,18 +74,18 @@ function updateAttributesTable() {
       if (path === dom.attributePath.value) {
         dom.attributeValue.value = attributeToString(Things.theThing.attributes[path]);
         thingHasAttribute = true;
-      };
+      }
       Utils.addTableRow(dom.attributesTable, path, path === dom.attributePath.value, false,
           attributeToString(Things.theThing.attributes[path]));
       count++;
     });
-  };
+  }
   dom.attributeCount.innerText = count > 0 ? count : '';
   if (!thingHasAttribute) {
     dom.attributePath.value = null;
     dom.attributeValue.value = null;
-  };
-};
+  }
+}
 
 /**
  * checks if the attribute is an array or json and returns a parsed string

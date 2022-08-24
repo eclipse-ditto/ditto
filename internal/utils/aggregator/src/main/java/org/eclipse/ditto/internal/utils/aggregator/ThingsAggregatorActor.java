@@ -147,6 +147,7 @@ public final class ThingsAggregatorActor extends AbstractActor {
                                 .map(sf -> SudoRetrieveThing.of(thingId, sf, dittoHeaders))
                                 .orElse(SudoRetrieveThing.of(thingId, dittoHeaders));
                     }
+                    log.withCorrelationId(dittoHeaders).info("Retrieving thing with ID <{}>", thingId);
                     return retrieveThing;
                 })
                 .ask(calculateParallelism(thingIds), targetActor, Jsonifiable.class,

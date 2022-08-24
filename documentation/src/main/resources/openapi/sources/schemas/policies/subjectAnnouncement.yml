@@ -34,6 +34,13 @@ properties:
     example:
       labels: ["my-connection-id:my-issued-acknowledgement"]
       timeout: "5s"
+  randomizationInterval:
+    type: string
+    minimum: "0ms"
+    maximum: "999_999_999s"
+    default: "5m"
+    description: Interval in which the announcement can be sent earlier in effort to prevent announcement peaks. If omitted, the default value will be applied. If set to minimum, no randomization will be applied.
 example:
   beforeExpiry: "5m"
   whenDeleted: true
+  randomizationInterval: "5m"

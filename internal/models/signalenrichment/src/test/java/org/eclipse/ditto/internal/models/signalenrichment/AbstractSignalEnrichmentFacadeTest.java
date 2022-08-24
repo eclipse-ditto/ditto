@@ -19,6 +19,7 @@ import java.time.Instant;
 import java.util.UUID;
 import java.util.concurrent.CompletionStage;
 
+import org.eclipse.ditto.base.model.entity.metadata.MetadataModelFactory;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.signals.DittoTestSystem;
 import org.eclipse.ditto.json.JsonFieldSelector;
@@ -42,7 +43,7 @@ import akka.testkit.javadsl.TestKit;
 abstract class AbstractSignalEnrichmentFacadeTest {
 
     protected static final JsonFieldSelector SELECTOR =
-            JsonFieldSelector.newInstance("policyId", "attributes/x", "features/y/properties/z");
+            JsonFieldSelector.newInstance("policyId", "attributes/x", "features/y/properties/z", "_metadata");
 
     protected static final String RESULT_POLICY_ID = "policy:id";
     protected static final AttributeModified THING_EVENT = AttributeModified.of(ThingId.generateRandom(),
@@ -51,7 +52,9 @@ abstract class AbstractSignalEnrichmentFacadeTest {
             3L,
             Instant.EPOCH,
             DittoHeaders.empty(),
-            null);
+            MetadataModelFactory.newMetadataBuilder()
+                    .set("type", "x attribute")
+                    .build());
 
     @Test
     public void success() {

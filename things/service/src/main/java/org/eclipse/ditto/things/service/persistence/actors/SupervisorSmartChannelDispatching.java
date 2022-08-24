@@ -31,7 +31,7 @@ import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.commands.ErrorResponse;
 import org.eclipse.ditto.base.model.signals.commands.exceptions.CommandTimeoutException;
 import org.eclipse.ditto.internal.models.signal.CommandHeaderRestoration;
-import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
+import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.internal.utils.persistentactors.TargetActorWithMessage;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommand;
 import org.eclipse.ditto.things.model.signals.commands.query.ThingQueryCommand;
@@ -51,11 +51,11 @@ final class SupervisorSmartChannelDispatching {
     private static final Duration DEFAULT_LIVE_TIMEOUT = Duration.ofSeconds(60L);
     private static final Duration DEFAULT_LOCAL_ASK_TIMEOUT = Duration.ofSeconds(5);
 
-    private final DittoDiagnosticLoggingAdapter log;
+    private final ThreadSafeDittoLoggingAdapter log;
     private final ActorSelection thingsPersistenceActor;
     private final SupervisorLiveChannelDispatching liveChannelDispatching;
 
-    SupervisorSmartChannelDispatching(final DittoDiagnosticLoggingAdapter log,
+    SupervisorSmartChannelDispatching(final ThreadSafeDittoLoggingAdapter log,
             final ActorSelection thingsPersistenceActor,
             final SupervisorLiveChannelDispatching liveChannelDispatching) {
         this.log = log;

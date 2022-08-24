@@ -266,7 +266,7 @@ public final class MongoReadJournalIT {
         final List<String> pids =
                 readJournal.getLatestJournalEntries(2, Duration.ZERO, materializer)
                         .filter(document -> Optional.ofNullable(
-                                document.getString(MongoReadJournal.J_EVENT_MANIFEST))
+                                        document.getString(MongoReadJournal.J_EVENT_MANIFEST))
                                 .map(manifest -> !"deletedEvent".equals(manifest))
                                 .orElse(false))
                         .map(document -> document.getString(MongoReadJournal.J_EVENT_PID))
@@ -286,7 +286,7 @@ public final class MongoReadJournalIT {
         insert("test_journal", new JournalEntry("pid4").withSn(2L).withTags(tagged).getDocument());
 
         final List<String> pids =
-                readJournal.getJournalPidsWithTag("always-live", 2, Duration.ZERO, materializer)
+                readJournal.getJournalPidsWithTag("always-live", 2, Duration.ZERO, materializer, true)
                         .runWith(Sink.seq(), materializer)
                         .toCompletableFuture().join();
 
@@ -331,6 +331,56 @@ public final class MongoReadJournalIT {
                         .toCompletableFuture().join();
 
         assertThat(pids).containsExactly("pid4", "pid3", "pid2", "pid1");
+    }
+
+    @Test
+    public void extractJournalPidsInOrderOfTagsOfNewestEventWhenNewestDoesNotContainTagAnymoreConsideringOnlyLatest() {
+        final List<String> pids = findPidsWithTestTagWithDifferentConsiderOnlyLatest(true);
+        assertThat(pids).containsExactly("pid2", "pid3");
+    }
+
+    @Test
+    public void extractJournalPidsInOrderOfTagsOfNewestEventWhenNewestDoesNotContainTagAnymore() {
+        final List<String> pids = findPidsWithTestTagWithDifferentConsiderOnlyLatest(false);
+        assertThat(pids).containsExactly("pid1", "pid2", "pid3");
+    }
+
+    private List<String> findPidsWithTestTagWithDifferentConsiderOnlyLatest(final boolean considerOnlyLatest) {
+        insert("test_journal",
+                new JournalEntry("pid1").withSn(1L).withTags(Set.of("test")).getDocument());
+        insert("test_journal",
+                new JournalEntry("pid1").withSn(2L).withTags(Set.of()).getDocument());
+        insert("test_journal",
+                new JournalEntry("pid2").withSn(1L).withTags(Set.of("test")).getDocument());
+        insert("test_journal",
+                new JournalEntry("pid3").withSn(2L).withTags(Set.of("test")).getDocument());
+        insert("test_journal",
+                new JournalEntry("pid4").withSn(2L).withTags(Set.of()).getDocument());
+
+        return readJournal.getJournalPidsWithTag("test", 5, Duration.ZERO, materializer, considerOnlyLatest)
+                        .runWith(Sink.seq(), materializer)
+                        .toCompletableFuture().join();
+    }
+
+    @Test
+    public void extractJournalPidsInOrderOfTagsOfNewestEventWhenNewestDoesNotContainTagAnymorAndBatchCanReturnFullyEmptyList() {
+        insert("test_journal",
+                new JournalEntry("pid1").withSn(1L).withTags(Set.of("test")).getDocument());
+        insert("test_journal",
+                new JournalEntry("pid1").withSn(2L).withTags(Set.of()).getDocument());
+        insert("test_journal",
+                new JournalEntry("pid2").withSn(1L).withTags(Set.of("test")).getDocument());
+        insert("test_journal",
+                new JournalEntry("pid3").withSn(2L).withTags(Set.of("test")).getDocument());
+        insert("test_journal",
+                new JournalEntry("pid4").withSn(2L).withTags(Set.of()).getDocument());
+
+        final List<String> pids =
+                readJournal.getJournalPidsWithTag("test", 2, Duration.ZERO, materializer, true)
+                        .runWith(Sink.seq(), materializer)
+                        .toCompletableFuture().join();
+
+        assertThat(pids).containsExactly("pid2", "pid3");
     }
 
     @Test
@@ -396,8 +446,8 @@ public final class MongoReadJournalIT {
         insert("test_journal", new JournalEntry("pid2").withSn(2L).getDocument());
 
         final List<Optional<Long>> lowestSeqNrs = Stream.of(readJournal.getSmallestEventSeqNo("pid1"),
-                readJournal.getSmallestEventSeqNo("pid2"),
-                readJournal.getSmallestEventSeqNo("pid3"))
+                        readJournal.getSmallestEventSeqNo("pid2"),
+                        readJournal.getSmallestEventSeqNo("pid3"))
                 .flatMap(source -> source.runWith(Sink.seq(), materializer).toCompletableFuture().join().stream())
                 .toList();
 
@@ -412,8 +462,8 @@ public final class MongoReadJournalIT {
         insert("test_journal", new JournalEntry("pid3").withSn(2L).getDocument());
 
         final List<Long> lowestSeqNrs = Stream.of(readJournal.deleteEvents("pid1", 0, 1),
-                readJournal.deleteEvents("pid2", 0, 1),
-                readJournal.deleteEvents("pid3", 0, 1))
+                        readJournal.deleteEvents("pid2", 0, 1),
+                        readJournal.deleteEvents("pid3", 0, 1))
                 .flatMap(source -> source.runWith(Sink.seq(), materializer).toCompletableFuture().join().stream())
                 .map(DeleteResult::getDeletedCount)
                 .toList();
@@ -440,8 +490,8 @@ public final class MongoReadJournalIT {
         );
 
         final List<Optional<Long>> lowestSeqNrs = Stream.of(readJournal.getSmallestSnapshotSeqNo("pid1"),
-                readJournal.getSmallestSnapshotSeqNo("pid2"),
-                readJournal.getSmallestSnapshotSeqNo("pid3"))
+                        readJournal.getSmallestSnapshotSeqNo("pid2"),
+                        readJournal.getSmallestSnapshotSeqNo("pid3"))
                 .flatMap(source -> source.runWith(Sink.seq(), materializer).toCompletableFuture().join().stream())
                 .toList();
 
@@ -472,8 +522,8 @@ public final class MongoReadJournalIT {
         );
 
         final List<Long> lowestSeqNrs = Stream.of(readJournal.deleteSnapshots("pid1", 0, 1),
-                readJournal.deleteSnapshots("pid2", 0, 1),
-                readJournal.deleteSnapshots("pid3", 0, 1))
+                        readJournal.deleteSnapshots("pid2", 0, 1),
+                        readJournal.deleteSnapshots("pid3", 0, 1))
                 .flatMap(source -> source.runWith(Sink.seq(), materializer).toCompletableFuture().join().stream())
                 .map(DeleteResult::getDeletedCount)
                 .toList();

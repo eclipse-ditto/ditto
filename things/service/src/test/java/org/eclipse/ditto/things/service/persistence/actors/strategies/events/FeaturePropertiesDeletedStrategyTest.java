@@ -18,13 +18,12 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 
 import java.time.Instant;
 
-import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.base.model.entity.metadata.Metadata;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.signals.events.FeaturePropertiesDeleted;
-import org.junit.Ignore;
 import org.junit.Test;
 
 /**
@@ -57,6 +56,7 @@ public final class FeaturePropertiesDeletedStrategyTest extends AbstractStrategy
                 .setRevision(NEXT_REVISION)
                 .setModified(timestamp)
                 .build();
+
         assertThat(thingWithEventApplied).isEqualTo(expected);
     }
 
@@ -68,8 +68,7 @@ public final class FeaturePropertiesDeletedStrategyTest extends AbstractStrategy
                 timestamp, DittoHeaders.empty(), null);
 
         final Metadata existingMetadata = Metadata.newMetadata(JsonObject.newBuilder()
-                .set(JsonPointer.of(String.format("features/%s/properties", FEATURE_ID)),
-                        JsonObject.of("{\"expired\":true}"))
+                .set(JsonPointer.of(String.format("features/%s/", FEATURE_ID)), JsonObject.empty())
                 .set(JsonPointer.of("attributes/additives"), JsonObject.of("{\"E104\":true}"))
                 .build());
         final Thing thingWithFeatureWithProperties = THING.toBuilder()
@@ -84,9 +83,10 @@ public final class FeaturePropertiesDeletedStrategyTest extends AbstractStrategy
         final Thing expected = THING.toBuilder()
                 .setFeature(FEATURE)
                 .setRevision(NEXT_REVISION)
-                .setMetadata(existingMetadata)
                 .setModified(timestamp)
+                .setMetadata(existingMetadata)
                 .build();
+
         assertThat(thingWithEventApplied).isEqualTo(expected);
     }
 

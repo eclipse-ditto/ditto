@@ -17,8 +17,8 @@ import java.util.Objects;
 
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.internal.models.acks.config.AcknowledgementConfig;
-import org.eclipse.ditto.internal.models.acks.config.DefaultAcknowledgementConfig;
+import org.eclipse.ditto.edge.service.acknowledgements.AcknowledgementConfig;
+import org.eclipse.ditto.edge.service.acknowledgements.config.DefaultAcknowledgementConfig;
 import org.eclipse.ditto.internal.utils.config.ConfigWithFallback;
 import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 

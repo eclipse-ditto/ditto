@@ -23,13 +23,11 @@ import java.util.List;
 import org.bson.BsonArray;
 import org.bson.BsonBoolean;
 import org.bson.BsonDocument;
-import org.bson.BsonInt32;
 import org.bson.BsonValue;
 import org.bson.conversions.Bson;
 import org.eclipse.ditto.rql.query.expression.visitors.ExistsFieldExpressionVisitor;
 import org.junit.Before;
 import org.junit.Test;
-import org.mongodb.scala.model.Filters;
 
 public class GetExistsBsonVisitorTest {
 
@@ -146,6 +144,16 @@ public class GetExistsBsonVisitorTest {
         final Bson filterBson = underTest.visitSimple("_id");
         final BsonDocument document = toBsonDocument(filterBson);
         assertThat(document).isEqualTo(new BsonDocument("_id", EXISTS));
+    }
+
+    @Test
+    public void testMetadata() {
+        final Bson filterBson = underTest.visitMetadata("m1");
+        final BsonDocument document = toBsonDocument(filterBson);
+        final BsonValue existsFilter = document.getArray(AND).get(0);
+        final BsonValue authFilter = document.getArray(AND).get(1);
+        assertThat(existsFilter).isEqualTo(new BsonDocument("t._metadata.m1", EXISTS));
+        assertAuthFilter(authFilter, List.of("subject1", "subject2"), "_metadata.m1", "_metadata", "");
     }
 
 }

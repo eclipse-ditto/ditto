@@ -18,7 +18,7 @@ import java.util.Collection;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.service.config.supervision.WithSupervisorConfig;
-import org.eclipse.ditto.internal.models.acks.config.AcknowledgementConfig;
+import org.eclipse.ditto.edge.service.acknowledgements.AcknowledgementConfig;
 import org.eclipse.ditto.internal.utils.config.KnownConfigValue;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.SnapshotConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.WithActivityCheckConfig;
@@ -242,7 +242,7 @@ public interface ConnectionConfig extends WithSupervisorConfig, WithActivityChec
         private final String path;
         private final Object defaultValue;
 
-        private ConnectionConfigValue(final String thePath, final Object theDefaultValue) {
+        ConnectionConfigValue(final String thePath, final Object theDefaultValue) {
             path = thePath;
             defaultValue = theDefaultValue;
         }

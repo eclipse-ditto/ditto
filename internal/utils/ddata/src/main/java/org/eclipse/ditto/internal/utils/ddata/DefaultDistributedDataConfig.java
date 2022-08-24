@@ -34,17 +34,19 @@ public final class DefaultDistributedDataConfig implements DistributedDataConfig
     private final Duration subscriptionDelay;
     private final AkkaReplicatorConfig akkaReplicatorConfig;
     private final int numberOfShards;
+    private final int subscriberPoolSize;
 
     private DefaultDistributedDataConfig(final Config configWithFallback) {
         readTimeout = configWithFallback.getDuration(DistributedDataConfigValue.READ_TIMEOUT.getConfigPath());
         writeTimeout = configWithFallback.getDuration(DistributedDataConfigValue.WRITE_TIMEOUT.getConfigPath());
         akkaReplicatorConfig = DefaultAkkaReplicatorConfig.of(configWithFallback);
         subscriptionWriteConsistency = toWriteConsistency(configWithFallback.getString(
-                DistributedDataConfigValue.SUBSCRIPTION_WRITE_CONSISTENCY.getConfigPath()),
+                        DistributedDataConfigValue.SUBSCRIPTION_WRITE_CONSISTENCY.getConfigPath()),
                 configWithFallback.getDuration(DistributedDataConfigValue.WRITE_TIMEOUT.getConfigPath()));
         subscriptionDelay =
                 configWithFallback.getDuration(DistributedDataConfigValue.SUBSCRIPTION_DELAY.getConfigPath());
         numberOfShards = configWithFallback.getInt(DistributedDataConfigValue.NUMBER_OF_SHARDS.getConfigPath());
+        subscriberPoolSize = configWithFallback.getInt(DistributedDataConfigValue.SUBSCRIBER_POOL_SIZE.getConfigPath());
     }
 
     private DefaultDistributedDataConfig(final Config configWithFallback,
@@ -54,11 +56,12 @@ public final class DefaultDistributedDataConfig implements DistributedDataConfig
         writeTimeout = configWithFallback.getDuration(DistributedDataConfigValue.WRITE_TIMEOUT.getConfigPath());
         akkaReplicatorConfig = DefaultAkkaReplicatorConfig.of(configWithFallback, replicatorName, replicatorRole);
         subscriptionWriteConsistency = toWriteConsistency(configWithFallback.getString(
-                DistributedDataConfigValue.SUBSCRIPTION_WRITE_CONSISTENCY.getConfigPath()),
+                        DistributedDataConfigValue.SUBSCRIPTION_WRITE_CONSISTENCY.getConfigPath()),
                 configWithFallback.getDuration(DistributedDataConfigValue.WRITE_TIMEOUT.getConfigPath()));
         subscriptionDelay =
                 configWithFallback.getDuration(DistributedDataConfigValue.SUBSCRIPTION_DELAY.getConfigPath());
         numberOfShards = configWithFallback.getInt(DistributedDataConfigValue.NUMBER_OF_SHARDS.getConfigPath());
+        subscriberPoolSize = configWithFallback.getInt(DistributedDataConfigValue.SUBSCRIBER_POOL_SIZE.getConfigPath());
     }
 
     /**
@@ -123,6 +126,11 @@ public final class DefaultDistributedDataConfig implements DistributedDataConfig
     }
 
     @Override
+    public int getSubscriberPoolSize() {
+        return subscriberPoolSize;
+    }
+
+    @Override
     public boolean equals(final Object o) {
         if (this == o) {
             return true;
@@ -135,13 +143,14 @@ public final class DefaultDistributedDataConfig implements DistributedDataConfig
                 Objects.equals(writeTimeout, that.writeTimeout) &&
                 Objects.equals(subscriptionWriteConsistency, that.subscriptionWriteConsistency) &&
                 Objects.equals(subscriptionDelay, that.subscriptionDelay) &&
-                Objects.equals(akkaReplicatorConfig, that.akkaReplicatorConfig);
+                Objects.equals(akkaReplicatorConfig, that.akkaReplicatorConfig) &&
+                subscriberPoolSize == that.subscriberPoolSize;
     }
 
     @Override
     public int hashCode() {
         return Objects.hash(readTimeout, writeTimeout, akkaReplicatorConfig, subscriptionWriteConsistency,
-                subscriptionDelay, numberOfShards);
+                subscriptionDelay, numberOfShards, subscriberPoolSize);
     }
 
     @Override
@@ -153,23 +162,17 @@ public final class DefaultDistributedDataConfig implements DistributedDataConfig
                 ", subscriptionDelay" + subscriptionDelay +
                 ", akkaReplicatorConfig=" + akkaReplicatorConfig +
                 ", numberOfShards=" + numberOfShards +
+                ", subscriberPoolSize=" + subscriberPoolSize +
                 "]";
     }
 
     private static Replicator.WriteConsistency toWriteConsistency(final String configuredWriteConsistency,
             final Duration writeTimeout) {
-        final Object writeConsistency;
-        switch (configuredWriteConsistency) {
-            case "local":
-                writeConsistency = Replicator.writeLocal();
-                break;
-            case "majority":
-                writeConsistency = new Replicator.WriteMajority(writeTimeout);
-                break;
-            default: // default is "all"
-                writeConsistency = new Replicator.WriteAll(writeTimeout);
-        }
-        return (Replicator.WriteConsistency) writeConsistency;
+        return switch (configuredWriteConsistency) {
+            case "local" -> (Replicator.WriteConsistency) Replicator.writeLocal();
+            case "majority" -> new Replicator.WriteMajority(writeTimeout);
+            default -> new Replicator.WriteAll(writeTimeout); // default is "all"
+        };
     }
 
 }

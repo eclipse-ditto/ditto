@@ -33,7 +33,7 @@ export function getQueryParameter() {
   }
   const fields = Environments.current().fieldList.filter((f) => f.active).map((f) => f.path);
   return 'fields=thingId' + (fields !== '' ? ',' + fields : '');
-};
+}
 
 
 let bsFieldsModal = null;
@@ -71,10 +71,14 @@ export async function ready() {
   document.getElementById('fieldUpdate').onclick = () => {
     Utils.assert(theFieldIndex >= 0, 'No field selected');
     const selectedField = Environments.current().fieldList[theFieldIndex];
+    const otherFields = Environments.current().fieldList.filter((elem, i) => i != theFieldIndex);
+    const mapped = otherFields.map((field) => field.path);
+    const cond = mapped.includes(selectedField.path);
+    console.log(cond);
     Utils.assert(!Environments.current().fieldList
         .filter((elem, i) => i != theFieldIndex)
         .map((field) => field.path)
-        .includes(selectedField.path), 'Changed field path already exists', dom.fieldPath);
+        .includes(dom.fieldPath.value), 'Changed field path already exists', dom.fieldPath);
 
     selectedField.path = dom.fieldPath.value;
     selectedField.label = dom.fieldLabel.value;
@@ -90,7 +94,7 @@ export async function ready() {
     Environments.current().fieldList.push({
       active: true,
       path: dom.fieldPath.value,
-      label: dom.fieldPath.value.split('/').slice(-1)[0],
+      label: dom.fieldLabel.value ? dom.fieldLabel.value : dom.fieldPath.value.split('/').slice(-1)[0],
     });
     updateFieldList();
   };
@@ -124,7 +128,7 @@ export async function ready() {
     Environments.current().fieldList.splice(theFieldIndex, 0, movedItem);
     updateFieldList();
   };
-};
+}
 
 /**
  * Selects or de-selects the field for editing
@@ -149,9 +153,9 @@ function toggleFieldSelection(fieldIndex) {
 function onEnvironmentChanged() {
   if (!Environments.current()['fieldList']) {
     Environments.current().fieldList = [];
-  };
+  }
   updateFieldList();
-};
+}
 
 /**
  * (Re-)Initializes the fieldlist in the UI
@@ -175,7 +179,7 @@ function updateFieldList() {
     dom.fieldPath.value = null;
     dom.fieldLabel.value = null;
   }
-};
+}
 
 /**
  * Event handler for field active check box
@@ -184,5 +188,5 @@ function updateFieldList() {
 function toggleFieldActiveEventHandler(evt) {
   Environments.current().fieldList[evt.target.id].active = evt.target.checked;
   updateFieldList();
-};
+}
 

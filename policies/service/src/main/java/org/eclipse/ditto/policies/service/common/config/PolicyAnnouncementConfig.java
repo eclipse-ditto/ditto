@@ -50,6 +50,14 @@ public interface PolicyAnnouncementConfig {
     boolean isEnableAnnouncementsWhenDeleted();
 
     /**
+     * Returns the default randomization interval.
+     *
+     * @return the default interval in which an announcement is sent earlier.
+     * @since 3.0.0
+     */
+    Duration getDefaultRandomizationInterval();
+
+    /**
      * Returns the config for the exponential back-off strategy of announcement redelivery.
      *
      * @return the config.
@@ -82,6 +90,11 @@ public interface PolicyAnnouncementConfig {
          * The maximum timeout.
          */
         MAX_TIMEOUT("max-timeout", Duration.ofMinutes(1L)),
+
+        /**
+         * The maximum duration of randomization.
+         */
+        DEFAULT_RANDOMIZATION_INTERVAL("default-randomization-interval", Duration.ofMinutes(5)),
 
         /**
          * Whether when-deleted announcements are enabled.

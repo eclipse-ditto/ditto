@@ -456,6 +456,11 @@
                 <version>${kamon.version}</version>
             </dependency>
             <dependency>
+                <groupId>io.kamon</groupId>
+                <artifactId>kamon-executors_${scala.version}</artifactId>
+                <version>${kamon.version}</version>
+            </dependency>
+            <dependency>
                 <groupId>com.google.guava</groupId>
                 <artifactId>guava</artifactId>
                 <version>${guava.version}</version>
@@ -555,11 +560,6 @@
                 <version>${project.version}</version>
             </dependency>
 
-            <dependency>
-                <groupId>org.eclipse.ditto</groupId>
-                <artifactId>ditto-internal-models-acks</artifactId>
-                <version>${project.version}</version>
-            </dependency>
             <dependency>
                 <groupId>org.eclipse.ditto</groupId>
                 <artifactId>ditto-internal-models-streaming</artifactId>

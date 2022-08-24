@@ -77,11 +77,6 @@
             <artifactId>ditto-internal-utils-pubsub-policies</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-internal-models-acks</artifactId>
-        </dependency>
-
-        <dependency>
             <groupId>com.typesafe.akka</groupId>
             <artifactId>akka-actor_${scala.version}</artifactId>
         </dependency>

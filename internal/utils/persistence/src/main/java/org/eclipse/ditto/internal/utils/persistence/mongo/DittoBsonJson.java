@@ -81,10 +81,10 @@ public final class DittoBsonJson {
      */
     public JsonValue serialize(final BsonValue bsonValue) {
         checkNotNull(bsonValue, "BsonValue to be serialized");
-        if (bsonValue instanceof BsonDocument) {
-            return serialize((BsonDocument) bsonValue);
-        } else if (bsonValue instanceof BsonArray) {
-            return serialize((BsonArray) bsonValue);
+        if (bsonValue instanceof BsonDocument bsonDocument) {
+            return serialize(bsonDocument);
+        } else if (bsonValue instanceof BsonArray bsonArray) {
+            return serialize(bsonArray);
         } else {
             throw new IllegalArgumentException("Can only serialize BsonDocument or BsonArray");
         }

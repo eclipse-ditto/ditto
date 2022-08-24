@@ -235,7 +235,11 @@ public final class RabbitMQClientActor extends BaseClientActor {
     @Override
     protected CompletionStage<Status.Status> startConsumerActors(@Nullable final ClientConnected clientConnected) {
         if (clientConnected instanceof RmqConsumerChannelCreated rmqConsumerChannelCreated) {
-            startCommandConsumers(rmqConsumerChannelCreated.getChannel());
+            try {
+                startCommandConsumers(rmqConsumerChannelCreated.getChannel());
+            } catch (final Exception error) {
+                return CompletableFuture.failedStage(error);
+            }
         }
         return super.startConsumerActors(clientConnected);
     }

@@ -121,7 +121,11 @@
                     <parameter>
                         <excludes>
                             <!-- Don't add excludes here before checking with the whole Ditto team -->
-                            <!--<exclude></exclude>-->
+                            <exclude>org.eclipse.ditto.jwt.model.ImmutableJsonWebKey#getExponent()</exclude>
+                            <exclude>org.eclipse.ditto.jwt.model.ImmutableJsonWebKey#getModulus()</exclude>
+                            <exclude>org.eclipse.ditto.jwt.model.JsonWebKey#getModulus()</exclude>
+                            <exclude>org.eclipse.ditto.jwt.model.JsonWebKey#getExponent()</exclude>
+                            <exclude>org.eclipse.ditto.jwt.model.ImmutableJsonWebKey#of(java.lang.String,java.lang.String,java.lang.String,java.lang.String,java.math.BigInteger,java.math.BigInteger)</exclude>
                         </excludes>
                     </parameter>
                 </configuration>

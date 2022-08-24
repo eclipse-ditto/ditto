@@ -25,6 +25,7 @@ import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.auth.AuthorizationModelFactory;
 import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
 import org.eclipse.ditto.base.model.auth.DittoAuthorizationContextType;
+import org.eclipse.ditto.base.model.entity.metadata.Metadata;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.internal.utils.pubsub.DistributedPub;
@@ -33,6 +34,7 @@ import org.eclipse.ditto.internal.utils.pubsubthings.LiveSignalPub;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldSelector;
+import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.policies.enforcement.PolicyEnforcerProvider;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.things.model.Attributes;
@@ -76,8 +78,10 @@ public abstract class PersistenceActorTestBase {
     protected static final AuthorizationSubject AUTHORIZED_SUBJECT =
             AuthorizationModelFactory.newAuthSubject("test:" + AUTH_SUBJECT);
 
+    protected static final String ATTRIBUTE_KEY = "attrKey";
+    protected static final String ATTRIBUTE_VALUE = "attrVal";
     protected static final Attributes THING_ATTRIBUTES = ThingsModelFactory.newAttributesBuilder()
-            .set("attrKey", "attrVal")
+            .set(ATTRIBUTE_KEY, ATTRIBUTE_VALUE)
             .build();
 
     protected static final Predicate<JsonField> IS_MODIFIED = field -> field.getDefinition()
@@ -89,12 +93,44 @@ public abstract class PersistenceActorTestBase {
             Thing.JsonFields.CREATED, Thing.JsonFields.REVISION, Thing.JsonFields.POLICY_ID,
             Thing.JsonFields.LIFECYCLE);
 
-    private static final FeatureDefinition FEATURE_DEFINITION = FeatureDefinition.fromIdentifier("ns:name:version");
-    private static final FeatureProperties FEATURE_PROPERTIES =
-            FeatureProperties.newBuilder().set("featureKey", "featureValue").build();
-    private static final Feature THING_FEATURE =
-            ThingsModelFactory.newFeature("featureId", FEATURE_DEFINITION, FEATURE_PROPERTIES);
-    private static final Features THING_FEATURES = ThingsModelFactory.newFeaturesBuilder()
+    protected static final JsonFieldSelector ALL_FIELDS_SELECTOR_WITH_METADATA = JsonFactory.newFieldSelector(
+            Thing.JsonFields.ATTRIBUTES, Thing.JsonFields.FEATURES, Thing.JsonFields.ID, Thing.JsonFields.MODIFIED,
+            Thing.JsonFields.CREATED, Thing.JsonFields.REVISION, Thing.JsonFields.POLICY_ID,
+            Thing.JsonFields.LIFECYCLE, Thing.JsonFields.METADATA);
+
+    protected static final String FEATURE_ID = "featureId";
+    protected static final String FEATURE_PROPERTY_KEY = "featurePropertyKey";
+    protected static final String FEATURE_PROPERTY_VALUE = "featurePropertyValue";
+    protected static final Metadata METADATA = Metadata.newBuilder()
+            .set("attributes", JsonObject.newBuilder()
+                    .set(ATTRIBUTE_KEY, JsonObject.newBuilder()
+                            .set("issuedBy", "the epic Ditto team")
+                            .set("edited", "2022-05-31 15:55:55")
+                            .build())
+                    .build())
+            .set("features", JsonObject.newBuilder()
+                    .set(FEATURE_ID, JsonObject.newBuilder()
+                            .set("definition", JsonObject.newBuilder()
+                                    .set("issuedBy", "the epic Ditto team")
+                                    .build())
+                            .set("properties", JsonObject.newBuilder()
+                                    .set(FEATURE_PROPERTY_KEY, JsonObject.newBuilder()
+                                            .set("issuedBy", "the epic Ditto team")
+                                            .set("unit", "Quarks")
+                                            .build())
+                                    .build())
+                            .build())
+                    .build())
+            .build();
+
+    protected static final FeatureProperties FEATURE_PROPERTIES = FeatureProperties.newBuilder()
+            .set(FEATURE_PROPERTY_KEY, FEATURE_PROPERTY_VALUE)
+            .build();
+    protected static final FeatureDefinition FEATURE_DEFINITION = FeatureDefinition.fromIdentifier("ns:name:version");
+    protected static final Feature THING_FEATURE =
+            ThingsModelFactory.newFeature(FEATURE_ID, FEATURE_DEFINITION, FEATURE_PROPERTIES);
+
+    protected static final Features THING_FEATURES = ThingsModelFactory.newFeaturesBuilder()
             .set(THING_FEATURE)
             .build();
     private static final ThingLifecycle THING_LIFECYCLE = ThingLifecycle.ACTIVE;
@@ -144,6 +180,13 @@ public abstract class PersistenceActorTestBase {
 
     protected static Thing createThingV2WithRandomId() {
         return createThingV2WithId(ThingId.of(THING_ID.getNamespace(), THING_ID.getName() + UUID.randomUUID()));
+    }
+
+    protected static Thing createThingV2WithRandomIdAndMetadata() {
+        return createThingV2WithId(ThingId.of(THING_ID.getNamespace(), THING_ID.getName() + UUID.randomUUID()))
+                .toBuilder()
+                .setMetadata(METADATA)
+                .build();
     }
 
     protected static Thing createThingV2WithId(final ThingId thingId) {

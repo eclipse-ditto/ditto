@@ -44,7 +44,7 @@ public interface ThingModel extends ThingSkeleton<ThingModel> {
         return ThingModel.Builder.newBuilder(jsonObject);
     }
 
-    Optional<TmRequired> getTmRequired();
+    Optional<TmOptional> getTmOptional();
 
     @Override
     default ThingModel.Builder toBuilder() {
@@ -61,7 +61,7 @@ public interface ThingModel extends ThingSkeleton<ThingModel> {
             return new MutableThingModelBuilder(jsonObject.toBuilder());
         }
 
-        Builder setTmRequired(@Nullable TmRequired tmRequired);
+        Builder setTmOptional(@Nullable TmOptional tmOptional);
     }
 
     /**
@@ -70,8 +70,8 @@ public interface ThingModel extends ThingSkeleton<ThingModel> {
     @Immutable
     final class JsonFields {
 
-        public static final JsonFieldDefinition<JsonArray> TM_REQUIRED = JsonFactory.newJsonArrayFieldDefinition(
-                "tm:required");
+        public static final JsonFieldDefinition<JsonArray> TM_OPTIONAL = JsonFactory.newJsonArrayFieldDefinition(
+                "tm:optional");
 
         private JsonFields() {
             throw new AssertionError();
