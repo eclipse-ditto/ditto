@@ -13,6 +13,7 @@
 package org.eclipse.ditto.wot.model;
 
 import java.util.Collection;
+import java.util.Optional;
 
 /**
  * AtContext represents the JSON-LD context which is included in the Json document as {@code "@context"}.
@@ -33,5 +34,23 @@ public interface AtContext {
 
     static MultipleAtContext newMultipleAtContext(final Collection<SingleAtContext> contexts) {
         return MultipleAtContext.of(contexts);
+    }
+
+    /**
+     * Determines the {@code @context} prefix of the passed IRI in {@code singleUriAtContext}.
+     * If this {@code AtContext} instance is of type {@code MultipleAtContext} AND contains such an IRI, the prefix
+     * for that context entry is returned.
+     *
+     * @param singleUriAtContext the IRI to determine the context prefix for.
+     * @return the determined context prefix if the IRI was part of this {@code AtContext} instance or an empty optional
+     * instead.
+     * @since 3.0.0
+     */
+    default Optional<String> determinePrefixFor(final SingleUriAtContext singleUriAtContext) {
+        if (this instanceof MultipleAtContext) {
+            return ((MultipleAtContext) this).determinePrefixForSingleUriAtContext(singleUriAtContext);
+        } else {
+            return Optional.empty();
+        }
     }
 }

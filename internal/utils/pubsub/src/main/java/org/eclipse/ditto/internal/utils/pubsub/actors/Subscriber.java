@@ -13,74 +13,51 @@
 package org.eclipse.ditto.internal.utils.pubsub.actors;
 
 import java.time.Duration;
-import java.util.Collection;
-import java.util.Set;
-import java.util.stream.Collectors;
+import java.util.ArrayList;
+import java.util.List;
 
-import javax.annotation.Nullable;
-
-import org.eclipse.ditto.base.model.acks.AcknowledgementLabel;
-import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.signals.SignalWithEntityId;
-import org.eclipse.ditto.base.model.signals.acks.Acknowledgements;
-import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
-import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
-import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
-import org.eclipse.ditto.internal.utils.metrics.instruments.counter.Counter;
 import org.eclipse.ditto.internal.utils.pubsub.DistributedAcks;
+import org.eclipse.ditto.internal.utils.pubsub.PubSubFactory;
 import org.eclipse.ditto.internal.utils.pubsub.api.LocalAcksChanged;
 import org.eclipse.ditto.internal.utils.pubsub.api.PublishSignal;
 import org.eclipse.ditto.internal.utils.pubsub.config.PubSubConfig;
 import org.eclipse.ditto.internal.utils.pubsub.ddata.SubscriptionsReader;
-import org.eclipse.ditto.internal.utils.pubsub.ddata.ack.GroupedSnapshot;
 import org.eclipse.ditto.internal.utils.pubsub.extractors.AckExtractor;
 import org.eclipse.ditto.internal.utils.pubsub.extractors.PubSubTopicExtractor;
 
-import akka.actor.AbstractActorWithTimers;
 import akka.actor.ActorRef;
 import akka.actor.ActorSelection;
+import akka.actor.OneForOneStrategy;
 import akka.actor.Props;
+import akka.actor.SupervisorStrategy;
 import akka.actor.Terminated;
 import akka.cluster.Cluster;
-import akka.japi.Pair;
+import akka.japi.pf.DeciderBuilder;
 import akka.japi.pf.ReceiveBuilder;
 
 /**
- * Actor that distributes messages to local subscribers
+ * Actor that distributes messages to local subscribers, triggers synchronization of declared acknowledgements,
+ * and manages the subscriber pool.
  *
  * @param <T> type of messages.
  */
-public final class Subscriber<T extends SignalWithEntityId<?>> extends AbstractActorWithTimers {
+public final class Subscriber<T extends SignalWithEntityId<?>> extends AbstractSubscriber<T> {
 
     /**
      * Prefix of this actor's name.
      */
     public static final String ACTOR_NAME_PREFIX = "subscriber";
 
-    private final Class<T> messageClass;
-    private final PubSubTopicExtractor<T> topicExtractor;
-    private final AckExtractor<T> ackExtractor;
-    private final DistributedAcks distributedAcks;
-
-    private final Counter truePositiveCounter = DittoMetrics.counter("pubsub-true-positive");
-    private final Counter falsePositiveCounter = DittoMetrics.counter("pubsub-false-positive");
-    private final Counter receivedMessagesCounter = DittoMetrics.counter("pubsub-received-messages");
-    private final DittoDiagnosticLoggingAdapter logger = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
-
-    private PublisherIndex<String> publisherIndex = PublisherIndex.empty();
-    private GroupedSnapshot<ActorRef, String> declaredAcks = GroupedSnapshot.empty();
-    @Nullable private ActorRef ackUpdater = null;
-    @Nullable private ActorRef subUpdater = null;
+    private final List<ActorRef> subSubscribers;
 
     @SuppressWarnings("unused")
     private Subscriber(final Class<T> messageClass,
             final PubSubTopicExtractor<T> topicExtractor,
             final AckExtractor<T> ackExtractor,
             final DistributedAcks distributedAcks) {
-        this.messageClass = messageClass;
-        this.topicExtractor = topicExtractor;
-        this.ackExtractor = ackExtractor;
-        this.distributedAcks = distributedAcks;
+        super(messageClass, topicExtractor, ackExtractor, distributedAcks);
+        subSubscribers = new ArrayList<>(distributedAcks.getConfig().getNumberOfShards());
         distributedAcks.receiveLocalDeclaredAcks(getSelf());
     }
 
@@ -99,6 +76,26 @@ public final class Subscriber<T extends SignalWithEntityId<?>> extends AbstractA
         return Props.create(Subscriber.class, messageClass, topicExtractor, ackExtractor, distributedAcks);
     }
 
+    /**
+     * Choose a subscriber from the subscriber pool based on the hash code of the entity ID of the published signal.
+     *
+     * @param parentSubscriber The parent subscriber from the distributed data.
+     * @param signal The signal to be published.
+     * @param poolSize The size of the subscriber pool.
+     * @return An actor selection containing the subscriber in the pool responsible for the signal.
+     */
+    static ActorSelection chooseSubscriber(final ActorRef parentSubscriber, final PublishSignal signal,
+            final int poolSize) {
+
+        if (poolSize > 1) {
+            final int index = PubSubFactory.hashForPubSub(signal.getSignal().getEntityId()) % poolSize;
+            if (index > 0) {
+                return ActorSelection.apply(parentSubscriber, String.valueOf(index));
+            }
+        }
+        return ActorSelection.apply(parentSubscriber, "");
+    }
+
     @Override
     public Receive createReceive() {
         return ReceiveBuilder.create()
@@ -109,6 +106,43 @@ public final class Subscriber<T extends SignalWithEntityId<?>> extends AbstractA
                 .matchEquals(ActorEvent.ACK_UPDATER_NOT_AVAILABLE, this::scheduleReceiveLocalDeclaredAcks)
                 .matchEquals(Control.RECEIVE_LOCAL_DECLARED_ACKS, this::receiveLocalDeclaredAcks)
                 .build();
+    }
+
+    @Override
+    public SupervisorStrategy supervisorStrategy() {
+        return new OneForOneStrategy(DeciderBuilder.matchAny(e -> {
+            logger.error("Unknown error:'{}'! Escalating!", e);
+            return (SupervisorStrategy.Directive) SupervisorStrategy.escalate();
+        }).build());
+    }
+
+    @Override
+    public void preStart() throws Exception {
+        super.preStart();
+        final int subscriberPoolSize = distributedAcks.getConfig().getSubscriberPoolSize();
+        if (subscriberPoolSize > 1) {
+            final Props props = SubSubscriber.props(messageClass, topicExtractor, ackExtractor, distributedAcks);
+            for (int i = 1; i < subscriberPoolSize; ++i) {
+                subSubscribers.add(getContext().actorOf(props, String.valueOf(i)));
+            }
+        }
+    }
+
+    @Override
+    void updateLocalSubscriptions(final SubscriptionsReader subscriptionsReader) {
+        super.updateLocalSubscriptions(subscriptionsReader);
+        for (final ActorRef subSubscriber : subSubscribers) {
+            subSubscriber.forward(subscriptionsReader, getContext());
+        }
+    }
+
+    @Override
+    void updateLocalAcks(final LocalAcksChanged localAcksChanged) {
+        super.updateLocalAcks(localAcksChanged);
+        getContext().watch(ackUpdater);
+        for (final ActorRef subSubscriber : subSubscribers) {
+            subSubscriber.forward(localAcksChanged, getContext());
+        }
     }
 
     private void scheduleReceiveLocalDeclaredAcks(final ActorEvent ackUpdaterNotAvailable) {
@@ -134,81 +168,10 @@ public final class Subscriber<T extends SignalWithEntityId<?>> extends AbstractA
         }
     }
 
-    private void broadcastToLocalSubscribers(final PublishSignal command) {
-        receivedMessagesCounter.increment();
-        final T message = messageClass.cast(command.getSignal());
-        final Collection<String> topics = topicExtractor.getTopics(message);
-        final Set<ActorRef> localSubscribers =
-                publisherIndex.assignGroupsToSubscribers(message, topics, command.getGroups())
-                        .stream()
-                        .map(Pair::first)
-                        .collect(Collectors.toSet());
-        if (localSubscribers.isEmpty()) {
-            falsePositiveCounter.increment();
-        } else {
-            truePositiveCounter.increment();
-            for (final ActorRef localSubscriber : localSubscribers) {
-                localSubscriber.tell(message, getSender());
-            }
-        }
-        replyWeakAck(message, command, localSubscribers);
-    }
-
-    private void replyWeakAck(final T message, final PublishSignal command, final Set<ActorRef> localSubscribers) {
-        final Set<String> responsibleAcks = declaredAcks.getValues(command.getGroups().keySet());
-        final Collection<AcknowledgementLabel> declaredCustomAcks =
-                ackExtractor.getDeclaredCustomAcksRequestedBy(message, responsibleAcks::contains);
-        final Collection<AcknowledgementLabel> declaredCustomAcksWithoutSubscribers = declaredCustomAcks.stream()
-                .filter(label -> disjoint(localSubscribers, declaredAcks.getKeys(label.toString())))
-                .toList();
-        if (!declaredCustomAcksWithoutSubscribers.isEmpty()) {
-            final Acknowledgements acknowledgements =
-                    ackExtractor.toWeakAcknowledgements(message, declaredCustomAcksWithoutSubscribers);
-
-            final String ackregatorAddress = acknowledgements.getDittoHeaders()
-                    .get(DittoHeaderDefinition.DITTO_ACKREGATOR_ADDRESS.getKey());
-            if (null != ackregatorAddress) {
-                final ActorSelection acknowledgementRequester = getContext().actorSelection(ackregatorAddress);
-                acknowledgementRequester.tell(acknowledgements, ActorRef.noSender());
-            } else {
-                logger.withCorrelationId(acknowledgements)
-                        .error("Issuing weak Acknowledgements to acknowledgement aggregator failed because " +
-                                        "ackgregator address was missing from headers: {}",
-                                acknowledgements.getDittoHeaders());
-            }
-        }
-    }
-
-    private void updateLocalSubscriptions(final SubscriptionsReader subscriptionsReader) {
-        this.publisherIndex = PublisherIndex.fromSubscriptionsReader(subscriptionsReader);
-
-        // no need to watch the subUpdater -- the supervisor takes care of restarting on termination.
-        subUpdater = getSender();
-    }
-
-    private void updateLocalAcks(final LocalAcksChanged localAcksChanged) {
-        declaredAcks = localAcksChanged.getSnapshot();
-        ackUpdater = getSender();
-        getContext().watch(ackUpdater);
-    }
-
     private Duration getRestartDelayWithBuffer() {
         final long bufferFactor = 4;
         final Duration configuredRestartDelay = PubSubConfig.of(getContext().getSystem()).getRestartDelay();
         return configuredRestartDelay.plus(configuredRestartDelay.dividedBy(bufferFactor));
-    }
-
-    private static <T> boolean disjoint(final Set<T> set1, final Set<T> set2) {
-        final Set<T> smaller;
-        final Set<T> bigger;
-        if (set1.size() < set2.size()) {
-            smaller = set1;
-            bigger = set2;
-        } else {
-            smaller = set2;
-            bigger = set1;
-        }
-        return smaller.stream().noneMatch(bigger::contains);
     }
 
     private enum Control {

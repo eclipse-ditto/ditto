@@ -221,6 +221,55 @@ public final class DittoCachingSignalEnrichmentFacadeTest extends AbstractSignal
     }
 
     @Test
+    public void alreadyLoadedCacheEntryIsReusedForMergedEventOnRootLevel() {
+        DittoTestSystem.run(this, kit -> {
+            // GIVEN: SignalEnrichmentFacade.retrievePartialThing()
+            final SignalEnrichmentFacade underTest =
+                    createSignalEnrichmentFacadeUnderTest(kit, Duration.ofSeconds(10L));
+            final ThingId thingId = ThingId.generateRandom();
+            final String userId = ISSUER_PREFIX + "user";
+            final DittoHeaders headers = DittoHeaders.newBuilder()
+                    .authorizationContext(AuthorizationContext.newInstance(DittoAuthorizationContextType.UNSPECIFIED,
+                            AuthorizationSubject.newInstance(userId)))
+                    .randomCorrelationId()
+                    .build();
+            final CompletionStage<JsonObject> askResult =
+                    underTest.retrievePartialThing(thingId, SELECTOR, headers, THING_EVENT);
+
+            // WHEN: Command handler receives expected RetrieveThing and responds with RetrieveThingResponse
+            final RetrieveThing retrieveThing = kit.expectMsgClass(RetrieveThing.class);
+            softly.assertThat(retrieveThing.getDittoHeaders().getAuthorizationContext().getAuthorizationSubjectIds())
+                    .contains(userId);
+            softly.assertThat(retrieveThing.getSelectedFields()).contains(actualSelectedFields(SELECTOR));
+            // WHEN: response is handled so that it is also added to the cache
+            kit.reply(RetrieveThingResponse.of(thingId, getThingResponseThingJson(), headers));
+            askResult.toCompletableFuture().join();
+            softly.assertThat(askResult).isCompletedWithValue(getExpectedThingJson());
+
+            // WHEN: same thing is asked again with same selector for an event with one revision ahead
+            final ThingMerged mergeAttributes = ThingMerged.of(thingId, JsonPointer.of("/"),
+                    JsonObject.newBuilder()
+                            .set("attributes",
+                                    JsonObject.newBuilder()
+                                            .set("x", 42)
+                                            .set("foo", "bar")
+                                            .build())
+                            .build(),
+                    THING_EVENT.getRevision() + 1,
+                    null,
+                    DittoHeaders.empty(),
+                    null
+            );
+            final CompletionStage<JsonObject> askResultCached =
+                    underTest.retrievePartialThing(thingId, SELECTOR, headers, mergeAttributes);
+
+            // THEN: no cache lookup should be done
+            kit.expectNoMessage(Duration.ofSeconds(1));
+            askResultCached.toCompletableFuture().join();
+        });
+    }
+
+    @Test
     public void alreadyLoadedCacheEntryIsInvalidatedForUnexpectedEventRevision() {
         DittoTestSystem.run(this, kit -> {
             // GIVEN: SignalEnrichmentFacade.retrievePartialThing()

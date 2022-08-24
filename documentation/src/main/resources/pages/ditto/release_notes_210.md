@@ -61,7 +61,7 @@ In addition to using the currently supported pattern `<namespace>:<name>:<versio
 [feature definitions](basic-feature.html#feature-definition), the definitions now additionally support saving HTTP URLs.
 
 This is useful to link a Thing to a model definition available via an HTTP URL, which could for example be a 
-[WoT (Web of Things) Thing Model](https://www.w3.org/TR/2022/WD-wot-thing-description11-20220311/#thing-model).
+[WoT (Web of Things) Thing Model](https://www.w3.org/TR/wot-thing-description11/#thing-model).
 
 A discussion of how a WoT "Thing Model" can be mapped to an Eclipse Ditto "Thing" is currently 
 [ongoing on GitHub](https://github.com/eclipse/ditto/discussions/1163), please join in to provide feedback.

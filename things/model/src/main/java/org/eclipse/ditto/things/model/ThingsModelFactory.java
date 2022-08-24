@@ -172,6 +172,18 @@ public final class ThingsModelFactory {
     }
 
     /**
+     * Creates a new instance of {@code ImmutableFeatureDefinition} based on the passed {@code definitionIdentifiers}.
+     *
+     * @param definitionIdentifiers the Identifiers of the FeatureDefinition to be returned.
+     * @return the instance.
+     * @throws NullPointerException if {@code definitionIdentifiers} is {@code null}.
+     * @since 3.0.0
+     */
+    public static FeatureDefinition newFeatureDefinition(final Collection<DefinitionIdentifier> definitionIdentifiers) {
+        return ImmutableFeatureDefinition.of(definitionIdentifiers);
+    }
+
+    /**
      * Parses the specified JsonArray and returns an immutable instance of {@code FeatureDefinition} which is
      * initialised with the values of the given JSON array.
      *

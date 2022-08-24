@@ -14,18 +14,18 @@ package org.eclipse.ditto.base.model.acks;
 
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
+import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
 
 /**
  * Provides {@link Acknowledgement}s based on {@link CommandResponse}s abstracting away model-specific dependencies.
  *
- * @param <R> the type of the command response for which to provide the Acknowledgements.
+ * @param <C> the type of the command for which to provide the Acknowledgement.
  * @since 3.0.0
  */
 @Immutable
-public interface CommandResponseAcknowledgementProvider<R extends CommandResponse<? extends R>> {
+public interface CommandResponseAcknowledgementProvider<C extends Command<?>> {
 
     /**
      * Provides an {@link Acknowledgement} based on the provided {@code originalSignal} and {@code commandResponse}.
@@ -34,7 +34,7 @@ public interface CommandResponseAcknowledgementProvider<R extends CommandRespons
      * @param commandResponse the CommandResponse to provide the Acknowledgement for.
      * @return the created Acknowledgement.
      */
-    Acknowledgement provideAcknowledgement(Signal<?> originatingSignal, R commandResponse);
+    Acknowledgement provideAcknowledgement(C originatingSignal, CommandResponse<?> commandResponse);
 
     /**
      * Checks if the passed {@code commandResponse} is applicable by this provider to provide Acknowledgements for.
@@ -43,13 +43,13 @@ public interface CommandResponseAcknowledgementProvider<R extends CommandRespons
      * @return whether the commandResponse is applicable for this provider to provide Acknowledgements for.
      * @throws NullPointerException if the passed {@code commandResponse} was {@code null}.
      */
-    boolean isApplicable(R commandResponse);
+    boolean isApplicable(CommandResponse<?> commandResponse);
 
     /**
-     * Get the class of the type of command responses this provider handles.
+     * Get the class of the type of commands this provider handles.
      *
-     * @return the class of the command response.
+     * @return the class of the command.
      */
-    Class<R> getMatchedClass();
+    Class<?> getCommandClass();
 
 }

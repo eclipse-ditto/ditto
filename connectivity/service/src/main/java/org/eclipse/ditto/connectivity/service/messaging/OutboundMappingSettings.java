@@ -34,7 +34,7 @@ import org.eclipse.ditto.connectivity.service.messaging.monitoring.DefaultConnec
 import org.eclipse.ditto.connectivity.service.messaging.persistence.SignalFilter;
 import org.eclipse.ditto.connectivity.service.messaging.validation.ConnectionValidator;
 import org.eclipse.ditto.connectivity.service.util.ConnectivityMdcEntryKey;
-import org.eclipse.ditto.internal.models.acks.config.AcknowledgementConfig;
+import org.eclipse.ditto.edge.service.acknowledgements.AcknowledgementConfig;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.protocol.adapter.ProtocolAdapter;
 

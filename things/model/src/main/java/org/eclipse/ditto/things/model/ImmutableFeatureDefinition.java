@@ -45,6 +45,18 @@ final class ImmutableFeatureDefinition implements FeatureDefinition {
     }
 
     /**
+     * Creates a new instance of {@code ImmutableFeatureDefinition} based on the passed {@code definitionIdentifiers}.
+     *
+     * @param definitionIdentifiers the Identifiers of the FeatureDefinition to be returned.
+     * @return the instance.
+     * @throws NullPointerException if {@code definitionIdentifiers} is {@code null}.
+     * @since 3.0.0
+     */
+    public static ImmutableFeatureDefinition of(final Collection<DefinitionIdentifier> definitionIdentifiers) {
+        return new ImmutableFeatureDefinition(checkNotNull(definitionIdentifiers, "definitionIdentifiers"));
+    }
+
+    /**
      * Parses the specified JsonArray and returns an instance of {@code ImmutableFeatureDefinition}.
      *
      * @param featureDefinitionEntriesAsJsonArray JSON array containing the Identifiers of the FeatureDefinition to
