@@ -25,7 +25,6 @@ import java.util.Set;
 import org.eclipse.ditto.gateway.service.util.config.security.DefaultOAuthConfig;
 import org.eclipse.ditto.gateway.service.util.config.security.OAuthConfig;
 import org.eclipse.ditto.policies.model.SubjectIssuer;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import com.typesafe.config.ConfigFactory;

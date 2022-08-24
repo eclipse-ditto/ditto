@@ -84,11 +84,13 @@ final class ThingsMetadataSource {
         final SudoStreamSnapshots command =
                 lowerBound.equals(EMPTY_THING_ID) ? commandWithoutLowerBound :
                         commandWithoutLowerBound.withLowerBound(lowerBound);
+
         return DistPubSubAccess.send(ThingsMessagingConstants.THINGS_SNAPSHOT_STREAMING_ACTOR_PATH, command);
     }
 
     private Source<SourceRef<?>, NotUsed> requestStream(final ThingId lowerBound) {
         final Object startStreamCommand = getStartStreamCommand(lowerBound);
+
         return Source.completionStage(Patterns.ask(pubSubMediator, startStreamCommand, idleTimeout))
                 .flatMapConcat(response -> {
                     if (response instanceof SourceRef<?>) {
@@ -123,4 +125,5 @@ final class ThingsMetadataSource {
             return Optional.empty();
         }
     }
+
 }

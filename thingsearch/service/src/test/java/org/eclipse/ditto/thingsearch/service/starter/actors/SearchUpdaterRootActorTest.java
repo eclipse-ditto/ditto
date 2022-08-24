@@ -15,14 +15,13 @@ package org.eclipse.ditto.thingsearch.service.starter.actors;
 import java.util.Optional;
 
 import org.eclipse.ditto.base.service.actors.AbstractDittoRootActorTest;
+import org.eclipse.ditto.internal.utils.akka.streaming.TimestampPersistence;
+import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.thingsearch.service.common.config.DittoSearchConfig;
 import org.eclipse.ditto.thingsearch.service.common.config.SearchConfig;
 import org.eclipse.ditto.thingsearch.service.persistence.read.MongoThingsSearchPersistence;
-import org.eclipse.ditto.thingsearch.service.persistence.read.ThingsSearchPersistence;
 import org.eclipse.ditto.thingsearch.service.starter.SearchService;
 import org.eclipse.ditto.thingsearch.service.updater.actors.SearchUpdaterRootActor;
-import org.eclipse.ditto.internal.utils.akka.streaming.TimestampPersistence;
-import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.mockito.Mockito;
 
 import akka.actor.ActorSystem;

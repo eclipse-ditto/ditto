@@ -18,13 +18,12 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.internal.utils.persistentactors.commands.CommandStrategy;
+import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.commands.modify.DeleteFeatures;
 import org.eclipse.ditto.things.model.signals.commands.modify.DeleteFeaturesResponse;
 import org.eclipse.ditto.things.model.signals.events.FeaturesDeleted;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 /**

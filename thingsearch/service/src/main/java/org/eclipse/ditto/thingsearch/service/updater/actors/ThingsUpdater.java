@@ -113,7 +113,6 @@ final class ThingsUpdater extends AbstractActorWithTimers {
             final UpdaterConfig updaterConfig,
             final BlockedNamespaces blockedNamespaces,
             final ActorRef pubSubMediator) {
-
         return Props.create(ThingsUpdater.class, thingEventSub, thingUpdaterShardRegion, updaterConfig,
                 blockedNamespaces, pubSubMediator);
     }
@@ -177,8 +176,8 @@ final class ThingsUpdater extends AbstractActorWithTimers {
     }
 
     private void updateThing(final SudoUpdateThing sudoUpdateThing) {
-        forwardToShardRegion(sudoUpdateThing, SudoUpdateThing::getEntityId, SudoUpdateThing::getType, SudoUpdateThing::toJson,
-                SudoUpdateThing::getDittoHeaders);
+        forwardToShardRegion(sudoUpdateThing, SudoUpdateThing::getEntityId, SudoUpdateThing::getType,
+                SudoUpdateThing::toJson, SudoUpdateThing::getDittoHeaders);
     }
 
     private void processPolicyReferenceTag(final PolicyReferenceTag policyReferenceTag) {
