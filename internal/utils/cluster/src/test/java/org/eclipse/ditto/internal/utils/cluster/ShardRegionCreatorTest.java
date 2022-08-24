@@ -69,7 +69,7 @@ public final class ShardRegionCreatorTest {
     }
 
     @Test
-    public void testHandOffMessage() throws Exception {
+    public void testHandOffMessage() {
         new TestKit(system2) {{
             // GIVEN: 2 actor systems form a cluster with shard regions started on both
             final var props = Props.create(MessageForwarder.class, getRef());
@@ -146,7 +146,7 @@ public final class ShardRegionCreatorTest {
             // THEN: the sharded actor receives the hand-off message
             expectMsgClass(StopShardedActor.class);
 
-            // WHEN: the sharded actor queues another message to self before stoppin
+            // WHEN: the sharded actor queues another message to self before stopping
             firstShardedActor.tell(MessageForwarder.MESSAGE_SHARD, getRef());
             expectMsg(MessageForwarder.MESSAGE_SHARD);
             firstShardedActor.tell(PoisonPill.getInstance(), getRef());
@@ -162,6 +162,7 @@ public final class ShardRegionCreatorTest {
     private static boolean isShardedActorIn(final ActorRef shardedActor, final ActorSystem system) {
         final var relativePath =
                 shardedActor.path().elements().drop(1).reduce((x, y) -> x + "/" + y).toString();
+
         return ActorSelection.apply(system.systemImpl().systemGuardian(), relativePath)
                 .resolveOne(java.time.Duration.ofSeconds(10))
                 .thenApply(result -> true)
@@ -216,5 +217,7 @@ public final class ShardRegionCreatorTest {
                     .matchAny(message -> receiver.tell(message, getSelf()))
                     .build();
         }
+
     }
+
 }

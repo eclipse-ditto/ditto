@@ -29,6 +29,10 @@ import akka.cluster.sharding.ShardRegion;
 @NotThreadSafe
 public final class ShardRegionCreator {
 
+    private ShardRegionCreator() {
+        throw new AssertionError();
+    }
+
     /**
      * Create a shard region using a custom hand-off message.
      *
@@ -41,17 +45,18 @@ public final class ShardRegionCreator {
      */
     public static ActorRef start(final ActorSystem system, final String shardRegionName,
             final Props props, final int numberOfShards, final String clusterRole) {
-
         final var extractor = ShardRegionExtractor.of(numberOfShards, system);
+
         return start(system, shardRegionName, props, extractor, clusterRole);
     }
 
     static ActorRef start(final ActorSystem system, final String shardRegionName, final Props props,
             final ShardRegion.MessageExtractor extractor, final String clusterRole) {
-
         final var clusterSharding = ClusterSharding.get(system);
         final var settings = ClusterShardingSettings.create(system).withRole(clusterRole);
         final var strategy = clusterSharding.defaultShardAllocationStrategy(settings);
+
         return clusterSharding.start(shardRegionName, props, settings, extractor, strategy, new StopShardedActor());
     }
+
 }
