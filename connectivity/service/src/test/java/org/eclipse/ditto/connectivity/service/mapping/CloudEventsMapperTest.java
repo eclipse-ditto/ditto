@@ -87,6 +87,7 @@ public class CloudEventsMapperTest {
         ExternalMessage textMessage = textMessageBuilder(testPayload);
         Adaptable expectedAdaptable = DittoJsonException.wrapJsonRuntimeException(() -> ProtocolFactory.jsonifiableAdaptableFromJson(JsonFactory.newObject(data)));
         List<Adaptable> expectedMap = singletonList(ProtocolFactory.newAdaptableBuilder(expectedAdaptable).build());
+        System.out.println(underTest.map(expectedAdaptable));
         assertEquals(expectedMap, underTest.map(textMessage));
     }
 

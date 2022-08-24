@@ -24,6 +24,7 @@ import org.eclipse.ditto.connectivity.api.ExternalMessage;
 import org.eclipse.ditto.connectivity.api.ExternalMessageFactory;
 import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
 import org.eclipse.ditto.connectivity.model.MappingContext;
+import org.eclipse.ditto.connectivity.model.MessageMappingFailedException;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLogger;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.json.*;
@@ -43,6 +44,7 @@ import org.eclipse.ditto.protocol.ProtocolFactory;
         })
 public final class CloudEventsMapper extends AbstractMessageMapper {
 
+//     static String contentType = "application/cloudevents+json";
     static final String CE_ID = "ce-id";
     static final String CE_TYPE = "ce-type";
     static final String CE_SOURCE = "ce-source";
@@ -73,7 +75,7 @@ public final class CloudEventsMapper extends AbstractMessageMapper {
     final String SOURCE = "source";
     final String TYPE = "type";
 
-    private String base64decoding(final String base64Message) throws UnsupportedEncodingException {
+    private String base64decoding(final String base64Message){
         byte[] messageByte = Base64.getDecoder().decode(base64Message);
         String decodedString = new String(messageByte);
         return decodedString;
@@ -113,7 +115,7 @@ public final class CloudEventsMapper extends AbstractMessageMapper {
     }
 
     public boolean checkHeaders(final ExternalMessage message) {
-        Map<String, String> headers = message.getHeaders();
+        Map<String,String> headers = message.getHeaders();
         if (headers.get(CE_ID) == null || headers.get(CE_SOURCE) == null || headers.get(CE_TYPE) == null || headers.get(CE_SPECVERSION) == null) {
             System.out.println("This is not a Binary CloudEvent");
             return false;
@@ -145,7 +147,8 @@ public final class CloudEventsMapper extends AbstractMessageMapper {
                 System.out.println("DittoHeaders are " + headers);
                 return singletonList(ProtocolFactory.newAdaptableBuilder(adaptable).withHeaders(headers).build());
             } catch (Throwable e) {
-                e.printStackTrace();
+               e.printStackTrace();
+
             }
         }
         return Collections.emptyList();
@@ -158,13 +161,30 @@ public final class CloudEventsMapper extends AbstractMessageMapper {
 
     @Override
     public List<ExternalMessage> map(final Adaptable adaptable) {
+        System.out.println("Outbound ExternalMessage is " + List.of(
+                ExternalMessageFactory.newExternalMessageBuilder(getExternalDittoHeaders(adaptable))
+                        .withTopicPath(adaptable.getTopicPath())
+                        .withText(getExternalCloudEventSpecifications(adaptable))
+                        .asResponse(isResponse(adaptable))
+                        .asError(isError(adaptable))
+                        .build()));
         return List.of(
                 ExternalMessageFactory.newExternalMessageBuilder(getExternalDittoHeaders(adaptable))
                         .withTopicPath(adaptable.getTopicPath())
-                        .withText(getJsonString(adaptable))
+                        .withText(getExternalCloudEventSpecifications(adaptable))
                         .asResponse(isResponse(adaptable))
                         .asError(isError(adaptable))
                         .build());
+    }
+//getJsonString(adaptable)
+    private static String getExternalCloudEventSpecifications(Adaptable adaptable){
+       String adaptableFields = getJsonString(adaptable);
+        return """
+                {"specversion":"1.0",
+                "source":"org.eclipse.ditto",
+                "id":"potentially a uuid",
+                "type":"target message",
+                "data": """ + adaptableFields + "}";
     }
 
     private static DittoHeaders getExternalDittoHeaders(final Adaptable adaptable) {
