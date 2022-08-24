@@ -33,6 +33,7 @@ The following non-functional enhancements are also included:
   and improving search query performance
 * **Removal of former "ditto-concierge" service**, moving its functionality to other Ditto services; reducing overall
   resource consumption and improving latency+throughput for API calls
+* Creation of common way to extend Ditto via DittoExtensionPoints
 * Rewrite of Ditto managed **MQTT connections to use reactive-streams based client**, supporting consumption applying
   backpressure
 * Further improvements on rolling updates and other failover scenarios
@@ -50,6 +51,18 @@ TODO
 #### [Removal of former "ditto-concierge" service](https://github.com/eclipse/ditto/issues/1339)
 
 TODO
+
+#### Clear declaration and configuration of Ditto "Extension points"
+
+As part of the ["ditto-concierge" service removal](https://github.com/eclipse/ditto/issues/1339) a new and common 
+mechanism for [extending Ditto](installation-extending.html) was introduced.  
+Examples of such extensions are:
+* adding additional, custom HTTP APIs to Ditto
+* creating a custom `PreEnforcer` which e.g. additionally authorizes processed commands in Ditto before they are 
+  authorized via their policy
+
+Check out the [documentation on extending Ditto](installation-extending.html) and the existing extension points 
+(interfaces extending `DittoExtensionPoint`) to find out what can be extended and how to do it.
 
 #### [Rewrite of Ditto managed MQTT connection to use reactive client](https://github.com/eclipse/ditto/pull/1411)
 
