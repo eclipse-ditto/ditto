@@ -61,7 +61,7 @@ public interface DittoHeadersValidator extends DittoExtensionPoint {
 
     final class ExtensionId extends DittoExtensionPoint.ExtensionId<DittoHeadersValidator> {
 
-        private static final String CONFIG_KEY = "ditto-headers-validator-provider";
+        private static final String CONFIG_KEY = "ditto-headers-validator";
 
         private ExtensionId(final ExtensionIdConfig<DittoHeadersValidator> extensionIdConfig) {
             super(extensionIdConfig);

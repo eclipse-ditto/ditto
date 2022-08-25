@@ -31,17 +31,13 @@ public final class DefaultDittoHeadersValidator implements DittoHeadersValidator
     private static final String MAX_BYTES = "max-bytes";
     private static final String MAX_AUTH_SUBJECTS = "max-auth-subjects";
 
-    private final int maxBytes;
+    private final long maxBytes;
     private final int maxAuthSubjects;
 
     @SuppressWarnings("unused")
     public DefaultDittoHeadersValidator(final ActorSystem actorSystem, final Config config) {
-        maxBytes = getIntOrMaxValue(config, MAX_BYTES);
-        maxAuthSubjects = getIntOrMaxValue(config, MAX_AUTH_SUBJECTS);
-    }
-
-    private static int getIntOrMaxValue(final Config config, final String configKey) {
-        return config.hasPath(configKey) ? config.getInt(configKey) : Integer.MAX_VALUE;
+        maxBytes = config.getBytes(MAX_BYTES);
+        maxAuthSubjects = config.getInt(MAX_AUTH_SUBJECTS);
     }
 
     @Override
