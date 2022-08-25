@@ -14,6 +14,8 @@ package org.eclipse.ditto.edge.service.headers;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
+import java.util.concurrent.CompletionStage;
+
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.internal.utils.extension.DittoExtensionIds;
 import org.eclipse.ditto.internal.utils.extension.DittoExtensionPoint;
@@ -30,9 +32,11 @@ public interface DittoHeadersValidator extends DittoExtensionPoint {
      * Validates {@code dittoHeaders} against limits defined in the extension configuration.
      *
      * @param dittoHeaders the headers to validate.
-     * @throws org.eclipse.ditto.base.model.exceptions.DittoHeadersTooLargeException if {@code dittoHeaders} are not valid.
+     * @return a completion stage which completes successfully with the valid headers. Raises a
+     * {@link org.eclipse.ditto.base.model.exceptions.DittoHeadersTooLargeException} if {@code dittoHeaders} are not
+     * valid.
      */
-    void validate(DittoHeaders dittoHeaders);
+    CompletionStage<DittoHeaders> validate(DittoHeaders dittoHeaders);
 
     /**
      * Truncates {@code dittoHeaders} to validate against the configured limits.

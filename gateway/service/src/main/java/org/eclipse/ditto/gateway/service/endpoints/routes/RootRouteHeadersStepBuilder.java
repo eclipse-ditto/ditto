@@ -227,12 +227,7 @@ final class RootRouteHeadersStepBuilder {
                     requestType,
                     dittoDefaultHeaders);
 
-            result = result.thenApply(dittoHeaders -> {
-                dittoHeadersValidator.validate(dittoHeaders);
-                return dittoHeaders;
-            });
-
-            return result;
+            return result.thenCompose(dittoHeadersValidator::validate);
         }
 
     }

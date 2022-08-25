@@ -14,6 +14,9 @@ package org.eclipse.ditto.edge.service.headers;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
+
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.model.exceptions.DittoHeadersTooLargeException;
@@ -23,7 +26,7 @@ import akka.actor.ActorSystem;
 import com.typesafe.config.Config;
 
 /**
- * Provider for a {@link DittoHeadersValidator}.
+ * Default implementation for {@link DittoHeadersValidator}.
  */
 @Immutable
 public final class DefaultDittoHeadersValidator implements DittoHeadersValidator {
@@ -41,19 +44,19 @@ public final class DefaultDittoHeadersValidator implements DittoHeadersValidator
     }
 
     @Override
-    public void validate(DittoHeaders dittoHeaders) {
+    public CompletionStage<DittoHeaders> validate(DittoHeaders dittoHeaders) {
         checkNotNull(dittoHeaders, "dittoHeaders");
-        validateAuthorizationContext(dittoHeaders);
-        if (dittoHeaders.isEntriesSizeGreaterThan(maxBytes)) {
-            throw DittoHeadersTooLargeException.newSizeLimitBuilder(maxBytes)
-                    .dittoHeaders(dittoHeaders)
-                    .build();
+        try {
+            validateAuthorizationContext(dittoHeaders);
+            if (dittoHeaders.isEntriesSizeGreaterThan(maxBytes)) {
+                throw DittoHeadersTooLargeException.newSizeLimitBuilder(maxBytes)
+                        .dittoHeaders(dittoHeaders)
+                        .build();
+            }
+            return CompletableFuture.completedStage(dittoHeaders);
+        } catch (DittoHeadersTooLargeException e) {
+            return CompletableFuture.failedStage(e);
         }
-    }
-
-    @Override
-    public DittoHeaders truncate(DittoHeaders dittoHeaders) {
-        return dittoHeaders.truncate(maxBytes);
     }
 
     private void validateAuthorizationContext(final DittoHeaders dittoHeaders) {
@@ -63,6 +66,11 @@ public final class DefaultDittoHeadersValidator implements DittoHeadersValidator
                     .dittoHeaders(dittoHeaders)
                     .build();
         }
+    }
+
+    @Override
+    public DittoHeaders truncate(DittoHeaders dittoHeaders) {
+        return dittoHeaders.truncate(maxBytes);
     }
 
 }
