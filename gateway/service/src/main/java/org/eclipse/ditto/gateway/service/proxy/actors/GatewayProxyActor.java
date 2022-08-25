@@ -136,7 +136,8 @@ public final class GatewayProxyActor extends AbstractActor {
                     final ConnectionsRetrievalActorPropsFactory connectionsRetrievalActorPropsFactory =
                             ConnectionsRetrievalActorPropsFactory.get(getContext().getSystem(), dittoExtensionConfig);
                     final ActorRef connectionsRetrievalActor = getContext().actorOf(
-                            connectionsRetrievalActorPropsFactory.getActorProps(edgeCommandForwarder, getSender())
+                            connectionsRetrievalActorPropsFactory.getActorProps(edgeCommandForwarder, getSender(),
+                                    rc.getTimeout())
                     );
                     connectionsRetrievalActor.tell(rc, getSender());
                 })

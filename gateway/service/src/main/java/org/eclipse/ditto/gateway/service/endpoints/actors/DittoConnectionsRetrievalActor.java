@@ -30,7 +30,6 @@ import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.base.model.signals.commands.ErrorResponse;
 import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.connectivity.model.ConnectivityInternalErrorException;
-import org.eclipse.ditto.connectivity.model.signals.commands.ConnectivityCommandResponse;
 import org.eclipse.ditto.connectivity.model.signals.commands.ConnectivityErrorResponse;
 import org.eclipse.ditto.connectivity.model.signals.commands.exceptions.ConnectionsAmountIllegalException;
 import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveAllConnectionIds;
@@ -86,8 +85,8 @@ public class DittoConnectionsRetrievalActor extends AbstractActor {
      * @param sender the initial sender.
      * @return the props.
      */
-    public static Props props(final ActorRef edgeCommandForwarder, final ActorRef sender) {
-        return Props.create(DittoConnectionsRetrievalActor.class, edgeCommandForwarder, sender);
+    public static Props props(final ActorRef edgeCommandForwarder, final ActorRef sender, final Duration timeout) {
+        return Props.create(DittoConnectionsRetrievalActor.class, edgeCommandForwarder, sender, timeout);
     }
 
     @Override
@@ -184,10 +183,10 @@ public class DittoConnectionsRetrievalActor extends AbstractActor {
     private CompletionStage<RetrieveConnectionResponse> retrieveConnection(
             final RetrieveConnection retrieveConnection) {
 
-        return askConnectivityCommandActor(retrieveConnection);
+        return askConnectivity(retrieveConnection);
     }
 
-    private <T extends ConnectivityCommandResponse<?>> CompletionStage<T> askConnectivityCommandActor(
+    private CompletionStage<RetrieveConnectionResponse> askConnectivity(
             final RetrieveConnection command) {
 
         LOGGER.withCorrelationId(command).debug(LOG_SEND_COMMAND, command);
@@ -199,7 +198,8 @@ public class DittoConnectionsRetrievalActor extends AbstractActor {
                             .debug("Received response <{}> from com.bosch.iot.things.connectivity.service.", response);
                     throwCauseIfErrorResponse(response);
                     throwCauseIfDittoRuntimeException(response);
-                    final T mappedResponse = mapToType(response, (Class<T>) RetrieveConnectionResponse.class, command);
+                    final RetrieveConnectionResponse mappedResponse =
+                            mapToType(response, RetrieveConnectionResponse.class, command);
                     LOGGER.withCorrelationId(command)
                             .info("Received response of type <{}> from com.bosch.iot.things.connectivity.service.",
                                     mappedResponse.getType());

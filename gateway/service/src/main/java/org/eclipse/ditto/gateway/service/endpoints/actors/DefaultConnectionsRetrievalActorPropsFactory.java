@@ -14,20 +14,25 @@
 package org.eclipse.ditto.gateway.service.endpoints.actors;
 
 
+import java.time.Duration;
+
 import com.typesafe.config.Config;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
 
-public class DefaultConnectionsRetrievalActorPropsFactoryImpl implements ConnectionsRetrievalActorPropsFactory {
+/**
+ * Default creator of Props for Connections retrieval actors.
+ */
+public class DefaultConnectionsRetrievalActorPropsFactory implements ConnectionsRetrievalActorPropsFactory {
 
-    private DefaultConnectionsRetrievalActorPropsFactoryImpl(final ActorSystem actorSystem, final Config config) {
+    public DefaultConnectionsRetrievalActorPropsFactory(final ActorSystem actorSystem, final Config config) {
         //NoOp Constructor to match extension instantiation
     }
 
     @Override
-    public Props getActorProps(final ActorRef edgeCommandForwarder, final ActorRef sender) {
-        return DittoConnectionsRetrievalActor.props(edgeCommandForwarder, sender);
+    public Props getActorProps(final ActorRef edgeCommandForwarder, final ActorRef sender, final Duration timeout) {
+        return DittoConnectionsRetrievalActor.props(edgeCommandForwarder, sender, timeout);
     }
 }

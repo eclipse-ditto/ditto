@@ -14,6 +14,8 @@ package org.eclipse.ditto.gateway.service.endpoints.actors;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
+import java.time.Duration;
+
 import org.eclipse.ditto.internal.utils.extension.DittoExtensionIds;
 import org.eclipse.ditto.internal.utils.extension.DittoExtensionPoint;
 
@@ -29,7 +31,7 @@ import akka.actor.Props;
 public interface ConnectionsRetrievalActorPropsFactory extends DittoExtensionPoint {
 
 
-    Props getActorProps(ActorRef edgeCommandForwarder, ActorRef sender);
+    Props getActorProps(ActorRef edgeCommandForwarder, ActorRef sender, final Duration timeout);
 
     /**
      * Loads the implementation of {@code ClientActorPropsFactory} which is configured for the
