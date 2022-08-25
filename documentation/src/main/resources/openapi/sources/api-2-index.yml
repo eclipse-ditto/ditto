@@ -262,6 +262,8 @@ components:
       $ref: "./parameters/thingIdPathParam.yml"
     TimeoutParam:
       $ref: "./parameters/timeoutParam.yml"
+    connectionIdPathParam:
+      $ref: './parameters/connectionIdPathParam.yml'
 
   schemas:
     Error:

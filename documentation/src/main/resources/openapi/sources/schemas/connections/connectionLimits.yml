@@ -1,5 +1,0 @@
-type: object
-properties:
-  count:
-    type: number
-    description: The maximum number of connections that is allowed to be used for the booked plan.

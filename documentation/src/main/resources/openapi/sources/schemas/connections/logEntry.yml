@@ -1,3 +1,13 @@
+# Copyright (c) 2022 Contributors to the Eclipse Foundation
+#
+# See the NOTICE file(s) distributed with this work for additional
+# information regarding copyright ownership.
+#
+# This program and the accompanying materials are made available under the
+# terms of the Eclipse Public License 2.0 which is available at
+# http://www.eclipse.org/legal/epl-2.0
+#
+# SPDX-License-Identifier: EPL-2.0
 type: object
 description: Represents a log entry for a connection.
 required:
@@ -28,9 +38,9 @@ properties:
     $ref: 'logLevel.yml'
   address:
     type: string
-    description: Connection address on which the log occured.
-    example: 'telemetry/the_hub'
+    description: Connection address on which the log occurred.
+    example: 'telemetry/address'
   thingId:
     type: string
     description: The thing for which the log entry was created.
-    example: 'com.bosch.iot.things:theThing'
+    example: 'org.ditto:theThing'
