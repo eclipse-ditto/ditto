@@ -23,13 +23,18 @@ import org.eclipse.ditto.policies.model.signals.commands.PolicyErrorResponse;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.ThingIdInvalidException;
 import org.eclipse.ditto.things.model.signals.commands.ThingErrorResponse;
+
+import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.Mockito;
+import org.mockito.junit.MockitoJUnitRunner;
 
 /**
  * Tests {@link DittoRuntimeExceptionToErrorResponseFunction}.
  */
+@RunWith(MockitoJUnitRunner.class)
 public final class DittoRuntimeExceptionToErrorResponseFunctionTest {
 
     private static final DittoHeaders DITTO_HEADERS = DittoHeaders.newBuilder()
@@ -39,10 +44,13 @@ public final class DittoRuntimeExceptionToErrorResponseFunctionTest {
     @Mock
     DittoHeadersValidator dittoHeadersValidator;
 
+    @Before
+    public void before() {
+        Mockito.when(dittoHeadersValidator.truncate(Mockito.any())).thenReturn(DITTO_HEADERS);
+    }
+
     @Test
     public void transformsInvalidThingId() {
-        Mockito.when(dittoHeadersValidator.truncate(Mockito.any())).thenReturn(DITTO_HEADERS);
-
         final var exception = ThingIdInvalidException.newBuilder("invalid")
                 .dittoHeaders(DITTO_HEADERS)
                 .build();
@@ -57,8 +65,6 @@ public final class DittoRuntimeExceptionToErrorResponseFunctionTest {
 
     @Test
     public void transformsInvalidPolicyId() {
-        Mockito.when(dittoHeadersValidator.truncate(Mockito.any())).thenReturn(DITTO_HEADERS);
-
         final var exception = PolicyIdInvalidException.newBuilder("invalid")
                 .dittoHeaders(DITTO_HEADERS)
                 .build();
