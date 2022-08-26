@@ -68,17 +68,15 @@ public final class AmqpSpecificConfig {
      * @param connection the connection.
      * @param defaultConfig the default config values.
      * @param plainCredentialsSupplier supplier of username-password credentials.
-     * @param doubleDecodingEnabled whether the username and password should be double decoded.
      * @return the AMQP specific config.
      */
     public static AmqpSpecificConfig withDefault(final String clientId,
             final Connection connection,
             final Map<String, String> defaultConfig,
-            final PlainCredentialsSupplier plainCredentialsSupplier,
-            final boolean doubleDecodingEnabled) {
+            final PlainCredentialsSupplier plainCredentialsSupplier) {
 
         final var amqpParameters = new LinkedHashMap<>(filterForAmqpParameters(defaultConfig));
-        final Optional<UserPasswordCredentials> credentialsOptional = plainCredentialsSupplier.get(connection, doubleDecodingEnabled);
+        final Optional<UserPasswordCredentials> credentialsOptional = plainCredentialsSupplier.get(connection);
         addSaslMechanisms(amqpParameters, credentialsOptional.isPresent());
         addTransportParameters(amqpParameters, connection);
         addSpecificConfigParameters(amqpParameters, connection, AmqpSpecificConfig::isPermittedAmqpConfig);

@@ -204,8 +204,8 @@ final class HiveMqttClientFactory {
         final var doubleDecodingEnabled = isDoubleDecodingEnabled(hiveMqttClientProperties);
         final var mqttConnection = hiveMqttClientProperties.getMqttConnection();
 
-        return mqttConnection.getUsername(doubleDecodingEnabled)
-                .flatMap(username -> mqttConnection.getPassword(doubleDecodingEnabled)
+        return mqttConnection.getUsername()
+                .flatMap(username -> mqttConnection.getPassword()
                         .map(pw -> pw.getBytes(StandardCharsets.UTF_8))
                         .map(pwBytes -> new SimpleAuthCredentials(username, pwBytes))
                 );

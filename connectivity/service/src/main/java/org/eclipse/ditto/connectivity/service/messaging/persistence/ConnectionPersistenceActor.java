@@ -679,7 +679,7 @@ public final class ConnectionPersistenceActor
     @Override
     protected Receive matchAnyAfterInitialization() {
         return ReceiveBuilder.create()
-                .match(RetryOpenConnection.class, this::retryOpenConnectionWithAdaptedEntity)
+                // .match(RetryOpenConnection.class, this::retryOpenConnectionWithAdaptedEntity)
                 // CreateSubscription is a ThingSearchCommand, but it is created in InboundDispatchingSink from an
                 // adaptable and directly sent to this actor:
                 .match(CreateSubscription.class, this::startThingSearchSession)
@@ -1198,7 +1198,7 @@ public final class ConnectionPersistenceActor
     private void retryOpenConnectionWithAdaptedEntity(final RetryOpenConnection retryOpenConnection) {
         stopClientActors();
         if (entity != null) {
-            final Optional<String> passwordOptional = entity.getPassword(false);
+            final Optional<String> passwordOptional = entity.getPassword();
             if (passwordOptional.isPresent()) {
                 final String oldUri = entity.getUri();
                 final URI uri;
@@ -1211,7 +1211,7 @@ public final class ConnectionPersistenceActor
                 }
                 final var oldUserNameAndPassword = uri.getRawUserInfo();
                 final var newUserNameAndPassword =
-                        entity.getUsername(false).orElseThrow() + ":" + passwordOptional.orElseThrow();
+                        entity.getUsername().orElseThrow() + ":" + passwordOptional.orElseThrow();
                 final var newUri = entity.getUri().replace(oldUserNameAndPassword, newUserNameAndPassword);
                 if (newUri.equals(oldUri)) {
                     handleOpenConnectionError(retryOpenConnection.error,

@@ -62,7 +62,7 @@ final class KafkaAuthenticationSpecificConfig implements KafkaSpecificConfig {
 
     @Override
     public boolean isApplicable(final Connection connection) {
-        return connection.getUsername(false).isPresent() && connection.getPassword(false).isPresent();
+        return connection.getUsername().isPresent() && connection.getPassword().isPresent();
     }
 
     @Override
@@ -91,8 +91,8 @@ final class KafkaAuthenticationSpecificConfig implements KafkaSpecificConfig {
     @Override
     public Map<String, String> apply(final Connection connection) {
 
-        final Optional<String> username = connection.getUsername(doubleDecodingEnabled);
-        final Optional<String> password = connection.getPassword(doubleDecodingEnabled);
+        final Optional<String> username = connection.getUsername();
+        final Optional<String> password = connection.getPassword();
         // chose to not use isApplicable() but directly check username and password since we need to Optional#get them.
         if (isValid(connection) && username.isPresent() && password.isPresent()) {
             final String saslMechanism = getSaslMechanismOrDefault(connection).toUpperCase();

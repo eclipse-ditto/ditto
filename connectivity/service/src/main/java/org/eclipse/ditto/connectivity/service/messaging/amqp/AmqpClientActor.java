@@ -54,7 +54,6 @@ import org.eclipse.ditto.connectivity.model.signals.commands.modify.TestConnecti
 import org.eclipse.ditto.connectivity.service.config.Amqp10Config;
 import org.eclipse.ditto.connectivity.service.config.ClientConfig;
 import org.eclipse.ditto.connectivity.service.config.ConnectionConfig;
-import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.messaging.BaseClientActor;
 import org.eclipse.ditto.connectivity.service.messaging.BaseClientData;
 import org.eclipse.ditto.connectivity.service.messaging.amqp.status.ConnectionFailureStatusReport;
@@ -183,7 +182,7 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
             final ActorRef connectionActor, final Config configOverwrites, final ActorSystem actorSystem,
             final DittoHeaders dittoHeaders) {
 
-        return Props.create(AmqpClientActor.class, validateConnection(connection, actorSystem, configOverwrites),
+        return Props.create(AmqpClientActor.class, validateConnection(connection, actorSystem),
                 commandForwarderActor, connectionActor, configOverwrites, dittoHeaders);
     }
 
@@ -201,23 +200,18 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
             final ActorRef connectionActor, final JmsConnectionFactory jmsConnectionFactory,
             final ActorSystem actorSystem) {
 
-        return Props.create(AmqpClientActor.class, validateConnection(connection, actorSystem, ConfigFactory.empty()),
+        return Props.create(AmqpClientActor.class, validateConnection(connection, actorSystem),
                 jmsConnectionFactory, commandForwarderActor, connectionActor, DittoHeaders.empty());
     }
 
-    private static Connection validateConnection(final Connection connection, final ActorSystem actorSystem,
-            final Config configOverwrites) {
+    private static Connection validateConnection(final Connection connection, final ActorSystem actorSystem) {
         try {
-            final Config withOverwrites = configOverwrites.withFallback(actorSystem.settings().config());
-            final ConnectivityConfig connectivityConfig = ConnectivityConfig.of(withOverwrites);
-
-            final String connectionUri = ConnectionBasedJmsConnectionFactory.buildAmqpConnectionUri(connection,
+              final String connectionUri = ConnectionBasedJmsConnectionFactory.buildAmqpConnectionUri(connection,
                     connection.getId().toString(),
                     // fake established tunnel state for uri validation
                     () -> SshTunnelState.from(connection).established(22222),
                     Map.of(),
-                    SaslPlainCredentialsSupplier.of(actorSystem),
-                    connectivityConfig.getConnectionConfig().doubleDecodingEnabled());
+                    SaslPlainCredentialsSupplier.of(actorSystem));
             ProviderFactory.create(URI.create(connectionUri));
             // it is safe to pass an empty map as default config as only default values are loaded via that config
             // of which we can be certain that they are always valid
