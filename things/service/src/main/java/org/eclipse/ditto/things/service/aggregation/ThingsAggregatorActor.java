@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.internal.utils.aggregator;
+package org.eclipse.ditto.things.service.aggregation;
 
 import java.util.Collection;
 import java.util.Objects;
