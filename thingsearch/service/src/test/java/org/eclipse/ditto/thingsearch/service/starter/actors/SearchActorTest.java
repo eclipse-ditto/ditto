@@ -59,8 +59,6 @@ import akka.stream.SystemMaterializer;
 import akka.stream.javadsl.Source;
 import akka.testkit.TestProbe;
 import akka.testkit.javadsl.TestKit;
-import scala.collection.JavaConverters;
-import scala.jdk.javaapi.FutureConverters;
 
 /**
  * Tests the graceful shutdown behavior of {@code SearchActor}.
@@ -87,8 +85,8 @@ public final class SearchActorTest {
             final var props = SearchActor.props(queryParser, persistence, getRef());
             final var underTest = childActorOf(props, SearchActor.ACTOR_NAME);
 
-            final var expectedSubscribe = DistPubSubAccess.subscribeViaGroup(ThingSearchCommand.TYPE_PREFIX,
-                    SearchActor.ACTOR_NAME, underTest);
+            final var expectedSubscribe =
+                    DistPubSubAccess.subscribeViaGroup(ThingSearchCommand.TYPE_PREFIX, SearchActor.ACTOR_NAME, underTest);
             expectMsg(expectedSubscribe);
             reply(new DistributedPubSubMediator.SubscribeAck(expectedSubscribe));
 
@@ -113,8 +111,8 @@ public final class SearchActorTest {
             final var props = SearchActor.props(queryParser, persistence, getRef());
             final var underTest = childActorOf(props, SearchActor.ACTOR_NAME);
 
-            final var expectedSubscribe = DistPubSubAccess.subscribeViaGroup(ThingSearchCommand.TYPE_PREFIX,
-                    SearchActor.ACTOR_NAME, underTest);
+            final var expectedSubscribe =
+                    DistPubSubAccess.subscribeViaGroup(ThingSearchCommand.TYPE_PREFIX, SearchActor.ACTOR_NAME, underTest);
             expectMsg(expectedSubscribe);
             reply(new DistributedPubSubMediator.SubscribeAck(expectedSubscribe));
 
@@ -168,15 +166,16 @@ public final class SearchActorTest {
             final var props = SearchActor.props(queryParser, persistence, getRef());
             final var underTest = childActorOf(props, SearchActor.ACTOR_NAME);
 
-            final var expectedSubscribe = DistPubSubAccess.subscribeViaGroup(ThingSearchCommand.TYPE_PREFIX,
-                    SearchActor.ACTOR_NAME, underTest);
+            final var expectedSubscribe =
+                    DistPubSubAccess.subscribeViaGroup(ThingSearchCommand.TYPE_PREFIX, SearchActor.ACTOR_NAME, underTest);
             expectMsg(expectedSubscribe);
             reply(new DistributedPubSubMediator.SubscribeAck(expectedSubscribe));
 
             final var serviceRequestsDone = SearchActor.Control.SERVICE_REQUESTS_DONE;
             use(p -> p.findAllUnlimited(any(), any(), any()));
 
-            final var stream = StreamThings.of(null, null, null, null, DittoHeaders.empty());
+            final var stream =
+                    StreamThings.of(null, null, null, null, DittoHeaders.empty());
 
             underTest.tell(stream, getRef());
             final SourceRef<?> sourceRef = expectMsgClass(SourceRef.class);
@@ -206,4 +205,5 @@ public final class SearchActorTest {
         stubberConsumer.accept(Mockito.doAnswer(inv -> mat.second()).when(persistence));
         return mat.first();
     }
+
 }

@@ -168,7 +168,8 @@ public final class SearchActor extends AbstractActor {
      * Creates Akka configuration object Props for this SearchActor.
      *
      * @param queryFactory factory of query objects.
-     * @param searchPersistence the {@link org.eclipse.ditto.thingsearch.service.persistence.read.ThingsSearchPersistence} to use in order to execute queries.
+     * @param searchPersistence the {@link org.eclipse.ditto.thingsearch.service.persistence.read.ThingsSearchPersistence}
+     * to use in order to execute queries.
      * @param pubSubMediator the Akka pub-sub mediator.
      * @return the Akka configuration Props object.
      */
@@ -181,7 +182,8 @@ public final class SearchActor extends AbstractActor {
 
     @Override
     public void preStart() {
-        final var subscribe = DistPubSubAccess.subscribeViaGroup(ThingSearchCommand.TYPE_PREFIX, ACTOR_NAME, getSelf());
+        final var subscribe =
+                DistPubSubAccess.subscribeViaGroup(ThingSearchCommand.TYPE_PREFIX, ACTOR_NAME, getSelf());
         pubSubMediator.tell(subscribe, getSelf());
 
         final var coordinatedShutdown = CoordinatedShutdown.get(getContext().getSystem());
@@ -322,7 +324,8 @@ public final class SearchActor extends AbstractActor {
             final ThreadSafeDittoLoggingAdapter l) {
 
         final var queryType = "query"; // same as queryThings
-        final var searchTimer = startNewTimer(streamThings.getImplementedSchemaVersion(), queryType, streamThings);
+        final var searchTimer =
+                startNewTimer(streamThings.getImplementedSchemaVersion(), queryType, streamThings);
         final var queryParsingTimer = searchTimer.startNewSegment(QUERY_PARSING_SEGMENT_NAME);
         final var namespaces = streamThings.getNamespaces().orElse(null);
 
@@ -375,7 +378,8 @@ public final class SearchActor extends AbstractActor {
         l.debug("Starting to process QueryThings command: {}", queryThings);
 
         final var queryType = "query";
-        final var searchTimer = startNewTimer(queryThings.getImplementedSchemaVersion(), queryType, queryThings);
+        final var searchTimer =
+                startNewTimer(queryThings.getImplementedSchemaVersion(), queryType, queryThings);
         final var queryParsingTimer = searchTimer.startNewSegment(QUERY_PARSING_SEGMENT_NAME);
         final var namespaces = queryThings.getNamespaces().orElse(null);
 

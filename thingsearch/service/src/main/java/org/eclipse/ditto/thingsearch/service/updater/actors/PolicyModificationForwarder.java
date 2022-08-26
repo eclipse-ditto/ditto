@@ -109,9 +109,10 @@ final class PolicyModificationForwarder extends AbstractActor {
     public void preStart() {
         CoordinatedShutdown.get(getContext().getSystem())
                 .addTask(CoordinatedShutdown.PhaseServiceUnbind(), "service-unbind-" + ACTOR_NAME, () -> {
-                    final var unsub = DistPubSubAccess.unsubscribeViaGroup(PolicyTag.PUB_SUB_TOPIC_MODIFIED,
-                            ACTOR_NAME, getSelf());
+                    final var unsub =
+                            DistPubSubAccess.unsubscribeViaGroup(PolicyTag.PUB_SUB_TOPIC_MODIFIED, ACTOR_NAME, getSelf());
                     final var shutdownAskTimeout = Duration.ofMinutes(1); // does not matter as phase will timeout
+
                     return Patterns.ask(pubSubMediator, unsub, shutdownAskTimeout).thenApply(reply -> Done.done());
                 });
     }
@@ -242,4 +243,5 @@ final class PolicyModificationForwarder extends AbstractActor {
     }
 
     private record LocalWrappedPolicyTag(PolicyTag delegate) {}
+
 }

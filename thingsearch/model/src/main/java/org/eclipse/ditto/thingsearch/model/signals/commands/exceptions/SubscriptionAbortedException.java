@@ -112,4 +112,5 @@ public class SubscriptionAbortedException extends DittoRuntimeException implemen
             return new SubscriptionAbortedException(dittoHeaders, message, description, cause, href);
         }
     }
+
 }
