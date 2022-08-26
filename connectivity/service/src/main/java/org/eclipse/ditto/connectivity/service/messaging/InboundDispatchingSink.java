@@ -69,8 +69,13 @@ import org.eclipse.ditto.connectivity.service.messaging.monitoring.logs.InfoProv
 import org.eclipse.ditto.connectivity.service.messaging.validation.ConnectionValidator;
 import org.eclipse.ditto.connectivity.service.placeholders.ConnectivityPlaceholders;
 import org.eclipse.ditto.connectivity.service.util.ConnectivityMdcEntryKey;
-import org.eclipse.ditto.internal.models.acks.AcknowledgementAggregatorActorStarter;
-import org.eclipse.ditto.internal.models.acks.config.AcknowledgementConfig;
+import org.eclipse.ditto.edge.service.acknowledgements.AcknowledgementAggregatorActorStarter;
+import org.eclipse.ditto.edge.service.acknowledgements.AcknowledgementConfig;
+import org.eclipse.ditto.edge.service.acknowledgements.message.MessageCommandAckRequestSetter;
+import org.eclipse.ditto.edge.service.acknowledgements.message.MessageCommandResponseAcknowledgementProvider;
+import org.eclipse.ditto.edge.service.acknowledgements.things.ThingCommandResponseAcknowledgementProvider;
+import org.eclipse.ditto.edge.service.acknowledgements.things.ThingLiveCommandAckRequestSetter;
+import org.eclipse.ditto.edge.service.acknowledgements.things.ThingModifyCommandAckRequestSetter;
 import org.eclipse.ditto.internal.models.signal.CommandHeaderRestoration;
 import org.eclipse.ditto.internal.models.signal.correlation.MatchingValidationResult;
 import org.eclipse.ditto.internal.models.signal.type.SemanticSignalType;
@@ -79,8 +84,6 @@ import org.eclipse.ditto.internal.models.signal.type.SignalTypeFormatException;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLogger;
 import org.eclipse.ditto.messages.model.signals.commands.MessageCommand;
-import org.eclipse.ditto.messages.model.signals.commands.acks.MessageCommandAckRequestSetter;
-import org.eclipse.ditto.messages.model.signals.commands.acks.MessageCommandResponseAcknowledgementProvider;
 import org.eclipse.ditto.placeholders.ExpressionResolver;
 import org.eclipse.ditto.placeholders.PlaceholderFactory;
 import org.eclipse.ditto.placeholders.PlaceholderFilter;
@@ -92,9 +95,6 @@ import org.eclipse.ditto.protocol.mappingstrategies.IllegalAdaptableException;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommand;
 import org.eclipse.ditto.things.model.signals.commands.ThingErrorResponse;
-import org.eclipse.ditto.things.model.signals.commands.acks.ThingCommandResponseAcknowledgementProvider;
-import org.eclipse.ditto.things.model.signals.commands.acks.ThingLiveCommandAckRequestSetter;
-import org.eclipse.ditto.things.model.signals.commands.acks.ThingModifyCommandAckRequestSetter;
 import org.eclipse.ditto.thingsearch.model.signals.commands.WithSubscriptionId;
 import org.eclipse.ditto.thingsearch.model.signals.commands.subscription.CreateSubscription;
 
@@ -539,9 +539,9 @@ public final class InboundDispatchingSink
         final Signal<?> signal = incomingSignal.signal;
         final ActorRef sender = incomingSignal.sender;
         final Optional<EntityId> entityIdOptional = WithEntityId.getEntityId(signal);
-        if (incomingSignal.isAckRequesting && entityIdOptional.isPresent()) {
+        if (incomingSignal.isAckRequesting && entityIdOptional.isPresent() && signal instanceof Command<?> command) {
             try {
-                startAckregatorAndForwardSignal(entityIdOptional.get(), signal, sender);
+                startAckregatorAndForwardSignal(entityIdOptional.get(), command, sender);
             } catch (final DittoRuntimeException e) {
                 handleErrorDuringStartingOfAckregator(e, signal.getDittoHeaders(), sender);
             }
@@ -592,14 +592,14 @@ public final class InboundDispatchingSink
     }
 
     private void startAckregatorAndForwardSignal(final EntityId entityId,
-            final Signal<?> signal,
+            final Command<?> command,
             @Nullable final ActorRef sender) {
 
-        ackregatorStarter.doStart(entityId, signal, null,
+        ackregatorStarter.doStart(entityId, command, null,
                 responseSignal -> {
 
                     // potentially publish response/aggregated acks to reply target
-                    final var signalDittoHeaders = signal.getDittoHeaders();
+                    final var signalDittoHeaders = command.getDittoHeaders();
                     if (signalDittoHeaders.isResponseRequired()) {
                         outboundMessageMappingProcessorActor.tell(responseSignal, ActorRef.noSender());
                     }

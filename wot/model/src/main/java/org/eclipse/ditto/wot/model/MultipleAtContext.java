@@ -14,6 +14,7 @@ package org.eclipse.ditto.wot.model;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
@@ -52,5 +53,24 @@ public interface MultipleAtContext extends AtContext, Iterable<SingleAtContext>,
 
     default Stream<SingleAtContext> stream() {
         return StreamSupport.stream(spliterator(), false);
+    }
+
+    /**
+     * Determines the {@code @context} prefix of the passed IRI in {@code singleUriAtContext}.
+     * If this {@code MultipleAtContext} contains such an IRI, the prefix for that context entry is returned.
+     *
+     * @param singleUriAtContext the IRI to determine the context prefix for.
+     * @return the determined context prefix if the IRI was part of this {@code MultipleAtContext} instance or an
+     * empty optional instead.
+     * @since 3.0.0
+     */
+    default Optional<String> determinePrefixForSingleUriAtContext(final SingleUriAtContext singleUriAtContext) {
+        return stream()
+                .filter(SinglePrefixedAtContext.class::isInstance)
+                .map(SinglePrefixedAtContext.class::cast)
+                .filter(singlePrefixedAtContext -> singlePrefixedAtContext
+                        .getDelegateContext().equals(singleUriAtContext))
+                .map(SinglePrefixedAtContext::getPrefix)
+                .findFirst();
     }
 }

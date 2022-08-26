@@ -109,7 +109,8 @@ final class CreateThingStrategy extends AbstractThingCommandStrategy<CreateThing
         final Thing finalNewThing = newThing;
         newThing = wotThingDescriptionProvider.provideThingSkeletonForCreation(
                         command.getEntityId(),
-                        newThing.getDefinition().orElse(null), commandHeaders
+                        newThing.getDefinition().orElse(null),
+                        commandHeaders
                 )
                 .map(wotBasedThingSkeleton ->
                         JsonFactory.mergeJsonValues(finalNewThing.toJson(), wotBasedThingSkeleton.toJson())

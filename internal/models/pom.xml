@@ -26,7 +26,6 @@
     <name>Eclipse Ditto :: Internal :: Models</name>
 
     <modules>
-        <module>acks</module>
         <module>signal</module>
         <module>signalenrichment</module>
         <module>streaming</module>

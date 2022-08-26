@@ -20,15 +20,17 @@ import java.util.Collections;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.base.model.acks.AcknowledgementLabel;
 import org.eclipse.ditto.base.model.acks.AcknowledgementRequest;
 import org.eclipse.ditto.base.model.common.HttpStatus;
+import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
 import org.eclipse.ditto.base.model.signals.acks.AcknowledgementRequestTimeoutException;
+import org.eclipse.ditto.things.model.signals.commands.ThingErrorResponse;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingNotAccessibleException;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingUnavailableException;
 import org.eclipse.ditto.things.model.signals.commands.modify.ModifyThing;
@@ -48,6 +50,7 @@ import akka.testkit.javadsl.TestKit;
  * @param <M> the message type
  */
 public abstract class AbstractConsumerActorWithAcknowledgementsTest<M> extends AbstractConsumerActorTest<M> {
+
     protected abstract Props getConsumerActorProps(final Sink<Object, NotUsed> inboundMappingSink,
             final Set<AcknowledgementRequest> acknowledgementRequests);
 
@@ -75,18 +78,20 @@ public abstract class AbstractConsumerActorWithAcknowledgementsTest<M> extends A
     @Test
     public void testNegativeSourceAcknowledgementSettlementDueToError() throws Exception {
         testSourceAcknowledgementSettlement(false, false, modifyThing ->
-                ThingNotAccessibleException.newBuilder(modifyThing.getEntityId())
-                        .dittoHeaders(modifyThing.getDittoHeaders())
-                        .build(), TestConstants.MODIFY_THING_WITH_ACK, publishMappedMessage ->
-                assertThat(publishMappedMessage.getOutboundSignal()
-                        .first()
-                        .getExternalMessage()
-                        .getInternalHeaders()
-                        .getAcknowledgementRequests()
-                        .stream()
-                        .map(AcknowledgementRequest::getLabel)
-                        .collect(Collectors.toList())
-                ).containsExactly(TWIN_PERSISTED)
+                        ThingNotAccessibleException.newBuilder(modifyThing.getEntityId())
+                                .dittoHeaders(modifyThing.getDittoHeaders())
+                                .build(), TestConstants.MODIFY_THING_WITH_ACK,
+                publishMappedMessage -> {
+                    final Signal<?> response = publishMappedMessage.getOutboundSignal()
+                            .first()
+                            .getSource();
+                    assertThat(response).isInstanceOf(ThingErrorResponse.class);
+                    final ThingErrorResponse errorResponse = (ThingErrorResponse) response;
+                    assertThat(errorResponse.getDittoRuntimeException()).isInstanceOf(
+                            ThingNotAccessibleException.class);
+                    assertThat(errorResponse.getHttpStatus()).isEqualTo(HttpStatus.NOT_FOUND);
+                    assertThat(errorResponse.getDittoHeaders().getCorrelationId()).contains("cid");
+                }
         );
     }
 
@@ -103,18 +108,20 @@ public abstract class AbstractConsumerActorWithAcknowledgementsTest<M> extends A
     @Test
     public void testNegativeSourceAcknowledgementSettlementDueToTimeout() throws Exception {
         testSourceAcknowledgementSettlement(false, true, modifyThing ->
-                AcknowledgementRequestTimeoutException.newBuilder(Duration.ofSeconds(1L))
-                        .dittoHeaders(modifyThing.getDittoHeaders())
-                        .build(), TestConstants.MODIFY_THING_WITH_ACK, publishMappedMessage ->
-                assertThat(publishMappedMessage.getOutboundSignal()
-                        .first()
-                        .getExternalMessage()
-                        .getInternalHeaders()
-                        .getAcknowledgementRequests()
-                        .stream()
-                        .map(AcknowledgementRequest::getLabel)
-                        .collect(Collectors.toList())
-                ).containsExactly(TWIN_PERSISTED)
+                        AcknowledgementRequestTimeoutException.newBuilder(Duration.ofSeconds(1L))
+                                .dittoHeaders(modifyThing.getDittoHeaders())
+                                .build(), TestConstants.MODIFY_THING_WITH_ACK,
+                publishMappedMessage -> {
+                    final Signal<?> response = publishMappedMessage.getOutboundSignal()
+                            .first()
+                            .getSource();
+                    assertThat(response).isInstanceOf(ThingErrorResponse.class);
+                    final ThingErrorResponse errorResponse = (ThingErrorResponse) response;
+                    assertThat(errorResponse.getDittoRuntimeException()).isInstanceOf(
+                            AcknowledgementRequestTimeoutException.class);
+                    assertThat(errorResponse.getHttpStatus()).isEqualTo(HttpStatus.REQUEST_TIMEOUT);
+                    assertThat(errorResponse.getDittoHeaders().getCorrelationId()).contains("cid");
+                }
         );
     }
 
@@ -124,15 +131,17 @@ public abstract class AbstractConsumerActorWithAcknowledgementsTest<M> extends A
                         ThingUnavailableException.newBuilder(modifyThing.getEntityId())
                                 .dittoHeaders(modifyThing.getDittoHeaders())
                                 .build(), TestConstants.MODIFY_THING_WITH_ACK,
-                publishMappedMessage -> assertThat(publishMappedMessage.getOutboundSignal()
-                        .first()
-                        .getExternalMessage()
-                        .getInternalHeaders()
-                        .getAcknowledgementRequests()
-                        .stream()
-                        .map(AcknowledgementRequest::getLabel)
-                        .collect(Collectors.toList())
-                ).containsExactly(TWIN_PERSISTED)
+                publishMappedMessage -> {
+                    final Signal<?> response = publishMappedMessage.getOutboundSignal()
+                            .first()
+                            .getSource();
+                    assertThat(response).isInstanceOf(ThingErrorResponse.class);
+                    final ThingErrorResponse errorResponse = (ThingErrorResponse) response;
+                    assertThat(errorResponse.getDittoRuntimeException()).isInstanceOf(
+                            ThingUnavailableException.class);
+                    assertThat(errorResponse.getHttpStatus()).isEqualTo(HttpStatus.SERVICE_UNAVAILABLE);
+                    assertThat(errorResponse.getDittoHeaders().getCorrelationId()).contains("cid");
+                }
         );
     }
 
