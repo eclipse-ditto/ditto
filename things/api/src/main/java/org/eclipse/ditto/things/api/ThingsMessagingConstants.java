@@ -26,22 +26,22 @@ public final class ThingsMessagingConstants {
     /**
      * Path of the root actor.
      */
-    public static final String ROOT_ACTOR_PATH = USER_PATH + "/thingsRoot";
+    public static final String ROOT_ACTOR_PATH = USER_PATH + "/thingsRoot/";
 
-    /**
-     * Path of the actor that streams from the event journal.
-     */
-    public static final String THINGS_STREAM_PROVIDER_ACTOR_PATH = ROOT_ACTOR_PATH + "/persistenceStreamingActor";
+    public static final String THINGS_PERSISTENCE_STREAMING_ACTOR_NAME = "snapshotStreamingActor";
 
     /**
      * Path of the actor that streams from the snapshot store.
      */
-    public static final String THINGS_SNAPSHOT_STREAMING_ACTOR_PATH = ROOT_ACTOR_PATH + "/snapshotStreamingActor";
+    public static final String THINGS_SNAPSHOT_STREAMING_ACTOR_PATH =
+            ROOT_ACTOR_PATH + THINGS_PERSISTENCE_STREAMING_ACTOR_NAME;
+
+    public static final String THINGS_AGGREGATOR_ACTOR_NAME = "aggregator";
 
     /**
      * Path of the actor is used for aggregating things handling {@code RetrieveThings} command.
      */
-    public static final String THINGS_AGGREGATOR_ACTOR_PATH = ROOT_ACTOR_PATH + "/aggregator";
+    public static final String THINGS_AGGREGATOR_ACTOR_PATH = ROOT_ACTOR_PATH + THINGS_AGGREGATOR_ACTOR_NAME;
 
     /**
      * Name of the shard region for Thing entities.

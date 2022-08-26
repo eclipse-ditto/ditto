@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.things.service.persistence.actors;
 
+import static org.eclipse.ditto.things.api.ThingsMessagingConstants.THINGS_PERSISTENCE_STREAMING_ACTOR_NAME;
+
 import java.util.function.BiFunction;
 import java.util.regex.Pattern;
 
@@ -29,10 +31,9 @@ import akka.actor.Props;
 public final class ThingsPersistenceStreamingActorCreator {
 
     /**
-     * The name of the snapshot streaming actor. Must agree with
-     * {@link org.eclipse.ditto.things.api.ThingsMessagingConstants#THINGS_SNAPSHOT_STREAMING_ACTOR_PATH}.
+     * The name of the snapshot streaming actor.
      */
-    public static final String SNAPSHOT_STREAMING_ACTOR_NAME = "snapshotStreamingActor";
+    public static final String SNAPSHOT_STREAMING_ACTOR_NAME = THINGS_PERSISTENCE_STREAMING_ACTOR_NAME;
 
     private static final Pattern PERSISTENCE_ID_PATTERN = Pattern.compile(ThingPersistenceActor.PERSISTENCE_ID_PREFIX);
 
