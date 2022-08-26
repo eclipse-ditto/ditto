@@ -31,12 +31,6 @@ import com.typesafe.config.ConfigFactory;
 public final class AmqpSpecificConfigTest {
 
     @Test
-    public void decodeDoublyEncodedUsernameAndPasswordDouble() {
-        final var uri = "amqps://%2525u%2525s%2525e%2525r:%2525p%2525a%2525%252Bs%2525s@localhost:1234/";
-        testDecoding(uri, "%25u%25s%25e%25r", "%25p%25a%25%2Bs%25s");
-    }
-
-    @Test
     public void decodeDoublyEncodedUsernameAndPasswordSingle() {
         final var uri = "amqps://%2525u%2525s%2525e%2525r:%2525p%2525a%2525%252Bs%2525s@localhost:1234/";
         testDecoding(uri, "%2525u%2525s%2525e%2525r", "%2525p%2525a%2525%252Bs%2525s");
