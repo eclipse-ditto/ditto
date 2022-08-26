@@ -21,6 +21,7 @@ import static org.mockito.Mockito.when;
 
 import java.time.Duration;
 import java.util.Collections;
+import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
@@ -77,7 +78,7 @@ public final class DittoPublicKeyProviderTest {
         actorSystem = ActorSystem.create(getClass().getSimpleName());
         when(httpClientMock.getActorSystem()).thenReturn(actorSystem);
         final JwtSubjectIssuersConfig subjectIssuersConfig = JwtSubjectIssuersConfig.fromJwtSubjectIssuerConfigs(
-                Collections.singleton(new JwtSubjectIssuerConfig(SubjectIssuer.GOOGLE, "google.com")));
+                Collections.singleton(new JwtSubjectIssuerConfig(SubjectIssuer.GOOGLE, List.of("google.com"))));
         when(oauthConfigMock.getAllowedClockSkew()).thenReturn(Duration.ofSeconds(1));
         underTest = new DittoPublicKeyProvider(subjectIssuersConfig, httpClientMock,
                 oauthConfigMock, DittoPublicKeyProviderTest::thisThreadCache);

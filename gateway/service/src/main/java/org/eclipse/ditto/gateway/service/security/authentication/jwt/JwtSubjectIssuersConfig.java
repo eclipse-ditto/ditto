@@ -66,7 +66,7 @@ public final class JwtSubjectIssuersConfig {
                 // merge the default and extension config
                 Stream.concat(config.getOpenIdConnectIssuers().entrySet().stream(),
                         config.getOpenIdConnectIssuersExtension().entrySet().stream())
-                        .map(entry -> new JwtSubjectIssuerConfig(entry.getKey(), entry.getValue().getIssuer(),
+                        .map(entry -> new JwtSubjectIssuerConfig(entry.getKey(), entry.getValue().getIssuers(),
                                 entry.getValue().getAuthorizationSubjectTemplates()))
                         .collect(Collectors.toSet());
         return new JwtSubjectIssuersConfig(configItems, config.getProtocol());
@@ -75,8 +75,12 @@ public final class JwtSubjectIssuersConfig {
     private static void addConfigToMap(final JwtSubjectIssuerConfig config,
             final Map<String, JwtSubjectIssuerConfig> map,
             final String protocolPrefix) {
-        map.put(config.getIssuer(), config);
-        map.put(protocolPrefix + config.getIssuer(), config);
+
+        config.getIssuers()
+                .forEach(issuer -> {
+                    map.put(issuer, config);
+                    map.put(protocolPrefix + issuer, config);
+                });
     }
 
     public String getProtocolPrefix() {
@@ -97,7 +101,9 @@ public final class JwtSubjectIssuersConfig {
     private Optional<JwtSubjectIssuerConfig> getConfigItemByIssuer(final String issuer) {
         return subjectIssuerConfigMap.values()
                 .stream()
-                .filter(jwtSubjectIssuerConfig -> jwtSubjectIssuerConfig.getIssuer().equals(issuer))
+                .filter(jwtSubjectIssuerConfig -> jwtSubjectIssuerConfig.getIssuers().stream()
+                        .anyMatch(configuredIssuer -> configuredIssuer.equals(issuer))
+                )
                 .findFirst();
     }
 
@@ -122,7 +128,7 @@ public final class JwtSubjectIssuersConfig {
 
         return subjectIssuerConfigMap.values().stream()
                 .filter(jwtSubjectIssuerConfig -> jwtSubjectIssuerConfig.getSubjectIssuer().equals(subjectIssuer))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Override

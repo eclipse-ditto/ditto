@@ -20,11 +20,11 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 import java.time.Duration;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 import org.assertj.core.api.JUnitSoftAssertions;
 import org.eclipse.ditto.policies.model.SubjectIssuer;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 
@@ -96,23 +96,40 @@ public final class DefaultOAuthConfigTest {
         softly.assertThat(underTest.getOpenIdConnectIssuers())
                 .as(OAuthConfig.OAuthConfigValue.OPENID_CONNECT_ISSUERS.getConfigPath())
                 .isEqualTo(
-                        Collections.singletonMap(
+                        Map.of(
                                 SubjectIssuer.newInstance("google"),
                                 DefaultSubjectIssuerConfig.of(
-                                        "https://accounts.google.com",
+                                        List.of("https://accounts.google.com"),
                                         List.of(
                                                 "{{ jwt:sub }}",
                                                 "{{ jwt:sub }}/{{ jwt:scope }}",
                                                 "{{ jwt:sub }}/{{ jwt:scope }}@{{ jwt:client_id }}",
                                                 "{{ jwt:sub }}/{{ jwt:scope }}@{{ jwt:non_existing }}",
                                                 "{{ jwt:roles/support }}"
-                                        ))));
+                                        )
+                                ),
+                                SubjectIssuer.newInstance("some-other"),
+                                DefaultSubjectIssuerConfig.of(
+                                        List.of(
+                                                "https://one.com",
+                                                "https://two.com",
+                                                "https://three.com"
+                                        ),
+                                        List.of(
+                                                "{{ jwt:sub }}"
+                                        )
+                                )
+                        ));
 
         softly.assertThat(underTest.getOpenIdConnectIssuersExtension())
                 .as(OAuthConfig.OAuthConfigValue.OPENID_CONNECT_ISSUERS_EXTENSION.getConfigPath())
                 .isEqualTo(Collections.singletonMap(
                         SubjectIssuer.newInstance("additional"),
-                        DefaultSubjectIssuerConfig.of("https://additional.google.com", List.of("{{ jwt:sub }}"))));
+                        DefaultSubjectIssuerConfig.of(
+                                List.of("https://additional.google.com"),
+                                List.of("{{ jwt:sub }}")
+                        )
+                ));
 
         softly.assertThat(underTest.getTokenIntegrationSubject()).isEqualTo("ditto:ditto");
     }

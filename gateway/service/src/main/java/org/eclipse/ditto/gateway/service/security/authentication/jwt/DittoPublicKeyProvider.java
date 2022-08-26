@@ -183,7 +183,11 @@ public final class DittoPublicKeyProvider implements PublicKeyProvider {
             return CompletableFuture.failedFuture(GatewayJwtIssuerNotSupportedException.newBuilder(issuer).build());
         }
 
-        final String discoveryEndpoint = getDiscoveryEndpoint(subjectIssuerConfigOpt.get().getIssuer());
+        final String discoveryEndpoint = getDiscoveryEndpoint(subjectIssuerConfigOpt.get().getIssuers()
+                .stream()
+                .filter(configuredIssuer -> configuredIssuer.contains(issuer))
+                .findAny()
+                .orElse(issuer));
         final CompletionStage<HttpResponse> responseFuture = getPublicKeysFromDiscoveryEndpoint(discoveryEndpoint);
         final CompletionStage<JsonArray> publicKeysFuture = responseFuture.thenCompose(this::mapResponseToJsonArray);
 
