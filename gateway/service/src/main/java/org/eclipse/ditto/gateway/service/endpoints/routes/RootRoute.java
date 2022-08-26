@@ -38,8 +38,6 @@ import org.eclipse.ditto.gateway.service.endpoints.directives.HttpsEnsuringDirec
 import org.eclipse.ditto.gateway.service.endpoints.directives.RequestResultLoggingDirective;
 import org.eclipse.ditto.gateway.service.endpoints.directives.RequestTimeoutHandlingDirective;
 import org.eclipse.ditto.gateway.service.endpoints.directives.RequestTracingDirective;
-import org.eclipse.ditto.gateway.service.endpoints.directives.auth.DevOpsOAuth2AuthenticationDirective;
-import org.eclipse.ditto.gateway.service.endpoints.directives.auth.DevopsAuthenticationDirective;
 import org.eclipse.ditto.gateway.service.endpoints.directives.auth.GatewayAuthenticationDirective;
 import org.eclipse.ditto.gateway.service.endpoints.routes.cloudevents.CloudEventsRoute;
 import org.eclipse.ditto.gateway.service.endpoints.routes.connections.ConnectionsRoute;
@@ -103,7 +101,6 @@ public final class RootRoute extends AllDirectives {
     private final RouteBaseProperties routeBaseProperties;
     private final GatewayAuthenticationDirective apiAuthenticationDirective;
     private final GatewayAuthenticationDirective wsAuthenticationDirective;
-    private final DevopsAuthenticationDirective devopsAuthenticationDirective;
     private final CorsEnablingDirective corsDirective;
     private final HttpsEnsuringDirective httpsDirective;
     private final RequestTimeoutHandlingDirective requestTimeoutHandlingDirective;
@@ -134,7 +131,6 @@ public final class RootRoute extends AllDirectives {
         routeBaseProperties = builder.routeBaseProperties;
         apiAuthenticationDirective = builder.httpAuthenticationDirective;
         wsAuthenticationDirective = builder.wsAuthenticationDirective;
-        devopsAuthenticationDirective = builder.devopsAuthenticationDirective;
         requestTimeoutHandlingDirective = RequestTimeoutHandlingDirective.getInstance(httpConfig);
         httpsDirective = HttpsEnsuringDirective.getInstance(httpConfig);
         corsDirective = CorsEnablingDirective.getInstance(httpConfig);
@@ -230,50 +226,30 @@ public final class RootRoute extends AllDirectives {
             final Map<String, String> queryParameters) {
 
         return rawPathPrefix(PathMatchers.slash().concat(HTTP_PATH_API_PREFIX), () -> // /api
-                ensureSchemaVersion(apiVersion -> {// /api/<apiVersion>
-                    final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
-                            .schemaVersion(apiVersion)
-                            .correlationId(correlationId)
-                            .build();
-                    final CompletionStage<DittoHeaders> dittoHeadersPromise =
-                            rootRouteHeadersStepBuilder
-                                    .withInitialDittoHeadersBuilder(dittoHeaders.toBuilder())
-                                    .withRequestContext(ctx)
-                                    .withQueryParameters(queryParameters)
-                                    .build(CustomHeadersHandler.RequestType.API);
-                    //TODO dgs: fix after concierge-removal merge.
-                    return withDittoHeaders(dittoHeadersPromise, dh -> devOpsConnectionsRoute(ctx, dh))
-                                            apiAuthentication(apiVersion, correlationId, auth -> {
-                                                        final CompletionStage<DittoHeaders> dittoHeadersPromisee =
-                                                                rootRouteHeadersStepBuilder
-                                                                        .withInitialDittoHeadersBuilder(
-                                                                                auth.getDittoHeaders().toBuilder())
-                                                                        .withRequestContext(ctx)
-                                                                        .withQueryParameters(queryParameters)
-                                                                        .build(CustomHeadersHandler.RequestType.API);
+                ensureSchemaVersion(apiVersion ->  // /api/<apiVersion>
+                        customApiRoutesProvider.unauthorized(routeBaseProperties, apiVersion, correlationId)
+                                .orElse(
+                                        connectionsRoute.buildConnectionsRoute(ctx, DittoHeaders.newBuilder() // /api/<apiVersion>/connections
+                                                .schemaVersion(apiVersion)
+                                                .correlationId(correlationId)
+                                                .putHeader(DittoHeaderDefinition.DITTO_SUDO.getKey(),
+                                                        Boolean.TRUE.toString())
+                                                .build())
+                                )
+                                .orElse(apiAuthentication(apiVersion, correlationId, auth -> {
+                                        final CompletionStage<DittoHeaders> dittoHeadersPromise =
+                                                rootRouteHeadersStepBuilder.withInitialDittoHeadersBuilder(
+                                                                auth.getDittoHeaders().toBuilder()
+                                                        )
+                                                        .withRequestContext(ctx)
+                                                        .withQueryParameters(queryParameters)
+                                                        .build(CustomHeadersHandler.RequestType.API);
 
-                                                        return withDittoHeaders(dittoHeadersPromisee,
-                                                                dh -> buildApiSubRoutes(ctx, dh, auth));
-                                                    }
-                                            )
-                                    )
-                            );
-                        }
+                                        return withDittoHeaders(dittoHeadersPromise,
+                                                dh -> buildApiSubRoutes(ctx, dh, auth));
+                                }))
                 )
         );
-    }
-
-    private Route devOpsConnectionsRoute(final RequestContext ctx, final DittoHeaders dittoHeaders) {
-        return rawPathPrefixTest(PathMatchers.slash().concat(ConnectionsRoute.PATH_CONNECTIONS),
-                () -> devopsAuthenticationDirective.authenticateDevOps(
-                DevOpsOAuth2AuthenticationDirective.REALM_DEVOPS,
-                connectionsRoute.buildConnectionsRoute(ctx, withSudo(dittoHeaders))));
-    }
-
-    private DittoHeaders withSudo(final DittoHeaders dittoHeaders) {
-        return dittoHeaders.toBuilder()
-                .putHeader(DittoHeaderDefinition.DITTO_SUDO.getKey(), Boolean.TRUE.toString())
-                .build();
     }
 
     private Route ensureSchemaVersion(final Function<JsonSchemaVersion, Route> inner) {
@@ -446,7 +422,6 @@ public final class RootRoute extends AllDirectives {
         private RouteBaseProperties routeBaseProperties;
         private GatewayAuthenticationDirective httpAuthenticationDirective;
         private GatewayAuthenticationDirective wsAuthenticationDirective;
-        private DevopsAuthenticationDirective devopsAuthenticationDirective;
         private ExceptionHandler exceptionHandler;
         private final Map<Integer, JsonSchemaVersion> supportedSchemaVersions = new HashMap<>();
         private ProtocolAdapterProvider protocolAdapterProvider;
@@ -556,13 +531,6 @@ public final class RootRoute extends AllDirectives {
         @Override
         public RootRouteBuilder wsAuthenticationDirective(final GatewayAuthenticationDirective directive) {
             wsAuthenticationDirective = directive;
-            return this;
-        }
-
-        @Override
-        public RootRouteBuilder devopsAuthenticationDirective(
-                final DevopsAuthenticationDirective directive) {
-            devopsAuthenticationDirective = directive;
             return this;
         }
 

@@ -10,7 +10,6 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-
 package org.eclipse.ditto.gateway.service.endpoints.routes.connections;
 
 import static org.eclipse.ditto.base.model.exceptions.DittoJsonException.wrapJsonRuntimeException;
@@ -22,6 +21,8 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+
+import javax.annotation.Nullable;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.signals.commands.Command;
@@ -46,6 +47,8 @@ import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConne
 import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConnectionMetrics;
 import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConnectionStatus;
 import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConnections;
+import org.eclipse.ditto.gateway.service.endpoints.directives.auth.DevOpsOAuth2AuthenticationDirective;
+import org.eclipse.ditto.gateway.service.endpoints.directives.auth.DevopsAuthenticationDirective;
 import org.eclipse.ditto.gateway.service.endpoints.routes.AbstractRoute;
 import org.eclipse.ditto.gateway.service.endpoints.routes.RouteBaseProperties;
 import org.eclipse.ditto.json.JsonFactory;
@@ -74,16 +77,22 @@ public final class ConnectionsRoute extends AbstractRoute {
 
     private final Set<String> mediaTypePlainTextWithFallbacks;
     private final Duration defaultTimeout;
+    @Nullable private final DevopsAuthenticationDirective devOpsAuthenticationDirective;
 
     /**
      * Constructs a {@code ConnectionsRoute} object.
      *
      * @param routeBaseProperties the base properties of the route.
+     * @param devOpsAuthenticationDirective the optional directive to authenticate the devops user - if {@code null},
+     * no devops authentication will be done.
      * @throws NullPointerException if {@code routeBaseProperties} is {@code null}.
      */
-    public ConnectionsRoute(final RouteBaseProperties routeBaseProperties) {
+    public ConnectionsRoute(final RouteBaseProperties routeBaseProperties,
+            @Nullable final DevopsAuthenticationDirective devOpsAuthenticationDirective) {
+
         super(routeBaseProperties);
         defaultTimeout = routeBaseProperties.getCommandConfig().getDefaultTimeout();
+        this.devOpsAuthenticationDirective = devOpsAuthenticationDirective;
         final var httpConfig = routeBaseProperties.getHttpConfig();
         final var fallbackMediaTypes = httpConfig.getAdditionalAcceptedMediaTypes().stream();
         final var plainText = Stream.of(MediaTypes.TEXT_PLAIN.toString());
@@ -97,17 +106,21 @@ public final class ConnectionsRoute extends AbstractRoute {
      * @return the {@code /connections} route.
      */
     public Route buildConnectionsRoute(final RequestContext ctx, final DittoHeaders dittoHeaders) {
-        return rawPathPrefix(PathMatchers.slash().concat(PATH_CONNECTIONS), () -> {// /connections
-            return concat(
-                    // /connections
-                    connections(ctx, dittoHeaders),
-                    rawPathPrefix(
-                            PathMatchers.slash().concat(PathMatchers.segment()),
-                            connectionId -> connectionRoute(ctx, dittoHeaders,
-                                    ConnectionId.of(connectionId))
-                    )
-            );
-        });
+        return rawPathPrefix(PathMatchers.slash().concat(PATH_CONNECTIONS), () ->  // /connections
+                Optional.ofNullable(devOpsAuthenticationDirective)
+                        .orElse((realm, route) -> route)
+                        .authenticateDevOps(DevOpsOAuth2AuthenticationDirective.REALM_DEVOPS,
+                                concat(
+                                        // /connections
+                                        connections(ctx, dittoHeaders),
+                                        rawPathPrefix(
+                                                PathMatchers.slash().concat(PathMatchers.segment()),
+                                                connectionId -> connectionRoute(ctx, dittoHeaders,
+                                                        ConnectionId.of(connectionId))
+                                        )
+                                )
+                        )
+        );
     }
 
     private Route connectionRoute(final RequestContext ctx,

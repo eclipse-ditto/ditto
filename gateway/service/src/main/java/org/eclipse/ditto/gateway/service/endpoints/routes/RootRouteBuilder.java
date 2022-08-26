@@ -16,7 +16,7 @@ import java.util.Collection;
 
 import org.eclipse.ditto.base.model.headers.translator.HeaderTranslator;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
-import org.eclipse.ditto.gateway.service.endpoints.directives.auth.DevopsAuthenticationDirective;
+import org.eclipse.ditto.edge.service.headers.DittoHeadersValidator;
 import org.eclipse.ditto.gateway.service.endpoints.directives.auth.GatewayAuthenticationDirective;
 import org.eclipse.ditto.gateway.service.endpoints.routes.cloudevents.CloudEventsRoute;
 import org.eclipse.ditto.gateway.service.endpoints.routes.connections.ConnectionsRoute;
@@ -163,14 +163,6 @@ public interface RootRouteBuilder {
      * @return the Builder to allow method chaining.
      */
     RootRouteBuilder wsAuthenticationDirective(GatewayAuthenticationDirective directive);
-
-    /**
-     * Sets the devops authentication directive.
-     *
-     * @param devopsAuthenticationDirective the devopsAuthenticationDirective to set.
-     * @return the Builder to allow method chaining.
-     */
-    RootRouteBuilder devopsAuthenticationDirective(DevopsAuthenticationDirective devopsAuthenticationDirective);
 
     /**
      * Sets the supported API versions.

@@ -142,7 +142,7 @@ public final class RootRouteTest extends EndpointTestBase {
                 .statusRoute(new StatusRoute(clusterStatusSupplier,
                         createHealthCheckingActorMock(),
                         routeBaseProperties.getActorSystem()))
-                .connectionsRoute(new ConnectionsRoute(routeBaseProperties))
+                .connectionsRoute(new ConnectionsRoute(routeBaseProperties, devOpsAuthenticationDirective))
                 .overallStatusRoute(new OverallStatusRoute(clusterStatusSupplier,
                         statusAndHealthProvider,
                         devopsAuthenticationDirectiveFactory.status()))
@@ -166,7 +166,6 @@ public final class RootRouteTest extends EndpointTestBase {
                 .protocolAdapterProvider(ProtocolAdapterProvider.load(protocolConfig,
                         routeBaseProperties.getActorSystem()))
                 .headerTranslator(httpHeaderTranslator)
-                .devopsAuthenticationDirective(devOpsAuthenticationDirective)
                 .httpAuthenticationDirective(
                         authenticationDirectiveFactory.buildHttpAuthentication(jwtAuthenticationFactory))
                 .wsAuthenticationDirective(
