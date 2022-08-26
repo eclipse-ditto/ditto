@@ -38,14 +38,9 @@ import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConne
 import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConnectionResponse;
 import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConnections;
 import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConnectionsResponse;
-import org.eclipse.ditto.gateway.service.util.config.DittoGatewayConfig;
-import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
-import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLogger;
-import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonCollectors;
 
-import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.japi.pf.ReceiveBuilder;
@@ -54,28 +49,14 @@ import akka.pattern.Patterns;
 /**
  * Actor for retrieving multiple connections.
  */
-public class DittoConnectionsRetrievalActor extends AbstractActor {
-
-    private static final ThreadSafeDittoLogger LOGGER =
-            DittoLoggerFactory.getThreadSafeLogger(DittoConnectionsRetrievalActor.class);
-
-    public static final String ACTOR_NAME = "connectionsRetrieval";
+public class DittoConnectionsRetrievalActor extends AbstractConnectionsRetrievalActor {
 
     private static final String LOG_SEND_COMMAND = "Sending command <{}> to org.eclipse.ditto.connectivity.service.";
-    private final ActorRef edgeCommandForwarder;
-    private final ActorRef sender;
-    private RetrieveConnections initialCommand;
-    private final int connectionsRetrieveLimit;
 
     @SuppressWarnings("unused")
-    private DittoConnectionsRetrievalActor(final ActorRef edgeCommandForwarder, final ActorRef sender) {
-
-        this.edgeCommandForwarder = edgeCommandForwarder;
-        this.sender = sender;
-        connectionsRetrieveLimit =
-                DittoGatewayConfig.of(DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config()))
-                        .getCommandConfig()
-                        .connectionsRetrieveLimit();
+    private DittoConnectionsRetrievalActor(final ActorRef edgeCommandForwarder, final ActorRef sender,
+            final Duration timeout) {
+        super(edgeCommandForwarder, sender, timeout);
     }
 
     /**
@@ -90,28 +71,18 @@ public class DittoConnectionsRetrievalActor extends AbstractActor {
     }
 
     @Override
-    public Receive createReceive() {
-        return ReceiveBuilder.create()
-                .match(RetrieveConnections.class, this::retrieveConnections)
-                .matchAny(msg -> LOGGER.warn("Unknown message: <{}>", msg))
-                .build();
-    }
-
-    private void retrieveConnections(final RetrieveConnections rc) {
-        getContext().become(getResponseAwaitingBehavior());
-        this.initialCommand = rc;
+    protected void retrieveConnections(final RetrieveConnections rc) {
         this.edgeCommandForwarder.tell(RetrieveAllConnectionIds.of(rc.getDittoHeaders()), getSelf());
     }
 
-    private Receive getResponseAwaitingBehavior() {
+    @Override
+    protected Receive commandResponseAwaitingBehaviour() {
         return ReceiveBuilder.create()
-                .match(RetrieveAllConnectionIdsResponse.class, this::retrieveConnectionsResponse)
-                .matchAny(msg -> LOGGER.warn("Unknown message: <{}>", msg))
+                .match(RetrieveAllConnectionIdsResponse.class, this::retrieveConnectionsById)
                 .build();
     }
 
-    //TODO CR-11532: consolidate with AkkaBasedConnectivity but then consider solutions behaviour
-    private void retrieveConnectionsResponse(RetrieveAllConnectionIdsResponse msg) {
+    private void retrieveConnectionsById(RetrieveAllConnectionIdsResponse msg) {
         final var connectionIds = msg.getAllConnectionIds();
         if (initialCommand.getIdsOnly()) {
             RetrieveConnectionsResponse response = RetrieveConnectionsResponse
@@ -189,18 +160,18 @@ public class DittoConnectionsRetrievalActor extends AbstractActor {
     private CompletionStage<RetrieveConnectionResponse> askConnectivity(
             final RetrieveConnection command) {
 
-        LOGGER.withCorrelationId(command).debug(LOG_SEND_COMMAND, command);
+        logger.withCorrelationId(command).debug(LOG_SEND_COMMAND, command);
         final var commandWithCorrelationId = ensureCommandHasCorrelationId(command);
         Duration askTimeout = initialCommand.getTimeout();
         return Patterns.ask(edgeCommandForwarder, commandWithCorrelationId, askTimeout)
                 .thenApply(response -> {
-                    LOGGER.withCorrelationId(command)
+                    logger.withCorrelationId(command)
                             .debug("Received response <{}> from com.bosch.iot.things.connectivity.service.", response);
                     throwCauseIfErrorResponse(response);
                     throwCauseIfDittoRuntimeException(response);
                     final RetrieveConnectionResponse mappedResponse =
                             mapToType(response, RetrieveConnectionResponse.class, command);
-                    LOGGER.withCorrelationId(command)
+                    logger.withCorrelationId(command)
                             .info("Received response of type <{}> from com.bosch.iot.things.connectivity.service.",
                                     mappedResponse.getType());
                     return mappedResponse;
@@ -242,9 +213,5 @@ public class DittoConnectionsRetrievalActor extends AbstractActor {
                 .dittoHeaders(withDittoHeaders.getDittoHeaders())
                 .cause(exception)
                 .build();
-    }
-
-    private void stop() {
-        getContext().stop(getSelf());
     }
 }
