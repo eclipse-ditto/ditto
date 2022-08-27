@@ -28,7 +28,7 @@ import org.eclipse.ditto.protocol.adapter.ProtocolAdapter;
 import org.eclipse.ditto.things.model.ThingId;
 import org.junit.Before;
 import org.junit.Test;
-
+import java.util.UUID;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.List;
@@ -42,7 +42,7 @@ public class CloudEventsMapperTest {
 
     private static final ThingId THING_ID = ThingId.of("thing:id");
     private static final ProtocolAdapter ADAPTER = DittoProtocolAdapter.newInstance();
-
+    private static final String cloudEventsContentType = "application/cloudevents+json";
     String payload = """
             {
              "specversion": "1.0",  "id":"3212e","source":"http:somesite.com","type":"com.site.com"
@@ -82,38 +82,44 @@ public class CloudEventsMapperTest {
         underTest = new CloudEventsMapper();
     }
 
-//    @Test
-//    public void textPayloadMessage() {
-//        ExternalMessage textMessage = textMessageBuilder(testPayload);
-//        Adaptable expectedAdaptable = DittoJsonException.wrapJsonRuntimeException(() -> ProtocolFactory.jsonifiableAdaptableFromJson(JsonFactory.newObject(data)));
-//        List<Adaptable> expectedMap = singletonList(ProtocolFactory.newAdaptableBuilder(expectedAdaptable).build());
-//        System.out.println("The payload is " + expectedAdaptable.getPayload().getValue().get());
-//        System.out.println(underTest.map(expectedAdaptable));
-//        assertEquals(expectedMap, underTest.map(textMessage));
-//    }
-//
-//    @Test
-//    public void base64PayloadMessage() {
-//        ExternalMessage message = textMessageBuilder(base64payload);
-//        String base64 = data_base64.replace("\"", "");
-//        byte[] decodedBytes = Base64.getDecoder().decode(base64);
-//        String decodedString = new String(decodedBytes);
-//
-//        Adaptable expectedAdaptable = DittoJsonException.wrapJsonRuntimeException(() -> ProtocolFactory.jsonifiableAdaptableFromJson(JsonFactory.newObject(decodedString)));
-//        List<Adaptable> expectedMap = singletonList(ProtocolFactory.newAdaptableBuilder(expectedAdaptable).build());
-//        assertEquals(expectedMap, underTest.map(message));
-//    }
-//
-//    @Test
-//    public void bytePayloadMapping() {
-//        ExternalMessage byteMessage = ExternalMessageFactory.newExternalMessageBuilder(Map.of(ExternalMessage.CONTENT_TYPE_HEADER, DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE)).withBytes(testPayload.getBytes(StandardCharsets.UTF_8)).build();
-//
-//        Adaptable expectedAdaptable = DittoJsonException.wrapJsonRuntimeException(() -> ProtocolFactory.jsonifiableAdaptableFromJson(JsonFactory.newObject(data.getBytes(StandardCharsets.UTF_8))));
-//        List<Adaptable> expectedMap = singletonList(ProtocolFactory.newAdaptableBuilder(expectedAdaptable).build());
-//        assertEquals(expectedMap, underTest.map(byteMessage));
-//    }
-//
-//
+    @Test
+    public void textPayloadMessage() {
+        ExternalMessage textMessage = textMessageBuilder(testPayload);
+        Adaptable expectedAdaptable = DittoJsonException.wrapJsonRuntimeException(() -> ProtocolFactory.jsonifiableAdaptableFromJson(JsonFactory.newObject(data)));
+        List<Adaptable> expectedMap = singletonList(ProtocolFactory.newAdaptableBuilder(expectedAdaptable).build());
+        System.out.println(underTest.map(expectedAdaptable));
+        assertEquals(expectedMap, underTest.map(textMessage));
+    }
+
+
+    @Test
+    public void randomTest(){
+    String uuid = UUID.randomUUID().toString();
+        System.out.println(uuid);
+    }
+    @Test
+    public void base64PayloadMessage() {
+        ExternalMessage message = textMessageBuilder(base64payload);
+        String base64 = data_base64.replace("\"", "");
+        byte[] decodedBytes = Base64.getDecoder().decode(base64);
+        String decodedString = new String(decodedBytes);
+
+        Adaptable expectedAdaptable = DittoJsonException.wrapJsonRuntimeException(() -> ProtocolFactory.jsonifiableAdaptableFromJson(JsonFactory.newObject(decodedString)));
+        List<Adaptable> expectedMap = singletonList(ProtocolFactory.newAdaptableBuilder(expectedAdaptable).build());
+
+        assertEquals(expectedMap, underTest.map(message));
+    }
+
+    @Test
+    public void bytePayloadMapping() {
+        ExternalMessage byteMessage = ExternalMessageFactory.newExternalMessageBuilder(Map.of(ExternalMessage.CONTENT_TYPE_HEADER, cloudEventsContentType)).withBytes(testPayload.getBytes(StandardCharsets.UTF_8)).build();
+
+        Adaptable expectedAdaptable = DittoJsonException.wrapJsonRuntimeException(() -> ProtocolFactory.jsonifiableAdaptableFromJson(JsonFactory.newObject(data.getBytes(StandardCharsets.UTF_8))));
+        List<Adaptable> expectedMap = singletonList(ProtocolFactory.newAdaptableBuilder(expectedAdaptable).build());
+        assertEquals(expectedMap, underTest.map(byteMessage));
+    }
+
+
 //    @Test
 //    public void failedMapping(){
 //        ExternalMessage textMessage = textMessageBuilder(incompletePayload);
@@ -138,7 +144,7 @@ public class CloudEventsMapperTest {
     }
 
     private ExternalMessage textMessageBuilder(String textPayload) {
-        ExternalMessage message = ExternalMessageFactory.newExternalMessageBuilder(Map.of(ExternalMessage.CONTENT_TYPE_HEADER, DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE)).withText(textPayload).build();
+        ExternalMessage message = ExternalMessageFactory.newExternalMessageBuilder(Map.of(ExternalMessage.CONTENT_TYPE_HEADER, cloudEventsContentType)).withText(textPayload).build();
         return message;
     }
 }

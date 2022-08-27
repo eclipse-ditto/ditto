@@ -49,6 +49,8 @@ public final class CloudEventsMapper extends AbstractMessageMapper {
     static final String CE_SPECVERSION = "ce-specversion";
 
     static final String contentType = "application/cloudevents+json";
+
+
     static final JsonObject DEFAULT_OPTIONS = JsonObject.newBuilder().set(MessageMapperConfiguration.CONTENT_TYPE_BLOCKLIST, String.join(",", "application/vnd.eclipse-hono-empty-notification", "application/vnd.eclipse-hono-device-provisioning-notification", "application/vnd.eclipse-hono-dc-notification+json", "application/vnd.eclipse-hono-delivery-failure-notification+json")).build();
 
     /**
@@ -60,12 +62,15 @@ public final class CloudEventsMapper extends AbstractMessageMapper {
     final String ID = "id";
     final String SOURCE = "source";
     final String TYPE = "type";
-    final String ceOutboundMessage = """
-            {"specversion":"1.0",
-            "source":"org.eclipse.ditto",
-            "id":"potentially a uuid",
-            "type":"target message",
-            "data":}""";
+    static final String OutboundId = UUID.randomUUID().toString();
+
+    static final String OutboundType = "org.eclipse.ditto.outbound";
+
+    static final String OutboundSpecversion = "1.0";
+
+    static final String OutboundSource = "org.eclipse.ditto";
+
+    static final String ceOutboundMessage = String.format("{\"specversion\":\"%s\",\"source\":\"%s\",\"id\":" + OutboundId + ",\"type\":\"%s\",\"data\":", OutboundSpecversion, OutboundSource, OutboundType);
 
     private String base64decoding(final String base64Message) {
         byte[] messageByte = Base64.getDecoder().decode(base64Message);
@@ -145,19 +150,16 @@ public final class CloudEventsMapper extends AbstractMessageMapper {
 
     @Override
     public List<ExternalMessage> map(final Adaptable adaptable) {
-        System.out.println("Outbound ExternalMessage is " + List.of(ExternalMessageFactory.newExternalMessageBuilder(getExternalDittoHeaders(adaptable)).withTopicPath(adaptable.getTopicPath()).withText(getExternalCloudEventSpecifications(adaptable)).asResponse(isResponse(adaptable)).asError(isError(adaptable)).build()));
-        return List.of(ExternalMessageFactory.newExternalMessageBuilder(getExternalDittoHeaders(adaptable)).withTopicPath(adaptable.getTopicPath()).withText(getExternalCloudEventSpecifications(adaptable)).asResponse(isResponse(adaptable)).asError(isError(adaptable)).build());
+
+        return List.of(ExternalMessageFactory.newExternalMessageBuilder(Map.of(ExternalMessage.CONTENT_TYPE_HEADER, contentType))
+                .withTopicPath(adaptable.getTopicPath())
+                .withText(getExternalCloudEventSpecifications(adaptable))
+                .asResponse(isResponse(adaptable)).asError(isError(adaptable)).build());
     }
 
-    //getJsonString(adaptable)
     private static String getExternalCloudEventSpecifications(Adaptable adaptable) {
         String adaptableFields = getJsonString(adaptable);
-        return """
-                {"specversion":"1.0",
-                "source":"org.eclipse.ditto",
-                "id":"potentially a uuid",
-                "type":"target message",
-                "data": """ + adaptableFields + "}";
+        return ceOutboundMessage + adaptableFields + "}";
     }
 
     private static DittoHeaders getExternalDittoHeaders(final Adaptable adaptable) {
