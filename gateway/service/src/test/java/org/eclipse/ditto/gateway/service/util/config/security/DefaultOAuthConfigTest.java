@@ -112,7 +112,7 @@ public final class DefaultOAuthConfigTest {
                                 DefaultSubjectIssuerConfig.of(
                                         List.of(
                                                 "https://one.com",
-                                                "https://two.com",
+                                                "two.com",
                                                 "https://three.com"
                                         ),
                                         List.of(
