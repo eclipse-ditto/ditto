@@ -89,7 +89,7 @@ public final class DefaultOAuthConfigTest {
     public void underTestReturnsValuesOfConfigFile() {
         final DefaultOAuthConfig underTest = DefaultOAuthConfig.of(oauthConfig);
 
-        softly.assertThat(underTest.getProtocol()).isEqualTo("http");
+        softly.assertThat(underTest.getProtocol()).isEqualTo("https");
 
         softly.assertThat(underTest.getAllowedClockSkew()).isEqualTo(Duration.ofSeconds(20));
 
