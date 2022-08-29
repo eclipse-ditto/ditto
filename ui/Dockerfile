@@ -17,3 +17,4 @@ COPY ./index.html           .
 COPY ./index.css            .
 COPY ./main.js              .
 COPY ./modules              ./modules
+COPY ./templates            ./templates

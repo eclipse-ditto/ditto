@@ -70,6 +70,7 @@ jobs:
           build-args: |
             SERVICE_STARTER=ditto-policies-service
             SERVICE_VERSION=${{ env.IMAGE_TAG }}
+            MAIN_CLASS=org.eclipse.ditto.policies.service.starter.PoliciesService
           pull: true
           push: true
           tags: |
@@ -88,6 +89,7 @@ jobs:
           build-args: |
             SERVICE_STARTER=ditto-things-service
             SERVICE_VERSION=${{ env.IMAGE_TAG }}
+            MAIN_CLASS=org.eclipse.ditto.things.service.starter.ThingsService
           pull: true
           push: true
           tags: |
@@ -106,6 +108,7 @@ jobs:
           build-args: |
             SERVICE_STARTER=ditto-gateway-service
             SERVICE_VERSION=${{ env.IMAGE_TAG }}
+            MAIN_CLASS=org.eclipse.ditto.gateway.service.starter.GatewayService
           pull: true
           push: true
           tags: |
@@ -124,6 +127,7 @@ jobs:
           build-args: |
             SERVICE_STARTER=ditto-thingsearch-service
             SERVICE_VERSION=${{ env.IMAGE_TAG }}
+            MAIN_CLASS=org.eclipse.ditto.thingsearch.service.starter.SearchService
           pull: true
           push: true
           tags: |
@@ -142,6 +146,7 @@ jobs:
           build-args: |
             SERVICE_STARTER=ditto-connectivity-service
             SERVICE_VERSION=${{ env.IMAGE_TAG }}
+            MAIN_CLASS=org.eclipse.ditto.connectivity.service.ConnectivityService
           pull: true
           push: true
           tags: |
@@ -172,6 +177,7 @@ jobs:
           build-args: |
             SERVICE_STARTER=ditto-policies-service
             SERVICE_VERSION=${{ env.IMAGE_TAG }}
+            MAIN_CLASS=org.eclipse.ditto.policies.service.starter.PoliciesService
           pull: true
           push: true
           tags: |
@@ -187,6 +193,7 @@ jobs:
           build-args: |
             SERVICE_STARTER=ditto-things-service
             SERVICE_VERSION=${{ env.IMAGE_TAG }}
+            MAIN_CLASS=org.eclipse.ditto.things.service.starter.ThingsService
           pull: true
           push: true
           tags: |
@@ -202,6 +209,7 @@ jobs:
           build-args: |
             SERVICE_STARTER=ditto-gateway-service
             SERVICE_VERSION=${{ env.IMAGE_TAG }}
+            MAIN_CLASS=org.eclipse.ditto.gateway.service.starter.GatewayService
           pull: true
           push: true
           tags: |
@@ -217,6 +225,7 @@ jobs:
           build-args: |
             SERVICE_STARTER=ditto-thingsearch-service
             SERVICE_VERSION=${{ env.IMAGE_TAG }}
+            MAIN_CLASS=org.eclipse.ditto.thingsearch.service.starter.SearchService
           pull: true
           push: true
           tags: |
@@ -232,6 +241,7 @@ jobs:
           build-args: |
             SERVICE_STARTER=ditto-connectivity-service
             SERVICE_VERSION=${{ env.IMAGE_TAG }}
+            MAIN_CLASS=org.eclipse.ditto.connectivity.service.ConnectivityService
           pull: true
           push: true
           tags: |

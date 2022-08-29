@@ -13,7 +13,7 @@ Ditto **TODO:version** introduces a new search index schema based on [wildcard i
 a smooth upgrade, the service name, cluster role, database name and collections of Search service are changed as
 follows.
 - The service name is changed from `things-search` to `search`.
-- The cluster role is changed from `things-search` to `things-wildcard-search`.
+- The cluster role is changed from `things-search` to `search`.
 - The default database is changed from `searchDB` to `search`.
 - The collections used for the search index are changed from `searchThings` and `searchThingsSync` to `search` and
   `searchSync`.

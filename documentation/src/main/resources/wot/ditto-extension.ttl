@@ -1,0 +1,33 @@
+# Copyright (c) 2022 Contributors to the Eclipse Foundation
+#
+# See the NOTICE file(s) distributed with this work for additional
+# information regarding copyright ownership.
+#
+# This program and the accompanying materials are made available under the
+# terms of the Eclipse Public License 2.0 which is available at
+# http://www.eclipse.org/legal/epl-2.0
+#
+# SPDX-License-Identifier: EPL-2.0
+
+@prefix ditto: <https://ditto.eclipseprojects.io/wot/ditto-extension#> .
+@prefix dc: <http://purl.org/dc/elements/1.1/> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix schema: <https://schema.org/> .
+@prefix td: <https://www.w3.org/2019/wot/td#> .
+@prefix vann: <http://purl.org/vocab/vann/> .
+
+ditto: rdf:type owl:Ontology ;
+  vann:preferredNamespacePrefix "ditto" ;
+  vann:preferredNamespaceUri "https://ditto.eclipseprojects.io/wot/ditto-extension#" ;
+  owl:versionInfo "3.0.0" ;
+  dc:title "Eclipse Ditto™ - WoT Extension Ontology"@en ;
+  rdfs:comment "This ontology provides additional Eclipse Ditto™ specific context for Web of Things (https://www.w3.org/WoT/) TDs and TMs"@en .
+
+ditto:category rdf:type owl:DatatypeProperty ;
+  rdfs:label "category" ;
+  rdfs:comment "Optional category for WoT Property affordances, e.g. something like 'status' or 'configuration'"@en ;
+  schema:domainIncludes td:PropertyAffordance ;
+  schema:rangeIncludes schema:Text ;
+  rdfs:isDefinedBy ditto: .

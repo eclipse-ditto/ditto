@@ -73,6 +73,8 @@ public final class DefaultDistributedDataConfigTest {
                 .isEqualTo(new Replicator.WriteAll(underTest.getWriteTimeout()));
         softly.assertThat(underTest.getSubscriptionDelay())
                 .isEqualTo(DistributedDataConfig.DistributedDataConfigValue.SUBSCRIPTION_DELAY.getDefaultValue());
+        softly.assertThat(underTest.getSubscriberPoolSize())
+                .isEqualTo(DistributedDataConfig.DistributedDataConfigValue.SUBSCRIBER_POOL_SIZE.getDefaultValue());
     }
 
     @Test
@@ -89,6 +91,8 @@ public final class DefaultDistributedDataConfigTest {
                 .isEqualTo(new Replicator.WriteMajority(Duration.ofSeconds(1337)));
         softly.assertThat(underTest.getSubscriptionDelay())
                 .isEqualTo(Duration.ofDays(1L));
+        softly.assertThat(underTest.getSubscriberPoolSize())
+                .isEqualTo(99);
     }
 
     @Test
@@ -108,6 +112,8 @@ public final class DefaultDistributedDataConfigTest {
                 .isEqualTo(new Replicator.WriteMajority(Duration.ofSeconds(1337)));
         softly.assertThat(underTest.getSubscriptionDelay())
                 .isEqualTo(Duration.ofDays(1L));
+        softly.assertThat(underTest.getSubscriberPoolSize())
+                .isEqualTo(99);
     }
 
 }

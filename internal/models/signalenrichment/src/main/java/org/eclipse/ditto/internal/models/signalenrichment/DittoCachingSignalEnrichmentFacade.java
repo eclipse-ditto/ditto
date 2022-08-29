@@ -369,14 +369,14 @@ public final class DittoCachingSignalEnrichmentFacade implements CachingSignalEn
     private static JsonObject getMergeJsonObject(final JsonValue jsonObject, final ThingEvent<?> thingEvent) {
         final var thingMerged = (ThingMerged) thingEvent;
         final JsonValue mergedValue = thingMerged.getValue();
-        final JsonObjectBuilder jsonObjectBuilder = JsonObject.newBuilder();
-        jsonObjectBuilder.set(thingMerged.getResourcePath(), mergedValue);
+        final JsonObjectBuilder mergePatchBuilder = JsonFactory.newObject(thingMerged.getResourcePath(), mergedValue)
+                .toBuilder();
         thingMerged.getMetadata()
-                .ifPresent(metadata -> jsonObjectBuilder.set(
+                .ifPresent(metadata -> mergePatchBuilder.set(
                                 Thing.JsonFields.METADATA.getPointer().append(thingMerged.getResourcePath()), metadata)
                         .build());
 
-        return JsonFactory.mergeJsonValues(jsonObjectBuilder.build(), jsonObject).asObject();
+        return JsonFactory.mergeJsonValues(mergePatchBuilder.build(), jsonObject).asObject();
     }
 
     private static JsonObject getDeleteJsonObject(final JsonObject jsonObject, final WithResource thingEvent) {
