@@ -23,6 +23,7 @@ import java.util.Map;
 
 import org.apache.kafka.clients.CommonClientConfigs;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.common.config.SslConfigs;
 import org.apache.kafka.common.serialization.ByteBufferDeserializer;
 import org.apache.kafka.common.serialization.ByteBufferSerializer;
 import org.apache.kafka.common.serialization.StringDeserializer;
@@ -107,6 +108,7 @@ final class PropertiesFactory {
                         .withBootstrapServers(bootstrapServers)
                         .withGroupId(connection.getId().toString())
                         .withClientId(clientId + "-consumer")
+                        .withProperties(getTrustedSelfSignedCertificates())
                         .withProperties(getConsumerSpecificConfigProperties())
                         .withProperties(getSecurityProtocolProperties())
                         .withConnectionChecker(connectionCheckerSettings);
@@ -126,8 +128,17 @@ final class PropertiesFactory {
         return ProducerSettings.apply(alpakkaConfig, new StringSerializer(), new ByteBufferSerializer())
                 .withBootstrapServers(bootstrapServers)
                 .withProperties(getClientIdProperties())
+                .withProperties(getTrustedSelfSignedCertificates())
                 .withProperties(getProducerSpecificConfigProperties())
                 .withProperties(getSecurityProtocolProperties());
+    }
+
+    private Map<String, String> getTrustedSelfSignedCertificates() {
+        if (connection.isValidateCertificates() && connection.getTrustedCertificates().isPresent()) {
+            return Map.of(SslConfigs.SSL_TRUSTSTORE_TYPE_CONFIG, "PEM",
+                    SslConfigs.SSL_TRUSTSTORE_CERTIFICATES_CONFIG, connection.getTrustedCertificates().orElse(""));
+        }
+        return Map.of();
     }
 
     private Map<String, String> getClientIdProperties() {

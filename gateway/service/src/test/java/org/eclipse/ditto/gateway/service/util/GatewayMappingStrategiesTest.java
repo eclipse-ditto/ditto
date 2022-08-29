@@ -20,22 +20,6 @@ import java.util.Map;
 
 import org.assertj.core.api.AbstractMapAssert;
 import org.assertj.core.api.Assertions;
-import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.base.model.json.Jsonifiable;
-import org.eclipse.ditto.messages.model.AuthorizationSubjectBlockedException;
-import org.eclipse.ditto.messages.model.MessageFormatInvalidException;
-import org.eclipse.ditto.messages.model.MessageSendNotAllowedException;
-import org.eclipse.ditto.messages.model.MessageTimeoutException;
-import org.eclipse.ditto.messages.model.SubjectInvalidException;
-import org.eclipse.ditto.messages.model.ThingIdInvalidException;
-import org.eclipse.ditto.policies.model.PolicyId;
-import org.eclipse.ditto.policies.model.SubjectId;
-import org.eclipse.ditto.policies.api.PoliciesMappingStrategies;
-import org.eclipse.ditto.things.api.ThingsMappingStrategies;
-import org.eclipse.ditto.thingsearch.api.ThingSearchMappingStrategies;
-import org.eclipse.ditto.policies.model.signals.announcements.SubjectDeletionAnnouncement;
-import org.eclipse.ditto.base.model.signals.JsonParsable;
 import org.eclipse.ditto.base.api.devops.signals.commands.ChangeLogLevel;
 import org.eclipse.ditto.base.api.devops.signals.commands.ChangeLogLevelResponse;
 import org.eclipse.ditto.base.api.devops.signals.commands.RetrieveLoggerConfig;
@@ -43,6 +27,15 @@ import org.eclipse.ditto.base.api.devops.signals.commands.RetrieveLoggerConfigRe
 import org.eclipse.ditto.base.api.devops.signals.commands.RetrieveStatistics;
 import org.eclipse.ditto.base.api.devops.signals.commands.RetrieveStatisticsDetails;
 import org.eclipse.ditto.base.api.devops.signals.commands.RetrieveStatisticsResponse;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.json.Jsonifiable;
+import org.eclipse.ditto.base.model.signals.JsonParsable;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.messages.model.AuthorizationSubjectBlockedException;
+import org.eclipse.ditto.messages.model.MessageFormatInvalidException;
+import org.eclipse.ditto.messages.model.MessageSendNotAllowedException;
+import org.eclipse.ditto.messages.model.SubjectInvalidException;
+import org.eclipse.ditto.messages.model.ThingIdInvalidException;
 import org.eclipse.ditto.messages.model.signals.commands.SendClaimMessage;
 import org.eclipse.ditto.messages.model.signals.commands.SendClaimMessageResponse;
 import org.eclipse.ditto.messages.model.signals.commands.SendFeatureMessage;
@@ -50,6 +43,12 @@ import org.eclipse.ditto.messages.model.signals.commands.SendFeatureMessageRespo
 import org.eclipse.ditto.messages.model.signals.commands.SendMessageAcceptedResponse;
 import org.eclipse.ditto.messages.model.signals.commands.SendThingMessage;
 import org.eclipse.ditto.messages.model.signals.commands.SendThingMessageResponse;
+import org.eclipse.ditto.policies.api.PoliciesMappingStrategies;
+import org.eclipse.ditto.policies.model.PolicyId;
+import org.eclipse.ditto.policies.model.SubjectId;
+import org.eclipse.ditto.policies.model.signals.announcements.SubjectDeletionAnnouncement;
+import org.eclipse.ditto.things.api.ThingsMappingStrategies;
+import org.eclipse.ditto.thingsearch.api.ThingSearchMappingStrategies;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -93,7 +92,6 @@ public final class GatewayMappingStrategiesTest {
                 .knows(AuthorizationSubjectBlockedException.ERROR_CODE)
                 .knows(MessageFormatInvalidException.ERROR_CODE)
                 .knows(MessageSendNotAllowedException.ERROR_CODE)
-                .knows(MessageTimeoutException.ERROR_CODE)
                 .knows(SubjectInvalidException.ERROR_CODE)
                 .knows(ThingIdInvalidException.ERROR_CODE);
     }

@@ -81,7 +81,7 @@ and can be enabled manually, as mentioned in the [configuration - rate limiting 
 #### [W3C WoT (Web of Things) integration](https://github.com/eclipse/ditto/issues/1034)
 
 Ditto adds and optional (and currently *experimental*) integration of the 
-[Web of Things (WoT) Thing Description 1.1 - W3C Working Draft 11 March 2022](https://www.w3.org/TR/2022/WD-wot-thing-description11-20220311/) specification.
+[Web of Things (WoT) Thing Description 1.1](https://www.w3.org/TR/wot-thing-description11/) specification.
 
 Digital twins managed by Ditto can reference to WoT "Thing Models" (being accessible via an HTTP URL) in which the
 capabilities of the twin are defined.  

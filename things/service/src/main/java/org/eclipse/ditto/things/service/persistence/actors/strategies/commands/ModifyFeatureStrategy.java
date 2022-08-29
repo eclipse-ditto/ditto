@@ -12,27 +12,39 @@
  */
 package org.eclipse.ditto.things.service.persistence.actors.strategies.commands;
 
+import java.util.LinkedHashSet;
 import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.base.model.entity.metadata.Metadata;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.headers.entitytag.EntityTag;
-import org.eclipse.ditto.things.model.Feature;
-import org.eclipse.ditto.things.model.Thing;
-import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.internal.utils.persistentactors.results.Result;
 import org.eclipse.ditto.internal.utils.persistentactors.results.ResultFactory;
+import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.things.model.DefinitionIdentifier;
+import org.eclipse.ditto.things.model.Feature;
+import org.eclipse.ditto.things.model.FeatureDefinition;
+import org.eclipse.ditto.things.model.Thing;
+import org.eclipse.ditto.things.model.ThingId;
+import org.eclipse.ditto.things.model.ThingsModelFactory;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommandSizeValidator;
 import org.eclipse.ditto.things.model.signals.commands.modify.ModifyFeature;
 import org.eclipse.ditto.things.model.signals.commands.modify.ModifyFeatureResponse;
 import org.eclipse.ditto.things.model.signals.events.FeatureCreated;
 import org.eclipse.ditto.things.model.signals.events.FeatureModified;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
+import org.eclipse.ditto.wot.integration.provider.WotThingDescriptionProvider;
+
+import akka.actor.ActorSystem;
 
 /**
  * This strategy handles the {@link org.eclipse.ditto.things.model.signals.commands.modify.ModifyFeature} command.
@@ -40,11 +52,16 @@ import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 @Immutable
 final class ModifyFeatureStrategy extends AbstractThingCommandStrategy<ModifyFeature> {
 
+    private final WotThingDescriptionProvider wotThingDescriptionProvider;
+
     /**
      * Constructs a new {@code ModifyFeatureStrategy} object.
+     *
+     * @param actorSystem the actor system to use for loading the WoT extension.
      */
-    ModifyFeatureStrategy() {
+    ModifyFeatureStrategy(final ActorSystem actorSystem) {
         super(ModifyFeature.class);
+        wotThingDescriptionProvider = WotThingDescriptionProvider.get(actorSystem);
     }
 
     @Override
@@ -103,7 +120,42 @@ final class ModifyFeatureStrategy extends AbstractThingCommandStrategy<ModifyFea
             final ModifyFeature command, @Nullable final Thing thing, @Nullable final Metadata metadata) {
 
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
-        final Feature feature = command.getFeature();
+
+        Feature feature = command.getFeature();
+        final Feature finalNewFeature = feature;
+        feature = wotThingDescriptionProvider.provideFeatureSkeletonForCreation(
+                        finalNewFeature.getId(),
+                        finalNewFeature.getDefinition().orElse(null),
+                        dittoHeaders
+                )
+                .map(wotBasedFeatureSkeleton -> {
+                        final Optional<FeatureDefinition> mergedDefinition =
+                                wotBasedFeatureSkeleton.getDefinition()
+                                        .map(def -> {
+                                                final Set<DefinitionIdentifier> identifiers = Stream.concat(
+                                                        wotBasedFeatureSkeleton.getDefinition()
+                                                                .map(FeatureDefinition::stream)
+                                                                .orElse(Stream.empty()),
+                                                        finalNewFeature.getDefinition()
+                                                                .map(FeatureDefinition::stream)
+                                                                .orElse(Stream.empty())
+                                                ).collect(Collectors.toCollection(LinkedHashSet::new));
+                                                return ThingsModelFactory.newFeatureDefinition(identifiers);
+                                        })
+                                        .or(finalNewFeature::getDefinition);
+
+                        return mergedDefinition.map(definitionIdentifiers -> JsonFactory.mergeJsonValues(
+                                finalNewFeature.setDefinition(definitionIdentifiers).toJson(),
+                                wotBasedFeatureSkeleton.toJson()
+                        )).orElseGet(() -> JsonFactory.mergeJsonValues(finalNewFeature.toJson(),
+                                wotBasedFeatureSkeleton.toJson())
+                        );
+                })
+                .filter(JsonValue::isObject)
+                .map(JsonValue::asObject)
+                .map(ThingsModelFactory::newFeatureBuilder)
+                .map(b -> b.useId(finalNewFeature.getId()).build())
+                .orElse(finalNewFeature);
 
         final ThingEvent<?> event =
                 FeatureCreated.of(command.getEntityId(), feature, nextRevision, getEventTimestamp(), dittoHeaders,

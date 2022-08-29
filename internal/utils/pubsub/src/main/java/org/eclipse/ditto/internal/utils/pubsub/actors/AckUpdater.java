@@ -269,7 +269,7 @@ public final class AckUpdater extends AbstractActorWithTimers implements Cluster
     private Map<String, Set<String>> getRemoteGroups(final List<Grouped<String>> remoteGroupedAckLabels) {
         final Map<String, Set<String>> result = new HashMap<>();
         remoteGroupedAckLabels.stream()
-                .flatMap(Grouped<String>::streamAsGroupedPair)
+                .flatMap(Grouped::streamAsGroupedPair)
                 // do not set a group of ack labels if already set by a member of smaller address
                 .forEach(pair -> result.computeIfAbsent(pair.first(), group -> pair.second()));
         return Collections.unmodifiableMap(result);

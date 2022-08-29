@@ -40,9 +40,10 @@ export function ready() {
   Utils.getAllElementsById(dom);
 
   dom.featuresTable.onclick = (event) => {
-    dom.theFeatureId.value = event.target.textContent;
-    // $('[href="#tabCrudFeature"]').tab('show');
-    refreshFeature(Things.theThing, dom.theFeatureId.value);
+    if (event.target && event.target.nodeName === 'TD') {
+      dom.theFeatureId.value = event.target.textContent;
+      refreshFeature(Things.theThing, dom.theFeatureId.value);
+    }
   };
 
   document.getElementById('createFeature').onclick = () => {
@@ -76,7 +77,7 @@ export function ready() {
           resultType: 'pointer',
         });
         Fields.proposeNewField('features/' + dom.theFeatureId.value + '/properties' + res);
-      };
+      }
     }, 10);
   });
 
@@ -121,13 +122,13 @@ function updateFeature(method) {
   const featureDesiredProperties = featureDesiredPropertiesEditor.getValue();
   if (dom.featureDefinition.value) {
     featureObject.definition = dom.featureDefinition.value.split(',');
-  };
+  }
   if (featureProperties) {
     featureObject.properties = JSON.parse(featureProperties);
-  };
+  }
   if (featureDesiredProperties) {
     featureObject.desiredProperties = JSON.parse(featureDesiredProperties);
-  };
+  }
 
   API.callDittoREST(
       method,
@@ -180,10 +181,10 @@ function onThingChanged(thing) {
       if (key === dom.theFeatureId.value) {
         refreshFeature(thing, key);
         thingHasFeature = true;
-      };
+      }
       Utils.addTableRow(dom.featuresTable, key, key === dom.theFeatureId.value);
       count++;
-    };
+    }
   }
   dom.featureCount.textContent = count > 0 ? count : '';
   if (!thingHasFeature) {
@@ -210,11 +211,11 @@ function messageFeature() {
     ).then((data) => {
       if (timeout > 0) {
         dom.messageFeatureResponse.value = JSON.stringify(data, null, 2);
-      };
+      }
     }).catch((err) => {
       dom.messageFeatureResponse.value = null;
     });
   } else {
     Utils.showError('Feature ID or Subject or Payload is empty');
   }
-};
+}

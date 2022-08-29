@@ -23,7 +23,6 @@ import org.assertj.core.api.AutoCloseableSoftAssertions;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonKey;
 import org.eclipse.ditto.json.JsonPointer;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -60,38 +59,6 @@ public final class DefaultMetadataHeaderKeyTest {
         assertThatIllegalArgumentException()
                 .isThrownBy(() -> DefaultMetadataHeaderKey.of(JsonPointer.empty()))
                 .withMessage("The path of a metadata header key must not be empty!")
-                .withNoCause();
-    }
-
-    @Test
-    public void wildcardPathHasTooFewLevels() {
-        assertThatIllegalArgumentException()
-                .isThrownBy(() -> DefaultMetadataHeaderKey.of(JsonPointer.of("/*")))
-                .withMessage("A wildcard path of a metadata header key must have exactly two levels but it had <1>!")
-                .withNoCause();
-    }
-
-    @Test
-    public void wildcardPathHasTooManyLevels() {
-        assertThatIllegalArgumentException()
-                .isThrownBy(() -> DefaultMetadataHeaderKey.of(JsonPointer.of("/*/foo/meta")))
-                .withMessage("A wildcard path of a metadata header key must have exactly two levels but it had <3>!")
-                .withNoCause();
-    }
-
-    @Test
-    public void wildcardPathHasAsteriskLeaf() {
-        assertThatIllegalArgumentException()
-                .isThrownBy(() -> DefaultMetadataHeaderKey.of(JsonPointer.of("/*/*")))
-                .withMessage("The path of a metadata header key must not contain <*> at level <1>!")
-                .withNoCause();
-    }
-
-    @Test
-    public void pathContainsAsteriskAtWrongLevel() {
-        assertThatIllegalArgumentException()
-                .isThrownBy(() -> DefaultMetadataHeaderKey.of(JsonPointer.of("/foo/*/baz")))
-                .withMessage("The path of a metadata header key must not contain <*> at level <1>!")
                 .withNoCause();
     }
 
@@ -134,7 +101,7 @@ public final class DefaultMetadataHeaderKeyTest {
         final JsonPointer path = JsonFactory.newPointer(DefaultMetadataHeaderKey.HIERARCHY_WILDCARD, leaf);
         final MetadataHeaderKey underTest = DefaultMetadataHeaderKey.of(path);
 
-        assertThat((CharSequence) underTest.getPath()).isEqualTo(leaf.asPointer());
+        assertThat((CharSequence) underTest.getPath()).isEqualTo(path);
     }
 
     @Test

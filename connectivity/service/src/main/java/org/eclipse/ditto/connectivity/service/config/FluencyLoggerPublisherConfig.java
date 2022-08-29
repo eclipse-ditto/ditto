@@ -83,7 +83,7 @@ public interface FluencyLoggerPublisherConfig {
         WAIT_UNTIL_BUFFER_FLUSHED("waitUntilBufferFlushed", Duration.ofSeconds(60)),
 
         /**
-         * When closing flusher, wait that long for resoruces until forcefully stopping.
+         * When closing flusher, wait that long for resources until forcefully stopping.
          */
         WAIT_UNTIL_FLUSHER_TERMINATED("waitUntilFlusherTerminated", Duration.ofSeconds(60)),
 

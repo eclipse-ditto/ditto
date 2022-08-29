@@ -88,7 +88,7 @@ public interface MongoDbConfig {
         private final String path;
         private final Object defaultValue;
 
-        private MongoDbConfigValue(final String thePath, final Object theDefaultValue) {
+        MongoDbConfigValue(final String thePath, final Object theDefaultValue) {
             path = thePath;
             defaultValue = theDefaultValue;
         }
@@ -192,7 +192,7 @@ public interface MongoDbConfig {
             private final String path;
             private final Object defaultValue;
 
-            private OptionsConfigValue(final String thePath, final Object theDefaultValue) {
+            OptionsConfigValue(final String thePath, final Object theDefaultValue) {
                 path = thePath;
                 defaultValue = theDefaultValue;
             }
@@ -287,7 +287,7 @@ public interface MongoDbConfig {
             private final String path;
             private final Object defaultValue;
 
-            private ConnectionPoolConfigValue(final String thePath, final Object theDefaultValue) {
+            ConnectionPoolConfigValue(final String thePath, final Object theDefaultValue) {
                 path = thePath;
                 defaultValue = theDefaultValue;
             }
@@ -340,7 +340,7 @@ public interface MongoDbConfig {
             private final String path;
             private final Object defaultValue;
 
-            private CircuitBreakerConfigValue(final String thePath, final Object theDefaultValue) {
+            CircuitBreakerConfigValue(final String thePath, final Object theDefaultValue) {
                 path = thePath;
                 defaultValue = theDefaultValue;
             }
@@ -398,7 +398,7 @@ public interface MongoDbConfig {
                 private final String path;
                 private final Object defaultValue;
 
-                private TimeoutConfigValue(final String thePath, final Object theDefaultValue) {
+                TimeoutConfigValue(final String thePath, final Object theDefaultValue) {
                     path = thePath;
                     defaultValue = theDefaultValue;
                 }
@@ -458,7 +458,7 @@ public interface MongoDbConfig {
             private final String path;
             private final Object defaultValue;
 
-            private MonitoringConfigValue(final String thePath, final Object theDefaultValue) {
+            MonitoringConfigValue(final String thePath, final Object theDefaultValue) {
                 path = thePath;
                 defaultValue = theDefaultValue;
             }

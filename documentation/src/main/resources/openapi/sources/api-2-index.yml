@@ -222,6 +222,10 @@ components:
       $ref: "./parameters/propertyPathPathParam.yml"
     PutMetadataParam:
       $ref: "./parameters/putMetadataParam.yml"
+    GetMetadataParam:
+      $ref: "./parameters/getMetadataParam.yml"
+    DeleteMetadataParam:
+      $ref: "./parameters/deleteMetadataParam.yml"
     RequestedAcksParam:
       $ref: "./parameters/requestedAcksParam.yml"
     ResourcePathPathParam:

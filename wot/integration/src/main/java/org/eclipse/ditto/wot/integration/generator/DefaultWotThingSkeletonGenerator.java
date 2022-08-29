@@ -18,10 +18,13 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
+import java.util.function.Function;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
@@ -58,6 +61,7 @@ import org.eclipse.ditto.wot.model.IRI;
 import org.eclipse.ditto.wot.model.IntegerSchema;
 import org.eclipse.ditto.wot.model.NumberSchema;
 import org.eclipse.ditto.wot.model.ObjectSchema;
+import org.eclipse.ditto.wot.model.Properties;
 import org.eclipse.ditto.wot.model.Property;
 import org.eclipse.ditto.wot.model.SingleDataSchema;
 import org.eclipse.ditto.wot.model.StringSchema;
@@ -80,6 +84,8 @@ final class DefaultWotThingSkeletonGenerator implements WotThingSkeletonGenerato
     private static final String TM_SUBMODEL = "tm:submodel";
     private static final String TM_SUBMODEL_INSTANCE_NAME = "instanceName";
 
+
+
     private final WotThingModelFetcher thingModelFetcher;
     private final Executor executor;
     private final WotThingModelExtensionResolver thingModelExtensionResolver;
@@ -101,6 +107,9 @@ final class DefaultWotThingSkeletonGenerator implements WotThingSkeletonGenerato
         final ThingModel thingModelWithExtensionsAndImports = thingModelExtensionResolver
                 .resolveThingModelRefs(thingModelWithExtensions, dittoHeaders);
 
+        final Optional<String> dittoExtensionPrefix = thingModelWithExtensionsAndImports.getAtContext()
+                .determinePrefixFor(DittoWotExtension.DITTO_WOT_EXTENSION);
+
         LOGGER.withCorrelationId(dittoHeaders)
                 .debug("ThingModel for generating Thing skeleton after resolving extensions + refs: <{}>",
                         thingModelWithExtensionsAndImports);
@@ -108,10 +117,24 @@ final class DefaultWotThingSkeletonGenerator implements WotThingSkeletonGenerato
         final ThingBuilder.FromScratch builder = Thing.newBuilder();
         thingModelWithExtensionsAndImports.getProperties()
                 .map(properties -> {
-                    final AttributesBuilder attributesBuilder = Attributes.newBuilder();
-                    properties.values().forEach(property -> determineInitialPropertyValue(property)
-                            .ifPresent(val -> attributesBuilder.set(property.getPropertyName(), val))
+                    final JsonObjectBuilder jsonObjectBuilder = JsonObject.newBuilder();
+                    final Map<String, JsonObjectBuilder> attributesCategories = new LinkedHashMap<>();
+
+                    fillPropertiesInOptionalCategories(properties, jsonObjectBuilder, attributesCategories,
+                            property -> dittoExtensionPrefix.flatMap(prefix ->
+                                    property.getValue(prefix + ":" + DittoWotExtension.DITTO_WOT_EXTENSION_CATEGORY)
+                            )
+                            .filter(JsonValue::isString)
+                            .map(JsonValue::asString)
                     );
+
+                    final AttributesBuilder attributesBuilder = Attributes.newBuilder();
+                    if (attributesCategories.size() > 0) {
+                        attributesCategories.forEach((attributeCategory, categoryObjBuilder) ->
+                                attributesBuilder.set(attributeCategory, categoryObjBuilder.build())
+                        );
+                    }
+                    attributesBuilder.setAll(jsonObjectBuilder.build());
                     return attributesBuilder.build();
                 }).ifPresent(builder::setAttributes);
 
@@ -119,6 +142,28 @@ final class DefaultWotThingSkeletonGenerator implements WotThingSkeletonGenerato
                 .ifPresent(builder::setFeatures);
 
         return Optional.of(builder.build());
+    }
+
+    private static void fillPropertiesInOptionalCategories(final Properties properties,
+            final JsonObjectBuilder jsonObjectBuilder,
+            final Map<String, JsonObjectBuilder> propertiesCategories,
+            final Function<Property, Optional<String>> propertyCategoryExtractor) {
+
+        properties.values().forEach(property ->
+                determineInitialPropertyValue(property).ifPresent(val ->
+                                propertyCategoryExtractor.apply(property)
+                                .ifPresentOrElse(attributeCategory -> {
+                                        if (!propertiesCategories.containsKey(attributeCategory)) {
+                                            propertiesCategories.put(attributeCategory,
+                                                    JsonObject.newBuilder());
+                                        }
+                                        propertiesCategories.get(attributeCategory)
+                                                .set(property.getPropertyName(), val);
+                                }, () ->
+                                        jsonObjectBuilder.set(property.getPropertyName(), val)
+                                )
+                )
+        );
     }
 
     private Optional<Features> createFeaturesFromSubmodels(final ThingModel thingModel,
@@ -196,6 +241,9 @@ final class DefaultWotThingSkeletonGenerator implements WotThingSkeletonGenerato
         final ThingModel thingModelWithExtensionsAndImports = thingModelExtensionResolver
                 .resolveThingModelRefs(thingModelWithExtensions, dittoHeaders);
 
+        final Optional<String> dittoExtensionPrefix = thingModelWithExtensionsAndImports.getAtContext()
+                .determinePrefixFor(DittoWotExtension.DITTO_WOT_EXTENSION);
+
         LOGGER.withCorrelationId(dittoHeaders)
                 .debug("ThingModel for generating Feature skeleton after resolving extensions + refs: <{}>",
                         thingModelWithExtensionsAndImports);
@@ -203,10 +251,24 @@ final class DefaultWotThingSkeletonGenerator implements WotThingSkeletonGenerato
         final FeatureBuilder.FromScratchBuildable builder = Feature.newBuilder();
         thingModelWithExtensionsAndImports.getProperties()
                 .map(properties -> {
-                    final FeaturePropertiesBuilder propertiesBuilder = FeatureProperties.newBuilder();
-                    properties.values().forEach(property -> determineInitialPropertyValue(property)
-                            .ifPresent(val -> propertiesBuilder.set(property.getPropertyName(), val))
+                    final JsonObjectBuilder jsonObjectBuilder = JsonObject.newBuilder();
+                    final Map<String, JsonObjectBuilder> propertiesCategories = new LinkedHashMap<>();
+
+                    fillPropertiesInOptionalCategories(properties, jsonObjectBuilder, propertiesCategories,
+                            property -> dittoExtensionPrefix.flatMap(prefix ->
+                                            property.getValue(prefix + ":" + DittoWotExtension.DITTO_WOT_EXTENSION_CATEGORY)
+                                    )
+                                    .filter(JsonValue::isString)
+                                    .map(JsonValue::asString)
                     );
+
+                    final FeaturePropertiesBuilder propertiesBuilder = FeatureProperties.newBuilder();
+                    if (propertiesCategories.size() > 0) {
+                        propertiesCategories.forEach((propertyCategory, categoryObjBuilder) ->
+                                propertiesBuilder.set(propertyCategory, categoryObjBuilder.build())
+                        );
+                    }
+                    propertiesBuilder.setAll(jsonObjectBuilder.build());
                     return propertiesBuilder.build();
                 }).ifPresent(builder::properties);
 
@@ -216,6 +278,7 @@ final class DefaultWotThingSkeletonGenerator implements WotThingSkeletonGenerato
     }
 
     private static Optional<JsonValue> determineInitialPropertyValue(final SingleDataSchema dataSchema) {
+
         return dataSchema.getConst()
                 .or(dataSchema::getDefault)
                 .or(() -> {

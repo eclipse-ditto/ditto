@@ -19,7 +19,7 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
 /**
- * Thrown if a field selector at was in a invalid format.
+ * Thrown if a field selector at was in an invalid format.
  */
 public final class JsonFieldSelectorInvalidException extends JsonRuntimeException {
 

@@ -12,25 +12,21 @@
  */
 package org.eclipse.ditto.things.service.persistence.actors.strategies.commands;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.eclipse.ditto.things.model.TestConstants.Thing.THING_V2;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
-import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.base.model.headers.metadata.MetadataHeaderKey;
+import org.eclipse.ditto.internal.utils.persistentactors.commands.CommandStrategy;
 import org.eclipse.ditto.things.model.TestConstants;
 import org.eclipse.ditto.things.model.ThingId;
-import org.eclipse.ditto.internal.utils.persistentactors.commands.CommandStrategy;
 import org.eclipse.ditto.things.model.signals.commands.modify.DeleteFeature;
 import org.eclipse.ditto.things.model.signals.commands.modify.DeleteFeatureResponse;
 import org.eclipse.ditto.things.model.signals.events.FeatureDeleted;
+
 import org.junit.Before;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Test;
 
 /**
@@ -61,14 +57,10 @@ public final class DeleteFeatureStrategyTest extends AbstractCommandStrategyTest
     public void successfullyDeleteFeatureFromThing() {
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
         final DeleteFeature command = DeleteFeature.of(context.getState(), featureId, DittoHeaders.newBuilder()
-                // metadata is ignored
-                .putMetadata(MetadataHeaderKey.of(JsonPointer.of("sn")), JsonValue.of(2))
                 .build());
 
         final FeatureDeleted event = assertModificationResult(underTest, THING_V2, command, FeatureDeleted.class,
                 DeleteFeatureResponse.of(context.getState(), command.getFeatureId(), command.getDittoHeaders()));
-
-        assertThat(event.getMetadata()).isEmpty();
     }
 
     @Test

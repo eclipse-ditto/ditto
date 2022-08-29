@@ -42,6 +42,13 @@ import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
 import org.eclipse.ditto.base.model.signals.events.Event;
+import org.eclipse.ditto.edge.service.acknowledgements.AcknowledgementAggregatorActorStarter;
+import org.eclipse.ditto.edge.service.acknowledgements.AcknowledgementForwarderActor;
+import org.eclipse.ditto.edge.service.acknowledgements.message.MessageCommandAckRequestSetter;
+import org.eclipse.ditto.edge.service.acknowledgements.message.MessageCommandResponseAcknowledgementProvider;
+import org.eclipse.ditto.edge.service.acknowledgements.things.ThingCommandResponseAcknowledgementProvider;
+import org.eclipse.ditto.edge.service.acknowledgements.things.ThingLiveCommandAckRequestSetter;
+import org.eclipse.ditto.edge.service.acknowledgements.things.ThingModifyCommandAckRequestSetter;
 import org.eclipse.ditto.edge.service.placeholders.EntityIdPlaceholder;
 import org.eclipse.ditto.gateway.api.GatewayInternalErrorException;
 import org.eclipse.ditto.gateway.api.GatewayWebsocketSessionClosedException;
@@ -56,8 +63,6 @@ import org.eclipse.ditto.gateway.service.streaming.signals.RefreshSession;
 import org.eclipse.ditto.gateway.service.streaming.signals.StartStreaming;
 import org.eclipse.ditto.gateway.service.streaming.signals.StopStreaming;
 import org.eclipse.ditto.gateway.service.util.config.streaming.StreamingConfig;
-import org.eclipse.ditto.internal.models.acks.AcknowledgementAggregatorActorStarter;
-import org.eclipse.ditto.internal.models.acks.AcknowledgementForwarderActor;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.internal.utils.pubsub.StreamingType;
@@ -65,8 +70,6 @@ import org.eclipse.ditto.internal.utils.pubsubthings.DittoProtocolSub;
 import org.eclipse.ditto.internal.utils.search.SubscriptionManager;
 import org.eclipse.ditto.jwt.model.ImmutableJsonWebToken;
 import org.eclipse.ditto.messages.model.signals.commands.MessageCommand;
-import org.eclipse.ditto.messages.model.signals.commands.acks.MessageCommandAckRequestSetter;
-import org.eclipse.ditto.messages.model.signals.commands.acks.MessageCommandResponseAcknowledgementProvider;
 import org.eclipse.ditto.placeholders.TimePlaceholder;
 import org.eclipse.ditto.policies.model.signals.announcements.PolicyAnnouncement;
 import org.eclipse.ditto.protocol.placeholders.ResourcePlaceholder;
@@ -74,9 +77,6 @@ import org.eclipse.ditto.protocol.placeholders.TopicPathPlaceholder;
 import org.eclipse.ditto.rql.parser.RqlPredicateParser;
 import org.eclipse.ditto.rql.query.criteria.Criteria;
 import org.eclipse.ditto.rql.query.filter.QueryFilterCriteriaFactory;
-import org.eclipse.ditto.things.model.signals.commands.acks.ThingCommandResponseAcknowledgementProvider;
-import org.eclipse.ditto.things.model.signals.commands.acks.ThingLiveCommandAckRequestSetter;
-import org.eclipse.ditto.things.model.signals.commands.acks.ThingModifyCommandAckRequestSetter;
 import org.eclipse.ditto.thingsearch.model.signals.commands.ThingSearchCommand;
 import org.eclipse.ditto.thingsearch.model.signals.events.SubscriptionEvent;
 
@@ -445,12 +445,12 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
         return ackregatorStarter.preprocess(signal,
                 (s, shouldStart) -> {
                     final var entityIdOptional = WithEntityId.getEntityId(s);
-                    if (shouldStart && entityIdOptional.isPresent()) {
+                    if (shouldStart && entityIdOptional.isPresent() && s instanceof Command<?> command) {
                         // websocket-specific header check: acks requested with response-required=false are forbidden
-                        final Optional<DittoHeaderInvalidException> headerInvalid = checkForAcksWithoutResponse(s);
+                        final Optional<DittoHeaderInvalidException> headerInvalid = checkForAcksWithoutResponse(command);
                         return headerInvalid.map(this::publishResponseOrError)
                                 .orElseGet(() -> ackregatorStarter.doStart(entityIdOptional.get(),
-                                        s, null, this::publishResponseOrError,
+                                        command, null, this::publishResponseOrError,
                                         (ackregator, adjustedSignal) -> {
                                             commandForwarder.tell(adjustedSignal, ackregator);
                                             return Done.getInstance();

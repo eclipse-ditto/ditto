@@ -216,6 +216,7 @@ paths:
         - $ref: '#/components/parameters/ThingFieldsQueryParam'
         - $ref: '#/components/parameters/IfMatchHeaderParam'
         - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/GetMetadataParam'
         - $ref: '#/components/parameters/TimeoutParam'
         - $ref: '#/components/parameters/ConditionParam'
         - name: channel
@@ -361,6 +362,7 @@ paths:
         - $ref: '#/components/parameters/IfMatchHeaderParam'
         - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
         - $ref: '#/components/parameters/PutMetadataParam'
+        - $ref: '#/components/parameters/DeleteMetadataParam'
         - $ref: '#/components/parameters/RequestedAcksParam'
         - $ref: '#/components/parameters/TimeoutParam'
         - $ref: '#/components/parameters/ResponseRequiredParam'
@@ -598,6 +600,7 @@ paths:
         - $ref: '#/components/parameters/IfMatchHeaderParam'
         - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
         - $ref: '#/components/parameters/PutMetadataParam'
+        - $ref: '#/components/parameters/DeleteMetadataParam'
         - $ref: '#/components/parameters/RequestedAcksParam'
         - $ref: '#/components/parameters/TimeoutParam'
         - $ref: '#/components/parameters/ResponseRequiredParam'
@@ -751,6 +754,7 @@ paths:
         - $ref: '#/components/parameters/ThingIdPathParam'
         - $ref: '#/components/parameters/IfMatchHeaderParamHash'
         - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/GetMetadataParam'
         - $ref: '#/components/parameters/TimeoutParam'
         - $ref: '#/components/parameters/ConditionParam'
         - $ref: '#/components/parameters/ChannelParam'
@@ -824,6 +828,8 @@ paths:
         - $ref: '#/components/parameters/ThingIdPathParam'
         - $ref: '#/components/parameters/IfMatchHeaderParamHash'
         - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/PutMetadataParam'
+        - $ref: '#/components/parameters/DeleteMetadataParam'
         - $ref: '#/components/parameters/RequestedAcksParam'
         - $ref: '#/components/parameters/TimeoutParam'
         - $ref: '#/components/parameters/ResponseRequiredParam'
@@ -912,6 +918,8 @@ paths:
         - $ref: '#/components/parameters/ThingIdPathParam'
         - $ref: '#/components/parameters/IfMatchHeaderParamHash'
         - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/PutMetadataParam'
+        - $ref: '#/components/parameters/DeleteMetadataParam'
         - $ref: '#/components/parameters/RequestedAcksParam'
         - $ref: '#/components/parameters/TimeoutParam'
         - $ref: '#/components/parameters/ResponseRequiredParam'
@@ -1042,6 +1050,7 @@ paths:
         - $ref: '#/components/parameters/ThingIdPathParam'
         - $ref: '#/components/parameters/IfMatchHeaderParamHash'
         - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/GetMetadataParam'
         - $ref: '#/components/parameters/TimeoutParam'
         - $ref: '#/components/parameters/ConditionParam'
         - $ref: '#/components/parameters/ChannelParam'
@@ -1107,6 +1116,8 @@ paths:
         - $ref: '#/components/parameters/ThingIdPathParam'
         - $ref: '#/components/parameters/IfMatchHeaderParamHash'
         - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/PutMetadataParam'
+        - $ref: '#/components/parameters/DeleteMetadataParam'
         - $ref: '#/components/parameters/RequestedAcksParam'
         - $ref: '#/components/parameters/TimeoutParam'
         - $ref: '#/components/parameters/ResponseRequiredParam'
@@ -1177,6 +1188,8 @@ paths:
         - $ref: '#/components/parameters/ThingIdPathParam'
         - $ref: '#/components/parameters/IfMatchHeaderParamHash'
         - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/PutMetadataParam'
+        - $ref: '#/components/parameters/DeleteMetadataParam'
         - $ref: '#/components/parameters/RequestedAcksParam'
         - $ref: '#/components/parameters/TimeoutParam'
         - $ref: '#/components/parameters/ResponseRequiredParam'
@@ -1242,6 +1255,7 @@ paths:
         - $ref: '#/components/parameters/AttributesFieldsQueryParam'
         - $ref: '#/components/parameters/IfMatchHeaderParamHash'
         - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/GetMetadataParam'
         - $ref: '#/components/parameters/TimeoutParam'
         - $ref: '#/components/parameters/ConditionParam'
         - $ref: '#/components/parameters/ChannelParam'
@@ -1306,6 +1320,8 @@ paths:
         - $ref: '#/components/parameters/ThingIdPathParam'
         - $ref: '#/components/parameters/IfMatchHeaderParamHash'
         - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/PutMetadataParam'
+        - $ref: '#/components/parameters/DeleteMetadataParam'
         - $ref: '#/components/parameters/RequestedAcksParam'
         - $ref: '#/components/parameters/TimeoutParam'
         - $ref: '#/components/parameters/ResponseRequiredParam'
@@ -1393,6 +1409,8 @@ paths:
         - $ref: '#/components/parameters/ThingIdPathParam'
         - $ref: '#/components/parameters/IfMatchHeaderParamHash'
         - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/PutMetadataParam'
+        - $ref: '#/components/parameters/DeleteMetadataParam'
         - $ref: '#/components/parameters/RequestedAcksParam'
         - $ref: '#/components/parameters/TimeoutParam'
         - $ref: '#/components/parameters/ResponseRequiredParam'
@@ -1533,6 +1551,7 @@ paths:
         - $ref: '#/components/parameters/AttributesPathPathParam'
         - $ref: '#/components/parameters/IfMatchHeaderParamHash'
         - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/GetMetadataParam'
         - $ref: '#/components/parameters/TimeoutParam'
         - $ref: '#/components/parameters/ConditionParam'
         - $ref: '#/components/parameters/ChannelParam'
@@ -1603,6 +1622,8 @@ paths:
         - $ref: '#/components/parameters/AttributesPathPathParam'
         - $ref: '#/components/parameters/IfMatchHeaderParamHash'
         - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/PutMetadataParam'
+        - $ref: '#/components/parameters/DeleteMetadataParam'
         - $ref: '#/components/parameters/RequestedAcksParam'
         - $ref: '#/components/parameters/TimeoutParam'
         - $ref: '#/components/parameters/ResponseRequiredParam'
@@ -1691,6 +1712,8 @@ paths:
         - $ref: '#/components/parameters/AttributesPathPathParam'
         - $ref: '#/components/parameters/IfMatchHeaderParamHash'
         - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/PutMetadataParam'
+        - $ref: '#/components/parameters/DeleteMetadataParam'
         - $ref: '#/components/parameters/RequestedAcksParam'
         - $ref: '#/components/parameters/TimeoutParam'
         - $ref: '#/components/parameters/ResponseRequiredParam'
@@ -2218,6 +2241,7 @@ paths:
         - $ref: '#/components/parameters/FeatureFieldsQueryParam'
         - $ref: '#/components/parameters/IfMatchHeaderParamHash'
         - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/GetMetadataParam'
         - $ref: '#/components/parameters/TimeoutParam'
         - $ref: '#/components/parameters/ConditionParam'
         - $ref: '#/components/parameters/ChannelParam'
@@ -2306,6 +2330,8 @@ paths:
         - $ref: '#/components/parameters/FeatureIdPathPathParam'
         - $ref: '#/components/parameters/IfMatchHeaderParamHash'
         - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/PutMetadataParam'
+        - $ref: '#/components/parameters/DeleteMetadataParam'
         - $ref: '#/components/parameters/RequestedAcksParam'
         - $ref: '#/components/parameters/TimeoutParam'
         - $ref: '#/components/parameters/ResponseRequiredParam'
@@ -2427,6 +2453,8 @@ paths:
         - $ref: '#/components/parameters/FeatureIdPathPathParam'
         - $ref: '#/components/parameters/IfMatchHeaderParamHash'
         - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/PutMetadataParam'
+        - $ref: '#/components/parameters/DeleteMetadataParam'
         - $ref: '#/components/parameters/RequestedAcksParam'
         - $ref: '#/components/parameters/TimeoutParam'
         - $ref: '#/components/parameters/ResponseRequiredParam'
@@ -2560,6 +2588,7 @@ paths:
         - $ref: '#/components/parameters/FeatureIdPathPathParam'
         - $ref: '#/components/parameters/IfMatchHeaderParamHash'
         - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/GetMetadataParam'
         - $ref: '#/components/parameters/TimeoutParam'
         - $ref: '#/components/parameters/ConditionParam'
         - $ref: '#/components/parameters/ChannelParam'
@@ -2628,6 +2657,8 @@ paths:
         - $ref: '#/components/parameters/FeatureIdPathPathParam'
         - $ref: '#/components/parameters/IfMatchHeaderParamHash'
         - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/PutMetadataParam'
+        - $ref: '#/components/parameters/DeleteMetadataParam'
         - $ref: '#/components/parameters/RequestedAcksParam'
         - $ref: '#/components/parameters/TimeoutParam'
         - $ref: '#/components/parameters/ResponseRequiredParam'
@@ -2727,6 +2758,8 @@ paths:
         - $ref: '#/components/parameters/FeatureIdPathPathParam'
         - $ref: '#/components/parameters/IfMatchHeaderParamHash'
         - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/PutMetadataParam'
+        - $ref: '#/components/parameters/DeleteMetadataParam'
         - $ref: '#/components/parameters/RequestedAcksParam'
         - $ref: '#/components/parameters/TimeoutParam'
         - $ref: '#/components/parameters/ResponseRequiredParam'
@@ -2857,6 +2890,7 @@ paths:
         - $ref: '#/components/parameters/PropertiesFieldsQueryParam'
         - $ref: '#/components/parameters/IfMatchHeaderParamHash'
         - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/GetMetadataParam'
         - $ref: '#/components/parameters/TimeoutParam'
         - $ref: '#/components/parameters/ConditionParam'
         - $ref: '#/components/parameters/ChannelParam'
@@ -2924,6 +2958,8 @@ paths:
         - $ref: '#/components/parameters/FeatureIdPathPathParam'
         - $ref: '#/components/parameters/IfMatchHeaderParamHash'
         - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/PutMetadataParam'
+        - $ref: '#/components/parameters/DeleteMetadataParam'
         - $ref: '#/components/parameters/RequestedAcksParam'
         - $ref: '#/components/parameters/TimeoutParam'
         - $ref: '#/components/parameters/ResponseRequiredParam'
@@ -3029,6 +3065,8 @@ paths:
         - $ref: '#/components/parameters/FeatureIdPathPathParam'
         - $ref: '#/components/parameters/IfMatchHeaderParamHash'
         - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/PutMetadataParam'
+        - $ref: '#/components/parameters/DeleteMetadataParam'
         - $ref: '#/components/parameters/RequestedAcksParam'
         - $ref: '#/components/parameters/TimeoutParam'
         - $ref: '#/components/parameters/ResponseRequiredParam'
@@ -3174,6 +3212,7 @@ paths:
         - $ref: '#/components/parameters/PropertyPathPathParam'
         - $ref: '#/components/parameters/IfMatchHeaderParamHash'
         - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/GetMetadataParam'
         - $ref: '#/components/parameters/TimeoutParam'
         - $ref: '#/components/parameters/ConditionParam'
         - $ref: '#/components/parameters/ChannelParam'
@@ -3243,6 +3282,8 @@ paths:
         - $ref: '#/components/parameters/PropertyPathPathParam'
         - $ref: '#/components/parameters/IfMatchHeaderParamHash'
         - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/PutMetadataParam'
+        - $ref: '#/components/parameters/DeleteMetadataParam'
         - $ref: '#/components/parameters/RequestedAcksParam'
         - $ref: '#/components/parameters/TimeoutParam'
         - $ref: '#/components/parameters/ResponseRequiredParam'
@@ -3329,6 +3370,8 @@ paths:
         - $ref: '#/components/parameters/PropertyPathPathParam'
         - $ref: '#/components/parameters/IfMatchHeaderParamHash'
         - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/PutMetadataParam'
+        - $ref: '#/components/parameters/DeleteMetadataParam'
         - $ref: '#/components/parameters/RequestedAcksParam'
         - $ref: '#/components/parameters/TimeoutParam'
         - $ref: '#/components/parameters/ResponseRequiredParam'
@@ -3455,6 +3498,7 @@ paths:
         - $ref: '#/components/parameters/DesiredPropertiesFieldsQueryParam'
         - $ref: '#/components/parameters/IfMatchHeaderParamHash'
         - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/GetMetadataParam'
         - $ref: '#/components/parameters/TimeoutParam'
         - $ref: '#/components/parameters/ConditionParam'
         - $ref: '#/components/parameters/ChannelParam'
@@ -3528,6 +3572,8 @@ paths:
         - $ref: '#/components/parameters/FeatureIdPathPathParam'
         - $ref: '#/components/parameters/IfMatchHeaderParamHash'
         - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/PutMetadataParam'
+        - $ref: '#/components/parameters/DeleteMetadataParam'
         - $ref: '#/components/parameters/RequestedAcksParam'
         - $ref: '#/components/parameters/TimeoutParam'
         - $ref: '#/components/parameters/ResponseRequiredParam'
@@ -3633,6 +3679,8 @@ paths:
         - $ref: '#/components/parameters/FeatureIdPathPathParam'
         - $ref: '#/components/parameters/IfMatchHeaderParamHash'
         - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/PutMetadataParam'
+        - $ref: '#/components/parameters/DeleteMetadataParam'
         - $ref: '#/components/parameters/RequestedAcksParam'
         - $ref: '#/components/parameters/TimeoutParam'
         - $ref: '#/components/parameters/ResponseRequiredParam'
@@ -3779,6 +3827,7 @@ paths:
         - $ref: '#/components/parameters/PropertyPathPathParam'
         - $ref: '#/components/parameters/IfMatchHeaderParamHash'
         - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/GetMetadataParam'
         - $ref: '#/components/parameters/TimeoutParam'
         - $ref: '#/components/parameters/ConditionParam'
         - $ref: '#/components/parameters/ChannelParam'
@@ -3849,6 +3898,8 @@ paths:
         - $ref: '#/components/parameters/PropertyPathPathParam'
         - $ref: '#/components/parameters/IfMatchHeaderParamHash'
         - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/PutMetadataParam'
+        - $ref: '#/components/parameters/DeleteMetadataParam'
         - $ref: '#/components/parameters/RequestedAcksParam'
         - $ref: '#/components/parameters/TimeoutParam'
         - $ref: '#/components/parameters/ResponseRequiredParam'
@@ -3934,6 +3985,8 @@ paths:
         - $ref: '#/components/parameters/PropertyPathPathParam'
         - $ref: '#/components/parameters/IfMatchHeaderParamHash'
         - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/PutMetadataParam'
+        - $ref: '#/components/parameters/DeleteMetadataParam'
         - $ref: '#/components/parameters/RequestedAcksParam'
         - $ref: '#/components/parameters/TimeoutParam'
         - $ref: '#/components/parameters/ResponseRequiredParam'
@@ -6576,6 +6629,7 @@ components:
                 labels:
                   - 'my-connection-id:my-issued-acknowledgement'
                 timeout: 30s
+              randomizationInterval: 5m
       description: Optional request payload for `activateTokenIntegration` policy action.
       required: false
   responses:
@@ -7029,6 +7083,22 @@ components:
                 description: The JsonPointer to set the metadata `value` to. May start with `*/<key>` in order to apply the metadata to all affected JSON leaves.
               value:
                 description: The arbitrary JSON value to set as metadata.
+    GetMetadataParam:
+      name: get-metadata
+      in: header
+      description: 'The `get-metadata` header, which retrieves Metadata of the Thing.'
+      required: false
+      schema:
+        type: string
+        description: A string of comma separated JsonPointers to retrieve from the Metadata of the Thing.
+    DeleteMetadataParam:
+      name: delete-metadata
+      in: header
+      description: 'The `delete-metadata` header, which deletes Metadata of the Thing.'
+      required: false
+      schema:
+        type: string
+        description: A string of comma separated JsonPointers to delete from the Metadata of the Thing.
     RequestedAcksParam:
       name: requested-acks
       in: query
@@ -7531,9 +7601,16 @@ components:
             labels:
               - 'my-connection-id:my-issued-acknowledgement'
             timeout: 5s
+        randomizationInterval:
+          type: string
+          minimum: 0ms
+          maximum: 999_999_999s
+          default: 5m
+          description: 'Interval in which the announcement can be sent earlier than the configured `beforeExpiry`. The actual point in time when the announcement will be sent is `beforeExpire` plus a randomly chosen time within the `randomizationInterval`. E.g assuming `beforeExpiry` is set to 5m and `randomizationInterval` is set to 1m, the announcements will be sent between 5 and 6 minutes before the subject expires. If omitted, the default value will be applied. If set to minimum, no randomization will be applied.'
       example:
         beforeExpiry: 5m
         whenDeleted: true
+        randomizationInterval: 5m
     Features:
       type: object
       description: |-

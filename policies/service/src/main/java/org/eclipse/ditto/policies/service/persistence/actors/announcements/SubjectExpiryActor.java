@@ -21,16 +21,17 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.ThreadLocalRandom;
 
+import org.eclipse.ditto.base.model.common.DittoDuration;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.DittoHeadersBuilder;
-import org.eclipse.ditto.base.model.headers.translator.HeaderTranslator;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgements;
-import org.eclipse.ditto.internal.models.acks.AcknowledgementAggregatorActorStarter;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.pubsub.DistributedPub;
@@ -47,7 +48,9 @@ import org.eclipse.ditto.policies.service.persistence.actors.strategies.commands
 import akka.NotUsed;
 import akka.actor.AbstractFSM;
 import akka.actor.ActorRef;
+import akka.actor.Address;
 import akka.actor.Props;
+import akka.cluster.Cluster;
 import akka.japi.pf.FSMStateFunctionBuilder;
 import scala.util.Random$;
 
@@ -72,11 +75,12 @@ public final class SubjectExpiryActor extends AbstractFSM<SubjectExpiryState, No
     private final Subject subject;
     private final Duration gracePeriod;
     private final DistributedPub<PolicyAnnouncement<?>> policyAnnouncementPub;
-    private final AcknowledgementAggregatorActorStarter ackregatorStarter;
     private final SudoDeleteExpiredSubject sudoDeleteExpiredSubject;
     private final Duration persistenceTimeout;
     private final ActorRef commandForwarder;
     private final boolean enableAnnouncementsWhenDeleted;
+    private final Duration defaultRandomizationInterval;
+
 
     private final Duration maxBackOff;
     private final double backOffRandomFactor;
@@ -85,6 +89,7 @@ public final class SubjectExpiryActor extends AbstractFSM<SubjectExpiryState, No
     private boolean deleted;
     private Instant deleteAt;
     private boolean acknowledged;
+    private final Address selfRemoteAddress;
 
     @SuppressWarnings("unused")
     private SubjectExpiryActor(final PolicyId policyId,
@@ -100,13 +105,12 @@ public final class SubjectExpiryActor extends AbstractFSM<SubjectExpiryState, No
         this.gracePeriod = gracePeriod;
         this.policyAnnouncementPub = policyAnnouncementPub;
         enableAnnouncementsWhenDeleted = config.isEnableAnnouncementsWhenDeleted();
+        defaultRandomizationInterval = config.getDefaultRandomizationInterval();
 
-        ackregatorStarter =
-                AcknowledgementAggregatorActorStarter.of(getContext(), maxTimeout, HeaderTranslator.empty(),
-                        null, List.of(), List.of());
         this.commandForwarder = commandForwarder;
         sudoDeleteExpiredSubject =
-                SudoDeleteExpiredSubject.of(policyId, subject, DittoHeaders.newBuilder().responseRequired(false).build());
+                SudoDeleteExpiredSubject.of(policyId, subject,
+                        DittoHeaders.newBuilder().responseRequired(false).build());
         persistenceTimeout = maxTimeout;
 
         final var backOffConfig = config.getExponentialBackOffConfig();
@@ -117,6 +121,7 @@ public final class SubjectExpiryActor extends AbstractFSM<SubjectExpiryState, No
         deleted = false;
         deleteAt = subject.getExpiry().map(SubjectExpiry::getTimestamp).orElseGet(Instant::now);
         acknowledged = false;
+        selfRemoteAddress = Cluster.get(getContext().systemImpl()).selfUniqueAddress().address();
     }
 
     /**
@@ -451,27 +456,43 @@ public final class SubjectExpiryActor extends AbstractFSM<SubjectExpiryState, No
     }
 
     private boolean startAckregator(final PolicyAnnouncement<?> announcement) {
-        return ackregatorStarter.start(announcement,
-                null,
-                this::onAggregatedResponseOrError,
-                this::handleSignalWithAckregator,
-                this::handleSignalWithoutAckregator
-        );
+        if (announcement.getDittoHeaders().getAcknowledgementRequests().isEmpty()) {
+            return handleSignalWithoutAckregator(announcement);
+        } else {
+            return handleSignalWithAckregator(announcement);
+        }
     }
 
-    private boolean onAggregatedResponseOrError(final Object responseOrError) {
+    private void onAggregatedResponseOrError(final Object responseOrError) {
         getSelf().tell(responseOrError, ActorRef.noSender());
+    }
+
+    private boolean handleSignalWithAckregator(final PolicyAnnouncement<?> announcement) {
+        final ActorRef aggregatorActor = startAcknowledgementAggregator(announcement);
+
+        log.withCorrelationId(announcement)
+                .info("Publishing PolicyAnnouncement with ack requests: <{}>", announcement.getType());
+        log.withCorrelationId(announcement)
+                .debug("Publishing PolicyAnnouncement with ack requests: <{}>", announcement);
+
+        final String addressSerializationFormat = aggregatorActor.path()
+                .toSerializationFormatWithAddress(selfRemoteAddress);
+        final PolicyAnnouncement<?> adjustedSignal =
+                announcement.setDittoHeaders(announcement.getDittoHeaders().toBuilder()
+                        .putHeader(DittoHeaderDefinition.DITTO_ACKREGATOR_ADDRESS.getKey(), addressSerializationFormat)
+                        .build());
+        policyAnnouncementPub.publishWithAcks(adjustedSignal, ACK_EXTRACTOR, aggregatorActor);
+
         return false;
     }
 
-    private boolean handleSignalWithAckregator(final Signal<?> signal, final ActorRef ackregator) {
-        log.withCorrelationId(signal)
-                .info("Publishing PolicyAnnouncement with ack requests: <{}>", signal.getType());
-        log.withCorrelationId(signal)
-                .debug("Publishing PolicyAnnouncement with ack requests: <{}>", signal);
-        policyAnnouncementPub.publishWithAcks((PolicyAnnouncement<?>) signal, ACK_EXTRACTOR,
-                ackregator);
-        return false;
+    private ActorRef startAcknowledgementAggregator(final PolicyAnnouncement<?> announcement) {
+        final Duration timeout = announcement.getDittoHeaders().getTimeout().orElse(persistenceTimeout);
+        // cap used timeout to max timeout defined by persistenceTimeout
+        final Duration useTimeout = timeout.compareTo(persistenceTimeout) > 0 ? persistenceTimeout : timeout;
+        final Props props = PolicyAnnouncementAcknowledgementAggregatorActor.props(announcement, useTimeout,
+                this::onAggregatedResponseOrError);
+        return getContext().actorOf(props, PolicyAnnouncementAcknowledgementAggregatorActor.ACTOR_NAME);
     }
 
     private boolean handleSignalWithoutAckregator(final Signal<?> signalWithoutAckregator) {
@@ -498,11 +519,31 @@ public final class SubjectExpiryActor extends AbstractFSM<SubjectExpiryState, No
         return builder.build();
     }
 
+    /**
+     * Gets the instant when the announcement should be sent (instant of expiry - time before expiry that the
+     * announcement should be sent)
+     */
     private Optional<Instant> getAnnouncementInstant() {
         return subject.getAnnouncement()
                 .flatMap(SubjectAnnouncement::getBeforeExpiry)
                 .flatMap(beforeExpiry -> subject.getExpiry()
-                        .map(expiry -> expiry.getTimestamp().minus(beforeExpiry.getDuration())));
+                        .map(expiry -> expiry.getTimestamp().minus(beforeExpiry.getDuration())))
+                .flatMap(this::subtractRandomFactor);
+    }
+
+    /**
+     * subtract a random factor from the announcement instant in effort to prevent policy announcement bulks, which
+     * could cause to dropped messages in connections not consuming fast enough.
+     */
+    private Optional<Instant> subtractRandomFactor(final Instant announcementInstant) {
+        return subject.getAnnouncement()
+                .map(a -> a.getRandomizationInterval().orElse(DittoDuration.of(defaultRandomizationInterval)))
+                .map(interval -> announcementInstant.minusMillis(getRandomMillis(interval)));
+    }
+
+    private long getRandomMillis(final DittoDuration interval) {
+        final long intervalMillis = interval.getDuration().toMillis();
+        return intervalMillis > 0 ? ThreadLocalRandom.current().nextLong(intervalMillis) : intervalMillis;
     }
 
     private static Duration truncateToOneDay(final Duration duration) {

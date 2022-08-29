@@ -156,6 +156,7 @@
                             <exclude>org.eclipse.ditto.policies.model.enforcers.PolicyEnforcers#throughputOptimizedEvaluator(org.eclipse.ditto.policies.model.Policy)</exclude>
                             <exclude>org.eclipse.ditto.policies.model.enforcers.tree.TreeBasedPolicyEnforcer#createInstance(org.eclipse.ditto.policies.model.Policy)</exclude>
                             <exclude>org.eclipse.ditto.policies.model.enforcers.trie.TrieBasedPolicyEnforcer#newInstance(org.eclipse.ditto.policies.model.Policy)</exclude>
+                            <exclude>org.eclipse.ditto.policies.model.SubjectAnnouncement#of(org.eclipse.ditto.base.model.common.DittoDuration, boolean, java.util.List, org.eclipse.ditto.base.model.common.DittoDuration)</exclude>
                         </excludes>
                     </parameter>
                 </configuration>

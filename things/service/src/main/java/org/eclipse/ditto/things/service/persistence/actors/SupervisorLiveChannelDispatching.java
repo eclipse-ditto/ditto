@@ -14,7 +14,6 @@
 package org.eclipse.ditto.things.service.persistence.actors;
 
 import java.time.Duration;
-import java.time.Instant;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.CompletionStage;
@@ -22,13 +21,14 @@ import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.UnaryOperator;
 
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.SignalWithEntityId;
 import org.eclipse.ditto.base.model.signals.UnsupportedSignalException;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
 import org.eclipse.ditto.base.model.signals.commands.exceptions.CommandTimeoutException;
-import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
+import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.internal.utils.persistentactors.DistributedPubWithMessage;
 import org.eclipse.ditto.internal.utils.persistentactors.TargetActorWithMessage;
 import org.eclipse.ditto.internal.utils.pubsub.DistributedPub;
@@ -60,13 +60,13 @@ final class SupervisorLiveChannelDispatching {
     private static final AckExtractor<MessageCommand<?, ?>> MESSAGE_COMMAND_ACK_EXTRACTOR =
             AckExtractor.of(MessageCommand::getEntityId, MessageCommand::getDittoHeaders);
 
-    private final DittoDiagnosticLoggingAdapter log;
+    private final ThreadSafeDittoLoggingAdapter log;
     private final EnforcementConfig enforcementConfig;
     private final ResponseReceiverCache responseReceiverCache;
     private final LiveSignalPub liveSignalPub;
     private final ActorRefFactory actorRefFactory;
 
-    SupervisorLiveChannelDispatching(final DittoDiagnosticLoggingAdapter log,
+    SupervisorLiveChannelDispatching(final ThreadSafeDittoLoggingAdapter log,
             final EnforcementConfig enforcementConfig,
             final ResponseReceiverCache responseReceiverCache,
             final LiveSignalPub liveSignalPub,
@@ -117,7 +117,9 @@ final class SupervisorLiveChannelDispatching {
     TargetActorWithMessage prepareForPubSubPublishing(final ThingQueryCommand<?> thingQueryCommand,
             final ActorRef receiver) {
 
-        return prepareForPubSubPublishing(thingQueryCommand, receiver, UnaryOperator.identity());
+        return prepareForPubSubPublishing(thingQueryCommand, receiver,
+                response -> handleEncounteredAskTimeoutsAsCommandTimeoutException(thingQueryCommand.getDittoHeaders(),
+                        response));
     }
 
     /**
@@ -135,12 +137,9 @@ final class SupervisorLiveChannelDispatching {
             final ActorRef receiver,
             final UnaryOperator<Object> responseOrErrorConverter) {
 
-        final var startTime = Instant.now();
-        final var timeout = getAdjustedTimeout(thingQueryCommand, startTime);
-        final var signalWithAdjustedTimeout = adjustTimeout(thingQueryCommand, timeout);
+        final var timeout = calculateLiveChannelTimeout(thingQueryCommand.getDittoHeaders());
         final var pub = liveSignalPub.command();
-        final var publish =
-                pub.wrapForPublicationWithAcks(signalWithAdjustedTimeout, THING_COMMAND_ACK_EXTRACTOR);
+        final var publish = pub.wrapForPublicationWithAcks(thingQueryCommand, THING_COMMAND_ACK_EXTRACTOR);
 
         return new TargetActorWithMessage(
                 receiver,
@@ -159,7 +158,8 @@ final class SupervisorLiveChannelDispatching {
      * @return a CompletionStage which will be completed with a target actor and a message to send to this target actor
      */
     CompletionStage<TargetActorWithMessage> dispatchLiveSignal(final Signal<?> signal, final ActorRef sender) {
-
+        final UnaryOperator<Object> errorHandler =
+                response -> handleEncounteredAskTimeoutsAsCommandTimeoutException(signal.getDittoHeaders(), response);
         final DistributedPubWithMessage distributedPubWithMessage = selectLiveSignalPublisher(signal);
         if (enforcementConfig.shouldDispatchGlobally(signal)) {
             return responseReceiverCache.insertResponseReceiverConflictFree(signal,
@@ -176,9 +176,8 @@ final class SupervisorLiveChannelDispatching {
                     .thenApply(distributedPub -> new TargetActorWithMessage(
                             distributedPub.pub().getPublisher(),
                             distributedPub.wrappedSignalForPublication(),
-                            calculateLiveChannelTimeout(distributedPub.signal()),
-                            response -> handleEncounteredAskTimeoutsAsCommandTimeoutException(
-                                    signal, distributedPub, response)
+                            calculateLiveChannelTimeout(distributedPub.signal().getDittoHeaders()),
+                            errorHandler
                     ));
         } else {
             log.withCorrelationId(signal)
@@ -186,15 +185,15 @@ final class SupervisorLiveChannelDispatching {
             return CompletableFuture.completedStage(new TargetActorWithMessage(
                     distributedPubWithMessage.pub().getPublisher(),
                     distributedPubWithMessage.wrappedSignalForPublication(),
-                    calculateLiveChannelTimeout(signal),
-                    Function.identity()
+                    calculateLiveChannelTimeout(signal.getDittoHeaders()),
+                    errorHandler
             ));
         }
     }
 
-    private static Duration calculateLiveChannelTimeout(final WithDittoHeaders withDittoHeaders) {
-        if (withDittoHeaders.getDittoHeaders().isResponseRequired()) {
-            return withDittoHeaders.getDittoHeaders().getTimeout().orElse(DEFAULT_LIVE_TIMEOUT);
+    private static Duration calculateLiveChannelTimeout(final DittoHeaders dittoHeaders) {
+        if (dittoHeaders.isResponseRequired()) {
+            return dittoHeaders.getTimeout().orElse(DEFAULT_LIVE_TIMEOUT);
         } else {
             return Duration.ZERO;
         }
@@ -245,7 +244,8 @@ final class SupervisorLiveChannelDispatching {
                                         liveResponse.getType(), receiver);
                         targetActorWithMessage = new TargetActorWithMessage(receiver.sender(),
                                 liveResponse,
-                                Duration.ZERO, // ZERO duration means that no "ask" is used, but "tell" - not expecting an answer
+                                Duration.ZERO,
+                                // ZERO duration means that no "ask" is used, but "tell" - not expecting an answer
                                 Function.identity()
                         );
                     } else {
@@ -258,8 +258,7 @@ final class SupervisorLiveChannelDispatching {
                 });
     }
 
-    private Object handleEncounteredAskTimeoutsAsCommandTimeoutException(final Signal<?> signal,
-            final DistributedPubWithMessage distributedPub,
+    private Object handleEncounteredAskTimeoutsAsCommandTimeoutException(final DittoHeaders dittoHeaders,
             final Object response) {
 
         if (response instanceof Throwable t) {
@@ -269,11 +268,9 @@ final class SupervisorLiveChannelDispatching {
             }
 
             if (throwable instanceof AskTimeoutException askTimeoutException) {
-                return CommandTimeoutException.newBuilder(
-                                distributedPub.signal().getDittoHeaders().getTimeout().orElse(DEFAULT_LIVE_TIMEOUT)
-                        )
+                return CommandTimeoutException.newBuilder(calculateLiveChannelTimeout(dittoHeaders))
                         .cause(askTimeoutException)
-                        .dittoHeaders(signal.getDittoHeaders())
+                        .dittoHeaders(dittoHeaders)
                         .build();
             } else {
                 return response;
@@ -289,17 +286,6 @@ final class SupervisorLiveChannelDispatching {
         final var props = LiveResponseAndAcknowledgementForwarder.props(thingQueryCommand, pub.getPublisher());
         // and start the actor using the provided actorRefFactory
         return actorRefFactory.actorOf(props);
-    }
-
-    private static Duration getAdjustedTimeout(final Signal<?> signal, final Instant startTime) {
-
-        final var baseTimeout = getLiveSignalTimeout(signal);
-        final var adjustedTimeout = baseTimeout.minus(Duration.between(startTime, Instant.now()));
-        return adjustedTimeout.minus(MIN_LIVE_TIMEOUT).isNegative() ? MIN_LIVE_TIMEOUT : adjustedTimeout;
-    }
-
-    static Duration getLiveSignalTimeout(final Signal<?> signal) {
-        return signal.getDittoHeaders().getTimeout().orElse(DEFAULT_LIVE_TIMEOUT);
     }
 
     private static ThingCommand<?> adjustTimeout(final ThingCommand<?> signal, final Duration adjustedTimeout) {
