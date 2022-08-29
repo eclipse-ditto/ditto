@@ -22,31 +22,31 @@ let environments = {
     api_uri: 'http://localhost:8080',
     solutionId: null,
     bearer: null,
-    usernamePassword: 'ditto:ditto',
-    usernamePasswordDevOps: 'devops:foobar',
+    defaultUsernamePassword: 'ditto:ditto',
+    defaultUsernamePasswordDevOps: 'devops:foobar',
     useBasicAuth: true,
     useDittoPreAuthenticatedAuth: false,
-    dittoPreAuthenticatedUsername: null,
+    defaultDittoPreAuthenticatedUsername: null,
   },
   local_ditto_ide: {
     api_uri: 'http://localhost:8080',
     solutionId: null,
     bearer: null,
-    usernamePassword: null,
-    usernamePasswordDevOps: null,
+    defaultUsernamePassword: null,
+    defaultUsernamePasswordDevOps: null,
     useBasicAuth: false,
     useDittoPreAuthenticatedAuth: true,
-    dittoPreAuthenticatedUsername: 'pre:ditto',
+    defaultDittoPreAuthenticatedUsername: 'pre:ditto',
   },
   ditto_sandbox: {
     api_uri: 'https://ditto.eclipseprojects.io',
     solutionId: null,
     bearer: null,
-    usernamePassword: 'ditto:ditto',
-    usernamePasswordDevOps: null,
+    defaultUsernamePassword: 'ditto:ditto',
+    defaultUsernamePasswordDevOps: null,
     useBasicAuth: true,
     useDittoPreAuthenticatedAuth: false,
-    dittoPreAuthenticatedUsername: null,
+    defaultDittoPreAuthenticatedUsername: null,
   },
 };
 
@@ -87,6 +87,30 @@ export function ready() {
   if (restoredEnv) {
     environments = JSON.parse(restoredEnv);
   }
+
+  Object.keys(environments).forEach((env) => {
+    Object.defineProperties(environments[env], {
+      bearer: {
+        enumerable: false,
+        writable: true,
+      },
+      usernamePassword: {
+        value: environments[env].defaultUsernamePassword,
+        enumerable: false,
+        writable: true,
+      },
+      usernamePasswordDevOps: {
+        value: environments[env].defaultUsernamePasswordDevOps,
+        enumerable: false,
+        writable: true,
+      },
+      dittoPreAuthenticatedUsername: {
+        value: environments[env].defaultDittoPreAuthenticatedUsername,
+        enumerable: false,
+        writable: true,
+      },
+    });
+  });
 
   settingsEditor = ace.edit('settingsEditor');
   settingsEditor.session.setMode('ace/mode/json');
