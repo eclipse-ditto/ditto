@@ -73,7 +73,7 @@ public final class DefaultCommandConfig implements CommandConfig {
     }
 
     @Override
-    public Integer connectionsRetrieveLimit() {
+    public int connectionsRetrieveLimit() {
         return connectionsRetrieveLimit;
     }
 

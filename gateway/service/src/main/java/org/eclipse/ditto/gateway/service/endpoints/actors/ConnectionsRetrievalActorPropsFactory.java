@@ -14,8 +14,6 @@ package org.eclipse.ditto.gateway.service.endpoints.actors;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
-import java.time.Duration;
-
 import org.eclipse.ditto.internal.utils.extension.DittoExtensionIds;
 import org.eclipse.ditto.internal.utils.extension.DittoExtensionPoint;
 
@@ -31,7 +29,15 @@ import akka.actor.Props;
 public interface ConnectionsRetrievalActorPropsFactory extends DittoExtensionPoint {
 
 
-    Props getActorProps(ActorRef edgeCommandForwarder, ActorRef sender, final Duration timeout);
+    /**
+     * Create Props object of an actor to handle 1
+     * {@link org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConnections} command.
+     *
+     * @param edgeCommandForwarder actor to forward commands to the appropriate service.
+     * @param sender the sender of the {@code RetrieveConnections} command.
+     * @return Props of the actor.
+     */
+    Props getActorProps(ActorRef edgeCommandForwarder, ActorRef sender);
 
     /**
      * Loads the implementation of {@code ClientActorPropsFactory} which is configured for the

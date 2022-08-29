@@ -232,6 +232,9 @@ public final class RootRoute extends AllDirectives {
                                         connectionsRoute.buildConnectionsRoute(ctx, DittoHeaders.newBuilder() // /api/<apiVersion>/connections
                                                 .schemaVersion(apiVersion)
                                                 .correlationId(correlationId)
+                                                .putHeaders(QueryParametersToHeadersMap
+                                                        .getInstance(routeBaseProperties.getHttpConfig())
+                                                        .apply(queryParameters))
                                                 .putHeader(DittoHeaderDefinition.DITTO_SUDO.getKey(),
                                                         Boolean.TRUE.toString())
                                                 .build())

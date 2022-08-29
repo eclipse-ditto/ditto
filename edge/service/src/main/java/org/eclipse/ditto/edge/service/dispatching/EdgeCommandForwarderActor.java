@@ -25,6 +25,7 @@ import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
 import org.eclipse.ditto.base.model.signals.events.Event;
 import org.eclipse.ditto.base.service.signaltransformer.SignalTransformer;
 import org.eclipse.ditto.base.service.signaltransformer.SignalTransformers;
+import org.eclipse.ditto.connectivity.api.ConnectivityMessagingConstants;
 import org.eclipse.ditto.connectivity.api.commands.sudo.ConnectivitySudoCommand;
 import org.eclipse.ditto.connectivity.model.signals.commands.ConnectivityCommand;
 import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveAllConnectionIds;
@@ -246,7 +247,7 @@ public class EdgeCommandForwarderActor extends AbstractActor {
 
     public void forwardToConnectivityPubSub(final RetrieveAllConnectionIds cmd) {
         DistributedPubSubMediator.Send send =
-                DistPubSubAccess.send("/user/connectivityRoot/connectionIdsRetrieval", cmd);
+                DistPubSubAccess.send(ConnectivityMessagingConstants.CONNECTION_ID_RETRIEVAL_ACTOR_PATH, cmd);
         pubSubMediator.tell(send, getSender());
     }
 

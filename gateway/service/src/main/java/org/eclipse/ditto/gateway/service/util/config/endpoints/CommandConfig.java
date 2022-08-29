@@ -52,7 +52,7 @@ public interface CommandConfig {
      *
      * @return the limit for connections to be retrieved
      */
-    Integer connectionsRetrieveLimit();
+    int connectionsRetrieveLimit();
 
     /**
      * An enumeration of the known config path expressions and their associated default values for

@@ -11,19 +11,6 @@
  * SPDX-License-Identifier: EPL-2.0
  */
 
-/*
- * Copyright Bosch.IO GmbH 2021
- *
- *  All rights reserved, also regarding any disposal, exploitation,
- *  reproduction, editing, distribution, as well as in the event of
- *  applications for industrial property rights.
- *
- *  This software is the confidential and proprietary information
- *  of Bosch.IO GmbH. You shall not disclose
- *  such Confidential Information and shall use it only in
- *  accordance with the terms of the license agreement you
- *  entered into with Bosch.IO GmbH.
- */
 package org.eclipse.ditto.connectivity.model.signals.commands.query;
 
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;

@@ -15,7 +15,6 @@ package org.eclipse.ditto.gateway.service.endpoints.routes.connections;
 import static org.eclipse.ditto.base.model.exceptions.DittoJsonException.wrapJsonRuntimeException;
 import static org.eclipse.ditto.gateway.service.endpoints.directives.ContentTypeValidationDirective.ensureValidContentType;
 
-import java.time.Duration;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -76,7 +75,6 @@ public final class ConnectionsRoute extends AbstractRoute {
     private static final String PATH_LOGS = "logs";
 
     private final Set<String> mediaTypePlainTextWithFallbacks;
-    private final Duration defaultTimeout;
     @Nullable private final DevopsAuthenticationDirective devOpsAuthenticationDirective;
 
     /**
@@ -91,7 +89,6 @@ public final class ConnectionsRoute extends AbstractRoute {
             @Nullable final DevopsAuthenticationDirective devOpsAuthenticationDirective) {
 
         super(routeBaseProperties);
-        defaultTimeout = routeBaseProperties.getCommandConfig().getDefaultTimeout();
         this.devOpsAuthenticationDirective = devOpsAuthenticationDirective;
         final var httpConfig = routeBaseProperties.getHttpConfig();
         final var fallbackMediaTypes = httpConfig.getAdditionalAcceptedMediaTypes().stream();
@@ -147,7 +144,7 @@ public final class ConnectionsRoute extends AbstractRoute {
                         get(() -> // GET /connections?idsOnly=false
                                 parameterOptional("idsOnly", idsOnly -> handlePerRequest(ctx,
                                         RetrieveConnections.newInstance(idsOnly.map(Boolean::valueOf).orElse(false),
-                                                defaultTimeout, dittoHeaders)
+                                                dittoHeaders)
                                 ))
 
                         ),

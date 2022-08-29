@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.connectivity.model.signals.commands.query;
 
-import java.time.Duration;
 import java.util.Objects;
 import java.util.function.Predicate;
 
@@ -54,16 +53,12 @@ public final class RetrieveConnections extends AbstractCommand<RetrieveConnectio
     public static final String TYPE = ConnectivityCommand.TYPE_PREFIX + NAME;
     static final JsonFieldDefinition<Boolean> JSON_IDS_ONLY =
             JsonFactory.newBooleanFieldDefinition("idsOnly", FieldType.REGULAR, JsonSchemaVersion.V_2);
-    static final JsonFieldDefinition<Long> JSON_DEFAULT_TIMEOUT =
-            JsonFactory.newLongFieldDefinition("timeoutMs", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
     private final boolean idsOnly;
-    private final Duration timeout;
 
-    private RetrieveConnections(final boolean idsOnly, final Duration defaultTimeout, final DittoHeaders dittoHeaders) {
+    private RetrieveConnections(final boolean idsOnly, final DittoHeaders dittoHeaders) {
         super(TYPE, dittoHeaders);
         this.idsOnly = idsOnly;
-        this.timeout = dittoHeaders.getTimeout().orElse(defaultTimeout);
     }
 
     /**
@@ -73,10 +68,9 @@ public final class RetrieveConnections extends AbstractCommand<RetrieveConnectio
      * @return the instance.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static RetrieveConnections newInstance(final boolean idsOnly, final Duration defaultTimeout,
-            final DittoHeaders dittoHeaders) {
+    public static RetrieveConnections newInstance(final boolean idsOnly, final DittoHeaders dittoHeaders) {
 
-        return new RetrieveConnections(idsOnly, defaultTimeout, dittoHeaders);
+        return new RetrieveConnections(idsOnly, dittoHeaders);
     }
 
     /**
@@ -106,17 +100,17 @@ public final class RetrieveConnections extends AbstractCommand<RetrieveConnectio
      */
     public static RetrieveConnections fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         final boolean idsOnly = jsonObject.getValueOrThrow(JSON_IDS_ONLY);
-        final Duration defaultTimeout = Duration.ofMillis(jsonObject.getValueOrThrow(JSON_DEFAULT_TIMEOUT));
 
-        return new RetrieveConnections(idsOnly, defaultTimeout, dittoHeaders);
+        return new RetrieveConnections(idsOnly, dittoHeaders);
     }
 
+    /**
+     * Specifies if only connections ids are to be retrieved.
+     *
+     * @return if only connections ids are to be retrieved.
+     */
     public boolean getIdsOnly() {
         return idsOnly;
-    }
-
-    public Duration getTimeout() {
-        return timeout;
     }
 
     @Override
@@ -126,7 +120,7 @@ public final class RetrieveConnections extends AbstractCommand<RetrieveConnectio
 
     @Override
     public RetrieveConnections setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return new RetrieveConnections(idsOnly, timeout, dittoHeaders);
+        return new RetrieveConnections(idsOnly, dittoHeaders);
     }
 
     @Override
@@ -140,7 +134,6 @@ public final class RetrieveConnections extends AbstractCommand<RetrieveConnectio
 
         final Predicate<JsonField> predicate = jsonSchemaVersion.and(thePredicate);
         jsonObjectBuilder.set(JSON_IDS_ONLY, idsOnly, predicate);
-        jsonObjectBuilder.set(JSON_DEFAULT_TIMEOUT, timeout.toMillis(), predicate);
     }
 
     @Override
@@ -155,13 +148,12 @@ public final class RetrieveConnections extends AbstractCommand<RetrieveConnectio
             return false;
         }
         final RetrieveConnections that = (RetrieveConnections) o;
-        return Objects.equals(idsOnly, that.idsOnly) &&
-                Objects.equals(timeout, that.timeout);
+        return Objects.equals(idsOnly, that.idsOnly);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(super.hashCode(), idsOnly, timeout);
+        return Objects.hash(super.hashCode(), idsOnly);
     }
 
     @Override
@@ -169,7 +161,6 @@ public final class RetrieveConnections extends AbstractCommand<RetrieveConnectio
         return getClass().getSimpleName() + " [" +
                 super.toString() +
                 ", idsOnly=" + idsOnly +
-                ", timeout=" + timeout +
                 "]";
     }
 

@@ -206,7 +206,7 @@ public final class RootRouteTest extends EndpointTestBase {
     @Test
     public void getStatusWithDevopsAuth() {
         final TestRouteResult result =
-                rootTestRoute.run(withHttps(withDevopsCredentials(HttpRequest.GET(CONNECTIONS_2_PATH))));
+                rootTestRoute.run(withHttps(withDevopsCredentials(HttpRequest.GET(OVERALL_STATUS_PATH))));
 
         result.assertStatusCode(EndpointTestConstants.DUMMY_COMMAND_SUCCESS);
     }

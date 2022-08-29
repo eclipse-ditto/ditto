@@ -59,6 +59,7 @@ public final class GatewayProxyActor extends AbstractActor {
     private final DittoDiagnosticLoggingAdapter log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
 
     private final ActorRef statisticsActor;
+    private final ConnectionsRetrievalActorPropsFactory connectionsRetrievalActorPropsFactory;
 
     @SuppressWarnings("unused")
     private GatewayProxyActor(final ActorRef pubSubMediator,
@@ -67,7 +68,11 @@ public final class GatewayProxyActor extends AbstractActor {
         this.pubSubMediator = pubSubMediator;
         this.devOpsCommandsActor = devOpsCommandsActor;
         this.edgeCommandForwarder = edgeCommandForwarder;
-        statisticsActor = getContext().actorOf(StatisticsActor.props(pubSubMediator), StatisticsActor.ACTOR_NAME);
+        this.statisticsActor = getContext().actorOf(StatisticsActor.props(pubSubMediator), StatisticsActor.ACTOR_NAME);
+        final Config dittoExtensionConfig =
+                ScopedConfig.dittoExtension(getContext().getSystem().settings().config());
+        this.connectionsRetrievalActorPropsFactory =
+                ConnectionsRetrievalActorPropsFactory.get(getContext().getSystem(), dittoExtensionConfig);
     }
 
     /**
@@ -131,13 +136,8 @@ public final class GatewayProxyActor extends AbstractActor {
                     edgeCommandForwarder.tell(qt, responseActor);
                 })
                 .match(RetrieveConnections.class, rc -> {
-                    final Config dittoExtensionConfig =
-                            ScopedConfig.dittoExtension(getContext().getSystem().settings().config());
-                    final ConnectionsRetrievalActorPropsFactory connectionsRetrievalActorPropsFactory =
-                            ConnectionsRetrievalActorPropsFactory.get(getContext().getSystem(), dittoExtensionConfig);
                     final ActorRef connectionsRetrievalActor = getContext().actorOf(
-                            connectionsRetrievalActorPropsFactory.getActorProps(edgeCommandForwarder, getSender(),
-                                    rc.getTimeout())
+                            connectionsRetrievalActorPropsFactory.getActorProps(edgeCommandForwarder, getSender())
                     );
                     connectionsRetrievalActor.tell(rc, getSender());
                 })

@@ -51,12 +51,10 @@ import akka.pattern.Patterns;
  */
 public class DittoConnectionsRetrievalActor extends AbstractConnectionsRetrievalActor {
 
-    private static final String LOG_SEND_COMMAND = "Sending command <{}> to org.eclipse.ditto.connectivity.service.";
-
     @SuppressWarnings("unused")
     private DittoConnectionsRetrievalActor(final ActorRef edgeCommandForwarder, final ActorRef sender,
             final Duration timeout) {
-        super(edgeCommandForwarder, sender, timeout);
+        super(edgeCommandForwarder, sender);
     }
 
     /**
@@ -66,13 +64,13 @@ public class DittoConnectionsRetrievalActor extends AbstractConnectionsRetrieval
      * @param sender the initial sender.
      * @return the props.
      */
-    public static Props props(final ActorRef edgeCommandForwarder, final ActorRef sender, final Duration timeout) {
-        return Props.create(DittoConnectionsRetrievalActor.class, edgeCommandForwarder, sender, timeout);
+    public static Props props(final ActorRef edgeCommandForwarder, final ActorRef sender) {
+        return Props.create(DittoConnectionsRetrievalActor.class, edgeCommandForwarder, sender);
     }
 
     @Override
-    protected void retrieveConnections(final RetrieveConnections rc) {
-        this.edgeCommandForwarder.tell(RetrieveAllConnectionIds.of(rc.getDittoHeaders()), getSelf());
+    protected void retrieveConnections(final RetrieveConnections retrieveConnections) {
+        this.edgeCommandForwarder.tell(RetrieveAllConnectionIds.of(retrieveConnections.getDittoHeaders()), getSelf());
     }
 
     @Override
@@ -91,7 +89,10 @@ public class DittoConnectionsRetrievalActor extends AbstractConnectionsRetrieval
             stop();
         } else {
             if (connectionIds.size() > connectionsRetrieveLimit) {
-                sender.tell(ConnectionsAmountIllegalException.newBuilder(connectionsRetrieveLimit).build(), getSelf());
+                sender.tell(ConnectionsAmountIllegalException.newBuilder(connectionsRetrieveLimit)
+                        .dittoHeaders(initialCommand.getDittoHeaders())
+                        .build(), getSelf());
+                stop();
             } else {
                 retrieveConnections(connectionIds
                         .stream()
@@ -160,19 +161,19 @@ public class DittoConnectionsRetrievalActor extends AbstractConnectionsRetrieval
     private CompletionStage<RetrieveConnectionResponse> askConnectivity(
             final RetrieveConnection command) {
 
-        logger.withCorrelationId(command).debug(LOG_SEND_COMMAND, command);
+        logger.withCorrelationId(command).debug("Sending command <{}> to org.eclipse.ditto.connectivity.service.", command);
         final var commandWithCorrelationId = ensureCommandHasCorrelationId(command);
-        Duration askTimeout = initialCommand.getTimeout();
+        Duration askTimeout = initialCommand.getDittoHeaders().getTimeout().orElse(defaultTimeout);
         return Patterns.ask(edgeCommandForwarder, commandWithCorrelationId, askTimeout)
                 .thenApply(response -> {
                     logger.withCorrelationId(command)
-                            .debug("Received response <{}> from com.bosch.iot.things.connectivity.service.", response);
+                            .debug("Received response <{}> from org.eclipse.ditto.connectivity.service.", response);
                     throwCauseIfErrorResponse(response);
                     throwCauseIfDittoRuntimeException(response);
                     final RetrieveConnectionResponse mappedResponse =
                             mapToType(response, RetrieveConnectionResponse.class, command);
                     logger.withCorrelationId(command)
-                            .info("Received response of type <{}> from com.bosch.iot.things.connectivity.service.",
+                            .info("Received response of type <{}> from org.eclipse.ditto.connectivity.service.",
                                     mappedResponse.getType());
                     return mappedResponse;
                 });

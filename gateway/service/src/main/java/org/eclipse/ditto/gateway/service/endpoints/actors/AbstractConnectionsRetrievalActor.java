@@ -19,6 +19,7 @@ import org.eclipse.ditto.connectivity.model.ConnectivityInternalErrorException;
 import org.eclipse.ditto.connectivity.model.signals.commands.ConnectivityErrorResponse;
 import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConnections;
 import org.eclipse.ditto.gateway.service.util.config.DittoGatewayConfig;
+import org.eclipse.ditto.gateway.service.util.config.endpoints.CommandConfig;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLogger;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
@@ -28,22 +29,30 @@ import akka.actor.ActorRef;
 import akka.actor.ReceiveTimeout;
 import akka.japi.pf.ReceiveBuilder;
 
+
+/**
+ * Abstract actor for retrieving multiple connections.
+ * Implementers should add the custom retrieval logic.
+ */
+
 public abstract class AbstractConnectionsRetrievalActor extends AbstractActor {
 
     protected final ThreadSafeDittoLogger logger = DittoLoggerFactory.getThreadSafeLogger(getClass());
     protected final ActorRef edgeCommandForwarder;
     protected final ActorRef sender;
     protected final int connectionsRetrieveLimit;
+    protected final Duration defaultTimeout;
     protected RetrieveConnections initialCommand;
 
-    public AbstractConnectionsRetrievalActor(final ActorRef edgeCommandForwarder, final ActorRef sender, final Duration timeout) {
+    protected AbstractConnectionsRetrievalActor(final ActorRef edgeCommandForwarder, final ActorRef sender) {
         this.edgeCommandForwarder = edgeCommandForwarder;
         this.sender = sender;
-        this.connectionsRetrieveLimit =
+        CommandConfig commandConfig =
                 DittoGatewayConfig.of(DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config()))
-                        .getCommandConfig()
-                        .connectionsRetrieveLimit();
-        getContext().setReceiveTimeout(timeout);
+                        .getCommandConfig();
+        this.connectionsRetrieveLimit = commandConfig.connectionsRetrieveLimit();
+        this.defaultTimeout = commandConfig.getDefaultTimeout();
+        getContext().setReceiveTimeout(defaultTimeout);
     }
 
     @Override
@@ -55,7 +64,7 @@ public abstract class AbstractConnectionsRetrievalActor extends AbstractActor {
                 .build();
     }
 
-    protected abstract void retrieveConnections(final RetrieveConnections rc);
+    protected abstract void retrieveConnections(final RetrieveConnections retrieveConnections);
     protected abstract Receive commandResponseAwaitingBehaviour();
 
     private Receive responseAwaitingBehavior(){

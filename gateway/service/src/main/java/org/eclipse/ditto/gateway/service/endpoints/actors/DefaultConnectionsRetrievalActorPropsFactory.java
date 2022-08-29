@@ -14,8 +14,6 @@
 package org.eclipse.ditto.gateway.service.endpoints.actors;
 
 
-import java.time.Duration;
-
 import com.typesafe.config.Config;
 
 import akka.actor.ActorRef;
@@ -32,7 +30,7 @@ public class DefaultConnectionsRetrievalActorPropsFactory implements Connections
     }
 
     @Override
-    public Props getActorProps(final ActorRef edgeCommandForwarder, final ActorRef sender, final Duration timeout) {
-        return DittoConnectionsRetrievalActor.props(edgeCommandForwarder, sender, timeout);
+    public Props getActorProps(final ActorRef edgeCommandForwarder, final ActorRef sender) {
+        return DittoConnectionsRetrievalActor.props(edgeCommandForwarder, sender);
     }
 }

@@ -11,19 +11,6 @@
  * SPDX-License-Identifier: EPL-2.0
  */
 
-/*
- * Copyright Bosch.IO GmbH 2021
- *
- *  All rights reserved, also regarding any disposal, exploitation,
- *  reproduction, editing, distribution, as well as in the event of
- *  applications for industrial property rights.
- *
- *  This software is the confidential and proprietary information
- *  of Bosch.IO GmbH. You shall not disclose
- *  such Confidential Information and shall use it only in
- *  accordance with the terms of the license agreement you
- *  entered into with Bosch.IO GmbH.
- */
 package org.eclipse.ditto.connectivity.model.signals.commands.query;
 
 import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;
@@ -31,7 +18,7 @@ import static org.mutabilitydetector.unittesting.AllowedReason.assumingFields;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
-import java.time.Duration;
+import javax.annotation.Nullable;
 
 import org.assertj.core.api.Assertions;
 import org.assertj.core.api.AutoCloseableSoftAssertions;
@@ -57,6 +44,7 @@ import nl.jqno.equalsverifier.EqualsVerifier;
  */
 public final class RetrieveConnectionsTest {
 
+    @Nullable
     private static JsonObject knownJson;
 
     @Rule
@@ -70,7 +58,6 @@ public final class RetrieveConnectionsTest {
         knownJson = JsonFactory.newObjectBuilder()
                 .set(ConnectivityCommand.JsonFields.TYPE, RetrieveConnections.TYPE)
                 .set(RetrieveConnections.JSON_IDS_ONLY, false)
-                .set(RetrieveConnections.JSON_DEFAULT_TIMEOUT, 0L)
                 .build();
     }
 
@@ -97,7 +84,7 @@ public final class RetrieveConnectionsTest {
 
     @Test
     public void toJsonReturnsExpected() {
-        final RetrieveConnections underTest = RetrieveConnections.newInstance(false, Duration.ZERO, dittoHeaders);
+        final RetrieveConnections underTest = RetrieveConnections.newInstance(false, dittoHeaders);
         final JsonObject actualJson = underTest.toJson(FieldType.regularOrSpecial());
 
         DittoJsonAssertions.assertThat(actualJson).isEqualTo(knownJson);
@@ -105,7 +92,7 @@ public final class RetrieveConnectionsTest {
 
     @Test
     public void getResourcePathReturnsExpected() {
-        final RetrieveConnections underTest = RetrieveConnections.newInstance(false, Duration.ZERO, dittoHeaders);
+        final RetrieveConnections underTest = RetrieveConnections.newInstance(false, dittoHeaders);
         assertThat(underTest.getResourcePath()).isEqualTo(JsonPointer.of("/connections"));
     }
 
@@ -123,7 +110,7 @@ public final class RetrieveConnectionsTest {
     @Test
     public void deserializeRetrieveConnections() {
         final Signal<?> actual = GlobalCommandRegistry.getInstance().parse(knownJson, dittoHeaders);
-        final Signal<?> expected = RetrieveConnections.newInstance(false, Duration.ZERO, dittoHeaders);
+        final Signal<?> expected = RetrieveConnections.newInstance(false, dittoHeaders);
 
         Assertions.assertThat(actual).isEqualTo(expected);
     }
