@@ -78,7 +78,7 @@ public final class DittoPublicKeyProviderTest {
         actorSystem = ActorSystem.create(getClass().getSimpleName());
         when(httpClientMock.getActorSystem()).thenReturn(actorSystem);
         final JwtSubjectIssuersConfig subjectIssuersConfig = JwtSubjectIssuersConfig.fromJwtSubjectIssuerConfigs(
-                Collections.singleton(new JwtSubjectIssuerConfig(SubjectIssuer.GOOGLE, List.of("google.com"))));
+                Collections.singleton(new JwtSubjectIssuerConfig(SubjectIssuer.GOOGLE, List.of("google.com", "http://google.com"))));
         when(oauthConfigMock.getAllowedClockSkew()).thenReturn(Duration.ofSeconds(1));
         underTest = new DittoPublicKeyProvider(subjectIssuersConfig, httpClientMock,
                 oauthConfigMock, DittoPublicKeyProviderTest::thisThreadCache);
@@ -120,7 +120,7 @@ public final class DittoPublicKeyProviderTest {
         mockECSuccessfulPublicKeysRequest();
 
         final Optional<PublicKeyWithParser> publicKeyFromEndpoint =
-                underTest.getPublicKeyWithParser("google.com", KEY_ID).get(LATCH_TIMEOUT, TimeUnit.SECONDS);
+                underTest.getPublicKeyWithParser("http://google.com", KEY_ID).get(LATCH_TIMEOUT, TimeUnit.SECONDS);
         assertThat(publicKeyFromEndpoint).isNotEmpty();
         verify(httpClientMock).createSingleHttpRequest(DISCOVERY_ENDPOINT_REQUEST);
         verify(httpClientMock).createSingleHttpRequest(PUBLIC_KEYS_REQUEST);
@@ -128,7 +128,7 @@ public final class DittoPublicKeyProviderTest {
         Mockito.clearInvocations(httpClientMock);
 
         final Optional<PublicKeyWithParser> publicKeyFromCache =
-                underTest.getPublicKeyWithParser("google.com", KEY_ID).get(LATCH_TIMEOUT, TimeUnit.SECONDS);
+                underTest.getPublicKeyWithParser("http://google.com", KEY_ID).get(LATCH_TIMEOUT, TimeUnit.SECONDS);
         assertThat(publicKeyFromCache).contains(publicKeyFromEndpoint.get());
         assertThat(publicKeyFromCache).isNotEmpty();
         verifyNoMoreInteractions(httpClientMock);

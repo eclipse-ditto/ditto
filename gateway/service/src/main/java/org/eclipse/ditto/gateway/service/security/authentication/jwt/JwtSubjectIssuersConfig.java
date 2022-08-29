@@ -17,7 +17,7 @@ import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -48,7 +48,7 @@ public final class JwtSubjectIssuersConfig {
     private JwtSubjectIssuersConfig(final Iterable<JwtSubjectIssuerConfig> configItems, final String protocol) {
         protocolPrefix = protocol + "://";
         requireNonNull(configItems);
-        final Map<String, JwtSubjectIssuerConfig> modifiableSubjectIssuerConfigMap = new HashMap<>();
+        final Map<String, JwtSubjectIssuerConfig> modifiableSubjectIssuerConfigMap = new LinkedHashMap<>();
 
         configItems.forEach(configItem ->
                 addConfigToMap(configItem, modifiableSubjectIssuerConfigMap, protocolPrefix));
@@ -95,14 +95,16 @@ public final class JwtSubjectIssuersConfig {
      * for this issuer
      */
     public Optional<JwtSubjectIssuerConfig> getConfigItem(final String issuer) {
-        return Optional.ofNullable(getConfigItemByIssuer(issuer).orElse(subjectIssuerConfigMap.get(issuer)));
+        return getConfigItemByIssuer(issuer)
+                .or(() -> Optional.ofNullable(subjectIssuerConfigMap.get(issuer)));
     }
 
     private Optional<JwtSubjectIssuerConfig> getConfigItemByIssuer(final String issuer) {
         return subjectIssuerConfigMap.values()
                 .stream()
                 .filter(jwtSubjectIssuerConfig -> jwtSubjectIssuerConfig.getIssuers().stream()
-                        .anyMatch(configuredIssuer -> configuredIssuer.equals(issuer))
+                        .anyMatch(configuredIssuer -> configuredIssuer.equals(issuer) ||
+                                protocolPrefix.concat(configuredIssuer).equals(issuer))
                 )
                 .findFirst();
     }
