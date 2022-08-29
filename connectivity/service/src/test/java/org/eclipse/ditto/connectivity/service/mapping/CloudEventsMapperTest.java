@@ -18,8 +18,11 @@ import org.eclipse.ditto.base.model.exceptions.DittoJsonException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.connectivity.api.ExternalMessage;
 import org.eclipse.ditto.connectivity.api.ExternalMessageFactory;
+import org.eclipse.ditto.connectivity.model.MessageMappingFailedException;
 import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonKey;
 import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.protocol.Adaptable;
 import org.eclipse.ditto.protocol.JsonifiableAdaptable;
 import org.eclipse.ditto.protocol.ProtocolFactory;
@@ -28,15 +31,14 @@ import org.eclipse.ditto.protocol.adapter.ProtocolAdapter;
 import org.eclipse.ditto.things.model.ThingId;
 import org.junit.Before;
 import org.junit.Test;
-import java.util.UUID;
+
+import java.util.*;
 import java.nio.charset.StandardCharsets;
-import java.util.Base64;
-import java.util.List;
-import java.util.Map;
 
 import static java.util.Collections.singletonList;
 import static org.eclipse.ditto.connectivity.service.mapping.AbstractMessageMapper.extractPayloadAsString;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThrows;
 
 public class CloudEventsMapperTest {
 
@@ -72,8 +74,8 @@ public class CloudEventsMapperTest {
 
 
     String base64payload = """
-    {"specversion": "1.0" , "id":"3212e", "source":"http:somesite.com","type":"com.site.com", "data_base64":"ewogICJ0b3BpYyI6Im15LnNlbnNvcnMvc2Vuc29yMDEvdGhpbmdzL3R3aW4vY29tbWFuZHMvbW9kaWZ5IiwKICAicGF0aCI6Ii8iLAogICJ2YWx1ZSI6ewogICAgICAidGhpbmdJZCI6ICJteS5zZW5zb3JzOnNlbnNvcjAxIiwKICAgICAgInBvbGljeUlkIjogIm15LnRlc3Q6cG9saWN5IiwKICAgICAgImF0dHJpYnV0ZXMiOiB7CiAgICAgICAgICAibWFudWZhY3R1cmVyIjogIldlbGwga25vd24gc2Vuc29ycyBwcm9kdWNlciIsCiAgICAgICAgICAgICJzZXJpYWwgbnVtYmVyIjogIjEwMCIsIAogICAgICAgICAgICAibG9jYXRpb24iOiAiR3JvdW5kIGZsb29yIiB9LAogICAgICAgICAgICAiZmVhdHVyZXMiOiB7CiAgICAgICAgICAgICAgIm1lYXN1cmVtZW50cyI6IAogICAgICAgICAgICAgICB7InByb3BlcnRpZXMiOiAKICAgICAgICAgICAgICAgeyJ0ZW1wZXJhdHVyZSI6IDEwMCwKICAgICAgICAgICAgICAgICJodW1pZGl0eSI6IDB9fX19fQ=="}
-    """;
+            {"specversion": "1.0" , "id":"3212e", "source":"http:somesite.com","type":"com.site.com", "data_base64":"ewogICJ0b3BpYyI6Im15LnNlbnNvcnMvc2Vuc29yMDEvdGhpbmdzL3R3aW4vY29tbWFuZHMvbW9kaWZ5IiwKICAicGF0aCI6Ii8iLAogICJ2YWx1ZSI6ewogICAgICAidGhpbmdJZCI6ICJteS5zZW5zb3JzOnNlbnNvcjAxIiwKICAgICAgInBvbGljeUlkIjogIm15LnRlc3Q6cG9saWN5IiwKICAgICAgImF0dHJpYnV0ZXMiOiB7CiAgICAgICAgICAibWFudWZhY3R1cmVyIjogIldlbGwga25vd24gc2Vuc29ycyBwcm9kdWNlciIsCiAgICAgICAgICAgICJzZXJpYWwgbnVtYmVyIjogIjEwMCIsIAogICAgICAgICAgICAibG9jYXRpb24iOiAiR3JvdW5kIGZsb29yIiB9LAogICAgICAgICAgICAiZmVhdHVyZXMiOiB7CiAgICAgICAgICAgICAgIm1lYXN1cmVtZW50cyI6IAogICAgICAgICAgICAgICB7InByb3BlcnRpZXMiOiAKICAgICAgICAgICAgICAgeyJ0ZW1wZXJhdHVyZSI6IDEwMCwKICAgICAgICAgICAgICAgICJodW1pZGl0eSI6IDB9fX19fQ=="}
+            """;
     String data_base64 = Base64.getEncoder().encodeToString(data.getBytes());
     private CloudEventsMapper underTest;
 
@@ -93,10 +95,11 @@ public class CloudEventsMapperTest {
 
 
     @Test
-    public void randomTest(){
-    String uuid = UUID.randomUUID().toString();
+    public void randomTest() {
+        String uuid = UUID.randomUUID().toString();
         System.out.println(uuid);
     }
+
     @Test
     public void base64PayloadMessage() {
         ExternalMessage message = textMessageBuilder(base64payload);
@@ -143,8 +146,37 @@ public class CloudEventsMapperTest {
 
     }
 
+    @Test
+    public void incomingBinaryCloudEventsMapping() {
+        ExternalMessage binaryCEMessage = binaryCloudEventBuilder(data);
+        Adaptable expectedAdaptable = DittoJsonException.wrapJsonRuntimeException(() -> ProtocolFactory.jsonifiableAdaptableFromJson(JsonFactory.newObject(data)));
+        List<Adaptable> expectedMap = singletonList(ProtocolFactory.newAdaptableBuilder(expectedAdaptable).build());
+        assertEquals(underTest.map(binaryCEMessage), expectedMap);
+    }
+
+    @Test
+    public void failedMapping(){
+        ExternalMessage incorrectMessage = ExternalMessageFactory.newExternalMessageBuilder(Map.of(ExternalMessage.CONTENT_TYPE_HEADER,cloudEventsContentType))
+                .withText(data).build();
+        assertThrows(MessageMappingFailedException.class,() -> underTest.map(incorrectMessage));
+    }
+
     private ExternalMessage textMessageBuilder(String textPayload) {
-        ExternalMessage message = ExternalMessageFactory.newExternalMessageBuilder(Map.of(ExternalMessage.CONTENT_TYPE_HEADER, cloudEventsContentType)).withText(textPayload).build();
+        ExternalMessage message = ExternalMessageFactory.newExternalMessageBuilder(Map.of(ExternalMessage.CONTENT_TYPE_HEADER, cloudEventsContentType))
+                .withText(textPayload).build();
+        return message;
+    }
+
+    private ExternalMessage binaryCloudEventBuilder(String payload) {
+        Map<String, String> headers = new HashMap<>() {{
+            put("ce-specversion", "1.0");
+            put("ce-id", "test-id");
+            put("ce-type", "incoming-cloudevent");
+            put("ce-source", "generic-event-producer");
+            put(ExternalMessage.CONTENT_TYPE_HEADER, cloudEventsContentType);
+        }};
+        ExternalMessage message = ExternalMessageFactory.newExternalMessageBuilder(headers)
+                .withText(payload).build();
         return message;
     }
 }

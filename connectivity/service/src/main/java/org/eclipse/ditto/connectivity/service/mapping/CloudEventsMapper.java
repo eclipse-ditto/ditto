@@ -144,6 +144,7 @@ public final class CloudEventsMapper extends AbstractMessageMapper {
 
             } catch (Exception e) {
                 System.out.println(e);
+                throw mappingFailedException;
             }
         }
         return Collections.emptyList();
