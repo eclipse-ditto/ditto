@@ -28,7 +28,6 @@ import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 
 import akka.actor.ActorSystem;
 import akka.testkit.javadsl.TestKit;
-import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -41,14 +40,10 @@ public final class DefaultDittoHeadersValidatorTest {
 
     @Nullable
     private static ActorSystem actorSystem;
-    @Nullable
-    private static Config extensionConfig;
 
     @BeforeClass
     public static void init() {
         actorSystem = ActorSystem.create("AkkaTestSystem", ConfigFactory.load("test"));
-        extensionConfig = ScopedConfig.dittoExtension(actorSystem.settings().config())
-                .getConfig("ditto-headers-validator.extension-config");
     }
 
     @AfterClass
@@ -61,9 +56,8 @@ public final class DefaultDittoHeadersValidatorTest {
     @Test
     public void validationFailsForTooManyAuthSubjects() {
         assert actorSystem != null;
-        assert extensionConfig != null;
 
-        final var underTest = new DefaultDittoHeadersValidator(actorSystem, extensionConfig);
+        final var underTest = DittoHeadersValidator.get(actorSystem, ScopedConfig.dittoExtension(actorSystem.settings().config()));
 
         final var authorizationContext = AuthorizationContext.newInstance(
                 DittoAuthorizationContextType.PRE_AUTHENTICATED_HTTP,

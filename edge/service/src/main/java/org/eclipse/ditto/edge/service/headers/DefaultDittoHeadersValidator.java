@@ -46,26 +46,35 @@ public final class DefaultDittoHeadersValidator implements DittoHeadersValidator
     @Override
     public CompletionStage<DittoHeaders> validate(DittoHeaders dittoHeaders) {
         checkNotNull(dittoHeaders, "dittoHeaders");
-        try {
-            validateAuthorizationContext(dittoHeaders);
-            if (dittoHeaders.isEntriesSizeGreaterThan(maxBytes)) {
-                throw DittoHeadersTooLargeException.newSizeLimitBuilder(maxBytes)
-                        .dittoHeaders(dittoHeaders)
-                        .build();
-            }
-            return CompletableFuture.completedStage(dittoHeaders);
-        } catch (DittoHeadersTooLargeException e) {
-            return CompletableFuture.failedStage(e);
-        }
+        return validateSize(dittoHeaders).thenCompose(this::validateAuthorizationContext);
     }
 
-    private void validateAuthorizationContext(final DittoHeaders dittoHeaders) {
+    /**
+     * Validates {@code dittoHeaders} against {@code maximum-size} defined in the extension configuration.
+     *
+     * @param dittoHeaders the headers to validate.
+     * @return a completion stage which completes successfully with the valid headers. Raises a
+     * {@link org.eclipse.ditto.base.model.exceptions.DittoHeadersTooLargeException} if {@code dittoHeaders} are not
+     * valid.
+     */
+    public CompletionStage<DittoHeaders> validateSize(final DittoHeaders dittoHeaders) {
+        if (dittoHeaders.isEntriesSizeGreaterThan(maxBytes)) {
+            return CompletableFuture.failedStage(DittoHeadersTooLargeException.newSizeLimitBuilder(maxBytes)
+                    .dittoHeaders(dittoHeaders)
+                    .build());
+        }
+        return CompletableFuture.completedStage(dittoHeaders);
+    }
+
+    private CompletionStage<DittoHeaders> validateAuthorizationContext(final DittoHeaders dittoHeaders) {
         final int authSubjectsCount = dittoHeaders.getAuthorizationContext().getSize();
         if (authSubjectsCount > maxAuthSubjects) {
-            throw DittoHeadersTooLargeException.newAuthSubjectsLimitBuilder(authSubjectsCount, maxAuthSubjects)
-                    .dittoHeaders(dittoHeaders)
-                    .build();
+            return CompletableFuture.failedStage(
+                    DittoHeadersTooLargeException.newAuthSubjectsLimitBuilder(authSubjectsCount, maxAuthSubjects)
+                            .dittoHeaders(dittoHeaders)
+                            .build());
         }
+        return CompletableFuture.completedStage(dittoHeaders);
     }
 
     @Override
