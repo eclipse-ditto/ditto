@@ -18,8 +18,8 @@ import static org.eclipse.ditto.base.model.acks.DittoAcknowledgementLabel.TWIN_P
 import java.text.MessageFormat;
 import java.time.Duration;
 import java.util.Objects;
+import java.util.function.BiFunction;
 import java.util.function.Consumer;
-import java.util.function.Function;
 
 import javax.annotation.Nullable;
 
@@ -30,6 +30,7 @@ import org.eclipse.ditto.base.model.exceptions.DittoInternalErrorException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.base.model.headers.DittoHeadersSettable;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.headers.translator.HeaderTranslator;
@@ -70,7 +71,7 @@ public final class AcknowledgementAggregatorActor<C extends Command<C>> extends 
     private final Duration timeout;
     private final Consumer<MatchingValidationResult.Failure> matchingValidationFailureConsumer;
     private final CommandResponseAcknowledgementProvider<C> acknowledgementProvider;
-    private Function<Acknowledgements, DittoRuntimeException> getAsTimeoutError;
+    private BiFunction<Acknowledgements, DittoHeaders, DittoRuntimeException> getAsTimeoutError;
 
     @SuppressWarnings("unused")
     private AcknowledgementAggregatorActor(final EntityId entityId,
@@ -110,24 +111,26 @@ public final class AcknowledgementAggregatorActor<C extends Command<C>> extends 
         acknowledgementProvider = responseAcknowledgementProvider;
     }
 
-    private Function<Acknowledgements, DittoRuntimeException> getDefaultGetAsTimeoutError(
+    private BiFunction<Acknowledgements, DittoHeaders, DittoRuntimeException> getDefaultGetAsTimeoutError(
             @Nullable final EntityId entityId) {
 
-        return aggregatedAcknowledgements -> CommandTimeoutException.newBuilder(timeout)
-                .dittoHeaders(calculateHeadersWithEntityId(entityId, aggregatedAcknowledgements))
+        return (aggregatedAcknowledgements, additionalDittoHeaders) -> CommandTimeoutException.newBuilder(timeout)
+                .dittoHeaders(
+                        calculateHeadersWithEntityId(entityId, aggregatedAcknowledgements, additionalDittoHeaders))
                 .build();
     }
 
     private static DittoHeaders calculateHeadersWithEntityId(@Nullable final EntityId entityId,
-            final WithDittoHeaders withDittoHeaders) {
+            final WithDittoHeaders withDittoHeaders, final DittoHeaders additionalDittoHeaders) {
 
+        final DittoHeadersBuilder<?, ?> dittoHeadersBuilder =
+                withDittoHeaders.getDittoHeaders().toBuilder().putHeaders(additionalDittoHeaders);
         if (null != entityId) {
-            return withDittoHeaders.getDittoHeaders()
-                    .toBuilder()
+            return dittoHeadersBuilder
                     .putHeader(DittoHeaderDefinition.ENTITY_ID.getKey(), entityId.getEntityType() + ":" + entityId)
                     .build();
         } else {
-            return withDittoHeaders.getDittoHeaders();
+            return dittoHeadersBuilder.build();
         }
     }
 
@@ -241,14 +244,15 @@ public final class AcknowledgementAggregatorActor<C extends Command<C>> extends 
         matchingValidationFailureConsumer.accept(matchingValidationFailure);
     }
 
-    private Function<Acknowledgements, DittoRuntimeException> getInvalidLiveResponseReceivedGetAsTimeoutError(
+    private BiFunction<Acknowledgements, DittoHeaders, DittoRuntimeException> getInvalidLiveResponseReceivedGetAsTimeoutError(
             final String detailMessage
     ) {
-        return acknowledgements -> {
+        return (acknowledgements, additionalDittoHeaders) -> {
             final var descriptionPattern = "Received no appropriate live response within the specified timeout." +
                     " An invalid response was received, though: {0}";
             return CommandTimeoutException.newBuilder(timeout)
-                    .dittoHeaders(calculateHeadersWithEntityId(acknowledgements.getEntityId(), acknowledgements))
+                    .dittoHeaders(calculateHeadersWithEntityId(acknowledgements.getEntityId(), acknowledgements,
+                            additionalDittoHeaders))
                     .description(MessageFormat.format(descriptionPattern, detailMessage))
                     .build();
         };
@@ -267,7 +271,7 @@ public final class AcknowledgementAggregatorActor<C extends Command<C>> extends 
     private MatchingValidationResult validateResponse(final CommandResponse<?> commandResponse) {
         final MatchingValidationResult result;
         if (Command.isLiveCommand(originatingSignal) || Signal.isChannelSmart(originatingSignal)) {
-            result = validateLiveResponse((Command<?>) originatingSignal, commandResponse);
+            result = validateLiveResponse(originatingSignal, commandResponse);
         } else {
 
             // Non-live responses are supposed to be valid as they are generated by Ditto itself.
@@ -289,7 +293,7 @@ public final class AcknowledgementAggregatorActor<C extends Command<C>> extends 
     private void handleReceiveTimeout(final Control receiveTimeout) {
         log.withCorrelationId(correlationId).info("Timed out waiting for all requested acknowledgements, " +
                 "completing Acknowledgements with timeouts...");
-        completeAcknowledgements(null);
+        completeAcknowledgements(null, DittoHeaders.empty());
     }
 
     private void handleAcknowledgement(final Acknowledgement acknowledgement) {
@@ -313,19 +317,9 @@ public final class AcknowledgementAggregatorActor<C extends Command<C>> extends 
     }
 
     private void handleCommandTimeoutException(final CommandTimeoutException commandTimeoutException) {
-        log.withCorrelationId(correlationId)
-                .info("Stopped waiting for acknowledgements because of command timeout exception <{}>.",
-                        commandTimeoutException);
-        final var aggregatedAcknowledgements =
-                ackregator.getAggregatedAcknowledgements(originatingSignal.getDittoHeaders());
-        final var builtInAcknowledgementOnly = containsOnlyTwinPersistedOrLiveResponse(aggregatedAcknowledgements);
-
-        if (builtInAcknowledgementOnly) {
-            handleSignal(commandTimeoutException);
-            getContext().stop(getSelf());
-        } else {
-            handleReceiveTimeout(Control.WAITING_FOR_ACKS_TIMED_OUT);
-        }
+        log.withCorrelationId(correlationId).info("Timed out waiting for all requested acknowledgements, " +
+                "completing Acknowledgements with timeouts...");
+        completeAcknowledgements(null, commandTimeoutException.getDittoHeaders());
     }
 
     private Acknowledgement provideAcknowledgement(final CommandResponse<?> commandResponse) {
@@ -343,11 +337,12 @@ public final class AcknowledgementAggregatorActor<C extends Command<C>> extends 
 
     private void potentiallyCompleteAcknowledgements(@Nullable final CommandResponse<?> response) {
         if (ackregator.receivedAllRequestedAcknowledgements()) {
-            completeAcknowledgements(response);
+            completeAcknowledgements(response, DittoHeaders.empty());
         }
     }
 
-    private void completeAcknowledgements(@Nullable final CommandResponse<?> response) {
+    private void completeAcknowledgements(@Nullable final CommandResponse<?> response,
+            final DittoHeaders additionalDittoHeaders) {
         final var aggregatedAcknowledgements =
                 ackregator.getAggregatedAcknowledgements(originatingSignal.getDittoHeaders());
         final var builtInAcknowledgementOnly = containsOnlyTwinPersistedOrLiveResponse(aggregatedAcknowledgements);
@@ -358,7 +353,7 @@ public final class AcknowledgementAggregatorActor<C extends Command<C>> extends 
         } else if (builtInAcknowledgementOnly && !ackregator.receivedAllRequestedAcknowledgements()) {
 
             // There is no response. Sending an error according to channel.
-            handleSignal(getAsTimeoutError.apply(aggregatedAcknowledgements));
+            handleSignal(getAsTimeoutError.apply(aggregatedAcknowledgements, additionalDittoHeaders));
         } else {
             log.withCorrelationId(originatingSignal)
                     .debug("Completing with collected acknowledgements: {}", aggregatedAcknowledgements);
