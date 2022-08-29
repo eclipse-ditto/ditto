@@ -673,7 +673,9 @@ public final class MongoReadJournal {
                         MongoReadJournal.MAX_BACK_OFF_DURATION, randomFactor)
                 .withMaxRestarts(maxRestarts, minBackOff);
         return RestartSource.onFailuresWithBackoff(restartSettings, () ->
-                Source.fromPublisher(journal.aggregate(pipeline))
+                Source.fromPublisher(journal.aggregate(pipeline)
+                        .batchSize(batchSize) // use batchSize also for the cursor batchSize (16 by default bc of backpressure!)
+                )
         );
     }
 
@@ -750,7 +752,9 @@ public final class MongoReadJournal {
             ));
         }
 
-        return Source.fromPublisher(snapshotStore.aggregate(pipeline))
+        return Source.fromPublisher(snapshotStore.aggregate(pipeline)
+                        .batchSize(batchSize) // use batchSize also for the cursor batchSize (16 by default bc of backpressure!)
+                )
                 .flatMapConcat(document -> {
                     final String theMaxPid = document.getString(maxPid);
                     if (theMaxPid == null) {
