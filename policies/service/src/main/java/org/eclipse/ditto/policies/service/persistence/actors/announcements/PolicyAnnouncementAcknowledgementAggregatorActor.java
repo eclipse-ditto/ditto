@@ -42,8 +42,6 @@ import akka.actor.Props;
  */
 final class PolicyAnnouncementAcknowledgementAggregatorActor extends AbstractActorWithTimers {
 
-    static final String ACTOR_NAME = "policy-announcement-acknowledgement-aggregator";
-
     private final DittoDiagnosticLoggingAdapter log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
     private final String correlationId;
     private final Duration timeout;
