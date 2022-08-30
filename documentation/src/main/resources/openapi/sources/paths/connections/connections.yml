@@ -14,6 +14,14 @@ get:
     Returns all connections.
   tags:
     - Connections
+  parameters:
+    - name: ids-only
+      in: query
+      description: |-
+        When set to true, the request will return the registered ids only and not the whole connections objects.
+      required: false
+      schema:
+        type: boolean
   responses:
     '200':
       description: The request successfully returned the connections.
@@ -141,7 +149,7 @@ post:
               },
               "payloadMapping": [
                 "Ditto",
-                "status"
+                "..."
               ]
             }
           ],

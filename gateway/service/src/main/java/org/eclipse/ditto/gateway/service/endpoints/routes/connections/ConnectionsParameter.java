@@ -21,7 +21,8 @@ public enum ConnectionsParameter {
     /**
      * Request parameter for doing a dry-run before creating a connection.
      */
-    DRY_RUN("dry-run");
+    DRY_RUN("dry-run"),
+    IDS_ONLY("ids-only");
 
     private final String parameterValue;
 

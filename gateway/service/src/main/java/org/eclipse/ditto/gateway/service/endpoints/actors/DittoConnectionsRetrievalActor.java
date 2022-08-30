@@ -26,8 +26,7 @@ import akka.actor.Props;
 public class DittoConnectionsRetrievalActor extends AbstractConnectionsRetrievalActor {
 
     @SuppressWarnings("unused")
-    private DittoConnectionsRetrievalActor(final ActorRef edgeCommandForwarder, final ActorRef sender,
-            final Duration timeout) {
+    private DittoConnectionsRetrievalActor(final ActorRef edgeCommandForwarder, final ActorRef sender) {
         super(edgeCommandForwarder, sender);
     }
 

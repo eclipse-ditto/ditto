@@ -141,8 +141,8 @@ public final class ConnectionsRoute extends AbstractRoute {
     private Route connections(final RequestContext ctx, final DittoHeaders dittoHeaders) {
         return pathEndOrSingleSlash(() ->
                 concat(
-                        get(() -> // GET /connections?idsOnly=false
-                                parameterOptional("idsOnly", idsOnly -> handlePerRequest(ctx,
+                        get(() -> // GET /connections?ids-only=false
+                                parameterOptional(ConnectionsParameter.IDS_ONLY.toString(), idsOnly -> handlePerRequest(ctx,
                                         RetrieveConnections.newInstance(idsOnly.map(Boolean::valueOf).orElse(false),
                                                 dittoHeaders)
                                 ))
