@@ -34,7 +34,7 @@ import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
 import org.eclipse.ditto.connectivity.api.InboundSignal;
 import org.eclipse.ditto.connectivity.api.OutboundSignalFactory;
 import org.eclipse.ditto.connectivity.model.Target;
-import org.eclipse.ditto.internal.models.acks.AcknowledgementForwarderActor;
+import org.eclipse.ditto.edge.service.acknowledgements.AcknowledgementForwarderActor;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.thingsearch.model.signals.events.SubscriptionEvent;
@@ -215,7 +215,8 @@ final class OutboundDispatchingActor extends AbstractActor {
                 .get(DittoHeaderDefinition.DITTO_ACKREGATOR_ADDRESS.getKey());
         if (null != ackregatorAddress) {
             final ActorSelection acknowledgementRequester = getContext().actorSelection(ackregatorAddress);
-            acknowledgementRequester.tell(AcknowledgementLabelNotDeclaredException.of(ack.getLabel(), ack.getDittoHeaders()),
+            acknowledgementRequester.tell(
+                    AcknowledgementLabelNotDeclaredException.of(ack.getLabel(), ack.getDittoHeaders()),
                     ActorRef.noSender());
         } else {
             logger.withCorrelationId(ack)

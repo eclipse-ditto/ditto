@@ -43,7 +43,7 @@ import org.eclipse.ditto.connectivity.service.messaging.monitoring.ConnectionMon
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.DefaultConnectionMonitorRegistry;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.metrics.CounterKey;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.metrics.MetricAlertRegistry;
-import org.eclipse.ditto.internal.models.acks.config.AcknowledgementConfig;
+import org.eclipse.ditto.edge.service.acknowledgements.AcknowledgementConfig;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.internal.utils.config.InstanceIdentifierSupplier;
 import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;

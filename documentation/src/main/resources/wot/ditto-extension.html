@@ -1,0 +1,108 @@
+<!--
+  ~ Copyright (c) 2022 Contributors to the Eclipse Foundation
+  ~
+  ~ See the NOTICE file(s) distributed with this work for additional
+  ~ information regarding copyright ownership.
+  ~
+  ~ This program and the accompanying materials are made available under the
+  ~ terms of the Eclipse Public License 2.0 which is available at
+  ~ http://www.eclipse.org/legal/epl-2.0
+  ~
+  ~ SPDX-License-Identifier: EPL-2.0
+-->
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="utf-8">
+  <title>Eclipse Ditto™ - WoT Extension Ontology</title>
+  <meta name="description" content="This ontology provides additional Ditto specific context for Web of Things (https://www.w3.org/WoT/) TDs and TMs">
+  <link rel="icon" type="image/png" href="../images/favicon-16x16.png" sizes="16x16" />
+  <link rel="icon" type="image/png" href="../images/favicon-32x32.png" sizes="32x32" />
+  <link rel="icon" type="image/png" href="../images/favicon-96x96.png" sizes="96x96" />
+  <style>
+      body {
+          font: 1em Helvetica, sans-serif;
+          color: #333;
+      }
+
+      .ditto-logo {
+          width: 3em;
+      }
+
+      section {
+          padding-left: 1em;
+      }
+      section::before {
+          display: block;
+          content: " ";
+          margin-top: -285px;
+          height: 285px;
+          visibility: hidden;
+          pointer-events: none;
+      }
+
+      table {
+          border-collapse: collapse;
+          margin: 25px 0;
+          width: 50%;
+          box-shadow: 0 0 20px rgba(0, 0, 0, 0.15);
+      }
+
+      table th, table td {
+          padding: 12px 15px;
+      }
+
+      table tbody tr {
+          border-bottom: 1px solid #dddddd;
+      }
+  </style>
+</head>
+<body>
+  <h1><img src="../images/ditto.svg" class="ditto-logo" alt="Eclipse Ditto logo"> - WoT Extension Ontology</h1>
+  <section id="1-intro">
+    <h2>1. Introduction</h2>
+    <p>This ontology provides additional <a href="https://www.eclipse.org/ditto/">Eclipse Ditto™</a> specific context for <a href="https://www.w3.org/WoT/">W3C Web of Things</a> TDs and TMs.</p>
+  </section>
+  <section id="2-formats">
+    <h2>2. Formats</h2>
+    <p>Using this URL and "Content Negotiation" via <code>Accept</code> header, it is also possible to access the
+      following different formats:</p>
+    <ul>
+      <li><code>text/turtle</code></li>
+      <li><code>application/ld+json</code></li>
+      <li><code>application/rdf+xml</code></li>
+    </ul>
+    <p>To access the formats the following links are also possible:</p>
+    <ul>
+      <li>TTL: <a href="ditto-extension.ttl">ditto-extension.ttl</a></li>
+      <li>JSON-LD: <a href="ditto-extension.jsonld">ditto-extension.jsonld</a></li>
+      <li>RDF: <a href="ditto-extension.rdf">ditto-extension.rdf</a></li>
+    </ul>
+  </section>
+  <section id="3-axiomatization">
+    <h2>3. Axiomatization</h2>
+    <section id="2-1-datatype-properties">
+      <h3>3.1 Datatype Properties</h3>
+      <section id="category">
+        <h4 id="3-1-1-category">
+          <a href="#category">3.1.1 category</a>
+        </h4>
+        <p>IRI: <code>https://ditto.eclipseprojects.io/wot/ditto-extension#category</code></p>
+        <p>Optional category for WoT Property affordances, e.g. something like <code>'status'</code> or <code>'configuration'</code>.</p>
+        <table class="def">
+          <tbody>
+          <tr>
+            <td>Sub-class of</td>
+            <td><code><a href="https://www.w3.org/2019/wot/td#PropertyAffordance" style="">td:PropertyAffordance</a></code></td>
+          </tr>
+          <tr>
+            <td>In the range of</td>
+            <td><code><a href="https://schema.org/Text">schema:Text</a></code></td>
+          </tr>
+          </tbody>
+        </table>
+      </section>
+    </section>
+  </section>
+</body>
+</html>

@@ -524,13 +524,26 @@ final class DefaultWotThingDescriptionGenerator implements WotThingDescriptionGe
             final ThingDescription.Builder tdBuilder,
             final JsonPointer propertiesPointer) {
 
+        final Optional<String> dittoExtensionPrefix = thingModel.getAtContext()
+                .determinePrefixFor(DittoWotExtension.DITTO_WOT_EXTENSION);
+
         thingModel.getProperties()
                 .map(Properties::entrySet)
                 .map(Set::stream)
                 .map(properties -> properties.map(propertyEntry -> {
                     final String propertyName = propertyEntry.getKey();
                     final Property property = propertyEntry.getValue();
-                    final JsonPointer propertyHref = propertiesPointer.addLeaf(JsonKey.of(propertyName));
+
+                    final Optional<String> category = dittoExtensionPrefix.flatMap(prefix ->
+                                    property.getValue(prefix + ":" + DittoWotExtension.DITTO_WOT_EXTENSION_CATEGORY)
+                            )
+                            .filter(JsonValue::isString)
+                            .map(JsonValue::asString);
+                    final JsonPointer pointer = category.map(JsonKey::of)
+                            .map(propertiesPointer::addLeaf)
+                            .orElse(propertiesPointer);
+
+                    final JsonPointer propertyHref = pointer.addLeaf(JsonKey.of(propertyName));
                     final String writeUriVariablesParams = provideUriVariablesBag(
                             DittoHeaderDefinition.CHANNEL.getKey(),
                             DittoHeaderDefinition.TIMEOUT.getKey(),
