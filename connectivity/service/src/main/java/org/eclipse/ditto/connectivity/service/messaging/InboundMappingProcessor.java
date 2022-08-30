@@ -159,12 +159,11 @@ public final class InboundMappingProcessor
                         try {
                             final Signal<?> signal =
                                     timer.inboundProtocol(() -> protocolAdapter.fromAdaptable(adaptable));
-                            final DittoHeaders dittoHeaders = signal.getDittoHeaders();
-                            dittoHeadersSizeValidator.validate(dittoHeaders).toCompletableFuture().join();
-                            final DittoHeaders headersWithMapper = dittoHeaders.toBuilder()
+                            final DittoHeaders headersWithMapper = signal.getDittoHeaders().toBuilder()
                                     .inboundPayloadMapper(mapper.getId())
                                     .putHeaders(additionalInboundHeaders)
                                     .build();
+                            dittoHeadersSizeValidator.validate(headersWithMapper).toCompletableFuture().join();
                             final Signal<?> signalWithMapperHeader = signal.setDittoHeaders(headersWithMapper);
                             final MappedInboundExternalMessage mappedMessage =
                                     MappedInboundExternalMessage.of(message, adaptable.getTopicPath(),
