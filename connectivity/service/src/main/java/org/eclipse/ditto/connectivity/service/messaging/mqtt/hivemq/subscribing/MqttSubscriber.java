@@ -20,7 +20,10 @@ import java.util.Optional;
 
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.client.GenericMqttSubscribingClient;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.client.MqttSubscribeException;
+import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.message.publish.GenericMqttPublish;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.message.subscribe.GenericMqttSubscribe;
+
+import com.hivemq.client.internal.mqtt.datatypes.MqttTopicFilterImpl;
 
 import akka.NotUsed;
 import akka.japi.Pair;
@@ -121,9 +124,27 @@ public final class MqttSubscriber {
             final org.eclipse.ditto.connectivity.model.Source connectionSource
     ) {
         return SubscribeSuccess.newInstance(connectionSource,
-                Source.fromPublisher(subscribingClient.consumeSubscribedPublishesWithManualAcknowledgement()));
+                Source.fromPublisher(subscribingClient.consumeSubscribedPublishesWithManualAcknowledgement()
+                        .filter(p -> messageHasRightTopicPath(p, connectionSource))
+                ));
     }
 
+    /**
+     * Filters out messages which don't match the sources topics. This is done because the HiveMQ API makes it hard
+     * to consume only messages which match specific topics in the first place.
+     *
+     * @param genericMqttPublish a consumed MQTT message.
+     * @param source the source of the connection.
+     * @return whether the message matches the topics of this source.
+     */
+    private boolean messageHasRightTopicPath(final GenericMqttPublish genericMqttPublish, final
+    org.eclipse.ditto.connectivity.model.Source source) {
+
+        return source.getAddresses()
+                .stream()
+                .map(MqttTopicFilterImpl::of)
+                .anyMatch(topicFilter -> topicFilter.matches(genericMqttPublish.getTopic()));
+    }
 
     private static SubscribeResult getSubscribeFailureResult(
             final org.eclipse.ditto.connectivity.model.Source connectionSource,
