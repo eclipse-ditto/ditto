@@ -138,6 +138,19 @@ This maps to the following HTTP API endpoints:
 * `/policies/{policyId}/entries/{entryLabel-1}/resources`: accessing the resources of a single `Policy` entry with the
   label `{entryLabel-1}`
 
+#### `/connections` in API 2
+
+The base endpoint for accessing and working with `Connections`.<br/>
+
+It has the following HTTP API endpoints:
+
+* `/connections`: accessing all connections
+* `/connections/{connectionId}`: accessing the `Connection` entries
+* `/connections/{connectionId}/command`: send a command to a specific Connection
+* `/connections/{connectionId}/status`: retrieve status of a specific Connection
+* `/connections/{connectionId}/metrics`: retrieve metrics of a specific Connection
+* `/connections/{connectionId}/logs`: retrieve logs of a specific Connection
+
 ## Partial updates
 
 As a benefit of the above-mentioned mechanism that an API is automatically available based on the JSON structure, the
