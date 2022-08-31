@@ -161,6 +161,7 @@ public abstract class HonoConnectionFactory implements DittoExtensionPoint {
 
     protected abstract UserPasswordCredentials getCredentials();
 
+    @SuppressWarnings("unchecked")
     private List<Source> getSources(final Collection<Source> originalSources) {
         return originalSources.stream()
                 .map(originalSource -> ConnectivityModelFactory.newSourceBuilder(originalSource)

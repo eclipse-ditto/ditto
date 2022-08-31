@@ -420,6 +420,7 @@ final class ImmutableSource implements Source {
                     .qos(source.getQos().orElse(null))
                     .acknowledgementRequests(source.getAcknowledgementRequests().orElse(null))
                     .replyTarget(source.getReplyTarget().orElse(null))
+                    .replyTargetEnabled(source.isReplyTargetEnabled())
                     .declaredAcknowledgementLabels(source.getDeclaredAcknowledgementLabels())
                     .payloadMapping(source.getPayloadMapping())
                     .index(source.getIndex())
