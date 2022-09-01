@@ -174,16 +174,24 @@ public final class DittoPublicKeyProvider implements PublicKeyProvider {
         final String keyId = publicKeyIdWithIssuer.getKeyId();
         LOGGER.debug("Loading public key with id <{}> from issuer <{}>.", keyId, issuer);
 
-        final Optional<JwtSubjectIssuerConfig> subjectIssuerConfigOpt = jwtSubjectIssuersConfig.getConfigItem(issuer);
+        final Optional<JwtSubjectIssuerConfig> subjectIssuerConfigOpt = jwtSubjectIssuersConfig
+                .getConfigItem(issuer);
         if (subjectIssuerConfigOpt.isEmpty()) {
             LOGGER.info("The JWT issuer <{}> is not included in Ditto's gateway configuration at " +
                             "'ditto.gateway.authentication.oauth.openid-connect-issuers', supported are: <{}>",
                     issuer, jwtSubjectIssuersConfig);
 
-            return CompletableFuture.failedFuture(GatewayJwtIssuerNotSupportedException.newBuilder(issuer).build());
+            return CompletableFuture
+                    .failedFuture(GatewayJwtIssuerNotSupportedException.newBuilder(issuer).build());
         }
 
-        final String discoveryEndpoint = getDiscoveryEndpoint(subjectIssuerConfigOpt.get().getIssuer());
+        final String issuerWithoutProtocol = issuer.replaceFirst("http(s)?://", "");
+        final String discoveryEndpoint = getDiscoveryEndpoint(subjectIssuerConfigOpt.get().getIssuers()
+                .stream()
+                .filter(configuredIssuer -> configuredIssuer.equals(issuerWithoutProtocol))
+                .findAny()
+                .orElse(issuerWithoutProtocol)
+        );
         final CompletionStage<HttpResponse> responseFuture = getPublicKeysFromDiscoveryEndpoint(discoveryEndpoint);
         final CompletionStage<JsonArray> publicKeysFuture = responseFuture.thenCompose(this::mapResponseToJsonArray);
 
@@ -192,12 +200,12 @@ public final class DittoPublicKeyProvider implements PublicKeyProvider {
                 .toCompletableFuture();
     }
 
-    private String getDiscoveryEndpoint(final String issuer) {
+    private String getDiscoveryEndpoint(final String issuerWithoutProtocolPrefix) {
         final String iss;
-        if (issuer.endsWith("/")) {
-            iss = issuer.substring(0, issuer.length() - 1);
+        if (issuerWithoutProtocolPrefix.endsWith("/")) {
+            iss = issuerWithoutProtocolPrefix.substring(0, issuerWithoutProtocolPrefix.length() - 1);
         } else {
-            iss = issuer;
+            iss = issuerWithoutProtocolPrefix;
         }
 
         return jwtSubjectIssuersConfig.getProtocolPrefix() + iss + OPENID_CONNECT_DISCOVERY_PATH;

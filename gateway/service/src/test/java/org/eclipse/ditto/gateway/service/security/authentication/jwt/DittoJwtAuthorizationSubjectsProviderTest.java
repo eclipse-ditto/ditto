@@ -300,7 +300,7 @@ public final class DittoJwtAuthorizationSubjectsProviderTest {
             final List<String> subjectTemplates) {
         final JwtSubjectIssuerConfig subjectIssuerConfig = new JwtSubjectIssuerConfig(
                 SubjectIssuer.newInstance(subjectIssuer),
-                JwtTestConstants.ISSUER,
+                List.of(JwtTestConstants.ISSUER),
                 subjectTemplates);
         return JwtSubjectIssuersConfig.fromJwtSubjectIssuerConfigs(List.of(subjectIssuerConfig));
     }
@@ -308,7 +308,7 @@ public final class DittoJwtAuthorizationSubjectsProviderTest {
     private static JwtSubjectIssuersConfig createSubjectIssuersConfig(final String subjectIssuer) {
         final JwtSubjectIssuerConfig subjectIssuerConfig = new JwtSubjectIssuerConfig(
                 SubjectIssuer.newInstance(subjectIssuer),
-                JwtTestConstants.ISSUER);
+                List.of(JwtTestConstants.ISSUER));
         return JwtSubjectIssuersConfig.fromJwtSubjectIssuerConfigs(List.of(subjectIssuerConfig));
     }
 

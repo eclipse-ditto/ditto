@@ -26,11 +26,11 @@ import org.eclipse.ditto.internal.utils.config.KnownConfigValue;
 public interface SubjectIssuerConfig {
 
     /**
-     * Returns the issuer endpoint.
+     * Returns the issuer endpoints.
      *
-     * @return the token issuer endpoint.
+     * @return the token issuer endpoints.
      */
-    String getIssuer();
+    List<String> getIssuers();
 
     /**
      * Returns the authorization subject templates.
@@ -42,6 +42,7 @@ public interface SubjectIssuerConfig {
 
     enum SubjectIssuerConfigValue implements KnownConfigValue {
         ISSUER("issuer", ""),
+        ISSUERS("issuers", List.of()),
         AUTH_SUBJECTS("auth-subjects", List.of("{{jwt:sub}}"));
 
         private final String path;
