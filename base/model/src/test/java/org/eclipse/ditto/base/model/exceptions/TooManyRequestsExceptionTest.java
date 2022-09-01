@@ -59,6 +59,7 @@ public class TooManyRequestsExceptionTest {
 
     @Test
     public void retryAfterHeaderIsSet() {
-        assertThat(UNDER_TEST.getDittoHeaders().get(TooManyRequestsException.RETRY_AFTER)).isEqualTo("3600");
+        assertThat(UNDER_TEST.getDittoHeaders()).containsEntry(TooManyRequestsException.RETRY_AFTER, "3600");
     }
+
 }

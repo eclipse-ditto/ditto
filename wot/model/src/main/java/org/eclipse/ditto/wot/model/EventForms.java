@@ -33,6 +33,7 @@ public interface EventForms extends Forms<EventFormElement> {
                 .map(JsonValue::asObject)
                 .map(EventFormElement::fromJson)
                 .collect(Collectors.toList());
+        
         return of(eventFormElements);
     }
 

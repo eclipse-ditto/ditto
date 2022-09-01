@@ -44,8 +44,8 @@ final class ImmutablePolicyPlaceholder extends AbstractEntityIdPlaceholder<Polic
     public List<String> resolveValues(final EntityId policyId, final String placeholder) {
         argumentNotEmpty(placeholder, "placeholder");
         checkNotNull(policyId, "Policy ID");
-        if (policyId instanceof PolicyId) {
-            return doResolve(((PolicyId) policyId), placeholder);
+        if (policyId instanceof PolicyId policyId1) {
+            return doResolve(policyId1, placeholder);
         } else {
             return Collections.emptyList();
         }

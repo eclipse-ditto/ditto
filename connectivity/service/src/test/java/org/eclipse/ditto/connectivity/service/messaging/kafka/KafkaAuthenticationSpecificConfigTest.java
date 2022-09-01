@@ -163,8 +163,8 @@ public final class KafkaAuthenticationSpecificConfigTest {
     private void shouldContainPlainSaslMechanism(final Connection connection) {
         final Map<String, String> properties = underTest.apply(connection);
 
-        assertThat(properties.get(SaslConfigs.SASL_MECHANISM)).isEqualTo(KNOWN_PLAIN_SASL_MECHANISM);
-        assertThat(properties.get(SaslConfigs.SASL_JAAS_CONFIG)).isEqualTo(
+        assertThat(properties).containsEntry(SaslConfigs.SASL_MECHANISM, KNOWN_PLAIN_SASL_MECHANISM);
+        assertThat(properties).containsEntry(SaslConfigs.SASL_JAAS_CONFIG,
                 "org.apache.kafka.common.security.plain.PlainLoginModule required username=\"" + KNOWN_USER +
                         "\" password=\"" + KNOWN_PASSWORD + "\";"
         );
@@ -173,8 +173,8 @@ public final class KafkaAuthenticationSpecificConfigTest {
     private void shouldContainScramSaslMechanism(final Connection connection, final String mechanism) {
         final Map<String, String> properties = underTest.apply(connection);
 
-        assertThat(properties.get(SaslConfigs.SASL_MECHANISM)).isEqualTo(mechanism);
-        assertThat(properties.get(SaslConfigs.SASL_JAAS_CONFIG)).isEqualTo(
+        assertThat(properties).containsEntry(SaslConfigs.SASL_MECHANISM, mechanism);
+        assertThat(properties).containsEntry(SaslConfigs.SASL_JAAS_CONFIG,
                 "org.apache.kafka.common.security.scram.ScramLoginModule required username=\"" + KNOWN_USER +
                         "\" password=\"" + KNOWN_PASSWORD + "\";"
         );

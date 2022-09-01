@@ -14,9 +14,9 @@ package org.eclipse.ditto.policies.model;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import org.eclipse.ditto.base.model.entity.id.restriction.LengthRestrictionTestBase;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.base.model.entity.id.restriction.LengthRestrictionTestBase;
 import org.junit.Test;
 
 /**
@@ -32,9 +32,9 @@ public final class PoliciesModelFactoryTest extends LengthRestrictionTestBase {
         final ResourceKey key4 =
                 PoliciesModelFactory.newResourceKey(JsonPointer.of("thing:").append(JsonPointer.of("foo/bar")));
 
-        assertThat(key1).isEqualTo(key2);
-        assertThat(key1).isEqualTo(key3);
-        assertThat(key1).isEqualTo(key4);
+        assertThat(key1).isEqualTo(key2)
+                .isEqualTo(key3)
+                .isEqualTo(key4);
     }
 
     @Test(expected = PolicyEntryInvalidException.class)
@@ -52,4 +52,5 @@ public final class PoliciesModelFactoryTest extends LengthRestrictionTestBase {
     public void createTooLargeResourceKey() {
         PoliciesModelFactory.newResourceKey(generateStringExceedingMaxLength("thing:"));
     }
+
 }

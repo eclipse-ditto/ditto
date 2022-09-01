@@ -23,20 +23,6 @@ import org.eclipse.ditto.internal.utils.config.KnownConfigValue;
 public interface LimitsConfig {
 
     /**
-     * Returns the maximum possible size of Ditto headers in bytes.
-     *
-     * @return the max size in bytes.
-     */
-    long getHeadersMaxSize();
-
-    /**
-     * Returns the maximum number of authorization subjects in Ditto headers.
-     *
-     * @return the max count.
-     */
-    int getAuthSubjectsMaxCount();
-
-    /**
      * Returns the maximum possible size of "Thing" entities in bytes.
      *
      * @return max size in bytes.
@@ -76,16 +62,6 @@ public interface LimitsConfig {
      * {@code LimitsConfig}.
      */
     enum LimitsConfigValue implements KnownConfigValue {
-
-        /**
-         * The maximum possible size of Ditto headers in bytes.
-         */
-        HEADERS_MAX_SIZE("headers.max-size", 5_000L),
-
-        /**
-         * The maximum number of authorization subjects in Ditto headers.
-         */
-        AUTH_SUBJECTS_MAX_SIZE("headers.auth-subjects", 100),
 
         /**
          * The maximum possible size of "Thing" entities in bytes.

@@ -32,9 +32,6 @@ public final class DefaultLimitsConfig implements LimitsConfig, WithConfigPath {
      * Path of the limits configuration settings.
      */
     public static final String CONFIG_PATH = "limits";
-
-    private final long headersMaxSize;
-    private final int authSubjectsMaxSize;
     private final long thingsMaxSize;
     private final long policiesMaxSize;
     private final long messagesMaxSize;
@@ -42,8 +39,6 @@ public final class DefaultLimitsConfig implements LimitsConfig, WithConfigPath {
     private final int thingsSearchMaxPageSize;
 
     private DefaultLimitsConfig(final ConfigWithFallback config) {
-        headersMaxSize = config.getNonNegativeBytesOrThrow(LimitsConfigValue.HEADERS_MAX_SIZE);
-        authSubjectsMaxSize = config.getPositiveIntOrThrow(LimitsConfigValue.AUTH_SUBJECTS_MAX_SIZE);
         thingsMaxSize = config.getNonNegativeBytesOrThrow(LimitsConfigValue.THINGS_MAX_SIZE);
         policiesMaxSize = config.getNonNegativeBytesOrThrow(LimitsConfigValue.POLICIES_MAX_SIZE);
         messagesMaxSize = config.getNonNegativeBytesOrThrow(LimitsConfigValue.MESSAGES_MAX_SIZE);
@@ -60,16 +55,6 @@ public final class DefaultLimitsConfig implements LimitsConfig, WithConfigPath {
      */
     public static DefaultLimitsConfig of(final Config config) {
         return new DefaultLimitsConfig(ConfigWithFallback.newInstance(config, CONFIG_PATH, LimitsConfigValue.values()));
-    }
-
-    @Override
-    public long getHeadersMaxSize() {
-        return headersMaxSize;
-    }
-
-    @Override
-    public int getAuthSubjectsMaxCount() {
-        return authSubjectsMaxSize;
     }
 
     @Override
@@ -114,9 +99,7 @@ public final class DefaultLimitsConfig implements LimitsConfig, WithConfigPath {
             return false;
         }
         final DefaultLimitsConfig that = (DefaultLimitsConfig) o;
-        return headersMaxSize == that.headersMaxSize &&
-                authSubjectsMaxSize == that.authSubjectsMaxSize &&
-                thingsMaxSize == that.thingsMaxSize &&
+        return thingsMaxSize == that.thingsMaxSize &&
                 policiesMaxSize == that.policiesMaxSize &&
                 messagesMaxSize == that.messagesMaxSize &&
                 thingsSearchDefaultPageSize == that.thingsSearchDefaultPageSize &&
@@ -125,15 +108,13 @@ public final class DefaultLimitsConfig implements LimitsConfig, WithConfigPath {
 
     @Override
     public int hashCode() {
-        return Objects.hash(headersMaxSize, authSubjectsMaxSize, thingsMaxSize, policiesMaxSize, messagesMaxSize,
-                thingsSearchDefaultPageSize, thingsSearchMaxPageSize);
+        return Objects.hash(thingsMaxSize, policiesMaxSize, messagesMaxSize, thingsSearchDefaultPageSize,
+                thingsSearchMaxPageSize);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
-                "headersMaxSize=" + headersMaxSize +
-                ", authSubjectsMaxSize=" + authSubjectsMaxSize +
                 ", thingsMaxSize=" + thingsMaxSize +
                 ", policiesMaxSize=" + policiesMaxSize +
                 ", messagesMaxSize=" + messagesMaxSize +

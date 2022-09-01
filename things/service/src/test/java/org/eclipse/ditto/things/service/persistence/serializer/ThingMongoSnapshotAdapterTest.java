@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.things.service.persistence.serializer;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.within;
 
 import java.time.Instant;
@@ -20,12 +19,12 @@ import java.time.temporal.ChronoUnit;
 
 import org.assertj.core.api.JUnitSoftAssertions;
 import org.bson.BsonDocument;
+import org.eclipse.ditto.base.api.persistence.PersistenceLifecycle;
 import org.eclipse.ditto.base.model.json.FieldType;
+import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
+import org.eclipse.ditto.things.api.ThingSnapshotTaken;
 import org.eclipse.ditto.things.model.TestConstants;
 import org.eclipse.ditto.things.model.Thing;
-import org.eclipse.ditto.base.api.persistence.PersistenceLifecycle;
-import org.eclipse.ditto.things.api.ThingSnapshotTaken;
-import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;

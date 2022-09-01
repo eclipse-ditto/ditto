@@ -23,7 +23,6 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import org.assertj.core.util.Lists;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.experimental.runners.Enclosed;
 import org.junit.runner.RunWith;
@@ -56,7 +55,7 @@ public final class AcknowledgementLabelsTest {
         public void newLabelReturnsExpected() {
             final AcknowledgementLabel newLabel = AcknowledgementLabels.newLabel(KNOWN_LABEL_VALUE);
 
-            assertThat(newLabel.toString()).isEqualTo(KNOWN_LABEL_VALUE);
+            assertThat(newLabel.toString()).hasToString(KNOWN_LABEL_VALUE);
         }
 
         @Test
@@ -102,7 +101,7 @@ public final class AcknowledgementLabelsTest {
             if (parameter.shouldBeValid) {
                 final AcknowledgementLabel acknowledgementLabel = AcknowledgementLabels.newLabel(labelValue);
 
-                assertThat(acknowledgementLabel.toString()).isEqualTo(labelValue);
+                assertThat(acknowledgementLabel.toString()).hasToString(labelValue);
             } else {
                 assertThatExceptionOfType(AcknowledgementLabelInvalidException.class)
                         .isThrownBy(() -> AcknowledgementLabels.newLabel(labelValue))

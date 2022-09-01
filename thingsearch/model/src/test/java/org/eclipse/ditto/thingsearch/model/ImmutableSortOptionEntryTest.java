@@ -18,7 +18,6 @@ import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstance
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.eclipse.ditto.json.JsonPointer;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -72,7 +71,7 @@ public final class ImmutableSortOptionEntryTest {
         final ImmutableSortOptionEntry underTest =
                 ImmutableSortOptionEntry.asc(TestConstants.SearchThing.MANUFACTURER_PATH);
 
-        assertThat(underTest.toString()).isEqualTo("+" + TestConstants.SearchThing.MANUFACTURER_PATH);
+        assertThat(underTest.toString()).hasToString("+" + TestConstants.SearchThing.MANUFACTURER_PATH);
     }
 
     @Test
@@ -88,7 +87,7 @@ public final class ImmutableSortOptionEntryTest {
         final ImmutableSortOptionEntry underTest =
                 ImmutableSortOptionEntry.desc(TestConstants.SearchThing.MANUFACTURER_PATH);
 
-        assertThat(underTest.toString()).isEqualTo("-" + TestConstants.SearchThing.MANUFACTURER_PATH);
+        assertThat(underTest.toString()).hasToString("-" + TestConstants.SearchThing.MANUFACTURER_PATH);
     }
 
 }

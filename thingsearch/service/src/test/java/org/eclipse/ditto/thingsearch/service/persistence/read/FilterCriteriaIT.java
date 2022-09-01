@@ -41,22 +41,26 @@ public final class FilterCriteriaIT extends AbstractReadPersistenceITBase {
     private static final String KNOWN_BOOL_ATTR = "boolAttr";
     private static final String KNOWN_REGEX_ATTR = "stringRegex";
 
-    private static final ThingId THING1_ID = TestConstants.thingId(TestConstants.Thing.NAMESPACE, "thing1");
+    private static final ThingId THING1_ID =
+            TestConstants.thingId(TestConstants.Thing.NAMESPACE, "thing1");
     private static final String THING1_KNOWN_STR_ATTR_VALUE = "a";
     private static final String THING1_KNOWN_STR_PROP_VALUE = "w";
     private static final int THING1_KNOWN_NUM_ATTR_VALUE = 1;
     private static final boolean THING1_KNOWN_BOOL_ATTR_VALUE = true;
-    private static final ThingId THING2_ID = TestConstants.thingId(TestConstants.Thing.NAMESPACE, "thing2");
+    private static final ThingId THING2_ID =
+            TestConstants.thingId(TestConstants.Thing.NAMESPACE, "thing2");
     private static final String THING2_KNOWN_STR_ATTR_VALUE = "b";
     private static final String THING2_KNOWN_STR_PROP_VALUE = "x";
     private static final int THING2_KNOWN_NUM_ATTR_VALUE = 2;
     private static final boolean THING2_KNOWN_BOOL_ATTR_VALUE = true;
-    private static final ThingId THING3_ID = TestConstants.thingId(TestConstants.Thing.NAMESPACE, "thing3");
+    private static final ThingId THING3_ID =
+            TestConstants.thingId(TestConstants.Thing.NAMESPACE, "thing3");
     private static final String THING3_KNOWN_STR_ATTR_VALUE = "c";
     private static final String THING3_KNOWN_STR_PROP_VALUE = "y";
     private static final double THING3_KNOWN_NUM_ATTR_VALUE = 3.1;
     private static final boolean THING3_KNOWN_BOOL_ATTR_VALUE = false;
-    private static final ThingId THING4_ID = TestConstants.thingId(TestConstants.Thing.NAMESPACE, "thing4");
+    private static final ThingId THING4_ID =
+            TestConstants.thingId(TestConstants.Thing.NAMESPACE, "thing4");
     private static final String THING4_KNOWN_STR_ATTR_VALUE = "d";
     private static final String THING4_KNOWN_STR_PROP_VALUE = "z";
     private static final int THING4_KNOWN_NUM_ATTR_VALUE = 4;
@@ -189,8 +193,9 @@ public final class FilterCriteriaIT extends AbstractReadPersistenceITBase {
                         cf.fieldCriteria(ef.filterByAttribute(KNOWN_STRING_ATTR), cf.eq(THING1_KNOWN_STR_ATTR_VALUE))));
         final Collection<ThingId> resultNotEq = findForCriteria(critNotEq);
 
-        assertThat(resultNe).isNotEmpty();
-        assertThat(resultNe).isEqualTo(resultNotEq);
+        assertThat(resultNe)
+                .isNotEmpty()
+                .isEqualTo(resultNotEq);
     }
 
     @Test
@@ -383,4 +388,5 @@ public final class FilterCriteriaIT extends AbstractReadPersistenceITBase {
                 .withId(id)
                 .build();
     }
+
 }

@@ -157,7 +157,6 @@ public final class SearchUpdaterRootActor extends AbstractActor {
             final ActorRef pubSubMediator,
             final MongoThingsSearchPersistence thingsSearchPersistence,
             final TimestampPersistence backgroundSyncPersistence) {
-
         return Props.create(SearchUpdaterRootActor.class, searchConfig, pubSubMediator, thingsSearchPersistence,
                 backgroundSyncPersistence);
     }

@@ -90,8 +90,7 @@ public final class ByRoundTripSignalEnrichmentFacade implements SignalEnrichment
     }
 
     private static CompletionStage<JsonObject> extractPartialThing(final Object object) {
-        if (object instanceof RetrieveThingResponse) {
-            final RetrieveThingResponse retrieveThingResponse = (RetrieveThingResponse) object;
+        if (object instanceof RetrieveThingResponse retrieveThingResponse) {
             final JsonSchemaVersion jsonSchemaVersion = retrieveThingResponse.getDittoHeaders()
                     .getSchemaVersion()
                     .orElse(JsonSchemaVersion.LATEST);
@@ -104,8 +103,8 @@ public final class ByRoundTripSignalEnrichmentFacade implements SignalEnrichment
     }
 
     private static Throwable toThrowable(final Object object) {
-        if (object instanceof Throwable) {
-            return (Throwable) object;
+        if (object instanceof Throwable throwable) {
+            return throwable;
         } else {
             return new IllegalStateException("Unexpected message: " + object);
         }

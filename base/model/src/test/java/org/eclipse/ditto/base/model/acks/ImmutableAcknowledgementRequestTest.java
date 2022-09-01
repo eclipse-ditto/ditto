@@ -18,7 +18,6 @@ import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
-import org.junit.Ignore;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -63,7 +62,7 @@ public final class ImmutableAcknowledgementRequestTest {
         final AcknowledgementLabel label = DittoAcknowledgementLabel.TWIN_PERSISTED;
         final ImmutableAcknowledgementRequest underTest = ImmutableAcknowledgementRequest.getInstance(label);
 
-        assertThat(underTest.toString()).isEqualTo(label.toString());
+        assertThat(underTest.toString()).hasToString(label.toString());
     }
 
 }

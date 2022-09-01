@@ -25,7 +25,6 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-import org.junit.Ignore;
 import org.junit.Test;
 
 /**
@@ -83,7 +82,7 @@ public final class JsonFactoryTest {
         final String expectedJsonString = "\"" + string + "\"";
 
         assertThat(jsonString.isString()).isTrue();
-        assertThat(jsonString.toString()).isEqualTo(expectedJsonString);
+        assertThat(jsonString.toString()).hasToString(expectedJsonString);
     }
 
     @Test
@@ -163,9 +162,10 @@ public final class JsonFactoryTest {
     public void newObjectReturnsExpected() {
         final JsonObject underTest = JsonFactory.newObject();
 
-        assertThat(underTest).isObject();
-        assertThat(underTest).isEmpty();
-        assertThat(underTest).isNotNullLiteral();
+        assertThat(underTest)
+                .isObject()
+                .isNotNullLiteral()
+                .isEmpty();
     }
 
     @Test(expected = NullPointerException.class)
@@ -208,12 +208,12 @@ public final class JsonFactoryTest {
         final JsonObject underTest = JsonFactory.newObject(KNOWN_JSON_OBJECT_STRING);
         final byte expectedSize = 3;
 
-        assertThat(underTest).isObject();
-        assertThat(underTest).isNotNullLiteral();
-        assertThat(underTest).isNotEmpty();
-        assertThat(underTest).hasSize(expectedSize);
-        assertThat(underTest).contains(JsonFactory.newKey("featureId"), "1");
-        assertThat(underTest).contains(JsonFactory.newKey("functionblock"), JsonFactory.nullLiteral());
+        assertThat(underTest).isObject()
+                .isNotEmpty()
+                .isNotNullLiteral()
+                .hasSize(expectedSize)
+                .contains(JsonFactory.newKey("featureId"), "1")
+                .contains(JsonFactory.newKey("functionblock"), JsonFactory.nullLiteral());
 
         JsonObject expectedProperties = JsonFactory.newObject();
         expectedProperties = expectedProperties.setValue("someInt", 42);
@@ -236,8 +236,9 @@ public final class JsonFactoryTest {
     public void createNewEmptyArray() {
         final JsonArray underTest = JsonFactory.newArray();
 
-        assertThat(underTest).isArray();
-        assertThat(underTest).isEmpty();
+        assertThat(underTest)
+                .isArray()
+                .isEmpty();
     }
 
     @Test(expected = IllegalArgumentException.class)
@@ -255,14 +256,15 @@ public final class JsonFactoryTest {
         final JsonArray underTest = JsonFactory.newArray(KNOWN_JSON_ARRAY_STRING);
         final byte expectedSize = 3;
 
-        assertThat(underTest).isArray();
-        assertThat(underTest).isNotNullLiteral();
-        assertThat(underTest).isNotEmpty();
-        assertThat(underTest).hasSize(expectedSize);
-        assertThat(underTest).isNotObject();
-        assertThat(underTest).contains("one");
-        assertThat(underTest).contains("two");
-        assertThat(underTest).contains("three");
+        assertThat(underTest)
+                .isArray()
+                .isNotNullLiteral()
+                .isNotEmpty()
+                .hasSize(expectedSize)
+                .isNotObject()
+                .contains("one")
+                .contains("two")
+                .contains("three");
     }
 
     @Test(expected = JsonParseException.class)
@@ -301,8 +303,9 @@ public final class JsonFactoryTest {
         final StringReader stringReader = new StringReader(KNOWN_JSON_ARRAY_STRING);
         final JsonValue jsonValue = JsonFactory.readFrom(stringReader);
 
-        assertThat(jsonValue).isNotNull();
-        assertThat(jsonValue).isArray();
+        assertThat(jsonValue)
+                .isNotNull()
+                .isArray();
         assertThat((JsonArray) jsonValue).contains("two");
     }
 
@@ -462,7 +465,7 @@ public final class JsonFactoryTest {
     public void newBooleanFieldDefinitionReturnsExpected() {
         final JsonFieldDefinition<Boolean> underTest = JsonFactory.newBooleanFieldDefinition(KNOWN_POINTER);
 
-        assertThat(underTest.mapValue(JsonFactory.newValue(true))).isEqualTo(true);
+        assertThat(underTest.mapValue(JsonFactory.newValue(true))).isTrue();
         assertThat(underTest.mapValue(JsonFactory.nullLiteral())).isNull();
         assertThatExceptionOfType(JsonParseException.class)
                 .isThrownBy(() -> underTest.mapValue(JsonFactory.newValue(KNOWN_INT)))
@@ -600,4 +603,5 @@ public final class JsonFactoryTest {
     public void newJsonObjectThrowsExceptionIfRootIsNotAnObject() {
         JsonFactory.newObject(JsonPointer.empty(), JsonValue.of(1));
     }
+
 }

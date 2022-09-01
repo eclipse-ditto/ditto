@@ -17,7 +17,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 
 import org.eclipse.ditto.base.api.devops.signals.commands.RetrieveStatisticsDetails;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
@@ -114,7 +113,6 @@ final class ThingsUpdater extends AbstractActorWithTimers {
             final UpdaterConfig updaterConfig,
             final BlockedNamespaces blockedNamespaces,
             final ActorRef pubSubMediator) {
-
         return Props.create(ThingsUpdater.class, thingEventSub, thingUpdaterShardRegion, updaterConfig,
                 blockedNamespaces, pubSubMediator);
     }
@@ -147,9 +145,9 @@ final class ThingsUpdater extends AbstractActorWithTimers {
         final Set<String> currentShardIds = stats.getStats().keySet();
         log.debug("Updating event subscriptions: <{}> -> <{}>", previousShardIds, currentShardIds);
         final List<String> toSubscribe =
-                currentShardIds.stream().filter(s -> !previousShardIds.contains(s)).collect(Collectors.toList());
+                currentShardIds.stream().filter(s -> !previousShardIds.contains(s)).toList();
         final List<String> toUnsubscribe =
-                previousShardIds.stream().filter(s -> !currentShardIds.contains(s)).collect(Collectors.toList());
+                previousShardIds.stream().filter(s -> !currentShardIds.contains(s)).toList();
         thingEventSub.subscribeWithoutAck(toSubscribe, getSelf());
         thingEventSub.unsubscribeWithoutAck(toUnsubscribe, getSelf());
         previousShardIds = currentShardIds;
@@ -178,8 +176,8 @@ final class ThingsUpdater extends AbstractActorWithTimers {
     }
 
     private void updateThing(final SudoUpdateThing sudoUpdateThing) {
-        forwardToShardRegion(sudoUpdateThing, SudoUpdateThing::getEntityId, SudoUpdateThing::getType, SudoUpdateThing::toJson,
-                SudoUpdateThing::getDittoHeaders);
+        forwardToShardRegion(sudoUpdateThing, SudoUpdateThing::getEntityId, SudoUpdateThing::getType,
+                SudoUpdateThing::toJson, SudoUpdateThing::getDittoHeaders);
     }
 
     private void processPolicyReferenceTag(final PolicyReferenceTag policyReferenceTag) {

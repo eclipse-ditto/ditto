@@ -194,7 +194,7 @@ public final class RawMessageMapperTest {
         final Signal<?> signal = ADAPTER.fromAdaptable(adaptables.get(0));
         assertThat(signal).isInstanceOf(SendThingMessage.class);
         final SendThingMessage<?> sendThingMessage = (SendThingMessage<?>) signal;
-        assertThat(sendThingMessage.getEntityId().toString()).isEqualTo("thing:id");
+        assertThat(sendThingMessage.getEntityId().toString()).hasToString("thing:id");
         assertThat(sendThingMessage.getMessage().getRawPayload().orElseThrow()).isEqualTo(payload);
     }
 
@@ -214,7 +214,7 @@ public final class RawMessageMapperTest {
         final Signal<?> signal = ADAPTER.fromAdaptable(adaptables.get(0));
         assertThat(signal).isInstanceOf(SendThingMessage.class);
         final SendThingMessage<?> sendThingMessage = (SendThingMessage<?>) signal;
-        assertThat(sendThingMessage.getEntityId().toString()).isEqualTo("thing:id");
+        assertThat(sendThingMessage.getEntityId().toString()).hasToString("thing:id");
         assertThat(sendThingMessage.getMessage().getPayload().orElseThrow()).isEqualTo(payload);
     }
 
@@ -241,7 +241,7 @@ public final class RawMessageMapperTest {
         final Signal<?> signal = ADAPTER.fromAdaptable(adaptables.get(0));
         assertThat(signal).isInstanceOf(SendThingMessage.class);
         final SendThingMessage<?> sendThingMessage = (SendThingMessage<?>) signal;
-        assertThat(sendThingMessage.getEntityId().toString()).isEqualTo("thing:id");
+        assertThat(sendThingMessage.getEntityId().toString()).hasToString("thing:id");
         assertThat(sendThingMessage.getMessage().getPayload().orElseThrow()).isEqualTo(payload);
         actorSystem.terminate();
     }
@@ -270,7 +270,7 @@ public final class RawMessageMapperTest {
         final Signal<?> signal = ADAPTER.fromAdaptable(adaptables.get(0));
         assertThat(signal).isInstanceOf(SendThingMessage.class);
         final SendThingMessage<?> sendThingMessage = (SendThingMessage<?>) signal;
-        assertThat(sendThingMessage.getEntityId().toString()).isEqualTo("thing:id");
+        assertThat(sendThingMessage.getEntityId().toString()).hasToString("thing:id");
         assertThat(sendThingMessage.getMessage().getPayload().orElseThrow())
                 .isEqualTo(ByteBuffer.wrap(payload.getBytes()));
         actorSystem.terminate();
@@ -293,7 +293,7 @@ public final class RawMessageMapperTest {
         final Signal<?> signal = ADAPTER.fromAdaptable(adaptables.get(0));
         assertThat(signal).isInstanceOf(SendThingMessage.class);
         final SendThingMessage<?> sendThingMessage = (SendThingMessage<?>) signal;
-        assertThat(sendThingMessage.getEntityId().toString()).isEqualTo("thing:id");
+        assertThat(sendThingMessage.getEntityId().toString()).hasToString("thing:id");
         assertThat(sendThingMessage.getMessage().getPayload().orElseThrow()).isEqualTo(JsonObject.of(payload));
     }
 
@@ -338,8 +338,8 @@ public final class RawMessageMapperTest {
         assertThat(signal).isInstanceOf(SendFeatureMessageResponse.class);
         final SendFeatureMessageResponse<?> response = (SendFeatureMessageResponse<?>) signal;
         assertThat(response.getHttpStatus()).isEqualTo(HttpStatus.IM_A_TEAPOT);
-        assertThat(response.getEntityId().toString()).isEqualTo("thing:id");
-        assertThat(response.getFeatureId()).isEqualTo("accelerometer");
+        assertThat(response.getEntityId().toString()).hasToString("thing:id");
+        assertThat(response.getFeatureId()).hasToString("accelerometer");
         assertThat(response.getMessage().getPayload().orElseThrow()).isEqualTo(JsonObject.of(payload));
     }
 

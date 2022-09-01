@@ -19,7 +19,6 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 
 import java.util.function.Predicate;
 
-import org.junit.Ignore;
 import org.junit.Test;
 
 /**

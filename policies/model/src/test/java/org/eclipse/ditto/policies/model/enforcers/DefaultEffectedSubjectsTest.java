@@ -24,8 +24,6 @@ import java.util.Collection;
 import java.util.Set;
 
 import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
-import org.eclipse.ditto.policies.model.enforcers.DefaultEffectedSubjects;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.internal.util.collections.Sets;
 

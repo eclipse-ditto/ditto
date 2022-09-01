@@ -43,10 +43,10 @@ public class KamonCounterTest {
 
     @Test
     public void reset() {
-        assertThat(sut.getCount()).isEqualTo(0);
+        assertThat(sut.getCount()).isZero();
         sut.increment();
         assertThat(sut.getCount()).isEqualTo(1);
         sut.reset();
-        assertThat(sut.getCount()).isEqualTo(0);
+        assertThat(sut.getCount()).isZero();
     }
 }

@@ -152,8 +152,8 @@ public final class ImplicitThingCreationMessageMapperTest {
         assertThat(createThing.getThing().getEntityId()).isEqualTo(expectedThing.getEntityId());
         assertThat(createThing.getThing().getPolicyId()).isEmpty();
         assertThat(createThing.getThing().getAttributes()).isEqualTo(expectedThing.getAttributes());
-        assertThat(createThing.getDittoHeaders().get("other-test-header")).isEqualTo(GATEWAY_ID);
-        assertThat(createThing.getDittoHeaders().get("test-header")).isEqualTo("this-is-a-test-header");
+        assertThat(createThing.getDittoHeaders()).containsEntry("other-test-header", GATEWAY_ID);
+        assertThat(createThing.getDittoHeaders()).containsEntry("test-header", "this-is-a-test-header");
         assertThat(createThing.getDittoHeaders().isAllowPolicyLockout()).isTrue();
         assertThat(createThing.getDittoHeaders().getIfNoneMatch()).contains(EntityTagMatchers.fromStrings("*"));
         assertThat(createThing.getPolicyIdOrPlaceholder()).contains(GATEWAY_ID);

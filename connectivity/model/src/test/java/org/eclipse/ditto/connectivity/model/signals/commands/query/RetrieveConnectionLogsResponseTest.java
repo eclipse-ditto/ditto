@@ -36,7 +36,6 @@ import org.eclipse.ditto.connectivity.model.signals.commands.TestConstants;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonParseException;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -167,7 +166,7 @@ public final class RetrieveConnectionLogsResponseTest {
         assertThat(merged.getEnabledSince()).contains(ENABLED_SINCE);
         assertThat(merged.getEnabledUntil()).contains(ENABLED_UNTIL);
         assertThat(merged.getConnectionLogs()).containsOnlyElementsOf(expectedEntries);
-        assertThat(merged.getConnectionLogs().size()).isEqualTo(expectedEntries.size());
+        assertThat(merged.getConnectionLogs()).hasSameSizeAs(expectedEntries);
     }
 
     @Test

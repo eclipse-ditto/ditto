@@ -51,7 +51,7 @@ public interface StreamStageConfig {
         private final String configPath;
         private final Object defaultValue;
 
-        private StreamStageConfigValue(final String configPath, final Object defaultValue) {
+        StreamStageConfigValue(final String configPath, final Object defaultValue) {
             this.configPath = configPath;
             this.defaultValue = defaultValue;
         }

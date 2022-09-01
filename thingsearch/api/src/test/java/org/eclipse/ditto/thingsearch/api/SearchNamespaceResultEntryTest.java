@@ -14,7 +14,6 @@ package org.eclipse.ditto.thingsearch.api;
 
 import org.assertj.core.api.Assertions;
 import org.eclipse.ditto.json.JsonObject;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.mutabilitydetector.unittesting.MutabilityAssert;
 import org.mutabilitydetector.unittesting.MutabilityMatchers;

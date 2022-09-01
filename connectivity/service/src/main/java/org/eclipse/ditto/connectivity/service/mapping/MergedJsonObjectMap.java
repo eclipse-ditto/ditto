@@ -47,8 +47,8 @@ final class MergedJsonObjectMap implements Map<String, JsonValue> {
     }
 
     static MergedJsonObjectMap of(final Map<String, JsonValue> map) {
-        if (map instanceof MergedJsonObjectMap) {
-            return (MergedJsonObjectMap) map;
+        if (map instanceof MergedJsonObjectMap mergedJsonObjectMap) {
+            return mergedJsonObjectMap;
         } else {
             return new MergedJsonObjectMap(map.entrySet().stream()
                     .map(entry -> JsonField.newInstance(entry.getKey(), entry.getValue()))

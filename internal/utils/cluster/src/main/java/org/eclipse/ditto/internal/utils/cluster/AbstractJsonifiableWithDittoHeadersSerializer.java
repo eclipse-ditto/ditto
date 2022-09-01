@@ -159,11 +159,11 @@ public abstract class AbstractJsonifiableWithDittoHeadersSerializer extends Seri
 
             final JsonValue jsonValue;
 
-            if (object instanceof Jsonifiable.WithPredicate) {
+            if (object instanceof Jsonifiable.WithPredicate withPredicate) {
                 final JsonSchemaVersion schemaVersion =
                         dittoHeaders.getSchemaVersion().orElse(JsonSchemaVersion.LATEST);
 
-                jsonValue = ((Jsonifiable.WithPredicate) object).toJson(schemaVersion, FieldType.regularOrSpecial());
+                jsonValue = withPredicate.toJson(schemaVersion, FieldType.regularOrSpecial());
             } else {
                 jsonValue = ((Jsonifiable<?>) object).toJson();
             }
@@ -229,8 +229,8 @@ public abstract class AbstractJsonifiableWithDittoHeadersSerializer extends Seri
     }
 
     private static DittoHeaders getDittoHeadersOrEmpty(final Object object) {
-        if (object instanceof WithDittoHeaders) {
-            @Nullable final DittoHeaders dittoHeaders = ((WithDittoHeaders) object).getDittoHeaders();
+        if (object instanceof WithDittoHeaders withDittoHeaders) {
+            @Nullable final DittoHeaders dittoHeaders = withDittoHeaders.getDittoHeaders();
             if (null != dittoHeaders) {
                 return dittoHeaders;
             }

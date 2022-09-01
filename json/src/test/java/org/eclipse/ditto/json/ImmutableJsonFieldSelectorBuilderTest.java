@@ -248,7 +248,7 @@ public final class ImmutableJsonFieldSelectorBuilderTest {
         final JsonFieldSelector fieldSelector1 = underTest.addFieldSelectorString(fieldSelectorString)
                 .build();
 
-        assertThat(fieldSelector1.toString()).isEqualTo(fieldSelectorString);
+        assertThat(fieldSelector1.toString()).hasToString(fieldSelectorString);
 
         final Iterator<JsonPointer> pointerIterator = underTest.iterator();
         while (pointerIterator.hasNext()) {
