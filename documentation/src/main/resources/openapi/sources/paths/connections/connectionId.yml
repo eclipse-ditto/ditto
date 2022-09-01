@@ -12,6 +12,8 @@ get:
   summary: Retrieve a specific Connection
   description: |-
     Returns the connection identified by the `connectionId` path parameter.
+  security:
+    - DevOpsBasic: [ ]
   tags:
     - Connections
   parameters:
@@ -53,6 +55,8 @@ put:
   summary: Update a specific Connection registered
   description: |-
     Update the connection identified by the `connectionId` path parameter.
+  security:
+    - DevOpsBasic: [ ]
   tags:
     - Connections
   parameters:
@@ -145,6 +149,8 @@ delete:
   summary: Delete a specific Connection
   description: |-
     Delete the connection identified by the `connectionId` path parameter.
+  security:
+    - DevOpsBasic: [ ]
   tags:
     - Connections
   parameters:

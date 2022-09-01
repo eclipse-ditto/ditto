@@ -48,7 +48,6 @@ security:
       - openid
   - NginxBasic: [ ]
   - Bearer: [ ]
-  - DevOps: [ ]
 
 paths:
 

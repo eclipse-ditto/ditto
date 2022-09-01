@@ -35,7 +35,6 @@ security:
       - openid
   - NginxBasic: []
   - Bearer: []
-  - DevOps: []
 paths:
   /things:
     get:
@@ -6522,8 +6521,17 @@ paths:
     get:
       summary: Retrieve all Connections
       description: Returns all connections.
+      security:
+        - DevOpsBasic: []
       tags:
         - Connections
+      parameters:
+        - name: ids-only
+          in: query
+          description: 'When set to true, the request will return the registered ids only and not the whole connections objects.'
+          required: false
+          schema:
+            type: boolean
       responses:
         '200':
           description: The request successfully returned the connections.
@@ -6643,7 +6651,7 @@ paths:
                       - '{{ thing:id }}'
                   payloadMapping:
                     - Ditto
-                    - status
+                    - ...
               targets:
                 - address: events/twin
                   topics:
@@ -6660,6 +6668,8 @@ paths:
     get:
       summary: Retrieve a specific Connection
       description: Returns the connection identified by the `connectionId` path parameter.
+      security:
+        - DevOpsBasic: []
       tags:
         - Connections
       parameters:
@@ -6809,6 +6819,8 @@ paths:
       description: |-
         Sends the command specified in the body to the connection identified by the `connectionId`
         path parameter.
+      security:
+        - DevOpsBasic: []
       tags:
         - Connections
       parameters:
@@ -6858,6 +6870,8 @@ paths:
     get:
       summary: Retrieve status of a specific Connection
       description: Returns the status of the connection identified by the `connectionId` path parameter.
+      security:
+        - DevOpsBasic: []
       tags:
         - Connections
       parameters:
@@ -6897,6 +6911,8 @@ paths:
     get:
       summary: Retrieve metrics of a specific Connection
       description: Returns the metrics of the connection identified by the `connectionId` path parameter.
+      security:
+        - DevOpsBasic: []
       tags:
         - Connections
       parameters:
@@ -6940,6 +6956,8 @@ paths:
         **Before** log entries are generated and returned, logging needs be enabled with the `command`
         `connectivity.commands:enableConnectionLogs`. When creating or opening an connection the logging is enabled per
         default. This allows to log possible errors on connection establishing.
+      security:
+        - DevOpsBasic: []
       tags:
         - Connections
       parameters:

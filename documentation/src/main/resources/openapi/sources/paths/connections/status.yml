@@ -12,6 +12,8 @@ get:
   summary: Retrieve status of a specific Connection
   description: |-
     Returns the status of the connection identified by the `connectionId` path parameter.
+  security:
+    - DevOpsBasic: [ ]
   tags:
     - Connections
   parameters:

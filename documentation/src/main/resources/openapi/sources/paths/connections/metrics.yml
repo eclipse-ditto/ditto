@@ -12,6 +12,8 @@ get:
   summary: Retrieve metrics of a specific Connection
   description: |-
     Returns the metrics of the connection identified by the `connectionId` path parameter.
+  security:
+    - DevOpsBasic: [ ]
   tags:
     - Connections
   parameters:
