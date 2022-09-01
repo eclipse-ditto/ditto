@@ -49,7 +49,6 @@ import org.eclipse.ditto.base.model.signals.acks.Acknowledgements;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
 import org.eclipse.ditto.base.model.signals.commands.ErrorResponse;
-import org.eclipse.ditto.base.service.config.limits.LimitsConfig;
 import org.eclipse.ditto.connectivity.api.ExternalMessage;
 import org.eclipse.ditto.connectivity.api.InboundSignal;
 import org.eclipse.ditto.connectivity.api.MappedInboundExternalMessage;
@@ -76,6 +75,7 @@ import org.eclipse.ditto.edge.service.acknowledgements.message.MessageCommandRes
 import org.eclipse.ditto.edge.service.acknowledgements.things.ThingCommandResponseAcknowledgementProvider;
 import org.eclipse.ditto.edge.service.acknowledgements.things.ThingLiveCommandAckRequestSetter;
 import org.eclipse.ditto.edge.service.acknowledgements.things.ThingModifyCommandAckRequestSetter;
+import org.eclipse.ditto.edge.service.headers.DittoHeadersValidator;
 import org.eclipse.ditto.internal.models.signal.CommandHeaderRestoration;
 import org.eclipse.ditto.internal.models.signal.correlation.MatchingValidationResult;
 import org.eclipse.ditto.internal.models.signal.type.SemanticSignalType;
@@ -148,8 +148,8 @@ public final class InboundDispatchingSink
             final ActorRef outboundMessageMappingProcessorActor,
             final ActorRef clientActor,
             final ConnectivityConfig connectivityConfig,
-            final LimitsConfig limitsConfig,
             final ActorRefFactory actorRefFactory,
+            final DittoHeadersValidator dittoHeadersValidator,
             @Nullable final Consumer<MatchingValidationResult.Failure> responseValidationFailureConsumer) {
 
         this.connection = checkNotNull(connection, "connection");
@@ -160,7 +160,6 @@ public final class InboundDispatchingSink
                 "outboundMessageMappingProcessorActor");
         this.clientActor = checkNotNull(clientActor, "clientActor");
         checkNotNull(connectivityConfig, "connectivityConfig");
-        checkNotNull(limitsConfig, "limitsConfig");
         checkNotNull(actorRefFactory, "actorRefFactory");
 
         logger = DittoLoggerFactory.getThreadSafeLogger(InboundDispatchingSink.class)
@@ -172,7 +171,7 @@ public final class InboundDispatchingSink
 
         connectionMonitorRegistry = DefaultConnectionMonitorRegistry.fromConfig(connectivityConfig);
         responseMappedMonitor = connectionMonitorRegistry.forResponseMapped(connection);
-        toErrorResponseFunction = DittoRuntimeExceptionToErrorResponseFunction.of(limitsConfig.getHeadersMaxSize());
+        toErrorResponseFunction = DittoRuntimeExceptionToErrorResponseFunction.of(dittoHeadersValidator);
         acknowledgementConfig = connectivityConfig.getConnectionConfig().getAcknowledgementConfig();
         ackregatorStarter = AcknowledgementAggregatorActorStarter.of(actorRefFactory,
                 acknowledgementConfig,
@@ -213,9 +212,9 @@ public final class InboundDispatchingSink
             final ActorRef clientActor,
             final ActorRefFactory actorRefFactory,
             final ConnectivityConfig connectivityConfig,
+            final DittoHeadersValidator dittoHeadersValidator,
             @Nullable final Consumer<MatchingValidationResult.Failure> responseValidationFailureConsumer) {
 
-        final var limitsConfig = connectivityConfig.getLimitsConfig();
         final var inboundDispatchingSink = new InboundDispatchingSink(
                 connection,
                 headerTranslator,
@@ -224,8 +223,8 @@ public final class InboundDispatchingSink
                 outboundMessageMappingProcessorActor,
                 clientActor,
                 connectivityConfig,
-                limitsConfig,
                 actorRefFactory,
+                dittoHeadersValidator,
                 responseValidationFailureConsumer
         );
         return inboundDispatchingSink.getSink();

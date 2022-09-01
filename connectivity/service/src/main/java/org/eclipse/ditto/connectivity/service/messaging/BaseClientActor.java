@@ -110,11 +110,13 @@ import org.eclipse.ditto.connectivity.service.messaging.tunnel.SshTunnelActor;
 import org.eclipse.ditto.connectivity.service.messaging.tunnel.SshTunnelState;
 import org.eclipse.ditto.connectivity.service.messaging.validation.ConnectionValidator;
 import org.eclipse.ditto.connectivity.service.util.ConnectivityMdcEntryKey;
+import org.eclipse.ditto.edge.service.headers.DittoHeadersValidator;
 import org.eclipse.ditto.internal.models.signal.correlation.MatchingValidationResult;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.internal.utils.cluster.AkkaJacksonCborSerializable;
 import org.eclipse.ditto.internal.utils.config.InstanceIdentifierSupplier;
+import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.internal.utils.metrics.instruments.gauge.Gauge;
 import org.eclipse.ditto.internal.utils.protocol.ProtocolAdapterProvider;
@@ -124,8 +126,6 @@ import org.eclipse.ditto.internal.utils.search.SubscriptionManager;
 import org.eclipse.ditto.protocol.adapter.ProtocolAdapter;
 import org.eclipse.ditto.thingsearch.model.signals.commands.ThingSearchCommand;
 import org.eclipse.ditto.thingsearch.model.signals.commands.WithSubscriptionId;
-
-import com.typesafe.config.Config;
 
 import akka.Done;
 import akka.NotUsed;
@@ -147,6 +147,7 @@ import akka.japi.pf.FSMStateFunctionBuilder;
 import akka.pattern.Patterns;
 import akka.stream.Materializer;
 import akka.stream.javadsl.Sink;
+import com.typesafe.config.Config;
 
 /**
  * Base class for ClientActors which implement the connection handling for various connectivity protocols.
@@ -196,6 +197,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     protected final ConnectivityCounterRegistry connectionCounterRegistry;
     protected final ConnectionLoggerRegistry connectionLoggerRegistry;
     protected final ChildActorNanny childActorNanny;
+    private final DittoHeadersValidator dittoHeadersValidator;
     private final boolean dryRun;
 
     private Sink<Object, NotUsed> inboundMappingSink;
@@ -230,6 +232,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
 
         commandForwarderActorSelection = getLocalActorOfSamePath(commandForwarderActor);
         childActorNanny = ChildActorNanny.newInstance(getContext(), logger);
+        dittoHeadersValidator = DittoHeadersValidator.get(system, ScopedConfig.dittoExtension(config));
 
         final UserIndicatedErrors userIndicatedErrors = UserIndicatedErrors.of(config);
         connectivityStatusResolver = ConnectivityStatusResolver.of(userIndicatedErrors);
@@ -1766,6 +1769,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
                 getSelf(),
                 getContext(),
                 connectivityConfig,
+                dittoHeadersValidator,
                 getResponseValidationFailureConsumer());
     }
 

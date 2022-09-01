@@ -134,6 +134,7 @@
                             <!--<exclude></exclude>-->
                             <exclude>org.eclipse.ditto.base.model.signals.commands.exceptions</exclude>
                             <exclude>org.eclipse.ditto.base.model.headers.DittoHeaderDefinition#POLICY_ENFORCER_INVALIDATED_PREEMPTIVELY</exclude>
+                            <exclude>org.eclipse.ditto.base.model.headers.DittoHeadersSizeChecker</exclude>
                         </excludes>
                     </parameter>
                 </configuration>
