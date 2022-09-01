@@ -26,6 +26,9 @@ entries:
           - title: 3.0.0
             url: /release_notes_300.html
             output: web
+          - title: 2.4.1
+            url: /release_notes_241.html
+            output: web
           - title: 2.4.0
             url: /release_notes_240.html
             output: web

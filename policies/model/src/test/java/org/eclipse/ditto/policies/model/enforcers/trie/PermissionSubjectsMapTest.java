@@ -22,11 +22,10 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
-import org.eclipse.ditto.policies.model.enforcers.trie.PermissionSubjectsMap;
-import org.eclipse.ditto.policies.model.enforcers.TestConstants;
 import org.eclipse.ditto.policies.model.PoliciesModelFactory;
 import org.eclipse.ditto.policies.model.SubjectId;
 import org.eclipse.ditto.policies.model.SubjectIssuer;
+import org.eclipse.ditto.policies.model.enforcers.TestConstants;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;

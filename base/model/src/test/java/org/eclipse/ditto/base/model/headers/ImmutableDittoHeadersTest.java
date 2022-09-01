@@ -675,7 +675,7 @@ public final class ImmutableDittoHeadersTest {
         final Map<String, String> headers = new HashMap<>();
         headers.put("hElLo", "world");
         final DittoHeaders underTest = ImmutableDittoHeaders.of(headers);
-        assertThat(underTest.get("hello")).isEqualTo("world");
+        assertThat(underTest).containsEntry("hello", "world");
         final JsonObject serialized = underTest.toJson();
         assertThat(serialized).containsExactly(JsonField.newInstance("hElLo", JsonValue.of("world")));
         final DittoHeaders deserialized = DittoHeaders.newBuilder(serialized).build();

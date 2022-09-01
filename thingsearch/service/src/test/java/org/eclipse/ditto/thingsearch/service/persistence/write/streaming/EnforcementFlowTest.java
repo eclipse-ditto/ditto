@@ -18,7 +18,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.IntStream;
 
@@ -48,12 +47,9 @@ import org.eclipse.ditto.thingsearch.service.persistence.write.model.AbstractWri
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.Metadata;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.ThingDeleteModel;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.ThingWriteModel;
-import org.hamcrest.Matchers;
 import org.junit.After;
-import org.junit.Assume;
 import org.junit.Before;
 import org.junit.FixMethodOrder;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runners.MethodSorters;
 
@@ -323,7 +319,7 @@ public final class EnforcementFlowTest {
             sinkProbe.expectComplete();
             assertThat(deleteModel).isInstanceOf(ThingDeleteModel.class);
             final var modelMetadata = deleteModel.getMetadata();
-            assertThat(modelMetadata.getThingId().toString()).isEqualTo(thingId.toString());
+            assertThat(modelMetadata.getThingId().toString()).hasToString(thingId.toString());
 
             // THEN: thing is computed in the cache
             thingsProbe.expectNoMessage(FiniteDuration.Zero());
@@ -658,7 +654,7 @@ public final class EnforcementFlowTest {
             sourceProbe.sendComplete();
 
             final var list = sinkProbe.expectNext(FiniteDuration.apply(60, "s"));
-            assertThat(list.size()).isEqualTo(changeMaps.get(0).size());
+            assertThat(list).hasSameSizeAs(changeMaps.get(0));
             sinkProbe.expectComplete();
         }};
     }

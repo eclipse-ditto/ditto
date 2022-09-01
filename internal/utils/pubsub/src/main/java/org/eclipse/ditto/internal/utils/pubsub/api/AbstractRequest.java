@@ -16,7 +16,6 @@ import java.util.Collection;
 import java.util.Set;
 
 import akka.actor.ActorRef;
-import akka.cluster.ddata.Replicator;
 
 /**
  * Abstract base class for subscription requests.

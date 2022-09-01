@@ -26,7 +26,6 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-import org.junit.Ignore;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -110,8 +109,8 @@ public final class ImmutableJsonFieldSelectorTest {
         final JsonFieldSelector underTest2 = JsonFactory.newFieldSelector(inputJsonFieldSelector,
                 JsonFactory.newParseOptionsBuilder().withoutUrlDecoding().build());
 
-        assertThat(underTest1.toString()).isEqualTo(underTest2.toString());
-        assertThat(underTest1.toString()).isEqualTo(inputJsonFieldSelector);
+        assertThat(underTest1.toString()).hasToString(underTest2.toString());
+        assertThat(underTest1.toString()).hasToString(inputJsonFieldSelector);
     }
 
 }

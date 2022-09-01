@@ -20,7 +20,6 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 
 import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.base.model.entity.id.NamespacedEntityId;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -75,27 +74,27 @@ public class PolicyIdTest {
 
     @Test
     public void toStringConcatenatesNamespaceAndName() {
-        assertThat(PolicyId.of("namespace", "name").toString()).isEqualTo("namespace:name");
-        assertThat(PolicyId.of("namespace:name").toString()).isEqualTo("namespace:name");
+        assertThat(PolicyId.of("namespace", "name").toString()).hasToString("namespace:name");
+        assertThat(PolicyId.of("namespace:name").toString()).hasToString("namespace:name");
     }
 
     @Test
     public void returnsCorrectNamespace() {
-        assertThat(PolicyId.of("namespace", "name").getNamespace()).isEqualTo("namespace");
-        assertThat(PolicyId.of("namespace:name").getNamespace()).isEqualTo("namespace");
+        assertThat(PolicyId.of("namespace", "name").getNamespace()).hasToString("namespace");
+        assertThat(PolicyId.of("namespace:name").getNamespace()).hasToString("namespace");
     }
 
     @Test
     public void returnsCorrectName() {
-        assertThat(PolicyId.of("namespace", "name").getName()).isEqualTo("name");
-        assertThat(PolicyId.of("namespace:name").getName()).isEqualTo("name");
+        assertThat(PolicyId.of("namespace", "name").getName()).hasToString("name");
+        assertThat(PolicyId.of("namespace:name").getName()).hasToString("name");
     }
 
     @Test
     public void inNamespaceWithRandomNameHasCorrectNamespace() {
         final PolicyId randomPolicyId = PolicyId.inNamespaceWithRandomName("namespace");
 
-        assertThat(randomPolicyId.getNamespace()).isEqualTo("namespace");
+        assertThat(randomPolicyId.getNamespace()).hasToString("namespace");
         assertThat(randomPolicyId.getName()).isNotEmpty();
     }
 

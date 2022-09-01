@@ -20,7 +20,6 @@ import java.lang.ref.SoftReference;
 
 import org.assertj.core.api.Assertions;
 import org.eclipse.ditto.json.assertions.DittoJsonAssertions;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -59,13 +58,13 @@ public class ImmutableJsonNullTest {
     public void nullBehavesAsExpected() {
         final JsonValue underTest = ImmutableJsonNull.getInstance();
 
-        DittoJsonAssertions.assertThat(underTest).isArray();
-        DittoJsonAssertions.assertThat(underTest).isNotBoolean();
-        DittoJsonAssertions.assertThat(underTest).isNullLiteral();
-        DittoJsonAssertions.assertThat(underTest).isNotNumber();
-        DittoJsonAssertions.assertThat(underTest).isObject();
-        DittoJsonAssertions.assertThat(underTest).isNotString();
-        assertThat(underTest.toString()).isEqualTo("null");
+        DittoJsonAssertions.assertThat(underTest).isArray()
+                .isNotBoolean()
+                .isNullLiteral()
+                .isNotNumber()
+                .isObject()
+                .isNotString();
+        assertThat(underTest.toString()).hasToString("null");
     }
 
 }

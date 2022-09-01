@@ -21,7 +21,6 @@ import java.lang.reflect.Method;
 import java.util.Optional;
 
 import org.eclipse.ditto.base.model.entity.type.EntityType;
-import org.junit.Ignore;
 import org.junit.Test;
 
 /**

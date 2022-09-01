@@ -16,7 +16,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
-import org.junit.Ignore;
 import org.junit.Test;
 
 /**
@@ -34,8 +33,9 @@ public final class ImmutableJsonArrayNullTest {
         final ImmutableJsonArrayNull green = ImmutableJsonArrayNull.getInstance();
         final ImmutableJsonArrayNull blue = ImmutableJsonArrayNull.getInstance();
 
-        assertThat(green).isEqualTo(green);
-        assertThat(green).isEqualTo(blue);
+        assertThat(green)
+                .isEqualTo(green)
+                .isEqualTo(blue);
 
         final ImmutableJsonObjectNull nullObject = ImmutableJsonObjectNull.getInstance();
 
@@ -46,7 +46,7 @@ public final class ImmutableJsonArrayNullTest {
     public void toStringReturnsExpected() {
         final ImmutableJsonArrayNull underTest = ImmutableJsonArrayNull.getInstance();
 
-        assertThat(underTest.toString()).isEqualTo("null");
+        assertThat(underTest.toString()).hasToString("null");
     }
 
 }

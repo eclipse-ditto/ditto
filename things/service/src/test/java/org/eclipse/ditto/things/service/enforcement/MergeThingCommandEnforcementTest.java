@@ -47,16 +47,12 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.ArgumentsProvider;
 import org.junit.jupiter.params.provider.ArgumentsSource;
 
-import akka.actor.ActorSystem;
-import akka.dispatch.MessageDispatcher;
-
 /**
  * Tests {@link org.eclipse.ditto.things.model.signals.commands.modify.MergeThing} by applying command enforcement to
  * combinations of merge commands (at different levels) and policies (with permissions at different levels).
  */
-public final class MergeThingCommandEnforcementTest {
-
-    private static final MessageDispatcher DISPATCHER = (MessageDispatcher) ActorSystem.create().getDispatcher();
+final class MergeThingCommandEnforcementTest {
+    
     private static final JsonPointer PATH =
             JsonFactory.newPointer("/features/device/properties/location");
     private static final JsonObject VALUE =
@@ -107,7 +103,7 @@ public final class MergeThingCommandEnforcementTest {
     @ParameterizedTest
     @ArgumentsSource(AcceptPolicyProvider.class)
     @ArgumentsSource(PatchLongitudeOnlyProvider.class)
-    public void acceptByPolicy(final TestArgument arg) {
+    void acceptByPolicy(final TestArgument arg) {
         final TrieBasedPolicyEnforcer policyEnforcer = TrieBasedPolicyEnforcer.newInstance(arg.getPolicy());
         final MergeThing authorizedMergeThing =
                 ThingCommandEnforcement.authorizeByPolicyOrThrow(policyEnforcer, arg.getMergeThing());
@@ -117,7 +113,7 @@ public final class MergeThingCommandEnforcementTest {
     @ParameterizedTest
     @ArgumentsSource(RejectPolicyProvider.class)
     @ArgumentsSource(SubFieldRevokedProvider.class)
-    public void rejectByPolicy(final TestArgument arg) {
+    void rejectByPolicy(final TestArgument arg) {
         final TrieBasedPolicyEnforcer policyEnforcer = TrieBasedPolicyEnforcer.newInstance(arg.getPolicy());
         assertThatExceptionOfType(ThingNotModifiableException.class).isThrownBy(
                 () -> ThingCommandEnforcement.authorizeByPolicyOrThrow(policyEnforcer, arg.getMergeThing()));

@@ -19,7 +19,6 @@ import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstance
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.assertj.core.api.AutoCloseableSoftAssertions;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -63,7 +62,7 @@ public final class DefaultEntityTypeTest {
     public void toStringReturnsExpected() {
         final DefaultEntityType underTest = DefaultEntityType.of(KNOWN_VALUE);
 
-        assertThat(underTest.toString()).isEqualTo(KNOWN_VALUE);
+        assertThat(underTest.toString()).hasToString(KNOWN_VALUE);
     }
 
     @Test

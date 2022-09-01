@@ -18,7 +18,6 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 
 import java.lang.ref.SoftReference;
 
-import org.junit.Ignore;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -50,26 +49,26 @@ public final class ImmutableJsonLiteralTest {
     public void trueBehavesAsExpected() {
         final ImmutableJsonBoolean underTest = ImmutableJsonBoolean.TRUE;
 
-        assertThat(underTest).isNotArray();
-        assertThat(underTest).isBoolean();
-        assertThat(underTest).isNotNullLiteral();
-        assertThat(underTest).isNotNumber();
-        assertThat(underTest).isNotObject();
-        assertThat(underTest).isNotString();
-        assertThat(underTest.toString()).isEqualTo("true");
+        assertThat(underTest).isNotArray()
+                .isBoolean()
+                .isNotNullLiteral()
+                .isNotNumber()
+                .isNotObject()
+                .isNotString();
+        assertThat(underTest.toString()).hasToString("true");
     }
 
     @Test
     public void falseBehavesAsExpected() {
         final ImmutableJsonBoolean underTest = ImmutableJsonBoolean.FALSE;
 
-        assertThat(underTest).isNotArray();
-        assertThat(underTest).isBoolean();
-        assertThat(underTest).isNotNullLiteral();
-        assertThat(underTest).isNotNumber();
-        assertThat(underTest).isNotObject();
-        assertThat(underTest).isNotString();
-        assertThat(underTest.toString()).isEqualTo("false");
+        assertThat(underTest).isNotArray()
+                .isBoolean()
+                .isNotNullLiteral()
+                .isNotNumber()
+                .isNotObject()
+                .isNotString();
+        assertThat(underTest.toString()).hasToString("false");
     }
 
 }

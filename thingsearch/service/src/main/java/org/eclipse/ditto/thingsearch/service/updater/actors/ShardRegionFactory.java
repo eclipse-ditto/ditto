@@ -83,9 +83,9 @@ public final class ShardRegionFactory {
 
     private ActorRef createShardRegionProxy(final String shardRegion, final String clusterRole,
             final int numberOfShards) {
-
         final ClusterSharding clusterSharding = ClusterSharding.get(actorSystem);
         final ShardRegionExtractor shardRegionExtractor = ShardRegionExtractor.of(numberOfShards, actorSystem);
+
         return clusterSharding.startProxy(shardRegion, Optional.of(clusterRole), shardRegionExtractor);
     }
 
@@ -98,8 +98,7 @@ public final class ShardRegionFactory {
      * @throws NullPointerException if {@code thingUpdaterProps} is {@code null}.
      */
     @Nonnull
-    public ActorRef getSearchUpdaterShardRegion(final int numberOfShards,
-            @Nonnull final Props thingUpdaterProps,
+    public ActorRef getSearchUpdaterShardRegion(final int numberOfShards, @Nonnull final Props thingUpdaterProps,
             final String clusterRole) {
 
         return createShardRegion(numberOfShards, thingUpdaterProps, UPDATER_SHARD_REGION, clusterRole);
@@ -119,6 +118,7 @@ public final class ShardRegionFactory {
         final ClusterShardingSettings shardingSettings =
                 ClusterShardingSettings.create(actorSystem).withRole(role);
         final ShardRegionExtractor shardRegionExtractor = ShardRegionExtractor.of(shards, actorSystem);
+
         return clusterSharding.start(name, props, shardingSettings, shardRegionExtractor);
     }
 

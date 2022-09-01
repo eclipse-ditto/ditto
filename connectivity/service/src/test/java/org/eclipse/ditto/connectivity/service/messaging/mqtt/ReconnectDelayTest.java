@@ -68,9 +68,11 @@ public final class ReconnectDelayTest {
         final var reconnectDelayOneSecond = ReconnectDelay.ofOrLowerBoundary(Duration.ofSeconds(1L));
         final var reconnectDelayTwoSeconds = ReconnectDelay.ofOrLowerBoundary(Duration.ofSeconds(2L));
 
-        assertThat(reconnectDelayOneSecond).isEqualByComparingTo(reconnectDelayOneSecond);
-        assertThat(reconnectDelayOneSecond).isLessThan(reconnectDelayTwoSeconds);
-        assertThat(reconnectDelayTwoSeconds).isGreaterThan(reconnectDelayOneSecond);
+        assertThat(reconnectDelayOneSecond)
+                .isEqualByComparingTo(reconnectDelayOneSecond)
+                .isLessThan(reconnectDelayTwoSeconds);
+        assertThat(reconnectDelayTwoSeconds)
+                .isGreaterThan(reconnectDelayOneSecond);
     }
 
     @Test

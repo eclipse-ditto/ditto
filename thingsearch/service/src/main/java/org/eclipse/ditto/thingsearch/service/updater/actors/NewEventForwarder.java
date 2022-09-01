@@ -17,7 +17,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 
 import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
@@ -122,9 +121,9 @@ final class NewEventForwarder extends AbstractActorWithTimers {
         final Set<String> inactiveShardIds = shardRegionExtractor.getInactiveShardIds(getActiveShardIds(stats));
         log.debug("Updating event subscriptions for inactive shards: <{}> -> <{}>", previousShardIds, inactiveShardIds);
         final List<String> toSubscribe =
-                inactiveShardIds.stream().filter(s -> !previousShardIds.contains(s)).collect(Collectors.toList());
+                inactiveShardIds.stream().filter(s -> !previousShardIds.contains(s)).toList();
         final List<String> toUnsubscribe =
-                previousShardIds.stream().filter(s -> !inactiveShardIds.contains(s)).collect(Collectors.toList());
+                previousShardIds.stream().filter(s -> !inactiveShardIds.contains(s)).toList();
         thingEventSub.subscribeWithoutAck(toSubscribe, getSelf());
         thingEventSub.unsubscribeWithoutAck(toUnsubscribe, getSelf());
         previousShardIds = inactiveShardIds;
@@ -142,7 +141,7 @@ final class NewEventForwarder extends AbstractActorWithTimers {
                 .values()
                 .stream()
                 .flatMap(shardRegionStats -> shardRegionStats.getStats().keySet().stream())
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private enum Clock {

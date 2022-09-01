@@ -18,11 +18,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.eclipse.ditto.json.JsonObject;
-import org.junit.Ignore;
 import org.junit.Test;
-import org.mutabilitydetector.unittesting.AllowedReason;
-import org.mutabilitydetector.unittesting.MutabilityAssert;
-import org.mutabilitydetector.unittesting.MutabilityMatchers;
 
 /**
  * Tests {@link SearchNamespaceReportResult}.

@@ -35,7 +35,9 @@ import org.eclipse.ditto.connectivity.model.PayloadMapping;
 import org.eclipse.ditto.connectivity.model.PayloadMappingDefinition;
 import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.mapping.DittoMessageMapper;
+import org.eclipse.ditto.edge.service.headers.DittoHeadersValidator;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
+import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import org.eclipse.ditto.internal.utils.protocol.ProtocolAdapterProvider;
 import org.eclipse.ditto.placeholders.UnresolvedPlaceholderException;
 import org.eclipse.ditto.protocol.adapter.ProtocolAdapter;
@@ -257,6 +259,7 @@ public abstract class AbstractConsumerActorTest<M> {
         final ActorRef outboundProcessorActor = actorSystem.actorOf(props,
                 OutboundMappingProcessorActor.ACTOR_NAME + "-" + name.getMethodName());
 
+        final var config = actorSystem.settings().config();
         final Sink<Object, NotUsed> inboundDispatchingSink = InboundDispatchingSink.createSink(CONNECTION,
                 protocolAdapter.headerTranslator(),
                 ActorSelection.apply(proxyActor, ""),
@@ -264,7 +267,8 @@ public abstract class AbstractConsumerActorTest<M> {
                 outboundProcessorActor,
                 TestProbe.apply(actorSystem).ref(),
                 actorSystem,
-                ConnectivityConfig.of(actorSystem.settings().config()),
+                ConnectivityConfig.of(config),
+                DittoHeadersValidator.get(actorSystem, ScopedConfig.dittoExtension(config)),
                 null);
 
         return InboundMappingSink.createSink(List.of(inboundMappingProcessor),

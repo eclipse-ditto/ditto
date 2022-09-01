@@ -28,14 +28,13 @@ import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.headers.entitytag.EntityTag;
-import org.eclipse.ditto.policies.model.Policy;
-import org.eclipse.ditto.policies.model.PolicyEntry;
-import org.eclipse.ditto.policies.model.PolicyId;
-import org.eclipse.ditto.policies.service.common.config.PolicyConfig;
+import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.internal.utils.persistentactors.results.Result;
 import org.eclipse.ditto.internal.utils.persistentactors.results.ResultFactory;
 import org.eclipse.ditto.internal.utils.persistentactors.results.ResultVisitor;
-import org.eclipse.ditto.base.model.signals.commands.Command;
+import org.eclipse.ditto.policies.model.Policy;
+import org.eclipse.ditto.policies.model.PolicyEntry;
+import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.signals.commands.actions.ActivateTokenIntegration;
 import org.eclipse.ditto.policies.model.signals.commands.actions.DeactivateTokenIntegration;
 import org.eclipse.ditto.policies.model.signals.commands.actions.PolicyActionCommand;
@@ -44,6 +43,7 @@ import org.eclipse.ditto.policies.model.signals.commands.actions.TopLevelPolicyA
 import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyActionFailedException;
 import org.eclipse.ditto.policies.model.signals.events.PolicyActionEvent;
 import org.eclipse.ditto.policies.model.signals.events.PolicyEvent;
+import org.eclipse.ditto.policies.service.common.config.PolicyConfig;
 
 import akka.actor.ActorSystem;
 
@@ -75,7 +75,7 @@ final class TopLevelPolicyActionCommandStrategy
                 .map(nonNullPolicy::getEntryFor)
                 .flatMap(Optional::stream)
                 .filter(policyEntry -> actionCommand.isApplicable(policyEntry, dittoHeaders.getAuthorizationContext()))
-                .collect(Collectors.toList());
+                .toList();
         final AbstractPolicyActionCommandStrategy<?> strategy =
                 policyActionCommandStrategyMap.get(actionCommand.getName());
 

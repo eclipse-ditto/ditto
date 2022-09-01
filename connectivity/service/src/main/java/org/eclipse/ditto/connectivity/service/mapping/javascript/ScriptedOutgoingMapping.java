@@ -27,14 +27,14 @@ import java.util.Optional;
 import javax.annotation.Nullable;
 import javax.script.Bindings;
 
-import org.eclipse.ditto.connectivity.model.MessageMappingFailedException;
-import org.eclipse.ditto.protocol.Adaptable;
-import org.eclipse.ditto.protocol.JsonifiableAdaptable;
-import org.eclipse.ditto.protocol.ProtocolFactory;
-import org.eclipse.ditto.connectivity.service.mapping.MessageMapper;
 import org.eclipse.ditto.connectivity.api.ExternalMessage;
 import org.eclipse.ditto.connectivity.api.ExternalMessageBuilder;
 import org.eclipse.ditto.connectivity.api.ExternalMessageFactory;
+import org.eclipse.ditto.connectivity.model.MessageMappingFailedException;
+import org.eclipse.ditto.connectivity.service.mapping.MessageMapper;
+import org.eclipse.ditto.protocol.Adaptable;
+import org.eclipse.ditto.protocol.JsonifiableAdaptable;
+import org.eclipse.ditto.protocol.ProtocolFactory;
 import org.mozilla.javascript.Callable;
 import org.mozilla.javascript.Context;
 import org.mozilla.javascript.ContextFactory;
@@ -82,13 +82,12 @@ public final class ScriptedOutgoingMapping implements MappingFunction<Adaptable,
                 if (result == null) {
                     // return empty list if result is null
                     return Collections.emptyList();
-                } else if (result instanceof NativeArray) {
+                } else if (result instanceof NativeArray nativeArray) {
                     // handle array
-                    final NativeArray jsArray = (NativeArray) result;
                     final List<ExternalMessage> list = new ArrayList<>();
-                    for (Object idxObj : jsArray.getIds()) {
+                    for (Object idxObj : nativeArray.getIds()) {
                         int index = (Integer) idxObj;
-                        final Object element = jsArray.get(index, null);
+                        final Object element = nativeArray.get(index, null);
                         list.add(getExternalMessageFromObject(adaptable, (NativeObject) element));
                     }
                     return list;
@@ -146,8 +145,8 @@ public final class ScriptedOutgoingMapping implements MappingFunction<Adaptable,
     }
 
     private static Optional<ByteBuffer> convertToByteBuffer(final Object obj) {
-        if (obj instanceof NativeArrayBuffer) {
-            return Optional.of(ByteBuffer.wrap(((NativeArrayBuffer) obj).getBuffer()));
+        if (obj instanceof NativeArrayBuffer nativeArrayBuffer) {
+            return Optional.of(ByteBuffer.wrap(nativeArrayBuffer.getBuffer()));
         } else if (obj instanceof Bindings) {
             try {
                 final Class<?> cls = Class.forName("jdk.nashorn.api.scripting.ScriptObjectMirror");

@@ -19,7 +19,6 @@ import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstance
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.eclipse.ditto.base.model.entity.id.restriction.LengthRestrictionTestBase;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -68,7 +67,7 @@ public final class ImmutableSubjectIdTest extends LengthRestrictionTestBase {
     public void ignoresUrlDelimiter() {
         final SubjectId underTest = ImmutableSubjectId.of("://abc:def");
 
-        assertThat(underTest.getIssuer().toString()).isEqualTo("://abc");
+        assertThat(underTest.getIssuer().toString()).hasToString("://abc");
         assertThat(underTest.getSubject()).isEqualTo("def");
     }
 
@@ -76,7 +75,7 @@ public final class ImmutableSubjectIdTest extends LengthRestrictionTestBase {
     public void subjectIdCanHaveMaximumLengthOf256Characters() {
         final String subjectIdWithMaximumLength = generateStringWithMaxLength(ISSUER_WITH_SEPARATOR);
         final SubjectId subjectId = ImmutableSubjectId.of(subjectIdWithMaximumLength);
-        assertThat(subjectId.toString()).isEqualTo(subjectIdWithMaximumLength);
+        assertThat(subjectId.toString()).hasToString(subjectIdWithMaximumLength);
     }
 
     @Test
@@ -96,7 +95,7 @@ public final class ImmutableSubjectIdTest extends LengthRestrictionTestBase {
     @Test
     public void handlesNonUrlIssuer() {
         final SubjectId underTest = ImmutableSubjectId.of("abc:def");
-        assertThat(underTest.getIssuer().toString()).isEqualTo("abc");
+        assertThat(underTest.getIssuer().toString()).hasToString("abc");
         assertThat(underTest.getSubject()).isEqualTo("def");
     }
 
@@ -105,8 +104,8 @@ public final class ImmutableSubjectIdTest extends LengthRestrictionTestBase {
         final String placeholderInput = "a{{ prefix:name }}z";
         final SubjectId underTest = ImmutableSubjectId.of(placeholderInput);
 
-        assertThat(underTest.toString()).isEqualTo(placeholderInput);
-        assertThat(underTest.getIssuer().toString()).isEqualTo("");
+        assertThat(underTest.toString()).hasToString(placeholderInput);
+        assertThat(underTest.getIssuer().toString()).isEmpty();
         assertThat(underTest.getSubject()).isEqualTo(placeholderInput);
     }
 

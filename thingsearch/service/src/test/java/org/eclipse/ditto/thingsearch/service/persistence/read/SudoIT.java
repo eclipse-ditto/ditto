@@ -17,6 +17,8 @@ import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;
 import java.time.Instant;
 import java.util.Map;
 
+import org.eclipse.ditto.base.service.config.limits.LimitsConfig;
+import org.eclipse.ditto.internal.models.streaming.LowerBound;
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
@@ -28,8 +30,6 @@ import org.eclipse.ditto.rql.query.expression.FieldExpressionFactory;
 import org.eclipse.ditto.rql.query.expression.ThingsFieldExpressionFactory;
 import org.eclipse.ditto.things.model.ThingConstants;
 import org.eclipse.ditto.things.model.ThingId;
-import org.eclipse.ditto.base.service.config.limits.LimitsConfig;
-import org.eclipse.ditto.internal.models.streaming.LowerBound;
 import org.eclipse.ditto.thingsearch.api.SearchNamespaceReportResult;
 import org.eclipse.ditto.thingsearch.service.persistence.TestConstants;
 import org.eclipse.ditto.thingsearch.service.persistence.read.query.MongoQueryBuilderFactory;
@@ -45,8 +45,10 @@ import akka.stream.javadsl.Sink;
  */
 public final class SudoIT extends AbstractReadPersistenceITBase {
 
-    private static final ThingId THING1_ID = TestConstants.thingId(TestConstants.Thing.NAMESPACE, "thing1");
-    private static final ThingId THING2_ID = TestConstants.thingId(TestConstants.Thing.NAMESPACE, "thing2");
+    private static final ThingId THING1_ID =
+            TestConstants.thingId(TestConstants.Thing.NAMESPACE, "thing1");
+    private static final ThingId THING2_ID =
+            TestConstants.thingId(TestConstants.Thing.NAMESPACE, "thing2");
     private static final Instant TIMESTAMP1 = Instant.ofEpochSecond(1L);
     private static final Instant TIMESTAMP2 = Instant.ofEpochSecond(2L);
 
@@ -94,8 +96,10 @@ public final class SudoIT extends AbstractReadPersistenceITBase {
 
     @Test
     public void sudoStreamMetadata() {
-        final Metadata metadata1 = Metadata.of(THING1_ID, 1L, PolicyId.of(THING1_ID), 0L, TIMESTAMP1, null);
-        final Metadata metadata2 = Metadata.of(THING2_ID, 2L, PolicyId.of(THING2_ID), 0L, TIMESTAMP2, null);
+        final Metadata metadata1 =
+                Metadata.of(THING1_ID, 1L, PolicyId.of(THING1_ID), 0L, TIMESTAMP1, null);
+        final Metadata metadata2 =
+                Metadata.of(THING2_ID, 2L, PolicyId.of(THING2_ID), 0L, TIMESTAMP2, null);
         assertThat(waitFor(readPersistence.sudoStreamMetadata(LowerBound.emptyEntityId(ThingConstants.ENTITY_TYPE))))
                 .containsExactly(metadata1, metadata2);
 

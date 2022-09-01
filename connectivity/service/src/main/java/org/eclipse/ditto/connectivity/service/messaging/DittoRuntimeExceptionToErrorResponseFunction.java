@@ -25,6 +25,7 @@ import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.signals.commands.ErrorResponse;
+import org.eclipse.ditto.edge.service.headers.DittoHeadersValidator;
 import org.eclipse.ditto.policies.model.PolicyException;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.signals.commands.PolicyErrorResponse;
@@ -38,14 +39,14 @@ import org.eclipse.ditto.things.model.signals.commands.ThingErrorResponse;
 final class DittoRuntimeExceptionToErrorResponseFunction
         implements BiFunction<DittoRuntimeException, TopicPath, ErrorResponse<?>> {
 
-    private final long headersMaxSize;
+    private final DittoHeadersValidator dittoHeadersValidator;
 
-    private DittoRuntimeExceptionToErrorResponseFunction(final long headersMaxSize) {
-        this.headersMaxSize = headersMaxSize;
+    private DittoRuntimeExceptionToErrorResponseFunction(final DittoHeadersValidator dittoHeadersValidator) {
+        this.dittoHeadersValidator = dittoHeadersValidator;
     }
 
-    static DittoRuntimeExceptionToErrorResponseFunction of(final long headersMaxSize) {
-        return new DittoRuntimeExceptionToErrorResponseFunction(headersMaxSize);
+    static DittoRuntimeExceptionToErrorResponseFunction of(final DittoHeadersValidator dittoHeadersValidator) {
+        return new DittoRuntimeExceptionToErrorResponseFunction(dittoHeadersValidator);
     }
 
     @Override
@@ -78,11 +79,13 @@ final class DittoRuntimeExceptionToErrorResponseFunction
 
         return getEntityId(exception, topicPath)
                 .flatMap(constructEntityIdSafely(PolicyId::of))
-                .map(policyId -> PolicyErrorResponse.of(policyId, exception, truncateHeaders(exception)))
-                .orElseGet(() -> PolicyErrorResponse.of(exception, truncateHeaders(exception.getDittoHeaders()
-                        .toBuilder()
-                        .removeHeader(DittoHeaderDefinition.ENTITY_ID.getKey())
-                        .build())));
+                .map(policyId -> PolicyErrorResponse.of(policyId, exception,
+                        dittoHeadersValidator.truncate(exception.getDittoHeaders())))
+                .orElseGet(() -> PolicyErrorResponse.of(exception,
+                        dittoHeadersValidator.truncate(exception.getDittoHeaders()
+                                .toBuilder()
+                                .removeHeader(DittoHeaderDefinition.ENTITY_ID.getKey())
+                                .build())));
     }
 
     private ThingErrorResponse getThingErrorResponse(final DittoRuntimeException exception,
@@ -90,11 +93,13 @@ final class DittoRuntimeExceptionToErrorResponseFunction
 
         return getEntityId(exception, topicPath)
                 .flatMap(constructEntityIdSafely(ThingId::of))
-                .map(thingId -> ThingErrorResponse.of(thingId, exception, truncateHeaders(exception)))
-                .orElseGet(() -> ThingErrorResponse.of(exception, truncateHeaders(exception.getDittoHeaders()
-                        .toBuilder()
-                        .removeHeader(DittoHeaderDefinition.ENTITY_ID.getKey())
-                        .build())));
+                .map(thingId -> ThingErrorResponse.of(thingId, exception,
+                        dittoHeadersValidator.truncate(exception.getDittoHeaders())))
+                .orElseGet(() -> ThingErrorResponse.of(exception,
+                        dittoHeadersValidator.truncate(exception.getDittoHeaders()
+                                .toBuilder()
+                                .removeHeader(DittoHeaderDefinition.ENTITY_ID.getKey())
+                                .build())));
     }
 
     private static <T> Function<EntityId, Optional<T>> constructEntityIdSafely(
@@ -147,21 +152,6 @@ final class DittoRuntimeExceptionToErrorResponseFunction
             result = Optional.empty();
         }
         return result;
-    }
-
-    private DittoHeaders truncateHeaders(final WithDittoHeaders withDittoHeaders) {
-
-        /*
-         * Truncate headers to send in an error response.
-         * This is necessary because the consumer actor and the publisher actor may not reside in the same connectivity
-         * instance due to cluster routing.
-         */
-        final var dittoHeaders = withDittoHeaders.getDittoHeaders();
-        return truncateHeaders(dittoHeaders);
-    }
-
-    private DittoHeaders truncateHeaders(final DittoHeaders dittoHeaders) {
-        return dittoHeaders.truncate(headersMaxSize);
     }
 
 }

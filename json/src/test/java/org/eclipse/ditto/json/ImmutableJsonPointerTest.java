@@ -25,7 +25,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
 
-import org.junit.Ignore;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -74,7 +73,7 @@ public final class ImmutableJsonPointerTest {
         final JsonPointer underTest = ImmutableJsonPointer.ofParsed("/");
 
         assertThat(underTest).isEqualTo(ImmutableJsonPointer.empty());
-        assertThat(underTest.toString()).isEqualTo(ImmutableJsonPointer.empty().toString());
+        assertThat(underTest.toString()).hasToString(ImmutableJsonPointer.empty().toString());
     }
 
     @Test
@@ -202,7 +201,7 @@ public final class ImmutableJsonPointerTest {
         final JsonPointer underTest = ImmutableJsonPointer.ofParsed(rootString);
 
         assertThat(underTest.isEmpty()).isTrue();
-        assertThat(underTest.toString()).isEqualTo(rootString);
+        assertThat(underTest.toString()).hasToString(rootString);
     }
 
     @Test
@@ -255,7 +254,7 @@ public final class ImmutableJsonPointerTest {
         final JsonPointer subPointer = ImmutableJsonPointer.of(JsonFactory.newKey("child"), JsonFactory.newKey("sub"));
         final JsonPointer newPointer = root.append(subPointer);
 
-        assertThat(newPointer.toString()).isEqualTo("/root/child/sub");
+        assertThat(newPointer.toString()).hasToString("/root/child/sub");
     }
 
     @Test
@@ -279,7 +278,7 @@ public final class ImmutableJsonPointerTest {
 
         assertThat(underTest).hasLevelCount(3);
         assertThat(underTest.get(1)).contains(JsonFactory.newKey("~dum~die~dum"));
-        assertThat(underTest.toString()).isEqualTo("/foo/~0dum~0die~0dum/baz");
+        assertThat(underTest.toString()).hasToString("/foo/~0dum~0die~0dum/baz");
     }
 
     @Test
@@ -292,7 +291,7 @@ public final class ImmutableJsonPointerTest {
 
         assertThat(underTest).hasLevelCount(3);
         assertThat(underTest.get(1)).contains(key2);
-        assertThat(underTest.toString()).isEqualTo("/foo/~0dum/~0die/~0dum/baz");
+        assertThat(underTest.toString()).hasToString("/foo/~0dum/~0die/~0dum/baz");
     }
 
 }
