@@ -25,8 +25,8 @@ import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.DittoHeadersBuilder;
-import org.eclipse.ditto.base.model.headers.DittoHeadersSizeChecker;
 import org.eclipse.ditto.base.model.headers.translator.HeaderTranslator;
+import org.eclipse.ditto.edge.service.headers.DittoHeadersValidator;
 import org.eclipse.ditto.gateway.api.GatewayDuplicateHeaderException;
 
 import akka.http.javadsl.model.HttpHeader;
@@ -47,17 +47,17 @@ final class RootRouteHeadersStepBuilder {
     private final HeaderTranslator headerTranslator;
     private final QueryParametersToHeadersMap queryParamsToHeaders;
     private final CustomHeadersHandler customHeadersHandler;
-    private final DittoHeadersSizeChecker sizeChecker;
+    private final DittoHeadersValidator dittoHeadersValidator;
 
     private RootRouteHeadersStepBuilder(final HeaderTranslator headerTranslator,
             final QueryParametersToHeadersMap queryParamsToHeaders,
             final CustomHeadersHandler customHeadersHandler,
-            final DittoHeadersSizeChecker sizeChecker) {
+            final DittoHeadersValidator dittoHeadersValidator) {
 
         this.headerTranslator = checkNotNull(headerTranslator, "headerTranslator");
         this.queryParamsToHeaders = checkNotNull(queryParamsToHeaders, "queryParamsToHeaders");
         this.customHeadersHandler = checkNotNull(customHeadersHandler, "customHeadersHandler");
-        this.sizeChecker = checkNotNull(sizeChecker, "sizeChecker");
+        this.dittoHeadersValidator = checkNotNull(dittoHeadersValidator, "dittoHeadersValidator");
     }
 
     /**
@@ -67,17 +67,17 @@ final class RootRouteHeadersStepBuilder {
      * @param headerTranslator translates request headers into valid DittoHeaders.
      * @param queryParamsToHeaders converts query parameters into a Map of header key-values pairs.
      * @param customHeadersHandler adds custom headers.
-     * @param sizeChecker ensures that Ditto headers are small enough to be sent around the cluster.
+     * @param dittoHeadersValidator ensures that Ditto headers are small enough to be sent around the cluster.
      * @return the instance.
      * @throws NullPointerException if any argument is {@code null}.
      */
     static RootRouteHeadersStepBuilder getInstance(final HeaderTranslator headerTranslator,
             final QueryParametersToHeadersMap queryParamsToHeaders,
             final CustomHeadersHandler customHeadersHandler,
-            final DittoHeadersSizeChecker sizeChecker) {
+            final DittoHeadersValidator dittoHeadersValidator) {
 
         return new RootRouteHeadersStepBuilder(headerTranslator, queryParamsToHeaders, customHeadersHandler,
-                sizeChecker);
+                dittoHeadersValidator);
     }
 
     /**
@@ -227,12 +227,7 @@ final class RootRouteHeadersStepBuilder {
                     requestType,
                     dittoDefaultHeaders);
 
-            result = result.thenApply(dittoHeaders -> {
-                sizeChecker.check(dittoHeaders);
-                return dittoHeaders;
-            });
-
-            return result;
+            return result.thenCompose(dittoHeadersValidator::validate);
         }
 
     }

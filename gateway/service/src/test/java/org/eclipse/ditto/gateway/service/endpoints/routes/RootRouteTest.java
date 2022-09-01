@@ -28,9 +28,9 @@ import java.util.stream.IntStream;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.base.model.headers.DittoHeadersSizeChecker;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.signals.commands.CommandHeaderInvalidException;
+import org.eclipse.ditto.edge.service.headers.DittoHeadersValidator;
 import org.eclipse.ditto.gateway.api.GatewayDuplicateHeaderException;
 import org.eclipse.ditto.gateway.service.endpoints.EndpointTestBase;
 import org.eclipse.ditto.gateway.service.endpoints.EndpointTestConstants;
@@ -174,7 +174,8 @@ public final class RootRouteTest extends EndpointTestBase {
                         authenticationDirectiveFactory.buildHttpAuthentication(jwtAuthenticationFactory))
                 .wsAuthenticationDirective(
                         authenticationDirectiveFactory.buildWsAuthentication(jwtAuthenticationFactory))
-                .dittoHeadersSizeChecker(DittoHeadersSizeChecker.of(4096, 20))
+                .dittoHeadersValidator(
+                        DittoHeadersValidator.get(routeBaseProperties.getActorSystem(), dittoExtensionConfig))
                 .customApiRoutesProvider(
                         CustomApiRoutesProvider.get(routeBaseProperties.getActorSystem(), dittoExtensionConfig),
                         routeBaseProperties)
@@ -440,7 +441,7 @@ public final class RootRouteTest extends EndpointTestBase {
 
     @Test
     public void getExceptionDueToTooManyAuthSubjects() {
-        final String hugeSubjects = IntStream.range(0, 41)
+        final String hugeSubjects = IntStream.range(0, 101)
                 .mapToObj(i -> "i:foo" + i)
                 .collect(Collectors.joining(","));
         final HttpRequest request =
