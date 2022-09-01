@@ -198,8 +198,6 @@ public final class ConnectionPersistenceActor
 
     private final UpdatedConnectionTester updatedConnectionTester;
 
-    private final boolean automaticConnectionDecodingMigrationEnabled;
-
     ConnectionPersistenceActor(final ConnectionId connectionId,
             final ActorRef commandForwarderActor,
             final ActorRef pubSubMediator,
@@ -218,7 +216,6 @@ public final class ConnectionPersistenceActor
         connectivityConfig = getConnectivityConfigWithOverwrites(connectivityConfigOverwrites);
         commandValidator = getCommandValidator();
         final ConnectionConfig connectionConfig = connectivityConfig.getConnectionConfig();
-        automaticConnectionDecodingMigrationEnabled = connectionConfig.doubleDecodingMigrationEnabled();
         this.allClientActorsOnOneNode = allClientActorsOnOneNode.orElse(connectionConfig.areAllClientActorsOnOneNode());
         connectionPriorityProvider = ConnectionPriorityProviderFactory.get(actorSystem, dittoExtensionConfig)
                 .newProvider(self(), log);
@@ -848,7 +845,7 @@ public final class ConnectionPersistenceActor
         startAndAskClientActors(openConnection, getClientCount())
                 .thenAccept(successConsumer)
                 .exceptionally(error -> {
-                    if (retry && automaticConnectionDecodingMigrationEnabled) {
+                    if (retry) {
                         self().tell(new RetryOpenConnection(openConnection, error, ignoreErrors, command.getSender()),
                                 ActorRef.noSender());
                     } else {
@@ -1205,7 +1202,7 @@ public final class ConnectionPersistenceActor
                         AmqpValidator.newInstance(),
                         Mqtt3Validator.newInstance(mqttConfig),
                         Mqtt5Validator.newInstance(mqttConfig),
-                        KafkaValidator.getInstance(connectivityConfig.getConnectionConfig().doubleDecodingEnabled()),
+                        KafkaValidator.getInstance(),
                         HttpPushValidator.newInstance(connectivityConfig.getConnectionConfig().getHttpPushConfig()));
 
         final DittoConnectivityCommandValidator dittoCommandValidator =

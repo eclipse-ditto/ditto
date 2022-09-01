@@ -67,8 +67,7 @@ public final class ConnectionBasedJmsConnectionFactory implements JmsConnectionF
      */
     public static ConnectionBasedJmsConnectionFactory getInstance(final Map<String, String> defaultConfig,
             final Supplier<SshTunnelState> sshTunnelConfigSupplier,
-            final ActorSystem actorSystem,
-            final boolean doubleEncodingEnabled) {
+            final ActorSystem actorSystem) {
 
         final PlainCredentialsSupplier credentialsSupplier = SaslPlainCredentialsSupplier.of(actorSystem);
         return new ConnectionBasedJmsConnectionFactory(defaultConfig, sshTunnelConfigSupplier, credentialsSupplier);

@@ -50,19 +50,16 @@ final class PropertiesFactory {
     private final KafkaConfig config;
     private final String clientId;
     private final String bootstrapServers;
-    private final boolean doubleDecodingEnabled;
 
     private PropertiesFactory(final Connection connection,
             final KafkaConfig config,
-            final String clientId,
-            final boolean doubleDecodingEnabled) {
+            final String clientId) {
 
         this.connection = checkNotNull(connection, "connection");
         this.config = checkNotNull(config, "config");
         this.clientId = checkNotNull(clientId, "clientId");
         bootstrapServers = KafkaBootstrapServerSpecificConfig.getInstance().getBootstrapServers(connection);
-        this.doubleDecodingEnabled = doubleDecodingEnabled;
-        commonSpecificConfigs = List.of(KafkaAuthenticationSpecificConfig.getInstance(doubleDecodingEnabled),
+        commonSpecificConfigs = List.of(KafkaAuthenticationSpecificConfig.getInstance(),
                 KafkaBootstrapServerSpecificConfig.getInstance());
         consumerSpecificConfigs = getConsumerSpecificConfigs(commonSpecificConfigs);
         producerSpecificConfigs = List.copyOf(commonSpecificConfigs);
@@ -87,10 +84,9 @@ final class PropertiesFactory {
      */
     static PropertiesFactory newInstance(final Connection connection,
             final KafkaConfig config,
-            final String clientId,
-            final boolean doubleDecodingEnabled) {
+            final String clientId) {
 
-        return new PropertiesFactory(connection, config, clientId, doubleDecodingEnabled);
+        return new PropertiesFactory(connection, config, clientId);
     }
 
     /**
@@ -160,7 +156,7 @@ final class PropertiesFactory {
 
     private boolean isConnectionAuthenticated() {
         final KafkaSpecificConfig authenticationSpecificConfig =
-                KafkaAuthenticationSpecificConfig.getInstance(doubleDecodingEnabled);
+                KafkaAuthenticationSpecificConfig.getInstance();
         return authenticationSpecificConfig.isApplicable(connection);
     }
 

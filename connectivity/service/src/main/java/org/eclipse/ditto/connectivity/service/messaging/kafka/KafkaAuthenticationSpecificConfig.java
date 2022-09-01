@@ -39,10 +39,8 @@ final class KafkaAuthenticationSpecificConfig implements KafkaSpecificConfig {
     private static final Map<String, String> SASL_MECHANISMS_WITH_LOGIN_MODULE = new HashMap<>();
 
     @Nullable private static KafkaAuthenticationSpecificConfig instance;
-    private final boolean doubleDecodingEnabled;
 
-    private KafkaAuthenticationSpecificConfig(final boolean doubleDecodingEnabled) {
-        this.doubleDecodingEnabled = doubleDecodingEnabled;
+    private KafkaAuthenticationSpecificConfig() {
         SASL_MECHANISMS_WITH_LOGIN_MODULE.put(PLAIN_SASL_MECHANISM,
                 "org.apache.kafka.common.security.plain.PlainLoginModule");
         SASL_MECHANISMS_WITH_LOGIN_MODULE.put("SCRAM-SHA-256",
@@ -51,10 +49,10 @@ final class KafkaAuthenticationSpecificConfig implements KafkaSpecificConfig {
                 "org.apache.kafka.common.security.scram.ScramLoginModule");
     }
 
-    public static KafkaAuthenticationSpecificConfig getInstance(final boolean doubleDecodingEnabled) {
+    public static KafkaAuthenticationSpecificConfig getInstance() {
         KafkaAuthenticationSpecificConfig result = instance;
         if (null == result) {
-            result = new KafkaAuthenticationSpecificConfig(doubleDecodingEnabled);
+            result = new KafkaAuthenticationSpecificConfig();
             instance = result;
         }
         return result;

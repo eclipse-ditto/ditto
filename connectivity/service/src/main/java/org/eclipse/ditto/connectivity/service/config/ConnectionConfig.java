@@ -155,19 +155,6 @@ public interface ConnectionConfig extends WithSupervisorConfig, WithActivityChec
     boolean areAllClientActorsOnOneNode();
 
     /**
-     * Whether usernames and passwords in connection URIs should be double decoded, when creating the connection.
-     *
-     * @return whether double decoding in enabled.
-     */
-    boolean doubleDecodingEnabled();
-
-    /**
-     * @return whether connections that fail with single decoded passwords should be retried again with additional
-     * decoding and in case of success are automatically adapted.
-     */
-    boolean doubleDecodingMigrationEnabled();
-
-    /**
      * An enumeration of the known config path expressions and their associated default values for
      * {@code ConnectionConfig}.
      */
@@ -226,18 +213,7 @@ public interface ConnectionConfig extends WithSupervisorConfig, WithActivityChec
         /**
          * How often the priority of a connection is getting updated.
          */
-        PRIORITY_UPDATE_INTERVAL("priority-update-interval", Duration.ofHours(24L)),
-
-        /**
-         * Whether double decoding of usernames and passwords in connection URIs is enabled.
-         */
-        DOUBLE_DECODING_ENABLED("double-decoding-enabled", true),
-
-        /**
-         * Indicates whether connections that fail with single decoded passwords should be retried again with additional
-         * decoding and in case of success are automatically adapted.
-         */
-        DOUBLE_DECODING_MIGRATION_ENABLED("double-decoding-migration.enabled", true);
+        PRIORITY_UPDATE_INTERVAL("priority-update-interval", Duration.ofHours(24L));
 
         private final String path;
         private final Object defaultValue;

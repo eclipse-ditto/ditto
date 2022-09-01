@@ -64,7 +64,7 @@ public final class KafkaAuthenticationSpecificConfigTest {
 
     @Before
     public void setUp() {
-        underTest = KafkaAuthenticationSpecificConfig.getInstance(true);
+        underTest = KafkaAuthenticationSpecificConfig.getInstance();
     }
 
     @Test

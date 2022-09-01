@@ -132,7 +132,7 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
         final Amqp10Config amqp10Config = connectionConfig.getAmqp10Config();
         jmsConnectionFactory =
                 ConnectionBasedJmsConnectionFactory.getInstance(AmqpSpecificConfig.toDefaultConfig(amqp10Config),
-                        this::getSshTunnelState, getContext().getSystem(), connectionConfig.doubleDecodingEnabled());
+                        this::getSshTunnelState, getContext().getSystem());
         connectionListener = new StatusReportingListener(getSelf(), logger, connectionLogger);
         consumerByNamePrefix = new HashMap<>();
         recoverSessionOnSessionClosed = isRecoverSessionOnSessionClosedEnabled(connection);
