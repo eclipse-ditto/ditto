@@ -156,4 +156,5 @@ final class BsonSizeVisitor implements BsonValueVisitor<Integer>, BsonPrimitiveV
     public Integer undefined() {
         return WORD;
     }
+
 }

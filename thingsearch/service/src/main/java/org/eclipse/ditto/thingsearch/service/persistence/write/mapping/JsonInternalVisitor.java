@@ -24,7 +24,6 @@ import org.eclipse.ditto.json.JsonValue;
  */
 interface JsonInternalVisitor<T> {
 
-
     T nullValue();
 
     T bool(boolean value);
@@ -55,6 +54,8 @@ interface JsonInternalVisitor<T> {
         } else {
             throw new UnsupportedOperationException("Unsupported JSON value: " + value);
         }
+
         return result;
     }
+
 }

@@ -65,6 +65,7 @@ public final class GetSortBsonVisitor implements SortFieldExpressionVisitor<Stri
                 .map(SortOption::getSortExpression)
                 .map(GetSortBsonVisitor::path)
                 .forEach(path -> document.append(path, true));
+
         return document;
     }
 
@@ -82,6 +83,7 @@ public final class GetSortBsonVisitor implements SortFieldExpressionVisitor<Stri
                 .map(GetSortBsonVisitor::path)
                 .map(seekToPath(document))
                 .forEach(value -> builder.add(toJsonValue(value)));
+
         return builder.build();
     }
 
@@ -165,7 +167,7 @@ public final class GetSortBsonVisitor implements SortFieldExpressionVisitor<Stri
 
     private static JsonValue toJsonValue(final Object object) {
         if (object instanceof Document document) {
-            return JsonFactory.readFrom((document).toJson());
+            return JsonFactory.readFrom(document.toJson());
         } else if (object instanceof BsonValue bsonValue) {
             return DittoBsonJson.getInstance().serialize(bsonValue);
         } else {

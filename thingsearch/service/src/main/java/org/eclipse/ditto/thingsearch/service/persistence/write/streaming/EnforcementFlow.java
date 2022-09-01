@@ -131,6 +131,7 @@ final class EnforcementFlow {
         final var thingCacheConfig = updaterStreamConfig.getThingCacheConfig();
         final var thingCacheDispatcher = actorSystem.dispatchers()
                 .lookup(thingCacheConfig.getDispatcherName());
+
         return new EnforcementFlow(actorSystem, thingsShardRegion, policyEnforcerCache, askWithRetryConfig,
                 thingCacheConfig, thingCacheDispatcher);
     }
@@ -234,6 +235,7 @@ final class EnforcementFlow {
         } else {
             thingFuture = thingsFacade.retrieveThing(thingId, metadata.getEvents(), metadata.getThingRevision());
         }
+
         return thingFuture;
     }
 
@@ -330,6 +332,7 @@ final class EnforcementFlow {
         final var dittoExtensionsConfig = ScopedConfig.dittoExtension(actorSystem.settings().config());
         final var cachingSignalEnrichmentFacadeProvider =
                 CachingSignalEnrichmentFacadeProvider.get(actorSystem, dittoExtensionsConfig);
+
         return cachingSignalEnrichmentFacadeProvider.getSignalEnrichmentFacade(actorSystem, sudoRetrieveThingFacade,
                 thingCacheConfig, thingCacheDispatcher, "things-search_enforcementflow_enforcer_cache_things");
     }

@@ -369,6 +369,7 @@ public final class Metadata {
         final List<ActorSelection> newAckRecipients = Stream.concat(ackRecipients.stream(), newMetadata.ackRecipients.stream()).toList();
         final List<UpdateReason> newReasons = Stream.concat(updateReasons.stream(), newMetadata.updateReasons.stream())
                 .toList();
+
         return new Metadata(newMetadata.thingId, newMetadata.thingRevision, newMetadata.policyId,
                 newMetadata.policyRevision, newMetadata.modified, newEvents, newTimers, newAckRecipients,
                 invalidateThing || newMetadata.invalidateThing,
@@ -419,6 +420,7 @@ public final class Metadata {
             return false;
         }
         final Metadata that = (Metadata) o;
+
         return thingRevision == that.thingRevision &&
                 Objects.equals(policyRevision, that.policyRevision) &&
                 Objects.equals(thingId, that.thingId) &&

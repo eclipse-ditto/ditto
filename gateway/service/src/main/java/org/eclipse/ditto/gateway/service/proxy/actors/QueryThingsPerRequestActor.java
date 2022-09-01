@@ -145,7 +145,6 @@ final class QueryThingsPerRequestActor extends AbstractActor {
                         final JsonArray retrievedEntitiesWithFieldSelection = getEntitiesWithSelectedFields(rtrEntity);
                         final SearchResult resultWithRetrievedItems = SearchModelFactory.newSearchResultBuilder()
                                 .addAll(retrievedEntitiesWithFieldSelection)
-                                .nextPageOffset(queryThingsResponse.getSearchResult().getNextPageOffset().orElse(null))
                                 .cursor(queryThingsResponse.getSearchResult().getCursor().orElse(null))
                                 .build();
                         final QueryThingsResponse theQueryThingsResponse =

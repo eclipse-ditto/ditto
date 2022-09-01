@@ -36,11 +36,12 @@ public final class LogicalSearchFilterAssert
     public LogicalSearchFilterAssert containsOnlyFilter(final SearchFilter... expectedFilters) {
         isNotNull();
         final Collection<SearchFilter> actualFilters = actual.getFilters();
-        Assertions.assertThat(actualFilters) //
+        Assertions.assertThat(actualFilters)
                 .overridingErrorMessage(
                         "Expected LogicalSearchFilter to contain the filter(s) \n<%s> but it contained \n<%s>",
-                        expectedFilters, actualFilters) //
+                        expectedFilters, actualFilters)
                 .containsOnly(expectedFilters);
+
         return this;
     }
 
@@ -48,11 +49,12 @@ public final class LogicalSearchFilterAssert
         isNotNull();
         final Collection<SearchFilter> filters = actual.getFilters();
         final int actualAmountOfFilters = filters.size();
-        Assertions.assertThat(actualAmountOfFilters) //
+        Assertions.assertThat(actualAmountOfFilters)
                 .overridingErrorMessage(
                         "Expected amount of filters of LogicalSearchFilter to be \n<%s> but it was \n<%s>",
-                        expectedAmount, actualAmountOfFilters) //
+                        expectedAmount, actualAmountOfFilters)
                 .isEqualTo(expectedAmount);
+
         return this;
     }
 

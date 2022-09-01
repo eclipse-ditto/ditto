@@ -17,7 +17,7 @@ import org.eclipse.ditto.rql.model.ParserException
 import org.eclipse.ditto.rql.parser.internal.RqlParserBase
 import org.eclipse.ditto.rql.parser.thingsearch.OptionParser
 import org.eclipse.ditto.thingsearch.model
-import org.eclipse.ditto.thingsearch.model.{LimitOption, SearchModelFactory, SortOption, SortOptionEntry}
+import org.eclipse.ditto.thingsearch.model.{SearchModelFactory, SortOption, SortOptionEntry}
 
 import java.util
 import scala.collection.JavaConverters
@@ -27,11 +27,10 @@ import scala.util.{Failure, Success}
   * RQL Parser. Parses options in the RQL "standard" according to https://github.com/persvr/rql with the following EBNF:
   * <pre>
   * Options                    = Option, { ',', Option }
-  * Option                     = Sort | Limit
+  * Option                     = Sort | Cursor | Size
   * Sort                       = "sort", '(', SortProperty, { ',', SortProperty }, ')'
   * SortProperty               = SortOrder, PropertyLiteral
   * SortOrder                  = '+' | '-'
-  * Limit                      = "limit", '(', IntegerLiteral, ',', IntegerLiteral, ')'
   * </pre>
   */
 private class RqlOptionParser(override val input: ParserInput) extends RqlParserBase(input) {
@@ -51,10 +50,10 @@ private class RqlOptionParser(override val input: ParserInput) extends RqlParser
   }
 
   /**
-    * Option                     = Sort | Limit | Cursor | Size
+    * Option                     = Sort | Cursor | Size
     */
   private def Option: Rule1[model.Option] = rule {
-    Sort | Limit | Cursor | Size
+    Sort | Cursor | Size
   }
 
   /**
@@ -90,14 +89,6 @@ private class RqlOptionParser(override val input: ParserInput) extends RqlParser
   }
 
   /**
-    * Limit                      = "limit", '(', IntegerLiteral, ',', IntegerLiteral, ')'
-    */
-  private def Limit: Rule1[LimitOption] = rule {
-    "limit" ~ '(' ~ LongLiteral ~ ',' ~ LongLiteral ~ ')' ~> ((offset: java.lang.Long, count: java.lang.Long) =>
-      SearchModelFactory.newLimitOption(offset.toInt, count.toInt))
-  }
-
-  /**
     * Cursor                      = "cursor", '(', StringLiteral, ')'
     */
   private def Cursor[CursorOption] = rule {
@@ -114,6 +105,7 @@ private class RqlOptionParser(override val input: ParserInput) extends RqlParser
   }
 
   private def CursorString: Rule1[String] = PropertyLiteral
+
 }
 
 /**
@@ -141,4 +133,5 @@ object RqlOptionParser extends OptionParser {
   }
 
   private def rqlOptionsParser(string: String): RqlOptionParser = new RqlOptionParser(ParserInput.apply(string))
+
 }

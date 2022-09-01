@@ -112,4 +112,5 @@ public class CreateBsonVisitor implements CriteriaVisitor<Bson> {
     public Bson visitAnd(final List<Bson> conjuncts) {
         return Filters.and(conjuncts);
     }
+
 }

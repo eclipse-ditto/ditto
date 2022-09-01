@@ -24,15 +24,6 @@ import org.eclipse.ditto.json.JsonValue;
 public interface SearchResultBuilder {
 
     /**
-     * Set the offset of the next page if there are more matching results available or {@link
-     * SearchResult#NO_NEXT_PAGE}, if there is no next page.
-     *
-     * @param nextPageOffset the offset of the next page.
-     * @return this builder to allow method chaining.
-     */
-    SearchResultBuilder nextPageOffset(@Nullable Long nextPageOffset);
-
-    /**
      * Set the cursor of the next page if there are more matching results available or {@code * null}, if there is no
      * next page.
      *

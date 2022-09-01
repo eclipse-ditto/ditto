@@ -26,8 +26,8 @@ public interface SizeOption extends Option {
 
     /**
      * Returns the string representation of this option. The string consists of the prefix {@code "size("}
-     * which is followed by the size value and finally of the suffix {@code ")"}. An
-     * example string might look like {@code "size(25)"};
+     * which is followed by the size value and finally of the suffix {@code ")"}.
+     * An example string might look like {@code "size(25)"};
      *
      * @return the string representation of this option.
      */

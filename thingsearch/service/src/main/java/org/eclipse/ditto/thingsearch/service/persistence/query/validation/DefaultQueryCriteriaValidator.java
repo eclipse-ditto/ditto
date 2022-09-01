@@ -42,4 +42,5 @@ public final class DefaultQueryCriteriaValidator implements QueryCriteriaValidat
     public CompletionStage<Query> validateQuery(final Command<?> command, final Query query) {
         return CompletableFuture.completedStage(query);
     }
+
 }

@@ -64,4 +64,5 @@ final class ImmutableCursorOption implements CursorOption {
     public String toString() {
         return "cursor(" + cursor + ")";
     }
+
 }

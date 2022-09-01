@@ -286,8 +286,7 @@ public final class SearchActor extends AbstractActor {
                         final var query =
                                 ThingsSearchCursor.adjust(cursor, parsedQuery, queryParser.getCriteriaFactory());
                         stopTimer(queryParsingTimer);
-                        searchTimer.startNewSegment(
-                                DATABASE_ACCESS_SEGMENT_NAME); // segment stopped by stopTimerAndHandleError
+                        searchTimer.startNewSegment(DATABASE_ACCESS_SEGMENT_NAME); // segment stopped by stopTimerAndHandleError
                         final List<String> subjectIds =
                                 streamThings.getDittoHeaders()
                                         .getAuthorizationContext()
@@ -443,8 +442,7 @@ public final class SearchActor extends AbstractActor {
         } else {
             // only respond with the determined "thingIds", the lookup of the things is done in gateway:
             final JsonArray items = getItems(thingIds);
-            final var searchResults =
-                    SearchModelFactory.newSearchResult(items, thingIds.nextPageOffset());
+            final var searchResults = SearchModelFactory.newSearchResult(items);
             final var processedResults =
                     ThingsSearchCursor.processSearchResult(queryThings, cursor, searchResults, thingIds);
 
@@ -470,6 +468,7 @@ public final class SearchActor extends AbstractActor {
                 .tag(API_VERSION_TAG, version.toString())
                 .start();
         DittoTracing.wrapTimer(DittoTracing.extractTraceContext(withDittoHeaders), startedTimer);
+
         return startedTimer;
     }
 

@@ -107,6 +107,18 @@
                             <!--<exclude></exclude>-->
                             <exclude>org.eclipse.ditto.thingsearch.model.signals.commands.query.StreamThings</exclude>
                             <exclude>org.eclipse.ditto.thingsearch.model.signals.events.ThingsOutOfSync</exclude>
+                            <exclude>org.eclipse.ditto.thingsearch.model.LimitOption</exclude>
+                            <exclude>org.eclipse.ditto.thingsearch.model.OptionVisitor#visit(org.eclipse.ditto.thingsearch.model.LimitOption)</exclude>
+                            <exclude>org.eclipse.ditto.thingsearch.model.SearchModelFactory#newLimitOption(int,int)</exclude>
+                            <exclude>org.eclipse.ditto.thingsearch.model.SearchQuery#getAllOptions()</exclude>
+                            <exclude>org.eclipse.ditto.thingsearch.model.SearchQuery#getLimitOption()</exclude>
+                            <exclude>org.eclipse.ditto.thingsearch.model.SearchQueryBuilder#limit(int,int)</exclude>
+                            <exclude>org.eclipse.ditto.thingsearch.model.SearchQueryBuilder#removeLimitation()</exclude>
+                            <exclude>org.eclipse.ditto.thingsearch.model.SearchModelFactory#newSearchResult(org.eclipse.ditto.json.JsonArray,long)</exclude>
+                            <exclude>org.eclipse.ditto.thingsearch.model.SearchResult#getNextPageOffset()</exclude>
+                            <exclude>org.eclipse.ditto.thingsearch.model.SearchResult#NO_NEXT_PAGE</exclude>
+                            <exclude>org.eclipse.ditto.thingsearch.model.SearchResult$JsonFields#NEXT_PAGE_OFFSET</exclude>
+                            <exclude>org.eclipse.ditto.thingsearch.model.SearchResultBuilder#nextPageOffset(java.lang .Long)</exclude>
                         </excludes>
                     </parameter>
                 </configuration>

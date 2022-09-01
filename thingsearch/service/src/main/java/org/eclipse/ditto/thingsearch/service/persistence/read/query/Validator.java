@@ -22,36 +22,19 @@ import javax.annotation.concurrent.Immutable;
 @Immutable
 final class Validator {
 
-    private static final String LIMIT_PARAM = "limit";
     private static final String SIZE_PARAM = "size";
-    private static final String SKIP_PARAM = "skip";
 
     private Validator() {
         throw new AssertionError();
     }
 
-    static int checkLimit(final long limit, final int maxLimit) {
-        return checkMaxLimit(checkMinLimit(limit), maxLimit);
-    }
 
     static int checkSize(final long size, final int maxLimit) {
         return checkMaxSize(checkMinSize(size), maxLimit);
     }
 
-    static int checkSkip(final long skip) {
-        return checkMaxSkip(checkMinSkip(skip));
-    }
-
-    private static long checkMinLimit(final long limit) {
-        return checkMinParamValue(limit, LIMIT_PARAM);
-    }
-
     private static long checkMinSize(final long limit) {
         return checkMinParamValue(limit, SIZE_PARAM);
-    }
-
-    private static long checkMinSkip(final long limit) {
-        return checkMinParamValue(limit, SKIP_PARAM);
     }
 
     private static long checkMinParamValue(final long limit, final String paramName) {
@@ -62,13 +45,6 @@ final class Validator {
         return limit;
     }
 
-    private static int checkMaxSkip(final long skip) {
-        return checkMaxParamValue(skip, Integer.MAX_VALUE, SKIP_PARAM);
-    }
-
-    private static int checkMaxLimit(final long limit, final int maxLimit) {
-        return checkMaxParamValue(limit, maxLimit, LIMIT_PARAM);
-    }
     private static int checkMaxSize(final long limit, final int maxLimit) {
         return checkMaxParamValue(limit, maxLimit, SIZE_PARAM);
     }

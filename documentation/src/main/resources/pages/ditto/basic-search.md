@@ -17,8 +17,8 @@ The functionality is available for the following APIs.
 ## Search index
 
 Ditto's microservice [things-search](architecture-services-things-search.html) automatically consumes all 
-[events](basic-signals-event.html) which are emitted for changes to `Things` and `Policies` and updates an for search 
-optimized representation of the `Thing` data into its own database.
+[events](basic-signals-event.html) which are emitted for changes to `Things` and `Policies` and updates the search 
+index which contains an optimized representation of the `Thing` data. The search service has its own database.
 
 No custom indexes have to be defined as the structure in the database is "flattened" so that all data contained in 
 [Things](basic-thing.html) can be searched for efficiently.
@@ -58,7 +58,7 @@ Paging:     size(5),cursor(CURSOR_ID)
 ## Search count queries 
 
 The same syntax applies for search count queries - only the [sorting](basic-rql.html#rql-sorting) and 
-[paging](#rql-paging-deprecated) makes no sense here, so there are not necessary to specify. 
+[paging](#rql-paging-deprecated) makes no sense here, so they are not necessary to specify. 
 
 
 ## Namespaces
@@ -107,32 +107,3 @@ of the cursor. Otherwise, the request is rejected.
 option=size(10),cursor(<cursor-from-previous-result>)
 ```
 
-## RQL paging (deprecated)
-
-{% include note.html content="The limit option is deprecated, it may be removed in future releases. Use [cursor-based 
-paging](basic-search.html#sorting-and-paging-options) instead." %}
-
-The RQL limiting part specifies which part (or "page") should be returned of a large search result set.
-
-```
-limit(<offset>,<count>)
-```
-
-Limits the search results to `<count>` items, starting with the item at index `<offset>`. 
-* if the paging option is not explicitly specified, the **default** value `limit(0,25)` is used, 
-  i.e. the first `25` results are returned.
-* the **maximum** allowed count is `200`.
-
-**Example - return the first ten items**
-```
-limit(0,10)
-```
-
-**Example - return the items 11 to 20**
-```
-limit(10,10)
-```
-i.e. Return the next ten items (from index 11 to 20)
-
-{% include note.html content="We recommend **not to use high offsets** (e.g. higher than 10000) for paging
-    because of potential performance degradations." %}

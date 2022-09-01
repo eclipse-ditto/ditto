@@ -13,14 +13,11 @@ get:
   description: |-
     This resource can be used to count things.
 
-    The query parameter `filter` is not mandatory. If it is not set there is
-    returned the total amount of things which the logged in user is allowed
-    to read.
+    The query parameter `filter` is not mandatory. If it is not set there is returned the total amount of things 
+    which the logged in user is allowed to read.
 
-    To search for nested properties, we use JSON Pointer notation
-    (RFC-6901). See the following example how to search for the sub property
-    `location` of the parent property `attributes` with a forward slash as
-    separator:
+    To search for nested properties, we use JSON Pointer notation (RFC-6901). See the following example how to search
+    for the sub property `location` of the parent property `attributes` with a forward slash as separator:
 
     ```eq(attributes/location,"kitchen")```
   parameters:
@@ -38,8 +35,7 @@ get:
             type: integer
     '400':
       description: |-
-        The request could not be completed. A provided parameter is in a
-        wrong format.
+        The request could not be completed. A provided parameter is in a wrong format.
       content:
         application/json:
           schema:

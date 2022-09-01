@@ -109,6 +109,10 @@
                             <!-- Don't add excludes here before checking with the whole Ditto team -->
                             <!--<exclude></exclude>-->
                             <exclude>org.eclipse.ditto.rql.query.LikeHelper</exclude>
+                            <exclude>org.eclipse.ditto.rql.query.Query#getLimit()</exclude>
+                            <exclude>org.eclipse.ditto.rql.query.Query#getSkip()</exclude>
+                            <exclude>org.eclipse.ditto.rql.query.QueryBuilder#limit(long)</exclude>
+                            <exclude>org.eclipse.ditto.rql.query.QueryBuilder#skip(long)</exclude>
                         </excludes>
                     </parameter>
                 </configuration>

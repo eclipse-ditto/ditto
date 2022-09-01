@@ -8,11 +8,11 @@ permalink: httpapi-search.html
 The [search aspect](basic-search.html) of Ditto can be accessed via an HTTP API.
 
 {% include note.html content="Find the HTTP API reference at the 
-    [Search resources](http-api-doc.html?urls.primaryName=api2#/Search)." %}
+[Search resources](http-api-doc.html?urls.primaryName=api2#/Search)." %}
 
-The concepts of the [RQL expression](basic-rql.html#rql-filter), [RQL sorting](basic-rql.html#rql-sorting) and 
-[RQL paging](basic-search.html#rql-paging-deprecated) are mapped to HTTP as query parameters which are added to 
-`GET` requests to the search endpoint:
+The concepts of the [RQL expression](basic-rql.html#rql-filter) and 
+[RQL sorting and paging options](basic-search.html#sorting-and-paging-options) are mapped to HTTP as query parameters
+which are added to `GET` requests to the search endpoint:
 
 ```
 http://localhost:8080/api/2/search/things
@@ -32,8 +32,7 @@ Default values of each option is documented [here](basic-search.html#sorting-and
 
 Complex example:
 ```
-GET .../search/things?filter=eq(attributes/location,"living-room")&option=sort(+thingId),limit(0,5)&namespaces=org
-.eclipse.ditto,foo.bar
+GET .../search/things?filter=eq(attributes/location,"living-room")&option=sort(+thingId),cursor(CURSOR_ID),size(10)&namespaces=org.eclipse.ditto,foo.bar
 ```
 
 Another Complex example with the `namespaces` parameter:

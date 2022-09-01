@@ -85,6 +85,7 @@ public final class MongoThingsSearchUpdaterPersistence implements ThingsSearchUp
                 collection.find(filter).projection(new Document()
                         .append(PersistenceConstants.FIELD_ID, new BsonInt32(1))
                         .append(PersistenceConstants.FIELD_POLICY_ID, new BsonInt32(1)));
+
         return Source.fromPublisher(publisher)
                 .mapConcat(doc -> {
                     final ThingId thingId = ThingId.of(doc.getString(PersistenceConstants.FIELD_ID));
@@ -107,6 +108,7 @@ public final class MongoThingsSearchUpdaterPersistence implements ThingsSearchUp
                 PersistenceConstants.FIELD_POLICY_REVISION, policyTag.getRevision()));
         final Publisher<Document> publisher =
                 collection.find(filter).projection(new BsonDocument(PersistenceConstants.FIELD_ID, new BsonInt32(1)));
+
         return Source.fromPublisher(publisher)
                 .map(doc -> doc.getString(PersistenceConstants.FIELD_ID))
                 .map(ThingId::of);

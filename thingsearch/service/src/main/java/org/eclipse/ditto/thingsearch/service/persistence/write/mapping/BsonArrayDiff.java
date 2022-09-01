@@ -76,6 +76,7 @@ final class BsonArrayDiff {
                 // use 0 as default value to re-use root grant/revoke
                 (doc, j) -> kMap.getOrDefault(doc.get(FIELD_FEATURE_ID), 0);
         final BsonValue difference = diff(internalArrayKey, minuend, subtrahend, maxWireVersion, kMapGet);
+
         return new BsonDiff(
                 replacementSize,
                 bsonSizeVisitor.eval(difference),
@@ -106,6 +107,7 @@ final class BsonArrayDiff {
             for (final var element : elements) {
                 result.add(element.toBsonValue());
             }
+
             return result;
         }
     }
@@ -128,6 +130,7 @@ final class BsonArrayDiff {
                 result.add(new Replace(element));
             }
         }
+
         return result;
     }
 
@@ -135,6 +138,7 @@ final class BsonArrayDiff {
         final BsonArray args = new BsonArray();
         args.add(subtrahendExpr);
         args.add(new BsonInt32(i));
+
         return new BsonDocument().append(ARRAY_ELEM_AT, args);
     }
 
@@ -168,6 +172,7 @@ final class BsonArrayDiff {
             // Add element as a new group.
             aggregated.add(element.toSingletonGroup());
         }
+
         return aggregated;
     }
 

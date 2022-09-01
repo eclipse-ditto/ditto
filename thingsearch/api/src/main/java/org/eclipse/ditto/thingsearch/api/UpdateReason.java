@@ -48,4 +48,5 @@ public enum UpdateReason {
      * A force update is executed after actor startup to ensure consistency against the database.
      */
     FORCE_UPDATE_AFTER_START
+
 }

@@ -71,12 +71,14 @@ final class EvaluatedPolicy {
                 }
             });
         }
+
         return new EvaluatedPolicy(thingPermissions, featurePermissions);
     }
 
     BsonDocument forThing() {
         final var doc = new BsonDocument();
         thingPermissions.forEach((path, permissions) -> addPermissions(doc, path, permissions));
+
         return doc;
     }
 
@@ -92,6 +94,7 @@ final class EvaluatedPolicy {
             featurePermissions.get(featureId)
                     .forEach((path, permissions) -> addPermissions(doc, path, permissions));
         }
+
         return doc;
     }
 
@@ -104,6 +107,7 @@ final class EvaluatedPolicy {
         for (final var subject : globalReadSubjects) {
             array.add(new BsonString(subject));
         }
+
         return array;
     }
 
@@ -151,6 +155,7 @@ final class EvaluatedPolicy {
     private static BsonArray toSubjectsBson(final Set<String> subjects) {
         final var array = new BsonArray();
         subjects.forEach(subject -> array.add(new BsonString(subject)));
+
         return array;
     }
 
@@ -173,6 +178,7 @@ final class EvaluatedPolicy {
                         map.put(resource.getPath(), true);
                     }
                 });
+
         return map;
     }
 
@@ -216,6 +222,8 @@ final class EvaluatedPolicy {
 
     private static BsonDocument merge(final BsonDocument b1, final BsonDocument b2) {
         b1.forEach(b2::append);
+
         return b1;
     }
+
 }

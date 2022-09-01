@@ -110,6 +110,7 @@ public final class ThingWriteModel extends AbstractWriteModel {
                 .append(FIELD_THING, new BsonDocument())
                 .append(FIELD_POLICY, new BsonDocument())
                 .append(FIELD_F_ARRAY, new BsonArray());
+
         return new ThingWriteModel(metadata, emptiedOutThingDocument, false, 0L);
     }
 
@@ -179,6 +180,7 @@ public final class ThingWriteModel extends AbstractWriteModel {
             return false;
         }
         final ThingWriteModel that = (ThingWriteModel) o;
+
         return thingDocument.equals(that.thingDocument) &&
                 isPatchUpdate == that.isPatchUpdate &&
                 previousRevision == that.previousRevision;
@@ -235,6 +237,7 @@ public final class ThingWriteModel extends AbstractWriteModel {
             FULL_UPDATE_COUNT.increment();
             isPatchUpdate = false;
         }
+
         return Optional.of(MongoWriteModel.of(this, mongoWriteModel, isPatchUpdate));
     }
 
@@ -264,4 +267,5 @@ public final class ThingWriteModel extends AbstractWriteModel {
 
         return isStrictlyOlder || hasSameRevisions;
     }
+
 }

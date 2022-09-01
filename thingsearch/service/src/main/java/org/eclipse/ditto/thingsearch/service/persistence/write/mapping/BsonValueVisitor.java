@@ -33,13 +33,11 @@ interface BsonValueVisitor<T> {
     }
 
     default T eval(final JsonPointer key, final BsonValue value) {
-        switch (value.getBsonType()) {
-            case DOCUMENT:
-                return object(key, value.asDocument());
-            case ARRAY:
-                return array(key, value.asArray());
-            default:
-                return primitive(key, value);
-        }
+        return switch (value.getBsonType()) {
+            case DOCUMENT -> object(key, value.asDocument());
+            case ARRAY -> array(key, value.asArray());
+            default -> primitive(key, value);
+        };
     }
+
 }

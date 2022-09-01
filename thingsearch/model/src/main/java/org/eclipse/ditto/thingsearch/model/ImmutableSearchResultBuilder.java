@@ -29,7 +29,6 @@ import org.eclipse.ditto.json.JsonValue;
 final class ImmutableSearchResultBuilder implements SearchResultBuilder {
 
     private final JsonArrayBuilder jsonArrayBuilder;
-    @Nullable private Long offset;
     @Nullable private String cursor;
 
     private ImmutableSearchResultBuilder(final JsonArrayBuilder theJsonArrayBuilder) {
@@ -42,8 +41,7 @@ final class ImmutableSearchResultBuilder implements SearchResultBuilder {
      * @return a new builder.
      */
     public static SearchResultBuilder newInstance() {
-        return new ImmutableSearchResultBuilder(JsonFactory.newArrayBuilder())
-                .nextPageOffset(SearchResult.NO_NEXT_PAGE);
+        return new ImmutableSearchResultBuilder(JsonFactory.newArrayBuilder());
     }
 
     /**
@@ -58,17 +56,9 @@ final class ImmutableSearchResultBuilder implements SearchResultBuilder {
         checkNotNull(searchResult, "search result");
 
         final JsonArrayBuilder jsonArrayBuilder = JsonFactory.newArrayBuilder(searchResult.getItems());
-        final Long nextPageOffset = searchResult.getNextPageOffset().orElse(null);
         final String cursor = searchResult.getCursor().orElse(null);
 
-        return new ImmutableSearchResultBuilder(jsonArrayBuilder).nextPageOffset(nextPageOffset)
-                .cursor(cursor);
-    }
-
-    @Override
-    public SearchResultBuilder nextPageOffset(@Nullable final Long nextPageOffset) {
-        offset = nextPageOffset;
-        return this;
+        return new ImmutableSearchResultBuilder(jsonArrayBuilder).cursor(cursor);
     }
 
     @Override
@@ -98,7 +88,7 @@ final class ImmutableSearchResultBuilder implements SearchResultBuilder {
     @Override
     public SearchResult build() {
         final JsonArray searchResultsJsonArray = jsonArrayBuilder.build();
-        return ImmutableSearchResult.of(searchResultsJsonArray, offset, cursor);
+        return ImmutableSearchResult.of(searchResultsJsonArray, cursor);
     }
 
 }

@@ -118,8 +118,7 @@ public interface ThingsSearchPersistence {
         return findAll(query, authorizationSubjectIds, null)
                 .map(resultList -> {
                     final var thingIds = resultList.stream().map(TimestampedThingId::thingId).toList();
-                    return new ResultListImpl<>(thingIds, resultList.nextPageOffset(),
-                            resultList.lastResultSortValues().orElse(null));
+                    return new ResultListImpl<>(thingIds, resultList.lastResultSortValues().orElse(null));
                 });
     }
 

@@ -58,6 +58,7 @@ public final class ThingSearchMappingStrategies extends MappingStrategies {
             result = new ThingSearchMappingStrategies(getThingSearchMappingStrategies());
             instance = result;
         }
+
         return result;
     }
 

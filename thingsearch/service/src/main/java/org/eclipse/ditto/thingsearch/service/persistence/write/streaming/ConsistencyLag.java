@@ -14,8 +14,8 @@ package org.eclipse.ditto.thingsearch.service.persistence.write.streaming;
 
 import java.util.Optional;
 
-import org.eclipse.ditto.thingsearch.service.persistence.write.model.Metadata;
 import org.eclipse.ditto.internal.utils.metrics.instruments.timer.StartedTimer;
+import org.eclipse.ditto.thingsearch.service.persistence.write.model.Metadata;
 
 /**
  * Timer segment names of the search updater consistency lag timer and helper methods to stop and start the segments.
@@ -139,4 +139,5 @@ public final class ConsistencyLag {
             }
         });
     }
+
 }

@@ -119,4 +119,5 @@ interface BsonPrimitiveValueVisitor<T> {
                 throw new IllegalArgumentException("Unsupported primitive BsonValue " + value);
         }
     }
+
 }

@@ -47,12 +47,11 @@ public final class SearchModelFactory {
      * Creates a new {@link SearchResult}.
      *
      * @param items the items.
-     * @param nextPageOffset the offset of the next page or {@link org.eclipse.ditto.thingsearch.model.SearchResult#NO_NEXT_PAGE}.
      * @return the new immutable search results object.
      * @throws NullPointerException if {@code items} is {@code null}.
      */
-    public static SearchResult newSearchResult(final JsonArray items, final long nextPageOffset) {
-        return ImmutableSearchResult.of(items, nextPageOffset, null);
+    public static SearchResult newSearchResult(final JsonArray items) {
+        return ImmutableSearchResult.of(items, null);
     }
 
     /**
@@ -160,8 +159,8 @@ public final class SearchModelFactory {
      * final SearchProperty searchProperty = SearchModelFactory.property("attributes/manufacturer");
      * final PropertySearchFilter searchFilter = searchProperty.eq("Bosch");
      *
-     * final SearchQuery query = SearchModelFactory.newSearchQueryBuilder(searchFilter) //
-     *    .limit(0, 25) //
+     * final SearchQuery query = SearchModelFactory.newSearchQueryBuilder(searchFilter)
+     *    .sortAsc("attributes/manufacturer")
      *    .build();
      * </pre>
      *
@@ -180,8 +179,8 @@ public final class SearchModelFactory {
      * final SearchProperty searchProperty = SearchModelFactory.property("attributes/manufacturer");
      * final PropertySearchFilter searchFilter = searchProperty.eq("Bosch");
      *
-     * final SearchQuery query = SearchModelFactory.newSearchQueryBuilder(searchFilter) //
-     *    .limit(0, 25) //
+     * final SearchQuery query = SearchModelFactory.newSearchQueryBuilder(searchFilter)
+     *    .sortAsc("attributes/manufacturer")
      *    .build();
      * </pre>
      *
@@ -252,17 +251,6 @@ public final class SearchModelFactory {
             final SortOptionEntry.SortOrder sortOrder) {
 
         return ImmutableSortOptionEntry.of(propertyPath, sortOrder);
-    }
-
-    /**
-     * Creates a new {@link LimitOption} for the provided {@code offset} and {@code count}.
-     *
-     * @param offset the offset to use for the LimitOption
-     * @param count the count to include in the LimitOption
-     * @return the created LimitOption
-     */
-    public static LimitOption newLimitOption(final int offset, final int count) {
-        return ImmutableLimitOption.of(offset, count);
     }
 
     /**

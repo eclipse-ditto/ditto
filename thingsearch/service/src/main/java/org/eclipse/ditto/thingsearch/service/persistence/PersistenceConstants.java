@@ -188,7 +188,6 @@ public final class PersistenceConstants {
      */
     public static final String FIELD_PATH_MODIFIED = FIELD_THING + DOT + FIELD_MODIFIED;
 
-    private PersistenceConstants() {
-    }
+    private PersistenceConstants() {}
 
 }

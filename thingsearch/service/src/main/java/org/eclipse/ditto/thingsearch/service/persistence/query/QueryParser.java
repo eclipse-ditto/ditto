@@ -145,4 +145,5 @@ public final class QueryParser {
                     .build();
         }
     }
+
 }

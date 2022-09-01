@@ -43,4 +43,5 @@ public interface ThingsSearchUpdaterPersistence extends NamespacePersistenceOper
      * @return a Source holding the publisher to execute the operation.
      */
     Source<ThingId, NotUsed> getOutdatedThingIds(PolicyTag policyTag);
+
 }

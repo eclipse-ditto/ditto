@@ -18,13 +18,13 @@ import static org.eclipse.ditto.thingsearch.service.persistence.PersistenceConst
 import java.util.Collections;
 import java.util.List;
 
+import org.eclipse.ditto.base.service.config.limits.DefaultLimitsConfig;
+import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import org.eclipse.ditto.rql.query.Query;
 import org.eclipse.ditto.rql.query.SortDirection;
 import org.eclipse.ditto.rql.query.SortOption;
 import org.eclipse.ditto.rql.query.criteria.Criteria;
 import org.eclipse.ditto.rql.query.expression.SimpleFieldExpression;
-import org.eclipse.ditto.base.service.config.limits.DefaultLimitsConfig;
-import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -93,35 +93,23 @@ public final class MongoQueryBuilderLimitedTest {
     }
 
     @Test
-    public void buildWithLimit() {
-        final int limit = maxPageSizeFromConfig - 1;
-        final Query query = underTest.limit(limit).build();
+    public void buildWithSize() {
+        final int size = maxPageSizeFromConfig - 1;
+        final Query query = underTest.size(size).build();
 
-        assertThat(query.getLimit()).isEqualTo(limit);
+        assertThat(query.getSize()).isEqualTo(size);
     }
 
-    @Test
-    public void buildWithSkip() {
-        final int skip = 4;
-        final Query query = underTest.skip(skip).build();
-
-        assertThat(query.getSkip()).isEqualTo(skip);
-    }
 
     @Test(expected = IllegalArgumentException.class)
     public void buildWithLimitGreaterThanMaxValue() {
         final long limitTooHigh = (long) maxPageSizeFromConfig + 1;
-        underTest.limit(limitTooHigh);
+        underTest.size(limitTooHigh);
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void buildWithLimitLessThanZero() {
-        underTest.limit(-1);
-    }
-
-    @Test(expected = IllegalArgumentException.class)
-    public void buildWithSkipLessThanZero() {
-        underTest.skip(-1);
+        underTest.size(-1);
     }
 
 }

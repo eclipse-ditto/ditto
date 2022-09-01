@@ -22,6 +22,8 @@ import java.util.List;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import org.eclipse.ditto.base.service.config.limits.DefaultLimitsConfig;
+import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.rql.query.Query;
 import org.eclipse.ditto.rql.query.QueryBuilder;
@@ -30,10 +32,8 @@ import org.eclipse.ditto.rql.query.SortOption;
 import org.eclipse.ditto.rql.query.expression.ThingsFieldExpressionFactory;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingId;
-import org.eclipse.ditto.base.service.config.limits.DefaultLimitsConfig;
 import org.eclipse.ditto.thingsearch.service.common.model.ResultList;
 import org.eclipse.ditto.thingsearch.service.persistence.TestConstants;
-import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -42,19 +42,16 @@ import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
 /**
- * Tests for the paging functionality of search persistence.
+ * Tests for the size option of search persistence.
  */
-public final class PagingIT extends AbstractReadPersistenceITBase {
+public final class SizeIT extends AbstractReadPersistenceITBase {
 
-    private static final int KNOWN_LIMIT = 2;
+    private static final int KNOWN_SIZE = 2;
     private static final ThingId THING_ID1 = TestConstants.thingId(TestConstants.Thing.NAMESPACE, "thingId1");
     private static final ThingId THING_ID2 = TestConstants.thingId(TestConstants.Thing.NAMESPACE, "thingId2");
     private static final ThingId THING_ID3 = TestConstants.thingId(TestConstants.Thing.NAMESPACE, "thingId3");
-    private static final ThingId THING_ID4 = TestConstants.thingId(TestConstants.Thing.NAMESPACE, "thingId4");
-    private static final ThingId THING_ID5 = TestConstants.thingId(TestConstants.Thing.NAMESPACE, "thingId5");
-    private static final ThingId THING_ID6 = TestConstants.thingId(TestConstants.Thing.NAMESPACE, "thingId6");
-    private static final List<ThingId> THING_IDS = Arrays.asList(THING_ID1, THING_ID2, THING_ID3, THING_ID4, THING_ID5,
-            THING_ID6);
+
+    private static final List<ThingId> THING_IDS = Arrays.asList(THING_ID1, THING_ID2, THING_ID3);
 
     private static DefaultLimitsConfig limitsConfig;
 
@@ -76,73 +73,34 @@ public final class PagingIT extends AbstractReadPersistenceITBase {
     }
 
     @Test
-    public void pageWithItemsCountLessThanLimit() {
+    public void resultWithItemsCountEqualToSize() {
+        // prepare
+        insertThings(THING_IDS);
+
+        final ResultList<ThingId> result = executeVersionedQueryWithChangeOptions(query -> query.size(KNOWN_SIZE));
+
+        // verify
+        final List<ThingId> expectedList = Arrays.asList(THING_ID1, THING_ID2);
+        assertResult(result, expectedList);
+    }
+
+    @Test
+    public void resultWithItemsCountLessThanSize() {
         // prepare
         final List<ThingId> oneThingList = Collections.singletonList(THING_ID1);
         insertThings(oneThingList);
 
-        final ResultList<ThingId> result = executeVersionedQueryWithChangeOptions(query -> query.limit(KNOWN_LIMIT));
+        final ResultList<ThingId> result = executeVersionedQueryWithChangeOptions(query -> query.size(KNOWN_SIZE));
 
         // verify
-        assertPaging(result, oneThingList, ResultList.NO_NEXT_PAGE);
+        assertResult(result, oneThingList);
     }
 
     @Test
-    public void pageWithItemsCountEqualToLimit() {
+    public void defaultSizeValue() {
         // prepare
-        insertThings(THING_IDS);
-
-        final ResultList<ThingId> result = executeVersionedQueryWithChangeOptions(query -> query.limit(KNOWN_LIMIT));
-
-        // verify
-        final List<ThingId> expectedList = Arrays.asList(THING_ID1, THING_ID2);
-        assertPaging(result, expectedList, KNOWN_LIMIT);
-    }
-
-    @Test
-    public void pageWithSkipAndLimitLessThanTotalItems() {
-        // prepare
-        insertThings(THING_IDS);
-
-        final ResultList<ThingId> result =
-                executeVersionedQueryWithChangeOptions(query -> query.limit(KNOWN_LIMIT).skip(KNOWN_LIMIT));
-
-        // verify
-        final List<ThingId> expectedList = Arrays.asList(THING_ID3, THING_ID4);
-        assertPaging(result, expectedList, KNOWN_LIMIT * 2);
-    }
-
-    @Test
-    public void lastPageWithItemsCountLessThanLimit() {
-        // prepare
-        insertThings(THING_IDS.subList(0, THING_IDS.size() - 1));
-
-        final ResultList<ThingId> result =
-                executeVersionedQueryWithChangeOptions(query -> query.limit(KNOWN_LIMIT).skip(KNOWN_LIMIT * 2));
-
-        // verify
-        final List<ThingId> expectedList = Collections.singletonList(THING_ID5);
-        assertPaging(result, expectedList, ResultList.NO_NEXT_PAGE);
-    }
-
-    @Test
-    public void lastPageWithItemsCountEqualToLimit() {
-        // prepare
-        insertThings(THING_IDS);
-
-        final ResultList<ThingId> result =
-                executeVersionedQueryWithChangeOptions(query -> query.limit(KNOWN_LIMIT).skip(KNOWN_LIMIT * 2));
-
-        // verify
-        final List<ThingId> expectedList = Arrays.asList(THING_ID5, THING_ID6);
-        assertPaging(result, expectedList, ResultList.NO_NEXT_PAGE);
-    }
-
-    @Test
-    public void defaultLimitValue() {
-        // prepare
-        final int moreThanLimit = 30;
-        final long totalThingsCount = defaultPageSizeFromConfig + moreThanLimit;
+        final int moreThanDefaultPageSize = 30;
+        final long totalThingsCount = defaultPageSizeFromConfig + moreThanDefaultPageSize;
         final List<ThingId> allThings = new ArrayList<>((int) totalThingsCount);
         final ThingId baseThingId = TestConstants.thingId(TestConstants.Thing.NAMESPACE, "thingId");
         for (int i = 0; i < totalThingsCount; i++) {
@@ -156,39 +114,44 @@ public final class PagingIT extends AbstractReadPersistenceITBase {
 
         // verify
         final List<ThingId> expectedList = allThings.subList(0, defaultPageSizeFromConfig);
-        assertPaging(result, expectedList, defaultPageSizeFromConfig);
+        assertResult(result, expectedList);
     }
 
     @Test(expected = IllegalArgumentException.class)
-    public void limitValueExceedsMaximum() {
-        executeVersionedQueryWithChangeOptions(query -> query.limit(maxPageSizeFromConfig + 1));
+    public void sizeValueExceedsMaximum() {
+        executeVersionedQueryWithChangeOptions(query -> query.size(maxPageSizeFromConfig + 1));
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void sizeValueBelowMinimum() {
+        executeVersionedQueryWithChangeOptions(query -> query.size(-1));
     }
 
     @Test
-    public void pageSkipsDeletedItems() {
+    public void resultSkipsDeletedItems() {
         // prepare
         insertThings(THING_IDS);
 
         // delete Thing from first page
-        final int limit = 3;
-        final ThingId thingToDelete = THING_IDS.get(limit - 1);
+        final int size = 3;
+        final ThingId thingToDelete = THING_IDS.get(size - 1);
         deleteThing(thingToDelete, 1L, PolicyId.of(thingToDelete.toString()), 1L);
 
-        final ResultList<ThingId> result = executeVersionedQueryWithChangeOptions(query -> query.limit(limit));
+        final ResultList<ThingId> result = executeVersionedQueryWithChangeOptions(query -> query.size(size));
 
         // verify
         final List<ThingId> expectedList = THING_IDS.stream()
                 .filter(id -> !thingToDelete.equals(id))
-                .limit(limit)
+                .limit(size)
                 .collect(Collectors.toList());
-        assertPaging(result, expectedList, limit);
+
+        assertResult(result, expectedList);
     }
 
-    private static void assertPaging(final ResultList<ThingId> actualResult, final List<ThingId> expectedList,
-            final long expectedNextPageOffset) {
+    private static void assertResult(final ResultList<ThingId> actualResult, final List<ThingId> expectedList) {
 
         assertThat(actualResult).containsOnly(expectedList.toArray(new ThingId[0]));
-        assertThat(actualResult.nextPageOffset()).isEqualTo(expectedNextPageOffset);
+        assertThat(actualResult).hasSize(expectedList.size());
     }
 
     private void insertThings(final Collection<ThingId> thingIds) {

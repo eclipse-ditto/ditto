@@ -36,20 +36,22 @@ abstract class SearchFilterAssert<S extends AbstractAssert<S, F>, F extends Sear
     public S hasType(final SearchFilter.Type expectedType) {
         isNotNull();
         final SearchFilter.Type actualType = actual.getType();
-        Assertions.assertThat(actualType) //
+        Assertions.assertThat(actualType)
                 .overridingErrorMessage("Expected SearchFilter to have type \n<%s> but it had \n<%s>", expectedType,
-                        actualType) //
+                        actualType)
                 .isSameAs(expectedType);
+
         return myself;
     }
 
     public S hasStringRepresentation(final String expectedStringRepresentation) {
         isNotNull();
         final String actualStringRepresentation = actual.toString();
-        Assertions.assertThat(actualStringRepresentation) //
+        Assertions.assertThat(actualStringRepresentation)
                 .overridingErrorMessage("Expected string representation of SearchFilter to be \n<%s> but it was \n<%s>",
-                        expectedStringRepresentation, actualStringRepresentation) //
+                        expectedStringRepresentation, actualStringRepresentation)
                 .isEqualTo(expectedStringRepresentation);
+
         return myself;
     }
 

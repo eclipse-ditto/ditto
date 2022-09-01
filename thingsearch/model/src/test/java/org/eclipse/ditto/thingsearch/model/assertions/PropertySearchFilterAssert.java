@@ -44,6 +44,7 @@ public final class PropertySearchFilterAssert
                         expectedPath,
                         actualPath)
                 .isEqualTo(expectedPath);
+
         return this;
     }
 
@@ -54,6 +55,7 @@ public final class PropertySearchFilterAssert
                 .overridingErrorMessage("Expected PropertySearchFilterAssert not to have any values but it had <%s>",
                         actualValues)
                 .isEmpty();
+
         return this;
     }
 
@@ -64,6 +66,7 @@ public final class PropertySearchFilterAssert
                 .overridingErrorMessage("Expected PropertySearchFilter to have value(s) \n<%s> but it had \n<%s>",
                         expectedValues, actualValues)
                 .containsOnly(expectedValues);
+
         return this;
     }
 

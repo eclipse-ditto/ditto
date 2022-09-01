@@ -20,10 +20,6 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 import java.util.Collection;
 import java.util.Collections;
 
-import org.eclipse.ditto.json.JsonArray;
-import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingsModelFactory;
 import org.junit.Test;
@@ -50,58 +46,11 @@ public final class SearchModelFactoryTest {
 
 
     @Test
-    public void newSearchResult() {
-        final SearchResult searchResult =
-                SearchModelFactory.newSearchResult(JsonFactory.newArray(), SearchResult.NO_NEXT_PAGE);
-
-        assertThat(searchResult) //
-                .hasNoNextPage() //
-                .isEmpty();
-    }
-
-
-    @Test
-    public void newSearchResultFromJson() {
-        final JsonArray itemsArray = JsonFactory.newArrayBuilder() //
-                .add(1, 2, 3) //
-                .build();
-        final long nextPageOffset = 10L;
-        final String jsonStr = "{\"items\":" + itemsArray + ",\"nextPageOffset\":" + nextPageOffset + "}";
-        final JsonObject jsonObject = JsonFactory.newObject(jsonStr);
-
-        final SearchResult searchResult = SearchModelFactory.newSearchResult(jsonObject);
-
-        assertThat(searchResult) //
-                .containsExactlyElementsOf(itemsArray) //
-                .hasNextPageOffset(nextPageOffset);
-    }
-
-
-    @Test
-    public void newSearchResultFromJsonString() {
-        final JsonArray itemsArray = JsonFactory.newArrayBuilder() //
-                .add(1, 2, 3) //
-                .build();
-        final long nextPageOffset = 10L;
-        final String jsonStr = "{\"items\":" + itemsArray + ",\"nextPageOffset\":" + nextPageOffset + "}";
-
-        final SearchResult searchResult = SearchModelFactory.newSearchResult(jsonStr);
-
-        assertThat(searchResult) //
-                .containsExactlyElementsOf(itemsArray) //
-                .hasNextPageOffset(nextPageOffset);
-    }
-
-
-    @Test
     public void newSearchResultEmpty() {
         final SearchResult searchResult = SearchModelFactory.emptySearchResult();
 
-        assertThat(searchResult) //
-                .hasNoNextPage() //
-                .isEmpty();
+        assertThat(searchResult).isEmpty();
     }
-
 
     @Test(expected = NullPointerException.class)
     public void tryToCreateAndFilterWithNullFilter1() {
@@ -128,7 +77,6 @@ public final class SearchModelFactoryTest {
 
         assertThat(filters).hasSize(4);
     }
-
 
     @Test(expected = NullPointerException.class)
     public void tryToCreateOrFilterWithNullFilter1() {
@@ -217,4 +165,5 @@ public final class SearchModelFactoryTest {
                 SearchModelFactory.newSortOption(Collections.singletonList(expectedEntry));
         assertThat(actual).isEqualTo(expected);
     }
+
 }

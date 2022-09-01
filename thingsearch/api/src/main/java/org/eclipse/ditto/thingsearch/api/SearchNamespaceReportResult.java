@@ -141,7 +141,7 @@ public final class SearchNamespaceReportResult implements Jsonifiable.WithPredic
     public String toString() {
         return "SearchNamespaceReportResult{" +
                 "searchNamespaceResultEntries=" + searchNamespaceResultEntries +
-                '}';
+                "}";
     }
 
 }

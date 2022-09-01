@@ -94,8 +94,8 @@ public final class BackgroundSyncStream {
      */
     public Source<Metadata, NotUsed> filterForInconsistencies(final Source<Metadata, ?> metadataFromSnapshots,
             final Source<Metadata, ?> metadataFromSearchIndex) {
-
         final Comparator<Metadata> comparator = BackgroundSyncStream::compareMetadata;
+
         return MergeSortedAsPair.merge(emptyMetadata(), comparator, metadataFromSnapshots, metadataFromSearchIndex)
                 .throttle(throttleThroughput, throttlePeriod)
                 .flatMapConcat(this::filterForInconsistency);
@@ -208,8 +208,8 @@ public final class BackgroundSyncStream {
                                 return Source.single(error)
                                         .log("ErrorRetrievingPolicyRevision " + policyId)
                                         .map(e -> indexed.invalidateCaches(true, true));
-                            } else if (response instanceof SudoRetrievePolicyRevisionResponse) {
-                                final long revision = ((SudoRetrievePolicyRevisionResponse) response).getRevision();
+                            } else if (response instanceof SudoRetrievePolicyRevisionResponse sudoRetrievePolicyRevisionResponse) {
+                                final long revision = sudoRetrievePolicyRevisionResponse.getRevision();
                                 return indexed.getPolicyRevision()
                                         .filter(indexedPolicyRevision -> indexedPolicyRevision.equals(revision))
                                         .map(indexedPolicyRevision -> Source.<Metadata>empty())
@@ -221,6 +221,7 @@ public final class BackgroundSyncStream {
                                         .map(r -> indexed.invalidateCaches(true, true));
                             }
                         });
+
         return Source.completionStageSource(sourceCompletionStage)
                 .mapMaterializedValue(ignored -> NotUsed.getInstance());
     }
@@ -240,6 +241,7 @@ public final class BackgroundSyncStream {
     public static int compareThingIds(final ThingId thingId1, final ThingId thingId2) {
         final int emptyThingComparison =
                 Boolean.compare(thingId1.equals(EMPTY_THING_ID), thingId2.equals(EMPTY_THING_ID));
+
         return emptyThingComparison != 0 ? emptyThingComparison : thingId1.compareTo(thingId2);
     }
 
