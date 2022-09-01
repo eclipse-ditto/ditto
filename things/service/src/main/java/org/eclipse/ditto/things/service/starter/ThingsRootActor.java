@@ -23,6 +23,7 @@ import org.eclipse.ditto.internal.utils.aggregator.ThingsAggregatorConfig;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.internal.utils.cluster.RetrieveStatisticsDetailsResponseSupplier;
+import org.eclipse.ditto.internal.utils.cluster.ShardRegionCreator;
 import org.eclipse.ditto.internal.utils.cluster.ShardRegionExtractor;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.internal.utils.config.ScopedConfig;
@@ -50,8 +51,6 @@ import org.eclipse.ditto.things.service.persistence.actors.ThingsPersistenceStre
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
-import akka.cluster.sharding.ClusterSharding;
-import akka.cluster.sharding.ClusterShardingSettings;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.pf.ReceiveBuilder;
 import akka.pattern.Patterns;
@@ -95,12 +94,9 @@ public final class ThingsRootActor extends DittoRootActor {
                 blockedNamespaces,
                 policyEnforcerProvider
         );
-        final ActorRef thingsShardRegion = ClusterSharding.get(actorSystem)
-                .start(ThingsMessagingConstants.SHARD_REGION,
-                        thingSupervisorActorProps,
-                        ClusterShardingSettings.create(actorSystem).withRole(CLUSTER_ROLE),
-                        shardRegionExtractor
-                );
+        final ActorRef thingsShardRegion =
+                ShardRegionCreator.start(actorSystem, ThingsMessagingConstants.SHARD_REGION, thingSupervisorActorProps,
+                        clusterConfig.getNumberOfShards(), CLUSTER_ROLE);
 
         startChildActor(ThingPersistenceOperationsActor.ACTOR_NAME,
                 ThingPersistenceOperationsActor.props(pubSubMediator, thingsConfig.getMongoDbConfig(),

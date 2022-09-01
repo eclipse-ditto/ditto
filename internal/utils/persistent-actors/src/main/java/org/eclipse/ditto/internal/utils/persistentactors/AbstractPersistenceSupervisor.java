@@ -204,16 +204,17 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
         return true;
     }
 
-    protected Receive activeBehaviour(final FI.UnitApply<Control> matchProcessNextTwinMessageBehavior,
+    protected Receive activeBehaviour(
+            final Runnable matchProcessNextTwinMessageBehavior,
             final FI.UnitApply<Object> matchAnyBehavior) {
 
         return ReceiveBuilder.create()
                 .match(Terminated.class, this::childTerminated)
                 .matchEquals(Control.START_CHILDREN, this::startChildren)
                 .matchEquals(Control.PASSIVATE, this::passivate)
-                .matchEquals(Control.PROCESS_NEXT_TWIN_MESSAGE, decrementOpCounter(matchProcessNextTwinMessageBehavior))
                 .matchEquals(Control.SUDO_COMMAND_DONE, this::decrementSudoOpCounter)
-                .match(StopShardedActor.class, this::stopAfterOngoingOps)
+                .match(ProcessNextTwinMessage.class, decrementOpCounter(matchProcessNextTwinMessageBehavior))
+                .match(StopShardedActor.class, this::stopShardedActor)
                 .match(SudoCommand.class, this::forwardSudoCommandToChildIfAvailable)
                 .match(WithDittoHeaders.class, w -> w.getDittoHeaders().isSudo(),
                         this::forwardDittoSudoToChildIfAvailable)
@@ -349,7 +350,30 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
                 });
     }
 
-    private void stopAfterOngoingOps(final StopShardedActor trigger) {
+    /**
+     * Increment the op counter when receiving a non-sudo signal.
+     *
+     * @param signal the signal.
+     */
+    protected void decrementOpCounter(final Signal<?> signal) {
+        --opCounter;
+    }
+
+    /**
+     * Decrement the op counter after completing processing a non-sudo signal.
+     *
+     * @param signal the signal.
+     */
+    protected void incrementOpCounter(final Signal<?> signal) {
+        ++opCounter;
+    }
+
+    /**
+     * Start terminating because the shard region is shutting down.
+     *
+     * @param trigger the hand-off message.
+     */
+    protected void stopShardedActor(final StopShardedActor trigger) {
         if (opCounter == 0 && sudoOpCounter == 0) {
             log.debug("Stopping: no ongoing ops.");
             getContext().stop(getSelf());
@@ -359,10 +383,11 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
         }
     }
 
-    private FI.UnitApply<Control> decrementOpCounter(final FI.UnitApply<Control> matchProcessNextTwinMessageBehavior) {
-        return control -> {
-            --opCounter;
-            matchProcessNextTwinMessageBehavior.apply(control);
+    private FI.UnitApply<ProcessNextTwinMessage> decrementOpCounter(
+            final Runnable matchProcessNextTwinMessageBehavior) {
+        return processNextTwinMessage -> {
+            decrementOpCounter(processNextTwinMessage.signal());
+            matchProcessNextTwinMessageBehavior.run();
             if (inCoordinatedShutdown && opCounter == 0 && sudoOpCounter == 0) {
                 log.debug("Stopping after waiting for ongoing ops.");
                 getContext().stop(getSelf());
@@ -437,9 +462,7 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
         getContext().become(
                 shutdownBehaviour.createReceive().build().orElse(
                         activeBehaviour(
-                                processNextTwinMessage -> {
-                                    // ingore
-                                },
+                                () -> {}, // ingore
                                 this::enforceAndForwardToTargetActor
                         )
                 )
@@ -449,7 +472,7 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
     protected void becomeTwinSignalProcessingAwaiting() {
         getContext().become(
                 activeBehaviour(
-                        processNextTwinMsg -> {
+                        () -> {
                             unstashAll();
                             becomeActive(getShutdownBehaviour(entityId));
                         },
@@ -641,14 +664,14 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
                 if (shouldBecomeTwinSignalProcessingAwaiting(signal)) {
                     becomeTwinSignalProcessingAwaiting();
                 }
-                final CompletionStage<Control> syncCs = signalTransformer.apply(signal)
+                final var syncCs = signalTransformer.apply(signal)
                         .whenComplete((result, error) -> handleOptionalTransformationException(signal, error, sender))
                         .thenCompose(transformed -> enforceSignalAndForwardToTargetActor((S) transformed, sender)
                                 .whenComplete((response, throwable) -> {
                                     handleSignalEnforcementResponse(response, throwable, transformed, sender);
                                 }))
-                        .handle((response, throwable) -> Control.PROCESS_NEXT_TWIN_MESSAGE);
-                ++opCounter; // decremented by PROCESS_NEXT_TWIN_MESSAGE
+                        .handle((response, throwable) -> new ProcessNextTwinMessage(signal));
+                incrementOpCounter(signal); // decremented by ProcessNextTwinMessage
                 Patterns.pipe(syncCs, getContext().getDispatcher()).pipeTo(getSelf(), getSelf());
             }
         } else if (null != persistenceActorChild) {
@@ -930,15 +953,17 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
         INIT_DONE,
 
         /**
-         * Signals the actor to process the next message.
-         */
-        PROCESS_NEXT_TWIN_MESSAGE,
-
-        /**
          * Signals completion of a sudo command.
          */
         SUDO_COMMAND_DONE
     }
+
+    /**
+     * Signals the actor to process the next message.
+     *
+     * @param signal the previous message.
+     */
+    private record ProcessNextTwinMessage(Signal<?> signal) {}
 
     private record EnforcedSignalAndTargetActorResponse(@Nullable Signal<?> enforcedSignal,
                                                         @Nullable Object response) {}
