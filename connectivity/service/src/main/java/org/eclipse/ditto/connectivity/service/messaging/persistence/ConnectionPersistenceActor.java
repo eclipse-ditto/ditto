@@ -679,7 +679,6 @@ public final class ConnectionPersistenceActor
     @Override
     protected Receive matchAnyAfterInitialization() {
         return ReceiveBuilder.create()
-                // .match(RetryOpenConnection.class, this::retryOpenConnectionWithAdaptedEntity)
                 // CreateSubscription is a ThingSearchCommand, but it is created in InboundDispatchingSink from an
                 // adaptable and directly sent to this actor:
                 .match(CreateSubscription.class, this::startThingSearchSession)
@@ -1193,66 +1192,6 @@ public final class ConnectionPersistenceActor
         final StagedCommand stagedCommand = StagedCommand.of(connect, connectionOpened, connect,
                 Collections.singletonList(ConnectionAction.UPDATE_SUBSCRIPTIONS));
         openConnection(stagedCommand, false, true);
-    }
-
-    private void retryOpenConnectionWithAdaptedEntity(final RetryOpenConnection retryOpenConnection) {
-        stopClientActors();
-        if (entity != null) {
-            final Optional<String> passwordOptional = entity.getPassword();
-            if (passwordOptional.isPresent()) {
-                final String oldUri = entity.getUri();
-                final URI uri;
-                try {
-                    uri = new URI(oldUri);
-                } catch (URISyntaxException e) {
-                    log.info("Got invalid URI when trying to adapt the connection automatically. Skipping adaption.");
-                    handleOpenConnectionError(retryOpenConnection);
-                    return;
-                }
-                final var oldUserNameAndPassword = uri.getRawUserInfo();
-                final var newUserNameAndPassword =
-                        entity.getUsername().orElseThrow() + ":" + passwordOptional.orElseThrow();
-                final var newUri = entity.getUri().replace(oldUserNameAndPassword, newUserNameAndPassword);
-                if (newUri.equals(oldUri)) {
-                    handleOpenConnectionError(retryOpenConnection.error,
-                            retryOpenConnection.ignoreErrors,
-                            retryOpenConnection.sender);
-                } else {
-                    final var connectionWithSingleEncodedPassword = entity.toBuilder()
-                            .uri(newUri)
-                            .build();
-                    final DittoHeaders dittoHeaders = retryOpenConnection.openConnection.getDittoHeaders();
-                    updatedConnectionTester.testConnection(connectionWithSingleEncodedPassword, dittoHeaders)
-                            .thenAccept(optionalResponse -> {
-                                if (optionalResponse.isPresent()) {
-                                    final var response = optionalResponse.get();
-                                    if (response.getHttpStatus().isSuccess()) {
-                                        log.info("Adjusting encoding of connection with ID: {}. The connection URI " +
-                                                        "will now be single encoded.",
-                                                connectionWithSingleEncodedPassword.getId());
-                                        final var modifyConnection =
-                                                ModifyConnection.of(connectionWithSingleEncodedPassword,
-                                                        response.getDittoHeaders());
-                                        self().tell(modifyConnection, ActorRef.noSender());
-                                    } else {
-                                        handleOpenConnectionError(retryOpenConnection);
-                                    }
-                                } else {
-                                    handleOpenConnectionError(retryOpenConnection);
-                                }
-
-
-                            })
-                            .exceptionally(error -> {
-                                handleOpenConnectionError(retryOpenConnection.error, retryOpenConnection.ignoreErrors,
-                                        retryOpenConnection.sender);
-                                return null;
-                            });
-                }
-            }
-        } else {
-            log.warning("Could not retry open connection because entity is null");
-        }
     }
 
     private ConnectivityCommandInterceptor getCommandValidator() {
