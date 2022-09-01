@@ -200,34 +200,14 @@
    * Maven sources: https://search.maven.org/remotecontent?filepath=com/github/scullxbones/akka-persistence-mongo-scala_2.13/3.0.8/akka-persistence-mongo-scala_2.13-3.0.8-sources.jar
 
 
-## Google Android Annotations Library (4.1.1.4)
+## AutoValue Annotations (1.9)
 
-* Maven coordinates: `com.google.android:annotations:4.1.1.4`
+* Maven coordinates: `com.google.auto.value:auto-value-annotations:1.9`
 * License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
-* Project: http://source.android.com/
+* Project: https://github.com/google/auto/tree/master/value
 * Sources: 
-   * declared as SCM: https://android.kernel.org/
-   * Maven sources: https://search.maven.org/remotecontent?filepath=com/google/android/annotations/4.1.1.4/annotations-4.1.1.4-sources.jar
-
-
-## proto-google-common-protos (2.0.1)
-
-* Maven coordinates: `com.google.api.grpc:proto-google-common-protos:2.0.1`
-* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
-* Project: https://github.com/googleapis/java-iam/proto-google-common-protos
-* Sources: 
-   * declared as SCM: https://github.com/googleapis/java-iam/proto-google-common-protos
-   * Maven sources: https://search.maven.org/remotecontent?filepath=com/google/api/grpc/proto-google-common-protos/2.0.1/proto-google-common-protos-2.0.1-sources.jar
-
-
-## Gson (2.8.6)
-
-* Maven coordinates: `com.google.code.gson:gson:2.8.6`
-* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
-* Project: https://github.com/google/gson/gson
-* Sources: 
-   * declared as SCM: https://github.com/google/gson/gson/
-   * Maven sources: https://search.maven.org/remotecontent?filepath=com/google/code/gson/gson/2.8.6/gson-2.8.6-sources.jar
+   * declared as SCM: https://github.com/google/auto
+   * Maven sources: https://search.maven.org/remotecontent?filepath=com/google/auto/value/auto-value-annotations/1.9/auto-value-annotations-1.9-sources.jar
 
 
 ## Dagger (2.27)
@@ -238,76 +218,6 @@
 * Sources: 
    * declared as SCM: https://github.com/google/dagger/
    * Maven sources: https://search.maven.org/remotecontent?filepath=com/google/dagger/dagger/2.27/dagger-2.27-sources.jar
-
-
-## error-prone annotations (2.3.4)
-
-* Maven coordinates: `com.google.errorprone:error_prone_annotations:2.3.4`
-* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
-* Project: http://nexus.sonatype.org/oss-repository-hosting.html/error_prone_parent/error_prone_annotations
-* Sources: 
-   * declared as SCM: https://github.com/google/error-prone/error_prone_annotations
-   * Maven sources: https://search.maven.org/remotecontent?filepath=com/google/errorprone/error_prone_annotations/2.3.4/error_prone_annotations-2.3.4-sources.jar
-
-
-## error-prone annotations (2.4.0)
-
-* Maven coordinates: `com.google.errorprone:error_prone_annotations:2.4.0`
-* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
-* Project: http://nexus.sonatype.org/oss-repository-hosting.html/error_prone_parent/error_prone_annotations
-* Sources: 
-   * declared as SCM: https://github.com/google/error-prone/error_prone_annotations
-   * Maven sources: https://search.maven.org/remotecontent?filepath=com/google/errorprone/error_prone_annotations/2.4.0/error_prone_annotations-2.4.0-sources.jar
-
-
-## Guava InternalFutureFailureAccess and InternalFutures (1.0.1)
-
-* Maven coordinates: `com.google.guava:failureaccess:1.0.1`
-* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
-* Project: https://github.com/google/guava/failureaccess
-* Sources: 
-   * declared as SCM: https://github.com/google/guava/failureaccess
-   * Maven sources: https://search.maven.org/remotecontent?filepath=com/google/guava/failureaccess/1.0.1/failureaccess-1.0.1-sources.jar
-
-
-## Guava: Google Core Libraries for Java (30.0-android)
-
-* Maven coordinates: `com.google.guava:guava:30.0-android`
-* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
-* Project: https://github.com/google/guava/guava
-* Sources: 
-   * declared as SCM: https://github.com/google/guava/guava
-   * Maven sources: https://search.maven.org/remotecontent?filepath=com/google/guava/guava/30.0-android/guava-30.0-android-sources.jar
-
-
-## Guava ListenableFuture only (9999.0-empty-to-avoid-conflict-with-guava)
-
-* Maven coordinates: `com.google.guava:listenablefuture:9999.0-empty-to-avoid-conflict-with-guava`
-* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
-* Project: https://github.com/google/guava/listenablefuture
-* Sources: 
-   * declared as SCM: https://github.com/google/guava/listenablefuture
-   * Maven sources: https://search.maven.org/remotecontent?filepath=com/google/guava/listenablefuture/9999.0-empty-to-avoid-conflict-with-guava/listenablefuture-9999.0-empty-to-avoid-conflict-with-guava-sources.jar
-
-
-## J2ObjC Annotations (1.3)
-
-* Maven coordinates: `com.google.j2objc:j2objc-annotations:1.3`
-* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
-* Project: https://github.com/google/j2objc/
-* Sources: 
-   * declared as SCM: https://svn.sonatype.org/spice/tags/oss-parent-7/j2objc-annotations
-   * Maven sources: https://search.maven.org/remotecontent?filepath=com/google/j2objc/j2objc-annotations/1.3/j2objc-annotations-1.3-sources.jar
-
-
-## Protocol Buffers [Core] (3.14.0)
-
-* Maven coordinates: `com.google.protobuf:protobuf-java:3.14.0`
-* License: [BSD-3-Clause](https://spdx.org/licenses/BSD-3-Clause.html)
-* Project: https://developers.google.com/protocol-buffers/protobuf-java/
-* Sources: 
-   * declared as SCM: https://github.com/protocolbuffers/protobuf/protobuf-java
-   * Maven sources: https://search.maven.org/remotecontent?filepath=com/google/protobuf/protobuf-java/3.14.0/protobuf-java-3.14.0-sources.jar
 
 
 ## asn-one (0.5.0)
@@ -408,6 +318,26 @@
 * Sources: 
    * declared as SCM: https://github.com/rabbitmq/rabbitmq-java-client
    * Maven sources: https://search.maven.org/remotecontent?filepath=com/rabbitmq/amqp-client/5.14.2/amqp-client-5.14.2-sources.jar
+
+
+## okhttp (4.9.3)
+
+* Maven coordinates: `com.squareup.okhttp3:okhttp:4.9.3`
+* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
+* Project: https://square.github.io/okhttp/
+* Sources: 
+   * declared as SCM: https://github.com/square/okhttp
+   * Maven sources: https://search.maven.org/remotecontent?filepath=com/squareup/okhttp3/okhttp/4.9.3/okhttp-4.9.3-sources.jar
+
+
+## Okio (2.8.0)
+
+* Maven coordinates: `com.squareup.okio:okio:2.8.0`
+* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
+* Project: https://github.com/square/okio/
+* Sources: 
+   * declared as SCM: https://github.com/square/okio/
+   * Maven sources: https://search.maven.org/remotecontent?filepath=com/squareup/okio/okio/2.8.0/okio-2.8.0-sources.jar
 
 
 ## ParaNamer Core (2.8)
@@ -680,76 +610,6 @@
    * Maven sources: https://search.maven.org/remotecontent?filepath=io/cloudevents/cloudevents-http-basic/2.3.0/cloudevents-http-basic-2.3.0-sources.jar
 
 
-## io.grpc:grpc-api (1.36.0)
-
-* Maven coordinates: `io.grpc:grpc-api:1.36.0`
-* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
-* Project: https://github.com/grpc/grpc-java
-* Sources: 
-   * declared as SCM: https://github.com/grpc/grpc-java
-   * Maven sources: https://search.maven.org/remotecontent?filepath=io/grpc/grpc-api/1.36.0/grpc-api-1.36.0-sources.jar
-
-
-## io.grpc:grpc-context (1.36.0)
-
-* Maven coordinates: `io.grpc:grpc-context:1.36.0`
-* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
-* Project: https://github.com/grpc/grpc-java
-* Sources: 
-   * declared as SCM: https://github.com/grpc/grpc-java
-   * Maven sources: https://search.maven.org/remotecontent?filepath=io/grpc/grpc-context/1.36.0/grpc-context-1.36.0-sources.jar
-
-
-## io.grpc:grpc-core (1.36.0)
-
-* Maven coordinates: `io.grpc:grpc-core:1.36.0`
-* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
-* Project: https://github.com/grpc/grpc-java
-* Sources: 
-   * declared as SCM: https://github.com/grpc/grpc-java
-   * Maven sources: https://search.maven.org/remotecontent?filepath=io/grpc/grpc-core/1.36.0/grpc-core-1.36.0-sources.jar
-
-
-## io.grpc:grpc-netty (1.36.0)
-
-* Maven coordinates: `io.grpc:grpc-netty:1.36.0`
-* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
-* Project: https://github.com/grpc/grpc-java
-* Sources: 
-   * declared as SCM: https://github.com/grpc/grpc-java
-   * Maven sources: https://search.maven.org/remotecontent?filepath=io/grpc/grpc-netty/1.36.0/grpc-netty-1.36.0-sources.jar
-
-
-## io.grpc:grpc-protobuf (1.35.0)
-
-* Maven coordinates: `io.grpc:grpc-protobuf:1.35.0`
-* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
-* Project: https://github.com/grpc/grpc-java
-* Sources: 
-   * declared as SCM: https://github.com/grpc/grpc-java
-   * Maven sources: https://search.maven.org/remotecontent?filepath=io/grpc/grpc-protobuf/1.35.0/grpc-protobuf-1.35.0-sources.jar
-
-
-## io.grpc:grpc-protobuf-lite (1.35.0)
-
-* Maven coordinates: `io.grpc:grpc-protobuf-lite:1.35.0`
-* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
-* Project: https://github.com/grpc/grpc-java
-* Sources: 
-   * declared as SCM: https://github.com/grpc/grpc-java
-   * Maven sources: https://search.maven.org/remotecontent?filepath=io/grpc/grpc-protobuf-lite/1.35.0/grpc-protobuf-lite-1.35.0-sources.jar
-
-
-## io.grpc:grpc-stub (1.35.0)
-
-* Maven coordinates: `io.grpc:grpc-stub:1.35.0`
-* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
-* Project: https://github.com/grpc/grpc-java
-* Sources: 
-   * declared as SCM: https://github.com/grpc/grpc-java
-   * Maven sources: https://search.maven.org/remotecontent?filepath=io/grpc/grpc-stub/1.35.0/grpc-stub-1.35.0-sources.jar
-
-
 ## JJWT :: API (0.11.5)
 
 * Maven coordinates: `io.jsonwebtoken:jjwt-api:0.11.5`
@@ -770,64 +630,64 @@
    * Maven sources: https://search.maven.org/remotecontent?filepath=io/jsonwebtoken/jjwt-impl/0.11.5/jjwt-impl-0.11.5-sources.jar
 
 
-## kamon-core (2.5.0)
+## kamon-core (2.5.8)
 
-* Maven coordinates: `io.kamon:kamon-core_2.13:2.5.0`
+* Maven coordinates: `io.kamon:kamon-core_2.13:2.5.8`
 * License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
 * Project: http://kamon.io
 * Sources: 
    * declared as SCM: https://github.com/kamon-io/Kamon
-   * Maven sources: https://search.maven.org/remotecontent?filepath=io/kamon/kamon-core_2.13/2.5.0/kamon-core_2.13-2.5.0-sources.jar
+   * Maven sources: https://search.maven.org/remotecontent?filepath=io/kamon/kamon-core_2.13/2.5.8/kamon-core_2.13-2.5.8-sources.jar
 
 
-## kamon-executors (2.5.0)
+## kamon-executors (2.5.8)
 
-* Maven coordinates: `io.kamon:kamon-executors_2.13:2.5.0`
+* Maven coordinates: `io.kamon:kamon-executors_2.13:2.5.8`
 * License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
 * Project: http://kamon.io
 * Sources: 
    * declared as SCM: https://github.com/kamon-io/Kamon
-   * Maven sources: https://search.maven.org/remotecontent?filepath=io/kamon/kamon-executors_2.13/2.5.0/kamon-executors_2.13-2.5.0-sources.jar
+   * Maven sources: https://search.maven.org/remotecontent?filepath=io/kamon/kamon-executors_2.13/2.5.8/kamon-executors_2.13-2.5.8-sources.jar
 
 
-## kamon-instrumentation-common (2.5.0)
+## kamon-instrumentation-common (2.5.8)
 
-* Maven coordinates: `io.kamon:kamon-instrumentation-common_2.13:2.5.0`
+* Maven coordinates: `io.kamon:kamon-instrumentation-common_2.13:2.5.8`
 * License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
 * Project: http://kamon.io
 * Sources: 
    * declared as SCM: https://github.com/kamon-io/Kamon
-   * Maven sources: https://search.maven.org/remotecontent?filepath=io/kamon/kamon-instrumentation-common_2.13/2.5.0/kamon-instrumentation-common_2.13-2.5.0-sources.jar
+   * Maven sources: https://search.maven.org/remotecontent?filepath=io/kamon/kamon-instrumentation-common_2.13/2.5.8/kamon-instrumentation-common_2.13-2.5.8-sources.jar
 
 
-## kamon-opentelemetry (2.5.0)
+## kamon-opentelemetry (2.5.8)
 
-* Maven coordinates: `io.kamon:kamon-opentelemetry_2.13:2.5.0`
+* Maven coordinates: `io.kamon:kamon-opentelemetry_2.13:2.5.8`
 * License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
 * Project: http://kamon.io
 * Sources: 
    * declared as SCM: https://github.com/kamon-io/Kamon
-   * Maven sources: https://search.maven.org/remotecontent?filepath=io/kamon/kamon-opentelemetry_2.13/2.5.0/kamon-opentelemetry_2.13-2.5.0-sources.jar
+   * Maven sources: https://search.maven.org/remotecontent?filepath=io/kamon/kamon-opentelemetry_2.13/2.5.8/kamon-opentelemetry_2.13-2.5.8-sources.jar
 
 
-## kamon-prometheus (2.5.0)
+## kamon-prometheus (2.5.8)
 
-* Maven coordinates: `io.kamon:kamon-prometheus_2.13:2.5.0`
+* Maven coordinates: `io.kamon:kamon-prometheus_2.13:2.5.8`
 * License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
 * Project: http://kamon.io
 * Sources: 
    * declared as SCM: https://github.com/kamon-io/Kamon
-   * Maven sources: https://search.maven.org/remotecontent?filepath=io/kamon/kamon-prometheus_2.13/2.5.0/kamon-prometheus_2.13-2.5.0-sources.jar
+   * Maven sources: https://search.maven.org/remotecontent?filepath=io/kamon/kamon-prometheus_2.13/2.5.8/kamon-prometheus_2.13-2.5.8-sources.jar
 
 
-## kamon-system-metrics (2.5.0)
+## kamon-system-metrics (2.5.8)
 
-* Maven coordinates: `io.kamon:kamon-system-metrics_2.13:2.5.0`
+* Maven coordinates: `io.kamon:kamon-system-metrics_2.13:2.5.8`
 * License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
 * Project: http://kamon.io
 * Sources: 
    * declared as SCM: https://github.com/kamon-io/Kamon
-   * Maven sources: https://search.maven.org/remotecontent?filepath=io/kamon/kamon-system-metrics_2.13/2.5.0/kamon-system-metrics_2.13-2.5.0-sources.jar
+   * Maven sources: https://search.maven.org/remotecontent?filepath=io/kamon/kamon-system-metrics_2.13/2.5.8/kamon-system-metrics_2.13-2.5.8-sources.jar
 
 
 ## Netty/Buffer (4.1.80.Final)
@@ -860,26 +720,6 @@
    * Maven sources: https://search.maven.org/remotecontent?filepath=io/netty/netty-codec-http/4.1.80.Final/netty-codec-http-4.1.80.Final-sources.jar
 
 
-## Netty/Codec/HTTP2 (4.1.80.Final)
-
-* Maven coordinates: `io.netty:netty-codec-http2:4.1.80.Final`
-* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
-* Project: https://netty.io/netty-codec-http2/
-* Sources: 
-   * declared as SCM: https://github.com/netty/netty/netty-codec-http2
-   * Maven sources: https://search.maven.org/remotecontent?filepath=io/netty/netty-codec-http2/4.1.80.Final/netty-codec-http2-4.1.80.Final-sources.jar
-
-
-## Netty/Codec/Socks (4.1.80.Final)
-
-* Maven coordinates: `io.netty:netty-codec-socks:4.1.80.Final`
-* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
-* Project: https://netty.io/netty-codec-socks/
-* Sources: 
-   * declared as SCM: https://github.com/netty/netty/netty-codec-socks
-   * Maven sources: https://search.maven.org/remotecontent?filepath=io/netty/netty-codec-socks/4.1.80.Final/netty-codec-socks-4.1.80.Final-sources.jar
-
-
 ## Netty/Common (4.1.80.Final)
 
 * Maven coordinates: `io.netty:netty-common:4.1.80.Final`
@@ -898,16 +738,6 @@
 * Sources: 
    * declared as SCM: https://github.com/netty/netty/netty-handler
    * Maven sources: https://search.maven.org/remotecontent?filepath=io/netty/netty-handler/4.1.80.Final/netty-handler-4.1.80.Final-sources.jar
-
-
-## Netty/Handler/Proxy (4.1.80.Final)
-
-* Maven coordinates: `io.netty:netty-handler-proxy:4.1.80.Final`
-* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
-* Project: https://netty.io/netty-handler-proxy/
-* Sources: 
-   * declared as SCM: https://github.com/netty/netty/netty-handler-proxy
-   * Maven sources: https://search.maven.org/remotecontent?filepath=io/netty/netty-handler-proxy/4.1.80.Final/netty-handler-proxy-4.1.80.Final-sources.jar
 
 
 ## Netty/Resolver (4.1.80.Final)
@@ -980,24 +810,84 @@
    * Maven sources: https://search.maven.org/remotecontent?filepath=io/netty/netty-transport-native-unix-common/4.1.80.Final/netty-transport-native-unix-common-4.1.80.Final-sources.jar
 
 
-## OpenTelemetry Java (0.17.1)
+## OpenTelemetry Java (1.13.0)
 
-* Maven coordinates: `io.opentelemetry:opentelemetry-proto:0.17.1`
+* Maven coordinates: `io.opentelemetry:opentelemetry-api:1.13.0`
 * License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
 * Project: https://github.com/open-telemetry/opentelemetry-java
 * Sources: 
    * declared as SCM: https://github.com/open-telemetry/opentelemetry-java
-   * Maven sources: https://search.maven.org/remotecontent?filepath=io/opentelemetry/opentelemetry-proto/0.17.1/opentelemetry-proto-0.17.1-sources.jar
+   * Maven sources: https://search.maven.org/remotecontent?filepath=io/opentelemetry/opentelemetry-api/1.13.0/opentelemetry-api-1.13.0-sources.jar
 
 
-## perfmark:perfmark-api (0.23.0)
+## OpenTelemetry Java (1.13.0)
 
-* Maven coordinates: `io.perfmark:perfmark-api:0.23.0`
+* Maven coordinates: `io.opentelemetry:opentelemetry-context:1.13.0`
 * License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
-* Project: https://github.com/perfmark/perfmark
+* Project: https://github.com/open-telemetry/opentelemetry-java
 * Sources: 
-   * declared as SCM: https://github.com/perfmark/perfmark
-   * Maven sources: https://search.maven.org/remotecontent?filepath=io/perfmark/perfmark-api/0.23.0/perfmark-api-0.23.0-sources.jar
+   * declared as SCM: https://github.com/open-telemetry/opentelemetry-java
+   * Maven sources: https://search.maven.org/remotecontent?filepath=io/opentelemetry/opentelemetry-context/1.13.0/opentelemetry-context-1.13.0-sources.jar
+
+
+## OpenTelemetry Java (1.13.0)
+
+* Maven coordinates: `io.opentelemetry:opentelemetry-exporter-otlp-common:1.13.0`
+* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
+* Project: https://github.com/open-telemetry/opentelemetry-java
+* Sources: 
+   * declared as SCM: https://github.com/open-telemetry/opentelemetry-java
+   * Maven sources: https://search.maven.org/remotecontent?filepath=io/opentelemetry/opentelemetry-exporter-otlp-common/1.13.0/opentelemetry-exporter-otlp-common-1.13.0-sources.jar
+
+
+## OpenTelemetry Java (1.13.0)
+
+* Maven coordinates: `io.opentelemetry:opentelemetry-exporter-otlp-http-trace:1.13.0`
+* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
+* Project: https://github.com/open-telemetry/opentelemetry-java
+* Sources: 
+   * declared as SCM: https://github.com/open-telemetry/opentelemetry-java
+   * Maven sources: https://search.maven.org/remotecontent?filepath=io/opentelemetry/opentelemetry-exporter-otlp-http-trace/1.13.0/opentelemetry-exporter-otlp-http-trace-1.13.0-sources.jar
+
+
+## OpenTelemetry Java (1.13.0)
+
+* Maven coordinates: `io.opentelemetry:opentelemetry-exporter-otlp-trace:1.13.0`
+* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
+* Project: https://github.com/open-telemetry/opentelemetry-java
+* Sources: 
+   * declared as SCM: https://github.com/open-telemetry/opentelemetry-java
+   * Maven sources: https://search.maven.org/remotecontent?filepath=io/opentelemetry/opentelemetry-exporter-otlp-trace/1.13.0/opentelemetry-exporter-otlp-trace-1.13.0-sources.jar
+
+
+## OpenTelemetry Java (1.13.0)
+
+* Maven coordinates: `io.opentelemetry:opentelemetry-sdk-common:1.13.0`
+* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
+* Project: https://github.com/open-telemetry/opentelemetry-java
+* Sources: 
+   * declared as SCM: https://github.com/open-telemetry/opentelemetry-java
+   * Maven sources: https://search.maven.org/remotecontent?filepath=io/opentelemetry/opentelemetry-sdk-common/1.13.0/opentelemetry-sdk-common-1.13.0-sources.jar
+
+
+## OpenTelemetry Java (1.13.0)
+
+* Maven coordinates: `io.opentelemetry:opentelemetry-sdk-trace:1.13.0`
+* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
+* Project: https://github.com/open-telemetry/opentelemetry-java
+* Sources: 
+   * declared as SCM: https://github.com/open-telemetry/opentelemetry-java
+   * Maven sources: https://search.maven.org/remotecontent?filepath=io/opentelemetry/opentelemetry-sdk-trace/1.13.0/opentelemetry-sdk-trace-1.13.0-sources.jar
+
+
+## OpenTelemetry Java (1.13.0-alpha)
+
+* Maven coordinates: `io.opentelemetry:opentelemetry-semconv:1.13.0-alpha`
+* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
+* Project: https://github.com/open-telemetry/opentelemetry-java
+* Sources: 
+   * declared as SCM: https://github.com/open-telemetry/opentelemetry-java
+   * Maven sources: https://search.maven.org/remotecontent?filepath=io/opentelemetry/opentelemetry-semconv/1.13.0-alpha/opentelemetry-semconv-1.13.0-alpha-sources.jar
 
 
 ## Non-Blocking Reactive Foundation for the JVM (3.2.22.RELEASE)
@@ -1170,16 +1060,6 @@
    * Maven sources: https://search.maven.org/remotecontent?filepath=org/atteo/classindex/classindex/3.11/classindex-3.11-sources.jar
 
 
-## Checker Qual (2.5.5)
-
-* Maven coordinates: `org.checkerframework:checker-compat-qual:2.5.5`
-* License: [GNU General Public License, version 2 (GPL2), with the classpath exception](https://spdx.org/licenses/GNU General Public License, version 2 (GPL2), with the classpath exception.html), [MIT](https://spdx.org/licenses/MIT.html)
-* Project: https://checkerframework.org
-* Sources: 
-   * declared as SCM: https://github.com/typetools/checker-framework
-   * Maven sources: https://search.maven.org/remotecontent?filepath=org/checkerframework/checker-compat-qual/2.5.5/checker-compat-qual-2.5.5-sources.jar
-
-
 ## commons-compiler (3.1.7)
 
 * Maven coordinates: `org.codehaus.janino:commons-compiler:3.1.7`
@@ -1200,16 +1080,6 @@
    * Maven sources: https://search.maven.org/remotecontent?filepath=org/codehaus/janino/janino/3.1.7/janino-3.1.7-sources.jar
 
 
-## Animal Sniffer Annotations (1.19)
-
-* Maven coordinates: `org.codehaus.mojo:animal-sniffer-annotations:1.19`
-* License: [MIT](https://spdx.org/licenses/MIT.html)
-* Project: http://www.mojohaus.org/animal-sniffer/animal-sniffer-annotations
-* Sources: 
-   * declared as SCM: https://github.com/mojohaus/animal-sniffer/animal-sniffer-annotations
-   * Maven sources: https://search.maven.org/remotecontent?filepath=org/codehaus/mojo/animal-sniffer-annotations/1.19/animal-sniffer-annotations-1.19-sources.jar
-
-
 ## Java Concurrency Tools Core Library (2.1.2)
 
 * Maven coordinates: `org.jctools:jctools-core:2.1.2`
@@ -1220,6 +1090,16 @@
    * Maven sources: https://search.maven.org/remotecontent?filepath=org/jctools/jctools-core/2.1.2/jctools-core-2.1.2-sources.jar
 
 
+## IntelliJ IDEA Annotations (13.0)
+
+* Maven coordinates: `org.jetbrains:annotations:13.0`
+* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
+* Project: http://www.jetbrains.org
+* Sources: 
+   * declared as SCM: https://github.com/JetBrains/intellij-community
+   * Maven sources: https://search.maven.org/remotecontent?filepath=org/jetbrains/annotations/13.0/annotations-13.0-sources.jar
+
+
 ## JetBrains Java Annotations (16.0.3)
 
 * Maven coordinates: `org.jetbrains:annotations:16.0.3`
@@ -1228,6 +1108,26 @@
 * Sources: 
    * declared as SCM: https://github.com/JetBrains/java-annotations
    * Maven sources: https://search.maven.org/remotecontent?filepath=org/jetbrains/annotations/16.0.3/annotations-16.0.3-sources.jar
+
+
+## org.jetbrains.kotlin:kotlin-stdlib (1.4.10)
+
+* Maven coordinates: `org.jetbrains.kotlin:kotlin-stdlib:1.4.10`
+* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
+* Project: https://kotlinlang.org/
+* Sources: 
+   * declared as SCM: https://github.com/JetBrains/kotlin
+   * Maven sources: https://search.maven.org/remotecontent?filepath=org/jetbrains/kotlin/kotlin-stdlib/1.4.10/kotlin-stdlib-1.4.10-sources.jar
+
+
+## org.jetbrains.kotlin:kotlin-stdlib-common (1.4.0)
+
+* Maven coordinates: `org.jetbrains.kotlin:kotlin-stdlib-common:1.4.0`
+* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
+* Project: https://kotlinlang.org/
+* Sources: 
+   * declared as SCM: https://github.com/JetBrains/kotlin
+   * Maven sources: https://search.maven.org/remotecontent?filepath=org/jetbrains/kotlin/kotlin-stdlib-common/1.4.0/kotlin-stdlib-common-1.4.0-sources.jar
 
 
 ## fluency (2.6.5)

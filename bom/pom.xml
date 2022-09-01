@@ -68,7 +68,7 @@
         <janino.version>3.1.7</janino.version>
 
         <!-- ### Metrics and Tracing -->
-        <kamon.version>2.5.0</kamon.version>
+        <kamon.version>2.5.8</kamon.version>
         <!-- When updating Kamon, please update the guava version below too to the used version in Kamon!
              Guava is needed by kamon-opentelemetry (as traces are sent via gRPC library depending on Guava).
              We need to explicitly "pin" it as a test dependency (docker-java-core) also pulls in Guava, but an older
