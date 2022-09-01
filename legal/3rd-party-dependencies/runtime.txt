@@ -3,8 +3,8 @@ com.google.android:annotations:jar:4.1.1.4:runtime
 com.google.code.gson:gson:jar:2.8.6:runtime
 com.google.dagger:dagger:jar:2.27:runtime
 io.jsonwebtoken:jjwt-impl:jar:0.11.5:runtime
-io.netty:netty-codec-socks:jar:4.1.79.Final:runtime
-io.netty:netty-handler-proxy:jar:4.1.79.Final:runtime
+io.netty:netty-codec-socks:jar:4.1.80.Final:runtime
+io.netty:netty-handler-proxy:jar:4.1.80.Final:runtime
 io.perfmark:perfmark-api:jar:0.23.0:runtime
 io.projectreactor:reactor-core:jar:3.2.22.RELEASE:runtime
 javax.inject:javax.inject:jar:1:runtime
