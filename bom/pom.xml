@@ -69,12 +69,6 @@
 
         <!-- ### Metrics and Tracing -->
         <kamon.version>2.5.8</kamon.version>
-        <!-- When updating Kamon, please update the guava version below too to the used version in Kamon!
-             Guava is needed by kamon-opentelemetry (as traces are sent via gRPC library depending on Guava).
-             We need to explicitly "pin" it as a test dependency (docker-java-core) also pulls in Guava, but an older
-             version which somehow conflicts:
-        -->
-        <guava.version>30.0-android</guava.version>
 
         <jsr305.version>3.0.2</jsr305.version>
 
@@ -459,11 +453,6 @@
                 <groupId>io.kamon</groupId>
                 <artifactId>kamon-executors_${scala.version}</artifactId>
                 <version>${kamon.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.google.guava</groupId>
-                <artifactId>guava</artifactId>
-                <version>${guava.version}</version>
             </dependency>
 
             <!-- ### Compile - own artifacts ### -->
