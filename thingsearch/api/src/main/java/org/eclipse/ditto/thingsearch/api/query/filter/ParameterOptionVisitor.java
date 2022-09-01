@@ -15,7 +15,6 @@ package org.eclipse.ditto.thingsearch.api.query.filter;
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.rql.query.QueryBuilder;
@@ -79,7 +78,7 @@ public final class ParameterOptionVisitor implements OptionVisitor {
         final List<SortOption> sortOptions = sortOption.getEntries()
                 .stream()
                 .map(this::mapSort)
-                .collect(Collectors.toList());
+                .toList();
         queryBuilder.sort(sortOptions);
     }
 

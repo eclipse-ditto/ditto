@@ -68,26 +68,29 @@ final class ThingsFieldExpressionFactoryImpl implements ThingsFieldExpressionFac
         return FieldExpressionUtil.parseFeatureField(propertyName)
                 .flatMap(f -> f.getFeatureId()
                         .map(id -> f.getProperty().<ExistsFieldExpression>map(
-                                                // property
-                                                property -> new FeatureIdPropertyExpressionImpl(id, property))
-                                        // desiredProperty
-                                        .orElse(f.getDesiredProperty().<ExistsFieldExpression>map(desiredProperty -> new FeatureIdDesiredPropertyExpressionImpl(id, desiredProperty))
-                                                .orElseGet(() -> {
-                                                    if (f.isProperties()) {
-                                                        // we have a feature ID and the properties path,
-                                                        // but no property
-                                                        return new FeatureIdPropertiesExpressionImpl(id);
-                                                    } else if (f.isDesiredProperties()) {
-                                                        // we have a feature ID and the desired properties path,
-                                                        // but no desired property
-                                                        return new FeatureIdDesiredPropertiesExpressionImpl(id);
-                                                    } else if (f.isDefinition()) {
-                                                        return new FeatureDefinitionExpressionImpl(id);
-                                                    } else {
-                                                        // we have a feature ID but no property path
-                                                        return new FeatureExpressionImpl(id);
-                                                    }
-                                                }))
+                                        // property
+                                        property -> new FeatureIdPropertyExpressionImpl(id, property))
+                                // desiredProperty
+                                .orElse(f.getDesiredProperty()
+                                        .<ExistsFieldExpression>map(
+                                                desiredProperty -> new FeatureIdDesiredPropertyExpressionImpl(id,
+                                                        desiredProperty))
+                                        .orElseGet(() -> {
+                                            if (f.isProperties()) {
+                                                // we have a feature ID and the properties path,
+                                                // but no property
+                                                return new FeatureIdPropertiesExpressionImpl(id);
+                                            } else if (f.isDesiredProperties()) {
+                                                // we have a feature ID and the desired properties path,
+                                                // but no desired property
+                                                return new FeatureIdDesiredPropertiesExpressionImpl(id);
+                                            } else if (f.isDefinition()) {
+                                                return new FeatureDefinitionExpressionImpl(id);
+                                            } else {
+                                                // we have a feature ID but no property path
+                                                return new FeatureExpressionImpl(id);
+                                            }
+                                        }))
                         )
                 )
 
@@ -133,10 +136,10 @@ final class ThingsFieldExpressionFactoryImpl implements ThingsFieldExpressionFac
     }
 
     /**
-     * internal factory method for fields where the filter and the sortOptions field expression is the same.
+     * Internal factory method for fields where the filter and the sortOptions field expression is the same.
      *
-     * @throws IllegalArgumentException if the property can not be mapped. Because of this, call this method last in the
-     * workflow.
+     * @throws IllegalArgumentException if the property can not be mapped. Because of this, call this method last in
+     * the workflow.
      */
     private FieldExpression common(final String propertyName) {
         if (FieldExpressionUtil.isAttributeFieldName(propertyName)) {

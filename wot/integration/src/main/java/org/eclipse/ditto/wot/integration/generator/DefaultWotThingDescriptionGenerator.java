@@ -334,7 +334,7 @@ final class DefaultWotThingDescriptionGenerator implements WotThingDescriptionGe
         final List<BaseLink<?>> newLinks = tdBuilder.build().getLinks()
                 .map(links -> StreamSupport.stream(links.spliterator(), false))
                 .orElseGet(Stream::empty)
-                .collect(Collectors.toList());
+                .toList();
 
         final Link typeLink = Link.newBuilder()
                 .setRel("type")

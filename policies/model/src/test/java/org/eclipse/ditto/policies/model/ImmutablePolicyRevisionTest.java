@@ -17,7 +17,6 @@ import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstance
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -59,7 +58,7 @@ public final class ImmutablePolicyRevisionTest {
 
     @Test
     public void toStringReturnsExpected() {
-        assertThat(underTest.toString()).isEqualTo(String.valueOf(DEFAULT_VALUE));
+        assertThat(underTest.toString()).hasToString(String.valueOf(DEFAULT_VALUE));
     }
 
     @Test

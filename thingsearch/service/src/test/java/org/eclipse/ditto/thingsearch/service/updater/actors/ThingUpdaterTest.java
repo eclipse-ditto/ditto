@@ -163,7 +163,7 @@ public final class ThingUpdaterTest {
             inletProbe.request(16);
             final var data = inletProbe.expectNext();
             assertThat(data.metadata().export()).isEqualTo(Metadata.of(THING_ID, REVISION + 1, null, null, null));
-            assertThat(data.metadata().getTimers().size()).isEqualTo(1);
+            assertThat(data.metadata().getTimers()).hasSize(1);
             assertThat(data.metadata().getAckRecipients()).isEmpty();
             assertThat(data.lastWriteModel()).isEqualTo(getThingWriteModel());
         }};
@@ -187,7 +187,7 @@ public final class ThingUpdaterTest {
             inletProbe.request(16);
             final var data = inletProbe.expectNext();
             assertThat(data.metadata().export()).isEqualTo(Metadata.of(THING_ID, REVISION + 1, null, null, null));
-            assertThat(data.metadata().getTimers().size()).isEqualTo(1);
+            assertThat(data.metadata().getTimers()).hasSize(1);
             assertThat(data.metadata().getAckRecipients()).containsOnly(getSystem().actorSelection(getRef().path()));
             assertThat(data.lastWriteModel()).isEqualTo(getThingWriteModel());
         }};
@@ -260,7 +260,7 @@ public final class ThingUpdaterTest {
             inletProbe.request(16);
             final var data = inletProbe.expectNext();
             assertThat(data.metadata().export()).isEqualTo(Metadata.of(THING_ID, REVISION + 1, null, null, null));
-            assertThat(data.metadata().getTimers().size()).isEqualTo(1);
+            assertThat(data.metadata().getTimers()).hasSize(1);
             assertThat(data.metadata().getAckRecipients()).isEmpty();
             assertThat(data.lastWriteModel()).isEqualTo(getThingWriteModel());
 
@@ -275,7 +275,7 @@ public final class ThingUpdaterTest {
             // THEN: next update is processed regularly
             final var data2 = inletProbe.expectNext();
             assertThat(data2.metadata().export()).isEqualTo(Metadata.of(THING_ID, REVISION + 2, null, null, null));
-            assertThat(data2.metadata().getTimers().size()).isEqualTo(1);
+            assertThat(data2.metadata().getTimers()).hasSize(1);
             assertThat(data2.metadata().getAckRecipients()).isEmpty();
             assertThat(data2.lastWriteModel()).isEqualTo(getThingWriteModel().setMetadata(data.metadata().export()));
         }};
@@ -389,8 +389,8 @@ public final class ThingUpdaterTest {
             inletProbe.request(16);
             final var data = inletProbe.expectNext();
             assertThat(data.metadata().export()).isEqualTo(Metadata.of(THING_ID, REVISION + 2, null, null, null));
-            assertThat(data.metadata().getTimers().size()).isEqualTo(2);
-            assertThat(data.metadata().getEvents().size()).isEqualTo(2);
+            assertThat(data.metadata().getTimers()).hasSize(2);
+            assertThat(data.metadata().getEvents()).hasSize(2);
             assertThat(data.lastWriteModel()).isEqualTo(getThingWriteModel());
 
             // THEN: no other updates are sent
@@ -520,7 +520,7 @@ public final class ThingUpdaterTest {
             assertThat(data.metadata().export()).isEqualTo(Metadata.of(THING_ID, REVISION + 1, null, null, null));
             assertThat(data.metadata().getUpdateReasons()).contains(UpdateReason.THING_UPDATE);
             assertThat(data.metadata().getEvents()).hasOnlyElementsOfType(ThingDeleted.class);
-            assertThat(data.metadata().getTimers().size()).isEqualTo(1);
+            assertThat(data.metadata().getTimers()).hasSize(1);
 
             outletProbe.sendNext(getOKResult(REVISION + 1));
 

@@ -42,6 +42,15 @@ import org.eclipse.ditto.internal.utils.protocol.ProtocolAdapterProvider;
 import org.eclipse.ditto.placeholders.UnresolvedPlaceholderException;
 import org.eclipse.ditto.protocol.adapter.ProtocolAdapter;
 import org.eclipse.ditto.things.model.signals.commands.modify.ModifyThing;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.TestName;
+import org.mockito.Mockito;
+
+import com.typesafe.config.Config;
+import com.typesafe.config.ConfigFactory;
 
 import akka.NotUsed;
 import akka.actor.ActorRef;
@@ -51,14 +60,6 @@ import akka.actor.Props;
 import akka.stream.javadsl.Sink;
 import akka.testkit.TestProbe;
 import akka.testkit.javadsl.TestKit;
-import com.typesafe.config.Config;
-import com.typesafe.config.ConfigFactory;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TestName;
-import org.mockito.Mockito;
 import scala.concurrent.duration.FiniteDuration;
 
 public abstract class AbstractConsumerActorTest<M> {

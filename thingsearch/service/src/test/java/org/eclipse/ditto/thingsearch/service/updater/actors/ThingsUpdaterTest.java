@@ -23,7 +23,6 @@ import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import org.eclipse.ditto.base.model.entity.id.EntityId;
@@ -126,7 +125,7 @@ public final class ThingsUpdaterTest {
             final ActorRef underTest = createThingsUpdater();
             final Collection<ThingId> thingIds = IntStream.range(0, 10)
                     .mapToObj(i -> ThingId.of("a:" + i))
-                    .collect(Collectors.toList());
+                    .toList();
             underTest.tell(ThingsOutOfSync.of(thingIds, dittoHeaders), getRef());
 
             // command order not guaranteed due to namespace blocking

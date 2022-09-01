@@ -34,7 +34,6 @@ import org.eclipse.ditto.things.model.ThingsModelFactory;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingNotAccessibleException;
 import org.eclipse.ditto.things.service.persistence.actors.ETagTestUtils;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 /**

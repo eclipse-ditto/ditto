@@ -20,7 +20,6 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 import org.bson.BsonString;
 import org.bson.Document;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -92,7 +91,7 @@ public final class MongoPersistenceOperationsSelectionTest {
         final MongoPersistenceOperationsSelection
                 underTest = MongoPersistenceOperationsSelection.of(COLLECTION_NAME, namespaceFilter);
 
-        assertThat(underTest.toString()).isEqualTo(COLLECTION_NAME + " (filtered: " + namespaceFilter + ")");
+        assertThat(underTest.toString()).hasToString(COLLECTION_NAME + " (filtered: " + namespaceFilter + ")");
     }
 
     @Test
@@ -100,7 +99,7 @@ public final class MongoPersistenceOperationsSelectionTest {
         final MongoPersistenceOperationsSelection
                 underTest = MongoPersistenceOperationsSelection.of(COLLECTION_NAME, emptyFilter);
 
-        assertThat(underTest.toString()).isEqualTo(COLLECTION_NAME + " (complete)");
+        assertThat(underTest.toString()).hasToString(COLLECTION_NAME + " (complete)");
     }
 
 }

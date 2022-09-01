@@ -794,7 +794,7 @@ public final class MongoReadJournal {
                             return Accumulators.first(fieldName, serializedFieldName);
                         });
 
-        return Stream.concat(snFieldStream, snapshotFieldStream).collect(Collectors.toList());
+        return Stream.concat(snFieldStream, snapshotFieldStream).toList();
     }
 
     private Source<MongoCollection<Document>, NotUsed> getJournal() {

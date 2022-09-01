@@ -19,7 +19,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Predicate;
-import java.util.stream.Collectors;
 
 import javax.annotation.concurrent.Immutable;
 
@@ -89,7 +88,7 @@ public final class SearchNamespaceReportResult implements Jsonifiable.WithPredic
         final Collection<SearchNamespaceResultEntry> resultEntries = namespacesJsonArray.stream()
                 .map(JsonValue::asObject)
                 .map(SearchNamespaceResultEntry::fromJson)
-                .collect(Collectors.toList());
+                .toList();
 
         return new SearchNamespaceReportResult(resultEntries);
     }

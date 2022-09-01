@@ -12,10 +12,7 @@
  */
 package org.eclipse.ditto.thingsearch.service.persistence.write.impl;
 
-import static com.mongodb.client.model.Filters.and;
-import static com.mongodb.client.model.Filters.eq;
 import static com.mongodb.client.model.Filters.in;
-import static com.mongodb.client.model.Filters.lt;
 
 import java.util.Collections;
 import java.util.List;
@@ -85,6 +82,7 @@ public final class MongoThingsSearchUpdaterPersistence implements ThingsSearchUp
                 collection.find(filter).projection(new Document()
                         .append(PersistenceConstants.FIELD_ID, new BsonInt32(1))
                         .append(PersistenceConstants.FIELD_POLICY_ID, new BsonInt32(1)));
+
         return Source.fromPublisher(publisher)
                 .mapConcat(doc -> {
                     final ThingId thingId = ThingId.of(doc.getString(PersistenceConstants.FIELD_ID));
@@ -98,18 +96,6 @@ public final class MongoThingsSearchUpdaterPersistence implements ThingsSearchUp
                         return Collections.singletonList(PolicyReferenceTag.of(thingId, policyTag));
                     }
                 });
-    }
-
-    @Override
-    public Source<ThingId, NotUsed> getOutdatedThingIds(final PolicyTag policyTag) {
-        final PolicyId policyId = policyTag.getEntityId();
-        final Bson filter = and(eq(PersistenceConstants.FIELD_POLICY_ID, policyId.toString()), lt(
-                PersistenceConstants.FIELD_POLICY_REVISION, policyTag.getRevision()));
-        final Publisher<Document> publisher =
-                collection.find(filter).projection(new BsonDocument(PersistenceConstants.FIELD_ID, new BsonInt32(1)));
-        return Source.fromPublisher(publisher)
-                .map(doc -> doc.getString(PersistenceConstants.FIELD_ID))
-                .map(ThingId::of);
     }
 
     @Override

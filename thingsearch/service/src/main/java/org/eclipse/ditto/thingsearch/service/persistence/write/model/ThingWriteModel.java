@@ -200,7 +200,7 @@ public final class ThingWriteModel extends AbstractWriteModel {
 
     private Optional<MongoWriteModel> computeDiff(final ThingWriteModel lastWriteModel, final int maxWireVersion) {
         final WriteModel<BsonDocument> mongoWriteModel;
-        final boolean isPatchUpdate;
+        final boolean isPatchUpdate1;
 
         if (isNextWriteModelOutDated(lastWriteModel, this)) {
             // possible due to background sync
@@ -223,7 +223,7 @@ public final class ThingWriteModel extends AbstractWriteModel {
             LOGGER.debug("Using incremental update <{}>", mongoWriteModel.getClass().getSimpleName());
             LOGGER.trace("Using incremental update <{}>", mongoWriteModel);
             PATCH_UPDATE_COUNT.increment();
-            isPatchUpdate = true;
+            isPatchUpdate1 = true;
         } else {
             mongoWriteModel = this.toMongo();
             LOGGER.debug("Using replacement because diff is bigger or nonexistent: <{}>",
@@ -233,9 +233,9 @@ public final class ThingWriteModel extends AbstractWriteModel {
                         diff.map(BsonDiff::consumeAndExport));
             }
             FULL_UPDATE_COUNT.increment();
-            isPatchUpdate = false;
+            isPatchUpdate1 = false;
         }
-        return Optional.of(MongoWriteModel.of(this, mongoWriteModel, isPatchUpdate));
+        return Optional.of(MongoWriteModel.of(this, mongoWriteModel, isPatchUpdate1));
     }
 
     private Optional<BsonDiff> tryComputeDiff(final BsonDocument minuend, final BsonDocument subtrahend,

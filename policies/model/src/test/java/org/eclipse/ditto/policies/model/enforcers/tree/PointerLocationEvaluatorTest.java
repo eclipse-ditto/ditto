@@ -19,10 +19,7 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.policies.model.enforcers.tree.PointerLocation;
-import org.eclipse.ditto.policies.model.enforcers.tree.PointerLocationEvaluator;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 /**

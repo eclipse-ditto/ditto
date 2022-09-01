@@ -489,7 +489,7 @@ public final class AmqpPublisherActorTest extends AbstractPublisherActorTest {
 
         final Acknowledgements acks = acksFuture.join();
         for (final Acknowledgement ack : acks.getSuccessfulAcknowledgements()) {
-            assertThat(ack.getLabel().toString()).isEqualTo("please-verify");
+            assertThat(ack.getLabel().toString()).hasToString("please-verify");
             assertThat(ack.getHttpStatus()).isEqualTo(HttpStatus.OK);
         }
     }

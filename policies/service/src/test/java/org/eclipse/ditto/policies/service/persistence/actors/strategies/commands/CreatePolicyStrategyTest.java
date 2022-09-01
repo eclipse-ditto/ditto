@@ -28,13 +28,12 @@ import org.eclipse.ditto.policies.model.SubjectExpiry;
 import org.eclipse.ditto.policies.model.SubjectExpiryInvalidException;
 import org.eclipse.ditto.policies.model.SubjectId;
 import org.eclipse.ditto.policies.model.SubjectType;
-import org.eclipse.ditto.policies.service.common.config.DefaultPolicyConfig;
-import org.eclipse.ditto.policies.service.persistence.TestConstants;
 import org.eclipse.ditto.policies.model.signals.commands.modify.CreatePolicy;
 import org.eclipse.ditto.policies.model.signals.commands.modify.CreatePolicyResponse;
 import org.eclipse.ditto.policies.model.signals.events.PolicyCreated;
+import org.eclipse.ditto.policies.service.common.config.DefaultPolicyConfig;
+import org.eclipse.ditto.policies.service.persistence.TestConstants;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import com.typesafe.config.ConfigFactory;

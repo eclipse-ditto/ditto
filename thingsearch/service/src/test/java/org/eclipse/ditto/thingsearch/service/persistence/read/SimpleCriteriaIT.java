@@ -105,7 +105,7 @@ public final class SimpleCriteriaIT extends AbstractReadPersistenceITBase {
         final Criteria crit = cf.fieldCriteria(ef.filterByAttribute(KNOWN_ATTRIBUTE_KEY), cf.ne(KNOWN_STRING_VALUE));
         final Collection<ThingId> result = findForCriteria(crit);
 
-        assertThat(result).doesNotContain(THING_ID_WITH_KNOWN_STR_ATTR_VALUE);
+        assertThat(result).isNotEmpty().doesNotContain(THING_ID_WITH_KNOWN_STR_ATTR_VALUE);
     }
 
     @Test
@@ -113,7 +113,7 @@ public final class SimpleCriteriaIT extends AbstractReadPersistenceITBase {
         final Criteria crit = cf.fieldCriteria(ef.filterByAttribute(KNOWN_ATTRIBUTE_KEY), cf.ne(KNOWN_NUMBER_VALUE));
         final Collection<ThingId> result = findForCriteria(crit);
 
-        assertThat(result).doesNotContain(THING_ID_WITH_KNOWN_NUMBER_ATTR_VALUE);
+        assertThat(result).isNotEmpty().doesNotContain(THING_ID_WITH_KNOWN_NUMBER_ATTR_VALUE);
     }
 
     @Test
@@ -121,7 +121,7 @@ public final class SimpleCriteriaIT extends AbstractReadPersistenceITBase {
         final Collection<ThingId> result = findForCriteria(
                 cf.fieldCriteria(ef.filterByAttribute(KNOWN_ATTRIBUTE_KEY), cf.ne(KNOWN_BOOLEAN_VALUE)));
 
-        assertThat(result).doesNotContain(THING_ID_WITH_KNOWN_BOOLEAN_ATTR_VALUE);
+        assertThat(result).isNotEmpty().doesNotContain(THING_ID_WITH_KNOWN_BOOLEAN_ATTR_VALUE);
     }
 
     private void insertThings() {

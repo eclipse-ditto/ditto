@@ -22,7 +22,6 @@ import org.eclipse.ditto.connectivity.model.PayloadMapping;
 import org.eclipse.ditto.connectivity.model.Source;
 import org.eclipse.ditto.protocol.Adaptable;
 import org.eclipse.ditto.protocol.TopicPath;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.mutabilitydetector.unittesting.AllowedReason;
 import org.mutabilitydetector.unittesting.MutabilityAssert;

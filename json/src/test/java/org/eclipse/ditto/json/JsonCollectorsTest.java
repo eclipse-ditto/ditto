@@ -18,7 +18,6 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 import java.util.stream.Stream;
 
 import org.eclipse.ditto.json.assertions.DittoJsonAssertions;
-import org.junit.Ignore;
 import org.junit.Test;
 
 /**

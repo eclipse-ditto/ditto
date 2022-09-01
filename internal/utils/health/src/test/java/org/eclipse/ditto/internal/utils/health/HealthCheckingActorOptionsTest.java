@@ -19,7 +19,6 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 import java.time.Duration;
 import java.util.function.Supplier;
 
-import org.junit.Ignore;
 import org.junit.Test;
 import org.mutabilitydetector.unittesting.MutabilityAssert;
 

@@ -18,15 +18,14 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 
 import java.time.Instant;
 
-import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.base.model.entity.metadata.Metadata;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingLifecycle;
 import org.eclipse.ditto.things.model.ThingsModelFactory;
 import org.eclipse.ditto.things.model.signals.commands.TestConstants;
 import org.eclipse.ditto.things.model.signals.events.ThingMerged;
-import org.junit.Ignore;
 import org.junit.Test;
 
 /**

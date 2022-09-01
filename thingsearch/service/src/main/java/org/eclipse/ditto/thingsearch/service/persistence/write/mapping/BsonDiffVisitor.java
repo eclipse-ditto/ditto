@@ -14,7 +14,6 @@ package org.eclipse.ditto.thingsearch.service.persistence.write.mapping;
 
 import java.util.List;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.bson.BsonArray;
@@ -126,7 +125,7 @@ final class BsonDiffVisitor implements BsonValueVisitor<Function<BsonValue, Bson
                     .stream()
                     .filter(oldKey -> !value.containsKey(oldKey))
                     .map(oldKey -> key.addLeaf(JsonKey.of(oldKey)))
-                    .collect(Collectors.toList());
+                    .toList();
             unset = Stream.concat(unset, deletedKeys.stream());
             diffSize += deletedKeys.stream().mapToInt(JsonPointer::length).sum();
             return new BsonDiff(replacementSize, diffSize, set, unset);

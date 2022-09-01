@@ -68,4 +68,5 @@ final class TunnelSessionListener implements SessionListener {
         logger.debug("SSH session disconnected: {}, reason: {}, msg: {}, initiator: {}",
                 session, reason, msg, initiator ? "local" : "remote");
     }
+
 }

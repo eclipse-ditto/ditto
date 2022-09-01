@@ -20,12 +20,12 @@ import java.util.stream.Collectors;
 
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.base.model.common.ConditionChecker;
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.base.model.common.ConditionChecker;
 
 import io.jsonwebtoken.io.DeserializationException;
 import io.jsonwebtoken.io.Deserializer;
@@ -78,7 +78,7 @@ public final class JjwtDeserializer implements Deserializer<Map<String, ?>> {
     private static List<Object> toJavaList(final JsonArray jsonArray) {
         return jsonArray.stream()
                 .map(JjwtDeserializer::toJavaObject)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private static Object toJavaObject(final JsonValue jsonValue) {

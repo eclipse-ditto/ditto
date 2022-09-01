@@ -109,9 +109,8 @@ public final class DefaultAuthenticationFailureAggregatorTest {
         final DittoRuntimeException dittoRuntimeException =
                 underTest.aggregateAuthenticationFailures(authenticationResults);
 
-        assertThat(dittoRuntimeException).isExactlyInstanceOf(GatewayAuthenticationFailedException.class);
-        assertThat(dittoRuntimeException).hasMessage(
-                "Multiple authentication mechanisms were applicable but none succeeded.");
+        assertThat(dittoRuntimeException).isExactlyInstanceOf(GatewayAuthenticationFailedException.class)
+                .hasMessage("Multiple authentication mechanisms were applicable but none succeeded.");
         assertThat(dittoRuntimeException.getDescription()).contains(
                 "For a successful authentication see the following suggestions: { do this }, { do that }.");
         assertThat(dittoRuntimeException.getDittoHeaders()).containsAllEntriesOf(expectedHeaders);

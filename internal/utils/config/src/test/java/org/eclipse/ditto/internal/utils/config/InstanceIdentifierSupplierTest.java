@@ -20,7 +20,6 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 import java.lang.reflect.Constructor;
 
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.contrib.java.lang.system.EnvironmentVariables;

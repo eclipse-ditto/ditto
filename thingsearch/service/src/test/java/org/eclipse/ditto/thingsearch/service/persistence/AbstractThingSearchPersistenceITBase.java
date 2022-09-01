@@ -34,7 +34,6 @@ import org.eclipse.ditto.rql.query.criteria.CriteriaFactory;
 import org.eclipse.ditto.rql.query.expression.FieldExpressionUtil;
 import org.eclipse.ditto.rql.query.expression.ThingsFieldExpressionFactory;
 import org.eclipse.ditto.things.model.ThingId;
-import org.eclipse.ditto.base.service.config.limits.DefaultLimitsConfig;
 import org.eclipse.ditto.thingsearch.service.common.config.DefaultSearchPersistenceConfig;
 import org.eclipse.ditto.thingsearch.service.common.model.ResultList;
 import org.eclipse.ditto.thingsearch.service.persistence.read.MongoThingsSearchPersistence;
@@ -115,6 +114,7 @@ public abstract class AbstractThingSearchPersistenceITBase {
         final MongoThingsSearchPersistence result = new MongoThingsSearchPersistence(mongoClient, actorSystem, config);
         // explicitly trigger CompletableFuture to make sure that indices are created before test runs
         result.initializeIndices().toCompletableFuture().join();
+
         return result;
     }
 
@@ -202,6 +202,7 @@ public abstract class AbstractThingSearchPersistenceITBase {
 
     protected <T> T runBlockingWithReturn(final Source<T, NotUsed> publisher) {
         final CompletionStage<T> done = publisher.runWith(Sink.last(), actorSystem);
+
         return done.toCompletableFuture().join();
     }
 
@@ -227,4 +228,5 @@ public abstract class AbstractThingSearchPersistenceITBase {
             // do nothing
         }
     }
+
 }

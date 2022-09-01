@@ -51,7 +51,6 @@ import org.eclipse.ditto.connectivity.service.config.DefaultMonitoringLoggerConf
 import org.eclipse.ditto.connectivity.service.config.MonitoringLoggerConfig;
 import org.eclipse.ditto.connectivity.service.messaging.TestConstants;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.ConnectionMonitor;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.komamitsu.fluency.Fluency;
 import org.komamitsu.fluency.fluentd.FluencyBuilderForFluentd;

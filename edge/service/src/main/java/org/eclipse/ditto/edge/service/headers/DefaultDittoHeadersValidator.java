@@ -22,8 +22,9 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.base.model.exceptions.DittoHeadersTooLargeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 
-import akka.actor.ActorSystem;
 import com.typesafe.config.Config;
+
+import akka.actor.ActorSystem;
 
 /**
  * Default implementation for {@link DittoHeadersValidator}.

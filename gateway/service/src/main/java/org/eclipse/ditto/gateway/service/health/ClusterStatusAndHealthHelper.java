@@ -26,15 +26,8 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
 
 import org.eclipse.ditto.base.service.CompletableFutureUtils;
-import org.eclipse.ditto.json.JsonArray;
-import org.eclipse.ditto.json.JsonCollectors;
-import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonObjectBuilder;
-import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.gateway.service.util.config.health.HealthCheckConfig;
 import org.eclipse.ditto.internal.utils.akka.SimpleCommand;
 import org.eclipse.ditto.internal.utils.akka.SimpleCommandResponse;
@@ -43,6 +36,12 @@ import org.eclipse.ditto.internal.utils.health.StatusInfo;
 import org.eclipse.ditto.internal.utils.health.cluster.ClusterRoleStatus;
 import org.eclipse.ditto.internal.utils.health.cluster.ClusterStatus;
 import org.eclipse.ditto.internal.utils.health.status.StatusSupplierActor;
+import org.eclipse.ditto.json.JsonArray;
+import org.eclipse.ditto.json.JsonCollectors;
+import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonObjectBuilder;
+import org.eclipse.ditto.json.JsonValue;
 
 import akka.actor.ActorSystem;
 import akka.pattern.Patterns;
@@ -133,7 +132,7 @@ final class ClusterStatusAndHealthHelper {
                     return roleStatusFuture.thenApply(rolesStatus ->
                             JsonObject.newBuilder().set(role, rolesStatus).build());
 
-                }).collect(Collectors.toList());
+                }).toList();
 
         return CompletableFutureUtils.collectAsList(statuses).thenApply(roleStatuses -> {
             final JsonObjectBuilder rolesStatusBuilder = JsonFactory.newObjectBuilder();
@@ -229,7 +228,7 @@ final class ClusterStatusAndHealthHelper {
                             })
                             .thenApply(roleStatus -> roleStatus.label(roleLabel));
                 })
-                .collect(Collectors.toList()));
+                .toList());
 
         return CompletableFutureUtils.collectAsList(healths)
                 .thenApply(statuses -> StatusInfo.composite(statuses).label(JSON_KEY_ROLES));
@@ -254,7 +253,7 @@ final class ClusterStatusAndHealthHelper {
                                     responseTransformer.apply(response, throwable, addressString))
                             .toCompletableFuture();
                 })
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @FunctionalInterface

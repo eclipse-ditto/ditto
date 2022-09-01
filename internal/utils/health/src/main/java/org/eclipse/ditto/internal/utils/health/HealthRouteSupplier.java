@@ -62,8 +62,8 @@ public class HealthRouteSupplier implements Supplier<Route> {
 
     private HttpResponse handleHealthResult(@Nullable final Object health, @Nullable final Throwable failure) {
         if (null != health) {
-            if (health instanceof StatusInfo) {
-                return completeHealthRequest((StatusInfo) health);
+            if (health instanceof StatusInfo statusInfo) {
+                return completeHealthRequest(statusInfo);
             } else {
                 return completeHealthRequestForUnexpectedHealthResult(health);
             }

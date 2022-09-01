@@ -16,7 +16,6 @@ import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.util.List;
 import java.util.concurrent.CompletionStage;
-import java.util.stream.Collectors;
 
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.message.connect.GenericMqttConnect;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.message.publish.GenericMqttPublish;
@@ -139,7 +138,7 @@ abstract class BaseGenericMqttSubscribingClient<C extends MqttClient>
     private static List<MqttTopicFilter> getSubscriptionTopicFilters(final GenericMqttSubscribe genericMqttSubscribe) {
         return genericMqttSubscribe.genericMqttSubscriptions()
                 .map(GenericMqttSubscription::getMqttTopicFilter)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private static List<SubscriptionStatus> getFailedSubscriptionStatuses(
@@ -149,7 +148,7 @@ abstract class BaseGenericMqttSubscribingClient<C extends MqttClient>
         return Zipper.zipIterables(subscriptionTopicFilters, genericMqttSubAck.getGenericMqttSubAckStatuses())
                 .filter(zip -> zip.b().isError())
                 .map(zip -> SubscriptionStatus.newInstance(zip.a(), zip.b()))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Override

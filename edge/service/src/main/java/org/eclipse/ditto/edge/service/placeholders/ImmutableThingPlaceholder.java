@@ -44,8 +44,8 @@ final class ImmutableThingPlaceholder extends AbstractEntityIdPlaceholder<ThingI
     public List<String> resolveValues(final EntityId thingId, final String placeholder) {
         argumentNotEmpty(placeholder, "placeholder");
         checkNotNull(thingId, "Thing ID");
-        if (thingId instanceof ThingId) {
-            return doResolve(((ThingId) thingId), placeholder);
+        if (thingId instanceof ThingId thingId1) {
+            return doResolve(thingId1, placeholder);
         } else {
             return Collections.emptyList();
         }
