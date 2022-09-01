@@ -16,7 +16,6 @@ import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.util.List;
 import java.util.concurrent.CompletionStage;
-import java.util.stream.Collectors;
 
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.message.connect.GenericMqttConnect;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.message.publish.GenericMqttPublish;
@@ -25,17 +24,12 @@ import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.message.subs
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.message.subscribe.GenericMqttSubscription;
 
 import com.hivemq.client.mqtt.MqttClient;
-import com.hivemq.client.mqtt.MqttGlobalPublishFilter;
 import com.hivemq.client.mqtt.datatypes.MqttTopicFilter;
 import com.hivemq.client.mqtt.mqtt3.Mqtt3RxClient;
 import com.hivemq.client.mqtt.mqtt3.exceptions.Mqtt3SubAckException;
 import com.hivemq.client.mqtt.mqtt5.Mqtt5RxClient;
 import com.hivemq.client.mqtt.mqtt5.exceptions.Mqtt5SubAckException;
-
-import io.reactivex.Flowable;
-import io.reactivex.Single;
-import io.reactivex.SingleTransformer;
-import io.reactivex.subjects.SingleSubject;
+import com.hivemq.client.rx.FlowableWithSingle;
 
 /**
  * Generic client for subscribing to topics at the MQTT broker.
@@ -90,56 +84,10 @@ abstract class BaseGenericMqttSubscribingClient<C extends MqttClient>
                 clientRole);
     }
 
-    @Override
-    public Single<GenericMqttSubAck> subscribe(final GenericMqttSubscribe genericMqttSubscribe) {
-
-        // Error handling is already done by implementations of BaseGenericMqttConnectingClient.
-        return sendSubscribe(mqttClient, checkNotNull(genericMqttSubscribe, "genericMqttSubscribe"))
-                .compose(handleFailedSubscriptions(genericMqttSubscribe));
-    }
-
-    protected abstract Single<GenericMqttSubAck> sendSubscribe(C mqttClient, GenericMqttSubscribe genericMqttSubscribe);
-
-    private static SingleTransformer<GenericMqttSubAck, GenericMqttSubAck> handleFailedSubscriptions(
-            final GenericMqttSubscribe genericMqttSubscribe
-    ) {
-        return upstream -> {
-            final Single<GenericMqttSubAck> result;
-            final var singleSubject = SingleSubject.<GenericMqttSubAck>create();
-            upstream.subscribe(singleSubject);
-            if (singleSubject.hasValue()) {
-                final var genericMqttSubAck = singleSubject.getValue();
-                final var failedSubscriptions = getFailedSubscriptionStatuses(genericMqttSubAck,
-                        getSubscriptionTopicFilters(genericMqttSubscribe));
-                if (failedSubscriptions.isEmpty()) {
-                    result = Single.just(genericMqttSubAck);
-                } else {
-
-                    /*
-                     * The assumption that only some subscriptions failed is
-                     * correct here.
-                     * If all subscriptions failed then, according to
-                     * HiveMQ API doc, the stream would have failed which would
-                     * be handled in branch "onErrorResumeNext" in the specific
-                     * protocol version client implementation.
-                     */
-                    result = Single.error(new SomeSubscriptionsFailedException(failedSubscriptions));
-                }
-            } else if (singleSubject.hasThrowable()) {
-                result = Single.error(singleSubject.getThrowable());
-            } else {
-
-                // When can this case even happen?
-                result = upstream;
-            }
-            return result;
-        };
-    }
-
     private static List<MqttTopicFilter> getSubscriptionTopicFilters(final GenericMqttSubscribe genericMqttSubscribe) {
         return genericMqttSubscribe.genericMqttSubscriptions()
                 .map(GenericMqttSubscription::getMqttTopicFilter)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private static List<SubscriptionStatus> getFailedSubscriptionStatuses(
@@ -149,16 +97,36 @@ abstract class BaseGenericMqttSubscribingClient<C extends MqttClient>
         return Zipper.zipIterables(subscriptionTopicFilters, genericMqttSubAck.getGenericMqttSubAckStatuses())
                 .filter(zip -> zip.b().isError())
                 .map(zip -> SubscriptionStatus.newInstance(zip.a(), zip.b()))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Override
-    public Flowable<GenericMqttPublish> consumeSubscribedPublishesWithManualAcknowledgement() {
-        return consumeIncomingPublishes(mqttClient, MqttGlobalPublishFilter.SUBSCRIBED, true);
+    public FlowableWithSingle<GenericMqttPublish, GenericMqttSubAck> consumeSubscribedPublishesWithManualAcknowledgement(
+            final GenericMqttSubscribe genericMqttSubscribe) {
+
+        return consumeIncomingPublishes(mqttClient, genericMqttSubscribe, true)
+                .mapBoth(genericMqttPublish -> genericMqttPublish, genericMqttSubAck -> {
+                    final var failedSubscriptions = getFailedSubscriptionStatuses(genericMqttSubAck,
+                            getSubscriptionTopicFilters(genericMqttSubscribe));
+                    if (failedSubscriptions.isEmpty()) {
+                        return genericMqttSubAck;
+                    } else {
+
+                        /*
+                         * The assumption that only some subscriptions failed is
+                         * correct here.
+                         * If all subscriptions failed then, according to
+                         * HiveMQ API doc, the stream would have failed which would
+                         * be handled in branch "onErrorResumeNext" in the specific
+                         * protocol version client implementation.
+                         */
+                        throw new SomeSubscriptionsFailedException(failedSubscriptions);
+                    }
+                });
     }
 
-    protected abstract Flowable<GenericMqttPublish> consumeIncomingPublishes(C mqttClient,
-            MqttGlobalPublishFilter filter,
+    protected abstract FlowableWithSingle<GenericMqttPublish, GenericMqttSubAck> consumeIncomingPublishes(C mqttClient,
+            GenericMqttSubscribe mqttSubscribe,
             boolean manualAcknowledgement);
 
     @Override
@@ -188,34 +156,29 @@ abstract class BaseGenericMqttSubscribingClient<C extends MqttClient>
         }
 
         @Override
-        protected Single<GenericMqttSubAck> sendSubscribe(final Mqtt3RxClient mqtt3RxClient,
-                final GenericMqttSubscribe genericMqttSubscribe) {
-
-            return mqtt3RxClient.subscribe(genericMqttSubscribe.getAsMqtt3Subscribe())
-                    .map(GenericMqttSubAck::ofMqtt3SubAck)
-                    .onErrorResumeNext(error -> {
-                        final Single<GenericMqttSubAck> result;
-                        if (error instanceof Mqtt3SubAckException mqtt3SubAckException) {
-                            result = Single.error(new AllSubscriptionsFailedException(
-                                    getFailedSubscriptionStatuses(
-                                            GenericMqttSubAck.ofMqtt3SubAck(mqtt3SubAckException.getMqttMessage()),
-                                            getSubscriptionTopicFilters(genericMqttSubscribe)
-                                    ),
-                                    mqtt3SubAckException
-                            ));
-                        } else {
-                            result = Single.error(new MqttSubscribeException(error));
-                        }
-                        return result;
-                    });
-        }
-
-        @Override
-        protected Flowable<GenericMqttPublish> consumeIncomingPublishes(final Mqtt3RxClient mqtt3RxClient,
-                final MqttGlobalPublishFilter filter,
+        protected FlowableWithSingle<GenericMqttPublish, GenericMqttSubAck> consumeIncomingPublishes(
+                final Mqtt3RxClient mqtt3RxClient,
+                final GenericMqttSubscribe mqttSubscribe,
                 final boolean manualAcknowledgement) {
 
-            return mqtt3RxClient.publishes(filter, manualAcknowledgement).map(GenericMqttPublish::ofMqtt3Publish);
+            return mqtt3RxClient.subscribePublishes(mqttSubscribe.getAsMqtt3Subscribe(), manualAcknowledgement)
+                    .mapError(error -> {
+                        final MqttSubscribeException result;
+                        if (error instanceof Mqtt3SubAckException mqtt3SubAckException) {
+                            result = new AllSubscriptionsFailedException(
+                                    getFailedSubscriptionStatuses(
+                                            GenericMqttSubAck.ofMqtt3SubAck(
+                                                    mqtt3SubAckException.getMqttMessage()),
+                                            getSubscriptionTopicFilters(mqttSubscribe)
+                                    ),
+                                    mqtt3SubAckException
+                            );
+                        } else {
+                            result = new MqttSubscribeException(error);
+                        }
+                        return result;
+                    })
+                    .mapBoth(GenericMqttPublish::ofMqtt3Publish, GenericMqttSubAck::ofMqtt3SubAck);
         }
 
     }
@@ -230,34 +193,29 @@ abstract class BaseGenericMqttSubscribingClient<C extends MqttClient>
         }
 
         @Override
-        protected Single<GenericMqttSubAck> sendSubscribe(final Mqtt5RxClient mqtt5RxClient,
-                final GenericMqttSubscribe genericMqttSubscribe) {
-
-            return mqtt5RxClient.subscribe(genericMqttSubscribe.getAsMqtt5Subscribe())
-                    .map(GenericMqttSubAck::ofMqtt5SubAck)
-                    .onErrorResumeNext(error -> {
-                        final Single<GenericMqttSubAck> result;
-                        if (error instanceof Mqtt5SubAckException mqtt5SubAckException) {
-                            result = Single.error(new AllSubscriptionsFailedException(
-                                    getFailedSubscriptionStatuses(
-                                            GenericMqttSubAck.ofMqtt5SubAck(mqtt5SubAckException.getMqttMessage()),
-                                            getSubscriptionTopicFilters(genericMqttSubscribe)
-                                    ),
-                                    mqtt5SubAckException
-                            ));
-                        } else {
-                            result = Single.error(new MqttSubscribeException(error));
-                        }
-                        return result;
-                    });
-        }
-
-        @Override
-        protected Flowable<GenericMqttPublish> consumeIncomingPublishes(final Mqtt5RxClient mqtt5RxClient,
-                final MqttGlobalPublishFilter filter,
+        protected FlowableWithSingle<GenericMqttPublish, GenericMqttSubAck> consumeIncomingPublishes(
+                final Mqtt5RxClient mqtt5RxClient,
+                final GenericMqttSubscribe mqttSubscribe,
                 final boolean manualAcknowledgement) {
 
-            return mqtt5RxClient.publishes(filter, manualAcknowledgement).map(GenericMqttPublish::ofMqtt5Publish);
+            return mqtt5RxClient.subscribePublishes(mqttSubscribe.getAsMqtt5Subscribe(), manualAcknowledgement)
+                    .mapError(error -> {
+                        final MqttSubscribeException result;
+                        if (error instanceof Mqtt5SubAckException mqtt5SubAckException) {
+                            result = new AllSubscriptionsFailedException(
+                                    getFailedSubscriptionStatuses(
+                                            GenericMqttSubAck.ofMqtt5SubAck(
+                                                    mqtt5SubAckException.getMqttMessage()),
+                                            getSubscriptionTopicFilters(mqttSubscribe)
+                                    ),
+                                    mqtt5SubAckException
+                            );
+                        } else {
+                            result = new MqttSubscribeException(error);
+                        }
+                        return result;
+                    })
+                    .mapBoth(GenericMqttPublish::ofMqtt5Publish, GenericMqttSubAck::ofMqtt5SubAck);
         }
 
     }

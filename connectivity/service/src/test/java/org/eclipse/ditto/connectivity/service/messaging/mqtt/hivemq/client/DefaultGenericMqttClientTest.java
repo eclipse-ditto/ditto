@@ -375,12 +375,13 @@ public final class DefaultGenericMqttClientTest {
                         .payload(ByteBufferUtils.fromUtf8String("definitively online"))
                         .build()
         );
-        Mockito.when(subscribingClient.consumeSubscribedPublishesWithManualAcknowledgement())
+        Mockito.when(subscribingClient.consumeSubscribedPublishesWithManualAcknowledgement(genericMqttSubscribe, ))
                 .thenReturn(Flowable.fromIterable(genericMqttPublishes));
         final var underTest =
                 DefaultGenericMqttClient.newInstance(subscribingClient, publishingClient, hiveMqttClientProperties);
 
-        final var genericMqttMqttPublishFlowable = underTest.consumeSubscribedPublishesWithManualAcknowledgement();
+        final var genericMqttMqttPublishFlowable = underTest.consumeSubscribedPublishesWithManualAcknowledgement(
+                genericMqttSubscribe, );
 
         assertThat(subscribeForFlowableValueResponse(genericMqttMqttPublishFlowable))
                 .succeedsWithin(Duration.ofSeconds(1L))

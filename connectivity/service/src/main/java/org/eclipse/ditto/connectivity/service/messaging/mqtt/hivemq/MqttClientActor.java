@@ -66,6 +66,7 @@ import akka.actor.Props;
 import akka.actor.Status;
 import akka.japi.pf.FSMStateFunctionBuilder;
 import akka.pattern.Patterns;
+import akka.stream.Materializer;
 import akka.stream.javadsl.Keep;
 import akka.stream.javadsl.Sink;
 import akka.stream.javadsl.Source;
@@ -433,7 +434,8 @@ public final class MqttClientActor extends BaseClientActor {
     private CompletionStage<Source<SubscribeResult, NotUsed>> subscribe() {
         final CompletionStage<Source<SubscribeResult, NotUsed>> result;
         if (null != genericMqttClient) {
-            final var subscriber = MqttSubscriber.newInstance(genericMqttClient);
+            final var subscriber = MqttSubscriber.newInstance(genericMqttClient,
+                    Materializer.createMaterializer(getContext().getSystem()));
             result = CompletableFuture.completedFuture(
                     subscriber.subscribeForConnectionSources(connection().getSources())
             );

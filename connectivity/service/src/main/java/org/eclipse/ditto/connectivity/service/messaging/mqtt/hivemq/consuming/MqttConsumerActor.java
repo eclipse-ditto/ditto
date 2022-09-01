@@ -109,7 +109,7 @@ public final class MqttConsumerActor extends BaseConsumerActor {
             final org.eclipse.ditto.connectivity.model.Source connectionSource,
             final ConnectivityStatusResolver connectivityStatusResolver,
             final ConnectivityConfig connectivityConfig,
-            final Source<GenericMqttPublish, NotUsed> mqttPublishSource) {
+            final Source<GenericMqttPublish, ?> mqttPublishSource) {
 
         return Props.create(
                 MqttConsumerActor.class,
@@ -141,7 +141,7 @@ public final class MqttConsumerActor extends BaseConsumerActor {
             final org.eclipse.ditto.connectivity.model.Source connectionSource,
             final ConnectivityStatusResolver connectivityStatusResolver,
             final ConnectivityConfig connectivityConfig,
-            final Source<GenericMqttPublish, NotUsed> mqttPublishSource) {
+            final Source<GenericMqttPublish, ?> mqttPublishSource) {
 
         return Props.create(
                 MqttConsumerActor.class,

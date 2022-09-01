@@ -21,7 +21,6 @@ import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.client.MqttS
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.message.publish.GenericMqttPublish;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.message.subscribe.GenericMqttSubscribe;
 
-import akka.NotUsed;
 import akka.stream.javadsl.Source;
 
 /**
@@ -30,10 +29,10 @@ import akka.stream.javadsl.Source;
  */
 final class SubscribeSuccess extends SubscribeResult {
 
-    private final akka.stream.javadsl.Source<GenericMqttPublish, NotUsed> mqttPublishSource;
+    private final akka.stream.javadsl.Source<GenericMqttPublish, ?> mqttPublishSource;
 
     private SubscribeSuccess(final org.eclipse.ditto.connectivity.model.Source connectionSource,
-            final Source<GenericMqttPublish, NotUsed> mqttPublishSource) {
+            final Source<GenericMqttPublish, ?> mqttPublishSource) {
 
         super(connectionSource);
         this.mqttPublishSource = mqttPublishSource;
@@ -48,7 +47,7 @@ final class SubscribeSuccess extends SubscribeResult {
      * @throws NullPointerException if any argument is {@code null}.
      */
     static SubscribeSuccess newInstance(final org.eclipse.ditto.connectivity.model.Source connectionSource,
-            final Source<GenericMqttPublish, NotUsed> mqttPublishSource) {
+            final Source<GenericMqttPublish, ?> mqttPublishSource) {
 
         return new SubscribeSuccess(connectionSource,
                 ConditionChecker.checkNotNull(mqttPublishSource, "mqttPublishSource"));
@@ -60,7 +59,7 @@ final class SubscribeSuccess extends SubscribeResult {
     }
 
     @Override
-    public akka.stream.javadsl.Source<GenericMqttPublish, NotUsed> getMqttPublishSourceOrThrow() {
+    public akka.stream.javadsl.Source<GenericMqttPublish, ?> getMqttPublishSourceOrThrow() {
         return mqttPublishSource;
     }
 

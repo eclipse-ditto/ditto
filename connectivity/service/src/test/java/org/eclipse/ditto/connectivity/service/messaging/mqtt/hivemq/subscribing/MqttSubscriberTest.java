@@ -77,14 +77,14 @@ public final class MqttSubscriberTest {
     @Test
     public void newInstanceWithNullClientThrowsException() {
         assertThatNullPointerException()
-                .isThrownBy(() -> MqttSubscriber.newInstance(null))
+                .isThrownBy(() -> MqttSubscriber.newInstance(null, actorSystemResource.getMaterializer()))
                 .withMessage("The genericMqttSubscribingClient must not be null!")
                 .withNoCause();
     }
 
     @Test
     public void subscribeForConnectionSourceWithNullConnectionSourceThrowsException() {
-        final var underTest = MqttSubscriber.newInstance(genericMqttClient);
+        final var underTest = MqttSubscriber.newInstance(genericMqttClient, actorSystemResource.getMaterializer());
 
         assertThatNullPointerException()
                 .isThrownBy(() -> underTest.subscribeForConnectionSources(null))
@@ -94,7 +94,7 @@ public final class MqttSubscriberTest {
 
     @Test
     public void subscribeForConnectionSourceWithEmptyCollectionReturnsEmptySource() {
-        final var underTest = MqttSubscriber.newInstance(genericMqttClient);
+        final var underTest = MqttSubscriber.newInstance(genericMqttClient, actorSystemResource.getMaterializer());
 
         final var subscribeResultSource =
                 underTest.subscribeForConnectionSources(Collections.emptyList());
@@ -104,7 +104,7 @@ public final class MqttSubscriberTest {
 
     @Test
     public void subscribeForConnectionSourcesWithInvalidSourceAddressReturnsSourceWithSubscribeFailure() {
-        final var underTest = MqttSubscriber.newInstance(genericMqttClient);
+        final var underTest = MqttSubscriber.newInstance(genericMqttClient, actorSystemResource.getMaterializer());
 
         final var subscribeResultSource = underTest.subscribeForConnectionSources(
                 List.of(mockConnectionSource(Set.of("#/#"), MqttQos.EXACTLY_ONCE))
@@ -127,12 +127,12 @@ public final class MqttSubscriberTest {
         final var genericMqttSubAck = Mockito.mock(GenericMqttSubAck.class);
         Mockito.when(genericMqttClient.subscribe(Mockito.any(GenericMqttSubscribe.class)))
                 .thenReturn(Single.just(genericMqttSubAck));
-        Mockito.when(genericMqttClient.consumeSubscribedPublishesWithManualAcknowledgement())
+        Mockito.when(genericMqttClient.consumeSubscribedPublishesWithManualAcknowledgement(genericMqttSubscribe, ))
                 .thenReturn(Flowable.never());
         final var mqttQos = MqttQos.AT_LEAST_ONCE;
         final var connectionSource1 = mockConnectionSource(Set.of("foo", "bar"), mqttQos);
         final var connectionSource2 = mockConnectionSource(Set.of("baz"), mqttQos);
-        final var underTest = MqttSubscriber.newInstance(genericMqttClient);
+        final var underTest = MqttSubscriber.newInstance(genericMqttClient, actorSystemResource.getMaterializer());
 
         final var subscribeResultSource =
                 underTest.subscribeForConnectionSources(List.of(connectionSource1, connectionSource2));
@@ -183,7 +183,7 @@ public final class MqttSubscriberTest {
         Mockito.when(genericMqttClient.subscribe(Mockito.any(GenericMqttSubscribe.class)))
                 .thenReturn(Single.error(someSubscriptionsFailedException));
         final var connectionSource = mockConnectionSource(topicSubAckStatuses.keySet(), MqttQos.AT_LEAST_ONCE);
-        final var underTest = MqttSubscriber.newInstance(genericMqttClient);
+        final var underTest = MqttSubscriber.newInstance(genericMqttClient, actorSystemResource.getMaterializer());
 
         final var subscribeResultSource = underTest.subscribeForConnectionSources(List.of(connectionSource));
 

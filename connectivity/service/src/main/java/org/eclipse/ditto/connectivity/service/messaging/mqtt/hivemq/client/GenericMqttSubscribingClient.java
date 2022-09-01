@@ -16,8 +16,7 @@ import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.message.publ
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.message.subscribe.GenericMqttSubAck;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.message.subscribe.GenericMqttSubscribe;
 
-import io.reactivex.Flowable;
-import io.reactivex.Single;
+import com.hivemq.client.rx.FlowableWithSingle;
 
 /**
  * Generic client for subscribing to topics at the MQTT broker and consuming Publish messages for the subscribed topic
@@ -26,16 +25,26 @@ import io.reactivex.Single;
 public interface GenericMqttSubscribingClient {
 
     /**
-     * Subscribes this client with the specified {@code GenericMqttSubscribe} message.
-     * <p>
-     * The returned {@code Single} represents the source of the SubAck message corresponding to the given Subscribe
-     * message.
-     * Calling this method does not subscribe yet.
-     * Subscribing is performed lazily and asynchronously when subscribing (in terms of Reactive Streams) to the
-     * returned {@code Single}.
+     * Creates a {@link FlowableWithSingle} for consuming all incoming Publish messages matching the passed
+     * {@code genericMqttSubscribe} subscription.
+     * <em>The Publish messages have to be acknowledged manually.</em>
      *
-     * @param genericMqttSubscribe provides the Subscribe message sent to the broker during subscribe
-     * @return a {@code Single} which
+     * @param genericMqttSubscribe provides the Subscribe message sent to the broker declaring to which topics to
+     * subscribe.
+     * @return the {@code FlowableWithSingle} which
+     * <ul>
+     *     <li>
+     *         emits the incoming Publish messages matching
+     *         {@link com.hivemq.client.mqtt.MqttGlobalPublishFilter#SUBSCRIBED MqttGlobalPublishFilter.SUBSCRIBED},
+     *     </li>
+     *     <li>never completes but</li>
+     *     <li>
+     *         errors with an
+     *         {@link com.hivemq.client.mqtt.exceptions.MqttSessionExpiredException MqttSessionExpiredException} when
+     *         the MQTT session expires.
+     *     </li>
+     * </ul>
+     * And the {@code Single} part which:
      * <ul>
      *     <li>
      *         succeeds with the generic MQTT SubAck message if at least one subscription of the Subscribe message was
@@ -54,32 +63,8 @@ public interface GenericMqttSubscribingClient {
      *         the Subscribe message was sent or before a SubAck message was received.
      *     </li>
      * </ul>
-     * @see #consumeSubscribedPublishesWithManualAcknowledgement() for consuming the incoming Publish messages for the
-     * subscribed topics.
      */
-    Single<GenericMqttSubAck> subscribe(GenericMqttSubscribe genericMqttSubscribe);
-
-    /**
-     * Creates a {@link Flowable} for globally consuming all incoming Publish messages resulting from subscriptions
-     * made by the client.
-     *
-     * <em>The Publish messages have to be acknowledged manually.</em>
-     *
-     * @return the {@code Flowable} which
-     * <ul>
-     *     <li>
-     *         emits the incoming Publish messages matching
-     *         {@link com.hivemq.client.mqtt.MqttGlobalPublishFilter#SUBSCRIBED MqttGlobalPublishFilter.SUBSCRIBED},
-     *     </li>
-     *     <li>never completes but</li>
-     *     <li>
-     *         errors with an
-     *         {@link com.hivemq.client.mqtt.exceptions.MqttSessionExpiredException MqttSessionExpiredException} when
-     *         the MQTT session expires.
-     *     </li>
-     * </ul>
-     * @see #subscribe(GenericMqttSubscribe) 
-     */
-    Flowable<GenericMqttPublish> consumeSubscribedPublishesWithManualAcknowledgement();
+    FlowableWithSingle<GenericMqttPublish, GenericMqttSubAck> consumeSubscribedPublishesWithManualAcknowledgement(
+            GenericMqttSubscribe genericMqttSubscribe);
 
 }

@@ -26,8 +26,7 @@ import org.eclipse.ditto.connectivity.service.util.ConnectivityMdcEntryKey;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLogger;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 
-import io.reactivex.Flowable;
-import io.reactivex.Single;
+import com.hivemq.client.rx.FlowableWithSingle;
 
 /**
  * Default implementation of {@link GenericMqttClient}.
@@ -150,13 +149,9 @@ final class DefaultGenericMqttClient implements GenericMqttClient {
     }
 
     @Override
-    public Single<GenericMqttSubAck> subscribe(final GenericMqttSubscribe genericMqttSubscribe) {
-        return subscribingClient.subscribe(genericMqttSubscribe);
-    }
-
-    @Override
-    public Flowable<GenericMqttPublish> consumeSubscribedPublishesWithManualAcknowledgement() {
-        return subscribingClient.consumeSubscribedPublishesWithManualAcknowledgement();
+    public FlowableWithSingle<GenericMqttPublish, GenericMqttSubAck> consumeSubscribedPublishesWithManualAcknowledgement(
+            final GenericMqttSubscribe genericMqttSubscribe) {
+        return subscribingClient.consumeSubscribedPublishesWithManualAcknowledgement(genericMqttSubscribe);
     }
 
     @Override

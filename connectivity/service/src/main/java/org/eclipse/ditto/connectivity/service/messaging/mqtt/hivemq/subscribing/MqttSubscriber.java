@@ -16,14 +16,21 @@ import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.text.MessageFormat;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.client.GenericMqttSubscribingClient;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.client.MqttSubscribeException;
+import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.message.publish.GenericMqttPublish;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.message.subscribe.GenericMqttSubscribe;
+import org.reactivestreams.Subscriber;
 
 import akka.NotUsed;
 import akka.japi.Pair;
+import akka.stream.Materializer;
+import akka.stream.javadsl.Keep;
+import akka.stream.javadsl.Sink;
 import akka.stream.javadsl.Source;
 import scala.util.Failure;
 import scala.util.Success;
@@ -36,9 +43,12 @@ import scala.util.Try;
 public final class MqttSubscriber {
 
     private final GenericMqttSubscribingClient subscribingClient;
+    private final Materializer materializer;
 
-    private MqttSubscriber(final GenericMqttSubscribingClient subscribingClient) {
+    private MqttSubscriber(final GenericMqttSubscribingClient subscribingClient,
+            final Materializer materializer) {
         this.subscribingClient = subscribingClient;
+        this.materializer = materializer;
     }
 
     /**
@@ -46,11 +56,14 @@ public final class MqttSubscriber {
      *
      * @param genericMqttSubscribingClient the client to be used for subscribing to topics at the broker and for
      * consuming incoming Publish message for the subscribed topics.
+     * @param materializer for materializing akka sources.
      * @return the instance.
      * @throws NullPointerException if {@code genericMqttSubscribingClient} is {@code null}.
      */
-    public static MqttSubscriber newInstance(final GenericMqttSubscribingClient genericMqttSubscribingClient) {
-        return new MqttSubscriber(checkNotNull(genericMqttSubscribingClient, "genericMqttSubscribingClient"));
+    public static MqttSubscriber newInstance(final GenericMqttSubscribingClient genericMqttSubscribingClient,
+            final Materializer materializer) {
+        return new MqttSubscriber(checkNotNull(genericMqttSubscribingClient, "genericMqttSubscribingClient"),
+                checkNotNull(materializer, "materializer"));
     }
 
     /**
@@ -81,18 +94,21 @@ public final class MqttSubscriber {
         return Source.fromIterator(connectionSources::iterator)
                 .map(MqttSubscriber::tryToGetGenericMqttSubscribe)
                 .map(optionalTryPair -> Pair.create(
-                        optionalTryPair.first(),
-                        optionalTryPair.second()
-                                .map(optionalSubscribeMsg -> Source.fromJavaStream(optionalSubscribeMsg::stream))
-                                .map(subscribeMsgSource -> subscribeMsgSource.flatMapConcat(
-                                        subscribeMsg -> subscribe(subscribeMsg, optionalTryPair.first()))
+                                optionalTryPair.first(),
+                                optionalTryPair.second()
+                                        .map(optionalSubscribeMsg -> Source.fromJavaStream(optionalSubscribeMsg::stream))
+                                        .map(subscribeMsgSource -> subscribeMsgSource.flatMapConcat(subscribeMsg ->
+                                                subscribe(subscribeMsg, optionalTryPair.first())
+                                        )
                                 )
-                ))
+                        )
+                )
                 .flatMapConcat(pair -> pair.second()
                         .fold(
                                 error -> getSubscribeFailureSource(pair.first(), error),
                                 sourceSubscribeResultSource -> sourceSubscribeResultSource
-                        ));
+                        )
+                );
     }
 
     private static Pair<org.eclipse.ditto.connectivity.model.Source, Try<Optional<GenericMqttSubscribe>>> tryToGetGenericMqttSubscribe(
@@ -108,20 +124,44 @@ public final class MqttSubscriber {
         }
     }
 
-    private Source<SubscribeResult, NotUsed> subscribe(final GenericMqttSubscribe genericMqttSubscribe,
+    private Source<SubscribeResult, NotUsed> subscribe(
+            final GenericMqttSubscribe genericMqttSubscribe,
             final org.eclipse.ditto.connectivity.model.Source connectionSource) {
 
-        return Source.fromPublisher(subscribingClient.subscribe(genericMqttSubscribe) // <- there
-                .map(unused -> consumeIncomingPublishesForSubscribedTopics(connectionSource))
-                .onErrorReturn(error -> getSubscribeFailureResult(connectionSource, error))
-                .toFlowable());
+        return Source.completionStage(
+                consumeIncomingPublishesForSubscribedTopics(connectionSource, genericMqttSubscribe)
+        );
     }
 
-    private SubscribeResult consumeIncomingPublishesForSubscribedTopics(
-            final org.eclipse.ditto.connectivity.model.Source connectionSource
-    ) {
-        return SubscribeSuccess.newInstance(connectionSource,
-                Source.fromPublisher(subscribingClient.consumeSubscribedPublishesWithManualAcknowledgement()));
+    private CompletableFuture<SubscribeResult> consumeIncomingPublishesForSubscribedTopics(
+            final org.eclipse.ditto.connectivity.model.Source connectionSource,
+            final GenericMqttSubscribe genericMqttSubscribe) {
+
+        final var flowableWithSingle =
+                subscribingClient.consumeSubscribedPublishesWithManualAcknowledgement(genericMqttSubscribe);
+
+        final Source<GenericMqttPublish, Subscriber<GenericMqttPublish>> genericMqttPublishSubscriberSource =
+                Source.asSubscriber();
+
+        return genericMqttPublishSubscriberSource.mapMaterializedValue(
+                subscriber ->
+                        flowableWithSingle.subscribeSingleFuture(subscriber)
+                                .handle((genericMqttSubAck, throwable) -> {
+                                    if (null == throwable && null != genericMqttSubAck) {
+                                        return SubscribeSuccess.newInstance(connectionSource,
+                                                genericMqttPublishSubscriberSource);
+                                    } else {
+                                        return getSubscribeFailureResult(connectionSource,
+                                                Objects.requireNonNullElseGet(throwable, () ->
+                                                        new MqttSubscribeException(
+                                                                "Neither 'genericMqttSubAck' nor 'throwable' present", null)
+                                                )
+                                        );
+                                    }
+                                })
+                )
+                .toMat(Sink.head(), Keep.left())
+                .run(materializer);
     }
 
 

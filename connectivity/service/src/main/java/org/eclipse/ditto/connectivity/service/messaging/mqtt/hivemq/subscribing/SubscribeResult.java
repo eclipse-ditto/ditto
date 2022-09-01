@@ -19,10 +19,8 @@ import javax.annotation.Nullable;
 import org.eclipse.ditto.base.model.common.ConditionChecker;
 import org.eclipse.ditto.connectivity.model.Source;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.client.MqttSubscribeException;
-import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.message.subscribe.GenericMqttSubscribe;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.message.publish.GenericMqttPublish;
-
-import akka.NotUsed;
+import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.message.subscribe.GenericMqttSubscribe;
 
 /**
  * Represents the result of subscribing a client with a Subscribe message ({@link GenericMqttSubscribe}).
@@ -75,7 +73,7 @@ public abstract class SubscribeResult {
      * @throws IllegalStateException if this result is a failure.
      * @see #isSuccess()
      */
-    public abstract akka.stream.javadsl.Source<GenericMqttPublish, NotUsed> getMqttPublishSourceOrThrow();
+    public abstract akka.stream.javadsl.Source<GenericMqttPublish, ?> getMqttPublishSourceOrThrow();
 
     /**
      * Returns the error that caused subscribing to fail if this result is a failure.

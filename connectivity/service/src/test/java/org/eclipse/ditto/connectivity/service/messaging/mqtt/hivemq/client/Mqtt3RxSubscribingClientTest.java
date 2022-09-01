@@ -268,7 +268,8 @@ public final class Mqtt3RxSubscribingClientTest {
         final var onCompleteMessage = "done";
         final var underTest = BaseGenericMqttSubscribingClient.ofMqtt3RxClient(mqtt3RxClient, ClientRole.CONSUMER);
 
-        final var genericMqttPublishFlowable = underTest.consumeSubscribedPublishesWithManualAcknowledgement();
+        final var genericMqttPublishFlowable = underTest.consumeSubscribedPublishesWithManualAcknowledgement(
+                genericMqttSubscribe, );
 
         final var mqttPublishSourceTestKit = ACTOR_SYSTEM_RESOURCE.newTestKit();
         Source.fromPublisher(genericMqttPublishFlowable)
@@ -288,7 +289,8 @@ public final class Mqtt3RxSubscribingClientTest {
                 .thenReturn(Flowable.error(mqttSessionExpiredException));
         final var underTest = BaseGenericMqttSubscribingClient.ofMqtt3RxClient(mqtt3RxClient, ClientRole.CONSUMER);
 
-        final var genericMqttPublishFlowable = underTest.consumeSubscribedPublishesWithManualAcknowledgement();
+        final var genericMqttPublishFlowable = underTest.consumeSubscribedPublishesWithManualAcknowledgement(
+                genericMqttSubscribe, );
 
         final var mqttPublishSourceTestKit = ACTOR_SYSTEM_RESOURCE.newTestKit();
         Source.fromPublisher(genericMqttPublishFlowable)

@@ -55,7 +55,6 @@ import org.eclipse.ditto.internal.utils.health.RetrieveHealth;
 import org.eclipse.ditto.internal.utils.health.RetrieveHealthResponse;
 import org.eclipse.ditto.internal.utils.health.StatusInfo;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -189,7 +188,8 @@ public final class ConnectionTesterActorTest {
         ) {
             childActorNannyMock.when(() -> ChildActorNanny.newInstance(Mockito.any(), Mockito.any()))
                     .thenReturn(childActorNanny);
-            mqttSubscriberMock.when(() -> MqttSubscriber.newInstance(Mockito.any())).thenReturn(mqttSubscriber);
+            mqttSubscriberMock.when(() -> MqttSubscriber.newInstance(Mockito.any(), Mockito.any()))
+                    .thenReturn(mqttSubscriber);
 
             final var publisherActorTestKit = actorSystemResource.newTestKit();
             Mockito.when(childActorNanny.startChildActorConflictFree(Mockito.eq(MqttPublisherActor.class.getSimpleName()),
@@ -258,7 +258,8 @@ public final class ConnectionTesterActorTest {
         ) {
             childActorNannyMock.when(() -> ChildActorNanny.newInstance(Mockito.any(), Mockito.any()))
                     .thenReturn(childActorNanny);
-            mqttSubscriberMock.when(() -> MqttSubscriber.newInstance(Mockito.any())).thenReturn(mqttSubscriber);
+            mqttSubscriberMock.when(() -> MqttSubscriber.newInstance(Mockito.any(), Mockito.any()))
+                    .thenReturn(mqttSubscriber);
 
             final var publisherActorTestKit = actorSystemResource.newTestKit();
             Mockito.when(childActorNanny.startChildActorConflictFree(Mockito.eq(MqttPublisherActor.class.getSimpleName()),
@@ -322,7 +323,8 @@ public final class ConnectionTesterActorTest {
         ) {
             childActorNannyMock.when(() -> ChildActorNanny.newInstance(Mockito.any(), Mockito.any()))
                     .thenReturn(childActorNanny);
-            mqttSubscriberMock.when(() -> MqttSubscriber.newInstance(Mockito.any())).thenReturn(mqttSubscriber);
+            mqttSubscriberMock.when(() -> MqttSubscriber.newInstance(Mockito.any(), Mockito.any()))
+                    .thenReturn(mqttSubscriber);
 
             final var publisherActorTestKit = actorSystemResource.newTestKit();
             Mockito.when(childActorNanny.startChildActorConflictFree(Mockito.eq(MqttPublisherActor.class.getSimpleName()),
@@ -365,7 +367,8 @@ public final class ConnectionTesterActorTest {
         ) {
             childActorNannyMock.when(() -> ChildActorNanny.newInstance(Mockito.any(), Mockito.any()))
                     .thenReturn(childActorNanny);
-            mqttSubscriberMock.when(() -> MqttSubscriber.newInstance(Mockito.any())).thenReturn(mqttSubscriber);
+            mqttSubscriberMock.when(() -> MqttSubscriber.newInstance(Mockito.any(), Mockito.any()))
+                    .thenReturn(mqttSubscriber);
 
             final var publisherActorTestKit = actorSystemResource.newTestKit();
             Mockito.when(childActorNanny.startChildActorConflictFree(Mockito.eq(MqttPublisherActor.class.getSimpleName()),
@@ -423,7 +426,8 @@ public final class ConnectionTesterActorTest {
         ) {
             childActorNannyMock.when(() -> ChildActorNanny.newInstance(Mockito.any(), Mockito.any()))
                     .thenReturn(childActorNanny);
-            mqttSubscriberMock.when(() -> MqttSubscriber.newInstance(Mockito.any())).thenReturn(mqttSubscriber);
+            mqttSubscriberMock.when(() -> MqttSubscriber.newInstance(Mockito.any(), Mockito.any()))
+                    .thenReturn(mqttSubscriber);
 
             final var publisherActorTestKit = actorSystemResource.newTestKit();
             Mockito.when(childActorNanny.startChildActorConflictFree(Mockito.eq(MqttPublisherActor.class.getSimpleName()),

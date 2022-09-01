@@ -67,6 +67,7 @@ import akka.actor.Status;
 import akka.japi.pf.ReceiveBuilder;
 import akka.pattern.AskTimeoutException;
 import akka.pattern.Patterns;
+import akka.stream.Materializer;
 import akka.stream.javadsl.Keep;
 import akka.stream.javadsl.Sink;
 
@@ -243,7 +244,8 @@ final class ConnectionTesterActor extends AbstractActor {
 
     private CompletionStage<TotalSubscribeResult> subscribe(final ClientContext clientContext) {
         final var mqttConnection = clientContext.connection();
-        final var mqttSubscriber = MqttSubscriber.newInstance(clientContext.genericMqttClient());
+        final var mqttSubscriber = MqttSubscriber.newInstance(clientContext.genericMqttClient(),
+                Materializer.createMaterializer(getContext().getSystem()));
         return mqttSubscriber.subscribeForConnectionSources(mqttConnection.getSources())
                 .toMat(Sink.seq(), Keep.right())
                 .run(getContext().getSystem())

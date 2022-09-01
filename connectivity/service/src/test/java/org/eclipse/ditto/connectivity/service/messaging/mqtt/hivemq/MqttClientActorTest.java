@@ -165,7 +165,7 @@ public final class MqttClientActorTest extends AbstractBaseClientActorTest {
         Mockito.when(genericMqttClient.disconnect()).thenReturn(CompletableFuture.completedFuture(null));
         Mockito.when(genericMqttClient.subscribe(Mockito.any()))
                 .thenReturn(Single.just(Mockito.mock(GenericMqttSubAck.class)));
-        Mockito.when(genericMqttClient.consumeSubscribedPublishesWithManualAcknowledgement())
+        Mockito.when(genericMqttClient.consumeSubscribedPublishesWithManualAcknowledgement(genericMqttSubscribe, ))
                 .thenReturn(Flowable.never());
         Mockito.when(genericMqttClient.publish(Mockito.any()))
                 .thenAnswer(invocation -> {
@@ -365,7 +365,8 @@ public final class MqttClientActorTest extends AbstractBaseClientActorTest {
                             .collect(Collectors.toList());
 
                     // This needs to be a side effect, unfortunately.
-                    Mockito.when(genericMqttClient.consumeSubscribedPublishesWithManualAcknowledgement())
+                    Mockito.when(genericMqttClient.consumeSubscribedPublishesWithManualAcknowledgement(
+                                    genericMqttSubscribe, ))
                             .thenReturn(Flowable.fromIterable(
                                     Stream.of(incomingPublishes)
                                             .filter(incoming -> subscribedMqttTopicFilters.stream()
