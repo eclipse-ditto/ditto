@@ -20,13 +20,11 @@ import javax.annotation.concurrent.Immutable;
 @Immutable
 public final class ThingsMessagingConstants {
 
-    @SuppressWarnings("squid:S1075")
-    private static final String USER_PATH = "/user";
-
     /**
      * Path of the root actor.
      */
-    public static final String ROOT_ACTOR_PATH = USER_PATH + "/thingsRoot/";
+    @SuppressWarnings("squid:S1075")
+    private static final String ROOT_ACTOR_PATH = "/user/thingsRoot/";
 
     public static final String THINGS_PERSISTENCE_STREAMING_ACTOR_NAME = "snapshotStreamingActor";
 
