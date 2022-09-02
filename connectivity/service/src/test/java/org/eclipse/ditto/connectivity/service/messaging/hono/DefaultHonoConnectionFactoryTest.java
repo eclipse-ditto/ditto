@@ -36,9 +36,7 @@ import org.eclipse.ditto.connectivity.service.config.DefaultHonoConfig;
 import org.eclipse.ditto.connectivity.service.config.HonoConfig;
 import org.eclipse.ditto.internal.utils.akka.ActorSystemResource;
 import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.json.JsonObject;
 import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 
@@ -52,20 +50,18 @@ public final class DefaultHonoConnectionFactoryTest {
 
     private static final Config TEST_CONFIG = ConfigFactory.load("test");
 
-    private static JsonObject honoTestConnectionJsonObject;
-
     @Rule
     public final ActorSystemResource actorSystemResource = ActorSystemResource.newInstance(TEST_CONFIG);
 
     private HonoConfig honoConfig;
 
-    @BeforeClass
-    public static void beforeClass() throws IOException {
+    private static Connection generateConnectionObjectFromJsonFile( String fileName) throws IOException {
         final var testClassLoader = DefaultHonoConnectionFactoryTest.class.getClassLoader();
-        try (final var testConnectionJsonFileStreamReader = new InputStreamReader(
-                testClassLoader.getResourceAsStream("test-connection-hono.json")
+        try (final var connectionJsonFileStreamReader = new InputStreamReader(
+                testClassLoader.getResourceAsStream(fileName)
         )) {
-            honoTestConnectionJsonObject = JsonFactory.readFrom(testConnectionJsonFileStreamReader).asObject();
+            return ConnectivityModelFactory.connectionFromJson(
+                    JsonFactory.readFrom(connectionJsonFileStreamReader).asObject());
         }
     }
 
@@ -83,9 +79,22 @@ public final class DefaultHonoConnectionFactoryTest {
     }
 
     @Test
-    public void getHonoConnectionReturnsExpected() {
+    public void getHonoConnectionWithCustomMappingsReturnsExpected() throws IOException {
         final var userProvidedHonoConnection =
-                ConnectivityModelFactory.connectionFromJson(honoTestConnectionJsonObject);
+                generateConnectionObjectFromJsonFile("hono-connection-custom-test.json");
+        final var expectedHonoConnection =
+                generateConnectionObjectFromJsonFile("hono-connection-custom-expected.json");
+
+        final var underTest =
+                new DefaultHonoConnectionFactory(actorSystemResource.getActorSystem(), ConfigFactory.empty());
+
+        assertThat(underTest.getHonoConnection(userProvidedHonoConnection)).isEqualTo(expectedHonoConnection);
+    }
+
+    @Test
+    public void getHonoConnectionWithDefaultMappingReturnsExpected() throws IOException {
+        final var userProvidedHonoConnection =
+                generateConnectionObjectFromJsonFile("hono-connection-default-test.json");
 
         final var underTest =
                 new DefaultHonoConnectionFactory(actorSystemResource.getActorSystem(), ConfigFactory.empty());
@@ -94,6 +103,7 @@ public final class DefaultHonoConnectionFactoryTest {
                 .isEqualTo(getExpectedHonoConnection(userProvidedHonoConnection));
     }
 
+    @SuppressWarnings("unchecked")
     private Connection getExpectedHonoConnection(final Connection originalConnection) {
         final var sourcesByAddress = getSourcesByAddress(originalConnection.getSources());
         final var commandReplyTargetHeaderMapping = ConnectivityModelFactory.newHeaderMapping(Map.of(
@@ -109,7 +119,10 @@ public final class DefaultHonoConnectionFactoryTest {
                 "subject", "{{ header:subject | fn:default(topic:action-subject) }}"
         );
         return ConnectivityModelFactory.newConnectionBuilder(originalConnection)
-                .uri(honoConfig.getBaseUri().toString())
+                .uri(honoConfig.getBaseUri().toString().replaceFirst("(\\S+://)(\\S+)",
+                        "$1" + honoConfig.getUserPasswordCredentials().getUsername()
+                                + ":" + honoConfig.getUserPasswordCredentials().getPassword()
+                                + "@$2"))
                 .validateCertificate(honoConfig.isValidateCertificates())
                 .specificConfig(Map.of(
                         "saslMechanism", honoConfig.getSaslMechanism().toString(),
@@ -131,7 +144,8 @@ public final class DefaultHonoConnectionFactoryTest {
                                         .headerMapping(commandReplyTargetHeaderMapping)
                                         .build())
                                 .build(),
-                        ConnectivityModelFactory.newSourceBuilder(sourcesByAddress.get(COMMAND_RESPONSE.getAliasValue()))
+                        ConnectivityModelFactory.newSourceBuilder(
+                                        sourcesByAddress.get(COMMAND_RESPONSE.getAliasValue()))
                                 .addresses(Set.of(getExpectedResolvedSourceAddress(COMMAND_RESPONSE)))
                                 .headerMapping(ConnectivityModelFactory.newHeaderMapping(Map.of(
                                         "correlation-id", "{{ header:correlation-id }}",
@@ -142,21 +156,23 @@ public final class DefaultHonoConnectionFactoryTest {
                 .setTargets(List.of(
                         ConnectivityModelFactory.newTargetBuilder(targets.get(0))
                                 .address(getExpectedResolvedCommandTargetAddress())
+                                .originalAddress(getExpectedResolvedCommandTargetAddress())
                                 .headerMapping(ConnectivityModelFactory.newHeaderMapping(
                                         Stream.concat(
                                                 basicAdditionalTargetHeaderMappingEntries.entrySet().stream(),
-                                                Stream.of(Map.entry("response-required", "{{ header:response-required }}"))
+                                                Stream.of(Map.entry("response-required",
+                                                        "{{ header:response-required }}"))
                                         ).collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue))
                                 ))
                                 .build(),
                         ConnectivityModelFactory.newTargetBuilder(targets.get(1))
                                 .address(getExpectedResolvedCommandTargetAddress())
+                                .originalAddress(getExpectedResolvedCommandTargetAddress())
                                 .headerMapping(ConnectivityModelFactory.newHeaderMapping(
                                         basicAdditionalTargetHeaderMappingEntries
                                 ))
                                 .build()
                 ))
-                .credentials(honoConfig.getUserPasswordCredentials())
                 .build();
     }
 
