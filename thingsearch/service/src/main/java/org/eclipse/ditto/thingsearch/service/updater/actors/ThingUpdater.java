@@ -12,11 +12,9 @@
  */
 package org.eclipse.ditto.thingsearch.service.updater.actors;
 
-import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
-import java.text.MessageFormat;
 import java.time.Duration;
 import java.util.List;
 import java.util.Objects;
@@ -347,7 +345,7 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
             log.info("Initial update was skipped - stopping thing updater for <{}>.", thingId);
             return stop();
         } else {
-            return goTo(State.READY).using(new Data(nextMetadata, data.lastWriteModel().setMetadata(nextMetadata)));
+            return goTo(State.READY).using(new Data(nextMetadata, data.lastWriteModel()));
         }
     }
 
@@ -535,12 +533,8 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
 
     private ThingId tryToGetThingId() {
         final Charset utf8 = StandardCharsets.UTF_8;
-        try {
-            final String actorName = self().path().name();
-            return ThingId.of(URLDecoder.decode(actorName, utf8.name()));
-        } catch (final UnsupportedEncodingException e) {
-            throw new IllegalStateException(MessageFormat.format("Charset <{0}> is unsupported!", utf8.name()), e);
-        }
+        final String actorName = self().path().name();
+        return ThingId.of(URLDecoder.decode(actorName, utf8));
     }
 
     private UniqueKillSwitch recoverLastWriteModel(final ThingId thingId,

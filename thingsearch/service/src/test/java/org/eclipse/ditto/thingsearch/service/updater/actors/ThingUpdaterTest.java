@@ -277,7 +277,9 @@ public final class ThingUpdaterTest {
             assertThat(data2.metadata().export()).isEqualTo(Metadata.of(THING_ID, REVISION + 2, null, null, null));
             assertThat(data2.metadata().getTimers()).hasSize(1);
             assertThat(data2.metadata().getAckRecipients()).isEmpty();
-            assertThat(data2.lastWriteModel()).isEqualTo(getThingWriteModel().setMetadata(data.metadata().export()));
+            assertThat(data2.lastWriteModel()).isEqualTo(
+                    // write model was not changed because previous update was skipped
+                    getThingWriteModel());
         }};
     }
 
