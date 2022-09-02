@@ -15,8 +15,6 @@ package org.eclipse.ditto.connectivity.service.messaging.persistence;
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 import static org.eclipse.ditto.connectivity.api.ConnectivityMessagingConstants.CLUSTER_ROLE;
 
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.text.MessageFormat;
 import java.time.Duration;
 import java.time.Instant;
@@ -59,7 +57,6 @@ import org.eclipse.ditto.connectivity.model.signals.commands.exceptions.Connecti
 import org.eclipse.ditto.connectivity.model.signals.commands.modify.CheckConnectionLogsActive;
 import org.eclipse.ditto.connectivity.model.signals.commands.modify.CloseConnection;
 import org.eclipse.ditto.connectivity.model.signals.commands.modify.EnableConnectionLogs;
-import org.eclipse.ditto.connectivity.model.signals.commands.modify.ModifyConnection;
 import org.eclipse.ditto.connectivity.model.signals.commands.modify.OpenConnection;
 import org.eclipse.ditto.connectivity.model.signals.commands.modify.TestConnection;
 import org.eclipse.ditto.connectivity.model.signals.commands.modify.TestConnectionResponse;
@@ -196,8 +193,6 @@ public final class ConnectionPersistenceActor
     @Nullable private Integer priority;
     @Nullable private Instant recoveredAt;
 
-    private final UpdatedConnectionTester updatedConnectionTester;
-
     ConnectionPersistenceActor(final ConnectionId connectionId,
             final ActorRef commandForwarderActor,
             final ActorRef pubSubMediator,
@@ -208,7 +203,6 @@ public final class ConnectionPersistenceActor
         final ActorSystem actorSystem = context().system();
         cluster = Cluster.get(actorSystem);
         final Config dittoExtensionConfig = ScopedConfig.dittoExtension(actorSystem.settings().config());
-        this.updatedConnectionTester = UpdatedConnectionTester.get(actorSystem, dittoExtensionConfig);
         this.commandForwarderActor = commandForwarderActor;
         propsFactory = ClientActorPropsFactory.get(actorSystem, dittoExtensionConfig);
         this.pubSubMediator = pubSubMediator;
@@ -621,10 +615,10 @@ public final class ConnectionPersistenceActor
                 passivate();
                 break;
             case OPEN_CONNECTION:
-                openConnection(command.next(), false, false);
+                openConnection(command.next(), false);
                 break;
             case OPEN_CONNECTION_IGNORE_ERRORS:
-                openConnection(command.next(), true, false);
+                openConnection(command.next(), true);
                 break;
             case CLOSE_CONNECTION:
                 closeConnection(command.next());
@@ -839,26 +833,15 @@ public final class ConnectionPersistenceActor
         }
     }
 
-    private void openConnection(final StagedCommand command, final boolean ignoreErrors, final boolean retry) {
+    private void openConnection(final StagedCommand command, final boolean ignoreErrors) {
         final OpenConnection openConnection = OpenConnection.of(entityId, command.getDittoHeaders());
         final Consumer<Object> successConsumer = response -> getSelf().tell(command, ActorRef.noSender());
         startAndAskClientActors(openConnection, getClientCount())
                 .thenAccept(successConsumer)
                 .exceptionally(error -> {
-                    if (retry) {
-                        self().tell(new RetryOpenConnection(openConnection, error, ignoreErrors, command.getSender()),
-                                ActorRef.noSender());
-                    } else {
-                        handleOpenConnectionError(error, ignoreErrors, command.getSender());
-                    }
+                    handleOpenConnectionError(error, ignoreErrors, command.getSender());
                     return null;
                 });
-    }
-
-    private void handleOpenConnectionError(final RetryOpenConnection retryOpenConnection) {
-        handleOpenConnectionError(retryOpenConnection.error,
-                retryOpenConnection.ignoreErrors,
-                retryOpenConnection.sender);
     }
 
     private void handleOpenConnectionError(final Throwable error, final boolean ignoreErrors, final ActorRef sender) {
@@ -870,9 +853,6 @@ public final class ConnectionPersistenceActor
             handleException("open-connection", sender, error);
         }
     }
-
-    private record RetryOpenConnection(OpenConnection openConnection, Throwable error, boolean ignoreErrors,
-                                       ActorRef sender) {}
 
     private void closeConnection(final StagedCommand command) {
         final CloseConnection closeConnection = CloseConnection.of(entityId, command.getDittoHeaders());
@@ -1188,7 +1168,7 @@ public final class ConnectionPersistenceActor
                 ConnectionOpened.of(entityId, getRevisionNumber(), Instant.now(), DittoHeaders.empty(), null);
         final StagedCommand stagedCommand = StagedCommand.of(connect, connectionOpened, connect,
                 Collections.singletonList(ConnectionAction.UPDATE_SUBSCRIPTIONS));
-        openConnection(stagedCommand, false, true);
+        openConnection(stagedCommand, false);
     }
 
     private ConnectivityCommandInterceptor getCommandValidator() {
