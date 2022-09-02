@@ -21,7 +21,7 @@ authenticates successfully or all of them fail.
 Ditto's "search" capabilities were rewritten so that bot API v1 and API v2 use the same MongoDB based search index.
 
 {% include warning.html content="If you want to upgrade an existing Ditto installation, the following database 
-        migration has to be done: **Follow the steps documented in [the migration notes](architecture-services-things-search.html#migration-from-ditto-090-m1)**." %}
+        migration has to be done: **Follow the steps documented in the migration notes**." %}
 
 
 ## New features

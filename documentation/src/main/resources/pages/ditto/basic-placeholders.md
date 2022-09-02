@@ -176,7 +176,7 @@ or subscriptions for live messages, the following placeholders are available in 
 Note that in RQL expressions placeholders must not be surrounded by curly braces.
 
 ### Scope: Websocket Signal Enrichment
-When [declaring extra fields](basic-enrichment.md) which should be enriched to a published signal for a Websocket connection, the following placeholders are available in general:
+When [declaring extra fields](basic-enrichment.html) which should be enriched to a published signal for a Websocket connection, the following placeholders are available in general:
 * [entity placeholder](#entity-placeholder)
 * [thing placeholder](#thing-placeholder)
 * [policy placeholder](#policy-placeholder)
@@ -188,7 +188,7 @@ When [declaring extra fields](basic-enrichment.md) which should be enriched to a
 * [time placeholder](#time-placeholder)
 
 ### Scope: SSE Signal Enrichment
-When [declaring extra fields](basic-enrichment.md) which should be enriched to a published signal for a Websocket connection, the following placeholders are available in general:
+When [declaring extra fields](basic-enrichment.html) which should be enriched to a published signal for a Websocket connection, the following placeholders are available in general:
 * [entity placeholder](#entity-placeholder)
 * [thing placeholder](#thing-placeholder)
 * [policy placeholder](#policy-placeholder)

@@ -188,7 +188,7 @@ Looking forward, the plan for Ditto 2.5.0 is to work on:
 
 Looking even more ahead, the plan for Ditto 3.0.0 is to work on:
 * Simplifying Ditto's architecture by:
-  * removing the [concierge service](architecture-services-concierge.html)
+  * removing the "concierge service"
   * potentially (to be evaluated) even removing the [gateway service](architecture-services-gateway.html) and merging its 
     functionality (providing HTTP + WS endpoints) into the 
     [connectivity service](architecture-services-connectivity.html)

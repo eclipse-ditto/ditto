@@ -213,7 +213,7 @@ When enforcing, the logic is:
 * If one was found, ensure there is no matching entry in the `revoke` list
 * If that is the case, accept the request, otherwise deny it
 
-An entry matches, when all of the following conditions are met:
+An entry matches, when all the following conditions are met:
 
 * The resource types list is empty, or contains the requested resource type
 * The namespace wildcard list is empty, or contains a wildcard that matches the requested namespace
@@ -238,6 +238,17 @@ of characters, and `?` will match exactly one character.
 
 The auth subject wildcard list requires only a single entry of the requests auth subjects to match, like `oauth:user-id`
 or `pre-authenticated:service`. `*` will match any number of characters, and `?` will match exactly one character.
+
+Example for configuring it via system properties.  
+This would only allow the subjects authenticated as either `"pre:admin"` or `"integration:some-connection"` to create 
+entities (things/policies) and no-one other:
+
+```shell
+-Dditto.entity-creation.grant.0.auth-subjects.0=pre:admin
+-Dditto.entity-creation.grant.0.auth-subjects.1=integration:some-connection
+```
+
+These system properties would have to be configured for the "things" and "policies" services.
 
 ## Logging
 

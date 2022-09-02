@@ -27,9 +27,8 @@ No custom indexes have to be defined as the structure in the database is "flatte
 
 Ditto's search index provides **eventual consistency**.
 
-In order to reduce load to the database when processing updates in a high frequency, the search index is updated in 
-small batches with a default interval of 1 second (configurable via environment variable 
-`THINGS_SEARCH_UPDATER_STREAM_WRITE_INTERVAL`).
+In order to reduce load to the database when processing updates in a high frequency, the search index is updated 
+with a default interval of 1 second (configurable via environment variable `THINGS_SEARCH_UPDATER_STREAM_WRITE_INTERVAL`).
 
 That means that when a thing is updated and the API (e.g. the HTTP endpoint) returns a success response, the search index
 will not reflect that change in that instant. The change will most likely be reflected in the search index within
@@ -37,7 +36,7 @@ will not reflect that change in that instant. The change will most likely be ref
 
 If it is important to know when a twin modification is reflected in the search index, request the
 [built-in acknowledgement](basic-acknowledgements.html#built-in-acknowledgement-labels) `search-persisted` 
-in the corresponding command.
+in the corresponding command.  
 Search index update is successful if the status code of `search-persisted` in the command response is 204 "no content".
 Status codes at or above 400 indicate failed search index update due to client or server errors.
 

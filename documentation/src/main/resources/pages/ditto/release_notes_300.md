@@ -26,6 +26,7 @@ Eclipse Ditto 3.0.0 focuses on the following areas:
 * W3C WoT (Web of Things) adjustments and improvements for latest 1.1 "Candidate Recommendation" from W3C
 * Make "default namespace" for creating new entities configurable
 * Provide custom namespace when creating things via HTTP POST
+* Make it possible to provide multiple OIDC issuer urls for a single configured openid-connect "prefix"
 
 The following non-functional enhancements are also included:
 
@@ -37,20 +38,63 @@ The following non-functional enhancements are also included:
 * Rewrite of Ditto managed **MQTT connections to use reactive-streams based client**, supporting consumption applying
   backpressure
 * Further improvements on rolling updates and other failover scenarios
-* Consolidate and simplify DevOps command responses (TODO TJ migration note!)
-* Add resubscription to Ditto pub/sub to ensure long-term consistency
-* Add subscriber pooling to Ditto PubSub supporting scaling out on messages/second to a single subscriber
+* Consolidate and simplify DevOps command responses
+
+We want to especially highlight the following bugfixes also included:
+
+* **Passwords** stored in the URI of **connections** to **no longer need to be double encoded**
 
 
 ### Changes
 
 #### [New Ditto "thing" search index](https://github.com/eclipse/ditto/issues/1374)
 
-TODO
+Change reasoning documented in 
+[DADR-0008](https://github.com/eclipse/ditto/blob/master/documentation/src/main/resources/architecture/DADR-0008-wildcard-search-index.md).
+
+The Ditto 2.x implementation of the search index uses the [attribute pattern](https://www.mongodb.com/blog/post/building-with-patterns-the-attribute-pattern) 
+for indexing data in MongoDB. 
+This pattern allows to define indices on fields, for which the keys are arbitrary and not known in advance 
+(like feature properties or attributes).  
+However, this approach has some downsides:  
+Authorization subjects allowed to read a property or an attribute are copied multiple times and the whole thing 
+structure is duplicated to allow sorting by arbitrary properties or attributes. 
+As a result, the size of an index document is a multiple of the original thing structure, which leads to very slow updates and queries.
+
+In order to improve this situation, we decided to leverage the [wildcard index](https://www.mongodb.com/docs/manual/core/index-wildcard/) 
+feature introduced with MongoDB 4.2, which allows to build an index and query against fields, whose names are not known in advance.  
+At the same time we reduce the duplication of authorization subjects in the search index document to further reduce its size.
+
+Initial benchmarks show that the overall size of the index documents can be reduced to 10% and at the same time the 
+query and update performance is improved and more stable than with the current approach.
+
+{% include note.html content="Be aware of the
+  [migration note](#migration-building-up-new-search-index) before updating to Ditto 3.0." %}
 
 #### [Removal of former "ditto-concierge" service](https://github.com/eclipse/ditto/issues/1339)
 
-TODO
+Change reasoning documented in
+[DADR-0007](https://github.com/eclipse/ditto/blob/master/documentation/src/main/resources/architecture/DADR-0007-concierge-removal.md).
+
+In order to reduce the complexity of message flows and the required networking "hops" in a Ditto cluster for a command
+to be authorized and applied, it was decided to eliminate the former "ditto-concierge" service.
+
+Benefits of this simplified architecture:
+
+* less overall resource consumption (CPU and memory): 1 container less to operate
+* less "hops" between Ditto services in the cluster
+  * saving at least one hop per processed API call - one additional one when a response is wanted
+  * beneficial for resource consumption as less JSON deserialization is required between the Ditto services
+  * lower overall latency and higher overall throughput possible
+* improved stability during rolling updates / rolling restarts of Ditto
+  * concierge has always been an additional error source when its shard regions restarted and e.g. Ditto's edge services could for a short period not forward commands to authorize
+
+Ditto 3.0 requires less resources and provide lower latency + higher throughput for processing API interactions.
+
+{% include note.html content="Be aware of the 
+  [migration note](#migration-removal-of-concierge-service-from-deployment-descriptors) before updating
+  to Ditto 3.0." %}
+
 
 #### Clear declaration and configuration of Ditto "Extension points"
 
@@ -66,42 +110,50 @@ Check out the [documentation on extending Ditto](installation-extending.html) an
 
 #### [Rewrite of Ditto managed MQTT connection to use reactive client](https://github.com/eclipse/ditto/pull/1411)
 
-TODO
+Ditto's MQTT connection integration now consumes messages in a reactive manner. Together with throttling this effectively enables backpressure.  
 
 #### Further improvements on rolling updates and other failover scenarios
 
-TODO
+Improving Ditto's resilience is part of almost every release. Those improvements are included in 3.0:
 
 * [Allow turning the akka SBR on/off during runtime](https://github.com/eclipse/ditto/pull/1373)
 * [Implement graceful shutdown for http publisher actor](https://github.com/eclipse/ditto/pull/1381)
-* ...
 
 #### [DevOps commands response consistency](https://github.com/eclipse/ditto/pull/1380)
 
-TODO
+Devops commands error responses are fixed to have similar structure to non-error ones.  
+Responses to requests with `"aggregate": false` are stripped to remove service name and instance (or layers of `"?"`)
+in the JSON response.
 
-#### [Add resubscription to Ditto pub/sub to ensure long-term consistency](https://github.com/eclipse/ditto/pull/1386)
+If devops commands were utilized, this will require a migration of the response handling.
 
-TODO
+{% include note.html content="Be aware of the
+  [migration note](#migration-devops-commands-response-adjustments) before updating to Ditto 3.0." %}
 
 #### [Make Ditto pubsub update operations simpler and more consistent](https://github.com/eclipse/ditto/pull/1427)
 
-TODO
+Simplify Ditto pubsub update operations to make sure that subscriptions are active before sending acknowledgements.
+
 
 ### New features
 
 #### [Ability to search in JSON arrays and also in feature definitions](https://github.com/eclipse/ditto/pull/1396)
 
-TODO 
+[Searching](basic-search.html#search-queries) in arrays is now officially supported and enabled by default.
 
-Also enables:
-* [Support to search by feature definition](https://github.com/eclipse/ditto/pull/1417)
+This also enables [support to search by feature definition](https://github.com/eclipse/ditto/pull/1417).
+
+You can use this e.g. in order to search for all things having a feature with a certain definition:
+```
+filter=like(features/*/definition,"your-model-namespace:lamp:1.*")
+```
 
 #### Several improvements around "metadata"
 
-TODO 
+[Support for persisting additional metadata at things](basic-metadata.html) was already existing in Ditto 2.x.  
+There were however still some open issues and bugs which lead to that the metadata could not yet fulfill its potential.
 
-The following features, enhancements and fixes about [metadata](basic-metadata.html):
+The following features, enhancements and fixes about [metadata](basic-metadata.html) are included in Ditto 3.0:
 
 * [Retrieve thing metadata when not retrieving complete thing](https://github.com/eclipse/ditto/issues/772)
 * [Metadata is not deleted when thing parts are deleted](https://github.com/eclipse/ditto/issues/829)
@@ -112,14 +164,19 @@ The following features, enhancements and fixes about [metadata](basic-metadata.h
 
 #### [New HTTP API for CRUD of connections](https://github.com/eclipse/ditto/issues/1406)
 
-TODO
+With Ditto 2.x, connection management in Ditto could only be done via 
+[piggyback devops commands](installation-operating.html#piggyback-commands).
+
+This now is simplified by providing a separate HTTP API for CRUD management of connections and also the option to e.g.
+retrieve metrics and connection logs via HTTP endpoints.
 
 #### New Ditto explorer UI
 
 We received several contributions by [Thomas Fries](https://github.com/thfries), who contributed the Ditto explorer UI.  
-A live version of the UI can be found here. You can use it in order to e.g. connect to your Ditto installation and
-manage things, policies and even connections:  
+The latest live version of the UI can be found here:  
 [https://eclipse.github.io/ditto/](https://eclipse.github.io/ditto/)
+
+You can use it in order to e.g. connect to your Ditto installation to manage things, policies and even connections.
 
 Contributions:
 * [Eclipse Ditto explorer UI](https://github.com/eclipse/ditto/pull/1397)
@@ -129,7 +186,45 @@ Contributions:
 * [Explorer UI - review improvements for connections](https://github.com/eclipse/ditto/pull/1418)
 * [Explorer UI: add local_ditto_ide and ditto_sanbdox environments](https://github.com/eclipse/ditto/pull/1422)
 * [Explorer UI - add support for policies](https://github.com/eclipse/ditto/pull/1430)
+* [Explorer UI - Fix: Avoid storing credentials](https://github.com/eclipse/ditto/pull/1464)
 * [Explorer UI - Improve message to feature and some WoT support](https://github.com/eclipse/ditto/pull/1455)
+
+#### [Support for EC signed JsonWebKeys (JWKs)](https://github.com/eclipse/ditto/pull/1432)
+
+In Ditto 2.x the deserialization of an Elliptic Curve Json Web Token (JWT) failed, because Ditto assumed it to be an 
+RSA token and missed the modulus and exponent information.  
+Support for "EC" signed tokens has now been added.
+
+#### W3C WoT (Web of Things) adjustments and improvements
+
+With the [W3C Web of Things "Thing Description 1.1" standard](https://www.w3.org/TR/wot-thing-description11/) entering
+its final phases before official recommendation by the W3C, we think it is time to enable the [WoT Integration](basic-wot-integration.html)
+in Ditto by default and suggest it as the "default" type system for Ditto.
+
+Together with some minor adjustments to the [Ditto WoT model](https://github.com/eclipse/ditto/tree/master/wot/model) to
+the final changes to the 1.1 version of WoT TD, the following improvements also made it into Ditto 3.0:
+
+* [Added WoT context extension ontologies in different formats](https://github.com/eclipse/ditto/pull/1442)
+* [Apply WoT Ditto extension in skeleton and TD generation](https://github.com/eclipse/ditto/pull/1460)
+
+By using the Ditto WoT Extension Ontology located at 
+[https://ditto.eclipseprojects.io/wot/ditto-extension](https://ditto.eclipseprojects.io/wot/ditto-extension), it is possible
+to define an additional `"category"` for WoT properties. That can for example be used to ease the migration from Vorto 
+models, e.g. by defining a `"ditto:category": "configuration"` inside a WoT ThingModel.
+
+#### [Make "default namespace" for creating new entities configurable](https://github.com/eclipse/ditto/pull/1372)
+
+When e.g. creating new entities (things/policies) via `HTTP POST`, previously an empty namespace was used to create them in.  
+This namespace can now be [configured](https://github.com/eclipse/ditto/blob/master/edge/service/src/main/resources/ditto-edge-service.conf#L12-L13)
+via the environment variable `DITTO_DEFAULT_NAMESPACE` set to the "edge" services (ditto-gateway and ditto-connectivity).
+
+#### [Provide custom namespace when creating things via HTTP POST](https://github.com/eclipse/ditto/issues/550)
+
+Provides the option to provide a custom namespace to create a new thing in when using `HTTP POST`.
+
+#### [Make it possible to provide multiple OIDC issuer urls for a single configured openid-connect "prefix"](https://github.com/eclipse/ditto/pull/1465)
+
+Configure multiple `issuer` endpoints for the same configured [openid-connect-provider](installation-operating.html#openid-connect).
 
 
 ### Bugfixes
@@ -140,6 +235,19 @@ This is a complete list of the
 
 Here as well for the Ditto Java Client: [merged pull requests for milestone 3.0.0](https://github.com/eclipse/ditto-clients/pulls?q=is:pr+milestone:3.0.0)
 
+#### Passwords stored in the URI of connections to no longer need to be double encoded
+
+Previously for some passwords containing special characters like e.g. a `+` the password needed to be URL encoded twice
+before storing it to the [Connection](basic-connections.html) `URI`.
+
+This has been fixed by the PR:
+* [Remove double decoding credentials of Connection URI passwords](https://github.com/eclipse/ditto/pull/1471)
+
+Also fixing the reported issue:
+* [Basic auth in (mqtt) connection requires you to encode the username and password twice](https://github.com/eclipse/ditto/issues/1199)
+
+{% include note.html content="Be aware of the
+  [migration note](#migration-connection-uri-password-encoding) before updating to Ditto 3.0." %}
 
 
 ## Migration notes
@@ -147,8 +255,10 @@ Here as well for the Ditto Java Client: [merged pull requests for milestone 3.0.
 Migrations required updating from Ditto 2.4.x or earlier versions:
 
 * The search index has to be rebuilt - the old search collections may afterwards be dropped/deleted
+* The deployment has to be adjusted so that the "ditto-concierge" service is no longer part of it
+* When [Restricting entity creation](installation-operating.html#restricting-entity-creation) was configured, the configuration has to be adjusted
 
-### Building up new search index
+### Migration: Building up new search index
 
 Ditto **3.0.0** introduces a new search index schema based on
 [wildcard indices](https://www.mongodb.com/docs/manual/core/index-wildcard/) of MongoDB.  
@@ -229,17 +339,56 @@ After reindexing, the old search index can be dropped.
 - If you did not override the default database `searchDB`, the database `searchDB` can be dropped.
 - If you configured a different database, the collections `searchThings` and `searchThingsSync` can be dropped.
 
+### Migration: Removal of concierge service from deployment descriptors
 
-### Entity creation configuration migration
+When using your own e.g. Kubernetes descriptors or `docker-compose.yml`, think about removing the `ditto-concierge` 
+service from those before upgrading to Ditto 3.0.
 
-TODO TJ
+Also make sure that no old `ditto-concierge` service running with version 2.x remains in your cluster after the upgrade
+as this could lead to unforeseeable side effects.
 
+### Migration: Entity creation configuration migration
 
-### TODO ...
+When [Restricting entity creation](installation-operating.html#restricting-entity-creation) was configured in Ditto 2.x, 
+the configuration for Ditto 3.0 has to be adjusted.
+
+As the configuration was part of the former "ditto-concierge" service (which was removed from Ditto 3.0), the configuration
+is now located in [ditto-entity-creation.conf](https://github.com/eclipse/ditto/blob/master/internal/utils/config/src/main/resources/ditto-entity-creation.conf).
+
+So the configuration keys changed 
+* from: `ditto.concierge.enforcement.entity-creation`
+* to: `ditto.entity-creation`
+
+Additionally, the configuration has to be done for "ditto-things" + "ditto-policies" services where it before had to be
+done for the "ditto-concierge" service.
+
+### Migration: DevOps commands response adjustments
+
+In [#1380](https://github.com/eclipse/ditto/pull/1380) the response of DevOps commands was consolidated to have a simpler
+response format.  
+If DevOps command responses were used in prior Ditto versions, please adjust according to the 
+[new response formats](installation-operating.html#devops-commands).
+
+### Migration: Connection URI password encoding
+
+In previous versions of Ditto it **might** (depending on the characters used in the username/password) have been 
+necessary to URL encode a username or password twice when storing it inside a Ditto managed 
+[connection](basic-connections.html) in the `uri`, e.g.:
+```
+ssl://user:double+url-encoded-password@hostname:8884
+```
+
+For example that was the case if the password contained a `+` sign or a space.
+
+As this bug is fixed in Ditto 3.0 and single encoding is now sufficient, previously created connections which applied
+double encoding **must be migrated** to use single encoding instead.
 
 
 ## Roadmap
 
 Looking forward, the current plans for Ditto 3.1.0 are:
 
-* ...
+* [Policy imports](https://github.com/eclipse/ditto/issues/298) which will allow re-use of policies by importing existing ones
+* Cloud Events mapper for connections
+  * [Inbound CloudEvents mapper](https://github.com/eclipse/ditto/issues/1393)
+  * [Outbound CloudEvents Mapper](https://github.com/eclipse/ditto/issues/1394)
