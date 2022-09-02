@@ -65,6 +65,7 @@ The following message mappers are included in the Ditto codebase:
 | [JavaScript](#javascript-mapper) | Converts arbitrary messages from and to the [Ditto Protocol](protocol-overview.html) format using **custom** JavaScript code executed by Ditto. | ✓ | ✓ |
 | [Normalized](#normalized-mapper) | Transforms the payload of events to a normalized view. |  | ✓ |
 | [ConnectionStatus](#connectionstatus-mapper) | This mapper handles messages containing `creation-time` and `ttd` headers by updating a feature of the targeted thing with [definition](basic-feature.html#feature-definition) [ConnectionStatus](https://github.com/eclipse/vorto/tree/development/models/org.eclipse.ditto-ConnectionStatus-1.0.0.fbmodel). | ✓ |  |
+| [CloudEvents](#CloudEvents-mapper) | Maps incoming CloudEvents to a Ditto Protocol Message. Supports both binary and structured CloudEvents.                                   | ✓ | ✓ | 
 | [RawMessage](#rawmessage-mapper) | For outgoing message commands and responses, this mapper extracts the payload for publishing directly into the channel. For incoming messages, this mapper wraps them in a configured message command or response envelope. | ✓ | ✓ |
 | [ImplicitThingCreation](#implicitthingcreation-mapper) | This mapper handles messages for which a Thing should be created automatically based on a defined template. | ✓ |  |
 | [UpdateTwinWithLiveResponse](#updatetwinwithliveresponse-mapper) | This mapper creates a [merge Thing command](protocol-specification-things-merge.html) when an indiviudal [retrieve command](protocol-specification-things-retrieve.html) for an single Thing was received via the [live channel](protocol-twinlive.html#live) patching exactly the retrieved "live" data into the twin. | ✓ |  |
@@ -353,11 +354,11 @@ Example configuration:
 
 ### CloudEvents Mapper
 
-This mapper maps incoming CloudEvents to Ditto Protocol. It provides support for both Binary CloudEvents as well as Structured CloudEvents.
+This mapper maps incoming [CloudEvent](https://github.com/cloudevents/spec/blob/v1.0.2/cloudevents/spec.md) to Ditto Protocol. It provides support for both Binary CloudEvents as well as Structured CloudEvents.
 
 **Note**: The mapper only supports incoming messages with `content-type:application/cloudevents+json`. Messages that do not conform to this are ignored.
 
-#### Specifications:
+#### Specifications
 Incoming messages need to have the mandatory CloudEvents fields.
 For example, a Binary CloudEvent for Ditto would look like this:
 

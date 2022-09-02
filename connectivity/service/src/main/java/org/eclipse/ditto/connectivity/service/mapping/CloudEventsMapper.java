@@ -53,18 +53,6 @@ public final class CloudEventsMapper extends AbstractMessageMapper {
     static final String contentType = "application/cloudevents+json";
 
 
-    static final JsonObject DEFAULT_OPTIONS = JsonObject.newBuilder().set(MessageMapperConfiguration.CONTENT_TYPE_BLOCKLIST,
-            String.join(",", "application/vnd.eclipse-hono-empty-notification",
-                    "application/vnd.eclipse-hono-device-provisioning-notification",
-                    "application/vnd.eclipse-hono-dc-notification+json",
-                    "application/vnd.eclipse-hono-delivery-failure-notification+json")).build();
-
-    /**
-     * The context representing this mapper
-     */
-    public static final MappingContext CONTEXT = ConnectivityModelFactory.newMappingContextBuilder(CloudEventsMapper.class.getCanonicalName(), DEFAULT_OPTIONS).build();
-
-
     final String SPECVERSION = "specversion";
     final String ID = "id";
     final String SOURCE = "source";
@@ -100,7 +88,6 @@ public final class CloudEventsMapper extends AbstractMessageMapper {
             final String decodedData = base64decoding(base64Data);
             final JsonifiableAdaptable decodedJsonifiableAdaptable = DittoJsonException.wrapJsonRuntimeException(() -> ProtocolFactory.jsonifiableAdaptableFromJson(newObject(decodedData)));
             return decodedJsonifiableAdaptable;
-
         }
         if (payloadJson.getValue("data").isPresent()) {
             final String data = payloadJson.getValue("data").get().toString();
@@ -112,7 +99,7 @@ public final class CloudEventsMapper extends AbstractMessageMapper {
 
     public boolean checkHeaders(final ExternalMessage message) {
         Map<String, String> headers = message.getHeaders();
-        if (headers.get(CE_ID) == null || headers.get(CE_SOURCE) == null || headers.get(CE_TYPE) == null || headers.get(CE_SPECVERSION) == null) {
+        if (headers.get(CE_ID.trim()) == null || headers.get(CE_SOURCE.trim()) == null || headers.get(CE_TYPE.trim()) == null || headers.get(CE_SPECVERSION.trim()) == null) {
             return false;
         } else {
             return true;
@@ -141,9 +128,7 @@ public final class CloudEventsMapper extends AbstractMessageMapper {
                 } else {
                     throw mappingFailedException;
                 }
-
             } catch (Exception e) {
-                System.out.println(e);
                 throw mappingFailedException;
             }
         }
@@ -188,8 +173,5 @@ public final class CloudEventsMapper extends AbstractMessageMapper {
         return jsonifiableAdaptable.toJsonString();
     }
 
-    @Override
-    public JsonObject getDefaultOptions() {
-        return DEFAULT_OPTIONS;
-    }
+
 }
