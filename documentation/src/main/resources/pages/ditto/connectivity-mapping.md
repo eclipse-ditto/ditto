@@ -351,6 +351,83 @@ Example configuration:
 }
 ```
 
+### CloudEvents Mapper
+
+This mapper maps incoming CloudEvents to Ditto Protocol. It provides support for both Binary CloudEvents as well as Structured CloudEvents.
+
+**Note**: The mapper only supports incoming messages with `content-type:application/cloudevents+json`. Messages that do not conform to this are ignored.
+
+#### Specifications:
+Incoming messages need to have the mandatory CloudEvents fields.
+For example, a Binary CloudEvent for Ditto would look like this:
+
+```json
+  headers:
+      ce-specversion:1.0
+      ce-id:some-id
+      ce-type:some-type
+      ce-source:generic-producer
+      content-type:application/cloudevents+json
+
+  body:  {
+            "topic":"my.sensors/sensor01/things/twin/commands/modify",
+            "path":"/",
+            "value":{
+                  "thingId": "my.sensors:sensor01",
+                  "policyId": "my.test:policy",
+                  "attributes": {
+                    "manufacturer": "Well known sensors producer",
+                    "serial number": "100",
+                    "location": "Ground floor"},
+            "features": {
+              "measurements":{
+                "properties":{
+                  "temperature": 100,
+                  "humidity": 0
+                  }
+                }
+              }
+            }
+         }
+```
+
+A Structured CloudEvent for ditto would look like this:
+
+```json
+
+headers:
+  content-type:application/cloudevents+json
+
+body:
+       {
+        "specversion": "1.0",
+        "id":"3212e",
+        "source":"http:somesite.com",
+        "type":"com.site.com",
+        "data":{
+            "topic":"my.sensors/sensor01/things/twin/commands/modify",
+            "path":"/",
+            "value":
+                {
+                  "thingId": "my.sensors:sensor01",
+                  "policyId": "my.test:policy", 
+                  "attributes": 
+                      {
+                       "manufacturer": "Well known sensors producer",
+                       "serial number": "100",
+                       "location": "Ground floor"
+                       },
+                  "features": {
+                    "measurements":{
+                      "properties":{
+                        "temperature": 100,
+                         "humidity": 0}
+                        }
+                       }
+                     }
+                    }
+                  } 
+```
 ## Example connection with multiple mappers
 
 The following example connection defines a `ConnectionStatus` mapping with the ID `status` and references it in a source.  
