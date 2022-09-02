@@ -140,7 +140,7 @@ This maps to the following HTTP API endpoints:
 
 #### `/connections` in API 2
 
-The base endpoint for accessing and working with `Connections`.<br/>
+The base endpoint for accessing and working with `Connections`.
 
 It has the following HTTP API endpoints:
 

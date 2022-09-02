@@ -6,13 +6,9 @@ permalink: connectivity-manage-connections.html
 ---
 
 In order to manage (CRUD) connections in Ditto, a separate [HTTP API](http-api-doc.html#/Connections)
-can be be used. As this is not a task for a developer
+can be used. As this is not a task for a developer
 but more for a "DevOps engineer", creating new connections to external systems the endpoint 
-is authenticated using the "devops" user:
-
-```
-HTTP api/2/connections
-```
+is authenticated using the ["devops"](installation-operating.html#devops-user) user.
 
 ## Authorization
 
@@ -52,10 +48,10 @@ For protocol specific examples, consult the [AMQP-0.9.1 binding](connectivity-pr
 [AMQP-1.0 binding](connectivity-protocol-bindings-amqp10.html) or
 [MQTT-3.1.1 binding](connectivity-protocol-bindings-mqtt.html) respectively.
 
-Additionally, you can test a connection before creating it:  
+Additionally, you can test a connection before creating it:
 `POST /api/2/connections&dry-run=true`
 
-Passing the `dryRun` query parameter checks the configuration and establishes a connection to the remote endpoint in order to validate the connection
+Passing the `dry-run` query parameter checks the configuration and establishes a connection to the remote endpoint in order to validate the connection
 credentials. The connection is closed afterwards and will not be persisted.
 
 ### Modify connection
@@ -63,7 +59,7 @@ credentials. The connection is closed afterwards and will not be persisted.
 Modify an existing connection by sending a HTTP `PUT` request to:  
 `PUT /api/2/connections/{connectionId}`
 
-``` json
+```json
 {
    "connectionStatus": "",
    "...": ""
@@ -74,16 +70,22 @@ The connection with the specified ID needs to be created before one can modify i
 
 ### Retrieve connection
 
-The only parameter necessary for retrieving a connection is the `connectionId`:  
+The only parameter necessary for retrieving a connection is the `connectionId`:
 `GET /api/2/connections/{connectionId}`
 
 ### Retrieve all connections
+Retrieves all created connections:
 
 `GET /api/2/connections`
+Additionally, you can get the connections ids only by providing the `ids-only=true` query parameter.
 
-Additionally, you can get the connections ids only by providing the `idsOnly=true` query parameter.
+`GET /api/2/connections&ids-only=true`
 
-`GET /api/2/connections?ids-only=true`
+### Delete connection
+
+The only parameter necessary for deleting a connection is the `connectionId`.
+
+`DELETE /api/2/connections/{connectionId}`
 
 ## Helper endpoints
 
@@ -122,65 +124,33 @@ service configuration.
 
 `GET /api/2/connections/{connectionId}/logs`
 
-### Open connection
+### Connection commands
 
-The only parameter necessary for opening a connection is the `connectionId`. When opening a connection a 
-[ConnectionOpenedAnnouncement](protocol-specification-connections-announcement.html) will be published.
-
-<br/>`POST .../connections/{connectionId}/command`
-
-```
-connectivity.commands:openConnection
-```
-
-### Close connection
-
-The only parameter necessary for closing a connection is the `connectionId`. When gracefully closing a connection a
-[ConnectionClosedAnnouncement](protocol-specification-connections-announcement.html) will be published.
+The only parameter necessary for sending a command to a connection is the `connectionId`.
 
 `POST /api/2/connections/{connectionId}/command`
 
+Supported commands sent as payload `text/plain`:
+
+#### Open connection
+When opening a connection a [ConnectionOpenedAnnouncement](protocol-specification-connections-announcement.html) will be published.
 ```
-connectivity.commands:closeConnection
+ connectivity.commands:openConnection
 ```
 
-### Delete connection
-
-The only parameter necessary for deleting a connection is the `connectionId`.
-
-<br/>`DEL .../connections/{connectionId}`
-
-## Helper commands
-
-The following helper DevOps commands are available to help to create retrieving and manage the status of existing connections:
-
-<br/>`POST /devops/piggyback/connectivity`
-
-* [reset connection metrics](#reset-connection-metrics)
-* [enable connection logs](#enable-connection-logs)
-* [reset connection logs](#reset-connection-logs)
-
-
-### Reset connection metrics
+#### Close connection
+When gracefully closing a connection a [ConnectionClosedAnnouncement](protocol-specification-connections-announcement.html) will be published.
+```
+ connectivity.commands:closeConnection
+```
+#### Reset connection metrics
 
 This command resets the connection metrics - all metrics are set to `0` again. The only parameter necessary for
 retrieving the connection metrics is the `connectionId`.
-
-```json
-{
-  "targetActorSelection": "/system/sharding/connection",
-  "headers": {
-    "aggregate": false,
-    "is-group-topic": true 
-  },
-  "piggybackCommand": {
-    "type": "connectivity.commands:resetConnectionMetrics",
-    "connectionId": "<connectionID>"
-  }
-}
 ```
-
-### Enable connection logs
+ connectivity.commands:resetConnectionMetrics
+```
+#### Enable connection logs
 
 Enables the connection logging feature of a connection for 24 hours. As soon as connection logging is enabled, you will
 be able to [retrieve connection logs](#retrieve-connection-logs). The logs will contain a fixed amount of success and
@@ -192,40 +162,15 @@ service configuration.
 
 {% include note.html content="When creating or opening an connection the logging is enabled per default. This allows 
 to log possible errors on connection establishing." %}
-
-```json
-{
-  "targetActorSelection": "/system/sharding/connection",
-  "headers": {
-    "aggregate": false,
-    "is-group-topic": true     
-  },
-  "piggybackCommand": {
-    "type": "connectivity.commands:enableConnectionLogs",
-    "connectionId": "<connectionID>"
-  }
-}
 ```
-
-### Reset connection logs
+ connectivity.commands:enableConnectionLogs
+```
+#### Reset connection logs
 
 Clears all currently stored connection logs.
-
-```json
-{
-  "targetActorSelection": "/system/sharding/connection",
-  "headers": {
-    "aggregate": false,
-    "is-group-topic": true 
-  },
-  "piggybackCommand": {
-    "type": "connectivity.commands:resetConnectionLogs",
-    "connectionId": "<connectionID>"
-  }
-}
 ```
-
-
+ connectivity.commands:resetConnectionLogs
+```
 ## Publishing connection logs
 
 In addition to [enable collecting in-memory connection logs](#enable-connection-logs), connection logs may also be 
