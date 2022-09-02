@@ -26,6 +26,10 @@ public final class ThingsMessagingConstants {
     @SuppressWarnings("squid:S1075")
     private static final String ROOT_ACTOR_PATH = "/user/thingsRoot/";
 
+    /**
+     * Name of the actor created by ThingsPersistenceStreamingActorCreator.
+     * To query this actor use the {@link #THINGS_SNAPSHOT_STREAMING_ACTOR_PATH actor path}.
+     */
     public static final String THINGS_PERSISTENCE_STREAMING_ACTOR_NAME = "snapshotStreamingActor";
 
     /**
@@ -34,6 +38,9 @@ public final class ThingsMessagingConstants {
     public static final String THINGS_SNAPSHOT_STREAMING_ACTOR_PATH =
             ROOT_ACTOR_PATH + THINGS_PERSISTENCE_STREAMING_ACTOR_NAME;
 
+    /**
+     * Name of ThingsAggregatorActor. To query this actor use the the {@link #THINGS_AGGREGATOR_ACTOR_PATH actor path}.
+     */
     public static final String THINGS_AGGREGATOR_ACTOR_NAME = "aggregator";
 
     /**
