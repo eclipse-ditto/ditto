@@ -321,24 +321,13 @@ final class ImmutableConnection implements Connection {
     }
 
     @Override
-    public Optional<String> getUsername(final boolean shouldUriDecode) {
-        final Optional<String> username = uri.getUserName();
-        return shouldUriDecode ? username.map(ImmutableConnection::tryDecodeUriComponent) : username;
+    public Optional<String> getUsername() {
+        return uri.getUserName();
     }
 
     @Override
-    public Optional<String> getPassword(final boolean shouldUriDecode) {
-        final Optional<String> password = uri.getPassword();
-        return shouldUriDecode ? password.map(ImmutableConnection::tryDecodeUriComponent) : password;
-    }
-
-    private static String tryDecodeUriComponent(final String string) {
-        try {
-            final String withoutPlus = string.replace("+", "%2B");
-            return URLDecoder.decode(withoutPlus, "UTF-8");
-        } catch (final IllegalArgumentException | UnsupportedEncodingException e) {
-            return string;
-        }
+    public Optional<String> getPassword() {
+        return uri.getPassword();
     }
 
     @Override

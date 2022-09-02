@@ -78,8 +78,7 @@ public final class KafkaClientActor extends BaseClientActor {
         super(connection, commandForwarderActor, connectionActor, dittoHeaders, connectivityConfigOverwrites);
         kafkaConfig = connectivityConfig().getConnectionConfig().getKafkaConfig();
         kafkaConsumerActors = new ArrayList<>();
-        propertiesFactory = PropertiesFactory.newInstance(connection, kafkaConfig, getClientId(connection.getId()),
-                connectivityConfig().getConnectionConfig().doubleDecodingEnabled());
+        propertiesFactory = PropertiesFactory.newInstance(connection, kafkaConfig, getClientId(connection.getId()));
         this.publisherActorFactory = publisherActorFactory;
         pendingStatusReportsFromStreams = new HashSet<>();
     }

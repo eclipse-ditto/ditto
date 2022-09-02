@@ -26,7 +26,6 @@
     <name>Eclipse Ditto :: Internal :: Utils</name>
 
     <modules>
-        <module>aggregator</module>
         <module>akka</module>
         <module>cache</module>
         <module>cache-loaders</module>
