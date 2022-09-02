@@ -45,12 +45,82 @@ Status codes at or above 400 indicate failed search index update due to client o
 Queries can be made via Ditto's APIs ([HTTP](httpapi-search.html) or 
 [Ditto Protocol](protocol-specification-things-search.html) e.g. via [WebSocket](httpapi-protocol-bindings-websocket.html)).
 
-**Example:** Search for all things located in "living-room", reorder the list to start with the lowest thing ID as 
+Search queries are formulated using the by Ditto supported subset of [RQL](basic-rql.html).
+
+### Search queries on scalar JSON values
+
+The [query property](basic-rql.html#query-property) used in a search can contain either a scalar JSON value:
+* JSON boolean
+* JSON number
+* JSON string
+
+**Example:** Search for all things located in "living-room", reorder the list to start with the lowest thing ID as
 the first element, and return the first 5 results:
 ```
 Filter:     eq(attributes/location,"living-room")
 Sorting:    sort(+thingId)
 Paging:     size(5),cursor(CURSOR_ID)
+```
+
+### Search queries in JSON arrays
+
+Or the [query property](basic-rql.html#query-property) used in a search it can also contain a JSON array.  
+The search index will index any values in that array, even arrays if mixed types are supported.
+
+For example, assuming that we have the following thing containing special "tags" of different types:
+```json
+{
+  "thingId": "org.eclipse.ditto:tagged-thing-1",
+  "policyId": "org.eclipse.ditto:tagged-thing-1",
+  "attributes": {
+    "tags": [
+      "misc",
+      "no-due-date",
+      "high-priority",
+      2,
+      3,
+      5,
+      false,
+      {
+        "room": "kitchen",
+        "floor": 2
+      }
+    ]
+  }
+}
+```
+
+We can formulate various different queries on different scalar values:
+```
+eq(attributes/tags,"high-priority")
+-> match:       "high-priority" is contained
+
+ne(attributes/tags,"high-priority")
+-> no match:    "high-priority" is contained, so "ne" will not match
+
+in(attributes/tags,"misc","something-non-matching")
+-> match:       "misc" is a match
+
+like(attributes/tags,"*-priority")
+-> match:       "high-priority" string matches
+
+ne(attributes/tags,1)
+-> match:       as 1 is not part of the tags
+
+gt(attributes/tags,6)
+-> no match:    as no number > 6 is contained
+```
+
+And we can even formulate queries on JSON objects contained in the JSON array:
+```
+exists(attributes/tags/room)
+-> match:       array contains one object having a key "room"
+
+eq(attributes/tags/room,"kitchen")
+-> match:       array contains one object with "room"="kitchen"
+
+ge(attributes/tags/floor,2)
+-> match:       array contains one object where floor is >= 2
 ```
 
 

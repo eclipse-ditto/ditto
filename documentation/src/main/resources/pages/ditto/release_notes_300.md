@@ -139,7 +139,7 @@ Simplify Ditto pubsub update operations to make sure that subscriptions are acti
 
 #### [Ability to search in JSON arrays and also in feature definitions](https://github.com/eclipse/ditto/pull/1396)
 
-[Searching](basic-search.html#search-queries) in arrays is now officially supported and enabled by default.
+[Searching in arrays](basic-search.html#search-queries-in-json-arrays) is now officially supported and enabled by default.
 
 This also enables [support to search by feature definition](https://github.com/eclipse/ditto/pull/1417).
 
