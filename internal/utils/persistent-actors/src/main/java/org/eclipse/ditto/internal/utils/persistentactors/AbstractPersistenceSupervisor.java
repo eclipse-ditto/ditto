@@ -305,6 +305,7 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
                     getContext().cancelReceiveTimeout();
                     passivate(Control.PASSIVATE);
                 })
+                .match(StopShardedActor.class, trigger -> getContext().stop(getSelf()))
                 .matchAny(message -> replyUnavailableException(message, getSender()))
                 .build());
     }
@@ -348,6 +349,15 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
                         return response;
                     }
                 });
+    }
+
+    /**
+     * Get the number of ongoing ops.
+     *
+     * @return The op counter.
+     */
+    protected int getOpCounter() {
+        return opCounter;
     }
 
     /**

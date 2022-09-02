@@ -37,15 +37,14 @@ public final class DefaultThingConfig implements ThingConfig {
 
     private static final String CONFIG_PATH = "thing";
 
-    private final Duration liveChannelShutdownTimeout;
+    private final Duration shutdownTimeout;
     private final SupervisorConfig supervisorConfig;
     private final ActivityCheckConfig activityCheckConfig;
     private final SnapshotConfig snapshotConfig;
     private final CleanupConfig cleanupConfig;
 
     private DefaultThingConfig(final ScopedConfig scopedConfig) {
-        liveChannelShutdownTimeout =
-                scopedConfig.getDuration(ConfigValue.LIVE_CHANNEL_SHUTDOWN_TIMEOUT.getConfigPath());
+        shutdownTimeout = scopedConfig.getDuration(ConfigValue.SHUTDOWN_TIMEOUT.getConfigPath());
         supervisorConfig = DefaultSupervisorConfig.of(scopedConfig);
         activityCheckConfig = DefaultActivityCheckConfig.of(scopedConfig);
         snapshotConfig = DefaultSnapshotConfig.of(scopedConfig);
@@ -84,8 +83,8 @@ public final class DefaultThingConfig implements ThingConfig {
     }
 
     @Override
-    public Duration getLiveChannelShutdownTimeout() {
-        return liveChannelShutdownTimeout;
+    public Duration getShutdownTimeout() {
+        return shutdownTimeout;
     }
 
     @Override
@@ -101,13 +100,12 @@ public final class DefaultThingConfig implements ThingConfig {
                 Objects.equals(activityCheckConfig, that.activityCheckConfig) &&
                 Objects.equals(snapshotConfig, that.snapshotConfig) &&
                 Objects.equals(cleanupConfig, that.cleanupConfig) &&
-                Objects.equals(liveChannelShutdownTimeout, that.liveChannelShutdownTimeout);
+                Objects.equals(shutdownTimeout, that.shutdownTimeout);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(supervisorConfig, activityCheckConfig, snapshotConfig, cleanupConfig,
-                liveChannelShutdownTimeout);
+        return Objects.hash(supervisorConfig, activityCheckConfig, snapshotConfig, cleanupConfig, shutdownTimeout);
     }
 
     @Override
@@ -117,7 +115,7 @@ public final class DefaultThingConfig implements ThingConfig {
                 ", activityCheckConfig=" + activityCheckConfig +
                 ", snapshotConfig=" + snapshotConfig +
                 ", cleanupConfig=" + cleanupConfig +
-                ", liveChannelShutdownTimeout=" + liveChannelShutdownTimeout +
+                ", shutdownTimeout=" + shutdownTimeout +
                 "]";
     }
 }

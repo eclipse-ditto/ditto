@@ -30,11 +30,11 @@ public interface ThingConfig extends WithSupervisorConfig, WithActivityCheckConf
         WithCleanupConfig {
 
     /**
-     * Get the timeout waiting for responses and acknowledgements over the live channel during coordinated shutdown.
+     * Get the timeout waiting for responses and acknowledgements during coordinated shutdown.
      *
      * @return The timeout.
      */
-    Duration getLiveChannelShutdownTimeout();
+    Duration getShutdownTimeout();
 
     /**
      * An enumeration of the known config path expressions and their associated default values for {@code ThingConfig}.
@@ -42,9 +42,9 @@ public interface ThingConfig extends WithSupervisorConfig, WithActivityCheckConf
     enum ConfigValue implements KnownConfigValue {
 
         /**
-         * Timeout waiting for responses and acknowledgements over the live channel during coordinated shutdown.
+         * Timeout waiting for responses and acknowledgements during coordinated shutdown.
          */
-        LIVE_CHANNEL_SHUTDOWN_TIMEOUT("live-channel-shutdown-timeout", Duration.ofSeconds(3));
+        SHUTDOWN_TIMEOUT("shutdown-timeout", Duration.ofSeconds(3));
 
         private final String path;
         private final Object defaultValue;

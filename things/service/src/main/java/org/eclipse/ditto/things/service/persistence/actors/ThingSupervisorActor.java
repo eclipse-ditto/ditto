@@ -92,13 +92,7 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
     private final PolicyEnforcerProvider policyEnforcerProvider;
     private final ActorRef searchShardRegionProxy;
 
-    /**
-     * Counter for ongoing live signals going through this actor.
-     * The signals are also counted by the normal op counter.
-     */
-    private int liveOpCounter = 0;
-
-    private final Duration liveChannelShutdownTimeout;
+    private final Duration shutdownTimeout;
 
     @SuppressWarnings("unused")
     private ThingSupervisorActor(final ActorRef pubSubMediator,
@@ -120,7 +114,7 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
         final var dittoScoped = DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config());
         enforcementConfig = DefaultEnforcementConfig.of(dittoScoped);
         final var thingsConfig = DittoThingsConfig.of(dittoScoped);
-        liveChannelShutdownTimeout = thingsConfig.getThingConfig().getLiveChannelShutdownTimeout();
+        shutdownTimeout = thingsConfig.getThingConfig().getShutdownTimeout();
 
         materializer = Materializer.createMaterializer(getContext());
         responseReceiverCache = ResponseReceiverCache.lookup(getContext().getSystem());
@@ -370,25 +364,8 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
     @Override
     protected void stopShardedActor(final StopShardedActor trigger) {
         super.stopShardedActor(trigger);
-        if (liveOpCounter > 0) {
-            getTimers().startSingleTimer(Control.SHUTDOWN_LIVE_CHANNEL, Control.SHUTDOWN_LIVE_CHANNEL,
-                    liveChannelShutdownTimeout);
-        }
-    }
-
-    @Override
-    protected void decrementOpCounter(final Signal<?> signal) {
-        super.decrementOpCounter(signal);
-        if (isChannelLiveOrSmart(signal)) {
-            --liveOpCounter;
-        }
-    }
-
-    @Override
-    protected void incrementOpCounter(final Signal<?> signal) {
-        super.incrementOpCounter(signal);
-        if (isChannelLiveOrSmart(signal)) {
-            ++liveOpCounter;
+        if (getOpCounter() > 0) {
+            getTimers().startSingleTimer(Control.SHUTDOWN_TIMEOUT, Control.SHUTDOWN_TIMEOUT, shutdownTimeout);
         }
     }
 
@@ -398,24 +375,19 @@ public final class ThingSupervisorActor extends AbstractPersistenceSupervisor<Th
             final FI.UnitApply<Object> matchAnyBehavior) {
 
         return ReceiveBuilder.create()
-                .matchEquals(Control.SHUTDOWN_LIVE_CHANNEL, this::shutdownLiveChannel)
+                .matchEquals(Control.SHUTDOWN_TIMEOUT, this::shutdownLiveChannel)
                 .build()
                 .orElse(super.activeBehaviour(matchProcessNextTwinMessageBehavior, matchAnyBehavior));
     }
 
     private void shutdownLiveChannel(final Control shutdown) {
-        log.warning("Live channel timeout <{}> reached; aborting <{}> live channel ops",
-                liveChannelShutdownTimeout, liveOpCounter);
+        log.warning("Shutdown timeout <{}> reached; aborting <{}> ops", shutdownTimeout, getOpCounter());
         getContext().stop(getSelf());
-    }
-
-    private boolean isChannelLiveOrSmart(final Signal<?> signal) {
-        return Signal.isChannelLive(signal) || Signal.isChannelSmart(signal);
     }
 
     private record CommandResponsePair<C, R>(C command, R response) {}
 
     private enum Control {
-        SHUTDOWN_LIVE_CHANNEL
+        SHUTDOWN_TIMEOUT
     }
 }
