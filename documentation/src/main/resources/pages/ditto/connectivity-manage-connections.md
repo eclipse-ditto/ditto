@@ -5,10 +5,10 @@ tags: [connectivity]
 permalink: connectivity-manage-connections.html
 ---
 
-In order to manage (CRUD) connections in Ditto [HTTP API](http-api-doc.html#connections-in-api-2)
-have to be used. There is a separate HTTP API for managing the connections. As this is not a task for a developer
-but more for a "DevOps engineer" creating new connections to external systems the endpoint 
-is authenticated using the devOps user:
+In order to manage (CRUD) connections in Ditto, a separate [HTTP API](http-api-doc.html#/Connections)
+can be be used. As this is not a task for a developer
+but more for a "DevOps engineer", creating new connections to external systems the endpoint 
+is authenticated using the "devops" user:
 
 ```
 HTTP api/2/connections
@@ -33,8 +33,8 @@ The following commands are available in order to manage connections:
 
 ### Create connection
 
-Create a new connection by sending an HTTP request.
-<br/>`POST .../connections`
+Create a new connection by sending an HTTP `POST` request:  
+`POST /api/2/connections`
 
 ```json
 {
@@ -52,16 +52,16 @@ For protocol specific examples, consult the [AMQP-0.9.1 binding](connectivity-pr
 [AMQP-1.0 binding](connectivity-protocol-bindings-amqp10.html) or
 [MQTT-3.1.1 binding](connectivity-protocol-bindings-mqtt.html) respectively.
 
-Additionally, you can test a connection before creating it.
-<br/>`POST .../connections&dryRun=ture`
+Additionally, you can test a connection before creating it:  
+`POST /api/2/connections&dry-run=true`
 
 Passing the `dryRun` query parameter checks the configuration and establishes a connection to the remote endpoint in order to validate the connection
 credentials. The connection is closed afterwards and will not be persisted.
 
 ### Modify connection
 
-Modify an existing connection by sending a PUT HTTP request to
-<br/>`PUT .../connections/{connectionId}`
+Modify an existing connection by sending a HTTP `PUT` request to:  
+`PUT /api/2/connections/{connectionId}`
 
 ``` json
 {
@@ -74,16 +74,16 @@ The connection with the specified ID needs to be created before one can modify i
 
 ### Retrieve connection
 
-The only parameter necessary for retrieving a connection is the `connectionId`.
-<br/>`GET .../connections/{connectionId}`
+The only parameter necessary for retrieving a connection is the `connectionId`:  
+`GET /api/2/connections/{connectionId}`
 
 ### Retrieve all connections
 
-`GET .../connections`
+`GET /api/2/connections`
 
 Additionally, you can get the connections ids only by providing the `idsOnly=true` query parameter.
 
-`GET .../connections&idsOnly=true`
+`GET /api/2/connections?ids-only=true`
 
 ## Helper endpoints
 
@@ -92,7 +92,7 @@ Additionally, you can get the connections ids only by providing the `idsOnly=tru
 Returns the connection status by showing if a connection is currently enabled/disabled and if it is
 successfully established. The only parameter necessary for retrieving the connection status is the `connectionId`.
 
-`GET .../connections/{connectionId}/status`
+`GET /api/2/connections/{connectionId}/status`
 
 ### Retrieve connection metrics
 
@@ -104,7 +104,7 @@ This command returns the connection metrics showing how many messages have been 
 
 The only parameter necessary for retrieving the connection metrics is the `connectionId`.
 
-`GET .../connections/{connectionId}/metrics`
+`GET /api/2/connections/{connectionId}/metrics`
 
 ### Retrieve connection logs
 
@@ -120,7 +120,7 @@ always be reset when retrieving the logs, the timestamp will always be 24 hours 
 The default duration and the maximum amount of logs stored for one connection can be configured in Ditto's connectivity
 service configuration.
 
-`GET .../connections/{connectionId}/logs`
+`GET /api/2/connections/{connectionId}/logs`
 
 ### Open connection
 
@@ -138,7 +138,7 @@ connectivity.commands:openConnection
 The only parameter necessary for closing a connection is the `connectionId`. When gracefully closing a connection a
 [ConnectionClosedAnnouncement](protocol-specification-connections-announcement.html) will be published.
 
-<br/>`POST .../connections/{connectionId}/command`
+`POST /api/2/connections/{connectionId}/command`
 
 ```
 connectivity.commands:closeConnection

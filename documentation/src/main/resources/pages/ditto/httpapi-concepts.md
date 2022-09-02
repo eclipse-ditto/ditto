@@ -144,8 +144,8 @@ The base endpoint for accessing and working with `Connections`.<br/>
 
 It has the following HTTP API endpoints:
 
-* `/connections`: accessing all connections
-* `/connections/{connectionId}`: accessing the `Connection` entries
+* `/connections`: accessing all connections or create a new connection
+* `/connections/{connectionId}`: accessing a specific `Connection` entry
 * `/connections/{connectionId}/command`: send a command to a specific Connection
 * `/connections/{connectionId}/status`: retrieve status of a specific Connection
 * `/connections/{connectionId}/metrics`: retrieve metrics of a specific Connection
