@@ -15,7 +15,6 @@ package org.eclipse.ditto.edge.service.placeholders;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
@@ -63,7 +62,7 @@ final class ImmutableRequestPlaceholder implements RequestPlaceholder {
         return Optional.ofNullable(authorizationContext)
                 .map(context -> context.getAuthorizationSubjects().stream()
                         .map(AuthorizationSubject::getId)
-                        .collect(Collectors.toList()))
+                        .toList())
                 .orElseGet(Collections::emptyList);
     }
 

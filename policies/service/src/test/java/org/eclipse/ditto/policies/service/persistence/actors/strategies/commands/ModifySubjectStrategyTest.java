@@ -21,20 +21,19 @@ import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.internal.utils.persistentactors.commands.CommandStrategy;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.Subject;
 import org.eclipse.ditto.policies.model.SubjectExpiry;
 import org.eclipse.ditto.policies.model.SubjectExpiryInvalidException;
 import org.eclipse.ditto.policies.model.SubjectId;
 import org.eclipse.ditto.policies.model.SubjectIssuer;
-import org.eclipse.ditto.policies.service.common.config.DefaultPolicyConfig;
-import org.eclipse.ditto.policies.service.persistence.TestConstants;
-import org.eclipse.ditto.internal.utils.persistentactors.commands.CommandStrategy;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifySubject;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifySubjectResponse;
 import org.eclipse.ditto.policies.model.signals.events.SubjectCreated;
+import org.eclipse.ditto.policies.service.common.config.DefaultPolicyConfig;
+import org.eclipse.ditto.policies.service.persistence.TestConstants;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import com.typesafe.config.ConfigFactory;

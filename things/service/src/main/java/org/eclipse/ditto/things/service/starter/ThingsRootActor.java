@@ -17,9 +17,9 @@ import static org.eclipse.ditto.things.api.ThingsMessagingConstants.CLUSTER_ROLE
 import org.eclipse.ditto.base.api.devops.signals.commands.RetrieveStatisticsDetails;
 import org.eclipse.ditto.base.service.RootChildActorStarter;
 import org.eclipse.ditto.base.service.actors.DittoRootActor;
-import org.eclipse.ditto.internal.utils.aggregator.DefaultThingsAggregatorConfig;
-import org.eclipse.ditto.internal.utils.aggregator.ThingsAggregatorActor;
-import org.eclipse.ditto.internal.utils.aggregator.ThingsAggregatorConfig;
+import org.eclipse.ditto.things.service.aggregation.DefaultThingsAggregatorConfig;
+import org.eclipse.ditto.things.service.aggregation.ThingsAggregatorActor;
+import org.eclipse.ditto.things.service.aggregation.ThingsAggregatorConfig;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.internal.utils.cluster.RetrieveStatisticsDetailsResponseSupplier;

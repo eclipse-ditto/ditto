@@ -14,8 +14,6 @@ package org.eclipse.ditto.internal.utils.pubsub.api;
 
 import java.util.Set;
 
-import akka.cluster.ddata.Replicator;
-
 /**
  * Super class of subscription requests.
  */
@@ -30,4 +28,5 @@ public interface Request {
      * @return whether acknowledgement is expected.
      */
     boolean shouldAcknowledge();
+
 }

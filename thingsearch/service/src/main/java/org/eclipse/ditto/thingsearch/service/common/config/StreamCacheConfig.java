@@ -59,7 +59,7 @@ public interface StreamCacheConfig extends CacheConfig {
         private final String configPath;
         private final Object defaultValue;
 
-        private StreamCacheConfigValue(final String configPath, final Object defaultValue) {
+        StreamCacheConfigValue(final String configPath, final Object defaultValue) {
             this.configPath = configPath;
             this.defaultValue = defaultValue;
         }

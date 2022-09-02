@@ -14,7 +14,6 @@ package org.eclipse.ditto.things.service.persistence.actors.strategies.commands;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
@@ -87,7 +86,7 @@ final class RetrieveFeaturesStrategy extends AbstractThingCommandStrategy<Retrie
         final List<JsonPointer> normalized = selectedFields.getPointers()
                 .stream()
                 .map(selector -> Thing.JsonFields.FEATURES.getPointer().append(selector))
-                .collect(Collectors.toList());
+                .toList();
         final JsonFieldSelector expandedPointers =
                 ThingsModelFactory.expandFeatureIdWildcards(features, JsonFactory.newFieldSelector(normalized));
         // and remove it again because field selectors are relative to /features
@@ -95,7 +94,7 @@ final class RetrieveFeaturesStrategy extends AbstractThingCommandStrategy<Retrie
                 expandedPointers.getPointers()
                         .stream()
                         .map(p -> p.getSubPointer(1).orElse(JsonPointer.empty()))
-                        .collect(Collectors.toList());
+                        .toList();
         return JsonFactory.newFieldSelector(denormalized);
     }
 

@@ -33,6 +33,7 @@ public interface ActionForms extends Forms<ActionFormElement> {
                 .map(JsonValue::asObject)
                 .map(ActionFormElement::fromJson)
                 .collect(Collectors.toList());
+
         return of(actionFormElements);
     }
 

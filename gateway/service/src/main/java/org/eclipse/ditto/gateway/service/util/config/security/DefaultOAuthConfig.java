@@ -154,7 +154,7 @@ public final class DefaultOAuthConfig implements OAuthConfig {
         @Override
         public BiConsumer<Map<SubjectIssuer, SubjectIssuerConfig>, Map.Entry<String, ConfigValue>> accumulator() {
             return (map, entry) -> map.put(SubjectIssuer.newInstance(entry.getKey()),
-                    DefaultSubjectIssuerConfig.of(ConfigFactory.empty().withFallback(entry.getValue())));
+                    DefaultSubjectIssuerConfig.of(entry.getKey(), ConfigFactory.empty().withFallback(entry.getValue())));
         }
 
         @Override

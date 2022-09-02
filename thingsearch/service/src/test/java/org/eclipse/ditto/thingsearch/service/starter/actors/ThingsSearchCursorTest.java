@@ -102,8 +102,9 @@ public final class ThingsSearchCursorTest {
                         .orElse(null);
 
         // THEN: correlation ID of adjusted command is identical to the command's correlation ID
-        assertThat(correlationIdOfAdjustedCommand).isEqualTo(correlationIdFromCommand);
-        assertThat(correlationIdOfAdjustedCommand).isNotEqualTo(getCorrelationId(underTest));
+        assertThat(correlationIdOfAdjustedCommand)
+                .isEqualTo(correlationIdFromCommand)
+                .isNotEqualTo(getCorrelationId(underTest));
     }
 
     @Test

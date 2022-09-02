@@ -13,7 +13,6 @@
 package org.eclipse.ditto.connectivity.service.enforcement;
 
 import org.eclipse.ditto.connectivity.model.ConnectionId;
-import org.eclipse.ditto.connectivity.service.enforcement.ConnectionEnforcerActorPropsFactory;
 
 import com.typesafe.config.Config;
 

@@ -17,19 +17,18 @@ import static org.eclipse.ditto.base.model.common.ConditionChecker.argumentNotEm
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Predicate;
-import java.util.stream.Collectors;
 
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.base.model.entity.id.EntityId;
+import org.eclipse.ditto.base.model.json.FieldType;
+import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.base.model.entity.id.EntityId;
-import org.eclipse.ditto.base.model.json.FieldType;
-import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 
 /**
  * A dedicated {@link ShutdownReason} for purging a namespace.
@@ -57,7 +56,7 @@ final class PurgeEntitiesReason implements ShutdownReason {
         final List<String> stringEntityIdsToPurge = argumentNotEmpty(entityIdsToPurge, "entities to purge")
                 .stream()
                 .map(String::valueOf)
-                .collect(Collectors.toList());
+                .toList();
 
         return new PurgeEntitiesReason(stringEntityIdsToPurge);
     }
@@ -65,7 +64,7 @@ final class PurgeEntitiesReason implements ShutdownReason {
     static PurgeEntitiesReason fromJson(final JsonObject jsonObject) {
         final List<String> entityIdsToPurge = jsonObject.getValueOrThrow(JsonFields.DETAILS).asArray().stream()
                 .map(JsonValue::asString)
-                .collect(Collectors.toList());
+                .toList();
 
         return new PurgeEntitiesReason(entityIdsToPurge);
     }

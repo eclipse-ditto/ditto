@@ -39,10 +39,8 @@ final class KafkaAuthenticationSpecificConfig implements KafkaSpecificConfig {
     private static final Map<String, String> SASL_MECHANISMS_WITH_LOGIN_MODULE = new HashMap<>();
 
     @Nullable private static KafkaAuthenticationSpecificConfig instance;
-    private final boolean doubleDecodingEnabled;
 
-    private KafkaAuthenticationSpecificConfig(final boolean doubleDecodingEnabled) {
-        this.doubleDecodingEnabled = doubleDecodingEnabled;
+    private KafkaAuthenticationSpecificConfig() {
         SASL_MECHANISMS_WITH_LOGIN_MODULE.put(PLAIN_SASL_MECHANISM,
                 "org.apache.kafka.common.security.plain.PlainLoginModule");
         SASL_MECHANISMS_WITH_LOGIN_MODULE.put("SCRAM-SHA-256",
@@ -51,10 +49,10 @@ final class KafkaAuthenticationSpecificConfig implements KafkaSpecificConfig {
                 "org.apache.kafka.common.security.scram.ScramLoginModule");
     }
 
-    public static KafkaAuthenticationSpecificConfig getInstance(final boolean doubleDecodingEnabled) {
+    public static KafkaAuthenticationSpecificConfig getInstance() {
         KafkaAuthenticationSpecificConfig result = instance;
         if (null == result) {
-            result = new KafkaAuthenticationSpecificConfig(doubleDecodingEnabled);
+            result = new KafkaAuthenticationSpecificConfig();
             instance = result;
         }
         return result;
@@ -62,7 +60,7 @@ final class KafkaAuthenticationSpecificConfig implements KafkaSpecificConfig {
 
     @Override
     public boolean isApplicable(final Connection connection) {
-        return connection.getUsername(false).isPresent() && connection.getPassword(false).isPresent();
+        return connection.getUsername().isPresent() && connection.getPassword().isPresent();
     }
 
     @Override
@@ -91,8 +89,8 @@ final class KafkaAuthenticationSpecificConfig implements KafkaSpecificConfig {
     @Override
     public Map<String, String> apply(final Connection connection) {
 
-        final Optional<String> username = connection.getUsername(doubleDecodingEnabled);
-        final Optional<String> password = connection.getPassword(doubleDecodingEnabled);
+        final Optional<String> username = connection.getUsername();
+        final Optional<String> password = connection.getPassword();
         // chose to not use isApplicable() but directly check username and password since we need to Optional#get them.
         if (isValid(connection) && username.isPresent() && password.isPresent()) {
             final String saslMechanism = getSaslMechanismOrDefault(connection).toUpperCase();

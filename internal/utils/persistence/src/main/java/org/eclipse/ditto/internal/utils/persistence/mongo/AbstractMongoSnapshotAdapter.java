@@ -135,8 +135,8 @@ public abstract class AbstractMongoSnapshotAdapter<T extends Jsonifiable.WithFie
 
     private static JsonObject convertSnapshotEntityToJson(final Object rawSnapshotEntity) {
         checkNotNull(rawSnapshotEntity, "raw snapshot entity");
-        if (rawSnapshotEntity instanceof BsonValue) {
-            return convertToJson((BsonValue) rawSnapshotEntity);
+        if (rawSnapshotEntity instanceof BsonValue bsonValue) {
+            return convertToJson(bsonValue);
         }
         final String pattern = "Unable to create a Jsonifiable from <{0}>! Expected was a BsonDocument instance.";
         throw new IllegalArgumentException(MessageFormat.format(pattern, rawSnapshotEntity.getClass()));

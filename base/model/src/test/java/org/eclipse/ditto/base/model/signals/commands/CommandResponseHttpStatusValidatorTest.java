@@ -22,7 +22,6 @@ import java.util.List;
 
 import org.assertj.core.api.Assertions;
 import org.eclipse.ditto.base.model.common.HttpStatus;
-import org.junit.Ignore;
 import org.junit.Test;
 
 /**

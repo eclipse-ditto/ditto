@@ -47,7 +47,7 @@ public class MessagePayloadSerializer {
         final Optional<T> payloadOptional = message.getPayload();
         final ContentType contentType = message.getContentType().map(ContentType::of).orElse(ContentType.of(""));
         final JsonValue payloadValue;
-        if (rawPayloadOptional.isPresent() && !payloadOptional.filter(p -> p instanceof JsonValue).isPresent()) {
+        if (rawPayloadOptional.isPresent() && !payloadOptional.filter(JsonValue.class::isInstance).isPresent()) {
             final ByteBuffer rawPayload = rawPayloadOptional.get();
             if (MessageDeserializer.shouldBeInterpretedAsTextOrJson(contentType)) {
                 payloadValue =

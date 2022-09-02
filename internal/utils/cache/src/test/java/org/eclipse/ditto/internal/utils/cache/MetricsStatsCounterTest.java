@@ -106,12 +106,12 @@ public final class MetricsStatsCounterTest {
 
             assertThat(totalLoadTime.getNumberOfRecords()).isEqualTo(expectedEstimatedSize);
             assertThat(loadSuccessCount.getCount()).isEqualTo(expectedEstimatedSize);
-            assertThat(loadFailureCount.getCount()).isEqualTo(0);
+            assertThat(loadFailureCount.getCount()).isZero();
 
-            assertThat(evictionCount.getCount()).isEqualTo(0);
-            assertThat(evictionWeight.getCount()).isEqualTo(0);
+            assertThat(evictionCount.getCount()).isZero();
+            assertThat(evictionWeight.getCount()).isZero();
 
-            assertThat(estimatedInvalidations.getCount()).isEqualTo(0);
+            assertThat(estimatedInvalidations.getCount()).isZero();
         });
     }
 
@@ -133,11 +133,11 @@ public final class MetricsStatsCounterTest {
                see https://github.com/ben-manes/caffeine/wiki/Efficiency
             */
 
-            assertThat(evictionCount.getCount()).isGreaterThan(0);
-            assertThat(evictionWeight.getCount()).isGreaterThan(0);
+            assertThat(evictionCount.getCount()).isPositive();
+            assertThat(evictionWeight.getCount()).isPositive();
 
             // invalidations are no evictions
-            assertThat(estimatedInvalidations.getCount()).isEqualTo(0);
+            assertThat(estimatedInvalidations.getCount()).isZero();
         });
     }
 
@@ -163,10 +163,10 @@ public final class MetricsStatsCounterTest {
         // THEN
         waitUntilAsserted(() -> {
             assertThat(estimatedInvalidations.getCount()).isEqualTo(1);
-            assertThat(estimatedSize.get()).isEqualTo(0L);
+            assertThat(estimatedSize.get()).isZero();
 
             // evictions are no invalidations
-            assertThat(evictionCount.getCount()).isEqualTo(0);
+            assertThat(evictionCount.getCount()).isZero();
         });
     }
 
@@ -182,4 +182,5 @@ public final class MetricsStatsCounterTest {
             cache.get(key);
         }
     }
+
 }

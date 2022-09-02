@@ -35,4 +35,5 @@ public final class ThingWriteModelTest extends AbstractWithActorSystemTest {
                         system.actorSelection(probe2.ref().path()))
                 .verify();
     }
+
 }

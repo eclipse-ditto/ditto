@@ -28,17 +28,16 @@ import java.util.Optional;
 import javax.annotation.Nullable;
 
 import org.assertj.core.api.ThrowableAssertAlternative;
-import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.entitytag.EntityTag;
 import org.eclipse.ditto.base.model.headers.entitytag.EntityTagMatchers;
-import org.eclipse.ditto.internal.utils.headers.conditional.ConditionalHeadersValidator;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.base.model.signals.commands.Command.Category;
+import org.eclipse.ditto.internal.utils.headers.conditional.ConditionalHeadersValidator;
+import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyPreconditionFailedException;
 import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyPreconditionNotModifiedException;
-import org.junit.Ignore;
 import org.junit.Test;
 
 /**

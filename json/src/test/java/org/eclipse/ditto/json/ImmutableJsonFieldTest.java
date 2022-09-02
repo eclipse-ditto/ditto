@@ -25,7 +25,6 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
@@ -137,7 +136,7 @@ public final class ImmutableJsonFieldTest {
     public void toStringReturnsExpected() {
         final JsonField underTest = ImmutableJsonField.newInstance(jsonKeyMock, jsonValueMock, fieldDefinitionMock);
 
-        assertThat(underTest.toString()).isEqualTo("\"" + jsonKeyMock + "\"" + ":" + jsonValueMock);
+        assertThat(underTest.toString()).hasToString("\"" + jsonKeyMock + "\"" + ":" + jsonValueMock);
     }
 
     @Test

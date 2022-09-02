@@ -870,14 +870,14 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
         final Adaptable adaptable;
         if (jsonifiable instanceof Signal) {
             adaptable = adapter.toAdaptable((Signal<?>) jsonifiable);
-        } else if (jsonifiable instanceof DittoRuntimeException) {
+        } else if (jsonifiable instanceof DittoRuntimeException dittoRuntimeException) {
             final Signal<?> signal;
             if (jsonifiable instanceof PolicyException) {
-                signal = buildPolicyErrorResponse((DittoRuntimeException) jsonifiable);
+                signal = buildPolicyErrorResponse(dittoRuntimeException);
             } else if (jsonifiable instanceof ThingSearchException) {
-                signal = buildSearchErrorResponse((DittoRuntimeException) jsonifiable);
+                signal = buildSearchErrorResponse(dittoRuntimeException);
             } else {
-                signal = buildThingErrorResponse((DittoRuntimeException) jsonifiable);
+                signal = buildThingErrorResponse(dittoRuntimeException);
             }
             adaptable = adapter.toAdaptable(signal);
         } else {

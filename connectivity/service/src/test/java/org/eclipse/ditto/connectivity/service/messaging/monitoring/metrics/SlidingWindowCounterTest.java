@@ -84,10 +84,12 @@ public class SlidingWindowCounterTest {
         final Map<Duration, Long> success = counter.getCounts(true);
         final Map<Duration, Long> failure = counter.getCounts(false);
 
-        assertThat(success).containsEntry(ONE_MINUTE_WITH_TEN_SECONDS_RESOLUTION.getWindow(), 60L);
-        assertThat(success).containsEntry(ONE_HOUR_WITH_ONE_MINUTE_RESOLUTION.getWindow(), 3600L);
-        assertThat(failure).containsEntry(ONE_MINUTE_WITH_TEN_SECONDS_RESOLUTION.getWindow(), 12L);
-        assertThat(failure).containsEntry(ONE_HOUR_WITH_ONE_MINUTE_RESOLUTION.getWindow(), 720L);
+        assertThat(success)
+                .containsEntry(ONE_MINUTE_WITH_TEN_SECONDS_RESOLUTION.getWindow(), 60L)
+                .containsEntry(ONE_HOUR_WITH_ONE_MINUTE_RESOLUTION.getWindow(), 3600L);
+        assertThat(failure)
+                .containsEntry(ONE_MINUTE_WITH_TEN_SECONDS_RESOLUTION.getWindow(), 12L)
+                .containsEntry(ONE_HOUR_WITH_ONE_MINUTE_RESOLUTION.getWindow(), 720L);
 
     }
 
@@ -115,9 +117,10 @@ public class SlidingWindowCounterTest {
 
         final Map<Duration, Long> success = counter.getCounts(true);
 
-        assertThat(success).containsEntry(ONE_MINUTE_WITH_TEN_SECONDS_RESOLUTION.getWindow(), 1L);
-        assertThat(success).containsEntry(ONE_HOUR_WITH_ONE_MINUTE_RESOLUTION.getWindow(), 60L);
-        assertThat(success).containsEntry(ONE_DAY_WITH_ONE_HOUR_RESOLUTION.getWindow(), 1440L);
+        assertThat(success)
+                .containsEntry(ONE_MINUTE_WITH_TEN_SECONDS_RESOLUTION.getWindow(), 1L)
+                .containsEntry(ONE_HOUR_WITH_ONE_MINUTE_RESOLUTION.getWindow(), 60L)
+                .containsEntry(ONE_DAY_WITH_ONE_HOUR_RESOLUTION.getWindow(), 1440L);
     }
 
     @Test
@@ -149,14 +152,17 @@ public class SlidingWindowCounterTest {
 
         // verify measurements of the observed counter is correct
         final Map<Duration, Long> success = consumedInboundCounter.getCounts(true);
-        assertThat(success).containsEntry(ONE_MINUTE_WITH_TEN_SECONDS_RESOLUTION.getWindow(), 3L);
-        assertThat(success).containsEntry(ONE_HOUR_WITH_ONE_MINUTE_RESOLUTION.getWindow(), 14L);
+        assertThat(success)
+                .containsEntry(ONE_MINUTE_WITH_TEN_SECONDS_RESOLUTION.getWindow(), 3L)
+                .containsEntry(ONE_HOUR_WITH_ONE_MINUTE_RESOLUTION.getWindow(), 14L);
 
         final Map<Duration, Long> throttled = throttledCounter.getCounts(false);
-        // last minute was throttled
-        assertThat(throttled).containsEntry(ONE_MINUTE_WITH_TEN_SECONDS_RESOLUTION.getWindow(), 1L);
-        // 3 minutes within last hour were "throttled"
-        assertThat(throttled).containsEntry(ONE_HOUR_WITH_ONE_MINUTE_RESOLUTION.getWindow(), 3L);
+
+        assertThat(throttled)
+                // last minute was throttled
+                .containsEntry(ONE_MINUTE_WITH_TEN_SECONDS_RESOLUTION.getWindow(), 1L)
+                // 3 minutes within last hour were "throttled"
+                .containsEntry(ONE_HOUR_WITH_ONE_MINUTE_RESOLUTION.getWindow(), 3L);
     }
 
     private void increment(final SlidingWindowCounter counter, final int count, final long ts) {
@@ -207,4 +213,5 @@ public class SlidingWindowCounterTest {
             counter.reset();
         }
     }
+
 }

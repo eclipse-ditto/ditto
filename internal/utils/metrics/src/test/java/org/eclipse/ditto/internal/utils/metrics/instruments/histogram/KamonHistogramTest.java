@@ -32,23 +32,23 @@ public class KamonHistogramTest {
     public void record() {
         sut.record(4711L);
         final Long[] recordedValues = sut.getRecordedValues();
-        assertThat(recordedValues.length).isEqualTo(1);
+        assertThat(recordedValues).hasSize(1);
         assertThat(recordedValues[0]).isCloseTo(4711L, Percentage.withPercentage(1));
     }
 
     @Test
     public void getRecordsDoesNotResetHistogram() {
         sut.record(4711L);
-        assertThat(sut.getRecordedValues().length).isEqualTo(1);
-        assertThat(sut.getRecordedValues().length).isEqualTo(1);
+        assertThat(sut.getRecordedValues()).hasSize(1);
+        assertThat(sut.getRecordedValues()).hasSize(1);
     }
 
     @Test
     public void resets() {
         sut.record(4711L);
-        assertThat(sut.getRecordedValues().length).isEqualTo(1);
+        assertThat(sut.getRecordedValues()).hasSize(1);
         sut.reset();
-        assertThat(sut.getRecordedValues().length).isEqualTo(0);
+        assertThat(sut.getRecordedValues()).hasSize(0);
     }
 
 }

@@ -117,10 +117,11 @@ public abstract class AbstractDDataHandler<K, S, T extends DDataUpdate<S>>
                 .mapToObj(i -> get(getKey(i), consistency).toCompletableFuture())
                 .toList();
         return CompletableFuture.allOf(futures.toArray(CompletableFuture[]::new))
-                .thenApply(_void -> futures.stream()
+                .thenApply(unused -> futures.stream()
                         .map(CompletableFuture::join)
                         .flatMap(Optional::stream)
                         .toList()
                 );
     }
+
 }

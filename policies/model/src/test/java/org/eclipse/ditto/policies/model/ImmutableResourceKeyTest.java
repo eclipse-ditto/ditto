@@ -19,7 +19,6 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 
 import org.eclipse.ditto.json.JsonPointer;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -66,7 +65,7 @@ public final class ImmutableResourceKeyTest {
         final String expected = "thing:/foo/bar";
         final ResourceKey underTest = ImmutableResourceKey.newInstance("thing", JsonPointer.of("/foo/bar"));
 
-        assertThat(underTest.toString()).isEqualTo(expected);
+        assertThat(underTest.toString()).hasToString(expected);
     }
 
 }

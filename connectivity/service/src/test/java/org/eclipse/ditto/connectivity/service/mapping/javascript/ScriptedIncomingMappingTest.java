@@ -21,10 +21,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.function.Consumer;
 
-import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.protocol.Adaptable;
 import org.eclipse.ditto.connectivity.api.ExternalMessage;
 import org.eclipse.ditto.connectivity.api.ExternalMessageFactory;
+import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.protocol.Adaptable;
 import org.junit.Test;
 import org.mozilla.javascript.NativeObject;
 import org.mozilla.javascript.Scriptable;
@@ -105,7 +105,7 @@ public class ScriptedIncomingMappingTest {
                         "}\n",
                 adaptables -> {
                     assertThat(adaptables).isNotEmpty();
-                    assertThat(adaptables.size()).isEqualTo(2);
+                    assertThat(adaptables).hasSize(2);
                     final Adaptable adaptable0 = adaptables.get(0);
                     assertThat(adaptable0.getPayload().getValue()).contains(JsonValue.of(PAYLOAD));
                     final Adaptable adaptable1 = adaptables.get(1);

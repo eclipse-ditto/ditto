@@ -38,7 +38,7 @@ abstract class AbstractBasicDBMapper<T, J extends JsonValue> implements Function
 
     final Function<String, String> jsonKeyNameReviser;
 
-    AbstractBasicDBMapper(final Function<String, String> theJsonKeyNameReviser) {
+    AbstractBasicDBMapper(final  Function<String, String> theJsonKeyNameReviser) {
         jsonKeyNameReviser = checkNotNull(theJsonKeyNameReviser, "The JSON key name reviser");
     }
 

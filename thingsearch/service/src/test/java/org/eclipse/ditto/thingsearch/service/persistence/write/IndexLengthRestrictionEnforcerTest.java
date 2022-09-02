@@ -97,4 +97,5 @@ public final class IndexLengthRestrictionEnforcerTest {
         assertThat(indexLengthRestrictionEnforcer.enforce(JsonPointer.of(key), JsonValue.of(value)))
                 .isEmpty();
     }
+
 }

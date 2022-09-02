@@ -71,30 +71,30 @@ public final class JjwtSerializer implements Serializer<Map<String, ?>> {
 
         if (input == null) {
             return JsonFactory.nullLiteral();
-        } else if (input instanceof Boolean) {
-            return JsonFactory.newValue((boolean) input);
+        } else if (input instanceof Boolean aBoolean) {
+            return JsonFactory.newValue(aBoolean);
         } else if (input instanceof Byte || input instanceof Short || input instanceof Integer) {
             return JsonFactory.newValue((int) input);
-        } else if (input instanceof Long) {
-            return JsonFactory.newValue((long) input);
-        } else if (input instanceof Float) {
-            return JsonFactory.newValue((float) input);
-        } else if (input instanceof Double) {
-            return JsonFactory.newValue((double) input);
+        } else if (input instanceof Long aLong) {
+            return JsonFactory.newValue(aLong);
+        } else if (input instanceof Float aFloat) {
+            return JsonFactory.newValue(aFloat);
+        } else if (input instanceof Double aDouble) {
+            return JsonFactory.newValue(aDouble);
         } else if (input instanceof Character || input instanceof String || input instanceof Enum) {
             return JsonFactory.newValue(input.toString());
-        } else if (input instanceof Calendar) {
-            return JsonFactory.newValue(DateFormats.formatIso8601(((Calendar) input).getTime()));
-        } else if (input instanceof Date) {
-            return JsonFactory.newValue(DateFormats.formatIso8601((Date) input));
-        } else if (input instanceof byte[]) {
-            return JsonFactory.newValue(Encoders.BASE64.encode((byte[]) input));
-        } else if (input instanceof char[]) {
-            return JsonFactory.newValue(new String((char[]) input));
-        } else if (input instanceof Map) {
-            return toJsonObject((Map<?, ?>) input);
-        } else if (input instanceof Collection) {
-            return toJsonArray((Collection<?>) input);
+        } else if (input instanceof Calendar calendar) {
+            return JsonFactory.newValue(DateFormats.formatIso8601(calendar.getTime()));
+        } else if (input instanceof Date date) {
+            return JsonFactory.newValue(DateFormats.formatIso8601(date));
+        } else if (input instanceof byte[] bytes) {
+            return JsonFactory.newValue(Encoders.BASE64.encode((bytes)));
+        } else if (input instanceof char[] chars) {
+            return JsonFactory.newValue(new String(chars));
+        } else if (input instanceof Map map) {
+            return toJsonObject(map);
+        } else if (input instanceof Collection<?> collection) {
+            return toJsonArray(collection);
         } else if (Objects.isArray(input)) {
             return toJsonArray(Collections.arrayToList(input));
         }

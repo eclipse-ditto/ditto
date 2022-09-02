@@ -18,7 +18,6 @@ import static org.mutabilitydetector.unittesting.AllowedReason.assumingFields;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
-import org.junit.Ignore;
 import org.junit.Test;
 
 import com.eclipsesource.json.Json;
@@ -83,7 +82,7 @@ public final class ImmutableJsonStringTest {
         final String expected = "\"" + KNOWN_STRING_VALUE + "\"";
         final com.eclipsesource.json.JsonValue underTest = Json.value(KNOWN_STRING_VALUE);
 
-        assertThat(underTest.toString()).isEqualTo(expected);
+        assertThat(underTest.toString()).hasToString(expected);
     }
 
     @Test

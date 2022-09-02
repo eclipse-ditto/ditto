@@ -22,7 +22,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
@@ -139,7 +138,7 @@ public final class AuthenticationChain {
             } else {
                 logFailure(authenticationProvider, nextResult);
                 final var newFailureResults =
-                        Stream.concat(failureResults.stream(), Stream.of(nextResult)).collect(Collectors.toList());
+                        Stream.concat(failureResults.stream(), Stream.of(nextResult)).toList();
                 return new AuthResultAccumulator(successResult, newFailureResults, requestContext, dittoHeaders);
             }
         }
@@ -175,8 +174,7 @@ public final class AuthenticationChain {
             } else {
                 return other.thenApplyAsync(that -> {
                     final var newFailureResults =
-                            Stream.concat(failureResults.stream(), that.failureResults.stream())
-                                    .collect(Collectors.toList());
+                            Stream.concat(failureResults.stream(), that.failureResults.stream()).toList();
                     return new AuthResultAccumulator(that.successResult, newFailureResults, requestContext,
                             dittoHeaders);
                 }, authenticationDispatcher);

@@ -69,7 +69,7 @@ public final class ModifyToCreateThingTransformerTest {
 
         assertThat(result).isInstanceOf(CreateThing.class);
         final CreateThing createThing = (CreateThing) result;
-        assertThat(createThing.getEntityId().toString()).isEqualTo(thingId.toString());
+        assertThat(createThing.getEntityId().toString()).hasToString(thingId.toString());
         assertThat(createThing.getThing()).isEqualTo(modifyThing.getThing());
         assertThat(createThing.getDittoHeaders()).isSameAs(modifyThing.getDittoHeaders());
         verify(existenceChecker).checkExistence(modifyThing);

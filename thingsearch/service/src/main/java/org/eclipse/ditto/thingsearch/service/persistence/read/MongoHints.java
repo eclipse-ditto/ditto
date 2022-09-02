@@ -21,12 +21,12 @@ import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 
 import org.bson.conversions.Bson;
+import org.eclipse.ditto.internal.utils.persistence.mongo.DittoBsonJson;
+import org.eclipse.ditto.internal.utils.persistence.mongo.indices.Index;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.thingsearch.service.persistence.Indices;
-import org.eclipse.ditto.internal.utils.persistence.mongo.DittoBsonJson;
-import org.eclipse.ditto.internal.utils.persistence.mongo.indices.Index;
 
 /**
  * Package-private interface of configured hints for MongoDB.
@@ -95,6 +95,7 @@ interface MongoHints {
             } else {
                 // it is an error if the configured hint is neither an index name nor an index spec as document.
                 final JsonObject jsonObject = value.asObject();
+
                 return DittoBsonJson.getInstance().parse(jsonObject);
             }
         }

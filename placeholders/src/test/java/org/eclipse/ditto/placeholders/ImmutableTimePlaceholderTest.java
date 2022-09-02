@@ -53,14 +53,15 @@ public final class ImmutableTimePlaceholderTest {
         final List<Instant> resolved = UNDER_TEST.resolveValues(SOME_OBJECT, "now").stream()
                 .map(Instant::parse)
                 .collect(Collectors.toList());
-        assertThat(resolved).allSatisfy(i -> {
+        assertThat(resolved)
+                .hasSize(1)
+                .allSatisfy(i -> {
                     final Instant now = Instant.now();
                     assertThat(i)
                             .isBefore(now)
                             .isCloseTo(now, new TemporalUnitLessThanOffset(1000, ChronoUnit.MILLIS));
                 }
         );
-        assertThat(resolved).hasSize(1);
     }
 
     @Test
@@ -70,6 +71,7 @@ public final class ImmutableTimePlaceholderTest {
                 .map(Instant::ofEpochMilli)
                 .collect(Collectors.toList());
         assertThat(resolved)
+                .hasSize(1)
                 .allSatisfy(i -> {
                             final Instant now = Instant.now();
                             assertThat(i)
@@ -77,7 +79,6 @@ public final class ImmutableTimePlaceholderTest {
                                     .isCloseTo(now, new TemporalUnitLessThanOffset(1000, ChronoUnit.MILLIS));
                         }
                 );
-        assertThat(resolved).hasSize(1);
     }
 
 }

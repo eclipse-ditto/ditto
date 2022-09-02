@@ -52,9 +52,9 @@ public final class JjwtDeserializerTest {
         final Object jwtBody = jwt.getBody();
 
         Assertions.assertThat(jwtBody).isInstanceOf(Claims.class);
-        Assertions.assertThat(((Claims) jwtBody).get(Claims.ISSUER)).isEqualTo(KNOWN_ISS);
-        Assertions.assertThat(((Claims) jwtBody).get(Claims.SUBJECT)).isEqualTo(KNOWN_SUB);
-        Assertions.assertThat(((Claims) jwtBody).get(Claims.EXPIRATION)).isEqualTo((int) (KNOWN_EXP.getTime() / 1000L));
+        Assertions.assertThat(((Claims) jwtBody)).containsEntry(Claims.ISSUER, KNOWN_ISS)
+                .containsEntry(Claims.SUBJECT, KNOWN_SUB)
+                .containsEntry(Claims.EXPIRATION, (int) (KNOWN_EXP.getTime() / 1000L));
     }
 
 }

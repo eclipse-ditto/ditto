@@ -26,10 +26,10 @@ import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.base.model.headers.DittoHeadersSizeChecker;
 import org.eclipse.ditto.base.model.headers.translator.HeaderTranslator;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.signals.commands.CommandNotSupportedException;
+import org.eclipse.ditto.edge.service.headers.DittoHeadersValidator;
 import org.eclipse.ditto.gateway.service.endpoints.directives.CorrelationIdEnsuringDirective;
 import org.eclipse.ditto.gateway.service.endpoints.directives.CorsEnablingDirective;
 import org.eclipse.ditto.gateway.service.endpoints.directives.EncodingEnsuringDirective;
@@ -141,7 +141,7 @@ public final class RootRoute extends AllDirectives {
         rootRouteHeadersStepBuilder = RootRouteHeadersStepBuilder.getInstance(builder.headerTranslator,
                 QueryParametersToHeadersMap.getInstance(httpConfig),
                 customHeadersHandler,
-                builder.dittoHeadersSizeChecker);
+                builder.dittoHeadersValidator);
     }
 
     public static RootRouteBuilder getBuilder(final HttpConfig httpConfig) {
@@ -416,7 +416,7 @@ public final class RootRoute extends AllDirectives {
         private CustomHeadersHandler customHeadersHandler;
         private RejectionHandler rejectionHandler;
 
-        private DittoHeadersSizeChecker dittoHeadersSizeChecker;
+        private DittoHeadersValidator dittoHeadersValidator;
 
         private Builder(final HttpConfig httpConfig) {
             this.httpConfig = httpConfig;
@@ -553,8 +553,8 @@ public final class RootRoute extends AllDirectives {
         }
 
         @Override
-        public RootRouteBuilder dittoHeadersSizeChecker(final DittoHeadersSizeChecker checker) {
-            dittoHeadersSizeChecker = checker;
+        public RootRouteBuilder dittoHeadersValidator(final DittoHeadersValidator dittoHeadersValidator) {
+            this.dittoHeadersValidator = dittoHeadersValidator;
             return this;
         }
 

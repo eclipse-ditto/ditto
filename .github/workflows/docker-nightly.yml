@@ -138,3 +138,63 @@ jobs:
           push: true
           tags: |
             eclipse/ditto-ui:${{ env.IMAGE_TAG }}
+      - 
+        name: Run Trivy vulnerability scanner for ditto-policies
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: 'docker.io/eclipse/ditto-policies:${{ env.IMAGE_TAG }}'
+          format: 'table'
+          exit-code: '1'
+          ignore-unfixed: true
+          vuln-type: 'os,library'
+          severity: 'CRITICAL'
+      - 
+        name: Run Trivy vulnerability scanner for ditto-things
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: 'docker.io/eclipse/ditto-things:${{ env.IMAGE_TAG }}'
+          format: 'table'
+          exit-code: '1'
+          ignore-unfixed: true
+          vuln-type: 'os,library'
+          severity: 'CRITICAL'
+      - 
+        name: Run Trivy vulnerability scanner for ditto-gateway
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: 'docker.io/eclipse/ditto-gateway:${{ env.IMAGE_TAG }}'
+          format: 'table'
+          exit-code: '1'
+          ignore-unfixed: true
+          vuln-type: 'os,library'
+          severity: 'CRITICAL'
+      - 
+        name: Run Trivy vulnerability scanner for ditto-things-search
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: 'docker.io/eclipse/ditto-things-search:${{ env.IMAGE_TAG }}'
+          format: 'table'
+          exit-code: '1'
+          ignore-unfixed: true
+          vuln-type: 'os,library'
+          severity: 'CRITICAL'
+      - 
+        name: Run Trivy vulnerability scanner for ditto-connectivity
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: 'docker.io/eclipse/ditto-connectivity:${{ env.IMAGE_TAG }}'
+          format: 'table'
+          exit-code: '1'
+          ignore-unfixed: true
+          vuln-type: 'os,library'
+          severity: 'CRITICAL'
+      - 
+        name: Run Trivy vulnerability scanner for ditto-ui
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: 'docker.io/eclipse/ditto-ui:${{ env.IMAGE_TAG }}'
+          format: 'table'
+          exit-code: '1'
+          ignore-unfixed: true
+          vuln-type: 'os,library'
+          severity: 'CRITICAL'

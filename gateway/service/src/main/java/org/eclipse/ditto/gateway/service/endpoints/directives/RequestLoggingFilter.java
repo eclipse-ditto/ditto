@@ -15,7 +15,6 @@ package org.eclipse.ditto.gateway.service.endpoints.directives;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
 import akka.http.javadsl.model.HttpHeader;
@@ -106,6 +105,7 @@ final class RequestLoggingFilter {
                         return header;
                     }
                 })
-                .collect(Collectors.toList());
+                .toList();
     }
+
 }

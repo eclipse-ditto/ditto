@@ -74,22 +74,22 @@ public abstract class TimeMeasuringAuthenticationProvider<R extends Authenticati
                 })
                 .exceptionally(error -> {
                     final Throwable rootCause = getRootCause(error);
-                    if (rootCause instanceof DittoRuntimeException) {
-                        final DittoRuntimeException e = (DittoRuntimeException) rootCause;
+                    if (rootCause instanceof DittoRuntimeException dittoRuntimeException) {
                         timer.tag(AUTH_SUCCESS_TAG, false);
-                        if (isInternalError(e.getHttpStatus())) {
+                        if (isInternalError(dittoRuntimeException.getHttpStatus())) {
                             logger.withCorrelationId(dittoHeaders)
                                     .warn("An unexpected error occurred during authentication of type <{}>.",
-                                            authorizationContextType, e);
+                                            authorizationContextType, dittoRuntimeException);
                             timer.tag(AUTH_ERROR_TAG, true);
                         }
-                        return toFailedAuthenticationResult(e, dittoHeaders);
+                        return toFailedAuthenticationResult(dittoRuntimeException, dittoHeaders);
                     } else {
                         timer.tag(AUTH_SUCCESS_TAG, false).tag(AUTH_ERROR_TAG, true);
                         return toFailedAuthenticationResult(rootCause, dittoHeaders);
                     }
                 });
         resultFuture.whenComplete((result, error) -> timer.stop());
+
         return resultFuture;
     }
 
@@ -168,12 +168,11 @@ public abstract class TimeMeasuringAuthenticationProvider<R extends Authenticati
             return null;
         }
 
-        if (throwable instanceof DittoRuntimeException) {
-            final DittoRuntimeException dre = (DittoRuntimeException) throwable;
-            if (dre.getDittoHeaders().getCorrelationId().isPresent()) {
-                return dre;
+        if (throwable instanceof DittoRuntimeException dittoRuntimeException) {
+            if (dittoRuntimeException.getDittoHeaders().getCorrelationId().isPresent()) {
+                return dittoRuntimeException;
             }
-            return dre.setDittoHeaders(dittoHeaders);
+            return dittoRuntimeException.setDittoHeaders(dittoHeaders);
         }
 
         return unwrapDittoRuntimeException(throwable.getCause(), dittoHeaders);
@@ -193,4 +192,5 @@ public abstract class TimeMeasuringAuthenticationProvider<R extends Authenticati
                 .cause(cause)
                 .build();
     }
+
 }

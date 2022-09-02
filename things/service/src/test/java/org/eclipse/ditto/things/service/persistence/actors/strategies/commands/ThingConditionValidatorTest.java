@@ -23,7 +23,6 @@ import org.eclipse.ditto.things.model.TestConstants;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingConditionFailedException;
 import org.eclipse.ditto.things.model.signals.commands.modify.CreateThing;
 import org.eclipse.ditto.things.model.signals.commands.modify.ModifyThing;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 

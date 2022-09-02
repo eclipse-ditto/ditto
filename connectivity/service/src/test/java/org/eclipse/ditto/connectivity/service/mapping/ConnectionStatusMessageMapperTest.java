@@ -133,8 +133,8 @@ public class ConnectionStatusMessageMapperTest {
         final Adaptable adaptable = mappingResult.get(0);
         final Signal<?> signal = DittoProtocolAdapter.newInstance().fromAdaptable(adaptable);
         assertThat(signal).isInstanceOf(ModifyFeature.class);
-        assertThat(signal.getDittoHeaders().containsKey(DittoHeaderDefinition.REQUESTED_ACKS.getKey())).isTrue();
-        assertThat(signal.getDittoHeaders().getAcknowledgementRequests().isEmpty()).isTrue();
+        assertThat(signal.getDittoHeaders()).containsKey(DittoHeaderDefinition.REQUESTED_ACKS.getKey());
+        assertThat(signal.getDittoHeaders().getAcknowledgementRequests()).isEmpty();
     }
 
     @Test

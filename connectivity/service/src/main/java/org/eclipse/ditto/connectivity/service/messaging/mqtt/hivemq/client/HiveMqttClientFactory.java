@@ -201,21 +201,15 @@ final class HiveMqttClientFactory {
     private static Optional<SimpleAuthCredentials> getSimpleAuthCredentials(
             final HiveMqttClientProperties hiveMqttClientProperties
     ) {
-        final var doubleDecodingEnabled = isDoubleDecodingEnabled(hiveMqttClientProperties);
         final var mqttConnection = hiveMqttClientProperties.getMqttConnection();
 
-        return mqttConnection.getUsername(doubleDecodingEnabled)
-                .flatMap(username -> mqttConnection.getPassword(doubleDecodingEnabled)
+        return mqttConnection.getUsername()
+                .flatMap(username -> mqttConnection.getPassword()
                         .map(pw -> pw.getBytes(StandardCharsets.UTF_8))
                         .map(pwBytes -> new SimpleAuthCredentials(username, pwBytes))
                 );
     }
 
-    private static boolean isDoubleDecodingEnabled(final HiveMqttClientProperties hiveMqttClientProperties) {
-        final var connectivityConfig = hiveMqttClientProperties.getConnectivityConfig();
-        final var connectionConfig = connectivityConfig.getConnectionConfig();
-        return connectionConfig.doubleDecodingEnabled();
-    }
 
     /**
      * Creates a {@link Mqtt5Client}.

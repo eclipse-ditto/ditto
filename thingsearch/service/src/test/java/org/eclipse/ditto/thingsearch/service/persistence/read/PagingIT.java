@@ -20,8 +20,9 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 
+import org.eclipse.ditto.base.service.config.limits.DefaultLimitsConfig;
+import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.rql.query.Query;
 import org.eclipse.ditto.rql.query.QueryBuilder;
@@ -30,10 +31,8 @@ import org.eclipse.ditto.rql.query.SortOption;
 import org.eclipse.ditto.rql.query.expression.ThingsFieldExpressionFactory;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingId;
-import org.eclipse.ditto.base.service.config.limits.DefaultLimitsConfig;
 import org.eclipse.ditto.thingsearch.service.common.model.ResultList;
 import org.eclipse.ditto.thingsearch.service.persistence.TestConstants;
-import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -47,21 +46,27 @@ import com.typesafe.config.ConfigFactory;
 public final class PagingIT extends AbstractReadPersistenceITBase {
 
     private static final int KNOWN_LIMIT = 2;
-    private static final ThingId THING_ID1 = TestConstants.thingId(TestConstants.Thing.NAMESPACE, "thingId1");
-    private static final ThingId THING_ID2 = TestConstants.thingId(TestConstants.Thing.NAMESPACE, "thingId2");
-    private static final ThingId THING_ID3 = TestConstants.thingId(TestConstants.Thing.NAMESPACE, "thingId3");
-    private static final ThingId THING_ID4 = TestConstants.thingId(TestConstants.Thing.NAMESPACE, "thingId4");
-    private static final ThingId THING_ID5 = TestConstants.thingId(TestConstants.Thing.NAMESPACE, "thingId5");
-    private static final ThingId THING_ID6 = TestConstants.thingId(TestConstants.Thing.NAMESPACE, "thingId6");
-    private static final List<ThingId> THING_IDS = Arrays.asList(THING_ID1, THING_ID2, THING_ID3, THING_ID4, THING_ID5,
-            THING_ID6);
+    private static final ThingId THING_ID1 =
+            TestConstants.thingId(TestConstants.Thing.NAMESPACE, "thingId1");
+    private static final ThingId THING_ID2 =
+            TestConstants.thingId(TestConstants.Thing.NAMESPACE, "thingId2");
+    private static final ThingId THING_ID3 =
+            TestConstants.thingId(TestConstants.Thing.NAMESPACE, "thingId3");
+    private static final ThingId THING_ID4 =
+            TestConstants.thingId(TestConstants.Thing.NAMESPACE, "thingId4");
+    private static final ThingId THING_ID5 =
+            TestConstants.thingId(TestConstants.Thing.NAMESPACE, "thingId5");
+    private static final ThingId THING_ID6 =
+            TestConstants.thingId(TestConstants.Thing.NAMESPACE, "thingId6");
+    private static final List<ThingId> THING_IDS =
+            Arrays.asList(THING_ID1, THING_ID2, THING_ID3, THING_ID4, THING_ID5, THING_ID6);
 
     private static DefaultLimitsConfig limitsConfig;
 
+    private final ThingsFieldExpressionFactory eft = ThingsFieldExpressionFactory.of(SIMPLE_FIELD_MAPPINGS);
+
     private int maxPageSizeFromConfig;
     private int defaultPageSizeFromConfig;
-
-    private final ThingsFieldExpressionFactory eft = ThingsFieldExpressionFactory.of(SIMPLE_FIELD_MAPPINGS);
 
     @BeforeClass
     public static void initTestFixture() {
@@ -180,7 +185,7 @@ public final class PagingIT extends AbstractReadPersistenceITBase {
         final List<ThingId> expectedList = THING_IDS.stream()
                 .filter(id -> !thingToDelete.equals(id))
                 .limit(limit)
-                .collect(Collectors.toList());
+                .toList();
         assertPaging(result, expectedList, limit);
     }
 

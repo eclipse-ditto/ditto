@@ -21,8 +21,6 @@ import java.util.Set;
 
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.policies.model.enforcers.tree.TreeBasedPolicyEnforcer;
-
 /**
  * Wrapper to hold the granted and revoked resources.
  */

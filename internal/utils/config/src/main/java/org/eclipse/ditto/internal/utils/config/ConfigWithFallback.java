@@ -131,8 +131,8 @@ public final class ConfigWithFallback implements ScopedConfig, ConfigMergeable {
         final Map<String, Object> fallbackValues = new HashMap<>(knownConfigValues.length);
         for (final KnownConfigValue knownConfigValue : knownConfigValues) {
             final Object fallbackValue = knownConfigValue.getDefaultValue();
-            if (fallbackValue instanceof JsonObject) {
-                final Map<String, JsonValue> fallbackMap = ((JsonObject) fallbackValue).stream()
+            if (fallbackValue instanceof JsonObject jsonObject) {
+                final Map<String, JsonValue> fallbackMap = jsonObject.stream()
                         .collect(Collectors.toMap(f -> f.getKey().toString(), JsonField::getValue));
                 fallbackValues.put(knownConfigValue.getConfigPath(), fallbackMap);
             } else {

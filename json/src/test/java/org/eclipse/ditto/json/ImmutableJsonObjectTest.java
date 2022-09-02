@@ -33,7 +33,6 @@ import java.util.Optional;
 import java.util.function.Function;
 
 import org.assertj.core.api.Assertions;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -135,30 +134,30 @@ public final class ImmutableJsonObjectTest {
         assertThat(parsedFirst).isInstanceOf(ImmutableJsonObject.class);
         assertThat(parsedSecond).isInstanceOf(ImmutableJsonObject.class);
         assertThat(parsedFirst.equals(parsedSecond)).isTrue();
-        assertThat(parsedFirst.hashCode()).isEqualTo(parsedSecond.hashCode());
+        assertThat(parsedFirst.hashCode()).hasSameHashCodeAs(parsedSecond.hashCode());
     }
 
     @Test
     public void getEmptyInstanceReturnsExpected() {
         final JsonObject underTest = ImmutableJsonObject.empty();
 
-        assertThat(underTest).isObject();
-        assertThat(underTest).isEmpty();
+        assertThat(underTest).isObject()
+                .isEmpty();
         assertThat(underTest).hasSize(0);
         assertThat(underTest.asObject()).isSameAs(underTest);
-        assertThat(underTest.toString()).isEqualTo("{}");
+        assertThat(underTest.toString()).hasToString("{}");
     }
 
     @Test
     public void objectIsNothingElse() {
         final JsonValue underTest = ImmutableJsonObject.empty();
 
-        assertThat(underTest).isObject();
-        assertThat(underTest).isNotNullLiteral();
-        assertThat(underTest).isNotBoolean();
-        assertThat(underTest).isNotNumber();
-        assertThat(underTest).isNotString();
-        assertThat(underTest).isNotArray();
+        assertThat(underTest).isObject()
+                .isNotNullLiteral()
+                .isNotBoolean()
+                .isNotNumber()
+                .isNotString()
+                .isNotArray();
         assertThat(underTest.isInt()).isFalse();
         assertThat(underTest.isLong()).isFalse();
         assertThat(underTest.isDouble()).isFalse();
@@ -168,23 +167,23 @@ public final class ImmutableJsonObjectTest {
     public void checkUnsupportedOperations() {
         final JsonValue underTest = ImmutableJsonObject.of(KNOWN_FIELDS);
 
-        assertThat(underTest).doesNotSupport(JsonValue::asArray);
-        assertThat(underTest).doesNotSupport(JsonValue::asBoolean);
-        assertThat(underTest).doesNotSupport(JsonValue::asString);
-        assertThat(underTest).doesNotSupport(JsonValue::asInt);
-        assertThat(underTest).doesNotSupport(JsonValue::asLong);
-        assertThat(underTest).doesNotSupport(JsonValue::asDouble);
+        assertThat(underTest).doesNotSupport(JsonValue::asArray)
+                .doesNotSupport(JsonValue::asBoolean)
+                .doesNotSupport(JsonValue::asString)
+                .doesNotSupport(JsonValue::asInt)
+                .doesNotSupport(JsonValue::asLong)
+                .doesNotSupport(JsonValue::asDouble);
     }
 
     @Test
     public void getInstanceReturnsExpected() {
         final JsonObject underTest = ImmutableJsonObject.of(KNOWN_FIELDS);
 
-        assertThat(underTest).isObject();
-        assertThat(underTest).isNotEmpty();
-        assertThat(underTest).hasSize(3);
+        assertThat(underTest).isObject()
+                .isNotEmpty()
+                .hasSize(3);
         assertThat(underTest.asObject()).isSameAs(underTest);
-        assertThat(underTest.toString()).isEqualTo(KNOWN_JSON_STRING);
+        assertThat(underTest.toString()).hasToString(KNOWN_JSON_STRING);
     }
 
     @Test
@@ -208,10 +207,10 @@ public final class ImmutableJsonObjectTest {
         final JsonObject newJsonObject = underTest.setValue(key, valueToAdd);
 
         assertThat(underTest).isEmpty();
-        assertThat(newJsonObject).isNotEmpty();
-        assertThat(newJsonObject).hasSize(1);
-        assertThat(newJsonObject).isNotSameAs(underTest);
-        assertThat(newJsonObject).contains(key, valueToAdd);
+        assertThat(newJsonObject).isNotEmpty()
+                .hasSize(1)
+                .isNotSameAs(underTest)
+                .contains(key, valueToAdd);
     }
 
     @Test(expected = NullPointerException.class)
@@ -237,9 +236,9 @@ public final class ImmutableJsonObjectTest {
         final int value = KNOWN_INT_42;
         final JsonObject afterAdd = underTest.setValue(key, value);
 
-        assertThat(afterAdd).isNotSameAs(underTest);
-        assertThat(afterAdd).hasSize(1);
-        assertThat(afterAdd).contains(key, value);
+        assertThat(afterAdd).isNotSameAs(underTest)
+                .hasSize(1)
+                .contains(key, value);
 
         underTest.setValue(KNOWN_KEY_FOO, KNOWN_VALUE_FOO);
 
@@ -288,9 +287,9 @@ public final class ImmutableJsonObjectTest {
         final long value = Long.MAX_VALUE;
         final JsonObject afterAdd = underTest.setValue(key, value);
 
-        assertThat(afterAdd).isNotSameAs(underTest);
-        assertThat(afterAdd).hasSize(1);
-        assertThat(afterAdd).contains(key, value);
+        assertThat(afterAdd).isNotSameAs(underTest)
+                .hasSize(1)
+                .contains(key, value);
 
         underTest.setValue(KNOWN_KEY_FOO, KNOWN_VALUE_FOO);
 
@@ -304,9 +303,9 @@ public final class ImmutableJsonObjectTest {
         final double value = Double.MAX_VALUE;
         final JsonObject afterAdd = underTest.setValue(key, value);
 
-        assertThat(afterAdd).isNotSameAs(underTest);
-        assertThat(afterAdd).hasSize(1);
-        assertThat(afterAdd).contains(key, value);
+        assertThat(afterAdd).isNotSameAs(underTest)
+                .hasSize(1)
+                .contains(key, value);
 
         underTest.setValue(KNOWN_KEY_FOO, KNOWN_VALUE_FOO);
 
@@ -320,9 +319,9 @@ public final class ImmutableJsonObjectTest {
         final boolean value = false;
         final JsonObject afterAdd = underTest.setValue(key, value);
 
-        assertThat(afterAdd).isNotSameAs(underTest);
-        assertThat(afterAdd).hasSize(1);
-        assertThat(afterAdd).contains(key, value);
+        assertThat(afterAdd).isNotSameAs(underTest)
+                .hasSize(1)
+                .contains(key, value);
 
         underTest.setValue(KNOWN_KEY_FOO, KNOWN_VALUE_FOO);
 
@@ -336,9 +335,9 @@ public final class ImmutableJsonObjectTest {
         final String value = "black out";
         final JsonObject afterAdd = underTest.setValue(key, value);
 
-        assertThat(afterAdd).isNotSameAs(underTest);
-        assertThat(afterAdd).hasSize(1);
-        assertThat(afterAdd).contains(key, value);
+        assertThat(afterAdd).isNotSameAs(underTest)
+                .hasSize(1)
+                .contains(key, value);
 
         underTest.setValue(KNOWN_KEY_FOO, KNOWN_VALUE_FOO);
 
@@ -589,9 +588,9 @@ public final class ImmutableJsonObjectTest {
         final JsonObject afterRemoval = underTest.remove(nameToRemove);
         final int expectedSize = underTest.getSize() - 1;
 
-        assertThat(afterRemoval).isNotSameAs(underTest);
-        assertThat(afterRemoval).hasSize(expectedSize);
-        assertThat(afterRemoval).doesNotContain(KNOWN_KEY_BAR);
+        assertThat(afterRemoval).isNotSameAs(underTest)
+                .hasSize(expectedSize)
+                .doesNotContain(KNOWN_KEY_BAR);
 
         underTest.remove(KNOWN_KEY_BAZ);
 
@@ -617,9 +616,9 @@ public final class ImmutableJsonObjectTest {
         jsonFields.remove(complex.getKeyName());
         jsonFields.put(complex.getKeyName(), toField(complex.getKey(), JsonObject.of("{}")));
 
-        assertThat(afterRemoval).isNotSameAs(underTest);
-        assertThat(afterRemoval).doesNotContain(JsonKey.of("subToDelete"));
-        assertThat(afterRemoval).containsExactlyElementsOf(jsonFields.values());
+        assertThat(afterRemoval).isNotSameAs(underTest)
+                .doesNotContain(JsonKey.of("subToDelete"))
+                .containsExactlyElementsOf(jsonFields.values());
     }
 
     @Test(expected = NullPointerException.class)
@@ -1272,8 +1271,9 @@ public final class ImmutableJsonObjectTest {
         JsonObject underTest = ImmutableJsonObject.of(KNOWN_FIELDS);
         underTest = underTest.set(newField);
 
-        assertThat(underTest).hasSize(KNOWN_FIELDS.size() + 1);
-        assertThat(underTest).contains(newField);
+        assertThat(underTest)
+                .hasSize(KNOWN_FIELDS.size() + 1)
+                .contains(newField);
     }
 
     @Test
@@ -1282,8 +1282,9 @@ public final class ImmutableJsonObjectTest {
         JsonObject underTest = ImmutableJsonObject.of(KNOWN_FIELDS);
         underTest = underTest.set(changedField);
 
-        assertThat(underTest).hasSize(KNOWN_FIELDS.size());
-        assertThat(underTest).contains(changedField);
+        assertThat(underTest)
+                .hasSize(KNOWN_FIELDS.size())
+                .contains(changedField);
     }
 
     @Test
@@ -1408,7 +1409,7 @@ public final class ImmutableJsonObjectTest {
 
         softReference.clear();
 
-        assertThat(jsonObject.getValue(KNOWN_KEY_FOO).isPresent()).isTrue();
+        assertThat(jsonObject.getValue(KNOWN_KEY_FOO)).isPresent();
     }
 
     private void assertInternalCachesAreAsExpected(final JsonObject jsonObject, final boolean jsonExpected) {
@@ -1431,4 +1432,5 @@ public final class ImmutableJsonObjectTest {
             e.printStackTrace();
         }
     }
+
 }
