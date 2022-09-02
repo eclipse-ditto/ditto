@@ -27,8 +27,11 @@ export function WoTDescription(targetTab, forFeature) {
     const tabId = Utils.addTab(
         document.getElementById(targetTab.itemsId),
         document.getElementById(targetTab.contentId),
-        'Description',
+        'WoT TD',
         await( await fetch('modules/things/wotDescription.html')).text(),
+        'Generated WoT Thing Description. This requires a valid reference to a WoT Thing Model in the ' +
+        (forFeature ? 'Feature' : 'Thing') +
+        ' definition. The Ditto environment must have WoT support enabled.'
     );
 
     tabLink = document.querySelector(`a[data-bs-target="#${tabId}"]`);

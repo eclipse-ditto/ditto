@@ -63,6 +63,7 @@ export async function ready() {
   dom.buttonMessageFavourite.onclick = () => {
     const templateName = dom.inputMessageTemplate.value;
     const featureId = dom.theFeatureId.value;
+    Utils.assert(featureId, 'Please select a Feature', dom.tableValidationFeature);
     Utils.assert(templateName, 'Please give a name for the template', dom.inputMessageTemplate);
     Environments.current().messageTemplates[featureId] = Environments.current().messageTemplates[featureId] || {};
     if (Object.keys(Environments.current().messageTemplates[featureId]).includes(templateName) &&
@@ -82,13 +83,15 @@ export async function ready() {
   };
 
   dom.ulMessageTemplates.addEventListener('click', (event) => {
-    dom.favIconMessage.classList.replace('bi-star', 'bi-star-fill');
-    const template = Environments.current().messageTemplates[dom.theFeatureId.value][event.target.textContent];
-    dom.inputMessageTemplate.value = event.target.textContent;
-    dom.inputMessageSubject.value = template.subject;
-    dom.inputMessageTimeout.value = template.timeout;
-    acePayload.setValue(JSON.stringify(template.payload, null, 2), -1);
-    acePayload.session.getUndoManager().markClean();
+    if (event.target && event.target.classList.contains('dropdown-item')) {
+      dom.favIconMessage.classList.replace('bi-star', 'bi-star-fill');
+      const template = Environments.current().messageTemplates[dom.theFeatureId.value][event.target.textContent];
+      dom.inputMessageTemplate.value = event.target.textContent;
+      dom.inputMessageSubject.value = template.subject;
+      dom.inputMessageTimeout.value = template.timeout;
+      acePayload.setValue(JSON.stringify(template.payload, null, 2), -1);
+      acePayload.session.getUndoManager().markClean();
+    }
   });
 
   [dom.inputMessageTemplate, dom.inputMessageSubject, dom.inputMessageTimeout].forEach((e) => {
