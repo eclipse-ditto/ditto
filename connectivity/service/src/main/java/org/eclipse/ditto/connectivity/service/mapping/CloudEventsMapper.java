@@ -40,138 +40,148 @@ import org.eclipse.ditto.protocol.ProtocolFactory;
  * A message mapper implementation for the Mapping incoming CloudEvents to Ditto Protocol.
  */
 @PayloadMapper(alias = {"CloudEvents",
-        // legacy full qualified name
-        "org.eclipse.ditto.connectivity.service.mapping.CloudEventsMapper"})
+    // legacy full qualified name
+    "org.eclipse.ditto.connectivity.service.mapping.CloudEventsMapper"})
 public final class CloudEventsMapper extends AbstractMessageMapper {
 
 
-    static final String CE_ID = "ce-id";
-    static final String CE_TYPE = "ce-type";
-    static final String CE_SOURCE = "ce-source";
-    static final String CE_SPECVERSION = "ce-specversion";
+  static final String CE_ID = "ce-id";
+  static final String CE_TYPE = "ce-type";
+  static final String CE_SOURCE = "ce-source";
+  static final String CE_SPECVERSION = "ce-specversion";
 
-    static final String contentType = "application/cloudevents+json";
+  static final String contentType = "application/cloudevents+json";
 
-
-    final String SPECVERSION = "specversion";
-    final String ID = "id";
-    final String SOURCE = "source";
-    final String TYPE = "type";
-    static final String OutboundId = UUID.randomUUID().toString();
-
-    static final String OutboundType = "org.eclipse.ditto.outbound";
-
-    static final String OutboundSpecversion = "1.0";
-
-    static final String OutboundSource = "org.eclipse.ditto";
+  // make all of them static
+  static final String SPECVERSION = "specversion";
+  static final String ID = "id";
+  static final String SOURCE = "source";
+  static final String TYPE = "type";
+  // declare uuid in the function
+  // make static variables uppercase
 
 
-    private String base64decoding(final String base64Message) {
-        byte[] messageByte = Base64.getDecoder().decode(base64Message);
-        String decodedString = new String(messageByte);
-        return decodedString;
+  static final String OUTBOUNDTYPE = "org.eclipse.ditto.outbound";
+
+  static final String OUTBOUNDSPECVERSION = "1.0";
+
+  static final String OUTBOUNDSOURCE = "org.eclipse.ditto";
+
+
+  private String base64decoding(final String base64Message) {
+    byte[] messageByte = Base64.getDecoder().decode(base64Message);
+    String decodedString = new String(messageByte);
+    return decodedString;
+  }
+
+  boolean validatePayload(String payload) {
+    final JsonObject jsonObject = newObject(payload);
+    if (jsonObject.getValue(SPECVERSION).isPresent() && jsonObject.getValue(TYPE).isPresent()
+        && jsonObject.getValue(ID).isPresent() && jsonObject.getValue(SOURCE).isPresent()) {
+      return true;
+    } else {
+      return false;
     }
+  }
 
-    boolean validatePayload(String payload) {
-        final JsonObject jsonObject = newObject(payload);
-        if (jsonObject.getValue(SPECVERSION).isPresent() && jsonObject.getValue(TYPE).isPresent() && jsonObject.getValue(ID).isPresent() && jsonObject.getValue(SOURCE).isPresent()) {
-            return true;
+  private JsonifiableAdaptable extractData(final String message) throws Exception {
+    final JsonObject payloadJson = newObject(message);
+    if (payloadJson.getValue("data_base64").isPresent()) {
+      final String base64Data = payloadJson.getValue("data_base64").get().asString();
+      final String decodedData = base64decoding(base64Data);
+      final JsonifiableAdaptable decodedJsonifiableAdaptable = DittoJsonException.wrapJsonRuntimeException(
+          () -> ProtocolFactory.jsonifiableAdaptableFromJson(newObject(decodedData)));
+      return decodedJsonifiableAdaptable;
+    }
+    if (payloadJson.getValue("data").isPresent()) {
+      final String data = payloadJson.getValue("data").get().toString();
+      return DittoJsonException.wrapJsonRuntimeException(
+          () -> ProtocolFactory.jsonifiableAdaptableFromJson(newObject(data)));
+    } else {
+      throw new Exception("Invalid CloudEvent");
+    }
+  }
+
+  public boolean checkHeaders(final ExternalMessage message) {
+    Map<String, String> headers = message.getHeaders();
+    if (headers.get(CE_ID) == null || headers.get(CE_SOURCE) == null
+        || headers.get(CE_TYPE) == null || headers.get(CE_SPECVERSION) == null) {
+      return false;
+    } else {
+      return true;
+    }
+  }
+
+
+  @Override
+  public List<Adaptable> map(final ExternalMessage message) {
+    // build Exception
+    MessageMappingFailedException mappingFailedException = MessageMappingFailedException.newBuilder(
+            message.findContentType().orElse("")).description("This is not a CloudEvent")
+        .dittoHeaders(DittoHeaders.of(message.getHeaders())).build();
+    if (message.findContentType().get().equals(contentType)) {
+      // extract message as String
+      final String payload = extractPayloadAsString(message);
+      try {
+        if (checkHeaders(message)) {
+          final JsonifiableAdaptable binaryAdaptable = DittoJsonException.wrapJsonRuntimeException(
+              () -> ProtocolFactory.jsonifiableAdaptableFromJson(newObject(payload)));
+          DittoHeaders headers = binaryAdaptable.getDittoHeaders();
+          return singletonList(
+              ProtocolFactory.newAdaptableBuilder(binaryAdaptable).withHeaders(headers).build());
+        }
+        if (validatePayload(payload)) {
+          final JsonifiableAdaptable adaptable = extractData(payload);
+          final DittoHeaders headers = adaptable.getDittoHeaders();
+          return singletonList(
+              ProtocolFactory.newAdaptableBuilder(adaptable).withHeaders(headers).build());
         } else {
-            return false;
+          throw mappingFailedException;
         }
+      } catch (Exception e) {
+        throw mappingFailedException;
+      }
     }
+    return Collections.emptyList();
+  }
 
-    private JsonifiableAdaptable extractData(final String message) throws Exception {
-        final JsonObject payloadJson = newObject(message);
-        if (payloadJson.getValue("data_base64").isPresent()) {
-            final String base64Data = payloadJson.getValue("data_base64").get().asString();
-            final String decodedData = base64decoding(base64Data);
-            final JsonifiableAdaptable decodedJsonifiableAdaptable = DittoJsonException.wrapJsonRuntimeException(() -> ProtocolFactory.jsonifiableAdaptableFromJson(newObject(decodedData)));
-            return decodedJsonifiableAdaptable;
-        }
-        if (payloadJson.getValue("data").isPresent()) {
-            final String data = payloadJson.getValue("data").get().toString();
-            return DittoJsonException.wrapJsonRuntimeException(() -> ProtocolFactory.jsonifiableAdaptableFromJson(newObject(data)));
-        } else {
-            throw new Exception("Invalid CloudEvent");
-        }
-    }
+  @Override
+  public DittoHeaders getAdditionalInboundHeaders(ExternalMessage message) {
+    return DittoHeaders.empty();
+  }
 
-    public boolean checkHeaders(final ExternalMessage message) {
-        Map<String, String> headers = message.getHeaders();
-        if (headers.get(CE_ID.trim()) == null || headers.get(CE_SOURCE.trim()) == null || headers.get(CE_TYPE.trim()) == null || headers.get(CE_SPECVERSION.trim()) == null) {
-            return false;
-        } else {
-            return true;
-        }
+  @Override
+  public List<ExternalMessage> map(final Adaptable adaptable) {
+    return List.of(ExternalMessageFactory.newExternalMessageBuilder(
+            Map.of(ExternalMessage.CONTENT_TYPE_HEADER, contentType))
+        .withTopicPath(adaptable.getTopicPath())
+        .withText(getExternalCloudEventSpecifications(adaptable))
+        .asResponse(isResponse(adaptable)).asError(isError(adaptable)).build());
+  }
 
-    }
+  private static String getExternalCloudEventSpecifications(Adaptable adaptable) {
+    final String OUTBOUNDID = UUID.randomUUID().toString();
+    JsonObject dataObject = JsonFactory.newObject(getJsonString(adaptable));
+    Map<JsonKey, JsonValue> outboundJson = new HashMap<>() {{
+      put(JsonKey.of("data"), JsonValue.of(dataObject));
+      put(JsonKey.of("specversion"), JsonValue.of(OUTBOUNDSPECVERSION));
+      put(JsonKey.of("id"), JsonValue.of(OUTBOUNDID));
+      put(JsonKey.of("source"), JsonValue.of(OUTBOUNDSOURCE));
+      put(JsonKey.of("type"), JsonValue.of(OUTBOUNDTYPE));
+    }};
+    JsonObject externalMessageObject = newObject(outboundJson);
+    return externalMessageObject.toString();
+  }
 
+  private static DittoHeaders getExternalDittoHeaders(final Adaptable adaptable) {
+    return DittoHeaders.newBuilder().contentType(DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE)
+        .correlationId(adaptable.getDittoHeaders().getCorrelationId().orElse(null)).build();
+  }
 
-    @Override
-    public List<Adaptable> map(final ExternalMessage message) {
-        // build Exception
-        MessageMappingFailedException mappingFailedException = MessageMappingFailedException.newBuilder(message.findContentType().orElse("")).description("This is not a CloudEvent").dittoHeaders(DittoHeaders.of(message.getHeaders())).build();
-        if (message.findContentType().get().equals(contentType)) {
-            // extract message as String
-            final String payload = extractPayloadAsString(message);
-            try {
-                if (checkHeaders(message)) {
-                    final JsonifiableAdaptable binaryAdaptable = DittoJsonException.wrapJsonRuntimeException(() -> ProtocolFactory.jsonifiableAdaptableFromJson(newObject(payload)));
-                    DittoHeaders headers = binaryAdaptable.getDittoHeaders();
-                    return singletonList(ProtocolFactory.newAdaptableBuilder(binaryAdaptable).withHeaders(headers).build());
-                }
-                if (validatePayload(payload)) {
-                    final JsonifiableAdaptable adaptable = extractData(payload);
-                    final DittoHeaders headers = adaptable.getDittoHeaders();
-                    return singletonList(ProtocolFactory.newAdaptableBuilder(adaptable).withHeaders(headers).build());
-                } else {
-                    throw mappingFailedException;
-                }
-            } catch (Exception e) {
-                throw mappingFailedException;
-            }
-        }
-        return Collections.emptyList();
-    }
-
-    @Override
-    public DittoHeaders getAdditionalInboundHeaders(ExternalMessage message) {
-        return DittoHeaders.empty();
-    }
-
-    @Override
-    public List<ExternalMessage> map(final Adaptable adaptable) {
-
-        return List.of(ExternalMessageFactory.newExternalMessageBuilder(Map.of(ExternalMessage.CONTENT_TYPE_HEADER, contentType))
-                .withTopicPath(adaptable.getTopicPath())
-                .withText(getExternalCloudEventSpecifications(adaptable))
-                .asResponse(isResponse(adaptable)).asError(isError(adaptable)).build());
-    }
-
-    private static String getExternalCloudEventSpecifications(Adaptable adaptable) {
-
-        JsonObject dataObject = JsonFactory.newObject(getJsonString(adaptable));
-        Map<JsonKey, JsonValue> outboundJson = new HashMap<>() {{
-            put(JsonKey.of("data"), JsonValue.of(dataObject));
-            put(JsonKey.of("specversion"), JsonValue.of(OutboundSpecversion));
-            put(JsonKey.of("id"), JsonValue.of(OutboundId));
-            put(JsonKey.of("source"), JsonValue.of(OutboundSource));
-            put(JsonKey.of("type"), JsonValue.of(OutboundType));
-        }};
-        JsonObject externalMessageObject = newObject(outboundJson);
-        return externalMessageObject.toString();
-
-    }
-
-    private static DittoHeaders getExternalDittoHeaders(final Adaptable adaptable) {
-        return DittoHeaders.newBuilder().contentType(DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE).correlationId(adaptable.getDittoHeaders().getCorrelationId().orElse(null)).build();
-    }
-
-    private static String getJsonString(final Adaptable adaptable) {
-        final var jsonifiableAdaptable = ProtocolFactory.wrapAsJsonifiableAdaptable(adaptable);
-        return jsonifiableAdaptable.toJsonString();
-    }
+  private static String getJsonString(final Adaptable adaptable) {
+    final var jsonifiableAdaptable = ProtocolFactory.wrapAsJsonifiableAdaptable(adaptable);
+    return jsonifiableAdaptable.toJsonString();
+  }
 
 
 }
