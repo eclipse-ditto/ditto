@@ -35,7 +35,7 @@ import org.junit.Test;
 import java.util.*;
 import java.nio.charset.StandardCharsets;
 
-import static java.util.Collections.singletonList;
+import static java.util.Collections.*;
 import static org.eclipse.ditto.connectivity.service.mapping.AbstractMessageMapper.extractPayloadAsString;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThrows;
@@ -89,16 +89,9 @@ public class CloudEventsMapperTest {
         ExternalMessage textMessage = textMessageBuilder(testPayload);
         Adaptable expectedAdaptable = DittoJsonException.wrapJsonRuntimeException(() -> ProtocolFactory.jsonifiableAdaptableFromJson(JsonFactory.newObject(data)));
         List<Adaptable> expectedMap = singletonList(ProtocolFactory.newAdaptableBuilder(expectedAdaptable).build());
-        System.out.println(underTest.map(expectedAdaptable));
         assertEquals(expectedMap, underTest.map(textMessage));
     }
-
-
-    @Test
-    public void randomTest() {
-        String uuid = UUID.randomUUID().toString();
-        System.out.println(uuid);
-    }
+    
 
     @Test
     public void base64PayloadMessage() {
@@ -106,30 +99,19 @@ public class CloudEventsMapperTest {
         String base64 = data_base64.replace("\"", "");
         byte[] decodedBytes = Base64.getDecoder().decode(base64);
         String decodedString = new String(decodedBytes);
-
         Adaptable expectedAdaptable = DittoJsonException.wrapJsonRuntimeException(() -> ProtocolFactory.jsonifiableAdaptableFromJson(JsonFactory.newObject(decodedString)));
         List<Adaptable> expectedMap = singletonList(ProtocolFactory.newAdaptableBuilder(expectedAdaptable).build());
-
         assertEquals(expectedMap, underTest.map(message));
     }
 
     @Test
     public void bytePayloadMapping() {
         ExternalMessage byteMessage = ExternalMessageFactory.newExternalMessageBuilder(Map.of(ExternalMessage.CONTENT_TYPE_HEADER, cloudEventsContentType)).withBytes(testPayload.getBytes(StandardCharsets.UTF_8)).build();
-
         Adaptable expectedAdaptable = DittoJsonException.wrapJsonRuntimeException(() -> ProtocolFactory.jsonifiableAdaptableFromJson(JsonFactory.newObject(data.getBytes(StandardCharsets.UTF_8))));
         List<Adaptable> expectedMap = singletonList(ProtocolFactory.newAdaptableBuilder(expectedAdaptable).build());
         assertEquals(expectedMap, underTest.map(byteMessage));
     }
 
-
-//    @Test
-//    public void failedMapping(){
-//        ExternalMessage textMessage = textMessageBuilder(incompletePayload);
-////        System.out.println(textMessage);
-//        System.out.println(underTest.map(textMessage));
-////        System.out.println(textMessage.findContentType().get());
-//    }
 
     @Test
     public void validatePayloadTest() {
@@ -155,10 +137,18 @@ public class CloudEventsMapperTest {
     }
 
     @Test
-    public void failedMapping(){
-        ExternalMessage incorrectMessage = ExternalMessageFactory.newExternalMessageBuilder(Map.of(ExternalMessage.CONTENT_TYPE_HEADER,cloudEventsContentType))
+    public void failedMapping() {
+        ExternalMessage incorrectMessage = ExternalMessageFactory.newExternalMessageBuilder(Map.of(ExternalMessage.CONTENT_TYPE_HEADER, cloudEventsContentType))
                 .withText(data).build();
-        assertThrows(MessageMappingFailedException.class,() -> underTest.map(incorrectMessage));
+        assertThrows(MessageMappingFailedException.class, () -> underTest.map(incorrectMessage));
+    }
+
+    //returns an empty list since content-type is not "application/cloudevents+json"
+    @Test
+    public void ignorePayload() {
+        ExternalMessage ignoredPayload = ExternalMessageFactory.newExternalMessageBuilder(Map.of(ExternalMessage.CONTENT_TYPE_HEADER, "application/json"))
+                .withText(testPayload).build();
+        assertEquals(underTest.map(ignoredPayload), Collections.emptyList());
     }
 
     private ExternalMessage textMessageBuilder(String textPayload) {
@@ -168,7 +158,7 @@ public class CloudEventsMapperTest {
     }
 
     private ExternalMessage binaryCloudEventBuilder(String payload) {
-        Map<String, String> headers = new HashMap<>() {{
+        Map<String,String> headers = new HashMap<>() {{
             put("ce-specversion", "1.0");
             put("ce-id", "test-id");
             put("ce-type", "incoming-cloudevent");

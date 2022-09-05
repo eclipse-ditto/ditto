@@ -153,11 +153,11 @@ public final class CloudEventsMapper extends AbstractMessageMapper {
 
         JsonObject dataObject = JsonFactory.newObject(getJsonString(adaptable));
         Map<JsonKey, JsonValue> outboundJson = new HashMap<>() {{
+            put(JsonKey.of("data"), JsonValue.of(dataObject));
             put(JsonKey.of("specversion"), JsonValue.of(OutboundSpecversion));
             put(JsonKey.of("id"), JsonValue.of(OutboundId));
             put(JsonKey.of("source"), JsonValue.of(OutboundSource));
             put(JsonKey.of("type"), JsonValue.of(OutboundType));
-            put(JsonKey.of("data"), JsonValue.of(dataObject));
         }};
         JsonObject externalMessageObject = newObject(outboundJson);
         return externalMessageObject.toString();
