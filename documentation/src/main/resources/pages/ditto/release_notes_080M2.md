@@ -51,7 +51,7 @@ The new feature is documented as [change notification filters](basic-changenotif
 
 Ditto's APIs now support `If-Match` and `If-None-Match` headers specified in 
 [rfc7232](https://tools.ietf.org/html/rfc7232#section-3.2) for `things` and `policies` resources. Have a look at the
-new [documentation for conditional requests](https://www.eclipse.org/ditto/httpapi-concepts.html) for how this concept
+new [documentation for conditional requests](https://websites.eclipseprojects.io/ditto/httpapi-concepts.html) for how this concept
 can help with advanced interaction-patterns with your twins.
 
 

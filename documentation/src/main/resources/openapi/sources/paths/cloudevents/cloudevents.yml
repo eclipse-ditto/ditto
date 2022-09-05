@@ -12,11 +12,11 @@ post:
   summary: Processes a CloudEvent sent in Ditto Protocol
   description: |-
     Provides an endpoint accepting [CloudEvents via its HTTP protocol binding](https://github.com/cloudevents/spec/blob/v1.0/http-protocol-binding.md)
-    in [Ditto Protocol JSON](https://www.eclipse.org/ditto/protocol-specification.html).
+    in [Ditto Protocol JSON](https://websites.eclipseprojects.io/ditto/protocol-specification.html).
 
     The endpoint can also directly be configured as a [Knative eventing](https://knative.dev/docs/eventing/) destination.
 
-    Find more documentation on that [here](https://www.eclipse.org/ditto/httpapi-protocol-bindings-cloudevents.html).
+    Find more documentation on that [here](https://websites.eclipseprojects.io/ditto/httpapi-protocol-bindings-cloudevents.html).
   tags:
     - CloudEvents
   parameters:
@@ -71,7 +71,7 @@ post:
         The request could not be completed. Possible reasons:
           * the CloudEvent could not be parsed as some mandatory CloudEvent headers were missing from the request
           * the payload was missing from the CloudEvent
-          * the [Ditto Protocol JSON](https://www.eclipse.org/ditto/protocol-specification.html) message could not be parsed or was missing a required field
+          * the [Ditto Protocol JSON](https://websites.eclipseprojects.io/ditto/protocol-specification.html) message could not be parsed or was missing a required field
       content:
         application/json:
           schema:

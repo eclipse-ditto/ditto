@@ -45,7 +45,7 @@ get:
       description: |-
         The request could not be completed. Possible reasons:
 
-          * the `policyId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id))
+          * the `policyId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://websites.eclipseprojects.io/ditto/basic-namespaces-and-names.html#namespaced-id))
       content:
         application/json:
           schema:
@@ -116,7 +116,7 @@ put:
       description: |-
         The request could not be completed. Possible reasons:
 
-         * the `policyId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id))
+         * the `policyId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://websites.eclipseprojects.io/ditto/basic-namespaces-and-names.html#namespaced-id))
           * the JSON is invalid, or no valid Resource JSON object.
       content:
         application/json:
@@ -181,7 +181,7 @@ delete:
       description: |-
         The request could not be completed. Possible reasons:
 
-          * the `policyId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id))
+          * the `policyId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://websites.eclipseprojects.io/ditto/basic-namespaces-and-names.html#namespaced-id))
       content:
         application/json:
           schema:
