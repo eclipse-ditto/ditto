@@ -50,7 +50,8 @@ public final class GenericMqttConnectTest {
     @Test
     public void newInstanceWithNullKeepAliveIntervalThrowsException() {
         Assertions.assertThatNullPointerException()
-                .isThrownBy(() -> GenericMqttConnect.newInstance(true, null, ReceiveMaximum.defaultReceiveMaximum()))
+                .isThrownBy(() -> GenericMqttConnect.newInstance(true, null,
+                        Duration.ZERO, ReceiveMaximum.defaultReceiveMaximum()))
                 .withMessage("The keepAliveInterval must not be null!")
                 .withNoCause();
     }
@@ -58,7 +59,8 @@ public final class GenericMqttConnectTest {
     @Test
     public void newInstanceWithNullReceiveMaximumThrowsException() {
         Assertions.assertThatNullPointerException()
-                .isThrownBy(() -> GenericMqttConnect.newInstance(true, KeepAliveInterval.defaultKeepAlive(), null))
+                .isThrownBy(() -> GenericMqttConnect.newInstance(true, KeepAliveInterval.defaultKeepAlive(),
+                        Duration.ZERO, null))
                 .withMessage("The receiveMaximum must not be null!")
                 .withNoCause();
     }
@@ -68,7 +70,8 @@ public final class GenericMqttConnectTest {
         final var cleanSession = true;
         final var keepAliveInterval = KeepAliveInterval.of(Duration.ofSeconds(13L));
         final var underTest =
-                GenericMqttConnect.newInstance(cleanSession, keepAliveInterval, ReceiveMaximum.defaultReceiveMaximum());
+                GenericMqttConnect.newInstance(cleanSession, keepAliveInterval,
+                        Duration.ZERO, ReceiveMaximum.defaultReceiveMaximum());
 
         assertThat(underTest.getAsMqtt3Connect())
                 .isEqualTo(Mqtt3Connect.builder()
@@ -84,7 +87,8 @@ public final class GenericMqttConnectTest {
         final var cleanSession = false;
         final var keepAliveInterval = KeepAliveInterval.of(Duration.ofSeconds(42L));
         final var receiveMaximum = ReceiveMaximum.of(35_000);
-        final var underTest = GenericMqttConnect.newInstance(cleanSession, keepAliveInterval, receiveMaximum);
+        final var underTest = GenericMqttConnect.newInstance(cleanSession, keepAliveInterval, Duration.ZERO,
+                receiveMaximum);
 
         assertThat(underTest.getAsMqtt5Connect())
                 .isEqualTo(Mqtt5Connect.builder()

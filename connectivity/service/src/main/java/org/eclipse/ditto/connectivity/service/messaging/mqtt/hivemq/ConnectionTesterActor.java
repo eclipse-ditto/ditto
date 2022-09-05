@@ -216,6 +216,7 @@ final class ConnectionTesterActor extends AbstractActor {
 
         return client.connect(GenericMqttConnect.newInstance(true,
                         KeepAliveInterval.zero(),
+                        Duration.ZERO,
                         mqttConfig.getClientReceiveMaximum()))
                 .thenApply(unusedVoid -> clientContext);
     }

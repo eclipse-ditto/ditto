@@ -59,6 +59,14 @@ public interface MqttConfig {
     Duration getReconnectForRedeliveryDelay();
 
     /**
+     * Duration how long messages should be buffered by the broker after disconnect.
+     *
+     * @return the duration.
+     * @since 3.0.0
+     */
+    Duration getSessionExpiryInterval();
+
+    /**
      * Indicates whether a separate client should be used for publishing. This could be useful when
      * {@link #shouldReconnectForRedelivery()} returns true to avoid that the publisher has downtimes.
      *
@@ -137,7 +145,12 @@ public interface MqttConfig {
         RECONNECT_FOR_REDELIVERY_DELAY("reconnect-for-redelivery-delay", Duration.ofSeconds(10)),
 
         /**
-         * Indicates whether a separate client should be used for publishing. This could be useful when
+         * The amount of time that messages of session will be buffered by the broker after disconnect.
+         */
+        SESSION_EXPIRY_INTERVAL("session-expiry-interval", Duration.ofSeconds(60)),
+
+        /**
+         * Indicates whether a separate client should be used for publiBshing. This could be useful when
          * {@link #shouldReconnectForRedelivery()} returns true to avoid that the publisher has downtimes.
          */
         SEPARATE_PUBLISHER_CLIENT("separate-publisher-client", false),

@@ -40,6 +40,7 @@ final class DefaultMqttConfig implements MqttConfig {
     private final boolean cleanSession;
     private final boolean reconnectForRedelivery;
     private final Duration reconnectForRedeliveryDelay;
+    private final Duration sessionExpiryInterval;
     private final boolean useSeparateClientForPublisher;
     private final Duration reconnectMinTimeoutForMqttBrokerInitiatedDisconnect;
     private final BackOffConfig reconnectBackOffConfig;
@@ -52,6 +53,8 @@ final class DefaultMqttConfig implements MqttConfig {
         reconnectForRedelivery = config.getBoolean(MqttConfigValue.RECONNECT_FOR_REDELIVERY.getConfigPath());
         reconnectForRedeliveryDelay =
                 config.getNonNegativeDurationOrThrow(MqttConfigValue.RECONNECT_FOR_REDELIVERY_DELAY);
+        sessionExpiryInterval =
+                config.getNonNegativeDurationOrThrow(MqttConfigValue.SESSION_EXPIRY_INTERVAL);
         useSeparateClientForPublisher = config.getBoolean(MqttConfigValue.SEPARATE_PUBLISHER_CLIENT.getConfigPath());
         maxQueueSize = config.getInt(MqttConfigValue.MAX_QUEUE_SIZE.getConfigPath());
         reconnectMinTimeoutForMqttBrokerInitiatedDisconnect = config.getNonNegativeDurationOrThrow(
@@ -103,6 +106,11 @@ final class DefaultMqttConfig implements MqttConfig {
     }
 
     @Override
+    public Duration getSessionExpiryInterval() {
+        return sessionExpiryInterval;
+    }
+
+    @Override
     public boolean shouldUseSeparatePublisherClient() {
         return useSeparateClientForPublisher;
     }
@@ -145,6 +153,7 @@ final class DefaultMqttConfig implements MqttConfig {
                 Objects.equals(cleanSession, that.cleanSession) &&
                 Objects.equals(reconnectForRedelivery, that.reconnectForRedelivery) &&
                 Objects.equals(reconnectForRedeliveryDelay, that.reconnectForRedeliveryDelay) &&
+                Objects.equals(sessionExpiryInterval, that.sessionExpiryInterval) &&
                 Objects.equals(useSeparateClientForPublisher, that.useSeparateClientForPublisher) &&
                 Objects.equals(reconnectMinTimeoutForMqttBrokerInitiatedDisconnect,
                         that.reconnectMinTimeoutForMqttBrokerInitiatedDisconnect) &&
@@ -160,6 +169,7 @@ final class DefaultMqttConfig implements MqttConfig {
                 cleanSession,
                 reconnectForRedelivery,
                 reconnectForRedeliveryDelay,
+                sessionExpiryInterval,
                 useSeparateClientForPublisher,
                 reconnectMinTimeoutForMqttBrokerInitiatedDisconnect,
                 maxQueueSize,
@@ -175,6 +185,7 @@ final class DefaultMqttConfig implements MqttConfig {
                 ", cleanSession=" + cleanSession +
                 ", reconnectForRedelivery=" + reconnectForRedelivery +
                 ", reconnectForRedeliveryDelay=" + reconnectForRedeliveryDelay +
+                ", sessionExpiryInterval=" + sessionExpiryInterval +
                 ", useSeparateClientForPublisher=" + useSeparateClientForPublisher +
                 ", reconnectMinTimeoutForMqttBrokerInitiatedDisconnect=" +
                 reconnectMinTimeoutForMqttBrokerInitiatedDisconnect +
