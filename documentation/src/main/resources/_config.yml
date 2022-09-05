@@ -106,7 +106,7 @@ description: "Announcements, tutorials and examples around Eclipse Ditto and Dig
 future: true
 
 # needed for sitemap.xml file only
-url: https://www.eclipse.org/ditto
+url: https://websites.eclipseprojects.io/ditto
 
 plugins:
   - jekyll-sitemap

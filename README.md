@@ -13,14 +13,14 @@
 [![License](https://img.shields.io/badge/License-EPL%202.0-green.svg)](https://opensource.org/licenses/EPL-2.0)
 [![Lines of code](https://img.shields.io/badge/dynamic/xml.svg?label=Lines%20of%20code&url=https%3A%2F%2Fwww.openhub.net%2Fprojects%2Feclipse-ditto.xml%3Fapi_key%3D11ac3aa12a364fd87b461559a7eedcc53e18fb5a4cf1e43e02cb7a615f1f3d4f&query=%2Fresponse%2Fresult%2Fproject%2Fanalysis%2Ftotal_code_lines&colorB=lightgrey)](https://www.openhub.net/p/eclipse-ditto)
 
-[Eclipse Ditto](https://eclipse.org/ditto/)™ is a technology in the IoT implementing a software pattern called “digital twins”.  
+[Eclipse Ditto](https://websites.eclipseprojects.io/ditto/)™ is a technology in the IoT implementing a software pattern called “digital twins”.  
 A digital twin is a virtual, cloud based, representation of his real world counterpart (real world “Things”, e.g. devices like sensors, smart heating, connected cars, smart grids, EV charging stations, …).
 
 An ever growing list of [adopters](https://iot.eclipse.org/adopters/?#iot.ditto) makes use of Ditto as part of their IoT platforms - if you're as well using it, it would be super nice to show your [adoption here](https://iot.eclipse.org/adopters/how-to-be-listed-as-an-adopter/).
 
 ## Documentation
 
-Find the documentation on the project site: [https://eclipse.org/ditto/](https://eclipse.org/ditto)
+Find the documentation on the project site: [https://websites.eclipseprojects.io/ditto/](https://websites.eclipseprojects.io/ditto/)
 
 ## Eclipse Ditto™ explorer UI
 
