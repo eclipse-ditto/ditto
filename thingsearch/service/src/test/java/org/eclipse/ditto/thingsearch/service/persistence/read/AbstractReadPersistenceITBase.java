@@ -30,8 +30,6 @@ import org.eclipse.ditto.policies.model.Resource;
 import org.eclipse.ditto.policies.model.ResourceKey;
 import org.eclipse.ditto.policies.model.Subject;
 import org.eclipse.ditto.policies.model.SubjectType;
-import org.eclipse.ditto.policies.model.enforcers.Enforcer;
-import org.eclipse.ditto.policies.model.enforcers.PolicyEnforcers;
 import org.eclipse.ditto.rql.query.criteria.Criteria;
 import org.eclipse.ditto.rql.query.expression.FieldExpressionUtil;
 import org.eclipse.ditto.things.model.Thing;
@@ -118,8 +116,8 @@ public abstract class AbstractReadPersistenceITBase extends AbstractThingSearchP
     }
 
     /**
-     * Get the Enforcer that is used by the Test. If not overridden by subclass, it will allow the {@link
-     * #KNOWN_SUBJECTS} {@code READ} access to {@code thing:/}.
+     * Get the Enforcer that is used by the Test. If not overridden by subclass, it will allow the
+     * {@link #KNOWN_SUBJECTS} {@code READ} access to {@code thing:/}.
      *
      * @param thingId The thingId for which the policy enforcer should be got
      */

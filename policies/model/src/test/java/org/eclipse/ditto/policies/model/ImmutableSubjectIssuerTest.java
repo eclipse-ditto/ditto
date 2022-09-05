@@ -17,7 +17,6 @@ import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
-import org.junit.Ignore;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -45,7 +44,7 @@ public final class ImmutableSubjectIssuerTest {
 
         final SubjectIssuer emptySubjectIssuer = ImmutableSubjectIssuer.of(nonEmpty);
 
-        assertThat(emptySubjectIssuer.toString()).isEqualTo(nonEmpty);
+        assertThat(emptySubjectIssuer.toString()).hasToString(nonEmpty);
     }
 
     @Test
@@ -60,7 +59,7 @@ public final class ImmutableSubjectIssuerTest {
 
         final SubjectIssuer emptySubjectIssuer = ImmutableSubjectIssuer.of(empty);
 
-        assertThat(emptySubjectIssuer.toString()).isEqualTo(empty);
+        assertThat(emptySubjectIssuer.toString()).hasToString(empty);
     }
 
 }

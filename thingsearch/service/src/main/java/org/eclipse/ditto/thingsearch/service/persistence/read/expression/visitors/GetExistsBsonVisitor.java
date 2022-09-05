@@ -138,6 +138,7 @@ public final class GetExistsBsonVisitor extends AbstractFieldBsonCreator impleme
 
     private Bson matchKey(final CharSequence key) {
         final JsonPointer pointer = JsonPointer.of(key);
+
         return getAuthorizationBson(pointer)
                 .map(authBson -> Filters.and(Filters.exists(toDottedPath(FIELD_THING, pointer)), authBson))
                 .orElseGet(() -> Filters.exists(toDottedPath(FIELD_THING, pointer)));
@@ -145,6 +146,7 @@ public final class GetExistsBsonVisitor extends AbstractFieldBsonCreator impleme
 
     private Bson matchWildcardFeatureKey(final CharSequence featureRelativeKey) {
         final JsonPointer pointer = JsonPointer.of(featureRelativeKey);
+
         return getFeatureWildcardAuthorizationBson(pointer)
                 .map(authBson -> Filters.elemMatch(FIELD_F_ARRAY,
                         Filters.and(Filters.exists(toDottedPath(pointer)), authBson)))

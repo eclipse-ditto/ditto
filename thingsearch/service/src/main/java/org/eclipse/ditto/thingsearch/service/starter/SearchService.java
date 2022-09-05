@@ -56,7 +56,6 @@ public class SearchService extends DittoService<SearchConfig> {
 
     @Override
     protected Props getMainRootActorProps(final SearchConfig searchConfig, final ActorRef pubSubMediator) {
-
         return SearchRootActor.props(searchConfig, pubSubMediator);
     }
 

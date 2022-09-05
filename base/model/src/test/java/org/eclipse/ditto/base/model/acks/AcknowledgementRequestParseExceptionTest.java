@@ -18,11 +18,10 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 
 import java.text.MessageFormat;
 
-import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.junit.Ignore;
+import org.eclipse.ditto.json.JsonObject;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;

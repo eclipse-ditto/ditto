@@ -34,4 +34,5 @@ public class DefaultSearchUpdateObserver implements SearchUpdateObserver {
     public void process(final Metadata metadata, @Nullable final JsonObject thingJson) {
         // noop
     }
+
 }

@@ -222,12 +222,7 @@ let authHeaderValue;
  * @param {boolean} forDevOps if true, the credentials for the dev ops api will be used.
  */
 export function setAuthHeader(forDevOps) {
-  if (!Environments.current().bearer && !Environments.current().usernamePassword &&
-      !Environments.current().useDittoPreAuthenticatedAuth) {
-    return;
-  }
-
-  if (forDevOps && Environments.current().usernamePasswordDevOps) {
+  if (forDevOps && Environments.current().useBasicAuth) {
     authHeaderKey = 'Authorization';
     authHeaderValue = 'Basic ' + window.btoa(Environments.current().usernamePasswordDevOps);
   } else if (Environments.current().useBasicAuth) {

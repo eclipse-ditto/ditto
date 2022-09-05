@@ -71,7 +71,7 @@ public final class KafkaValidatorTest {
 
     @Before
     public void setUp() {
-        underTest = KafkaValidator.getInstance(true);
+        underTest = KafkaValidator.getInstance();
     }
 
     @Test

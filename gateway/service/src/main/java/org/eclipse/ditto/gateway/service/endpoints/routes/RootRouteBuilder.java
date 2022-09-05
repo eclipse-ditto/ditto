@@ -14,9 +14,9 @@ package org.eclipse.ditto.gateway.service.endpoints.routes;
 
 import java.util.Collection;
 
-import org.eclipse.ditto.base.model.headers.DittoHeadersSizeChecker;
 import org.eclipse.ditto.base.model.headers.translator.HeaderTranslator;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
+import org.eclipse.ditto.edge.service.headers.DittoHeadersValidator;
 import org.eclipse.ditto.gateway.service.endpoints.directives.auth.GatewayAuthenticationDirective;
 import org.eclipse.ditto.gateway.service.endpoints.routes.cloudevents.CloudEventsRoute;
 import org.eclipse.ditto.gateway.service.endpoints.routes.devops.DevOpsRoute;
@@ -213,11 +213,11 @@ public interface RootRouteBuilder {
     RootRouteBuilder rejectionHandler(RejectionHandler handler);
 
     /**
-     * Sets the headers size checker.
+     * Sets the headers validator.
      *
      * @return the builder.
      */
-    RootRouteBuilder dittoHeadersSizeChecker(DittoHeadersSizeChecker checker);
+    RootRouteBuilder dittoHeadersValidator(DittoHeadersValidator dittoHeadersValidator);
 
     /**
      * Builds the root route.

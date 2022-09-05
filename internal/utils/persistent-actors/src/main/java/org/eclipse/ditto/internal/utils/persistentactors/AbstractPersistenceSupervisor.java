@@ -677,9 +677,9 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId, S extend
                 final var syncCs = signalTransformer.apply(signal)
                         .whenComplete((result, error) -> handleOptionalTransformationException(signal, error, sender))
                         .thenCompose(transformed -> enforceSignalAndForwardToTargetActor((S) transformed, sender)
-                                .whenComplete((response, throwable) -> {
-                                    handleSignalEnforcementResponse(response, throwable, transformed, sender);
-                                }))
+                                .whenComplete((response, throwable) ->
+                                    handleSignalEnforcementResponse(response, throwable, transformed, sender)
+                                ))
                         .handle((response, throwable) -> new ProcessNextTwinMessage(signal));
                 incrementOpCounter(signal); // decremented by ProcessNextTwinMessage
                 Patterns.pipe(syncCs, getContext().getDispatcher()).pipeTo(getSelf(), getSelf());

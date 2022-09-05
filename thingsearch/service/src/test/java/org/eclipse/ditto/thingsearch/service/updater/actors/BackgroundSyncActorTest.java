@@ -100,10 +100,10 @@ public final class BackgroundSyncActorTest {
     private static final List<Metadata> THINGS_INDEXED =
             KNOWN_IDs.stream()
                     .map(id -> Metadata.of(ThingId.of(id), REVISION_INDEXED, PolicyId.of(id), REVISION_INDEXED, null))
-                    .collect(Collectors.toList());
+                    .toList();
     private static final List<StreamedSnapshot> THINGS_PERSISTED = KNOWN_IDs.stream()
             .map(id -> createStreamedSnapshot(id, REVISION_PERSISTED))
-            .collect(Collectors.toList());
+            .toList();
     private static final Config TEST_CONFIG = ConfigFactory.load("test");
 
     private ActorSystem actorSystem;

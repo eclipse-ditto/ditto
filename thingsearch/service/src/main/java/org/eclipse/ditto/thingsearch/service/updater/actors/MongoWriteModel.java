@@ -105,4 +105,5 @@ public final class MongoWriteModel {
                 ", " + "patchUpdate=" + patchUpdate +
                 "]";
     }
+
 }

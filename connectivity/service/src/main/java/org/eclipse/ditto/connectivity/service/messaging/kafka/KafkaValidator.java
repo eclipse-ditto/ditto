@@ -62,9 +62,9 @@ public final class KafkaValidator extends AbstractProtocolValidator {
 
     private final Collection<KafkaSpecificConfig> specificConfigs;
 
-    private KafkaValidator(final boolean doubleDecodingEnabled) {
+    private KafkaValidator() {
         super();
-        specificConfigs = List.of(KafkaAuthenticationSpecificConfig.getInstance(doubleDecodingEnabled),
+        specificConfigs = List.of(KafkaAuthenticationSpecificConfig.getInstance(),
                 KafkaBootstrapServerSpecificConfig.getInstance(),
                 KafkaConsumerGroupSpecificConfig.getInstance(),
                 KafkaConsumerOffsetResetSpecificConfig.getInstance());
@@ -73,13 +73,12 @@ public final class KafkaValidator extends AbstractProtocolValidator {
     /**
      * Returns an instance of the Kafka validator.
      *
-     * @param doubleDecodingEnabled whether username and password should get double decoded.
      * @return the instance.
      */
-    public static KafkaValidator getInstance(final boolean doubleDecodingEnabled) {
+    public static KafkaValidator getInstance() {
         KafkaValidator result = instance;
         if (null == result) {
-            result = new KafkaValidator(doubleDecodingEnabled);
+            result = new KafkaValidator();
             instance = result;
         }
         return result;

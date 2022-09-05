@@ -230,7 +230,8 @@ public final class MongoThingsSearchPersistence implements ThingsSearchPersisten
      */
     public Source<AbstractWriteModel, NotUsed> recoverLastWriteModel(final ThingId thingId) {
         final var metadata = Metadata.ofDeleted(thingId);
-        final var publisher = collection.find(Filters.eq(PersistenceConstants.FIELD_ID, thingId.toString())).limit(1);
+        final var publisher =
+                collection.find(Filters.eq(PersistenceConstants.FIELD_ID, thingId.toString())).limit(1);
         final var emptySource =
                 Source.<AbstractWriteModel>single(ThingDeleteModel.of(metadata));
         return Source.fromPublisher(publisher)

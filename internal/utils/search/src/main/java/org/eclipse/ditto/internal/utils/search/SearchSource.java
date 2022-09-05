@@ -154,7 +154,7 @@ public final class SearchSource {
 
     private Source<Pair<String, JsonObject>, NotUsed> resume(final String lastThingId) {
         return streamThingsFrom(lastThingId)
-                .mapAsync(1, streamThings -> Patterns.ask(commandForwarder, streamThings, searchAskTimeout))
+                .mapAsync(1, streamTings -> Patterns.ask(commandForwarder, streamTings, searchAskTimeout))
                 .via(expectMsgClass(SourceRef.class))
                 .flatMapConcat(SourceRef::source)
                 .flatMapConcat(thingId -> retrieveThingForElement((String) thingId));

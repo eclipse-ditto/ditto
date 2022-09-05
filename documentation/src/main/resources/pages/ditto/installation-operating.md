@@ -87,12 +87,17 @@ proxy_set_header              x-ditto-pre-authenticated "nginx:${remote_user}";
 
 ### OpenID Connect
 
-The authentication provider must be added to the ditto-gateway configuration.
-`auth-subjects`, an optional field, takes a list of placeholders that will be
-evaluated against incoming JWTs.
-For each entry in `auth-subjects` and authorization subject will be generated.
+The authentication provider must be added to the ditto-gateway configuration with unique configuration key 
+(e.g. `myprovier` in the example below).
+
+Either `issuer` as single supported JWT `"iss"` claim or `issuers` (as a list of supported JWT `"iss"` claims) has to be 
+configured. If `issuers` is configured, this list has priority and the value configured in `issuer` will be ignored.
+
+The configured `auth-subjects`, an optional field, takes a list of placeholders that will be
+evaluated against incoming JWTs.  
+For each entry in `auth-subjects` an authorization subject will be generated.
 If the entry contains unresolvable placeholders, it will be ignored in full.
-When `auth-subjects` is not provided, the “sub” claim (`{%raw%}{{ jwt:sub }}{%endraw%}`) is used by default.
+When `auth-subjects` is not provided, the `"sub"` claim (`{%raw%}{{ jwt:sub }}{%endraw%}`) is used by default.
 
 Please read [more details on the OpenId Connect configuration placeholder](basic-placeholders.html#scope-openid-connect-configuration)
 to find out what is possible when defining the `auth-subjects`.
@@ -104,6 +109,10 @@ ditto.gateway.authentication {
       openid-connect-issuers = {
         myprovider = {
           issuer = "localhost:9000"
+          #issuers = [
+          #  "localhost:9000/one"
+          #  "localhost:9000/two"
+          #]
           auth-subjects = [
             "{%raw%}{{ jwt:sub }}{%endraw%}",
             "{%raw%}{{ jwt:sub }}/{{ jwt:scp }}{%endraw%}",

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Contributors to the Eclipse Foundation
+ * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -10,22 +10,25 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.base.model.headers;
+package org.eclipse.ditto.thingsearch.model;
 
+import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
-import org.junit.Ignore;
+import org.eclipse.ditto.json.JsonPointer;
 import org.junit.Test;
 
 /**
- * Tests {@link DittoHeadersSizeChecker}.
+ * Unit test for {@link ImmutableSortOptionEntry}.
  */
-public final class DittoHeadersSizeCheckerTest {
+public final class ImmutableSortOptionsEntryTest {
 
     @Test
     public void assertImmutability() {
-        assertInstancesOf(DittoHeadersSizeChecker.class, areImmutable());
+        assertInstancesOf(ImmutableSortOptionEntry.class,
+                areImmutable(),
+                provided(JsonPointer.class).areAlsoImmutable());
     }
 
 }

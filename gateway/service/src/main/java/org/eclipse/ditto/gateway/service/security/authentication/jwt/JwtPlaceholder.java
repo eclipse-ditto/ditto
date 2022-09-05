@@ -18,7 +18,6 @@ import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.jwt.model.JsonWebToken;
@@ -69,7 +68,7 @@ public final class JwtPlaceholder implements Placeholder<JsonWebToken> {
                 .map(JsonValue::asArray)
                 .map(array -> array.stream()
                         .map(JsonValue::formatAsString)
-                        .collect(Collectors.toList()))
+                        .toList())
                 .or(() -> value.map(JsonValue::formatAsString)
                         .map(Collections::singletonList))
                 .orElseGet(Collections::emptyList);

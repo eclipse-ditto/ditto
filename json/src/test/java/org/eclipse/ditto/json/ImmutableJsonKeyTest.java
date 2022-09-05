@@ -16,7 +16,6 @@ import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
-import org.junit.Ignore;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -52,7 +51,7 @@ public final class ImmutableJsonKeyTest {
         final String expected = "key";
         final JsonKey underTest = ImmutableJsonKey.of(expected);
 
-        assertThat(underTest.toString()).isEqualTo(expected);
+        assertThat(underTest.toString()).hasToString(expected);
     }
 
     @Test
@@ -63,8 +62,9 @@ public final class ImmutableJsonKeyTest {
 
         final JsonPointer jsonPointer = underTest.asPointer();
 
-        assertThat(jsonPointer).hasLevelCount(1);
-        assertThat(jsonPointer).isEqualTo(expected);
+        assertThat(jsonPointer)
+                .hasLevelCount(1)
+                .isEqualTo(expected);
     }
 
 }

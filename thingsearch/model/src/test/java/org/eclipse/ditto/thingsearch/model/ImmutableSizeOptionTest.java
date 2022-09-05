@@ -17,7 +17,6 @@ import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstance
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -57,7 +56,7 @@ public final class ImmutableSizeOptionTest {
     public void toStringReturnsExpected() {
         final String expected = "size(14)";
 
-        assertThat(underTest.toString()).isEqualTo(expected);
+        assertThat(underTest.toString()).hasToString(expected);
     }
 
 }

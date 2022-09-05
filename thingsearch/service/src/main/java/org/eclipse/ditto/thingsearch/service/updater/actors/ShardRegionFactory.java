@@ -29,7 +29,6 @@ import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
 import akka.cluster.sharding.ClusterSharding;
-import akka.cluster.sharding.ClusterShardingSettings;
 
 /**
  * Factory for Shard Region {@link ActorRef}s of different services.
@@ -84,9 +83,9 @@ public final class ShardRegionFactory {
 
     private ActorRef createShardRegionProxy(final String shardRegion, final String clusterRole,
             final int numberOfShards) {
-
         final ClusterSharding clusterSharding = ClusterSharding.get(actorSystem);
         final ShardRegionExtractor shardRegionExtractor = ShardRegionExtractor.of(numberOfShards, actorSystem);
+
         return clusterSharding.startProxy(shardRegion, Optional.of(clusterRole), shardRegionExtractor);
     }
 
@@ -99,8 +98,7 @@ public final class ShardRegionFactory {
      * @throws NullPointerException if {@code thingUpdaterProps} is {@code null}.
      */
     @Nonnull
-    public ActorRef getSearchUpdaterShardRegion(final int numberOfShards,
-            @Nonnull final Props thingUpdaterProps,
+    public ActorRef getSearchUpdaterShardRegion(final int numberOfShards, @Nonnull final Props thingUpdaterProps,
             final String clusterRole) {
 
         return createShardRegion(numberOfShards, thingUpdaterProps, UPDATER_SHARD_REGION, clusterRole);

@@ -41,19 +41,22 @@ import org.junit.Test;
  */
 public final class ExistsIT extends AbstractReadPersistenceITBase {
 
-    private static final ThingId THING1_ID = TestConstants.thingId(TestConstants.Thing.NAMESPACE, "thing1");
+    private static final ThingId THING1_ID =
+            TestConstants.thingId(TestConstants.Thing.NAMESPACE, "thing1");
     private static final String THING1_KNOWN_ATTR = "attr1/a/b/c";
     private static final String THING1_KNOWN_ATTR_VALUE = "thing1";
     private static final String THING1_KNOWN_FEATURE_ID = "feature1";
     private static final String THING1_KNOWN_PROPERTY = "property/a/b/c";
     private static final long THING1_KNOWN_PROPERTY_VALUE = 1;
-    private static final ThingId THING2_ID = TestConstants.thingId(TestConstants.Thing.NAMESPACE, "thing2");
+    private static final ThingId THING2_ID =
+            TestConstants.thingId(TestConstants.Thing.NAMESPACE, "thing2");
     private static final String THING2_KNOWN_ATTR = "attr1/a/b/d";
     private static final String THING2_KNOWN_ATTR_VALUE = "thing2";
     private static final String THING2_KNOWN_FEATURE_ID = "feature2";
     private static final String THING2_KNOWN_PROPERTY = "property/a/b/d";
     private static final long THING2_KNOWN_PROPERTY_VALUE = 2;
-    private static final ThingId THING3_ID = TestConstants.thingId(TestConstants.Thing.NAMESPACE, "thing3");
+    private static final ThingId THING3_ID =
+            TestConstants.thingId(TestConstants.Thing.NAMESPACE, "thing3");
 
     private static final String THINGS_KNOWN_ATTR = "attr1/a/b";
     private static final String THINGS_UNKNOWN_ATTR = "attr2";
@@ -195,4 +198,5 @@ public final class ExistsIT extends AbstractReadPersistenceITBase {
                 .set(TAGS5, JsonArray.empty())
                 .build();
     }
+
 }

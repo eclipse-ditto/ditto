@@ -20,7 +20,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
@@ -291,7 +290,7 @@ public final class SearchActorIT {
         final Collection<Subject> subjects =
                 AUTH_CONTEXT.getAuthorizationSubjectIds().stream()
                         .map(subjectId -> Subject.newInstance(subjectId, SubjectType.GENERATED))
-                        .collect(Collectors.toList());
+                        .toList();
         final Collection<Resource> resources = Collections.singletonList(Resource.newInstance(
                 ResourceKey.newInstance("thing:/"),
                 EffectedPermissions.newInstance(Collections.singletonList("READ"), Collections.emptyList())

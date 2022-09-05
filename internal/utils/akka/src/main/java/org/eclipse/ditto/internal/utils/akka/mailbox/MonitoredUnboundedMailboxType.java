@@ -150,9 +150,8 @@
           * @return the name of the actor class or empty.
           */
          private static Optional<String> getClassOfOwnerActorRef(final ActorRef owner) {
-             if (owner instanceof ActorRefWithCell) {
-                 final ActorRefWithCell ownerWithCell = (ActorRefWithCell) owner;
-                 return Optional.ofNullable(ownerWithCell.underlying().props().actorClass().getCanonicalName());
+             if (owner instanceof ActorRefWithCell actorRefWithCell) {
+                 return Optional.ofNullable(actorRefWithCell.underlying().props().actorClass().getCanonicalName());
              } else {
                  return Optional.empty();
              }

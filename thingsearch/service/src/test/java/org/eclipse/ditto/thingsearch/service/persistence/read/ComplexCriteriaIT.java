@@ -158,4 +158,5 @@ public final class ComplexCriteriaIT extends AbstractReadPersistenceITBase {
         persistThing(createThing(THING_ID_WITH_OTHER_VALUE_2).setAttributes(attributes5));
         persistThing(createThing(THING_ID_WITH_NO_KEY));
     }
+
 }

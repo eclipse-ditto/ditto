@@ -113,7 +113,6 @@ public final class SearchRootActor extends DittoRootActor {
 
     private ActorRef initializeHealthCheckActor(final SearchConfig searchConfig,
             final ActorRef searchUpdaterRootActor) {
-
         return startChildActor(SearchHealthCheckingActorFactory.ACTOR_NAME,
                 SearchHealthCheckingActorFactory.props(searchConfig, searchUpdaterRootActor));
     }
@@ -126,7 +125,6 @@ public final class SearchRootActor extends DittoRootActor {
      * @return the Akka configuration Props object.
      */
     public static Props props(final SearchConfig searchConfig, final ActorRef pubSubMediator) {
-
         return Props.create(SearchRootActor.class, searchConfig, pubSubMediator);
     }
 
@@ -136,7 +134,6 @@ public final class SearchRootActor extends DittoRootActor {
 
     private ActorRef initializeSearchActor(final SearchConfig searchConfig,
             final ThingsSearchPersistence thingsSearchPersistence, final ActorRef pubSubMediator) {
-
         final var queryParser = getQueryParser(searchConfig, getContext().getSystem());
         final var props = SearchActor.props(queryParser, thingsSearchPersistence, pubSubMediator);
         return startChildActor(SearchActor.ACTOR_NAME, props);

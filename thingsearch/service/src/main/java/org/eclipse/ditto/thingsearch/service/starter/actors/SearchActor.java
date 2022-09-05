@@ -568,7 +568,6 @@ public final class SearchActor extends AbstractActor {
 
     private static <T> Source<Query, NotUsed> createQuerySource(final Function<T, CompletionStage<Query>> parser,
             final T command) {
-
         try {
             return Source.completionStage(parser.apply(command))
                     .recoverWithRetries(1, new PFBuilder<Throwable, Source<Query, NotUsed>>()

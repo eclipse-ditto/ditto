@@ -31,7 +31,6 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-import org.junit.Ignore;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -94,16 +93,17 @@ public final class ImmutableJsonArrayTest {
 
         assertThat(parsedFirst).isInstanceOf(ImmutableJsonArray.class);
         assertThat(parsedSecond).isInstanceOf(ImmutableJsonArray.class);
-        assertThat(parsedFirst.hashCode()).isEqualTo(parsedSecond.hashCode());
+        assertThat(parsedFirst.hashCode()).hasSameHashCodeAs(parsedSecond.hashCode());
     }
 
     @Test
     public void emptyArrayIsEmpty() {
         final ImmutableJsonArray underTest = ImmutableJsonArray.empty();
 
-        assertThat(underTest).isArray();
-        assertThat(underTest).isEmpty();
-        assertThat(underTest).hasSize(0);
+        assertThat(underTest)
+                .isArray()
+                .isEmpty()
+                .hasSize(0);
     }
 
     @Test
@@ -124,12 +124,12 @@ public final class ImmutableJsonArrayTest {
     public void arrayIsNothingElse() {
         final ImmutableJsonArray underTest = ImmutableJsonArray.empty();
 
-        assertThat(underTest).isArray();
-        assertThat(underTest).isNotNullLiteral();
-        assertThat(underTest).isNotBoolean();
-        assertThat(underTest).isNotNumber();
-        assertThat(underTest).isNotString();
-        assertThat(underTest).isNotObject();
+        assertThat(underTest).isArray()
+                .isNotNullLiteral()
+                .isNotBoolean()
+                .isNotNumber()
+                .isNotString()
+                .isNotObject();
         assertThat(underTest.isInt()).isFalse();
         assertThat(underTest.isLong()).isFalse();
         assertThat(underTest.isDouble()).isFalse();
@@ -139,12 +139,12 @@ public final class ImmutableJsonArrayTest {
     public void checkUnsupportedOperations() {
         final ImmutableJsonArray underTest = ImmutableJsonArray.of(KNOWN_INT_VALUE_LIST);
 
-        assertThat(underTest).doesNotSupport(JsonValue::asObject);
-        assertThat(underTest).doesNotSupport(JsonValue::asBoolean);
-        assertThat(underTest).doesNotSupport(JsonValue::asString);
-        assertThat(underTest).doesNotSupport(JsonValue::asInt);
-        assertThat(underTest).doesNotSupport(JsonValue::asLong);
-        assertThat(underTest).doesNotSupport(JsonValue::asDouble);
+        assertThat(underTest).doesNotSupport(JsonValue::asObject)
+                .doesNotSupport(JsonValue::asBoolean)
+                .doesNotSupport(JsonValue::asString)
+                .doesNotSupport(JsonValue::asInt)
+                .doesNotSupport(JsonValue::asLong)
+                .doesNotSupport(JsonValue::asDouble);
     }
 
     @Test
@@ -173,14 +173,14 @@ public final class ImmutableJsonArrayTest {
         final int expectedSize = underTest.getSize() + 3;
         final ImmutableJsonArray afterAdd = underTest.add(firstIntValueToAdd, secondIntValueToAdd, thirdIntValueToAdd);
 
-        assertThat(afterAdd).isNotSameAs(underTest);
-        assertThat(afterAdd).hasSize(expectedSize);
-        assertThat(afterAdd).contains(firstIntValueToAdd);
-        assertThat(afterAdd).contains(secondIntValueToAdd);
-        assertThat(afterAdd).contains(thirdIntValueToAdd);
-        assertThat(underTest).doesNotContain(firstIntValueToAdd);
-        assertThat(underTest).doesNotContain(secondIntValueToAdd);
-        assertThat(underTest).doesNotContain(thirdIntValueToAdd);
+        assertThat(afterAdd).isNotSameAs(underTest)
+                .hasSize(expectedSize)
+                .contains(firstIntValueToAdd)
+                .contains(secondIntValueToAdd)
+                .contains(thirdIntValueToAdd);
+        assertThat(underTest).doesNotContain(firstIntValueToAdd)
+                .doesNotContain(secondIntValueToAdd)
+                .doesNotContain(thirdIntValueToAdd);
 
         final JsonValue otherValueToAddToOriginalJsonArray = newValue(KNOWN_INT_0);
         underTest.add(otherValueToAddToOriginalJsonArray);
@@ -202,16 +202,18 @@ public final class ImmutableJsonArrayTest {
         final long secondLongValueToAdd = 1983L;
         final long thirdLongValueToAdd = 1984L;
         final int expectedSize = underTest.getSize() + 3;
-        final ImmutableJsonArray afterAdd = underTest.add(firstLongValueToAdd, secondLongValueToAdd, thirdLongValueToAdd);
+        final ImmutableJsonArray afterAdd =
+                underTest.add(firstLongValueToAdd, secondLongValueToAdd, thirdLongValueToAdd);
 
-        assertThat(afterAdd).isNotSameAs(underTest);
-        assertThat(afterAdd).hasSize(expectedSize);
-        assertThat(afterAdd).contains(firstLongValueToAdd);
-        assertThat(afterAdd).contains(secondLongValueToAdd);
-        assertThat(afterAdd).contains(thirdLongValueToAdd);
-        assertThat(underTest).doesNotContain(firstLongValueToAdd);
-        assertThat(underTest).doesNotContain(secondLongValueToAdd);
-        assertThat(underTest).doesNotContain(thirdLongValueToAdd);
+        assertThat(afterAdd)
+                .isNotSameAs(underTest)
+                .hasSize(expectedSize)
+                .contains(firstLongValueToAdd)
+                .contains(secondLongValueToAdd)
+                .contains(thirdLongValueToAdd);
+        assertThat(underTest).doesNotContain(firstLongValueToAdd)
+                .doesNotContain(secondLongValueToAdd)
+                .doesNotContain(thirdLongValueToAdd);
 
         final JsonValue otherValueToAddToOriginalJsonArray = newValue(KNOWN_INT_0);
         underTest.add(otherValueToAddToOriginalJsonArray);
@@ -236,14 +238,14 @@ public final class ImmutableJsonArrayTest {
         final ImmutableJsonArray afterAdd =
                 underTest.add(firstDoubleValueToAdd, secondDoubleValueToAdd, thirdDoubleValueToAdd);
 
-        assertThat(afterAdd).isNotSameAs(underTest);
-        assertThat(afterAdd).hasSize(expectedSize);
-        assertThat(afterAdd).contains(firstDoubleValueToAdd);
-        assertThat(afterAdd).contains(secondDoubleValueToAdd);
-        assertThat(afterAdd).contains(thirdDoubleValueToAdd);
-        assertThat(underTest).doesNotContain(firstDoubleValueToAdd);
-        assertThat(underTest).doesNotContain(secondDoubleValueToAdd);
-        assertThat(underTest).doesNotContain(thirdDoubleValueToAdd);
+        assertThat(afterAdd).isNotSameAs(underTest)
+                .hasSize(expectedSize)
+                .contains(firstDoubleValueToAdd)
+                .contains(secondDoubleValueToAdd)
+                .contains(thirdDoubleValueToAdd);
+        assertThat(underTest).doesNotContain(firstDoubleValueToAdd)
+                .doesNotContain(secondDoubleValueToAdd)
+                .doesNotContain(thirdDoubleValueToAdd);
 
         final JsonValue otherValueToAddToOriginalJsonArray = newValue(KNOWN_INT_0);
         underTest.add(otherValueToAddToOriginalJsonArray);
@@ -268,14 +270,14 @@ public final class ImmutableJsonArrayTest {
         final ImmutableJsonArray afterAdd =
                 underTest.add(firstBooleanValueToAdd, secondBooleanValueToAdd, thirdBooleanValueToAdd);
 
-        assertThat(afterAdd).isNotSameAs(underTest);
-        assertThat(afterAdd).hasSize(expectedSize);
-        assertThat(afterAdd).contains(firstBooleanValueToAdd);
-        assertThat(afterAdd).contains(secondBooleanValueToAdd);
-        assertThat(afterAdd).contains(thirdBooleanValueToAdd);
-        assertThat(underTest).doesNotContain(firstBooleanValueToAdd);
-        assertThat(underTest).doesNotContain(secondBooleanValueToAdd);
-        assertThat(underTest).doesNotContain(thirdBooleanValueToAdd);
+        assertThat(afterAdd).isNotSameAs(underTest)
+                .hasSize(expectedSize)
+                .contains(firstBooleanValueToAdd)
+                .contains(secondBooleanValueToAdd)
+                .contains(thirdBooleanValueToAdd);
+        assertThat(underTest).doesNotContain(firstBooleanValueToAdd)
+                .doesNotContain(secondBooleanValueToAdd)
+                .doesNotContain(thirdBooleanValueToAdd);
 
         final JsonValue otherValueToAddToOriginalJsonArray = newValue(KNOWN_INT_0);
         underTest.add(otherValueToAddToOriginalJsonArray);
@@ -307,14 +309,14 @@ public final class ImmutableJsonArrayTest {
         final ImmutableJsonArray afterAdd =
                 underTest.add(firstStringValueToAdd, secondStringValueToAdd, thirdStringValueToAdd);
 
-        assertThat(afterAdd).isNotSameAs(underTest);
-        assertThat(afterAdd).hasSize(expectedSize);
-        assertThat(afterAdd).contains(firstStringValueToAdd);
-        assertThat(afterAdd).contains(secondStringValueToAdd);
-        assertThat(afterAdd).contains(thirdStringValueToAdd);
-        assertThat(underTest).doesNotContain(firstStringValueToAdd);
-        assertThat(underTest).doesNotContain(secondStringValueToAdd);
-        assertThat(underTest).doesNotContain(thirdStringValueToAdd);
+        assertThat(afterAdd).isNotSameAs(underTest)
+                .hasSize(expectedSize)
+                .contains(firstStringValueToAdd)
+                .contains(secondStringValueToAdd)
+                .contains(thirdStringValueToAdd);
+        assertThat(underTest).doesNotContain(firstStringValueToAdd)
+                .doesNotContain(secondStringValueToAdd)
+                .doesNotContain(thirdStringValueToAdd);
 
         final JsonValue otherValueToAddToOriginalJsonArray = newValue(KNOWN_INT_0);
         underTest.add(otherValueToAddToOriginalJsonArray);
@@ -343,16 +345,17 @@ public final class ImmutableJsonArrayTest {
         final JsonValue secondJsonValueToAdd = newValue("1983.02D");
         final JsonValue thirdJsonValueToAdd = newValue("1984.23D");
         final int expectedSize = underTest.getSize() + 3;
-        final ImmutableJsonArray afterAdd = underTest.add(firstJsonValueToAdd, secondJsonValueToAdd, thirdJsonValueToAdd);
+        final ImmutableJsonArray afterAdd =
+                underTest.add(firstJsonValueToAdd, secondJsonValueToAdd, thirdJsonValueToAdd);
 
-        assertThat(afterAdd).isNotSameAs(underTest);
-        assertThat(afterAdd).hasSize(expectedSize);
-        assertThat(afterAdd).contains(firstJsonValueToAdd);
-        assertThat(afterAdd).contains(secondJsonValueToAdd);
-        assertThat(afterAdd).contains(thirdJsonValueToAdd);
-        assertThat(underTest).doesNotContain(firstJsonValueToAdd);
-        assertThat(underTest).doesNotContain(secondJsonValueToAdd);
-        assertThat(underTest).doesNotContain(thirdJsonValueToAdd);
+        assertThat(afterAdd).isNotSameAs(underTest)
+                .hasSize(expectedSize)
+                .contains(firstJsonValueToAdd)
+                .contains(secondJsonValueToAdd)
+                .contains(thirdJsonValueToAdd);
+        assertThat(underTest).doesNotContain(firstJsonValueToAdd)
+                .doesNotContain(secondJsonValueToAdd)
+                .doesNotContain(thirdJsonValueToAdd);
 
         final JsonValue otherValueToAddToOriginalJsonArray = newValue(KNOWN_INT_0);
         underTest.add(otherValueToAddToOriginalJsonArray);
@@ -432,7 +435,7 @@ public final class ImmutableJsonArrayTest {
 
         softReference.clear();
 
-        assertThat(jsonArray.get(0).isPresent()).isTrue();
+        assertThat(jsonArray.get(0)).isPresent();
     }
 
     private void assertInternalCachesAreAsExpected(final JsonArray jsonArray, final boolean jsonExpected) {

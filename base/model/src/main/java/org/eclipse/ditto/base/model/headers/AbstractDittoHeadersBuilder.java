@@ -652,11 +652,4 @@ public abstract class AbstractDittoHeadersBuilder<S extends AbstractDittoHeaders
         }
     }
 
-    private void checkMetadataHeaders() {
-        if (headers.containsKey(DittoHeaderDefinition.GET_METADATA.getKey()) &&
-                headers.containsKey(DittoHeaderDefinition.DELETE_METADATA.getKey())) {
-
-        }
-    }
-
 }

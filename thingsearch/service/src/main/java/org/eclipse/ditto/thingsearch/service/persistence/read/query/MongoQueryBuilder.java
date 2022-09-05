@@ -40,12 +40,12 @@ final class MongoQueryBuilder implements QueryBuilder {
     static final int DEFAULT_SKIP = 0;
 
     /**
-     * The default value for the limit parameter, if we have a unlimited query (count).
+     * The default value for the limit parameter, if we have an unlimited query (count).
      */
     private static final int DEFAULT_LIMIT_UNLIMITED = 0;
 
     /**
-     * The max value for the limit parameter, if we have a unlimited query (count).
+     * The max value for the limit parameter, if we have an unlimited query (count).
      */
     private static final int MAX_LIMIT_UNLIMITED = Integer.MAX_VALUE;
 

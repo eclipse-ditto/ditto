@@ -19,16 +19,16 @@ import javax.annotation.Nullable;
 
 import org.bson.BsonDocument;
 import org.bson.BsonValue;
-import org.eclipse.ditto.json.JsonField;
-import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonParseException;
-import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.signals.events.Event;
 import org.eclipse.ditto.base.model.signals.events.EventRegistry;
 import org.eclipse.ditto.base.model.signals.events.EventsourcedEvent;
+import org.eclipse.ditto.json.JsonField;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonParseException;
+import org.eclipse.ditto.json.JsonValue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -85,8 +85,8 @@ public abstract class AbstractMongoEventAdapter<T extends Event<?>> implements E
 
     @Override
     public EventSeq fromJournal(final Object event, final String manifest) {
-        if (event instanceof BsonValue) {
-            final JsonValue jsonValue = DittoBsonJson.getInstance().serialize((BsonValue) event);
+        if (event instanceof BsonValue bsonValue) {
+            final JsonValue jsonValue = DittoBsonJson.getInstance().serialize(bsonValue);
             try {
                 final JsonObject jsonObject = jsonValue.asObject()
                         .setValue(EventsourcedEvent.JsonFields.REVISION.getPointer(), Event.DEFAULT_REVISION);

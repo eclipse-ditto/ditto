@@ -94,7 +94,6 @@ final class ThingsUpdater extends AbstractActorWithTimers {
             final UpdaterConfig updaterConfig,
             final BlockedNamespaces blockedNamespaces,
             final ActorRef pubSubMediator) {
-
         return Props.create(ThingsUpdater.class, thingUpdaterShardRegion, updaterConfig, blockedNamespaces,
                 pubSubMediator);
     }

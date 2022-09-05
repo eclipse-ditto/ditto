@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.policies.model.enforcers.tree;
 
-import org.eclipse.ditto.policies.model.enforcers.tree.SubjectNode;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;

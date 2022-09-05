@@ -21,7 +21,6 @@ import java.util.Arrays;
 import java.util.Collection;
 
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.experimental.runners.Enclosed;
 import org.junit.runner.RunWith;
@@ -82,7 +81,7 @@ public final class ImmutableJsonIntTest {
         public void jsonIntHasSameHashCodeAsJsonLongIfSameValue() {
             final ImmutableJsonLong longValue = ImmutableJsonLong.of(intValue);
 
-            assertThat(underTest.hashCode()).isEqualTo(longValue.hashCode());
+            assertThat(underTest.hashCode()).hasSameHashCodeAs(longValue.hashCode());
         }
 
         @Test
@@ -96,7 +95,7 @@ public final class ImmutableJsonIntTest {
         public void jsonIntHasSameHashCodeAsJsonDoubleIfSameValue() {
             final ImmutableJsonDouble doubleValue = ImmutableJsonDouble.of(intValue);
 
-            assertThat(underTest.hashCode()).isEqualTo(doubleValue.hashCode());
+            assertThat(underTest.hashCode()).hasSameHashCodeAs(doubleValue.hashCode());
         }
 
         @Test
@@ -121,7 +120,7 @@ public final class ImmutableJsonIntTest {
 
         @Test
         public void toStringReturnsExpected() {
-            assertThat(underTest.toString()).isEqualTo(String.valueOf(intValue));
+            assertThat(underTest.toString()).hasToString(String.valueOf(intValue));
         }
 
         @Test
