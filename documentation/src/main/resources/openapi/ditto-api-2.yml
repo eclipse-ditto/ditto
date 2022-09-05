@@ -6572,6 +6572,8 @@ paths:
         The ID of the connection will be **generated** by the backend. Any `ID` specified in the request body is therefore
         prohibited.
         Supported connection types are `amqp-091`, `amqp-10`, `mqtt`, `mqtt-5`, `kafka` and `http-push`.
+      security:
+        - DevOpsBasic: []
       tags:
         - Connections
       parameters:
@@ -6708,6 +6710,8 @@ paths:
     put:
       summary: Update a specific Connection registered
       description: Update the connection identified by the `connectionId` path parameter.
+      security:
+        - DevOpsBasic: []
       tags:
         - Connections
       parameters:
@@ -6782,6 +6786,8 @@ paths:
     delete:
       summary: Delete a specific Connection
       description: Delete the connection identified by the `connectionId` path parameter.
+      security:
+        - DevOpsBasic: []
       tags:
         - Connections
       parameters:

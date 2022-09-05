@@ -376,9 +376,14 @@ The following DevOps commands are supported:
 * Piggyback commands
 
 ### DevOps user
-Used for authenticating the following endpoints:<br/>
-`/devps`<br/>
-`/connections`
+
+Used for authenticating the following endpoints:
+
+```
+/devops
+/api/2/connections
+```
+
 
 {% include note.html content="The default devops credentials are username: `devops`, password: `foobar`. The password can be changed by setting the environment variable `DEVOPS_PASSWORD` in the gateway service." %}
 

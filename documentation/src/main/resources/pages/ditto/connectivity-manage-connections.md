@@ -29,7 +29,8 @@ The following commands are available in order to manage connections:
 
 ### Create connection
 
-Create a new connection by sending an HTTP `POST` request:  
+Create a new connection by sending an HTTP `POST` request:
+
 `POST /api/2/connections`
 
 ```json
@@ -49,6 +50,7 @@ For protocol specific examples, consult the [AMQP-0.9.1 binding](connectivity-pr
 [MQTT-3.1.1 binding](connectivity-protocol-bindings-mqtt.html) respectively.
 
 Additionally, you can test a connection before creating it:
+
 `POST /api/2/connections&dry-run=true`
 
 Passing the `dry-run` query parameter checks the configuration and establishes a connection to the remote endpoint in order to validate the connection
@@ -56,7 +58,8 @@ credentials. The connection is closed afterwards and will not be persisted.
 
 ### Modify connection
 
-Modify an existing connection by sending a HTTP `PUT` request to:  
+Modify an existing connection by sending a HTTP `PUT` request to:
+
 `PUT /api/2/connections/{connectionId}`
 
 ```json
@@ -71,15 +74,17 @@ The connection with the specified ID needs to be created before one can modify i
 ### Retrieve connection
 
 The only parameter necessary for retrieving a connection is the `connectionId`:
+
 `GET /api/2/connections/{connectionId}`
 
 ### Retrieve all connections
 Retrieves all created connections:
 
 `GET /api/2/connections`
+
 Additionally, you can get the connections ids only by providing the `ids-only=true` query parameter.
 
-`GET /api/2/connections&ids-only=true`
+`GET /api/2/connections?ids-only=true`
 
 ### Delete connection
 
@@ -133,23 +138,29 @@ The only parameter necessary for sending a command to a connection is the `conne
 Supported commands sent as payload `text/plain`:
 
 #### Open connection
+
 When opening a connection a [ConnectionOpenedAnnouncement](protocol-specification-connections-announcement.html) will be published.
+
 ```
- connectivity.commands:openConnection
+connectivity.commands:openConnection
 ```
 
 #### Close connection
+
 When gracefully closing a connection a [ConnectionClosedAnnouncement](protocol-specification-connections-announcement.html) will be published.
+
 ```
- connectivity.commands:closeConnection
+connectivity.commands:closeConnection
 ```
+
 #### Reset connection metrics
 
-This command resets the connection metrics - all metrics are set to `0` again. The only parameter necessary for
-retrieving the connection metrics is the `connectionId`.
+This command resets the connection metrics - all metrics are set to `0` again.
+
 ```
- connectivity.commands:resetConnectionMetrics
+connectivity.commands:resetConnectionMetrics
 ```
+
 #### Enable connection logs
 
 Enables the connection logging feature of a connection for 24 hours. As soon as connection logging is enabled, you will
@@ -160,17 +171,21 @@ allow you more insight in what goes well, and more importantly, what goes wrong.
 The default duration and the maximum amount of logs stored for one connection can be configured in Ditto's connectivity
 service configuration.
 
-{% include note.html content="When creating or opening an connection the logging is enabled per default. This allows 
+{% include note.html content="When creating or opening a connection the logging is enabled per default. This allows 
 to log possible errors on connection establishing." %}
+
 ```
- connectivity.commands:enableConnectionLogs
+connectivity.commands:enableConnectionLogs
 ```
+
 #### Reset connection logs
 
 Clears all currently stored connection logs.
+
 ```
- connectivity.commands:resetConnectionLogs
+connectivity.commands:resetConnectionLogs
 ```
+
 ## Publishing connection logs
 
 In addition to [enable collecting in-memory connection logs](#enable-connection-logs), connection logs may also be 
