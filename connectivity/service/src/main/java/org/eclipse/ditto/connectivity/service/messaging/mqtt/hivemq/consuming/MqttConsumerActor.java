@@ -181,6 +181,13 @@ public final class MqttConsumerActor extends BaseConsumerActor {
     private KillSwitch processMqttPublishes() {
         final var mqttPublishTransformer = MqttPublishToExternalMessageTransformer.newInstance(sourceAddress, source);
 
+        //final var genericMqttPublishCompletionStage = mqttPublishSource.runWith(Sink.head(),
+        //        getContext().getSystem());
+        //try {
+        //    Thread.sleep(5000);
+        //} catch (final Exception e) {
+        //    throw new RuntimeException(e);
+        //}
         return mqttPublishSource.viaMat(KillSwitches.single(), Keep.right())
                 .map(mqttPublishTransformer::transform)
                 .divertTo(getTransformationFailureSink(), TransformationResult::isFailure)

@@ -26,6 +26,7 @@ import java.util.Set;
 
 import org.assertj.core.api.JUnitSoftAssertions;
 import org.eclipse.ditto.connectivity.model.Source;
+import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.MockFlowableWithSingle;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.client.GenericMqttClient;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.client.MqttSubscribeException;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.client.SomeSubscriptionsFailedException;
@@ -48,8 +49,6 @@ import com.hivemq.client.mqtt.datatypes.MqttTopicFilter;
 import akka.actor.ActorSystem;
 import akka.stream.javadsl.Sink;
 import akka.stream.testkit.javadsl.TestSink;
-import io.reactivex.Flowable;
-import io.reactivex.Single;
 
 /**
  * Unit test for {@link MqttSubscriber}.
@@ -125,10 +124,8 @@ public final class MqttSubscriberTest {
     @Test
     public void subscribeForConnectionSourcesWhenAllSubscriptionsSuccessfulReturnsExpectedSource() {
         final var genericMqttSubAck = Mockito.mock(GenericMqttSubAck.class);
-        Mockito.when(genericMqttClient.subscribe(Mockito.any(GenericMqttSubscribe.class)))
-                .thenReturn(Single.just(genericMqttSubAck));
-        Mockito.when(genericMqttClient.consumeSubscribedPublishesWithManualAcknowledgement(genericMqttSubscribe, ))
-                .thenReturn(Flowable.never());
+        Mockito.when(genericMqttClient.consumeSubscribedPublishesWithManualAcknowledgement(Mockito.any()))
+                .thenReturn(new MockFlowableWithSingle<>(Collections.emptyList(), genericMqttSubAck, null));
         final var mqttQos = MqttQos.AT_LEAST_ONCE;
         final var connectionSource1 = mockConnectionSource(Set.of("foo", "bar"), mqttQos);
         final var connectionSource2 = mockConnectionSource(Set.of("baz"), mqttQos);
@@ -180,8 +177,8 @@ public final class MqttSubscriberTest {
                 .filter(entry -> entry.getValue().isError())
                 .map(entry -> SubscriptionStatus.newInstance(MqttTopicFilter.of(entry.getKey()), entry.getValue()))
                 .toList());
-        Mockito.when(genericMqttClient.subscribe(Mockito.any(GenericMqttSubscribe.class)))
-                .thenReturn(Single.error(someSubscriptionsFailedException));
+        Mockito.when(genericMqttClient.consumeSubscribedPublishesWithManualAcknowledgement(Mockito.any(GenericMqttSubscribe.class)))
+                .thenReturn(new MockFlowableWithSingle<>(Collections.emptyList(), null, someSubscriptionsFailedException));
         final var connectionSource = mockConnectionSource(topicSubAckStatuses.keySet(), MqttQos.AT_LEAST_ONCE);
         final var underTest = MqttSubscriber.newInstance(genericMqttClient, actorSystemResource.getMaterializer());
 

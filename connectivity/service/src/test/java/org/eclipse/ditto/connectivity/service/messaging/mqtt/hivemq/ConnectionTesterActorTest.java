@@ -45,6 +45,7 @@ import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.client.NoMqt
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.client.SubscriptionStatus;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.consuming.MqttConsumerActor;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.message.connect.GenericMqttConnect;
+import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.message.publish.GenericMqttPublish;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.message.subscribe.GenericMqttSubAckStatus;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.publishing.MqttPublisherActor;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.subscribing.MqttSubscriber;
@@ -229,7 +230,9 @@ public final class ConnectionTesterActorTest {
     private static SubscribeResult getSourceSubscribeSuccess(final Source connectionSource) {
         final var result = Mockito.mock(SubscribeResult.class);
         Mockito.when(result.isSuccess()).thenReturn(true);
-        Mockito.when(result.getMqttPublishSourceOrThrow()).thenReturn(akka.stream.javadsl.Source.empty());
+        final akka.stream.javadsl.Source<GenericMqttPublish, ?> emptySource = akka.stream.javadsl.Source.empty();
+        Mockito.doReturn(emptySource).when(result.getMqttPublishSourceOrThrow());
+        //Mockito.when(result.getMqttPublishSourceOrThrow()).thenReturn(emptySource);
         Mockito.when(result.getConnectionSource()).thenReturn(connectionSource);
         return result;
     }

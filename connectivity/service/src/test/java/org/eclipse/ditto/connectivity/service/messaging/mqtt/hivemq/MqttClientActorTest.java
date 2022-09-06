@@ -18,6 +18,7 @@ import java.nio.charset.StandardCharsets;
 import java.text.MessageFormat;
 import java.time.Duration;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -63,6 +64,7 @@ import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.client.MqttC
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.client.MqttSubscribeException;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.message.publish.GenericMqttPublish;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.message.subscribe.GenericMqttSubAck;
+import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.message.subscribe.GenericMqttSubAckStatus;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.message.subscribe.GenericMqttSubscribe;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.message.subscribe.GenericMqttSubscription;
 import org.eclipse.ditto.internal.utils.akka.ActorSystemResource;
@@ -82,6 +84,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 import com.hivemq.client.mqtt.datatypes.MqttQos;
 import com.hivemq.client.mqtt.datatypes.MqttTopic;
+import com.hivemq.client.mqtt.mqtt5.message.subscribe.suback.Mqtt5SubAckReasonCode;
 import com.typesafe.config.ConfigFactory;
 
 import akka.actor.ActorRef;
@@ -91,8 +94,6 @@ import akka.actor.Status;
 import akka.http.javadsl.model.Uri;
 import akka.testkit.TestActorRef;
 import akka.testkit.TestProbe;
-import io.reactivex.Flowable;
-import io.reactivex.Single;
 
 /**
  * Unit test for {@link MqttClientActor}.
@@ -163,10 +164,9 @@ public final class MqttClientActorTest extends AbstractBaseClientActorTest {
     private void enableGenericMqttClientMethodStubbing() {
         Mockito.when(genericMqttClient.connect()).thenReturn(CompletableFuture.completedFuture(null));
         Mockito.when(genericMqttClient.disconnect()).thenReturn(CompletableFuture.completedFuture(null));
-        Mockito.when(genericMqttClient.subscribe(Mockito.any()))
-                .thenReturn(Single.just(Mockito.mock(GenericMqttSubAck.class)));
-        Mockito.when(genericMqttClient.consumeSubscribedPublishesWithManualAcknowledgement(genericMqttSubscribe, ))
-                .thenReturn(Flowable.never());
+        Mockito.when(genericMqttClient.consumeSubscribedPublishesWithManualAcknowledgement(Mockito.any()))
+                .thenReturn(new MockFlowableWithSingle<>(Collections.emptyList(),
+                        Mockito.mock(GenericMqttSubAck.class), null));
         Mockito.when(genericMqttClient.publish(Mockito.any()))
                 .thenAnswer(invocation -> {
                     final GenericMqttPublish genericMqttPublish = invocation.getArgument(0);
@@ -239,7 +239,8 @@ public final class MqttClientActorTest extends AbstractBaseClientActorTest {
     @Test
     public void subscribeFails() {
         final var mqttSubscribeException = new MqttSubscribeException("Quisquam omnis in quia hic et libero.", null);
-        Mockito.when(genericMqttClient.subscribe(Mockito.any())).thenReturn(Single.error(mqttSubscribeException));
+        Mockito.when(genericMqttClient.consumeSubscribedPublishesWithManualAcknowledgement(Mockito.any()))
+                .thenReturn(new MockFlowableWithSingle<>(Collections.emptyList(), null, mqttSubscribeException));
         final var underTest = TestActorRef.apply(
                 createClientActor(commandForwarder.ref(),
                         ConnectivityModelFactory.newConnectionBuilder(getConnection(false))
@@ -362,21 +363,20 @@ public final class MqttClientActorTest extends AbstractBaseClientActorTest {
 
                     final var subscribedMqttTopicFilters = genericMqttSubscribe.genericMqttSubscriptions()
                             .map(GenericMqttSubscription::getMqttTopicFilter)
-                            .collect(Collectors.toList());
+                            .toList();
+                    final var mock = Mockito.mock(GenericMqttSubAck.class);
+                    Mockito.when(mock.getGenericMqttSubAckStatuses())
+                            .thenReturn(List.of(GenericMqttSubAckStatus.ofMqtt5SubAckReasonCode(
+                                    Mqtt5SubAckReasonCode.GRANTED_QOS_1)));
 
                     // This needs to be a side effect, unfortunately.
-                    Mockito.when(genericMqttClient.consumeSubscribedPublishesWithManualAcknowledgement(
-                                    genericMqttSubscribe, ))
-                            .thenReturn(Flowable.fromIterable(
-                                    Stream.of(incomingPublishes)
-                                            .filter(incoming -> subscribedMqttTopicFilters.stream()
-                                                    .anyMatch(topicFilter -> topicFilter.matches(incoming.getTopic())))
-                                            .collect(Collectors.toList())
-                            ));
-
-                    return Single.just(Mockito.mock(GenericMqttSubAck.class));
+                    return new MockFlowableWithSingle<>(
+                            Stream.of(incomingPublishes)
+                                    .filter(incoming -> subscribedMqttTopicFilters.stream()
+                                            .anyMatch(topicFilter -> topicFilter.matches(incoming.getTopic())))
+                                    .collect(Collectors.toList()), mock, null);
                 })
-                .when(genericMqttClient).subscribe(Mockito.any());
+                .when(genericMqttClient).consumeSubscribedPublishesWithManualAcknowledgement(Mockito.any());
     }
 
     @Test
@@ -415,6 +415,7 @@ public final class MqttClientActorTest extends AbstractBaseClientActorTest {
                         Map.entry("custom.qos", "0"),
                         Map.entry("custom.retain", "false")
                 );
+
     }
 
     private static String getHeaderPlaceholder(final String headerName) {

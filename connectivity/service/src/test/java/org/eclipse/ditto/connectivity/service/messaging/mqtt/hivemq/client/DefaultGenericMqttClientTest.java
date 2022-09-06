@@ -16,6 +16,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -32,6 +33,7 @@ import org.eclipse.ditto.connectivity.service.config.ReceiveMaximum;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.IllegalKeepAliveIntervalSecondsException;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.KeepAliveInterval;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.MqttSpecificConfig;
+import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.MockFlowableWithSingle;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.message.connect.GenericMqttConnect;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.message.publish.GenericMqttPublish;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.message.subscribe.GenericMqttSubAck;
@@ -47,9 +49,9 @@ import org.mockito.junit.MockitoJUnitRunner;
 import com.hivemq.client.mqtt.datatypes.MqttQos;
 import com.hivemq.client.mqtt.datatypes.MqttTopic;
 import com.hivemq.client.mqtt.datatypes.MqttTopicFilter;
+import com.hivemq.client.rx.FlowableWithSingle;
 
 import io.reactivex.Flowable;
-import io.reactivex.Single;
 
 /**
  * Unit test for {@link DefaultGenericMqttClient}.
@@ -343,12 +345,14 @@ public final class DefaultGenericMqttClientTest {
                 Set.of(GenericMqttSubscription.newInstance(MqttTopicFilter.of("source/status"), MqttQos.AT_LEAST_ONCE))
         );
         final var genericMqttSubAck = Mockito.mock(GenericMqttSubAck.class);
-        Mockito.when(subscribingClient.subscribe(Mockito.eq(genericMqttSubscribe)))
-                .thenReturn(Single.just(genericMqttSubAck));
+        Mockito.when(
+                        subscribingClient.consumeSubscribedPublishesWithManualAcknowledgement(Mockito.eq(genericMqttSubscribe)))
+                .thenReturn(new MockFlowableWithSingle<>(Collections.emptyList(), genericMqttSubAck, null));
         final var underTest =
                 DefaultGenericMqttClient.newInstance(subscribingClient, publishingClient, hiveMqttClientProperties);
 
-        final var genericMqttSubAckSingle = underTest.subscribe(genericMqttSubscribe);
+        final var genericMqttSubAckSingle =
+                underTest.consumeSubscribedPublishesWithManualAcknowledgement(genericMqttSubscribe);
 
         assertThat(subscribeForSingleValueResponse(genericMqttSubAckSingle))
                 .succeedsWithin(Duration.ofSeconds(1L))
@@ -356,10 +360,9 @@ public final class DefaultGenericMqttClientTest {
         Mockito.verifyNoInteractions(publishingClient);
     }
 
-    private static <T> CompletableFuture<T> subscribeForSingleValueResponse(final Single<T> singleValueResponse) {
-        final var result = new CompletableFuture<T>();
-        singleValueResponse.subscribe(result::complete, result::completeExceptionally);
-        return result;
+    private static <A, T> CompletableFuture<T> subscribeForSingleValueResponse(
+            final FlowableWithSingle<A, T> singleValueResponse) {
+        return singleValueResponse.subscribeSingleFuture();
     }
 
     @Test
@@ -375,13 +378,15 @@ public final class DefaultGenericMqttClientTest {
                         .payload(ByteBufferUtils.fromUtf8String("definitively online"))
                         .build()
         );
-        Mockito.when(subscribingClient.consumeSubscribedPublishesWithManualAcknowledgement(genericMqttSubscribe, ))
-                .thenReturn(Flowable.fromIterable(genericMqttPublishes));
+
+        Mockito.when(subscribingClient.consumeSubscribedPublishesWithManualAcknowledgement(Mockito.any()))
+                .thenReturn(new MockFlowableWithSingle<>(genericMqttPublishes, null, null));
         final var underTest =
                 DefaultGenericMqttClient.newInstance(subscribingClient, publishingClient, hiveMqttClientProperties);
 
         final var genericMqttMqttPublishFlowable = underTest.consumeSubscribedPublishesWithManualAcknowledgement(
-                genericMqttSubscribe, );
+                GenericMqttSubscribe.of(
+                        Set.of(GenericMqttSubscription.newInstance(MqttTopicFilter.of("a"), MqttQos.AT_LEAST_ONCE))));
 
         assertThat(subscribeForFlowableValueResponse(genericMqttMqttPublishFlowable))
                 .succeedsWithin(Duration.ofSeconds(1L))
