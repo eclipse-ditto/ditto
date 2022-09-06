@@ -124,7 +124,8 @@ final class PropertiesFactory {
     private Map<String, String> getTrustedSelfSignedCertificates() {
         if (connection.isValidateCertificates() && connection.getTrustedCertificates().isPresent()) {
             return Map.of(SslConfigs.SSL_TRUSTSTORE_TYPE_CONFIG, "PEM",
-                    SslConfigs.SSL_TRUSTSTORE_CERTIFICATES_CONFIG, connection.getTrustedCertificates().orElse(""));
+                    SslConfigs.SSL_TRUSTSTORE_CERTIFICATES_CONFIG, connection.getTrustedCertificates().orElse(""),
+                    SslConfigs.SSL_ENDPOINT_IDENTIFICATION_ALGORITHM_CONFIG, "");
         }
         return Map.of();
     }
