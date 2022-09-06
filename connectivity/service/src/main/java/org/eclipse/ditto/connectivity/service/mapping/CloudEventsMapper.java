@@ -50,7 +50,6 @@ public final class CloudEventsMapper extends AbstractMessageMapper {
   static final String CE_SOURCE = "ce-source";
   static final String CE_SPECVERSION = "ce-specversion";
   static final String CONTENT_TYPE = "application/cloudevents+json";
-
   static final String SPECVERSION = "specversion";
   static final String ID = "id";
   static final String SOURCE = "source";
@@ -86,8 +85,7 @@ public final class CloudEventsMapper extends AbstractMessageMapper {
       } catch (MessageMappingFailedException e) {
         throw mappingFailedException;
       }
-    }
-    else{
+    } else {
       throw new NoSuchElementException("Incorrect content-type");
     }
 
@@ -160,12 +158,10 @@ public final class CloudEventsMapper extends AbstractMessageMapper {
         .build();
     return externalMessageObject.toString();
   }
-
-
+  
   private static String getJsonString(final Adaptable adaptable) {
     final var jsonifiableAdaptable = ProtocolFactory.wrapAsJsonifiableAdaptable(adaptable);
     return jsonifiableAdaptable.toJsonString();
   }
-
 
 }
