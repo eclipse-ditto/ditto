@@ -90,22 +90,12 @@ abstract class BaseGenericMqttSubscribingClient<C extends MqttClient>
                 .toList();
     }
 
-    private static List<SubscriptionStatus> getFailedSubscriptionStatuses(
-            final GenericMqttSubAck genericMqttSubAck,
-            final List<MqttTopicFilter> subscriptionTopicFilters
-    ) {
-        return Zipper.zipIterables(subscriptionTopicFilters, genericMqttSubAck.getGenericMqttSubAckStatuses())
-                .filter(zip -> zip.b().isError())
-                .map(zip -> SubscriptionStatus.newInstance(zip.a(), zip.b()))
-                .toList();
-    }
-
     @Override
-    public FlowableWithSingle<GenericMqttPublish, GenericMqttSubAck> consumeSubscribedPublishesWithManualAcknowledgement(
-            final GenericMqttSubscribe genericMqttSubscribe) {
-
+    public FlowableWithSingle<GenericMqttPublish, GenericMqttSubAck> subscribePublishesWithManualAcknowledgement(
+            final GenericMqttSubscribe genericMqttSubscribe
+    ) {
         return consumeIncomingPublishes(mqttClient, genericMqttSubscribe, true)
-                .mapBoth(genericMqttPublish -> genericMqttPublish, genericMqttSubAck -> {
+                .mapSingle(genericMqttSubAck -> {
                     final var failedSubscriptions = getFailedSubscriptionStatuses(genericMqttSubAck,
                             getSubscriptionTopicFilters(genericMqttSubscribe));
                     if (failedSubscriptions.isEmpty()) {
@@ -128,6 +118,16 @@ abstract class BaseGenericMqttSubscribingClient<C extends MqttClient>
     protected abstract FlowableWithSingle<GenericMqttPublish, GenericMqttSubAck> consumeIncomingPublishes(C mqttClient,
             GenericMqttSubscribe mqttSubscribe,
             boolean manualAcknowledgement);
+
+    private static List<SubscriptionStatus> getFailedSubscriptionStatuses(
+            final GenericMqttSubAck genericMqttSubAck,
+            final List<MqttTopicFilter> subscriptionTopicFilters
+    ) {
+        return Zipper.zipIterables(subscriptionTopicFilters, genericMqttSubAck.getGenericMqttSubAckStatuses())
+                .filter(zip -> zip.b().isError())
+                .map(zip -> SubscriptionStatus.newInstance(zip.a(), zip.b()))
+                .toList();
+    }
 
     @Override
     public CompletionStage<Void> connect(final GenericMqttConnect genericMqttConnect) {
@@ -167,8 +167,7 @@ abstract class BaseGenericMqttSubscribingClient<C extends MqttClient>
                         if (error instanceof Mqtt3SubAckException mqtt3SubAckException) {
                             result = new AllSubscriptionsFailedException(
                                     getFailedSubscriptionStatuses(
-                                            GenericMqttSubAck.ofMqtt3SubAck(
-                                                    mqtt3SubAckException.getMqttMessage()),
+                                            GenericMqttSubAck.ofMqtt3SubAck(mqtt3SubAckException.getMqttMessage()),
                                             getSubscriptionTopicFilters(mqttSubscribe)
                                     ),
                                     mqtt3SubAckException
@@ -204,8 +203,7 @@ abstract class BaseGenericMqttSubscribingClient<C extends MqttClient>
                         if (error instanceof Mqtt5SubAckException mqtt5SubAckException) {
                             result = new AllSubscriptionsFailedException(
                                     getFailedSubscriptionStatuses(
-                                            GenericMqttSubAck.ofMqtt5SubAck(
-                                                    mqtt5SubAckException.getMqttMessage()),
+                                            GenericMqttSubAck.ofMqtt5SubAck(mqtt5SubAckException.getMqttMessage()),
                                             getSubscriptionTopicFilters(mqttSubscribe)
                                     ),
                                     mqtt5SubAckException

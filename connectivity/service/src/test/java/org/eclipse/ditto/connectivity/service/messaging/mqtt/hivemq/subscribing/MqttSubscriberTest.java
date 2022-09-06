@@ -76,14 +76,14 @@ public final class MqttSubscriberTest {
     @Test
     public void newInstanceWithNullClientThrowsException() {
         assertThatNullPointerException()
-                .isThrownBy(() -> MqttSubscriber.newInstance(null, actorSystemResource.getMaterializer()))
+                .isThrownBy(() -> MqttSubscriber.newInstance(null))
                 .withMessage("The genericMqttSubscribingClient must not be null!")
                 .withNoCause();
     }
 
     @Test
     public void subscribeForConnectionSourceWithNullConnectionSourceThrowsException() {
-        final var underTest = MqttSubscriber.newInstance(genericMqttClient, actorSystemResource.getMaterializer());
+        final var underTest = MqttSubscriber.newInstance(genericMqttClient);
 
         assertThatNullPointerException()
                 .isThrownBy(() -> underTest.subscribeForConnectionSources(null))
@@ -93,7 +93,7 @@ public final class MqttSubscriberTest {
 
     @Test
     public void subscribeForConnectionSourceWithEmptyCollectionReturnsEmptySource() {
-        final var underTest = MqttSubscriber.newInstance(genericMqttClient, actorSystemResource.getMaterializer());
+        final var underTest = MqttSubscriber.newInstance(genericMqttClient);
 
         final var subscribeResultSource =
                 underTest.subscribeForConnectionSources(Collections.emptyList());
@@ -103,7 +103,7 @@ public final class MqttSubscriberTest {
 
     @Test
     public void subscribeForConnectionSourcesWithInvalidSourceAddressReturnsSourceWithSubscribeFailure() {
-        final var underTest = MqttSubscriber.newInstance(genericMqttClient, actorSystemResource.getMaterializer());
+        final var underTest = MqttSubscriber.newInstance(genericMqttClient);
 
         final var subscribeResultSource = underTest.subscribeForConnectionSources(
                 List.of(mockConnectionSource(Set.of("#/#"), MqttQos.EXACTLY_ONCE))
@@ -124,12 +124,12 @@ public final class MqttSubscriberTest {
     @Test
     public void subscribeForConnectionSourcesWhenAllSubscriptionsSuccessfulReturnsExpectedSource() {
         final var genericMqttSubAck = Mockito.mock(GenericMqttSubAck.class);
-        Mockito.when(genericMqttClient.consumeSubscribedPublishesWithManualAcknowledgement(Mockito.any()))
+        Mockito.when(genericMqttClient.subscribePublishesWithManualAcknowledgement(Mockito.any()))
                 .thenReturn(new MockFlowableWithSingle<>(Collections.emptyList(), genericMqttSubAck, null));
         final var mqttQos = MqttQos.AT_LEAST_ONCE;
         final var connectionSource1 = mockConnectionSource(Set.of("foo", "bar"), mqttQos);
         final var connectionSource2 = mockConnectionSource(Set.of("baz"), mqttQos);
-        final var underTest = MqttSubscriber.newInstance(genericMqttClient, actorSystemResource.getMaterializer());
+        final var underTest = MqttSubscriber.newInstance(genericMqttClient);
 
         final var subscribeResultSource =
                 underTest.subscribeForConnectionSources(List.of(connectionSource1, connectionSource2));
@@ -177,10 +177,10 @@ public final class MqttSubscriberTest {
                 .filter(entry -> entry.getValue().isError())
                 .map(entry -> SubscriptionStatus.newInstance(MqttTopicFilter.of(entry.getKey()), entry.getValue()))
                 .toList());
-        Mockito.when(genericMqttClient.consumeSubscribedPublishesWithManualAcknowledgement(Mockito.any(GenericMqttSubscribe.class)))
+        Mockito.when(genericMqttClient.subscribePublishesWithManualAcknowledgement(Mockito.any(GenericMqttSubscribe.class)))
                 .thenReturn(new MockFlowableWithSingle<>(Collections.emptyList(), null, someSubscriptionsFailedException));
         final var connectionSource = mockConnectionSource(topicSubAckStatuses.keySet(), MqttQos.AT_LEAST_ONCE);
-        final var underTest = MqttSubscriber.newInstance(genericMqttClient, actorSystemResource.getMaterializer());
+        final var underTest = MqttSubscriber.newInstance(genericMqttClient);
 
         final var subscribeResultSource = underTest.subscribeForConnectionSources(List.of(connectionSource));
 

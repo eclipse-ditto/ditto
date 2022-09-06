@@ -149,9 +149,9 @@ final class DefaultGenericMqttClient implements GenericMqttClient {
     }
 
     @Override
-    public FlowableWithSingle<GenericMqttPublish, GenericMqttSubAck> consumeSubscribedPublishesWithManualAcknowledgement(
+    public FlowableWithSingle<GenericMqttPublish, GenericMqttSubAck> subscribePublishesWithManualAcknowledgement(
             final GenericMqttSubscribe genericMqttSubscribe) {
-        return subscribingClient.consumeSubscribedPublishesWithManualAcknowledgement(genericMqttSubscribe);
+        return subscribingClient.subscribePublishesWithManualAcknowledgement(genericMqttSubscribe);
     }
 
     @Override

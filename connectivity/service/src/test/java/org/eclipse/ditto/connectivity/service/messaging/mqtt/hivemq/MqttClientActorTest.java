@@ -164,7 +164,7 @@ public final class MqttClientActorTest extends AbstractBaseClientActorTest {
     private void enableGenericMqttClientMethodStubbing() {
         Mockito.when(genericMqttClient.connect()).thenReturn(CompletableFuture.completedFuture(null));
         Mockito.when(genericMqttClient.disconnect()).thenReturn(CompletableFuture.completedFuture(null));
-        Mockito.when(genericMqttClient.consumeSubscribedPublishesWithManualAcknowledgement(Mockito.any()))
+        Mockito.when(genericMqttClient.subscribePublishesWithManualAcknowledgement(Mockito.any()))
                 .thenReturn(new MockFlowableWithSingle<>(Collections.emptyList(),
                         Mockito.mock(GenericMqttSubAck.class), null));
         Mockito.when(genericMqttClient.publish(Mockito.any()))
@@ -239,7 +239,7 @@ public final class MqttClientActorTest extends AbstractBaseClientActorTest {
     @Test
     public void subscribeFails() {
         final var mqttSubscribeException = new MqttSubscribeException("Quisquam omnis in quia hic et libero.", null);
-        Mockito.when(genericMqttClient.consumeSubscribedPublishesWithManualAcknowledgement(Mockito.any()))
+        Mockito.when(genericMqttClient.subscribePublishesWithManualAcknowledgement(Mockito.any()))
                 .thenReturn(new MockFlowableWithSingle<>(Collections.emptyList(), null, mqttSubscribeException));
         final var underTest = TestActorRef.apply(
                 createClientActor(commandForwarder.ref(),
@@ -376,7 +376,7 @@ public final class MqttClientActorTest extends AbstractBaseClientActorTest {
                                             .anyMatch(topicFilter -> topicFilter.matches(incoming.getTopic())))
                                     .collect(Collectors.toList()), mock, null);
                 })
-                .when(genericMqttClient).consumeSubscribedPublishesWithManualAcknowledgement(Mockito.any());
+                .when(genericMqttClient).subscribePublishesWithManualAcknowledgement(Mockito.any());
     }
 
     @Test

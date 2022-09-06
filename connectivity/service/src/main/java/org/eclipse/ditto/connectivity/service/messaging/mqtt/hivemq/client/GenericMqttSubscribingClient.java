@@ -64,7 +64,8 @@ public interface GenericMqttSubscribingClient {
      *     </li>
      * </ul>
      */
-    FlowableWithSingle<GenericMqttPublish, GenericMqttSubAck> consumeSubscribedPublishesWithManualAcknowledgement(
-            GenericMqttSubscribe genericMqttSubscribe);
+    FlowableWithSingle<GenericMqttPublish, GenericMqttSubAck> subscribePublishesWithManualAcknowledgement(
+            GenericMqttSubscribe genericMqttSubscribe
+    );
 
 }

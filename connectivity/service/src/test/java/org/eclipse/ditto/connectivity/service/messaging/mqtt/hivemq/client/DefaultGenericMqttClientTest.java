@@ -345,14 +345,13 @@ public final class DefaultGenericMqttClientTest {
                 Set.of(GenericMqttSubscription.newInstance(MqttTopicFilter.of("source/status"), MqttQos.AT_LEAST_ONCE))
         );
         final var genericMqttSubAck = Mockito.mock(GenericMqttSubAck.class);
-        Mockito.when(
-                        subscribingClient.consumeSubscribedPublishesWithManualAcknowledgement(Mockito.eq(genericMqttSubscribe)))
+        Mockito.when(subscribingClient.subscribePublishesWithManualAcknowledgement(Mockito.eq(genericMqttSubscribe)))
                 .thenReturn(new MockFlowableWithSingle<>(Collections.emptyList(), genericMqttSubAck, null));
         final var underTest =
                 DefaultGenericMqttClient.newInstance(subscribingClient, publishingClient, hiveMqttClientProperties);
 
         final var genericMqttSubAckSingle =
-                underTest.consumeSubscribedPublishesWithManualAcknowledgement(genericMqttSubscribe);
+                underTest.subscribePublishesWithManualAcknowledgement(genericMqttSubscribe);
 
         assertThat(subscribeForSingleValueResponse(genericMqttSubAckSingle))
                 .succeedsWithin(Duration.ofSeconds(1L))
@@ -379,12 +378,12 @@ public final class DefaultGenericMqttClientTest {
                         .build()
         );
 
-        Mockito.when(subscribingClient.consumeSubscribedPublishesWithManualAcknowledgement(Mockito.any()))
+        Mockito.when(subscribingClient.subscribePublishesWithManualAcknowledgement(Mockito.any()))
                 .thenReturn(new MockFlowableWithSingle<>(genericMqttPublishes, null, null));
         final var underTest =
                 DefaultGenericMqttClient.newInstance(subscribingClient, publishingClient, hiveMqttClientProperties);
 
-        final var genericMqttMqttPublishFlowable = underTest.consumeSubscribedPublishesWithManualAcknowledgement(
+        final var genericMqttMqttPublishFlowable = underTest.subscribePublishesWithManualAcknowledgement(
                 GenericMqttSubscribe.of(
                         Set.of(GenericMqttSubscription.newInstance(MqttTopicFilter.of("a"), MqttQos.AT_LEAST_ONCE))));
 
