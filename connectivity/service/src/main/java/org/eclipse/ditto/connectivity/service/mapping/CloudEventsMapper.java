@@ -64,8 +64,7 @@ public final class CloudEventsMapper extends AbstractMessageMapper {
     MessageMappingFailedException mappingFailedException = MessageMappingFailedException.newBuilder(
             message.findContentType().orElse("")).description("This is not a CloudEvent")
         .dittoHeaders(DittoHeaders.of(message.getHeaders())).build();
-    final String contentType = message.findContentType().orElse(null);
-    if (contentType.equals(CONTENT_TYPE)) {
+    if (message.findContentType().orElse("").equals(CONTENT_TYPE)) {
       final String payload = extractPayloadAsString(message);
       try {
         if (isBinaryCloudEvent(message)) {
