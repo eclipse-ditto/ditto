@@ -64,7 +64,8 @@ public final class CloudEventsMapper extends AbstractMessageMapper {
     MessageMappingFailedException mappingFailedException = MessageMappingFailedException.newBuilder(
             message.findContentType().orElse("")).description("This is not a CloudEvent")
         .dittoHeaders(DittoHeaders.of(message.getHeaders())).build();
-    if (message.findContentType().get().equals(CONTENT_TYPE)) {
+    final String contentType = message.findContentType().orElse(null);
+    if (contentType.equals(CONTENT_TYPE)) {
       final String payload = extractPayloadAsString(message);
       try {
         if (isBinaryCloudEvent(message)) {
@@ -85,9 +86,8 @@ public final class CloudEventsMapper extends AbstractMessageMapper {
       } catch (MessageMappingFailedException e) {
         throw mappingFailedException;
       }
-    } else {
-      throw new NoSuchElementException("Incorrect content-type");
     }
+    return Collections.emptyList();
 
   }
 
@@ -158,7 +158,7 @@ public final class CloudEventsMapper extends AbstractMessageMapper {
         .build();
     return externalMessageObject.toString();
   }
-  
+
   private static String getJsonString(final Adaptable adaptable) {
     final var jsonifiableAdaptable = ProtocolFactory.wrapAsJsonifiableAdaptable(adaptable);
     return jsonifiableAdaptable.toJsonString();
