@@ -1,4 +1,3 @@
-package org.eclipse.ditto.connectivity.service.mapping;
 /*
  * Copyright (c) 2022 Contributors to the Eclipse Foundation
  *
@@ -12,6 +11,7 @@ package org.eclipse.ditto.connectivity.service.mapping;
  * SPDX-License-Identifier: EPL-2.0
  */
 
+package org.eclipse.ditto.connectivity.service.mapping;
 import org.apache.kafka.common.protocol.types.Field;
 import org.eclipse.ditto.base.model.common.DittoConstants;
 import org.eclipse.ditto.base.model.exceptions.DittoJsonException;
@@ -19,6 +19,7 @@ import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.connectivity.api.ExternalMessage;
 import org.eclipse.ditto.connectivity.api.ExternalMessageFactory;
 import org.eclipse.ditto.connectivity.model.MessageMappingFailedException;
+import org.eclipse.ditto.connectivity.service.mapping.CloudEventsMapper;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonKey;
 import org.eclipse.ditto.json.JsonPointer;
@@ -42,9 +43,8 @@ import static org.junit.Assert.assertThrows;
 
 public class CloudEventsMapperTest {
 
-  private static final ThingId THING_ID = ThingId.of("thing:id");
-  private static final ProtocolAdapter ADAPTER = DittoProtocolAdapter.newInstance();
-  private static final String cloudEventsContentType = "application/cloudevents+json";
+
+  private static final String CE_CONTENT_TYPE = "application/cloudevents+json";
   String payload = """
       {
        "specversion": "1.0",  "id":"3212e","source":"http:somesite.com","type":"com.site.com"
@@ -111,7 +111,7 @@ public class CloudEventsMapperTest {
   @Test
   public void bytePayloadMapping() {
     ExternalMessage byteMessage = ExternalMessageFactory.newExternalMessageBuilder(
-            Map.of(ExternalMessage.CONTENT_TYPE_HEADER, cloudEventsContentType))
+            Map.of(ExternalMessage.CONTENT_TYPE_HEADER, CE_CONTENT_TYPE))
         .withBytes(testPayload.getBytes(StandardCharsets.UTF_8)).build();
     Adaptable expectedAdaptable = DittoJsonException.wrapJsonRuntimeException(
         () -> ProtocolFactory.jsonifiableAdaptableFromJson(
@@ -125,14 +125,14 @@ public class CloudEventsMapperTest {
   @Test
   public void validatePayloadTest() {
     Boolean expected = true;
-    Boolean actual = underTest.validatePayload(payload);
+    Boolean actual = underTest.isStructuredCloudEvent(payload);
     assertEquals(expected, actual);
   }
 
   @Test
   public void failedValidation() {
     Boolean expected = false;
-    Boolean actual = underTest.validatePayload(incompletePayload);
+    Boolean actual = underTest.isStructuredCloudEvent(incompletePayload);
     assertEquals(expected, actual);
 
   }
@@ -150,7 +150,7 @@ public class CloudEventsMapperTest {
   @Test
   public void failedMapping() {
     ExternalMessage incorrectMessage = ExternalMessageFactory.newExternalMessageBuilder(
-            Map.of(ExternalMessage.CONTENT_TYPE_HEADER, cloudEventsContentType))
+            Map.of(ExternalMessage.CONTENT_TYPE_HEADER, CE_CONTENT_TYPE))
         .withText(data).build();
     assertThrows(MessageMappingFailedException.class, () -> underTest.map(incorrectMessage));
   }
@@ -166,7 +166,7 @@ public class CloudEventsMapperTest {
 
   private ExternalMessage textMessageBuilder(String textPayload) {
     ExternalMessage message = ExternalMessageFactory.newExternalMessageBuilder(
-            Map.of(ExternalMessage.CONTENT_TYPE_HEADER, cloudEventsContentType))
+            Map.of(ExternalMessage.CONTENT_TYPE_HEADER, CE_CONTENT_TYPE))
         .withText(textPayload).build();
     return message;
   }
@@ -177,7 +177,7 @@ public class CloudEventsMapperTest {
       put("ce-id", "test-id");
       put("ce-type", "incoming-cloudevent");
       put("ce-source", "generic-event-producer");
-      put(ExternalMessage.CONTENT_TYPE_HEADER, cloudEventsContentType);
+      put(ExternalMessage.CONTENT_TYPE_HEADER, CE_CONTENT_TYPE);
     }};
     ExternalMessage message = ExternalMessageFactory.newExternalMessageBuilder(headers)
         .withText(payload).build();
