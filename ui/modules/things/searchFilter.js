@@ -48,9 +48,11 @@ export async function ready() {
   Utils.getAllElementsById(dom);
 
   dom.filterList.addEventListener('click', (event) => {
-    dom.searchFilterEdit.value = event.target.textContent;
-    checkIfFavourite();
-    Things.searchThings(event.target.textContent);
+    if (event.target && event.target.classList.contains('dropdown-item')) {
+      dom.searchFilterEdit.value = event.target.textContent;
+      checkIfFavourite();
+      Things.searchThings(event.target.textContent);
+    }
   });
 
   dom.searchThings.onclick = () => {
@@ -93,8 +95,6 @@ function onEnvironmentChanged() {
     Environments.current().pinnedThings = [];
   }
   updateFilterList();
-
-  dom.searchFilterEdit.focus();
 }
 
 /**

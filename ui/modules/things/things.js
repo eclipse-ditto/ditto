@@ -68,6 +68,8 @@ export async function ready() {
   loadThingTemplates();
 
   dom.ulThingDefinitions.addEventListener('click', (event) => {
+    setTheThing(null);
+    Utils.tableAdjustSelection(dom.thingsTableBody, () => false);
     dom.inputThingDefinition.value = event.target.textContent;
     thingJsonEditor.setValue(JSON.stringify(thingTemplates[event.target.textContent], null, 2), -1);
   });
@@ -357,10 +359,11 @@ function onTabActivated() {
     refreshView();
     viewDirty = false;
   }
+  dom.searchFilterEdit.focus();
 }
 
 function onEnvironmentChanged(modifiedField) {
-  if (!['pinnedThings', 'filterList'].includes(modifiedField)) {
+  if (!['pinnedThings', 'filterList', 'messageTemplates'].includes(modifiedField)) {
     if (dom.collapseThings.classList.contains('show')) {
       refreshView();
     } else {
