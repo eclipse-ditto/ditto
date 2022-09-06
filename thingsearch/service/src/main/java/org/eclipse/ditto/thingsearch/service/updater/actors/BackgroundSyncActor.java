@@ -27,7 +27,9 @@ import org.eclipse.ditto.internal.utils.health.AbstractBackgroundStreamingActorW
 import org.eclipse.ditto.internal.utils.health.StatusDetailMessage;
 import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.internal.utils.metrics.instruments.counter.Counter;
+import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonObjectBuilder;
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.things.model.ThingConstants;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.thingsearch.api.UpdateReason;
@@ -64,6 +66,7 @@ public final class BackgroundSyncActor
     private static final String FORCE_UPDATE_HEADER = "force-update";
     private static final String INVALIDATE_THING_HEADER = "invalidate-thing";
     private static final String INVALIDATE_POLICY_HEADER = "invalidate-policy";
+    private static final String NAMESPACES_FILTER_HEADER = "namespaces";
 
     private final ThingsMetadataSource thingsMetadataSource;
     private final ThingsSearchPersistence thingsSearchPersistence;
@@ -77,9 +80,10 @@ public final class BackgroundSyncActor
     private ThingId progressPersisted = EMPTY_THING_ID;
     private ThingId progressIndexed = EMPTY_THING_ID;
 
-    private boolean forceUpdateAllThings = false;
+    private boolean forceUpdateThings = false;
     private boolean forceInvalidateThing = false;
     private boolean forceInvalidatePolicy = false;
+    private List<String> namespacesFilter = List.of();
 
     @SuppressWarnings("unused")
     private BackgroundSyncActor(final BackgroundSyncConfig backgroundSyncConfig,
@@ -162,9 +166,10 @@ public final class BackgroundSyncActor
         // reset progress for the next round
         progressPersisted = EMPTY_THING_ID;
         progressIndexed = EMPTY_THING_ID;
-        forceUpdateAllThings = false;
+        forceUpdateThings = false;
         forceInvalidateThing = false;
         forceInvalidatePolicy = false;
+        namespacesFilter = List.of();
         doBookmarkThingId("");
     }
 
@@ -172,10 +177,19 @@ public final class BackgroundSyncActor
     protected void shutdownStream(Shutdown shutdown) {
         super.shutdownStream(shutdown);
         // if force-update header is set on shutdown command, force-update all things in the next round
-        forceUpdateAllThings = getOptionalHeader(shutdown.getDittoHeaders(), FORCE_UPDATE_HEADER);
-        if (forceUpdateAllThings) {
-            log.withCorrelationId(shutdown).info("Next sync round will be forced updates for all things!");
+        forceUpdateThings = getOptionalHeader(shutdown.getDittoHeaders(), FORCE_UPDATE_HEADER);
+        if (forceUpdateThings) {
+            namespacesFilter = getOptionalNamespacesFilter(shutdown.getDittoHeaders());
+            log.withCorrelationId(shutdown)
+                    .info("Next sync iteration will force update things of {}.", namespacesFilter.isEmpty() ? "all namespaces" :
+                            "namespace(s): " + String.join(", ", namespacesFilter));
         }
+
+        if (!forceUpdateThings && !getOptionalNamespacesFilter(shutdown.getDittoHeaders()).isEmpty()) {
+            log.withCorrelationId(shutdown)
+                    .info("Namespace filtering can only be used in combination with {}=true.", FORCE_UPDATE_HEADER);
+        }
+
         forceInvalidateThing = getOptionalHeader(shutdown.getDittoHeaders(), INVALIDATE_THING_HEADER);
         forceInvalidatePolicy = getOptionalHeader(shutdown.getDittoHeaders(), INVALIDATE_POLICY_HEADER);
     }
@@ -186,11 +200,18 @@ public final class BackgroundSyncActor
                 .orElse(false);
     }
 
+    private List<String> getOptionalNamespacesFilter(final DittoHeaders dittoHeaders) {
+        return Optional.ofNullable(dittoHeaders.get(NAMESPACES_FILTER_HEADER))
+                .map(JsonArray::of)
+                .map(a -> a.stream().filter(JsonValue::isString).map(JsonValue::asString).toList())
+                .orElse(List.of());
+    }
+
     @Override
     protected Source<?, ?> getSource() {
         return getLowerBoundSource()
-                .flatMapConcat(this::streamMetadataFromLowerBound)
-                .wireTap(handleInconsistency(forceUpdateAllThings, forceInvalidateThing, forceInvalidatePolicy));
+                .flatMapConcat(lowerBound -> streamMetadataFromLowerBound(lowerBound, namespacesFilter))
+                .wireTap(handleInconsistency(forceUpdateThings, forceInvalidateThing, forceInvalidatePolicy));
     }
 
     @Override
@@ -211,13 +232,15 @@ public final class BackgroundSyncActor
         return level;
     }
 
-    private Source<Metadata, NotUsed> streamMetadataFromLowerBound(final ThingId lowerBound) {
-        final Source<Metadata, NotUsed> persistedMetadata = getPersistedMetadataSourceWithProgressReporting(lowerBound)
-                .wireTap(x -> streamedSnapshots.increment());
+    private Source<Metadata, NotUsed> streamMetadataFromLowerBound(final ThingId lowerBound,
+            final List<String> namespacesFilter) {
+        final Source<Metadata, NotUsed> persistedMetadata =
+                getPersistedMetadataSourceWithProgressReporting(lowerBound, namespacesFilter)
+                        .wireTap(x -> streamedSnapshots.increment());
         final Source<Metadata, NotUsed> indexedMetadata = getIndexedMetadataSource(lowerBound)
                 .wireTap(x -> scannedIndexDocs.increment());
 
-        if (forceUpdateAllThings) {
+        if (forceUpdateThings) {
             return persistedMetadata;
         } else {
             return backgroundSyncStream.filterForInconsistencies(persistedMetadata, indexedMetadata);
@@ -269,7 +292,7 @@ public final class BackgroundSyncActor
     }
 
     private Source<ThingId, NotUsed> getLowerBoundSource() {
-        if (forceUpdateAllThings) {
+        if (forceUpdateThings) {
             return Source.single(EMPTY_THING_ID);
         } else {
             return backgroundSyncPersistence.getTaggedTimestamp()
@@ -284,10 +307,11 @@ public final class BackgroundSyncActor
         }
     }
 
-    private Source<Metadata, NotUsed> getPersistedMetadataSourceWithProgressReporting(final ThingId lowerBound) {
-        return wrapAsResumeSource(lowerBound, thingsMetadataSource::createSource)
-                .wireTap(persisted ->
-                        getSelf().tell(new ProgressReport(persisted.getThingId(), true), ActorRef.noSender()));
+    private Source<Metadata, NotUsed> getPersistedMetadataSourceWithProgressReporting(final ThingId lowerBound,
+            final List<String> namespacesFilter) {
+        return wrapAsResumeSource(lowerBound, lb -> thingsMetadataSource.createSource(lb, namespacesFilter))
+                .wireTap(persisted -> getSelf().tell(new ProgressReport(persisted.getThingId(), true),
+                        ActorRef.noSender()));
     }
 
     private Source<Metadata, NotUsed> getIndexedMetadataSource(final ThingId lowerBound) {
@@ -318,16 +342,7 @@ public final class BackgroundSyncActor
         }
     }
 
-    private static final class ProgressReport {
-
-        private final ThingId thingId;
-        private final boolean persisted;
-
-        private ProgressReport(final ThingId thingId, final boolean persisted) {
-            this.thingId = thingId;
-            this.persisted = persisted;
-        }
-    }
+    private record ProgressReport(ThingId thingId, boolean persisted) {}
 
     private enum Control {
         BOOKMARK_THING_ID

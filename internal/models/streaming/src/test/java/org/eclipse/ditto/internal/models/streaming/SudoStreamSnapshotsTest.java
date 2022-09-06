@@ -13,6 +13,7 @@
 package org.eclipse.ditto.internal.models.streaming;
 
 import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;
+import static org.mutabilitydetector.unittesting.AllowedReason.assumingFields;
 import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
@@ -41,7 +42,8 @@ public final class SudoStreamSnapshotsTest {
     @Test
     public void assertImmutability() {
         assertInstancesOf(SudoStreamSnapshots.class, areImmutable(),
-                provided(EntityId.class, JsonArray.class).areAlsoImmutable());
+                provided(EntityId.class, JsonArray.class).areAlsoImmutable(),
+                assumingFields("namespaces").areSafelyCopiedUnmodifiableCollectionsWithImmutableElements());
     }
 
     @Test
