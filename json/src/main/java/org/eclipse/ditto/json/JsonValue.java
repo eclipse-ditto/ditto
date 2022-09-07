@@ -65,7 +65,7 @@ public interface JsonValue {
      * @param value the value to get a JSON number for.
      * @return a JSON number that represents the given value.
      */
-    static JsonValue of(final int value) {
+    static JsonNumber of(final int value) {
         return JsonFactory.newValue(value);
     }
 
@@ -75,7 +75,7 @@ public interface JsonValue {
      * @param value the value to get a JSON number for.
      * @return a JSON number that represents the given value.
      */
-    static JsonValue of(final long value) {
+    static JsonNumber of(final long value) {
         return JsonFactory.newValue(value);
     }
 
@@ -85,7 +85,7 @@ public interface JsonValue {
      * @param value the value to get a JSON number for.
      * @return a JSON number that represents the given value.
      */
-    static JsonValue of(final double value) {
+    static JsonNumber of(final double value) {
         return JsonFactory.newValue(value);
     }
 

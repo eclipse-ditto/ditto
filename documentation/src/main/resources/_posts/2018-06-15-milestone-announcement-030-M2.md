@@ -15,7 +15,7 @@ Today we, the Eclipse Ditto team, are happy to announce our next milestone 0.3.0
 The main changes are 
 
 * improvement of Ditto's cluster performance with many managed Things
-    * a new Ditto service [ditto-concierge](architecture-services-concierge.html) was added for this
+    * a new Ditto service "ditto-concierge" was added for this
 * improved cluster bootstrapping based on DNS with the potential to easy plugin other mechanism (e.g. for Kubernetes)
 
 Have a look at the Milestone [0.3.0-M2 release notes](release_notes_030-M2.html) for a detailed description of what 

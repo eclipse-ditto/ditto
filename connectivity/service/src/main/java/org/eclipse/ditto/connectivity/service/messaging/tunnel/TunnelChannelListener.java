@@ -98,9 +98,8 @@ final class TunnelChannelListener implements ChannelListener {
         // attach a listener to the open future, otherwise we have no access to the exception that caused the opening
         // to fail (e.g. channelOpenFailure is not called with an exception)
         if (channel instanceof TcpipClientChannel tcpipClientChannel) {
-            final OpenFuture openFuture;
             try {
-                openFuture = tcpipClientChannel.open();
+                final OpenFuture openFuture = tcpipClientChannel.open();
                 if (openFuture != null) {
                     tcpipClientChannel.open()
                             .addListener(future -> {

@@ -120,7 +120,7 @@ public final class JsonFactory {
      * @param value the value to get a JSON number for.
      * @return a JSON number that represents the given value.
      */
-    public static JsonValue newValue(final int value) {
+    public static JsonNumber newValue(final int value) {
         return ImmutableJsonInt.of(value);
     }
 
@@ -130,7 +130,7 @@ public final class JsonFactory {
      * @param value the value to get a JSON number for.
      * @return a JSON number that represents the given value.
      */
-    public static JsonValue newValue(final long value) {
+    public static JsonNumber newValue(final long value) {
         return ImmutableJsonLong.of(value);
     }
 
@@ -140,7 +140,7 @@ public final class JsonFactory {
      * @param value the value to get a JSON number for.
      * @return a JSON number that represents the given value.
      */
-    public static JsonValue newValue(final double value) {
+    public static JsonNumber newValue(final double value) {
         return ImmutableJsonDouble.of(value);
     }
 

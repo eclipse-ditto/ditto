@@ -141,18 +141,6 @@ public interface Source extends Jsonifiable.WithFieldSelectorAndPredicate<JsonFi
     final class JsonFields {
 
         /**
-         * JSON field containing the {@code JsonSchemaVersion}.
-         *
-         * @deprecated as of 2.3.0 this field definition is not used anymore.
-         */
-        @Deprecated
-        public static final JsonFieldDefinition<Integer> SCHEMA_VERSION =
-                JsonFactory.newIntFieldDefinition(JsonSchemaVersion.getJsonKey(),
-                        FieldType.SPECIAL,
-                        FieldType.HIDDEN,
-                        JsonSchemaVersion.V_2);
-
-        /**
          * JSON field containing the {@code Source} addresses.
          */
         public static final JsonFieldDefinition<JsonArray> ADDRESSES =

@@ -13,7 +13,7 @@ short_title: Eclipse Ditto™ • a digital twin framework
 company_name: Eclipse Ditto™
 # this appears in the footer
 
-github_editme_path:
+github_editme_path: eclipse/ditto/edit/master/documentation/src/main/resources/
 # if you're using Github, provide the basepath to the branch you've created for reviews, following the sample here. if not, leave this value blank.
 
 google_analytics: GTM-5WLCZXC
@@ -114,6 +114,8 @@ plugins:
 docVersions:
   - label: "development"
     basePath: ""
+  - label: "3.0"
+    basePath: "3.0"
   - label: "2.4"
     basePath: "2.4"
   - label: "2.3"

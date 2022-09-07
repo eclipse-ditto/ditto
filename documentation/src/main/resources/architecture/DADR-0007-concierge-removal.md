@@ -11,7 +11,7 @@ accepted
 ## Context
 
 An idea the Ditto committers came up with in order to simplify the architecture (amongst many other benefits) is to 
-"get rid of" the [Ditto concierge service](https://websites.eclipseprojects.io/ditto/architecture-services-concierge.html) in Ditto's
+"get rid of" the "Ditto concierge service" in Ditto's
 architecture and move the authorization tasks (it currently is responsible for) to other existing Ditto services.
 
 Some backgrounds on why this change came under discussion:
@@ -57,7 +57,7 @@ Additional benefits depending on where the authorization / policy enforcement is
 
 ## Decision
 
-The [concierge service](https://websites.eclipseprojects.io/ditto/architecture-services-concierge.html) will be removed from Ditto 3.0.
+The "concierge service" will be removed from Ditto 3.0.
 
 Instead of doing the authorization / policy enforcement in concierge, this logic is moved to the entity services (policies/things).
 

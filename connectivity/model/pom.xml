@@ -125,6 +125,20 @@
                         <excludes>
                             <!-- Don't add excludes here before checking with the whole Ditto team -->
                             <!--<exclude></exclude>-->
+                            <exclude>org.eclipse.ditto.connectivity.model.AddressMetric$JsonFields</exclude>
+                            <exclude>org.eclipse.ditto.connectivity.model.Connection#getUsername()</exclude>
+                            <exclude>org.eclipse.ditto.connectivity.model.Connection#getPassword()</exclude>
+                            <exclude>org.eclipse.ditto.connectivity.model.Connection$JsonFields#SCHEMA_VERSION</exclude>
+                            <exclude>org.eclipse.ditto.connectivity.model.ConnectivityModelFactory#newClientStatus(java.lang.String,org.eclipse.ditto.connectivity.model.ConnectivityStatus,java.lang.String,java.time.Instant)</exclude>
+                            <exclude>org.eclipse.ditto.connectivity.model.LogEntry#getThingId()</exclude>
+                            <exclude>org.eclipse.ditto.connectivity.model.LogEntry$JsonFields#THING_ID</exclude>
+                            <exclude>org.eclipse.ditto.connectivity.model.LogEntryBuilder#thingId(org.eclipse.ditto.things.model.ThingId)</exclude>
+                            <exclude>org.eclipse.ditto.connectivity.model.ResourceStatus$JsonFields#SCHEMA_VERSION</exclude>
+                            <exclude>org.eclipse.ditto.connectivity.model.Source$JsonFields#SCHEMA_VERSION</exclude>
+                            <exclude>org.eclipse.ditto.connectivity.model.SourceMetrics$JsonFields#SCHEMA_VERSION</exclude>
+                            <exclude>org.eclipse.ditto.connectivity.model.SshTunnel$JsonFields#SCHEMA_VERSION</exclude>
+                            <exclude>org.eclipse.ditto.connectivity.model.Target$JsonFields#SCHEMA_VERSION</exclude>
+                            <exclude>org.eclipse.ditto.connectivity.model.TargetMetrics$JsonFields#SCHEMA_VERSION</exclude>
                         </excludes>
                     </parameter>
                 </configuration>

@@ -40,16 +40,24 @@ layout: default
 
 
     {% if site.github_editme_path %}
+    {% if page.url contains "index.html" or page.url contains "blog.html" or page.url contains "blog_archive.html" %}
+      <!-- add nothing -->
+    {% else %}
 
-    <a target="_blank" href="https://github.com/{{site.github_editme_path}}{% unless page.url contains "index.html" %}pages/{% endunless %}{{page.folder}}{{page.url | remove: ".html" | append: ".md"}}" class="btn btn-default githubEditButton" role="button"><i class="fa fa-github fa-lg"></i> Edit me</a>
+    <a target="_blank" href="https://github.com/{{site.github_editme_path}}pages/ditto{{page.folder}}{{page.url | remove: ".html" | append: ".md"}}" class="btn btn-default githubEditButton" role="button"><i class="fa fa-github fa-lg"></i> Edit this page</a>
 
+    {% endif %}
     {% endif %}
 
 
     {% if site.gitlab_editme_path %}
+    {% if page.url contains "index.html" or page.url contains "blog.html" or page.url contains "blog_archive.html" %}
+    <!-- add nothing -->
+    {% else %}
 
-    <a target="_blank" href="https://github.com/{{site.gitlab_editme_path}}{% unless page.url contains "index.html" %}pages/{% endunless %}{{page.folder}}{{page.url | remove: ".html" | append: ".md"}}" class="btn btn-default githubEditButton" role="button"><i class="fa fa-gitlab fa-lg"></i> Edit me</a>
+    <a target="_blank" href="https://github.com/{{site.gitlab_editme_path}}pages/ditto{{page.folder}}{{page.url | remove: ".html" | append: ".md"}}" class="btn btn-default githubEditButton" role="button"><i class="fa fa-gitlab fa-lg"></i> Edit this page</a>
 
+    {% endif %}
     {% endif %}
 
   {{content}}

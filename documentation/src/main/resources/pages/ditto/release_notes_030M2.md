@@ -18,7 +18,7 @@ With 0.3.0-M1 Ditto had a performance issue when managing more than ~100.000 Thi
 distributed cluster cache which was not intended to be used in that way. Over time, as cache entries could not be deleted
 from this cache, a Ditto cluster got slower and slower.
 
-This is fixed now in 0.3.0-M2 by introducing a new Ditto service: [ditto-concierge](architecture-services-concierge.html)
+This is fixed now in 0.3.0-M2 by introducing a new Ditto service: "ditto-concierge"
 which is also shown in the [architecture overview](architecture-overview.html).
 
 This is the biggest change in this milestone and required a lot of refactoring effort. Kudos to our two
