@@ -370,204 +370,204 @@
    * Maven sources: https://search.maven.org/remotecontent?filepath=com/typesafe/ssl-config-core_2.13/0.6.1/ssl-config-core_2.13-0.6.1-sources.jar
 
 
-## akka-actor (2.6.19)
+## akka-actor (2.6.20)
 
-* Maven coordinates: `com.typesafe.akka:akka-actor_2.13:2.6.19`
+* Maven coordinates: `com.typesafe.akka:akka-actor_2.13:2.6.20`
 * License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
 * Project: https://akka.io/
 * Sources: 
    * declared as SCM: https://github.com/akka/akka
-   * Maven sources: https://search.maven.org/remotecontent?filepath=com/typesafe/akka/akka-actor_2.13/2.6.19/akka-actor_2.13-2.6.19-sources.jar
+   * Maven sources: https://search.maven.org/remotecontent?filepath=com/typesafe/akka/akka-actor_2.13/2.6.20/akka-actor_2.13-2.6.20-sources.jar
 
 
-## akka-cluster-sharding (2.6.19)
+## akka-cluster-sharding (2.6.20)
 
-* Maven coordinates: `com.typesafe.akka:akka-cluster-sharding_2.13:2.6.19`
+* Maven coordinates: `com.typesafe.akka:akka-cluster-sharding_2.13:2.6.20`
 * License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
 * Project: https://akka.io/
 * Sources: 
    * declared as SCM: https://github.com/akka/akka
-   * Maven sources: https://search.maven.org/remotecontent?filepath=com/typesafe/akka/akka-cluster-sharding_2.13/2.6.19/akka-cluster-sharding_2.13-2.6.19-sources.jar
+   * Maven sources: https://search.maven.org/remotecontent?filepath=com/typesafe/akka/akka-cluster-sharding_2.13/2.6.20/akka-cluster-sharding_2.13-2.6.20-sources.jar
 
 
-## akka-cluster-tools (2.6.19)
+## akka-cluster-tools (2.6.20)
 
-* Maven coordinates: `com.typesafe.akka:akka-cluster-tools_2.13:2.6.19`
+* Maven coordinates: `com.typesafe.akka:akka-cluster-tools_2.13:2.6.20`
 * License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
 * Project: https://akka.io/
 * Sources: 
    * declared as SCM: https://github.com/akka/akka
-   * Maven sources: https://search.maven.org/remotecontent?filepath=com/typesafe/akka/akka-cluster-tools_2.13/2.6.19/akka-cluster-tools_2.13-2.6.19-sources.jar
+   * Maven sources: https://search.maven.org/remotecontent?filepath=com/typesafe/akka/akka-cluster-tools_2.13/2.6.20/akka-cluster-tools_2.13-2.6.20-sources.jar
 
 
-## akka-cluster (2.6.19)
+## akka-cluster (2.6.20)
 
-* Maven coordinates: `com.typesafe.akka:akka-cluster_2.13:2.6.19`
+* Maven coordinates: `com.typesafe.akka:akka-cluster_2.13:2.6.20`
 * License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
 * Project: https://akka.io/
 * Sources: 
    * declared as SCM: https://github.com/akka/akka
-   * Maven sources: https://search.maven.org/remotecontent?filepath=com/typesafe/akka/akka-cluster_2.13/2.6.19/akka-cluster_2.13-2.6.19-sources.jar
+   * Maven sources: https://search.maven.org/remotecontent?filepath=com/typesafe/akka/akka-cluster_2.13/2.6.20/akka-cluster_2.13-2.6.20-sources.jar
 
 
-## akka-coordination (2.6.19)
+## akka-coordination (2.6.20)
 
-* Maven coordinates: `com.typesafe.akka:akka-coordination_2.13:2.6.19`
+* Maven coordinates: `com.typesafe.akka:akka-coordination_2.13:2.6.20`
 * License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
 * Project: https://akka.io/
 * Sources: 
    * declared as SCM: https://github.com/akka/akka
-   * Maven sources: https://search.maven.org/remotecontent?filepath=com/typesafe/akka/akka-coordination_2.13/2.6.19/akka-coordination_2.13-2.6.19-sources.jar
+   * Maven sources: https://search.maven.org/remotecontent?filepath=com/typesafe/akka/akka-coordination_2.13/2.6.20/akka-coordination_2.13-2.6.20-sources.jar
 
 
-## akka-discovery (2.6.19)
+## akka-discovery (2.6.20)
 
-* Maven coordinates: `com.typesafe.akka:akka-discovery_2.13:2.6.19`
+* Maven coordinates: `com.typesafe.akka:akka-discovery_2.13:2.6.20`
 * License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
 * Project: https://akka.io/
 * Sources: 
    * declared as SCM: https://github.com/akka/akka
-   * Maven sources: https://search.maven.org/remotecontent?filepath=com/typesafe/akka/akka-discovery_2.13/2.6.19/akka-discovery_2.13-2.6.19-sources.jar
+   * Maven sources: https://search.maven.org/remotecontent?filepath=com/typesafe/akka/akka-discovery_2.13/2.6.20/akka-discovery_2.13-2.6.20-sources.jar
 
 
-## akka-distributed-data (2.6.19)
+## akka-distributed-data (2.6.20)
 
-* Maven coordinates: `com.typesafe.akka:akka-distributed-data_2.13:2.6.19`
+* Maven coordinates: `com.typesafe.akka:akka-distributed-data_2.13:2.6.20`
 * License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
 * Project: https://akka.io/
 * Sources: 
    * declared as SCM: https://github.com/akka/akka
-   * Maven sources: https://search.maven.org/remotecontent?filepath=com/typesafe/akka/akka-distributed-data_2.13/2.6.19/akka-distributed-data_2.13-2.6.19-sources.jar
+   * Maven sources: https://search.maven.org/remotecontent?filepath=com/typesafe/akka/akka-distributed-data_2.13/2.6.20/akka-distributed-data_2.13-2.6.20-sources.jar
 
 
-## akka-http-core (10.2.9)
+## akka-http-core (10.2.10)
 
-* Maven coordinates: `com.typesafe.akka:akka-http-core_2.13:10.2.9`
+* Maven coordinates: `com.typesafe.akka:akka-http-core_2.13:10.2.10`
 * License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
 * Project: https://akka.io
 * Sources: 
    * declared as SCM: https://github.com/akka/akka-http
-   * Maven sources: https://search.maven.org/remotecontent?filepath=com/typesafe/akka/akka-http-core_2.13/10.2.9/akka-http-core_2.13-10.2.9-sources.jar
+   * Maven sources: https://search.maven.org/remotecontent?filepath=com/typesafe/akka/akka-http-core_2.13/10.2.10/akka-http-core_2.13-10.2.10-sources.jar
 
 
-## akka-http-spray-json (10.2.9)
+## akka-http-spray-json (10.2.10)
 
-* Maven coordinates: `com.typesafe.akka:akka-http-spray-json_2.13:10.2.9`
+* Maven coordinates: `com.typesafe.akka:akka-http-spray-json_2.13:10.2.10`
 * License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
 * Project: https://akka.io
 * Sources: 
    * declared as SCM: https://github.com/akka/akka-http
-   * Maven sources: https://search.maven.org/remotecontent?filepath=com/typesafe/akka/akka-http-spray-json_2.13/10.2.9/akka-http-spray-json_2.13-10.2.9-sources.jar
+   * Maven sources: https://search.maven.org/remotecontent?filepath=com/typesafe/akka/akka-http-spray-json_2.13/10.2.10/akka-http-spray-json_2.13-10.2.10-sources.jar
 
 
-## akka-http (10.2.9)
+## akka-http (10.2.10)
 
-* Maven coordinates: `com.typesafe.akka:akka-http_2.13:10.2.9`
+* Maven coordinates: `com.typesafe.akka:akka-http_2.13:10.2.10`
 * License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
 * Project: https://akka.io
 * Sources: 
    * declared as SCM: https://github.com/akka/akka-http
-   * Maven sources: https://search.maven.org/remotecontent?filepath=com/typesafe/akka/akka-http_2.13/10.2.9/akka-http_2.13-10.2.9-sources.jar
+   * Maven sources: https://search.maven.org/remotecontent?filepath=com/typesafe/akka/akka-http_2.13/10.2.10/akka-http_2.13-10.2.10-sources.jar
 
 
-## akka-parsing (10.2.9)
+## akka-parsing (10.2.10)
 
-* Maven coordinates: `com.typesafe.akka:akka-parsing_2.13:10.2.9`
+* Maven coordinates: `com.typesafe.akka:akka-parsing_2.13:10.2.10`
 * License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
 * Project: https://akka.io
 * Sources: 
    * declared as SCM: https://github.com/akka/akka-http
-   * Maven sources: https://search.maven.org/remotecontent?filepath=com/typesafe/akka/akka-parsing_2.13/10.2.9/akka-parsing_2.13-10.2.9-sources.jar
+   * Maven sources: https://search.maven.org/remotecontent?filepath=com/typesafe/akka/akka-parsing_2.13/10.2.10/akka-parsing_2.13-10.2.10-sources.jar
 
 
-## akka-persistence-query (2.6.19)
+## akka-persistence-query (2.6.20)
 
-* Maven coordinates: `com.typesafe.akka:akka-persistence-query_2.13:2.6.19`
+* Maven coordinates: `com.typesafe.akka:akka-persistence-query_2.13:2.6.20`
 * License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
 * Project: https://akka.io/
 * Sources: 
    * declared as SCM: https://github.com/akka/akka
-   * Maven sources: https://search.maven.org/remotecontent?filepath=com/typesafe/akka/akka-persistence-query_2.13/2.6.19/akka-persistence-query_2.13-2.6.19-sources.jar
+   * Maven sources: https://search.maven.org/remotecontent?filepath=com/typesafe/akka/akka-persistence-query_2.13/2.6.20/akka-persistence-query_2.13-2.6.20-sources.jar
 
 
-## akka-persistence (2.6.19)
+## akka-persistence (2.6.20)
 
-* Maven coordinates: `com.typesafe.akka:akka-persistence_2.13:2.6.19`
+* Maven coordinates: `com.typesafe.akka:akka-persistence_2.13:2.6.20`
 * License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
 * Project: https://akka.io/
 * Sources: 
    * declared as SCM: https://github.com/akka/akka
-   * Maven sources: https://search.maven.org/remotecontent?filepath=com/typesafe/akka/akka-persistence_2.13/2.6.19/akka-persistence_2.13-2.6.19-sources.jar
+   * Maven sources: https://search.maven.org/remotecontent?filepath=com/typesafe/akka/akka-persistence_2.13/2.6.20/akka-persistence_2.13-2.6.20-sources.jar
 
 
-## akka-pki (2.6.19)
+## akka-pki (2.6.20)
 
-* Maven coordinates: `com.typesafe.akka:akka-pki_2.13:2.6.19`
+* Maven coordinates: `com.typesafe.akka:akka-pki_2.13:2.6.20`
 * License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
 * Project: https://akka.io/
 * Sources: 
    * declared as SCM: https://github.com/akka/akka
-   * Maven sources: https://search.maven.org/remotecontent?filepath=com/typesafe/akka/akka-pki_2.13/2.6.19/akka-pki_2.13-2.6.19-sources.jar
+   * Maven sources: https://search.maven.org/remotecontent?filepath=com/typesafe/akka/akka-pki_2.13/2.6.20/akka-pki_2.13-2.6.20-sources.jar
 
 
-## akka-protobuf-v3 (2.6.19)
+## akka-protobuf-v3 (2.6.20)
 
-* Maven coordinates: `com.typesafe.akka:akka-protobuf-v3_2.13:2.6.19`
+* Maven coordinates: `com.typesafe.akka:akka-protobuf-v3_2.13:2.6.20`
 * License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
 * Project: https://akka.io/
 * Sources: 
    * declared as SCM: https://github.com/akka/akka
-   * Maven sources: https://search.maven.org/remotecontent?filepath=com/typesafe/akka/akka-protobuf-v3_2.13/2.6.19/akka-protobuf-v3_2.13-2.6.19-sources.jar
+   * Maven sources: https://search.maven.org/remotecontent?filepath=com/typesafe/akka/akka-protobuf-v3_2.13/2.6.20/akka-protobuf-v3_2.13-2.6.20-sources.jar
 
 
-## akka-remote (2.6.19)
+## akka-remote (2.6.20)
 
-* Maven coordinates: `com.typesafe.akka:akka-remote_2.13:2.6.19`
+* Maven coordinates: `com.typesafe.akka:akka-remote_2.13:2.6.20`
 * License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
 * Project: https://akka.io/
 * Sources: 
    * declared as SCM: https://github.com/akka/akka
-   * Maven sources: https://search.maven.org/remotecontent?filepath=com/typesafe/akka/akka-remote_2.13/2.6.19/akka-remote_2.13-2.6.19-sources.jar
+   * Maven sources: https://search.maven.org/remotecontent?filepath=com/typesafe/akka/akka-remote_2.13/2.6.20/akka-remote_2.13-2.6.20-sources.jar
 
 
-## akka-serialization-jackson (2.6.19)
+## akka-serialization-jackson (2.6.20)
 
-* Maven coordinates: `com.typesafe.akka:akka-serialization-jackson_2.13:2.6.19`
+* Maven coordinates: `com.typesafe.akka:akka-serialization-jackson_2.13:2.6.20`
 * License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
 * Project: https://akka.io/
 * Sources: 
    * declared as SCM: https://github.com/akka/akka
-   * Maven sources: https://search.maven.org/remotecontent?filepath=com/typesafe/akka/akka-serialization-jackson_2.13/2.6.19/akka-serialization-jackson_2.13-2.6.19-sources.jar
+   * Maven sources: https://search.maven.org/remotecontent?filepath=com/typesafe/akka/akka-serialization-jackson_2.13/2.6.20/akka-serialization-jackson_2.13-2.6.20-sources.jar
 
 
-## akka-slf4j (2.6.19)
+## akka-slf4j (2.6.20)
 
-* Maven coordinates: `com.typesafe.akka:akka-slf4j_2.13:2.6.19`
+* Maven coordinates: `com.typesafe.akka:akka-slf4j_2.13:2.6.20`
 * License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
 * Project: https://akka.io/
 * Sources: 
    * declared as SCM: https://github.com/akka/akka
-   * Maven sources: https://search.maven.org/remotecontent?filepath=com/typesafe/akka/akka-slf4j_2.13/2.6.19/akka-slf4j_2.13-2.6.19-sources.jar
+   * Maven sources: https://search.maven.org/remotecontent?filepath=com/typesafe/akka/akka-slf4j_2.13/2.6.20/akka-slf4j_2.13-2.6.20-sources.jar
 
 
-## akka-stream-kafka (3.0.0)
+## akka-stream-kafka (3.0.1)
 
-* Maven coordinates: `com.typesafe.akka:akka-stream-kafka_2.13:3.0.0`
+* Maven coordinates: `com.typesafe.akka:akka-stream-kafka_2.13:3.0.1`
 * License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
 * Project: https://doc.akka.io/docs/alpakka-kafka/current
 * Sources: 
    * declared as SCM: https://github.com/akka/alpakka-kafka
-   * Maven sources: https://search.maven.org/remotecontent?filepath=com/typesafe/akka/akka-stream-kafka_2.13/3.0.0/akka-stream-kafka_2.13-3.0.0-sources.jar
+   * Maven sources: https://search.maven.org/remotecontent?filepath=com/typesafe/akka/akka-stream-kafka_2.13/3.0.1/akka-stream-kafka_2.13-3.0.1-sources.jar
 
 
-## akka-stream (2.6.19)
+## akka-stream (2.6.20)
 
-* Maven coordinates: `com.typesafe.akka:akka-stream_2.13:2.6.19`
+* Maven coordinates: `com.typesafe.akka:akka-stream_2.13:2.6.20`
 * License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
 * Project: https://akka.io/
 * Sources: 
    * declared as SCM: https://github.com/akka/akka
-   * Maven sources: https://search.maven.org/remotecontent?filepath=com/typesafe/akka/akka-stream_2.13/2.6.19/akka-stream_2.13-2.6.19-sources.jar
+   * Maven sources: https://search.maven.org/remotecontent?filepath=com/typesafe/akka/akka-stream_2.13/2.6.20/akka-stream_2.13-2.6.20-sources.jar
 
 
 ## Apache Commons Net (3.8.0)
@@ -990,14 +990,14 @@
    * Maven sources: https://search.maven.org/remotecontent?filepath=nl/grons/metrics4-scala_2.13/4.1.19/metrics4-scala_2.13-4.1.19-sources.jar
 
 
-## agrona (1.14.0)
+## agrona (1.15.1)
 
-* Maven coordinates: `org.agrona:agrona:1.14.0`
+* Maven coordinates: `org.agrona:agrona:1.15.1`
 * License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
 * Project: https://github.com/real-logic/agrona
 * Sources: 
    * declared as SCM: https://github.com/real-logic/agrona
-   * Maven sources: https://search.maven.org/remotecontent?filepath=org/agrona/agrona/1.14.0/agrona-1.14.0-sources.jar
+   * Maven sources: https://search.maven.org/remotecontent?filepath=org/agrona/agrona/1.15.1/agrona-1.15.1-sources.jar
 
 
 ## Apache Kafka (3.0.1)
