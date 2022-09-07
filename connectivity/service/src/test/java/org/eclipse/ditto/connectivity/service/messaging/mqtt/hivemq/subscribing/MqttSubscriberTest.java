@@ -125,7 +125,7 @@ public final class MqttSubscriberTest {
     public void subscribeForConnectionSourcesWhenAllSubscriptionsSuccessfulReturnsExpectedSource() {
         final var genericMqttSubAck = Mockito.mock(GenericMqttSubAck.class);
         Mockito.when(genericMqttClient.subscribePublishesWithManualAcknowledgement(Mockito.any()))
-                .thenReturn(new MockFlowableWithSingle<>(Collections.emptyList(), genericMqttSubAck, null));
+                .thenReturn(new MockFlowableWithSingle<>(Collections.emptyList(), genericMqttSubAck, null, false));
         final var mqttQos = MqttQos.AT_LEAST_ONCE;
         final var connectionSource1 = mockConnectionSource(Set.of("foo", "bar"), mqttQos);
         final var connectionSource2 = mockConnectionSource(Set.of("baz"), mqttQos);
@@ -178,7 +178,8 @@ public final class MqttSubscriberTest {
                 .map(entry -> SubscriptionStatus.newInstance(MqttTopicFilter.of(entry.getKey()), entry.getValue()))
                 .toList());
         Mockito.when(genericMqttClient.subscribePublishesWithManualAcknowledgement(Mockito.any(GenericMqttSubscribe.class)))
-                .thenReturn(new MockFlowableWithSingle<>(Collections.emptyList(), null, someSubscriptionsFailedException));
+                .thenReturn(new MockFlowableWithSingle<>(Collections.emptyList(), null,
+                        someSubscriptionsFailedException, false));
         final var connectionSource = mockConnectionSource(topicSubAckStatuses.keySet(), MqttQos.AT_LEAST_ONCE);
         final var underTest = MqttSubscriber.newInstance(genericMqttClient);
 

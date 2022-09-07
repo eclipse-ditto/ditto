@@ -166,7 +166,7 @@ public final class MqttClientActorTest extends AbstractBaseClientActorTest {
         Mockito.when(genericMqttClient.disconnect()).thenReturn(CompletableFuture.completedFuture(null));
         Mockito.when(genericMqttClient.subscribePublishesWithManualAcknowledgement(Mockito.any()))
                 .thenReturn(new MockFlowableWithSingle<>(Collections.emptyList(),
-                        Mockito.mock(GenericMqttSubAck.class), null));
+                        Mockito.mock(GenericMqttSubAck.class), null, false));
         Mockito.when(genericMqttClient.publish(Mockito.any()))
                 .thenAnswer(invocation -> {
                     final GenericMqttPublish genericMqttPublish = invocation.getArgument(0);
@@ -240,7 +240,7 @@ public final class MqttClientActorTest extends AbstractBaseClientActorTest {
     public void subscribeFails() {
         final var mqttSubscribeException = new MqttSubscribeException("Quisquam omnis in quia hic et libero.", null);
         Mockito.when(genericMqttClient.subscribePublishesWithManualAcknowledgement(Mockito.any()))
-                .thenReturn(new MockFlowableWithSingle<>(Collections.emptyList(), null, mqttSubscribeException));
+                .thenReturn(new MockFlowableWithSingle<>(Collections.emptyList(), null, mqttSubscribeException, false));
         final var underTest = TestActorRef.apply(
                 createClientActor(commandForwarder.ref(),
                         ConnectivityModelFactory.newConnectionBuilder(getConnection(false))
@@ -370,11 +370,13 @@ public final class MqttClientActorTest extends AbstractBaseClientActorTest {
                                     Mqtt5SubAckReasonCode.GRANTED_QOS_1)));
 
                     // This needs to be a side effect, unfortunately.
-                    return new MockFlowableWithSingle<>(
+                    final var a = new MockFlowableWithSingle<>(
                             Stream.of(incomingPublishes)
                                     .filter(incoming -> subscribedMqttTopicFilters.stream()
                                             .anyMatch(topicFilter -> topicFilter.matches(incoming.getTopic())))
-                                    .collect(Collectors.toList()), mock, null);
+                                    .collect(Collectors.toList()), mock, null, false);
+
+                    return a;
                 })
                 .when(genericMqttClient).subscribePublishesWithManualAcknowledgement(Mockito.any());
     }

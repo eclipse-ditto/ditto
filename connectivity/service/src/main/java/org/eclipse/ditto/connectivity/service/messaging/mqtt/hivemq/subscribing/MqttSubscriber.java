@@ -131,7 +131,6 @@ public final class MqttSubscriber {
                 }));
     }
 
-
     private static SubscribeResult getSubscribeFailureResult(
             final org.eclipse.ditto.connectivity.model.Source connectionSource,
             final Throwable failure

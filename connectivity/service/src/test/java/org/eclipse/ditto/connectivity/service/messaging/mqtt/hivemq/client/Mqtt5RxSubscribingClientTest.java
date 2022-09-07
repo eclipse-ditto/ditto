@@ -16,6 +16,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 
 import java.time.Duration;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -26,6 +27,7 @@ import java.util.stream.Collectors;
 
 import org.assertj.core.api.JUnitSoftAssertions;
 import org.eclipse.ditto.base.model.common.ByteBufferUtils;
+import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.MockFlowableWithSingle;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.message.publish.GenericMqttPublish;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.message.subscribe.GenericMqttSubAck;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.message.subscribe.GenericMqttSubAckStatus;
@@ -43,7 +45,6 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 
-import com.hivemq.client.mqtt.MqttGlobalPublishFilter;
 import com.hivemq.client.mqtt.datatypes.MqttQos;
 import com.hivemq.client.mqtt.datatypes.MqttTopic;
 import com.hivemq.client.mqtt.datatypes.MqttTopicFilter;
@@ -62,8 +63,6 @@ import akka.actor.ActorSystem;
 import akka.actor.Status;
 import akka.stream.javadsl.Sink;
 import akka.stream.javadsl.Source;
-import io.reactivex.Flowable;
-import io.reactivex.Single;
 
 /**
  * Unit test for {@link BaseGenericMqttSubscribingClient} for MQTT protocol version 5.
@@ -120,7 +119,9 @@ public final class Mqtt5RxSubscribingClientTest {
     @Test
     public void subscribeCallsHiveMqtt5RxClient() {
         final var mqtt5SubscribeArgumentCaptor = ArgumentCaptor.forClass(Mqtt5Subscribe.class);
-        Mockito.when(mqtt5RxClient.subscribe(mqtt5SubscribeArgumentCaptor.capture())).thenReturn(Single.never());
+        Mockito.when(mqtt5RxClient.subscribePublishes(mqtt5SubscribeArgumentCaptor.capture(), Mockito.eq(true)))
+                .thenReturn(new MockFlowableWithSingle<>(
+                        Collections.emptyList(), null, null, true));
         final var topicFiltersAndQos = new LinkedHashMap<MqttTopicFilter, MqttQos>();
         topicFiltersAndQos.put(MqttTopicFilter.of("source/foo"), MqttQos.AT_LEAST_ONCE);
         topicFiltersAndQos.put(MqttTopicFilter.of("source/bar"), MqttQos.AT_MOST_ONCE);
@@ -149,7 +150,9 @@ public final class Mqtt5RxSubscribingClientTest {
     public void subscribeWhenSubAckHasOnlySuccessReturnCodeSucceeds() {
         final var mqtt5SubAck = Mockito.mock(Mqtt5SubAck.class);
         Mockito.when(mqtt5SubAck.getReasonCodes()).thenReturn(List.of(Mqtt5SubAckReasonCode.GRANTED_QOS_1));
-        Mockito.when(mqtt5RxClient.subscribe(Mockito.any())).thenReturn(Single.just(mqtt5SubAck));
+        Mockito.when(mqtt5RxClient.subscribePublishes(Mockito.any(), Mockito.eq(true)))
+                .thenReturn(new MockFlowableWithSingle<>(
+                        Collections.emptyList(), mqtt5SubAck, null, false));
         final var underTest = BaseGenericMqttSubscribingClient.ofMqtt5RxClient(mqtt5RxClient, ClientRole.CONSUMER);
 
         final var genericMqttSubAckSingle = underTest.subscribePublishesWithManualAcknowledgement(
@@ -162,7 +165,8 @@ public final class Mqtt5RxSubscribingClientTest {
                 .isEqualTo(GenericMqttSubAck.ofMqtt5SubAck(mqtt5SubAck));
     }
 
-    private static <S, T> CompletableFuture<T> subscribeForSingleValueResponse(final FlowableWithSingle<S, T> singleValueResponse) {
+    private static <S, T> CompletableFuture<T> subscribeForSingleValueResponse(
+            final FlowableWithSingle<S, T> singleValueResponse) {
         return singleValueResponse.subscribeSingleFuture();
     }
 
@@ -172,7 +176,9 @@ public final class Mqtt5RxSubscribingClientTest {
         final var mqtt5SubAckReasonCode = Mqtt5SubAckReasonCode.NOT_AUTHORIZED;
         Mockito.when(mqtt5SubAck.getReasonCodes()).thenReturn(List.of(mqtt5SubAckReasonCode));
         final var mqtt5SubAckException = new Mqtt5SubAckException(mqtt5SubAck, null);
-        Mockito.when(mqtt5RxClient.subscribe(Mockito.any())).thenReturn(Single.error(mqtt5SubAckException));
+        Mockito.when(mqtt5RxClient.subscribePublishes(Mockito.any(), Mockito.eq(true)))
+                .thenReturn(new MockFlowableWithSingle<>(
+                        Collections.emptyList(), null, mqtt5SubAckException, false));
         final var mqttTopicFilter = MqttTopicFilter.of("source/status");
         final var underTest = BaseGenericMqttSubscribingClient.ofMqtt5RxClient(mqtt5RxClient, ClientRole.CONSUMER);
 
@@ -204,7 +210,9 @@ public final class Mqtt5RxSubscribingClientTest {
 
         final var mqtt5SubAck = Mockito.mock(Mqtt5SubAck.class);
         Mockito.when(mqtt5SubAck.getReasonCodes()).thenReturn(List.copyOf(topicFiltersAndReasonCodes.values()));
-        Mockito.when(mqtt5RxClient.subscribe(Mockito.any())).thenReturn(Single.just(mqtt5SubAck));
+        Mockito.when(mqtt5RxClient.subscribePublishes(Mockito.any(), Mockito.eq(true)))
+                .thenReturn(new MockFlowableWithSingle<>(
+                        Collections.emptyList(), mqtt5SubAck, null, false));
         final var underTest = BaseGenericMqttSubscribingClient.ofMqtt5RxClient(mqtt5RxClient, ClientRole.CONSUMER);
 
         final var genericMqttSubAckSingle = underTest.subscribePublishesWithManualAcknowledgement(
@@ -234,7 +242,9 @@ public final class Mqtt5RxSubscribingClientTest {
     @Test
     public void subscribeWhenExceptionOccursBeforeSubscribeMessageWasSent() {
         final var illegalStateException = new IllegalStateException("Yolo!");
-        Mockito.when(mqtt5RxClient.subscribe(Mockito.any())).thenReturn(Single.error(illegalStateException));
+        Mockito.when(mqtt5RxClient.subscribePublishes(Mockito.any(), Mockito.eq(true)))
+                .thenReturn(new MockFlowableWithSingle<>(
+                        Collections.emptyList(), null, illegalStateException, false));
         final var underTest = BaseGenericMqttSubscribingClient.ofMqtt5RxClient(mqtt5RxClient, ClientRole.CONSUMER);
 
         final var genericMqttSubAckSingle = underTest.subscribePublishesWithManualAcknowledgement(
@@ -262,8 +272,11 @@ public final class Mqtt5RxSubscribingClientTest {
                 .qos(mqttQos)
                 .payload(ByteBufferUtils.fromUtf8String("online"))
                 .build();
-        Mockito.when(mqtt5RxClient.publishes(Mockito.eq(MqttGlobalPublishFilter.SUBSCRIBED), Mockito.eq(true)))
-                .thenReturn(Flowable.just(mqtt5Publish));
+        final var mock = Mockito.mock(Mqtt5SubAck.class);
+        Mockito.when(mock.getReasonCodes()).thenReturn(List.of(Mqtt5SubAckReasonCode.GRANTED_QOS_1));
+        Mockito.when(mqtt5RxClient.subscribePublishes(Mockito.any(), Mockito.eq(true)))
+                .thenReturn(new MockFlowableWithSingle<>(
+                        List.of(mqtt5Publish), mock, null, true));
         final var onCompleteMessage = "done";
         final var underTest = BaseGenericMqttSubscribingClient.ofMqtt5RxClient(mqtt5RxClient, ClientRole.CONSUMER);
         final var genericMqttSubscribe =
@@ -286,13 +299,14 @@ public final class Mqtt5RxSubscribingClientTest {
     @Test
     public void consumeSubscribedPublishesWithManualAcknowledgementErrorsIfSessionExpired() {
         final var mqttSessionExpiredException = new MqttSessionExpiredException("Your session expired.", null);
-        Mockito.when(mqtt5RxClient.publishes(Mockito.eq(MqttGlobalPublishFilter.SUBSCRIBED), Mockito.eq(true)))
-                .thenReturn(Flowable.error(mqttSessionExpiredException));
+        final var mock = Mockito.mock(Mqtt5SubAck.class);
+        Mockito.when(mqtt5RxClient.subscribePublishes(Mockito.any(), Mockito.eq(true)))
+                .thenReturn(new MockFlowableWithSingle<>(
+                        Collections.emptyList(), mock, mqttSessionExpiredException, true));
         final var underTest = BaseGenericMqttSubscribingClient.ofMqtt5RxClient(mqtt5RxClient, ClientRole.CONSUMER);
-        final var mqttTopicFilter = Mockito.mock(MqttTopicFilter.class);
-        final var mqttQos = Mockito.mock(MqttQos.class);
         final var genericMqttSubscribe =
-                GenericMqttSubscribe.of(Set.of(GenericMqttSubscription.newInstance(mqttTopicFilter, mqttQos)));
+                GenericMqttSubscribe.of(
+                        Set.of(GenericMqttSubscription.newInstance(MqttTopicFilter.of("a"), MqttQos.AT_LEAST_ONCE)));
 
         final var genericMqttPublishFlowable =
                 underTest.subscribePublishesWithManualAcknowledgement(genericMqttSubscribe);
@@ -305,7 +319,8 @@ public final class Mqtt5RxSubscribingClientTest {
         final var failure = mqttPublishSourceTestKit.expectMsgClass(Status.Failure.class);
         mqttPublishSourceTestKit.expectNoMessage();
 
-        assertThat(failure.cause()).isEqualTo(mqttSessionExpiredException);
+        assertThat(failure.cause()).isInstanceOf(MqttSubscribeException.class);
+        assertThat(failure.cause().getMessage()).isEqualTo("Your session expired.");
     }
 
 }

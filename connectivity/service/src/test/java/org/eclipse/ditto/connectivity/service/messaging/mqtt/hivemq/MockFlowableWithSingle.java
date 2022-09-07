@@ -27,26 +27,69 @@ public class MockFlowableWithSingle<F, S> extends FlowableWithSingle<F, S> {
     private final List<F> flowable;
     private final S single;
     @Nullable private final Throwable error;
+    private boolean emitsResultsDirectly;
 
-    public MockFlowableWithSingle(final List<F> flowable, final S single, @Nullable final Throwable error) {
+    public MockFlowableWithSingle(final List<F> flowable, final S single, @Nullable final Throwable error,
+            final boolean emitsResultsDirectly) {
+
         this.flowable = flowable;
         this.single = single;
         this.error = error;
+        this.emitsResultsDirectly = emitsResultsDirectly;
     }
 
     @Override
     protected void subscribeBothActual(final @NotNull WithSingleSubscriber<? super F, ? super S> subscriber) {
-        subscriber.onSingle(single);
-        addSubscriberBehaviour(subscriber);
+
+        if (emitsResultsDirectly) {
+            subscriber.onSubscribe(new Subscription() {
+                @Override
+                public void request(final long requestSize) {
+                    if (!flowable.isEmpty()) {
+                        for (long emitedElements = 0; emitedElements < requestSize; emitedElements++) {
+                            if (flowable.size() > emitedElements) {
+                                subscriber.onNext(flowable.get(Long.valueOf(emitedElements).intValue()));
+                            } else if (emitedElements == flowable.size()){
+                                subscriber.onComplete();
+                            }
+                        }
+                    } else {
+                        subscriber.onComplete();
+                    }
+                }
+
+                @Override
+                public void cancel() {
+                    subscriber.onComplete();
+                }
+            });
+        } else {
+            subscriber.onSubscribe(new Subscription() {
+                @Override
+                public void request(final long n) {
+
+                }
+
+                @Override
+                public void cancel() {
+
+                }
+            });
+        }
+
+        if (null == error) {
+            subscriber.onSingle(single);
+        }
+        if (null != error) {
+            subscriber.onError(error);
+        }
     }
 
-    private void addSubscriberBehaviour(final Subscriber<? super F> subscriber) {
+    @Override
+    protected void subscribeActual(final Subscriber<? super F> subscriber) {
         subscriber.onSubscribe(new Subscription() {
             @Override
             public void request(final long requestSize) {
-                if (null != error) {
-                    subscriber.onError(error);
-                }
                 if (!flowable.isEmpty()) {
                     for (long emitedElements = 0; emitedElements < requestSize; emitedElements++) {
                         if (flowable.size() > emitedElements) {
@@ -65,10 +108,5 @@ public class MockFlowableWithSingle<F, S> extends FlowableWithSingle<F, S> {
                 subscriber.onComplete();
             }
         });
-    }
-
-    @Override
-    protected void subscribeActual(final Subscriber<? super F> s) {
-        addSubscriberBehaviour(s);
     }
 }

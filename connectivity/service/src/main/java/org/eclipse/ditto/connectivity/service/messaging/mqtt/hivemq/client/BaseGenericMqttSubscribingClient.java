@@ -94,6 +94,7 @@ abstract class BaseGenericMqttSubscribingClient<C extends MqttClient>
     public FlowableWithSingle<GenericMqttPublish, GenericMqttSubAck> subscribePublishesWithManualAcknowledgement(
             final GenericMqttSubscribe genericMqttSubscribe
     ) {
+        checkNotNull(genericMqttSubscribe, "genericMqttSubscribe");
         return consumeIncomingPublishes(mqttClient, genericMqttSubscribe, true)
                 .mapSingle(genericMqttSubAck -> {
                     final var failedSubscriptions = getFailedSubscriptionStatuses(genericMqttSubAck,
