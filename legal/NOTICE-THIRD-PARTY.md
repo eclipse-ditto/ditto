@@ -30,84 +30,84 @@
    * Maven sources: https://search.maven.org/remotecontent?filepath=com/eclipsesource/minimal-json/minimal-json/0.9.5/minimal-json-0.9.5-sources.jar
 
 
-## Jackson-annotations (2.13.3)
+## Jackson-annotations (2.13.4)
 
-* Maven coordinates: `com.fasterxml.jackson.core:jackson-annotations:2.13.3`
+* Maven coordinates: `com.fasterxml.jackson.core:jackson-annotations:2.13.4`
 * License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
 * Project: http://github.com/FasterXML/jackson
 * Sources: 
    * declared as SCM: https://github.com/FasterXML/jackson-annotations
-   * Maven sources: https://search.maven.org/remotecontent?filepath=com/fasterxml/jackson/core/jackson-annotations/2.13.3/jackson-annotations-2.13.3-sources.jar
+   * Maven sources: https://search.maven.org/remotecontent?filepath=com/fasterxml/jackson/core/jackson-annotations/2.13.4/jackson-annotations-2.13.4-sources.jar
 
 
-## Jackson-core (2.13.3)
+## Jackson-core (2.13.4)
 
-* Maven coordinates: `com.fasterxml.jackson.core:jackson-core:2.13.3`
+* Maven coordinates: `com.fasterxml.jackson.core:jackson-core:2.13.4`
 * License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
 * Project: https://github.com/FasterXML/jackson-core
 * Sources: 
    * declared as SCM: https://github.com/FasterXML/jackson-core
-   * Maven sources: https://search.maven.org/remotecontent?filepath=com/fasterxml/jackson/core/jackson-core/2.13.3/jackson-core-2.13.3-sources.jar
+   * Maven sources: https://search.maven.org/remotecontent?filepath=com/fasterxml/jackson/core/jackson-core/2.13.4/jackson-core-2.13.4-sources.jar
 
 
-## jackson-databind (2.13.3)
+## jackson-databind (2.13.4)
 
-* Maven coordinates: `com.fasterxml.jackson.core:jackson-databind:2.13.3`
+* Maven coordinates: `com.fasterxml.jackson.core:jackson-databind:2.13.4`
 * License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
 * Project: http://github.com/FasterXML/jackson
 * Sources: 
    * declared as SCM: https://github.com/FasterXML/jackson-databind
-   * Maven sources: https://search.maven.org/remotecontent?filepath=com/fasterxml/jackson/core/jackson-databind/2.13.3/jackson-databind-2.13.3-sources.jar
+   * Maven sources: https://search.maven.org/remotecontent?filepath=com/fasterxml/jackson/core/jackson-databind/2.13.4/jackson-databind-2.13.4-sources.jar
 
 
-## Jackson dataformat: CBOR (2.13.3)
+## Jackson dataformat: CBOR (2.13.4)
 
-* Maven coordinates: `com.fasterxml.jackson.dataformat:jackson-dataformat-cbor:2.13.3`
+* Maven coordinates: `com.fasterxml.jackson.dataformat:jackson-dataformat-cbor:2.13.4`
 * License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
 * Project: http://github.com/FasterXML/jackson-dataformats-binary
 * Sources: 
    * declared as SCM: https://github.com/FasterXML/jackson-dataformats-binary/jackson-dataformat-cbor
-   * Maven sources: https://search.maven.org/remotecontent?filepath=com/fasterxml/jackson/dataformat/jackson-dataformat-cbor/2.13.3/jackson-dataformat-cbor-2.13.3-sources.jar
+   * Maven sources: https://search.maven.org/remotecontent?filepath=com/fasterxml/jackson/dataformat/jackson-dataformat-cbor/2.13.4/jackson-dataformat-cbor-2.13.4-sources.jar
 
 
-## Jackson datatype: jdk8 (2.13.3)
+## Jackson datatype: jdk8 (2.13.4)
 
-* Maven coordinates: `com.fasterxml.jackson.datatype:jackson-datatype-jdk8:2.13.3`
+* Maven coordinates: `com.fasterxml.jackson.datatype:jackson-datatype-jdk8:2.13.4`
 * License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
 * Project: https://github.com/FasterXML/jackson-modules-java8/jackson-datatype-jdk8
 * Sources: 
    * declared as SCM: https://github.com/FasterXML/jackson-modules-java8/jackson-datatype-jdk8
-   * Maven sources: https://search.maven.org/remotecontent?filepath=com/fasterxml/jackson/datatype/jackson-datatype-jdk8/2.13.3/jackson-datatype-jdk8-2.13.3-sources.jar
+   * Maven sources: https://search.maven.org/remotecontent?filepath=com/fasterxml/jackson/datatype/jackson-datatype-jdk8/2.13.4/jackson-datatype-jdk8-2.13.4-sources.jar
 
 
-## Jackson datatype: JSR310 (2.13.3)
+## Jackson datatype: JSR310 (2.13.4)
 
-* Maven coordinates: `com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.13.3`
+* Maven coordinates: `com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.13.4`
 * License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
 * Project: https://github.com/FasterXML/jackson-modules-java8/jackson-datatype-jsr310
 * Sources: 
    * declared as SCM: https://github.com/FasterXML/jackson-modules-java8/jackson-datatype-jsr310
-   * Maven sources: https://search.maven.org/remotecontent?filepath=com/fasterxml/jackson/datatype/jackson-datatype-jsr310/2.13.3/jackson-datatype-jsr310-2.13.3-sources.jar
+   * Maven sources: https://search.maven.org/remotecontent?filepath=com/fasterxml/jackson/datatype/jackson-datatype-jsr310/2.13.4/jackson-datatype-jsr310-2.13.4-sources.jar
 
 
-## Jackson-module-parameter-names (2.13.3)
+## Jackson-module-parameter-names (2.13.4)
 
-* Maven coordinates: `com.fasterxml.jackson.module:jackson-module-parameter-names:2.13.3`
+* Maven coordinates: `com.fasterxml.jackson.module:jackson-module-parameter-names:2.13.4`
 * License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
 * Project: https://github.com/FasterXML/jackson-modules-java8/jackson-module-parameter-names
 * Sources: 
    * declared as SCM: https://github.com/FasterXML/jackson-modules-java8/jackson-module-parameter-names
-   * Maven sources: https://search.maven.org/remotecontent?filepath=com/fasterxml/jackson/module/jackson-module-parameter-names/2.13.3/jackson-module-parameter-names-2.13.3-sources.jar
+   * Maven sources: https://search.maven.org/remotecontent?filepath=com/fasterxml/jackson/module/jackson-module-parameter-names/2.13.4/jackson-module-parameter-names-2.13.4-sources.jar
 
 
-## jackson-module-scala (2.13.3)
+## jackson-module-scala (2.13.4)
 
-* Maven coordinates: `com.fasterxml.jackson.module:jackson-module-scala_2.13:2.13.3`
+* Maven coordinates: `com.fasterxml.jackson.module:jackson-module-scala_2.13:2.13.4`
 * License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
 * Project: http://wiki.fasterxml.com/JacksonModuleScala
 * Sources: 
-   * declared as SCM: https://api@github.com/FasterXML/jackson-module-scala
-   * Maven sources: https://search.maven.org/remotecontent?filepath=com/fasterxml/jackson/module/jackson-module-scala_2.13/2.13.3/jackson-module-scala_2.13-2.13.3-sources.jar
+   * declared as SCM: https://github.com/FasterXML/jackson-module-scala
+   * Maven sources: https://search.maven.org/remotecontent?filepath=com/fasterxml/jackson/module/jackson-module-scala_2.13/2.13.4/jackson-module-scala_2.13-2.13.4-sources.jar
 
 
 ## Caffeine cache (3.1.1)
