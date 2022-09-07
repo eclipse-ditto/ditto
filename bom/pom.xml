@@ -34,7 +34,7 @@
 
         <!-- ### Compile dependencies versions -->
         <minimal-json.version>0.9.5</minimal-json.version>
-        <jackson-bom.version>2.13.3</jackson-bom.version>
+        <jackson-bom.version>2.13.4</jackson-bom.version>
         <typesafe-config.version>1.4.2</typesafe-config.version>
         <ssl-config-core.version>0.6.1</ssl-config-core.version>
         <akka-bom.version>2.6.20</akka-bom.version>
