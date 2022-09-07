@@ -18,6 +18,7 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.BiFunction;
 
 import javax.annotation.Nullable;
@@ -89,7 +90,7 @@ public final class ImplicitThingCreationMessageMapper extends AbstractMessageMap
     private static final String POLICY_ID_CONFIGURATION_PROPERTY = THING_TEMPLATE + "/" + POLICY_ID;
     public static final EntityTagMatcher ASTERISK = EntityTagMatcher.asterisk();
 
-    private final BiFunction<Map<String, String>, AuthorizationContext, ExpressionResolver> resolverFactory;
+    private final BiFunction<Map<String, String>, AuthorizationContext, Optional<ExpressionResolver>> resolverFactory;
 
     private String thingTemplate;
     private Map<String, String> commandHeaders;
@@ -100,7 +101,7 @@ public final class ImplicitThingCreationMessageMapper extends AbstractMessageMap
      */
     @SuppressWarnings("unused")
     public ImplicitThingCreationMessageMapper() {
-        this(ImplicitThingCreationMessageMapper::getExpressionResolver);
+        this((headers, authorizationContext) -> Optional.of(getExpressionResolver(headers, authorizationContext)));
     }
 
     /**
@@ -109,7 +110,7 @@ public final class ImplicitThingCreationMessageMapper extends AbstractMessageMap
      * @param resolverFactory the creator of expression resolver.
      */
     public ImplicitThingCreationMessageMapper(
-            final BiFunction<Map<String, String>, AuthorizationContext, ExpressionResolver> resolverFactory) {
+            final BiFunction<Map<String, String>, AuthorizationContext, Optional<ExpressionResolver>> resolverFactory) {
         this.resolverFactory = resolverFactory;
     }
 
@@ -182,8 +183,16 @@ public final class ImplicitThingCreationMessageMapper extends AbstractMessageMap
         LOGGER.withCorrelationId(message.getInternalHeaders()).debug("Received ExternalMessage: {}", message);
 
         final Map<String, String> externalHeaders = message.getHeaders();
-        final ExpressionResolver expressionResolver = resolverFactory.apply(externalHeaders,
-                message.getAuthorizationContext().orElse(null));
+        final ExpressionResolver expressionResolver = resolverFactory.apply(
+                        externalHeaders,
+                        message.getAuthorizationContext().orElse(null)
+                )
+                .orElseGet(() -> {
+                    LOGGER.withCorrelationId(message.getInternalHeaders())
+                            .warn("Could not obtain ExpressionResolver via resolverFactory - falling back to default " +
+                                    "ExpressionResolver");
+                    return getExpressionResolver(externalHeaders, message.getAuthorizationContext().orElse(null));
+                });
 
         final String resolvedTemplate;
         if (Placeholders.containsAnyPlaceholder(thingTemplate)) {

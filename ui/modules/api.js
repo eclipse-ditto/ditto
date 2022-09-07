@@ -242,17 +242,19 @@ export function setAuthHeader(forDevOps) {
  * @param {String} method 'POST', 'GET', 'DELETE', etc.
  * @param {String} path of the Ditto call (e.g. '/things')
  * @param {Object} body payload for the api call
+ * @param {Object} additionalHeaders object with additional header fields
  * @return {Object} result as json object
  */
-export async function callDittoREST(method, path, body) {
+export async function callDittoREST(method, path, body, additionalHeaders) {
   try {
     const response = await fetch(Environments.current().api_uri + '/api/2' + path, {
       method: method,
       headers: {
         'Content-Type': 'application/json',
         [authHeaderKey]: authHeaderValue,
+        ...additionalHeaders,
       },
-      body: JSON.stringify(body),
+      ...(body) && {body: JSON.stringify(body)},
     });
     if (!response.ok) {
       response.json()
