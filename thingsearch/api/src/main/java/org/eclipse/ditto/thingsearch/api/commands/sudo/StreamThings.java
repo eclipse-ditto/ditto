@@ -119,6 +119,7 @@ public final class StreamThings
      *
      * @return the optional filter string.
      */
+    @Override
     public Optional<String> getFilter() {
         return Optional.ofNullable(filter);
     }
@@ -128,6 +129,7 @@ public final class StreamThings
      *
      * @return the optional set of namespaces.
      */
+    @Override
     public Optional<Set<String>> getNamespaces() {
         return Optional.ofNullable(namespaces)
                 .map(array -> array.stream().map(JsonValue::asString).collect(Collectors.toSet()));
@@ -166,6 +168,7 @@ public final class StreamThings
      * @param namespaces the namespaces.
      * @return the created command.
      */
+    @Override
     public StreamThings setNamespaces(@Nullable final Collection<String> namespaces) {
         if (namespaces == null) {
             return new StreamThings(filter, JsonArray.empty(), sort, sortValues, getDittoHeaders());
@@ -259,4 +262,5 @@ public final class StreamThings
         private static final JsonFieldDefinition<JsonArray> SORT_VALUES =
                 JsonFactory.newJsonArrayFieldDefinition("sortValues");
     }
+
 }

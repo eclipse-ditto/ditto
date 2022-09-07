@@ -12,11 +12,9 @@
  */
 package org.eclipse.ditto.thingsearch.service.updater.actors;
 
-import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
-import java.text.MessageFormat;
 import java.time.Duration;
 import java.util.List;
 import java.util.Objects;
@@ -267,6 +265,7 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
         if (shutdownReason.isRelevantFor(thingId.getNamespace()) || shutdownReason.isRelevantFor(thingId)) {
             log.info("Shutting down now due to <{}> during <{}>", shutdown, stateName());
             data.metadata().sendWeakAck(getDescription(shutdown));
+
             return stop();
         } else {
             return stay();
@@ -306,6 +305,7 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
         final var writeResultAndErrors = result.resultAndErrors();
         final var pair = BulkWriteResultAckFlow.checkBulkWriteResult(writeResultAndErrors);
         pair.second().forEach(log::debug);
+
         if (shuttingDown) {
             log.info("Shutting down after completing persistence operation");
             return stop();
@@ -316,10 +316,12 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
             return goTo(State.RECOVERING).using(getInitialData(thingId));
         }
         log.debug("Got Result=<{}>", pair.first());
+
         switch (pair.first()) {
             case INCORRECT_PATCH -> INCORRECT_PATCH_UPDATE_COUNT.increment();
             case UNACKNOWLEDGED, CONSISTENCY_ERROR, WRITE_ERROR -> UPDATE_FAILURE_COUNT.increment();
         }
+
         return switch (pair.first()) {
             case UNACKNOWLEDGED, CONSISTENCY_ERROR, INCORRECT_PATCH, WRITE_ERROR -> {
                 final var metadata = data.metadata().export();
@@ -343,7 +345,7 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
             log.info("Initial update was skipped - stopping thing updater for <{}>.", thingId);
             return stop();
         } else {
-            return goTo(State.READY).using(new Data(nextMetadata, data.lastWriteModel().setMetadata(nextMetadata)));
+            return goTo(State.READY).using(new Data(nextMetadata, data.lastWriteModel()));
         }
     }
 
@@ -353,6 +355,7 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
                 log.debug("Persisting <{}>", data.metadata().export());
             }
             ConsistencyLag.startS2WaitForDemand(data.metadata());
+
             final var pair = Source.single(data)
                     .viaMat(KillSwitches.single(), Keep.right())
                     .via(flow)
@@ -360,8 +363,8 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
                     .orElse(Source.single(Done.done()))
                     .toMat(Sink.head(), Keep.both())
                     .run(materializer);
-
             killSwitch = pair.first();
+
             final var resultFuture = pair.second().handle((result, error) -> {
                 if (error != null || result == null) {
                     final var errorToReport = error != null
@@ -374,6 +377,7 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
             });
 
             Patterns.pipe(resultFuture, getContext().getDispatcher()).to(getSelf());
+
             return goTo(State.PERSISTING);
         } else if (shuttingDown) {
             // shutting down during READY without pending updates
@@ -385,6 +389,7 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
             if (log.isDebugEnabled()) {
                 log.debug("Decided not to persist <{}>", data.metadata().export());
             }
+
             return stay();
         }
     }
@@ -402,6 +407,7 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
         } else {
             lastWriteModel = data.lastWriteModel();
         }
+
         final Metadata metadata = data.metadata()
                 .invalidateCaches(sudoUpdateThing.shouldInvalidateThing(), sudoUpdateThing.shouldInvalidatePolicy())
                 .withUpdateReason(sudoUpdateThing.getUpdateReason());
@@ -410,6 +416,7 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
                         ? metadata.withAckRecipient(getAckRecipient(sudoUpdateThing.getDittoHeaders()))
                         : metadata;
         ensureTickTimer();
+
         return stay().using(new Data(data.metadata().append(nextMetadata), lastWriteModel));
     }
 
@@ -433,6 +440,7 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
             final var newMetadata = Metadata.of(thingId, thingRevision, policyIdOfTag, policyTag.getRevision(), null)
                     .withUpdateReason(UpdateReason.POLICY_UPDATE)
                     .invalidateCaches(false, true);
+
             return enqueue(newMetadata, data);
         } else {
             log.debug("Dropping <{}> because my policyId=<{}> and policyRevision=<{}>",
@@ -447,6 +455,7 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
 
     private FSM.State<State, Data> onThingEvent(final ThingEvent<?> thingEvent, final Data data) {
         refreshIdleShutdownTimer();
+
         return computeEventMetadata(thingEvent, data).map(eventMetadata -> onEventMetadata(eventMetadata, data))
                 .orElseGet(this::stay);
     }
@@ -493,20 +502,21 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
         final var metadata = exportMetadataWithSender(shouldAcknowledge, thingEvent, getAckRecipient(
                 thingEvent.getDittoHeaders()), timer, data)
                 .withUpdateReason(UpdateReason.THING_UPDATE);
+
         return Optional.of(metadata);
     }
 
     private FSM.State<State, Data> enqueue(final Metadata newMetadata, final Data data) {
         ensureTickTimer();
+
         return stay().using(new Data(data.metadata().append(newMetadata), data.lastWriteModel()));
     }
 
-    private FSM.State<State, Data> recoveryComplete(final AbstractWriteModel lastWriteModel,
-            final Data initialData) {
-
+    private FSM.State<State, Data> recoveryComplete(final AbstractWriteModel lastWriteModel, final Data initialData) {
         log.debug("Recovered: <{}>", lastWriteModel.getClass().getSimpleName());
         LOGGER.trace("Recovered: <{}>", lastWriteModel);
         killSwitch = null;
+
         return goTo(State.READY).using(new Data(lastWriteModel.getMetadata(), lastWriteModel));
     }
 
@@ -517,22 +527,18 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
 
     private FSM.State<State, Data> stashAndStay(final Object message, final Data initialData) {
         stash();
+
         return stay();
     }
 
     private ThingId tryToGetThingId() {
         final Charset utf8 = StandardCharsets.UTF_8;
-        try {
-            final String actorName = self().path().name();
-            return ThingId.of(URLDecoder.decode(actorName, utf8.name()));
-        } catch (final UnsupportedEncodingException e) {
-            throw new IllegalStateException(MessageFormat.format("Charset <{0}> is unsupported!", utf8.name()), e);
-        }
+        final String actorName = self().path().name();
+        return ThingId.of(URLDecoder.decode(actorName, utf8));
     }
 
     private UniqueKillSwitch recoverLastWriteModel(final ThingId thingId,
             final Function<ThingId, Source<AbstractWriteModel, NotUsed>> recoveryFunction) {
-
         final var pair = recoveryFunction.apply(thingId)
                 .<Object>map(writeModel -> writeModel)
                 .recover(new PFBuilder<Throwable, Object>().matchAny(x -> x).build())
@@ -540,6 +546,7 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
                 .toMat(Sink.head(), Keep.both())
                 .run(materializer);
         Patterns.pipe(pair.second(), getContext().getDispatcher()).to(getSelf());
+
         return pair.first();
     }
 
@@ -564,7 +571,6 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
 
     private Metadata exportMetadata(@Nullable final ThingEvent<?> event, final long thingRevision,
             @Nullable final StartedTimer timer, final Data data) {
-
         return Metadata.of(thingId, thingRevision, data.metadata().getPolicyId().orElse(null),
                 data.metadata().getPolicyRevision().orElse(null),
                 event == null ? List.of() : List.of(event), timer, null);
@@ -619,4 +625,5 @@ public final class ThingUpdater extends AbstractFSMWithStash<ThingUpdater.State,
             return getContext().actorSelection(getContext().getSystem().deadLetters().path());
         }
     }
+
 }

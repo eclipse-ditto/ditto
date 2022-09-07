@@ -69,6 +69,8 @@ import org.eclipse.ditto.internal.utils.http.HttpClientFacade;
 import org.eclipse.ditto.internal.utils.protocol.ProtocolAdapterProvider;
 import org.eclipse.ditto.internal.utils.pubsubthings.DittoProtocolSub;
 
+import com.typesafe.config.Config;
+
 import akka.actor.ActorRef;
 import akka.actor.ActorRefFactory;
 import akka.actor.ActorSelection;
@@ -82,7 +84,6 @@ import akka.http.javadsl.server.Route;
 import akka.japi.pf.ReceiveBuilder;
 import akka.stream.Materializer;
 import akka.stream.SystemMaterializer;
-import com.typesafe.config.Config;
 
 /**
  * The Root Actor of the API Gateway's Akka ActorSystem.

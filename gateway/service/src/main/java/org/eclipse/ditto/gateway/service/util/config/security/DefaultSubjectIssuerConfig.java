@@ -15,65 +15,86 @@ package org.eclipse.ditto.gateway.service.util.config.security;
 import static org.eclipse.ditto.base.model.common.ConditionChecker.argumentNotEmpty;
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
+import org.eclipse.ditto.internal.utils.config.ConfigWithFallback;
+import org.eclipse.ditto.internal.utils.config.DittoConfigError;
+
 import com.typesafe.config.Config;
 
-import org.eclipse.ditto.internal.utils.config.ConfigWithFallback;
-
+/**
+ * This class is the default implementation of the SubjectIssuer config.
+ * It is instantiated for each {@code openid-connect-issuers} entry containing issuers and auth-subject templates.
+ */
 public final class DefaultSubjectIssuerConfig implements SubjectIssuerConfig {
 
-    private final String issuer;
+    private final List<String> issuers;
 
     private final List<String> authSubjectTemplates;
 
-    private DefaultSubjectIssuerConfig(final ConfigWithFallback configWithFallback) {
-        issuer = configWithFallback.getString(SubjectIssuerConfigValue.ISSUER.getConfigPath());
+    private DefaultSubjectIssuerConfig(final String issuerConfigKey, final ConfigWithFallback configWithFallback) {
+        final List<String> issuersList =
+                configWithFallback.getStringList(SubjectIssuerConfigValue.ISSUERS.getConfigPath());
+        if (!issuersList.isEmpty()) {
+            issuers = issuersList;
+        } else {
+            final String singleIssuer = configWithFallback.getString(SubjectIssuerConfigValue.ISSUER.getConfigPath());
+            if (!singleIssuer.isBlank()) {
+                issuers = List.of(singleIssuer);
+            } else {
+                throw new DittoConfigError("Neither '" + SubjectIssuerConfigValue.ISSUERS.getConfigPath() +
+                        "' nor '" + SubjectIssuerConfigValue.ISSUER.getConfigPath() + "' were configured " +
+                        "for openid-connect issuer: <" + issuerConfigKey + ">");
+            }
+        }
         authSubjectTemplates = configWithFallback.getStringList(SubjectIssuerConfigValue.AUTH_SUBJECTS.getConfigPath());
     }
 
-    private DefaultSubjectIssuerConfig(final String issuer, final List<String> authSubjectTemplates) {
-        this.issuer = issuer;
-        this.authSubjectTemplates = authSubjectTemplates;
+    private DefaultSubjectIssuerConfig(final Collection<String> issuers,
+            final Collection<String> authSubjectTemplates) {
+        this.issuers = Collections.unmodifiableList(new ArrayList<>(issuers));
+        this.authSubjectTemplates = Collections.unmodifiableList(new ArrayList<>(authSubjectTemplates));
     }
 
     /**
      * Returns an instance of {@code DefaultSubjectIssuerConfig} based on the settings of the specified Config.
      *
+     * @param key the key of the open-id-issuer config passed in the {@code config}.
      * @param config is supposed to provide the config for the issuer at its current level.
      * @return the instance.
      * @throws org.eclipse.ditto.internal.utils.config.DittoConfigError if {@code config} is invalid.
      */
-    public static DefaultSubjectIssuerConfig of(final Config config) {
-        return new DefaultSubjectIssuerConfig(
+    public static DefaultSubjectIssuerConfig of(final String key, final Config config) {
+        return new DefaultSubjectIssuerConfig(key,
                 ConfigWithFallback.newInstance(config, SubjectIssuerConfigValue.values()));
     }
 
     /**
      * Returns a new SubjectIssuerConfig based on the provided strings.
      *
-     * @param issuer       the issuer's endpoint {@code issuer}.
-     * @param authSubjectTemplates list of authorizationsubject placeholder strings
-     *                     {@code authSubjectTemplates}.
+     * @param issuers the list of issuers' endpoint {@code issuers}.
+     * @param authSubjectTemplates list of authorizationsubject placeholder strings.
      * @return a new SubjectIssuerConfig.
-     * @throws NullPointerException     if {@code issuer} or {@code authSubjectTemplates} is
-     *                                  {@code null}.
-     * @throws IllegalArgumentException if {@code issuer} or {@code authSubjectTemplates} is
-     *                                  empty.
+     * @throws NullPointerException if {@code issuers} or {@code authSubjectTemplates} is {@code null}.
+     * @throws IllegalArgumentException if {@code issuers} or {@code authSubjectTemplates} is empty.
      */
-    public static DefaultSubjectIssuerConfig of(final String issuer, final List<String> authSubjectTemplates) {
-        checkNotNull(issuer, "issuer");
+    public static DefaultSubjectIssuerConfig of(final Collection<String> issuers,
+            final Collection<String> authSubjectTemplates) {
+        checkNotNull(issuers, "issuers");
         argumentNotEmpty(authSubjectTemplates, "authSubjectTemplates");
 
-        return new DefaultSubjectIssuerConfig(issuer, authSubjectTemplates);
+        return new DefaultSubjectIssuerConfig(issuers, authSubjectTemplates);
     }
 
-    public final String getIssuer() {
-        return issuer;
+    public List<String> getIssuers() {
+        return issuers;
     }
 
-    public final List<String> getAuthorizationSubjectTemplates() {
+    public List<String> getAuthorizationSubjectTemplates() {
         return authSubjectTemplates;
     }
 
@@ -86,18 +107,18 @@ public final class DefaultSubjectIssuerConfig implements SubjectIssuerConfig {
             return false;
         }
         final DefaultSubjectIssuerConfig that = (DefaultSubjectIssuerConfig) o;
-        return Objects.equals(issuer, that.issuer) && authSubjectTemplates.equals(that.authSubjectTemplates);
+        return Objects.equals(issuers, that.issuers) && authSubjectTemplates.equals(that.authSubjectTemplates);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(issuer, authSubjectTemplates);
+        return Objects.hash(issuers, authSubjectTemplates);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
-                "issuer=" + issuer +
+                "issuers=" + issuers +
                 ", authSubjectTemplates=" + authSubjectTemplates +
                 "]";
     }

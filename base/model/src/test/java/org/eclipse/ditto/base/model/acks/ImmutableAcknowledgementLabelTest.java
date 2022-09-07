@@ -17,7 +17,6 @@ import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstance
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.assertj.core.api.AutoCloseableSoftAssertions;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -45,7 +44,7 @@ public final class ImmutableAcknowledgementLabelTest {
     public void toStringReturnsExpected() {
         final ImmutableAcknowledgementLabel underTest = ImmutableAcknowledgementLabel.of(KNOWN_LABEL_VALUE);
 
-        assertThat(underTest.toString()).isEqualTo(KNOWN_LABEL_VALUE);
+        assertThat(underTest.toString()).hasToString(KNOWN_LABEL_VALUE);
     }
 
     @Test

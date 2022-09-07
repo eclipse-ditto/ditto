@@ -20,8 +20,9 @@ import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.internal.utils.extension.DittoExtensionIds;
 import org.eclipse.ditto.internal.utils.extension.DittoExtensionPoint;
 
-import akka.actor.ActorSystem;
 import com.typesafe.config.Config;
+
+import akka.actor.ActorSystem;
 
 /**
  * This extension allows to validate {@link org.eclipse.ditto.base.model.headers.DittoHeaders}.

@@ -597,9 +597,9 @@ public final class PubSubFactoryTest {
             final Set<EntityId> thingIdSet =
                     Set.of(received1.getEntityId(), received2.getEntityId(), received3.getEntityId(),
                             received4.getEntityId(), received5.getEntityId(), received6.getEntityId());
-            assertThat(thingIdSet.size())
+            assertThat(thingIdSet)
                     .describedAs("Signals received by subscribers should have distinct entity IDs")
-                    .isEqualTo(6);
+                    .hasSize(6);
 
             // THEN: any subscriber receives no further messages.
             subscriber1.expectNoMessage();

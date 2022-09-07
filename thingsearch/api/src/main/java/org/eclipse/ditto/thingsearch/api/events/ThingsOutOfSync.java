@@ -17,7 +17,6 @@ import java.util.Collection;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Predicate;
-import java.util.stream.Collectors;
 
 import javax.annotation.Nonnull;
 import javax.annotation.concurrent.Immutable;
@@ -101,7 +100,7 @@ public final class ThingsOutOfSync implements Event<ThingsOutOfSync> {
                         .stream()
                         .map(JsonValue::asString)
                         .map(ThingId::of)
-                        .collect(Collectors.toList());
+                        .toList();
 
         return of(thingIds, dittoHeaders);
     }

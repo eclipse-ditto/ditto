@@ -18,7 +18,6 @@ import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstance
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -60,7 +59,7 @@ public final class ImmutableJsonBooleanTest {
     public void toStringReturnsExpected() {
         final ImmutableJsonBoolean underTest = ImmutableJsonBoolean.FALSE;
 
-        assertThat(underTest.toString()).isEqualTo("false");
+        assertThat(underTest.toString()).hasToString("false");
     }
 
     @Test

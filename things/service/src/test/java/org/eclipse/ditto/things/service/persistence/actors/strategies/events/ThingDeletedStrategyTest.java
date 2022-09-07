@@ -20,7 +20,6 @@ import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingLifecycle;
 import org.eclipse.ditto.things.model.signals.events.ThingDeleted;
-import org.junit.Ignore;
 import org.junit.Test;
 
 /**

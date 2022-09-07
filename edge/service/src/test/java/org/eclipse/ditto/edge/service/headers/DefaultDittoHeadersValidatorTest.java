@@ -25,13 +25,14 @@ import org.eclipse.ditto.base.model.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.base.model.exceptions.DittoHeadersTooLargeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.internal.utils.config.ScopedConfig;
-
-import akka.actor.ActorSystem;
-import akka.testkit.javadsl.TestKit;
-import com.typesafe.config.ConfigFactory;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
+
+import com.typesafe.config.ConfigFactory;
+
+import akka.actor.ActorSystem;
+import akka.testkit.javadsl.TestKit;
 
 /**
  * Unit test for {@link DefaultDittoHeadersValidator}.

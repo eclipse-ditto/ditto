@@ -23,11 +23,11 @@ import java.util.stream.IntStream;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.base.model.entity.id.WithEntityId;
 import org.eclipse.ditto.base.model.json.Jsonifiable;
 import org.eclipse.ditto.base.model.signals.JsonParsable;
 import org.eclipse.ditto.base.model.signals.ShardedMessageEnvelope;
+import org.eclipse.ditto.json.JsonObject;
 
 import akka.actor.ActorSystem;
 import akka.cluster.sharding.ShardRegion;
@@ -80,11 +80,11 @@ public final class ShardRegionExtractor implements ShardRegion.MessageExtractor 
     @Override
     public String entityId(final Object message) {
         final String result;
-        if (message instanceof WithEntityId) {
-            final var entityId = ((WithEntityId) message).getEntityId();
+        if (message instanceof WithEntityId withEntityId) {
+            final var entityId = withEntityId.getEntityId();
             result = entityId.toString();
-        } else if (message instanceof ShardRegion.StartEntity) {
-            result = ((ShardRegion.StartEntity) message).entityId();
+        } else if (message instanceof ShardRegion.StartEntity startEntity) {
+            result = startEntity.entityId();
         } else {
             result = null;
         }
@@ -96,13 +96,13 @@ public final class ShardRegionExtractor implements ShardRegion.MessageExtractor 
     public Object entityMessage(final Object message) {
         final Object entity;
 
-        if (message instanceof JsonObject) {
+        if (message instanceof JsonObject jsonObject) {
             // message was sent from another cluster node and therefore is serialized as json
-            final ShardedMessageEnvelope shardedMessageEnvelope = ShardedMessageEnvelope.fromJson((JsonObject) message);
+            final ShardedMessageEnvelope shardedMessageEnvelope = ShardedMessageEnvelope.fromJson(jsonObject);
             entity = createJsonifiableFrom(shardedMessageEnvelope);
-        } else if (message instanceof ShardedMessageEnvelope) {
+        } else if (message instanceof ShardedMessageEnvelope shardedMessageEnvelope) {
             // message was sent from the same cluster node
-            entity = createJsonifiableFrom((ShardedMessageEnvelope) message);
+            entity = createJsonifiableFrom(shardedMessageEnvelope);
         } else {
             entity = message;
         }

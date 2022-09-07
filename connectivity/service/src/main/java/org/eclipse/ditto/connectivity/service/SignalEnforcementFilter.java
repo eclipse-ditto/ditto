@@ -113,8 +113,8 @@ final class SignalEnforcementFilter implements EnforcementFilter<Signal<?>> {
     }
 
     private static Optional<EntityId> extractEntityId(final Signal<?> signal) {
-        return signal instanceof WithEntityId
-                ? Optional.of(((WithEntityId) signal).getEntityId())
+        return signal instanceof WithEntityId withEntityId
+                ? Optional.of(withEntityId.getEntityId())
                 : Optional.empty();
     }
 

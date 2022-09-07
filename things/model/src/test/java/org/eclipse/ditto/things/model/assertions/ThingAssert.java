@@ -103,10 +103,10 @@ public final class ThingAssert extends AbstractJsonifiableAssert<ThingAssert, Th
 
         final Optional<String> actualNamespaceOptional = actual.getNamespace();
 
-        assertThat(actualNamespaceOptional.isPresent())
+        assertThat(actualNamespaceOptional)
                 .overridingErrorMessage("Expected Thing not to have a namespace but it had <%s>",
                         actualNamespaceOptional.orElse(null))
-                .isFalse();
+                .isNotPresent();
 
         return this;
     }
@@ -142,10 +142,10 @@ public final class ThingAssert extends AbstractJsonifiableAssert<ThingAssert, Th
 
         final Optional<PolicyId> policyIdOptional = actual.getPolicyId();
 
-        assertThat(policyIdOptional.isPresent())
+        assertThat(policyIdOptional)
                 .overridingErrorMessage("Expected Thing not have a PolicyId but it had <%s>",
                         policyIdOptional.orElse(null))
-                .isFalse();
+                .isNotPresent();
 
         return this;
     }
@@ -231,10 +231,10 @@ public final class ThingAssert extends AbstractJsonifiableAssert<ThingAssert, Th
 
         final Optional<ThingDefinition> definitionOptional = actual.getDefinition();
 
-        assertThat(definitionOptional.isPresent())
+        assertThat(definitionOptional)
                 .overridingErrorMessage("Expected Thing not have a Definition but it had <%s>",
                         definitionOptional.orElse(null))
-                .isFalse();
+                .isNotPresent();
 
         return this;
     }
@@ -273,10 +273,10 @@ public final class ThingAssert extends AbstractJsonifiableAssert<ThingAssert, Th
         final Optional<Feature> featureOptional = actual.getFeatures()
                 .flatMap(features -> features.getFeature(featureId));
 
-        assertThat(!featureOptional.isPresent())
+        assertThat(featureOptional)
                 .overridingErrorMessage("Expected Thing not to have Feature with identifier <%s> but it had",
                         featureId)
-                .isTrue();
+                .isNotPresent();
 
         return this;
     }
@@ -456,10 +456,10 @@ public final class ThingAssert extends AbstractJsonifiableAssert<ThingAssert, Th
 
         final Optional<ThingLifecycle> actualLifecycleOptional = actual.getLifecycle();
 
-        assertThat(actualLifecycleOptional.isPresent())
+        assertThat(actualLifecycleOptional)
                 .overridingErrorMessage("Expected Thing not to have a lifecycle but it had <%s>",
                         actualLifecycleOptional.orElse(null))
-                .isFalse();
+                .isNotPresent();
 
         return this;
     }
@@ -482,10 +482,10 @@ public final class ThingAssert extends AbstractJsonifiableAssert<ThingAssert, Th
 
         final Optional<ThingRevision> actualRevisionOptional = actual.getRevision();
 
-        assertThat(actualRevisionOptional.isPresent())
+        assertThat(actualRevisionOptional)
                 .overridingErrorMessage("Expected Thing not have a revision but it had <%s>",
                         actualRevisionOptional.orElse(null))
-                .isFalse();
+                .isNotPresent();
 
         return this;
     }
@@ -520,10 +520,10 @@ public final class ThingAssert extends AbstractJsonifiableAssert<ThingAssert, Th
 
         final Optional<Instant> actualmodifiedOptional = actual.getModified();
 
-        assertThat(actualmodifiedOptional.isPresent())
+        assertThat(actualmodifiedOptional)
                 .overridingErrorMessage("Expected Thing not have a modified but it had <%s>",
                         actualmodifiedOptional.orElse(null))
-                .isFalse();
+                .isNotPresent();
 
         return this;
     }
@@ -555,10 +555,10 @@ public final class ThingAssert extends AbstractJsonifiableAssert<ThingAssert, Th
 
         final Optional<Instant> actualCreatedOptional = actual.getCreated();
 
-        assertThat(actualCreatedOptional.isPresent())
+        assertThat(actualCreatedOptional)
                 .overridingErrorMessage("Expected Thing not have a created but it had <%s>",
                         actualCreatedOptional.orElse(null))
-                .isFalse();
+                .isNotPresent();
 
         return this;
     }

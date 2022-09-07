@@ -76,8 +76,7 @@ public final class RequestTracingDirective {
     private static RouteResult handleRouteResult(final StartedTrace startedTrace, final String requestMethod,
             final String filteredRelativeRequestUri, final RouteResult routeResult) {
         try {
-            if (routeResult instanceof Complete) {
-                final Complete complete = (Complete) routeResult;
+            if (routeResult instanceof Complete complete) {
                 final int statusCode = complete.getResponse().status().intValue();
                 startedTrace.tag(TracingTags.REQUEST_METHOD, requestMethod);
                 startedTrace.tag(TracingTags.STATUS_CODE, statusCode);

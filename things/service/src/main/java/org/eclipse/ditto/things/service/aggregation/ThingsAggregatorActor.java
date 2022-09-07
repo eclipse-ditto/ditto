@@ -10,7 +10,9 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.internal.utils.aggregator;
+package org.eclipse.ditto.things.service.aggregation;
+
+import static org.eclipse.ditto.things.api.ThingsMessagingConstants.THINGS_AGGREGATOR_ACTOR_NAME;
 
 import java.util.Collection;
 import java.util.Objects;
@@ -52,7 +54,7 @@ public final class ThingsAggregatorActor extends AbstractActor {
     /**
      * The name of this Actor in the ActorSystem.
      */
-    public static final String ACTOR_NAME = "aggregator";
+    public static final String ACTOR_NAME = THINGS_AGGREGATOR_ACTOR_NAME;
 
     private final ThreadSafeDittoLoggingAdapter log = DittoLoggerFactory.getThreadSafeDittoLoggingAdapter(this);
     private final ActorRef targetActor;

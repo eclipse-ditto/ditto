@@ -314,9 +314,10 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
 
     final class KafkaProducerStream {
 
-        private static final String TOO_MANY_IN_FLIGHT_MESSAGE_DESCRIPTION = "This can have the following reasons:\n" +
-                "a) The Kafka consumer does not consume the messages fast enough.\n" +
-                "b) The client count of this connection is not configured high enough.";
+        private static final String TOO_MANY_IN_FLIGHT_MESSAGE_DESCRIPTION = """ 
+                This can have the following reasons:
+                 a) The Kafka consumer does not consume the messages fast enough.
+                 b) The client count of this connection is not configured high enough.""";
 
         private final KillSwitch killSwitch;
         private final SourceQueueWithComplete<ProducerMessage.Envelope<String, ByteBuffer, CompletableFuture<RecordMetadata>>>

@@ -22,7 +22,6 @@ import org.assertj.core.api.JUnitSoftAssertions;
 import org.eclipse.ditto.connectivity.service.config.DefaultTimeoutConfig;
 import org.eclipse.ditto.connectivity.service.config.TimeoutConfig;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 

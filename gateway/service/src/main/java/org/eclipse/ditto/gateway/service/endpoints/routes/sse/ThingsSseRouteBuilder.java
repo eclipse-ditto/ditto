@@ -32,7 +32,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Supplier;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
@@ -662,7 +661,7 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
         if (null != thingIdString) {
             return Stream.of(thingIdString.split(","))
                     .map(ThingId::of)
-                    .collect(Collectors.toList());
+                    .toList();
         }
         return Collections.emptyList();
     }

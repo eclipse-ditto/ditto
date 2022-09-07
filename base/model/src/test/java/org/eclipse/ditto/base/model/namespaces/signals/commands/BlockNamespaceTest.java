@@ -19,12 +19,11 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 import java.util.UUID;
 
 import org.assertj.core.api.Assertions;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.junit.Before;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;

@@ -18,8 +18,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.function.Function;
 
-import akka.japi.function.Procedure;
-
 import org.eclipse.ditto.base.api.common.Shutdown;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.internal.models.streaming.LowerBound;
@@ -46,6 +44,7 @@ import akka.NotUsed;
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.japi.Pair;
+import akka.japi.function.Procedure;
 import akka.japi.pf.ReceiveBuilder;
 import akka.stream.javadsl.Sink;
 import akka.stream.javadsl.Source;
@@ -208,6 +207,7 @@ public final class BackgroundSyncActor
                 break;
             }
         }
+
         return level;
     }
 

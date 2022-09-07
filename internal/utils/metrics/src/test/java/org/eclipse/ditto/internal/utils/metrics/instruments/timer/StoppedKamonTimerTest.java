@@ -38,7 +38,7 @@ public class StoppedKamonTimerTest {
 
     @Test
     public void getDuration() {
-        assertThat(sut.getDuration().toNanos()).isGreaterThan(0);
+        assertThat(sut.getDuration().toNanos()).isPositive();
     }
 
     @Test

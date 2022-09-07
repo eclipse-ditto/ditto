@@ -44,8 +44,8 @@ public class PreparedKamonTimerTest {
     @Test
     public void getRecordsDoesNotResetRecords() {
         sut.record(1, TimeUnit.SECONDS);
-        assertThat(sut.getTotalTime()).isGreaterThan(0);
-        assertThat(sut.getTotalTime()).isGreaterThan(0);
+        assertThat(sut.getTotalTime()).isPositive();
+        assertThat(sut.getTotalTime()).isPositive();
     }
 
     @Test
@@ -53,7 +53,7 @@ public class PreparedKamonTimerTest {
         sut.record(1, TimeUnit.SECONDS);
         assertThat(sut.getTotalTime()).isCloseTo(TimeUnit.SECONDS.toNanos(1), Percentage.withPercentage(1));
         sut.reset();
-        assertThat(sut.getTotalTime()).isEqualTo(0);
+        assertThat(sut.getTotalTime()).isZero();
     }
 
     @Test

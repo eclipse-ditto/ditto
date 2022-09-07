@@ -60,6 +60,14 @@ import org.eclipse.ditto.internal.utils.http.HttpClientFacade;
 import org.eclipse.ditto.internal.utils.protocol.ProtocolAdapterProvider;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.things.model.ThingIdInvalidException;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.Mockito;
+import org.mockito.junit.MockitoJUnitRunner;
+
+import com.typesafe.config.ConfigFactory;
 
 import akka.actor.ActorSystem;
 import akka.http.javadsl.model.HttpRequest;
@@ -69,13 +77,6 @@ import akka.http.javadsl.model.headers.RawHeader;
 import akka.http.javadsl.testkit.TestRoute;
 import akka.http.javadsl.testkit.TestRouteResult;
 import akka.stream.SystemMaterializer;
-import com.typesafe.config.ConfigFactory;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.mockito.Mock;
-import org.mockito.Mockito;
-import org.mockito.junit.MockitoJUnitRunner;
 
 /**
  * Tests {@link RootRoute}.

@@ -38,7 +38,7 @@ public class KamonGaugeTest {
         sut.set(5L);
         assertThat(sut.get()).isEqualTo(5L);
         sut.reset();
-        assertThat(sut.get()).isEqualTo(0L);
+        assertThat(sut.get()).isZero();
     }
 
     @Test

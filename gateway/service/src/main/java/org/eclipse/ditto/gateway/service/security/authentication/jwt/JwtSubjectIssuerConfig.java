@@ -15,6 +15,7 @@ package org.eclipse.ditto.gateway.service.security.authentication.jwt;
 import static java.util.Objects.requireNonNull;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -31,7 +32,7 @@ import org.eclipse.ditto.policies.model.SubjectIssuer;
 public final class JwtSubjectIssuerConfig {
 
     private final SubjectIssuer subjectIssuer;
-    private final String issuer;
+    private final List<String> issuers;
     private final List<String> authSubjectTemplates;
 
     private static final List<String> DEFAULT_AUTH_SUBJECT = Collections.singletonList("{{jwt:sub}}");
@@ -40,34 +41,36 @@ public final class JwtSubjectIssuerConfig {
      * Constructs a new {@code JwtSubjectIssuerConfig}.
      *
      * @param subjectIssuer the subject issuer.
-     * @param issuer the issuer.
+     * @param issuers the issuer.
      *
      */
-    public JwtSubjectIssuerConfig(final SubjectIssuer subjectIssuer, final String issuer) {
-        this(subjectIssuer, issuer, DEFAULT_AUTH_SUBJECT);
+    public JwtSubjectIssuerConfig(final SubjectIssuer subjectIssuer, final Collection<String> issuers) {
+        this(subjectIssuer, issuers, DEFAULT_AUTH_SUBJECT);
     }
 
     /**
      * Constructs a new {@code JwtSubjectIssuerConfig}.
      *
      * @param subjectIssuer the subject issuer.
-     * @param issuer        the issuer.
+     * @param issuers        the list of issuers.
      * @param authSubjectTemplates  the authorization subject templates
      *
      */
-    public JwtSubjectIssuerConfig(final SubjectIssuer subjectIssuer, final String issuer, final List<String> authSubjectTemplates) {
+    public JwtSubjectIssuerConfig(final SubjectIssuer subjectIssuer,
+            final Collection<String> issuers,
+            final Collection<String> authSubjectTemplates) {
         this.subjectIssuer = requireNonNull(subjectIssuer);
-        this.issuer = requireNonNull(issuer);
+        this.issuers = Collections.unmodifiableList(new ArrayList<>(requireNonNull(issuers)));
         this.authSubjectTemplates = Collections.unmodifiableList(new ArrayList<>(requireNonNull(authSubjectTemplates)));
     }
 
     /**
-     * Returns the issuer.
+     * Returns the issuers.
      *
-     * @return the issuer.
+     * @return the issuers.
      */
-    public String getIssuer() {
-        return issuer;
+    public List<String> getIssuers() {
+        return issuers;
     }
 
     /**
@@ -93,21 +96,21 @@ public final class JwtSubjectIssuerConfig {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         final JwtSubjectIssuerConfig that = (JwtSubjectIssuerConfig) o;
-        return Objects.equals(issuer, that.issuer) &&
+        return Objects.equals(issuers, that.issuers) &&
                 Objects.equals(subjectIssuer, that.subjectIssuer) &&
                 Objects.equals(authSubjectTemplates, that.authSubjectTemplates);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(issuer, subjectIssuer, authSubjectTemplates);
+        return Objects.hash(issuers, subjectIssuer, authSubjectTemplates);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
                 "subjectIssuer=" + subjectIssuer +
-                ", issuer=" + issuer +
+                ", issuers=" + issuers +
                 ", authSubjectTemplates=" + authSubjectTemplates +
                 "]";
     }

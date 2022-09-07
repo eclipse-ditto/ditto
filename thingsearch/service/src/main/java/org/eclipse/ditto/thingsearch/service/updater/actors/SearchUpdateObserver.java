@@ -16,9 +16,8 @@ import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.internal.utils.extension.DittoExtensionPoint;
 import org.eclipse.ditto.internal.utils.extension.DittoExtensionIds;
-
+import org.eclipse.ditto.internal.utils.extension.DittoExtensionPoint;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.Metadata;
 
@@ -56,6 +55,7 @@ public interface SearchUpdateObserver extends DittoExtensionPoint {
         checkNotNull(actorSystem, "actorSystem");
         checkNotNull(config, "config");
         final var extensionIdConfig = ExtensionId.computeConfig(config);
+
         return DittoExtensionIds.get(actorSystem)
                 .computeIfAbsent(extensionIdConfig, ExtensionId::new)
                 .get(actorSystem);

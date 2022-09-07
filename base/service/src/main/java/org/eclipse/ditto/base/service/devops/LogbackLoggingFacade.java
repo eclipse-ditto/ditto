@@ -15,7 +15,6 @@ package org.eclipse.ditto.base.service.devops;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
 import javax.annotation.Nonnull;
@@ -70,9 +69,9 @@ public final class LogbackLoggingFacade implements LoggingFacade {
     @Override
     @Nonnull
     public List<LoggerConfig> getLoggerConfig(@Nonnull final Iterable<String> loggerNames) {
-        final List<Logger> loggerList = StreamSupport.stream(loggerNames.spliterator(), false) //
-                .map(logger -> (Logger) LoggerFactory.getLogger(logger)) //
-                .collect(Collectors.toList());
+        final List<Logger> loggerList = StreamSupport.stream(loggerNames.spliterator(), false)
+                .map(logger -> (Logger) LoggerFactory.getLogger(logger))
+                .toList();
 
         return loggerConfigsFor(loggerList);
     }
@@ -90,4 +89,5 @@ public final class LogbackLoggingFacade implements LoggingFacade {
 
         return loggerConfigList;
     }
+
 }

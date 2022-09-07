@@ -43,6 +43,14 @@ import javax.jms.JMSRuntimeException;
 import javax.jms.MessageConsumer;
 import javax.jms.MessageListener;
 
+import org.apache.qpid.jms.JmsAcknowledgeCallback;
+import org.apache.qpid.jms.message.JmsMessage;
+import org.apache.qpid.jms.message.JmsMessageSupport;
+import org.apache.qpid.jms.provider.amqp.AmqpConnection;
+import org.apache.qpid.jms.provider.amqp.message.AmqpJmsTextMessageFacade;
+import org.apache.qpid.jms.provider.exceptions.ProviderSecurityException;
+import org.apache.qpid.proton.amqp.Symbol;
+import org.awaitility.Awaitility;
 import org.eclipse.ditto.base.model.acks.AcknowledgementRequest;
 import org.eclipse.ditto.base.model.acks.FilteredAcknowledgementRequest;
 import org.eclipse.ditto.base.model.common.ResponseType;
@@ -79,6 +87,9 @@ import org.eclipse.ditto.protocol.adapter.ProtocolAdapter;
 import org.eclipse.ditto.things.model.signals.commands.modify.ModifyAttribute;
 import org.eclipse.ditto.things.model.signals.commands.modify.ModifyFeatureProperty;
 import org.eclipse.ditto.things.model.signals.commands.modify.ModifyThing;
+import org.hamcrest.Matchers;
+import org.junit.Test;
+import org.mockito.Mockito;
 
 import akka.NotUsed;
 import akka.actor.ActorRef;
@@ -88,17 +99,6 @@ import akka.actor.Props;
 import akka.stream.javadsl.Sink;
 import akka.testkit.TestProbe;
 import akka.testkit.javadsl.TestKit;
-import org.apache.qpid.jms.JmsAcknowledgeCallback;
-import org.apache.qpid.jms.message.JmsMessage;
-import org.apache.qpid.jms.message.JmsMessageSupport;
-import org.apache.qpid.jms.provider.amqp.AmqpConnection;
-import org.apache.qpid.jms.provider.amqp.message.AmqpJmsTextMessageFacade;
-import org.apache.qpid.jms.provider.exceptions.ProviderSecurityException;
-import org.apache.qpid.proton.amqp.Symbol;
-import org.awaitility.Awaitility;
-import org.hamcrest.Matchers;
-import org.junit.Test;
-import org.mockito.Mockito;
 
 /**
  * Tests the AMQP {@link AmqpConsumerActor}.

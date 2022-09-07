@@ -24,7 +24,6 @@ import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import javax.annotation.Nonnull;
@@ -148,7 +147,7 @@ public final class StatisticsActor extends AbstractActorWithStashWithTimers {
                             .getRoles()
                             .stream()
                             .filter(this::hasRelevantRole)
-                            .collect(Collectors.toList());
+                            .toList();
                     tellRelevantRootActorsToRetrieveStatistics(relevantRoles, retrieveStatistics);
                     becomeStatisticsDetailsAwaiting(relevantRoles, details ->
                             respondWithStatisticsDetails(retrieveStatistics, details, sender));

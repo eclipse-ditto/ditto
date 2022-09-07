@@ -149,7 +149,7 @@ public final class SignalFilter {
 
     private static Predicate<FilteredTopic> applyNamespaceFilter(final Signal<?> signal) {
         return t -> t.getNamespaces().isEmpty() ||
-                (signal instanceof WithEntityId && t.getNamespaces().contains(namespaceFromId((WithEntityId) signal)));
+                (signal instanceof WithEntityId withEntityId && t.getNamespaces().contains(namespaceFromId(withEntityId)));
     }
 
     @Nullable

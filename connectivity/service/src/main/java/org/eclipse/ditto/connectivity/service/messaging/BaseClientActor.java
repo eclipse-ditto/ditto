@@ -127,6 +127,8 @@ import org.eclipse.ditto.protocol.adapter.ProtocolAdapter;
 import org.eclipse.ditto.thingsearch.model.signals.commands.ThingSearchCommand;
 import org.eclipse.ditto.thingsearch.model.signals.commands.WithSubscriptionId;
 
+import com.typesafe.config.Config;
+
 import akka.Done;
 import akka.NotUsed;
 import akka.actor.AbstractFSMWithStash;
@@ -147,7 +149,6 @@ import akka.japi.pf.FSMStateFunctionBuilder;
 import akka.pattern.Patterns;
 import akka.stream.Materializer;
 import akka.stream.javadsl.Sink;
-import com.typesafe.config.Config;
 
 /**
  * Base class for ClientActors which implement the connection handling for various connectivity protocols.
@@ -1801,7 +1802,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
             inboundMappingProcessors = IntStream.range(0, processorPoolSize)
                     .mapToObj(i -> InboundMappingProcessor.of(connection, connectivityConfig, actorSystem,
                             protocolAdapter, logger))
-                    .collect(Collectors.toList());
+                    .toList();
         } catch (final DittoRuntimeException dre) {
             connectionLogger.failure("Failed to start message mapping processor due to: {0}", dre.getMessage());
             logger.info("Got DittoRuntimeException during initialization of MessageMappingProcessor: {} {} - desc: {}",

@@ -38,13 +38,13 @@ final class SaslPlainCredentialsSupplier implements PlainCredentialsSupplier {
     }
 
     @Override
-    public Optional<UserPasswordCredentials> get(final Connection connection, final boolean doubleDecodingEnabled) {
+    public Optional<UserPasswordCredentials> get(final Connection connection) {
         final Optional<Credentials> optionalCredentials = connection.getCredentials();
         if (optionalCredentials.isPresent()) {
             final var credentials = optionalCredentials.get();
             final var requestSigning = credentials.accept(amqpConnectionSigningExtension);
-            return requestSigning.createSignedCredentials().or(() -> FROM_URI.get(connection, doubleDecodingEnabled));
+            return requestSigning.createSignedCredentials().or(() -> FROM_URI.get(connection));
         }
-        return FROM_URI.get(connection, doubleDecodingEnabled);
+        return FROM_URI.get(connection);
     }
 }

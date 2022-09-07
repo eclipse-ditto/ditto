@@ -27,6 +27,7 @@ import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
+import org.assertj.core.api.AutoCloseableSoftAssertions;
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.auth.AuthorizationModelFactory;
 import org.eclipse.ditto.base.model.auth.DittoAuthorizationContextType;
@@ -71,6 +72,12 @@ import org.eclipse.ditto.things.model.signals.commands.ThingErrorResponse;
 import org.eclipse.ditto.things.model.signals.commands.modify.ModifyAttribute;
 import org.eclipse.ditto.things.model.signals.commands.modify.ModifyAttributeResponse;
 import org.eclipse.ditto.utils.jsr305.annotations.AllParametersAndReturnValuesAreNonnullByDefault;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Rule;
+import org.mockito.Mockito;
+
+import com.typesafe.config.ConfigValueFactory;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSelection;
@@ -82,12 +89,6 @@ import akka.stream.OverflowStrategy;
 import akka.stream.scaladsl.Source;
 import akka.testkit.TestProbe;
 import akka.testkit.javadsl.TestKit;
-import com.typesafe.config.ConfigValueFactory;
-import org.assertj.core.api.AutoCloseableSoftAssertions;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Rule;
-import org.mockito.Mockito;
 
 /**
  * Abstract class to setup the infrastructure to test MessageMappingProcessorActor.

@@ -60,7 +60,7 @@ public class PreparedKamonTraceTest {
         underTest.correlationId(null);
         underTest.connectionType(null);
         underTest.connectionId(null);
-        assertThat(underTest.getTags()).hasSize(0);
+        assertThat(underTest.getTags()).isEmpty();
     }
 
     @Test

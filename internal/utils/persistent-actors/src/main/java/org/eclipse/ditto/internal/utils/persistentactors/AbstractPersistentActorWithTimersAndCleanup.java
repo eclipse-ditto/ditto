@@ -171,12 +171,12 @@ public abstract class AbstractPersistentActorWithTimersAndCleanup extends Abstra
     private String getResponseStatus(@Nullable final Protocol.Message message) {
         if (message == null) {
             return "no response received";
-        } else if (message instanceof DeleteSnapshotsFailure) {
+        } else if (message instanceof DeleteSnapshotsFailure deleteSnapshotsFailure) {
             return String.format("%s (%s)", message.getClass().getSimpleName(),
-                    ((DeleteSnapshotsFailure) message).cause().getMessage());
-        } else if (message instanceof DeleteMessagesFailure) {
+                    deleteSnapshotsFailure.cause().getMessage());
+        } else if (message instanceof DeleteMessagesFailure deleteMessagesFailure) {
             return String.format("%s (%s)", message.getClass().getSimpleName(),
-                    ((DeleteMessagesFailure) message).cause().getMessage());
+                    deleteMessagesFailure.cause().getMessage());
         } else {
             return message.getClass().getSimpleName();
         }

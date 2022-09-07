@@ -77,7 +77,7 @@ and represents the actual use of Ditto as a  northbound service.*
   ]
 }
 ```
-- [Further information on creating connections](https://www.eclipse.org/ditto/connectivity-manage-connections.html)
+- [Further information on creating connections](https://websites.eclipseprojects.io/ditto/connectivity-manage-connections.html)
 
 - [Further information on D2C messaging capabilities of Azure IoT Hub](https://docs.microsoft.com/en-us/azure/iot-hub/iot-hub-devguide-messages-d2c)
 
@@ -162,9 +162,9 @@ function mapFromDittoProtocolMsg(
 }
 ```
 
-- [Further information on creating connections](https://www.eclipse.org/ditto/connectivity-manage-connections.html)
+- [Further information on creating connections](https://websites.eclipseprojects.io/ditto/connectivity-manage-connections.html)
 
-- [Further information on payload-mapping](https://www.eclipse.org/ditto/connectivity-mapping.html)
+- [Further information on payload-mapping](https://websites.eclipseprojects.io/ditto/connectivity-mapping.html)
 
 - [Further information on C2D messaging capabilities of Azure IoT Hub](https://docs.microsoft.com/de-de/azure/iot-hub/iot-hub-devguide-messages-c2d)
 

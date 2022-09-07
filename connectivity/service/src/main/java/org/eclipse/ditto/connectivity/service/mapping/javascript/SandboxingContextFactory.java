@@ -62,9 +62,8 @@ final class SandboxingContextFactory extends ContextFactory {
 
     @Override
     public boolean hasFeature(final Context cx, final int featureIndex) {
-        switch (featureIndex) {
-            case Context.FEATURE_MEMBER_EXPR_AS_FUNCTION_NAME:
-                return true;
+        if (featureIndex == Context.FEATURE_MEMBER_EXPR_AS_FUNCTION_NAME) {
+            return true;
         }
         return super.hasFeature(cx, featureIndex);
     }

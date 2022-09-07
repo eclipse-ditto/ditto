@@ -18,7 +18,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Predicate;
-import java.util.stream.Collectors;
 
 import javax.annotation.concurrent.Immutable;
 
@@ -143,7 +142,7 @@ public final class PreAuthenticatedAuthenticationProvider
                 .map(String::trim)
                 .filter(Predicate.not(String::isEmpty))
                 .map(AuthorizationModelFactory::newAuthSubject)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private static DittoRuntimeException buildFailedToExtractAuthorizationSubjectsException(
