@@ -50,7 +50,17 @@ public final class ShardRegionCreator {
         return start(system, shardRegionName, props, extractor, clusterRole);
     }
 
-    static ActorRef start(final ActorSystem system, final String shardRegionName, final Props props,
+    /**
+     * Create a shard region using a custom hand-off message.
+     *
+     * @param system The actor system.
+     * @param shardRegionName The shard region name.
+     * @param props Props of the sharded actors.
+     * @param extractor The shard region extractor.
+     * @param clusterRole The cluster role whose members will start this shard region.
+     * @return actor reference of the started shard region.
+     */
+    public static ActorRef start(final ActorSystem system, final String shardRegionName, final Props props,
             final ShardRegion.MessageExtractor extractor, final String clusterRole) {
         final var clusterSharding = ClusterSharding.get(system);
         final var settings = ClusterShardingSettings.create(system).withRole(clusterRole);
