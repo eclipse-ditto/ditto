@@ -170,6 +170,9 @@ public final class InboundMappingProcessor
                                             signalWithMapperHeader);
                             mappedMessages.add(mappedMessage);
                         } catch (final Exception e) {
+                            logger.withCorrelationId(e instanceof WithDittoHeaders wdh ? wdh.getDittoHeaders() : adaptable.getDittoHeaders())
+                                    .info("Exception during inbound adaptable conversion to Signal: <{}: {}>",
+                                            e.getClass().getSimpleName(), e.getMessage());
                             return Stream.of(MappingOutcome.error(mapper.getId(),
                                     toDittoRuntimeException(e, mapper, adaptable.getDittoHeaders(), message),
                                     adaptable.getTopicPath(),
