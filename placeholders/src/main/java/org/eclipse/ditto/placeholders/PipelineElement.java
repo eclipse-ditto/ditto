@@ -73,17 +73,6 @@ public interface PipelineElement extends Iterable<String> {
      * @param visitor the visitor.
      * @param <T> the type of results.
      * @return the evaluation result.
-     * @deprecated Since 2.4.0. Use {@link #evaluate(PipelineElementVisitor)} instead.
-     */
-    @Deprecated
-    <T> T accept(PipelineElementVisitor<T> visitor);
-
-    /**
-     * Evaluate this pipeline element by a visitor.
-     *
-     * @param visitor the visitor.
-     * @param <T> the type of results.
-     * @return the evaluation result.
      * @since 2.4.0
      */
     <T> List<T> evaluate(PipelineElementVisitor<T> visitor);
@@ -121,15 +110,6 @@ public interface PipelineElement extends Iterable<String> {
      */
     default Optional<String> findFirst() {
         return toStream().findFirst();
-    }
-
-    /**
-     * @return an optional holding the first resolved value. Empty if no values were resolved.
-     * @deprecated Use {@link #findFirst()} instead because of more explicit naming.
-     */
-    @Deprecated
-    default Optional<String> toOptional() {
-        return findFirst();
     }
 
     /**

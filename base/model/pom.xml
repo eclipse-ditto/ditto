@@ -135,6 +135,10 @@
                             <exclude>org.eclipse.ditto.base.model.signals.commands.exceptions</exclude>
                             <exclude>org.eclipse.ditto.base.model.headers.DittoHeaderDefinition#POLICY_ENFORCER_INVALIDATED_PREEMPTIVELY</exclude>
                             <exclude>org.eclipse.ditto.base.model.headers.DittoHeadersSizeChecker</exclude>
+                            <exclude>org.eclipse.ditto.base.model.entity.id.RegexPatterns</exclude>
+                            <exclude>org.eclipse.ditto.base.model.exceptions.DittoHeaderInvalidException#newCustomMessageBuilder(java.lang.String)</exclude>
+                            <exclude>org.eclipse.ditto.base.model.namespaces.signals.commands.PurgeNamespaceResponse$JsonFields</exclude>
+                            <exclude>org.eclipse.ditto.base.model.signals.commands.CommandResponseJsonDeserializer</exclude>
                         </excludes>
                     </parameter>
                 </configuration>

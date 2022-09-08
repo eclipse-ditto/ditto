@@ -4,3 +4,4 @@ _site/
 .jekyll-cache
 _pdf
 /openapi/sources/node_modules/
+/Gemfile.lock

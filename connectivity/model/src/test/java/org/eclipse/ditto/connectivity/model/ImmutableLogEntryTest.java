@@ -121,14 +121,13 @@ public class ImmutableLogEntryTest {
         final JsonObject json = logEntry.toJson();
 
         assertThat(json.getValue(LogEntry.JsonFields.ADDRESS.getPointer())).isEmpty();
-        assertThat(json.getValue(LogEntry.JsonFields.THING_ID.getPointer())).isEmpty();
+        assertThat(json.getValue(LogEntry.JsonFields.ENTITY_ID.getPointer())).isEmpty();
     }
 
     @Test
     public void jsonWithMissingThingIdAndAddress() {
         final JsonObject json = getLogEntryJson()
                 .remove(LogEntry.JsonFields.ADDRESS.getPointer().toString())
-                .remove(LogEntry.JsonFields.THING_ID.getPointer().toString())
                 .remove(LogEntry.JsonFields.ENTITY_ID.getPointer().toString());
         final LogEntry logEntry = ImmutableLogEntry.fromJson(json);
 
@@ -196,8 +195,8 @@ public class ImmutableLogEntryTest {
                 .set(LogEntry.JsonFields.MESSAGE, MESSAGE)
                 .set(LogEntry.JsonFields.LEVEL, LEVEL.getLevel())
                 .set(LogEntry.JsonFields.ADDRESS, ADDRESS)
-                .set(LogEntry.JsonFields.THING_ID, THING_ID.toString())
                 .set(LogEntry.JsonFields.ENTITY_ID, THING_ID.toString())
+                .set(LogEntry.JsonFields.ENTITY_TYPE, THING_ID.getEntityType().toString())
                 .build();
     }
 

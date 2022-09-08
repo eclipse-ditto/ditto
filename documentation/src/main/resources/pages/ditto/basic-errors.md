@@ -71,7 +71,7 @@ The optional href contains a link to Ditto documentation or external resources i
   "error": "messages:id.invalid",
   "message": "Thing ID 'foobar2000' is not valid!",
   "description": "It must conform to the namespaced entity ID notation (see Ditto documentation)",
-  "href": "https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id"
+  "href": "https://websites.eclipseprojects.io/ditto/basic-namespaces-and-names.html#namespaced-id"
 }
 ```
 

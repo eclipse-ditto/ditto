@@ -1108,7 +1108,6 @@ public final class ImmutableThingTest {
                 .contains(Thing.JsonFields.DEFINITION, JsonValue.of(DEFINITION.toString()));
         DittoJsonAssertions.assertThat(jsonObject)
                 .contains(Thing.JsonFields.FEATURES, FEATURES.toJson());
-        DittoJsonAssertions.assertThat(jsonObject).doesNotContain(Thing.JsonFields.SCHEMA_VERSION);
         DittoJsonAssertions.assertThat(jsonObject).doesNotContain(Thing.JsonFields.REVISION);
         DittoJsonAssertions.assertThat(jsonObject).doesNotContain(Thing.JsonFields.NAMESPACE);
         DittoJsonAssertions.assertThat(jsonObject).doesNotContain(Thing.JsonFields.LIFECYCLE);
