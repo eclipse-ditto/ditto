@@ -12,7 +12,7 @@
     "error": "policies:id.invalid",
     "message": "Policy ID 'invalid id' is not valid!",
     "description": "It must conform to the namespaced entity ID notation (see Ditto documentation)",
-    "href": "https://websites.eclipseprojects.io/ditto/basic-namespaces-and-names.html#namespaced-id"
+    "href": "https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id"
   },
   "status": 400
 }

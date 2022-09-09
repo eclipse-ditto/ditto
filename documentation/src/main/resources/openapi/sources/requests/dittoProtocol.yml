@@ -56,5 +56,5 @@ content:
       }
     }
 description: |-
-  The [Ditto Protocol JSON](https://websites.eclipseprojects.io/ditto/protocol-specification.html) payload defining which
+  The [Ditto Protocol JSON](https://www.eclipse.org/ditto/protocol-specification.html) payload defining which
   command to process.

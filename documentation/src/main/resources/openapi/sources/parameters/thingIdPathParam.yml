@@ -11,7 +11,7 @@
 name: thingId
 in: path
 description: |-
-  The ID of a thing needs to follow the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://websites.eclipseprojects.io/ditto/basic-namespaces-and-names.html#namespaced-id)).
+  The ID of a thing needs to follow the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id)).
 required: true
 schema:
   type: string
