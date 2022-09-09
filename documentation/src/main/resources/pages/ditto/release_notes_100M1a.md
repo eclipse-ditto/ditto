@@ -50,7 +50,7 @@ Contribution was extracted from former commercial-only client - all references t
 ### [Configurable authorization servers](https://github.com/eclipse/ditto/pull/477)
 
 Eclipse Ditto now supports all OAuth 2.0 providers which implement OpenID Connect out-of-the-box. See this 
-[blog post](https://websites.eclipseprojects.io/ditto/2019-08-28-openid-connect.html) for more details.
+[blog post](https://www.eclipse.org/ditto/2019-08-28-openid-connect.html) for more details.
  
 ### [Fine grained access for connections](https://github.com/eclipse/ditto/pull/463)
 

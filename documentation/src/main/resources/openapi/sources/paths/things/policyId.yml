@@ -53,7 +53,7 @@ get:
     '400':
       description: |-
         The request could not be completed. Possible reasons:
-          * the `thingId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://websites.eclipseprojects.io/ditto/basic-namespaces-and-names.html#namespaced-id)).
+          * the `thingId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id)).
       content:
         application/json:
           schema:
@@ -107,7 +107,7 @@ put:
       description: |-
         The request could not be completed. Possible reasons:
 
-          * the `thingId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://websites.eclipseprojects.io/ditto/basic-namespaces-and-names.html#namespaced-id))
+          * the `thingId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id))
       content:
         application/json:
           schema:
@@ -142,7 +142,7 @@ put:
       The policy is used for controlling access to this thing. It is managed by
       resource `/policies/{policyId}`.
 
-      The ID of a policy needs to conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://websites.eclipseprojects.io/ditto/basic-namespaces-and-names.html#namespaced-id)).
+      The ID of a policy needs to conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id)).
     required: true
 patch:
   summary: Patch the policy ID of a thing
@@ -179,7 +179,7 @@ patch:
       description: |-
         The request could not be completed. Possible reasons:
 
-          * the `thingId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://websites.eclipseprojects.io/ditto/basic-namespaces-and-names.html#namespaced-id))
+          * the `thingId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id))
           * the `policyId` can not be removed from a thing.
       content:
         application/json:
@@ -213,5 +213,5 @@ patch:
     description: |-
       The policy is used for controlling access to this thing. It is managed by resource `/policies/{policyId}`.
 
-      The ID of a policy needs to conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://websites.eclipseprojects.io/ditto/basic-namespaces-and-names.html#namespaced-id)).
+      The ID of a policy needs to conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id)).
     required: true
